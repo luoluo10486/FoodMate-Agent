@@ -1,10 +1,10 @@
-# CookHero Agent 技术选型说明
+# CookHero 技术选型
 
 版本：v1.0  
-对应总设计：[CookHero-Agent-Design-Spec.md](./CookHero-Agent-Design-Spec.md)  
-对应产品文档：[PRD.md](./PRD.md)  
-对应接口文档：[API-SPEC.md](./API-SPEC.md)  
-对应提示词与工具协议：[PROMPT-AND-TOOLS.md](./PROMPT-AND-TOOLS.md)
+对应总设计：[CookHero-总体设计.md](./CookHero-总体设计.md)  
+对应产品文档：[CookHero-产品需求文档.md](./CookHero-产品需求文档.md)  
+对应接口文档：[CookHero-接口规范.md](./CookHero-接口规范.md)  
+对应提示词与工具协议：[CookHero-提示词与工具协议.md](./CookHero-提示词与工具协议.md)
 
 ---
 
@@ -60,15 +60,16 @@ Agent 系统最怕“能跑但不好维护”。因此选型要优先考虑：
 这是我建议的默认方案：
 
 - **前端**：React + Vite + TypeScript
-- **后端 API**：FastAPI + Python
-- **Agent 编排**：Python 自研状态机 + 可选 LangGraph
+- **后端 API**：Java 21 + Spring Boot 3 + Spring WebFlux
+- **Agent 编排**：自研状态机 + Spring AI / LangChain4j
 - **RAG 检索**：PostgreSQL + pgvector
-- **缓存与队列**：Redis
+- **缓存**：Redis
+- **消息队列**：RabbitMQ
 - **对象存储**：MinIO 或 S3 兼容存储
-- **异步任务**：Celery + Redis
-- **鉴权**：JWT + Refresh Token
+- **异步任务**：Spring AMQP + `@Async` + Quartz
+- **鉴权**：Spring Security + JWT + Refresh Token
 - **监控**：OpenTelemetry + Prometheus + Grafana
-- **日志**：结构化日志 + Loki / ELK
+- **日志**：Logback + 结构化日志 + Loki / ELK
 - **错误追踪**：Sentry
 
 ### 3.2 为什么是这个组合
@@ -82,14 +83,15 @@ Agent 系统最怕“能跑但不好维护”。因此选型要优先考虑：
 - React 组件生态成熟，适合复杂页面
 - TypeScript 适合长期维护
 
-#### 后端选 FastAPI + Python
+#### 后端选 Java + Spring Boot
 
 原因：
 
-- Agent 和 RAG 生态大多以 Python 更成熟
-- Pydantic 对结构化输入输出非常友好
-- FastAPI 对流式接口和异步支持好
-- 适合快速定义工具 schema 和执行器
+- Java 更适合长期工程化和分层维护
+- Spring Boot 的生态适合业务系统、鉴权、审计和接口治理
+- Spring WebFlux 适合 SSE 和流式响应
+- Spring AI / LangChain4j 适合接入模型、工具调用和 RAG 能力
+- DTO、校验、事务和依赖注入更适合稳定后端治理
 
 #### 检索选 PostgreSQL + pgvector
 
@@ -163,9 +165,12 @@ Agent 系统最怕“能跑但不好维护”。因此选型要优先考虑：
 
 | 技术 | 选择 | 作用 |
 |---|---|---|
-| FastAPI | 推荐 | 对外 API、流式响应、异步处理 |
-| Pydantic v2 | 推荐 | 请求/响应 schema 定义 |
-| Uvicorn | 推荐 | ASGI Server |
+| Spring Boot 3 | 强烈推荐 | 对外 API、业务编排、依赖注入 |
+| Spring WebFlux | 推荐 | 流式响应、SSE、非阻塞接口 |
+| Spring Validation | 推荐 | 请求参数校验 |
+| Jackson | 推荐 | JSON 序列化与反序列化 |
+| Lombok | 可选 | 简化 DTO / Entity 代码 |
+| JDK 21 | 推荐 | 长期支持版本，适合生产 |
 
 ### 5.2 业务框架
 
@@ -186,11 +191,11 @@ Agent 系统最怕“能跑但不好维护”。因此选型要优先考虑：
 - 流式和异步处理不够灵活
 - Agent 编排实现被框架绑死
 
-FastAPI 更适合：
+Spring Boot 更适合：
 
 - 快速定义接口
 - 明确分层
-- 更容易接入 Python AI 生态
+- 更容易做权限、审计、事务和领域建模
 
 ---
 
@@ -202,7 +207,7 @@ FastAPI 更适合：
 
 - 以自研状态机为核心
 - 将 Agent 任务执行拆成可控步骤
-- 对复杂编排场景可引入 LangGraph 作为辅助
+- 对复杂编排场景可引入 Spring AI 的对话/工具封装，或在必要时引入 LangChain4j 做补充
 
 ### 6.2 为什么不完全依赖黑盒框架
 
@@ -290,7 +295,7 @@ Agent 编排层至少要支持：
 
 ## 8. 任务与异步执行选型
 
-### 8.1 异步队列：Celery + Redis
+### 8.1 异步队列：RabbitMQ + Redis + Spring Worker
 
 适合承载：
 
@@ -299,6 +304,7 @@ Agent 编排层至少要支持：
 - 计划生成
 - 报告生成
 - 批量分析
+- 文档切分与索引
 
 ### 8.2 为什么需要队列
 
@@ -307,6 +313,7 @@ Agent 编排层至少要支持：
 - 单轮耗时不可控
 - 任务依赖多个工具
 - 需要后台执行和前端轮询/订阅
+- 需要事务外的异步恢复能力
 
 队列可把“请求线程”和“执行线程”解耦。
 
@@ -349,6 +356,7 @@ MVP 不建议一开始就把检索系统拆得很重，因为会增加：
 - 支持 OpenAI-Compatible API
 - 支持多模型提供商切换
 - 支持不同场景选择不同模型
+- 通过 Spring AI 统一模型适配层，避免业务代码直接依赖具体厂商 SDK
 
 ### 10.2 模型能力要求
 
@@ -500,29 +508,31 @@ MVP 不建议一开始就把检索系统拆得很重，因为会增加：
 
 缺点：
 
-- AI/Agent 生态相对 Python 弱一些
-- RAG 和实验工具链不如 Python 成熟
+- 业务治理、事务、权限和领域建模通常不如 Java/Spring 自然
+- 对复杂后端分层的约束力弱一些
 
-### 15.2 纯 Python 全栈
+### 15.2 Java + Spring Boot 全栈
 
 优点：
 
-- AI 生态好
-- 适合快速做 Agent
+- 工程化强，适合长期维护
+- 事务、校验、鉴权、审计、分层更自然
+- SSE、WebFlux、批处理、任务调度都能统一治理
+- 便于和企业级中台、权限系统、日志系统集成
 
 缺点：
 
-- 前端仍需单独处理
-- UI 和业务代码分离明显
+- 原型验证速度略慢于纯脚本式实现
+- 需要更规范的包结构和接口设计
 
 ### 15.3 推荐结论
 
 对于这个项目，推荐：
 
 - 前端：React + Vite + TypeScript
-- 后端：FastAPI + Python
+- 后端：Java 21 + Spring Boot 3 + Spring WebFlux
 
-这是目前平衡“前端开发效率”和“Agent 生态成熟度”的最佳折中。
+这是目前平衡“前端开发效率”和“工程化后端治理能力”的最佳折中。
 
 ---
 
@@ -531,12 +541,11 @@ MVP 不建议一开始就把检索系统拆得很重，因为会增加：
 如果只给一个最实用的推荐答案：
 
 - **前端**：React + Vite + TypeScript + Tailwind + shadcn/ui
-- **后端**：FastAPI + Pydantic + Uvicorn
-- **Agent**：自研状态机编排 + 可选 LangGraph
+- **后端**：Java 21 + Spring Boot 3 + Spring WebFlux + Spring Security
+- **Agent**：自研状态机编排 + Spring AI / LangChain4j
 - **检索**：PostgreSQL + pgvector
-- **缓存/队列**：Redis + Celery
+- **缓存/队列**：Redis + RabbitMQ
 - **存储**：MinIO / S3
 - **监控**：OpenTelemetry + Prometheus + Grafana + Sentry
 
 这套组合最适合先把 CookHero 这个垂直 Agent 产品做成稳定、可维护、可扩展的工程系统。
-

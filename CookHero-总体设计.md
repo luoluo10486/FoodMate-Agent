@@ -1,4 +1,4 @@
-# CookHero Agent 设计方案
+# CookHero 总体设计
 
 > 目标：基于截图中的交互形态，设计一个可落地、可扩展、可评估的智能 Agent 系统。本文不是简单的“聊天机器人方案”，而是一份面向实现的系统设计文档，重点解决：
 > 1. 这是一个什么类型的系统；
@@ -1000,7 +1000,7 @@ System Prompt 应明确 Agent 的职责边界：
 
 ### 15.2 后端
 
-- Node.js / Python / Go 任一
+- Java 21 / Spring Boot 3 / Spring WebFlux
 - 支持 SSE 或 WebSocket
 - 任务异步执行
 - 状态持久化
@@ -1235,4 +1235,3 @@ RAG 只解决知识查找，不解决：
 3. **Agent Prompt 与工具协议文档**
 
 这样就可以从“设计”直接进入“实现”。
-

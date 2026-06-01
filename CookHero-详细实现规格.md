@@ -1,16 +1,16 @@
-# CookHero Agent 详细实现规格
+# CookHero 详细实现规格
 
 版本：v2.0  
 文档定位：这是 CookHero 项目的详细总规格，作为 PRD、架构、API、Prompt、技术选型等文档的“落地级补充”。如果你要开始拆研发任务、前后端接口、Agent 行为、测试用例和验收标准，优先读这份。
 
 对应文档：
 
-- [CookHero-Agent-Design-Spec.md](./CookHero-Agent-Design-Spec.md)
-- [PRD.md](./PRD.md)
-- [ARCHITECTURE.md](./ARCHITECTURE.md)
-- [API-SPEC.md](./API-SPEC.md)
-- [PROMPT-AND-TOOLS.md](./PROMPT-AND-TOOLS.md)
-- [TECH-STACK.md](./TECH-STACK.md)
+- [CookHero-总体设计.md](./CookHero-总体设计.md)
+- [CookHero-产品需求文档.md](./CookHero-产品需求文档.md)
+- [CookHero-架构设计.md](./CookHero-架构设计.md)
+- [CookHero-接口规范.md](./CookHero-接口规范.md)
+- [CookHero-提示词与工具协议.md](./CookHero-提示词与工具协议.md)
+- [CookHero-技术选型.md](./CookHero-技术选型.md)
 
 ---
 
@@ -954,6 +954,54 @@ System Prompt 必须明确：
 - 流式输出测试
 - 失败恢复测试
 
+### 16.4 Java 后端实现建议
+
+如果后端采用 Java，建议按下面方式落地：
+
+#### 服务划分
+
+- `api`：对外 Controller、鉴权入口、SSE 输出
+- `orchestrator`：Agent 编排、任务状态机、计划执行
+- `retriever`：知识检索、重排、引用组装
+- `tool`：确定性工具、外部系统集成
+- `worker`：异步任务、文档处理、批量分析
+- `repository`：数据库访问层
+
+#### 推荐 Spring 生态
+
+- `Spring Boot 3`
+- `Spring WebFlux`
+- `Spring Security`
+- `Spring Validation`
+- `Spring Data JPA / JDBC`
+- `Spring AI`
+- `Spring AMQP`
+- `Spring Scheduler` 或 `Quartz`
+
+#### 代码组织建议
+
+```text
+com.cookhero
+  ├── api
+  ├── application
+  ├── domain
+  ├── infrastructure
+  ├── orchestrator
+  ├── retriever
+  ├── tool
+  ├── worker
+  ├── security
+  └── shared
+```
+
+#### 关键实现原则
+
+- Controller 不写业务逻辑
+- Orchestrator 只做编排，不做底层 IO
+- Tool 只负责确定性执行
+- Retriever 只负责召回和证据整理
+- Validator 只负责规则校验，不负责生成文本
+
 ---
 
 ## 17. 迭代路线
@@ -1004,4 +1052,3 @@ System Prompt 必须明确：
 - 不会一上来就被 Agent 逻辑拖进黑盒
 - 每个模块都能单独验收
 - 后续迭代不会推翻重来
-

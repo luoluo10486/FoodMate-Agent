@@ -1,9 +1,9 @@
-# CookHero Agent Prompt 与工具协议
+# CookHero 提示词与工具协议
 
 版本：v1.0  
-对应总设计：[CookHero-Agent-Design-Spec.md](./CookHero-Agent-Design-Spec.md)  
-对应产品文档：[PRD.md](./PRD.md)  
-对应接口文档：[API-SPEC.md](./API-SPEC.md)
+对应总设计：[CookHero-总体设计.md](./CookHero-总体设计.md)  
+对应产品文档：[CookHero-产品需求文档.md](./CookHero-产品需求文档.md)  
+对应接口文档：[CookHero-接口规范.md](./CookHero-接口规范.md)
 
 ---
 
@@ -824,4 +824,3 @@ Planner 输出示例：
 - tool schema 版本化
 - output schema 版本化
 - 回归测试集版本化
-

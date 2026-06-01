@@ -1,8 +1,8 @@
-# CookHero Agent API 与数据规范
+# CookHero 接口规范
 
 版本：v1.0  
-对应总设计：[CookHero-Agent-Design-Spec.md](./CookHero-Agent-Design-Spec.md)  
-对应产品文档：[PRD.md](./PRD.md)
+对应总设计：[CookHero-总体设计.md](./CookHero-总体设计.md)  
+对应产品文档：[CookHero-产品需求文档.md](./CookHero-产品需求文档.md)
 
 ---
 
@@ -732,3 +732,84 @@ data: {"tool_name":"nutrition_lookup","status":"success"}
 - Tool 层负责确定性执行
 - RAG 层负责召回和引用
 
+---
+
+## 14. Java 落地建议
+
+### 14.1 推荐后端实现栈
+
+| 技术 | 选择 | 作用 |
+|---|---|---|
+| JDK 21 | 强烈推荐 | 生产运行时 |
+| Spring Boot 3 | 强烈推荐 | Web API、依赖注入、业务编排 |
+| Spring WebFlux | 推荐 | SSE、流式输出、非阻塞请求 |
+| Spring Security | 推荐 | 鉴权、授权、接口保护 |
+| Spring Validation | 推荐 | 参数校验 |
+| Spring Data JPA / JDBC | 推荐 | 数据访问层 |
+| Spring AI | 推荐 | 模型接入、工具调用、RAG 封装 |
+| Jackson | 推荐 | JSON 序列化 |
+| Lombok | 可选 | 减少样板代码 |
+
+### 14.2 Java 分层建议
+
+建议后端按以下包结构组织：
+
+- `controller`
+- `dto`
+- `service`
+- `orchestrator`
+- `tool`
+- `retriever`
+- `validator`
+- `repository`
+- `domain`
+- `security`
+- `worker`
+
+### 14.3 DTO 与校验约定
+
+建议所有输入输出都使用明确 DTO，不直接暴露 Entity。
+
+约束：
+
+- 请求参数使用 `@Valid`
+- 必填字段必须明确标记
+- 枚举字段必须有限定值
+- 金额、份量、时间范围等字段必须有明确类型
+
+### 14.4 流式接口约定
+
+Java 实现流式回答时，推荐：
+
+- 控制层使用 `Spring WebFlux`
+- 事件输出使用 SSE
+- 每个事件携带 `eventType`、`runId`、`timestamp`、`payload`
+- 前端按事件增量渲染
+
+### 14.5 工具实现约定
+
+工具层建议定义统一接口：
+
+```java
+public interface AgentTool<I, O> {
+    String name();
+    O execute(I input);
+}
+```
+
+然后由工厂或注册器统一管理：
+
+- 工具元信息
+- 参数 schema
+- 权限
+- 超时
+- 重试策略
+
+### 14.6 Java 版接口落地原则
+
+- Controller 只负责入参、鉴权、返回
+- Service 负责业务逻辑
+- Orchestrator 负责多步编排
+- Tool 负责确定性执行
+- Retriever 负责检索
+- Validator 负责校验
