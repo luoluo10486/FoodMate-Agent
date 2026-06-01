@@ -64,9 +64,9 @@ Agent 系统最怕“能跑但不好维护”。因此选型要优先考虑：
 - **Agent 编排**：自研状态机 + Spring AI / LangChain4j
 - **RAG 检索**：PostgreSQL + pgvector
 - **缓存**：Redis
-- **消息队列**：RabbitMQ
+- **消息队列**：RocketMQ
 - **对象存储**：MinIO 或 S3 兼容存储
-- **异步任务**：Spring AMQP + `@Async` + Quartz
+- **异步任务**：RocketMQ Starter + `@Async` + Quartz
 - **鉴权**：Spring Security + JWT + Refresh Token
 - **监控**：OpenTelemetry + Prometheus + Grafana
 - **日志**：Logback + 结构化日志 + Loki / ELK
@@ -295,7 +295,7 @@ Agent 编排层至少要支持：
 
 ## 8. 任务与异步执行选型
 
-### 8.1 异步队列：RabbitMQ + Redis + Spring Worker
+### 8.1 异步队列：RocketMQ + Redis + Spring Worker
 
 适合承载：
 
@@ -544,7 +544,7 @@ MVP 不建议一开始就把检索系统拆得很重，因为会增加：
 - **后端**：Java 21 + Spring Boot 3 + Spring WebFlux + Spring Security
 - **Agent**：自研状态机编排 + Spring AI / LangChain4j
 - **检索**：PostgreSQL + pgvector
-- **缓存/队列**：Redis + RabbitMQ
+- **缓存/队列**：Redis + RocketMQ
 - **存储**：MinIO / S3
 - **监控**：OpenTelemetry + Prometheus + Grafana + Sentry
 

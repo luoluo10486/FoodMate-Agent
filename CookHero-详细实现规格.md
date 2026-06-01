@@ -975,7 +975,7 @@ System Prompt 必须明确：
 - `Spring Validation`
 - `Spring Data JPA / JDBC`
 - `Spring AI`
-- `Spring AMQP`
+- `RocketMQ Starter`
 - `Spring Scheduler` 或 `Quartz`
 
 #### 代码组织建议

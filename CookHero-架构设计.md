@@ -780,6 +780,6 @@ flowchart TB
 - 鉴权与权限用 Spring Security
 - Agent 自研状态机，必要时结合 Spring AI / LangChain4j
 - 检索基于 PostgreSQL + pgvector
-- 异步任务基于 RabbitMQ + Redis + Spring Worker
+- 异步任务基于 RocketMQ + Redis + Spring Worker
 
 这会让 CookHero 从第一天开始就具备工程可持续性。
