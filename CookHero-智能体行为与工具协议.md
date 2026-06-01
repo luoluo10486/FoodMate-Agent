@@ -1,9 +1,9 @@
-# CookHero 提示词与工具协议
+# CookHero 智能体行为与工具协议
 
 版本：v1.0  
-对应总设计：[CookHero-总体设计.md](./CookHero-总体设计.md)  
+对应总设计：[CookHero-系统设计与技术方案.md](./CookHero-系统设计与技术方案.md)  
 对应产品文档：[CookHero-产品需求文档.md](./CookHero-产品需求文档.md)  
-对应接口文档：[CookHero-接口规范.md](./CookHero-接口规范.md)
+对应接口文档：[CookHero-接口与数据规范.md](./CookHero-接口与数据规范.md)
 
 ---
 

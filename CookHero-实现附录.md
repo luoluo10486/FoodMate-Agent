@@ -1,16 +1,14 @@
-# CookHero 详细实现规格
+# CookHero 实现附录
 
 版本：v2.0  
 文档定位：这是 CookHero 项目的详细总规格，作为 PRD、架构、API、Prompt、技术选型等文档的“落地级补充”。如果你要开始拆研发任务、前后端接口、Agent 行为、测试用例和验收标准，优先读这份。
 
 对应文档：
 
-- [CookHero-总体设计.md](./CookHero-总体设计.md)
+- [CookHero-系统设计与技术方案.md](./CookHero-系统设计与技术方案.md)
 - [CookHero-产品需求文档.md](./CookHero-产品需求文档.md)
-- [CookHero-架构设计.md](./CookHero-架构设计.md)
-- [CookHero-接口规范.md](./CookHero-接口规范.md)
-- [CookHero-提示词与工具协议.md](./CookHero-提示词与工具协议.md)
-- [CookHero-技术选型.md](./CookHero-技术选型.md)
+- [CookHero-接口与数据规范.md](./CookHero-接口与数据规范.md)
+- [CookHero-智能体行为与工具协议.md](./CookHero-智能体行为与工具协议.md)
 
 ---
 
