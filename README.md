@@ -4,6 +4,7 @@ CookHero Agent 项目文档索引。
 
 ## 文档
 
+- [IMPLEMENTATION-SPEC.md](./IMPLEMENTATION-SPEC.md)
 - [CookHero-Agent-Design-Spec.md](./CookHero-Agent-Design-Spec.md)
 - [PRD.md](./PRD.md)
 - [API-SPEC.md](./API-SPEC.md)
