@@ -196,6 +196,128 @@
 }
 ```
 
+### 4.6 UserMemory
+
+```json
+{
+  "id": "mem_001",
+  "user_id": "usr_001",
+  "memory_type": "preference",
+  "memory_key": "diet_avoid",
+  "memory_value": ["pork"],
+  "confidence": 0.96,
+  "source": "user_explicit",
+  "scope": "global",
+  "expires_at": null,
+  "created_at": "2026-06-01T00:00:00Z"
+}
+```
+
+### 4.7 SessionSummary
+
+```json
+{
+  "id": "sum_001",
+  "session_id": "ses_001",
+  "summary_text": "用户正在制定 7 天备餐计划，已确认预算 500 元、无猪肉忌口。",
+  "key_constraints": {
+    "budget": 500,
+    "avoid": ["pork"]
+  },
+  "updated_at": "2026-06-01T00:10:00Z"
+}
+```
+
+### 4.8 QueryRewriteRecord
+
+```json
+{
+  "id": "qr_001",
+  "session_id": "ses_001",
+  "user_message_id": "msg_001",
+  "original_query": "这个要多久",
+  "resolved_query": "西兰花焯水多久合适",
+  "keyword_query": "西兰花 焯水 时间",
+  "semantic_query": "西兰花焯水多久合适",
+  "filters": {
+    "doc_type": "cooking_guide"
+  },
+  "confidence": 0.91,
+  "created_at": "2026-06-01T00:00:01Z"
+}
+```
+
+### 4.9 KnowledgeDocument
+
+```json
+{
+  "id": "doc_001",
+  "title": "营养与烹饪指南",
+  "source_type": "cookbook",
+  "version": "v1",
+  "status": "active",
+  "created_at": "2026-06-01T00:00:00Z"
+}
+```
+
+### 4.10 KnowledgeChunk
+
+```json
+{
+  "id": "chk_001",
+  "document_id": "doc_001",
+  "chunk_text": "西兰花焯水 1-2 分钟即可。",
+  "section_path": "蔬菜处理/焯水",
+  "tags": ["西兰花", "焯水", "烹饪"],
+  "version": "v1",
+  "embedding_id": "emb_001",
+  "created_at": "2026-06-01T00:00:00Z"
+}
+```
+
+### 4.11 DataSource
+
+```json
+{
+  "id": "ds_001",
+  "name": "nutrition_analytics_db",
+  "db_type": "postgresql",
+  "purpose": "饮食分析",
+  "visibility": "restricted",
+  "status": "active"
+}
+```
+
+### 4.12 SchemaCatalogItem
+
+```json
+{
+  "id": "schema_001",
+  "datasource_id": "ds_001",
+  "table_name": "user_food_logs",
+  "field_name": "protein",
+  "field_desc": "蛋白质摄入量",
+  "is_sensitive": false,
+  "sample_sql": "SELECT SUM(protein) FROM user_food_logs WHERE user_id = ?"
+}
+```
+
+### 4.13 SqlQueryRecord
+
+```json
+{
+  "id": "sql_001",
+  "session_id": "ses_001",
+  "user_message_id": "msg_001",
+  "datasource_id": "ds_001",
+  "sql_text": "SELECT SUM(protein) FROM user_food_logs WHERE user_id = ? AND created_at >= ?",
+  "status": "validated",
+  "row_count": 1,
+  "latency_ms": 280,
+  "created_at": "2026-06-01T00:00:02Z"
+}
+```
+
 ---
 
 ## 5. 外部接口清单
@@ -372,6 +494,79 @@ data: {"tool_name":"nutrition_lookup","status":"success"}
   }
 }
 ```
+
+建议服务端内部执行顺序：
+
+1. 生成 query rewrite 记录
+2. Milvus BM25 做关键词召回
+3. Milvus dense vector 做语义召回
+4. 合并结果
+5. rerank
+6. 返回 hits 和引用信息
+
+#### Milvus 使用建议
+
+Milvus 适合作为知识库主检索底座：
+
+- 同时承载 dense embedding 和 sparse BM25
+- 便于做 hybrid search
+- 和 Java / Spring 集成路径清晰
+- 适合作为统一检索服务，减少多套检索系统拼装成本
+
+#### 知识库构建接口建议
+
+`POST /api/v1/knowledge/documents`
+
+`POST /api/v1/knowledge/documents/{document_id}/reindex`
+
+`POST /api/v1/knowledge/documents/{document_id}/disable`
+
+`GET /api/v1/knowledge/documents/{document_id}/chunks`
+
+构建流程建议分成两层：
+
+1. 文档入库与版本管理
+2. chunk 切分、embedding、稀疏化、索引写入
+
+#### MCP 数据查询接口建议
+
+`GET /api/v1/data-sources`
+
+`GET /api/v1/data-sources/{datasource_id}`
+
+`GET /api/v1/data-sources/{datasource_id}/schema`
+
+`POST /api/v1/data-sources/{datasource_id}/validate-sql`
+
+`POST /api/v1/data-sources/{datasource_id}/run-readonly-sql`
+
+#### 只读 SQL 约束
+
+- 只允许 `SELECT` / `WITH ... SELECT`
+- 必须带 `LIMIT`
+- 必须经过 SQL AST 校验
+- 必须注入租户 / 用户过滤
+- 必须记录审计日志
+- 必须限制返回行数和超时
+
+#### SQL 校验建议
+
+- 语法校验
+- 表白名单校验
+- 字段白名单校验
+- 敏感字段校验
+- 扫描成本评估
+
+#### 审计字段建议
+
+- `datasource_id`
+- `sql_text`
+- `sql_hash`
+- `validated_by`
+- `execution_status`
+- `latency_ms`
+- `row_count`
+- `operator_user_id`
 
 响应：
 
