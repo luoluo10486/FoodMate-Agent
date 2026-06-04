@@ -790,7 +790,216 @@ RAG 不建议直接拿原始问题去召回，建议先做问题改写。
 - 不要人为增加用户没说过的约束
 - 改写结果要可审计
 
-### 11.5 记忆方案
+### 11.5 查询理解层增强
+
+CookHero 建议把“问题改写层”升级为“查询理解层”。  
+因为很多时候，单纯改写 query 还不够，最好先识别实体，再决定如何召回。
+
+#### 11.5.1 这层要做什么
+
+至少要做三件事：
+
+1. 实体抽取
+   - 抽人名、公司、时间、地点、项目名、产品名
+   - 餐饮场景还可以抽菜品、食材、品牌、门店、营养指标
+
+2. 实体归一化
+   - 把别名、简称、口语化表达归一到统一标准
+   - 把相对时间转成绝对时间范围
+
+3. 实体驱动检索
+   - 把实体用于关键词召回
+   - 把时间用于 filter
+   - 把关键实体用于候选排序加权
+
+#### 11.5.2 为什么要这样做
+
+- 用户输入通常口语化，不适合直接检索
+- NER 能显著提升实体相关问题的召回率
+- 时间归一化能把“昨天”“上周”变成可检索的条件
+- 过滤 + 召回 + 排序一起做，比只靠向量召回更稳
+
+#### 11.5.3 推荐检索策略
+
+建议采用下面的组合：
+
+- **BM25**：做关键词召回
+- **Dense Embedding**：做语义召回
+- **NER / 实体归一化**：做召回增强
+- **时间解析**：做范围过滤
+- **Rerank**：做最终重排
+
+#### 11.5.4 推荐输出结构
+
+```json
+{
+  "original_query": "帮我查一下张三上周在腾讯的会议纪要",
+  "resolved_query": "张三 上周 腾讯 会议纪要",
+  "keyword_query": "张三 腾讯 会议纪要",
+  "semantic_query": "张三上周在腾讯的会议纪要",
+  "entities": [
+    {
+      "type": "person",
+      "text": "张三",
+      "normalized_text": "张三",
+      "confidence": 0.98
+    },
+    {
+      "type": "company",
+      "text": "腾讯",
+      "normalized_text": "腾讯",
+      "confidence": 0.96
+    },
+    {
+      "type": "time",
+      "text": "上周",
+      "normalized_text": "2026-05-25~2026-05-31",
+      "confidence": 0.94
+    }
+  ],
+  "filters": {
+    "time_range": {
+      "start": "2026-05-25",
+      "end": "2026-05-31"
+    },
+    "company": "腾讯"
+  },
+  "boost_terms": [
+    "张三",
+    "腾讯",
+    "会议纪要"
+  ],
+  "confidence": 0.93
+}
+```
+
+#### 11.5.5 使用边界
+
+- NER 结果不能当最终真值，必须结合上下文
+- 时间必须归一化，不能只保留相对表达
+- 人名、公司、项目适合做增强，不一定适合做强过滤
+- 实体召回不能替代语义召回
+
+#### 11.5.6 适合做成的模块
+
+建议拆成下面几个内部组件：
+
+- `EntityExtractor`
+- `EntityNormalizer`
+- `TimeParser`
+- `QueryRewriter`
+- `QueryFilterBuilder`
+- `QueryBoostBuilder`
+
+### 11.6 ACL 过滤设计
+
+CookHero 建议把 ACL 过滤作为检索链路中的硬约束层，而不是最后才补一个权限判断。
+
+#### 11.6.1 为什么要做 ACL
+
+如果系统里存在多租户、部门隔离、私有知识库、敏感文档、分级可见性等情况，就必须做 ACL。
+
+ACL 的目标是：
+
+- 防止越权召回
+- 防止越权展示
+- 防止模型在上下文中看到不该看的内容
+- 防止“先检索到再过滤”造成潜在泄露
+
+#### 11.6.2 ACL 放在什么位置
+
+建议做成两层：
+
+1. ACL Pre-filter
+   - 在召回前缩小候选范围
+   - 适合 BM25、Dense、Hybrid 一起使用
+
+2. ACL Post-filter
+   - 在召回和 rerank 后再兜底检查
+   - 防止前置过滤漏掉异常候选
+
+#### 11.6.3 ACL 推荐字段
+
+文档、向量、知识片段都建议带这些权限字段：
+
+- `tenant_id`
+- `owner_user_id`
+- `owner_department_id`
+- `visibility`
+- `allowed_roles`
+- `allowed_users`
+- `allowed_departments`
+- `sensitivity_level`
+- `acl_tags`
+
+#### 11.6.4 ACL 与实体抽取的关系
+
+- `NER` 负责识别“查什么”
+- `ACL` 负责限制“能查什么”
+- ACL 优先级高于 NER
+- ACL 不能只放在最终答案阶段，要尽量前置
+
+#### 11.6.5 ACL 与检索的推荐顺序
+
+推荐顺序如下：
+
+1. 解析用户身份和权限
+2. 执行 ACL 预过滤
+3. 做实体抽取和时间归一化
+4. 做 BM25 + Dense Hybrid 召回
+5. 做 rerank
+6. 再做 ACL 兜底过滤
+7. 最后生成答案
+
+#### 11.6.6 推荐输出结构
+
+建议查询理解层输出里带上 ACL 信息：
+
+```json
+{
+  "original_query": "帮我查一下张三上周在腾讯的会议纪要",
+  "resolved_query": "张三 上周 腾讯 会议纪要",
+  "keyword_query": "张三 腾讯 会议纪要",
+  "semantic_query": "张三上周在腾讯的会议纪要",
+  "entities": [
+    {
+      "type": "person",
+      "text": "张三",
+      "normalized_text": "张三",
+      "confidence": 0.98
+    }
+  ],
+  "filters": {
+    "time_range": {
+      "start": "2026-05-25",
+      "end": "2026-05-31"
+    },
+    "company": "腾讯"
+  },
+  "acl_filter": {
+    "tenant_id": 10001,
+    "visibility": "department",
+    "allowed_departments": [12, 18],
+    "allowed_roles": ["admin", "manager", "member"],
+    "sensitivity_level_max": "medium"
+  },
+  "boost_terms": [
+    "张三",
+    "腾讯",
+    "会议纪要"
+  ],
+  "confidence": 0.93
+}
+```
+
+#### 11.6.7 常见问题
+
+- 只做后过滤，可能已经把不该看的内容送进上下文
+- ACL 过严会损失召回率
+- ACL 过松会有泄露风险
+- 最好的方式是“前置过滤 + 后置兜底”
+
+### 11.7 记忆方案
 
 建议把记忆拆成三层：
 
