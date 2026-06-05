@@ -691,8 +691,8 @@ CookHero 的 Agent 框架不建议一开始就“全家桶式接入”。
 
 | 框架 / 平台 | 官方定位特征 | 对 CookHero 的建议 |
 |---|---|---|
-| Spring AI | Java 生态里的模型抽象、工具调用、RAG、Agent 能力入口 | **主栈候选，推荐优先评估** |
-| LangChain4j | Java 生态里的 LLM / tools / agents / RAG 统一 API，适合 Spring Boot 集成 | **主栈候选，和 Spring AI 二选一，不要同时双主** |
+| Spring AI | Java 生态里的模型抽象、工具调用、RAG、Agent 能力入口 | **主栈，当前推荐优先采用** |
+| LangChain4j | Java 生态里的 LLM / tools / agents / RAG 统一 API，适合 Spring Boot 集成 | **备选评估项，不建议和 Spring AI 同时作为主栈** |
 | LangGraph | 低层级、有状态、可持久化、支持 human-in-the-loop 的 agent 编排运行时 | **适合参考其编排思想；若未来做独立 Python agent 服务，可作为备选** |
 | OpenAI Agents SDK | 轻量 Agent runtime，强调 tools、handoffs、guardrails、structured outputs | **适合 OpenAI 生态或 Python/JS 服务，不建议作为 Java 主后端核心依赖** |
 | AutoGen | 多 Agent 对话与协作框架，偏研究与复杂多 Agent 实验 | **适合做多 Agent 原型，不建议作为生产主干** |
@@ -711,7 +711,8 @@ CookHero 的 Agent 框架不建议一开始就“全家桶式接入”。
    - `Spring Security` 负责鉴权和权限控制
 
 2. **Agent 核心**
-   - `Spring AI` 或 `LangChain4j` 负责模型接入、工具定义、工具调用、RAG 相关能力
+   - `Spring AI` 负责模型接入、工具定义、工具调用、RAG 相关能力
+   - `LangChain4j` 仅作为备选评估，不作为当前主栈
    - 你自己的 `Agent Orchestrator` 负责状态机、路由、计划、重试、终止条件
 
 3. **工具与扩展**
@@ -737,7 +738,7 @@ CookHero 的 Agent 框架不建议一开始就“全家桶式接入”。
 
 **推荐直接做的：**
 
-- Java 主栈 + Spring AI 或 LangChain4j（二选一）
+- Java 主栈 + Spring AI
 - 自研 Agent Orchestrator
 - 自研 Memory Manager
 - MCP 工具协议
@@ -2871,7 +2872,7 @@ RAG 只解决知识查找，不解决：
 | 前端 | React + Vite + TypeScript |
 | 后端 | Java 21 + Spring Boot 3 + Spring WebFlux |
 | 安全 | Spring Security + JWT + Refresh Token |
-| Agent 编排 | 自研状态机 + Spring AI / LangChain4j（二选一，不要双主并行） |
+| Agent 编排 | 自研状态机 + Spring AI |
 | 模型接入 | ModelService + 模型网关/中转层 + Provider Adapter |
 | 检索 | Milvus + BM25 + PostgreSQL |
 | 主库 | PostgreSQL |
