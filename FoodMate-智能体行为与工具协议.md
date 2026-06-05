@@ -1,15 +1,16 @@
-# CookHero 智能体行为与工具协议
+﻿# FoodMate 智能体行为与工具协议
 
 版本：v1.0  
-对应总设计：[CookHero-系统设计与技术方案.md](./CookHero-系统设计与技术方案.md)  
-对应产品文档：[CookHero-产品需求文档.md](./CookHero-产品需求文档.md)  
-对应接口文档：[CookHero-接口与数据规范.md](./CookHero-接口与数据规范.md)
+对应总设计：[FoodMate-系统设计与技术方案.md](./FoodMate-系统设计与技术方案.md)  
+对应产品文档：[FoodMate-产品需求文档.md](./FoodMate-产品需求文档.md)  
+对应接口文档：[FoodMate-接口与数据规范.md](./FoodMate-接口与数据规范.md)
+文档边界：本文件只定义 Agent 角色、Prompt 协议、工具协议与调用策略；最终架构分层、工具优先级、查询主路径和模型治理边界以总设计文档为准。
 
 ---
 
 ## 1. 文档目标
 
-本文定义 CookHero Agent 的核心行为协议：
+本文定义 FoodMate Agent 的核心行为协议：
 
 - 它是谁
 - 它应该怎么思考
@@ -125,15 +126,18 @@ Agent 应该负责：
 - 记录任务记忆
 - 生成会话摘要
 
-### 3.6 Query Rewriter
+### 3.6 Query Understanding
 
-负责问题改写。
+负责查询理解。
 
 职责：
 
 - 把口语化问题改成可检索 query
 - 结合上下文消歧
-- 输出关键词 query 和语义 query
+- 抽取核心实体
+- 做实体归一化与时间归一化
+- 构建 ACL filter
+- 输出关键词 query、语义 query 和结构化过滤条件
 
 ### 3.7 Validator
 
@@ -166,7 +170,7 @@ Agent 应该负责：
 建议作为最顶层系统指令：
 
 ```text
-你是 CookHero，一个面向餐饮、营养、菜单、记录、分析和备餐规划的任务型 Agent。
+你是 FoodMate，一个面向餐饮、营养、菜单、记录、分析和备餐规划的任务型 Agent。
 
 你的首要目标不是闲聊，而是帮助用户完成任务。
 
@@ -287,12 +291,12 @@ Planner 输出示例：
 7. 如果有引用，要清晰标明来源。
 ```
 
-### 4.5 Query Rewrite Prompt
+### 4.5 Query Understanding Prompt
 
-用途：把用户原始问题改写成适合检索的 query。
+用途：把用户原始问题整理成适合检索、过滤和审计的查询理解结果。
 
 ```text
-你要把用户问题改写成适合检索的形式。
+你要先做查询理解，再把用户问题整理成适合检索的形式。
 
 要求：
 1. 保留核心实体和动作。
@@ -368,7 +372,7 @@ Planner 输出示例：
 优先工具：
 
 - calculator
-- unit_converter
+- time_parser
 - nutrition_lookup
 
 #### record
@@ -390,8 +394,8 @@ Planner 输出示例：
 
 优先工具：
 
-- food_log_query
-- analysis_engine
+- database_query
+- plan_validator
 
 #### planning
 触发条件：
@@ -415,7 +419,7 @@ Planner 输出示例：
 
 优先工具：
 
-- document_search
+- knowledge_search
 - reranker
 
 #### mixed
@@ -559,7 +563,14 @@ Planner 输出示例：
 
 ---
 
-## 8. 核心工具定义
+## 8. 工具分层与典型定义
+
+当前权威工具分层以总设计文档的 P0 / P1 / P2 清单为准。  
+本节只保留行为协议所需的典型工具定义示例，并统一以下口径：
+
+- 结构化数据查询主路：`database_query -> SQL Agent -> MCP`
+- `nutrition_lookup`、`meal_plan_generator`、`shopping_list_generator` 属于高频封装工具
+- `entity_normalizer`、`prompt_router` 属于内部能力模块，不作为外部工具注册
 
 ### 8.1 calculator
 
@@ -585,19 +596,18 @@ Planner 输出示例：
 }
 ```
 
-### 8.2 unit_converter
+### 8.2 time_parser
 
 用途：
 
-- 克、毫升、份、个、汤匙等换算
+- 解析“昨天”“上周”“本月”等相对时间表达
+- 输出标准时间范围和过滤条件
 
 输入：
 
 ```json
 {
-  "from_unit": "g",
-  "to_unit": "mg",
-  "value": 20
+  "text": "上周"
 }
 ```
 
@@ -605,7 +615,9 @@ Planner 输出示例：
 
 ```json
 {
-  "converted_value": 20000
+  "start": "2026-05-25",
+  "end": "2026-05-31",
+  "timezone": "Asia/Shanghai"
 }
 ```
 
@@ -614,6 +626,7 @@ Planner 输出示例：
 用途：
 
 - 根据食材和克重查询热量与宏量营养素
+- 属于高频封装查询工具，不替代结构化数据主路
 
 输入：
 
@@ -668,18 +681,20 @@ Planner 输出示例：
 }
 ```
 
-### 8.5 food_log_query
+### 8.5 database_query
 
 用途：
 
-- 查询饮食日志
+- 统一处理结构化数据查询
+- 主路为 SQL Agent + MCP + Schema Catalog
 
 输入：
 
 ```json
 {
-  "range": "7d",
-  "user_id": "usr_001"
+  "intent": "analysis",
+  "datasource_hint": "food_log",
+  "question": "查询最近 7 天蛋白质摄入总量"
 }
 ```
 
@@ -687,11 +702,12 @@ Planner 输出示例：
 
 ```json
 {
-  "items": [],
-  "summary": {
-    "calories": 1234,
-    "protein": 88
-  }
+  "rows": [
+    {
+      "protein_total": 88
+    }
+  ],
+  "sql_record_id": "sql_001"
 }
 ```
 
@@ -700,6 +716,7 @@ Planner 输出示例：
 用途：
 
 - 生成多天备餐计划
+- 属于高频生成工具，结果仍需 `plan_validator` 校验
 
 输入：
 
@@ -759,7 +776,7 @@ Planner 输出示例：
 }
 ```
 
-### 8.8 document_search
+### 8.8 knowledge_search
 
 用途：
 
@@ -919,7 +936,7 @@ Planner 输出示例：
 
 ### 10.6 行为范式
 
-CookHero 推荐采用 **Plan-Act-Observe-Reflect** 范式。
+FoodMate 推荐采用 **Plan-Act-Observe-Reflect** 范式。
 
 #### 执行步骤
 
@@ -1005,3 +1022,4 @@ CookHero 推荐采用 **Plan-Act-Observe-Reflect** 范式。
 - tool schema 版本化
 - output schema 版本化
 - 回归测试集版本化
+

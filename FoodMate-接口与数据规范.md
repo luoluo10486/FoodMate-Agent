@@ -1,14 +1,15 @@
-# CookHero 接口与数据规范
+﻿# FoodMate 接口与数据规范
 
 版本：v1.0  
-对应总设计：[CookHero-系统设计与技术方案.md](./CookHero-系统设计与技术方案.md)  
-对应产品文档：[CookHero-产品需求文档.md](./CookHero-产品需求文档.md)
+对应总设计：[FoodMate-系统设计与技术方案.md](./FoodMate-系统设计与技术方案.md)  
+对应产品文档：[FoodMate-产品需求文档.md](./FoodMate-产品需求文档.md)
+文档边界：本文件只定义 API、DTO、状态机、数据库模型、错误码与流式协议；架构职责、工具优先级、查询主路径和模型治理边界以总设计文档为准。
 
 ---
 
 ## 1. 设计目标
 
-本规范定义 CookHero Agent 的接口边界、数据结构、状态流转、错误格式和事件协议，目标是让前端、后端、Agent 编排层、工具层、检索层能够独立开发、联调和替换。
+本规范定义 FoodMate Agent 的接口边界、数据结构、状态流转、错误格式和事件协议，目标是让前端、后端、Agent 编排层、工具层、检索层能够独立开发、联调和替换。
 
 ### 1.1 工程原则
 
@@ -182,13 +183,14 @@
 }
 ```
 
-### 4.5 KnowledgeChunk
+### 4.5 RetrievedReference
 
 ```json
 {
-  "id": "chk_001",
+  "chunk_id": "chk_001",
   "document_id": "doc_001",
-  "chunk_text": "西兰花焯水...",
+  "snippet": "西兰花焯水...",
+  "score": 0.92,
   "metadata_json": {
     "source_title": "营养与烹饪指南",
     "page": 12
@@ -228,19 +230,30 @@
 }
 ```
 
-### 4.8 QueryRewriteRecord
+### 4.8 QueryUnderstandingRecord
 
 ```json
 {
-  "id": "qr_001",
+  "id": "qu_001",
   "session_id": "ses_001",
   "user_message_id": "msg_001",
   "original_query": "这个要多久",
   "resolved_query": "西兰花焯水多久合适",
   "keyword_query": "西兰花 焯水 时间",
   "semantic_query": "西兰花焯水多久合适",
+  "entities": [
+    {
+      "type": "ingredient",
+      "text": "西兰花",
+      "normalized_text": "西兰花"
+    }
+  ],
   "filters": {
     "doc_type": "cooking_guide"
+  },
+  "acl_filter": {
+    "tenant_id": "tenant_001",
+    "visibility": "private"
   },
   "confidence": 0.91,
   "created_at": "2026-06-01T00:00:01Z"
@@ -529,6 +542,8 @@ Milvus 适合作为知识库主检索底座：
 2. chunk 切分、embedding、稀疏化、索引写入
 
 #### MCP 数据查询接口建议
+
+说明：结构化数据查询的主路径为 `Schema Catalog -> SQL Agent -> MCP -> Readonly SQL Executor`。固定查询接口只保留高频稳定场景，不与 SQL Agent 并列为主路径。
 
 `GET /api/v1/data-sources`
 
@@ -1008,3 +1023,4 @@ public interface AgentTool<I, O> {
 - Tool 负责确定性执行
 - Retriever 负责检索
 - Validator 负责校验
+
