@@ -377,7 +377,7 @@
   "success": true,
   "data": {
     "session": {
-      "id": "ses_001",
+      "id": "1912345678901234571",
       "title": "一周备餐计划",
       "mode": "agent",
       "status": "active"
@@ -470,7 +470,7 @@
 
 #### 5.3.1 获取运行详情
 
-`GET /api/v1/runs/{run_id}`
+`GET /api/v1/runs/{agent_run_id}`
 
 返回包括：
 
@@ -484,7 +484,7 @@
 
 #### 5.3.2 获取运行事件流
 
-`GET /api/v1/runs/{run_id}/events`
+`GET /api/v1/runs/{agent_run_id}/events`
 
 推荐 SSE，事件类型如下：
 
@@ -514,7 +514,7 @@ data: {"tool_name":"nutrition_lookup","status":"success"}
 
 #### 5.3.3 取消运行
 
-`POST /api/v1/runs/{run_id}/cancel`
+`POST /api/v1/runs/{agent_run_id}/cancel`
 
 适用：
 
@@ -562,6 +562,8 @@ Milvus 适合作为知识库主检索底座：
 
 #### 知识库构建接口建议
 
+`GET /api/v1/knowledge/documents`
+
 `POST /api/v1/knowledge/documents`
 
 `POST /api/v1/knowledge/documents/{document_id}/reindex`
@@ -570,10 +572,21 @@ Milvus 适合作为知识库主检索底座：
 
 `GET /api/v1/knowledge/documents/{document_id}/chunks`
 
+`DELETE /api/v1/knowledge/documents/{document_id}`
+
+`POST /api/v1/knowledge/documents/{document_id}/restore`
+
 构建流程建议分成两层：
 
 1. 文档入库与版本管理
 2. chunk 切分、embedding、稀疏化、索引写入
+
+删除与恢复语义：
+
+- `DELETE /api/v1/knowledge/documents/{document_id}` 只做软删除
+- 默认检索和默认列表不返回软删除文档
+- 管理接口可显式传 `include_deleted=true`
+- `POST /api/v1/knowledge/documents/{document_id}/restore` 恢复软删除文档，并触发索引可见性恢复
 
 #### MCP 数据查询接口建议
 
@@ -625,8 +638,8 @@ Milvus 适合作为知识库主检索底座：
   "data": {
     "hits": [
       {
-        "chunk_id": "chk_001",
-        "document_id": "doc_001",
+        "chunk_id": "1912345678901234591",
+        "document_id": "1912345678901234581",
         "score": 0.92,
         "snippet": "西兰花焯水 1-2 分钟即可..."
       }
@@ -697,11 +710,11 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.5.4 软删除日志
 
-`DELETE /api/v1/food-logs/{log_id}`
+`DELETE /api/v1/food-logs/{food_log_id}`
 
 #### 5.5.5 恢复日志
 
-`POST /api/v1/food-logs/{log_id}/restore`
+`POST /api/v1/food-logs/{food_log_id}/restore`
 
 ---
 
@@ -717,7 +730,7 @@ Milvus 适合作为知识库主检索底座：
 {
   "type": "protein_trend",
   "range": "7d",
-  "user_id": "usr_001"
+  "user_id": "1912345678901234001"
 }
 ```
 
@@ -729,9 +742,11 @@ Milvus 适合作为知识库主检索底座：
 
 ### 5.7 规划接口
 
-#### 5.7.1 生成备餐计划
+规划相关能力统一围绕 `meal_plans` 主资源组织，生成购物清单和计划校验属于该主资源的派生能力，不再单独使用旧版规划接口主路径。
 
-`POST /api/v1/plans/meal`
+#### 5.7.1 校验计划草案
+
+`POST /api/v1/meal-plans/validate`
 
 请求：
 
@@ -748,13 +763,31 @@ Milvus 适合作为知识库主检索底座：
 }
 ```
 
-#### 5.7.2 生成购物清单
+#### 5.7.2 保存计划
 
-`POST /api/v1/plans/shopping-list`
+`POST /api/v1/meal-plans`
 
-#### 5.7.3 校验计划
+#### 5.7.3 查询计划
 
-`POST /api/v1/plans/validate`
+`GET /api/v1/meal-plans/{meal_plan_id}`
+
+#### 5.7.4 软删除计划
+
+`DELETE /api/v1/meal-plans/{meal_plan_id}`
+
+#### 5.7.5 恢复计划
+
+`POST /api/v1/meal-plans/{meal_plan_id}/restore`
+
+#### 5.7.6 基于计划生成购物清单
+
+`POST /api/v1/meal-plans/{meal_plan_id}/shopping-list`
+
+#### 5.7.7 规划接口默认语义
+
+- 默认查询不返回软删除计划
+- 管理端可显式传 `include_deleted=true`
+- `DELETE` 只做软删除，`POST /restore` 做恢复
 
 ---
 
@@ -771,9 +804,9 @@ Milvus 适合作为知识库主检索底座：
     "unit": "g"
   },
   "context": {
-    "session_id": "ses_001",
-    "run_id": "run_001",
-    "user_id": "usr_001"
+    "session_id": "1912345678901234561",
+    "agent_run_id": "1912345678901234563",
+    "user_id": "1912345678901234001"
   }
 }
 ```

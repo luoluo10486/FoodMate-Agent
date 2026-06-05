@@ -347,9 +347,9 @@ Planner 输出示例：
 
 ```json
 {
-  "datasource_id": "ds_001",
+  "datasource_id": "1912345678901234601",
   "sql": "SELECT SUM(protein) AS total_protein FROM user_food_logs WHERE user_id = ? AND created_at >= ? AND created_at < ? LIMIT 100",
-  "bindings": ["usr_001", "2026-05-25", "2026-06-01"],
+  "bindings": ["1912345678901234001", "2026-05-25", "2026-06-01"],
   "risk_level": "low",
   "need_confirmation": false
 }
@@ -565,12 +565,13 @@ Planner 输出示例：
 
 ## 8. 工具分层与典型定义
 
-当前权威工具分层以总设计文档的 P0 / P1 / P2 清单为准。  
+当前实现阶段的权威工具分层以总设计文档中的 `P0 + P1 + 内部能力模块` 为准。  
 本节只保留行为协议所需的典型工具定义示例，并统一以下口径：
 
 - 结构化数据查询主路：`database_query -> SQL Agent -> MCP`
 - `nutrition_lookup`、`meal_plan_generator`、`shopping_list_generator` 属于高频封装工具
 - `entity_normalizer`、`prompt_router` 属于内部能力模块，不作为外部工具注册
+- `P2` 只保留在总设计里作为未来可选能力，不作为当前行为协议的实现清单
 
 ### 8.1 calculator
 
@@ -676,7 +677,7 @@ Planner 输出示例：
 
 ```json
 {
-  "log_id": "log_001",
+  "food_log_id": "1912345678901234573",
   "status": "saved"
 }
 ```
@@ -707,7 +708,7 @@ Planner 输出示例：
       "protein_total": 88
     }
   ],
-  "sql_record_id": "sql_001"
+  "sql_audit_id": "1912345678901234603"
 }
 ```
 
@@ -758,7 +759,7 @@ Planner 输出示例：
 
 ```json
 {
-  "meal_plan_id": "plan_001"
+  "meal_plan_id": "1912345678901234574"
 }
 ```
 
@@ -815,7 +816,7 @@ Planner 输出示例：
 
 ```json
 {
-  "plan_id": "plan_001"
+  "meal_plan_id": "1912345678901234574"
 }
 ```
 

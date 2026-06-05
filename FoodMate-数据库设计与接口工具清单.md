@@ -996,10 +996,10 @@ database_query
   },
   "output_schema": {
     "type": "object",
-    "required": ["rows", "sql_record_id"],
+    "required": ["rows", "sql_audit_id"],
     "properties": {
       "rows": { "type": "array" },
-      "sql_record_id": { "type": "string" }
+      "sql_audit_id": { "type": "string" }
     }
   }
 }
@@ -1032,9 +1032,9 @@ database_query
   },
   "output_schema": {
     "type": "object",
-    "required": ["log_id", "status"],
+    "required": ["food_log_id", "status"],
     "properties": {
-      "log_id": { "type": "string" },
+      "food_log_id": { "type": "string" },
       "status": { "type": "string" }
     }
   }
