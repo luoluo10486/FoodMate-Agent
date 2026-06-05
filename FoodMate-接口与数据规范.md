@@ -121,6 +121,15 @@
 }
 ```
 
+### 3.6 ID 与删除语义
+
+- 所有数据库主键统一使用 Snowflake BIGINT
+- 所有 API、SSE、JSON DTO 对外统一按字符串返回 ID
+- 所有默认查询都排除 `is_deleted = true` 的数据
+- `DELETE` 接口统一表示软删除
+- 恢复操作统一使用 `POST /restore`
+- 只有管理接口允许显式传 `include_deleted=true`
+
 ---
 
 ## 4. 核心数据模型
@@ -129,11 +138,12 @@
 
 ```json
 {
-  "id": "ses_001",
-  "user_id": "usr_001",
+  "id": "1912345678901234561",
+  "user_id": "1912345678901234001",
   "title": "一周备餐计划",
   "mode": "agent",
   "status": "active",
+  "is_deleted": false,
   "created_at": "2026-06-01T00:00:00Z",
   "updated_at": "2026-06-01T00:05:00Z"
 }
@@ -143,11 +153,12 @@
 
 ```json
 {
-  "id": "msg_001",
-  "session_id": "ses_001",
+  "id": "1912345678901234562",
+  "session_id": "1912345678901234561",
   "role": "user",
   "content": "给 2 个人制定一周备餐计划",
   "structured_payload": {},
+  "is_deleted": false,
   "created_at": "2026-06-01T00:00:00Z"
 }
 ```
@@ -156,14 +167,15 @@
 
 ```json
 {
-  "id": "run_001",
-  "session_id": "ses_001",
-  "user_message_id": "msg_001",
+  "id": "1912345678901234563",
+  "session_id": "1912345678901234561",
+  "user_message_id": "1912345678901234562",
   "intent": "planning",
   "status": "executing",
   "plan_json": {},
   "result_json": {},
   "error_code": null,
+  "is_deleted": false,
   "created_at": "2026-06-01T00:00:00Z"
 }
 ```
@@ -172,13 +184,14 @@
 
 ```json
 {
-  "id": "tool_001",
-  "agent_run_id": "run_001",
+  "id": "1912345678901234564",
+  "agent_run_id": "1912345678901234563",
   "tool_name": "nutrition_lookup",
   "input_json": {},
   "output_json": {},
   "status": "success",
   "latency_ms": 380,
+  "is_deleted": false,
   "created_at": "2026-06-01T00:00:01Z"
 }
 ```
@@ -187,8 +200,8 @@
 
 ```json
 {
-  "chunk_id": "chk_001",
-  "document_id": "doc_001",
+  "chunk_id": "1912345678901234591",
+  "document_id": "1912345678901234581",
   "snippet": "西兰花焯水...",
   "score": 0.92,
   "metadata_json": {
@@ -202,8 +215,8 @@
 
 ```json
 {
-  "id": "mem_001",
-  "user_id": "usr_001",
+  "id": "1912345678901234565",
+  "user_id": "1912345678901234001",
   "memory_type": "preference",
   "memory_key": "diet_avoid",
   "memory_value": ["pork"],
@@ -211,6 +224,7 @@
   "source": "user_explicit",
   "scope": "global",
   "expires_at": null,
+  "is_deleted": false,
   "created_at": "2026-06-01T00:00:00Z"
 }
 ```
@@ -219,13 +233,14 @@
 
 ```json
 {
-  "id": "sum_001",
-  "session_id": "ses_001",
+  "id": "1912345678901234566",
+  "session_id": "1912345678901234561",
   "summary_text": "用户正在制定 7 天备餐计划，已确认预算 500 元、无猪肉忌口。",
   "key_constraints": {
     "budget": 500,
     "avoid": ["pork"]
   },
+  "is_deleted": false,
   "updated_at": "2026-06-01T00:10:00Z"
 }
 ```
@@ -234,9 +249,9 @@
 
 ```json
 {
-  "id": "qu_001",
-  "session_id": "ses_001",
-  "user_message_id": "msg_001",
+  "id": "1912345678901234567",
+  "session_id": "1912345678901234561",
+  "user_message_id": "1912345678901234562",
   "original_query": "这个要多久",
   "resolved_query": "西兰花焯水多久合适",
   "keyword_query": "西兰花 焯水 时间",
@@ -252,9 +267,10 @@
     "doc_type": "cooking_guide"
   },
   "acl_filter": {
-    "tenant_id": "tenant_001",
+    "tenant_id": "1912345678901234000",
     "visibility": "private"
   },
+  "is_deleted": false,
   "confidence": 0.91,
   "created_at": "2026-06-01T00:00:01Z"
 }
@@ -264,11 +280,12 @@
 
 ```json
 {
-  "id": "doc_001",
+  "id": "1912345678901234581",
   "title": "营养与烹饪指南",
   "source_type": "cookbook",
   "version": "v1",
   "status": "active",
+  "is_deleted": false,
   "created_at": "2026-06-01T00:00:00Z"
 }
 ```
@@ -277,13 +294,14 @@
 
 ```json
 {
-  "id": "chk_001",
-  "document_id": "doc_001",
+  "id": "1912345678901234591",
+  "document_id": "1912345678901234581",
   "chunk_text": "西兰花焯水 1-2 分钟即可。",
   "section_path": "蔬菜处理/焯水",
   "tags": ["西兰花", "焯水", "烹饪"],
   "version": "v1",
   "embedding_id": "emb_001",
+  "is_deleted": false,
   "created_at": "2026-06-01T00:00:00Z"
 }
 ```
@@ -292,12 +310,13 @@
 
 ```json
 {
-  "id": "ds_001",
+  "id": "1912345678901234601",
   "name": "nutrition_analytics_db",
   "db_type": "postgresql",
   "purpose": "饮食分析",
   "visibility": "restricted",
-  "status": "active"
+  "status": "active",
+  "is_deleted": false
 }
 ```
 
@@ -305,8 +324,8 @@
 
 ```json
 {
-  "id": "schema_001",
-  "datasource_id": "ds_001",
+  "id": "1912345678901234602",
+  "datasource_id": "1912345678901234601",
   "table_name": "user_food_logs",
   "field_name": "protein",
   "field_desc": "蛋白质摄入量",
@@ -319,13 +338,14 @@
 
 ```json
 {
-  "id": "sql_001",
-  "session_id": "ses_001",
-  "user_message_id": "msg_001",
-  "datasource_id": "ds_001",
+  "id": "1912345678901234603",
+  "session_id": "1912345678901234561",
+  "user_message_id": "1912345678901234562",
+  "datasource_id": "1912345678901234601",
   "sql_text": "SELECT SUM(protein) FROM user_food_logs WHERE user_id = ? AND created_at >= ?",
   "status": "validated",
   "row_count": 1,
+  "is_deleted": false,
   "latency_ms": 280,
   "created_at": "2026-06-01T00:00:02Z"
 }
@@ -388,6 +408,20 @@
 
 `POST /api/v1/sessions/{session_id}/archive`
 
+#### 5.1.6 软删除会话
+
+`DELETE /api/v1/sessions/{session_id}`
+
+说明：
+
+- 只做软删除
+- 写入 `is_deleted`、`deleted_at`、`deleted_by`
+- 默认查询不再返回该会话
+
+#### 5.1.7 恢复会话
+
+`POST /api/v1/sessions/{session_id}/restore`
+
 ---
 
 ### 5.2 消息接口
@@ -415,11 +449,11 @@
   "success": true,
   "data": {
     "message": {
-      "id": "msg_100",
+      "id": "1912345678901234568",
       "role": "user"
     },
     "agent_run": {
-      "id": "run_200",
+      "id": "1912345678901234569",
       "status": "queued"
     }
   }
@@ -644,6 +678,11 @@ Milvus 适合作为知识库主检索底座：
 
 `GET /api/v1/food-logs?start_date=2026-05-25&end_date=2026-06-01`
 
+说明：
+
+- 默认不返回软删除记录
+- 管理端可显式传 `include_deleted=true`
+
 #### 5.5.3 饮食汇总
 
 `GET /api/v1/food-logs/summary?range=7d`
@@ -655,6 +694,14 @@ Milvus 适合作为知识库主检索底座：
 - fat
 - carbs
 - meal_count
+
+#### 5.5.4 软删除日志
+
+`DELETE /api/v1/food-logs/{log_id}`
+
+#### 5.5.5 恢复日志
+
+`POST /api/v1/food-logs/{log_id}/restore`
 
 ---
 
@@ -794,7 +841,12 @@ Milvus 适合作为知识库主检索底座：
 |---|---|
 | active | 活跃 |
 | archived | 归档 |
-| deleted | 删除 |
+| closed | 关闭 |
+
+说明：
+
+- `deleted` 不再作为业务状态值
+- 删除语义统一通过 `is_deleted` 表达
 
 ### 8.2 AgentRun 状态
 
@@ -832,8 +884,8 @@ Milvus 适合作为知识库主检索底座：
 - messages
 - agent_runs
 - tool_calls
-- documents
-- document_chunks
+- knowledge_documents
+- knowledge_chunks
 - food_logs
 - analysis_reports
 - meal_plans
@@ -841,12 +893,23 @@ Milvus 适合作为知识库主检索底座：
 
 ### 9.2 索引建议
 
-- sessions(user_id, updated_at)
-- messages(session_id, created_at)
-- agent_runs(session_id, created_at)
-- tool_calls(agent_run_id, created_at)
-- food_logs(user_id, meal_time)
-- document_chunks(document_id)
+索引分两层：
+
+- 基线索引：
+  - sessions(user_id, last_message_at, is_deleted)
+  - messages(session_id, sequence_no, is_deleted)
+  - agent_runs(session_id, created_at, is_deleted)
+  - tool_calls(agent_run_id, created_at, is_deleted)
+  - food_logs(user_id, meal_time, is_deleted)
+  - knowledge_documents(tenant_id, status, is_deleted)
+- 候选索引：
+  - trace_id
+  - tool_name + status
+  - datasource_id + status
+  - JSONB GIN
+  - tags GIN
+
+候选索引不在第一版默认创建，必须基于 `EXPLAIN ANALYZE`、慢查询日志和真实热点接口再决定。
 
 ### 9.3 幂等建议
 

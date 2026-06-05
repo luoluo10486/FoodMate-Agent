@@ -253,6 +253,15 @@ foodmate-infra
 com.foodmate
 ```
 
+### 3.1.1 ID 约束
+
+FoodMate 的主键方案统一为 Snowflake BIGINT，工程实现必须遵循：
+
+- Java 实体内部可以使用 `Long`
+- API DTO、SSE 事件、外部集成 DTO 一律把 ID 序列化为字符串
+- 前端禁止把 Snowflake ID 当数值参与计算
+- 新增表和新增 DTO 不允许再引入 UUID 口径
+
 ### 3.2 顶层包结构
 
 ```text
@@ -819,6 +828,22 @@ foodmate:
 - 工具调用只有幂等工具允许重试
 - SQL Agent 失败可重试，但不得跳过 `SQL Guard`
 - Worker 任务重试次数由 RocketMQ 统一控制
+
+### 7.4.1 Repository 与软删除约束
+
+固定规则：
+
+- 所有 Repository 默认查询必须附带 `is_deleted = false`
+- 只有显式的管理接口查询才允许绕过软删除条件
+- 业务代码禁止手写“全量查”来跳过软删除
+- `DELETE` 操作统一走软删除更新，不允许默认物理删除
+- 恢复操作必须记录 `operator_id`、`request_id`、`trace_id`
+
+推荐抽象：
+
+- `SoftDeleteRepositorySupport`
+- `SoftDeleteQuerySpec`
+- `RestoreCommandHandler`
 
 ### 7.5 Prompt 工程化目录
 

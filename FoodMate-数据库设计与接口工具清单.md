@@ -52,10 +52,85 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 数据库设计统一遵循：
 
 - 表名：`snake_case`
-- 主键：`id UUID`
+- 主键：`id BIGINT`
 - 时间字段：`created_at TIMESTAMPTZ`、`updated_at TIMESTAMPTZ`
 - 扩展字段：优先 `JSONB`
 - 状态字段：使用 `VARCHAR(32)`，不在第一版引入数据库 enum
+- 所有对外接口中的 Snowflake ID 一律按字符串返回
+
+### 0.5 主键与 ID 方案
+
+FoodMate 的主键方案统一为：
+
+- 数据库主键类型：`BIGINT`
+- ID 生成方式：应用层 Snowflake
+- Java 内部可以使用 `Long`
+- API / SSE / JSON DTO 对外统一输出字符串
+
+为什么不用 UUIDv4：
+
+- 随机性较强，不利于 B-Tree 索引局部性
+- 当前团队已经明确接受应用层生成全局唯一 ID
+- 首版希望统一数值型主键与排障口径
+
+为什么当前不选 UUIDv7：
+
+- UUIDv7 没问题，但当前项目已经明确偏向数值型主键
+- Snowflake 在日志、SQL 排查、后台治理和人工检索里更直观
+- 当前不保留两套并行 ID 方案
+
+Snowflake 工程约束：
+
+- worker id 必须集中分配
+- 必须具备时钟回拨防护
+- 前端禁止把 ID 当数值运算
+- 所有外部接口统一以字符串形式传输 Snowflake ID
+
+### 0.6 软删除统一规则
+
+FoodMate 采用 **全表软删除**，默认所有主表都具备下面 3 个字段：
+
+- `is_deleted BOOLEAN NOT NULL DEFAULT FALSE`
+- `deleted_at TIMESTAMPTZ NULL`
+- `deleted_by BIGINT NULL`
+
+固定规则：
+
+- `status` 只表达业务状态，不承担删除语义
+- `archived` 只表示归档，不等于删除
+- 所有 `DELETE` 接口默认只做软删除
+- 核心业务对象必须支持恢复
+- 默认查询统一带 `is_deleted = false`
+- 后台治理接口才允许显式查询已删除数据
+
+### 0.7 索引策略
+
+FoodMate 的 PostgreSQL 索引采用两层策略：
+
+#### 基线索引
+
+第一版必须建设的索引只包含：
+
+- 主键
+- 必要唯一约束
+- 极少量高频主路径索引
+- 必要外键关联查询索引
+
+#### 候选索引
+
+下面这类索引统一不在第一版默认建设，而是基于瓶颈再建：
+
+- 组合索引
+- `trace_id`、审计类索引
+- `GIN(JSONB)`、`GIN(tags)` 索引
+- 低频筛选字段索引
+- 管理后台统计索引
+
+是否启用候选索引，必须依据：
+
+- `EXPLAIN ANALYZE`
+- 慢查询日志
+- 实际热点接口
 
 ---
 
@@ -67,13 +142,27 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `id` | `UUID` | 主键，默认 `gen_random_uuid()` |
+| `id` | `BIGINT` | 主键，由应用层 Snowflake 生成 |
 | `created_at` | `TIMESTAMPTZ` | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` | 更新时间 |
-| `created_by` | `UUID` / `VARCHAR(64)` | 创建人或来源系统 |
-| `updated_by` | `UUID` / `VARCHAR(64)` | 更新人或来源系统 |
+| `created_by` | `BIGINT` / `VARCHAR(64)` | 创建人或来源系统 |
+| `updated_by` | `BIGINT` / `VARCHAR(64)` | 更新人或来源系统 |
+| `is_deleted` | `BOOLEAN` | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` | 删除时间 |
+| `deleted_by` | `BIGINT` | 删除操作者 |
 
-日志型表不要求 `updated_at`，以追加写为主。
+日志型表也保留软删除字段，但不对普通用户开放删除入口。
+
+默认查询规则：
+
+- 所有业务查询默认带 `is_deleted = false`
+- 管理接口显式带 `include_deleted=true` 才允许查已删除数据
+- Repository 不允许手写“全量查”绕过软删除
+
+唯一约束规则：
+
+- 唯一键默认只对未删除数据生效
+- PostgreSQL 建议使用部分唯一索引，例如 `WHERE is_deleted = false`
 
 ### 1.2 会话域
 
@@ -81,68 +170,89 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 用户主键 |
-| `tenant_id` | `UUID` | IDX | 多租户隔离 |
+| `id` | `BIGINT` | PK | 用户主键 |
+| `tenant_id` | `BIGINT` |  | 多租户隔离 |
 | `user_no` | `VARCHAR(64)` | UK | 用户业务编号 |
 | `nickname` | `VARCHAR(128)` |  | 昵称 |
-| `status` | `VARCHAR(32)` | IDX | `active/inactive/locked` |
+| `status` | `VARCHAR(32)` |  | `active/inactive/locked` |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
-索引：
+基线索引：
 
 - `uk_users_user_no`
-- `idx_users_tenant_status`
+
+候选索引：
+
+- `(tenant_id, status, is_deleted)`
 
 #### `user_profiles`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
-| `user_id` | `UUID` | UK, FK | 对应用户 |
+| `id` | `BIGINT` | PK | 主键 |
+| `user_id` | `BIGINT` | UK, FK | 对应用户 |
 | `diet_goal` | `VARCHAR(64)` |  | 增肌/减脂/均衡 |
 | `allergens` | `JSONB` |  | 过敏原 |
 | `dislikes` | `JSONB` |  | 忌口 |
 | `preferred_units` | `JSONB` |  | 单位偏好 |
 | `profile_json` | `JSONB` |  | 扩展画像 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 #### `sessions`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 会话主键 |
-| `tenant_id` | `UUID` | IDX | 租户 |
-| `user_id` | `UUID` | IDX, FK | 用户 |
+| `id` | `BIGINT` | PK | 会话主键 |
+| `tenant_id` | `BIGINT` | FK | 租户 |
+| `user_id` | `BIGINT` | FK | 用户 |
 | `title` | `VARCHAR(255)` |  | 会话标题 |
-| `mode` | `VARCHAR(32)` | IDX | `agent/chat` |
-| `status` | `VARCHAR(32)` | IDX | `active/archived/closed` |
-| `last_message_at` | `TIMESTAMPTZ` | IDX | 最近消息时间 |
+| `mode` | `VARCHAR(32)` |  | `agent/chat` |
+| `status` | `VARCHAR(32)` |  | `active/archived/closed` |
+| `last_message_at` | `TIMESTAMPTZ` |  | 最近消息时间 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
-索引：
+基线索引：
 
 - `idx_sessions_user_last_message_at`
-- `idx_sessions_tenant_status`
+
+候选索引：
+
+- `(tenant_id, status, is_deleted)`
 
 #### `messages`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 消息主键 |
-| `session_id` | `UUID` | IDX, FK | 所属会话 |
-| `agent_run_id` | `UUID` | IDX | 关联运行 |
-| `role` | `VARCHAR(32)` | IDX | `user/assistant/system/tool` |
+| `id` | `BIGINT` | PK | 消息主键 |
+| `session_id` | `BIGINT` | FK | 所属会话 |
+| `agent_run_id` | `BIGINT` | FK | 关联运行 |
+| `role` | `VARCHAR(32)` |  | `user/assistant/system/tool` |
 | `content` | `TEXT` |  | 文本内容 |
 | `structured_payload` | `JSONB` |  | 结构化载荷 |
-| `sequence_no` | `INT` | IDX | 会话内顺序 |
+| `sequence_no` | `INT` |  | 会话内顺序 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
-索引：
+基线索引：
 
 - `idx_messages_session_sequence`
-- `idx_messages_session_created_at`
+
+候选索引：
+
+- `(session_id, created_at DESC, is_deleted)`
 
 ### 1.3 Agent 运行域
 
@@ -150,45 +260,57 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 运行主键 |
-| `session_id` | `UUID` | IDX, FK | 所属会话 |
-| `user_message_id` | `UUID` | IDX | 触发消息 |
-| `intent` | `VARCHAR(64)` | IDX | `record/analysis/planning/knowledge_qna` |
-| `status` | `VARCHAR(32)` | IDX | `queued/executing/success/failed/cancelled` |
+| `id` | `BIGINT` | PK | 运行主键 |
+| `session_id` | `BIGINT` | FK | 所属会话 |
+| `user_message_id` | `BIGINT` | FK | 触发消息 |
+| `intent` | `VARCHAR(64)` |  | `record/analysis/planning/knowledge_qna` |
+| `status` | `VARCHAR(32)` |  | `queued/executing/success/failed/cancelled` |
 | `plan_json` | `JSONB` |  | 执行计划 |
 | `result_json` | `JSONB` |  | 执行结果 |
 | `error_code` | `VARCHAR(64)` |  | 错误码 |
-| `trace_id` | `VARCHAR(64)` | IDX | 链路追踪 |
+| `trace_id` | `VARCHAR(64)` |  | 链路追踪 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
-推荐索引：
+基线索引：
 
 - `idx_agent_runs_session_created_at`
-- `idx_agent_runs_status_created_at`
-- `idx_agent_runs_trace_id`
+
+候选索引：
+
+- `(status, created_at DESC, is_deleted)`
+- `(trace_id)`
 
 #### `tool_calls`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
-| `agent_run_id` | `UUID` | IDX, FK | 所属运行 |
-| `tool_name` | `VARCHAR(64)` | IDX | 工具名 |
+| `id` | `BIGINT` | PK | 主键 |
+| `agent_run_id` | `BIGINT` | FK | 所属运行 |
+| `tool_name` | `VARCHAR(64)` |  | 工具名 |
 | `tool_version` | `VARCHAR(32)` |  | 工具版本 |
 | `input_json` | `JSONB` |  | 入参 |
 | `output_json` | `JSONB` |  | 出参 |
-| `status` | `VARCHAR(32)` | IDX | `running/success/failed/cancelled` |
+| `status` | `VARCHAR(32)` |  | `running/success/failed/cancelled` |
 | `latency_ms` | `INT` |  | 耗时 |
 | `error_code` | `VARCHAR(64)` |  | 错误码 |
-| `trace_id` | `VARCHAR(64)` | IDX | 链路追踪 |
+| `trace_id` | `VARCHAR(64)` |  | 链路追踪 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
-推荐索引：
+基线索引：
 
 - `idx_tool_calls_run_created_at`
-- `idx_tool_calls_tool_status`
-- `idx_tool_calls_trace_id`
+
+候选索引：
+
+- `(tool_name, status, is_deleted)`
+- `(trace_id)`
 
 ### 1.4 业务域
 
@@ -196,33 +318,58 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 饮食记录主键 |
-| `user_id` | `UUID` | IDX, FK | 用户 |
-| `session_id` | `UUID` | IDX | 来源会话 |
-| `meal_time` | `TIMESTAMPTZ` | IDX | 用餐时间 |
-| `meal_type` | `VARCHAR(32)` | IDX | 早餐/午餐/晚餐/加餐 |
+| `id` | `BIGINT` | PK | 饮食记录主键 |
+| `user_id` | `BIGINT` | FK | 用户 |
+| `session_id` | `BIGINT` | FK | 来源会话 |
+| `meal_time` | `TIMESTAMPTZ` |  | 用餐时间 |
+| `meal_type` | `VARCHAR(32)` |  | 早餐/午餐/晚餐/加餐 |
 | `items_json` | `JSONB` |  | 食材明细 |
 | `nutrition_json` | `JSONB` |  | 汇总营养值 |
 | `notes` | `TEXT` |  | 备注 |
 | `source` | `VARCHAR(32)` |  | manual/agent/import |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+基线索引：
+
+- `idx_food_logs_user_meal_time`
+
+候选索引：
+
+- `(session_id, created_at DESC, is_deleted)`
+- `(meal_type, is_deleted)`
 
 #### `meal_plans`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 计划主键 |
-| `user_id` | `UUID` | IDX | 用户 |
-| `session_id` | `UUID` | IDX | 来源会话 |
+| `id` | `BIGINT` | PK | 计划主键 |
+| `user_id` | `BIGINT` | FK | 用户 |
+| `session_id` | `BIGINT` | FK | 来源会话 |
 | `plan_name` | `VARCHAR(128)` |  | 计划名称 |
 | `days` | `INT` |  | 覆盖天数 |
 | `budget` | `NUMERIC(12,2)` |  | 预算 |
 | `constraints_json` | `JSONB` |  | 约束 |
 | `plan_json` | `JSONB` |  | 计划详情 |
 | `validation_json` | `JSONB` |  | 校验结果 |
-| `status` | `VARCHAR(32)` | IDX | draft/validated/saved |
+| `status` | `VARCHAR(32)` |  | draft/validated/saved |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+基线索引：
+
+- `pk_meal_plans(id)`
+
+候选索引：
+
+- `(user_id, status, is_deleted)`
+- `(session_id, created_at DESC, is_deleted)`
 
 ### 1.5 记忆与摘要域
 
@@ -230,26 +377,33 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
-| `user_id` | `UUID` | IDX | 用户 |
-| `memory_type` | `VARCHAR(32)` | IDX | preference/constraint/habit |
-| `memory_key` | `VARCHAR(64)` | IDX | 键 |
+| `id` | `BIGINT` | PK | 主键 |
+| `user_id` | `BIGINT` | FK | 用户 |
+| `memory_type` | `VARCHAR(32)` |  | preference/constraint/habit |
+| `memory_key` | `VARCHAR(64)` |  | 键 |
 | `memory_value` | `JSONB` |  | 值 |
 | `confidence` | `NUMERIC(5,4)` |  | 置信度 |
 | `source` | `VARCHAR(32)` |  | 来源 |
 | `scope` | `VARCHAR(32)` |  | global/session/task |
 | `expires_at` | `TIMESTAMPTZ` |  | 过期时间 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 #### `session_summaries`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
-| `session_id` | `UUID` | UK, FK | 会话 |
+| `id` | `BIGINT` | PK | 主键 |
+| `session_id` | `BIGINT` | UK, FK | 会话 |
 | `summary_text` | `TEXT` |  | 摘要文本 |
 | `key_constraints` | `JSONB` |  | 关键约束 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 ### 1.6 知识库域
 
@@ -257,37 +411,56 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 文档主键 |
-| `tenant_id` | `UUID` | IDX | 租户 |
-| `source_type` | `VARCHAR(64)` | IDX | cookbook/manual/faq/web |
+| `id` | `BIGINT` | PK | 文档主键 |
+| `tenant_id` | `BIGINT` | FK | 租户 |
+| `source_type` | `VARCHAR(64)` |  | cookbook/manual/faq/web |
 | `title` | `VARCHAR(255)` |  | 标题 |
-| `status` | `VARCHAR(32)` | IDX | uploaded/parsed/indexed/disabled |
+| `status` | `VARCHAR(32)` |  | uploaded/parsed/indexed/disabled |
 | `version` | `VARCHAR(32)` |  | 文档版本 |
 | `storage_key` | `VARCHAR(255)` |  | MinIO 对象键 |
 | `metadata_json` | `JSONB` |  | 扩展 metadata |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+基线索引：
+
+- `idx_knowledge_documents_tenant_status`
+
+候选索引：
+
+- `(source_type, is_deleted)`
 
 #### `knowledge_chunks`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | Chunk 主键 |
-| `document_id` | `UUID` | IDX, FK | 来源文档 |
+| `id` | `BIGINT` | PK | Chunk 主键 |
+| `document_id` | `BIGINT` | FK | 来源文档 |
 | `chunk_no` | `INT` |  | 顺序号 |
 | `chunk_text` | `TEXT` |  | Chunk 内容 |
 | `section_path` | `VARCHAR(255)` |  | 章节路径 |
 | `tags` | `JSONB` |  | 标签 |
 | `version` | `VARCHAR(32)` |  | chunk 版本 |
-| `embedding_id` | `VARCHAR(64)` | IDX | 向量引用 |
+| `embedding_id` | `VARCHAR(64)` |  | 向量引用 |
 | `metadata_json` | `JSONB` |  | ACL、来源、时间等 metadata |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
-推荐索引：
+基线索引：
 
 - `idx_knowledge_chunks_document_chunk_no`
-- `idx_knowledge_chunks_embedding_id`
-- `gin_knowledge_chunks_tags`
-- `gin_knowledge_chunks_metadata`
+
+候选索引：
+
+- `(embedding_id)`
+- `GIN(tags)`
+- `GIN(metadata_json)`
 
 ### 1.7 数据源与 SQL Agent 域
 
@@ -295,54 +468,68 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 数据源主键 |
+| `id` | `BIGINT` | PK | 数据源主键 |
 | `name` | `VARCHAR(128)` | UK | 数据源名 |
-| `db_type` | `VARCHAR(32)` | IDX | postgresql/mysql/clickhouse |
+| `db_type` | `VARCHAR(32)` |  | postgresql/mysql/clickhouse |
 | `purpose` | `VARCHAR(128)` |  | 用途 |
-| `visibility` | `VARCHAR(32)` | IDX | public/restricted/private |
-| `status` | `VARCHAR(32)` | IDX | active/disabled |
+| `visibility` | `VARCHAR(32)` |  | public/restricted/private |
+| `status` | `VARCHAR(32)` |  | active/disabled |
 | `readonly` | `BOOLEAN` |  | 必须为 true |
 | `connection_ref` | `VARCHAR(128)` |  | 连接配置引用 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 #### `schema_catalogs`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
-| `datasource_id` | `UUID` | IDX, FK | 数据源 |
+| `id` | `BIGINT` | PK | 主键 |
+| `datasource_id` | `BIGINT` | FK | 数据源 |
 | `schema_name` | `VARCHAR(64)` |  | schema |
-| `table_name` | `VARCHAR(128)` | IDX | 表名 |
-| `field_name` | `VARCHAR(128)` | IDX | 字段名 |
+| `table_name` | `VARCHAR(128)` |  | 表名 |
+| `field_name` | `VARCHAR(128)` |  | 字段名 |
 | `field_desc` | `VARCHAR(255)` |  | 字段说明 |
 | `data_type` | `VARCHAR(64)` |  | 数据类型 |
-| `is_sensitive` | `BOOLEAN` | IDX | 是否敏感 |
+| `is_sensitive` | `BOOLEAN` |  | 是否敏感 |
 | `sample_sql` | `TEXT` |  | 示例 SQL |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 #### `sql_query_audits`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 审计主键 |
-| `session_id` | `UUID` | IDX | 会话 |
-| `agent_run_id` | `UUID` | IDX | 运行 |
-| `datasource_id` | `UUID` | IDX | 数据源 |
+| `id` | `BIGINT` | PK | 审计主键 |
+| `session_id` | `BIGINT` | FK | 会话 |
+| `agent_run_id` | `BIGINT` | FK | 运行 |
+| `datasource_id` | `BIGINT` | FK | 数据源 |
 | `original_question` | `TEXT` |  | 原始问题 |
 | `resolved_question` | `TEXT` |  | 查询理解结果 |
 | `sql_text` | `TEXT` |  | 最终 SQL |
-| `status` | `VARCHAR(32)` | IDX | drafted/validated/rejected/executed |
+| `status` | `VARCHAR(32)` |  | drafted/validated/rejected/executed |
 | `reject_reason` | `VARCHAR(255)` |  | 拒绝原因 |
 | `row_count` | `INT` |  | 返回行数 |
 | `latency_ms` | `INT` |  | 耗时 |
-| `trace_id` | `VARCHAR(64)` | IDX | 链路追踪 |
+| `trace_id` | `VARCHAR(64)` |  | 链路追踪 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
-推荐索引：
+基线索引：
 
-- `idx_sql_audits_session_created_at`
-- `idx_sql_audits_datasource_status`
-- `idx_sql_audits_trace_id`
+- `pk_sql_query_audits(id)`
+
+候选索引：
+
+- `(session_id, created_at DESC, is_deleted)`
+- `(datasource_id, status, is_deleted)`
+- `(trace_id)`
 
 ### 1.8 工具注册域
 
@@ -350,25 +537,28 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
+| `id` | `BIGINT` | PK | 主键 |
 | `name` | `VARCHAR(64)` | UK | 工具名 |
 | `display_name` | `VARCHAR(128)` |  | 展示名 |
 | `description` | `VARCHAR(255)` |  | 描述 |
-| `category` | `VARCHAR(32)` | IDX | query/write/generate/validate |
-| `risk_level` | `VARCHAR(16)` | IDX | low/medium/high |
+| `category` | `VARCHAR(32)` |  | query/write/generate/validate |
+| `risk_level` | `VARCHAR(16)` |  | low/medium/high |
 | `availability_scope` | `VARCHAR(32)` |  | user/admin/internal |
-| `status` | `VARCHAR(32)` | IDX | active/disabled |
+| `status` | `VARCHAR(32)` |  | active/disabled |
 | `current_version` | `VARCHAR(32)` |  | 当前版本 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 #### `tool_schema_versions`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
-| `tool_id` | `UUID` | IDX, FK | 工具 |
-| `version` | `VARCHAR(32)` | IDX | 版本 |
+| `id` | `BIGINT` | PK | 主键 |
+| `tool_id` | `BIGINT` | FK | 工具 |
+| `version` | `VARCHAR(32)` |  | 版本 |
 | `input_schema` | `JSONB` |  | 入参 schema |
 | `output_schema` | `JSONB` |  | 出参 schema |
 | `permissions` | `JSONB` |  | 权限 |
@@ -376,6 +566,9 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 | `retryable` | `BOOLEAN` |  | 是否可重试 |
 | `idempotent` | `BOOLEAN` |  | 是否幂等 |
 | `published_at` | `TIMESTAMPTZ` |  | 发布时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 ### 1.9 模型治理域
 
@@ -383,34 +576,40 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
-| `request_id` | `VARCHAR(64)` | IDX | 请求 ID |
-| `trace_id` | `VARCHAR(64)` | IDX | Trace ID |
-| `scene` | `VARCHAR(64)` | IDX | 使用场景 |
-| `provider_code` | `VARCHAR(64)` | IDX | 供应商 |
+| `id` | `BIGINT` | PK | 主键 |
+| `request_id` | `VARCHAR(64)` | UK | 请求 ID |
+| `trace_id` | `VARCHAR(64)` |  | Trace ID |
+| `scene` | `VARCHAR(64)` |  | 使用场景 |
+| `provider_code` | `VARCHAR(64)` |  | 供应商 |
 | `model_name` | `VARCHAR(128)` |  | 模型名 |
 | `usage_json` | `JSONB` |  | token 用量 |
 | `latency_ms` | `INT` |  | 耗时 |
 | `cost_amount` | `NUMERIC(12,6)` |  | 成本 |
-| `status` | `VARCHAR(32)` | IDX | success/failed/fallback |
+| `status` | `VARCHAR(32)` |  | success/failed/fallback |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 #### `model_route_rules`
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `UUID` | PK | 主键 |
-| `tenant_id` | `UUID` | IDX | 租户 |
-| `scene` | `VARCHAR(64)` | IDX | 场景 |
-| `model_type` | `VARCHAR(32)` | IDX | chat/embed/rerank |
+| `id` | `BIGINT` | PK | 主键 |
+| `tenant_id` | `BIGINT` | FK | 租户 |
+| `scene` | `VARCHAR(64)` |  | 场景 |
+| `model_type` | `VARCHAR(32)` |  | chat/embed/rerank |
 | `provider_code` | `VARCHAR(64)` |  | 主供应商 |
 | `fallback_provider_code` | `VARCHAR(64)` |  | 备供应商 |
 | `max_cost` | `NUMERIC(12,6)` |  | 最大成本 |
 | `max_latency_ms` | `INT` |  | 最大延迟 |
 | `rule_json` | `JSONB` |  | 路由策略 |
-| `status` | `VARCHAR(32)` | IDX | active/inactive |
+| `status` | `VARCHAR(32)` |  | active/inactive |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
 
 ---
 
@@ -428,9 +627,9 @@ foodmate_knowledge_chunks
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `chunk_id` | `VARCHAR(64)` | 对应 `knowledge_chunks.id` |
-| `document_id` | `VARCHAR(64)` | 对应文档 |
-| `tenant_id` | `VARCHAR(64)` | 租户隔离 |
+| `chunk_id` | `INT64` | 对应 `knowledge_chunks.id`，由 Snowflake 字符串映射而来 |
+| `document_id` | `INT64` | 对应文档 |
+| `tenant_id` | `INT64` | 租户隔离 |
 | `dense_vector` | `FLOAT_VECTOR` | 语义向量 |
 | `sparse_vector` | `SPARSE_FLOAT_VECTOR` | BM25 稀疏向量 |
 | `chunk_text` | `VARCHAR/TEXT` | 文本 |
@@ -441,6 +640,7 @@ foodmate_knowledge_chunks
 | `owner_scope` | `VARCHAR(64)` | 所属组织/租户 |
 | `version` | `VARCHAR(32)` | chunk 版本 |
 | `updated_at` | `INT64` | 更新时间戳 |
+| `is_deleted` | `BOOL` | 删除可见性标记 |
 
 ### 2.3 ACL metadata
 
@@ -462,6 +662,18 @@ ACL 相关 metadata 固定包含：
 - 同一文档新版本入库时，旧 chunk 不物理覆盖，先标记旧版本失效
 - 检索默认只查最新 `active` 版本
 - 多租户环境下，检索必须带 `tenant_id`
+- `knowledge_documents` 软删除后，Milvus metadata 先标记 `is_deleted = true`
+- `knowledge_chunks` 软删除后，不再参与默认召回
+- 第一阶段不要求同步物理删除向量数据，先走“索引下线 + 保留期回收”
+
+### 2.5 PostgreSQL 与 Milvus 的状态关系
+
+固定原则：
+
+- PostgreSQL 是删除状态源
+- Milvus 是检索可见性副本
+- 软删除后先更新 PostgreSQL，再通过异步任务下线 Milvus metadata
+- 禁止依赖人工约定保持两边状态一致
 
 ---
 
@@ -473,6 +685,9 @@ ACL 相关 metadata 固定包含：
 - 鉴权：默认 Bearer Token
 - 返回结构：统一 `code/message/data/requestId`
 - 写接口需要支持幂等键：`Idempotency-Key`
+- 所有 Snowflake ID 对外统一按字符串返回
+- 所有默认查询统一排除 `is_deleted = true` 的数据
+- 只有管理接口允许显式传 `include_deleted=true`
 
 ### 3.2 会话与消息接口
 
@@ -483,6 +698,8 @@ ACL 相关 metadata 固定包含：
 | `GET` | `/api/v1/sessions/{id}/messages` | 查询消息列表 | 用户 | 否 |
 | `PATCH` | `/api/v1/sessions/{id}` | 修改标题/状态 | 用户 | 是 |
 | `POST` | `/api/v1/sessions/{id}/archive` | 归档会话 | 用户 | 是 |
+| `DELETE` | `/api/v1/sessions/{id}` | 软删除会话 | 用户 | 是 |
+| `POST` | `/api/v1/sessions/{id}/restore` | 恢复会话 | 用户 | 是 |
 
 关键请求与响应字段：
 
@@ -492,6 +709,11 @@ ACL 相关 metadata 固定包含：
 - `GET /sessions/{id}/messages`
   - 请求：`page`、`page_size`
   - 响应：`items[]`、`next_cursor`
+
+删除与恢复语义：
+
+- `DELETE /sessions/{id}` 只写 `is_deleted/deleted_at/deleted_by`
+- `POST /sessions/{id}/restore` 恢复软删除会话
 
 ### 3.3 SSE 流式对话接口
 
@@ -529,12 +751,14 @@ ACL 相关 metadata 固定包含：
 | `GET` | `/api/v1/food-logs` | 查询饮食记录 | 用户 | 否 |
 | `GET` | `/api/v1/food-logs/{id}` | 查询单条记录 | 用户 | 否 |
 | `PATCH` | `/api/v1/food-logs/{id}` | 修改记录 | 用户 | 是 |
-| `DELETE` | `/api/v1/food-logs/{id}` | 删除记录 | 用户 | 是 |
+| `DELETE` | `/api/v1/food-logs/{id}` | 软删除记录 | 用户 | 是 |
+| `POST` | `/api/v1/food-logs/{id}/restore` | 恢复记录 | 用户 | 是 |
 
 关键字段：
 
 - 创建请求：`meal_time`、`meal_type`、`items[]`、`notes`
 - 查询条件：`start`、`end`、`meal_type`
+- 管理端可显式传：`include_deleted=true`
 
 ### 3.5 计划与校验接口
 
@@ -543,6 +767,8 @@ ACL 相关 metadata 固定包含：
 | `POST` | `/api/v1/meal-plans/validate` | 校验计划 | 用户 | 是 |
 | `POST` | `/api/v1/meal-plans` | 保存计划 | 用户 | 是 |
 | `GET` | `/api/v1/meal-plans/{id}` | 查询计划 | 用户 | 否 |
+| `DELETE` | `/api/v1/meal-plans/{id}` | 软删除计划 | 用户 | 是 |
+| `POST` | `/api/v1/meal-plans/{id}/restore` | 恢复计划 | 用户 | 是 |
 
 校验请求字段：
 
@@ -566,6 +792,8 @@ ACL 相关 metadata 固定包含：
 | `POST` | `/api/v1/knowledge/search` | 直接检索知识库 | 用户 | 是 |
 | `POST` | `/api/v1/knowledge/documents` | 导入文档 | 管理员 | 是 |
 | `GET` | `/api/v1/knowledge/documents/{id}` | 查询文档 | 管理员 | 否 |
+| `DELETE` | `/api/v1/knowledge/documents/{id}` | 软删除文档 | 管理员 | 是 |
+| `POST` | `/api/v1/knowledge/documents/{id}/restore` | 恢复文档 | 管理员 | 是 |
 
 `/knowledge/search` 请求字段：
 
@@ -614,6 +842,7 @@ ACL 相关 metadata 固定包含：
 | `GET` | `/api/v1/admin/tool-calls` | 查询工具调用 | 管理员 | 否 |
 | `GET` | `/api/v1/admin/sql-audits` | 查询 SQL 审计 | 管理员 | 否 |
 | `GET` | `/api/v1/admin/model-usage` | 查询模型用量 | 管理员 | 否 |
+| `GET` | `/api/v1/admin/deleted/resources` | 查询已删除资源 | 管理员 | 否 |
 
 ---
 
@@ -679,6 +908,18 @@ database_query
 - `row_count`
 - `latency_ms`
 - `trace_id`
+
+### 4.6 删除与恢复审计
+
+所有软删除与恢复操作都必须记录：
+
+- `operator_id`
+- `request_id`
+- `trace_id`
+- `target_type`
+- `target_id`
+- `action`：`soft_delete/restore`
+- `created_at`
 
 ---
 

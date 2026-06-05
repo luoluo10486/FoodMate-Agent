@@ -2243,12 +2243,13 @@ flowchart TD
 
 下面这组表是根据你给的“用户表 / 模型配置表 / 调用日志表”参考图整理出来的。  
 由于 FoodMate 当前主库倾向于 PostgreSQL，所以下面采用 PostgreSQL 风格写法，但整体设计思想和截图是一致的。
+这里的 ID 方案统一采用应用层生成的 Snowflake BIGINT，不依赖 `BIGSERIAL`。
 
 #### 21.13.1 `users`
 
 ```sql
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     display_name VARCHAR(100),
@@ -2256,6 +2257,9 @@ CREATE TABLE users (
     role VARCHAR(50) NOT NULL DEFAULT 'user',
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     last_login_at TIMESTAMP NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP NULL,
+    deleted_by BIGINT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -2271,7 +2275,7 @@ CREATE TABLE users (
 
 ```sql
 CREATE TABLE model_providers (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     provider_name VARCHAR(100) NOT NULL,
     provider_code VARCHAR(50) NOT NULL UNIQUE,
     model_name VARCHAR(100) NOT NULL,
@@ -2287,6 +2291,9 @@ CREATE TABLE model_providers (
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     remark TEXT,
     created_by BIGINT,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP NULL,
+    deleted_by BIGINT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -2303,7 +2310,7 @@ CREATE TABLE model_providers (
 
 ```sql
 CREATE TABLE model_usage_logs (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     request_id VARCHAR(100) NOT NULL UNIQUE,
     trace_id VARCHAR(100),
     user_id BIGINT,
@@ -2322,6 +2329,9 @@ CREATE TABLE model_usage_logs (
     route_name VARCHAR(100),
     prompt_hash VARCHAR(128),
     response_hash VARCHAR(128),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP NULL,
+    deleted_by BIGINT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 ```
@@ -2339,7 +2349,7 @@ CREATE TABLE model_usage_logs (
 
 ```sql
 CREATE TABLE model_route_rules (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     rule_name VARCHAR(100) NOT NULL UNIQUE,
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     priority INT NOT NULL DEFAULT 100,
@@ -2352,6 +2362,9 @@ CREATE TABLE model_route_rules (
     max_latency_ms INT,
     fallback_provider_code VARCHAR(50),
     remark TEXT,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP NULL,
+    deleted_by BIGINT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
