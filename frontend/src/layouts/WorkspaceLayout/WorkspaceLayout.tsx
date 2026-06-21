@@ -3,6 +3,7 @@ import { IconMenu, IconPlus, IconSearch, IconUser } from '@arco-design/web-react
 import { NavLink } from 'react-router-dom';
 import { mockSessions } from '../../mock/sessions';
 import { SidebarSessionList } from '../../components/workspace/SidebarSessionList';
+import { BrandLogo } from '../../components/brand/BrandLogo';
 import styles from './WorkspaceLayout.module.css';
 
 type WorkspaceLayoutProps = {
@@ -15,11 +16,8 @@ export function WorkspaceLayout({ children, activeModule = 'home' }: WorkspaceLa
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.brandRow}>
-          <div className={styles.logo}>FM</div>
-          <div>
-            <strong>FoodMate</strong>
-            <span>Agent 模式</span>
-          </div>
+          <BrandLogo />
+          <span className={styles.modePill}>Agent 模式</span>
         </div>
         <Button className={styles.newButton} type="primary" icon={<IconPlus />}>
           新建 Agent 会话

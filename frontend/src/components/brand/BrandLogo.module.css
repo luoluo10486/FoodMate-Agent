@@ -1,0 +1,79 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  color: var(--fm-ink);
+}
+
+.mark {
+  flex: 0 0 auto;
+  filter: drop-shadow(0 14px 28px rgba(47, 111, 78, 0.12));
+}
+
+.copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+}
+
+.food {
+  color: var(--fm-green);
+}
+
+.mate {
+  color: var(--fm-orange);
+}
+
+.copy p {
+  margin: 0;
+  color: var(--fm-muted);
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.small {
+  gap: 10px;
+}
+
+.small .mark {
+  width: 42px;
+  height: 42px;
+}
+
+.small .wordmark {
+  font-size: 23px;
+}
+
+.hero {
+  gap: 20px;
+}
+
+.hero .mark {
+  width: 96px;
+  height: 96px;
+}
+
+.hero .wordmark {
+  font-size: clamp(44px, 5.4vw, 68px);
+}
+
+@media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .hero .mark {
+    width: 78px;
+    height: 78px;
+  }
+}

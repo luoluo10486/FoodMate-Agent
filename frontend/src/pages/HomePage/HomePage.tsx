@@ -1,9 +1,10 @@
-import { Button, Skeleton, Tag } from '@arco-design/web-react';
+import { Button, Skeleton } from '@arco-design/web-react';
 import { IconArrowRight } from '@arco-design/web-react/icon';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { TaskCard } from '../../components/common/TaskCard';
 import { EmptyState } from '../../components/common/EmptyState';
+import { BrandLogo } from '../../components/brand/BrandLogo';
 import { recommendedPrompts, taskCards } from '../../mock/sessions';
 import styles from './HomePage.module.css';
 
@@ -12,8 +13,7 @@ export function HomePage() {
     <WorkspaceLayout activeModule="home">
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.hero}>
-          <Tag color="green">FoodMate Agent Workspace</Tag>
-          <h1>记录、计算、分析和规划，都从一个餐饮 Agent 工作台开始。</h1>
+          <BrandLogo size="hero" showTagline />
           <p>把模糊的饮食问题拆成可追踪的任务：先判断意图，再调用工具，最后给出带依据的结果。</p>
         </section>
 

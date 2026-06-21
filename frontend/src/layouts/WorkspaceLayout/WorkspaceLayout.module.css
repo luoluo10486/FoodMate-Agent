@@ -22,10 +22,10 @@
 .brandRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.brandRow strong,
 .profile strong {
   display: block;
   color: var(--fm-ink);
@@ -33,7 +33,6 @@
   line-height: 1.2;
 }
 
-.brandRow span,
 .profile span {
   display: block;
   margin-top: 3px;
@@ -42,7 +41,6 @@
   font-weight: 700;
 }
 
-.logo,
 .avatar {
   display: grid;
   width: 42px;
@@ -54,6 +52,17 @@
   font-weight: 900;
   letter-spacing: 0.04em;
   box-shadow: 0 12px 24px rgba(47, 111, 78, 0.22);
+}
+
+.modePill {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid #e6c49b;
+  border-radius: 999px;
+  background: var(--fm-orange-soft);
+  color: var(--fm-orange);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .newButton {
@@ -116,7 +125,8 @@
     padding: 20px 14px;
   }
 
-  .brandRow div:not(.logo),
+  .brandRow > span,
+  .brandRow :global(svg) + div,
   .newButton span,
   .search,
   .profile div {

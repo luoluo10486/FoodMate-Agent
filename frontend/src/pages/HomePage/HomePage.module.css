@@ -9,17 +9,12 @@
 }
 
 .hero {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
   max-width: 850px;
   margin: 0 auto;
   text-align: center;
-}
-
-.hero h1 {
-  margin: 10px 0 8px;
-  color: var(--fm-ink);
-  font-size: clamp(30px, 4.2vw, 48px);
-  line-height: 1.04;
-  letter-spacing: -0.05em;
 }
 
 .hero p {
