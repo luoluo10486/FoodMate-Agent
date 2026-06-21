@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-label="FoodMate 规划页原型图">
+  <rect width="1200" height="760" fill="#F7F5EF"/>
+  <rect x="24" y="24" width="1152" height="712" rx="18" fill="#FFFFFF" stroke="#D9D5C8"/>
+  <rect x="24" y="24" width="1152" height="64" rx="18" fill="#F2EFE6"/>
+  <text x="54" y="64" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="24" font-weight="700" fill="#23251F">FoodMate</text>
+  <text x="230" y="61" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" fill="#6F7468">首页</text>
+  <text x="286" y="61" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" fill="#6F7468">会话</text>
+  <text x="342" y="61" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" fill="#6F7468">分析</text>
+  <text x="398" y="61" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" fill="#2F6F4E">规划</text>
+
+  <text x="72" y="132" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="28" font-weight="800" fill="#23251F">5 天工作餐规划</text>
+  <rect x="854" y="104" width="116" height="42" rx="8" fill="#FFFFFF" stroke="#D9D5C8"/>
+  <text x="884" y="130" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">重新校验</text>
+  <rect x="986" y="104" width="116" height="42" rx="8" fill="#2F6F4E"/>
+  <text x="1016" y="130" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="700" fill="#FFFFFF">确认保存</text>
+
+  <rect x="72" y="170" width="1030" height="72" rx="10" fill="#FBFAF6" stroke="#D9D5C8"/>
+  <text x="100" y="200" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" font-weight="700" fill="#23251F">约束摘要</text>
+  <text x="100" y="224" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">人数：2 人 · 天数：5 天 · 预算：300 元 · 目标：均衡高蛋白 · 忌口：不吃猪肉 · 晚餐 30 分钟内</text>
+
+  <rect x="72" y="274" width="660" height="348" rx="10" fill="#FFFFFF" stroke="#D9D5C8"/>
+  <text x="98" y="310" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="16" font-weight="700" fill="#23251F">多日菜单</text>
+  <rect x="98" y="334" width="608" height="42" fill="#F2EFE6"/>
+  <text x="116" y="360" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#23251F">日期</text>
+  <text x="218" y="360" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#23251F">午餐</text>
+  <text x="414" y="360" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#23251F">晚餐</text>
+  <line x1="98" y1="376" x2="706" y2="376" stroke="#D9D5C8"/>
+  <text x="116" y="414" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">周一</text>
+  <text x="218" y="414" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">鸡胸藜麦碗</text>
+  <text x="414" y="414" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">番茄豆腐汤</text>
+  <line x1="98" y1="436" x2="706" y2="436" stroke="#E5E0D3"/>
+  <text x="116" y="474" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">周二</text>
+  <text x="218" y="474" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">牛肉蔬菜饭</text>
+  <text x="414" y="474" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">鸡蛋菠菜面</text>
+  <line x1="98" y1="496" x2="706" y2="496" stroke="#E5E0D3"/>
+  <text x="116" y="534" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">周三</text>
+  <text x="218" y="534" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">豆腐鸡蛋便当</text>
+  <text x="414" y="534" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">虾仁西兰花</text>
+  <line x1="98" y1="556" x2="706" y2="556" stroke="#E5E0D3"/>
+  <text x="116" y="594" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">更多</text>
+  <text x="218" y="594" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">展开查看剩余 2 天</text>
+
+  <rect x="760" y="274" width="342" height="180" rx="10" fill="#FBFAF6" stroke="#D9D5C8"/>
+  <text x="786" y="310" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="16" font-weight="700" fill="#23251F">购物清单</text>
+  <text x="786" y="342" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">蛋白质：鸡胸肉 1.2kg、鸡蛋 12 个、豆腐 4 盒</text>
+  <text x="786" y="372" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">蔬菜：西兰花、菠菜、番茄、胡萝卜</text>
+  <text x="786" y="402" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">主食：藜麦、糙米、面条</text>
+  <text x="786" y="432" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">预估：286 元 / 预算 300 元</text>
+
+  <rect x="760" y="482" width="342" height="140" rx="10" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="786" y="518" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="16" font-weight="700" fill="#23251F">计划校验</text>
+  <text x="786" y="548" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#2F6F4E">预算通过：286 / 300 元</text>
+  <text x="786" y="578" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#2F6F4E">蛋白质目标通过：日均 78g</text>
+  <text x="786" y="608" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#D88A3D">提醒：周四晚餐烹饪时间可能接近 35 分钟</text>
+
+  <rect x="72" y="650" width="1030" height="44" rx="8" fill="#FFF0DF" stroke="#E6C49B"/>
+  <text x="100" y="678" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#6F7468">保存前展示确认卡；保存后进入会话结果，并可继续生成购物清单。</text>
+</svg>
