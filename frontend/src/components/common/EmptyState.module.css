@@ -1,8 +1,8 @@
 .empty {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   place-items: center;
-  padding: 30px;
+  padding: 18px;
   border: 1px dashed var(--fm-border);
   border-radius: 16px;
   color: var(--fm-muted);
@@ -11,5 +11,5 @@
 
 .empty strong {
   color: var(--fm-ink);
-  font-size: 18px;
+  font-size: 17px;
 }

@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: 286px minmax(0, 1fr);
   width: 100%;
-  min-height: 100vh;
+  height: 100dvh;
   padding: 0;
   overflow: hidden;
 }
@@ -10,8 +10,9 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  min-height: 100vh;
+  gap: 16px;
+  min-height: 0;
+  height: 100dvh;
   padding: 28px 28px 22px;
   background: rgba(249, 247, 240, 0.86);
   border-right: 1px solid var(--fm-border);
@@ -80,16 +81,19 @@
 
 .main {
   display: grid;
-  grid-template-rows: 78px minmax(0, 1fr);
+  grid-template-rows: 64px minmax(0, 1fr);
   min-width: 0;
-  min-height: 100vh;
+  min-height: 0;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .topbar {
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 20px 34px;
+  padding: 14px 34px 10px;
+  min-height: 0;
 }
 
 .nav {
@@ -132,6 +136,7 @@
 
   .main {
     min-height: 100vh;
+    height: auto;
   }
 
   .topbar {

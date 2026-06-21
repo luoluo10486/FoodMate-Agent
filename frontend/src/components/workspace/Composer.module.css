@@ -1,13 +1,13 @@
 .composer {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   width: min(880px, calc(100% - 32px));
   margin: 0 auto;
 }
 
 .statusRow {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -16,7 +16,7 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 900;
 }
 
@@ -33,8 +33,8 @@
   grid-template-columns: 36px minmax(0, 1fr) 40px;
   gap: 10px;
   align-items: center;
-  min-height: 58px;
-  padding: 8px 10px;
+  min-height: 54px;
+  padding: 7px 10px;
   border: 1px solid var(--fm-border);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.88);
@@ -42,8 +42,8 @@
 }
 
 .input textarea {
-  min-height: 36px !important;
-  max-height: 36px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
   resize: none;
   border: 0;
   box-shadow: none;
