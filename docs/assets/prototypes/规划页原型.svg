@@ -43,6 +43,7 @@
 
   <text x="456" y="628" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="700" fill="#D88A3D">🔧 Tools（3/6）⌄</text>
   <text x="610" y="628" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="700" fill="#2F6F4E">🤖 Agents（1/1）⌄</text>
+  <text x="748" y="628" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">knowledge_search · database_query · plan_validator</text>
   <rect x="438" y="646" width="876" height="54" rx="13" fill="#FFFFFF" stroke="#D9D5C8"/>
   <text x="526" y="680" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" fill="#9AA194">继续要求 FoodMate 修改预算、替换食材或生成购物清单...</text>
 </svg>

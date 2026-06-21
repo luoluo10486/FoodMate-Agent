@@ -31,8 +31,9 @@
   <rect x="1038" y="342" width="246" height="58" rx="8" fill="#FFF0DF" stroke="#E6C49B"/><text x="1058" y="366" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#23251F">周三蛋白质偏低</text><text x="1058" y="388" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="11" fill="#6F7468">建议补充鸡蛋、豆腐或鱼肉。</text>
   <rect x="1038" y="416" width="246" height="58" rx="8" fill="#E8F0F5" stroke="#B7CBD8"/><text x="1058" y="440" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#23251F">两餐缺少份量</text><text x="1058" y="462" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="11" fill="#6F7468">结果包含估算，请补全克重。</text>
 
-  <text x="456" y="628" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="700" fill="#D88A3D">🔧 Tools（1/6）⌄</text>
+  <text x="456" y="628" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="700" fill="#D88A3D">🔧 Tools（2/6）⌄</text>
   <text x="610" y="628" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="700" fill="#2F6F4E">🤖 Agents（1/1）⌄</text>
+  <text x="748" y="628" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">time_parser · database_query</text>
   <rect x="438" y="646" width="876" height="54" rx="13" fill="#FFFFFF" stroke="#D9D5C8"/>
   <text x="526" y="680" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" fill="#9AA194">继续追问分析口径，例如：按早餐/午餐拆开...</text>
 </svg>

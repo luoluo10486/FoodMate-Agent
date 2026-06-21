@@ -751,6 +751,7 @@
 - `run.answer_stream`
 - `run.completed`
 - `run.failed`
+- `run.cancelled`
 
 实现要点：
 
@@ -763,7 +764,7 @@
 
 - 前端可以接收完整 mock run 事件。
 - 失败事件包含错误码和用户可读消息。
-- 取消后输出 cancelled 或 failed/cancelled 语义事件。
+- 取消后优先输出 `run.cancelled`，并停止继续追加工具或答案事件；兼容旧实现时才允许从 `AgentRun.status=cancelled` 派生展示。
 
 ### B5-5. 实现知识库接口
 
