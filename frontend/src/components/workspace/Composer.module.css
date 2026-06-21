@@ -1,0 +1,50 @@
+.composer {
+  display: grid;
+  gap: 10px;
+  width: min(880px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.statusRow {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.toolPill,
+.agentPill {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.toolPill {
+  color: var(--fm-orange);
+}
+
+.agentPill {
+  color: var(--fm-green);
+}
+
+.inputRow {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 40px;
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--fm-shadow-soft);
+}
+
+.input textarea {
+  min-height: 36px !important;
+  max-height: 36px !important;
+  resize: none;
+  border: 0;
+  box-shadow: none;
+}

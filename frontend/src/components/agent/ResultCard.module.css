@@ -1,0 +1,22 @@
+.card {
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(237, 244, 239, 0.9), rgba(255, 255, 255, 0.92));
+}
+
+.card h3 {
+  margin: 14px 0 10px;
+  color: var(--fm-ink);
+  font-size: 18px;
+}
+
+.card p {
+  color: var(--fm-muted);
+  line-height: 1.7;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

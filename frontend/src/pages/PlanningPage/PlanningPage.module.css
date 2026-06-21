@@ -1,0 +1,117 @@
+.page {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 18px;
+  min-height: 0;
+  padding: 8px 34px 20px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.header h1 {
+  margin: 12px 0 0;
+  font-size: 32px;
+  letter-spacing: -0.03em;
+}
+
+.constraints {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.constraints article {
+  padding: 14px;
+  border: 1px solid var(--fm-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.constraints span {
+  display: block;
+  color: var(--fm-muted);
+  font-size: 12px;
+}
+
+.constraints strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 18px;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 348px;
+  gap: 18px;
+  min-height: 0;
+}
+
+.tableCard,
+.card {
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.side {
+  display: grid;
+  gap: 18px;
+  min-height: 0;
+}
+
+.card {
+  display: grid;
+  gap: 16px;
+}
+
+.validation span {
+  color: var(--fm-muted);
+  line-height: 1.65;
+}
+
+.validation {
+  display: grid;
+  gap: 12px;
+}
+
+.validation article {
+  display: grid;
+  gap: 7px;
+}
+
+@media (max-width: 980px) {
+  .constraints {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    min-height: calc(100vh - 64px);
+    padding: 8px 16px 18px;
+    overflow: visible;
+  }
+
+  .header,
+  .constraints {
+    grid-template-columns: 1fr;
+  }
+}

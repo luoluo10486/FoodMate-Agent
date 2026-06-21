@@ -1,0 +1,55 @@
+.card {
+  position: relative;
+  min-height: 138px;
+  overflow: hidden;
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.card::after {
+  position: absolute;
+  right: -30px;
+  bottom: -34px;
+  width: 104px;
+  height: 104px;
+  border-radius: 999px;
+  content: '';
+  opacity: 0.18;
+}
+
+.card:hover {
+  box-shadow: var(--fm-shadow);
+  transform: translateY(-4px);
+}
+
+.card p {
+  margin: 18px 0 12px;
+  color: var(--fm-muted);
+  line-height: 1.65;
+}
+
+.card strong {
+  color: var(--fm-ink);
+  font-size: 14px;
+}
+
+.tag {
+  font-weight: 800;
+}
+
+.green::after {
+  background: var(--fm-green);
+}
+
+.orange::after {
+  background: var(--fm-orange);
+}
+
+.blue::after {
+  background: var(--fm-blue);
+}

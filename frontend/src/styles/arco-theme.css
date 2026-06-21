@@ -1,0 +1,30 @@
+:root {
+  --primary-6: 47, 111, 78;
+  --arcoblue-6: 47, 111, 78;
+  --color-primary-light-1: #edf4ef;
+  --color-primary-light-2: #dbeadf;
+  --color-primary-light-3: #b9d1bf;
+  --color-fill-2: #fbfaf6;
+  --color-border-2: #d9d5c8;
+  --color-text-1: #23251f;
+  --color-text-2: #6f7468;
+}
+
+.arco-btn-primary {
+  background: var(--fm-green);
+  border-color: var(--fm-green);
+  box-shadow: 0 10px 24px rgba(47, 111, 78, 0.22);
+}
+
+.arco-btn-primary:not(.arco-btn-disabled):hover {
+  background: var(--fm-green-dark);
+  border-color: var(--fm-green-dark);
+}
+
+.arco-input,
+.arco-textarea,
+.arco-card,
+.arco-modal,
+.arco-drawer {
+  border-radius: var(--fm-radius-sm);
+}

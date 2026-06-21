@@ -1,0 +1,16 @@
+.card {
+  border: 1px solid #e6c49b;
+  border-radius: 16px;
+  background: var(--fm-orange-soft);
+}
+
+.card h3 {
+  margin: 14px 0;
+  font-size: 16px;
+}
+
+.options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

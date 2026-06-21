@@ -1,0 +1,36 @@
+.card {
+  border: 1px solid var(--fm-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.card span {
+  color: var(--fm-muted);
+  font-size: 12px;
+}
+
+.card strong {
+  display: block;
+  margin-top: 16px;
+  color: var(--fm-ink);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.card small {
+  margin-left: 5px;
+  color: var(--fm-muted);
+  font-size: 13px;
+}
+
+.green {
+  color: var(--fm-green) !important;
+}
+
+.orange {
+  color: var(--fm-orange) !important;
+}
+
+.blue {
+  color: var(--fm-blue) !important;
+}

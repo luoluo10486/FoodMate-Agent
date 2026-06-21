@@ -1,0 +1,23 @@
+:root {
+  --fm-bg: #f7f5ef;
+  --fm-bg-soft: #fbfaf6;
+  --fm-surface: #ffffff;
+  --fm-ink: #23251f;
+  --fm-muted: #6f7468;
+  --fm-subtle: #9aa194;
+  --fm-border: #d9d5c8;
+  --fm-border-soft: #e8e2d5;
+  --fm-green: #2f6f4e;
+  --fm-green-dark: #1f4f38;
+  --fm-green-soft: #edf4ef;
+  --fm-orange: #d88a3d;
+  --fm-orange-soft: #fff0df;
+  --fm-blue: #326b8e;
+  --fm-blue-soft: #e8f0f5;
+  --fm-danger: #b94a48;
+  --fm-radius: 12px;
+  --fm-radius-sm: 8px;
+  --fm-shadow: 0 18px 50px rgba(48, 55, 40, 0.12);
+  --fm-shadow-soft: 0 10px 30px rgba(48, 55, 40, 0.08);
+  --fm-font: Aptos, "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}

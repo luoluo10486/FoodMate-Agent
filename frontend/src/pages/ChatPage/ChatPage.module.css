@@ -1,0 +1,111 @@
+.page {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 14px;
+  min-height: 0;
+  padding: 8px 34px 20px;
+  overflow: hidden;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 306px;
+  gap: 18px;
+  min-height: 0;
+}
+
+.center,
+.tracePanel {
+  min-height: 0;
+}
+
+.center {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+}
+
+.messages {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.message {
+  display: grid;
+  gap: 8px;
+  max-width: 78%;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--fm-border);
+}
+
+.message p {
+  margin: 0;
+  color: var(--fm-ink);
+  line-height: 1.7;
+}
+
+.message span {
+  color: var(--fm-subtle);
+  font-size: 12px;
+}
+
+.user {
+  margin-left: auto;
+  background: var(--fm-green-soft);
+}
+
+.assistant {
+  margin-right: auto;
+}
+
+.panelCard {
+  height: 100%;
+  overflow: auto;
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  background: rgba(251, 250, 246, 0.9);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.traceList,
+.citationList {
+  display: grid;
+  gap: 12px;
+}
+
+.citationList {
+  margin-top: 18px;
+}
+
+@media (max-width: 980px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .tracePanel {
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    min-height: calc(100vh - 64px);
+    padding: 8px 16px 18px;
+    overflow: visible;
+  }
+
+  .message {
+    max-width: 100%;
+  }
+}

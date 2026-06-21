@@ -1,0 +1,103 @@
+.page {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 22px;
+  min-height: 0;
+  padding: 12px 34px 20px;
+  overflow: hidden;
+}
+
+.hero {
+  max-width: 760px;
+  margin: 24px auto 0;
+  text-align: center;
+}
+
+.hero h1 {
+  margin: 18px 0 12px;
+  color: var(--fm-ink);
+  font-size: clamp(32px, 5vw, 58px);
+  line-height: 1.06;
+  letter-spacing: -0.05em;
+}
+
+.hero p {
+  margin: 0 auto;
+  max-width: 640px;
+  color: var(--fm-muted);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.tasks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  width: min(920px, 100%);
+  margin: 0 auto;
+}
+
+.recommendations {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  width: min(920px, 100%);
+  margin: 0 auto;
+}
+
+.recommendations span {
+  color: var(--fm-subtle);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.recommendations strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.promptGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.promptButton {
+  justify-content: space-between;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.bottom {
+  display: grid;
+  align-content: end;
+  gap: 12px;
+  min-height: 0;
+}
+
+.skeleton {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .tasks,
+  .recommendations {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    min-height: calc(100vh - 64px);
+    padding: 10px 16px 18px;
+    overflow: visible;
+  }
+
+  .tasks,
+  .promptGrid {
+    grid-template-columns: 1fr;
+  }
+}

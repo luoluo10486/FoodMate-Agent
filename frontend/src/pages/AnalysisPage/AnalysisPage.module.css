@@ -1,0 +1,130 @@
+.page {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 18px;
+  min-height: 0;
+  padding: 8px 34px 20px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.header h1 {
+  margin: 12px 0 0;
+  font-size: 32px;
+  letter-spacing: -0.03em;
+}
+
+.select {
+  width: 160px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  min-height: 0;
+}
+
+.chartCard,
+.insightCard {
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  height: 260px;
+  gap: 18px;
+  padding: 24px 8px 0;
+}
+
+.barWrap {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 8px;
+  height: 100%;
+  color: var(--fm-subtle);
+  text-align: center;
+}
+
+.bar {
+  align-self: end;
+  min-height: 40px;
+  border-radius: 999px 999px 8px 8px;
+  background: linear-gradient(180deg, var(--fm-green), #8bbf8f);
+  box-shadow: 0 10px 22px rgba(47, 111, 78, 0.18);
+}
+
+.insightCard {
+  display: grid;
+  gap: 18px;
+}
+
+.insights {
+  display: grid;
+  gap: 14px;
+}
+
+.insight {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.insight span {
+  color: var(--fm-muted);
+}
+
+.warning {
+  background: var(--fm-orange-soft);
+  border: 1px solid #e6c49b;
+}
+
+.info {
+  background: var(--fm-blue-soft);
+  border: 1px solid #b7cbd8;
+}
+
+@media (max-width: 980px) {
+  .metrics,
+  .body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    min-height: calc(100vh - 64px);
+    padding: 8px 16px 18px;
+    overflow: visible;
+  }
+
+  .header,
+  .metrics,
+  .body {
+    grid-template-columns: 1fr;
+  }
+}

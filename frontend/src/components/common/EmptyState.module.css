@@ -1,0 +1,15 @@
+.empty {
+  display: grid;
+  gap: 10px;
+  place-items: center;
+  padding: 30px;
+  border: 1px dashed var(--fm-border);
+  border-radius: 16px;
+  color: var(--fm-muted);
+  text-align: center;
+}
+
+.empty strong {
+  color: var(--fm-ink);
+  font-size: 18px;
+}

@@ -1,0 +1,16 @@
+.list {
+  display: grid;
+  gap: 16px;
+}
+
+.group {
+  display: grid;
+  gap: 8px;
+}
+
+.group span,
+.list p {
+  margin: 0;
+  color: var(--fm-muted);
+  line-height: 1.65;
+}

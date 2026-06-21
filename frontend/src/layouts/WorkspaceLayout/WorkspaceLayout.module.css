@@ -1,0 +1,145 @@
+.shell {
+  display: grid;
+  grid-template-columns: 286px minmax(0, 1fr);
+  width: 100%;
+  min-height: 100vh;
+  padding: 0;
+  overflow: hidden;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100vh;
+  padding: 28px 28px 22px;
+  background: rgba(249, 247, 240, 0.86);
+  border-right: 1px solid var(--fm-border);
+  backdrop-filter: blur(18px);
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandRow strong,
+.profile strong {
+  display: block;
+  color: var(--fm-ink);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.brandRow span,
+.profile span {
+  display: block;
+  margin-top: 3px;
+  color: var(--fm-orange);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.logo,
+.avatar {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--fm-green);
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  box-shadow: 0 12px 24px rgba(47, 111, 78, 0.22);
+}
+
+.newButton {
+  height: 48px;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.search {
+  border-radius: 12px;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--fm-border);
+}
+
+.avatar {
+  background: var(--fm-orange);
+}
+
+.main {
+  display: grid;
+  grid-template-rows: 78px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 34px;
+}
+
+.nav {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.navItem {
+  display: inline-flex;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    padding: 20px 14px;
+  }
+
+  .brandRow div:not(.logo),
+  .newButton span,
+  .search,
+  .profile div {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    display: block;
+    overflow: auto;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main {
+    min-height: 100vh;
+  }
+
+  .topbar {
+    padding: 14px 16px;
+  }
+
+  .nav {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+}
