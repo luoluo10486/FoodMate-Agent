@@ -56,8 +56,14 @@
 示例：
 
 ```text
-/api/v1
+/foodmate
 ```
+
+路径命名规则：
+
+- 外部接口统一以 `/foodmate` 开头，不再在路径中使用通用的 `/api/v1`。
+- 第一版不设计请求头版本协商；后续如有破坏性升级，单独补充迁移说明。
+- 资源名使用能表达业务含义的英文，例如 `agent-sessions`、`agent-runs`、`knowledge-base`、`nutrition-analysis`。
 
 ### 3.2 请求头
 
@@ -364,7 +370,7 @@
 
 #### 5.1.1 创建会话
 
-`POST /api/v1/sessions`
+`POST /foodmate/agent-sessions`
 
 请求：
 
@@ -393,15 +399,15 @@
 
 #### 5.1.2 会话列表
 
-`GET /api/v1/sessions?page=1&page_size=20`
+`GET /foodmate/agent-sessions?page=1&page_size=20`
 
 #### 5.1.3 会话详情
 
-`GET /api/v1/sessions/{session_id}`
+`GET /foodmate/agent-sessions/{session_id}`
 
 #### 5.1.4 更新会话
 
-`PATCH /api/v1/sessions/{session_id}`
+`PATCH /foodmate/agent-sessions/{session_id}`
 
 支持字段：
 
@@ -411,11 +417,11 @@
 
 #### 5.1.5 归档会话
 
-`POST /api/v1/sessions/{session_id}/archive`
+`POST /foodmate/agent-sessions/{session_id}/archive`
 
 #### 5.1.6 软删除会话
 
-`DELETE /api/v1/sessions/{session_id}`
+`DELETE /foodmate/agent-sessions/{session_id}`
 
 说明：
 
@@ -425,7 +431,7 @@
 
 #### 5.1.7 恢复会话
 
-`POST /api/v1/sessions/{session_id}/restore`
+`POST /foodmate/agent-sessions/{session_id}/restore`
 
 ---
 
@@ -433,7 +439,7 @@
 
 #### 5.2.1 发送消息并启动 Agent
 
-`POST /api/v1/sessions/{session_id}/messages`
+`POST /foodmate/agent-sessions/{session_id}/messages`
 
 请求：
 
@@ -467,7 +473,7 @@
 
 #### 5.2.2 消息列表
 
-`GET /api/v1/sessions/{session_id}/messages?page=1&page_size=50`
+`GET /foodmate/agent-sessions/{session_id}/messages?page=1&page_size=50`
 
 ---
 
@@ -475,7 +481,7 @@
 
 #### 5.3.1 获取运行详情
 
-`GET /api/v1/runs/{agent_run_id}`
+`GET /foodmate/agent-runs/{agent_run_id}`
 
 返回包括：
 
@@ -489,7 +495,7 @@
 
 #### 5.3.2 获取运行事件流
 
-`GET /api/v1/runs/{agent_run_id}/events`
+`GET /foodmate/agent-runs/{agent_run_id}/events`
 
 推荐 SSE，事件类型如下：
 
@@ -506,6 +512,7 @@
 | run.answer_stream | 回答流式输出 |
 | run.completed | 完成 |
 | run.failed | 失败 |
+| run.cancelled | 已取消 |
 
 SSE 示例：
 
@@ -519,7 +526,7 @@ data: {"tool_name":"nutrition_lookup","status":"success"}
 
 #### 5.3.3 取消运行
 
-`POST /api/v1/runs/{agent_run_id}/cancel`
+`POST /foodmate/agent-runs/{agent_run_id}/cancel`
 
 适用：
 
@@ -533,7 +540,7 @@ data: {"tool_name":"nutrition_lookup","status":"success"}
 
 #### 5.4.1 文档搜索
 
-`POST /api/v1/knowledge/search`
+`POST /foodmate/knowledge-base/search`
 
 请求：
 
@@ -576,24 +583,24 @@ Milvus 适合作为知识库主检索底座：
 
 删除与恢复语义：
 
-- `DELETE /api/v1/knowledge/documents/{document_id}` 只做软删除
+- `DELETE /foodmate/knowledge-base/documents/{document_id}` 只做软删除
 - 默认检索和默认列表不返回软删除文档
 - 管理接口可显式传 `include_deleted=true`
-- `POST /api/v1/knowledge/documents/{document_id}/restore` 恢复软删除文档，并触发索引可见性恢复
+- `POST /foodmate/knowledge-base/documents/{document_id}/restore` 恢复软删除文档，并触发索引可见性恢复
 
 #### MCP 数据查询接口建议
 
 说明：结构化数据查询的主路径为 `Schema Catalog -> SQL Agent -> MCP -> Readonly SQL Executor`。固定查询接口只保留高频稳定场景，不与 SQL Agent 并列为主路径。
 
-`GET /api/v1/data-sources`
+`GET /foodmate/data-sources`
 
-`GET /api/v1/data-sources/{datasource_id}`
+`GET /foodmate/data-sources/{datasource_id}`
 
-`GET /api/v1/data-sources/{datasource_id}/schema`
+`GET /foodmate/data-sources/{datasource_id}/schema`
 
-`POST /api/v1/data-sources/{datasource_id}/validate-sql`
+`POST /foodmate/data-sources/{datasource_id}/validate-sql`
 
-`POST /api/v1/data-sources/{datasource_id}/run-readonly-sql`
+`POST /foodmate/data-sources/{datasource_id}/run-readonly-sql`
 
 #### 只读 SQL 约束
 
@@ -643,11 +650,11 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.4.2 文档列表
 
-`GET /api/v1/knowledge/documents`
+`GET /foodmate/knowledge-base/documents`
 
 #### 5.4.3 上传文档
 
-`POST /api/v1/knowledge/documents`
+`POST /foodmate/knowledge-base/documents`
 
 适用：
 
@@ -662,7 +669,7 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.5.1 写入日志
 
-`POST /api/v1/food-logs`
+`POST /foodmate/food-logs`
 
 请求：
 
@@ -682,7 +689,7 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.5.2 查询日志
 
-`GET /api/v1/food-logs?start_date=2026-05-25&end_date=2026-06-01`
+`GET /foodmate/food-logs?start_date=2026-05-25&end_date=2026-06-01`
 
 说明：
 
@@ -691,7 +698,7 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.5.3 饮食汇总
 
-`GET /api/v1/food-logs/summary?range=7d`
+`GET /foodmate/food-logs/summary?range=7d`
 
 返回聚合：
 
@@ -703,11 +710,11 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.5.4 软删除日志
 
-`DELETE /api/v1/food-logs/{food_log_id}`
+`DELETE /foodmate/food-logs/{food_log_id}`
 
 #### 5.5.5 恢复日志
 
-`POST /api/v1/food-logs/{food_log_id}/restore`
+`POST /foodmate/food-logs/{food_log_id}/restore`
 
 ---
 
@@ -715,7 +722,7 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.6.1 生成分析报告
 
-`POST /api/v1/analysis/reports`
+`POST /foodmate/nutrition-analysis/reports`
 
 请求：
 
@@ -729,7 +736,7 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.6.2 查询分析报告
 
-`GET /api/v1/analysis/reports/{report_id}`
+`GET /foodmate/nutrition-analysis/reports/{report_id}`
 
 ---
 
@@ -739,7 +746,7 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.7.1 校验计划草案
 
-`POST /api/v1/meal-plans/validate`
+`POST /foodmate/meal-plans/validate`
 
 请求：
 
@@ -758,23 +765,23 @@ Milvus 适合作为知识库主检索底座：
 
 #### 5.7.2 保存计划
 
-`POST /api/v1/meal-plans`
+`POST /foodmate/meal-plans`
 
 #### 5.7.3 查询计划
 
-`GET /api/v1/meal-plans/{meal_plan_id}`
+`GET /foodmate/meal-plans/{meal_plan_id}`
 
 #### 5.7.4 软删除计划
 
-`DELETE /api/v1/meal-plans/{meal_plan_id}`
+`DELETE /foodmate/meal-plans/{meal_plan_id}`
 
 #### 5.7.5 恢复计划
 
-`POST /api/v1/meal-plans/{meal_plan_id}/restore`
+`POST /foodmate/meal-plans/{meal_plan_id}/restore`
 
 #### 5.7.6 基于计划生成购物清单
 
-`POST /api/v1/meal-plans/{meal_plan_id}/shopping-list`
+`POST /foodmate/meal-plans/{meal_plan_id}/shopping-list`
 
 #### 5.7.7 规划接口默认语义
 
@@ -898,6 +905,7 @@ Milvus 适合作为知识库主检索底座：
 | success | 成功 |
 | failed | 失败 |
 | timeout | 超时 |
+| cancelled | 已取消 |
 
 ---
 
@@ -951,9 +959,9 @@ Milvus 适合作为知识库主检索底座：
 
 ### 10.1 版本策略
 
-- API 路径带版本：`/api/v1`
-- 协议升级走新版本
-- 旧版本保留一段迁移期
+- API 路径固定产品前缀：`/foodmate`
+- 兼容优先通过新增字段、保留旧字段语义和发布迁移说明处理。
+- 破坏性升级需要新增明确的新资源名或单独迁移文档，不能静默改变旧接口语义。
 
 ### 10.2 兼容原则
 

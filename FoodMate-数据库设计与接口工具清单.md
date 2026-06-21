@@ -264,7 +264,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 | `session_id` | `BIGINT` | FK | 所属会话 |
 | `user_message_id` | `BIGINT` | FK | 触发消息 |
 | `intent` | `VARCHAR(64)` |  | `record/analysis/planning/knowledge_qna` |
-| `status` | `VARCHAR(32)` |  | `queued/executing/success/failed/cancelled` |
+| `status` | `VARCHAR(32)` |  | `queued/routed/waiting_user/planning/retrieving/executing/validating/completed/failed/cancelled` |
 | `plan_json` | `JSONB` |  | 执行计划 |
 | `result_json` | `JSONB` |  | 执行结果 |
 | `error_code` | `VARCHAR(64)` |  | 错误码 |
@@ -294,7 +294,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 | `tool_version` | `VARCHAR(32)` |  | 工具版本 |
 | `input_json` | `JSONB` |  | 入参 |
 | `output_json` | `JSONB` |  | 出参 |
-| `status` | `VARCHAR(32)` |  | `running/success/failed/cancelled` |
+| `status` | `VARCHAR(32)` |  | `pending/running/success/failed/timeout/cancelled` |
 | `latency_ms` | `INT` |  | 耗时 |
 | `error_code` | `VARCHAR(64)` |  | 错误码 |
 | `trace_id` | `VARCHAR(64)` |  | 链路追踪 |
@@ -681,7 +681,9 @@ ACL 相关 metadata 固定包含：
 
 ### 3.1 统一约束
 
-- 前缀固定：`/api/v1`
+- 外部接口前缀固定：`/foodmate`
+- 外部资源名使用明确业务英文，例如 `agent-sessions`、`agent-runs`、`knowledge-base`、`nutrition-analysis`
+- 内部接口前缀固定：`/foodmate/internal`
 - 鉴权：默认 Bearer Token
 - 返回结构：统一 `code/message/data/requestId`
 - 写接口需要支持幂等键：`Idempotency-Key`
@@ -693,66 +695,67 @@ ACL 相关 metadata 固定包含：
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/api/v1/sessions` | 创建会话 | 用户 | 是 |
-| `GET` | `/api/v1/sessions/{session_id}` | 查询会话 | 用户 | 否 |
-| `GET` | `/api/v1/sessions/{session_id}/messages` | 查询消息列表 | 用户 | 否 |
-| `PATCH` | `/api/v1/sessions/{session_id}` | 修改标题/状态 | 用户 | 是 |
-| `POST` | `/api/v1/sessions/{session_id}/archive` | 归档会话 | 用户 | 是 |
-| `DELETE` | `/api/v1/sessions/{session_id}` | 软删除会话 | 用户 | 是 |
-| `POST` | `/api/v1/sessions/{session_id}/restore` | 恢复会话 | 用户 | 是 |
+| `POST` | `/foodmate/agent-sessions` | 创建会话 | 用户 | 是 |
+| `GET` | `/foodmate/agent-sessions/{session_id}` | 查询会话 | 用户 | 否 |
+| `GET` | `/foodmate/agent-sessions/{session_id}/messages` | 查询消息列表 | 用户 | 否 |
+| `PATCH` | `/foodmate/agent-sessions/{session_id}` | 修改标题/状态 | 用户 | 是 |
+| `POST` | `/foodmate/agent-sessions/{session_id}/archive` | 归档会话 | 用户 | 是 |
+| `DELETE` | `/foodmate/agent-sessions/{session_id}` | 软删除会话 | 用户 | 是 |
+| `POST` | `/foodmate/agent-sessions/{session_id}/restore` | 恢复会话 | 用户 | 是 |
 
 关键请求与响应字段：
 
-- `POST /sessions`
+- `POST /foodmate/agent-sessions`
   - 请求：`title`、`mode`
   - 响应：`session_id`、`status`、`created_at`
-- `GET /sessions/{session_id}/messages`
+- `GET /foodmate/agent-sessions/{session_id}/messages`
   - 请求：`page`、`page_size`
   - 响应：`items[]`、`next_cursor`
 
 删除与恢复语义：
 
-- `DELETE /sessions/{session_id}` 只写 `is_deleted/deleted_at/deleted_by`
-- `POST /sessions/{session_id}/restore` 恢复软删除会话
+- `DELETE /foodmate/agent-sessions/{session_id}` 只写 `is_deleted/deleted_at/deleted_by`
+- `POST /foodmate/agent-sessions/{session_id}/restore` 恢复软删除会话
 
-### 3.3 SSE 流式对话接口
+### 3.3 AgentRun 事件接口
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/api/v1/chat/stream` | 发起流式对话 | 用户 | 是 |
+| `POST` | `/foodmate/agent-sessions/{session_id}/messages` | 发送消息并创建 AgentRun | 用户 | 是 |
+| `GET` | `/foodmate/agent-runs/{agent_run_id}/events` | 订阅 AgentRun SSE 事件 | 用户 | 否 |
 
-请求字段：
+发送消息请求字段：
 
-- `session_id`
-- `message`
+- `content`
 - `attachments`
+- `client_context`
 - `client_request_id`
 
 响应事件类型：
 
-- `session.created`
-- `message.received`
-- `agent.run.started`
-- `plan.generated`
-- `retrieval.started`
-- `retrieval.completed`
-- `tool.call.started`
-- `tool.call.completed`
-- `sql.audit.created`
-- `answer.delta`
-- `answer.completed`
-- `agent.run.failed`
+- `run.created`
+- `run.routed`
+- `run.clarification_requested`
+- `run.planned`
+- `run.retrieval_started`
+- `run.retrieval_finished`
+- `run.tool_started`
+- `run.tool_finished`
+- `run.answer_stream`
+- `run.completed`
+- `run.failed`
+- `run.cancelled`
 
 ### 3.4 饮食记录接口
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/api/v1/food-logs` | 创建饮食记录 | 用户 | 是 |
-| `GET` | `/api/v1/food-logs` | 查询饮食记录 | 用户 | 否 |
-| `GET` | `/api/v1/food-logs/{food_log_id}` | 查询单条记录 | 用户 | 否 |
-| `PATCH` | `/api/v1/food-logs/{food_log_id}` | 修改记录 | 用户 | 是 |
-| `DELETE` | `/api/v1/food-logs/{food_log_id}` | 软删除记录 | 用户 | 是 |
-| `POST` | `/api/v1/food-logs/{food_log_id}/restore` | 恢复记录 | 用户 | 是 |
+| `POST` | `/foodmate/food-logs` | 创建饮食记录 | 用户 | 是 |
+| `GET` | `/foodmate/food-logs` | 查询饮食记录 | 用户 | 否 |
+| `GET` | `/foodmate/food-logs/{food_log_id}` | 查询单条记录 | 用户 | 否 |
+| `PATCH` | `/foodmate/food-logs/{food_log_id}` | 修改记录 | 用户 | 是 |
+| `DELETE` | `/foodmate/food-logs/{food_log_id}` | 软删除记录 | 用户 | 是 |
+| `POST` | `/foodmate/food-logs/{food_log_id}/restore` | 恢复记录 | 用户 | 是 |
 
 关键字段：
 
@@ -764,11 +767,11 @@ ACL 相关 metadata 固定包含：
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/api/v1/meal-plans/validate` | 校验计划 | 用户 | 是 |
-| `POST` | `/api/v1/meal-plans` | 保存计划 | 用户 | 是 |
-| `GET` | `/api/v1/meal-plans/{meal_plan_id}` | 查询计划 | 用户 | 否 |
-| `DELETE` | `/api/v1/meal-plans/{meal_plan_id}` | 软删除计划 | 用户 | 是 |
-| `POST` | `/api/v1/meal-plans/{meal_plan_id}/restore` | 恢复计划 | 用户 | 是 |
+| `POST` | `/foodmate/meal-plans/validate` | 校验计划 | 用户 | 是 |
+| `POST` | `/foodmate/meal-plans` | 保存计划 | 用户 | 是 |
+| `GET` | `/foodmate/meal-plans/{meal_plan_id}` | 查询计划 | 用户 | 否 |
+| `DELETE` | `/foodmate/meal-plans/{meal_plan_id}` | 软删除计划 | 用户 | 是 |
+| `POST` | `/foodmate/meal-plans/{meal_plan_id}/restore` | 恢复计划 | 用户 | 是 |
 
 校验请求字段：
 
@@ -789,13 +792,13 @@ ACL 相关 metadata 固定包含：
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/api/v1/knowledge/search` | 直接检索知识库 | 用户 | 是 |
-| `POST` | `/api/v1/knowledge/documents` | 导入文档 | 管理员 | 是 |
-| `GET` | `/api/v1/knowledge/documents/{document_id}` | 查询文档 | 管理员 | 否 |
-| `DELETE` | `/api/v1/knowledge/documents/{document_id}` | 软删除文档 | 管理员 | 是 |
-| `POST` | `/api/v1/knowledge/documents/{document_id}/restore` | 恢复文档 | 管理员 | 是 |
+| `POST` | `/foodmate/knowledge-base/search` | 直接检索知识库 | 用户 | 是 |
+| `POST` | `/foodmate/knowledge-base/documents` | 导入文档 | 管理员 | 是 |
+| `GET` | `/foodmate/knowledge-base/documents/{document_id}` | 查询文档 | 管理员 | 否 |
+| `DELETE` | `/foodmate/knowledge-base/documents/{document_id}` | 软删除文档 | 管理员 | 是 |
+| `POST` | `/foodmate/knowledge-base/documents/{document_id}/restore` | 恢复文档 | 管理员 | 是 |
 
-`/knowledge/search` 请求字段：
+`/foodmate/knowledge-base/search` 请求字段：
 
 - `query`
 - `top_k`
@@ -812,37 +815,37 @@ ACL 相关 metadata 固定包含：
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `GET` | `/api/v1/data-sources` | 查询数据源列表 | 管理员 | 否 |
-| `GET` | `/api/v1/data-sources/{datasource_id}` | 查询数据源详情 | 管理员 | 否 |
-| `GET` | `/api/v1/schema-catalogs` | 查询字段目录 | 管理员 | 否 |
-| `POST` | `/api/v1/schema-catalogs/refresh` | 刷新目录 | 管理员 | 是 |
+| `GET` | `/foodmate/data-sources` | 查询数据源列表 | 管理员 | 否 |
+| `GET` | `/foodmate/data-sources/{datasource_id}` | 查询数据源详情 | 管理员 | 否 |
+| `GET` | `/foodmate/schema-catalogs` | 查询字段目录 | 管理员 | 否 |
+| `POST` | `/foodmate/schema-catalogs/refresh` | 刷新目录 | 管理员 | 是 |
 
 ### 3.8 SQL Agent 内部接口
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/internal/sql-agent/query` | 执行结构化查询链路 | 内部 | 是 |
-| `POST` | `/internal/sql-agent/validate` | SQL 安全校验 | 内部 | 是 |
-| `GET` | `/internal/sql-agent/audits/{sql_audit_id}` | 查询审计记录 | 内部 | 否 |
+| `POST` | `/foodmate/internal/sql-agent/query` | 执行结构化查询链路 | 内部 | 是 |
+| `POST` | `/foodmate/internal/sql-agent/validate` | SQL 安全校验 | 内部 | 是 |
+| `GET` | `/foodmate/internal/sql-agent/audits/{sql_audit_id}` | 查询审计记录 | 内部 | 否 |
 
 ### 3.9 工具注册与查询接口
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `GET` | `/api/v1/tools` | 查询工具注册表 | 管理员 | 否 |
-| `GET` | `/api/v1/tools/{name}` | 查询工具详情 | 管理员 | 否 |
-| `POST` | `/api/v1/tools/{name}/versions` | 发布工具 schema | 管理员 | 是 |
-| `PATCH` | `/api/v1/tools/{name}/status` | 启停工具 | 管理员 | 是 |
+| `GET` | `/foodmate/tools` | 查询工具注册表 | 管理员 | 否 |
+| `GET` | `/foodmate/tools/{name}` | 查询工具详情 | 管理员 | 否 |
+| `POST` | `/foodmate/tools/{name}/versions` | 发布工具 schema | 管理员 | 是 |
+| `PATCH` | `/foodmate/tools/{name}/status` | 启停工具 | 管理员 | 是 |
 
 ### 3.10 管理后台接口
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `GET` | `/api/v1/admin/agent-runs` | 查询运行记录 | 管理员 | 否 |
-| `GET` | `/api/v1/admin/tool-calls` | 查询工具调用 | 管理员 | 否 |
-| `GET` | `/api/v1/admin/sql-audits` | 查询 SQL 审计 | 管理员 | 否 |
-| `GET` | `/api/v1/admin/model-usage` | 查询模型用量 | 管理员 | 否 |
-| `GET` | `/api/v1/admin/deleted/resources` | 查询已删除资源 | 管理员 | 否 |
+| `GET` | `/foodmate/admin/agent-runs` | 查询运行记录 | 管理员 | 否 |
+| `GET` | `/foodmate/admin/tool-calls` | 查询工具调用 | 管理员 | 否 |
+| `GET` | `/foodmate/admin/sql-audits` | 查询 SQL 审计 | 管理员 | 否 |
+| `GET` | `/foodmate/admin/model-usage` | 查询模型用量 | 管理员 | 否 |
+| `GET` | `/foodmate/admin/deleted-resources` | 查询已删除资源 | 管理员 | 否 |
 
 ---
 
@@ -1095,8 +1098,13 @@ database_query
 | 状态 | 含义 |
 |---|---|
 | `queued` | 已入队 |
-| `executing` | 执行中 |
-| `success` | 成功 |
+| `routed` | 已路由 |
+| `waiting_user` | 等待追问 |
+| `planning` | 生成计划中 |
+| `retrieving` | 检索中 |
+| `executing` | 工具执行中 |
+| `validating` | 结果校验中 |
+| `completed` | 已完成 |
 | `failed` | 失败 |
 | `cancelled` | 已取消 |
 
@@ -1104,9 +1112,11 @@ database_query
 
 | 状态 | 含义 |
 |---|---|
+| `pending` | 待执行 |
 | `running` | 执行中 |
 | `success` | 成功 |
 | `failed` | 失败 |
+| `timeout` | 超时 |
 | `cancelled` | 取消 |
 
 ### 6.4 SQL 审核状态
@@ -1173,14 +1183,14 @@ database_query
 
 API 按下面顺序开放：
 
-1. `/sessions`
-2. `/chat/stream`
-3. `/food-logs`
-4. `/meal-plans/validate`
-5. `/knowledge/search`
-6. `/data-sources` / `/schema-catalogs`
-7. `/tools`
-8. `/admin/*`
+1. `/foodmate/agent-sessions`
+2. `/foodmate/agent-sessions/{session_id}/messages` 和 `/foodmate/agent-runs/{agent_run_id}/events`
+3. `/foodmate/food-logs`
+4. `/foodmate/meal-plans/validate`
+5. `/foodmate/knowledge-base/search`
+6. `/foodmate/data-sources` / `/foodmate/schema-catalogs`
+7. `/foodmate/tools`
+8. `/foodmate/admin/*`
 
 ---
 
