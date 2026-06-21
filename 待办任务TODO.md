@@ -102,6 +102,7 @@
 参考文档：
 
 - `docs/UI设计文档.md`
+- `docs/前端架构文档.md`
 - `FoodMate-实现附录.md`
 
 允许改动：
@@ -112,10 +113,13 @@
 
 实现要点：
 
-- 推荐使用 React + Vite + TypeScript，除非后续明确换栈。
+- 锁定使用 React + Vite + TypeScript + Arco Design。
+- Arco Design 参与整体视觉风格，但不直接套 Arco Pro 后台模板。
+- 样式使用 Arco 主题能力、FoodMate design tokens 和 CSS Modules。
 - 第一版不依赖真实后端。
 - 使用 mock 数据驱动页面。
-- 建立基础目录：页面、组件、mock 数据、样式 token。
+- 建立基础目录：页面、布局、组件、features、mock 数据、类型、样式 token。
+- 第一版不引入大型状态库，Phase 2 优先用 React state / reducer 管理 mock event replay。
 
 验收标准：
 
@@ -123,6 +127,7 @@
 - 首页可以渲染。
 - 控制台无明显错误。
 - 移动端和桌面端基础布局可见。
+- `docs/前端架构文档.md` 中的目录、路由、组件库和样式策略已落实到工程骨架。
 
 ### F1-2. 实现首页静态原型
 
@@ -143,12 +148,17 @@
 - 主区域：当前 Agent 模式、常用任务卡片、推荐问题。
 - 底部输入区：自然语言输入、附件入口、发送按钮、工具状态。
 - 覆盖空态、加载中、错误态。
+- Arco `Button`、`Input`、`Card`、`Tag`、`Skeleton` 可作为基础控件。
+- 首页任务卡和推荐问题必须保留 FoodMate 自定义视觉，不直接使用默认后台卡片堆叠。
+- 页面进入和任务卡 hover/focus 可以使用轻量 CSS 动效。
 
 验收标准：
 
 - 页面结构和 `docs/assets/prototypes/首页原型.svg` 一致。
 - 快捷任务卡片和推荐问题来自 mock 数据。
 - 页面宽度小于 768px 时不横向溢出。
+- 首屏不需要整体滚动即可看到 Tools/Agents 和 Composer。
+- 减少动态偏好开启时，任务卡动效可关闭。
 
 ### F1-3. 实现会话页静态原型
 
@@ -171,12 +181,17 @@
 - 追问卡用于缺少关键参数。
 - 确认卡用于写入饮食记录、保存计划、修改偏好、删除数据。
 - 底部输入区在执行中展示停止按钮。
+- Arco `Progress`、`Tag`、`Drawer`、`Tooltip`、`Modal`、`Message` 可用于状态、详情和反馈。
+- ToolTraceItem、CitationBlock、ClarificationCard、ConfirmationCard 必须按 FoodMate Agent 语义自定义封装。
+- Agent 状态推进、工具轨迹展开、追问卡和确认卡出现可以使用轻量 CSS 动效。
 
 验收标准：
 
 - 页面结构和 `docs/assets/prototypes/会话页原型.svg` 一致。
 - 覆盖执行中、追问中、完成、失败、取消状态。
 - mock 流式更新时输入区高度不跳动。
+- 工具轨迹和引用详情可通过抽屉或展开区域查看。
+- 停止、失败、取消反馈不依赖浏览器 alert。
 
 ### F1-4. 实现分析页静态原型
 
@@ -197,12 +212,16 @@
 - 趋势图区域。
 - 目标对比。
 - 异常点和缺失数据提示。
+- Arco `Card`、`Tag`、`Skeleton`、`Tabs` 或轻量选择控件可用于指标、状态和时间范围。
+- 图表第一版可用 SVG/CSS 占位，但数据结构必须能替换为真实图表库。
+- 异常提示需要有进入动效或高亮反馈，但不能干扰扫读。
 
 验收标准：
 
 - 页面结构和 `docs/assets/prototypes/分析页原型.svg` 一致。
 - 静态数据能表达趋势、目标和异常。
 - 图表区域即使使用占位，也要保留后续接真实图表的数据结构。
+- Tools（2/6）对应 `time_parser` 和 `database_query` 的 mock 工具轨迹口径。
 
 ### F1-5. 实现规划页静态原型
 
@@ -224,12 +243,16 @@
 - 预算估算。
 - 计划校验结果。
 - 确认保存动作。
+- Arco `Table` 可用于计划表，也可以基于 FoodMate 视觉封装为 `MealPlanTable`。
+- Arco `Tag`、`Progress`、`Modal` 可用于校验状态、预算进度和保存确认。
+- 购物清单和校验结果必须使用 FoodMate 自定义卡片，突出“可执行计划”而不是普通表格。
 
 验收标准：
 
 - 页面结构和 `docs/assets/prototypes/规划页原型.svg` 一致。
 - 计划表在移动端可用。
 - 保存动作先进入确认态，不直接假装保存。
+- Tools（3/6）对应 `knowledge_search`、`database_query`、`plan_validator` 的 mock 工具轨迹口径。
 
 ### F1-6. 抽取共享 UI 组件
 
@@ -259,13 +282,27 @@
 - `EmptyState`
 - `ErrorState`
 
+组件分层：
+
+- 基础控件可基于 Arco 封装，例如按钮、输入框、弹窗、抽屉、Tooltip、Tag、Progress、Skeleton。
+- 业务组件必须按 FoodMate Agent 语义自定义，例如 Composer、AgentStatusStrip、ToolTraceItem、ResultCard、CitationBlock、ClarificationCard、ConfirmationCard。
+- 页面组件只组合业务组件和 mock 数据，不直接写复杂事件回放逻辑。
+
 验收标准：
 
 - 组件接收 props，不和单个页面硬绑定。
 - 组件状态至少覆盖 normal、loading、disabled、error。
 - 组件命名和 UI 文档一致。
+- 组件使用 Arco 时必须保留 FoodMate design tokens 和单屏工作台布局。
 
 ## Phase 2：前端 Mock 交互
+
+Phase 2 统一约定：
+
+- 不调用真实后端。
+- 使用本地 mock event sequence 模拟 `FoodMate-接口与数据规范.md` 中的 `run.*` SSE 事件。
+- 状态管理优先使用 React state / reducer。
+- 如果事件回放跨页面共享明显变复杂，后续再评估轻量状态库，不提前引入大型状态方案。
 
 ### F2-1. 添加假 Agent 事件回放
 
@@ -280,16 +317,21 @@
 
 实现要点：
 
-- 点击快捷任务或发送消息后，模拟事件顺序：routing、planning、retrieving、executing、validating、composing、completed。
+- 点击快捷任务或发送消息后，模拟事件顺序：`run.created`、`run.routed`、`run.planned`、`run.retrieval_started`、`run.retrieval_finished`、`run.tool_started`、`run.tool_finished`、`run.answer_stream`、`run.completed`。
+- 失败场景模拟 `run.failed`。
+- 取消场景模拟 `run.cancelled`。
 - 工具轨迹随事件逐步出现。
 - 回答内容模拟逐步输出。
 - 停止按钮把状态切换为 cancelled。
+- mock event replay 封装为 hook 或 feature 层工具，不写死在页面组件中。
 
 验收标准：
 
 - 会话页能完整播放一轮 mock 任务。
 - 停止后不继续追加答案。
 - failed 和 cancelled 状态有明确 UI。
+- Agent 状态、工具轨迹和答案流同步更新。
+- mock 事件名与接口文档的 `run.*` 事件一致。
 
 ### F2-2. 添加 mock 追问流程
 
@@ -305,13 +347,16 @@
 实现要点：
 
 - 输入“给我做一周备餐计划”时展示预算、忌口、目标三个追问。
+- 追问通过 `ClarificationCard` 展示缺失字段。
 - 用户补充后继续 mock 执行。
 - 追问回答要保留在消息流中。
+- 状态从 `waiting_user` 回到 `planning` 后继续播放 mock event sequence。
 
 验收标准：
 
 - 追问问题短、明确、可回答。
 - 补充答案后状态从 waiting_user 回到 planning。
+- 追问卡可使用 Arco `Button`、`Input`、`Tag`，但卡片结构保持 FoodMate 自定义。
 
 ### F2-3. 添加 mock 确认流程
 
@@ -329,11 +374,16 @@
 - 输入“帮我记录今天午餐”时展示饮食记录确认卡。
 - 确认卡展示写入时间、餐型、食物、份量、估算营养。
 - 支持确认、取消、修改。
+- 可使用 Arco `Modal` 承载高风险确认，也可使用页面内 FoodMate `ConfirmationCard`。
+- 确认后只模拟成功反馈，不调用真实写入接口。
+- 修改后回到可编辑状态，取消后进入可重试状态。
 
 验收标准：
 
 - 未确认前不显示“已保存”。
 - 取消后保留用户输入和可重试入口。
+- 确认、取消、修改、重试都有明确反馈。
+- 不调用真实后端，不产生真实数据写入。
 
 ## Phase 3：后端工程骨架与通用能力
 
