@@ -26,6 +26,19 @@
 - 表结构、工具注册、SQL Agent、Milvus、审计字段以 `FoodMate-数据库设计与接口工具清单.md` 为详细准则。
 - Java 模块、包结构、依赖方向以 `FoodMate-Java工程骨架与模块设计.md` 为详细准则。
 
+## 0.1 范围保留决策
+
+以下能力虽然不一定在第一轮全部实现，但属于 FoodMate 的正式目标，不从文档和计划中删除：
+
+- Milvus、MinIO、RocketMQ 等基础设施接入。
+- SQL Agent、MCP、Schema Catalog 和只读 SQL Guard。
+- ModelService、模型调用日志、模型路由与成本治理。
+- UserMemory、SessionSummary、Prompt 工程化和回归样例集。
+- Admin 查询、审计、Trace、软删除和恢复能力。
+- P1/P2 工具，例如 `nutrition_lookup`、`meal_plan_generator`、`shopping_list_generator`、`summary_generator`、`data_exporter`。
+
+执行原则：保留完整目标，但按 Phase 顺序逐步落地；未到对应 Phase 时只允许做必要占位、接口契约或 mock，不提前实现完整复杂能力。
+
 ## Phase 0：工作流文档与项目入口
 
 ### D0-1. 建立中文 docs 工作流入口
