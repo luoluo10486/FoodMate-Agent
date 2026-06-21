@@ -29,7 +29,7 @@
 | 层级 | 职责 |
 |---|---|
 | Web/UI | 展示、输入、状态订阅 |
-| API Gateway | 鉴权、限流、路由 |
+| API Gateway | 对外业务 API 入口治理，负责鉴权、限流、路由与通用网关控制 |
 | Agent Orchestrator | 路由、规划、编排 |
 | RAG Service | 检索、重排、引用 |
 | Tool Service | 确定性工具执行 |
@@ -37,6 +37,11 @@
 | Worker | 异步任务、长任务处理 |
 
 ### 2.2 通信方式
+
+说明：
+
+- `API Gateway` 属于业务 API 外部入口层
+- `Model Gateway` 属于模型接入治理层，不替代对外业务 API 网关
 
 - 同步接口：REST JSON
 - 流式接口：SSE 优先，必要时 WebSocket
@@ -560,21 +565,9 @@ Milvus 适合作为知识库主检索底座：
 - 和 Java / Spring 集成路径清晰
 - 适合作为统一检索服务，减少多套检索系统拼装成本
 
-#### 知识库构建接口建议
+#### 知识库构建流程建议
 
-`GET /api/v1/knowledge/documents`
-
-`POST /api/v1/knowledge/documents`
-
-`POST /api/v1/knowledge/documents/{document_id}/reindex`
-
-`POST /api/v1/knowledge/documents/{document_id}/disable`
-
-`GET /api/v1/knowledge/documents/{document_id}/chunks`
-
-`DELETE /api/v1/knowledge/documents/{document_id}`
-
-`POST /api/v1/knowledge/documents/{document_id}/restore`
+知识库文档的正式接口定义以下方 `5.4.2` 之后的接口章节为准，本节只描述构建流程与删除恢复语义，不再重复列完整接口清单。
 
 构建流程建议分成两层：
 
@@ -894,7 +887,7 @@ Milvus 适合作为知识库主检索底座：
 | validating | 结果校验中 |
 | completed | 已完成 |
 | failed | 已失败 |
-| canceled | 已取消 |
+| cancelled | 已取消 |
 
 ### 8.3 ToolCall 状态
 

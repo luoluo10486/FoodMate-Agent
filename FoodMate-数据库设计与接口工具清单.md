@@ -694,26 +694,26 @@ ACL 相关 metadata 固定包含：
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
 | `POST` | `/api/v1/sessions` | 创建会话 | 用户 | 是 |
-| `GET` | `/api/v1/sessions/{id}` | 查询会话 | 用户 | 否 |
-| `GET` | `/api/v1/sessions/{id}/messages` | 查询消息列表 | 用户 | 否 |
-| `PATCH` | `/api/v1/sessions/{id}` | 修改标题/状态 | 用户 | 是 |
-| `POST` | `/api/v1/sessions/{id}/archive` | 归档会话 | 用户 | 是 |
-| `DELETE` | `/api/v1/sessions/{id}` | 软删除会话 | 用户 | 是 |
-| `POST` | `/api/v1/sessions/{id}/restore` | 恢复会话 | 用户 | 是 |
+| `GET` | `/api/v1/sessions/{session_id}` | 查询会话 | 用户 | 否 |
+| `GET` | `/api/v1/sessions/{session_id}/messages` | 查询消息列表 | 用户 | 否 |
+| `PATCH` | `/api/v1/sessions/{session_id}` | 修改标题/状态 | 用户 | 是 |
+| `POST` | `/api/v1/sessions/{session_id}/archive` | 归档会话 | 用户 | 是 |
+| `DELETE` | `/api/v1/sessions/{session_id}` | 软删除会话 | 用户 | 是 |
+| `POST` | `/api/v1/sessions/{session_id}/restore` | 恢复会话 | 用户 | 是 |
 
 关键请求与响应字段：
 
 - `POST /sessions`
   - 请求：`title`、`mode`
   - 响应：`session_id`、`status`、`created_at`
-- `GET /sessions/{id}/messages`
+- `GET /sessions/{session_id}/messages`
   - 请求：`page`、`page_size`
   - 响应：`items[]`、`next_cursor`
 
 删除与恢复语义：
 
-- `DELETE /sessions/{id}` 只写 `is_deleted/deleted_at/deleted_by`
-- `POST /sessions/{id}/restore` 恢复软删除会话
+- `DELETE /sessions/{session_id}` 只写 `is_deleted/deleted_at/deleted_by`
+- `POST /sessions/{session_id}/restore` 恢复软删除会话
 
 ### 3.3 SSE 流式对话接口
 
@@ -749,10 +749,10 @@ ACL 相关 metadata 固定包含：
 |---|---|---|---|---|
 | `POST` | `/api/v1/food-logs` | 创建饮食记录 | 用户 | 是 |
 | `GET` | `/api/v1/food-logs` | 查询饮食记录 | 用户 | 否 |
-| `GET` | `/api/v1/food-logs/{id}` | 查询单条记录 | 用户 | 否 |
-| `PATCH` | `/api/v1/food-logs/{id}` | 修改记录 | 用户 | 是 |
-| `DELETE` | `/api/v1/food-logs/{id}` | 软删除记录 | 用户 | 是 |
-| `POST` | `/api/v1/food-logs/{id}/restore` | 恢复记录 | 用户 | 是 |
+| `GET` | `/api/v1/food-logs/{food_log_id}` | 查询单条记录 | 用户 | 否 |
+| `PATCH` | `/api/v1/food-logs/{food_log_id}` | 修改记录 | 用户 | 是 |
+| `DELETE` | `/api/v1/food-logs/{food_log_id}` | 软删除记录 | 用户 | 是 |
+| `POST` | `/api/v1/food-logs/{food_log_id}/restore` | 恢复记录 | 用户 | 是 |
 
 关键字段：
 
@@ -766,9 +766,9 @@ ACL 相关 metadata 固定包含：
 |---|---|---|---|---|
 | `POST` | `/api/v1/meal-plans/validate` | 校验计划 | 用户 | 是 |
 | `POST` | `/api/v1/meal-plans` | 保存计划 | 用户 | 是 |
-| `GET` | `/api/v1/meal-plans/{id}` | 查询计划 | 用户 | 否 |
-| `DELETE` | `/api/v1/meal-plans/{id}` | 软删除计划 | 用户 | 是 |
-| `POST` | `/api/v1/meal-plans/{id}/restore` | 恢复计划 | 用户 | 是 |
+| `GET` | `/api/v1/meal-plans/{meal_plan_id}` | 查询计划 | 用户 | 否 |
+| `DELETE` | `/api/v1/meal-plans/{meal_plan_id}` | 软删除计划 | 用户 | 是 |
+| `POST` | `/api/v1/meal-plans/{meal_plan_id}/restore` | 恢复计划 | 用户 | 是 |
 
 校验请求字段：
 
@@ -791,9 +791,9 @@ ACL 相关 metadata 固定包含：
 |---|---|---|---|---|
 | `POST` | `/api/v1/knowledge/search` | 直接检索知识库 | 用户 | 是 |
 | `POST` | `/api/v1/knowledge/documents` | 导入文档 | 管理员 | 是 |
-| `GET` | `/api/v1/knowledge/documents/{id}` | 查询文档 | 管理员 | 否 |
-| `DELETE` | `/api/v1/knowledge/documents/{id}` | 软删除文档 | 管理员 | 是 |
-| `POST` | `/api/v1/knowledge/documents/{id}/restore` | 恢复文档 | 管理员 | 是 |
+| `GET` | `/api/v1/knowledge/documents/{document_id}` | 查询文档 | 管理员 | 否 |
+| `DELETE` | `/api/v1/knowledge/documents/{document_id}` | 软删除文档 | 管理员 | 是 |
+| `POST` | `/api/v1/knowledge/documents/{document_id}/restore` | 恢复文档 | 管理员 | 是 |
 
 `/knowledge/search` 请求字段：
 
@@ -813,7 +813,7 @@ ACL 相关 metadata 固定包含：
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
 | `GET` | `/api/v1/data-sources` | 查询数据源列表 | 管理员 | 否 |
-| `GET` | `/api/v1/data-sources/{id}` | 查询数据源详情 | 管理员 | 否 |
+| `GET` | `/api/v1/data-sources/{datasource_id}` | 查询数据源详情 | 管理员 | 否 |
 | `GET` | `/api/v1/schema-catalogs` | 查询字段目录 | 管理员 | 否 |
 | `POST` | `/api/v1/schema-catalogs/refresh` | 刷新目录 | 管理员 | 是 |
 
@@ -823,7 +823,7 @@ ACL 相关 metadata 固定包含：
 |---|---|---|---|---|
 | `POST` | `/internal/sql-agent/query` | 执行结构化查询链路 | 内部 | 是 |
 | `POST` | `/internal/sql-agent/validate` | SQL 安全校验 | 内部 | 是 |
-| `GET` | `/internal/sql-agent/audits/{id}` | 查询审计记录 | 内部 | 否 |
+| `GET` | `/internal/sql-agent/audits/{sql_audit_id}` | 查询审计记录 | 内部 | 否 |
 
 ### 3.9 工具注册与查询接口
 

@@ -359,7 +359,7 @@ flowchart TD
 
 | 模块 | 作用 | 是否必备 |
 |---|---|---|
-| API Gateway | 统一模型调用入口、鉴权、限流、日志 | 必备 |
+| API Gateway | 对外 API 入口、鉴权、路由、限流、跨域与通用网关审计 | 必备 |
 | Database | 存储用户、会话、任务、业务数据 | 必备 |
 | Vector Database / Milvus | 存储 Embedding、BM25 稀疏向量、混合检索索引 | 必备 |
 | Object Storage | 存储 PDF、图片、音频、文档等文件 | 必备 |
