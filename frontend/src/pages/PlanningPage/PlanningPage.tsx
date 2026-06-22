@@ -8,11 +8,10 @@ import styles from './PlanningPage.module.css';
 
 export function PlanningPage() {
   return (
-    <WorkspaceLayout activeModule="planning">
+    <WorkspaceLayout activeModule="planning" moduleLabel={<Tag color="green">备餐规划</Tag>}>
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.header}>
           <div>
-            <Tag color="green">备餐规划</Tag>
             <h1>2 人 7 天高蛋白计划</h1>
           </div>
           <Button type="primary">确认保存计划</Button>

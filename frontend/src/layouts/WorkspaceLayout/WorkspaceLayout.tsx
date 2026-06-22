@@ -9,9 +9,10 @@ import styles from './WorkspaceLayout.module.css';
 type WorkspaceLayoutProps = {
   children: React.ReactNode;
   activeModule?: 'home' | 'chat' | 'analysis' | 'planning';
+  moduleLabel?: React.ReactNode;
 };
 
-export function WorkspaceLayout({ children, activeModule = 'home' }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }: WorkspaceLayoutProps) {
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
@@ -38,6 +39,7 @@ export function WorkspaceLayout({ children, activeModule = 'home' }: WorkspaceLa
           <Tooltip content="折叠导航">
             <Button shape="circle" icon={<IconMenu />} />
           </Tooltip>
+          {moduleLabel ? <div className={styles.moduleLabel}>{moduleLabel}</div> : null}
           <nav className={styles.nav}>
             <NavLink className={styles.navItem} to="/chat/week-plan">
               <Tag icon={<IconMessage />} color={activeModule === 'chat' ? 'green' : 'gray'}>

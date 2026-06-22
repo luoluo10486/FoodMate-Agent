@@ -105,6 +105,13 @@
   min-height: 0;
 }
 
+.moduleLabel {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
 .nav {
   display: flex;
   flex: 1;
@@ -156,6 +163,10 @@
 
   .topbar {
     padding: 14px 16px;
+  }
+
+  .moduleLabel {
+    max-width: 120px;
   }
 
   .nav {
