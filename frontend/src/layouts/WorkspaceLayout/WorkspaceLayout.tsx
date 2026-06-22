@@ -1,5 +1,5 @@
 import { Button, Input, Tag, Tooltip } from '@arco-design/web-react';
-import { IconMenu, IconPlus, IconSearch, IconUser } from '@arco-design/web-react/icon';
+import { IconMessage, IconMenu, IconPlus, IconSearch, IconUser } from '@arco-design/web-react/icon';
 import { NavLink } from 'react-router-dom';
 import { mockSessions } from '../../mock/sessions';
 import { SidebarSessionList } from '../../components/workspace/SidebarSessionList';
@@ -19,7 +19,7 @@ export function WorkspaceLayout({ children, activeModule = 'home' }: WorkspaceLa
           <BrandLogo />
           <span className={styles.modePill}>Agent 模式</span>
         </div>
-        <Button className={styles.newButton} type="primary" icon={<IconPlus />}>
+        <Button className={styles.newButton} type="primary" icon={<IconPlus />} href="/chat/week-plan">
           新建 Agent 会话
         </Button>
         <Input className={styles.search} prefix={<IconSearch />} placeholder="搜索会话" allowClear />
@@ -39,11 +39,13 @@ export function WorkspaceLayout({ children, activeModule = 'home' }: WorkspaceLa
             <Button shape="circle" icon={<IconMenu />} />
           </Tooltip>
           <nav className={styles.nav}>
+            <NavLink className={styles.navItem} to="/chat/week-plan">
+              <Tag icon={<IconMessage />} color={activeModule === 'chat' ? 'green' : 'gray'}>
+                Agent 会话
+              </Tag>
+            </NavLink>
             <NavLink className={({ isActive }) => (isActive || activeModule === 'planning' ? styles.navItem : styles.navItem)} to="/planning">
               <Tag color={activeModule === 'planning' ? 'green' : 'gray'}>饮食管理</Tag>
-            </NavLink>
-            <NavLink className={styles.navItem} to="/chat/week-plan">
-              <Tag color={activeModule === 'chat' ? 'green' : 'gray'}>知识库</Tag>
             </NavLink>
             <NavLink className={styles.navItem} to="/analysis">
               <Tag color={activeModule === 'analysis' ? 'green' : 'gray'}>数据分析</Tag>

@@ -50,6 +50,8 @@
   grid-template-columns: minmax(0, 1fr) 348px;
   gap: 18px;
   min-height: 0;
+  overflow: auto;
+  padding-bottom: 4px;
 }
 
 .tableCard,
@@ -70,6 +72,8 @@
 .side {
   display: grid;
   gap: 18px;
+  align-content: start;
+  grid-auto-rows: max-content;
   min-height: 0;
 }
 
