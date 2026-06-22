@@ -26,9 +26,15 @@ export function Composer({
         <button className={styles.agentPill}>Agents（{agentsUsed}/{agentsTotal}）⌄</button>
       </div>
       <div className={styles.inputRow}>
-        <Button shape="circle" icon={<IconAttachment />} />
+        <Button aria-label="上传附件" shape="circle" icon={<IconAttachment />} />
         <Input.TextArea autoSize={false} className={styles.input} placeholder={placeholder} />
-        <Button shape="circle" type={running ? 'secondary' : 'primary'} status={running ? 'danger' : 'default'} icon={running ? <IconStop /> : <IconSend />} />
+        <Button
+          aria-label={running ? '停止生成' : '发送消息'}
+          shape="circle"
+          type={running ? 'secondary' : 'primary'}
+          status={running ? 'danger' : 'default'}
+          icon={running ? <IconStop /> : <IconSend />}
+        />
       </div>
     </footer>
   );

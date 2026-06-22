@@ -66,9 +66,20 @@
 }
 
 .newButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   height: 48px;
   border-radius: 12px;
+  background: rgb(var(--primary-6));
+  color: #fff;
   font-weight: 800;
+}
+
+.newButton:hover {
+  color: #fff;
+  background: rgb(var(--primary-5));
 }
 
 .search {

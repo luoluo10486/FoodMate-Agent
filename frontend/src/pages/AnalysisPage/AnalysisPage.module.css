@@ -81,6 +81,16 @@
   overflow: visible;
 }
 
+.emptyChart {
+  display: grid;
+  min-height: 238px;
+  place-items: center;
+  border: 1px dashed var(--fm-border);
+  border-radius: 12px;
+  color: var(--fm-muted);
+  font-weight: 700;
+}
+
 .targetBand {
   fill: rgba(47, 111, 78, 0.1);
   stroke: rgba(47, 111, 78, 0.18);
@@ -165,9 +175,12 @@
 }
 
 @media (max-width: 980px) {
-  .metrics,
-  .body {
+  .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .body {
+    grid-template-columns: 1fr;
   }
 }
 

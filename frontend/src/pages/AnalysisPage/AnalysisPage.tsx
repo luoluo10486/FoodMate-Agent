@@ -1,14 +1,17 @@
+import { useState } from 'react';
 import { Card, Select, Tag } from '@arco-design/web-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { MetricCard } from '../../components/common/MetricCard';
 import {
-  analysisInsights,
-  analysisMetrics,
+  type AnalysisRange,
+  analysisRangeOptions,
+  getAnalysisInsights,
+  getAnalysisMetrics,
   proteinGoal,
   proteinTargetMax,
   proteinTargetMin,
-  proteinTrend
+  proteinTrendByRange
 } from '../../mock/analysis';
 import styles from './AnalysisPage.module.css';
 
@@ -18,11 +21,16 @@ const chartHeight = 250;
 const chartPadding = { top: 28, right: 28, bottom: 42, left: 48 };
 
 export function AnalysisPage() {
+  const [range, setRange] = useState<AnalysisRange>('7d');
+  const proteinTrend = proteinTrendByRange[range];
+  const analysisMetrics = getAnalysisMetrics(range, proteinTrend);
+  const analysisInsights = getAnalysisInsights(proteinTrend);
   const values = proteinTrend.map((item) => item.protein);
   const yMax = Math.ceil(Math.max(proteinTargetMax, ...values) / 20) * 20;
   const plotWidth = chartWidth - chartPadding.left - chartPadding.right;
   const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom;
-  const getX = (index: number) => chartPadding.left + (index / (proteinTrend.length - 1)) * plotWidth;
+  const getX = (index: number) =>
+    proteinTrend.length > 1 ? chartPadding.left + (index / (proteinTrend.length - 1)) * plotWidth : chartPadding.left + plotWidth / 2;
   const getY = (value: number) => chartPadding.top + (1 - value / yMax) * plotHeight;
   const points = proteinTrend.map((item, index) => `${getX(index)},${getY(item.protein)}`).join(' ');
   const targetMinY = getY(proteinTargetMin);
@@ -31,18 +39,22 @@ export function AnalysisPage() {
   const ticks = [0, Math.round(yMax * 0.25), Math.round(yMax * 0.5), Math.round(yMax * 0.75), yMax];
   const targetLabel = `${proteinTargetMin}-${proteinTargetMax}g/天`;
   const multiplierLabel = `${proteinGoal.proteinMultiplierRange[0]}-${proteinGoal.proteinMultiplierRange[1]}`;
+  const labelEvery = proteinTrend.length > 14 ? 5 : proteinTrend.length > 7 ? 2 : 1;
+  const rangeLabel = analysisRangeOptions.find((option) => option.value === range)?.label ?? '最近 7 天';
 
   return (
     <WorkspaceLayout activeModule="analysis" moduleLabel={<Tag color="arcoblue">数据分析</Tag>}>
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.header}>
           <div>
-            <h1>最近一周摄入复盘</h1>
+            <h1>{rangeLabel}摄入复盘</h1>
           </div>
-          <Select defaultValue="7d" className={styles.select}>
-            <Option value="7d">最近 7 天</Option>
-            <Option value="14d">最近 14 天</Option>
-            <Option value="30d">最近 30 天</Option>
+          <Select value={range} onChange={(value) => setRange(value as AnalysisRange)} className={styles.select}>
+            {analysisRangeOptions.map((option) => (
+              <Option value={option.value} key={option.value}>
+                {option.label}
+              </Option>
+            ))}
           </Select>
         </section>
 
@@ -61,49 +73,64 @@ export function AnalysisPage() {
               </div>
               <Tag color="green">Tools（2/6）time_parser · database_query</Tag>
             </div>
-            <div className={styles.chart} aria-label={`蛋白质趋势，推荐区间 ${targetLabel}`}>
-              <svg className={styles.trendSvg} viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img">
-                <rect
-                  className={styles.targetBand}
-                  x={chartPadding.left}
-                  y={targetMaxY}
-                  width={plotWidth}
-                  height={targetBandHeight}
-                  rx="10"
-                />
-                <text className={styles.targetLabel} x={chartPadding.left + 12} y={targetMaxY + 18}>
-                  推荐 {targetLabel}
-                </text>
-                {ticks.map((tick) => {
-                  const y = getY(tick);
-                  return (
-                    <g key={tick}>
-                      <line className={styles.gridLine} x1={chartPadding.left} y1={y} x2={chartWidth - chartPadding.right} y2={y} />
-                      <text className={styles.axisLabel} x={chartPadding.left - 12} y={y + 4} textAnchor="end">
-                        {tick}g
-                      </text>
-                    </g>
-                  );
-                })}
-                <polyline className={styles.trendLine} points={points} />
-                {proteinTrend.map((item, index) => {
-                  const x = getX(index);
-                  const y = getY(item.protein);
-                  const isLow = item.protein < proteinTargetMin;
+            <div className={styles.chart}>
+              {proteinTrend.length === 0 ? (
+                <div className={styles.emptyChart}>当前时间范围暂无蛋白质记录</div>
+              ) : (
+                <svg
+                  aria-label={`蛋白质趋势，推荐区间 ${targetLabel}`}
+                  className={styles.trendSvg}
+                  viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                  role="img"
+                >
+                  <title>{`蛋白质趋势，推荐区间 ${targetLabel}`}</title>
+                  <rect
+                    className={styles.targetBand}
+                    x={chartPadding.left}
+                    y={targetMaxY}
+                    width={plotWidth}
+                    height={targetBandHeight}
+                    rx="10"
+                  />
+                  <text className={styles.targetLabel} x={chartPadding.left + 12} y={targetMaxY + 18}>
+                    推荐 {targetLabel}
+                  </text>
+                  {ticks.map((tick) => {
+                    const y = getY(tick);
+                    return (
+                      <g key={tick}>
+                        <line className={styles.gridLine} x1={chartPadding.left} y1={y} x2={chartWidth - chartPadding.right} y2={y} />
+                        <text className={styles.axisLabel} x={chartPadding.left - 12} y={y + 4} textAnchor="end">
+                          {tick}g
+                        </text>
+                      </g>
+                    );
+                  })}
+                  {proteinTrend.length > 1 ? <polyline className={styles.trendLine} points={points} /> : null}
+                  {proteinTrend.map((item, index) => {
+                    const x = getX(index);
+                    const y = getY(item.protein);
+                    const isLow = item.protein < proteinTargetMin;
+                    const shouldShowLabel = index % labelEvery === 0 || index === proteinTrend.length - 1;
 
-                  return (
-                    <g key={item.day}>
-                      <text className={styles.valueLabel} x={x} y={y - 14} textAnchor="middle">
-                        {item.protein}g
-                      </text>
-                      <circle className={isLow ? styles.lowPoint : styles.goodPoint} cx={x} cy={y} r="6" />
-                      <text className={styles.dayLabel} x={x} y={chartHeight - 14} textAnchor="middle">
-                        {item.day}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
+                    return (
+                      <g key={item.day}>
+                        {shouldShowLabel ? (
+                          <text className={styles.valueLabel} x={x} y={y - 14} textAnchor="middle">
+                            {item.protein}g
+                          </text>
+                        ) : null}
+                        <circle className={isLow ? styles.lowPoint : styles.goodPoint} cx={x} cy={y} r={shouldShowLabel ? 6 : 4} />
+                        {shouldShowLabel ? (
+                          <text className={styles.dayLabel} x={x} y={chartHeight - 14} textAnchor="middle">
+                            {item.day}
+                          </text>
+                        ) : null}
+                      </g>
+                    );
+                  })}
+                </svg>
+              )}
             </div>
           </Card>
 

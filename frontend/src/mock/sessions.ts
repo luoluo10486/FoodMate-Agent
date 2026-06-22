@@ -14,7 +14,7 @@ export const mockSessions: SessionSummary[] = [
   {
     id: 'protein-review',
     title: '最近一周蛋白质复盘',
-    subtitle: '18 餐记录 · 82% 达成',
+    subtitle: '18 餐记录 · 66% 达成',
     status: 'completed'
   },
   {
