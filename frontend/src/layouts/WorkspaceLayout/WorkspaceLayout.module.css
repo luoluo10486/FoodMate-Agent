@@ -110,6 +110,11 @@
   flex: 1;
   justify-content: flex-end;
   gap: 12px;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .navItem {
