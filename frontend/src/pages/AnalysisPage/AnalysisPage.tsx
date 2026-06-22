@@ -33,11 +33,10 @@ export function AnalysisPage() {
   const multiplierLabel = `${proteinGoal.proteinMultiplierRange[0]}-${proteinGoal.proteinMultiplierRange[1]}`;
 
   return (
-    <WorkspaceLayout activeModule="analysis">
+    <WorkspaceLayout activeModule="analysis" moduleLabel={<Tag color="arcoblue">数据分析</Tag>}>
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.header}>
           <div>
-            <Tag color="arcoblue">数据分析</Tag>
             <h1>最近一周摄入复盘</h1>
           </div>
           <Select defaultValue="7d" className={styles.select}>
