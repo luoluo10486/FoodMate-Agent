@@ -30,7 +30,12 @@
   gap: 14px;
   min-height: 0;
   overflow: auto;
-  padding-right: 4px;
+  padding-right: 0;
+  scrollbar-width: none;
+}
+
+.messages::-webkit-scrollbar {
+  display: none;
 }
 
 .message {
