@@ -2,13 +2,35 @@ import { Card, Select, Tag } from '@arco-design/web-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { MetricCard } from '../../components/common/MetricCard';
-import { analysisInsights, analysisMetrics, proteinTrend } from '../../mock/analysis';
+import {
+  analysisInsights,
+  analysisMetrics,
+  proteinGoal,
+  proteinTargetMax,
+  proteinTargetMin,
+  proteinTrend
+} from '../../mock/analysis';
 import styles from './AnalysisPage.module.css';
 
 const Option = Select.Option;
+const chartWidth = 760;
+const chartHeight = 250;
+const chartPadding = { top: 28, right: 28, bottom: 42, left: 48 };
 
 export function AnalysisPage() {
-  const max = Math.max(...proteinTrend);
+  const values = proteinTrend.map((item) => item.protein);
+  const yMax = Math.ceil(Math.max(proteinTargetMax, ...values) / 20) * 20;
+  const plotWidth = chartWidth - chartPadding.left - chartPadding.right;
+  const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom;
+  const getX = (index: number) => chartPadding.left + (index / (proteinTrend.length - 1)) * plotWidth;
+  const getY = (value: number) => chartPadding.top + (1 - value / yMax) * plotHeight;
+  const points = proteinTrend.map((item, index) => `${getX(index)},${getY(item.protein)}`).join(' ');
+  const targetMinY = getY(proteinTargetMin);
+  const targetMaxY = getY(proteinTargetMax);
+  const targetBandHeight = targetMinY - targetMaxY;
+  const ticks = [0, Math.round(yMax * 0.25), Math.round(yMax * 0.5), Math.round(yMax * 0.75), yMax];
+  const targetLabel = `${proteinTargetMin}-${proteinTargetMax}g/天`;
+  const multiplierLabel = `${proteinGoal.proteinMultiplierRange[0]}-${proteinGoal.proteinMultiplierRange[1]}`;
 
   return (
     <WorkspaceLayout activeModule="analysis">
@@ -34,16 +56,55 @@ export function AnalysisPage() {
         <section className={styles.body}>
           <Card className={styles.chartCard} bordered={false}>
             <div className={styles.cardHead}>
-              <strong>蛋白质趋势</strong>
+              <div>
+                <strong>蛋白质趋势</strong>
+                <span>按 {proteinGoal.weightKg}kg × {multiplierLabel}，推荐 {targetLabel}</span>
+              </div>
               <Tag color="green">Tools（2/6）time_parser · database_query</Tag>
             </div>
-            <div className={styles.chart}>
-              {proteinTrend.map((value, index) => (
-                <div className={styles.barWrap} key={index}>
-                  <div className={styles.bar} style={{ height: `${(value / max) * 100}%` }} />
-                  <span>周{index + 1}</span>
-                </div>
-              ))}
+            <div className={styles.chart} aria-label={`蛋白质趋势，推荐区间 ${targetLabel}`}>
+              <svg className={styles.trendSvg} viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img">
+                <rect
+                  className={styles.targetBand}
+                  x={chartPadding.left}
+                  y={targetMaxY}
+                  width={plotWidth}
+                  height={targetBandHeight}
+                  rx="10"
+                />
+                <text className={styles.targetLabel} x={chartPadding.left + 12} y={targetMaxY + 18}>
+                  推荐 {targetLabel}
+                </text>
+                {ticks.map((tick) => {
+                  const y = getY(tick);
+                  return (
+                    <g key={tick}>
+                      <line className={styles.gridLine} x1={chartPadding.left} y1={y} x2={chartWidth - chartPadding.right} y2={y} />
+                      <text className={styles.axisLabel} x={chartPadding.left - 12} y={y + 4} textAnchor="end">
+                        {tick}g
+                      </text>
+                    </g>
+                  );
+                })}
+                <polyline className={styles.trendLine} points={points} />
+                {proteinTrend.map((item, index) => {
+                  const x = getX(index);
+                  const y = getY(item.protein);
+                  const isLow = item.protein < proteinTargetMin;
+
+                  return (
+                    <g key={item.day}>
+                      <text className={styles.valueLabel} x={x} y={y - 14} textAnchor="middle">
+                        {item.protein}g
+                      </text>
+                      <circle className={isLow ? styles.lowPoint : styles.goodPoint} cx={x} cy={y} r="6" />
+                      <text className={styles.dayLabel} x={x} y={chartHeight - 14} textAnchor="middle">
+                        {item.day}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
             </div>
           </Card>
 
