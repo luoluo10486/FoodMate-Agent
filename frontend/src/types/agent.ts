@@ -20,6 +20,8 @@ export type ToolCall = {
   latencyMs?: number;
   summary: string;
   error?: string;
+  input?: string;
+  output?: string;
 };
 
 export type Citation = {

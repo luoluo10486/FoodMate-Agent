@@ -1,5 +1,7 @@
 import { Button, Skeleton } from '@arco-design/web-react';
 import { IconArrowRight } from '@arco-design/web-react/icon';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { TaskCard } from '../../components/common/TaskCard';
@@ -9,6 +11,15 @@ import { recommendedPrompts, taskCards } from '../../mock/sessions';
 import styles from './HomePage.module.css';
 
 export function HomePage() {
+  const navigate = useNavigate();
+  const [prompt, setPrompt] = useState('');
+
+  const startPrompt = (value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return;
+    navigate(`/chat/quick-start?prompt=${encodeURIComponent(normalized)}`);
+  };
+
   return (
     <WorkspaceLayout activeModule="home">
       <div className={`${styles.page} fm-enter`}>
@@ -30,7 +41,7 @@ export function HomePage() {
           </div>
           <div className={styles.promptGrid}>
             {recommendedPrompts.map((prompt) => (
-              <Button key={prompt} className={styles.promptButton}>
+              <Button key={prompt} className={styles.promptButton} onClick={() => startPrompt(prompt)}>
                 {prompt}
                 <IconArrowRight />
               </Button>
@@ -41,7 +52,15 @@ export function HomePage() {
         <div className={styles.bottom}>
           <EmptyState />
           <Skeleton className={styles.skeleton} loading text={{ rows: 2 }} animation />
-          <Composer toolsUsed={0} toolsTotal={6} agentsUsed={0} agentsTotal={1} />
+          <Composer
+            value={prompt}
+            toolsUsed={0}
+            toolsTotal={6}
+            agentsUsed={0}
+            agentsTotal={1}
+            onChange={setPrompt}
+            onSend={() => startPrompt(prompt)}
+          />
         </div>
       </div>
     </WorkspaceLayout>

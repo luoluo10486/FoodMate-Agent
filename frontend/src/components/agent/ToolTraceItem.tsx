@@ -1,4 +1,4 @@
-import { Tag } from '@arco-design/web-react';
+import { Collapse, Tag } from '@arco-design/web-react';
 import type { ToolCall } from '../../types/agent';
 import styles from './ToolTraceItem.module.css';
 
@@ -24,6 +24,16 @@ export function ToolTraceItem({ tool }: ToolTraceItemProps) {
       </div>
       <Tag color={colors[tool.status]}>{tool.status}{tool.latencyMs ? ` · ${tool.latencyMs}ms` : ''}</Tag>
       <p>{tool.error ?? tool.summary}</p>
+      <Collapse className={styles.details} bordered={false}>
+        <Collapse.Item header="查看调用详情" name="detail">
+          <dl>
+            <dt>输入</dt>
+            <dd>{tool.input ?? '等待工具入参'}</dd>
+            <dt>输出</dt>
+            <dd>{tool.error ?? tool.output ?? tool.summary}</dd>
+          </dl>
+        </Collapse.Item>
+      </Collapse>
     </article>
   );
 }

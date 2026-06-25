@@ -170,18 +170,31 @@
   .main {
     min-height: 100vh;
     height: auto;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   .topbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     padding: 14px 16px;
+    gap: 10px;
   }
 
   .moduleLabel {
-    max-width: 120px;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .nav {
+    grid-column: 1 / -1;
+    width: 100%;
     overflow-x: auto;
     justify-content: flex-start;
+  }
+
+  .topbar > :global(.arco-btn):last-child {
+    justify-self: end;
+    max-width: 76px;
   }
 }

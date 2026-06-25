@@ -23,3 +23,41 @@
   margin: 0;
   line-height: 1.55;
 }
+
+.details {
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgba(246, 249, 244, 0.76);
+}
+
+.details :global(.arco-collapse-item-header) {
+  min-height: 32px;
+  padding: 8px 10px;
+  color: var(--fm-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.details :global(.arco-collapse-item-content-box) {
+  padding: 0 10px 10px;
+}
+
+.details dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.details dt {
+  color: var(--fm-ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.details dd {
+  margin: 0;
+  color: var(--fm-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
