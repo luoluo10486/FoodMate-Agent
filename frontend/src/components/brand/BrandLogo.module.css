@@ -9,6 +9,14 @@
   filter: drop-shadow(0 14px 28px rgba(47, 111, 78, 0.12));
 }
 
+.halo,
+.leaf,
+.bowl,
+.bowlShine {
+  transform-box: fill-box;
+  will-change: opacity, transform;
+}
+
 .copy {
   display: grid;
   gap: 6px;

@@ -121,6 +121,7 @@
   stroke-linejoin: round;
   stroke-width: 4;
   filter: drop-shadow(0 10px 18px rgba(47, 111, 78, 0.18));
+  will-change: stroke-dashoffset;
 }
 
 .valueLabel {
@@ -133,6 +134,7 @@
 .lowPoint {
   stroke: #fff;
   stroke-width: 3;
+  will-change: transform, opacity;
 }
 
 .goodPoint {

@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Card, Select, Tag } from '@arco-design/web-react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { MetricCard } from '../../components/common/MetricCard';
@@ -16,11 +18,14 @@ import {
 import styles from './AnalysisPage.module.css';
 
 const Option = Select.Option;
+gsap.registerPlugin(useGSAP);
+
 const chartWidth = 760;
 const chartHeight = 250;
 const chartPadding = { top: 28, right: 28, bottom: 42, left: 48 };
 
 export function AnalysisPage() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [range, setRange] = useState<AnalysisRange>('7d');
   const proteinTrend = proteinTrendByRange[range];
   const analysisMetrics = getAnalysisMetrics(range, proteinTrend);
@@ -41,6 +46,33 @@ export function AnalysisPage() {
   const multiplierLabel = `${proteinGoal.proteinMultiplierRange[0]}-${proteinGoal.proteinMultiplierRange[1]}`;
   const labelEvery = proteinTrend.length > 14 ? 5 : proteinTrend.length > 7 ? 2 : 1;
   const rangeLabel = analysisRangeOptions.find((option) => option.value === range)?.label ?? '最近 7 天';
+
+  useGSAP(
+    () => {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const trendLine = chartRef.current?.querySelector(`.${styles.trendLine}`) as SVGPolylineElement | null;
+      const lineLength = trendLine?.getTotalLength() ?? 0;
+
+      if (trendLine && lineLength > 0) {
+        gsap.set(trendLine, { strokeDasharray: lineLength, strokeDashoffset: lineLength });
+      }
+
+      const timeline = gsap.timeline({ defaults: { duration: reduceMotion ? 0 : 0.55, ease: 'power3.out' } });
+
+      timeline
+        .from(`.${styles.targetBand}`, { autoAlpha: 0, scaleY: 0.82, transformOrigin: '50% 50%' })
+        .from(`.${styles.gridLine}`, { autoAlpha: 0, stagger: 0.035 }, '<0.05')
+        .from(`.${styles.axisLabel}, .${styles.dayLabel}`, { autoAlpha: 0, y: 6, stagger: 0.015 }, '<0.05');
+
+      if (trendLine && lineLength > 0) {
+        timeline.to(trendLine, { strokeDashoffset: 0, duration: reduceMotion ? 0 : 0.7 }, '<0.05');
+      }
+
+      timeline.from(`.${styles.goodPoint}, .${styles.lowPoint}`, { autoAlpha: 0, scale: 0.45, transformOrigin: '50% 50%', stagger: 0.025 }, '<0.2');
+      timeline.from(`.${styles.valueLabel}, .${styles.targetLabel}`, { autoAlpha: 0, y: -4, stagger: 0.02 }, '<0.1');
+    },
+    { dependencies: [range], scope: chartRef, revertOnUpdate: true }
+  );
 
   return (
     <WorkspaceLayout activeModule="analysis" moduleLabel={<Tag color="arcoblue">数据分析</Tag>}>
@@ -73,7 +105,7 @@ export function AnalysisPage() {
               </div>
               <Tag color="green">Tools（2/6）time_parser · database_query</Tag>
             </div>
-            <div className={styles.chart}>
+            <div className={styles.chart} ref={chartRef}>
               {proteinTrend.length === 0 ? (
                 <div className={styles.emptyChart}>当前时间范围暂无蛋白质记录</div>
               ) : (
