@@ -93,6 +93,11 @@
   margin-top: auto;
   padding-top: 18px;
   border-top: 1px solid var(--fm-border);
+  color: inherit;
+}
+
+.profile:hover {
+  color: inherit;
 }
 
 .avatar {
@@ -137,6 +142,11 @@
 
 .navItem {
   display: inline-flex;
+}
+
+.userButton {
+  display: inline-flex;
+  color: inherit;
 }
 
 @media (max-width: 900px) {
@@ -193,7 +203,7 @@
     justify-content: flex-start;
   }
 
-  .topbar > :global(.arco-btn):last-child {
+  .userButton {
     justify-self: end;
     max-width: 76px;
   }

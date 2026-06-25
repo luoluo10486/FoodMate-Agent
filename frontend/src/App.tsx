@@ -5,6 +5,8 @@ const HomePage = lazy(() => import('./pages/HomePage/HomePage').then((module) =>
 const ChatPage = lazy(() => import('./pages/ChatPage/ChatPage').then((module) => ({ default: module.ChatPage })));
 const AnalysisPage = lazy(() => import('./pages/AnalysisPage/AnalysisPage').then((module) => ({ default: module.AnalysisPage })));
 const PlanningPage = lazy(() => import('./pages/PlanningPage/PlanningPage').then((module) => ({ default: module.PlanningPage })));
+const KnowledgePage = lazy(() => import('./pages/KnowledgePage/KnowledgePage').then((module) => ({ default: module.KnowledgePage })));
+const LoginPage = lazy(() => import('./pages/LoginPage/LoginPage').then((module) => ({ default: module.LoginPage })));
 
 export function App() {
   return (
@@ -14,6 +16,8 @@ export function App() {
         <Route path="/chat/:sessionId?" element={<ChatPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/planning" element={<PlanningPage />} />
+        <Route path="/knowledge" element={<KnowledgePage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

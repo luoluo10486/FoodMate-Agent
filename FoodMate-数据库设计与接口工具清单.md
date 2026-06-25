@@ -691,6 +691,113 @@ ACL 相关 metadata 固定包含：
 - 所有默认查询统一排除 `is_deleted = true` 的数据
 - 只有管理接口允许显式传 `include_deleted=true`
 
+### 3.1.1 认证与会话接口草案（待审核）
+
+当前文档已确定“默认 Bearer Token”、`Spring Security + JWT + Refresh Token`、用户表包含 `username/password_hash/status/role`，但还没有单独的登录接口契约。建议第一版采用以下方案，待评审后再进入后端实现。
+
+#### 认证模型
+
+- Access Token：短有效期 JWT，建议 15 到 30 分钟，用于调用普通业务接口。
+- Refresh Token：长有效期随机不透明 token，建议 7 到 30 天，服务端保存哈希、过期时间、撤销状态和设备信息。
+- 前端请求头：`Authorization: Bearer <accessToken>`。
+- SSE 事件接口同样校验 Bearer Token；浏览器 EventSource 如果不便设置 header，前端可先使用 `fetch` + ReadableStream，或后端支持受控的 `access_token` 查询参数，后者必须限制短期 token 且避免日志泄露。
+- 密码只保存哈希，建议使用 BCrypt/Argon2；禁止明文和可逆加密。
+- 用户状态不是 `active` 时拒绝登录。
+
+#### 推荐接口
+
+| 方法 | 路径 | 用途 | 鉴权 | 幂等 |
+|---|---|---|---|---|
+| `POST` | `/foodmate/auth/login` | 用户名密码登录，返回 access token 与 refresh token | 匿名 | 是 |
+| `POST` | `/foodmate/auth/refresh` | 使用 refresh token 换取新 access token | 匿名 | 是 |
+| `POST` | `/foodmate/auth/logout` | 注销当前 refresh token | 用户 | 是 |
+| `GET` | `/foodmate/auth/me` | 查询当前用户资料、角色和营养目标摘要 | 用户 | 否 |
+
+#### `POST /foodmate/auth/login` 请求
+
+```json
+{
+  "username": "liang",
+  "password": "********",
+  "rememberMe": true
+}
+```
+
+#### `POST /foodmate/auth/login` 响应
+
+```json
+{
+  "code": "OK",
+  "message": "success",
+  "requestId": "req_...",
+  "data": {
+    "accessToken": "jwt...",
+    "accessTokenExpiresIn": 1800,
+    "refreshToken": "opaque...",
+    "refreshTokenExpiresIn": 604800,
+    "tokenType": "Bearer",
+    "user": {
+      "id": "10001",
+      "username": "liang",
+      "displayName": "梁同学",
+      "role": "user",
+      "status": "active"
+    }
+  }
+}
+```
+
+#### `POST /foodmate/auth/refresh` 请求
+
+```json
+{
+  "refreshToken": "opaque..."
+}
+```
+
+#### `GET /foodmate/auth/me` 响应
+
+```json
+{
+  "code": "OK",
+  "message": "success",
+  "requestId": "req_...",
+  "data": {
+    "id": "10001",
+    "username": "liang",
+    "displayName": "梁同学",
+    "role": "user",
+    "status": "active",
+    "profile": {
+      "weightKg": 70,
+      "proteinMultiplierRange": [1.5, 2.0]
+    }
+  }
+}
+```
+
+#### 权限规则
+
+- 普通用户只能访问自己的会话、消息、饮食记录、计划、分析结果和私有知识库内容。
+- 管理员可访问工具注册、知识库文档管理、Schema Catalog、运行审计和模型用量接口。
+- 后端必须从 token 解析 `userId/role`，不能信任前端传入的 `userId`。
+- 写操作继续保留 `Idempotency-Key`，登录和刷新接口也应能安全重试。
+
+#### 推荐错误码
+
+- `AUTH_INVALID_CREDENTIALS`：用户名或密码错误。
+- `AUTH_TOKEN_EXPIRED`：Access Token 已过期。
+- `AUTH_REFRESH_TOKEN_INVALID`：Refresh Token 无效、过期或已撤销。
+- `AUTH_ACCOUNT_DISABLED`：账号被禁用。
+- `AUTH_FORBIDDEN`：已登录但无权限访问资源。
+
+#### 前端接入约定
+
+- Phase 1-2 前端只提供 `/login` mock 入口，不保存真实 token。
+- 真实接入时，Access Token 优先放内存状态；Refresh Token 推荐 HttpOnly Secure Cookie。如果必须由 SPA 保存 refresh token，需要额外评审 XSS 风险和刷新策略。
+- 所有 401 响应触发刷新；刷新失败跳转 `/login` 并保留用户当前路由作为 `redirect`。
+- 所有 403 响应展示权限不足错误态，不自动重试。
+
 ### 3.2 会话与消息接口
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
