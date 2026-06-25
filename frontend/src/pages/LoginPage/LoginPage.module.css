@@ -1,67 +1,109 @@
 .page {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(320px, 0.86fr) minmax(420px, 1.14fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 24px;
   min-height: 100dvh;
-  padding: 40px;
+  padding: 34px;
   background:
+    radial-gradient(circle at 12% 18%, rgba(47, 111, 78, 0.12), transparent 32%),
     linear-gradient(120deg, rgba(237, 244, 239, 0.88), rgba(251, 250, 246, 0.96)),
     var(--fm-bg);
+  overflow: hidden;
 }
 
-.panel {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 420px);
-  gap: 28px;
-  align-items: center;
-  min-height: calc(100dvh - 80px);
-}
-
-.brand {
-  display: grid;
-  gap: 18px;
-  max-width: 560px;
-}
-
-.brand p {
-  max-width: 440px;
-  margin: 0;
-  color: var(--fm-muted);
-  font-size: 17px;
-  line-height: 1.7;
-}
-
+.hero,
 .form,
-.contract {
+.profileCard,
+.permissionPanel {
   border: 1px solid var(--fm-border);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.86);
   box-shadow: var(--fm-shadow-soft);
 }
 
-.form {
+.hero {
+  display: grid;
+  align-content: center;
+  gap: 24px;
+  min-height: 0;
+  padding: 34px;
+}
+
+.heroCopy {
+  display: grid;
+  gap: 12px;
+}
+
+.heroCopy h1 {
+  max-width: 560px;
+  margin: 0;
+  color: var(--fm-ink);
+  font-size: 42px;
+  line-height: 1.08;
+}
+
+.heroCopy p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--fm-muted);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.securityStrip {
   display: grid;
   gap: 6px;
-  padding: 28px;
+  padding: 18px;
+  border: 1px solid rgba(47, 111, 78, 0.2);
+  border-radius: 14px;
+  background: var(--fm-green-soft);
+}
+
+.securityStrip span,
+.profileHead span,
+.panelHead span,
+.permission span,
+.nutrition span,
+.formHead span,
+.securityStrip small {
+  color: var(--fm-muted);
+}
+
+.securityStrip strong {
+  color: var(--fm-green);
+  font-size: 20px;
+}
+
+.loginStack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  min-height: 0;
+}
+
+.form {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 26px;
 }
 
 .formHead {
   display: grid;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
-.formHead h1 {
+.formHead h2 {
   margin: 0;
   color: var(--fm-ink);
   font-size: 28px;
   line-height: 1.2;
 }
 
-.formHead span,
-.contract span,
-.contract dd {
-  color: var(--fm-muted);
+.notice {
+  margin-bottom: 6px;
 }
 
 .options {
@@ -72,65 +114,166 @@
   margin-bottom: 4px;
 }
 
-.contract {
-  align-self: center;
+.secondaryActions {
   display: grid;
-  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.profileCard {
+  display: grid;
+  align-content: start;
+  gap: 18px;
   padding: 22px;
 }
 
-.contract strong {
-  color: var(--fm-ink);
-  font-size: 26px;
+.profileHead {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
 }
 
-.contract dl {
+.avatar {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
-  gap: 10px 14px;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--fm-orange);
+  color: #fff;
+  font-weight: 900;
+}
+
+.profileHead strong {
+  display: block;
+  color: var(--fm-ink);
+  font-size: 20px;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px 12px;
   margin: 0;
 }
 
-.contract dt {
+.profileGrid dt {
   color: var(--fm-ink);
   font-weight: 900;
 }
 
-.contract dd {
+.profileGrid dd {
   margin: 0;
+  color: var(--fm-muted);
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 920px) {
+.nutrition {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--fm-orange-soft);
+}
+
+.nutrition svg {
+  color: var(--fm-orange);
+  font-size: 24px;
+}
+
+.nutrition strong {
+  display: block;
+  color: var(--fm-ink);
+  font-size: 18px;
+}
+
+.permissionPanel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panelHead strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--fm-ink);
+}
+
+.permissionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.permission {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--fm-border-soft);
+  border-radius: 12px;
+  background: rgba(251, 250, 246, 0.84);
+}
+
+.permission strong {
+  color: var(--fm-ink);
+}
+
+.scenarios {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1120px) {
   .page,
-  .panel {
+  .loginStack {
     grid-template-columns: 1fr;
+    overflow: auto;
   }
 
-  .page {
-    padding: 24px;
+  .hero {
+    align-content: start;
   }
 
-  .panel {
-    min-height: auto;
+  .permissionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .page {
     padding: 18px;
   }
 
+  .hero,
   .form,
-  .contract {
-    padding: 20px;
+  .profileCard,
+  .permissionPanel {
+    padding: 18px;
   }
 
-  .formHead h1 {
-    font-size: 24px;
+  .heroCopy h1 {
+    font-size: 30px;
   }
 
-  .options {
+  .secondaryActions,
+  .permissionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .options,
+  .panelHead {
     align-items: flex-start;
     flex-direction: column;
   }

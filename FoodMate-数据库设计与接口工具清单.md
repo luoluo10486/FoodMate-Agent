@@ -693,25 +693,29 @@ ACL 相关 metadata 固定包含：
 
 ### 3.1.1 认证与会话接口草案（待审核）
 
-当前文档已确定“默认 Bearer Token”、`Spring Security + JWT + Refresh Token`、用户表包含 `username/password_hash/status/role`，但还没有单独的登录接口契约。建议第一版采用以下方案，待评审后再进入后端实现。
+当前文档已确定“默认 Bearer Token”、`Spring Security + JWT + Refresh Token`、用户表包含 `username/password_hash/status/role`，但还没有单独的登录接口契约。建议第一版采用以下方案，待评审后再进入后端实现。本节只作为后端文档草案，不代表已经实现 Controller、Filter、数据库 migration 或 Spring Security 配置。
 
 #### 认证模型
 
-- Access Token：短有效期 JWT，建议 15 到 30 分钟，用于调用普通业务接口。
-- Refresh Token：长有效期随机不透明 token，建议 7 到 30 天，服务端保存哈希、过期时间、撤销状态和设备信息。
+- Access Token：短有效期 JWT，建议 15 到 30 分钟，用于调用普通业务接口，前端优先只放内存状态。
+- Refresh Token：长有效期随机不透明 token，建议 7 到 30 天，通过 `HttpOnly; Secure; SameSite=Lax/Strict` Cookie 返回，服务端保存哈希、过期时间、撤销状态和设备信息。
 - 前端请求头：`Authorization: Bearer <accessToken>`。
 - SSE 事件接口同样校验 Bearer Token；浏览器 EventSource 如果不便设置 header，前端可先使用 `fetch` + ReadableStream，或后端支持受控的 `access_token` 查询参数，后者必须限制短期 token 且避免日志泄露。
 - 密码只保存哈希，建议使用 BCrypt/Argon2；禁止明文和可逆加密。
 - 用户状态不是 `active` 时拒绝登录。
+- 注册和找回密码第一版可先只保留接口契约；短信、邮箱验证码和第三方 OAuth 不在当前 MVP 强制实现范围。
 
 #### 推荐接口
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/foodmate/auth/login` | 用户名密码登录，返回 access token 与 refresh token | 匿名 | 是 |
-| `POST` | `/foodmate/auth/refresh` | 使用 refresh token 换取新 access token | 匿名 | 是 |
+| `POST` | `/foodmate/auth/login` | 用户名密码登录，返回 access token 与 refresh cookie | 匿名 | 是 |
+| `POST` | `/foodmate/auth/refresh` | 使用 refresh cookie 换取新 access token | 匿名 | 是 |
 | `POST` | `/foodmate/auth/logout` | 注销当前 refresh token | 用户 | 是 |
 | `GET` | `/foodmate/auth/me` | 查询当前用户资料、角色和营养目标摘要 | 用户 | 否 |
+| `POST` | `/foodmate/auth/register` | 注册普通用户账号 | 匿名 | 是 |
+| `POST` | `/foodmate/auth/password-reset/request` | 发起密码找回 | 匿名 | 是 |
+| `POST` | `/foodmate/auth/password-reset/confirm` | 确认密码重置 | 匿名 | 是 |
 
 #### `POST /foodmate/auth/login` 请求
 
@@ -733,7 +737,6 @@ ACL 相关 metadata 固定包含：
   "data": {
     "accessToken": "jwt...",
     "accessTokenExpiresIn": 1800,
-    "refreshToken": "opaque...",
     "refreshTokenExpiresIn": 604800,
     "tokenType": "Bearer",
     "user": {
@@ -741,19 +744,22 @@ ACL 相关 metadata 固定包含：
       "username": "liang",
       "displayName": "梁同学",
       "role": "user",
-      "status": "active"
+      "status": "active",
+      "email": "liang@example.com"
     }
   }
 }
 ```
 
+说明：`refreshToken` 默认不放在 JSON body 中，而是通过 `Set-Cookie` 返回 HttpOnly Cookie。如果后续决定纯 Bearer 模式，需要单独评审 XSS 风险和前端存储策略。
+
 #### `POST /foodmate/auth/refresh` 请求
 
 ```json
-{
-  "refreshToken": "opaque..."
-}
+{}
 ```
+
+说明：默认从 HttpOnly Refresh Cookie 读取刷新凭证。刷新成功后返回新的 Access Token，并轮换 Refresh Cookie。
 
 #### `GET /foodmate/auth/me` 响应
 
@@ -768,11 +774,53 @@ ACL 相关 metadata 固定包含：
     "displayName": "梁同学",
     "role": "user",
     "status": "active",
+    "email": "liang@example.com",
     "profile": {
       "weightKg": 70,
-      "proteinMultiplierRange": [1.5, 2.0]
+      "proteinMultiplierRange": [1.5, 2.0],
+      "proteinTargetRange": [105, 140],
+      "calorieTarget": 2100
+    },
+    "permissions": [
+      {
+        "key": "agent.session",
+        "label": "Agent 会话",
+        "scope": "仅自己的会话和消息"
+      }
+    ],
+    "security": {
+      "tokenStrategy": "Access Token + HttpOnly Refresh Cookie",
+      "accessTokenTtl": "15-30 分钟"
     }
   }
+}
+```
+
+#### `POST /foodmate/auth/register` 请求
+
+```json
+{
+  "username": "liang",
+  "email": "liang@example.com",
+  "password": "********",
+  "displayName": "梁同学"
+}
+```
+
+#### `POST /foodmate/auth/password-reset/request` 请求
+
+```json
+{
+  "email": "liang@example.com"
+}
+```
+
+#### `POST /foodmate/auth/password-reset/confirm` 请求
+
+```json
+{
+  "resetToken": "opaque...",
+  "newPassword": "********"
 }
 ```
 
@@ -782,6 +830,8 @@ ACL 相关 metadata 固定包含：
 - 管理员可访问工具注册、知识库文档管理、Schema Catalog、运行审计和模型用量接口。
 - 后端必须从 token 解析 `userId/role`，不能信任前端传入的 `userId`。
 - 写操作继续保留 `Idempotency-Key`，登录和刷新接口也应能安全重试。
+- 注册接口默认创建 `role=user`、`status=active` 的普通用户；管理员、运营账号由管理端或初始化脚本创建。
+- 密码找回接口无论邮箱是否存在，都应返回统一成功提示，避免账号枚举。
 
 #### 推荐错误码
 
@@ -790,6 +840,9 @@ ACL 相关 metadata 固定包含：
 - `AUTH_REFRESH_TOKEN_INVALID`：Refresh Token 无效、过期或已撤销。
 - `AUTH_ACCOUNT_DISABLED`：账号被禁用。
 - `AUTH_FORBIDDEN`：已登录但无权限访问资源。
+- `AUTH_REQUIRED`：访问受保护资源但未登录。
+- `AUTH_REGISTER_DISABLED`：当前环境未开放注册。
+- `AUTH_PASSWORD_RESET_INVALID`：密码重置 token 无效或过期。
 
 #### 前端接入约定
 
@@ -797,6 +850,7 @@ ACL 相关 metadata 固定包含：
 - 真实接入时，Access Token 优先放内存状态；Refresh Token 推荐 HttpOnly Secure Cookie。如果必须由 SPA 保存 refresh token，需要额外评审 XSS 风险和刷新策略。
 - 所有 401 响应触发刷新；刷新失败跳转 `/login` 并保留用户当前路由作为 `redirect`。
 - 所有 403 响应展示权限不足错误态，不自动重试。
+- 前端注册和找回密码在 MVP 阶段可以先做入口和状态提示，不接短信、邮箱或验证码。
 
 ### 3.2 会话与消息接口
 

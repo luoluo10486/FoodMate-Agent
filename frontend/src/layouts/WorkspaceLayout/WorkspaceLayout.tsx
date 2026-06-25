@@ -1,8 +1,8 @@
-import { Button, Input, Tag, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Input, Menu, Tag, Tooltip } from '@arco-design/web-react';
 import { IconBook, IconMessage, IconMenu, IconPlus, IconSearch, IconUser } from '@arco-design/web-react/icon';
 import { Link, NavLink } from 'react-router-dom';
 import { mockSessions } from '../../mock/sessions';
-import { mockAuthUser } from '../../mock/auth';
+import { mockAuthScenarios, mockAuthStatus, mockAuthUser } from '../../mock/auth';
 import { SidebarSessionList } from '../../components/workspace/SidebarSessionList';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import styles from './WorkspaceLayout.module.css';
@@ -14,6 +14,16 @@ type WorkspaceLayoutProps = {
 };
 
 export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }: WorkspaceLayoutProps) {
+  const currentAuth = mockAuthScenarios.find((item) => item.status === mockAuthStatus) ?? mockAuthScenarios[0];
+  const isAuthenticated = mockAuthStatus === 'authenticated';
+  const userMenu = (
+    <Menu>
+      <Menu.Item key="profile">查看登录信息</Menu.Item>
+      <Menu.Item key="expired">模拟登录过期</Menu.Item>
+      <Menu.Item key="logout">退出登录占位</Menu.Item>
+    </Menu>
+  );
+
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
@@ -30,8 +40,8 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
         <Link className={styles.profile} to="/login">
           <div className={styles.avatar}>梁</div>
           <div>
-            <strong>{mockAuthUser.displayName}</strong>
-            <span>{mockAuthUser.preference}</span>
+            <strong>{isAuthenticated ? mockAuthUser.displayName : '未登录'}</strong>
+            <span>{isAuthenticated ? mockAuthUser.profile.preference : currentAuth.title}</span>
           </div>
         </Link>
       </aside>
@@ -60,9 +70,11 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
               <Tag color={activeModule === 'analysis' ? 'green' : 'gray'}>数据分析</Tag>
             </NavLink>
           </nav>
-          <Link className={styles.userButton} to="/login">
-            <Button icon={<IconUser />}>登录</Button>
-          </Link>
+          <Dropdown droplist={userMenu} position="br">
+            <Link className={styles.userButton} to="/login">
+              <Button icon={<IconUser />}>{isAuthenticated ? mockAuthUser.displayName : '登录'}</Button>
+            </Link>
+          </Dropdown>
         </header>
         {children}
       </main>
