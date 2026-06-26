@@ -1,11 +1,15 @@
 import { Button, Checkbox, Form, Input, Message } from '@arco-design/web-react';
 import { IconEmail, IconLock, IconUser } from '@arco-design/web-react/icon';
-import { useEffect, useState } from 'react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { mockLoginDefaults } from '../../mock/auth';
 import type { LoginFormValues } from '../../mock/auth';
 import styles from './LoginPage.module.css';
+
+gsap.registerPlugin(useGSAP);
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -28,11 +32,60 @@ const titleByMode: Record<AuthMode, string> = {
   forgot: '找回密码'
 };
 
+function shouldPlayLoginIntro() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return !reduceMotion;
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
+  const pageRef = useRef<HTMLElement>(null);
   const [mode, setMode] = useState<AuthMode>('login');
   const [registerPassword, setRegisterPassword] = useState('');
   const [codeCountdown, setCodeCountdown] = useState(0);
+  const [showIntro, setShowIntro] = useState(shouldPlayLoginIntro);
+
+  useGSAP(
+    () => {
+      const card = `.${styles.card}`;
+
+      if (!showIntro) {
+        return;
+      }
+
+      gsap.set(card, { autoAlpha: 0, y: 34, scale: 0.94 });
+      gsap.set('[data-intro="shard"]', { autoAlpha: 0, scaleX: 0, transformOrigin: '50% 50%' });
+      gsap.set('[data-intro="letter"]', { autoAlpha: 0, yPercent: 110, rotationX: -86, transformOrigin: '50% 80%' });
+      gsap.set('[data-intro="mark"]', { autoAlpha: 0, scale: 0.34, rotation: -180, transformOrigin: '50% 50%' });
+      gsap.set('[data-intro="ring"]', { autoAlpha: 0, scale: 0.42, rotation: -120, transformOrigin: '50% 50%' });
+      gsap.set('[data-intro="beam"]', { scaleX: 0, transformOrigin: '50% 50%' });
+
+      const timeline = gsap.timeline({
+        defaults: { ease: 'power3.out' },
+        onComplete: () => {
+          setShowIntro(false);
+          gsap.set(card, { autoAlpha: 1, y: 0, scale: 1, clearProps: 'transform,opacity,visibility' });
+        }
+      });
+
+      timeline
+        .to('[data-intro="stage"]', { autoAlpha: 1, duration: 0.08 })
+        .to('[data-intro="ring"]', { autoAlpha: 1, scale: 1, rotation: 290, duration: 0.72, ease: 'expo.out' })
+        .to('[data-intro="mark"]', { autoAlpha: 1, scale: 1.08, rotation: 26, duration: 0.62, ease: 'back.out(2.1)' }, '<0.08')
+        .to('[data-intro="mark"]', { scale: 1, rotation: 0, duration: 0.32, ease: 'power2.out' })
+        .to('[data-intro="shard"]', { autoAlpha: 1, scaleX: 1, duration: 0.38, stagger: { amount: 0.28, from: 'center' } }, '<0.04')
+        .to('[data-intro="letter"]', { autoAlpha: 1, yPercent: 0, rotationX: 0, duration: 0.48, stagger: 0.045, ease: 'back.out(1.5)' }, '<0.08')
+        .to('[data-intro="beam"]', { scaleX: 1, duration: 0.44, ease: 'power4.out' }, '<0.1')
+        .to('[data-intro="brand"]', { y: -18, scale: 0.92, duration: 0.42, ease: 'power3.inOut' }, '+=0.24')
+        .to('[data-intro="stage"]', { autoAlpha: 0, scale: 1.05, duration: 0.48, ease: 'power2.inOut' }, '<0.06')
+        .to(card, { autoAlpha: 1, y: 0, scale: 1, duration: 0.62, ease: 'back.out(1.35)' }, '<0.18');
+    },
+    { scope: pageRef, dependencies: [showIntro], revertOnUpdate: true }
+  );
 
   useEffect(() => {
     if (codeCountdown <= 0) {
@@ -72,7 +125,31 @@ export function LoginPage() {
   };
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${showIntro ? styles.pageIntro : ''}`} ref={pageRef}>
+      {showIntro ? (
+        <div className={styles.introStage} data-intro="stage" aria-hidden="true">
+          <div className={styles.introRing} data-intro="ring" />
+          <div className={styles.introBrand} data-intro="brand">
+            <div className={styles.introMark} data-intro="mark">
+              <BrandLogo size="hero" showWordmark={false} />
+            </div>
+            <div className={styles.introWord} aria-hidden="true">
+              {'FoodMate'.split('').map((letter, index) => (
+                <span className={index >= 4 ? styles.mateLetter : styles.foodLetter} data-intro="letter" key={`${letter}-${index}`}>
+                  {letter}
+                </span>
+              ))}
+            </div>
+            <div className={styles.introBeam} data-intro="beam" />
+          </div>
+          <div className={styles.introShards}>
+            {Array.from({ length: 12 }, (_, index) => (
+              <span data-intro="shard" key={index} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <section className={styles.card} aria-label={titleByMode[mode]}>
         <div className={styles.brand}>
           <BrandLogo size="small" showTagline={false} />
