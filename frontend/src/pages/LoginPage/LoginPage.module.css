@@ -48,14 +48,20 @@
   z-index: 1;
   display: grid;
   justify-items: center;
-  gap: 18px;
+  gap: 12px;
   will-change: transform;
 }
 
 .introMark {
   display: grid;
+  width: clamp(112px, 11vw, 148px);
+  height: clamp(112px, 11vw, 148px);
   place-items: center;
   will-change: transform, opacity;
+}
+
+.introMark > * {
+  transform: scale(1.36);
 }
 
 .introWord {
@@ -210,6 +216,15 @@
 
   .introWord {
     font-size: 52px;
+  }
+
+  .introMark {
+    width: 104px;
+    height: 104px;
+  }
+
+  .introMark > * {
+    transform: scale(1.24);
   }
 
   .introBeam {
