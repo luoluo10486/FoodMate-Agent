@@ -1,4 +1,4 @@
-import { Button, Dropdown, Input, Menu, Tag, Tooltip } from '@arco-design/web-react';
+﻿import { Button, Dropdown, Input, Menu, Tag, Tooltip } from '@arco-design/web-react';
 import { IconBook, IconMessage, IconMenu, IconPlus, IconSearch, IconUser } from '@arco-design/web-react/icon';
 import { Link, NavLink } from 'react-router-dom';
 import { mockSessions } from '../../mock/sessions';
@@ -38,7 +38,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
         <Input className={styles.search} prefix={<IconSearch />} placeholder="搜索会话" allowClear />
         <SidebarSessionList sessions={mockSessions} />
         <Link className={styles.profile} to="/login">
-          <div className={styles.avatar}>梁</div>
+          <div className={styles.avatar}>{isAuthenticated ? '梁' : '访'}</div>
           <div>
             <strong>{isAuthenticated ? mockAuthUser.displayName : '未登录'}</strong>
             <span>{isAuthenticated ? mockAuthUser.profile.preference : currentAuth.title}</span>
