@@ -51,6 +51,23 @@ export function LoginPage() {
 
   useGSAP(
     () => {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      gsap.set('[data-login-ambient]', { autoAlpha: 1 });
+
+      if (reduceMotion) {
+        return;
+      }
+
+      gsap.to('[data-plate-orbit="main"]', { rotation: 360, duration: 72, ease: 'none', repeat: -1, transformOrigin: '50% 50%' });
+      gsap.to('[data-plate-orbit="side"]', { rotation: -360, duration: 92, ease: 'none', repeat: -1, transformOrigin: '50% 50%' });
+      gsap.to('[data-brand-arc]', { rotation: '+=7', duration: 12, ease: 'sine.inOut', repeat: -1, yoyo: true, transformOrigin: '50% 50%' });
+      gsap.to('[data-light-sweep]', { x: 18, y: -10, autoAlpha: 0.82, duration: 10, ease: 'sine.inOut', repeat: -1, yoyo: true });
+    },
+    { scope: pageRef }
+  );
+
+  useGSAP(
+    () => {
       const card = `.${styles.card}`;
 
       if (!showIntro) {
@@ -126,6 +143,15 @@ export function LoginPage() {
 
   return (
     <main className={`${styles.page} ${showIntro ? styles.pageIntro : ''}`} ref={pageRef}>
+      <div className={styles.ambient} data-login-ambient aria-hidden="true">
+        <div className={`${styles.plateAura} ${styles.plateAuraMain}`} data-plate-orbit="main" />
+        <div className={`${styles.plateAura} ${styles.plateAuraSide}`} data-plate-orbit="side" />
+        <div className={`${styles.lightSweep} ${styles.lightSweepWarm}`} data-light-sweep />
+        <div className={`${styles.lightSweep} ${styles.lightSweepCool}`} data-light-sweep />
+        <div className={`${styles.brandArc} ${styles.brandArcGreen}`} data-brand-arc />
+        <div className={`${styles.brandArc} ${styles.brandArcOrange}`} data-brand-arc />
+      </div>
+
       {showIntro ? (
         <div className={styles.introStage} data-intro="stage" aria-hidden="true">
           <div className={styles.introRing} data-intro="ring" />
