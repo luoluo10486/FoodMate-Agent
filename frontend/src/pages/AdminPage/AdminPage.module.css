@@ -54,8 +54,13 @@
 .navButton {
   border: 0;
   background: transparent;
-  cursor: default;
+  cursor: pointer;
   text-align: left;
+}
+
+.navButton:hover {
+  color: var(--fm-green);
+  background: var(--fm-bg-soft);
 }
 
 .navButton svg,
@@ -69,6 +74,11 @@
   background: var(--fm-green);
   color: #fff;
   box-shadow: 0 14px 28px rgba(47, 111, 78, 0.18);
+}
+
+.navButtonActive:hover {
+  color: #fff;
+  background: var(--fm-green);
 }
 
 .navButtonActive svg {
@@ -263,9 +273,23 @@
   min-height: 0;
 }
 
+.sectionLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  min-height: 0;
+}
+
+.sectionCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .card,
 .auditCard,
-.userCard {
+.userCard,
+.wideCard {
   min-width: 0;
   border: 1px solid var(--fm-border);
   border-radius: 8px;
@@ -273,14 +297,17 @@
 }
 
 .auditCard,
-.userCard {
+.userCard,
+.wideCard {
   overflow-x: auto;
 }
 
 .auditCard :global(.arco-table-th),
 .auditCard :global(.arco-table-td),
 .userCard :global(.arco-table-th),
-.userCard :global(.arco-table-td) {
+.userCard :global(.arco-table-td),
+.wideCard :global(.arco-table-th),
+.wideCard :global(.arco-table-td) {
   white-space: nowrap;
 }
 
@@ -310,6 +337,23 @@
   color: var(--fm-muted);
   font-size: 12px;
   line-height: 1.65;
+}
+
+.noteList {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.noteList span {
+  display: block;
+  padding: 10px 12px;
+  border: 1px solid var(--fm-border-soft);
+  border-radius: 8px;
+  background: var(--fm-bg-soft);
+  color: var(--fm-muted);
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .resourceList {
@@ -349,13 +393,20 @@
   gap: 14px;
 }
 
-.moduleGrid article {
+.moduleGrid a {
   display: grid;
   gap: 8px;
   padding: 16px;
   border: 1px solid var(--fm-border);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
+  color: inherit;
+}
+
+.moduleGrid a:hover {
+  color: inherit;
+  border-color: #b9d1bf;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .moduleGrid svg {
@@ -399,11 +450,13 @@
   }
 
   .metrics,
-  .moduleGrid {
+  .moduleGrid,
+  .sectionCards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .body {
+  .body,
+  .sectionLayout {
     grid-template-columns: 1fr;
   }
 }
@@ -473,7 +526,8 @@
 
   .metrics,
   .actionGrid,
-  .moduleGrid {
+  .moduleGrid,
+  .sectionCards {
     grid-template-columns: 1fr;
   }
 

@@ -429,7 +429,9 @@ Phase 2 统一约定：
 实现要点：
 
 - 新增 `/admin`。
-- 页面包含概览、用户管理、Agent 运行、工具调用、模型用量、知识库、软删除资源等视图入口。
+- 管理后台使用独立布局，不复用 Agent 工作台左侧会话栏。
+- 新增 `/admin/users`、`/admin/runs`、`/admin/tools`、`/admin/usage`、`/admin/knowledge`、`/admin/deleted` 等子路由。
+- 页面包含概览、用户管理、Agent 运行、工具调用、模型用量、知识库、软删除资源等视图入口，左侧菜单点击后必须真实跳转。
 - 普通用户不显示管理入口。
 - operator 仅展示只读操作，admin 展示高风险操作入口和二次确认占位。
 - 当前阶段不接真实管理接口。
@@ -437,6 +439,7 @@ Phase 2 统一约定：
 验收标准：
 
 - `/admin` 可以展示 mock 管理概览。
+- `/admin/users`、`/admin/runs`、`/admin/tools`、`/admin/usage`、`/admin/knowledge`、`/admin/deleted` 可以展示对应 mock 子页面。
 - 普通用户访问时展示 403 或无权限空态。
 - 管理列表支持分页和基础筛选的 UI 占位。
 
