@@ -262,6 +262,21 @@
   text-align: center;
 }
 
+.backButton {
+  position: absolute;
+  left: 22px;
+  top: 22px;
+  height: 28px;
+  padding: 0 6px;
+  color: var(--fm-muted);
+  font-weight: 700;
+}
+
+.backButton:hover {
+  color: var(--fm-green);
+  background: transparent;
+}
+
 .brand p {
   margin: 0;
   color: var(--fm-ink);
@@ -313,6 +328,11 @@
   .card {
     gap: 18px;
     padding: 24px 20px;
+  }
+
+  .backButton {
+    left: 14px;
+    top: 14px;
   }
 
   .options {

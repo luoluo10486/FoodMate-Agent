@@ -1,5 +1,5 @@
 import { Button, Checkbox, Form, Input, Message } from '@arco-design/web-react';
-import { IconEmail, IconLock, IconUser } from '@arco-design/web-react/icon';
+import { IconEmail, IconLeft, IconLock, IconUser } from '@arco-design/web-react/icon';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { useEffect, useRef, useState } from 'react';
@@ -177,6 +177,12 @@ export function LoginPage() {
       ) : null}
 
       <section className={styles.card} aria-label={titleByMode[mode]}>
+        {mode !== 'login' ? (
+          <Button className={styles.backButton} icon={<IconLeft />} type="text" onClick={() => switchMode('login')}>
+            返回登录
+          </Button>
+        ) : null}
+
         <div className={styles.brand}>
           <BrandLogo size="small" showTagline={false} />
           <p>{titleByMode[mode]}</p>
@@ -270,23 +276,16 @@ export function LoginPage() {
           </Form>
         ) : null}
 
-        <div className={styles.actions}>
-          {mode === 'login' ? (
-            <>
+        {mode === 'login' ? (
+          <div className={styles.actions}>
               <Button long onClick={() => switchMode('register')}>
                 注册账号
               </Button>
               <Button long onClick={() => navigate('/')}>
                 游客登录
               </Button>
-            </>
-          ) : (
-            <Button long onClick={() => switchMode('login')}>
-              返回登录
-            </Button>
-          )}
-        </div>
-
+          </div>
+        ) : null}
         <span className={styles.note}>当前为前端 mock 流程</span>
       </section>
     </main>
