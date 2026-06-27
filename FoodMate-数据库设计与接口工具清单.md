@@ -756,7 +756,7 @@ ACL 相关 metadata 固定包含：
 - 外部资源名使用明确业务英文，例如 `agent-sessions`、`agent-runs`、`knowledge-base`、`nutrition-analysis`
 - 内部接口前缀固定：`/foodmate/internal`
 - 鉴权：默认 Bearer Token
-- 返回结构：统一 `code/message/data/requestId`
+- 返回结构：统一 `code/message/data/request_id`
 - 写接口需要支持幂等键：`Idempotency-Key`
 - 所有 Snowflake ID 对外统一按字符串返回
 - 所有默认查询统一排除 `is_deleted = true` 的数据
@@ -771,7 +771,7 @@ ACL 相关 metadata 固定包含：
 - Access Token：短有效期 JWT，建议 15 到 30 分钟，用于调用普通业务接口，前端优先只放内存状态。
 - Refresh Token：长有效期随机不透明 token，建议 7 到 30 天，通过 `HttpOnly; Secure; SameSite=Lax/Strict` Cookie 返回，服务端只保存 `token_hash`、过期时间、撤销状态、轮换来源和设备信息。
 - Refresh 成功必须轮换 Refresh Token，旧 token 标记为撤销或 rotated，避免旧 cookie 被重复使用。
-- 前端请求头：`Authorization: Bearer <accessToken>`。
+- 前端请求头：`Authorization: Bearer <access_token>`。
 - SSE 事件接口同样校验 Bearer Token；浏览器 EventSource 如果不便设置 header，前端可先使用 `fetch` + ReadableStream，或后端支持受控的 `access_token` 查询参数，后者必须限制短期 token 且避免日志泄露。
 - 密码只保存哈希，建议使用 BCrypt/Argon2；禁止明文和可逆加密。
 - 用户状态不是 `active` 时拒绝登录；`disabled/locked` 均返回认证类错误，不暴露过多账号状态细节。
@@ -789,9 +789,9 @@ ACL 相关 metadata 固定包含：
 
 固定规则：
 
-- 后端必须从 token 解析 `userId/role/status`，禁止信任前端传入的 `userId/role/status`。
+- 后端必须从 token 解析 `user_id/role/status`，禁止信任前端传入的 `user_id/role/status`。
 - 用户自己只能修改个人资料、头像和密码，不能修改自己的 `role/status`。
-- 管理接口必须记录审计：`operatorId/requestId/traceId/targetType/targetId/action/result/createdAt`。
+- 管理接口必须记录审计：`operator_id/request_id/trace_id/target_type/target_id/action/result/created_at`。
 - 普通业务查询默认按当前用户过滤；管理接口显式允许跨用户筛选。
 
 #### 认证接口
@@ -812,7 +812,7 @@ ACL 相关 metadata 固定包含：
 {
   "username": "liang",
   "password": "********",
-  "rememberMe": true
+  "remember_me": true
 }
 ```
 
@@ -822,26 +822,26 @@ ACL 相关 metadata 固定包含：
 {
   "code": "OK",
   "message": "success",
-  "requestId": "req_...",
+  "request_id": "req_...",
   "data": {
-    "accessToken": "jwt...",
-    "accessTokenExpiresIn": 1800,
-    "refreshTokenExpiresIn": 604800,
-    "tokenType": "Bearer",
+    "access_token": "jwt...",
+    "access_token_expires_in": 1800,
+    "refresh_token_expires_in": 604800,
+    "token_type": "Bearer",
     "user": {
       "user_id": "10001",
       "username": "liang",
-      "displayName": "梁同学",
+      "display_name": "梁同学",
       "role": "user",
       "status": "active",
       "email": "liang@example.com",
-      "avatarUrl": "https://cdn.example.com/avatar/10001.png"
+      "avatar_url": "https://cdn.example.com/avatar/10001.png"
     }
   }
 }
 ```
 
-说明：`refreshToken` 默认不放在 JSON body 中，而是通过 `Set-Cookie` 返回 HttpOnly Cookie。如果后续决定纯 Bearer 模式，需要单独评审 XSS 风险和前端存储策略。
+说明：`refresh_token` 默认不放在 JSON body 中，而是通过 `Set-Cookie` 返回 HttpOnly Cookie。如果后续决定纯 Bearer 模式，需要单独评审 XSS 风险和前端存储策略。
 
 #### `GET /foodmate/auth/me` 响应
 
@@ -849,25 +849,25 @@ ACL 相关 metadata 固定包含：
 {
   "code": "OK",
   "message": "success",
-  "requestId": "req_...",
+  "request_id": "req_...",
   "data": {
     "user_id": "10001",
     "username": "liang",
-    "displayName": "梁同学",
+    "display_name": "梁同学",
     "role": "user",
     "status": "active",
     "email": "liang@example.com",
-    "avatarUrl": "https://cdn.example.com/avatar/10001.png",
+    "avatar_url": "https://cdn.example.com/avatar/10001.png",
     "profile": {
-      "heightCm": 175,
-      "weightKg": 70,
-      "activityLevel": "moderate",
-      "dietGoal": "high_protein",
-      "proteinTarget": 120,
-      "calorieTarget": 2100,
+      "height_cm": 175,
+      "weight_kg": 70,
+      "activity_level": "moderate",
+      "diet_goal": "high_protein",
+      "protein_target": 120,
+      "calorie_target": 2100,
       "allergens": [],
       "dislikes": ["pork"],
-      "preferredUnits": { "weight": "g", "energy": "kcal" }
+      "preferred_units": { "weight": "g", "energy": "kcal" }
     },
     "permissions": [
       { "key": "agent.session", "scope": "own" },
@@ -875,8 +875,8 @@ ACL 相关 metadata 固定包含：
       { "key": "admin.dashboard", "scope": "none" }
     ],
     "security": {
-      "tokenStrategy": "Access Token + HttpOnly Refresh Cookie",
-      "accessTokenTtl": "15-30 分钟"
+      "token_strategy": "Access Token + HttpOnly Refresh Cookie",
+      "access_token_ttl": "15-30 分钟"
     }
   }
 }
@@ -889,7 +889,7 @@ ACL 相关 metadata 固定包含：
   "username": "liang",
   "email": "liang@example.com",
   "password": "********",
-  "displayName": "梁同学"
+  "display_name": "梁同学"
 }
 ```
 
@@ -916,7 +916,7 @@ ACL 相关 metadata 固定包含：
 
 修改密码约定：
 
-- 请求必须包含 `oldPassword`、`newPassword`。
+- 请求必须包含 `old_password`、`new_password`。
 - 修改成功后更新 `password_updated_at`，可选择撤销当前用户其他 Refresh Token。
 - 修改邮箱第一版只保留接口或状态说明，不强制真实验证码闭环。
 
@@ -1126,7 +1126,7 @@ ACL 相关 metadata 固定包含：
 - `/admin/tools` 对应工具注册表、工具详情、风险等级、权限范围和启停接口。
 - `/admin/knowledge` 对应知识库文档列表、上传、下线、恢复和索引状态。
 - `/admin/deleted` 对应软删除资源查询与恢复接口；查询和恢复均为 `admin` 范围。
-- 前端所有管理写操作必须有二次确认和审计反馈，真实接入时需要传递或展示 `requestId/traceId`。
+- 前端所有管理写操作必须有二次确认和审计反馈，真实接入时需要传递或展示 `request_id/trace_id`。
 
 ---
 

@@ -186,7 +186,7 @@
 - Refresh Token 主状态保存在 PostgreSQL，Redis 只做验证码、限流、幂等、短期黑名单和缓存。
 - Refresh Token 不放 JSON body，默认通过 `Set-Cookie` 返回。
 - Refresh 成功必须轮换 Refresh Token。
-- 后端必须从 token 解析 `userId/role/status`，禁止信任前端传入的身份字段。
+- 后端必须从 token 解析 `user_id/role/status`，禁止信任前端传入的身份字段。
 - 用户不能修改自己的 `role/status`。
 - 头像上传使用 `multipart/form-data`，字段名 `file`，允许 `image/jpeg`、`image/png`、`image/webp`，第一版大小上限 2 MB。
 
@@ -246,7 +246,7 @@
 {
   "tool_call_id": "1912345678901234564",
   "agent_run_id": "1912345678901234563",
-  "tool_name": "nutrition_lookup",
+  "tool_name": "knowledge_search",
   "input_json": {},
   "output_json": {},
   "status": "success",
@@ -567,10 +567,10 @@ SSE 示例：
 
 ```text
 event: run.tool_started
-data: {"tool_name":"nutrition_lookup","status":"running"}
+data: {"tool_name":"knowledge_search","status":"running"}
 
 event: run.tool_finished
-data: {"tool_name":"nutrition_lookup","status":"success"}
+data: {"tool_name":"knowledge_search","status":"success"}
 ```
 
 #### 5.3.3 取消运行
@@ -846,11 +846,13 @@ Milvus 适合作为知识库主检索底座：
 
 ```json
 {
-  "tool_name": "nutrition_lookup",
+  "tool_name": "knowledge_search",
   "input": {
-    "ingredient": "鸡胸肉",
-    "amount": 200,
-    "unit": "g"
+    "query": "西兰花焯水多久",
+    "top_k": 5,
+    "filters": {
+      "category": "cooking"
+    }
   },
   "context": {
     "session_id": "1912345678901234561",
@@ -866,14 +868,25 @@ Milvus 适合作为知识库主检索底座：
 {
   "success": true,
   "data": {
-    "calories": 220,
-    "protein": 46,
-    "fat": 3.6,
-    "carbs": 0
+    "hits": [
+      {
+        "chunk_id": "1912345678901235001",
+        "document_id": "1912345678901235000",
+        "title": "蔬菜焯水指南",
+        "snippet": "西兰花建议沸水焯 60-90 秒后过凉水。",
+        "score": 0.91
+      }
+    ],
+    "references": [
+      {
+        "document_id": "1912345678901235000",
+        "title": "蔬菜焯水指南"
+      }
+    ]
   },
   "meta": {
     "latency_ms": 300,
-    "source": "nutrition_db_v1"
+    "source": "milvus_hybrid_v1"
   }
 }
 ```
@@ -885,7 +898,7 @@ Milvus 适合作为知识库主检索底座：
   "success": false,
   "error": {
     "code": "TOOL_FAILED",
-    "message": "营养数据库查询失败",
+    "message": "知识库检索失败",
     "retryable": true
   }
 }
@@ -1004,7 +1017,7 @@ Milvus 适合作为知识库主检索底座：
 - `Idempotency-Key`
 - 任务去重
 - 重试不重复写入
-- 幂等键作用域建议为 `userId + method + path + Idempotency-Key`
+- 幂等键作用域建议为 `user_id + method + path + Idempotency-Key`
 - 相同幂等键但请求体摘要不一致时返回 `CONFLICT`
 - 登录、刷新、注册、头像上传、资料修改等接口必须能安全重试
 - Redis 可保存短期幂等记录，高价值写入仍需数据库唯一约束或业务状态兜底
@@ -1036,7 +1049,7 @@ Milvus 适合作为知识库主检索底座：
 - 用户只能访问自己的会话、消息、饮食记录、计划、分析报告、个人资料和私有知识库内容。
 - 知识库上传、工具启停、软删除恢复、用户状态修改需 `admin` 权限。
 - `operator` 只能访问只读运营治理信息，例如知识库文档、工具状态、运行记录和模型用量摘要。
-- 工具调用需按场景授权，后端必须从 token 解析 `userId/role/status`。
+- 工具调用需按场景授权，后端必须从 token 解析 `user_id/role/status`。
 - 普通用户访问 `/foodmate/admin/*` 必须返回 403。
 
 ### 11.2 审计记录
@@ -1048,7 +1061,7 @@ Milvus 适合作为知识库主检索底座：
 - 传了什么参数
 - 返回了什么结果
 - 是否失败
-- 管理写操作必须记录 `operatorId`、`targetType`、`targetId`、`action`、`requestId`、`traceId` 和结果状态。
+- 管理写操作必须记录 `operator_id`、`target_type`、`target_id`、`action`、`request_id`、`trace_id` 和结果状态。
 
 ### 11.3 管理后台范围
 
@@ -1061,7 +1074,7 @@ Milvus 适合作为知识库主检索底座：
 - 知识库管理：文档列表、上传、下线、恢复、索引状态。
 - 工具管理：工具注册表、版本、入参 schema、启停、风险等级、权限范围。
 - 删除资源管理：查看软删除资源、恢复资源，仅 `admin`。
-- 管理写操作：前端需二次确认，后端需写审计并返回可追踪的 `requestId/traceId`。
+- 管理写操作：前端需二次确认，后端需写审计并返回可追踪的 `request_id/trace_id`。
 
 ---
 
@@ -1093,16 +1106,18 @@ Milvus 适合作为知识库主检索底座：
 
 ## 13. 实现建议
 
-### 13.1 后端服务拆分
+### 13.1 后端逻辑模块与未来服务边界
 
-推荐拆成：
+第一阶段运行时采用模块化单体，本节的“服务”指逻辑模块和未来可拆服务边界，不要求在 B3 阶段拆成多个独立部署单元。
 
-1. API 服务
-2. Agent 编排服务
-3. 检索服务
-4. 工具服务
-5. 分析服务
-6. Worker 服务
+推荐划分为：
+
+1. API 模块
+2. Agent 编排模块
+3. 检索模块
+4. 工具模块
+5. 分析模块
+6. Worker 模块
 
 ### 13.2 推荐协作方式
 
@@ -1162,7 +1177,7 @@ Java 实现流式回答时，推荐：
 
 - 控制层使用 `Spring WebFlux`
 - 事件输出使用 SSE
-- 每个事件携带 `eventType`、`runId`、`timestamp`、`payload`
+- 每个事件携带 `event_type`、`run_id`、`timestamp`、`payload`
 - 前端按事件增量渲染
 
 ### 14.5 工具实现约定

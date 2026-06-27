@@ -440,7 +440,7 @@ Phase 2 统一约定：
 - 工具页面需要包含工具详情、入参 schema、风险等级和启停 mock 操作。
 - 知识库页面需要包含文档详情、索引进度、上传弹窗、下线/恢复 mock 操作。
 - 软删除资源页面需要包含恢复二次确认。
-- 管理写操作需要展示 mock 审计反馈，字段覆盖 operator、targetType、targetId、action、requestId、traceId、result。
+- 管理写操作需要展示 mock 审计反馈，字段覆盖 `operator_id/operator`、`target_type`、`target_id`、`action`、`request_id`、`trace_id`、`result`。
 - 当前阶段不接真实管理接口。
 
 验收标准：
@@ -523,7 +523,7 @@ Phase 2 统一约定：
 验收标准：
 
 - API DTO 对外 ID 为字符串。
-- 错误响应包含 code、message、details、requestId、traceId。
+- 错误响应包含 `code`、`message`、`details`、`request_id`、`trace_id`。
 - 单元测试覆盖 ID 序列化和错误响应封装。
 
 ### B3-3. 建立配置与环境文件
@@ -601,7 +601,7 @@ Phase 2 统一约定：
 - Repository 默认查询排除软删除数据。
 - `SoftDeleteRepositorySupport` 或等价抽象。
 - 恢复操作的基础接口约定。
-- 审计字段：operatorId、requestId、traceId、targetType、targetId、action、createdAt。
+- 审计字段：`operator_id`、`request_id`、`trace_id`、`target_type`、`target_id`、`action`、`created_at`。
 
 验收标准：
 
@@ -657,9 +657,9 @@ Phase 2 统一约定：
 验收标准：
 
 - 所有表主键使用带业务语义的 `{业务对象}_id`，例如 `users.user_id`、`user_profiles.profile_id`、`sessions.session_id`、`messages.message_id`，不统一使用泛化 `id`。
-- `users` 包含 username、email、passwordHash、role、avatarUrl、status、lastLoginAt、passwordUpdatedAt、lockedUntil。
+- `users` 包含 `username`、`email`、`password_hash`、`role`、`avatar_url`、`status`、`last_login_at`、`password_updated_at`、`locked_until`。
 - `user_profiles` 包含展示名、身高、体重、活动水平、营养目标、忌口、过敏原和单位偏好。
-- `auth_refresh_tokens` 保存 tokenHash、用户、设备、过期、撤销和轮换信息，不保存明文 token。
+- `auth_refresh_tokens` 保存 `token_hash`、用户、设备、过期、撤销和轮换信息，不保存明文 token。
 - `user_avatar_assets` 保存 MinIO/S3 对象 key、URL、mime、size、宽高和状态，不保存图片二进制。
 - 用户状态统一为 active/disabled/locked，角色统一为 user/admin/operator。
 - `sessions(user_id, last_message_at, is_deleted)` 或等价主路径索引存在。
@@ -682,8 +682,8 @@ Phase 2 统一约定：
 
 验收标准：
 
-- `agent_runs` 包含 session、userMessage、intent、status、planJson、resultJson、errorCode、traceId。
-- `tool_calls` 包含 run、toolName、version、inputJson、outputJson、status、latencyMs、errorCode、traceId。
+- `agent_runs` 包含 `session_id`、`user_message_id`、`intent`、`status`、`plan_json`、`result_json`、`error_code`、`trace_id`。
+- `tool_calls` 包含 `agent_run_id`、`tool_name`、`version`、`input_json`、`output_json`、`status`、`latency_ms`、`error_code`、`trace_id`。
 - 可按 session 查询运行记录。
 - 可按 run 查询工具调用记录。
 
@@ -707,8 +707,8 @@ Phase 2 统一约定：
 
 验收标准：
 
-- `food_logs` 支持 user、session、mealTime、mealType、itemsJson、nutritionJson、source。
-- `meal_plans` 支持 user、session、days、budget、constraintsJson、planJson、validationJson、status。
+- `food_logs` 支持 `user_id`、`session_id`、`meal_time`、`meal_type`、`items_json`、`nutrition_json`、`source`。
+- `meal_plans` 支持 `user_id`、`session_id`、`days`、`budget`、`constraints_json`、`plan_json`、`validation_json`、`status`。
 - 删除与恢复遵循软删除规则。
 
 ### B4-5. 建立记忆与摘要域表
@@ -763,9 +763,9 @@ Phase 2 统一约定：
 
 - 数据源标记 readonly。
 - schema catalog 记录表、字段、描述、敏感字段、示例 SQL。
-- SQL audit 记录原始问题、解析问题、SQL、状态、拒绝原因、行数、耗时、traceId。
-- 工具注册表记录 name、displayName、category、riskLevel、status、currentVersion。
-- 工具 schema 版本记录 inputSchema、outputSchema、permissions、timeout、retryable、idempotent。
+- SQL audit 记录原始问题、解析问题、SQL、状态、拒绝原因、行数、耗时、`trace_id`。
+- 工具注册表记录 `name`、`display_name`、`category`、`risk_level`、`status`、`current_version`。
+- 工具 schema 版本记录 `input_schema`、`output_schema`、`permissions`、`timeout`、`retryable`、`idempotent`。
 
 ### B4-8. 建立模型治理表
 
@@ -780,8 +780,8 @@ Phase 2 统一约定：
 
 验收标准：
 
-- usage log 记录 requestId、traceId、scene、providerCode、modelName、usageJson、latencyMs、costAmount、status。
-- route rule 支持 tenant、scene、modelType、provider、fallback、maxCost、maxLatency、ruleJson。
+- usage log 记录 `request_id`、`trace_id`、`scene`、`provider_code`、`model_name`、`usage_json`、`latency_ms`、`cost_amount`、`status`。
+- route rule 支持 `tenant_id`、`scene`、`model_type`、`provider_code`、`fallback_provider_code`、`max_cost`、`max_latency_ms`、`rule_json`。
 
 ## Phase 5：后端 API 主链路
 
@@ -816,7 +816,7 @@ Phase 2 统一约定：
 - RBAC：user/admin/operator。
 - 登录限流、验证码、幂等键等 Redis 占位能力。
 - 头像上传 MinIO/S3 占位或 mock storage adapter。
-- 后端从 token 解析 userId/role/status，不信任前端传入身份字段。
+- 后端从 token 解析 `user_id/role/status`，不信任前端传入身份字段。
 
 验收标准：
 
@@ -825,7 +825,7 @@ Phase 2 统一约定：
 - refresh 成功会轮换 Refresh Token，logout 后当前 Refresh Token 失效。
 - 普通用户只能查看和修改自己的个人资料。
 - 用户不能修改自己的 role/status。
-- 头像上传限制图片类型、大小和尺寸，并返回 avatarUrl。
+- 头像上传限制图片类型、大小和尺寸，并返回 `avatar_url`。
 - 普通用户访问 admin 接口返回 403。
 
 ### B5-1. 实现会话接口
@@ -874,16 +874,16 @@ Phase 2 统一约定：
 必须实现：
 
 - 用户消息持久化。
-- 消息 sequenceNo。
+- 消息 `sequence_no`。
 - 创建 AgentRun。
-- 返回 messageId 和 agentRunId。
+- 返回 `message_id` 和 `agent_run_id`。
 - 分页查询消息。
 
 验收标准：
 
 - 发送消息后能查到消息。
 - 发送消息会创建 queued/routed 前的 AgentRun。
-- 消息列表按 sequenceNo 稳定排序。
+- 消息列表按 `sequence_no` 稳定排序。
 
 ### B5-3. 实现 AgentRun 查询与取消接口
 
@@ -935,8 +935,8 @@ Phase 2 统一约定：
 实现要点：
 
 - 使用 Spring WebFlux 或可稳定输出 SSE 的实现。
-- 每个事件包含 eventType、runId、timestamp、payload。
-- 保留 traceId。
+- 每个事件包含 `event_type`、`run_id`、`timestamp`、`payload`。
+- 保留 `trace_id`。
 - 客户端断开后释放资源。
 
 验收标准：
@@ -987,7 +987,7 @@ Phase 2 统一约定：
 
 必须实现：
 
-- mealTime、items、notes 校验。
+- `meal_time`、`items`、`notes` 校验。
 - 查询按时间范围过滤。
 - summary 聚合 calories、protein、fat、carbs、mealCount。
 - 写接口支持幂等键。
@@ -1013,7 +1013,7 @@ Phase 2 统一约定：
 
 - 基于 food_logs 聚合生成简单报告。
 - 支持 protein_trend、calorie_summary 两类。
-- 结果存入 analysis_reports 或以 resultJson 形式返回。
+- 结果存入 `analysis_reports` 或以 `result_json` 形式返回。
 
 验收标准：
 
@@ -1038,12 +1038,12 @@ Phase 2 统一约定：
 必须实现：
 
 - 校验人数、天数、预算、目标、约束、计划结构。
-- 保存计划前要求有效 planJson。
-- 购物清单可先基于 planJson 聚合生成。
+- 保存计划前要求有效 `plan_json`。
+- 购物清单可先基于 `plan_json` 聚合生成。
 
 验收标准：
 
-- 校验接口返回 valid、issues、nutritionSummary、budgetSummary。
+- 校验接口返回 `valid`、`issues`、`nutrition_summary`、`budget_summary`。
 - 保存后可查询。
 - 删除与恢复遵循软删除。
 
@@ -1082,7 +1082,7 @@ Phase 2 统一约定：
 
 - 管理接口不对普通用户开放。
 - 查询结果支持分页。
-- 可以按 status、createdAt、traceId、userId 查询。
+- 可以按 `status`、`created_at`、`trace_id`、`user_id` 查询。
 - 管理写操作必须记录审计。
 - admin 能禁用/启用/锁定用户。
 - admin 能恢复软删除资源。
@@ -1113,8 +1113,8 @@ Phase 2 统一约定：
 验收标准：
 
 - 输入一条用户消息可以生成 AgentRun 状态变化。
-- 能输出 planJson 和 resultJson。
-- 失败时写 errorCode。
+- 能输出 `plan_json` 和 `result_json`。
+- 失败时写 `error_code`。
 
 ### B6-2. 实现 IntentRouter
 
@@ -1267,7 +1267,7 @@ Phase 2 统一约定：
 
 验收标准：
 
-- 每个工具都有 name、displayName、description、version、category、riskLevel、permissions、timeoutMs、retryable、idempotent。
+- 每个工具都有 `name`、`display_name`、`description`、`version`、`category`、`risk_level`、`permissions`、`timeout_ms`、`retryable`、`idempotent`。
 - 高风险写工具 `food_log_writer` 标记为需要确认。
 
 ### B7-3. 实现 calculator
@@ -1312,10 +1312,10 @@ Phase 2 统一约定：
 
 实现要点：
 
-- 必须校验 mealTime、items、amount、unit。
+- 必须校验 `meal_time`、`items`、`amount`、`unit`。
 - 写入前必须确认。
 - 支持幂等键。
-- 写入后返回 foodLogId 和摘要。
+- 写入后返回 `food_log_id` 和摘要。
 
 验收标准：
 
@@ -1332,7 +1332,7 @@ Phase 2 统一约定：
 实现要点：
 
 - 输入 plan、budget、people、days、constraints。
-- 输出 valid、issues、nutritionSummary、budgetSummary。
+- 输出 `valid`、`issues`、`nutrition_summary`、`budget_summary`。
 - 第一版可先实现规则校验，不接复杂优化器。
 
 验收标准：
@@ -1556,7 +1556,7 @@ Phase 2 统一约定：
 验收标准：
 
 - 业务模块不直接依赖供应商 SDK。
-- 每次调用返回 provider、modelName、usage、latencyMs、cost、status。
+- 每次调用返回 `provider`、`model_name`、`usage`、`latency_ms`、`cost`、`status`。
 
 ### B10-2. 实现模型调用日志
 
@@ -1566,14 +1566,14 @@ Phase 2 统一约定：
 
 必须记录：
 
-- requestId。
-- traceId。
+- `request_id`。
+- `trace_id`。
 - scene。
-- providerCode。
-- modelName。
-- usageJson。
-- latencyMs。
-- costAmount。
+- `provider_code`。
+- `model_name`。
+- `usage_json`。
+- `latency_ms`。
+- `cost_amount`。
 - status。
 
 验收标准：
@@ -1612,7 +1612,7 @@ Phase 2 统一约定：
 
 链路：
 
-`Message -> AgentRun -> Router(calculation) -> calculator/time_parser/nutrition_lookup占位 -> Composer -> SSE/Result`
+`Message -> AgentRun -> Router(calculation) -> knowledge_search/calculator/time_parser -> Composer -> SSE/Result`
 
 验收标准：
 
@@ -1634,7 +1634,7 @@ Phase 2 统一约定：
 
 - 缺少食物或份量时追问。
 - 写入前确认。
-- 写入后返回 foodLogId。
+- 写入后返回 `food_log_id`。
 
 ### B11-3. 打通摄入分析场景
 
@@ -1745,7 +1745,7 @@ Phase 2 统一约定：
 验收标准：
 
 - 事件顺序符合接口文档。
-- 每个事件包含 runId、timestamp、payload。
+- 每个事件包含 `run_id`、`timestamp`、`payload`。
 
 ### T12-4. 建立 Agent 回归样例集
 
@@ -1784,15 +1784,15 @@ Phase 2 统一约定：
 
 必须记录：
 
-- requestId。
-- traceId。
-- sessionId。
-- agentRunId。
+- `request_id`。
+- `trace_id`。
+- `session_id`。
+- `agent_run_id`。
 - intent。
-- toolName。
-- modelName。
-- latencyMs。
-- errorCode。
+- `tool_name`。
+- `model_name`。
+- `latency_ms`。
+- `error_code`。
 
 验收标准：
 

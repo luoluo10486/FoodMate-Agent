@@ -264,7 +264,7 @@ FoodMate 必须自定义：
 - 知识库：文档列表、详情、上传、下线、恢复、索引状态。
 - 工具：工具注册表、版本、入参 schema、启停、风险等级和权限范围。
 - 删除资源：查看软删除资源并恢复。
-- 操作审计：展示管理写操作的操作者、目标、requestId、traceId 和结果。
+- 操作审计：展示管理写操作的操作者、目标、`request_id`、`trace_id` 和结果。
 
 权限展示：
 
@@ -322,7 +322,7 @@ MVP 中 `Tools（0/6）` 的 6 个工具对应：
 | 分析页 | `Tools（2/6）` | `time_parser`、`database_query` |
 | 规划页 | `Tools（3/6）` | `knowledge_search`、`database_query`、`plan_validator` |
 
-说明：购物清单在 MVP 阶段可以先由 `planJson` 聚合或由 `AnswerComposer` 结构化输出，不计入 P0 工具数量；后续如果实现 `shopping_list_generator`，再作为 P1 工具加入。
+说明：购物清单在 MVP 阶段可以先由 `plan_json` 聚合或由 `AnswerComposer` 结构化输出，不计入 P0 工具数量；后续如果实现 `shopping_list_generator`，再作为 P1 工具加入。
 
 UI 行为：
 

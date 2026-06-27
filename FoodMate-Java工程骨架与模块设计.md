@@ -532,13 +532,13 @@ com.foodmate.infrastructure
 
 #### 统一返回对象字段
 
-- `requestId`
-- `traceId`
+- `request_id`
+- `trace_id`
 - `provider`
-- `modelName`
+- `model_name`
 - `content`
 - `usage`
-- `latencyMs`
+- `latency_ms`
 - `cost`
 - `status`
 - `error`

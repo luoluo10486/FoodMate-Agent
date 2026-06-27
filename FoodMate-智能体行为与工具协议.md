@@ -373,7 +373,9 @@ Planner 输出示例：
 
 - calculator
 - time_parser
-- nutrition_lookup
+- knowledge_search
+
+说明：MVP 阶段营养估算先通过 `knowledge_search` 获取数据来源，再用 `calculator` 做克重折算；`nutrition_lookup` 属于 P1 高频封装工具。
 
 #### record
 触发条件：
@@ -536,11 +538,25 @@ Planner 输出示例：
 
 ```json
 {
-  "name": "nutrition_lookup",
-  "description": "查询食材营养信息",
+  "name": "knowledge_search",
+  "description": "检索知识库并返回可引用片段",
   "version": "1.0.0",
-  "input_schema": {},
-  "output_schema": {},
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string" },
+      "top_k": { "type": "integer" },
+      "filters": { "type": "object" }
+    },
+    "required": ["query"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "hits": { "type": "array" },
+      "references": { "type": "array" }
+    }
+  },
   "permissions": ["read"],
   "timeout_ms": 3000,
   "retryable": true,
@@ -622,7 +638,7 @@ Planner 输出示例：
 }
 ```
 
-### 8.3 nutrition_lookup
+### 8.3 nutrition_lookup（P1）
 
 用途：
 
