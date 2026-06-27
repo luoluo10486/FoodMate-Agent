@@ -146,7 +146,8 @@
 ### 3.6 ID 与删除语义
 
 - 所有数据库主键统一使用 Snowflake BIGINT
-- 所有 API、SSE、JSON DTO 对外统一按字符串返回 ID
+- 数据库主键字段统一使用 `{业务对象}_id`，例如 `user_id/session_id/message_id`
+- 所有 API、SSE、JSON DTO 对外统一按字符串返回 ID，字段名同样使用带业务语义的 `xxx_id`
 - 所有默认查询都排除 `is_deleted = true` 的数据
 - `DELETE` 接口统一表示软删除
 - 恢复操作统一使用 `POST /restore`
@@ -197,7 +198,7 @@
 
 ```json
 {
-  "id": "1912345678901234561",
+  "session_id": "1912345678901234561",
   "user_id": "1912345678901234001",
   "title": "一周备餐计划",
   "mode": "agent",
@@ -212,7 +213,7 @@
 
 ```json
 {
-  "id": "1912345678901234562",
+  "message_id": "1912345678901234562",
   "session_id": "1912345678901234561",
   "role": "user",
   "content": "给 2 个人制定一周备餐计划",
@@ -226,7 +227,7 @@
 
 ```json
 {
-  "id": "1912345678901234563",
+  "agent_run_id": "1912345678901234563",
   "session_id": "1912345678901234561",
   "user_message_id": "1912345678901234562",
   "intent": "planning",
@@ -243,7 +244,7 @@
 
 ```json
 {
-  "id": "1912345678901234564",
+  "tool_call_id": "1912345678901234564",
   "agent_run_id": "1912345678901234563",
   "tool_name": "nutrition_lookup",
   "input_json": {},
@@ -274,7 +275,7 @@
 
 ```json
 {
-  "id": "1912345678901234565",
+  "memory_id": "1912345678901234565",
   "user_id": "1912345678901234001",
   "memory_type": "preference",
   "memory_key": "diet_avoid",
@@ -292,7 +293,7 @@
 
 ```json
 {
-  "id": "1912345678901234566",
+  "summary_id": "1912345678901234566",
   "session_id": "1912345678901234561",
   "summary_text": "用户正在制定 7 天备餐计划，已确认预算 500 元、无猪肉忌口。",
   "key_constraints": {
@@ -308,7 +309,7 @@
 
 ```json
 {
-  "id": "1912345678901234567",
+  "query_understanding_id": "1912345678901234567",
   "session_id": "1912345678901234561",
   "user_message_id": "1912345678901234562",
   "original_query": "这个要多久",
@@ -339,7 +340,7 @@
 
 ```json
 {
-  "id": "1912345678901234581",
+  "document_id": "1912345678901234581",
   "title": "营养与烹饪指南",
   "source_type": "cookbook",
   "version": "v1",
@@ -353,7 +354,7 @@
 
 ```json
 {
-  "id": "1912345678901234591",
+  "chunk_id": "1912345678901234591",
   "document_id": "1912345678901234581",
   "chunk_text": "西兰花焯水 1-2 分钟即可。",
   "section_path": "蔬菜处理/焯水",
@@ -369,7 +370,7 @@
 
 ```json
 {
-  "id": "1912345678901234601",
+  "datasource_id": "1912345678901234601",
   "name": "nutrition_analytics_db",
   "db_type": "postgresql",
   "purpose": "饮食分析",
@@ -383,7 +384,7 @@
 
 ```json
 {
-  "id": "1912345678901234602",
+  "schema_catalog_id": "1912345678901234602",
   "datasource_id": "1912345678901234601",
   "table_name": "user_food_logs",
   "field_name": "protein",
@@ -397,7 +398,7 @@
 
 ```json
 {
-  "id": "1912345678901234603",
+  "sql_audit_id": "1912345678901234603",
   "session_id": "1912345678901234561",
   "user_message_id": "1912345678901234562",
   "datasource_id": "1912345678901234601",
@@ -436,7 +437,7 @@
   "success": true,
   "data": {
     "session": {
-      "id": "1912345678901234571",
+      "session_id": "1912345678901234571",
       "title": "一周备餐计划",
       "mode": "agent",
       "status": "active"
@@ -508,11 +509,11 @@
   "success": true,
   "data": {
     "message": {
-      "id": "1912345678901234568",
+      "message_id": "1912345678901234568",
       "role": "user"
     },
     "agent_run": {
-      "id": "1912345678901234569",
+      "agent_run_id": "1912345678901234569",
       "status": "queued"
     }
   }

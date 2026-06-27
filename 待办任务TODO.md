@@ -645,6 +645,7 @@ Phase 2 统一约定：
 
 验收标准：
 
+- 所有表主键使用带业务语义的 `{业务对象}_id`，例如 `users.user_id`、`user_profiles.profile_id`、`sessions.session_id`、`messages.message_id`，不统一使用泛化 `id`。
 - `users` 包含 username、email、passwordHash、role、avatarUrl、status、lastLoginAt、passwordUpdatedAt、lockedUntil。
 - `user_profiles` 包含展示名、身高、体重、活动水平、营养目标、忌口、过敏原和单位偏好。
 - `auth_refresh_tokens` 保存 tokenHash、用户、设备、过期、撤销和轮换信息，不保存明文 token。

@@ -52,7 +52,8 @@ MySQL 不是不能用，但当前不是推荐主方案，主要原因是：
 数据库设计统一遵循：
 
 - 表名：`snake_case`
-- 主键：`id BIGINT`
+- 主键：`{业务对象}_id BIGINT`，例如 `users.user_id`、`sessions.session_id`、`agent_runs.agent_run_id`
+- 外键：沿用被引用表主键名，例如 `user_profiles.user_id` 指向 `users.user_id`
 - 时间字段：`created_at TIMESTAMPTZ`、`updated_at TIMESTAMPTZ`
 - 扩展字段：优先 `JSONB`
 - 状态字段：使用 `VARCHAR(32)`，不在第一版引入数据库 enum
@@ -142,7 +143,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `id` | `BIGINT` | 主键，由应用层 Snowflake 生成 |
+| `{业务对象}_id` | `BIGINT` | 主键，由应用层 Snowflake 生成，例如 `user_id/session_id/message_id` |
 | `created_at` | `TIMESTAMPTZ` | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` | 更新时间 |
 | `created_by` | `BIGINT` / `VARCHAR(64)` | 创建人或来源系统 |
@@ -170,7 +171,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 用户主键 |
+| `user_id` | `BIGINT` | PK | 用户主键 |
 | `tenant_id` | `BIGINT` |  | 多租户隔离 |
 | `user_no` | `VARCHAR(64)` | UK | 用户业务编号 |
 | `username` | `VARCHAR(64)` | UK | 登录用户名 |
@@ -204,8 +205,8 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
-| `user_id` | `BIGINT` | UK, FK | 对应用户 |
+| `profile_id` | `BIGINT` | PK | 个人资料主键 |
+| `user_id` | `BIGINT` | UK, FK | 对应 `users.user_id` |
 | `display_name` | `VARCHAR(128)` |  | 对外展示名，默认可同步 `users.nickname` |
 | `gender` | `VARCHAR(32)` |  | 性别，可为空 |
 | `birthday` | `DATE` |  | 生日，可为空 |
@@ -229,15 +230,15 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
-| `user_id` | `BIGINT` | FK | 用户 |
+| `refresh_token_id` | `BIGINT` | PK | Refresh Token 记录主键 |
+| `user_id` | `BIGINT` | FK | 对应 `users.user_id` |
 | `token_hash` | `VARCHAR(255)` | UK | Refresh Token 哈希，禁止保存明文 |
 | `device_id` | `VARCHAR(128)` |  | 设备标识 |
 | `user_agent` | `VARCHAR(512)` |  | 登录客户端信息 |
 | `ip_address` | `VARCHAR(64)` |  | 最近使用 IP |
 | `expires_at` | `TIMESTAMPTZ` |  | 过期时间 |
 | `revoked_at` | `TIMESTAMPTZ` |  | 撤销时间 |
-| `rotated_from_id` | `BIGINT` |  | 轮换来源 token |
+| `rotated_from_token_id` | `BIGINT` |  | 轮换来源 `auth_refresh_tokens.refresh_token_id` |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
 | `is_deleted` | `BOOLEAN` |  | 软删除标记 |
@@ -255,8 +256,8 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
-| `user_id` | `BIGINT` | FK | 用户 |
+| `avatar_asset_id` | `BIGINT` | PK | 头像资产主键 |
+| `user_id` | `BIGINT` | FK | 对应 `users.user_id` |
 | `storage_key` | `VARCHAR(255)` |  | MinIO/S3 对象键 |
 | `url` | `VARCHAR(512)` |  | 当前可访问 URL 或 CDN URL |
 | `mime_type` | `VARCHAR(64)` |  | 图片类型 |
@@ -279,9 +280,9 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 会话主键 |
+| `session_id` | `BIGINT` | PK | 会话主键 |
 | `tenant_id` | `BIGINT` | FK | 租户 |
-| `user_id` | `BIGINT` | FK | 用户 |
+| `user_id` | `BIGINT` | FK | 对应 `users.user_id` |
 | `title` | `VARCHAR(255)` |  | 会话标题 |
 | `mode` | `VARCHAR(32)` |  | `agent/chat` |
 | `status` | `VARCHAR(32)` |  | `active/archived/closed` |
@@ -304,9 +305,9 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 消息主键 |
-| `session_id` | `BIGINT` | FK | 所属会话 |
-| `agent_run_id` | `BIGINT` | FK | 关联运行 |
+| `message_id` | `BIGINT` | PK | 消息主键 |
+| `session_id` | `BIGINT` | FK | 对应 `sessions.session_id` |
+| `agent_run_id` | `BIGINT` | FK | 对应 `agent_runs.agent_run_id` |
 | `role` | `VARCHAR(32)` |  | `user/assistant/system/tool` |
 | `content` | `TEXT` |  | 文本内容 |
 | `structured_payload` | `JSONB` |  | 结构化载荷 |
@@ -330,9 +331,9 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 运行主键 |
-| `session_id` | `BIGINT` | FK | 所属会话 |
-| `user_message_id` | `BIGINT` | FK | 触发消息 |
+| `agent_run_id` | `BIGINT` | PK | 运行主键 |
+| `session_id` | `BIGINT` | FK | 对应 `sessions.session_id` |
+| `user_message_id` | `BIGINT` | FK | 触发消息，对应 `messages.message_id` |
 | `intent` | `VARCHAR(64)` |  | `record/analysis/planning/knowledge_qna` |
 | `status` | `VARCHAR(32)` |  | `queued/routed/waiting_user/planning/retrieving/executing/validating/completed/failed/cancelled` |
 | `plan_json` | `JSONB` |  | 执行计划 |
@@ -358,8 +359,8 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
-| `agent_run_id` | `BIGINT` | FK | 所属运行 |
+| `tool_call_id` | `BIGINT` | PK | 工具调用主键 |
+| `agent_run_id` | `BIGINT` | FK | 对应 `agent_runs.agent_run_id` |
 | `tool_name` | `VARCHAR(64)` |  | 工具名 |
 | `tool_version` | `VARCHAR(32)` |  | 工具版本 |
 | `input_json` | `JSONB` |  | 入参 |
@@ -388,9 +389,9 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 饮食记录主键 |
-| `user_id` | `BIGINT` | FK | 用户 |
-| `session_id` | `BIGINT` | FK | 来源会话 |
+| `food_log_id` | `BIGINT` | PK | 饮食记录主键 |
+| `user_id` | `BIGINT` | FK | 对应 `users.user_id` |
+| `session_id` | `BIGINT` | FK | 来源会话，对应 `sessions.session_id` |
 | `meal_time` | `TIMESTAMPTZ` |  | 用餐时间 |
 | `meal_type` | `VARCHAR(32)` |  | 早餐/午餐/晚餐/加餐 |
 | `items_json` | `JSONB` |  | 食材明细 |
@@ -416,9 +417,9 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 计划主键 |
-| `user_id` | `BIGINT` | FK | 用户 |
-| `session_id` | `BIGINT` | FK | 来源会话 |
+| `meal_plan_id` | `BIGINT` | PK | 计划主键 |
+| `user_id` | `BIGINT` | FK | 对应 `users.user_id` |
+| `session_id` | `BIGINT` | FK | 来源会话，对应 `sessions.session_id` |
 | `plan_name` | `VARCHAR(128)` |  | 计划名称 |
 | `days` | `INT` |  | 覆盖天数 |
 | `budget` | `NUMERIC(12,2)` |  | 预算 |
@@ -434,7 +435,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 基线索引：
 
-- `pk_meal_plans(id)`
+- `pk_meal_plans(meal_plan_id)`
 
 候选索引：
 
@@ -447,8 +448,8 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
-| `user_id` | `BIGINT` | FK | 用户 |
+| `memory_id` | `BIGINT` | PK | 用户记忆主键 |
+| `user_id` | `BIGINT` | FK | 对应 `users.user_id` |
 | `memory_type` | `VARCHAR(32)` |  | preference/constraint/habit |
 | `memory_key` | `VARCHAR(64)` |  | 键 |
 | `memory_value` | `JSONB` |  | 值 |
@@ -466,8 +467,8 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
-| `session_id` | `BIGINT` | UK, FK | 会话 |
+| `summary_id` | `BIGINT` | PK | 会话摘要主键 |
+| `session_id` | `BIGINT` | UK, FK | 对应 `sessions.session_id` |
 | `summary_text` | `TEXT` |  | 摘要文本 |
 | `key_constraints` | `JSONB` |  | 关键约束 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
@@ -481,7 +482,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 文档主键 |
+| `document_id` | `BIGINT` | PK | 文档主键 |
 | `tenant_id` | `BIGINT` | FK | 租户 |
 | `source_type` | `VARCHAR(64)` |  | cookbook/manual/faq/web |
 | `title` | `VARCHAR(255)` |  | 标题 |
@@ -507,8 +508,8 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | Chunk 主键 |
-| `document_id` | `BIGINT` | FK | 来源文档 |
+| `chunk_id` | `BIGINT` | PK | Chunk 主键 |
+| `document_id` | `BIGINT` | FK | 来源文档，对应 `knowledge_documents.document_id` |
 | `chunk_no` | `INT` |  | 顺序号 |
 | `chunk_text` | `TEXT` |  | Chunk 内容 |
 | `section_path` | `VARCHAR(255)` |  | 章节路径 |
@@ -538,7 +539,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 数据源主键 |
+| `datasource_id` | `BIGINT` | PK | 数据源主键 |
 | `name` | `VARCHAR(128)` | UK | 数据源名 |
 | `db_type` | `VARCHAR(32)` |  | postgresql/mysql/clickhouse |
 | `purpose` | `VARCHAR(128)` |  | 用途 |
@@ -556,8 +557,8 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
-| `datasource_id` | `BIGINT` | FK | 数据源 |
+| `schema_catalog_id` | `BIGINT` | PK | Schema 字段目录主键 |
+| `datasource_id` | `BIGINT` | FK | 对应 `data_sources.datasource_id` |
 | `schema_name` | `VARCHAR(64)` |  | schema |
 | `table_name` | `VARCHAR(128)` |  | 表名 |
 | `field_name` | `VARCHAR(128)` |  | 字段名 |
@@ -574,10 +575,10 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 审计主键 |
-| `session_id` | `BIGINT` | FK | 会话 |
-| `agent_run_id` | `BIGINT` | FK | 运行 |
-| `datasource_id` | `BIGINT` | FK | 数据源 |
+| `sql_audit_id` | `BIGINT` | PK | SQL 审计主键 |
+| `session_id` | `BIGINT` | FK | 对应 `sessions.session_id` |
+| `agent_run_id` | `BIGINT` | FK | 对应 `agent_runs.agent_run_id` |
+| `datasource_id` | `BIGINT` | FK | 对应 `data_sources.datasource_id` |
 | `original_question` | `TEXT` |  | 原始问题 |
 | `resolved_question` | `TEXT` |  | 查询理解结果 |
 | `sql_text` | `TEXT` |  | 最终 SQL |
@@ -593,7 +594,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 基线索引：
 
-- `pk_sql_query_audits(id)`
+- `pk_sql_query_audits(sql_audit_id)`
 
 候选索引：
 
@@ -607,7 +608,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
+| `tool_id` | `BIGINT` | PK | 工具主键 |
 | `name` | `VARCHAR(64)` | UK | 工具名 |
 | `display_name` | `VARCHAR(128)` |  | 展示名 |
 | `description` | `VARCHAR(255)` |  | 描述 |
@@ -626,8 +627,8 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
-| `tool_id` | `BIGINT` | FK | 工具 |
+| `tool_schema_version_id` | `BIGINT` | PK | 工具 schema 版本主键 |
+| `tool_id` | `BIGINT` | FK | 对应 `tool_registries.tool_id` |
 | `version` | `VARCHAR(32)` |  | 版本 |
 | `input_schema` | `JSONB` |  | 入参 schema |
 | `output_schema` | `JSONB` |  | 出参 schema |
@@ -646,7 +647,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
+| `model_usage_log_id` | `BIGINT` | PK | 模型调用日志主键 |
 | `request_id` | `VARCHAR(64)` | UK | 请求 ID |
 | `trace_id` | `VARCHAR(64)` |  | Trace ID |
 | `scene` | `VARCHAR(64)` |  | 使用场景 |
@@ -665,7 +666,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
-| `id` | `BIGINT` | PK | 主键 |
+| `model_route_rule_id` | `BIGINT` | PK | 模型路由规则主键 |
 | `tenant_id` | `BIGINT` | FK | 租户 |
 | `scene` | `VARCHAR(64)` |  | 场景 |
 | `model_type` | `VARCHAR(32)` |  | chat/embed/rerank |
@@ -697,8 +698,8 @@ foodmate_knowledge_chunks
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `chunk_id` | `INT64` | 对应 `knowledge_chunks.id`，由 Snowflake 字符串映射而来 |
-| `document_id` | `INT64` | 对应文档 |
+| `chunk_id` | `INT64` | 对应 `knowledge_chunks.chunk_id`，由 Snowflake 字符串映射而来 |
+| `document_id` | `INT64` | 对应 `knowledge_documents.document_id` |
 | `tenant_id` | `INT64` | 租户隔离 |
 | `dense_vector` | `FLOAT_VECTOR` | 语义向量 |
 | `sparse_vector` | `SPARSE_FLOAT_VECTOR` | BM25 稀疏向量 |
@@ -828,7 +829,7 @@ ACL 相关 metadata 固定包含：
     "refreshTokenExpiresIn": 604800,
     "tokenType": "Bearer",
     "user": {
-      "id": "10001",
+      "user_id": "10001",
       "username": "liang",
       "displayName": "梁同学",
       "role": "user",
@@ -850,7 +851,7 @@ ACL 相关 metadata 固定包含：
   "message": "success",
   "requestId": "req_...",
   "data": {
-    "id": "10001",
+    "user_id": "10001",
     "username": "liang",
     "displayName": "梁同学",
     "role": "user",
