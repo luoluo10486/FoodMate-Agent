@@ -1117,6 +1117,17 @@ ACL 相关 metadata 固定包含：
 - `operator` 只能访问只读治理信息；涉及用户状态、工具启停、知识库写入、软删除恢复的接口仅 `admin` 可用。
 - 所有管理写操作必须记录审计，审计内容包含操作者、目标类型、目标 ID、动作、请求 ID、trace ID 和结果。
 
+前端页面对照：
+
+- `/admin` 对应 `/foodmate/admin/overview`，展示运行量、失败率、模型用量、知识库索引和治理资源摘要。
+- `/admin/users` 对应用户列表、用户详情、状态变更和会话重置接口；该页面仅 `admin` 可访问。
+- `/admin/runs` 对应 AgentRun、ToolCall、SQLAudit 和 Trace 查询，其中 Trace 可由 `trace_id` 关联排查。
+- `/admin/usage` 对应 ModelUsage 查询，不混在运行审计主表里。
+- `/admin/tools` 对应工具注册表、工具详情、风险等级、权限范围和启停接口。
+- `/admin/knowledge` 对应知识库文档列表、上传、下线、恢复和索引状态。
+- `/admin/deleted` 对应软删除资源查询与恢复接口；查询和恢复均为 `admin` 范围。
+- 前端所有管理写操作必须有二次确认和审计反馈，真实接入时需要传递或展示 `requestId/traceId`。
+
 ---
 
 ## 4. SQL Agent / MCP 边界

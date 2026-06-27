@@ -85,6 +85,19 @@
   color: #fff;
 }
 
+.navButtonLocked {
+  color: var(--fm-muted);
+  opacity: 0.72;
+}
+
+.navButtonLocked::after {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--fm-orange);
+  font-size: 11px;
+  content: 'admin';
+}
+
 .policyBox {
   display: grid;
   gap: 8px;
@@ -319,10 +332,24 @@
   margin-bottom: 14px;
 }
 
+.cardSubhead {
+  margin: 16px 0 10px;
+  color: var(--fm-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .side {
   display: grid;
   align-content: start;
   gap: 16px;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 220px;
 }
 
 .actionGrid {
@@ -354,6 +381,25 @@
   color: var(--fm-muted);
   font-size: 12px;
   line-height: 1.55;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px 12px;
+  margin-top: 8px;
+}
+
+.detailGrid span {
+  color: var(--fm-muted);
+  font-size: 12px;
+}
+
+.detailGrid strong {
+  min-width: 0;
+  color: var(--fm-ink);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .resourceList {
@@ -420,6 +466,21 @@
   line-height: 1.6;
 }
 
+.uploadMock {
+  display: grid;
+  gap: 12px;
+}
+
+.uploadMock span {
+  color: var(--fm-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.wideCard :global(.arco-tabs-content) {
+  padding-top: 2px;
+}
+
 @media (max-width: 1180px) {
   .adminShell {
     grid-template-columns: 86px minmax(0, 1fr);
@@ -433,6 +494,7 @@
   .brandBlock :global(.arco-tag),
   .workspaceLink span,
   .navButton span,
+  .navButtonLocked::after,
   .policyBox span,
   .policyBox strong {
     display: none;
@@ -529,6 +591,14 @@
   .moduleGrid,
   .sectionCards {
     grid-template-columns: 1fr;
+  }
+
+  .rowActions {
+    min-width: 0;
+  }
+
+  .detailGrid {
+    grid-template-columns: 88px minmax(0, 1fr);
   }
 
   .filters button {

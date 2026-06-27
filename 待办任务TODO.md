@@ -433,7 +433,14 @@ Phase 2 统一约定：
 - 新增 `/admin/users`、`/admin/runs`、`/admin/tools`、`/admin/usage`、`/admin/knowledge`、`/admin/deleted` 等子路由。
 - 页面包含概览、用户管理、Agent 运行、工具调用、模型用量、知识库、软删除资源等视图入口，左侧菜单点击后必须真实跳转。
 - 普通用户不显示管理入口。
-- operator 仅展示只读操作，admin 展示高风险操作入口和二次确认占位。
+- operator 仅展示只读治理视图；用户管理和软删除资源按后端契约展示 admin-only 权限状态。
+- admin 展示高风险操作入口和二次确认占位。
+- 用户管理页面需要包含用户详情、登录会话、锁定/禁用/启用、重置会话的 mock 操作。
+- Agent 运行页面需要包含 AgentRun、ToolCall、SQLAudit、Trace 的查询标签页。
+- 工具页面需要包含工具详情、入参 schema、风险等级和启停 mock 操作。
+- 知识库页面需要包含文档详情、索引进度、上传弹窗、下线/恢复 mock 操作。
+- 软删除资源页面需要包含恢复二次确认。
+- 管理写操作需要展示 mock 审计反馈，字段覆盖 operator、targetType、targetId、action、requestId、traceId、result。
 - 当前阶段不接真实管理接口。
 
 验收标准：
@@ -442,6 +449,7 @@ Phase 2 统一约定：
 - `/admin/users`、`/admin/runs`、`/admin/tools`、`/admin/usage`、`/admin/knowledge`、`/admin/deleted` 可以展示对应 mock 子页面。
 - 普通用户访问时展示 403 或无权限空态。
 - 管理列表支持分页和基础筛选的 UI 占位。
+- 行内查看、上传、启停、恢复、重置会话等按钮不能只是装饰；至少需要打开详情、弹窗、确认框或权限反馈。
 
 ## Phase 3：后端工程骨架与通用能力
 
