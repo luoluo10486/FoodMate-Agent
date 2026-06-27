@@ -18,19 +18,43 @@ type AgentCard =
     }
   | { type: 'error'; message: string };
 
-type ReplayStep =
-  | { type: 'status'; status: AgentDisplayStatus }
-  | { type: 'message'; content: string }
-  | { type: 'assistantStream'; content: string; chunkMs?: number }
-  | { type: 'tool'; tool: ToolCall }
-  | { type: 'toolUpdate'; id: string; patch: Partial<ToolCall> }
-  | { type: 'citation'; citation: Citation }
-  | { type: 'card'; card: AgentCard };
+type MockRunEventName =
+  | 'run.created'
+  | 'run.routed'
+  | 'run.clarification_requested'
+  | 'run.planned'
+  | 'run.retrieval_started'
+  | 'run.retrieval_finished'
+  | 'run.tool_started'
+  | 'run.tool_finished'
+  | 'run.answer_stream'
+  | 'run.completed'
+  | 'run.failed'
+  | 'run.cancelled';
+
+type MockRunEvent = {
+  id: string;
+  event: MockRunEventName;
+  createdAt: string;
+};
+
+type ReplayStepPayload =
+  | { type: 'event'; event: MockRunEventName }
+  | ({ type: 'status'; status: AgentDisplayStatus } & { event?: MockRunEventName })
+  | ({ type: 'message'; content: string } & { event?: MockRunEventName })
+  | ({ type: 'assistantStream'; content: string; chunkMs?: number } & { event?: MockRunEventName })
+  | ({ type: 'tool'; tool: ToolCall } & { event?: MockRunEventName })
+  | ({ type: 'toolUpdate'; id: string; patch: Partial<ToolCall> } & { event?: MockRunEventName })
+  | ({ type: 'citation'; citation: Citation } & { event?: MockRunEventName })
+  | ({ type: 'card'; card: AgentCard } & { event?: MockRunEventName });
+
+type ReplayStep = ReplayStepPayload & { event: MockRunEventName };
 
 type UseMockAgentReplayState = {
   messages: Message[];
   run: AgentRunView;
   card: AgentCard;
+  events: MockRunEvent[];
   running: boolean;
   input: string;
 };
@@ -87,7 +111,39 @@ function detectMode(prompt: string): AgentMode {
   return 'planning';
 }
 
-function buildSteps(mode: AgentMode, prompt: string): ReplayStep[] {
+function inferRunEvent(step: ReplayStepPayload): MockRunEventName {
+  if (step.event) return step.event;
+
+  if (step.type === 'status') {
+    const statusEvents: Partial<Record<AgentDisplayStatus, MockRunEventName>> = {
+      routing: 'run.routed',
+      planning: 'run.planned',
+      retrieving: 'run.retrieval_started',
+      executing_tools: 'run.tool_started',
+      validating: 'run.tool_started',
+      composing: 'run.answer_stream',
+      waiting_user: 'run.clarification_requested',
+      completed: 'run.completed',
+      failed: 'run.failed',
+      cancelled: 'run.cancelled'
+    };
+    return statusEvents[step.status] ?? 'run.routed';
+  }
+
+  if (step.type === 'tool') return 'run.tool_started';
+  if (step.type === 'toolUpdate') return step.id.includes('knowledge') ? 'run.retrieval_finished' : 'run.tool_finished';
+  if (step.type === 'assistantStream') return 'run.answer_stream';
+  if (step.type === 'citation') return 'run.retrieval_finished';
+  if (step.type === 'card' && step.card.type === 'clarification') return 'run.clarification_requested';
+  if (step.type === 'card' && step.card.type === 'error') return 'run.failed';
+  return 'run.routed';
+}
+
+function withRunEvents(steps: ReplayStepPayload[]): ReplayStep[] {
+  return steps.map((step) => ({ ...step, event: inferRunEvent(step) }));
+}
+
+function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[] {
   if (/失败|报错|error/i.test(prompt)) {
     return [
       { type: 'status', status: 'routing' },
@@ -369,6 +425,10 @@ function buildSteps(mode: AgentMode, prompt: string): ReplayStep[] {
   ];
 }
 
+function buildSteps(mode: AgentMode, prompt: string): ReplayStep[] {
+  return withRunEvents([{ type: 'event', event: 'run.created' }, ...buildStepPayloads(mode, prompt)]);
+}
+
 export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null): UseMockAgentReplayState & {
   setInput: (value: string) => void;
   send: (overridePrompt?: string) => void;
@@ -391,6 +451,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     primaryAction: '确认保存',
     secondaryAction: '查看购物清单'
   });
+  const [events, setEvents] = useState<MockRunEvent[]>([]);
   const [running, setRunning] = useState(false);
   const [input, setInput] = useState('');
   const timeoutsRef = useRef<number[]>([]);
@@ -423,8 +484,25 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     });
   }, []);
 
+  const appendRunEvent = useCallback((event: MockRunEventName) => {
+    setEvents((current) => [
+      ...current,
+      {
+        id: `${event}-${Date.now()}-${current.length}`,
+        event,
+        createdAt: new Date().toISOString()
+      }
+    ]);
+  }, []);
+
   const applyStep = useCallback(
     (step: ReplayStep) => {
+      appendRunEvent(step.event);
+
+      if (step.type === 'event') {
+        return;
+      }
+
       if (step.type === 'status') {
         updateRun((current) => ({ ...current, status: step.status }));
         if (step.status === 'completed' || step.status === 'failed' || step.status === 'cancelled' || step.status === 'waiting_user') {
@@ -475,7 +553,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
         setCard(step.card);
       }
     },
-    [updateRun]
+    [appendRunEvent, updateRun]
   );
 
   const send = useCallback(
@@ -488,6 +566,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       setMessages((current) => [...current, createMessage('user', prompt)]);
       setInput('');
       setCard({ type: 'none' });
+      setEvents([]);
       setRunning(true);
       setRun({ ...baseRun, id: `run-${Date.now()}`, status: 'routing', intent: mode, toolCalls: [], citations: [], toolsUsed: 0 });
 
@@ -527,8 +606,9 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       toolCalls: current.toolCalls.map((tool) => (tool.status === 'running' ? { ...tool, status: 'cancelled' } : tool))
     }));
     setMessages((current) => [...current, createMessage('assistant', '已停止当前任务，保留现有上下文，可以随时继续。')]);
+    appendRunEvent('run.cancelled');
     setCard({ type: 'none' });
-  }, [clearTimers, updateRun]);
+  }, [appendRunEvent, clearTimers, updateRun]);
 
   const answerClarification = useCallback(
     (value: string) => {
@@ -542,7 +622,8 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     setCard({ type: 'none' });
     setMessages((current) => [...current, createMessage('assistant', '已模拟保存这条午餐记录。真实接入后会返回 foodLogId，并可在饮食日志中查询。')]);
     updateRun((current) => ({ ...current, status: 'completed' }));
-  }, [updateRun]);
+    appendRunEvent('run.completed');
+  }, [appendRunEvent, updateRun]);
 
   const handleResultPrimary = useCallback(() => {
     if (card.type !== 'result') return;
@@ -551,6 +632,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     if (card.mode === 'planning') {
       setMessages((current) => [...current, createMessage('assistant', '已模拟保存这个备餐计划。真实接入后会生成 mealPlanId，并同步到“饮食管理”页面。')]);
       updateRun((current) => ({ ...current, status: 'completed' }));
+      appendRunEvent('run.completed');
       return;
     }
 
@@ -562,7 +644,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     if (card.mode === 'calculation') {
       send('帮我记录今天吃了 20 克鸡胸肉');
     }
-  }, [card, updateRun]);
+  }, [appendRunEvent, card, updateRun]);
 
   const handleResultSecondary = useCallback(() => {
     if (card.type !== 'result') return;
@@ -590,13 +672,15 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     setCard({ type: 'none' });
     setMessages((current) => [...current, createMessage('assistant', '已取消写入，没有保存任何饮食记录。')]);
     updateRun((current) => ({ ...current, status: 'cancelled' }));
-  }, [updateRun]);
+    appendRunEvent('run.cancelled');
+  }, [appendRunEvent, updateRun]);
 
   return useMemo(
     () => ({
       messages,
       run,
       card,
+      events,
       running,
       input,
       setInput,
@@ -609,6 +693,6 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       editWrite,
       cancelWrite
     }),
-    [answerClarification, cancelWrite, card, confirmWrite, editWrite, handleResultPrimary, handleResultSecondary, input, messages, run, running, send, stop]
+    [answerClarification, cancelWrite, card, confirmWrite, editWrite, events, handleResultPrimary, handleResultSecondary, input, messages, run, running, send, stop]
   );
 }

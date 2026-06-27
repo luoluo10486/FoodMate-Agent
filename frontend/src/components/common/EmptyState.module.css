@@ -13,3 +13,13 @@
   color: var(--fm-ink);
   font-size: 17px;
 }
+
+.loading,
+.disabled {
+  opacity: 0.7;
+}
+
+.error {
+  border-color: #f3b4aa;
+  background: #fff7f5;
+}

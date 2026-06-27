@@ -43,6 +43,28 @@
   transform: translateY(-4px);
 }
 
+.loading,
+.disabled,
+.error {
+  cursor: default;
+}
+
+.loading:hover,
+.disabled:hover,
+.error:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.disabled {
+  opacity: 0.58;
+}
+
+.error {
+  border-color: #f3b4aa;
+  background: #fff7f5;
+}
+
 .card p {
   margin: 12px 0 8px;
   color: var(--fm-muted);

@@ -34,3 +34,19 @@
 .blue {
   color: var(--fm-blue) !important;
 }
+
+.loading,
+.disabled {
+  opacity: 0.7;
+}
+
+.error {
+  border-color: #f3b4aa;
+  background: #fff7f5;
+}
+
+.error strong {
+  color: var(--fm-danger);
+  font-size: 16px;
+  line-height: 1.35;
+}

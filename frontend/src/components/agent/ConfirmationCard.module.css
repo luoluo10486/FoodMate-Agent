@@ -10,3 +10,19 @@
   flex-wrap: wrap;
   margin-top: 14px;
 }
+
+.loading,
+.disabled {
+  opacity: 0.72;
+}
+
+.error {
+  border-color: #f3b4aa;
+  background: #fff7f5;
+}
+
+.errorText {
+  margin: 12px 0 0;
+  color: var(--fm-danger);
+  line-height: 1.6;
+}

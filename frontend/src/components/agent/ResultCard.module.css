@@ -20,3 +20,13 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+.loading,
+.disabled {
+  opacity: 0.72;
+}
+
+.error {
+  border-color: #f3b4aa;
+  background: #fff7f5;
+}
