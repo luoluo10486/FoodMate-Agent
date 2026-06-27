@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="760" viewBox="0 0 1440 760" role="img" aria-label="FoodMate 个人资料页原型图">
+  <rect width="1440" height="760" fill="#F8F7F3"/>
+  <rect x="0" y="0" width="286" height="760" fill="#FBFAF6"/>
+  <line x1="286" y1="0" x2="286" y2="760" stroke="#E5E0D3"/>
+  <circle cx="48" cy="48" r="18" fill="#2F6F4E"/>
+  <circle cx="48" cy="48" r="10" fill="#FFF0DF"/>
+  <text x="78" y="56" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="22" font-weight="800" fill="#23251F">FoodMate</text>
+  <rect x="170" y="30" width="92" height="34" rx="17" fill="#FFF0DF" stroke="#E6C49B"/>
+  <text x="191" y="52" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="700" fill="#D88A3D">Agent 模式</text>
+  <rect x="30" y="104" width="226" height="54" rx="9" fill="#2F6F4E"/>
+  <text x="84" y="138" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="18" font-weight="800" fill="#FFFFFF">+ 新建 Agent 会话</text>
+  <line x1="0" y1="194" x2="286" y2="194" stroke="#E5E0D3"/>
+  <text x="30" y="236" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="700" fill="#9AA194">个人工作区</text>
+  <rect x="30" y="264" width="226" height="50" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="52" y="295" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">Agent 会话</text>
+  <rect x="30" y="326" width="226" height="50" rx="8" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="52" y="357" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="800" fill="#2F6F4E">个人资料</text>
+  <rect x="30" y="388" width="226" height="50" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="52" y="419" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">营养目标</text>
+  <line x1="0" y1="698" x2="286" y2="698" stroke="#E5E0D3"/>
+  <circle cx="38" cy="728" r="19" fill="#2F6F4E"/>
+  <text x="32" y="735" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="17" font-weight="800" fill="#FFFFFF">梁</text>
+  <text x="70" y="724" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="700" fill="#23251F">梁同学</text>
+  <text x="70" y="744" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">user · active</text>
+
+  <rect x="286" y="0" width="1154" height="76" fill="#FFFFFF"/>
+  <line x1="286" y1="76" x2="1440" y2="76" stroke="#E5E0D3"/>
+  <text x="324" y="50" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="28" fill="#405060">☰</text>
+  <rect x="922" y="23" width="104" height="32" rx="16" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="948" y="44" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" fill="#405060">🍴 饮食管理</text>
+  <rect x="1038" y="23" width="92" height="32" rx="16" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="1062" y="44" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" fill="#405060">📖 知识库</text>
+  <rect x="1142" y="23" width="116" height="32" rx="16" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="1164" y="44" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" fill="#405060">▥ 数据分析</text>
+  <rect x="1274" y="23" width="94" height="32" rx="16" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="1294" y="44" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" font-weight="700" fill="#2F6F4E">个人资料</text>
+
+  <text x="328" y="126" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="26" font-weight="800" fill="#23251F">个人资料</text>
+  <text x="328" y="154" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#6F7468">管理账号、安全设置和饮食画像。保存前不改变 role/status。</text>
+
+  <rect x="328" y="184" width="304" height="486" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="356" y="222" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="16" font-weight="800" fill="#23251F">头像与账号</text>
+  <circle cx="480" cy="292" r="58" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="458" y="306" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="34" font-weight="800" fill="#2F6F4E">梁</text>
+  <rect x="390" y="376" width="84" height="34" rx="8" fill="#2F6F4E"/>
+  <text x="408" y="398" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="800" fill="#FFFFFF">上传头像</text>
+  <rect x="488" y="376" width="84" height="34" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="506" y="398" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">删除头像</text>
+  <text x="370" y="438" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">支持 JPG / PNG / WebP · 2MB 内</text>
+  <line x1="356" y1="470" x2="604" y2="470" stroke="#E5E0D3"/>
+  <text x="356" y="506" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">用户名</text>
+  <text x="456" y="506" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="700" fill="#23251F">liang</text>
+  <text x="356" y="540" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">邮箱</text>
+  <text x="456" y="540" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">liang@example.com</text>
+  <text x="356" y="574" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">角色</text>
+  <rect x="456" y="556" width="54" height="24" rx="12" fill="#F2EFE6" stroke="#E5E0D3"/>
+  <text x="469" y="573" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="11" fill="#405060">user</text>
+  <text x="356" y="608" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">状态</text>
+  <rect x="456" y="590" width="64" height="24" rx="12" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="472" y="607" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="11" fill="#2F6F4E">active</text>
+
+  <rect x="664" y="184" width="698" height="486" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="696" y="222" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="16" font-weight="800" fill="#23251F">资料与饮食画像</text>
+  <rect x="696" y="250" width="292" height="46" rx="8" fill="#FBFAF6" stroke="#E5E0D3"/>
+  <text x="716" y="278" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">昵称 / 展示名</text>
+  <text x="830" y="278" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">梁同学</text>
+  <rect x="1016" y="250" width="292" height="46" rx="8" fill="#FBFAF6" stroke="#E5E0D3"/>
+  <text x="1036" y="278" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">活动水平</text>
+  <text x="1138" y="278" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">moderate</text>
+  <rect x="696" y="318" width="138" height="46" rx="8" fill="#FBFAF6" stroke="#E5E0D3"/>
+  <text x="716" y="346" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">身高</text>
+  <text x="774" y="346" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">175 cm</text>
+  <rect x="850" y="318" width="138" height="46" rx="8" fill="#FBFAF6" stroke="#E5E0D3"/>
+  <text x="870" y="346" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">体重</text>
+  <text x="928" y="346" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">70 kg</text>
+  <rect x="1016" y="318" width="292" height="46" rx="8" fill="#FBFAF6" stroke="#E5E0D3"/>
+  <text x="1036" y="346" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#9AA194">饮食目标</text>
+  <text x="1138" y="346" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">高蛋白 · 控预算</text>
+
+  <text x="696" y="406" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" font-weight="800" fill="#23251F">目标数值</text>
+  <rect x="696" y="428" width="184" height="72" rx="9" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="718" y="456" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">每日热量</text>
+  <text x="718" y="484" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="22" font-weight="800" fill="#2F6F4E">2100 kcal</text>
+  <rect x="904" y="428" width="184" height="72" rx="9" fill="#FFF0DF" stroke="#E6C49B"/>
+  <text x="926" y="456" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">蛋白目标</text>
+  <text x="926" y="484" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="22" font-weight="800" fill="#D88A3D">120 g</text>
+  <rect x="1112" y="428" width="196" height="72" rx="9" fill="#F2EFE6" stroke="#E5E0D3"/>
+  <text x="1134" y="456" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">单位偏好</text>
+  <text x="1134" y="484" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="18" font-weight="800" fill="#405060">g / kcal</text>
+
+  <text x="696" y="544" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" font-weight="800" fill="#23251F">忌口与过敏原</text>
+  <rect x="696" y="566" width="96" height="30" rx="15" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="722" y="586" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">不吃猪肉</text>
+  <rect x="808" y="566" width="82" height="30" rx="15" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="834" y="586" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">少油</text>
+  <rect x="906" y="566" width="104" height="30" rx="15" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="932" y="586" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">无过敏原</text>
+  <rect x="696" y="622" width="122" height="34" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="724" y="644" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">修改密码</text>
+  <rect x="1156" y="622" width="152" height="34" rx="8" fill="#2F6F4E"/>
+  <text x="1200" y="644" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="800" fill="#FFFFFF">保存资料</text>
+</svg>

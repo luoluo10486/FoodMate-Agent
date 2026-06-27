@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="760" viewBox="0 0 1440 760" role="img" aria-label="FoodMate 管理后台原型图">
+  <rect width="1440" height="760" fill="#F8F7F3"/>
+  <rect x="0" y="0" width="286" height="760" fill="#FBFAF6"/>
+  <line x1="286" y1="0" x2="286" y2="760" stroke="#E5E0D3"/>
+  <circle cx="48" cy="48" r="18" fill="#2F6F4E"/>
+  <circle cx="48" cy="48" r="10" fill="#FFF0DF"/>
+  <text x="78" y="56" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="22" font-weight="800" fill="#23251F">FoodMate</text>
+  <rect x="168" y="30" width="94" height="34" rx="17" fill="#F2EFE6" stroke="#D9D5C8"/>
+  <text x="190" y="52" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="700" fill="#405060">Admin</text>
+  <line x1="0" y1="88" x2="286" y2="88" stroke="#E5E0D3"/>
+  <text x="30" y="130" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="700" fill="#9AA194">管理视图</text>
+  <rect x="30" y="158" width="226" height="46" rx="8" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="52" y="187" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="800" fill="#2F6F4E">概览</text>
+  <rect x="30" y="216" width="226" height="46" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="52" y="245" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">用户管理</text>
+  <rect x="30" y="274" width="226" height="46" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="52" y="303" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">运行审计</text>
+  <rect x="30" y="332" width="226" height="46" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="52" y="361" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">知识库</text>
+  <rect x="30" y="390" width="226" height="46" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="52" y="419" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">工具管理</text>
+  <rect x="30" y="448" width="226" height="46" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="52" y="477" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#23251F">软删除资源</text>
+  <rect x="30" y="530" width="226" height="74" rx="9" fill="#FFF0DF" stroke="#E6C49B"/>
+  <text x="52" y="560" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="800" fill="#D88A3D">权限提示</text>
+  <text x="52" y="584" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="11" fill="#6F7468">operator 只读 · admin 可操作</text>
+  <line x1="0" y1="698" x2="286" y2="698" stroke="#E5E0D3"/>
+  <circle cx="38" cy="728" r="19" fill="#405060"/>
+  <text x="32" y="735" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="17" font-weight="800" fill="#FFFFFF">管</text>
+  <text x="70" y="724" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="700" fill="#23251F">管理员</text>
+  <text x="70" y="744" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">admin · active</text>
+
+  <rect x="286" y="0" width="1154" height="76" fill="#FFFFFF"/>
+  <line x1="286" y1="76" x2="1440" y2="76" stroke="#E5E0D3"/>
+  <text x="324" y="50" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="28" fill="#405060">☰</text>
+  <text x="418" y="48" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="16" font-weight="800" fill="#23251F">管理后台</text>
+  <rect x="1030" y="23" width="104" height="32" rx="16" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="1058" y="44" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" fill="#405060">返回工作台</text>
+  <rect x="1148" y="23" width="118" height="32" rx="16" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="1170" y="44" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" font-weight="700" fill="#2F6F4E">admin/operator</text>
+  <rect x="1282" y="23" width="86" height="32" rx="16" fill="#F2EFE6"/>
+  <text x="1302" y="44" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="14" font-weight="700" fill="#405060">管理员</text>
+
+  <text x="328" y="126" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="26" font-weight="800" fill="#23251F">系统概览</text>
+  <text x="328" y="154" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" fill="#6F7468">运行、用户、工具、模型和知识库索引状态。高风险操作仅 admin 可见。</text>
+
+  <g transform="translate(328 184)">
+    <rect x="0" y="0" width="238" height="104" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+    <text x="24" y="36" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">AgentRun 今日</text>
+    <text x="24" y="76" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="30" font-weight="800" fill="#2F6F4E">1,284</text>
+    <text x="150" y="76" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#2F6F4E">+12%</text>
+  </g>
+  <g transform="translate(590 184)">
+    <rect x="0" y="0" width="238" height="104" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+    <text x="24" y="36" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">失败率</text>
+    <text x="24" y="76" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="30" font-weight="800" fill="#B94A48">2.1%</text>
+    <text x="144" y="76" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">近 24h</text>
+  </g>
+  <g transform="translate(852 184)">
+    <rect x="0" y="0" width="238" height="104" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+    <text x="24" y="36" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">模型用量</text>
+    <text x="24" y="76" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="30" font-weight="800" fill="#D88A3D">¥86.4</text>
+    <text x="144" y="76" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">今日成本</text>
+  </g>
+  <g transform="translate(1114 184)">
+    <rect x="0" y="0" width="238" height="104" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+    <text x="24" y="36" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">知识库索引</text>
+    <text x="24" y="76" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="30" font-weight="800" fill="#405060">97%</text>
+    <text x="144" y="76" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">indexed</text>
+  </g>
+
+  <rect x="328" y="316" width="1024" height="62" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="354" y="352" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="13" font-weight="700" fill="#23251F">筛选</text>
+  <rect x="426" y="334" width="130" height="28" rx="7" fill="#FBFAF6" stroke="#E5E0D3"/>
+  <text x="446" y="353" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">status: all</text>
+  <rect x="574" y="334" width="160" height="28" rx="7" fill="#FBFAF6" stroke="#E5E0D3"/>
+  <text x="594" y="353" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">createdAt: 24h</text>
+  <rect x="752" y="334" width="184" height="28" rx="7" fill="#FBFAF6" stroke="#E5E0D3"/>
+  <text x="772" y="353" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">traceId / userId</text>
+  <rect x="1218" y="330" width="104" height="34" rx="8" fill="#2F6F4E"/>
+  <text x="1244" y="352" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="800" fill="#FFFFFF">查询</text>
+
+  <rect x="328" y="404" width="640" height="244" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="356" y="438" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="800" fill="#23251F">运行审计</text>
+  <rect x="356" y="462" width="584" height="34" rx="7" fill="#F2EFE6"/>
+  <text x="376" y="484" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#6F7468">runId</text>
+  <text x="520" y="484" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#6F7468">intent</text>
+  <text x="650" y="484" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#6F7468">status</text>
+  <text x="792" y="484" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" font-weight="700" fill="#6F7468">trace</text>
+  <text x="376" y="528" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">run_1024</text>
+  <text x="520" y="528" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">planning</text>
+  <rect x="650" y="510" width="78" height="24" rx="12" fill="#EDF4EF" stroke="#B9D1BF"/>
+  <text x="668" y="527" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="11" fill="#2F6F4E">completed</text>
+  <text x="792" y="528" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">trace_...</text>
+  <line x1="356" y1="548" x2="940" y2="548" stroke="#E5E0D3"/>
+  <text x="376" y="584" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">run_1025</text>
+  <text x="520" y="584" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#23251F">analysis</text>
+  <rect x="650" y="566" width="62" height="24" rx="12" fill="#FFF0DF" stroke="#E6C49B"/>
+  <text x="668" y="583" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="11" fill="#D88A3D">failed</text>
+  <text x="792" y="584" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#6F7468">trace_...</text>
+  <rect x="812" y="610" width="104" height="26" rx="7" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="838" y="628" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="11" fill="#405060">查看详情</text>
+
+  <rect x="996" y="404" width="356" height="244" rx="10" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="1024" y="438" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="15" font-weight="800" fill="#23251F">管理操作</text>
+  <rect x="1024" y="464" width="132" height="36" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="1050" y="487" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">禁用用户</text>
+  <rect x="1174" y="464" width="132" height="36" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="1200" y="487" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">重置会话</text>
+  <rect x="1024" y="520" width="132" height="36" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="1050" y="543" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">工具启停</text>
+  <rect x="1174" y="520" width="132" height="36" rx="8" fill="#FFFFFF" stroke="#E5E0D3"/>
+  <text x="1200" y="543" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#405060">恢复资源</text>
+  <rect x="1024" y="584" width="282" height="40" rx="8" fill="#FFF0DF" stroke="#E6C49B"/>
+  <text x="1046" y="609" font-family="Noto Sans SC, Microsoft YaHei, Arial" font-size="12" fill="#D88A3D">高风险操作必须二次确认并写审计</text>
+</svg>

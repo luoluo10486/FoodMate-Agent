@@ -9,18 +9,34 @@ import styles from './WorkspaceLayout.module.css';
 
 type WorkspaceLayoutProps = {
   children: React.ReactNode;
-  activeModule?: 'home' | 'chat' | 'analysis' | 'planning' | 'knowledge';
+  activeModule?: 'home' | 'chat' | 'analysis' | 'planning' | 'knowledge' | 'profile' | 'admin';
   moduleLabel?: React.ReactNode;
 };
 
 export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }: WorkspaceLayoutProps) {
   const currentAuth = mockAuthScenarios.find((item) => item.status === mockAuthStatus) ?? mockAuthScenarios[0];
   const isAuthenticated = mockAuthStatus === 'authenticated';
+  const canAccessAdmin = isAuthenticated && (mockAuthUser.role === 'admin' || mockAuthUser.role === 'operator');
   const userMenu = (
     <Menu>
-      <Menu.Item key="profile">查看登录信息</Menu.Item>
+      <Menu.Item key="profile">
+        <Link className={styles.menuLink} to={isAuthenticated ? '/profile' : '/login'}>
+          个人资料
+        </Link>
+      </Menu.Item>
+      {canAccessAdmin ? (
+        <Menu.Item key="admin">
+          <Link className={styles.menuLink} to="/admin">
+            管理后台
+          </Link>
+        </Menu.Item>
+      ) : null}
       <Menu.Item key="expired">模拟登录过期</Menu.Item>
-      <Menu.Item key="logout">退出登录占位</Menu.Item>
+      <Menu.Item key="logout">
+        <Link className={styles.menuLink} to="/login">
+          退出登录占位
+        </Link>
+      </Menu.Item>
     </Menu>
   );
 
@@ -37,11 +53,11 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
         </Link>
         <Input className={styles.search} prefix={<IconSearch />} placeholder="搜索会话" allowClear />
         <SidebarSessionList sessions={mockSessions} />
-        <Link className={styles.profile} to="/login">
-          <div className={styles.avatar}>{isAuthenticated ? '梁' : '访'}</div>
+        <Link className={styles.profile} to={isAuthenticated ? '/profile' : '/login'}>
+          <div className={styles.avatar}>{isAuthenticated ? mockAuthUser.displayName.slice(0, 1) : '访'}</div>
           <div>
             <strong>{isAuthenticated ? mockAuthUser.displayName : '未登录'}</strong>
-            <span>{isAuthenticated ? mockAuthUser.profile.preference : currentAuth.title}</span>
+            <span>{isAuthenticated ? `${mockAuthUser.role} · ${mockAuthUser.profile.preference}` : currentAuth.title}</span>
           </div>
         </Link>
       </aside>
@@ -69,11 +85,16 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
             <NavLink className={styles.navItem} to="/analysis">
               <Tag color={activeModule === 'analysis' ? 'green' : 'gray'}>数据分析</Tag>
             </NavLink>
+            {canAccessAdmin ? (
+              <NavLink className={styles.navItem} to="/admin">
+                <Tag color={activeModule === 'admin' ? 'green' : 'gray'}>管理后台</Tag>
+              </NavLink>
+            ) : null}
           </nav>
           <Dropdown droplist={userMenu} position="br">
-            <Link className={styles.userButton} to="/login">
-              <Button icon={<IconUser />}>{isAuthenticated ? mockAuthUser.displayName : '登录'}</Button>
-            </Link>
+            <Button className={styles.userButton} icon={<IconUser />}>
+              {isAuthenticated ? mockAuthUser.displayName : '登录'}
+            </Button>
           </Dropdown>
         </header>
         {children}

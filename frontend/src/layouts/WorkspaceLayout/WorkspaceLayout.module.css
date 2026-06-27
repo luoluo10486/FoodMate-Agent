@@ -149,6 +149,15 @@
   color: inherit;
 }
 
+.menuLink {
+  display: block;
+  color: inherit;
+}
+
+.menuLink:hover {
+  color: inherit;
+}
+
 @media (max-width: 900px) {
   .shell {
     grid-template-columns: 84px minmax(0, 1fr);

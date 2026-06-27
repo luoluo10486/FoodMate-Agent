@@ -73,7 +73,7 @@
 | X-Request-Id | 请求追踪 ID |
 | X-Session-Id | 可选，会话上下文 |
 | Idempotency-Key | 幂等键，适用于写接口 |
-| Content-Type | `application/json` |
+| Content-Type | `application/json`；头像上传使用 `multipart/form-data` |
 
 ### 3.3 统一响应格式
 
@@ -121,6 +121,17 @@
 | RAG_EMPTY | 检索为空 |
 | AGENT_TIMEOUT | Agent 超时 |
 | INTERNAL_ERROR | 系统异常 |
+| AUTH_INVALID_CREDENTIALS | 用户名或密码错误 |
+| AUTH_TOKEN_EXPIRED | Access Token 已过期 |
+| AUTH_REFRESH_TOKEN_INVALID | Refresh Token 无效、过期或已撤销 |
+| AUTH_ACCOUNT_DISABLED | 账号被禁用 |
+| AUTH_ACCOUNT_LOCKED | 账号被锁定 |
+| AUTH_FORBIDDEN | 已登录但无权限 |
+| AUTH_REQUIRED | 未登录 |
+| AUTH_REGISTER_DISABLED | 当前环境未开放注册 |
+| AUTH_PASSWORD_RESET_INVALID | 密码重置 token 无效或过期 |
+| USER_AVATAR_INVALID | 头像文件不合法 |
+| USER_PASSWORD_INVALID | 密码校验失败 |
 
 ### 3.5 分页规范
 
@@ -140,6 +151,43 @@
 - `DELETE` 接口统一表示软删除
 - 恢复操作统一使用 `POST /restore`
 - 只有管理接口允许显式传 `include_deleted=true`
+
+### 3.7 认证、个人资料与 RBAC
+
+第一版认证使用 `Spring Security + JWT Access Token + HttpOnly Refresh Token`。
+
+| 方法 | 路径 | 用途 | 鉴权 |
+|---|---|---|---|
+| `POST` | `/foodmate/auth/login` | 登录并返回 Access Token，Refresh Token 通过 Cookie 返回 | 匿名 |
+| `POST` | `/foodmate/auth/refresh` | 使用 Refresh Cookie 轮换 token | 匿名 |
+| `POST` | `/foodmate/auth/logout` | 注销当前 Refresh Token | 用户 |
+| `GET` | `/foodmate/auth/me` | 查询当前用户、角色、权限和资料摘要 | 用户 |
+| `POST` | `/foodmate/auth/register` | 注册普通用户 | 匿名 |
+| `POST` | `/foodmate/auth/password-reset/request` | 发起密码找回 | 匿名 |
+| `POST` | `/foodmate/auth/password-reset/confirm` | 确认密码重置 | 匿名 |
+| `GET` | `/foodmate/users/me` | 查询个人资料 | 用户 |
+| `PATCH` | `/foodmate/users/me` | 修改昵称、展示名等基础资料 | 用户 |
+| `PATCH` | `/foodmate/users/me/profile` | 修改营养目标、忌口、过敏原、单位偏好 | 用户 |
+| `POST` | `/foodmate/users/me/avatar` | 上传或替换头像 | 用户 |
+| `DELETE` | `/foodmate/users/me/avatar` | 删除头像 | 用户 |
+| `POST` | `/foodmate/users/me/password/change` | 修改密码 | 用户 |
+
+角色固定为：
+
+| 角色 | 权限范围 |
+|---|---|
+| `user` | 只能访问自己的会话、消息、饮食记录、计划、个人资料和可见知识库内容 |
+| `operator` | 可只读访问运营治理信息，例如知识库文档、工具状态、部分运行日志 |
+| `admin` | 可访问管理后台全部能力，并执行用户状态、工具启停、知识库写入、软删除恢复等管理操作 |
+
+认证与资料规则：
+
+- Refresh Token 主状态保存在 PostgreSQL，Redis 只做验证码、限流、幂等、短期黑名单和缓存。
+- Refresh Token 不放 JSON body，默认通过 `Set-Cookie` 返回。
+- Refresh 成功必须轮换 Refresh Token。
+- 后端必须从 token 解析 `userId/role/status`，禁止信任前端传入的身份字段。
+- 用户不能修改自己的 `role/status`。
+- 头像上传使用 `multipart/form-data`，字段名 `file`，允许 `image/jpeg`、`image/png`、`image/webp`，第一版大小上限 2 MB。
 
 ---
 
@@ -914,6 +962,9 @@ Milvus 适合作为知识库主检索底座：
 ### 9.1 主表
 
 - users
+- user_profiles
+- auth_refresh_tokens
+- user_avatar_assets
 - sessions
 - messages
 - agent_runs
@@ -952,6 +1003,10 @@ Milvus 适合作为知识库主检索底座：
 - `Idempotency-Key`
 - 任务去重
 - 重试不重复写入
+- 幂等键作用域建议为 `userId + method + path + Idempotency-Key`
+- 相同幂等键但请求体摘要不一致时返回 `CONFLICT`
+- 登录、刷新、注册、头像上传、资料修改等接口必须能安全重试
+- Redis 可保存短期幂等记录，高价值写入仍需数据库唯一约束或业务状态兜底
 
 ---
 
@@ -976,10 +1031,12 @@ Milvus 适合作为知识库主检索底座：
 
 ### 11.1 基本要求
 
-- 所有写操作需鉴权
-- 用户只能访问自己的会话和日志
-- 知识库上传需管理权限
-- 工具调用需按场景授权
+- 所有写操作需鉴权。
+- 用户只能访问自己的会话、消息、饮食记录、计划、分析报告、个人资料和私有知识库内容。
+- 知识库上传、工具启停、软删除恢复、用户状态修改需 `admin` 权限。
+- `operator` 只能访问只读运营治理信息，例如知识库文档、工具状态、运行记录和模型用量摘要。
+- 工具调用需按场景授权，后端必须从 token 解析 `userId/role/status`。
+- 普通用户访问 `/foodmate/admin/*` 必须返回 403。
 
 ### 11.2 审计记录
 
@@ -990,6 +1047,18 @@ Milvus 适合作为知识库主检索底座：
 - 传了什么参数
 - 返回了什么结果
 - 是否失败
+- 管理写操作必须记录 `operatorId`、`targetType`、`targetId`、`action`、`requestId`、`traceId` 和结果状态。
+
+### 11.3 管理后台范围
+
+第一版管理后台先覆盖只读治理和少量高风险管理操作：
+
+- 管理概览：AgentRun 数量、失败率、工具调用量、模型用量、知识库索引状态。
+- 用户管理：用户列表、用户详情、启用、禁用、锁定、重置登录会话。
+- 运行审计：AgentRun、ToolCall、SQLAudit、ModelUsage、Trace 查询。
+- 知识库管理：文档列表、上传、下线、恢复、索引状态。
+- 工具管理：工具注册表、版本、启停、风险等级、权限范围。
+- 删除资源管理：查看软删除资源、恢复资源。
 
 ---
 

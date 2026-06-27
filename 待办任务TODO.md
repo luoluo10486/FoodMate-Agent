@@ -81,14 +81,15 @@
 
 实现要点：
 
-- 生成首页、会话页、分析页、规划页 4 张低保真原型图。
+- 生成首页、会话页、分析页、规划页、个人资料页、管理后台 6 张低保真原型图。
 - 原型图只表达页面骨架、信息层级、状态区域和关键操作。
 - 不把低保真原型当最终高保真视觉稿。
 
 验收标准：
 
-- UI 文档中能直接预览 4 张原型图。
+- UI 文档中能直接预览 6 张原型图。
 - 首页和会话页原型能指导 Phase 1 静态页面实现。
+- 个人资料页和管理后台原型能指导后续 mock 页面与权限入口实现。
 - 原型图路径使用相对路径，文档链接不失效。
 
 ## Phase 1：前端静态 UI 原型
@@ -385,6 +386,60 @@ Phase 2 统一约定：
 - 确认、取消、修改、重试都有明确反馈。
 - 不调用真实后端，不产生真实数据写入。
 
+### F2-4. 添加个人资料页 mock
+
+目标：
+
+- 为真实登录后的个人资料管理准备页面和状态边界。
+
+允许改动：
+
+- 前端路由。
+- 个人资料页面。
+- 头像上传 mock 组件。
+- auth/profile mock 数据。
+
+实现要点：
+
+- 新增 `/profile`。
+- 展示昵称、头像、邮箱、营养目标、忌口、过敏原、单位偏好和修改密码入口。
+- 头像上传只做 mock 预览和状态反馈，不上传真实文件。
+- 用户不能修改自己的 role/status。
+- 顶部用户菜单加入个人资料入口。
+
+验收标准：
+
+- `/profile` 可访问并使用 mock 数据渲染。
+- 保存资料只展示 mock 反馈，不调用真实后端。
+- 头像替换、删除和失败状态有明确 UI。
+
+### F2-5. 添加管理后台 mock 入口
+
+目标：
+
+- 为 admin/operator 的治理视图准备前端页面骨架。
+
+允许改动：
+
+- 前端路由。
+- 管理后台页面。
+- 管理后台 mock 数据。
+- 用户菜单权限展示。
+
+实现要点：
+
+- 新增 `/admin`。
+- 页面包含概览、用户管理、Agent 运行、工具调用、模型用量、知识库、软删除资源等视图入口。
+- 普通用户不显示管理入口。
+- operator 仅展示只读操作，admin 展示高风险操作入口和二次确认占位。
+- 当前阶段不接真实管理接口。
+
+验收标准：
+
+- `/admin` 可以展示 mock 管理概览。
+- 普通用户访问时展示 403 或无权限空态。
+- 管理列表支持分页和基础筛选的 UI 占位。
+
 ## Phase 3：后端工程骨架与通用能力
 
 ### B3-1. 创建 Maven 模块化单体骨架
@@ -569,16 +624,18 @@ Phase 2 统一约定：
 - 迁移脚本有版本号。
 - 主表包含软删除字段。
 
-### B4-2. 建立用户与会话域表
+### B4-2. 建立用户、认证、个人资料与会话域表
 
 目标：
 
-- 支撑登录占位、会话、消息基础链路。
+- 支撑真实登录、角色权限、个人资料、头像资产、会话和消息基础链路。
 
 必须表：
 
 - `users`
 - `user_profiles`
+- `auth_refresh_tokens`
+- `user_avatar_assets`
 - `sessions`
 - `messages`
 
@@ -588,7 +645,11 @@ Phase 2 统一约定：
 
 验收标准：
 
-- 表字段、状态字段、软删除字段齐全。
+- `users` 包含 username、email、passwordHash、role、avatarUrl、status、lastLoginAt、passwordUpdatedAt、lockedUntil。
+- `user_profiles` 包含展示名、身高、体重、活动水平、营养目标、忌口、过敏原和单位偏好。
+- `auth_refresh_tokens` 保存 tokenHash、用户、设备、过期、撤销和轮换信息，不保存明文 token。
+- `user_avatar_assets` 保存 MinIO/S3 对象 key、URL、mime、size、宽高和状态，不保存图片二进制。
+- 用户状态统一为 active/disabled/locked，角色统一为 user/admin/operator。
 - `sessions(user_id, last_message_at, is_deleted)` 或等价主路径索引存在。
 - `messages(session_id, sequence_no, is_deleted)` 或等价主路径索引存在。
 
@@ -711,6 +772,49 @@ Phase 2 统一约定：
 - route rule 支持 tenant、scene、modelType、provider、fallback、maxCost、maxLatency、ruleJson。
 
 ## Phase 5：后端 API 主链路
+
+### B5-0. 实现认证、RBAC 与个人资料接口
+
+目标：
+
+- 建立真实登录、刷新、退出、当前用户、注册、个人资料、头像上传和基础授权能力。
+
+参考接口：
+
+- `POST /foodmate/auth/login`
+- `POST /foodmate/auth/refresh`
+- `POST /foodmate/auth/logout`
+- `GET /foodmate/auth/me`
+- `POST /foodmate/auth/register`
+- `POST /foodmate/auth/password-reset/request`
+- `POST /foodmate/auth/password-reset/confirm`
+- `GET /foodmate/users/me`
+- `PATCH /foodmate/users/me`
+- `PATCH /foodmate/users/me/profile`
+- `POST /foodmate/users/me/avatar`
+- `DELETE /foodmate/users/me/avatar`
+- `POST /foodmate/users/me/password/change`
+
+必须实现：
+
+- Spring Security 鉴权入口。
+- JWT Access Token 校验。
+- HttpOnly Refresh Token 签发、校验、轮换和撤销。
+- BCrypt 或 Argon2 密码哈希。
+- RBAC：user/admin/operator。
+- 登录限流、验证码、幂等键等 Redis 占位能力。
+- 头像上传 MinIO/S3 占位或 mock storage adapter。
+- 后端从 token 解析 userId/role/status，不信任前端传入身份字段。
+
+验收标准：
+
+- 登录成功返回 Access Token，并通过 Cookie 设置 Refresh Token。
+- disabled/locked 用户不能登录。
+- refresh 成功会轮换 Refresh Token，logout 后当前 Refresh Token 失效。
+- 普通用户只能查看和修改自己的个人资料。
+- 用户不能修改自己的 role/status。
+- 头像上传限制图片类型、大小和尺寸，并返回 avatarUrl。
+- 普通用户访问 admin 接口返回 403。
 
 ### B5-1. 实现会话接口
 
@@ -935,26 +1039,41 @@ Phase 2 统一约定：
 
 目标：
 
-- 支撑调试、审计、回放和后台排障。
+- 支撑管理后台的概览、用户管理、审计、知识库、工具、模型用量和软删除资源治理。
 
 参考接口：
 
+- `GET /foodmate/admin/overview`
+- `GET /foodmate/admin/users`
+- `GET /foodmate/admin/users/{user_id}`
+- `PATCH /foodmate/admin/users/{user_id}/status`
+- `POST /foodmate/admin/users/{user_id}/sessions/reset`
 - `GET /foodmate/admin/agent-runs`
 - `GET /foodmate/admin/tool-calls`
 - `GET /foodmate/admin/sql-audits`
 - `GET /foodmate/admin/model-usage`
+- `GET /foodmate/admin/knowledge-documents`
+- `POST /foodmate/admin/knowledge-documents`
+- `PATCH /foodmate/admin/knowledge-documents/{document_id}/status`
+- `GET /foodmate/admin/tools`
+- `PATCH /foodmate/admin/tools/{name}/status`
 - `GET /foodmate/admin/deleted-resources`
+- `POST /foodmate/admin/deleted-resources/{resource_type}/{resource_id}/restore`
 
 第一阶段实现：
 
-- 可以先做只读查询。
-- 权限可先使用 admin role 占位。
+- 可以先做只读查询和少量状态变更占位。
+- `operator` 只能访问只读治理信息。
+- `admin` 可访问用户状态、工具启停、知识库写入和软删除恢复等高风险操作。
 
 验收标准：
 
 - 管理接口不对普通用户开放。
 - 查询结果支持分页。
-- 可以按 status、createdAt、traceId 查询。
+- 可以按 status、createdAt、traceId、userId 查询。
+- 管理写操作必须记录审计。
+- admin 能禁用/启用/锁定用户。
+- admin 能恢复软删除资源。
 
 ## Phase 6：Agent 编排主链路
 
@@ -1729,10 +1848,10 @@ Phase 2 统一约定：
 ## 第一版推荐执行顺序
 
 1. `D0-1` 到 `D0-2`：完成文档和原型入口。
-2. `F1-1` 到 `F2-3`：完成前端静态原型和 mock 交互。
+2. `F1-1` 到 `F2-5`：完成前端静态原型、mock 交互、个人资料页和管理后台 mock 入口。
 3. `B3-1` 到 `B3-5`：完成后端工程骨架和通用能力。
 4. `B4-1` 到 `B4-8`：完成数据库和持久化基础。
-5. `B5-1` 到 `B5-4`：完成会话、消息、AgentRun、SSE 主链路。
+5. `B5-0` 到 `B5-4`：完成认证、个人资料、会话、消息、AgentRun、SSE 主链路。
 6. `B6-1` 到 `B6-6`：完成 Agent 编排骨架。
 7. `B7-1` 到 `B9-5`：完成工具、RAG、SQL Agent 主能力。
 8. `B10-1` 到 `B10-3`：完成模型服务和 Prompt 工程化。
@@ -1744,9 +1863,12 @@ Phase 2 统一约定：
 MVP 不是“所有文档都写完”，而是以下链路可运行、可演示、可验收：
 
 - 用户能进入首页和会话页。
+- 用户能登录或使用测试用户，并能查看个人资料入口。
 - 用户能创建会话并发送消息。
 - 后端能创建 `Session`、`Message`、`AgentRun`。
+- 后端能校验 Access Token，Refresh Token 可撤销。
 - 前端能接收 SSE 运行事件。
+- 普通用户不能访问管理后台；管理员能查看基础管理概览。
 - Router 能识别计算、记录、分析、规划、知识问答。
 - calculator、time_parser、knowledge_search、database_query、food_log_writer、plan_validator 至少有可用实现或可替换 stub。
 - 饮食记录写入前必须确认。

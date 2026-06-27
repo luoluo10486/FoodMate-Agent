@@ -7,11 +7,21 @@ export type AuthPermission = {
 };
 
 export type UserNutritionProfile = {
+  heightCm: number;
   weightKg: number;
+  activityLevel: string;
+  dietGoal: string;
   proteinMultiplierRange: [number, number];
   proteinTargetRange: [number, number];
   calorieTarget: number;
+  proteinTarget: number;
   preference: string;
+  allergens: string[];
+  dislikes: string[];
+  preferredUnits: {
+    weight: string;
+    energy: string;
+  };
 };
 
 export type AuthUser = {
@@ -19,8 +29,9 @@ export type AuthUser = {
   username: string;
   displayName: string;
   role: 'user' | 'admin' | 'operator';
-  status: 'active' | 'disabled';
+  status: 'active' | 'disabled' | 'locked';
   email: string;
+  avatarUrl?: string;
   lastLoginAt: string;
   profile: UserNutritionProfile;
   permissions: AuthPermission[];
@@ -37,28 +48,40 @@ export type LoginFormValues = {
   rememberMe: boolean;
 };
 
-export const mockAuthStatus: AuthStatus = 'anonymous';
+export const mockAuthStatus: AuthStatus = 'authenticated';
 
 export const mockAuthUser: AuthUser = {
   id: '10001',
   username: 'liang',
   displayName: '梁同学',
-  role: 'user',
+  role: 'admin',
   status: 'active',
   email: 'liang@example.com',
+  avatarUrl: '',
   lastLoginAt: '2026-06-25 15:40',
   profile: {
+    heightCm: 175,
     weightKg: 70,
+    activityLevel: '中等活动',
+    dietGoal: '高蛋白 · 控预算',
     proteinMultiplierRange: [1.5, 2],
     proteinTargetRange: [105, 140],
     calorieTarget: 2100,
-    preference: '高蛋白 · 控预算'
+    proteinTarget: 120,
+    preference: '高蛋白 · 控预算',
+    allergens: ['暂无过敏原'],
+    dislikes: ['不吃猪肉', '少油'],
+    preferredUnits: {
+      weight: 'g',
+      energy: 'kcal'
+    }
   },
   permissions: [
     { key: 'agent.session', label: 'Agent 会话', scope: '仅自己的会话和消息' },
     { key: 'food.log', label: '饮食记录', scope: '仅自己的饮食日志' },
     { key: 'meal.plan', label: '备餐计划', scope: '仅自己的计划与购物清单' },
-    { key: 'knowledge.search', label: '知识库检索', scope: '公开内容 + 用户可见内容' }
+    { key: 'knowledge.search', label: '知识库检索', scope: '公开内容 + 用户可见内容' },
+    { key: 'admin.dashboard', label: '管理后台', scope: '管理员治理视图' }
   ],
   security: {
     tokenStrategy: 'Access Token + HttpOnly Refresh Cookie',

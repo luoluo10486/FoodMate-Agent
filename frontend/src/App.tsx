@@ -7,6 +7,8 @@ const AnalysisPage = lazy(() => import('./pages/AnalysisPage/AnalysisPage').then
 const PlanningPage = lazy(() => import('./pages/PlanningPage/PlanningPage').then((module) => ({ default: module.PlanningPage })));
 const KnowledgePage = lazy(() => import('./pages/KnowledgePage/KnowledgePage').then((module) => ({ default: module.KnowledgePage })));
 const LoginPage = lazy(() => import('./pages/LoginPage/LoginPage').then((module) => ({ default: module.LoginPage })));
+const ProfilePage = lazy(() => import('./pages/ProfilePage/ProfilePage').then((module) => ({ default: module.ProfilePage })));
+const AdminPage = lazy(() => import('./pages/AdminPage/AdminPage').then((module) => ({ default: module.AdminPage })));
 
 export function App() {
   return (
@@ -18,6 +20,8 @@ export function App() {
         <Route path="/planning" element={<PlanningPage />} />
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

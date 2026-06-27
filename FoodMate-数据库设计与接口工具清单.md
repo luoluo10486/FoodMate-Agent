@@ -173,8 +173,17 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 | `id` | `BIGINT` | PK | 用户主键 |
 | `tenant_id` | `BIGINT` |  | 多租户隔离 |
 | `user_no` | `VARCHAR(64)` | UK | 用户业务编号 |
+| `username` | `VARCHAR(64)` | UK | 登录用户名 |
+| `email` | `VARCHAR(255)` | UK | 登录邮箱 |
+| `password_hash` | `VARCHAR(255)` |  | BCrypt/Argon2 密码哈希 |
 | `nickname` | `VARCHAR(128)` |  | 昵称 |
-| `status` | `VARCHAR(32)` |  | `active/inactive/locked` |
+| `role` | `VARCHAR(32)` |  | `user/admin/operator` |
+| `avatar_url` | `VARCHAR(512)` |  | 当前头像访问地址 |
+| `status` | `VARCHAR(32)` |  | `active/disabled/locked` |
+| `last_login_at` | `TIMESTAMPTZ` |  | 最近登录时间 |
+| `password_updated_at` | `TIMESTAMPTZ` |  | 密码最近更新时间 |
+| `login_failed_count` | `INT` |  | 连续登录失败次数 |
+| `locked_until` | `TIMESTAMPTZ` |  | 临时锁定截止时间 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
 | `is_deleted` | `BOOLEAN` |  | 软删除标记 |
@@ -184,10 +193,12 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 基线索引：
 
 - `uk_users_user_no`
+- `uk_users_username WHERE is_deleted = false`
+- `uk_users_email WHERE is_deleted = false`
 
 候选索引：
 
-- `(tenant_id, status, is_deleted)`
+- `(tenant_id, role, status, is_deleted)`
 
 #### `user_profiles`
 
@@ -195,15 +206,74 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 |---|---|---|---|
 | `id` | `BIGINT` | PK | 主键 |
 | `user_id` | `BIGINT` | UK, FK | 对应用户 |
+| `display_name` | `VARCHAR(128)` |  | 对外展示名，默认可同步 `users.nickname` |
+| `gender` | `VARCHAR(32)` |  | 性别，可为空 |
+| `birthday` | `DATE` |  | 生日，可为空 |
+| `height_cm` | `DECIMAL(6,2)` |  | 身高厘米 |
+| `weight_kg` | `DECIMAL(6,2)` |  | 体重千克 |
+| `activity_level` | `VARCHAR(64)` |  | 活动水平 |
 | `diet_goal` | `VARCHAR(64)` |  | 增肌/减脂/均衡 |
+| `calorie_target` | `INT` |  | 每日热量目标 |
+| `protein_target` | `INT` |  | 每日蛋白质目标，单位 g |
 | `allergens` | `JSONB` |  | 过敏原 |
 | `dislikes` | `JSONB` |  | 忌口 |
 | `preferred_units` | `JSONB` |  | 单位偏好 |
 | `profile_json` | `JSONB` |  | 扩展画像 |
+| `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
 | `is_deleted` | `BOOLEAN` |  | 软删除标记 |
 | `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
 | `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+#### `auth_refresh_tokens`
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `id` | `BIGINT` | PK | 主键 |
+| `user_id` | `BIGINT` | FK | 用户 |
+| `token_hash` | `VARCHAR(255)` | UK | Refresh Token 哈希，禁止保存明文 |
+| `device_id` | `VARCHAR(128)` |  | 设备标识 |
+| `user_agent` | `VARCHAR(512)` |  | 登录客户端信息 |
+| `ip_address` | `VARCHAR(64)` |  | 最近使用 IP |
+| `expires_at` | `TIMESTAMPTZ` |  | 过期时间 |
+| `revoked_at` | `TIMESTAMPTZ` |  | 撤销时间 |
+| `rotated_from_id` | `BIGINT` |  | 轮换来源 token |
+| `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+基线索引：
+
+- `uk_auth_refresh_tokens_token_hash`
+- `idx_auth_refresh_tokens_user_expires_at`
+
+#### `user_avatar_assets`
+
+头像文件存储在 MinIO/S3，PostgreSQL 只保存对象元数据，不保存图片二进制。
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `id` | `BIGINT` | PK | 主键 |
+| `user_id` | `BIGINT` | FK | 用户 |
+| `storage_key` | `VARCHAR(255)` |  | MinIO/S3 对象键 |
+| `url` | `VARCHAR(512)` |  | 当前可访问 URL 或 CDN URL |
+| `mime_type` | `VARCHAR(64)` |  | 图片类型 |
+| `size_bytes` | `BIGINT` |  | 文件大小 |
+| `width` | `INT` |  | 图片宽度 |
+| `height` | `INT` |  | 图片高度 |
+| `status` | `VARCHAR(32)` |  | `active/replaced/deleted` |
+| `created_by` | `BIGINT` |  | 上传人 |
+| `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+基线索引：
+
+- `idx_user_avatar_assets_user_status`
 
 #### `sessions`
 
@@ -543,7 +613,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 | `description` | `VARCHAR(255)` |  | 描述 |
 | `category` | `VARCHAR(32)` |  | query/write/generate/validate |
 | `risk_level` | `VARCHAR(16)` |  | low/medium/high |
-| `availability_scope` | `VARCHAR(32)` |  | user/admin/internal |
+| `availability_scope` | `VARCHAR(32)` |  | user/operator/admin/internal |
 | `status` | `VARCHAR(32)` |  | active/disabled |
 | `current_version` | `VARCHAR(32)` |  | 当前版本 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
@@ -691,28 +761,46 @@ ACL 相关 metadata 固定包含：
 - 所有默认查询统一排除 `is_deleted = true` 的数据
 - 只有管理接口允许显式传 `include_deleted=true`
 
-### 3.1.1 认证与会话接口草案（待审核）
+### 3.1.1 认证、授权与个人资料接口草案（待审核）
 
-当前文档已确定“默认 Bearer Token”、`Spring Security + JWT + Refresh Token`、用户表包含 `username/password_hash/status/role`，但还没有单独的登录接口契约。建议第一版采用以下方案，待评审后再进入后端实现。本节只作为后端文档草案，不代表已经实现 Controller、Filter、数据库 migration 或 Spring Security 配置。
+本节定义登录、注册、Refresh Token、RBAC、个人资料和头像上传的实现契约。第一版以 `Spring Security + JWT Access Token + HttpOnly Refresh Token` 为主方案；Refresh Token 主状态落 PostgreSQL，Redis 只做验证码、限流、幂等键、短期黑名单和权限缓存等辅助能力。
 
 #### 认证模型
 
 - Access Token：短有效期 JWT，建议 15 到 30 分钟，用于调用普通业务接口，前端优先只放内存状态。
-- Refresh Token：长有效期随机不透明 token，建议 7 到 30 天，通过 `HttpOnly; Secure; SameSite=Lax/Strict` Cookie 返回，服务端保存哈希、过期时间、撤销状态和设备信息。
+- Refresh Token：长有效期随机不透明 token，建议 7 到 30 天，通过 `HttpOnly; Secure; SameSite=Lax/Strict` Cookie 返回，服务端只保存 `token_hash`、过期时间、撤销状态、轮换来源和设备信息。
+- Refresh 成功必须轮换 Refresh Token，旧 token 标记为撤销或 rotated，避免旧 cookie 被重复使用。
 - 前端请求头：`Authorization: Bearer <accessToken>`。
 - SSE 事件接口同样校验 Bearer Token；浏览器 EventSource 如果不便设置 header，前端可先使用 `fetch` + ReadableStream，或后端支持受控的 `access_token` 查询参数，后者必须限制短期 token 且避免日志泄露。
 - 密码只保存哈希，建议使用 BCrypt/Argon2；禁止明文和可逆加密。
-- 用户状态不是 `active` 时拒绝登录。
+- 用户状态不是 `active` 时拒绝登录；`disabled/locked` 均返回认证类错误，不暴露过多账号状态细节。
 - 注册和找回密码第一版可先只保留接口契约；短信、邮箱验证码和第三方 OAuth 不在当前 MVP 强制实现范围。
 
-#### 推荐接口
+#### RBAC 角色模型
+
+第一版采用简单 RBAC，不做复杂 ABAC。
+
+| 角色 | 能力边界 |
+|---|---|
+| `user` | 访问自己的会话、消息、饮食记录、计划、分析结果、个人资料和可见知识库内容 |
+| `operator` | 只读查看运营类信息，例如知识库文档、工具状态、部分运行日志和模型用量摘要 |
+| `admin` | 访问全部管理后台；可管理用户状态、工具启停、知识库文档、软删除恢复等高风险操作 |
+
+固定规则：
+
+- 后端必须从 token 解析 `userId/role/status`，禁止信任前端传入的 `userId/role/status`。
+- 用户自己只能修改个人资料、头像和密码，不能修改自己的 `role/status`。
+- 管理接口必须记录审计：`operatorId/requestId/traceId/targetType/targetId/action/result/createdAt`。
+- 普通业务查询默认按当前用户过滤；管理接口显式允许跨用户筛选。
+
+#### 认证接口
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/foodmate/auth/login` | 用户名密码登录，返回 access token 与 refresh cookie | 匿名 | 是 |
-| `POST` | `/foodmate/auth/refresh` | 使用 refresh cookie 换取新 access token | 匿名 | 是 |
+| `POST` | `/foodmate/auth/login` | 用户名或邮箱 + 密码登录，返回 access token 与 refresh cookie | 匿名 | 是 |
+| `POST` | `/foodmate/auth/refresh` | 使用 refresh cookie 换取新 access token 并轮换 refresh cookie | 匿名 | 是 |
 | `POST` | `/foodmate/auth/logout` | 注销当前 refresh token | 用户 | 是 |
-| `GET` | `/foodmate/auth/me` | 查询当前用户资料、角色和营养目标摘要 | 用户 | 否 |
+| `GET` | `/foodmate/auth/me` | 查询当前用户资料、角色、权限和营养目标摘要 | 用户 | 否 |
 | `POST` | `/foodmate/auth/register` | 注册普通用户账号 | 匿名 | 是 |
 | `POST` | `/foodmate/auth/password-reset/request` | 发起密码找回 | 匿名 | 是 |
 | `POST` | `/foodmate/auth/password-reset/confirm` | 确认密码重置 | 匿名 | 是 |
@@ -745,21 +833,14 @@ ACL 相关 metadata 固定包含：
       "displayName": "梁同学",
       "role": "user",
       "status": "active",
-      "email": "liang@example.com"
+      "email": "liang@example.com",
+      "avatarUrl": "https://cdn.example.com/avatar/10001.png"
     }
   }
 }
 ```
 
 说明：`refreshToken` 默认不放在 JSON body 中，而是通过 `Set-Cookie` 返回 HttpOnly Cookie。如果后续决定纯 Bearer 模式，需要单独评审 XSS 风险和前端存储策略。
-
-#### `POST /foodmate/auth/refresh` 请求
-
-```json
-{}
-```
-
-说明：默认从 HttpOnly Refresh Cookie 读取刷新凭证。刷新成功后返回新的 Access Token，并轮换 Refresh Cookie。
 
 #### `GET /foodmate/auth/me` 响应
 
@@ -775,18 +856,22 @@ ACL 相关 metadata 固定包含：
     "role": "user",
     "status": "active",
     "email": "liang@example.com",
+    "avatarUrl": "https://cdn.example.com/avatar/10001.png",
     "profile": {
+      "heightCm": 175,
       "weightKg": 70,
-      "proteinMultiplierRange": [1.5, 2.0],
-      "proteinTargetRange": [105, 140],
-      "calorieTarget": 2100
+      "activityLevel": "moderate",
+      "dietGoal": "high_protein",
+      "proteinTarget": 120,
+      "calorieTarget": 2100,
+      "allergens": [],
+      "dislikes": ["pork"],
+      "preferredUnits": { "weight": "g", "energy": "kcal" }
     },
     "permissions": [
-      {
-        "key": "agent.session",
-        "label": "Agent 会话",
-        "scope": "仅自己的会话和消息"
-      }
+      { "key": "agent.session", "scope": "own" },
+      { "key": "food.log", "scope": "own" },
+      { "key": "admin.dashboard", "scope": "none" }
     ],
     "security": {
       "tokenStrategy": "Access Token + HttpOnly Refresh Cookie",
@@ -796,7 +881,7 @@ ACL 相关 metadata 固定包含：
 }
 ```
 
-#### `POST /foodmate/auth/register` 请求
+#### 注册和密码找回请求
 
 ```json
 {
@@ -807,31 +892,32 @@ ACL 相关 metadata 固定包含：
 }
 ```
 
-#### `POST /foodmate/auth/password-reset/request` 请求
+注册接口默认创建 `role=user`、`status=active` 的普通用户；管理员、运营账号由初始化脚本或管理后台创建。密码找回接口无论邮箱是否存在，都应返回统一成功提示，避免账号枚举。
 
-```json
-{
-  "email": "liang@example.com"
-}
-```
+#### 个人资料接口
 
-#### `POST /foodmate/auth/password-reset/confirm` 请求
+| 方法 | 路径 | 用途 | 鉴权 | 幂等 |
+|---|---|---|---|---|
+| `GET` | `/foodmate/users/me` | 查询当前用户基础资料和画像 | 用户 | 否 |
+| `PATCH` | `/foodmate/users/me` | 修改昵称、展示名等账号基础资料 | 用户 | 是 |
+| `PATCH` | `/foodmate/users/me/profile` | 修改营养目标、忌口、过敏原、单位偏好 | 用户 | 是 |
+| `POST` | `/foodmate/users/me/avatar` | 上传或替换头像 | 用户 | 是 |
+| `DELETE` | `/foodmate/users/me/avatar` | 删除当前头像 | 用户 | 是 |
+| `POST` | `/foodmate/users/me/password/change` | 修改当前用户密码 | 用户 | 是 |
 
-```json
-{
-  "resetToken": "opaque...",
-  "newPassword": "********"
-}
-```
+头像上传约定：
 
-#### 权限规则
+- 使用 `multipart/form-data`，字段名固定为 `file`。
+- 允许类型：`image/jpeg`、`image/png`、`image/webp`。
+- 第一版大小限制建议为 2 MB；宽高建议不低于 `128 x 128`，不超过 `2048 x 2048`。
+- 文件进入 MinIO/S3，数据库只保存 `storage_key/url/mime_type/size/width/height`。
+- 替换头像时旧头像资产标记为 `replaced` 或软删除，`users.avatar_url` 指向最新头像。
 
-- 普通用户只能访问自己的会话、消息、饮食记录、计划、分析结果和私有知识库内容。
-- 管理员可访问工具注册、知识库文档管理、Schema Catalog、运行审计和模型用量接口。
-- 后端必须从 token 解析 `userId/role`，不能信任前端传入的 `userId`。
-- 写操作继续保留 `Idempotency-Key`，登录和刷新接口也应能安全重试。
-- 注册接口默认创建 `role=user`、`status=active` 的普通用户；管理员、运营账号由管理端或初始化脚本创建。
-- 密码找回接口无论邮箱是否存在，都应返回统一成功提示，避免账号枚举。
+修改密码约定：
+
+- 请求必须包含 `oldPassword`、`newPassword`。
+- 修改成功后更新 `password_updated_at`，可选择撤销当前用户其他 Refresh Token。
+- 修改邮箱第一版只保留接口或状态说明，不强制真实验证码闭环。
 
 #### 推荐错误码
 
@@ -839,17 +925,21 @@ ACL 相关 metadata 固定包含：
 - `AUTH_TOKEN_EXPIRED`：Access Token 已过期。
 - `AUTH_REFRESH_TOKEN_INVALID`：Refresh Token 无效、过期或已撤销。
 - `AUTH_ACCOUNT_DISABLED`：账号被禁用。
+- `AUTH_ACCOUNT_LOCKED`：账号被锁定。
 - `AUTH_FORBIDDEN`：已登录但无权限访问资源。
 - `AUTH_REQUIRED`：访问受保护资源但未登录。
 - `AUTH_REGISTER_DISABLED`：当前环境未开放注册。
 - `AUTH_PASSWORD_RESET_INVALID`：密码重置 token 无效或过期。
+- `USER_AVATAR_INVALID`：头像文件类型、大小或尺寸不合法。
+- `USER_PASSWORD_INVALID`：旧密码错误或新密码不符合策略。
 
 #### 前端接入约定
 
 - Phase 1-2 前端只提供 `/login` mock 入口，不保存真实 token。
 - 真实接入时，Access Token 优先放内存状态；Refresh Token 推荐 HttpOnly Secure Cookie。如果必须由 SPA 保存 refresh token，需要额外评审 XSS 风险和刷新策略。
-- 所有 401 响应触发刷新；刷新失败跳转 `/login` 并保留用户当前路由作为 `redirect`。
-- 所有 403 响应展示权限不足错误态，不自动重试。
+- 所有 401 响应触发刷新；刷新失败跳转 `/login?redirect=...` 并保留用户当前路由。
+- 所有 403 响应展示权限不足错误态，不自动重试；普通用户访问 `/admin` 必须得到 403。
+- 前端需要规划 `/profile` 和 `/admin`，但第一版可以先使用 mock 页面和占位数据。
 - 前端注册和找回密码在 MVP 阶段可以先做入口和状态提示，不接短信、邮箱或验证码。
 
 ### 3.2 会话与消息接口
@@ -1002,11 +1092,29 @@ ACL 相关 metadata 固定包含：
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `GET` | `/foodmate/admin/agent-runs` | 查询运行记录 | 管理员 | 否 |
-| `GET` | `/foodmate/admin/tool-calls` | 查询工具调用 | 管理员 | 否 |
-| `GET` | `/foodmate/admin/sql-audits` | 查询 SQL 审计 | 管理员 | 否 |
-| `GET` | `/foodmate/admin/model-usage` | 查询模型用量 | 管理员 | 否 |
-| `GET` | `/foodmate/admin/deleted-resources` | 查询已删除资源 | 管理员 | 否 |
+| `GET` | `/foodmate/admin/overview` | 管理概览：运行量、失败率、工具调用量、模型用量、知识库索引状态 | `admin/operator` | 否 |
+| `GET` | `/foodmate/admin/users` | 查询用户列表 | `admin` | 否 |
+| `GET` | `/foodmate/admin/users/{user_id}` | 查询用户详情 | `admin` | 否 |
+| `PATCH` | `/foodmate/admin/users/{user_id}/status` | 启用、禁用或锁定用户 | `admin` | 是 |
+| `POST` | `/foodmate/admin/users/{user_id}/sessions/reset` | 撤销用户 refresh token 或重置登录会话 | `admin` | 是 |
+| `GET` | `/foodmate/admin/agent-runs` | 查询运行记录 | `admin/operator` | 否 |
+| `GET` | `/foodmate/admin/tool-calls` | 查询工具调用 | `admin/operator` | 否 |
+| `GET` | `/foodmate/admin/sql-audits` | 查询 SQL 审计 | `admin/operator` | 否 |
+| `GET` | `/foodmate/admin/model-usage` | 查询模型用量 | `admin/operator` | 否 |
+| `GET` | `/foodmate/admin/knowledge-documents` | 查询知识库文档与索引状态 | `admin/operator` | 否 |
+| `POST` | `/foodmate/admin/knowledge-documents` | 上传知识库文档 | `admin` | 是 |
+| `PATCH` | `/foodmate/admin/knowledge-documents/{document_id}/status` | 下线、启用或恢复知识库文档 | `admin` | 是 |
+| `GET` | `/foodmate/admin/tools` | 查询工具注册表和版本 | `admin/operator` | 否 |
+| `PATCH` | `/foodmate/admin/tools/{name}/status` | 启停工具 | `admin` | 是 |
+| `GET` | `/foodmate/admin/deleted-resources` | 查询已删除资源 | `admin` | 否 |
+| `POST` | `/foodmate/admin/deleted-resources/{resource_type}/{resource_id}/restore` | 恢复软删除资源 | `admin` | 是 |
+
+管理接口统一要求：
+
+- 所有列表接口必须支持分页。
+- 基础筛选建议包含：`status`、`created_at_start`、`created_at_end`、`trace_id`、`user_id`。
+- `operator` 只能访问只读治理信息；涉及用户状态、工具启停、知识库写入、软删除恢复的接口仅 `admin` 可用。
+- 所有管理写操作必须记录审计，审计内容包含操作者、目标类型、目标 ID、动作、请求 ID、trace ID 和结果。
 
 ---
 
