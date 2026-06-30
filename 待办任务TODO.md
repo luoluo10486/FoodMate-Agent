@@ -1177,12 +1177,15 @@ Phase 2 统一约定：
 - 无依赖工具可以并行。
 - 每次工具调用写 `tool_calls`。
 - 工具失败时根据 retryable 决定是否重试。
+- 引入 `ToolPolicyChecker` 或等价策略层；LLM 只能输出 `proposed_tool_call`，不能直接执行工具。
+- 对检索片段、网页正文、上传文档解析结果等 `untrusted_content` 做上下文隔离，不允许其直接驱动高风险工具执行。
 
 验收标准：
 
 - 工具执行状态能反映到 SSE。
 - 工具失败不会被 AnswerComposer 假装成功。
 - 每次工具调用可回放输入输出摘要。
+- 来自 `untrusted_content` 的危险工具提议会被拒绝或转人工确认，并记录拒绝原因。
 
 ### B6-5. 实现 ResultValidator
 
@@ -1243,12 +1246,14 @@ Phase 2 统一约定：
 - schema 校验。
 - 权限校验占位。
 - 超时和重试策略。
+- `ToolPolicyChecker`：校验工具是否启用、是否需要确认、是否命中白名单、是否受 `untrusted_content` 直接驱动。
 
 验收标准：
 
 - 工具执行前校验工具是否启用。
 - 工具入参不符合 schema 时返回 `TOOL_SCHEMA_INVALID`。
 - 每次执行写入 `tool_calls`。
+- 未通过策略检查的工具调用返回结构化拒绝原因，并写审计。
 
 ### B7-2. 注册 P0 工具元数据
 
@@ -1298,6 +1303,7 @@ Phase 2 统一约定：
 - 支持 timezone，默认 `Asia/Shanghai`。
 - 返回 start、end、timezone、sourceText。
 - 当前日期由服务端注入，方便测试。
+- 与检索链路对接时，允许输出 `trusted=false` 或等价来源标记，供执行层做 Prompt Injection 防御。
 
 验收标准：
 
@@ -1387,6 +1393,8 @@ Phase 2 统一约定：
 - 有命中时返回 hits。
 - 无命中时返回空结果。
 - 返回结果包含 title、snippet、score、metadata。
+- 返回的网页正文、文档片段和第三方文本默认标记为 `untrusted_content`。
+- 检索片段中的命令式文本不会被当成工具调用指令。
 
 ### B8-3. 实现 CitationAssembler
 
@@ -1769,12 +1777,14 @@ Phase 2 统一约定：
 - 是否需要追问。
 - 期望工具。
 - 期望输出结构。
+- 是否包含 Prompt Injection / 越权诱导 / 外部文本伪指令。
 
 验收标准：
 
 - Router 可以跑样例集。
 - 工具选择可以统计准确率。
 - 回归结果可保存。
+- 至少包含“网页内容诱导导出数据”“文档内容要求忽略系统规则”“检索片段诱导调用写工具”三类拒绝样例。
 
 ### T12-5. 建立日志、指标和 Trace
 

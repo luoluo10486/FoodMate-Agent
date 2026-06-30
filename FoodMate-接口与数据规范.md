@@ -118,6 +118,7 @@
 | CONFLICT | 资源冲突 |
 | RATE_LIMITED | 被限流 |
 | TOOL_FAILED | 工具执行失败 |
+| TOOL_POLICY_DENIED | 工具调用被策略层拒绝 |
 | RAG_EMPTY | 检索为空 |
 | AGENT_TIMEOUT | Agent 超时 |
 | INTERNAL_ERROR | 系统异常 |
@@ -900,6 +901,20 @@ Milvus 适合作为知识库主检索底座：
     "code": "TOOL_FAILED",
     "message": "知识库检索失败",
     "retryable": true
+  }
+}
+```
+
+当工具调用因为 Prompt Injection 风险、越权、缺少确认或不可信内容直接驱动而被拒绝时，优先返回 `TOOL_POLICY_DENIED`，并在错误详情中给出 `reason`，例如：
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "TOOL_POLICY_DENIED",
+    "message": "工具调用被策略层拒绝",
+    "retryable": false,
+    "reason": "untrusted_content_requested_high_risk_action"
   }
 }
 ```

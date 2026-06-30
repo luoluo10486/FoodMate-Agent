@@ -504,6 +504,13 @@ flowchart TD
   - 默认只开放读能力
   - 写操作、提交操作、发送操作、删除操作必须单独授权
 
+- **Prompt Injection 防御**
+  - 外部网页、检索片段、上传文档、OCR 文本、第三方返回富文本统一视为 `untrusted_content`
+  - `untrusted_content` 只能作为证据、数据或候选线索，不能作为系统指令执行
+  - 外部内容不能覆盖 system prompt、权限策略、工具白名单、确认要求或 SQL Guard
+  - LLM 只能提出 `proposed_tool_call`，是否执行必须由后端 `ToolPolicyChecker` 独立判定
+  - 如果高风险操作只由 `untrusted_content` 驱动，默认拒绝或转 `require_approval`
+
 - **只读 SQL**
   - SQL Agent 只允许 `SELECT` 和 `WITH ... SELECT`
   - 强制 `LIMIT`
@@ -525,6 +532,11 @@ flowchart TD
 
 - **默认拒绝**
   - 未登记、未授权、未版本化、未审计的能力默认不能被 Agent 调用
+
+- **上下文隔离**
+  - 推荐固定优先级：`system_policy > backend_permission_policy > user_explicit_intent > confirmed_constraints > untrusted_content`
+  - 检索片段、网页正文、工具自由文本返回必须进入隔离区，不能与 system 规则混写
+  - 被拒绝的危险工具提议也要记录原因，便于回放和排障
 
 ##### 4.3.7.7 FoodMate 的能力映射
 
@@ -599,6 +611,7 @@ flowchart TD
    - 当目标站点没有 API
    - 当需要真实浏览页面、展开内容、翻页、复制结构化信息时
    - 当人工可见网页交互是唯一可行路径时
+   - 即使使用 Browser Use，也必须把页面正文标记为 `untrusted_content`
 
 ##### 4.3.7.10 为什么 Browser Use 只适合作为兜底
 
@@ -607,6 +620,7 @@ flowchart TD
 - 成本高
 - 容易受页面结构变化影响
 - 合规和风控更复杂
+- 容易把网页中的 Prompt Injection 文本带入模型上下文
 
 ##### 4.3.7.11 对 FoodMate 的建议
 
