@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AgentDisplayStatus, AgentRunView, Citation, ToolCall } from '../types/agent';
 import type { Message } from '../types/session';
+import type { ClarificationField } from '../components/agent/ClarificationCard';
 
 type AgentMode = 'planning' | 'record' | 'analysis' | 'knowledge_qna' | 'calculation';
 type AgentCard =
   | { type: 'none' }
-  | { type: 'clarification'; title: string; options: string[] }
-  | { type: 'confirmation'; data: Array<{ label: string; value: string }> }
+  | { type: 'clarification'; title: string; options?: string[]; fields?: ClarificationField[]; submitLabel?: string }
+  | { type: 'confirmation'; title?: string; helperText?: string; data: Array<{ label: string; value: string }> }
   | {
       type: 'result';
       mode: AgentMode;
@@ -344,8 +345,28 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
         type: 'card',
         card: {
           type: 'clarification',
-          title: '为了生成可执行计划，请先补充一个约束',
-          options: ['预算 300 元以内', '不吃猪肉', '目标高蛋白']
+          title: '为了生成可执行计划，请补充预算、忌口和目标',
+          submitLabel: '继续生成计划',
+          fields: [
+            {
+              key: 'budget',
+              label: '预算',
+              placeholder: '例如：300 元以内',
+              quickOptions: ['300 元以内', '400 元以内']
+            },
+            {
+              key: 'dislikes',
+              label: '忌口',
+              placeholder: '例如：不吃猪肉、少油',
+              quickOptions: ['不吃猪肉', '少油少辣']
+            },
+            {
+              key: 'goal',
+              label: '目标',
+              placeholder: '例如：高蛋白、控预算',
+              quickOptions: ['目标高蛋白', '高蛋白 + 控预算']
+            }
+          ]
         }
       }
     ];
@@ -429,11 +450,100 @@ function buildSteps(mode: AgentMode, prompt: string): ReplayStep[] {
   return withRunEvents([{ type: 'event', event: 'run.created' }, ...buildStepPayloads(mode, prompt)]);
 }
 
+function buildPlanningContinuationSteps(summary: string): ReplayStep[] {
+  return withRunEvents([
+    { type: 'status', status: 'planning' },
+    { type: 'message', content: `收到补充约束：${summary}。我会按这些条件继续生成计划。` },
+    { type: 'status', status: 'retrieving' },
+    {
+      type: 'tool',
+      tool: {
+        id: 'tool-knowledge',
+        name: 'knowledge_search',
+        displayName: '知识检索',
+        status: 'running',
+        summary: '正在检索高蛋白备餐和冷藏保存建议。',
+        input: `高蛋白 备餐 冷藏 保存 ${summary}`,
+        output: '检索中...'
+      }
+    },
+    {
+      type: 'toolUpdate',
+      id: 'tool-knowledge',
+      patch: { status: 'success', latencyMs: 420, summary: '命中食材复用、冷藏保存、预算控制 3 条参考。', output: '3 references · avg score=0.88' }
+    },
+    {
+      type: 'citation',
+      citation: {
+        id: 'c-plan',
+        title: '备餐指南',
+        snippet: '高蛋白备餐建议优先复用鸡蛋、豆腐、鸡胸肉等易保存食材。',
+        source: '内部知识库',
+        score: 0.92
+      }
+    },
+    { type: 'status', status: 'executing_tools' },
+    {
+      type: 'tool',
+      tool: {
+        id: 'tool-db',
+        name: 'database_query',
+        displayName: '历史偏好查询',
+        status: 'running',
+        summary: '正在查询近期常用食材和忌口。',
+        input: `user_food_preferences: ${summary}`,
+        output: '查询中...'
+      }
+    },
+    {
+      type: 'toolUpdate',
+      id: 'tool-db',
+      patch: { status: 'success', latencyMs: 280, summary: '已把预算、忌口和目标映射进计划上下文。', output: summary }
+    },
+    { type: 'status', status: 'validating' },
+    {
+      type: 'tool',
+      tool: {
+        id: 'tool-validator',
+        name: 'plan_validator',
+        displayName: '计划校验',
+        status: 'running',
+        summary: '正在校验日均蛋白质、预算和烹饪时间。',
+        input: `plan draft · ${summary}`,
+        output: '校验中...'
+      }
+    },
+    {
+      type: 'toolUpdate',
+      id: 'tool-validator',
+      patch: { status: 'success', latencyMs: 360, summary: '预算与蛋白质目标校验通过。', output: 'valid=true · budget=pass · protein_target=pass' }
+    },
+    { type: 'status', status: 'composing' },
+    {
+      type: 'assistantStream',
+      content: `已根据“${summary}”生成高蛋白备餐草案。当前方案优先复用鸡胸肉、鸡蛋、豆腐和西兰花，兼顾预算控制、可执行性和批量备餐效率。`
+    },
+    {
+      type: 'card',
+      card: {
+        type: 'result',
+        mode: 'planning',
+        label: '计划草案',
+        title: '备餐计划已更新，可继续查看购物清单或确认保存',
+        description: `计划已经纳入 ${summary}，当前校验通过。`,
+        primaryAction: '确认保存',
+        secondaryAction: '查看购物清单'
+      }
+    },
+    { type: 'status', status: 'completed' }
+  ]);
+}
+
 export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null): UseMockAgentReplayState & {
   setInput: (value: string) => void;
   send: (overridePrompt?: string) => void;
   stop: () => void;
-  answerClarification: (value: string) => void;
+  answerClarification: (value: string | Record<string, string>) => void;
   confirmWrite: () => void;
   handleResultPrimary: () => void;
   handleResultSecondary: () => void;
@@ -458,6 +568,8 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
   const seedTimeoutRef = useRef<number | null>(null);
   const streamMessageIdRef = useRef<string | null>(null);
   const seededRef = useRef(false);
+  const lastPromptRef = useRef('');
+  const lastConfirmationDataRef = useRef<Array<{ label: string; value: string }>>([]);
 
   const clearTimers = useCallback(() => {
     timeoutsRef.current.forEach((id) => window.clearTimeout(id));
@@ -550,28 +662,19 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       }
 
       if (step.type === 'card') {
+        if (step.card.type === 'confirmation') {
+          lastConfirmationDataRef.current = step.card.data;
+        }
         setCard(step.card);
       }
     },
     [appendRunEvent, updateRun]
   );
 
-  const send = useCallback(
-    (overridePrompt?: string) => {
-      const prompt = (overridePrompt ?? input).trim();
-      if (!prompt || running) return;
-
-      clearTimers();
-      const mode = detectMode(prompt);
-      setMessages((current) => [...current, createMessage('user', prompt)]);
-      setInput('');
-      setCard({ type: 'none' });
-      setEvents([]);
-      setRunning(true);
-      setRun({ ...baseRun, id: `run-${Date.now()}`, status: 'routing', intent: mode, toolCalls: [], citations: [], toolsUsed: 0 });
-
+  const scheduleSteps = useCallback(
+    (steps: ReplayStep[]) => {
       let delay = 360;
-      buildSteps(mode, prompt).forEach((step) => {
+      steps.forEach((step) => {
         const timeout = window.setTimeout(() => applyStep(step), delay);
         timeoutsRef.current.push(timeout);
 
@@ -582,7 +685,27 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
         }
       });
     },
-    [applyStep, clearTimers, input, running]
+    [applyStep]
+  );
+
+  const send = useCallback(
+    (overridePrompt?: string) => {
+      const prompt = (overridePrompt ?? input).trim();
+      if (!prompt || running) return;
+
+      clearTimers();
+      const mode = detectMode(prompt);
+      lastPromptRef.current = prompt;
+      setMessages((current) => [...current, createMessage('user', prompt)]);
+      setInput('');
+      setCard({ type: 'none' });
+      setEvents([]);
+      setRunning(true);
+      setRun({ ...baseRun, id: `run-${Date.now()}`, status: 'routing', intent: mode, toolCalls: [], citations: [], toolsUsed: 0 });
+
+      scheduleSteps(buildSteps(mode, prompt));
+    },
+    [clearTimers, input, running, scheduleSteps]
   );
 
   useEffect(() => {
@@ -611,28 +734,55 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
   }, [appendRunEvent, clearTimers, updateRun]);
 
   const answerClarification = useCallback(
-    (value: string) => {
+    (value: string | Record<string, string>) => {
+      const answers =
+        typeof value === 'string'
+          ? { budget: value, dislikes: '不吃猪肉', goal: '目标高蛋白' }
+          : value;
+      const summary = `预算：${answers.budget}；忌口：${answers.dislikes}；目标：${answers.goal}`;
+
+      clearTimers();
+      setMessages((current) => [...current, createMessage('user', summary)]);
+      setInput('');
       setCard({ type: 'none' });
-      send(`为 2 人制定一周备餐计划，${value}`);
+      setRunning(true);
+      updateRun((current) => ({ ...current, status: 'planning' }));
+      scheduleSteps(buildPlanningContinuationSteps(summary));
     },
-    [send]
+    [clearTimers, scheduleSteps, updateRun]
   );
 
   const confirmWrite = useCallback(() => {
     setCard({ type: 'none' });
-    setMessages((current) => [...current, createMessage('assistant', '已模拟保存这条午餐记录。真实接入后会返回 foodLogId，并可在饮食日志中查询。')]);
+    setMessages((current) => [...current, createMessage('assistant', '已模拟保存这条午餐记录。真实接入后会返回 `food_log_id`，并可在饮食日志中查询。')]);
     updateRun((current) => ({ ...current, status: 'completed' }));
     appendRunEvent('run.completed');
   }, [appendRunEvent, updateRun]);
+
+  const editWrite = useCallback(() => {
+    setInput('把鸡胸肉改成 180g，米饭 120g');
+    setMessages((current) => [...current, createMessage('assistant', '可以，已把修改建议放到输入框，发送后我会重新估算。')]);
+  }, []);
 
   const handleResultPrimary = useCallback(() => {
     if (card.type !== 'result') return;
 
     setCard({ type: 'none' });
     if (card.mode === 'planning') {
-      setMessages((current) => [...current, createMessage('assistant', '已模拟保存这个备餐计划。真实接入后会生成 mealPlanId，并同步到“饮食管理”页面。')]);
+      setMessages((current) => [...current, createMessage('assistant', '已模拟保存这个备餐计划。真实接入后会生成 `meal_plan_id`，并同步到“饮食管理”页面。')]);
       updateRun((current) => ({ ...current, status: 'completed' }));
       appendRunEvent('run.completed');
+      return;
+    }
+
+    if (card.mode === 'record') {
+      setCard({
+        type: 'confirmation',
+        title: '重新确认写入内容',
+        helperText: '这是重新打开的确认卡，仍然不会写入真实后端。',
+        data: lastConfirmationDataRef.current
+      });
+      updateRun((current) => ({ ...current, status: 'waiting_user' }));
       return;
     }
 
@@ -644,13 +794,18 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     if (card.mode === 'calculation') {
       send('帮我记录今天吃了 20 克鸡胸肉');
     }
-  }, [appendRunEvent, card, updateRun]);
+  }, [appendRunEvent, card, send, updateRun]);
 
   const handleResultSecondary = useCallback(() => {
     if (card.type !== 'result') return;
 
     if (card.mode === 'planning') {
       window.location.assign('/planning');
+      return;
+    }
+
+    if (card.mode === 'record') {
+      editWrite();
       return;
     }
 
@@ -661,18 +816,22 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
 
     setCard({ type: 'none' });
     send('按当前蛋白质缺口生成补充计划，高蛋白，预算 100 元以内');
-  }, [card, send]);
-
-  const editWrite = useCallback(() => {
-    setInput('把鸡胸肉改成 180g，米饭 120g');
-    setMessages((current) => [...current, createMessage('assistant', '可以，已把修改建议放到输入框，发送后我会重新估算。')]);
-  }, []);
+  }, [card, editWrite, send]);
 
   const cancelWrite = useCallback(() => {
-    setCard({ type: 'none' });
+    setInput(lastPromptRef.current);
     setMessages((current) => [...current, createMessage('assistant', '已取消写入，没有保存任何饮食记录。')]);
     updateRun((current) => ({ ...current, status: 'cancelled' }));
     appendRunEvent('run.cancelled');
+    setCard({
+      type: 'result',
+      mode: 'record',
+      label: '已取消写入',
+      title: '没有保存任何饮食记录',
+      description: '已保留原始输入，可以重新确认写入，或继续修改后再发送。',
+      primaryAction: '重新确认写入',
+      secondaryAction: '继续修改'
+    });
   }, [appendRunEvent, updateRun]);
 
   return useMemo(

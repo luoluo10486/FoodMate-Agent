@@ -121,7 +121,7 @@ export const adminDeletedRows = [
 ];
 
 export const adminOperationAuditRows = [
-  { key: 'op-1', operator: 'admin', action: 'PATCH_USER_STATUS', targetType: 'user', targetId: 'user_10003', result: 'success', requestId: 'req_admin_7781', traceId: 'trace_admin_7781', createdAt: '2026-06-25 18:18' },
-  { key: 'op-2', operator: 'admin', action: 'PATCH_TOOL_STATUS', targetType: 'tool', targetId: 'food_log_writer', result: 'success', requestId: 'req_admin_7782', traceId: 'trace_admin_7782', createdAt: '2026-06-25 17:40' },
-  { key: 'op-3', operator: 'admin', action: 'RESTORE_RESOURCE', targetType: 'meal_plan', targetId: 'meal_plan_73', result: 'pending', requestId: 'req_admin_7783', traceId: 'trace_admin_7783', createdAt: '2026-06-25 16:52' }
+  { key: 'op-1', operator_id: 'user_10001', operator: 'admin', action: 'PATCH_USER_STATUS', target_type: 'user', target_id: 'user_10003', result: 'success', request_id: 'req_admin_7781', trace_id: 'trace_admin_7781', created_at: '2026-06-25 18:18' },
+  { key: 'op-2', operator_id: 'user_10001', operator: 'admin', action: 'PATCH_TOOL_STATUS', target_type: 'tool', target_id: 'food_log_writer', result: 'success', request_id: 'req_admin_7782', trace_id: 'trace_admin_7782', created_at: '2026-06-25 17:40' },
+  { key: 'op-3', operator_id: 'user_10001', operator: 'admin', action: 'RESTORE_RESOURCE', target_type: 'meal_plan', target_id: 'meal_plan_73', result: 'pending', request_id: 'req_admin_7783', trace_id: 'trace_admin_7783', created_at: '2026-06-25 16:52' }
 ];

@@ -4,6 +4,19 @@
   background: #fff8f6;
 }
 
+.title {
+  margin: 12px 0 0;
+  color: var(--fm-ink);
+  font-size: 16px;
+}
+
+.helperText {
+  margin: 12px 0 0;
+  color: var(--fm-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .actions {
   display: flex;
   gap: 10px;

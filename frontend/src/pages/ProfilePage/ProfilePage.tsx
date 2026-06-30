@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, Message, Select, Tag } from '@arco-design/web-react';
+import { useEffect, useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
+import { Button, Card, Form, Input, InputNumber, Message, Modal, Select, Tag } from '@arco-design/web-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { mockAuthUser } from '../../mock/auth';
 import styles from './ProfilePage.module.css';
@@ -9,11 +10,69 @@ const Option = Select.Option;
 export function ProfilePage() {
   const [avatarRemoved, setAvatarRemoved] = useState(false);
   const [avatarError, setAvatarError] = useState('');
+  const [avatarFileName, setAvatarFileName] = useState('');
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordValues, setPasswordValues] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [saved, setSaved] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(
+    () => () => {
+      if (avatarPreviewUrl) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+    },
+    [avatarPreviewUrl]
+  );
 
   const handleSave = () => {
     setSaved(true);
     Message.success('个人资料已模拟保存');
+  };
+
+  const handleAvatarSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      setAvatarError('图片超过 2MB 或类型不支持');
+      setAvatarFileName(file.name);
+      Message.error('头像上传失败：图片超过 2MB 或类型不支持');
+      event.target.value = '';
+      return;
+    }
+
+    if (avatarPreviewUrl) {
+      URL.revokeObjectURL(avatarPreviewUrl);
+    }
+
+    setAvatarRemoved(false);
+    setAvatarError('');
+    setAvatarFileName(file.name);
+    setAvatarPreviewUrl(URL.createObjectURL(file));
+    Message.success('头像已模拟上传并生成预览');
+    event.target.value = '';
+  };
+
+  const handlePasswordSave = () => {
+    if (!passwordValues.oldPassword || !passwordValues.newPassword || !passwordValues.confirmPassword) {
+      Message.warning('请完整填写旧密码、新密码和确认密码');
+      return;
+    }
+
+    if (passwordValues.newPassword !== passwordValues.confirmPassword) {
+      Message.error('两次输入的新密码不一致');
+      return;
+    }
+
+    setPasswordVisible(false);
+    setPasswordValues({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    Message.success('密码已模拟修改；真实接入后需要校验 old_password 并轮换 refresh token');
   };
 
   return (
@@ -32,26 +91,28 @@ export function ProfilePage() {
             <Card className={styles.card} bordered={false}>
               <div className={styles.avatarPanel}>
                 <div className={`${styles.avatar} ${avatarRemoved ? styles.avatarMuted : ''}`}>
-                  {avatarRemoved ? '访' : mockAuthUser.displayName.slice(0, 1)}
+                  {!avatarRemoved && avatarPreviewUrl ? <img alt="avatar preview" className={styles.avatarImage} src={avatarPreviewUrl} /> : null}
+                  {avatarRemoved || avatarPreviewUrl ? null : mockAuthUser.displayName.slice(0, 1)}
+                  {avatarRemoved ? '访' : null}
                 </div>
                 <strong>{mockAuthUser.displayName}</strong>
                 <span>{mockAuthUser.email}</span>
+                {avatarFileName ? <Tag color="arcoblue">{avatarFileName}</Tag> : null}
               </div>
               <div className={styles.avatarActions}>
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    setAvatarRemoved(false);
-                    setAvatarError('');
-                    Message.success('头像已模拟上传');
-                  }}
-                >
-                  上传头像
+                <input accept="image/jpeg,image/png,image/webp" className={styles.hiddenInput} onChange={handleAvatarChange} ref={fileInputRef} type="file" />
+                <Button type="primary" onClick={handleAvatarSelect}>
+                  选择图片
                 </Button>
                 <Button
                   onClick={() => {
+                    if (avatarPreviewUrl) {
+                      URL.revokeObjectURL(avatarPreviewUrl);
+                    }
                     setAvatarRemoved(true);
                     setAvatarError('');
+                    setAvatarPreviewUrl('');
+                    setAvatarFileName('');
                     Message.info('头像已模拟删除');
                   }}
                 >
@@ -68,7 +129,7 @@ export function ProfilePage() {
                 </Button>
               </div>
               {avatarError ? <Tag color="red">{avatarError}</Tag> : null}
-              <p className={styles.uploadHint}>支持 JPG / PNG / WebP，2MB 内。真实接入后文件进入 MinIO。</p>
+              <p className={styles.uploadHint}>支持 JPG / PNG / WebP，2MB 内。当前只做本地预览和状态反馈，真实接入后文件进入 MinIO。</p>
             </Card>
 
             <Card className={styles.card} bordered={false}>
@@ -158,7 +219,7 @@ export function ProfilePage() {
                   </Form.Item>
                 </div>
                 <div className={styles.actions}>
-                  <Button>修改密码</Button>
+                  <Button onClick={() => setPasswordVisible(true)}>修改密码</Button>
                   <Button type="primary" htmlType="submit">
                     保存资料
                   </Button>
@@ -168,6 +229,35 @@ export function ProfilePage() {
           </main>
         </section>
       </div>
+      <Modal
+        title="修改密码"
+        visible={passwordVisible}
+        okText="模拟保存"
+        cancelText="取消"
+        onCancel={() => {
+          setPasswordVisible(false);
+          setPasswordValues({ oldPassword: '', newPassword: '', confirmPassword: '' });
+        }}
+        onOk={handlePasswordSave}
+      >
+        <div className={styles.passwordForm}>
+          <Input.Password
+            placeholder="旧密码"
+            value={passwordValues.oldPassword}
+            onChange={(value) => setPasswordValues((current) => ({ ...current, oldPassword: value }))}
+          />
+          <Input.Password
+            placeholder="新密码"
+            value={passwordValues.newPassword}
+            onChange={(value) => setPasswordValues((current) => ({ ...current, newPassword: value }))}
+          />
+          <Input.Password
+            placeholder="确认新密码"
+            value={passwordValues.confirmPassword}
+            onChange={(value) => setPasswordValues((current) => ({ ...current, confirmPassword: value }))}
+          />
+        </div>
+      </Modal>
     </WorkspaceLayout>
   );
 }

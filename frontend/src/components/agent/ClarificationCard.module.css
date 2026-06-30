@@ -15,6 +15,33 @@
   flex-wrap: wrap;
 }
 
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.fieldHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fieldHead strong {
+  color: var(--fm-ink);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .loading,
 .disabled {
   opacity: 0.72;

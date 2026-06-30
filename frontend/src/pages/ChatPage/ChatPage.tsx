@@ -14,7 +14,8 @@ import { useMockAgentReplay } from '../../mock/agentReplay';
 import styles from './ChatPage.module.css';
 
 export function ChatPage() {
-  const { sessionId } = useParams();
+  const params = useParams();
+  const sessionId = params.session_id ?? params.sessionId;
   const [searchParams] = useSearchParams();
   const agent = useMockAgentReplay(sessionId, searchParams.get('prompt'));
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -48,9 +49,25 @@ export function ChatPage() {
                   onSecondary={agent.handleResultSecondary}
                 />
               ) : null}
-              {agent.card.type === 'clarification' ? <ClarificationCard title={agent.card.title} options={agent.card.options} onSelect={agent.answerClarification} /> : null}
+              {agent.card.type === 'clarification' ? (
+                <ClarificationCard
+                  title={agent.card.title}
+                  options={agent.card.options}
+                  fields={agent.card.fields}
+                  submitLabel={agent.card.submitLabel}
+                  onSelect={agent.answerClarification}
+                  onSubmit={agent.answerClarification}
+                />
+              ) : null}
               {agent.card.type === 'confirmation' ? (
-                <ConfirmationCard data={agent.card.data} onConfirm={agent.confirmWrite} onEdit={agent.editWrite} onCancel={agent.cancelWrite} />
+                <ConfirmationCard
+                  title={agent.card.title}
+                  helperText={agent.card.helperText}
+                  data={agent.card.data}
+                  onConfirm={agent.confirmWrite}
+                  onEdit={agent.editWrite}
+                  onCancel={agent.cancelWrite}
+                />
               ) : null}
               {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
             </div>

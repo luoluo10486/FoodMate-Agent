@@ -49,6 +49,13 @@ type KnowledgeRow = (typeof adminKnowledgeRows)[number];
 type DeletedRow = (typeof adminDeletedRows)[number];
 type OperationAuditRow = (typeof adminOperationAuditRows)[number];
 type AdminSectionKey = 'overview' | 'users' | 'runs' | 'tools' | 'usage' | 'knowledge' | 'deleted';
+type AdminActionPayload = {
+  action: string;
+  targetLabel: string;
+  targetType: string;
+  targetId: string;
+  onApply?: () => void;
+};
 
 const canAccessAdmin = mockAuthStatus === 'authenticated' && (mockAuthUser.role === 'admin' || mockAuthUser.role === 'operator');
 const canManage = mockAuthStatus === 'authenticated' && mockAuthUser.role === 'admin';
@@ -86,23 +93,6 @@ function roleTag(role: string) {
 
 function riskTag(risk: string) {
   return <Tag color={risk === 'high' ? 'red' : risk === 'medium' ? 'orange' : 'green'}>{risk}</Tag>;
-}
-
-function confirmAdminAction(action: string, target: string) {
-  if (!canManage) {
-    Message.warning('operator 只读，不能执行管理写操作');
-    return;
-  }
-
-  Modal.confirm({
-    title: action,
-    content: `确认对 ${target} 执行该管理操作？真实接入后会携带 requestId / traceId 并写入审计表。`,
-    okText: '确认执行',
-    cancelText: '取消',
-    onOk: () => {
-      Message.success(`${action} 已提交，mock 审计记录已更新`);
-    }
-  });
 }
 
 const auditColumns: TableColumnProps<AuditRow>[] = [
@@ -150,12 +140,13 @@ const modelUsageColumns: TableColumnProps<ModelUsageRow>[] = [
 ];
 
 const operationAuditColumns: TableColumnProps<OperationAuditRow>[] = [
+  { title: 'operator_id', dataIndex: 'operator_id' },
   { title: '操作人', dataIndex: 'operator' },
   { title: '动作', dataIndex: 'action' },
-  { title: '目标', render: (_, record) => `${record.targetType}:${record.targetId}` },
+  { title: '目标', render: (_, record) => `${record.target_type}:${record.target_id}` },
   { title: '结果', dataIndex: 'result', render: statusTag },
-  { title: 'Request', dataIndex: 'requestId' },
-  { title: 'Trace', dataIndex: 'traceId' }
+  { title: 'request_id', dataIndex: 'request_id' },
+  { title: 'trace_id', dataIndex: 'trace_id' }
 ];
 
 const sessionColumns: TableColumnProps<UserSessionRow>[] = [
@@ -189,7 +180,7 @@ function AdminHeader({ sectionKey }: { sectionKey: AdminSectionKey }) {
   );
 }
 
-function AdminFilters({ placeholder = 'traceId / userId' }: { placeholder?: string }) {
+function AdminFilters({ placeholder = 'trace_id / user_id' }: { placeholder?: string }) {
   return (
     <section className={styles.filters}>
       <strong>筛选</strong>
@@ -205,7 +196,7 @@ function AdminFilters({ placeholder = 'traceId / userId' }: { placeholder?: stri
         <Option value="30d">近 30 天</Option>
       </Select>
       <Input className={styles.filterInput} size="small" placeholder={placeholder} allowClear />
-      <Button type="primary" onClick={() => Message.info('筛选为 mock 操作；真实接入会映射 status / createdAt / traceId / userId')}>
+      <Button type="primary" onClick={() => Message.info('筛选为 mock 操作；真实接入会映射 status / created_at / trace_id / user_id')}>
         查询
       </Button>
     </section>
@@ -230,14 +221,14 @@ function OperationAuditCard() {
     <Card className={styles.wideCard} bordered={false}>
       <div className={styles.cardHead}>
         <strong>管理操作审计</strong>
-        <Tag color="arcoblue">operator / target / requestId / traceId</Tag>
+        <Tag color="arcoblue">operator_id / target_type / request_id / trace_id</Tag>
       </div>
       <Table columns={operationAuditColumns} data={adminOperationAuditRows} pagination={{ pageSize: 4, total: adminOperationAuditRows.length }} size="small" />
     </Card>
   );
 }
 
-function OverviewSection() {
+function OverviewSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
   return (
     <>
       <section className={styles.metrics}>
@@ -262,7 +253,7 @@ function OverviewSection() {
         </Card>
 
         <aside className={styles.side}>
-          <AdminActionsCard />
+          <AdminActionsCard onAction={onAction} />
           <GovernanceResourceCard />
         </aside>
       </section>
@@ -290,7 +281,7 @@ function OverviewSection() {
   );
 }
 
-function UsersSection() {
+function UsersSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
   const [selectedUser, setSelectedUser] = useState<UserRow>(adminUserRows[1]);
 
   if (!canManage) return <AdminOnlyNotice title="无权访问用户管理" />;
@@ -309,13 +300,60 @@ function UsersSection() {
           <Button size="mini" onClick={() => setSelectedUser(record)}>
             查看
           </Button>
-          <Button size="mini" disabled={record.role === 'admin'} onClick={() => confirmAdminAction('锁定用户', record.userId)}>
+          <Button
+            size="mini"
+            disabled={record.role === 'admin'}
+            onClick={() =>
+              onAction({
+                action: '锁定用户',
+                targetLabel: record.userId,
+                targetType: 'user',
+                targetId: record.userId,
+                onApply: () => {
+                  record.status = 'locked';
+                  record.lockedUntil = '2026-06-30 23:59';
+                }
+              })
+            }
+          >
             锁定
           </Button>
-          <Button size="mini" disabled={record.role === 'admin'} onClick={() => confirmAdminAction('禁用用户', record.userId)}>
+          <Button
+            size="mini"
+            disabled={record.role === 'admin'}
+            onClick={() =>
+              onAction({
+                action: '禁用用户',
+                targetLabel: record.userId,
+                targetType: 'user',
+                targetId: record.userId,
+                onApply: () => {
+                  record.status = 'disabled';
+                }
+              })
+            }
+          >
             禁用
           </Button>
-          <Button size="mini" disabled={record.role === 'admin'} onClick={() => confirmAdminAction('重置会话', record.userId)}>
+          <Button
+            size="mini"
+            disabled={record.role === 'admin'}
+            onClick={() =>
+              onAction({
+                action: '重置会话',
+                targetLabel: record.userId,
+                targetType: 'user_session',
+                targetId: record.userId,
+                onApply: () => {
+                  adminUserSessionRows
+                    .filter((session) => session.userId === record.userId)
+                    .forEach((session) => {
+                      session.status = 'revoked';
+                    });
+                }
+              })
+            }
+          >
             重置会话
           </Button>
         </div>
@@ -336,7 +374,7 @@ function UsersSection() {
         </Card>
         <aside className={styles.side}>
           <UserDetailCard user={selectedUser} />
-          <AdminActionsCard />
+          <AdminActionsCard onAction={onAction} />
         </aside>
       </section>
       <OperationAuditCard />
@@ -408,7 +446,7 @@ function RunsSection() {
   );
 }
 
-function ToolsSection() {
+function ToolsSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
   const [selectedTool, setSelectedTool] = useState<ToolRow>(adminToolRows[0]);
 
   const toolColumns: TableColumnProps<ToolRow>[] = [
@@ -424,7 +462,21 @@ function ToolsSection() {
           <Button size="mini" onClick={() => setSelectedTool(record)}>
             详情
           </Button>
-          <Button size="mini" disabled={!canManage} onClick={() => confirmAdminAction(record.status === 'active' ? '停用工具' : '启用工具', record.name)}>
+          <Button
+            size="mini"
+            disabled={!canManage}
+            onClick={() =>
+              onAction({
+                action: record.status === 'active' ? '停用工具' : '启用工具',
+                targetLabel: record.name,
+                targetType: 'tool',
+                targetId: record.name,
+                onApply: () => {
+                  record.status = record.status === 'active' ? 'disabled' : 'active';
+                }
+              })
+            }
+          >
             启停
           </Button>
         </div>
@@ -497,7 +549,7 @@ function UsageSection() {
   );
 }
 
-function KnowledgeSection() {
+function KnowledgeSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
   const [selectedDoc, setSelectedDoc] = useState<KnowledgeRow>(adminKnowledgeRows[0]);
   const [uploadVisible, setUploadVisible] = useState(false);
 
@@ -516,7 +568,22 @@ function KnowledgeSection() {
           <Button size="mini" onClick={() => setSelectedDoc(record)}>
             详情
           </Button>
-          <Button size="mini" disabled={!canManage} onClick={() => confirmAdminAction(record.status === 'indexed' ? '下线文档' : '恢复文档', record.documentId)}>
+          <Button
+            size="mini"
+            disabled={!canManage}
+            onClick={() =>
+              onAction({
+                action: record.status === 'indexed' ? '下线文档' : '恢复文档',
+                targetLabel: record.documentId,
+                targetType: 'knowledge_document',
+                targetId: record.documentId,
+                onApply: () => {
+                  record.status = record.status === 'indexed' ? 'disabled' : 'indexed';
+                  record.indexProgress = record.status === 'indexed' ? '100%' : '0%';
+                }
+              })
+            }
+          >
             {record.status === 'indexed' ? '下线' : '恢复'}
           </Button>
         </div>
@@ -585,7 +652,7 @@ function KnowledgeDetailCard({ document }: { document: KnowledgeRow }) {
   );
 }
 
-function DeletedSection() {
+function DeletedSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
   if (!canManage) return <AdminOnlyNotice title="无权访问软删除资源" />;
 
   const deletedColumns: TableColumnProps<DeletedRow>[] = [
@@ -597,7 +664,23 @@ function DeletedSection() {
     {
       title: '操作',
       render: (_, record) => (
-        <Button size="mini" onClick={() => confirmAdminAction('恢复软删除资源', `${record.resourceType}:${record.resourceId}`)}>
+        <Button
+          size="mini"
+          onClick={() =>
+            onAction({
+              action: '恢复软删除资源',
+              targetLabel: `${record.resourceType}:${record.resourceId}`,
+              targetType: record.resourceType,
+              targetId: record.resourceId,
+              onApply: () => {
+                const rowIndex = adminDeletedRows.findIndex((item) => item.key === record.key);
+                if (rowIndex >= 0) {
+                  adminDeletedRows.splice(rowIndex, 1);
+                }
+              }
+            })
+          }
+        >
           恢复
         </Button>
       )
@@ -629,21 +712,82 @@ function MiniStat({ label, value, hint, tone = 'green' }: { label: string; value
   );
 }
 
-function AdminActionsCard() {
+function AdminActionsCard({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
   return (
     <Card className={styles.card} bordered={false}>
       <strong>管理操作</strong>
       <div className={styles.actionGrid}>
-        <Button disabled={!canManage} onClick={() => confirmAdminAction('禁用用户', 'user_10002')}>
+        <Button
+          disabled={!canManage}
+          onClick={() =>
+            onAction({
+              action: '禁用用户',
+              targetLabel: 'user_10002',
+              targetType: 'user',
+              targetId: 'user_10002',
+              onApply: () => {
+                const target = adminUserRows.find((item) => item.userId === 'user_10002');
+                if (target) target.status = 'disabled';
+              }
+            })
+          }
+        >
           禁用用户
         </Button>
-        <Button disabled={!canManage} onClick={() => confirmAdminAction('重置会话', 'user_10002')}>
+        <Button
+          disabled={!canManage}
+          onClick={() =>
+            onAction({
+              action: '重置会话',
+              targetLabel: 'user_10002',
+              targetType: 'user_session',
+              targetId: 'user_10002',
+              onApply: () => {
+                adminUserSessionRows
+                  .filter((session) => session.userId === 'user_10002')
+                  .forEach((session) => {
+                    session.status = 'revoked';
+                  });
+              }
+            })
+          }
+        >
           重置会话
         </Button>
-        <Button disabled={!canManage} onClick={() => confirmAdminAction('工具启停', 'food_log_writer')}>
+        <Button
+          disabled={!canManage}
+          onClick={() =>
+            onAction({
+              action: '工具启停',
+              targetLabel: 'food_log_writer',
+              targetType: 'tool',
+              targetId: 'food_log_writer',
+              onApply: () => {
+                const tool = adminToolRows.find((item) => item.name === 'food_log_writer');
+                if (tool) tool.status = tool.status === 'active' ? 'disabled' : 'active';
+              }
+            })
+          }
+        >
           工具启停
         </Button>
-        <Button disabled={!canManage} onClick={() => confirmAdminAction('恢复资源', 'meal_plan_73')}>
+        <Button
+          disabled={!canManage}
+          onClick={() =>
+            onAction({
+              action: '恢复资源',
+              targetLabel: 'meal_plan_73',
+              targetType: 'meal_plan',
+              targetId: 'meal_plan_73',
+              onApply: () => {
+                const rowIndex = adminDeletedRows.findIndex((item) => item.resourceId === 'meal_plan_73');
+                if (rowIndex >= 0) {
+                  adminDeletedRows.splice(rowIndex, 1);
+                }
+              }
+            })
+          }
+        >
           恢复资源
         </Button>
       </div>
@@ -669,19 +813,54 @@ function GovernanceResourceCard() {
   );
 }
 
-function renderSection(sectionKey: AdminSectionKey) {
-  if (sectionKey === 'users') return <UsersSection />;
+function renderSection(sectionKey: AdminSectionKey, onAction: (payload: AdminActionPayload) => void) {
+  if (sectionKey === 'users') return <UsersSection onAction={onAction} />;
   if (sectionKey === 'runs') return <RunsSection />;
-  if (sectionKey === 'tools') return <ToolsSection />;
+  if (sectionKey === 'tools') return <ToolsSection onAction={onAction} />;
   if (sectionKey === 'usage') return <UsageSection />;
-  if (sectionKey === 'knowledge') return <KnowledgeSection />;
-  if (sectionKey === 'deleted') return <DeletedSection />;
-  return <OverviewSection />;
+  if (sectionKey === 'knowledge') return <KnowledgeSection onAction={onAction} />;
+  if (sectionKey === 'deleted') return <DeletedSection onAction={onAction} />;
+  return <OverviewSection onAction={onAction} />;
 }
 
 export function AdminPage() {
   const { pathname } = useLocation();
   const sectionKey = getSectionKey(pathname);
+  const [, forceRefresh] = useState(0);
+
+  const confirmAdminAction = ({ action, targetLabel, targetType, targetId, onApply }: AdminActionPayload) => {
+    if (!canManage) {
+      Message.warning('operator 只读，不能执行管理写操作');
+      return;
+    }
+
+    Modal.confirm({
+      title: action,
+      content: `确认对 ${targetLabel} 执行该管理操作？当前为 mock 流程，但会追加 request_id / trace_id 审计记录。`,
+      okText: '确认执行',
+      cancelText: '取消',
+      onOk: () => {
+        onApply?.();
+        adminOperationAuditRows.unshift({
+          key: `op-${Date.now()}`,
+          operator_id: `user_${mockAuthUser.id}`,
+          operator: mockAuthUser.role,
+          action,
+          target_type: targetType,
+          target_id: targetId,
+          result: 'success',
+          request_id: `req_admin_${Date.now()}`,
+          trace_id: `trace_admin_${Date.now()}`,
+          created_at: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
+        });
+        if (adminOperationAuditRows.length > 8) {
+          adminOperationAuditRows.length = 8;
+        }
+        forceRefresh((current) => current + 1);
+        Message.success(`${action} 已提交，mock 审计记录已更新`);
+      }
+    });
+  };
 
   if (!canAccessAdmin) {
     return (
@@ -743,7 +922,7 @@ export function AdminPage() {
 
         <div className={`${styles.page} fm-enter`}>
           <AdminHeader sectionKey={sectionKey} />
-          {renderSection(sectionKey)}
+          {renderSection(sectionKey, confirmAdminAction)}
         </div>
       </main>
     </div>

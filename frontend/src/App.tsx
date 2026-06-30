@@ -15,6 +15,7 @@ export function App() {
     <Suspense fallback={<div style={{ padding: 32 }}>FoodMate 正在准备工作台...</div>}>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/chat/:session_id?" element={<ChatPage />} />
         <Route path="/chat/:sessionId?" element={<ChatPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/planning" element={<PlanningPage />} />
