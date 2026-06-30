@@ -90,14 +90,38 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: auto;
-  padding-top: 18px;
-  border-top: 1px solid var(--fm-border);
   color: inherit;
 }
 
 .profile:hover {
   color: inherit;
+}
+
+.accountDock {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--fm-border);
+}
+
+.logoutLink,
+.topbarLogoutLink {
+  display: block;
+}
+
+.logoutButton,
+.topbarLogoutButton {
+  border-color: var(--fm-border);
+  color: var(--fm-ink);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.logoutButton:hover,
+.topbarLogoutButton:hover {
+  color: var(--fm-danger);
+  border-color: rgba(185, 74, 72, 0.28);
+  background: #fff7f5;
 }
 
 .avatar {
@@ -149,6 +173,12 @@
   color: inherit;
 }
 
+.userActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .menuLink {
   display: block;
   color: inherit;
@@ -171,8 +201,13 @@
   .brandRow :global(svg) + div,
   .newButton span,
   .search,
-  .profile div {
+  .profile div,
+  .logoutButton {
     display: none;
+  }
+
+  .accountDock {
+    justify-items: center;
   }
 }
 
@@ -215,5 +250,9 @@
   .userButton {
     justify-self: end;
     max-width: 76px;
+  }
+
+  .topbarLogoutButton {
+    padding-inline: 12px;
   }
 }

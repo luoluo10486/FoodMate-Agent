@@ -53,13 +53,22 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
         </Link>
         <Input className={styles.search} prefix={<IconSearch />} placeholder="搜索会话" allowClear />
         <SidebarSessionList sessions={mockSessions} />
-        <Link className={styles.profile} to={isAuthenticated ? '/profile' : '/login'}>
-          <div className={styles.avatar}>{isAuthenticated ? mockAuthUser.displayName.slice(0, 1) : '访'}</div>
-          <div>
-            <strong>{isAuthenticated ? mockAuthUser.displayName : '未登录'}</strong>
-            <span>{isAuthenticated ? `${mockAuthUser.role} · ${mockAuthUser.profile.preference}` : currentAuth.title}</span>
-          </div>
-        </Link>
+        <div className={styles.accountDock}>
+          <Link className={styles.profile} to={isAuthenticated ? '/profile' : '/login'}>
+            <div className={styles.avatar}>{isAuthenticated ? mockAuthUser.displayName.slice(0, 1) : '访'}</div>
+            <div>
+              <strong>{isAuthenticated ? mockAuthUser.displayName : '未登录'}</strong>
+              <span>{isAuthenticated ? `${mockAuthUser.role} · ${mockAuthUser.profile.preference}` : currentAuth.title}</span>
+            </div>
+          </Link>
+          {isAuthenticated ? (
+            <Link className={styles.logoutLink} to="/login">
+              <Button className={styles.logoutButton} long>
+                退出登录
+              </Button>
+            </Link>
+          ) : null}
+        </div>
       </aside>
 
       <main className={styles.main}>
@@ -91,11 +100,18 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
               </NavLink>
             ) : null}
           </nav>
-          <Dropdown droplist={userMenu} position="br">
-            <Button className={styles.userButton} icon={<IconUser />}>
-              {isAuthenticated ? mockAuthUser.displayName : '登录'}
-            </Button>
-          </Dropdown>
+          <div className={styles.userActions}>
+            {isAuthenticated ? (
+              <Link className={styles.topbarLogoutLink} to="/login">
+                <Button className={styles.topbarLogoutButton}>退出登录</Button>
+              </Link>
+            ) : null}
+            <Dropdown droplist={userMenu} position="br">
+              <Button className={styles.userButton} icon={<IconUser />}>
+                {isAuthenticated ? mockAuthUser.displayName : '登录'}
+              </Button>
+            </Dropdown>
+          </div>
         </header>
         {children}
       </main>
