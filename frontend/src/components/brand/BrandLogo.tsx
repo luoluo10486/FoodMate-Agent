@@ -3,8 +3,6 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import styles from './BrandLogo.module.css';
 
-gsap.registerPlugin(useGSAP);
-
 type BrandLogoProps = {
   size?: 'small' | 'hero';
   showWordmark?: boolean;

@@ -1,15 +1,13 @@
 import { Button, Checkbox, Form, Input, Message } from '@arco-design/web-react';
 import { IconEmail, IconLeft, IconLock, IconUser } from '@arco-design/web-react/icon';
-import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { mockLoginDefaults } from '../../mock/auth';
 import type { LoginFormValues } from '../../mock/auth';
 import styles from './LoginPage.module.css';
-
-gsap.registerPlugin(useGSAP);
 
 type AuthMode = 'login' | 'register' | 'forgot';
 

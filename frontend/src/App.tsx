@@ -16,7 +16,6 @@ export function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/chat/:session_id?" element={<ChatPage />} />
-        <Route path="/chat/:sessionId?" element={<ChatPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/planning" element={<PlanningPage />} />
         <Route path="/knowledge" element={<KnowledgePage />} />

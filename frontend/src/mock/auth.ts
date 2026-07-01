@@ -96,12 +96,6 @@ export const mockLoginDefaults: LoginFormValues = {
   rememberMe: true
 };
 
-export const publicAuthCapabilities = [
-  { title: '个人数据隔离', description: '会话、饮食记录、计划和知识库访问在登录后绑定当前用户。' },
-  { title: '写入前确认', description: '饮食记录、计划保存和偏好修改会保留确认步骤。' },
-  { title: '可撤销会话', description: '推荐使用短期 Access Token 和 HttpOnly Refresh Cookie。' }
-];
-
 export const mockAuthScenarios: Array<{ status: AuthStatus; title: string; description: string; code: string }> = [
   { status: 'anonymous', title: '未登录', description: '访问受保护资源时跳转登录，并保留 redirect。', code: 'AUTH_REQUIRED' },
   { status: 'authenticated', title: '已登录', description: '可访问自己的会话、饮食记录、计划和知识库内容。', code: 'OK' },

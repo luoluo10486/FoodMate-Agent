@@ -15,7 +15,7 @@ import styles from './ChatPage.module.css';
 
 export function ChatPage() {
   const params = useParams();
-  const sessionId = params.session_id ?? params.sessionId;
+  const sessionId = params.session_id;
   const [searchParams] = useSearchParams();
   const agent = useMockAgentReplay(sessionId, searchParams.get('prompt'));
   const messagesRef = useRef<HTMLDivElement>(null);

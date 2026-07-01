@@ -18,7 +18,6 @@ import {
 import styles from './AnalysisPage.module.css';
 
 const Option = Select.Option;
-gsap.registerPlugin(useGSAP);
 
 const chartWidth = 760;
 const chartHeight = 250;
