@@ -8,7 +8,7 @@ const colors: Record<ToolCall['status'], 'gray' | 'green' | 'red' | 'orange' | '
   success: 'green',
   failed: 'red',
   timeout: 'red',
-  cancelled: 'gray'
+  cancelled: 'gray',
 };
 
 type ToolTraceItemProps = {
@@ -22,7 +22,10 @@ export function ToolTraceItem({ tool }: ToolTraceItemProps) {
         <strong>{tool.name}</strong>
         <span>{tool.displayName}</span>
       </div>
-      <Tag color={colors[tool.status]}>{tool.status}{tool.latencyMs ? ` · ${tool.latencyMs}ms` : ''}</Tag>
+      <Tag color={colors[tool.status]}>
+        {tool.status}
+        {tool.latencyMs ? ` · ${tool.latencyMs}ms` : ''}
+      </Tag>
       <p>{tool.error ?? tool.summary}</p>
       <Collapse className={styles.details} bordered={false}>
         <Collapse.Item header="查看调用详情" name="detail">

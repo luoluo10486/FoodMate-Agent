@@ -26,7 +26,7 @@ export function FoodMateMark({ className }: { className?: string }) {
         .from(`.${styles.bowl}`, { autoAlpha: 0, y: 8, scaleX: 0.9, transformOrigin: '50% 80%' }, '<0.08')
         .from(`.${styles.bowlShine}`, { autoAlpha: 0, x: -5 }, '<0.16');
     },
-    { scope: markRef }
+    { scope: markRef },
   );
 
   return (
@@ -52,7 +52,11 @@ export function FoodMateMark({ className }: { className?: string }) {
         d="M39 29.2C50.9 31.9 62.4 27.4 68.5 18.7C61.5 15.9 52.1 17.1 44.4 22.9C42.2 24.5 40.4 26.6 39 29.2Z"
         fill="#f8c36e"
       />
-      <path className={styles.bowl} d="M22 59H66C65.2 73.1 57.8 81 44 81C30.2 81 22.8 73.1 22 59Z" fill={`url(#${bowlGradientId})`} />
+      <path
+        className={styles.bowl}
+        d="M22 59H66C65.2 73.1 57.8 81 44 81C30.2 81 22.8 73.1 22 59Z"
+        fill={`url(#${bowlGradientId})`}
+      />
       <path className={styles.bowl} d="M22 59H66C66 64.5 61.5 68 44 68C26.5 68 22 64.5 22 59Z" fill="#367b58" />
       <path
         className={styles.bowlShine}

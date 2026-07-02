@@ -30,7 +30,7 @@ export function ClarificationCard({
   errorText = '追问选项加载失败，请直接在输入框补充。',
   onSelect,
   onSubmit,
-  submitLabel = '继续生成计划'
+  submitLabel = '继续生成计划',
 }: ClarificationCardProps) {
   const [values, setValues] = useState<Record<string, string>>({});
 
@@ -44,7 +44,7 @@ export function ClarificationCard({
       fields.reduce<Record<string, string>>((current, field) => {
         current[field.key] = field.defaultValue ?? '';
         return current;
-      }, {})
+      }, {}),
     );
   }, [fields]);
 
@@ -95,7 +95,9 @@ export function ClarificationCard({
           ))}
           <div className={styles.actions}>
             <Button
-              disabled={state === 'disabled' || state === 'error' || fields.some((field) => !(values[field.key] ?? '').trim())}
+              disabled={
+                state === 'disabled' || state === 'error' || fields.some((field) => !(values[field.key] ?? '').trim())
+              }
               type="primary"
               onClick={() => onSubmit?.(values)}
             >
@@ -106,7 +108,11 @@ export function ClarificationCard({
       ) : (
         <div className={styles.options}>
           {options.map((option) => (
-            <Button disabled={state === 'disabled' || state === 'error'} onClick={() => onSelect?.(option)} key={option}>
+            <Button
+              disabled={state === 'disabled' || state === 'error'}
+              onClick={() => onSelect?.(option)}
+              key={option}
+            >
               {option}
             </Button>
           ))}

@@ -1,5 +1,29 @@
 # FoodMate 待办任务 TODO
 
+## MVP 最短路径（做完这些就能跑）
+
+> **当前进度：前端已完成，后端从 Phase 3 开始。以下是最短可交付路径。**
+
+| 顺序 | 编号 | 任务 | 预估 |
+|------|------|------|------|
+| 1 | B3-1 | 创建 Maven 模块化单体骨架（建议第一阶段 5-6 个模块） | 1d |
+| 2 | B3-3 | 配置 Spring Boot、数据源、Jackson、CORS、异常处理 | 0.5d |
+| 3 | B4-1~4-3 | PostgreSQL 建表（用户/会话/消息/AgentRun/ToolCall/饮食日志） | 1d |
+| 4 | B5-1 | 实现认证 API（Spring Security + JWT） | 1d |
+| 5 | B5-2 | 实现会话 API（CRUD） | 0.5d |
+| 6 | B5-3 | 实现消息与 SSE 推送 API | 1d |
+| 7 | B5-4 | 实现饮食日志 API | 0.5d |
+| 8 | B5-5 | 实现分析 API | 0.5d |
+| 9 | B5-6 | 实现计划 API | 0.5d |
+| 10 | B6-1 | 实现 IntentRouter（意图路由） | 1d |
+| 11 | B6-2 | 实现 TaskPlanner + ExecutionEngine | 1.5d |
+| 12 | B7-1 | 实现 ToolRegistry + 基础工具（calculator/time_parser/food_log_writer） | 1d |
+| 13 | - | 前后端联调，端到端跑通第一条链路 | 1d |
+
+> **完成以上 13 个任务后，FoodMate 即可端到端演示：登录 → 对话 → Agent 规划 → 写饮食日志 → 查看分析。**
+
+---
+
 本文是 FoodMate 的工程执行清单，面向人类开发者和 AI Coding Agent。  
 执行原则：一次只做一个任务；每个任务必须有明确目标、允许改动范围、实现要点和验收标准。
 

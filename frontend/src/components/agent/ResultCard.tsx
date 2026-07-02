@@ -23,7 +23,7 @@ export function ResultCard({
   state = 'normal',
   errorText = '结果生成失败，请重试。',
   onPrimary,
-  onSecondary
+  onSecondary,
 }: ResultCardProps) {
   if (state === 'loading') {
     return (
@@ -39,7 +39,12 @@ export function ResultCard({
       <h3>{state === 'error' ? '结果暂不可用' : title}</h3>
       <p>{state === 'error' ? errorText : description}</p>
       <div className={styles.actions}>
-        <Button disabled={state === 'disabled'} status={state === 'error' ? 'danger' : 'default'} type="primary" onClick={onPrimary}>
+        <Button
+          disabled={state === 'disabled'}
+          status={state === 'error' ? 'danger' : 'default'}
+          type="primary"
+          onClick={onPrimary}
+        >
           {state === 'error' ? '重试' : primaryAction}
         </Button>
         <Button disabled={state === 'disabled'} onClick={onSecondary}>

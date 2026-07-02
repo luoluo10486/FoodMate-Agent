@@ -11,7 +11,14 @@ type MetricCardProps = {
   errorText?: string;
 };
 
-export function MetricCard({ label, value, unit, tone = 'dark', state = 'normal', errorText = '指标暂不可用' }: MetricCardProps) {
+export function MetricCard({
+  label,
+  value,
+  unit,
+  tone = 'dark',
+  state = 'normal',
+  errorText = '指标暂不可用',
+}: MetricCardProps) {
   if (state === 'loading') {
     return (
       <Card className={`${styles.card} ${styles.loading}`} bordered={false}>

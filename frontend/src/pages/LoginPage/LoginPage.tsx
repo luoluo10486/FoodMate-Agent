@@ -5,7 +5,7 @@ import { useGSAP } from '@gsap/react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandLogo } from '../../components/brand/BrandLogo';
-import { mockLoginDefaults } from '../../mock/auth';
+import { getLoginDefaults } from '../../services/authService';
 import type { LoginFormValues } from '../../mock/auth';
 import styles from './LoginPage.module.css';
 
@@ -27,7 +27,7 @@ type ForgotFormValues = {
 const titleByMode: Record<AuthMode, string> = {
   login: '登录 FoodMate',
   register: '注册账号',
-  forgot: '找回密码'
+  forgot: '找回密码',
 };
 
 function shouldPlayLoginIntro() {
@@ -56,12 +56,39 @@ export function LoginPage() {
         return;
       }
 
-      gsap.to('[data-plate-orbit="main"]', { rotation: 360, duration: 72, ease: 'none', repeat: -1, transformOrigin: '50% 50%' });
-      gsap.to('[data-plate-orbit="side"]', { rotation: -360, duration: 92, ease: 'none', repeat: -1, transformOrigin: '50% 50%' });
-      gsap.to('[data-brand-arc]', { rotation: '+=7', duration: 12, ease: 'sine.inOut', repeat: -1, yoyo: true, transformOrigin: '50% 50%' });
-      gsap.to('[data-light-sweep]', { x: 18, y: -10, autoAlpha: 0.82, duration: 10, ease: 'sine.inOut', repeat: -1, yoyo: true });
+      gsap.to('[data-plate-orbit="main"]', {
+        rotation: 360,
+        duration: 72,
+        ease: 'none',
+        repeat: -1,
+        transformOrigin: '50% 50%',
+      });
+      gsap.to('[data-plate-orbit="side"]', {
+        rotation: -360,
+        duration: 92,
+        ease: 'none',
+        repeat: -1,
+        transformOrigin: '50% 50%',
+      });
+      gsap.to('[data-brand-arc]', {
+        rotation: '+=7',
+        duration: 12,
+        ease: 'sine.inOut',
+        repeat: -1,
+        yoyo: true,
+        transformOrigin: '50% 50%',
+      });
+      gsap.to('[data-light-sweep]', {
+        x: 18,
+        y: -10,
+        autoAlpha: 0.82,
+        duration: 10,
+        ease: 'sine.inOut',
+        repeat: -1,
+        yoyo: true,
+      });
     },
-    { scope: pageRef }
+    { scope: pageRef },
   );
 
   useGSAP(
@@ -84,22 +111,34 @@ export function LoginPage() {
         onComplete: () => {
           setShowIntro(false);
           gsap.set(card, { autoAlpha: 1, y: 0, scale: 1, clearProps: 'transform,opacity,visibility' });
-        }
+        },
       });
 
       timeline
         .to('[data-intro="stage"]', { autoAlpha: 1, duration: 0.08 })
         .to('[data-intro="ring"]', { autoAlpha: 1, scale: 1, rotation: 290, duration: 0.72, ease: 'expo.out' })
-        .to('[data-intro="mark"]', { autoAlpha: 1, scale: 1.08, rotation: 26, duration: 0.62, ease: 'back.out(2.1)' }, '<0.08')
+        .to(
+          '[data-intro="mark"]',
+          { autoAlpha: 1, scale: 1.08, rotation: 26, duration: 0.62, ease: 'back.out(2.1)' },
+          '<0.08',
+        )
         .to('[data-intro="mark"]', { scale: 1, rotation: 0, duration: 0.32, ease: 'power2.out' })
-        .to('[data-intro="shard"]', { autoAlpha: 1, scaleX: 1, duration: 0.38, stagger: { amount: 0.28, from: 'center' } }, '<0.04')
-        .to('[data-intro="letter"]', { autoAlpha: 1, yPercent: 0, rotationX: 0, duration: 0.48, stagger: 0.045, ease: 'back.out(1.5)' }, '<0.08')
+        .to(
+          '[data-intro="shard"]',
+          { autoAlpha: 1, scaleX: 1, duration: 0.38, stagger: { amount: 0.28, from: 'center' } },
+          '<0.04',
+        )
+        .to(
+          '[data-intro="letter"]',
+          { autoAlpha: 1, yPercent: 0, rotationX: 0, duration: 0.48, stagger: 0.045, ease: 'back.out(1.5)' },
+          '<0.08',
+        )
         .to('[data-intro="beam"]', { scaleX: 1, duration: 0.44, ease: 'power4.out' }, '<0.1')
         .to('[data-intro="brand"]', { y: -18, scale: 0.92, duration: 0.42, ease: 'power3.inOut' }, '+=0.24')
         .to('[data-intro="stage"]', { autoAlpha: 0, scale: 1.05, duration: 0.48, ease: 'power2.inOut' }, '<0.06')
         .to(card, { autoAlpha: 1, y: 0, scale: 1, duration: 0.62, ease: 'back.out(1.35)' }, '<0.18');
     },
-    { scope: pageRef, dependencies: [showIntro], revertOnUpdate: true }
+    { scope: pageRef, dependencies: [showIntro], revertOnUpdate: true },
   );
 
   useEffect(() => {
@@ -159,7 +198,11 @@ export function LoginPage() {
             </div>
             <div className={styles.introWord} aria-hidden="true">
               {'FoodMate'.split('').map((letter, index) => (
-                <span className={index >= 4 ? styles.mateLetter : styles.foodLetter} data-intro="letter" key={`${letter}-${index}`}>
+                <span
+                  className={index >= 4 ? styles.mateLetter : styles.foodLetter}
+                  data-intro="letter"
+                  key={`${letter}-${index}`}
+                >
                   {letter}
                 </span>
               ))}
@@ -187,8 +230,12 @@ export function LoginPage() {
         </div>
 
         {mode === 'login' ? (
-          <Form className={styles.form} initialValues={mockLoginDefaults} layout="vertical" onSubmit={handleLogin}>
-            <Form.Item label="用户名或邮箱" field="username" rules={[{ required: true, message: '请输入用户名或邮箱' }]}>
+          <Form className={styles.form} initialValues={getLoginDefaults()} layout="vertical" onSubmit={handleLogin}>
+            <Form.Item
+              label="用户名或邮箱"
+              field="username"
+              rules={[{ required: true, message: '请输入用户名或邮箱' }]}
+            >
               <Input prefix={<IconUser />} placeholder="请输入用户名或邮箱" />
             </Form.Item>
             <Form.Item label="密码" field="password" rules={[{ required: true, message: '请输入密码' }]}>
@@ -241,8 +288,8 @@ export function LoginPage() {
                     } else {
                       callback();
                     }
-                  }
-                }
+                  },
+                },
               ]}
             >
               <Input.Password prefix={<IconLock />} placeholder="请再次输入密码" />
@@ -276,12 +323,12 @@ export function LoginPage() {
 
         {mode === 'login' ? (
           <div className={styles.actions}>
-              <Button long onClick={() => switchMode('register')}>
-                注册账号
-              </Button>
-              <Button long onClick={() => navigate('/')}>
-                游客登录
-              </Button>
+            <Button long onClick={() => switchMode('register')}>
+              注册账号
+            </Button>
+            <Button long onClick={() => navigate('/')}>
+              游客登录
+            </Button>
           </div>
         ) : null}
         <span className={styles.note}>当前为前端 mock 流程</span>

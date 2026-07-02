@@ -1,6 +1,6 @@
 export const proteinGoal = {
   weightKg: 70,
-  proteinMultiplierRange: [1.5, 2] as const
+  proteinMultiplierRange: [1.5, 2] as const,
 };
 
 export type AnalysisRange = '7d' | '14d' | '30d';
@@ -16,7 +16,7 @@ type AnalysisSummary = {
 export const analysisRangeOptions: Array<{ label: string; value: AnalysisRange }> = [
   { label: '最近 7 天', value: '7d' },
   { label: '最近 14 天', value: '14d' },
-  { label: '最近 30 天', value: '30d' }
+  { label: '最近 30 天', value: '30d' },
 ];
 
 export const proteinTrendByRange: Record<AnalysisRange, ProteinTrendPoint[]> = {
@@ -27,7 +27,7 @@ export const proteinTrendByRange: Record<AnalysisRange, ProteinTrendPoint[]> = {
     { day: '周四', protein: 64 },
     { day: '周五', protein: 80 },
     { day: '周六', protein: 72 },
-    { day: '周日', protein: 80 }
+    { day: '周日', protein: 80 },
   ],
   '14d': [
     { day: '1日', protein: 56 },
@@ -43,7 +43,7 @@ export const proteinTrendByRange: Record<AnalysisRange, ProteinTrendPoint[]> = {
     { day: '11日', protein: 78 },
     { day: '12日', protein: 92 },
     { day: '13日', protein: 84 },
-    { day: '14日', protein: 96 }
+    { day: '14日', protein: 96 },
   ],
   '30d': [
     { day: '1日', protein: 54 },
@@ -75,14 +75,14 @@ export const proteinTrendByRange: Record<AnalysisRange, ProteinTrendPoint[]> = {
     { day: '27日', protein: 108 },
     { day: '28日', protein: 112 },
     { day: '29日', protein: 96 },
-    { day: '30日', protein: 118 }
-  ]
+    { day: '30日', protein: 118 },
+  ],
 };
 
 export const analysisSummaryByRange: Record<AnalysisRange, AnalysisSummary> = {
   '7d': { calories: 12840, mealCount: 18 },
   '14d': { calories: 26160, mealCount: 37 },
-  '30d': { calories: 56320, mealCount: 82 }
+  '30d': { calories: 56320, mealCount: 82 },
 };
 
 export const proteinTargetMin = Math.round(proteinGoal.weightKg * proteinGoal.proteinMultiplierRange[0]);
@@ -91,13 +91,14 @@ export const proteinTargetMax = Math.round(proteinGoal.weightKg * proteinGoal.pr
 export function getAnalysisMetrics(range: AnalysisRange, proteinTrend: ProteinTrendPoint[]) {
   const summary = analysisSummaryByRange[range];
   const proteinTotal = proteinTrend.reduce((total, item) => total + item.protein, 0);
-  const proteinAchievement = proteinTrend.length > 0 ? Math.round((proteinTotal / (proteinTargetMin * proteinTrend.length)) * 100) : 0;
+  const proteinAchievement =
+    proteinTrend.length > 0 ? Math.round((proteinTotal / (proteinTargetMin * proteinTrend.length)) * 100) : 0;
 
   return [
     { label: '总热量', value: summary.calories.toLocaleString('zh-CN'), unit: 'kcal', tone: 'dark' },
     { label: '蛋白质', value: String(proteinTotal), unit: 'g', tone: 'green' },
     { label: '目标达成', value: String(proteinAchievement), unit: '%', tone: 'orange' },
-    { label: '记录餐次', value: String(summary.mealCount), unit: '餐', tone: 'blue' }
+    { label: '记录餐次', value: String(summary.mealCount), unit: '餐', tone: 'blue' },
   ];
 }
 
@@ -108,12 +109,12 @@ export function getAnalysisInsights(proteinTrend: ProteinTrendPoint[]) {
     {
       title: lowDays > proteinTrend.length / 2 ? '多数天低于推荐摄入' : '部分日期低于推荐摄入',
       detail: `按 ${proteinGoal.weightKg}kg 估算，建议每天 ${proteinTargetMin}-${proteinTargetMax}g 蛋白质。`,
-      tone: 'warning'
+      tone: 'warning',
     },
     {
       title: '两餐缺少份量',
       detail: '结果包含估算，请补全克重。',
-      tone: 'info'
-    }
+      tone: 'info',
+    },
   ];
 }

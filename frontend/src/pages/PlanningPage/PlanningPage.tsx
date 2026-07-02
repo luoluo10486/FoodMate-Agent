@@ -4,7 +4,7 @@ import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { MealPlanTable } from '../../components/planning/MealPlanTable';
 import { ShoppingList } from '../../components/planning/ShoppingList';
-import { mealRows, planConstraints, shoppingGroups, validationItems } from '../../mock/mealPlans';
+import { mealRows, planConstraints, shoppingGroups, validationItems } from '../../services/planningService';
 import styles from './PlanningPage.module.css';
 
 export function PlanningPage() {
@@ -65,7 +65,13 @@ export function PlanningPage() {
           </aside>
         </section>
 
-        <Composer toolsUsed={3} toolsTotal={6} agentsUsed={1} agentsTotal={1} placeholder="继续要求 FoodMate 修改预算、替换食材或生成购物清单..." />
+        <Composer
+          toolsUsed={3}
+          toolsTotal={6}
+          agentsUsed={1}
+          agentsTotal={1}
+          placeholder="继续要求 FoodMate 修改预算、替换食材或生成购物清单..."
+        />
         <Modal
           title="保存这份备餐计划？"
           visible={confirmOpen}
@@ -77,7 +83,9 @@ export function PlanningPage() {
           }}
           onCancel={() => setConfirmOpen(false)}
         >
-          <p className={styles.confirmText}>将保存 2 人 7 天高蛋白计划，预算预估 286 元。当前仅模拟保存，不会写入真实后端。</p>
+          <p className={styles.confirmText}>
+            将保存 2 人 7 天高蛋白计划，预算预估 286 元。当前仅模拟保存，不会写入真实后端。
+          </p>
         </Modal>
       </div>
     </WorkspaceLayout>

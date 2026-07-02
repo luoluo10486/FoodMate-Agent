@@ -53,7 +53,7 @@ export type ReplayStep = ReplayStepPayload & { event: MockRunEventName };
 export const seededPrompts: Record<string, string> = {
   'protein-review': '分析我最近一周蛋白质摄入',
   'lunch-log': '帮我记录今天午餐',
-  'week-plan': '给 2 个人制定一周高蛋白备餐计划，预算 300 元以内'
+  'week-plan': '给 2 个人制定一周高蛋白备餐计划，预算 300 元以内',
 };
 
 export const baseRun: AgentRunView = {
@@ -65,7 +65,7 @@ export const baseRun: AgentRunView = {
   agentsUsed: 1,
   agentsTotal: 1,
   toolCalls: [],
-  citations: []
+  citations: [],
 };
 
 export const initialMessages: Message[] = [
@@ -73,14 +73,14 @@ export const initialMessages: Message[] = [
     id: 'm1',
     role: 'user',
     content: '给 2 个人制定一周高蛋白备餐计划，预算 300 元以内。',
-    time: '09:31'
+    time: '09:31',
   },
   {
     id: 'm2',
     role: 'assistant',
     content: '我会先检索食材搭配和保存建议，再校验预算、蛋白质目标和烹饪时间。',
-    time: '09:31'
-  }
+    time: '09:31',
+  },
 ];
 
 const nowTime = () =>
@@ -91,7 +91,7 @@ export function createMessage(role: Message['role'], content: string): Message {
     id: `${role}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     role,
     content,
-    time: nowTime()
+    time: nowTime(),
   };
 }
 
@@ -117,7 +117,7 @@ function inferRunEvent(step: ReplayStepPayload): MockRunEventName {
       waiting_user: 'run.clarification_requested',
       completed: 'run.completed',
       failed: 'run.failed',
-      cancelled: 'run.cancelled'
+      cancelled: 'run.cancelled',
     };
     return statusEvents[step.status] ?? 'run.routed';
   }
@@ -150,16 +150,20 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           status: 'running',
           summary: '正在查询近期饮食记录。',
           input: 'SELECT summary FROM food_logs WHERE range = recent',
-          output: '等待数据库响应...'
-        }
+          output: '等待数据库响应...',
+        },
       },
       {
         type: 'toolUpdate',
         id: 'tool-database',
-        patch: { status: 'failed', error: 'DATABASE_QUERY_TIMEOUT：查询超时，请稍后重试。', output: 'timeout after 3000ms' }
+        patch: {
+          status: 'failed',
+          error: 'DATABASE_QUERY_TIMEOUT：查询超时，请稍后重试。',
+          output: 'timeout after 3000ms',
+        },
       },
       { type: 'status', status: 'failed' },
-      { type: 'card', card: { type: 'error', message: 'DATABASE_QUERY_TIMEOUT：查询超时，请稍后重试。' } }
+      { type: 'card', card: { type: 'error', message: 'DATABASE_QUERY_TIMEOUT：查询超时，请稍后重试。' } },
     ];
   }
 
@@ -177,8 +181,8 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           status: 'running',
           summary: '正在按鸡胸肉常见营养数据换算 20g 的热量。',
           input: '鸡胸肉 20g · 约 165 kcal / 100g',
-          output: '计算中...'
-        }
+          output: '计算中...',
+        },
       },
       {
         type: 'toolUpdate',
@@ -187,11 +191,15 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           status: 'success',
           latencyMs: 140,
           summary: '计算完成：20g 鸡胸肉约 33 kcal，蛋白质约 6.2g。',
-          output: '33 kcal · 蛋白质 6.2g · formula=165/100*20'
-        }
+          output: '33 kcal · 蛋白质 6.2g · formula=165/100*20',
+        },
       },
       { type: 'status', status: 'composing' },
-      { type: 'assistantStream', content: '20 克熟鸡胸肉约 33 kcal，蛋白质约 6.2g。不同品牌和烹饪方式会有小幅差异，记录时可以按包装营养表优先修正。' },
+      {
+        type: 'assistantStream',
+        content:
+          '20 克熟鸡胸肉约 33 kcal，蛋白质约 6.2g。不同品牌和烹饪方式会有小幅差异，记录时可以按包装营养表优先修正。',
+      },
       {
         type: 'card',
         card: {
@@ -201,10 +209,10 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           title: '20g 鸡胸肉约 33 kcal',
           description: '按常见熟鸡胸肉 165 kcal/100g 换算，适合用于快速记录前的估算。',
           primaryAction: '记录这份食物',
-          secondaryAction: '继续提问'
-        }
+          secondaryAction: '继续提问',
+        },
       },
-      { type: 'status', status: 'completed' }
+      { type: 'status', status: 'completed' },
     ];
   }
 
@@ -222,13 +230,18 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           status: 'running',
           summary: '正在估算热量、蛋白质、碳水和脂肪。',
           input: '鸡胸肉 200g、米饭 150g、西兰花 120g',
-          output: '估算中...'
-        }
+          output: '估算中...',
+        },
       },
       {
         type: 'toolUpdate',
         id: 'tool-calculator',
-        patch: { status: 'success', latencyMs: 260, summary: '估算完成：约 620 kcal，蛋白质 54g。', output: '620 kcal · 蛋白质 54g · 碳水 59g · 脂肪 12g' }
+        patch: {
+          status: 'success',
+          latencyMs: 260,
+          summary: '估算完成：约 620 kcal，蛋白质 54g。',
+          output: '620 kcal · 蛋白质 54g · 碳水 59g · 脂肪 12g',
+        },
       },
       { type: 'status', status: 'waiting_user' },
       {
@@ -238,10 +251,10 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           data: [
             { label: '餐型', value: '午餐' },
             { label: '食物', value: '鸡胸肉 200g、米饭 150g、西兰花 120g' },
-            { label: '估算', value: '约 620 kcal · 蛋白质 54g' }
-          ]
-        }
-      }
+            { label: '估算', value: '约 620 kcal · 蛋白质 54g' },
+          ],
+        },
+      },
     ];
   }
 
@@ -259,10 +272,19 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           status: 'running',
           summary: '正在解析"最近一周"。',
           input: '最近一周',
-          output: '解析中...'
-        }
+          output: '解析中...',
+        },
       },
-      { type: 'toolUpdate', id: 'tool-time', patch: { status: 'success', latencyMs: 120, summary: '解析为最近 7 天。', output: 'start=-7d · end=today · timezone=Asia/Shanghai' } },
+      {
+        type: 'toolUpdate',
+        id: 'tool-time',
+        patch: {
+          status: 'success',
+          latencyMs: 120,
+          summary: '解析为最近 7 天。',
+          output: 'start=-7d · end=today · timezone=Asia/Shanghai',
+        },
+      },
       {
         type: 'tool',
         tool: {
@@ -272,12 +294,25 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           status: 'running',
           summary: '正在聚合蛋白质摄入。',
           input: 'group protein by day for recent 7 days',
-          output: '聚合中...'
-        }
+          output: '聚合中...',
+        },
       },
-      { type: 'toolUpdate', id: 'tool-db', patch: { status: 'success', latencyMs: 390, summary: '聚合完成：7 天共 486g，目标达成 66%。', output: '42, 68, 54, 76, 82, 91, 73g · total=486g' } },
+      {
+        type: 'toolUpdate',
+        id: 'tool-db',
+        patch: {
+          status: 'success',
+          latencyMs: 390,
+          summary: '聚合完成：7 天共 486g，目标达成 66%。',
+          output: '42, 68, 54, 76, 82, 91, 73g · total=486g',
+        },
+      },
       { type: 'status', status: 'composing' },
-      { type: 'assistantStream', content: '最近 7 天蛋白质摄入共 486g，按 70kg 体重的推荐区间 105-140g/天来看，当前达成约 66%。建议优先在早餐或加餐补充鸡蛋、豆腐、酸奶或鱼肉。' },
+      {
+        type: 'assistantStream',
+        content:
+          '最近 7 天蛋白质摄入共 486g，按 70kg 体重的推荐区间 105-140g/天来看，当前达成约 66%。建议优先在早餐或加餐补充鸡蛋、豆腐、酸奶或鱼肉。',
+      },
       {
         type: 'card',
         card: {
@@ -287,10 +322,10 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           title: '最近 7 天蛋白质达成约 66%',
           description: '多数日期低于推荐摄入，建议把每日蛋白目标先提升到 105g 下限。',
           primaryAction: '查看分析页',
-          secondaryAction: '生成补充计划'
-        }
+          secondaryAction: '生成补充计划',
+        },
       },
-      { type: 'status', status: 'completed' }
+      { type: 'status', status: 'completed' },
     ];
   }
 
@@ -307,10 +342,19 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           status: 'running',
           summary: '正在检索烹饪和营养知识。',
           input: '西兰花 焯水 多久',
-          output: '检索中...'
-        }
+          output: '检索中...',
+        },
       },
-      { type: 'toolUpdate', id: 'tool-knowledge', patch: { status: 'success', latencyMs: 310, summary: '命中 2 条烹饪建议。', output: 'top hit score=0.91 · 蔬菜焯水与营养保留指南' } },
+      {
+        type: 'toolUpdate',
+        id: 'tool-knowledge',
+        patch: {
+          status: 'success',
+          latencyMs: 310,
+          summary: '命中 2 条烹饪建议。',
+          output: 'top hit score=0.91 · 蔬菜焯水与营养保留指南',
+        },
+      },
       {
         type: 'citation',
         citation: {
@@ -318,12 +362,15 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
           title: '蔬菜焯水与营养保留指南',
           snippet: '西兰花焯水通常控制在 60-90 秒，出锅后过冷水有助于保持口感和颜色。',
           source: '内部知识库',
-          score: 0.91
-        }
+          score: 0.91,
+        },
       },
       { type: 'status', status: 'composing' },
-      { type: 'assistantStream', content: '西兰花焯水建议控制在 60-90 秒。水开后下锅，加少量盐，出锅后快速过冷水，可以保持颜色和爽脆口感。' },
-      { type: 'status', status: 'completed' }
+      {
+        type: 'assistantStream',
+        content: '西兰花焯水建议控制在 60-90 秒。水开后下锅，加少量盐，出锅后快速过冷水，可以保持颜色和爽脆口感。',
+      },
+      { type: 'status', status: 'completed' },
     ];
   }
 
@@ -343,23 +390,23 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
               key: 'budget',
               label: '预算',
               placeholder: '例如：300 元以内',
-              quickOptions: ['300 元以内', '400 元以内']
+              quickOptions: ['300 元以内', '400 元以内'],
             },
             {
               key: 'dislikes',
               label: '忌口',
               placeholder: '例如：不吃猪肉、少油',
-              quickOptions: ['不吃猪肉', '少油少辣']
+              quickOptions: ['不吃猪肉', '少油少辣'],
             },
             {
               key: 'goal',
               label: '目标',
               placeholder: '例如：高蛋白、控预算',
-              quickOptions: ['目标高蛋白', '高蛋白 + 控预算']
-            }
-          ]
-        }
-      }
+              quickOptions: ['目标高蛋白', '高蛋白 + 控预算'],
+            },
+          ],
+        },
+      },
     ];
   }
 
@@ -377,10 +424,19 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
         status: 'running',
         summary: '正在检索高蛋白备餐和冷藏保存建议。',
         input: '高蛋白 备餐 冷藏 保存 预算',
-        output: '检索中...'
-      }
+        output: '检索中...',
+      },
     },
-    { type: 'toolUpdate', id: 'tool-knowledge', patch: { status: 'success', latencyMs: 420, summary: '命中食材复用、冷藏保存、预算控制 3 条参考。', output: '3 references · avg score=0.88' } },
+    {
+      type: 'toolUpdate',
+      id: 'tool-knowledge',
+      patch: {
+        status: 'success',
+        latencyMs: 420,
+        summary: '命中食材复用、冷藏保存、预算控制 3 条参考。',
+        output: '3 references · avg score=0.88',
+      },
+    },
     {
       type: 'citation',
       citation: {
@@ -388,8 +444,8 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
         title: '备餐指南',
         snippet: '高蛋白备餐建议优先复用鸡蛋、豆腐、鸡胸肉等易保存食材。',
         source: '内部知识库',
-        score: 0.92
-      }
+        score: 0.92,
+      },
     },
     { type: 'status', status: 'executing_tools' },
     {
@@ -401,10 +457,19 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
         status: 'running',
         summary: '正在查询近期常用食材和忌口。',
         input: 'user_food_preferences: recent 30 days',
-        output: '查询中...'
-      }
+        output: '查询中...',
+      },
     },
-    { type: 'toolUpdate', id: 'tool-db', patch: { status: 'success', latencyMs: 280, summary: '确认偏好：高蛋白、控预算、不吃猪肉。', output: 'preferences={highProtein:true,budget:true,avoid:["猪肉"]}' } },
+    {
+      type: 'toolUpdate',
+      id: 'tool-db',
+      patch: {
+        status: 'success',
+        latencyMs: 280,
+        summary: '确认偏好：高蛋白、控预算、不吃猪肉。',
+        output: 'preferences={highProtein:true,budget:true,avoid:["猪肉"]}',
+      },
+    },
     { type: 'status', status: 'validating' },
     {
       type: 'tool',
@@ -415,12 +480,25 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
         status: 'running',
         summary: '正在校验日均蛋白质、预算和烹饪时间。',
         input: 'plan draft · budget=300 · people=2 · days=3',
-        output: '校验中...'
-      }
+        output: '校验中...',
+      },
     },
-    { type: 'toolUpdate', id: 'tool-validator', patch: { status: 'success', latencyMs: 360, summary: '预算 286/300 元，蛋白质目标通过。', output: 'valid=true · budget=286/300 · proteinTarget=pass' } },
+    {
+      type: 'toolUpdate',
+      id: 'tool-validator',
+      patch: {
+        status: 'success',
+        latencyMs: 360,
+        summary: '预算 286/300 元，蛋白质目标通过。',
+        output: 'valid=true · budget=286/300 · proteinTarget=pass',
+      },
+    },
     { type: 'status', status: 'composing' },
-    { type: 'assistantStream', content: '已生成 3 天高蛋白备餐草案，预算预计 286 元。计划复用鸡胸肉、鸡蛋、豆腐和西兰花，降低采购成本和食材浪费。' },
+    {
+      type: 'assistantStream',
+      content:
+        '已生成 3 天高蛋白备餐草案，预算预计 286 元。计划复用鸡胸肉、鸡蛋、豆腐和西兰花，降低采购成本和食材浪费。',
+    },
     {
       type: 'card',
       card: {
@@ -430,15 +508,18 @@ function buildStepPayloads(mode: AgentMode, prompt: string): ReplayStepPayload[]
         title: '3 天高蛋白备餐已生成，预算预计 286 元',
         description: '计划优先复用鸡胸肉、鸡蛋、豆腐和西兰花，当前校验通过，可继续查看购物清单或确认保存。',
         primaryAction: '确认保存',
-        secondaryAction: '查看购物清单'
-      }
+        secondaryAction: '查看购物清单',
+      },
     },
-    { type: 'status', status: 'completed' }
+    { type: 'status', status: 'completed' },
   ];
 }
 
 export function buildSteps(mode: AgentMode, prompt: string): ReplayStep[] {
-  return withRunEvents([{ type: 'event', event: 'run.created' } as ReplayStepPayload, ...buildStepPayloads(mode, prompt)]);
+  return withRunEvents([
+    { type: 'event', event: 'run.created' } as ReplayStepPayload,
+    ...buildStepPayloads(mode, prompt),
+  ]);
 }
 
 export function buildPlanningContinuationSteps(summary: string): ReplayStep[] {
@@ -455,13 +536,18 @@ export function buildPlanningContinuationSteps(summary: string): ReplayStep[] {
         status: 'running',
         summary: '正在检索高蛋白备餐和冷藏保存建议。',
         input: `高蛋白 备餐 冷藏 保存 ${summary}`,
-        output: '检索中...'
-      }
+        output: '检索中...',
+      },
     },
     {
       type: 'toolUpdate',
       id: 'tool-knowledge',
-      patch: { status: 'success', latencyMs: 420, summary: '命中食材复用、冷藏保存、预算控制 3 条参考。', output: '3 references · avg score=0.88' }
+      patch: {
+        status: 'success',
+        latencyMs: 420,
+        summary: '命中食材复用、冷藏保存、预算控制 3 条参考。',
+        output: '3 references · avg score=0.88',
+      },
     },
     {
       type: 'citation',
@@ -470,8 +556,8 @@ export function buildPlanningContinuationSteps(summary: string): ReplayStep[] {
         title: '备餐指南',
         snippet: '高蛋白备餐建议优先复用鸡蛋、豆腐、鸡胸肉等易保存食材。',
         source: '内部知识库',
-        score: 0.92
-      }
+        score: 0.92,
+      },
     },
     { type: 'status', status: 'executing_tools' },
     {
@@ -483,13 +569,13 @@ export function buildPlanningContinuationSteps(summary: string): ReplayStep[] {
         status: 'running',
         summary: '正在查询近期常用食材和忌口。',
         input: `user_food_preferences: ${summary}`,
-        output: '查询中...'
-      }
+        output: '查询中...',
+      },
     },
     {
       type: 'toolUpdate',
       id: 'tool-db',
-      patch: { status: 'success', latencyMs: 280, summary: '已把预算、忌口和目标映射进计划上下文。', output: summary }
+      patch: { status: 'success', latencyMs: 280, summary: '已把预算、忌口和目标映射进计划上下文。', output: summary },
     },
     { type: 'status', status: 'validating' },
     {
@@ -501,18 +587,23 @@ export function buildPlanningContinuationSteps(summary: string): ReplayStep[] {
         status: 'running',
         summary: '正在校验日均蛋白质、预算和烹饪时间。',
         input: `plan draft · ${summary}`,
-        output: '校验中...'
-      }
+        output: '校验中...',
+      },
     },
     {
       type: 'toolUpdate',
       id: 'tool-validator',
-      patch: { status: 'success', latencyMs: 360, summary: '预算与蛋白质目标校验通过。', output: 'valid=true · budget=pass · protein_target=pass' }
+      patch: {
+        status: 'success',
+        latencyMs: 360,
+        summary: '预算与蛋白质目标校验通过。',
+        output: 'valid=true · budget=pass · protein_target=pass',
+      },
     },
     { type: 'status', status: 'composing' },
     {
       type: 'assistantStream',
-      content: `已根据"${summary}"生成高蛋白备餐草案。当前方案优先复用鸡胸肉、鸡蛋、豆腐和西兰花，兼顾预算控制、可执行性和批量备餐效率。`
+      content: `已根据"${summary}"生成高蛋白备餐草案。当前方案优先复用鸡胸肉、鸡蛋、豆腐和西兰花，兼顾预算控制、可执行性和批量备餐效率。`,
     },
     {
       type: 'card',
@@ -523,9 +614,9 @@ export function buildPlanningContinuationSteps(summary: string): ReplayStep[] {
         title: '备餐计划已更新，可继续查看购物清单或确认保存',
         description: `计划已经纳入 ${summary}，当前校验通过。`,
         primaryAction: '确认保存',
-        secondaryAction: '查看购物清单'
-      }
+        secondaryAction: '查看购物清单',
+      },
     },
-    { type: 'status', status: 'completed' }
+    { type: 'status', status: 'completed' },
   ]);
 }

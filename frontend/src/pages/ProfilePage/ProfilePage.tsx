@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { Button, Card, Form, Input, InputNumber, Message, Modal, Select, Tag } from '@arco-design/web-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { mockAuthUser } from '../../mock/auth';
+import { getAuthUser } from '../../services/authService';
 import styles from './ProfilePage.module.css';
 
 const Option = Select.Option;
 
 export function ProfilePage() {
+  const authUser = getAuthUser();
   const [avatarRemoved, setAvatarRemoved] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const [avatarFileName, setAvatarFileName] = useState('');
@@ -23,7 +24,7 @@ export function ProfilePage() {
         URL.revokeObjectURL(avatarPreviewUrl);
       }
     },
-    [avatarPreviewUrl]
+    [avatarPreviewUrl],
   );
 
   const handleSave = () => {
@@ -91,16 +92,24 @@ export function ProfilePage() {
             <Card className={styles.card} bordered={false}>
               <div className={styles.avatarPanel}>
                 <div className={`${styles.avatar} ${avatarRemoved ? styles.avatarMuted : ''}`}>
-                  {!avatarRemoved && avatarPreviewUrl ? <img alt="avatar preview" className={styles.avatarImage} src={avatarPreviewUrl} /> : null}
-                  {avatarRemoved || avatarPreviewUrl ? null : mockAuthUser.displayName.slice(0, 1)}
+                  {!avatarRemoved && avatarPreviewUrl ? (
+                    <img alt="avatar preview" className={styles.avatarImage} src={avatarPreviewUrl} />
+                  ) : null}
+                  {avatarRemoved || avatarPreviewUrl ? null : authUser.displayName.slice(0, 1)}
                   {avatarRemoved ? '访' : null}
                 </div>
-                <strong>{mockAuthUser.displayName}</strong>
-                <span>{mockAuthUser.email}</span>
+                <strong>{authUser.displayName}</strong>
+                <span>{authUser.email}</span>
                 {avatarFileName ? <Tag color="arcoblue">{avatarFileName}</Tag> : null}
               </div>
               <div className={styles.avatarActions}>
-                <input accept="image/jpeg,image/png,image/webp" className={styles.hiddenInput} onChange={handleAvatarChange} ref={fileInputRef} type="file" />
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  className={styles.hiddenInput}
+                  onChange={handleAvatarChange}
+                  ref={fileInputRef}
+                  type="file"
+                />
                 <Button type="primary" onClick={handleAvatarSelect}>
                   选择图片
                 </Button>
@@ -129,7 +138,9 @@ export function ProfilePage() {
                 </Button>
               </div>
               {avatarError ? <Tag color="red">{avatarError}</Tag> : null}
-              <p className={styles.uploadHint}>支持 JPG / PNG / WebP，2MB 内。当前只做本地预览和状态反馈，真实接入后文件进入 MinIO。</p>
+              <p className={styles.uploadHint}>
+                支持 JPG / PNG / WebP，2MB 内。当前只做本地预览和状态反馈，真实接入后文件进入 MinIO。
+              </p>
             </Card>
 
             <Card className={styles.card} bordered={false}>
@@ -137,19 +148,19 @@ export function ProfilePage() {
               <div className={styles.metaList}>
                 <article>
                   <span>用户名</span>
-                  <b>{mockAuthUser.username}</b>
+                  <b>{authUser.username}</b>
                 </article>
                 <article>
                   <span>角色</span>
-                  <Tag color="arcoblue">{mockAuthUser.role}</Tag>
+                  <Tag color="arcoblue">{authUser.role}</Tag>
                 </article>
                 <article>
                   <span>状态</span>
-                  <Tag color="green">{mockAuthUser.status}</Tag>
+                  <Tag color="green">{authUser.status}</Tag>
                 </article>
                 <article>
                   <span>最近登录</span>
-                  <b>{mockAuthUser.lastLoginAt}</b>
+                  <b>{authUser.lastLoginAt}</b>
                 </article>
               </div>
             </Card>
@@ -165,17 +176,17 @@ export function ProfilePage() {
                 className={styles.form}
                 layout="vertical"
                 initialValues={{
-                  displayName: mockAuthUser.displayName,
-                  email: mockAuthUser.email,
-                  heightCm: mockAuthUser.profile.heightCm,
-                  weightKg: mockAuthUser.profile.weightKg,
-                  activityLevel: mockAuthUser.profile.activityLevel,
-                  dietGoal: mockAuthUser.profile.dietGoal,
-                  calorieTarget: mockAuthUser.profile.calorieTarget,
-                  proteinTarget: mockAuthUser.profile.proteinTarget,
-                  dislikes: mockAuthUser.profile.dislikes.join('、'),
-                  allergens: mockAuthUser.profile.allergens.join('、'),
-                  units: `${mockAuthUser.profile.preferredUnits.weight} / ${mockAuthUser.profile.preferredUnits.energy}`
+                  displayName: authUser.displayName,
+                  email: authUser.email,
+                  heightCm: authUser.profile.heightCm,
+                  weightKg: authUser.profile.weightKg,
+                  activityLevel: authUser.profile.activityLevel,
+                  dietGoal: authUser.profile.dietGoal,
+                  calorieTarget: authUser.profile.calorieTarget,
+                  proteinTarget: authUser.profile.proteinTarget,
+                  dislikes: authUser.profile.dislikes.join('、'),
+                  allergens: authUser.profile.allergens.join('、'),
+                  units: `${authUser.profile.preferredUnits.weight} / ${authUser.profile.preferredUnits.energy}`,
                 }}
                 onSubmit={handleSave}
               >

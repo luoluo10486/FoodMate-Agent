@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AgentRunView } from '../types/agent';
 import type { Message } from '../types/session';
+import { ROUTES } from '../constants/routes';
 import {
   type AgentCard,
   type AgentMode,
@@ -12,7 +13,7 @@ import {
   createMessage,
   detectMode,
   initialMessages,
-  seededPrompts
+  seededPrompts,
 } from './agentReplayData';
 
 export type UseMockAgentReplayState = {
@@ -24,7 +25,10 @@ export type UseMockAgentReplayState = {
   input: string;
 };
 
-export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null): UseMockAgentReplayState & {
+export function useMockAgentReplay(
+  seedKey?: string,
+  seedPrompt?: string | null,
+): UseMockAgentReplayState & {
   setInput: (value: string) => void;
   send: (overridePrompt?: string) => void;
   stop: () => void;
@@ -42,9 +46,10 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     mode: 'planning',
     label: '计划草案',
     title: '3 天高蛋白备餐已生成，预算预计 286 元',
-    description: '计划优先复用鸡胸肉、鸡蛋、豆腐和西兰花，降低采购成本和食材浪费。当前正在校验晚餐烹饪时间和蛋白质目标。',
+    description:
+      '计划优先复用鸡胸肉、鸡蛋、豆腐和西兰花，降低采购成本和食材浪费。当前正在校验晚餐烹饪时间和蛋白质目标。',
     primaryAction: '确认保存',
-    secondaryAction: '查看购物清单'
+    secondaryAction: '查看购物清单',
   });
   const [events, setEvents] = useState<MockRunEvent[]>([]);
   const [running, setRunning] = useState(false);
@@ -70,7 +75,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
         window.clearTimeout(seedTimeoutRef.current);
       }
     },
-    []
+    [],
   );
 
   const updateRun = useCallback((updater: (current: AgentRunView) => AgentRunView) => {
@@ -87,8 +92,8 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       {
         id: `${event}-${Date.now()}-${current.length}`,
         event: event as MockRunEvent['event'],
-        createdAt: new Date().toISOString()
-      }
+        createdAt: new Date().toISOString(),
+      },
     ]);
   }, []);
 
@@ -102,7 +107,12 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
 
       if (step.type === 'status') {
         updateRun((current) => ({ ...current, status: step.status }));
-        if (step.status === 'completed' || step.status === 'failed' || step.status === 'cancelled' || step.status === 'waiting_user') {
+        if (
+          step.status === 'completed' ||
+          step.status === 'failed' ||
+          step.status === 'cancelled' ||
+          step.status === 'waiting_user'
+        ) {
           setRunning(false);
         }
         return;
@@ -118,11 +128,14 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
         streamMessageIdRef.current = message.id;
         setMessages((current) => [...current, message]);
         step.content.split('').forEach((char, index) => {
-          const timeout = window.setTimeout(() => {
-            setMessages((current) =>
-              current.map((item) => (item.id === message.id ? { ...item, content: `${item.content}${char}` } : item))
-            );
-          }, index * (step.chunkMs ?? 18));
+          const timeout = window.setTimeout(
+            () => {
+              setMessages((current) =>
+                current.map((item) => (item.id === message.id ? { ...item, content: `${item.content}${char}` } : item)),
+              );
+            },
+            index * (step.chunkMs ?? 18),
+          );
           timeoutsRef.current.push(timeout);
         });
         return;
@@ -136,7 +149,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       if (step.type === 'toolUpdate') {
         updateRun((current) => ({
           ...current,
-          toolCalls: current.toolCalls.map((tool) => (tool.id === step.id ? { ...tool, ...step.patch } : tool))
+          toolCalls: current.toolCalls.map((tool) => (tool.id === step.id ? { ...tool, ...step.patch } : tool)),
         }));
         return;
       }
@@ -153,7 +166,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
         setCard(step.card);
       }
     },
-    [appendRunEvent, updateRun]
+    [appendRunEvent, updateRun],
   );
 
   const scheduleSteps = useCallback(
@@ -170,7 +183,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
         }
       });
     },
-    [applyStep]
+    [applyStep],
   );
 
   const send = useCallback(
@@ -186,11 +199,19 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       setCard({ type: 'none' });
       setEvents([]);
       setRunning(true);
-      setRun({ ...baseRun, id: `run-${Date.now()}`, status: 'routing', intent: mode, toolCalls: [], citations: [], toolsUsed: 0 });
+      setRun({
+        ...baseRun,
+        id: `run-${Date.now()}`,
+        status: 'routing',
+        intent: mode,
+        toolCalls: [],
+        citations: [],
+        toolsUsed: 0,
+      });
 
       scheduleSteps(buildSteps(mode, prompt));
     },
-    [clearTimers, input, running, scheduleSteps]
+    [clearTimers, input, running, scheduleSteps],
   );
 
   useEffect(() => {
@@ -211,19 +232,19 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     updateRun((current) => ({
       ...current,
       status: 'cancelled',
-      toolCalls: current.toolCalls.map((tool) => (tool.status === 'running' ? { ...tool, status: 'cancelled' } : tool))
+      toolCalls: current.toolCalls.map((tool) => (tool.status === 'running' ? { ...tool, status: 'cancelled' } : tool)),
     }));
-    setMessages((current) => [...current, createMessage('assistant', '已停止当前任务，保留现有上下文，可以随时继续。')]);
+    setMessages((current) => [
+      ...current,
+      createMessage('assistant', '已停止当前任务，保留现有上下文，可以随时继续。'),
+    ]);
     appendRunEvent('run.cancelled');
     setCard({ type: 'none' });
   }, [appendRunEvent, clearTimers, updateRun]);
 
   const answerClarification = useCallback(
     (value: string | Record<string, string>) => {
-      const answers =
-        typeof value === 'string'
-          ? { budget: value, dislikes: '不吃猪肉', goal: '目标高蛋白' }
-          : value;
+      const answers = typeof value === 'string' ? { budget: value, dislikes: '不吃猪肉', goal: '目标高蛋白' } : value;
       const summary = `预算：${answers.budget}；忌口：${answers.dislikes}；目标：${answers.goal}`;
 
       clearTimers();
@@ -234,19 +255,25 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       updateRun((current) => ({ ...current, status: 'planning' }));
       scheduleSteps(buildPlanningContinuationSteps(summary));
     },
-    [clearTimers, scheduleSteps, updateRun]
+    [clearTimers, scheduleSteps, updateRun],
   );
 
   const confirmWrite = useCallback(() => {
     setCard({ type: 'none' });
-    setMessages((current) => [...current, createMessage('assistant', '已模拟保存这条午餐记录。真实接入后会返回 `food_log_id`，并可在饮食日志中查询。')]);
+    setMessages((current) => [
+      ...current,
+      createMessage('assistant', '已模拟保存这条午餐记录。真实接入后会返回 `food_log_id`，并可在饮食日志中查询。'),
+    ]);
     updateRun((current) => ({ ...current, status: 'completed' }));
     appendRunEvent('run.completed');
   }, [appendRunEvent, updateRun]);
 
   const editWrite = useCallback(() => {
     setInput('把鸡胸肉改成 180g，米饭 120g');
-    setMessages((current) => [...current, createMessage('assistant', '可以，已把修改建议放到输入框，发送后我会重新估算。')]);
+    setMessages((current) => [
+      ...current,
+      createMessage('assistant', '可以，已把修改建议放到输入框，发送后我会重新估算。'),
+    ]);
   }, []);
 
   const handleResultPrimary = useCallback(() => {
@@ -254,7 +281,10 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
 
     setCard({ type: 'none' });
     if (card.mode === 'planning') {
-      setMessages((current) => [...current, createMessage('assistant', '已模拟保存这个备餐计划。真实接入后会生成 `meal_plan_id`，并同步到"饮食管理"页面。')]);
+      setMessages((current) => [
+        ...current,
+        createMessage('assistant', '已模拟保存这个备餐计划。真实接入后会生成 `meal_plan_id`，并同步到"饮食管理"页面。'),
+      ]);
       updateRun((current) => ({ ...current, status: 'completed' }));
       appendRunEvent('run.completed');
       return;
@@ -265,14 +295,14 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
         type: 'confirmation',
         title: '重新确认写入内容',
         helperText: '这是重新打开的确认卡，仍然不会写入真实后端。',
-        data: lastConfirmationDataRef.current
+        data: lastConfirmationDataRef.current,
       });
       updateRun((current) => ({ ...current, status: 'waiting_user' }));
       return;
     }
 
     if (card.mode === 'analysis') {
-      window.location.assign('/analysis');
+      window.location.assign(ROUTES.ANALYSIS);
       return;
     }
 
@@ -285,7 +315,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
     if (card.type !== 'result') return;
 
     if (card.mode === 'planning') {
-      window.location.assign('/planning');
+      window.location.assign(ROUTES.PLANNING);
       return;
     }
 
@@ -315,7 +345,7 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       title: '没有保存任何饮食记录',
       description: '已保留原始输入，可以重新确认写入，或继续修改后再发送。',
       primaryAction: '重新确认写入',
-      secondaryAction: '继续修改'
+      secondaryAction: '继续修改',
     });
   }, [appendRunEvent, updateRun]);
 
@@ -335,11 +365,23 @@ export function useMockAgentReplay(seedKey?: string, seedPrompt?: string | null)
       handleResultPrimary,
       handleResultSecondary,
       editWrite,
-      cancelWrite
+      cancelWrite,
     }),
     [
-      answerClarification, cancelWrite, card, confirmWrite, editWrite, events,
-      handleResultPrimary, handleResultSecondary, input, messages, run, running, send, stop
-    ]
+      answerClarification,
+      cancelWrite,
+      card,
+      confirmWrite,
+      editWrite,
+      events,
+      handleResultPrimary,
+      handleResultSecondary,
+      input,
+      messages,
+      run,
+      running,
+      send,
+      stop,
+    ],
   );
 }

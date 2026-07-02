@@ -9,7 +9,7 @@ import {
   adminToolRows,
   canManage,
   riskTag,
-  statusTag
+  statusTag,
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
 
@@ -26,12 +26,29 @@ export function ToolsSection({ onAction }: { onAction: (payload: AdminActionPayl
       title: '操作',
       render: (_, record) => (
         <div className={styles.rowActions}>
-          <Button size="mini" onClick={() => setSelectedTool(record)}>详情</Button>
-          <Button size="mini" disabled={!canManage}
-            onClick={() => onAction({ action: record.status === 'active' ? '停用工具' : '启用工具', targetLabel: record.name, targetType: 'tool', targetId: record.name, onApply: () => { record.status = record.status === 'active' ? 'disabled' : 'active'; } })}>启停</Button>
+          <Button size="mini" onClick={() => setSelectedTool(record)}>
+            详情
+          </Button>
+          <Button
+            size="mini"
+            disabled={!canManage}
+            onClick={() =>
+              onAction({
+                action: record.status === 'active' ? '停用工具' : '启用工具',
+                targetLabel: record.name,
+                targetType: 'tool',
+                targetId: record.name,
+                onApply: () => {
+                  record.status = record.status === 'active' ? 'disabled' : 'active';
+                },
+              })
+            }
+          >
+            启停
+          </Button>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -43,7 +60,12 @@ export function ToolsSection({ onAction }: { onAction: (payload: AdminActionPayl
             <strong>工具注册表</strong>
             <Tag color="red">高风险工具仅 admin 可停用</Tag>
           </div>
-          <Table columns={toolColumns} data={adminToolRows} pagination={{ pageSize: 6, total: adminToolRows.length }} size="small" />
+          <Table
+            columns={toolColumns}
+            data={adminToolRows}
+            pagination={{ pageSize: 6, total: adminToolRows.length }}
+            size="small"
+          />
         </Card>
         <aside className={styles.side}>
           <ToolDetailCard tool={selectedTool} />
@@ -62,12 +84,18 @@ function ToolDetailCard({ tool }: { tool: ToolRow }) {
         {riskTag(tool.risk)}
       </div>
       <div className={styles.detailGrid}>
-        <span>名称</span><strong>{tool.name}</strong>
-        <span>版本</span><strong>{tool.version}</strong>
-        <span>负责人域</span><strong>{tool.owner}</strong>
-        <span>可用范围</span><strong>{tool.scope}</strong>
-        <span>入参 schema</span><strong>{tool.schema}</strong>
-        <span>最近调用</span><strong>{tool.lastCalledAt}</strong>
+        <span>名称</span>
+        <strong>{tool.name}</strong>
+        <span>版本</span>
+        <strong>{tool.version}</strong>
+        <span>负责人域</span>
+        <strong>{tool.owner}</strong>
+        <span>可用范围</span>
+        <strong>{tool.scope}</strong>
+        <span>入参 schema</span>
+        <strong>{tool.schema}</strong>
+        <span>最近调用</span>
+        <strong>{tool.lastCalledAt}</strong>
       </div>
     </Card>
   );

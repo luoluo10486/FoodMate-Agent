@@ -2,18 +2,12 @@ import { Button, Card, Message, Modal, Tag } from '@arco-design/web-react';
 import { useState } from 'react';
 import { IconApps, IconHome, IconLeft, IconSafe, IconUser } from '@arco-design/web-react/icon';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { ROUTES } from '../../constants/routes';
 import { BrandLogo } from '../../components/brand/BrandLogo';
-import { adminOperationAuditRows } from '../../mock/admin';
-import { mockAuthStatus, mockAuthUser } from '../../mock/auth';
+import { adminOperationAuditRows } from '../../services/adminService';
+import { getAuthStatus, getAuthUser } from '../../services/authService';
 import styles from './AdminPage.module.css';
-import {
-  AdminHeader,
-  adminNavItems,
-  canAccessAdmin,
-  canManage,
-  getSectionKey,
-  sectionMeta
-} from './tabs/AdminShared';
+import { AdminHeader, adminNavItems, canAccessAdmin, canManage, getSectionKey, sectionMeta } from './tabs/AdminShared';
 import { DeletedSection } from './tabs/DeletedResourcesTab';
 import { KnowledgeSection } from './tabs/KnowledgeTab';
 import { OverviewSection } from './tabs/OverviewTab';
@@ -25,17 +19,25 @@ import type { AdminActionPayload, AdminSectionKey } from './tabs/types';
 
 function renderSection(sectionKey: AdminSectionKey, onAction: (payload: AdminActionPayload) => void) {
   switch (sectionKey) {
-    case 'users': return <UsersSection onAction={onAction} />;
-    case 'runs': return <RunsSection />;
-    case 'tools': return <ToolsSection onAction={onAction} />;
-    case 'usage': return <UsageSection />;
-    case 'knowledge': return <KnowledgeSection onAction={onAction} />;
-    case 'deleted': return <DeletedSection onAction={onAction} />;
-    default: return <OverviewSection onAction={onAction} />;
+    case 'users':
+      return <UsersSection onAction={onAction} />;
+    case 'runs':
+      return <RunsSection />;
+    case 'tools':
+      return <ToolsSection onAction={onAction} />;
+    case 'usage':
+      return <UsageSection />;
+    case 'knowledge':
+      return <KnowledgeSection onAction={onAction} />;
+    case 'deleted':
+      return <DeletedSection onAction={onAction} />;
+    default:
+      return <OverviewSection onAction={onAction} />;
   }
 }
 
 export function AdminPage() {
+  const authUser = getAuthUser();
   const { pathname } = useLocation();
   const sectionKey = getSectionKey(pathname) as AdminSectionKey;
   const [, forceRefresh] = useState(0);
@@ -55,22 +57,22 @@ export function AdminPage() {
         onApply?.();
         adminOperationAuditRows.unshift({
           key: `op-${Date.now()}`,
-          operator_id: `user_${mockAuthUser.id}`,
-          operator: mockAuthUser.role,
+          operator_id: `user_${authUser.id}`,
+          operator: authUser.role,
           action,
           target_type: targetType,
           target_id: targetId,
           result: 'success',
           request_id: `req_admin_${Date.now()}`,
           trace_id: `trace_admin_${Date.now()}`,
-          created_at: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
+          created_at: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
         });
         if (adminOperationAuditRows.length > 8) {
           adminOperationAuditRows.length = 8;
         }
         forceRefresh((current) => current + 1);
         Message.success(`${action} 已提交，mock 审计记录已更新`);
-      }
+      },
     });
   };
 
@@ -96,7 +98,7 @@ export function AdminPage() {
           <BrandLogo />
           <Tag color="green">Admin Console</Tag>
         </div>
-        <Link className={styles.workspaceLink} to="/">
+        <Link className={styles.workspaceLink} to={ROUTES.HOME}>
           <IconHome />
           <span>返回 Agent 工作台</span>
         </Link>
@@ -129,8 +131,8 @@ export function AdminPage() {
           </div>
           <div className={styles.topbarActions}>
             <Tag color={canManage ? 'green' : 'orange'}>{canManage ? 'admin 可操作' : 'operator 只读'}</Tag>
-            <Link to="/profile">
-              <Button icon={<IconUser />}>{mockAuthUser.displayName}</Button>
+            <Link to={ROUTES.PROFILE}>
+              <Button icon={<IconUser />}>{authUser.displayName}</Button>
             </Link>
           </div>
         </header>

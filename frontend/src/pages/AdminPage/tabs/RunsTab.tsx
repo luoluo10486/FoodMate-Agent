@@ -10,7 +10,7 @@ import {
   auditColumns,
   sqlAuditColumns,
   toolCallColumns,
-  traceColumns
+  traceColumns,
 } from './AdminShared';
 
 const TabPane = Tabs.TabPane;
@@ -31,16 +31,36 @@ export function RunsSection() {
         </div>
         <Tabs defaultActiveTab="agent-runs">
           <TabPane key="agent-runs" title="AgentRun">
-            <Table columns={auditColumns} data={adminAuditRows} pagination={{ pageSize: 5, total: adminAuditRows.length }} size="small" />
+            <Table
+              columns={auditColumns}
+              data={adminAuditRows}
+              pagination={{ pageSize: 5, total: adminAuditRows.length }}
+              size="small"
+            />
           </TabPane>
           <TabPane key="tool-calls" title="ToolCall">
-            <Table columns={toolCallColumns} data={adminToolCallRows} pagination={{ pageSize: 5, total: adminToolCallRows.length }} size="small" />
+            <Table
+              columns={toolCallColumns}
+              data={adminToolCallRows}
+              pagination={{ pageSize: 5, total: adminToolCallRows.length }}
+              size="small"
+            />
           </TabPane>
           <TabPane key="sql-audits" title="SQLAudit">
-            <Table columns={sqlAuditColumns} data={adminSqlAuditRows} pagination={{ pageSize: 5, total: adminSqlAuditRows.length }} size="small" />
+            <Table
+              columns={sqlAuditColumns}
+              data={adminSqlAuditRows}
+              pagination={{ pageSize: 5, total: adminSqlAuditRows.length }}
+              size="small"
+            />
           </TabPane>
           <TabPane key="traces" title="Trace">
-            <Table columns={traceColumns} data={adminTraceRows} pagination={{ pageSize: 5, total: adminTraceRows.length }} size="small" />
+            <Table
+              columns={traceColumns}
+              data={adminTraceRows}
+              pagination={{ pageSize: 5, total: adminTraceRows.length }}
+              size="small"
+            />
           </TabPane>
         </Tabs>
       </Card>

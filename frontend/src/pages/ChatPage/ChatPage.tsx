@@ -10,14 +10,14 @@ import { ToolTraceItem } from '../../components/agent/ToolTraceItem';
 import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
 import { ErrorState } from '../../components/common/ErrorState';
-import { useMockAgentReplay } from '../../mock/agentReplay';
+import { useAgentReplay } from '../../services/agentService';
 import styles from './ChatPage.module.css';
 
 export function ChatPage() {
   const params = useParams();
   const sessionId = params.session_id;
   const [searchParams] = useSearchParams();
-  const agent = useMockAgentReplay(sessionId, searchParams.get('prompt'));
+  const agent = useAgentReplay(sessionId, searchParams.get('prompt'));
   const messagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,7 +33,9 @@ export function ChatPage() {
             <div className={styles.messages} ref={messagesRef}>
               {agent.messages.map((message) => (
                 <article className={`${styles.message} ${styles[message.role]}`} key={message.id}>
-                  <Tag color={message.role === 'user' ? 'gray' : 'green'}>{message.role === 'user' ? '你' : 'FoodMate'}</Tag>
+                  <Tag color={message.role === 'user' ? 'gray' : 'green'}>
+                    {message.role === 'user' ? '你' : 'FoodMate'}
+                  </Tag>
                   <p>{message.content}</p>
                   <span>{message.time}</span>
                 </article>

@@ -24,7 +24,9 @@ export function TaskCard({ task, state = 'normal', errorText = '任务模板暂�
 
   return (
     <Card className={`${styles.card} ${styles[task.accent]} ${styles[state]}`} bordered={false}>
-      {isInteractive ? <Link className={styles.linkOverlay} to={target} aria-label={`开始任务：${task.prompt}`} /> : null}
+      {isInteractive ? (
+        <Link className={styles.linkOverlay} to={target} aria-label={`开始任务：${task.prompt}`} />
+      ) : null}
       <Tag className={styles.tag} color={state === 'error' ? 'red' : undefined}>
         {task.title}
       </Tag>

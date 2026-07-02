@@ -8,20 +8,20 @@ const knowledgeItems = [
     title: '备餐指南',
     source: '内部知识库',
     snippet: '高蛋白备餐建议优先复用鸡蛋、豆腐、鸡胸肉等易保存食材，减少采购成本和食材浪费。',
-    visibility: '用户可见'
+    visibility: '用户可见',
   },
   {
     title: '蔬菜焯水与营养保留指南',
     source: '营养资料',
     snippet: '西兰花焯水通常控制在 60-90 秒，出锅后过冷水有助于保持口感和颜色。',
-    visibility: '公开'
+    visibility: '公开',
   },
   {
     title: '蛋白质推荐摄入说明',
     source: '目标配置',
     snippet: '当前 mock 口径按体重 70kg × 1.5-2.0g/kg/天，推荐区间为 105-140g/天。',
-    visibility: '用户可见'
-  }
+    visibility: '用户可见',
+  },
 ];
 
 export function KnowledgePage() {
@@ -33,7 +33,12 @@ export function KnowledgePage() {
             <span>Knowledge Base</span>
             <h1>知识库检索占位</h1>
           </div>
-          <Input.Search className={styles.search} prefix={<IconSearch />} placeholder="搜索食材、烹饪方式或营养规则" searchButton="检索" />
+          <Input.Search
+            className={styles.search}
+            prefix={<IconSearch />}
+            placeholder="搜索食材、烹饪方式或营养规则"
+            searchButton="检索"
+          />
         </section>
 
         <section className={styles.summary}>

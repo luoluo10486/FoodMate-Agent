@@ -19,7 +19,7 @@ export function MealPlanTable({ rows }: MealPlanTableProps) {
       columns={[
         { title: '日期', dataIndex: 'day' },
         { title: '午餐', dataIndex: 'lunch' },
-        { title: '晚餐', dataIndex: 'dinner' }
+        { title: '晚餐', dataIndex: 'dinner' },
       ]}
     />
   );

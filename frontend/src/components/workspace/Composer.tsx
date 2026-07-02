@@ -27,7 +27,7 @@ export function Composer({
   agentsTotal,
   onChange,
   onSend,
-  onStop
+  onStop,
 }: ComposerProps) {
   const handleSubmit = () => {
     if (running) {
@@ -41,8 +41,12 @@ export function Composer({
   return (
     <footer className={styles.composer}>
       <div className={styles.statusRow}>
-        <button className={styles.toolPill}>Tools（{toolsUsed}/{toolsTotal}）⌄</button>
-        <button className={styles.agentPill}>Agents（{agentsUsed}/{agentsTotal}）⌄</button>
+        <button className={styles.toolPill}>
+          Tools（{toolsUsed}/{toolsTotal}）⌄
+        </button>
+        <button className={styles.agentPill}>
+          Agents（{agentsUsed}/{agentsTotal}）⌄
+        </button>
       </div>
       <div className={styles.inputRow}>
         <Button aria-label="上传附件" shape="circle" disabled={disabled} icon={<IconAttachment />} />

@@ -3,11 +3,19 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 const HomePage = lazy(() => import('./pages/HomePage/HomePage').then((module) => ({ default: module.HomePage })));
 const ChatPage = lazy(() => import('./pages/ChatPage/ChatPage').then((module) => ({ default: module.ChatPage })));
-const AnalysisPage = lazy(() => import('./pages/AnalysisPage/AnalysisPage').then((module) => ({ default: module.AnalysisPage })));
-const PlanningPage = lazy(() => import('./pages/PlanningPage/PlanningPage').then((module) => ({ default: module.PlanningPage })));
-const KnowledgePage = lazy(() => import('./pages/KnowledgePage/KnowledgePage').then((module) => ({ default: module.KnowledgePage })));
+const AnalysisPage = lazy(() =>
+  import('./pages/AnalysisPage/AnalysisPage').then((module) => ({ default: module.AnalysisPage })),
+);
+const PlanningPage = lazy(() =>
+  import('./pages/PlanningPage/PlanningPage').then((module) => ({ default: module.PlanningPage })),
+);
+const KnowledgePage = lazy(() =>
+  import('./pages/KnowledgePage/KnowledgePage').then((module) => ({ default: module.KnowledgePage })),
+);
 const LoginPage = lazy(() => import('./pages/LoginPage/LoginPage').then((module) => ({ default: module.LoginPage })));
-const ProfilePage = lazy(() => import('./pages/ProfilePage/ProfilePage').then((module) => ({ default: module.ProfilePage })));
+const ProfilePage = lazy(() =>
+  import('./pages/ProfilePage/ProfilePage').then((module) => ({ default: module.ProfilePage })),
+);
 const AdminPage = lazy(() => import('./pages/AdminPage/AdminPage').then((module) => ({ default: module.AdminPage })));
 
 export function App() {

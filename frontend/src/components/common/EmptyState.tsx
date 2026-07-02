@@ -15,7 +15,7 @@ export function EmptyState({
   title = '暂无会话',
   description = '从一个任务开始，让 FoodMate 帮你计算、记录、分析或规划。',
   actionLabel = '新建 Agent 会话',
-  onAction
+  onAction,
 }: EmptyStateProps) {
   if (state === 'loading') {
     return (
@@ -29,7 +29,12 @@ export function EmptyState({
     <section className={`${styles.empty} ${styles[state]}`}>
       <strong>{state === 'error' ? '状态加载失败' : title}</strong>
       <span>{state === 'error' ? '请稍后重试，或从左侧新建一个会话。' : description}</span>
-      <Button disabled={state === 'disabled'} status={state === 'error' ? 'danger' : 'default'} type="primary" onClick={onAction}>
+      <Button
+        disabled={state === 'disabled'}
+        status={state === 'error' ? 'danger' : 'default'}
+        type="primary"
+        onClick={onAction}
+      >
         {state === 'error' ? '重试' : actionLabel}
       </Button>
     </section>

@@ -14,7 +14,7 @@ const labels: Record<AgentDisplayStatus, string> = {
   waiting_user: 'waiting',
   completed: 'completed',
   failed: 'failed',
-  cancelled: 'cancelled'
+  cancelled: 'cancelled',
 };
 
 type AgentStatusStripProps = {

@@ -7,7 +7,7 @@ import { Composer } from '../../components/workspace/Composer';
 import { TaskCard } from '../../components/common/TaskCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BrandLogo } from '../../components/brand/BrandLogo';
-import { recommendedPrompts, taskCards } from '../../mock/sessions';
+import { getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
 import styles from './HomePage.module.css';
 
 export function HomePage() {
@@ -29,7 +29,7 @@ export function HomePage() {
         </section>
 
         <section className={styles.tasks}>
-          {taskCards.map((task) => (
+          {getTaskCards().map((task) => (
             <TaskCard key={task.id} task={task} />
           ))}
         </section>
@@ -40,7 +40,7 @@ export function HomePage() {
             <strong>从这些高频问题开始</strong>
           </div>
           <div className={styles.promptGrid}>
-            {recommendedPrompts.map((prompt) => (
+            {getRecommendedPrompts().map((prompt) => (
               <Button key={prompt} className={styles.promptButton} onClick={() => startPrompt(prompt)}>
                 {prompt}
                 <IconArrowRight />

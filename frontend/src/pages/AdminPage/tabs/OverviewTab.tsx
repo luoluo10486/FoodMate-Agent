@@ -1,5 +1,6 @@
 import { Card, Table, Tag } from '@arco-design/web-react';
 import { Link } from 'react-router-dom';
+import { ROUTES } from '../../../constants/routes';
 import { IconFile, IconThunderbolt, IconTool } from '@arco-design/web-react/icon';
 import styles from '../AdminPage.module.css';
 import {
@@ -10,7 +11,7 @@ import {
   adminAuditRows,
   adminOverviewMetrics,
   auditColumns,
-  canManage
+  canManage,
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
 
@@ -33,7 +34,12 @@ export function OverviewSection({ onAction }: { onAction: (payload: AdminActionP
             <strong>运行审计</strong>
             <Tag color="arcoblue">AgentRun / ToolCall / Trace</Tag>
           </div>
-          <Table columns={auditColumns} data={adminAuditRows} pagination={{ pageSize: 5, total: adminAuditRows.length }} size="small" />
+          <Table
+            columns={auditColumns}
+            data={adminAuditRows}
+            pagination={{ pageSize: 5, total: adminAuditRows.length }}
+            size="small"
+          />
         </Card>
         <aside className={styles.side}>
           <AdminActionsCard onAction={onAction} />
@@ -42,17 +48,17 @@ export function OverviewSection({ onAction }: { onAction: (payload: AdminActionP
       </section>
       {canManage ? <OperationAuditCard /> : null}
       <section className={styles.moduleGrid}>
-        <Link to="/admin/runs">
+        <Link to={`${ROUTES.ADMIN}/runs`}>
           <IconThunderbolt />
           <strong>运行链路</strong>
           <span>查看 AgentRun、ToolCall、SQLAudit 和 Trace。</span>
         </Link>
-        <Link to="/admin/knowledge">
+        <Link to={`${ROUTES.ADMIN}/knowledge`}>
           <IconFile />
           <strong>知识库文档</strong>
           <span>上传、下线、恢复和索引状态将在真实接口接入后开放。</span>
         </Link>
-        <Link to="/admin/tools">
+        <Link to={`${ROUTES.ADMIN}/tools`}>
           <IconTool />
           <strong>工具注册表</strong>
           <span>工具版本、风险等级、权限范围和启停状态统一在后台治理。</span>

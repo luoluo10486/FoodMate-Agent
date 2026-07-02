@@ -13,8 +13,8 @@ import {
   proteinGoal,
   proteinTargetMax,
   proteinTargetMin,
-  proteinTrendByRange
-} from '../../mock/analysis';
+  proteinTrendByRange,
+} from '../../services/analysisService';
 import styles from './AnalysisPage.module.css';
 
 const Option = Select.Option;
@@ -34,7 +34,9 @@ export function AnalysisPage() {
   const plotWidth = chartWidth - chartPadding.left - chartPadding.right;
   const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom;
   const getX = (index: number) =>
-    proteinTrend.length > 1 ? chartPadding.left + (index / (proteinTrend.length - 1)) * plotWidth : chartPadding.left + plotWidth / 2;
+    proteinTrend.length > 1
+      ? chartPadding.left + (index / (proteinTrend.length - 1)) * plotWidth
+      : chartPadding.left + plotWidth / 2;
   const getY = (value: number) => chartPadding.top + (1 - value / yMax) * plotHeight;
   const points = proteinTrend.map((item, index) => `${getX(index)},${getY(item.protein)}`).join(' ');
   const targetMinY = getY(proteinTargetMin);
@@ -67,10 +69,14 @@ export function AnalysisPage() {
         timeline.to(trendLine, { strokeDashoffset: 0, duration: reduceMotion ? 0 : 0.7 }, '<0.05');
       }
 
-      timeline.from(`.${styles.goodPoint}, .${styles.lowPoint}`, { autoAlpha: 0, scale: 0.45, transformOrigin: '50% 50%', stagger: 0.025 }, '<0.2');
+      timeline.from(
+        `.${styles.goodPoint}, .${styles.lowPoint}`,
+        { autoAlpha: 0, scale: 0.45, transformOrigin: '50% 50%', stagger: 0.025 },
+        '<0.2',
+      );
       timeline.from(`.${styles.valueLabel}, .${styles.targetLabel}`, { autoAlpha: 0, y: -4, stagger: 0.02 }, '<0.1');
     },
-    { dependencies: [range], scope: chartRef, revertOnUpdate: true }
+    { dependencies: [range], scope: chartRef, revertOnUpdate: true },
   );
 
   return (
@@ -100,7 +106,9 @@ export function AnalysisPage() {
             <div className={styles.cardHead}>
               <div>
                 <strong>蛋白质趋势</strong>
-                <span>按 {proteinGoal.weightKg}kg × {multiplierLabel}，推荐 {targetLabel}</span>
+                <span>
+                  按 {proteinGoal.weightKg}kg × {multiplierLabel}，推荐 {targetLabel}
+                </span>
               </div>
               <Tag color="green">Tools（2/6）time_parser · database_query</Tag>
             </div>
@@ -130,7 +138,13 @@ export function AnalysisPage() {
                     const y = getY(tick);
                     return (
                       <g key={tick}>
-                        <line className={styles.gridLine} x1={chartPadding.left} y1={y} x2={chartWidth - chartPadding.right} y2={y} />
+                        <line
+                          className={styles.gridLine}
+                          x1={chartPadding.left}
+                          y1={y}
+                          x2={chartWidth - chartPadding.right}
+                          y2={y}
+                        />
                         <text className={styles.axisLabel} x={chartPadding.left - 12} y={y + 4} textAnchor="end">
                           {tick}g
                         </text>
@@ -151,7 +165,12 @@ export function AnalysisPage() {
                             {item.protein}g
                           </text>
                         ) : null}
-                        <circle className={isLow ? styles.lowPoint : styles.goodPoint} cx={x} cy={y} r={shouldShowLabel ? 6 : 4} />
+                        <circle
+                          className={isLow ? styles.lowPoint : styles.goodPoint}
+                          cx={x}
+                          cy={y}
+                          r={shouldShowLabel ? 6 : 4}
+                        />
                         {shouldShowLabel ? (
                           <text className={styles.dayLabel} x={x} y={chartHeight - 14} textAnchor="middle">
                             {item.day}
@@ -178,7 +197,13 @@ export function AnalysisPage() {
           </Card>
         </section>
 
-        <Composer toolsUsed={2} toolsTotal={6} agentsUsed={1} agentsTotal={1} placeholder="继续追问分析口径，例如：按早餐/午餐拆开..." />
+        <Composer
+          toolsUsed={2}
+          toolsTotal={6}
+          agentsUsed={1}
+          agentsTotal={1}
+          placeholder="继续追问分析口径，例如：按早餐/午餐拆开..."
+        />
       </div>
     </WorkspaceLayout>
   );

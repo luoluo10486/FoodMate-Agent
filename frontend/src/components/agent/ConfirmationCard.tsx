@@ -21,7 +21,7 @@ export function ConfirmationCard({
   data = [
     { label: '餐型', value: '午餐' },
     { label: '食物', value: '鸡胸肉 200g、米饭 150g、西兰花 120g' },
-    { label: '估算', value: '约 620 kcal · 蛋白质 54g' }
+    { label: '估算', value: '约 620 kcal · 蛋白质 54g' },
   ],
   state = 'normal',
   errorText = '确认数据加载失败，请重新估算。',
@@ -29,7 +29,7 @@ export function ConfirmationCard({
   onEdit,
   onCancel,
   onRetry,
-  retryLabel = '重新确认'
+  retryLabel = '重新确认',
 }: ConfirmationCardProps) {
   if (state === 'loading') {
     return (

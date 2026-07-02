@@ -1,11 +1,6 @@
 import { Card, Table, Tag } from '@arco-design/web-react';
 import styles from '../AdminPage.module.css';
-import {
-  AdminFilters,
-  MiniStat,
-  adminModelUsageRows,
-  modelUsageColumns
-} from './AdminShared';
+import { AdminFilters, MiniStat, adminModelUsageRows, modelUsageColumns } from './AdminShared';
 
 export function UsageSection() {
   return (
@@ -21,7 +16,12 @@ export function UsageSection() {
           <strong>模型调用明细</strong>
           <Tag color="arcoblue">成本和延迟治理</Tag>
         </div>
-        <Table columns={modelUsageColumns} data={adminModelUsageRows} pagination={{ pageSize: 5, total: adminModelUsageRows.length }} size="small" />
+        <Table
+          columns={modelUsageColumns}
+          data={adminModelUsageRows}
+          pagination={{ pageSize: 5, total: adminModelUsageRows.length }}
+          size="small"
+        />
       </Card>
     </>
   );
