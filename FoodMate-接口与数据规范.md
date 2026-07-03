@@ -1151,10 +1151,10 @@ Milvus 适合作为知识库主检索底座：
 |---|---|---|
 | JDK 21 | 强烈推荐 | 生产运行时 |
 | Spring Boot 3 | 强烈推荐 | Web API、依赖注入、业务编排 |
-| Spring WebFlux | 推荐 | SSE、流式输出、非阻塞请求 |
+| Spring MVC + SseEmitter | 强烈推荐 | REST API 与 SSE 事件流 |
 | Spring Security | 推荐 | 鉴权、授权、接口保护 |
 | Spring Validation | 推荐 | 参数校验 |
-| Spring Data JPA / JDBC | 推荐 | 数据访问层 |
+| MyBatis-Plus + Flyway | 强烈推荐 | 数据访问层与 PostgreSQL schema 版本迁移 |
 | Spring AI | 推荐 | 模型接入、工具调用、RAG 封装 |
 | Jackson | 推荐 | JSON 序列化 |
 | Lombok | 可选 | 减少样板代码 |
@@ -1170,7 +1170,8 @@ Milvus 适合作为知识库主检索底座：
 - `tool`
 - `retriever`
 - `validator`
-- `repository`
+- `mapper`
+- `persistence`
 - `domain`
 - `security`
 - `worker`
@@ -1190,9 +1191,10 @@ Milvus 适合作为知识库主检索底座：
 
 Java 实现流式回答时，推荐：
 
-- 控制层使用 `Spring WebFlux`
-- 事件输出使用 SSE
+- 控制层使用 `Spring MVC`
+- 事件输出使用 `SseEmitter`
 - 每个事件携带 `event_type`、`run_id`、`timestamp`、`payload`
+- SSE 事件名继续沿用 `run.created`、`run.routed`、`run.answer_stream`、`run.completed` 等现有 `run.*` 契约
 - 前端按事件增量渲染
 
 ### 14.5 工具实现约定

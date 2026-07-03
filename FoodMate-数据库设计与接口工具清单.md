@@ -158,7 +158,7 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 - 所有业务查询默认带 `is_deleted = false`
 - 管理接口显式带 `include_deleted=true` 才允许查已删除数据
-- Repository 不允许手写“全量查”绕过软删除
+- MyBatis-Plus Mapper / Service 不允许手写“全量查”绕过软删除
 
 唯一约束规则：
 

@@ -6,7 +6,7 @@
 
 | 顺序 | 编号 | 任务 | 预估 |
 |------|------|------|------|
-| 1 | B3-1 | 创建 Maven 模块化单体骨架（建议第一阶段 5-6 个模块） | 1d |
+| 1 | B3-1 | 创建 Maven 模块化单体骨架（第一轮创建 13 个模块，核心实现先集中在 bootstrap/api/application/domain/infra/shared） | 1d |
 | 2 | B3-3 | 配置 Spring Boot、数据源、Jackson、CORS、异常处理 | 0.5d |
 | 3 | B4-1~4-3 | PostgreSQL 建表（用户/会话/消息/AgentRun/ToolCall/饮食日志） | 1d |
 | 4 | B5-1 | 实现认证 API（Spring Security + JWT） | 1d |
@@ -515,6 +515,9 @@ Phase 2 统一约定：
 
 - Java 21。
 - Spring Boot 3。
+- Maven Wrapper，避免依赖全局 Maven。
+- MyBatis-Plus + Flyway + PostgreSQL。
+- Spring MVC + SseEmitter。
 - 第一阶段运行时仍是模块化单体。
 - 依赖方向遵循工程骨架文档，不让 `api` 直接依赖 `infra`、`model`、`rag`。
 
@@ -622,8 +625,8 @@ Phase 2 统一约定：
 必须实现：
 
 - `is_deleted`、`deleted_at`、`deleted_by` 通用字段约定。
-- Repository 默认查询排除软删除数据。
-- `SoftDeleteRepositorySupport` 或等价抽象。
+- MyBatis-Plus Mapper / Service 默认查询排除软删除数据。
+- `BasePo`、`SoftDeleteSupport` 或等价抽象。
 - 恢复操作的基础接口约定。
 - 审计字段：`operator_id`、`request_id`、`trace_id`、`target_type`、`target_id`、`action`、`created_at`。
 
@@ -648,7 +651,7 @@ Phase 2 统一约定：
 
 实现要点：
 
-- 可选择 Flyway 或 Liquibase。
+- 固定使用 Flyway。
 - 第一版 PostgreSQL 为事务主库。
 - 不使用 pgvector 作为主向量库。
 - 所有主键为 `BIGINT`，由应用层 Snowflake 生成。
@@ -873,7 +876,7 @@ Phase 2 统一约定：
 - Controller DTO。
 - Application service。
 - Domain entity。
-- Repository。
+- MyBatis-Plus Mapper / Service。
 - 权限占位：用户只能访问自己的会话。
 - 软删除和恢复。
 
@@ -958,7 +961,7 @@ Phase 2 统一约定：
 
 实现要点：
 
-- 使用 Spring WebFlux 或可稳定输出 SSE 的实现。
+- 使用 Spring MVC + SseEmitter 输出 SSE。
 - 每个事件包含 `event_type`、`run_id`、`timestamp`、`payload`。
 - 保留 `trace_id`。
 - 客户端断开后释放资源。

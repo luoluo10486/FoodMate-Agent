@@ -1,0 +1,15 @@
+target/
+.mvn/apache-maven-*/
+.mvn/apache-maven-*-bin.zip
+
+*.log
+*.tmp
+*.tsbuildinfo
+
+.idea/
+.vscode/
+*.iml
+
+frontend/node_modules/
+frontend/dist/
+frontend/.tsbuild/

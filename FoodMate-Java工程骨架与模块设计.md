@@ -501,7 +501,7 @@ com.foodmate.infrastructure
 职责：
 
 - 具体技术接入
-- Repository 实现
+- MyBatis-Plus Mapper、PO、持久化服务实现
 - Milvus、RocketMQ、MinIO、MCP 客户端封装
 
 ### 3.4 六类核心角色职责边界
@@ -511,7 +511,7 @@ com.foodmate.infrastructure
 | `Controller` | 入参校验、鉴权、SSE 输出、错误映射 | 直接访问 DB、直接调模型 |
 | `Application Service` | 用例编排、事务控制、DTO 组装 | 写复杂多轮推理逻辑 |
 | `Domain Service` | 领域规则、聚合协调 | 依赖框架实现 |
-| `Repository` | 持久化和查询 | 承担业务决策 |
+| `Mapper / Persistence Service` | 持久化和查询，封装 MyBatis-Plus Wrapper 与 SQL 细节 | 承担业务决策，或被 API / Orchestrator 直接调用 |
 | `Tool Adapter` | 确定性执行 | 负责路由和最终答复 |
 | `Worker Handler` | 异步任务处理 | 直接承接用户同步请求 |
 
@@ -704,9 +704,12 @@ com.foodmate.infrastructure
 固定使用：
 
 - `application.yml`
+- `application-local-stub.yml`
 - `application-local.yml`
 - `application-dev.yml`
 - `application-prod.yml`
+
+`local-stub` 是 B3 默认启动 profile，用于在没有 PostgreSQL、Redis、Milvus、MinIO、RocketMQ 时启动最小应用和健康检查；真实数据库连接从 `local/dev/prod` profile 开始启用。
 
 ### 6.2 建议配置树
 
@@ -718,10 +721,19 @@ spring:
     url: jdbc:postgresql://localhost:5432/foodmate
     username: foodmate
     password: ${DB_PASSWORD}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
   data:
     redis:
       host: localhost
       port: 6379
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: true
+      logic-not-delete-value: false
 
 foodmate:
   model:
@@ -763,6 +775,8 @@ foodmate:
 | `foodmate.mcp` | MCP 调用超时与重试 |
 | `foodmate.sql-agent` | SQL Agent 只读策略和阈值 |
 | `foodmate.tool` | 工具开关 |
+| `mybatis-plus` | 逻辑删除、字段映射、分页插件等 MyBatis-Plus 行为 |
+| `spring.flyway` | PostgreSQL schema 版本迁移 |
 | `foodmate.audit` | 审计与落库控制 |
 
 ---
@@ -829,20 +843,22 @@ foodmate:
 - SQL Agent 失败可重试，但不得跳过 `SQL Guard`
 - Worker 任务重试次数由 RocketMQ 统一控制
 
-### 7.4.1 Repository 与软删除约束
+### 7.4.1 Mapper、Service 与软删除约束
 
 固定规则：
 
-- 所有 Repository 默认查询必须附带 `is_deleted = false`
+- MyBatis-Plus 逻辑删除字段固定为 `is_deleted`
+- 所有 Mapper / Service 默认查询必须附带 `is_deleted = false`，优先通过 MyBatis-Plus 逻辑删除能力统一实现
 - 只有显式的管理接口查询才允许绕过软删除条件
 - 业务代码禁止手写“全量查”来跳过软删除
 - `DELETE` 操作统一走软删除更新，不允许默认物理删除
 - 恢复操作必须记录 `operator_id`、`request_id`、`trace_id`
+- Mapper 只能放在 `foodmate-infra`，`api`、`application`、`orchestrator` 不直接使用 MyBatis-Plus Mapper 或 Wrapper
 
 推荐抽象：
 
-- `SoftDeleteRepositorySupport`
-- `SoftDeleteQuerySpec`
+- `BasePo`
+- `SoftDeleteSupport`
 - `RestoreCommandHandler`
 
 ### 7.5 Prompt 工程化目录
@@ -905,28 +921,15 @@ Prompt 加载规则：
 
 建议按下面顺序真正搭工程：
 
-1. 创建根 `pom.xml` 与 13 个模块
-2. 先把 `bootstrap`、`api`、`application`、`shared` 跑通
+1. 创建根 `pom.xml`、Maven Wrapper 与 13 个模块
+2. 先把 `bootstrap`、`api`、`application`、`infra`、`shared` 跑通
 3. 搭 `model`、`gateway-client`、`orchestrator` 主链
 4. 搭 `rag` 与 `tool` 的 P0 能力
 5. 搭 `sql-agent` 的只读链路
 6. 搭 `infra` 中的 PostgreSQL、Redis、Milvus、RocketMQ、MinIO 接入
 7. 最后补 `worker`
 
-如果第一版只做 MVP，可以优先交付：
-
-- `foodmate-bootstrap`
-- `foodmate-api`
-- `foodmate-application`
-- `foodmate-orchestrator`
-- `foodmate-rag`
-- `foodmate-tool`
-- `foodmate-model`
-- `foodmate-gateway-client`
-- `foodmate-infra`
-- `foodmate-shared`
-
-`foodmate-sql-agent` 和 `foodmate-worker` 可以在第二阶段增强。
+B3 阶段统一创建 13 个模块骨架，避免后续补模块时重排依赖；首轮实际实现集中在 `foodmate-bootstrap`、`foodmate-api`、`foodmate-application`、`foodmate-infra`、`foodmate-shared`，其余能力模块先保持包边界和依赖方向。
 
 ---
 

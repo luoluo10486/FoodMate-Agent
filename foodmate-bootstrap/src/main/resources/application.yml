@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: foodmate
+  profiles:
+    default: local-stub
+  jackson:
+    time-zone: UTC
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+foodmate:
+  runtime:
+    stub-enabled: false
+  model:
+    default-chat-model: qwen-plus
+    default-embed-model: text-embedding-v4
+    timeout-ms: 15000
+  gateway:
+    base-url: http://model-gateway.internal
+    api-key: ${MODEL_GATEWAY_KEY:}
+  rag:
+    top-k: 12
+    rerank-top-n: 5
+    collection: foodmate_knowledge
+  milvus:
+    host: localhost
+    port: 19530
+    token: ${MILVUS_TOKEN:}
+  mcp:
+    read-timeout-ms: 5000
+  sql-agent:
+    readonly-enforced: true
+    max-rows: 500
+  tool:
+    enabled:
+      calculator: true
+      time-parser: true
+      knowledge-search: true
+      database-query: true
+      food-log-writer: true
+      plan-validator: true
+  audit:
+    enabled: true
+
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: true
+      logic-not-delete-value: false
+  configuration:
+    map-underscore-to-camel-case: true
+

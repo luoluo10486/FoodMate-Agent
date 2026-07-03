@@ -729,7 +729,7 @@ FoodMate 的 Agent 框架不建议一开始就“全家桶式接入”。
 
 1. **后端框架**
    - `Java 21 + Spring Boot 3`
-   - `Spring WebFlux` 负责接口和流式输出
+   - `Spring MVC` 负责 REST 接口，`SseEmitter` 负责 SSE 流式输出
    - `Spring Security` 负责鉴权和权限控制
 
 2. **Agent 核心**
@@ -2665,8 +2665,8 @@ prompts/
 
 ### 15.2 后端
 
-- Java 21 / Spring Boot 3 / Spring WebFlux
-- 支持 SSE 或 WebSocket
+- Java 21 / Spring Boot 3 / Spring MVC + SseEmitter
+- 第一版优先支持 SSE
 - 任务异步执行
 - 状态持久化
 
@@ -2914,7 +2914,7 @@ RAG 只解决知识查找，不解决：
 | 层级 | 技术 |
 |---|---|
 | 前端 | React + Vite + TypeScript |
-| 后端 | Java 21 + Spring Boot 3 + Spring WebFlux |
+| 后端 | Java 21 + Spring Boot 3 + Spring MVC + SseEmitter |
 | 安全 | Spring Security + JWT + Refresh Token |
 | Agent 编排 | 自研状态机 + Spring AI |
 | 模型接入 | ModelService + 模型网关/中转层 + Provider Adapter |
