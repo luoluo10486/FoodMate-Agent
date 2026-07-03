@@ -9,7 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Verifies the baseline Flyway migration script structure.
+ * 校验首版 Flyway 迁移脚本的表结构、索引和数据库注释。
  */
 class FlywayMigrationScriptTest {
     private static final Path INIT_SCHEMA = Path.of(
@@ -80,12 +80,19 @@ class FlywayMigrationScriptTest {
         String sql = Files.readString(INIT_SCHEMA);
 
         for (String table : CORE_TABLES) {
-            assertTrue(sql.contains("COMMENT ON TABLE " + table + " IS"), table + " must have a table comment");
+            String tableCommentPrefix = "COMMENT ON TABLE " + table + " IS";
+            assertTrue(sql.contains(tableCommentPrefix), table + " must have a table comment");
+            assertTrue(hasChineseComment(sql, tableCommentPrefix), table + " must have a Chinese table comment");
 
             for (String column : columnsIn(sql, table)) {
+                String columnCommentPrefix = "COMMENT ON COLUMN " + table + "." + column + " IS";
                 assertTrue(
-                        sql.contains("COMMENT ON COLUMN " + table + "." + column + " IS"),
+                        sql.contains(columnCommentPrefix),
                         table + "." + column + " must have a column comment"
+                );
+                assertTrue(
+                        hasChineseComment(sql, columnCommentPrefix),
+                        table + "." + column + " must have a Chinese column comment"
                 );
             }
         }
@@ -109,5 +116,13 @@ class FlywayMigrationScriptTest {
                 .filter(line -> !line.isBlank())
                 .map(line -> line.split("\\s+", 2)[0].replace(",", ""))
                 .toList();
+    }
+
+    private boolean hasChineseComment(String sql, String prefix) {
+        int start = sql.indexOf(prefix);
+        assertTrue(start >= 0, prefix + " must exist");
+        int end = sql.indexOf(";", start);
+        assertTrue(end > start, prefix + " must end with semicolon");
+        return sql.substring(start, end).codePoints().anyMatch(codePoint -> codePoint >= 0x4E00 && codePoint <= 0x9FFF);
     }
 }
