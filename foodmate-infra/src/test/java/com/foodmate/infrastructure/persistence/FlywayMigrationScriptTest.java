@@ -21,6 +21,15 @@ class FlywayMigrationScriptTest {
             "V1__init_core_schema.sql"
     );
 
+    private static final Path ROLLBACK_SCHEMA = Path.of(
+            "src",
+            "main",
+            "resources",
+            "db",
+            "rollback",
+            "R1__drop_core_schema.sql"
+    );
+
     private static final List<String> CORE_TABLES = List.of(
             "users",
             "user_profiles",
@@ -95,6 +104,19 @@ class FlywayMigrationScriptTest {
                         table + "." + column + " must have a Chinese column comment"
                 );
             }
+        }
+    }
+
+    @Test
+    void rollbackSchemaDropsEveryCoreTable() throws IOException {
+        String rollbackSql = Files.readString(ROLLBACK_SCHEMA);
+
+        assertTrue(rollbackSql.contains("DROP CONSTRAINT IF EXISTS fk_messages_agent_run_id"));
+        for (String table : CORE_TABLES) {
+            assertTrue(
+                    rollbackSql.contains("DROP TABLE IF EXISTS " + table),
+                    table + " must be dropped by the rollback script"
+            );
         }
     }
 
