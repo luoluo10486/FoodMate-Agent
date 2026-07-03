@@ -10,12 +10,28 @@ import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHolder;
 import java.util.Map;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
 class GlobalExceptionHandlerTest {
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    private static final ch.qos.logback.classic.Logger HANDLER_LOGGER =
+            (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static ch.qos.logback.classic.Level previousLevel;
+
+    @BeforeAll
+    static void muteExpectedUnknownExceptionLog() {
+        previousLevel = HANDLER_LOGGER.getLevel();
+        HANDLER_LOGGER.setLevel(ch.qos.logback.classic.Level.OFF);
+    }
+
+    @AfterAll
+    static void restoreExpectedUnknownExceptionLog() {
+        HANDLER_LOGGER.setLevel(previousLevel);
+    }
 
     @AfterEach
     void tearDown() {
@@ -49,4 +65,3 @@ class GlobalExceptionHandlerTest {
         assertEquals("系统异常", response.getBody().error().message());
     }
 }
-

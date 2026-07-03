@@ -16,7 +16,25 @@ class ModuleDependencyArchTest {
             .resideInAnyPackage(
                     "com.foodmate.infrastructure..",
                     "com.foodmate.model..",
-                    "com.foodmate.rag.."
+                    "com.foodmate.orchestrator..",
+                    "com.foodmate.rag..",
+                    "com.foodmate.sqlagent..",
+                    "com.foodmate.tool..",
+                    "com.foodmate.worker.."
+            );
+
+    @ArchTest
+    static final ArchRule useCasesMustNotBypassInfrastructurePorts = noClasses()
+            .that().resideInAnyPackage(
+                    "com.foodmate.application..",
+                    "com.foodmate.orchestrator.."
+            )
+            .should().dependOnClassesThat()
+            .resideInAnyPackage(
+                    "com.foodmate.infrastructure..",
+                    "com.baomidou.mybatisplus..",
+                    "org.apache.ibatis..",
+                    "org.mybatis.."
             );
 
     @ArchTest
@@ -46,4 +64,3 @@ class ModuleDependencyArchTest {
                     "org.mybatis.."
             );
 }
-
