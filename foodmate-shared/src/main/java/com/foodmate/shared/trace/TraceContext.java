@@ -2,6 +2,9 @@ package com.foodmate.shared.trace;
 
 import java.util.UUID;
 
+/**
+ * TraceContext 记录请求级链路标识。
+ */
 public record TraceContext(
         String requestId,
         String traceId,
@@ -18,4 +21,3 @@ public record TraceContext(
         return of(requestId, traceId);
     }
 }
-

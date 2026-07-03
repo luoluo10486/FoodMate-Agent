@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.foodmate.shared.json.LongIdJsonSerializer;
 import java.time.Instant;
 
+/**
+ * SSE 事件输出的标准信封。
+ */
 public record SseEventEnvelope<T>(
         @JsonProperty("event_type") String eventType,
         @JsonProperty("run_id") @JsonSerialize(using = LongIdJsonSerializer.class) Long runId,
@@ -15,4 +18,3 @@ public record SseEventEnvelope<T>(
         return new SseEventEnvelope<>(eventType, runId, Instant.now(), payload);
     }
 }
-

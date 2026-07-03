@@ -12,6 +12,9 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
+/**
+ * 软删除仓储支持基类测试。
+ */
 class SoftDeleteRepositorySupportTest {
     @Test
     void softDeleteMarksAuditFieldsAndUpdatesEntity() {
@@ -65,6 +68,9 @@ class SoftDeleteRepositorySupportTest {
         return new TestRepository(mapper, updatedEntity);
     }
 
+    /**
+     * 测试用软删除仓储实现。
+     */
     private static final class TestRepository extends SoftDeleteRepositorySupport<TestPo> {
         private final AtomicReference<TestPo> updatedEntity;
 
@@ -82,6 +88,9 @@ class SoftDeleteRepositorySupportTest {
         }
     }
 
+    /**
+     * 测试用持久化对象。
+     */
     private static final class TestPo extends BasePo {
     }
 }

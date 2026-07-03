@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * 软删除仓储支持基类。
+ */
 public abstract class SoftDeleteRepositorySupport<T extends BasePo> {
     private final BaseMapper<T> mapper;
 

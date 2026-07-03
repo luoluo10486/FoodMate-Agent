@@ -10,6 +10,9 @@ import java.lang.reflect.Field;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
+/**
+ * BasePo 软删除和注解约束测试。
+ */
 class BasePoTest {
     @Test
     void hasMybatisPlusLogicDeleteAnnotation() throws Exception {
@@ -41,7 +44,9 @@ class BasePoTest {
         org.junit.jupiter.api.Assertions.assertEquals(expected, actual);
     }
 
+    /**
+     * 测试用持久化对象。
+     */
     private static final class TestPo extends BasePo {
     }
 }
-

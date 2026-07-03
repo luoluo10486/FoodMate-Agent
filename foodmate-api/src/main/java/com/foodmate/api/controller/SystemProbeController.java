@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 系统探针控制器，提供最小可验证的健康接口。
+ */
 @Validated
 @RestController
 @RequestMapping("/foodmate/_system")
@@ -24,7 +27,9 @@ public class SystemProbeController {
         );
     }
 
+    /**
+     * 系统探针返回体。
+     */
     public record SystemProbeResponse(String status, String echo, Instant timestamp) {
     }
 }
-

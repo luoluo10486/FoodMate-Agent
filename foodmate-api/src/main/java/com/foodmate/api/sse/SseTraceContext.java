@@ -3,6 +3,9 @@ package com.foodmate.api.sse;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHolder;
 
+/**
+ * SSE 异步任务的 TraceContext 传播工具。
+ */
 public final class SseTraceContext {
     private SseTraceContext() {
     }

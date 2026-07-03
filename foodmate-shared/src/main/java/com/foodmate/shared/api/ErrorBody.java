@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
+/**
+ * 统一错误响应体。
+ */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record ErrorBody(
         String code,
@@ -11,4 +14,3 @@ public record ErrorBody(
         Map<String, Object> details
 ) {
 }
-

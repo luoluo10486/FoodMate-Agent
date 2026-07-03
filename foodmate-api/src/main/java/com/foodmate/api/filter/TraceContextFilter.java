@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * 在每个请求中初始化并回写链路上下文。
+ */
 @Component
 public class TraceContextFilter extends OncePerRequestFilter {
     public static final String REQUEST_ID_HEADER = "X-Request-Id";
@@ -44,4 +47,3 @@ public class TraceContextFilter extends OncePerRequestFilter {
         return prefix + UUID.randomUUID().toString().replace("-", "");
     }
 }
-

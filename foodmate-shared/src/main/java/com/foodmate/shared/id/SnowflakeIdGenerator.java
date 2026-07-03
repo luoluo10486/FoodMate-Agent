@@ -1,5 +1,8 @@
 package com.foodmate.shared.id;
 
+/**
+ * Snowflake ID 生成器。
+ */
 public class SnowflakeIdGenerator implements IdGenerator {
     private static final long CUSTOM_EPOCH = 1_704_067_200_000L;
     private static final long WORKER_ID_BITS = 10L;
@@ -50,4 +53,3 @@ public class SnowflakeIdGenerator implements IdGenerator {
         return System.currentTimeMillis() - CUSTOM_EPOCH;
     }
 }
-

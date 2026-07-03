@@ -14,6 +14,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+/**
+ * SystemProbeController 的 WebMvc 测试。
+ */
 @WebMvcTest(SystemProbeController.class)
 @Import({GlobalExceptionHandler.class, TraceContextFilter.class})
 class SystemProbeControllerTest {
@@ -48,4 +51,3 @@ class SystemProbeControllerTest {
                 .andExpect(jsonPath("$.meta.request_id", is("req_mock")));
     }
 }
-

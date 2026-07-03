@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import java.time.Instant;
 
+/**
+ * MyBatis-Plus 持久化基类，承载审计与软删除字段。
+ */
 public abstract class BasePo implements SoftDeleteSupport {
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Instant createdAt;
@@ -99,4 +102,3 @@ public abstract class BasePo implements SoftDeleteSupport {
         this.deletedAt = null;
     }
 }
-

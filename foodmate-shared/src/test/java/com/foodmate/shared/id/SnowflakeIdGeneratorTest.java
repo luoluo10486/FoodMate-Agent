@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+/**
+ * SnowflakeIdGenerator 的单元测试。
+ */
 class SnowflakeIdGeneratorTest {
     @Test
     void createsIncreasingPositiveIds() {
@@ -23,4 +26,3 @@ class SnowflakeIdGeneratorTest {
         assertThrows(IllegalArgumentException.class, () -> new SnowflakeIdGenerator(1024));
     }
 }
-

@@ -7,6 +7,9 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
+/**
+ * 模块依赖约束测试，防止分层边界被破坏。
+ */
 @AnalyzeClasses(packages = "com.foodmate", importOptions = ImportOption.DoNotIncludeTests.class)
 class ModuleDependencyArchTest {
     @ArchTest

@@ -16,6 +16,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
+/**
+ * GlobalExceptionHandler 的单元测试。
+ */
 class GlobalExceptionHandlerTest {
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
     private static final ch.qos.logback.classic.Logger HANDLER_LOGGER =

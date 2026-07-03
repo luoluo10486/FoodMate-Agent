@@ -12,6 +12,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * MyBatis-Plus 与审计字段的基础配置。
+ */
 @Configuration
 @ConditionalOnBean(DataSource.class)
 @MapperScan("com.foodmate.infrastructure.**.mapper")

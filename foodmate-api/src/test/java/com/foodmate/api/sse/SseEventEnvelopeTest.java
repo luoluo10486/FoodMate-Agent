@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
+/**
+ * SseEventEnvelope 的序列化测试。
+ */
 class SseEventEnvelopeTest {
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 

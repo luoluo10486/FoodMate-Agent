@@ -3,6 +3,9 @@ package com.foodmate.shared.page;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
+/**
+ * 分页结果封装。
+ */
 public record PageResult<T>(
         List<T> items,
         int page,
@@ -13,4 +16,3 @@ public record PageResult<T>(
         return new PageResult<>(List.copyOf(items), request.page(), request.pageSize(), total);
     }
 }
-

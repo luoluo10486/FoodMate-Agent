@@ -5,6 +5,9 @@ import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.trace.TraceContext;
 import java.util.Map;
 
+/**
+ * 统一 API 响应包装。
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(
         boolean success,
@@ -30,4 +33,3 @@ public record ApiResponse<T>(
         );
     }
 }
-

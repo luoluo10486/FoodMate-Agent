@@ -1,5 +1,8 @@
 package com.foodmate.shared.page;
 
+/**
+ * 分页请求参数。
+ */
 public record PageRequest(int page, int pageSize) {
     public PageRequest {
         if (page < 1) {
@@ -14,4 +17,3 @@ public record PageRequest(int page, int pageSize) {
         return (page - 1) * pageSize;
     }
 }
-

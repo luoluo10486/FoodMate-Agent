@@ -9,6 +9,9 @@ import com.foodmate.shared.trace.TraceContext;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
+/**
+ * ApiResponse 的单元测试。
+ */
 class ApiResponseTest {
     @Test
     void createsSuccessResponseWithTraceMeta() {
@@ -37,4 +40,3 @@ class ApiResponseTest {
         assertEquals("title", response.error().details().get("field"));
     }
 }
-
