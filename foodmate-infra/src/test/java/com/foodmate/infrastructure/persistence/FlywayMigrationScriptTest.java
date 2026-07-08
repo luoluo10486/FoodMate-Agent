@@ -57,6 +57,13 @@ class FlywayMigrationScriptTest {
             "operation_audits"
     );
 
+    private static final List<String> TENANT_SCOPED_TABLES = List.of(
+            "users",
+            "sessions",
+            "knowledge_documents",
+            "model_route_rules"
+    );
+
     @Test
     void initSchemaDefinesCoreTablesWithSoftDeleteColumns() throws IOException {
         String sql = Files.readString(INIT_SCHEMA);
@@ -82,6 +89,30 @@ class FlywayMigrationScriptTest {
         assertTrue(sql.contains("idx_tool_calls_run_created_at"));
         assertTrue(sql.contains("idx_food_logs_user_meal_time"));
         assertTrue(sql.contains("idx_knowledge_documents_tenant_status"));
+    }
+
+    @Test
+    void initSchemaDefaultsTenantScopedTablesToSingleTenant() throws IOException {
+        String sql = Files.readString(INIT_SCHEMA);
+
+        for (String table : TENANT_SCOPED_TABLES) {
+            String tableBlock = tableBlock(sql, table);
+            assertTrue(
+                    tableBlock.contains("tenant_id BIGINT NOT NULL DEFAULT 0"),
+                    table + " must default to the single-tenant placeholder"
+            );
+        }
+    }
+
+    @Test
+    void initSchemaDefinesDefaultToolTimeout() throws IOException {
+        String sql = Files.readString(INIT_SCHEMA);
+        String tableBlock = tableBlock(sql, "tool_schema_versions");
+
+        assertTrue(
+                tableBlock.contains("timeout_ms INT NOT NULL DEFAULT 5000"),
+                "tool schema versions must default tool execution timeout to 5000 ms"
+        );
     }
 
     @Test

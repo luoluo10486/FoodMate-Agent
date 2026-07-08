@@ -3,7 +3,7 @@
 
 CREATE TABLE users (
     user_id BIGINT PRIMARY KEY,
-    tenant_id BIGINT,
+    tenant_id BIGINT NOT NULL DEFAULT 0,
     user_no VARCHAR(64) NOT NULL,
     username VARCHAR(64) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -104,7 +104,7 @@ CREATE INDEX idx_user_avatar_assets_user_status ON user_avatar_assets (user_id, 
 
 CREATE TABLE sessions (
     session_id BIGINT PRIMARY KEY,
-    tenant_id BIGINT,
+    tenant_id BIGINT NOT NULL DEFAULT 0,
     user_id BIGINT NOT NULL REFERENCES users (user_id),
     title VARCHAR(255),
     mode VARCHAR(32) NOT NULL DEFAULT 'agent',
@@ -317,7 +317,7 @@ CREATE UNIQUE INDEX uk_session_summaries_session_id ON session_summaries (sessio
 
 CREATE TABLE knowledge_documents (
     document_id BIGINT PRIMARY KEY,
-    tenant_id BIGINT,
+    tenant_id BIGINT NOT NULL DEFAULT 0,
     source_type VARCHAR(64),
     title VARCHAR(255) NOT NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'uploaded',
@@ -451,7 +451,7 @@ CREATE TABLE tool_schema_versions (
     input_schema JSONB NOT NULL DEFAULT '{}'::jsonb,
     output_schema JSONB NOT NULL DEFAULT '{}'::jsonb,
     permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
-    timeout_ms INT,
+    timeout_ms INT NOT NULL DEFAULT 5000,
     retryable BOOLEAN NOT NULL DEFAULT FALSE,
     idempotent BOOLEAN NOT NULL DEFAULT FALSE,
     published_at TIMESTAMPTZ,
@@ -490,7 +490,7 @@ CREATE UNIQUE INDEX uk_model_usage_logs_request_id ON model_usage_logs (request_
 
 CREATE TABLE model_route_rules (
     model_route_rule_id BIGINT PRIMARY KEY,
-    tenant_id BIGINT,
+    tenant_id BIGINT NOT NULL DEFAULT 0,
     scene VARCHAR(64) NOT NULL,
     model_type VARCHAR(32) NOT NULL,
     provider_code VARCHAR(64) NOT NULL,
