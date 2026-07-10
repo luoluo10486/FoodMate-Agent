@@ -4,6 +4,7 @@
 对应总设计：[FoodMate-系统设计与技术方案.md](./FoodMate-系统设计与技术方案.md)  
 对应工程文档：[FoodMate-Java工程骨架与模块设计.md](./FoodMate-Java工程骨架与模块设计.md)  
 对应接口文档：[FoodMate-接口与数据规范.md](./FoodMate-接口与数据规范.md)
+实现基线：2026-07-10；当前迁移脚本为 [`V1__init_core_schema.sql`](./foodmate-infra/src/main/resources/db/migration/V1__init_core_schema.sql)，共 24 张核心表。
 
 文档定位：本文件是 FoodMate 的数据与接口落地蓝图，只回答“表怎么建、接口怎么开、工具怎么注册、状态机和错误码怎么定”。产品范围、模型网关主职责、工具优先级和查询主路径，以总设计文档为准。
 
@@ -413,6 +414,28 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 - `(session_id, created_at DESC, is_deleted)`
 - `(meal_type, is_deleted)`
 
+#### `analysis_reports`
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `report_id` | `BIGINT` | PK | 分析报告主键 |
+| `user_id` | `BIGINT` | FK | 对应 `users.user_id` |
+| `session_id` | `BIGINT` | FK | 来源会话 |
+| `agent_run_id` | `BIGINT` | FK | 来源 AgentRun |
+| `report_type` | `VARCHAR(64)` |  | 报告类型 |
+| `range_key` | `VARCHAR(32)` |  | 统计范围 |
+| `report_json` | `JSONB` |  | 报告内容 |
+| `status` | `VARCHAR(32)` |  | 报告状态 |
+| `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+基线索引：
+
+- `idx_analysis_reports_user_created_at`
+
 #### `meal_plans`
 
 | 字段 | 类型 | 约束 | 说明 |
@@ -441,6 +464,25 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 
 - `(user_id, status, is_deleted)`
 - `(session_id, created_at DESC, is_deleted)`
+
+#### `shopping_lists`
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `shopping_list_id` | `BIGINT` | PK | 购物清单主键 |
+| `meal_plan_id` | `BIGINT` | FK | 来源膳食计划 |
+| `user_id` | `BIGINT` | FK | 所属用户 |
+| `items_json` | `JSONB` |  | 采购条目 |
+| `status` | `VARCHAR(32)` |  | draft/generated/confirmed |
+| `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+基线索引：
+
+- `idx_shopping_lists_meal_plan`
 
 ### 1.5 记忆与摘要域
 
@@ -676,6 +718,27 @@ FoodMate 的 PostgreSQL 索引采用两层策略：
 | `max_latency_ms` | `INT` |  | 最大延迟 |
 | `rule_json` | `JSONB` |  | 路由策略 |
 | `status` | `VARCHAR(32)` |  | active/inactive |
+| `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
+| `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
+| `is_deleted` | `BOOLEAN` |  | 软删除标记 |
+| `deleted_at` | `TIMESTAMPTZ` |  | 删除时间 |
+| `deleted_by` | `BIGINT` |  | 删除操作者 |
+
+#### `operation_audits`
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `operation_audit_id` | `BIGINT` | PK | 操作审计主键 |
+| `operator_id` | `BIGINT` |  | 操作者用户 ID |
+| `request_id` | `VARCHAR(64)` |  | 请求 ID |
+| `trace_id` | `VARCHAR(64)` |  | 链路追踪 ID |
+| `target_type` | `VARCHAR(64)` |  | 操作对象类型 |
+| `target_id` | `VARCHAR(64)` |  | 操作对象 ID |
+| `action` | `VARCHAR(64)` |  | 操作动作 |
+| `result` | `VARCHAR(32)` |  | 操作结果 |
+| `request_json` | `JSONB` |  | 脱敏后的请求内容 |
+| `response_json` | `JSONB` |  | 脱敏后的响应内容 |
+| `error_code` | `VARCHAR(64)` |  | 错误码 |
 | `created_at` | `TIMESTAMPTZ` |  | 创建时间 |
 | `updated_at` | `TIMESTAMPTZ` |  | 更新时间 |
 | `is_deleted` | `BOOLEAN` |  | 软删除标记 |
@@ -1452,15 +1515,9 @@ database_query
 
 建议数据库和接口按下面顺序落地：
 
-1. 建 `users`、`sessions`、`messages`
-2. 建 `agent_runs`、`tool_calls`
-3. 建 `food_logs`、`meal_plans`
-4. 建 `user_memories`、`session_summaries`
-5. 建 `knowledge_documents`、`knowledge_chunks`
-6. 建 `data_sources`、`schema_catalogs`、`sql_query_audits`
-7. 建 `tool_registries`、`tool_schema_versions`
-8. 建 `model_usage_logs`、`model_route_rules`
-9. 最后接 Milvus collection 和 MinIO
+1. V1 已统一建立 `users`、认证、个人资料、会话、消息、AgentRun、ToolCall、业务、记忆、知识库、SQL Agent、工具、模型治理和操作审计表。
+2. 当前下一步是为已迁移表建立 PO / Mapper，并保持字段、软删除和索引语义与 V1 一致。
+3. 后续再接 Milvus collection、MinIO 和异步索引任务。
 
 API 按下面顺序开放：
 

@@ -2,25 +2,22 @@
 
 ## MVP 最短路径（做完这些就能跑）
 
-> **当前进度：前端已完成，后端从 Phase 3 开始。以下是最短可交付路径。**
+> **当前进度：前端 Phase 1-2、后端 B3 和 B4-1 已完成，当前进入 B4-2。以下是最短可交付路径。**
 
-| 顺序 | 编号 | 任务 | 预估 |
-|------|------|------|------|
-| 1 | B3-1 | 创建 Maven 模块化单体骨架（第一轮创建 13 个模块，核心实现先集中在 bootstrap/api/application/domain/infra/shared） | 1d |
-| 2 | B3-3 | 配置 Spring Boot、数据源、Jackson、CORS、异常处理 | 0.5d |
-| 3 | B4-1~4-3 | PostgreSQL 建表（用户/会话/消息/AgentRun/ToolCall/饮食日志） | 1d |
-| 4 | B5-1 | 实现认证 API（Spring Security + JWT） | 1d |
-| 5 | B5-2 | 实现会话 API（CRUD） | 0.5d |
-| 6 | B5-3 | 实现消息与 SSE 推送 API | 1d |
-| 7 | B5-4 | 实现饮食日志 API | 0.5d |
-| 8 | B5-5 | 实现分析 API | 0.5d |
-| 9 | B5-6 | 实现计划 API | 0.5d |
-| 10 | B6-1 | 实现 IntentRouter（意图路由） | 1d |
-| 11 | B6-2 | 实现 TaskPlanner + ExecutionEngine | 1.5d |
-| 12 | B7-1 | 实现 ToolRegistry + 基础工具（calculator/time_parser/food_log_writer） | 1d |
-| 13 | - | 前后端联调，端到端跑通第一条链路 | 1d |
+| 顺序 | 编号 | 任务 | 状态 | 预估 |
+|------|------|------|------|------|
+| 1 | B3-1~B3-5 | 后端模块化单体骨架与通用能力 | 已完成 | - |
+| 2 | B4-1 | Flyway 迁移、回滚和核心表结构 | 已完成 | - |
+| 3 | B4-2 | 用户、认证、个人资料、会话和消息域 PO / Mapper | 当前任务 | 1d |
+| 4 | B5-0 | 认证、RBAC、个人资料和头像接口 | 待开始 | 1d |
+| 5 | B5-1 | 实现会话 API（CRUD） | 待开始 | 0.5d |
+| 6 | B5-2 | 实现消息与 SSE 推送 API | 待开始 | 1d |
+| 7 | B5-3~B5-5 | 饮食日志、分析和计划 API | 待开始 | 1.5d |
+| 8 | B6-1~B6-2 | IntentRouter、TaskPlanner、ExecutionEngine | 待开始 | 2.5d |
+| 9 | B7-1 | ToolRegistry 与基础工具 | 待开始 | 1d |
+| 10 | - | 前后端联调，端到端跑通第一条链路 | 待开始 | 1d |
 
-> **完成以上 13 个任务后，FoodMate 即可端到端演示：登录 → 对话 → Agent 规划 → 写饮食日志 → 查看分析。**
+> **完成以上剩余任务后，FoodMate 才能端到端演示：登录 → 对话 → Agent 规划 → 写饮食日志 → 查看分析。当前数据库表已完成，但认证、API、Agent 运行时和真实 SSE 尚未完成。**
 
 ---
 
@@ -38,6 +35,13 @@
 - `FoodMate-智能体行为与工具协议.md`
 - `FoodMate-系统设计与技术方案.md`
 - `FoodMate-实现附录.md`
+
+当前状态依据：
+
+- 前端实现：`frontend/src/App.tsx`、`frontend/src/mock/`、`frontend/src/pages/`
+- 后端模块与通用能力：`pom.xml`、各模块 `src/main/`
+- 数据库基线：`foodmate-infra/src/main/resources/db/migration/V1__init_core_schema.sql`
+- 迁移验收：`foodmate-infra/src/test/java/com/foodmate/infrastructure/persistence/FlywayMigrationScriptTest.java`
 
 ## 0. 工作规则
 
@@ -638,7 +642,11 @@ Phase 2 统一约定：
 
 ## Phase 4：数据库与持久化
 
+说明：B4-1 已完成 V1 表结构。B4-2 至 B4-8 的工作重点是为已迁移表建立 PO、Mapper、Repository/Service 支撑和持久化测试，不重复创建表。
+
 ### B4-1. 建立数据库迁移体系
+
+状态：已完成（V1 迁移脚本、回滚脚本和迁移结构测试已落地）。
 
 目标：
 
@@ -662,13 +670,21 @@ Phase 2 统一约定：
 - 迁移脚本有版本号。
 - 主表包含软删除字段。
 
-### B4-2. 建立用户、认证、个人资料与会话域表
+当前实现补充：
+
+- V1 已建立 24 张核心表，包含用户、认证、会话、Agent 运行、业务、知识库、SQL Agent、工具、模型治理和操作审计域。
+- 租户预留表默认使用 `tenant_id = 0`，工具 schema 默认超时为 `5000ms`。
+- `FlywayMigrationScriptTest` 校验核心表、软删除字段、基线索引、租户默认值、工具超时、中文注释和回滚脚本。
+
+### B4-2. 建立用户、认证、个人资料与会话域持久化映射
+
+状态：当前任务（V1 表结构已完成，本任务实现 PO / Mapper / Repository 支撑）。
 
 目标：
 
-- 支撑真实登录、角色权限、个人资料、头像资产、会话和消息基础链路。
+- 为已迁移的用户、认证、个人资料、头像资产、会话和消息表建立持久化支撑，服务真实登录和会话基础链路。
 
-必须表：
+对应表：
 
 - `users`
 - `user_profiles`
@@ -692,13 +708,13 @@ Phase 2 统一约定：
 - `sessions(user_id, last_message_at, is_deleted)` 或等价主路径索引存在。
 - `messages(session_id, sequence_no, is_deleted)` 或等价主路径索引存在。
 
-### B4-3. 建立 Agent 运行域表
+### B4-3. 建立 Agent 运行域持久化映射
 
 目标：
 
 - 支撑 AgentRun、ToolCall、执行轨迹和回放。
 
-必须表：
+对应表：
 
 - `agent_runs`
 - `tool_calls`
@@ -714,18 +730,18 @@ Phase 2 统一约定：
 - 可按 session 查询运行记录。
 - 可按 run 查询工具调用记录。
 
-### B4-4. 建立业务域表
+### B4-4. 建立业务域持久化映射
 
 目标：
 
 - 支撑饮食记录、餐食计划和后续分析。
 
-必须表：
+对应表：
 
 - `food_logs`
 - `meal_plans`
-- 后续可增加 `analysis_reports`
-- 后续可增加 `shopping_lists`
+- `analysis_reports`
+- `shopping_lists`
 
 字段来源：
 
@@ -738,13 +754,13 @@ Phase 2 统一约定：
 - `meal_plans` 支持 `user_id`、`session_id`、`days`、`budget`、`constraints_json`、`plan_json`、`validation_json`、`status`。
 - 删除与恢复遵循软删除规则。
 
-### B4-5. 建立记忆与摘要域表
+### B4-5. 建立记忆与摘要域持久化映射
 
 目标：
 
 - 支撑长期偏好、短期摘要和上下文管理。
 
-必须表：
+对应表：
 
 - `user_memories`
 - `session_summaries`
@@ -755,13 +771,13 @@ Phase 2 统一约定：
 - 会话摘要包含 summaryText 和 keyConstraints。
 - 长期记忆写入预留用户确认能力。
 
-### B4-6. 建立知识库域表
+### B4-6. 建立知识库域持久化映射
 
 目标：
 
 - 支撑知识文档、chunk、Milvus 可见性同步。
 
-必须表：
+对应表：
 
 - `knowledge_documents`
 - `knowledge_chunks`
@@ -772,13 +788,13 @@ Phase 2 统一约定：
 - chunk 支持 documentId、chunkNo、chunkText、sectionPath、tags、embeddingId、metadataJson。
 - 删除文档后，后续异步任务可下线 Milvus metadata。
 
-### B4-7. 建立 SQL Agent 与工具注册表
+### B4-7. 建立 SQL Agent 与工具注册持久化映射
 
 目标：
 
 - 支撑结构化数据查询、工具治理和审计。
 
-必须表：
+对应表：
 
 - `data_sources`
 - `schema_catalogs`
@@ -794,13 +810,13 @@ Phase 2 统一约定：
 - 工具注册表记录 `name`、`display_name`、`category`、`risk_level`、`status`、`current_version`。
 - 工具 schema 版本记录 `input_schema`、`output_schema`、`permissions`、`timeout`、`retryable`、`idempotent`。
 
-### B4-8. 建立模型治理表
+### B4-8. 建立模型治理持久化映射
 
 目标：
 
 - 支撑模型调用日志、成本统计和后续路由治理。
 
-必须表：
+对应表：
 
 - `model_usage_logs`
 - `model_route_rules`
