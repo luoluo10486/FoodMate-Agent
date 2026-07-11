@@ -2,9 +2,9 @@
 
 版本：v1.1
 维护基线：2026-07-11
-对应总设计：[FoodMate-系统设计与技术方案.md](./FoodMate-系统设计与技术方案.md)  
-对应接口文档：[FoodMate-接口与数据规范.md](./FoodMate-接口与数据规范.md)  
-对应行为协议：[FoodMate-智能体行为与工具协议.md](./FoodMate-智能体行为与工具协议.md)
+对应总设计：[系统设计与技术方案](./系统设计与技术方案.md)
+对应接口文档：[接口与数据规范](../契约/接口与数据规范.md)
+对应行为协议：[智能体行为与工具协议](../契约/智能体行为与工具协议.md)
 
 文档定位：本文件描述 Java 业务控制面的工程边界、Java 与 Python 的内部契约，以及旧 Java Agent 模块的迁移方式。产品边界、工具优先级、查询主路径和模型治理总原则，仍以总设计文档为准。
 
@@ -115,7 +115,7 @@ FoodMate 推荐的拆分顺序如下：
 foodmate/
   ├── pom.xml
   ├── README.md
-  ├── docs/
+  ├── docxs/
   ├── agent-runtime/             # Python，待创建
   │   ├── pyproject.toml
   │   ├── src/foodmate_agent/
