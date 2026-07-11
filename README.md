@@ -29,10 +29,16 @@ npm run dev
 Java：
 
 ```powershell
-.\mvnw.cmd clean verify
-.\mvnw.cmd -pl foodmate-bootstrap spring-boot:run -Dspring-boot.run.profiles=local-stub
+.\mvnw.cmd -pl foodmate-bootstrap -am package
+& java -jar '.\foodmate-bootstrap\target\foodmate-bootstrap-0.1.0-SNAPSHOT.jar' '--spring.profiles.active=local-stub'
 ```
 
-健康检查：`http://localhost:8080/actuator/health`
+启动后在另一个 PowerShell 中检查：
+
+```powershell
+Invoke-WebRequest http://localhost:8080/actuator/health
+```
+
+以上 JAR 命令已于 2026-07-11 以 `local-stub` profile 实际启动并返回 HTTP 200；在前台运行时按 Ctrl+C 正常停止。
 
 Python Agent Runtime 尚未落地，因此当前没有 Python 安装或启动命令。
