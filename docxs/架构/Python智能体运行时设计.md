@@ -143,7 +143,7 @@ Python 维护的是单次 dispatch 的技术执行状态，Java 维护 `AgentRun
 ### 5.2 Checkpoint
 
 - checkpoint key 固定包含 `run_id`、`dispatch_id`、`attempt` 和节点名。
-- checkpoint 至少保存计划版本、已完成节点、待处理 proposal、最后已发 `event_seq`、未确认事件的 `event_id/request_hash`、Prompt 版本和模型调用引用。
+- checkpoint 至少保存计划版本、已完成节点、待处理 proposal、最后已发 `event_seq`、未确认事件的 `event_id/request_hash`、已消费运行内错误的 `error_id/request_hash`、Prompt 版本和模型调用引用。
 - checkpoint 只能保存恢复编排所需的技术状态，不保存业务库凭据，不替代 `agent_runs`、`tool_calls`、`sql_query_audits` 或审计表。
 - 恢复前必须向 Java 对账当前终态、取消请求和已完成 invocation；不能仅凭本地 checkpoint 重放副作用。
 - checkpoint 存储实现可后选，但配置必须与业务数据源完全分离，并设置保留期、加密和清理策略。
@@ -166,7 +166,7 @@ Python 只负责查询理解、授权 catalog 选择建议和只读 SQL proposal
 
 每次逻辑模型调用生成稳定且全局唯一的 `model_call_id`；每次供应商 attempt 生成唯一 `provider_attempt_id`，供应商返回的单次请求标识保存为 `provider_request_id`。供应商重试保持同一 `model_call_id`，但使用新的 `provider_attempt_id/provider_request_id`。
 
-每个 attempt 结束后，Execution 通过标准 `RunEvent(event_type="run.model_usage")` 回传完整 usage、latency、cost、状态和三类模型 ID。Java 先按事件幂等，再按 `model_call_id` 写唯一逻辑调用父记录、按 `provider_attempt_id` 写 attempt 子记录并聚合父记录。RunEvent envelope 的 `request_id` 只追踪 HTTP 传输，不能作为模型用量唯一键。该规则是 V2 目标设计，不表示当前 Python 工程或 V2 表已经存在。
+每个 attempt 结束后，Execution 通过标准 `RunEvent(event_type="run.model_usage")` 回传完整 usage、latency、cost、状态和三类模型 ID。`status` 只允许 `success/failed/timeout/cancelled`；未知 token/cost 写 null，不伪造为 0，`latency_ms` 始终记录 attempt 实际耗时。Java 在 `provider_attempt_id` 和非空 `provider_request_id` 去重后，按 `model_call_id` 聚合：token/cost 对已知值求和，latency 取所有 attempts 耗时之和，任一 success 则最终 success，否则取最新结束 attempt 状态。RunEvent envelope 的 `request_id` 只追踪 HTTP 传输，不能作为模型用量唯一键。该规则是 V2 目标设计，不表示当前 Python 工程或 V2 表已经存在。
 
 ## 7. Prompt 版本
 
@@ -218,7 +218,9 @@ Python 只负责查询理解、授权 catalog 选择建议和只读 SQL proposal
 
 ## 11. 失败与取消
 
-- 契约、认证、deadline 失败在启动编排前返回 `RuntimeError`。
+- 已解析出真实 `run_id` 的运行内协议错误使用八类消息中的 `RuntimeError`；Python 作为消费端按 `(run_id,error_id)` 和 canonical digest 去重，同 ID 同 hash 只处理一次并记录到 checkpoint，同 ID 不同 hash 终止该交互并返回 `RUNTIME_ERROR_IDEMPOTENCY_CONFLICT`。恢复时先加载已消费 error key，避免重放错误重复改变编排状态。
+- Service JWT 认证、契约版本、JSON 解析等尚未获得可信 `run_id` 的失败使用独立 HTTP `PreRunProtocolError`，不进入 checkpoint、AgentRun 或运行事件流。Python HTTP client 仅按 `request_id/error_id/error_hash` 识别同一响应并遵守服务端 7 天重试窗口；它不能把 pre-run 错误附着到某个 Run。
+- deadline 失败若已验证真实 `run_id` 使用 RuntimeError；否则使用 PreRunProtocolError。
 - 编排中的可报告失败使用 `run.failed` 事件，payload 引用统一错误码；已发送终态后不得再发另一个终态。
 - 收到 `CancelCommand` 后停止创建新的模型、Tool 或 SQL invocation，尝试取消可中断任务，并按当前 dispatch 序列发 `run.cancel_acknowledged`。
 - 已提交 Java 的 invocation 不能靠 Python 本地取消假定回滚；必须等待 Java 返回或对账。
