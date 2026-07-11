@@ -125,6 +125,8 @@ Jackson 边界要求：未知顶层字段默认拒绝；ID 按字符串；时间
 
 Application 必须先持久化 AgentRun 与 V2 dispatch，再调用客户端。相同 `run_id + attempt` 固定复用 `dispatch_id`；网络重试保持 `dispatch_id/attempt/deadline_at/message/authorized_context/runtime_options/request_hash` 不变，`request_id` 可随 HTTP 尝试变化。`request_hash` 严格按契约字段集执行 RFC 8785 JCS + SHA-256，输出 `sha256:<64 lowercase hex>`。
 
+客户端不负责重新派发或选择 active dispatch。Application 在同一 Run 上创建新 attempt 前，必须先将旧 dispatch 仲裁为 `superseded` 或 `expired`，并为新 dispatch 建立唯一 active epoch。客户端只发送当前 active dispatch；收到旧 dispatch 的回调由事件接入层按 active epoch 丢弃，不能靠客户端重试把旧 attempt 重新激活。
+
 | 类型 | 幂等键 | V1 摘要字段集 |
 |---|---|---|
 | RunCommand | `dispatch_id` | `schema_version/run_id/dispatch_id/attempt/deadline_at/message/authorized_context/runtime_options` |
