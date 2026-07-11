@@ -1,8 +1,8 @@
 # FoodMate 数据库设计与接口工具清单
 
-版本：v1.0  
+版本：v1.1
 对应总设计：[FoodMate-系统设计与技术方案.md](./FoodMate-系统设计与技术方案.md)  
-对应工程文档：[FoodMate-Java工程骨架与模块设计.md](./FoodMate-Java工程骨架与模块设计.md)  
+对应工程文档：[FoodMate-Java工程骨架与模块设计.md](./FoodMate-Java工程骨架与模块设计.md)（Java 控制面与跨语言边界）
 对应接口文档：[FoodMate-接口与数据规范.md](./FoodMate-接口与数据规范.md)
 实现基线：2026-07-10；当前迁移脚本为 [`V1__init_core_schema.sql`](./foodmate-infra/src/main/resources/db/migration/V1__init_core_schema.sql)，共 24 张核心表。
 
@@ -20,6 +20,13 @@
 | Redis | 缓存与短期状态 | 热会话、短期上下文、幂等键、限流计数 |
 | Milvus | 知识检索底座 | Dense vector、BM25/sparse、hybrid search、知识片段 metadata |
 | MinIO | 文档对象存储 | 原始文档、附件、导入文件、解析中间文件 |
+
+所有权规则：
+
+- PostgreSQL 业务表及 `agent_runs/tool_calls/sql_query_audits/model_usage_logs` 由 Java 唯一写入。
+- Python 不配置业务库写凭据；需要业务数据、记忆或工具结果时调用 Java 内部接口。
+- Python 可以维护用于恢复节点执行的技术 checkpoint，但它不替代 Java 的 AgentRun 业务状态。
+- Milvus 检索与索引执行可由 Python 负责，文档元数据、ACL 和索引任务控制状态仍由 Java 管理。
 
 ### 0.2 为什么主库选 PostgreSQL
 
@@ -1034,6 +1041,8 @@ ACL 相关 metadata 固定包含：
 
 ### 3.3 AgentRun 事件接口
 
+Java 创建 AgentRun、维护权威状态并面向前端输出 SSE。Python 只接收内部 RunCommand 并回传 RunEvent；Java 按事件 ID 去重、校验序号和状态迁移后再落库。
+
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
 | `POST` | `/foodmate/agent-sessions/{session_id}/messages` | 发送消息并创建 AgentRun | 用户 | 是 |
@@ -1060,6 +1069,8 @@ ACL 相关 metadata 固定包含：
 - `run.completed`
 - `run.failed`
 - `run.cancelled`
+
+内部事件关联字段固定包含 `schema_version`、`dispatch_id`、`event_id`、`event_seq`、`run_id`、`trace_id` 和 `occurred_at`。V1 数据库已完成，不在文档修改中伪造这些字段已经落表；实施跨运行时链路时应通过后续 Flyway 迁移或独立事件表补齐可重放、去重和对账所需字段。
 
 ### 3.4 饮食记录接口
 
@@ -1139,9 +1150,11 @@ ACL 相关 metadata 固定包含：
 
 | 方法 | 路径 | 用途 | 鉴权 | 幂等 |
 |---|---|---|---|---|
-| `POST` | `/foodmate/internal/sql-agent/query` | 执行结构化查询链路 | 内部 | 是 |
-| `POST` | `/foodmate/internal/sql-agent/validate` | SQL 安全校验 | 内部 | 是 |
+| `POST` | `/foodmate/internal/sql-agent/catalog` | 返回当前 Run 被授权的 schema 视图 | Python 服务身份 | 是 |
+| `POST` | `/foodmate/internal/sql-agent/proposals` | 校验并执行 Python 生成的 SQL proposal | Python 服务身份 | 是 |
 | `GET` | `/foodmate/internal/sql-agent/audits/{sql_audit_id}` | 查询审计记录 | 内部 | 否 |
+
+Python 不能调用任意 SQL 执行接口。Java 根据已认证 Run 派生用户/租户过滤，完成 SQL AST Guard、敏感字段校验、LIMIT/超时、只读执行和审计。
 
 ### 3.9 工具注册与查询接口
 
@@ -1212,12 +1225,13 @@ database_query
 
 固定内部链路如下：
 
-1. `Query Router`
-2. `Query Understanding`
-3. `Schema Catalog Resolver`
-4. `SQL Planner`
-5. `SQL Guard`
-6. `MCP Executor`
+1. Python `Query Router / Query Understanding`
+2. Java `Authorized Schema Catalog`
+3. Python `SQL Planner` 生成 proposal
+4. Java `SQL Guard / Tenant Filter`
+5. Java `MCP or Readonly Executor`
+6. Java `SQL Audit`
+7. Python 解释脱敏结果
 
 ### 4.3 只读约束
 
@@ -1291,6 +1305,15 @@ database_query
 | `idempotent` | 是否幂等 |
 | `risk_level` | 风险等级 |
 | `availability_scope` | 可用范围 |
+| `execution_owner` | 当前固定为 `java`；外部系统通过 Java Adapter 执行 |
+| `protocol` | 本地或内部调用协议 |
+| `contract_version` | 工具契约版本 |
+| `required_scopes` | Java 校验的最小权限 |
+| `approval_policy` | 无确认、强制确认或条件确认 |
+
+Java 是工具注册、版本、启停和授权策略的状态源。Python 只消费带版本的工具快照并提交 proposal，不能自行启用工具或扩大 scope。
+
+`execution_owner/protocol/contract_version/required_scopes/approval_policy` 是目标契约字段，当前 V1 表未完整持久化。实施 B3-6/B7 时必须通过后续 Flyway 迁移或已版本化的 schema JSON 补齐，不能假装 V1 已包含这些列。
 
 ### 5.2 权威工具清单
 
@@ -1518,6 +1541,9 @@ database_query
 1. V1 已统一建立 `users`、认证、个人资料、会话、消息、AgentRun、ToolCall、业务、记忆、知识库、SQL Agent、工具、模型治理和操作审计表。
 2. 当前下一步是为已迁移表建立 PO / Mapper，并保持字段、软删除和索引语义与 V1 一致。
 3. 后续再接 Milvus collection、MinIO 和异步索引任务。
+4. 创建 Python `agent-runtime`、项目环境、健康检查和 pytest 基线。
+5. 定义 Run/Event/Tool/SQL/Cancel 的版本化内部契约和服务身份。
+6. 用后续 Flyway 迁移补齐跨运行时事件去重、attempt、heartbeat/lease 或等价对账字段，不能回改已发布 V1。
 
 API 按下面顺序开放：
 
@@ -1530,9 +1556,11 @@ API 按下面顺序开放：
 7. `/foodmate/tools`
 8. `/foodmate/admin/*`
 
+双运行时联调顺序：先打通 Java 创建 Run 与 Python 回传最小事件，再接 Java Tool Gateway，然后接 Python RAG/模型和 SQL proposal；每一步都必须覆盖超时、重复事件、取消和 Runtime 不可用。
+
 ---
 
 ## 8. 最终落地原则
 
 这份文档最终要达到的效果只有一个：  
-**开发同学拿到它，就可以直接建 PostgreSQL 表、Milvus collection、HTTP API、SSE 事件和工具注册表，而不需要再自己补关键决策。**
+**开发同学拿到它，就能明确 Java 拥有什么数据、Python 能访问什么、跨运行时如何调用和审计，而不需要自行猜测业务写权限。**

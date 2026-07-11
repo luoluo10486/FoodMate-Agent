@@ -1,19 +1,27 @@
-# FoodMate Java工程骨架与模块设计
+# FoodMate Java 业务控制面工程骨架与跨语言边界设计
 
-版本：v1.0  
+版本：v1.1
+维护基线：2026-07-11
 对应总设计：[FoodMate-系统设计与技术方案.md](./FoodMate-系统设计与技术方案.md)  
 对应接口文档：[FoodMate-接口与数据规范.md](./FoodMate-接口与数据规范.md)  
 对应行为协议：[FoodMate-智能体行为与工具协议.md](./FoodMate-智能体行为与工具协议.md)
 
-文档定位：本文件是 FoodMate 的工程搭建蓝图，只回答“项目怎么搭、模块怎么拆、边界怎么守、未来怎么拆服务”。产品边界、工具优先级、查询主路径和模型治理总原则，仍以总设计文档为准。
+文档定位：本文件描述 Java 业务控制面的工程边界、Java 与 Python 的内部契约，以及旧 Java Agent 模块的迁移方式。产品边界、工具优先级、查询主路径和模型治理总原则，仍以总设计文档为准。
 
 ---
 
 ## 0. 先说结论
 
-FoodMate 当前采用 **模块化单体**，而不是直接做成运行时微服务。
+FoodMate 目标架构采用两个运行时：
 
-这样做的原因不是“规模小”，而是当前系统的核心复杂度主要集中在：
+- **Java 业务控制面**：继续采用模块化单体，负责认证、RBAC、业务 API、事务、业务数据库、AgentRun、工具执行、SQL Guard、审计和前端 SSE。
+- **Python Agent 智能执行面**：从第一阶段就是独立进程，负责编排、Prompt、模型、RAG、记忆策略、SQL proposal、结构化输出和评测。
+
+这不是让 Java 和 Python 成为两个业务后端。Java 是业务真值和最终授权点，Python 只能提出动作与查询建议。Python 不持有业务数据库写权限，不直接执行业务工具，也不向前端提供接口。
+
+当前仓库中的 `foodmate-orchestrator`、`foodmate-rag`、`foodmate-sql-agent`、`foodmate-model` 是已创建但尚未实现的旧 Java 占位模块。它们记录当前代码事实，但不再是未来 Agent 实现位置。
+
+采用双运行时的原因是系统的智能复杂度集中在：
 
 - Agent 编排
 - 查询理解
@@ -22,18 +30,19 @@ FoodMate 当前采用 **模块化单体**，而不是直接做成运行时微服
 - 工具调用
 - 模型接入与模型治理
 
-这些能力还在快速演化，如果一开始就拆成多个独立服务，会带来下面的问题：
+这些能力需要 Python Agent 生态的快速迭代；同时业务权限、事务和审计必须继续由 Java 稳定治理。边界限定为两个部署单元，避免演化成任意微服务拆分。
 
 - 领域边界会频繁变化
 - 接口协议会反复改
 - 调试链路变长
 - 部署、联调、排障成本明显上升
 
-所以当前阶段的推荐形态是：
+当前阶段的推荐形态是：
 
-- **代码结构按模块化单体设计**
-- **文档提前定义未来拆服务边界**
-- **运行时先单进程部署，后续再按边界拆分**
+- **Java 内部按模块化单体设计**
+- **Python 内部按单一 Agent Runtime 设计**
+- **两个运行时只通过版本化 HTTP/JSON 和事件契约协作**
+- **前端、业务数据库和业务工具只面向 Java**
 
 ---
 
@@ -50,45 +59,43 @@ FoodMate 当前采用 **模块化单体**，而不是直接做成运行时微服
 5. 记忆写入链路
 6. 模型调用链路
 
-### 1.2 为什么不直接微服务
+### 1.2 为什么现在就拆 Agent Runtime
 
-当前不直接微服务化，主要基于以下判断：
+当前 Java Agent 模块只有占位代码，也没有接入 Spring AI，因此现在迁移没有实质沉没成本。若先在 Java 中完成编排、RAG 和模型接入，复杂后再迁移 Python，会形成重复建设。
 
-- `orchestrator`、`rag`、`sql-agent` 三个域现在耦合度高，但边界还在演化
-- P0 工具数量有限，独立拆服务只会增加 RPC 和运维成本
-- 模型网关虽然未来可能独立，但第一阶段可以先以内嵌网关模块落地
-- 当前系统更需要高效验证主链路，而不是提前为分布式复杂度买单
+- Agent、RAG、模型和评测归一个 Python 运行时，不继续细拆微服务。
+- Java 只增加一个 Runtime Client 和内部工具入口，保持业务模块稳定。
+- 跨进程复杂度通过固定命令、事件、取消、幂等和错误契约控制。
 
-### 1.3 什么时候才拆服务
+### 1.3 什么时候继续拆服务
 
-只有满足下面任一条件，才建议从模块化单体拆到微服务：
+除 Java 控制面与 Python Runtime 这次必要拆分外，只有满足下面任一条件才继续拆服务：
 
 - 单次发布经常被不同模块相互阻塞
 - `worker` 的异步负载和主 API 竞争资源
-- `rag` 或 `sql-agent` 需要独立扩容
+- Python Runtime 内的 RAG 或模型负载需要独立扩容
 - 模型网关出现多租户、多配额、多供应商策略治理需求
 - 团队已经拆成至少两个稳定协作小组，需要独立发布节奏
 
-### 1.4 拆分顺序
+### 1.4 后续拆分顺序
 
 FoodMate 推荐的拆分顺序如下：
 
-1. `worker`
-2. `model-gateway`
-3. `rag/knowledge`
-4. `tool + sql-agent`
-5. `orchestrator`
-6. `api/bff`
+1. Java `worker`
+2. 独立 `model-gateway`
+3. Python `rag/knowledge` worker
+4. Java `tool/sql-access` gateway
+5. Java `api/bff`
 
 这个顺序的原则是：
 
 - 先拆异步和高资源模块
 - 再拆有明确治理边界的模块
-- 最后才拆编排主链路
+- Python 编排主链路保持完整，除非有明确的独立扩缩容证据
 
 ---
 
-## 2. Maven 多模块工程结构
+## 2. 目标工程结构
 
 ### 2.1 根工程
 
@@ -102,66 +109,60 @@ FoodMate 推荐的拆分顺序如下：
 - 管理统一构建规则
 - 聚合所有业务模块
 
-建议的顶层结构：
+目标顶层结构：
 
 ```text
 foodmate/
   ├── pom.xml
   ├── README.md
   ├── docs/
-  ├── prompts/
-  ├── scripts/
-  ├── sql/
+  ├── agent-runtime/             # Python，待创建
+  │   ├── pyproject.toml
+  │   ├── src/foodmate_agent/
+  │   │   ├── api/
+  │   │   ├── orchestrator/
+  │   │   ├── rag/
+  │   │   ├── model/
+  │   │   ├── sql_planner/
+  │   │   └── evaluation/
+  │   ├── prompts/
+  │   └── tests/
   ├── foodmate-bootstrap/
   ├── foodmate-api/
   ├── foodmate-application/
   ├── foodmate-domain/
-  ├── foodmate-orchestrator/
-  ├── foodmate-rag/
   ├── foodmate-tool/
-  ├── foodmate-sql-agent/
-  ├── foodmate-model/
-  ├── foodmate-gateway-client/
+  ├── foodmate-gateway-client/   # 调整为 Python Runtime Client
   ├── foodmate-worker/
   ├── foodmate-infra/
   └── foodmate-shared/
 ```
 
+仓库中暂时仍存在 `foodmate-orchestrator`、`foodmate-rag`、`foodmate-sql-agent`、`foodmate-model`。在迁移任务完成前保留这些目录，但禁止新增 Agent 实现；根 `pom.xml` 和依赖测试应在迁移时统一收缩，避免文档先假装代码已经删除。
+
 ### 2.2 模块清单与角色
 
-| 模块 | 类型 | 主要职责 | 是否可独立拆服务 |
-|---|---|---|---|
-| `foodmate-bootstrap` | 启动模块 | Spring Boot 启动、配置装配、Bean 装配 | 否 |
-| `foodmate-api` | 接入层 | HTTP API、SSE、鉴权、请求响应协议 | 是 |
-| `foodmate-application` | 应用层 | 用例编排、事务协调、DTO 组装 | 否 |
-| `foodmate-domain` | 领域层 | 实体、聚合、领域规则、领域服务接口 | 否 |
-| `foodmate-orchestrator` | 编排层 | Router、Planner、Executor、Validator、Composer | 是 |
-| `foodmate-rag` | 能力层 | 查询理解、检索、重排、引用组装 | 是 |
-| `foodmate-tool` | 能力层 | 工具注册、工具执行、工具适配器 | 是 |
-| `foodmate-sql-agent` | 能力层 | Schema Catalog、SQL Planner、SQL Guard、MCP | 是 |
-| `foodmate-model` | 模型层 | ModelService、Prompt 装配、结构化输出适配 | 否 |
-| `foodmate-gateway-client` | 模型层 | 模型网关客户端、统一请求头、协议转换 | 是 |
-| `foodmate-worker` | 异步层 | 文档解析、索引构建、摘要、批任务 | 是 |
-| `foodmate-infra` | 基础设施层 | PostgreSQL、Redis、Milvus、RocketMQ、MinIO 集成 | 部分可拆 |
-| `foodmate-shared` | 共享模块 | 公共枚举、错误码、通用 DTO、Trace 上下文 | 否 |
+| 模块/运行时 | 类型 | 目标职责 |
+|---|---|---|
+| `foodmate-bootstrap` | Java 启动模块 | Spring Boot 启动、配置和 Bean 装配 |
+| `foodmate-api` | Java 接入层 | 外部 HTTP/SSE、鉴权、内部 Agent 事件接收 |
+| `foodmate-application` | Java 应用层 | 用例、事务、AgentRun 状态机、DTO 和事件映射 |
+| `foodmate-domain` | Java 领域层 | 业务实体、聚合、权限相关领域规则 |
+| `foodmate-tool` | Java 执行层 | Tool Registry、Policy、审批、幂等、执行和审计 |
+| `foodmate-gateway-client` | Java 客户端层 | Python Runtime Client、服务身份、超时、取消和协议转换 |
+| `foodmate-worker` | Java 异步层 | 业务后台任务；不承载 Agent 编排和 Prompt |
+| `foodmate-infra` | Java 基础设施层 | PostgreSQL、Redis、对象存储、SQL Guard/只读执行适配 |
+| `foodmate-shared` | Java 共享层 | 稳定公共对象、错误、Trace；不共享 Java 类给 Python |
+| `agent-runtime` | Python 智能执行面 | 编排、Prompt、模型、RAG、SQL proposal、checkpoint 和评测 |
 
 ### 2.3 模块依赖方向
 
-允许的依赖方向固定如下：
+Java 目标依赖方向固定如下：
 
 ```text
 foodmate-bootstrap
-  -> foodmate-api
-  -> foodmate-application
-  -> foodmate-orchestrator
-  -> foodmate-rag
-  -> foodmate-tool
-  -> foodmate-sql-agent
-  -> foodmate-model
-  -> foodmate-gateway-client
-  -> foodmate-worker
-  -> foodmate-infra
-  -> foodmate-shared
+  -> foodmate-api / foodmate-application / foodmate-gateway-client
+  -> foodmate-tool / foodmate-worker / foodmate-infra / foodmate-shared
 
 foodmate-api
   -> foodmate-application
@@ -169,25 +170,8 @@ foodmate-api
 
 foodmate-application
   -> foodmate-domain
-  -> foodmate-orchestrator
-  -> foodmate-rag
   -> foodmate-tool
-  -> foodmate-sql-agent
-  -> foodmate-model
-  -> foodmate-shared
-
-foodmate-orchestrator
-  -> foodmate-domain
-  -> foodmate-rag
-  -> foodmate-tool
-  -> foodmate-sql-agent
-  -> foodmate-model
-  -> foodmate-shared
-
-foodmate-rag
-  -> foodmate-domain
-  -> foodmate-model
-  -> foodmate-infra
+  -> foodmate-gateway-client
   -> foodmate-shared
 
 foodmate-tool
@@ -195,25 +179,12 @@ foodmate-tool
   -> foodmate-infra
   -> foodmate-shared
 
-foodmate-sql-agent
-  -> foodmate-domain
-  -> foodmate-model
-  -> foodmate-infra
-  -> foodmate-shared
-
-foodmate-model
-  -> foodmate-gateway-client
-  -> foodmate-shared
-
 foodmate-gateway-client
   -> foodmate-shared
 
 foodmate-worker
   -> foodmate-application
-  -> foodmate-rag
   -> foodmate-tool
-  -> foodmate-sql-agent
-  -> foodmate-model
   -> foodmate-infra
   -> foodmate-shared
 
@@ -226,20 +197,20 @@ foodmate-infra
 下面这些依赖一律禁止：
 
 - `api -> infra`
-- `api -> model`
-- `api -> rag`
+- `api -> Python Runtime SDK/供应商 SDK`
 - `domain -> application`
 - `domain -> infra`
 - `tool -> api`
-- `rag -> api`
-- `sql-agent -> api`
+- `application -> 旧 Java Agent 模块`
+- `Python Runtime -> 业务数据库或 Java Mapper`
 - `shared -> 任何业务模块`
 
 解释：
 
-- `api` 不应直连数据库、Milvus、模型 SDK
+- `api` 不应直连数据库、Milvus、模型 SDK 或 Python 内部组件
 - `domain` 必须保持纯领域语义，不依赖框架实现
 - `shared` 只放稳定公共对象，不能反向侵入业务
+- Java 与 Python 通过 OpenAPI/JSON Schema 等语言无关契约协作，不共享编译期领域类
 
 ---
 
@@ -270,11 +241,10 @@ com.foodmate
   ├── application
   ├── domain
   ├── infrastructure
-  ├── orchestrator
-  ├── rag
-  ├── sqlagent
+  ├── agentclient
+  ├── agentevent
+  ├── sqlaccess
   ├── tool
-  ├── model
   ├── gateway
   ├── worker
   ├── security
@@ -318,7 +288,7 @@ com.foodmate.application
 职责：
 
 - 承接 API 发起的用例
-- 调用编排层与领域层
+- 调用领域层、工具层与 Agent Runtime Client
 - 控制事务边界
 - 组装 DTO
 
@@ -346,55 +316,38 @@ com.foodmate.domain
 - 领域服务接口
 - 仓储接口
 
-#### `orchestrator`
+#### `agentclient` 与 `agentevent`
 
 ```text
-com.foodmate.orchestrator
-  ├── router
-  ├── planner
-  ├── executor
-  ├── validator
-  ├── composer
-  ├── policy
-  └── runtime
+com.foodmate.agentclient
+  ├── client
+  ├── command
+  ├── auth
+  ├── config
+  └── error
+
+com.foodmate.agentevent
+  ├── contract
+  ├── handler
+  ├── dedup
+  ├── statemachine
+  └── sse
 ```
 
 职责：
 
-- 任务路由
-- 多步计划生成
-- 工具与 RAG 调用编排
-- 输出校验
-- 最终答复拼装
+- 向 Python 派发 Run、取消和恢复命令
+- 验证服务身份、契约版本、deadline 和 trace
+- 接收、去重并校验内部运行事件
+- 更新 Java AgentRun 权威状态并映射前端 SSE
 
-#### `rag`
-
-```text
-com.foodmate.rag
-  ├── understanding
-  ├── retriever
-  ├── rerank
-  ├── citation
-  ├── memory
-  └── acl
-```
-
-职责：
-
-- 查询理解
-- Hybrid 检索
-- 候选重排
-- 引用组装
-- ACL 过滤
-
-#### `sqlagent`
+#### `sqlaccess`
 
 ```text
-com.foodmate.sqlagent
-  ├── router
+com.foodmate.sqlaccess
   ├── catalog
-  ├── planner
   ├── guard
+  ├── tenantfilter
   ├── mcp
   ├── audit
   └── executor
@@ -402,12 +355,10 @@ com.foodmate.sqlagent
 
 职责：
 
-- 数据源识别
-- Schema Catalog 解析
-- SQL 生成
-- SQL 安全校验
-- MCP 调用
-- 审计记录
+- 返回授权后的 Schema Catalog
+- 校验 Python SQL proposal
+- 强制只读、敏感字段、租户、LIMIT 和超时策略
+- 执行并记录 SQL 审计
 
 #### `tool`
 
@@ -431,25 +382,6 @@ com.foodmate.tool
 - 调用具体适配器
 - 输出统一 ToolResult
 
-#### `model`
-
-```text
-com.foodmate.model
-  ├── service
-  ├── prompt
-  ├── contract
-  ├── request
-  ├── response
-  └── metrics
-```
-
-职责：
-
-- `ModelService` 对外统一接口
-- Prompt 装配
-- 模型请求响应标准化
-- usage、cost、latency 统计
-
 #### `gateway`
 
 ```text
@@ -462,10 +394,10 @@ com.foodmate.gateway
 
 职责：
 
-- 模型网关 HTTP 客户端
-- Header 注入
-- Trace 透传
-- 协议转换
+- Python Runtime HTTP 客户端
+- 服务身份与 Header 注入
+- Trace、超时和取消透传
+- Run/Event 协议转换
 
 #### `worker`
 
@@ -517,119 +449,71 @@ com.foodmate.infrastructure
 
 ---
 
-## 4. 核心模块职责与对外接口
+## 4. 核心边界与对外接口
 
-### 4.1 `foodmate-model`
+### 4.1 Java Runtime Client
 
-#### 对外公开接口
+`foodmate-gateway-client` 目标上承接 Python Runtime Client，对 Java Application 暴露：
 
-- `chat(...)`
-- `chatStream(...)`
-- `structuredOutput(...)`
-- `toolCall(...)`
-- `embed(...)`
-- `rerank(...)`
+- `dispatchRun(...)`
+- `cancelRun(...)`
+- `resumeRun(...)`
+- `health(...)`
 
-#### 统一返回对象字段
+它负责服务身份、契约版本、超时、重试、取消传播和 Trace Header，不负责业务状态迁移。Java Application 创建并持久化 `AgentRun` 后才能派发；重复派发必须使用相同 `dispatch_id` 幂等处理。
 
-- `request_id`
-- `trace_id`
-- `provider`
-- `model_name`
-- `content`
-- `usage`
-- `latency_ms`
-- `cost`
-- `status`
-- `error`
+### 4.2 内部运行事件
 
-#### 边界规则
+Python 回传事件至少包含：`schema_version`、`event_id`、`event_seq`、`run_id`、`dispatch_id`、`trace_id`、`occurred_at`、`event_type` 和 `payload`。
 
-- 业务层只依赖 `ModelService`
-- 不允许任何业务模块直接依赖供应商 SDK
-- 模型路由、配额、鉴权不在 `ModelService` 内实现业务规则，只通过 `ModelGatewayClient` 转发
+Java API/Application 负责：
 
-### 4.2 `foodmate-rag`
+- 验证 Python 服务身份和契约版本。
+- 按 `run_id + event_id` 去重并拒绝非法状态回退。
+- 持久化 AgentRun、ToolCall、SQLAudit、模型用量和最终结果。
+- 将内部事件映射为前端 `run.*` SSE。
 
-#### 对外公开接口
-
-- `QueryUnderstandingService`
-- `KnowledgeSearchService`
-- `CitationAssembler`
-- `MemoryRecallService`
-
-#### 负责内容
-
-- 查询理解
-- ACL 过滤构建
-- BM25 / dense / hybrid 检索
-- Rerank
-- 引用片段组装
-
-#### 不负责内容
-
-- 最终答复生成
-- 数据库事务写入
-- SQL 生成
+Python 可以保存节点 checkpoint 以恢复执行，但 checkpoint 不是业务状态真值。
 
 ### 4.3 `foodmate-tool`
 
-#### 对外公开接口
+Java 工具执行面至少公开：
 
 - `ToolRegistry`
+- `ToolPolicyChecker`
 - `ToolExecutor`
 - `ToolResult`
 
-#### P0 工具固定为
+所有注册工具统一由 Java 执行，Java 是工具契约、启停、授权、幂等和审计状态源。Python 只能提交 `proposed_tool_call`。Java 从已认证会话派生用户、租户和 scope，校验工具版本、输入 schema、确认状态、幂等键和 deadline 后执行。`knowledge_search` 由 Java 强制 ACL 后返回候选结果，Python 可以继续重排和组装引用；`food_log_writer` 等写工具必须通过 Application/Domain 事务。
 
-- `calculator`
-- `time_parser`
-- `knowledge_search`
-- `database_query`
-- `food_log_writer`
-- `plan_validator`
+### 4.4 SQL Planning 与 SQL Access
 
-### 4.4 `foodmate-sql-agent`
+固定主链路：
 
-#### 对外公开接口
+```text
+Python Query Understanding / SQL Planner
+-> sql_proposal
+-> Java Schema Authorization / SQL Guard / Tenant Filter
+-> Java MCP or Readonly Executor
+-> Audit
+-> Python result interpretation
+```
 
-- `SqlAgentService`
-- `SchemaCatalogResolver`
-- `SqlGuardService`
-- `McpQueryExecutor`
+旧 `foodmate-sql-agent` 不再承载 SQL 生成。迁移后，其 Java 能力应归入清晰命名的 SQL access/guard 组件；Python 永远不获得 JDBC 凭据。
 
-#### 固定主链路
+### 4.5 Python Agent Runtime
 
-`Query Router -> Query Understanding -> Schema Catalog -> SQL Planner -> SQL Guard -> MCP -> Readonly SQL Executor`
+Python Runtime 内部包含 `IntentRouter`、`TaskPlanner`、`ExecutionEngine`、RAG、模型适配、质量校验、`AnswerComposer` 和评测。它决定“建议做什么”，但不能决定“是否有权做”或直接产生业务副作用。
 
-#### 不允许行为
+### 4.6 旧模块处置
 
-- 直接执行写 SQL
-- 绕过 `SQL Guard`
-- 绕过审计落库
-
-### 4.5 `foodmate-orchestrator`
-
-#### 核心内部组件
-
-- `IntentRouter`
-- `TaskPlanner`
-- `ExecutionEngine`
-- `ResultValidator`
-- `AnswerComposer`
-
-#### 核心职责
-
-- 决定要不要检索
-- 决定要不要调用工具
-- 决定是否追问
-- 维护多步任务状态
-
-#### 不承担职责
-
-- 不直接实现工具逻辑
-- 不直接操作数据库
-- 不直接发 HTTP 给模型供应商
+| 旧模块 | 处置 |
+|---|---|
+| `foodmate-orchestrator` | 冻结；能力迁移到 `agent-runtime` |
+| `foodmate-rag` | 冻结；推理和检索编排迁移到 `agent-runtime` |
+| `foodmate-model` | 冻结；Prompt 和模型适配迁移到 `agent-runtime` |
+| `foodmate-sql-agent` | 拆分；SQL Planner 迁 Python，Guard/执行迁 Java 基础设施 |
+| `foodmate-tool` | 保留；作为 Java 权威工具执行面 |
 
 ---
 
@@ -639,61 +523,53 @@ com.foodmate.infrastructure
 
 | 步骤 | 组件 | 输入 | 输出 |
 |---|---|---|---|
-| 1 | `api` | 用户消息 | `ChatRequest` |
-| 2 | `application` | 请求 DTO | `AgentCommand` |
-| 3 | `orchestrator.router` | 用户意图、上下文 | `IntentDecision` |
-| 4 | `orchestrator.planner` | 意图、约束 | `ExecutionPlan` |
-| 5 | `orchestrator.executor` | 执行计划 | 检索结果 / 工具结果 |
-| 6 | `orchestrator.composer` | 证据、结果 | 最终答复 |
-| 7 | `application` | 答复 | 会话持久化 |
-| 8 | `api.sse` | 结果事件 | SSE 输出 |
+| 1 | Java `api/application` | 用户消息 | 持久化 Message 与 AgentRun |
+| 2 | Java `runtime-client` | 最小权限上下文、工具快照 | `RunCommand` |
+| 3 | Python Runtime | 上下文与命令 | 执行事件、工具/SQL proposal |
+| 4 | Java Tool/SQL Gateway | proposal | 已授权执行结果或拒绝原因 |
+| 5 | Python Composer | 证据与执行结果 | 结构化最终答复 |
+| 6 | Java Application | 内部事件与答复 | 权威状态、审计和持久化 |
+| 7 | Java `api.sse` | 已校验事件 | 前端 SSE |
 
 ### 5.2 RAG 检索链路
 
-1. `orchestrator` 判断问题属于知识问答或混合场景  
-2. 调用 `QueryUnderstandingService`  
-3. 生成 `keyword_query`、`semantic_query`、`filters`、`acl_filter`  
-4. `rag.retriever` 调用 Milvus 执行 BM25 + dense hybrid search  
-5. `rag.rerank` 调用 rerank 模型重排  
-6. `rag.citation` 组装引用片段  
-7. 结果返回 `orchestrator`
+1. Java 下发经过授权的知识范围，不把用户声明当可信 ACL。
+2. Python 完成查询理解、改写、混合检索编排、Rerank 和引用组装。
+3. 文档/ACL 控制状态由 Java 管理；Python 只在授权范围内访问索引。
+4. 检索片段作为 `untrusted_content` 返回 Python 编排。
+5. 引用随内部事件回传 Java 持久化并输出。
 
 ### 5.3 SQL Agent 查询链路
 
-1. `database_query` 作为唯一对外入口被调用  
-2. `sqlagent.router` 判断目标数据源域  
-3. `sqlagent.catalog` 读取 `schema_catalogs`  
-4. `sqlagent.planner` 生成候选 SQL  
-5. `sqlagent.guard` 做危险 SQL 拦截  
-6. `sqlagent.audit` 写入审计记录  
-7. `sqlagent.mcp` 通过 MCP 调用只读执行器  
-8. 返回结构化结果给 `tool.executor`
+1. Python 判断目标数据域并请求 Java 提供授权后的 Schema Catalog。
+2. Python 生成带参数和意图说明的只读 SQL proposal。
+3. Java 校验服务身份、schema 版本、AST、敏感字段、租户过滤、LIMIT 和超时。
+4. Java 通过 MCP 或内部只读执行器执行并写 `sql_query_audits`。
+5. Java 将脱敏结果返回 Python 解释，Python 不接触凭据或 JDBC 连接。
 
 ### 5.4 工具调用链路
 
-1. `orchestrator` 输出工具调用决策  
-2. `tool.registry` 校验工具是否已注册  
-3. `tool.executor` 校验输入 schema  
-4. 具体 Tool Adapter 执行  
-5. `ToolResult` 标准化输出  
-6. `application` / `orchestrator` 写入 `tool_calls`
+1. Python 输出 `proposed_tool_call`。
+2. Java 验证调用身份、run、工具版本、scope、确认状态和输入 schema。
+3. Java `ToolPolicyChecker` 决定 allow、deny 或 require_approval。
+4. Java Tool Adapter 在业务事务内执行。
+5. Java 写入 `tool_calls` 并把 `ToolResult` 返回 Python。
+6. Python 根据执行结果继续编排，不能把拒绝伪装成成功。
 
 ### 5.5 记忆写入链路
 
-1. `orchestrator` 或 `rag` 提交候选记忆  
-2. `MemoryService` 判断是短期记忆还是长期记忆  
-3. 长期记忆检查显式性、置信度、冲突  
-4. 持久化到 `user_memories`  
-5. 会话摘要更新到 `session_summaries`
+1. Python 提交候选记忆及来源、置信度和作用域。
+2. Java `MemoryService` 校验用户授权、显式性、冲突和敏感性。
+3. Java 持久化 `user_memories` 或 `session_summaries`。
+4. Python 后续只能通过 Java 提供的授权上下文读取记忆。
 
 ### 5.6 模型调用链路
 
-1. 业务模块调用 `ModelService`  
-2. `ModelService` 装配 Prompt、模型参数、结构化输出约束  
-3. `ModelGatewayClient` 发送请求到模型网关  
-4. 模型网关完成路由、鉴权、限流、配额、审计  
-5. 供应商响应返回  
-6. `ModelService` 统一封装响应并记录 usage / latency / cost  
+1. Python Runtime 的模型适配层装配 Prompt、模型参数和结构化输出约束。
+2. Python 调用供应商或独立模型网关。
+3. Python 统一处理流式输出、重试、usage、latency 和 cost。
+4. 模型用量事件回传 Java，Java持久化治理记录。
+5. Java 业务模块不直接依赖模型供应商 SDK。
 
 ---
 
@@ -736,24 +612,15 @@ mybatis-plus:
       logic-not-delete-value: false
 
 foodmate:
-  model:
-    default-chat-model: qwen-plus
-    default-embed-model: text-embedding-v4
-    timeout-ms: 15000
-  gateway:
-    base-url: http://model-gateway.internal
-    api-key: ${MODEL_GATEWAY_KEY}
-  rag:
-    top-k: 12
-    rerank-top-n: 5
-    collection: foodmate_knowledge
-  milvus:
-    host: localhost
-    port: 19530
-    token: ${MILVUS_TOKEN}
+  agent-runtime:
+    base-url: http://localhost:8090
+    service-token: ${AGENT_RUNTIME_SERVICE_TOKEN}
+    connect-timeout-ms: 2000
+    run-timeout-ms: 120000
+    contract-version: v1
   mcp:
     read-timeout-ms: 5000
-  sql-agent:
+  sql-access:
     readonly-enforced: true
     max-rows: 500
   tool:
@@ -768,12 +635,9 @@ foodmate:
 
 | 配置域 | 作用 |
 |---|---|
-| `foodmate.model` | 模型默认参数 |
-| `foodmate.gateway` | 模型网关连接与鉴权 |
-| `foodmate.rag` | 检索参数 |
-| `foodmate.milvus` | Milvus 接入 |
+| `foodmate.agent-runtime` | Python Runtime 地址、服务身份、契约版本、超时和取消 |
 | `foodmate.mcp` | MCP 调用超时与重试 |
-| `foodmate.sql-agent` | SQL Agent 只读策略和阈值 |
+| `foodmate.sql-access` | Java SQL Guard、只读执行和阈值 |
 | `foodmate.tool` | 工具开关 |
 | `mybatis-plus` | 逻辑删除、字段映射、分页插件等 MyBatis-Plus 行为 |
 | `spring.flyway` | PostgreSQL schema 版本迁移 |
@@ -840,7 +704,9 @@ foodmate:
 - 写接口必须支持幂等键
 - 模型调用默认开启超时
 - 工具调用只有幂等工具允许重试
-- SQL Agent 失败可重试，但不得跳过 `SQL Guard`
+- SQL proposal 执行失败只有在幂等且仍通过 `SQL Guard` 时才允许重试
+- Python 运行事件必须按 `run_id + event_id` 去重
+- 服务间请求必须携带 deadline，禁止无限等待
 - Worker 任务重试次数由 RocketMQ 统一控制
 
 ### 7.4.1 Mapper、Service 与软删除约束
@@ -853,7 +719,7 @@ foodmate:
 - 业务代码禁止手写“全量查”来跳过软删除
 - `DELETE` 操作统一走软删除更新，不允许默认物理删除
 - 恢复操作必须记录 `operator_id`、`request_id`、`trace_id`
-- Mapper 只能放在 `foodmate-infra`，`api`、`application`、`orchestrator` 不直接使用 MyBatis-Plus Mapper 或 Wrapper
+- Mapper 只能放在 `foodmate-infra`，`api`、`application` 和 Python Runtime 不直接使用 MyBatis-Plus Mapper 或 Wrapper
 
 推荐抽象：
 
@@ -861,10 +727,10 @@ foodmate:
 - `SoftDeleteSupport`
 - `RestoreCommandHandler`
 
-### 7.5 Prompt 工程化目录
+### 7.5 Python Prompt 工程化目录
 
 ```text
-prompts/
+agent-runtime/prompts/
   ├── system/
   ├── router/
   ├── planner/
@@ -877,24 +743,24 @@ prompts/
 
 Prompt 加载规则：
 
-- Prompt 不写死在 Java 代码常量里
+- Prompt 不进入 Java 工程，也不写死在 Python 代码常量里
 - 每个 Prompt 带 `name`、`version`、`owner`
 - 变更必须可回滚
 
 ---
 
-## 8. 模块化单体到微服务的映射
+## 8. 运行时与后续服务映射
 
 ### 8.1 目标映射
 
-| 当前模块 | 未来服务 | 拆分时机 |
+| 当前/目标模块 | 未来服务 | 拆分时机 |
 |---|---|---|
 | `foodmate-api` | `api-bff` | 前后端迭代频率明显分离时 |
-| `foodmate-orchestrator` | `agent-orchestrator` | 编排逻辑需要独立扩容时 |
-| `foodmate-rag` | `knowledge-service` | 检索负载和索引任务持续增长时 |
-| `foodmate-tool` + `foodmate-sql-agent` | `tool-service` | 工具数量和数据源种类显著增长时 |
+| `agent-runtime` | 保持单服务 | 编排、RAG、模型先不继续拆分 |
+| `agent-runtime/rag` | `knowledge-runtime` | 检索和索引负载有独立扩容证据时 |
+| `foodmate-tool` + Java SQL access | `tool-service` | 工具数量和数据源种类显著增长时 |
 | `foodmate-worker` | `worker-service` | 异步任务压缩主实例资源时 |
-| `foodmate-gateway-client` | `model-gateway` | 需要独立治理模型路由和配额时 |
+| Python model adapter | `model-gateway` | 需要独立治理模型路由和配额时 |
 
 ### 8.2 拆前条件
 
@@ -910,30 +776,28 @@ Prompt 加载规则：
 拆分后固定原则：
 
 - `api-bff` 不直接访问 Milvus 和模型供应商
-- `agent-orchestrator` 不直接持有供应商 SDK
+- Python Runtime 可以持有模型 SDK，但不得持有业务数据库凭据
 - `knowledge-service` 只负责查询理解、检索、引用
 - `tool-service` 只暴露工具执行能力
 - `model-gateway` 只负责路由与治理，不承接业务语义
 
 ---
 
-## 9. 第一版实施顺序
+## 9. 迁移与第一版实施顺序
 
 建议按下面顺序真正搭工程：
 
-1. 创建根 `pom.xml`、Maven Wrapper 与 13 个模块
-2. 先把 `bootstrap`、`api`、`application`、`infra`、`shared` 跑通
-3. 搭 `model`、`gateway-client`、`orchestrator` 主链
-4. 搭 `rag` 与 `tool` 的 P0 能力
-5. 搭 `sql-agent` 的只读链路
-6. 搭 `infra` 中的 PostgreSQL、Redis、Milvus、RocketMQ、MinIO 接入
-7. 最后补 `worker`
-
-B3 阶段统一创建 13 个模块骨架，避免后续补模块时重排依赖；首轮实际实现集中在 `foodmate-bootstrap`、`foodmate-api`、`foodmate-application`、`foodmate-infra`、`foodmate-shared`，其余能力模块先保持包边界和依赖方向。
+1. 保持已完成的 Java B3/B4-1 基线，继续完成业务 PO、Mapper、认证和会话。
+2. 冻结旧 Java Agent 模块，不再向其中添加实现。
+3. 创建 `agent-runtime` Python 工程、项目虚拟环境、健康检查和测试基线。
+4. 定义 Run 命令、内部事件、工具调用、SQL proposal、取消和错误的版本化契约。
+5. 将 `foodmate-gateway-client` 调整为 Runtime Client，打通最小 Run 与 SSE。
+6. Java 实现 ToolPolicy、SQL Guard、只读执行和审计；Python 实现 Router、Planner、Model、RAG 与 Composer。
+7. 增加 Maven、pytest、契约和跨运行时端到端测试后，再收缩根 `pom.xml` 中的旧模块。
 
 ---
 
 ## 10. 最终落地原则
 
 这份工程骨架文档最终只服务一件事：  
-**让 FoodMate 的 Java 工程一开始就按正确边界落地，先以模块化单体快速交付，再平滑演进到服务化，而不是反复推倒重来。**
+**让 Java 稳定治理业务真值，让 Python 专注智能执行，并用版本化契约把两个运行时约束成一个可审计系统。**

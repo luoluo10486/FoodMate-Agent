@@ -61,6 +61,8 @@ Agent 应该负责：
 
 ## 3. 系统角色定义
 
+运行时归属固定如下：Orchestrator、Router、Planner、Answer Composer、Query Understanding、RAG 和模型适配属于 Python；身份认证、AgentRun、业务状态、工具策略、事务执行和审计属于 Java。Python 的质量校验不能替代 Java 的权限与业务约束校验。
+
 ### 3.1 Orchestrator
 
 负责总调度。
@@ -126,6 +128,8 @@ Agent 应该负责：
 - 记录任务记忆
 - 生成会话摘要
 
+Python 只生成候选记忆和摘要；Java 校验授权、冲突和敏感性后写入业务库。Python 不直接读写 `user_memories` 或 `session_summaries`。
+
 ### 3.6 Query Understanding
 
 负责查询理解。
@@ -149,17 +153,21 @@ Agent 应该负责：
 - 校验约束是否满足
 - 校验计划是否合理
 
+Python Validator 负责结果质量和结构完整性；Java Validator/Policy 负责身份、权限、确认、幂等、业务规则和副作用安全。
+
 ### 3.8 Data Query Agent
 
-负责结构化数据查询。
+负责在 Python 中生成结构化查询 proposal。
 
 职责：
 
 - 选择数据源
-- 读取 schema catalog
+- 请求 Java 返回授权后的 schema catalog
 - 生成只读 SQL
-- 校验 SQL 风险
-- 执行查询并解释结果
+- 提交 SQL proposal
+- 解释 Java 返回的脱敏查询结果
+
+SQL Guard、租户过滤、敏感字段控制、数据源凭据、只读执行和审计全部属于 Java。Python 不直接执行 SQL。
 
 ---
 
@@ -545,6 +553,9 @@ Planner 输出示例：
   "name": "knowledge_search",
   "description": "检索知识库并返回可引用片段",
   "version": "1.0.0",
+  "execution_owner": "java",
+  "protocol": "internal-http",
+  "contract_version": "v1",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -561,7 +572,8 @@ Planner 输出示例：
       "references": { "type": "array" }
     }
   },
-  "permissions": ["read"],
+  "required_scopes": ["knowledge:read"],
+  "approval_policy": "none",
   "timeout_ms": 3000,
   "retryable": true,
   "idempotent": true
@@ -576,7 +588,11 @@ Planner 输出示例：
 | description | 工具用途 |
 | input_schema | 输入结构 |
 | output_schema | 输出结构 |
-| permissions | 权限要求 |
+| execution_owner | 当前固定为 `java`；外部系统也由 Java Adapter 代为调用 |
+| protocol | 本地调用或内部服务协议 |
+| contract_version | 跨运行时契约版本 |
+| required_scopes | Java 校验的最小权限范围 |
+| approval_policy | `none`、`required` 或条件确认 |
 | timeout_ms | 超时时间 |
 | retryable | 是否可重试 |
 | idempotent | 是否幂等 |
@@ -588,7 +604,7 @@ Planner 输出示例：
 当前实现阶段的权威工具分层以总设计文档中的 `P0 + P1 + 内部能力模块` 为准。  
 本节只保留行为协议所需的典型工具定义示例，并统一以下口径：
 
-- 结构化数据查询主路：`database_query -> SQL Agent -> MCP`
+- 结构化数据查询主路：`Python SQL Planner -> Java SQL Guard / MCP or Readonly Executor`
 - `nutrition_lookup`、`meal_plan_generator`、`shopping_list_generator` 属于高频封装工具
 - `entity_normalizer`、`prompt_router` 属于内部能力模块，不作为外部工具注册
 - `P2` 只保留在总设计里作为未来可选能力，不作为当前行为协议的实现清单
@@ -707,7 +723,7 @@ Planner 输出示例：
 用途：
 
 - 统一处理结构化数据查询
-- 主路为 SQL Agent + MCP + Schema Catalog
+- Python 生成 SQL proposal，Java 负责授权 Schema Catalog、SQL Guard、MCP/只读执行和审计
 
 输入：
 
@@ -907,11 +923,13 @@ Agent 必须遵守：
 4. 必须回到当前用户消息、已确认约束和权限规则重新判断
 5. 必要时直接拒绝，或要求用户重新明确表达
 
-后端执行层必须把模型输出当作 `proposed_tool_call`，先经 `ToolPolicyChecker` 审查，再决定：
+Java 执行层必须把 Python/模型输出当作 `proposed_tool_call`，先经 Java `ToolPolicyChecker` 审查，再决定：
 
 - allow
 - deny
 - require_approval
+
+Python 可以做前置过滤，但无权自行批准高风险动作。所有业务写入、导出、跨用户查询和外部副作用只能调用受控 Java 接口。
 
 ---
 
@@ -1090,12 +1108,13 @@ FoodMate 推荐采用 **Plan-Act-Observe-Reflect** 范式。
 
 ### 12.1 推荐控制流
 
-1. 接收用户输入
-2. Router 分类
-3. Planner 生成步骤
-4. 调用 RAG 或工具
-5. 校验
-6. 组装回答
+1. Java 接收用户输入、完成鉴权并创建 AgentRun
+2. Java 将版本化 RunCommand 派发给 Python
+3. Python Router/Planner 生成执行步骤
+4. Python 执行模型/RAG，或向 Java 提交工具与 SQL proposal
+5. Java 授权、确认、执行、审计并返回结果
+6. Python 校验质量并组装结构化回答
+7. Java 校验运行事件、持久化权威状态并向前端输出 SSE
 
 ### 12.2 推荐输出原则
 
@@ -1108,5 +1127,6 @@ FoodMate 推荐采用 **Plan-Act-Observe-Reflect** 范式。
 - prompt 版本化
 - tool schema 版本化
 - output schema 版本化
+- 内部 Run/Event 协议版本化
 - 回归测试集版本化
 

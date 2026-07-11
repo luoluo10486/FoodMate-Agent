@@ -206,31 +206,17 @@
 
 ```mermaid
 flowchart LR
-  U[User / UI] --> G[API Gateway]
-  G --> O[Agent Orchestrator]
-
-  O --> R[Router / Intent Classifier]
-  O --> P[Planner]
-  O --> M[Memory Manager]
-  O --> S[Safety / Policy Layer]
-
-  P --> T[Tool Registry]
-  P --> K[RAG Retrieval]
-  P --> D[Domain DB]
-
-  T --> E[Tool Executors]
-  K --> V[Vector Store]
-  D --> DB[(App Database)]
-
-  E --> X[Execution Results]
-  K --> X
-  D --> X
-
-  X --> O
-  O --> A[Answer Composer]
-  A --> G
-  G --> U
+  U["User / UI"] --> J["Java Control Plane\nAPI / Auth / AgentRun / SSE"]
+  J --> P["Python Agent Runtime\nRouter / Planner / RAG / Model / Composer"]
+  P -->|"proposed_tool_call / sql_proposal"| T["Java Trusted Execution\nPolicy / Tool / SQL Guard / Transaction"]
+  T --> D[("Business DB / External Systems")]
+  T -->|"authorized result"| P
+  P -->|"versioned run events"| J
+  J --> U
+  P --> V[("Vector Store")]
 ```
+
+Java 是业务控制面和数据权威；Python 是智能执行面。前端不直连 Python，Python 不直接写业务库。Python 生成的工具调用、SQL、记忆和业务结果都属于 proposal，必须经 Java 校验和执行。
 
 ### 4.2 推荐分层
 
@@ -250,6 +236,8 @@ flowchart LR
 - 会话管理
 - 请求限流
 - 任务状态订阅
+- Java 创建并维护权威 `AgentRun`
+- Java 与 Python 的运行命令和事件适配
 
 #### 4.2.3 Agent 编排层
 
@@ -261,6 +249,8 @@ flowchart LR
 - 失败重试
 - 终止条件判断
 
+本层位于 Python Agent Runtime，只负责推理和编排，不负责业务授权、事务或数据库写入。
+
 #### 4.2.4 能力层
 
 - RAG 检索
@@ -271,6 +261,8 @@ flowchart LR
 - 营养分析
 - 购物清单生成
 
+能力分为两类：Python 本地智能能力和 Java 受控业务能力。凡涉及用户数据、写入、导出、外部副作用或 SQL 执行，必须由 Java Tool/SQL Gateway 完成。
+
 #### 4.2.5 数据层
 
 - 会话库
@@ -279,6 +271,8 @@ flowchart LR
 - 知识文档库
 - 向量库
 - 操作审计库
+
+PostgreSQL 业务数据、AgentRun、ToolCall 和审计由 Java 唯一写入。Python 可以拥有技术性 checkpoint，但不能把 checkpoint 当作业务状态源。
 
 ### 4.3 AI 大模型应用技术分层
 
@@ -697,8 +691,8 @@ FoodMate 的 Agent 框架不建议一开始就“全家桶式接入”。
 
 ##### 4.3.8.1 选型原则
 
-- **Java 后端优先**
-  - 你的主业务后端已经明确要用 Java，因此 Agent 的核心编排也尽量留在 Java 生态内。
+- **双运行时、单一业务权威**
+  - Java 负责业务控制面，Python 负责 Agent Runtime；两边不重复实现认证、事务和业务写入。
 
 - **先可控，再智能**
   - 先把状态机、工具调用、审计、记忆、检索、SQL 查询这些确定性能力做好，再增加复杂的多 Agent 协作。
@@ -706,17 +700,17 @@ FoodMate 的 Agent 框架不建议一开始就“全家桶式接入”。
 - **框架服务于边界，不替代边界**
   - 框架只能帮你实现编排、工具调用、记忆或手动确认，不能替你定义权限、安全、数据域和审计。
 
-- **避免多运行时分裂**
-  - 如果主后端是 Java，就不要同时把 Python、Node、低代码平台当成核心运行时，否则后续排障、部署、监控和版本管理会很碎。
+- **限制运行时数量**
+  - 第一阶段固定为 Java + Python 两个运行时，不再引入 Node 或低代码平台作为核心运行时；所有跨面调用必须版本化、可追踪和可取消。
 
 ##### 4.3.8.2 各框架的定位
 
 | 框架 / 平台 | 官方定位特征 | 对 FoodMate 的建议 |
 |---|---|---|
-| Spring AI | Java 生态里的模型抽象、工具调用、RAG、Agent 能力入口 | **主栈，当前推荐优先采用** |
-| LangChain4j | Java 生态里的 LLM / tools / agents / RAG 统一 API，适合 Spring Boot 集成 | **备选评估项，不建议和 Spring AI 同时作为主栈** |
-| LangGraph | 低层级、有状态、可持久化、支持 human-in-the-loop 的 agent 编排运行时 | **适合参考其编排思想；若未来做独立 Python agent 服务，可作为备选** |
-| OpenAI Agents SDK | 轻量 Agent runtime，强调 tools、handoffs、guardrails、structured outputs | **适合 OpenAI 生态或 Python/JS 服务，不建议作为 Java 主后端核心依赖** |
+| Spring AI | Java 生态里的模型抽象、工具调用、RAG、Agent 能力入口 | 不作为当前 Agent 主栈；只在 Java 出现独立、非 Agent 模型需求时评估 |
+| LangChain4j | Java 生态里的 LLM / tools / agents / RAG 统一 API | 不作为当前主栈，避免 Java/Python 重复实现 Agent |
+| LangGraph | 低层级、有状态、可持久化、支持 human-in-the-loop 的 Agent 编排运行时 | **Python Runtime 优先评估项**，适合复杂状态图、暂停与恢复 |
+| OpenAI Agents SDK | 轻量 Agent runtime，强调 tools、handoffs、guardrails、structured outputs | **Python Runtime 备选项**，适合较轻的 Agent 编排 |
 | AutoGen | 多 Agent 对话与协作框架，偏研究与复杂多 Agent 实验 | **适合做多 Agent 原型，不建议作为生产主干** |
 | CrewAI | 多 Agent 团队与流程编排，适合角色分工式任务 | **适合原型和业务演示，不建议作为核心编排内核** |
 | Semantic Kernel | 面向微软生态的 kernel / plugin / memory / agent 体系 | **如果你以后更偏 Azure / .NET / Microsoft 生态再重点评估** |
@@ -727,18 +721,20 @@ FoodMate 的 Agent 框架不建议一开始就“全家桶式接入”。
 
 结合你的技术约束，FoodMate 建议采用下面这套主栈：
 
-1. **后端框架**
+1. **Java 业务控制面**
    - `Java 21 + Spring Boot 3`
    - `Spring MVC` 负责 REST 接口，`SseEmitter` 负责 SSE 流式输出
    - `Spring Security` 负责鉴权和权限控制
+   - MyBatis-Plus + Flyway + PostgreSQL 负责业务持久化
 
-2. **Agent 核心**
-   - `Spring AI` 负责模型接入、工具定义、工具调用、RAG 相关能力
-   - `LangChain4j` 仅作为备选评估，不作为当前主栈
-   - 你自己的 `Agent Orchestrator` 负责状态机、路由、计划、重试、终止条件
+2. **Python Agent Runtime**
+   - Python 3.12+、FastAPI、Pydantic v2 作为服务和契约基础
+   - LangGraph 作为优先评估框架；若 MVP 编排较轻，可使用 OpenAI Agents SDK 或自研轻量状态机
+   - Router、Planner、RAG、Prompt、模型适配、Composer 和评测全部归 Python
 
 3. **工具与扩展**
-   - `Tool Calling` 作为原子能力入口
+   - Python `Tool Calling` 只生成 `proposed_tool_call`
+   - Java Tool Gateway 负责最终授权、确认、执行、幂等和审计
    - `MCP` 作为外部系统标准接入协议
    - `SQL Agent` 作为受控数据查询能力
    - `Skill` 作为高频任务能力包
@@ -749,8 +745,8 @@ FoodMate 的 Agent 框架不建议一开始就“全家桶式接入”。
    - `Code Interpreter` 和 `Browser Use` 后置，作为增强能力而不是基础依赖
 
 5. **记忆与上下文**
-   - 不依赖某个框架自带 memory 完成全部记忆逻辑
-   - 由你自己的 `Memory Manager` 统一管理短期记忆、长期记忆、会话摘要和任务状态
+   - Python 管理当前执行上下文并生成候选记忆
+   - Java 校验并持久化长期记忆、会话摘要和业务状态
 
 6. **观测与治理**
    - `OpenTelemetry + Prometheus + Grafana + Sentry`
@@ -760,17 +756,15 @@ FoodMate 的 Agent 框架不建议一开始就“全家桶式接入”。
 
 **推荐直接做的：**
 
-- Java 主栈 + Spring AI
-- 自研 Agent Orchestrator
-- 自研 Memory Manager
-- MCP 工具协议
-- SQL Agent
-- Workflow 状态机
+- Java 控制面 + Python Agent Runtime
+- 版本化 Run/Event/Tool/SQL 契约
+- Python 编排、RAG、Prompt、模型与评测
+- Java ToolPolicy、SQL Guard、业务事务与审计
+- Human-in-the-loop 与可恢复 Workflow
 
 **可以参考但不要重度绑定的：**
 
-- LangGraph 的图编排思想
-- OpenAI Agents SDK 的 handoff / guardrail / structured output 思路
+- LangGraph 与 OpenAI Agents SDK 二选一作为主编排框架，不同时重度绑定
 - Semantic Kernel 的 kernel / plugin / memory 思路
 - 另一套 Java agent library 只作为补充评估，不要同时主用两套
 
@@ -781,12 +775,11 @@ FoodMate 的 Agent 框架不建议一开始就“全家桶式接入”。
 - Dify
 - Coze
 
-原因不是它们不好，而是它们更适合“原型、实验、低代码搭建、多 Agent 演示”，而 FoodMate 现在更需要的是一个**可控、可审计、可长期演进的 Java 生产系统**。
+原因不是它们不好，而是 FoodMate 需要一个由 Java 治理业务安全、由 Python 快速演进智能能力的可控系统，而不是再引入第三种核心运行时。
 
 #### 4.3.9 模型调用服务封装
 
-业务代码不要直接调用某个模型供应商的 API。  
-推荐在模型接入和业务模块之间再加一层统一封装，命名为 `ModelService` 或 `LLM Service`。这一层的职责不是“变聪明”，而是“让调用可控、可替换、可观测、可统计成本”。
+Java 业务代码不直接调用模型供应商 API。Python Runtime 内建立统一的模型适配层，命名为 `ModelService` 或 `LLM Service`。这一层负责让模型调用可替换、可观测、可统计成本，但不能批准业务动作。模型 usage、latency、cost 和错误通过内部事件回传 Java 持久化。
 
 ##### 4.3.9.1 为什么要封装
 
@@ -800,7 +793,7 @@ FoodMate 的 Agent 框架不建议一开始就“全家桶式接入”。
 
 ```mermaid
 flowchart TD
-  A["业务模块\n客服 / 知识库 / Agent"] --> B["ModelService\n统一模型调用层"]
+  A["Python Agent 组件\nRouter / Planner / RAG / Composer"] --> B["Python ModelService\n统一模型调用层"]
   B --> C["Retry / Timeout / Circuit Breaker"]
   B --> D["ModelCallLogger\n调用日志"]
   B --> E["CostMeter\n成本统计"]
@@ -811,7 +804,7 @@ flowchart TD
 
 ##### 4.3.9.3 分层职责
 
-**1. 业务模块**
+**1. Python Agent 组件**
 
 - 只关心“我要让模型做什么”
 - 例如：总结、分类、抽取、生成、重写、检索增强问答
@@ -823,7 +816,7 @@ flowchart TD
 - 统一支持普通对话、流式对话、结构化输出、工具调用、embedding、rerank
 - 统一处理请求封装、响应归一化、重试、超时、日志、成本统计
 - 路由、鉴权、限流、配额、协议转换统一委托给模型网关
-- 如果是单体部署，ModelService 内可以内嵌轻量网关模块，但职责边界不变
+- 第一阶段 ModelService 内嵌在 Python Runtime，可包含轻量网关能力，但职责边界不变
 
 **3. Model Gateway**
 
@@ -881,7 +874,7 @@ flowchart TD
 
 ##### 4.3.9.5 ModelService 的调用原则
 
-- 业务层只依赖 `ModelService`，不直接依赖供应商 SDK
+- Python Agent 组件只依赖 `ModelService`，不直接依赖供应商 SDK
 - Prompt 模板、模型名、温度、最大 token、结构化输出格式都应可配置
 - 模型调用必须可追踪、可重放、可统计
 - 默认开启超时和降级
@@ -916,12 +909,12 @@ FoodMate 里建议把下面这些都放进 `ModelService`：
 
 #### 4.3.10 模型网关与中转层
 
-如果把 `ModelService` 看作“业务侧统一入口”，那么模型网关与中转层就是它后面的“控制与分发中枢”。  
+如果把 `ModelService` 看作“Python Agent 侧统一入口”，那么模型网关与中转层就是它后面的“控制与分发中枢”。
 这一层专门解决多模型、多供应商、多租户、多策略并存时的治理问题，核心目标不是提升模型能力本身，而是让模型调用变得**统一、稳定、安全、可切换、可审计**。本文后续凡提到模型路由、鉴权、限流、配额、成本治理，默认都归模型网关主责，不再由 `ModelService` 单独承担。
 
 ##### 4.3.10.1 这一层解决什么问题
 
-- 不同业务模块都想接模型，但不应该各自维护一套 Key、路由和限流
+- 不同 Python Agent 组件都需要模型，但不应该各自维护一套 Key、路由和限流
 - 不同租户、不同用户、不同场景需要使用不同模型和不同额度
 - 不同供应商的接口格式、流式协议、错误码、工具调用格式不一致
 - 需要统一处理密钥托管、配额控制、降级切换、审计留痕和成本统计
@@ -931,7 +924,7 @@ FoodMate 里建议把下面这些都放进 `ModelService`：
 
 | 层 | 职责 | 是否面向业务 |
 |---|---|---|
-| `ModelService` | 提供业务友好的统一调用入口 | 是 |
+| `ModelService` | 提供 Python Agent 友好的统一调用入口 | 是 |
 | 模型网关 / 中转层 | 处理路由、鉴权、限流、密钥、协议转换、审计、成本治理 | 否 |
 | Provider Adapter | 对接具体模型供应商 API | 否 |
 
@@ -945,7 +938,7 @@ FoodMate 里建议把下面这些都放进 `ModelService`：
 
 ```mermaid
 flowchart TD
-  A["业务模块\n客服 / 知识库 / Agent / 分析任务"] --> B["ModelService\n统一模型调用入口"]
+  A["Python Agent Runtime\nRouter / Planner / RAG / Composer"] --> B["ModelService\n统一模型调用入口"]
   B --> C["Model Gateway / Relay\n模型网关与中转层"]
   C --> D["Policy Engine\n路由 / 鉴权 / 限流 / 配额"]
   C --> E["Credential Vault\nKey 管理 / 秘钥隔离"]
@@ -1011,7 +1004,7 @@ flowchart TD
 
 ##### 4.3.10.6 典型调用链路
 
-1. 业务模块调用 `ModelService`
+1. Python Agent 组件调用 `ModelService`
 2. `ModelService` 进入模型网关
 3. 网关读取租户、用户、场景和策略
 4. 网关检查密钥、额度、限流和健康状态
@@ -1019,7 +1012,7 @@ flowchart TD
 6. 网关通过协议适配器转换请求
 7. 供应商返回结果
 8. 网关记录审计和成本
-9. `ModelService` 返回统一结果给业务模块
+9. `ModelService` 返回统一结果给 Python Agent 组件，并将用量事件回传 Java
 
 ##### 4.3.10.7 与 API Gateway 的区别
 
@@ -1028,14 +1021,14 @@ flowchart TD
 - `API Gateway` 负责对外入口、鉴权、路由、限流和网关层治理
 - `Model Gateway` 负责模型供应商侧治理、模型路由、成本、协议转换和 Key 管理
 
-如果系统规模较小，可以先把模型网关实现为 `ModelService` 内部模块。  
+如果系统规模较小，可以先把模型网关实现为 Python `ModelService` 内部模块。
 如果后续多租户、多模型、多业务线增加，再把它独立成专门服务。
 
 ##### 4.3.10.8 FoodMate 落地建议
 
 FoodMate 推荐这么做：
 
-- 第一阶段：模型网关作为 `ModelService` 内部模块实现
+- 第一阶段：模型网关作为 Python `ModelService` 内部模块实现
 - 第二阶段：当供应商增多、租户增多、成本压力变大时，再独立拆成服务
 - 第三阶段：支持多策略路由、热切换和成本治理
 
@@ -1045,7 +1038,7 @@ FoodMate 推荐这么做：
 
 用户提供的这张图可以作为 FoodMate 的参考架构，核心表达是：
 
-- 业务应用不直接调用具体模型供应商
+- Python Agent Runtime 不直接散落具体模型供应商调用
 - 所有请求先进入模型网关
 - 模型网关统一处理鉴权、路由、限流、日志、成本、重试
 - 最后再路由到不同供应商或本地模型
@@ -1091,16 +1084,19 @@ flowchart TD
 
 FoodMate 按这个参考架构落地时，建议遵循以下原则：
 
-- `ModelService` 负责业务友好的统一接口
+- `ModelService` 负责 Python Agent 友好的统一接口
 - 模型网关负责治理和路由
 - `Provider Adapter` 负责对接 OpenAI、Claude、Gemini、Qwen、本地模型
-- 业务模块不要直接持有供应商 Key
-- 模型网关优先做成内部模块，后续再独立拆服务
+- Java 业务模块不持有供应商 Key，Python Agent 组件也不各自持有 Key
+- 模型网关优先做成 Python Runtime 内部模块，后续再独立拆服务
+- Python 只执行模型路由并产生用量事件；用户、路由规则、模型用量和审计仍由 Java 持久化，凭据来自独立 Secret/Vault，不写入 Python 业务数据库
 
-##### 4.3.10.12 模型网关数据库设计示例
+##### 4.3.10.12 模型网关数据库设计示例（历史参考，不实施）
 
 这部分对应你给出的“用户表 / 模型配置表 / 调用日志表”参考图。  
-如果 FoodMate 采用 PostgreSQL，可以按下面的方式落库。这里的核心原则是：
+以下 SQL 只保留为早期模型平台参考，**不得直接加入 FoodMate 迁移脚本**。当前目标架构不为 Python Runtime 建独立用户库、权限库或审计库：`users`、`model_usage_logs`、`model_route_rules` 均由 Java 控制面拥有；Python 通过版本化事件提交模型用量，Java 幂等落库。供应商凭据由部署 Secret/Vault 管理，若未来需要持久化供应商配置，也必须由 Java 治理接口拥有。
+
+历史示例表达的原则是：
 
 - 用户和供应商配置分离
 - 密钥不明文存储
@@ -1109,9 +1105,9 @@ FoodMate 按这个参考架构落地时，建议遵循以下原则：
 - 主键统一使用应用层生成的 Snowflake BIGINT，不依赖 `BIGSERIAL`
 - 本节是模型网关/模型平台的历史示例，字段命名以 `FoodMate-数据库设计与接口工具清单.md` 为准；业务表主键不要使用泛化 `id`
 
-**1. 用户表 `users`**
+**1. 用户表 `users`（禁止在 Python 侧重复创建）**
 
-用于保存模型网关或模型平台的使用者信息，通常是系统用户、租户管理员或运维管理员。
+该示例已被 Java 现有用户与 RBAC 设计取代，仅用于理解旧参考图。
 
 ```sql
 CREATE TABLE users (
@@ -1842,7 +1838,7 @@ Agent 结束任务的条件应该明确：
 
 - 官方支持 BM25 稀疏检索，可直接做关键词相关性排序
 - 官方支持 dense + sparse 的 hybrid search
-- 官方提供 Java SDK，适合当前 Java 技术栈
+- 提供成熟 Python SDK，适合由 Python Runtime 承担检索执行
 - 适合把语义检索、关键词召回和重排收敛到同一套检索底座
 
 推荐检索链路：
@@ -2670,14 +2666,21 @@ prompts/
 - 任务异步执行
 - 状态持久化
 
-### 15.3 存储
+### 15.3 Python Agent Runtime
+
+- Python 3.12+ / FastAPI / Pydantic v2
+- LangGraph 优先评估，轻量场景可选 OpenAI Agents SDK 或自研状态机
+- Prompt、模型、RAG、SQL proposal、checkpoint 和评测
+- 不配置业务数据库写凭据
+
+### 15.4 存储
 
 - PostgreSQL：主业务库
 - Redis：缓存与短期状态
 - Vector DB：向量检索
 - 对象存储：文档与附件
 
-### 15.4 AI 编排
+### 15.5 AI 编排
 
 - 支持 tool calling 的模型
 - 支持结构化输出
@@ -2914,10 +2917,11 @@ RAG 只解决知识查找，不解决：
 | 层级 | 技术 |
 |---|---|
 | 前端 | React + Vite + TypeScript |
-| 后端 | Java 21 + Spring Boot 3 + Spring MVC + SseEmitter |
 | 安全 | Spring Security + JWT + Refresh Token |
-| Agent 编排 | 自研状态机 + Spring AI |
-| 模型接入 | ModelService + 模型网关/中转层 + Provider Adapter |
+| Java 控制面 | Java 21 + Spring Boot 3 + Spring MVC + SseEmitter |
+| Python Agent Runtime | Python 3.12+ + FastAPI + Pydantic v2 |
+| Agent 编排 | LangGraph 优先评估；轻量场景可选 OpenAI Agents SDK 或自研状态机 |
+| 模型接入 | Python ModelService + Provider Adapter；复杂后再拆模型网关 |
 | 检索 | Milvus + BM25 + PostgreSQL |
 | 主库 | PostgreSQL |
 | 缓存 | Redis |
@@ -2936,12 +2940,11 @@ RAG 只解决知识查找，不解决：
 - 可扩展性优先
 - 先垂直场景，再平台化
 
-### 21.3 为什么选 Java
+### 21.3 为什么选择 Java + Python
 
-- 事务、权限、审计、分层更自然
-- 适合长期维护的企业级后端
-- 与 Spring 生态兼容性强
-- 适合把 Agent 作为业务系统的一部分来治理
+- Java 适合事务、权限、审计和长期维护，是业务数据与动作的权威控制面。
+- Python 的 Agent、RAG、模型和评测生态更完整，适合快速迭代智能执行面。
+- 通过单一 Java 业务入口和版本化内部契约，获得 Python 生态收益而不形成双业务核心。
 
 ### 21.4 为什么选 RocketMQ
 
@@ -2958,12 +2961,11 @@ RAG 只解决知识查找，不解决：
 
 | 服务 | 职责 |
 |---|---|
-| `api` | 对外接口、鉴权、SSE 输出 |
-| `orchestrator` | Agent 路由、规划、执行编排 |
-| `retriever` | 知识检索、BM25 关键词召回、dense 召回、重排、引用 |
-| `tool` | 数值计算、营养查询、写入、计划生成 |
-| `worker` | 异步任务、文档切分、批量分析 |
-| `repository` | 数据访问层 |
+| Java `api/control-plane` | 对外接口、鉴权、AgentRun、SSE、事务与审计 |
+| Python `agent-runtime` | Agent 路由、规划、模型、RAG、SQL proposal、回答和评测 |
+| Java `tool/sql-gateway` | 工具策略、确认、业务执行、SQL Guard、只读执行 |
+| Java `worker` | 业务异步任务 |
+| Python `index/evaluation worker` | 文档处理、索引构建和 Agent 离线评测 |
 
 ### 22.2 Java 包结构建议
 
@@ -2973,9 +2975,9 @@ com.foodmate
   ├── application
   ├── domain
   ├── infrastructure
-  ├── orchestrator
-  ├── retriever
+  ├── agentclient
   ├── tool
+  ├── sqlaccess
   ├── worker
   ├── security
   └── shared
@@ -2985,10 +2987,10 @@ com.foodmate
 
 - Controller 只做入参、鉴权、返回
 - Service 只做业务处理
-- Orchestrator 只做多步任务编排
-- Tool 只做确定性执行
-- Retriever 只做召回与证据整理
-- Validator 只做规则校验
+- Python Orchestrator 只做多步推理和编排
+- Java Tool/SQL Gateway 只做受控执行
+- Python Retriever 只在授权范围内召回与整理证据
+- Python 做结果质量校验，Java 做安全、权限和业务规则校验
 
 ---
 
@@ -2997,14 +2999,15 @@ com.foodmate
 ### 23.1 本地开发
 
 - 前端本地启动
-- 后端 Spring Boot 本地启动
+- Java Spring Boot 与 Python Agent Runtime 分别启动
 - PostgreSQL、Redis、RocketMQ、MinIO 走 Docker Compose
 - SSE 与消息队列本地联调
 
 ### 23.2 生产部署
 
 - 前端静态资源与后端分离
-- API 与 Worker 分离
+- Java API 与 Python Runtime 独立部署、独立健康检查
+- Python Runtime 不配置业务库写凭据
 - 数据库、缓存、消息队列独立部署
 - 对象存储独立部署
 - 全链路监控与告警
@@ -3026,7 +3029,7 @@ com.foodmate
 2. 系统设计与技术方案
 3. 智能体行为与工具协议
 4. 接口与数据规范
-5. Java工程骨架与模块设计
+5. Java 业务控制面工程骨架与跨语言边界设计
 6. 数据库设计与接口工具清单
 7. 实现附录
 
@@ -3034,7 +3037,7 @@ com.foodmate
 
 - `系统设计与技术方案` 仍然是唯一总主文档
 - `接口与数据规范` 负责 API、DTO、状态与协议
-- `Java工程骨架与模块设计` 负责模块划分与工程边界
+- `Java工程骨架与模块设计` 负责 Java 控制面、跨语言契约与旧模块迁移边界
 - `数据库设计与接口工具清单` 负责表结构、工具注册与接口落地清单
 - `实现附录` 负责样例、模板与实现细节展开
 

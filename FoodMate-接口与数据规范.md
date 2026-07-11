@@ -1,6 +1,6 @@
-﻿# FoodMate 接口与数据规范
+# FoodMate 接口与数据规范
 
-版本：v1.0  
+版本：v1.1
 对应总设计：[FoodMate-系统设计与技术方案.md](./FoodMate-系统设计与技术方案.md)  
 对应产品文档：[FoodMate-产品需求文档.md](./FoodMate-产品需求文档.md)
 文档边界：本文件只定义 API、DTO、状态机、数据库模型、错误码与流式协议；架构职责、工具优先级、查询主路径和模型治理边界以总设计文档为准。
@@ -29,12 +29,11 @@
 | 层级 | 职责 |
 |---|---|
 | Web/UI | 展示、输入、状态订阅 |
-| API Gateway | 对外业务 API 入口治理，负责鉴权、限流、路由与通用网关控制 |
-| Agent Orchestrator | 路由、规划、编排 |
-| RAG Service | 检索、重排、引用 |
-| Tool Service | 确定性工具执行 |
-| Data Service | 会话、消息、日志、统计 |
-| Worker | 异步任务、长任务处理 |
+| Java Control Plane | 外部 API、鉴权/RBAC、业务事务、AgentRun、工具/SQL 执行、审计和 SSE |
+| Python Agent Runtime | 路由、规划、Prompt、模型、RAG、SQL proposal、回答和评测 |
+| Java Tool/SQL Gateway | 服务身份、策略、确认、schema、幂等、SQL Guard、确定性执行 |
+| Java Data Service | 会话、消息、业务数据、运行记录和审计的唯一权威 |
+| Worker | Java 业务异步任务与 Python 索引/评测任务分别运行 |
 
 ### 2.2 通信方式
 
@@ -43,9 +42,17 @@
 - `API Gateway` 属于业务 API 外部入口层
 - `Model Gateway` 属于模型接入治理层，不替代对外业务 API 网关
 
-- 同步接口：REST JSON
-- 流式接口：SSE 优先，必要时 WebSocket
-- 内部任务：异步队列
+- 外部同步接口：Java REST JSON
+- 外部流式接口：Java SSE；前端不直连 Python
+- Java/Python 内部接口：版本化 HTTP/JSON + 流式事件
+- 内部任务：需要可靠异步后再引入队列，MVP 不预设 Kafka
+
+### 2.3 双运行时信任边界
+
+- Java 从认证结果派生用户、租户和 scope；Python 回传的身份字段不作为授权依据。
+- Java 创建并持久化 `AgentRun`，Python 只产生执行事件和技术 checkpoint。
+- Python 不持有业务库写凭据，不直接执行 Java Tool 或 SQL。
+- 所有跨运行时消息都带 `schema_version`、`run_id`、`request_id` 和 `trace_id`；Run/Tool/SQL/Cancel 请求额外带 deadline，RunEvent 使用 `event_id/event_seq/occurred_at` 而不携带 deadline。
 
 ---
 
@@ -584,6 +591,114 @@ data: {"tool_name":"knowledge_search","status":"success"}
 - 超时中止
 - 人工介入
 
+V1 `agent_runs.status` 没有 `cancelling`。Java 先记录取消请求和审计，但在收到 Python 确认前不写入不存在的状态值；Python 停止后续模型与工具调度并返回取消确认，Java 再写入 `cancelled`。完成、失败和取消并发到达时，以 Java 首次接受的合法终态为准。未来新增 `cancelling` 必须先通过 Flyway 扩展 CHECK 约束。
+
+#### 5.3.4 Java/Python 内部运行协议
+
+Java 下发的 `RunCommand` 至少包含：
+
+```json
+{
+  "schema_version": "v1",
+  "run_id": "1912345678901234569",
+  "dispatch_id": "dsp_01",
+  "request_id": "req_01",
+  "trace_id": "trace_01",
+  "deadline_at": "2026-07-11T12:00:00Z",
+  "message": { "content": "分析我最近一周蛋白质摄入" },
+  "authorized_context": {
+    "session_id": "1912345678901234568",
+    "timezone": "Asia/Shanghai",
+    "tool_contract_version": "v1"
+  }
+}
+```
+
+Python 回传的 `RunEvent` 至少包含：
+
+```json
+{
+  "schema_version": "v1",
+  "event_id": "evt_01",
+  "event_seq": 3,
+  "run_id": "1912345678901234569",
+  "dispatch_id": "dsp_01",
+  "request_id": "req_01",
+  "trace_id": "trace_01",
+  "occurred_at": "2026-07-11T11:59:10Z",
+  "event_type": "run.planned",
+  "payload": {}
+}
+```
+
+处理规则：
+
+- `event_seq` 以 `dispatch_id` 为作用域，从 1 开始严格递增 1；重试重放必须保持原 `event_id/event_seq`。
+- Java 按 `run_id + event_id` 幂等去重；低于已接受序号的事件忽略，出现序号缺口时暂停状态推进并请求从缺口重放。
+- Python 重连后可以重放事件；Java不得重复写 ToolCall 或重复推送终态。
+- Java 校验事件后持久化，再映射为面向前端的 `run.*` SSE。
+- Runtime 超时或不可用时，Java 写明确错误码，不伪造 Agent 成功结果。
+
+服务身份规则：
+
+- 内部请求使用短期 Service JWT，`Authorization: Bearer <token>`，并携带 `X-Contract-Version`、`X-Request-Id` 和 W3C `traceparent`。
+- Java 到 Python 的 token 固定 `iss=foodmate-control-plane`、`aud=foodmate-agent-runtime`；Python 到 Java 固定相反的 issuer/audience。
+- token 有效期不超过 5 分钟，校验签名、issuer、audience、expiry 和 service scope；密钥轮换期允许新旧 key 短时并存。
+- 生产环境可叠加 mTLS，但不能用 mTLS 替代消息级契约和 scope 校验。
+
+取消命令与确认：
+
+```json
+{
+  "schema_version": "v1",
+  "run_id": "1912345678901234569",
+  "dispatch_id": "dsp_01",
+  "request_id": "req_cancel_01",
+  "trace_id": "trace_01",
+  "deadline_at": "2026-07-11T12:00:00Z",
+  "reason": "user_requested"
+}
+```
+
+Python 使用 `run.cancel_acknowledged` 事件确认取消；该事件仍遵守当前 dispatch 的 `event_seq`。确认只表示 Runtime 已停止继续调度，最终 `cancelled` 状态由 Java 写入。
+
+SQL proposal：
+
+```json
+{
+  "schema_version": "v1",
+  "run_id": "1912345678901234569",
+  "invocation_id": "sql_inv_01",
+  "request_id": "req_sql_01",
+  "trace_id": "trace_01",
+  "idempotency_key": "run-sql-01",
+  "deadline_at": "2026-07-11T12:00:00Z",
+  "catalog_version": "catalog_v3",
+  "question": "最近 7 天蛋白质摄入总量",
+  "sql": "SELECT SUM(protein) FROM food_logs WHERE meal_time >= ? LIMIT 100",
+  "parameters": ["2026-07-04T00:00:00+08:00"]
+}
+```
+
+Java 不信任 proposal 中的表、字段和过滤条件，必须重新执行 Schema 授权、AST Guard、租户/用户过滤和参数绑定。
+
+跨运行时错误统一使用：
+
+```json
+{
+  "schema_version": "v1",
+  "request_id": "req_01",
+  "trace_id": "trace_01",
+  "run_id": "1912345678901234569",
+  "error": {
+    "code": "RUNTIME_CONTRACT_INVALID",
+    "message": "event_seq gap detected",
+    "retryable": true,
+    "details": { "expected_seq": 4, "actual_seq": 6 }
+  }
+}
+```
+
 ---
 
 ### 5.4 知识库接口
@@ -640,7 +755,7 @@ Milvus 适合作为知识库主检索底座：
 
 #### MCP 数据查询接口建议
 
-说明：结构化数据查询的主路径为 `Schema Catalog -> SQL Agent -> MCP -> Readonly SQL Executor`。固定查询接口只保留高频稳定场景，不与 SQL Agent 并列为主路径。
+说明：结构化数据查询的主路径为 `Python SQL Planner -> SQL proposal -> Java Authorized Schema / SQL Guard / MCP or Readonly Executor`。固定查询接口只保留高频稳定场景，不与该主路径并列。
 
 `GET /foodmate/data-sources`
 
@@ -847,7 +962,15 @@ Milvus 适合作为知识库主检索底座：
 
 ```json
 {
+  "schema_version": "v1",
+  "invocation_id": "inv_01",
+  "run_id": "1912345678901234563",
+  "request_id": "req_tool_01",
   "tool_name": "knowledge_search",
+  "tool_version": "1.0.0",
+  "idempotency_key": "run-tool-01",
+  "trace_id": "trace_01",
+  "deadline_at": "2026-07-11T12:00:00Z",
   "input": {
     "query": "西兰花焯水多久",
     "top_k": 5,
@@ -856,17 +979,22 @@ Milvus 适合作为知识库主检索底座：
     }
   },
   "context": {
-    "session_id": "1912345678901234561",
-    "agent_run_id": "1912345678901234563",
-    "user_id": "1912345678901234001"
+    "session_id": "1912345678901234561"
   }
 }
 ```
+
+该请求只能由经过服务身份认证的 Python Runtime 发起。`user_id`、tenant、role 和 scope 由 Java 根据 `run_id` 与已认证会话派生，不能信任 Python 请求体中的同名字段。
 
 ### 6.2 工具执行响应格式
 
 ```json
 {
+  "schema_version": "v1",
+  "invocation_id": "inv_01",
+  "run_id": "1912345678901234563",
+  "request_id": "req_tool_01",
+  "trace_id": "trace_01",
   "success": true,
   "data": {
     "hits": [
@@ -896,6 +1024,11 @@ Milvus 适合作为知识库主检索底座：
 
 ```json
 {
+  "schema_version": "v1",
+  "invocation_id": "inv_01",
+  "run_id": "1912345678901234563",
+  "request_id": "req_tool_01",
+  "trace_id": "trace_01",
   "success": false,
   "error": {
     "code": "TOOL_FAILED",
@@ -909,6 +1042,11 @@ Milvus 适合作为知识库主检索底座：
 
 ```json
 {
+  "schema_version": "v1",
+  "invocation_id": "inv_01",
+  "run_id": "1912345678901234563",
+  "request_id": "req_tool_01",
+  "trace_id": "trace_01",
   "success": false,
   "error": {
     "code": "TOOL_POLICY_DENIED",
@@ -1121,31 +1259,30 @@ Milvus 适合作为知识库主检索底座：
 
 ## 13. 实现建议
 
-### 13.1 后端逻辑模块与未来服务边界
+### 13.1 双运行时边界
 
-第一阶段运行时采用模块化单体，本节的“服务”指逻辑模块和未来可拆服务边界，不要求在 B3 阶段拆成多个独立部署单元。
+Java 业务控制面保持模块化单体，Python Agent Runtime 是独立部署单元。当前 Python 工程尚未创建，旧 Java Agent 模块不得继续作为实现目标。
 
 推荐划分为：
 
-1. API 模块
-2. Agent 编排模块
-3. 检索模块
-4. 工具模块
-5. 分析模块
-6. Worker 模块
+1. Java API / Application / Domain / Persistence
+2. Java Agent Runtime Client / Event Adapter
+3. Java Tool / Policy / SQL Guard / Executor
+4. Python Agent / RAG / Model / Prompt / Evaluation
+5. Java 与 Python 各自的 Worker
 
 ### 13.2 推荐协作方式
 
-- API 层只做薄路由和鉴权
-- Agent 层负责决策和编排
-- Tool 层负责确定性执行
-- RAG 层负责召回和引用
+- Java API 层负责外部路由和鉴权
+- Python Agent 层负责决策和编排
+- Java Tool/SQL 层负责最终授权与执行
+- Python RAG 层在 Java 授权范围内负责召回和引用
 
 ---
 
-## 14. Java 落地建议
+## 14. 双运行时落地建议
 
-### 14.1 推荐后端实现栈
+### 14.1 推荐实现栈
 
 | 技术 | 选择 | 作用 |
 |---|---|---|
@@ -1155,20 +1292,24 @@ Milvus 适合作为知识库主检索底座：
 | Spring Security | 推荐 | 鉴权、授权、接口保护 |
 | Spring Validation | 推荐 | 参数校验 |
 | MyBatis-Plus + Flyway | 强烈推荐 | 数据访问层与 PostgreSQL schema 版本迁移 |
-| Spring AI | 推荐 | 模型接入、工具调用、RAG 封装 |
 | Jackson | 推荐 | JSON 序列化 |
 | Lombok | 可选 | 减少样板代码 |
+| Python 3.12+ | 推荐 | Agent Runtime 生产运行时 |
+| FastAPI + Pydantic v2 | 推荐 | 内部 HTTP、流式事件与契约校验 |
+| LangGraph | 优先评估 | 状态化编排、暂停恢复和 human-in-the-loop |
+| pytest | 强烈推荐 | Python 单元、契约和 Agent 回归测试 |
 
-### 14.2 Java 分层建议
+### 14.2 Java 控制面分层建议
 
 建议后端按以下包结构组织：
 
 - `controller`
 - `dto`
 - `service`
-- `orchestrator`
+- `agentclient`
+- `agentevent`
 - `tool`
-- `retriever`
+- `sqlaccess`
 - `validator`
 - `mapper`
 - `persistence`
@@ -1196,10 +1337,11 @@ Java 实现流式回答时，推荐：
 - 每个事件携带 `event_type`、`run_id`、`timestamp`、`payload`
 - SSE 事件名继续沿用 `run.created`、`run.routed`、`run.answer_stream`、`run.completed` 等现有 `run.*` 契约
 - 前端按事件增量渲染
+- Python 只输出内部 `RunEvent`，Java 校验、落库后再向前端发送 SSE
 
 ### 14.5 工具实现约定
 
-工具层建议定义统一接口：
+Java 工具层建议定义统一接口：
 
 ```java
 public interface AgentTool<I, O> {
@@ -1215,13 +1357,14 @@ public interface AgentTool<I, O> {
 - 权限
 - 超时
 - 重试策略
+- 执行所有者、契约版本、scope、确认策略和幂等键
 
-### 14.6 Java 版接口落地原则
+### 14.6 跨运行时接口落地原则
 
 - Controller 只负责入参、鉴权、返回
-- Service 负责业务逻辑
-- Orchestrator 负责多步编排
-- Tool 负责确定性执行
-- Retriever 负责检索
-- Validator 负责校验
-
+- Java Service 负责业务逻辑、事务和状态真值
+- Python Orchestrator 负责多步推理和编排
+- Java Tool/SQL Gateway 负责确定性执行与安全校验
+- Python Retriever 负责授权范围内的检索
+- Python 负责质量校验，Java负责权限和业务约束校验
+- 两边不共享 Java/Python 领域类，只共享版本化 JSON Schema/OpenAPI 契约
