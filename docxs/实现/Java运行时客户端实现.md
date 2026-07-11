@@ -50,13 +50,13 @@ Application 侧目标接口只暴露契约已有操作：
 
 ```java
 interface AgentRuntimeClient {
-    DispatchReceipt dispatchRun(RunCommand command);
-    CancelReceipt cancelRun(CancelCommand command);
+    void dispatchRun(RunCommand command);
+    void cancelRun(CancelCommand command);
     RuntimeHealth health();
 }
 ```
 
-`DispatchReceipt` 与 `CancelReceipt` 只表达 HTTP 接受、幂等返回和传输元数据，不成为跨运行时第九类消息。Python 的业务进度仍只能通过契约 `RunEvent` 回传。`resumeRun` 若后续保留，只能组装新的或既有 `RunCommand`，不能定义另一套 Resume envelope。
+dispatch/cancel 的 2xx 只表示同步方法正常返回，不定义临时结果类型、轮询 token 或跨运行时第九类消息。Python 的业务进度仍只能通过契约 `RunEvent` 回传。`resumeRun` 若后续保留，只能组装新的或既有 `RunCommand`，不能定义另一套 Resume envelope。
 
 ## 2. 配置键
 
@@ -125,7 +125,7 @@ Jackson 边界要求：未知顶层字段默认拒绝；ID 按字符串；时间
 
 Application 必须先持久化 AgentRun 与 V2 dispatch，再调用客户端。相同 `run_id + attempt` 固定复用 `dispatch_id`；网络重试保持 `dispatch_id/attempt/deadline_at/message/authorized_context/runtime_options/request_hash` 不变，`request_id` 可随 HTTP 尝试变化。`request_hash` 严格按契约字段集执行 RFC 8785 JCS + SHA-256，输出 `sha256:<64 lowercase hex>`。
 
-客户端不负责重新派发或选择 active dispatch。Application 在同一 Run 上创建新 attempt 前，必须先将旧 dispatch 仲裁为 `superseded` 或 `expired`，并为新 dispatch 建立唯一 active epoch。客户端只发送当前 active dispatch；收到旧 dispatch 的回调由事件接入层按 active epoch 丢弃，不能靠客户端重试把旧 attempt 重新激活。
+客户端不负责重新派发或选择 active dispatch。Application 在同一 Run 上创建新 attempt 前，必须先将旧 dispatch 仲裁为 `superseded` 或 `expired`，并为新 dispatch 建立唯一 active epoch。客户端只发送当前 active dispatch；收到旧 dispatch 的回调由事件接入层按 active epoch 审计并返回 `RUNTIME_STATE_CONFLICT`，不能靠客户端重试把旧 attempt 重新激活。
 
 | 类型 | 幂等键 | V1 摘要字段集 |
 |---|---|---|
@@ -142,7 +142,7 @@ recompute request_hash from the exact RunCommand digest field set
 for transportAttempt within configured bound:
   issue fresh request_id and Service JWT
   POST the same logical command
-  if accepted or duplicate-accepted: return receipt
+  if accepted or duplicate-accepted: return success
   if retryable transport/503 and time remains: bounded backoff
   else: map and stop
 never increment attempt inside the client
