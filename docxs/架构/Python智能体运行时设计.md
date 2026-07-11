@@ -110,6 +110,7 @@ Python 通过 Java 的内部事件入口回传 `RunEvent`，并通过 Java Tool/
 
 - 所有跨运行时 DTO 使用 Pydantic v2 `BaseModel`，`extra="forbid"`；V1 不静默接收未知字段。
 - 字段名固定为 `snake_case`，时间固定为带时区 RFC 3339 UTC，ID 在 JSON 中均为字符串。
+- 命令、事件、Proposal、Result 和 RuntimeError 按内部契约规定的字段集执行 RFC 8785 JCS + SHA-256；`request_id/trace_id` 是传输追踪字段，不进入幂等摘要。
 - `schema_version` 必须精确为受支持版本；不兼容时返回 `RUNTIME_VERSION_UNSUPPORTED`。
 - `deadline_at` 在入站校验后立即比较当前 UTC 时间，过期命令不得启动新模型、工具或 SQL 调用。
 - API 层只做认证、契约校验、deadline 和幂等入口，不承载规划或模型逻辑。
@@ -142,14 +143,14 @@ Python 维护的是单次 dispatch 的技术执行状态，Java 维护 `AgentRun
 ### 5.2 Checkpoint
 
 - checkpoint key 固定包含 `run_id`、`dispatch_id`、`attempt` 和节点名。
-- checkpoint 至少保存计划版本、已完成节点、待处理 proposal、最后已发 `event_seq`、Prompt 版本和模型调用引用。
+- checkpoint 至少保存计划版本、已完成节点、待处理 proposal、最后已发 `event_seq`、未确认事件的 `event_id/request_hash`、Prompt 版本和模型调用引用。
 - checkpoint 只能保存恢复编排所需的技术状态，不保存业务库凭据，不替代 `agent_runs`、`tool_calls`、`sql_query_audits` 或审计表。
 - 恢复前必须向 Java 对账当前终态、取消请求和已完成 invocation；不能仅凭本地 checkpoint 重放副作用。
 - checkpoint 存储实现可后选，但配置必须与业务数据源完全分离，并设置保留期、加密和清理策略。
 
 ### 5.3 事件发送
 
-每个 `dispatch_id` 的 `event_seq` 从 1 开始严格递增 1。Python 在发送前持久化或可靠记录事件标识；重试重放保持原 `event_id` 和 `event_seq`。序号只能由单一 dispatch writer 分配，多个节点并发完成时先汇入有序事件出口。
+每个 `dispatch_id` 的 `event_seq` 从 1 开始严格递增 1。Python 在发送前持久化或可靠记录事件标识和 canonical request hash；重试重放保持原 `event_id/event_seq/occurred_at/event_type/payload/request_hash`。序号只能由单一 dispatch writer 分配，多个节点并发完成时先汇入有序事件出口。
 
 ## 6. Tool、SQL 与模型调用
 
@@ -163,7 +164,9 @@ Python 只负责查询理解、授权 catalog 选择建议和只读 SQL proposal
 
 ### 6.3 Model
 
-每次逻辑模型调用生成稳定且全局唯一的 `model_call_id`；供应商重试必须保持同一 `model_call_id`。usage、latency、cost 和结果状态通过运行事件回传 Java 持久化。该规则是 V2 目标设计，不表示 V1 `model_usage_logs` 已有该列。
+每次逻辑模型调用生成稳定且全局唯一的 `model_call_id`；每次供应商 attempt 生成唯一 `provider_attempt_id`，供应商返回的单次请求标识保存为 `provider_request_id`。供应商重试保持同一 `model_call_id`，但使用新的 `provider_attempt_id/provider_request_id`。
+
+每个 attempt 结束后，Execution 通过标准 `RunEvent(event_type="run.model_usage")` 回传完整 usage、latency、cost、状态和三类模型 ID。Java 先按事件幂等，再按 `model_call_id` 写唯一逻辑调用父记录、按 `provider_attempt_id` 写 attempt 子记录并聚合父记录。RunEvent envelope 的 `request_id` 只追踪 HTTP 传输，不能作为模型用量唯一键。该规则是 V2 目标设计，不表示当前 Python 工程或 V2 表已经存在。
 
 ## 7. Prompt 版本
 
@@ -207,7 +210,7 @@ Python 只负责查询理解、授权 catalog 选择建议和只读 SQL proposal
 
 ## 10. 日志、Trace 与指标
 
-- 入口读取 `X-Request-Id` 和 W3C `traceparent`；日志统一携带 `request_id`、`trace_id`、`run_id`、`dispatch_id`、`attempt`，涉及调用时再带 `invocation_id` 或 `model_call_id`。
+- 入口读取 `X-Request-Id` 和 W3C `traceparent`；日志统一携带 `request_id`、`trace_id`、`run_id`、`dispatch_id`、`attempt`，涉及调用时再带 `invocation_id`、`model_call_id` 或 `provider_attempt_id`。
 - 日志使用结构化 JSON，禁止把完整用户输入、Prompt、工具输出和 SQL 结果默认写入 INFO。
 - Trace span 至少覆盖 Router、Planner、Execution 节点、RAG、模型、Java Tool/SQL 往返、checkpoint 和事件发送。
 - 指标至少包含运行接受/拒绝、节点耗时、模型调用、proposal、取消延迟、事件重放、序号缺口和 Java 回调失败。
@@ -226,9 +229,9 @@ Python 只负责查询理解、授权 catalog 选择建议和只读 SQL proposal
 Python 工程后续实现时至少需要：
 
 1. Pydantic 单元测试：必填字段、枚举、未知字段、UTC 时间和 deadline。
-2. 双端契约测试：八类消息 golden JSON 在 Java DTO 与 Pydantic 双向通过。
+2. 双端契约测试：八类消息 golden JSON 在 Java DTO 与 Pydantic 双向通过，并验证每类 canonical digest、稳定重放与同 ID 不同 hash 冲突。
 3. 编排测试：追问、工具拒绝、SQL 拒绝、模型失败、重试、取消和终态竞争。
-4. 事件测试：重复、乱序、缺口、断线重放和 `event_seq` 单调性。
+4. 事件测试：重复、乱序、缺口、断线重放、`event_seq` 单调性和 `run.model_usage` 多 attempt 幂等。
 5. 安全测试：Service JWT issuer/audience/scope、Prompt Injection、日志脱敏和业务库凭据 denylist。
 6. 恢复测试：checkpoint 恢复前与 Java 对账，不重复 Tool/SQL 副作用。
 7. Evaluation 回归：固定数据集、Prompt 版本、结构化输出和引用准确性。
