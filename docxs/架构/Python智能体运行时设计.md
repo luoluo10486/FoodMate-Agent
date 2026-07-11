@@ -168,6 +168,8 @@ Python 只负责查询理解、授权 catalog 选择建议和只读 SQL proposal
 
 每个 attempt 结束后，Execution 通过标准 `RunEvent(event_type="run.model_usage")` 回传完整 usage、latency、cost、状态和三类模型 ID。`status` 只允许 `success/failed/timeout/cancelled`；未知 token/cost 写 null，不伪造为 0，`latency_ms` 始终记录 attempt 实际耗时。Java 在 `provider_attempt_id` 和非空 `provider_request_id` 去重后，按 `model_call_id` 聚合：token/cost 对已知值求和，latency 取所有 attempts 耗时之和，任一 success 则最终 success，否则取最新结束 attempt 状态。RunEvent envelope 的 `request_id` 只追踪 HTTP 传输，不能作为模型用量唯一键。该规则是 V2 目标设计，不表示当前 Python 工程或 V2 表已经存在。
 
+Python 不读取 V1 `model_usage_logs` 来合成历史 `run.model_usage`，也不为 legacy 父行补造 provider attempt。历史是否可展开只由 Java/Flyway 按 V2 迁移证据规则判定；legacy expanded 子记录不参与线上父聚合。
+
 ## 7. Prompt 版本
 
 - Prompt 文件不得写死在 Python 常量或放入 Java 工程。
