@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button, Card, Input, Skeleton, Tag } from '@arco-design/web-react';
 import type { UiComponentState } from '../../types/ui';
 import styles from './ClarificationCard.module.css';
@@ -32,21 +32,26 @@ export function ClarificationCard({
   onSubmit,
   submitLabel = '继续生成计划',
 }: ClarificationCardProps) {
-  const [values, setValues] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (!fields.length) {
-      setValues({});
-      return;
-    }
-
-    setValues(
-      fields.reduce<Record<string, string>>((current, field) => {
+  // Derive default values from fields; resets when fields identity changes
+  const defaultValues = useMemo(() => {
+    if (!fields.length) return {};
+    return fields.reduce<Record<string, string>>(
+      (current, field) => {
         current[field.key] = field.defaultValue ?? '';
         return current;
-      }, {}),
+      },
+      {} as Record<string, string>,
     );
   }, [fields]);
+  const [values, setValues] = useState(defaultValues);
+
+  // Sync internal state when fields definition changes
+  const fieldsKey = fields.map((f) => f.key).join(',');
+  const [prevFieldsKey, setPrevFieldsKey] = useState(fieldsKey);
+  if (fieldsKey !== prevFieldsKey) {
+    setPrevFieldsKey(fieldsKey);
+    setValues(defaultValues);
+  }
 
   if (state === 'loading') {
     return (

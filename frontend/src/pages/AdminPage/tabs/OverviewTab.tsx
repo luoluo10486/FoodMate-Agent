@@ -3,16 +3,8 @@ import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../constants/routes';
 import { IconFile, IconThunderbolt, IconTool } from '@arco-design/web-react/icon';
 import styles from '../AdminPage.module.css';
-import {
-  AdminActionsCard,
-  AdminFilters,
-  GovernanceResourceCard,
-  OperationAuditCard,
-  adminAuditRows,
-  adminOverviewMetrics,
-  auditColumns,
-  canManage,
-} from './AdminShared';
+import { AdminActionsCard, AdminFilters, GovernanceResourceCard, OperationAuditCard } from './AdminComponents';
+import { adminAuditRows, adminOverviewMetrics, auditColumns, canManage } from './AdminShared';
 import type { AdminActionPayload } from './types';
 
 export function OverviewSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {

@@ -1,4 +1,4 @@
-import { Button, Input } from '@arco-design/web-react';
+import { Button, Input, Message } from '@arco-design/web-react';
 import { IconAttachment, IconSend, IconStop } from '@arco-design/web-react/icon';
 import styles from './Composer.module.css';
 
@@ -41,15 +41,27 @@ export function Composer({
   return (
     <footer className={styles.composer}>
       <div className={styles.statusRow}>
-        <button className={styles.toolPill}>
+        <button
+          className={styles.toolPill}
+          onClick={() => Message.info('工具选择和切换在真实接入后可用，当前为 mock 阶段。')}
+        >
           Tools（{toolsUsed}/{toolsTotal}）⌄
         </button>
-        <button className={styles.agentPill}>
+        <button
+          className={styles.agentPill}
+          onClick={() => Message.info('Agent 选择和切换在真实接入后可用，当前为 mock 阶段。')}
+        >
           Agents（{agentsUsed}/{agentsTotal}）⌄
         </button>
       </div>
       <div className={styles.inputRow}>
-        <Button aria-label="上传附件" shape="circle" disabled={disabled} icon={<IconAttachment />} />
+        <Button
+          aria-label="上传附件"
+          shape="circle"
+          disabled={disabled}
+          icon={<IconAttachment />}
+          onClick={() => Message.info('附件上传在真实接入 MinIO 后可用，当前为 mock 阶段。')}
+        />
         <Input.TextArea
           autoSize={false}
           className={styles.input}

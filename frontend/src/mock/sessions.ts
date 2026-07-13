@@ -1,5 +1,4 @@
-import type { AgentRunView } from '../types/agent';
-import type { Message, SessionSummary } from '../types/session';
+import type { SessionSummary } from '../types/session';
 import type { TaskCardData } from '../types/ui';
 
 export const mockSessions: SessionSummary[] = [

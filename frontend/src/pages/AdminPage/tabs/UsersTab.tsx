@@ -2,10 +2,8 @@ import { Button, Card, Table, Tag } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
 import { useState } from 'react';
 import styles from '../AdminPage.module.css';
+import { AdminFilters, AdminOnlyNotice, OperationAuditCard } from './AdminComponents';
 import {
-  AdminFilters,
-  AdminOnlyNotice,
-  OperationAuditCard,
   type UserRow,
   adminUserRows,
   adminUserSessionRows,

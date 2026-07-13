@@ -19,5 +19,5 @@
   --fm-radius-sm: 8px;
   --fm-shadow: 0 18px 50px rgba(48, 55, 40, 0.12);
   --fm-shadow-soft: 0 10px 30px rgba(48, 55, 40, 0.08);
-  --fm-font: Aptos, "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --fm-font: Aptos, 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }

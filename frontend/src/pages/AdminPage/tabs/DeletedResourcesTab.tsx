@@ -1,14 +1,8 @@
 import { Button, Card, Table } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
 import styles from '../AdminPage.module.css';
-import {
-  AdminFilters,
-  AdminOnlyNotice,
-  OperationAuditCard,
-  type DeletedRow,
-  adminDeletedRows,
-  canManage,
-} from './AdminShared';
+import { AdminFilters, AdminOnlyNotice, OperationAuditCard } from './AdminComponents';
+import { type DeletedRow, adminDeletedRows, canManage } from './AdminShared';
 import type { AdminActionPayload } from './types';
 
 export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
