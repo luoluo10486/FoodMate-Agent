@@ -4,7 +4,6 @@ import type { Message } from '../types/session';
 import { ROUTES } from '../constants/routes';
 import {
   type AgentCard,
-  type AgentMode,
   type MockRunEvent,
   type ReplayStep,
   baseRun,

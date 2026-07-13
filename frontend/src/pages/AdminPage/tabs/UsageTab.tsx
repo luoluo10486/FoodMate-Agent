@@ -1,6 +1,7 @@
 import { Card, Table, Tag } from '@arco-design/web-react';
 import styles from '../AdminPage.module.css';
-import { AdminFilters, MiniStat, adminModelUsageRows, modelUsageColumns } from './AdminShared';
+import { AdminFilters, MiniStat } from './AdminComponents';
+import { adminModelUsageRows, modelUsageColumns } from './AdminShared';
 
 export function UsageSection() {
   return (

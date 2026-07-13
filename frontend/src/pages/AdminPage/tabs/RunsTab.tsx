@@ -1,8 +1,7 @@
 import { Card, Table, Tabs, Tag } from '@arco-design/web-react';
 import styles from '../AdminPage.module.css';
+import { AdminFilters, MiniStat } from './AdminComponents';
 import {
-  AdminFilters,
-  MiniStat,
   adminAuditRows,
   adminSqlAuditRows,
   adminToolCallRows,

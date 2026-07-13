@@ -1,4 +1,4 @@
-﻿import { Button, Dropdown, Input, Menu, Tag, Tooltip } from '@arco-design/web-react';
+﻿import { Button, Dropdown, Input, Menu, Message, Tag, Tooltip } from '@arco-design/web-react';
 import { IconBook, IconMessage, IconMenu, IconPlus, IconSearch, IconUser } from '@arco-design/web-react/icon';
 import { Link, NavLink } from 'react-router-dom';
 import { ROUTES, buildChatPath } from '../../constants/routes';
@@ -35,7 +35,9 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
           </Link>
         </Menu.Item>
       ) : null}
-      <Menu.Item key="expired">模拟登录过期</Menu.Item>
+      <Menu.Item key="expired" onClick={() => Message.info('登录过期模拟在真实接入 JWT/Refresh 后可用。')}>
+        模拟登录过期
+      </Menu.Item>
       <Menu.Item key="logout">
         <Link className={styles.menuLink} to={ROUTES.LOGIN}>
           退出登录占位
@@ -55,7 +57,13 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
           <IconPlus />
           <span>新建 Agent 会话</span>
         </Link>
-        <Input className={styles.search} prefix={<IconSearch />} placeholder="搜索会话" allowClear />
+        <Input
+          className={styles.search}
+          prefix={<IconSearch />}
+          placeholder="搜索会话"
+          allowClear
+          onChange={() => Message.info('会话搜索在真实接入后可用，当前为 mock 阶段。')}
+        />
         <SidebarSessionList sessions={getSessions()} />
         <div className={styles.accountDock}>
           <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
@@ -78,7 +86,11 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
       <main className={styles.main}>
         <header className={styles.topbar}>
           <Tooltip content="折叠导航">
-            <Button shape="circle" icon={<IconMenu />} />
+            <Button
+              shape="circle"
+              icon={<IconMenu />}
+              onClick={() => Message.info('导航折叠在真实接入后可用，当前为 mock 阶段。')}
+            />
           </Tooltip>
           {moduleLabel ? <div className={styles.moduleLabel}>{moduleLabel}</div> : null}
           <nav className={styles.nav}>

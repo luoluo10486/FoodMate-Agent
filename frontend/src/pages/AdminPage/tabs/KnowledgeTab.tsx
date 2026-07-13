@@ -1,16 +1,10 @@
-import { Button, Card, Input, Modal, Table, Tag } from '@arco-design/web-react';
+import { Button, Card, Input, Modal, Table } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
 import { useState } from 'react';
 import { Message } from '@arco-design/web-react';
 import styles from '../AdminPage.module.css';
-import {
-  AdminFilters,
-  OperationAuditCard,
-  type KnowledgeRow,
-  adminKnowledgeRows,
-  canManage,
-  statusTag,
-} from './AdminShared';
+import { AdminFilters, OperationAuditCard } from './AdminComponents';
+import { type KnowledgeRow, adminKnowledgeRows, canManage, statusTag } from './AdminShared';
 import type { AdminActionPayload } from './types';
 
 export function KnowledgeSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {

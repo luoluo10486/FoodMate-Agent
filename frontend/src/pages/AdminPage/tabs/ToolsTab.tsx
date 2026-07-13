@@ -2,15 +2,8 @@ import { Button, Card, Table, Tag } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
 import { useState } from 'react';
 import styles from '../AdminPage.module.css';
-import {
-  AdminFilters,
-  OperationAuditCard,
-  type ToolRow,
-  adminToolRows,
-  canManage,
-  riskTag,
-  statusTag,
-} from './AdminShared';
+import { AdminFilters, OperationAuditCard } from './AdminComponents';
+import { type ToolRow, adminToolRows, canManage, riskTag, statusTag } from './AdminShared';
 import type { AdminActionPayload } from './types';
 
 export function ToolsSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
