@@ -12,7 +12,7 @@ def post(base_url, path, payload, token=""):
     request = urllib.request.Request(
         base_url.rstrip("/") + path,
         data=data,
-        headers={"Content-Type": "application/json", "X-Runtime-Token": token},
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + token},
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=10) as response:
@@ -22,10 +22,10 @@ def post(base_url, path, payload, token=""):
 def run_once(base_url, run_id, token):
     deadline = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()
     command = {
-        "dispatchId": "stub-dispatch-" + run_id,
-        "runId": run_id,
+        "dispatch_id": "stub-dispatch-" + run_id,
+        "run_id": run_id,
         "input": "local stub run",
-        "deadlineAt": deadline,
+        "deadline_at": deadline,
         "attempt": 1,
     }
     post(base_url, "/internal/runtime/runs:dispatch", command, token)
@@ -39,12 +39,12 @@ def run_once(base_url, run_id, token):
             base_url,
             "/internal/runtime/runs:events",
             {
-                "eventId": event_id,
-                "runId": run_id,
-                "eventSeq": sequence,
+                "event_id": event_id,
+                "run_id": run_id,
+                "event_seq": sequence,
                 "state": state,
                 "payload": payload,
-                "occurredAt": datetime.now(timezone.utc).isoformat(),
+                "occurred_at": datetime.now(timezone.utc).isoformat(),
             },
             token,
         )

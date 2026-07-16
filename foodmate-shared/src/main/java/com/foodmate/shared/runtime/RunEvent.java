@@ -2,8 +2,11 @@ package com.foodmate.shared.runtime;
 
 import java.time.Instant;
 import java.util.Objects;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
-public record RunEvent(String eventId, String runId, long eventSeq, State state, String payload, Instant occurredAt) {
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public record RunEvent(String eventId, String runId, long eventSeq, State state, Object payload, Instant occurredAt) {
     public enum State { DISPATCHED, RUNNING, SUCCEEDED, FAILED, CANCELED }
     public RunEvent {
         require(eventId, "eventId"); require(runId, "runId");

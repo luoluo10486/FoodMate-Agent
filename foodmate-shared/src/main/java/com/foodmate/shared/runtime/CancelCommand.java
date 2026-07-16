@@ -2,7 +2,10 @@ package com.foodmate.shared.runtime;
 
 import java.time.Instant;
 import java.util.Objects;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record CancelCommand(String cancelId, String runId, String reason, Instant deadlineAt) {
     public CancelCommand {
         require(cancelId, "cancelId"); require(runId, "runId");

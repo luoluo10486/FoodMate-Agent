@@ -2,7 +2,10 @@ package com.foodmate.shared.runtime;
 
 import java.time.Instant;
 import java.util.Objects;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RunCommand(String dispatchId, String runId, String input, Instant deadlineAt, int attempt) {
     public RunCommand {
         require(dispatchId, "dispatchId");

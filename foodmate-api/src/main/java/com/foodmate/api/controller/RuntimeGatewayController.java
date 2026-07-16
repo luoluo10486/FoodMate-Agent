@@ -21,24 +21,26 @@ public class RuntimeGatewayController {
     public RuntimeGatewayController(RuntimeGatewayService service, @Value("${foodmate.runtime.auth-token:}") String authToken) { this.service = service; this.authToken = authToken; }
 
     @PostMapping("/internal/runtime/runs:dispatch")
-    public ApiResponse<RuntimeGatewayService.CommandResult> dispatch(@RequestHeader(value = "X-Runtime-Token", required = false) String token, @Valid @RequestBody RunCommand command) {
-        authenticate(token);
+    public ApiResponse<RuntimeGatewayService.CommandResult> dispatch(@RequestHeader(value = "X-Runtime-Token", required = false) String token, @RequestHeader(value = "Authorization", required = false) String authorization, @Valid @RequestBody RunCommand command) {
+        authenticate(token, authorization);
         return ApiResponse.success(service.dispatch(command), TraceContextHolder.currentOrNew());
     }
 
     @PostMapping("/internal/runtime/runs:cancel")
-    public ApiResponse<RuntimeGatewayService.CommandResult> cancel(@RequestHeader(value = "X-Runtime-Token", required = false) String token, @Valid @RequestBody CancelCommand command) {
-        authenticate(token);
+    public ApiResponse<RuntimeGatewayService.CommandResult> cancel(@RequestHeader(value = "X-Runtime-Token", required = false) String token, @RequestHeader(value = "Authorization", required = false) String authorization, @Valid @RequestBody CancelCommand command) {
+        authenticate(token, authorization);
         return ApiResponse.success(service.cancel(command), TraceContextHolder.currentOrNew());
     }
 
     @PostMapping("/internal/runtime/runs:events")
-    public ApiResponse<RuntimeGatewayService.EventResult> event(@RequestHeader(value = "X-Runtime-Token", required = false) String token, @Valid @RequestBody RunEvent event) {
-        authenticate(token);
+    public ApiResponse<RuntimeGatewayService.EventResult> event(@RequestHeader(value = "X-Runtime-Token", required = false) String token, @RequestHeader(value = "Authorization", required = false) String authorization, @Valid @RequestBody RunEvent event) {
+        authenticate(token, authorization);
         return ApiResponse.success(service.event(event), TraceContextHolder.currentOrNew());
     }
 
-    private void authenticate(String token) {
-        if (!authToken.isBlank() && !authToken.equals(token)) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_AUTH_INVALID", "invalid runtime token");
+    private void authenticate(String token, String authorization) {
+        String supplied = token;
+        if ((supplied == null || supplied.isBlank()) && authorization != null && authorization.startsWith("Bearer ")) supplied = authorization.substring(7);
+        if (!authToken.isBlank() && !authToken.equals(supplied)) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_AUTH_INVALID", "invalid runtime token");
     }
 }

@@ -23,8 +23,8 @@ class RuntimeGatewayControllerTest {
     @Autowired private MockMvc mockMvc;
 
     private static final String DISPATCH = "{" +
-            "\"dispatchId\":\"d-http\",\"runId\":\"r-http\",\"input\":\"hello\"," +
-            "\"deadlineAt\":\"2099-01-01T00:00:00Z\",\"attempt\":1}";
+            "\"dispatch_id\":\"d-http\",\"run_id\":\"r-http\",\"input\":\"hello\"," +
+            "\"deadline_at\":\"2099-01-01T00:00:00Z\",\"attempt\":1}";
 
     @Test void dispatchRetryIsDuplicateAndChangedBodyConflicts() throws Exception {
         mockMvc.perform(post("/internal/runtime/runs:dispatch").contentType(MediaType.APPLICATION_JSON).content(DISPATCH))
@@ -45,9 +45,9 @@ class RuntimeGatewayControllerTest {
     }
 
     private void postEvent(String id, int seq, String state, String payload, boolean conflict) throws Exception {
-        String json = "{\"eventId\":\"" + id + "\",\"runId\":\"r-http\",\"eventSeq\":" + seq
+        String json = "{\"event_id\":\"" + id + "\",\"run_id\":\"r-http\",\"event_seq\":" + seq
                 + ",\"state\":\"" + state + "\",\"payload\":" + (payload == null ? "null" : "\"" + payload + "\"")
-                + ",\"occurredAt\":\"2099-01-01T00:00:00Z\"}";
+                + ",\"occurred_at\":\"2099-01-01T00:00:00Z\"}";
         var result = mockMvc.perform(post("/internal/runtime/runs:events").contentType(MediaType.APPLICATION_JSON).content(json));
         if (conflict) result.andExpect(status().isConflict()).andExpect(jsonPath("$.error.code", is("CONFLICT")));
         else result.andExpect(status().isOk()).andExpect(jsonPath("$.success", is(true)));

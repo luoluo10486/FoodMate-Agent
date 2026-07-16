@@ -13,6 +13,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.dao.DuplicateKeyException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class RuntimeGatewayService {
@@ -21,6 +23,7 @@ public class RuntimeGatewayService {
     private final Map<String, Status> statuses = new HashMap<>();
     private final EventInbox inbox = new EventInbox();
     private final JdbcTemplate jdbc;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public RuntimeGatewayService() { this.jdbc = null; }
 
@@ -112,7 +115,7 @@ public class RuntimeGatewayService {
                     || (previous == RunEvent.State.RUNNING && !terminal(event.state()))) throw new RuntimeException("RUNTIME_STATE_CONFLICT", "invalid state transition");
         }
         jdbc.update("INSERT INTO runtime_event_inbox(run_id,event_id,event_seq,event_fingerprint,state,payload_json,occurred_at) VALUES (?,?,?,?,?,CAST(? AS jsonb),?)",
-                event.runId(), event.eventId(), event.eventSeq(), fingerprint, event.state().name(), event.payload() == null ? "null" : event.payload(), event.occurredAt());
+                event.runId(), event.eventId(), event.eventSeq(), fingerprint, event.state().name(), payloadJson(event.payload()), event.occurredAt());
         jdbc.update("UPDATE runtime_runs SET status=?,updated_at=CURRENT_TIMESTAMP WHERE run_id=?", event.state().name(), event.runId());
         return new EventResult(event.eventId(), event.runId(), toStatus(event.state()), false);
     }
@@ -125,6 +128,11 @@ public class RuntimeGatewayService {
     private Status statusJdbc(String runId) {
         var values = jdbc.query("SELECT status FROM runtime_runs WHERE run_id=?", (rs, row) -> Status.valueOf(rs.getString(1)), runId);
         return values.isEmpty() ? null : values.getFirst();
+    }
+
+    private String payloadJson(Object payload) {
+        try { return objectMapper.writeValueAsString(payload); }
+        catch (JsonProcessingException exception) { throw new RuntimeException("RUNTIME_CONTRACT_INVALID", "event payload is not valid JSON"); }
     }
 
     private static boolean terminal(RunEvent.State state) { return state == RunEvent.State.SUCCEEDED || state == RunEvent.State.FAILED || state == RunEvent.State.CANCELED; }

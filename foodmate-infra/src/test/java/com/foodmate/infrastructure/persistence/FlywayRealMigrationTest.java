@@ -123,7 +123,8 @@ class FlywayRealMigrationTest {
             "data_sources", "schema_catalogs", "sql_query_audits",
             "tool_registries", "tool_schema_versions",
             "model_usage_logs", "model_route_rules",
-            "operation_audits"
+            "operation_audits",
+            "runtime_runs", "runtime_dispatches", "runtime_cancels", "runtime_event_inbox"
     );
 
     // ── Query helpers ───────────────────────────────────────────────────
