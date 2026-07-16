@@ -26,27 +26,7 @@
     </dependency>
     <dependency>
       <groupId>com.foodmate</groupId>
-      <artifactId>foodmate-orchestrator</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.foodmate</groupId>
-      <artifactId>foodmate-rag</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.foodmate</groupId>
       <artifactId>foodmate-tool</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.foodmate</groupId>
-      <artifactId>foodmate-sql-agent</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.foodmate</groupId>
-      <artifactId>foodmate-model</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
