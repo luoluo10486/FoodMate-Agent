@@ -12,6 +12,16 @@ import org.junit.jupiter.api.Test;
  * 校验首版 Flyway 迁移脚本的表结构、索引和数据库注释。
  */
 class FlywayMigrationScriptTest {
+    @Test
+    void runtimeMigrationDefinesDurableIdempotencyAndInboxTables() throws IOException {
+        String sql = Files.readString(Path.of("src", "main", "resources", "db", "migration", "V2__runtime_inbox.sql"));
+        assertTrue(sql.contains("CREATE TABLE runtime_runs"));
+        assertTrue(sql.contains("CREATE TABLE runtime_dispatches"));
+        assertTrue(sql.contains("CREATE TABLE runtime_cancels"));
+        assertTrue(sql.contains("CREATE TABLE runtime_event_inbox"));
+        assertTrue(sql.contains("PRIMARY KEY (run_id, event_id)"));
+        assertTrue(sql.contains("UNIQUE (run_id, event_seq)"));
+    }
     private static final Path INIT_SCHEMA = Path.of(
             "src",
             "main",

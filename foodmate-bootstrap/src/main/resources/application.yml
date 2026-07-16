@@ -23,6 +23,7 @@ management:
 foodmate:
   runtime:
     stub-enabled: false
+    auth-token: ${RUNTIME_AUTH_TOKEN:}
   model:
     default-chat-model: qwen-plus
     default-embed-model: text-embedding-v4
@@ -62,4 +63,3 @@ mybatis-plus:
       logic-not-delete-value: false
   configuration:
     map-underscore-to-camel-case: true
-
