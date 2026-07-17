@@ -15,21 +15,27 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.dao.DuplicateKeyException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.foodmate.gateway.GatewayClient;
 
 @Service
 public class RuntimeGatewayService {
     private final Map<String, String> dispatches = new HashMap<>();
     private final Map<String, String> cancels = new HashMap<>();
     private final Map<String, Status> statuses = new HashMap<>();
+    private final Map<String, java.util.List<RunEvent>> eventHistory = new HashMap<>();
     private final EventInbox inbox = new EventInbox();
     private final JdbcTemplate jdbc;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final GatewayClient gatewayClient;
 
-    public RuntimeGatewayService() { this.jdbc = null; }
+    public RuntimeGatewayService() { this.jdbc = null; this.gatewayClient = null; }
 
     @Autowired
-    public RuntimeGatewayService(ObjectProvider<JdbcTemplate> jdbcProvider) {
+    public RuntimeGatewayService(ObjectProvider<JdbcTemplate> jdbcProvider, ObjectProvider<GatewayClient> gatewayProvider) {
         this.jdbc = jdbcProvider.getIfAvailable();
+        this.gatewayClient = gatewayProvider.getIfAvailable();
     }
 
     public synchronized CommandResult dispatch(RunCommand command) {
@@ -40,7 +46,9 @@ public class RuntimeGatewayService {
         if (previous != null && !previous.equals(fingerprint)) throw new IdempotencyConflict("RUNTIME_DISPATCH_IDEMPOTENCY_CONFLICT");
         if (previous != null) return new CommandResult(command.dispatchId(), command.runId(), statuses.getOrDefault(command.runId(), Status.DISPATCHED), true);
         statuses.putIfAbsent(command.runId(), Status.DISPATCHED);
-        return new CommandResult(command.dispatchId(), command.runId(), Status.DISPATCHED, false);
+        var result = new CommandResult(command.dispatchId(), command.runId(), Status.DISPATCHED, false);
+        if (gatewayClient != null) gatewayClient.dispatch(command);
+        return result;
     }
 
     public synchronized CommandResult cancel(CancelCommand command) {
@@ -59,8 +67,24 @@ public class RuntimeGatewayService {
         if (jdbc != null) return eventJdbc(event);
         if (!statuses.containsKey(event.runId())) throw new IllegalArgumentException("runId does not exist");
         EventInbox.Result result = inbox.accept(event);
-        if (result == EventInbox.Result.ACCEPTED) statuses.put(event.runId(), toStatus(event.state()));
+        if (result == EventInbox.Result.ACCEPTED) {
+            statuses.put(event.runId(), toStatus(event.state()));
+            eventHistory.computeIfAbsent(event.runId(), ignored -> new java.util.ArrayList<>()).add(event);
+        }
         return new EventResult(event.eventId(), event.runId(), statuses.get(event.runId()), result == EventInbox.Result.DUPLICATE);
+    }
+
+    public synchronized java.util.List<RunEvent> events(String runId) {
+        if (jdbc == null) return java.util.List.copyOf(eventHistory.getOrDefault(runId, java.util.List.of()));
+        if (statusJdbc(runId) == null) throw new IllegalArgumentException("runId does not exist");
+        return jdbc.query("SELECT event_id,event_seq,state,payload_json,occurred_at FROM runtime_event_inbox WHERE run_id=? ORDER BY event_seq",
+                (rs, row) -> new RunEvent(rs.getString(1), runId, rs.getLong(2), RunEvent.State.valueOf(rs.getString(3)), readPayload(rs.getString(4)), rs.getTimestamp(5).toInstant()), runId);
+    }
+
+    public synchronized StatusResult status(String runId) {
+        Status status = jdbc == null ? statuses.get(runId) : statusJdbc(runId);
+        if (status == null) throw new IllegalArgumentException("runId does not exist");
+        return new StatusResult(runId, status);
     }
 
     private CommandResult dispatchJdbc(RunCommand command, String fingerprint) {
@@ -135,6 +159,11 @@ public class RuntimeGatewayService {
         catch (JsonProcessingException exception) { throw new RuntimeException("RUNTIME_CONTRACT_INVALID", "event payload is not valid JSON"); }
     }
 
+    private Object readPayload(String payload) {
+        try { return objectMapper.readTree(payload); }
+        catch (JsonProcessingException exception) { return payload; }
+    }
+
     private static boolean terminal(RunEvent.State state) { return state == RunEvent.State.SUCCEEDED || state == RunEvent.State.FAILED || state == RunEvent.State.CANCELED; }
 
     private static Status toStatus(RunEvent.State state) {
@@ -144,5 +173,7 @@ public class RuntimeGatewayService {
     public enum Status { DISPATCHED, RUNNING, SUCCEEDED, FAILED, CANCELED }
     public record CommandResult(String commandId, String runId, Status status, boolean duplicate) {}
     public record EventResult(String eventId, String runId, Status status, boolean duplicate) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record StatusResult(String runId, Status status) {}
     public static final class IdempotencyConflict extends RuntimeException { public IdempotencyConflict(String message) { super(message, message); } }
 }

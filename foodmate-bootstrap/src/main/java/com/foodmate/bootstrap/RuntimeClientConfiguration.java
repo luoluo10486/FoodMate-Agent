@@ -1,0 +1,21 @@
+package com.foodmate.bootstrap;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.gateway.GatewayClient;
+import com.foodmate.gateway.HttpGatewayClient;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ConditionalOnProperty(name = "foodmate.runtime.agent-base-url")
+public class RuntimeClientConfiguration {
+    @Bean
+    GatewayClient gatewayClient(@Value("${foodmate.runtime.agent-base-url}") URI baseUrl, ObjectMapper objectMapper) {
+        return new HttpGatewayClient(baseUrl, Duration.ofSeconds(10), HttpClient.newHttpClient(), objectMapper);
+    }
+}
