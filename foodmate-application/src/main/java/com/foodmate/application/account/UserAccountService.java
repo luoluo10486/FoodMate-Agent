@@ -1,0 +1,235 @@
+package com.foodmate.application.account;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.foodmate.shared.id.IdGenerator;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.KeySpec;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import javax.crypto.Mac;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+
+/** P1-1 account, session and message use cases. JDBC is used when a datasource exists; local-stub uses memory. */
+@Service
+public class UserAccountService {
+    private static final int PASSWORD_ITERATIONS = 120_000;
+    private static final long ACCESS_TOKEN_SECONDS = 900;
+    private static final long REFRESH_TOKEN_SECONDS = 2_592_000;
+
+    private final JdbcTemplate jdbc;
+    private final IdGenerator ids;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SecureRandom random = new SecureRandom();
+    private final Map<Long, UserRecord> users = new HashMap<>();
+    private final Map<String, RefreshRecord> refreshTokens = new HashMap<>();
+    private final Map<Long, ProfileRecord> profiles = new HashMap<>();
+    private final Map<Long, SessionRecord> sessions = new HashMap<>();
+    private final Map<Long, List<MessageRecord>> messages = new HashMap<>();
+    private final String tokenSecret;
+
+    public UserAccountService(
+            ObjectProvider<JdbcTemplate> jdbcProvider,
+            ObjectProvider<IdGenerator> idProvider,
+            org.springframework.core.env.Environment environment) {
+        this.jdbc = jdbcProvider.getIfAvailable();
+        this.ids = Objects.requireNonNull(idProvider.getIfAvailable(), "IdGenerator is required");
+        this.tokenSecret = environment.getProperty("foodmate.auth.token-secret", "local-development-secret-change-me");
+    }
+
+    public synchronized AuthResult register(String username, String email, String password, String nickname) {
+        requireText(username, "username");
+        requireText(email, "email");
+        validatePassword(password);
+        if (jdbc != null) {
+            if (exists("SELECT 1 FROM users WHERE (username=? OR email=?) AND is_deleted=FALSE", username, email)) {
+                throw conflict("username or email already exists");
+            }
+            long userId = ids.nextId();
+            jdbc.update("INSERT INTO users(user_id,user_no,username,email,password_hash,nickname) VALUES (?,?,?,?,?,?)",
+                    userId, "U" + userId, username, email, hashPassword(password), nickname);
+            jdbc.update("INSERT INTO user_profiles(profile_id,user_id,display_name) VALUES (?,?,?)", ids.nextId(), userId, nickname);
+            return issue(userId, username, "user");
+        }
+        if (users.values().stream().anyMatch(user -> user.username().equalsIgnoreCase(username) || user.email().equalsIgnoreCase(email))) {
+            throw conflict("username or email already exists");
+        }
+        long userId = ids.nextId();
+        users.put(userId, new UserRecord(userId, username, email, hashPassword(password), nickname, "user", "active"));
+        profiles.put(userId, new ProfileRecord(userId, nickname, null, null, null, null, null, null, null, null, "[]", "[]", "{}"));
+        return issue(userId, username, "user");
+    }
+
+    public synchronized AuthResult login(String usernameOrEmail, String password) {
+        requireText(usernameOrEmail, "username");
+        UserRecord user = findUser(usernameOrEmail).orElseThrow(() -> invalidCredentials());
+        if ("disabled".equals(user.status())) throw new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_DISABLED);
+        if ("locked".equals(user.status())) throw new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_LOCKED);
+        if (!verifyPassword(password, user.passwordHash())) throw invalidCredentials();
+        if (jdbc != null) jdbc.update("UPDATE users SET last_login_at=CURRENT_TIMESTAMP,login_failed_count=0 WHERE user_id=?", user.userId());
+        return issue(user.userId(), user.username(), user.role());
+    }
+
+    public synchronized AuthResult refresh(String refreshToken) {
+        String hash = sha256(refreshToken);
+        RefreshRecord record = jdbc == null ? refreshTokens.get(hash) : findRefresh(hash);
+        if (record == null || record.revokedAt() != null || record.expiresAt().isBefore(Instant.now())) {
+            throw new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.AUTH_REFRESH_TOKEN_INVALID);
+        }
+        revokeRefresh(hash);
+        UserRecord user = getUser(record.userId()).orElseThrow(() -> invalidCredentials());
+        return issue(user.userId(), user.username(), user.role());
+    }
+
+    public synchronized void logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) revokeRefresh(sha256(refreshToken));
+    }
+
+    public UserRecord requireUser(String accessToken) {
+        TokenClaims claims = parseAccessToken(accessToken);
+        return getUser(claims.userId()).orElseThrow(() -> invalidCredentials());
+    }
+
+    public synchronized ProfileRecord profile(long userId) {
+        if (jdbc == null) return profiles.getOrDefault(userId, new ProfileRecord(userId, null, null, null, null, null, null, null, null, null, "[]", "[]", "{}"));
+        return jdbc.query("SELECT display_name,gender,birthday,height_cm,weight_kg,activity_level,diet_goal,calorie_target,protein_target,allergens::text,dislikes::text,preferred_units::text FROM user_profiles WHERE user_id=? AND is_deleted=FALSE",
+                rs -> rs.next() ? new ProfileRecord(userId, rs.getString(1), rs.getString(2), rs.getObject(3, java.time.LocalDate.class), rs.getBigDecimal(4), rs.getBigDecimal(5), rs.getString(6), rs.getString(7), rs.getObject(8, Integer.class), rs.getObject(9, Integer.class), rs.getString(10), rs.getString(11), rs.getString(12)) : null, userId);
+    }
+
+    public synchronized ProfileRecord updateProfile(long userId, ProfileUpdate update) {
+        if (jdbc == null) {
+            ProfileRecord current = profiles.getOrDefault(userId, profile(userId));
+            ProfileRecord next = current.with(update);
+            profiles.put(userId, next);
+            return next;
+        }
+        jdbc.update("INSERT INTO user_profiles(profile_id,user_id) VALUES (?,?) ON CONFLICT (user_id) WHERE is_deleted=FALSE DO NOTHING", ids.nextId(), userId);
+        jdbc.update("UPDATE user_profiles SET display_name=COALESCE(?,display_name),gender=COALESCE(?,gender),height_cm=COALESCE(?,height_cm),weight_kg=COALESCE(?,weight_kg),activity_level=COALESCE(?,activity_level),diet_goal=COALESCE(?,diet_goal),calorie_target=COALESCE(?,calorie_target),protein_target=COALESCE(?,protein_target),updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND is_deleted=FALSE",
+                update.displayName(), update.gender(), update.heightCm(), update.weightKg(), update.activityLevel(), update.dietGoal(), update.calorieTarget(), update.proteinTarget(), userId);
+        return profile(userId);
+    }
+
+    public synchronized SessionRecord createSession(long userId, String title, String mode) {
+        String actualMode = mode == null || mode.isBlank() ? "agent" : mode;
+        if (!List.of("agent", "chat").contains(actualMode)) throw new IllegalArgumentException("mode must be agent or chat");
+        long id = ids.nextId();
+        if (jdbc != null) jdbc.update("INSERT INTO sessions(session_id,user_id,title,mode) VALUES (?,?,?,?)", id, userId, title, actualMode);
+        SessionRecord record = new SessionRecord(id, userId, title, actualMode, "active", null);
+        sessions.put(id, record);
+        return record;
+    }
+
+    public synchronized List<SessionRecord> listSessions(long userId) {
+        if (jdbc != null) return jdbc.query("SELECT session_id,title,mode,status,last_message_at FROM sessions WHERE user_id=? AND is_deleted=FALSE ORDER BY COALESCE(last_message_at,created_at) DESC", (rs, row) -> new SessionRecord(rs.getLong(1), userId, rs.getString(2), rs.getString(3), rs.getString(4), rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant()), userId);
+        return sessions.values().stream().filter(session -> session.userId() == userId && "active".equals(session.status())).sorted(Comparator.comparing(SessionRecord::lastMessageAt, Comparator.nullsLast(Comparator.reverseOrder()))).toList();
+    }
+
+    public synchronized void archiveSession(long userId, long sessionId) {
+        requireSession(userId, sessionId);
+        if (jdbc != null) jdbc.update("UPDATE sessions SET status='archived',updated_at=CURRENT_TIMESTAMP WHERE session_id=? AND user_id=?", sessionId, userId);
+        sessions.computeIfPresent(sessionId, (key, value) -> value.withStatus("archived"));
+    }
+
+    public synchronized MessageRecord addMessage(long userId, long sessionId, String role, String content, Object structuredPayload) {
+        requireSession(userId, sessionId);
+        if (!List.of("user", "assistant", "system", "tool").contains(role)) throw new IllegalArgumentException("invalid message role");
+        int sequence = nextSequence(sessionId);
+        long messageId = ids.nextId();
+        String payload = json(structuredPayload == null ? Map.of() : structuredPayload);
+        if (jdbc != null) {
+            jdbc.update("INSERT INTO messages(message_id,session_id,role,content,structured_payload,sequence_no,created_by) VALUES (?,?,?, ?,CAST(? AS jsonb),?,?)", messageId, sessionId, role, content, payload, sequence, userId);
+            jdbc.update("UPDATE sessions SET last_message_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE session_id=?", sessionId);
+        }
+        MessageRecord record = new MessageRecord(messageId, sessionId, role, content, payload, sequence, Instant.now());
+        messages.computeIfAbsent(sessionId, ignored -> new ArrayList<>()).add(record);
+        return record;
+    }
+
+    public synchronized List<MessageRecord> listMessages(long userId, long sessionId) {
+        requireSession(userId, sessionId);
+        if (jdbc != null) return jdbc.query("SELECT message_id,role,content,structured_payload::text,sequence_no,created_at FROM messages WHERE session_id=? AND is_deleted=FALSE ORDER BY sequence_no", (rs, row) -> new MessageRecord(rs.getLong(1), sessionId, rs.getString(2), rs.getString(3), rs.getString(4), rs.getInt(5), rs.getTimestamp(6).toInstant()), sessionId);
+        return List.copyOf(messages.getOrDefault(sessionId, List.of()));
+    }
+
+    private int nextSequence(long sessionId) {
+        if (jdbc != null) return jdbc.queryForObject("SELECT COALESCE(MAX(sequence_no),0)+1 FROM messages WHERE session_id=? AND is_deleted=FALSE", Integer.class, sessionId);
+        return messages.getOrDefault(sessionId, List.of()).size() + 1;
+    }
+
+    private void requireSession(long userId, long sessionId) {
+        if (jdbc != null) {
+            if (!exists("SELECT 1 FROM sessions WHERE session_id=? AND user_id=? AND is_deleted=FALSE", sessionId, userId)) throw notFound("session not found");
+        } else if (!sessions.containsKey(sessionId) || sessions.get(sessionId).userId() != userId || !"active".equals(sessions.get(sessionId).status())) throw notFound("session not found");
+    }
+
+    private AuthResult issue(long userId, String username, String role) {
+        Instant accessExpires = Instant.now().plusSeconds(ACCESS_TOKEN_SECONDS);
+        String access = sign(userId + "." + role + "." + accessExpires.getEpochSecond());
+        String refresh = randomToken();
+        String hash = sha256(refresh);
+        Instant refreshExpires = Instant.now().plusSeconds(REFRESH_TOKEN_SECONDS);
+        RefreshRecord record = new RefreshRecord(userId, hash, refreshExpires, null);
+        if (jdbc != null) jdbc.update("INSERT INTO auth_refresh_tokens(refresh_token_id,user_id,token_hash,expires_at) VALUES (?,?,?,?)", ids.nextId(), userId, hash, refreshExpires);
+        refreshTokens.put(hash, record);
+        return new AuthResult(userId, username, role, access, accessExpires, refresh, refreshExpires);
+    }
+
+    private Optional<UserRecord> findUser(String value) {
+        if (jdbc != null) return jdbc.query("SELECT user_id,username,email,password_hash,nickname,role,status FROM users WHERE (username=? OR email=?) AND is_deleted=FALSE", rs -> rs.next() ? Optional.of(new UserRecord(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7))) : Optional.empty(), value, value);
+        return users.values().stream().filter(user -> user.username().equalsIgnoreCase(value) || user.email().equalsIgnoreCase(value)).findFirst();
+    }
+
+    private Optional<UserRecord> getUser(long id) {
+        if (jdbc != null) return jdbc.query("SELECT user_id,username,email,password_hash,nickname,role,status FROM users WHERE user_id=? AND is_deleted=FALSE", rs -> rs.next() ? Optional.of(new UserRecord(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7))) : Optional.empty(), id);
+        return Optional.ofNullable(users.get(id));
+    }
+
+    private RefreshRecord findRefresh(String hash) { return jdbc.query("SELECT user_id,expires_at,revoked_at FROM auth_refresh_tokens WHERE token_hash=? AND is_deleted=FALSE", rs -> rs.next() ? new RefreshRecord(rs.getLong(1), hash, rs.getTimestamp(2).toInstant(), rs.getTimestamp(3) == null ? null : rs.getTimestamp(3).toInstant()) : null, hash); }
+    private void revokeRefresh(String hash) { if (jdbc != null) jdbc.update("UPDATE auth_refresh_tokens SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE token_hash=? AND revoked_at IS NULL", hash); RefreshRecord current = refreshTokens.get(hash); if (current != null) refreshTokens.put(hash, new RefreshRecord(current.userId(), hash, current.expiresAt(), Instant.now())); }
+    private boolean exists(String sql, Object... args) { return Boolean.TRUE.equals(jdbc.query(sql, (org.springframework.jdbc.core.ResultSetExtractor<Boolean>) rs -> rs.next(), args)); }
+    private String json(Object value) { try { return objectMapper.writeValueAsString(value); } catch (JsonProcessingException exception) { throw new IllegalArgumentException("structured payload must be JSON"); } }
+    private String randomToken() { byte[] bytes = new byte[32]; random.nextBytes(bytes); return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes); }
+    private String sign(String value) { return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8)) + "." + hmac(value); }
+    private TokenClaims parseAccessToken(String token) { try { String[] parts = token == null ? new String[0] : token.split("\\."); if (parts.length != 2) throw invalidToken(); String value = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8); if (!MessageDigest.isEqual(parts[1].getBytes(StandardCharsets.UTF_8), hmac(value).getBytes(StandardCharsets.UTF_8))) throw invalidToken(); String[] values = value.split("\\."); if (values.length != 3 || Long.parseLong(values[2]) < Instant.now().getEpochSecond()) throw invalidToken(); return new TokenClaims(Long.parseLong(values[0]), values[1]); } catch (RuntimeException exception) { throw invalidToken(); } }
+    private String hmac(String value) { try { Mac mac = Mac.getInstance("HmacSHA256"); mac.init(new SecretKeySpec(tokenSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256")); return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(value.getBytes(StandardCharsets.UTF_8))); } catch (Exception exception) { throw new IllegalStateException("unable to sign access token", exception); } }
+    private String hashPassword(String password) { try { byte[] salt = new byte[16]; random.nextBytes(salt); byte[] hash = pbkdf2(password.toCharArray(), salt, PASSWORD_ITERATIONS); return "pbkdf2$" + PASSWORD_ITERATIONS + "$" + Base64.getEncoder().encodeToString(salt) + "$" + Base64.getEncoder().encodeToString(hash); } catch (Exception exception) { throw new IllegalStateException("unable to hash password", exception); } }
+    private boolean verifyPassword(String password, String encoded) { try { String[] parts = encoded.split("\\$"); if (parts.length != 4) return false; byte[] salt = Base64.getDecoder().decode(parts[2]); byte[] expected = Base64.getDecoder().decode(parts[3]); return MessageDigest.isEqual(expected, pbkdf2(password.toCharArray(), salt, Integer.parseInt(parts[1]))); } catch (Exception exception) { return false; } }
+    private byte[] pbkdf2(char[] password, byte[] salt, int iterations) throws Exception { KeySpec spec = new PBEKeySpec(password, salt, iterations, 256); return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded(); }
+    private String sha256(String value) { try { return Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); } catch (NoSuchAlgorithmException exception) { throw new IllegalStateException(exception); } }
+    private static void requireText(String value, String name) { if (value == null || value.isBlank()) throw new IllegalArgumentException(name + " must not be blank"); }
+    private static void validatePassword(String password) { if (password == null || password.length() < 8) throw new IllegalArgumentException("password must contain at least 8 characters"); }
+    private static com.foodmate.shared.error.BusinessException invalidCredentials() { return new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.AUTH_INVALID_CREDENTIALS); }
+    private static com.foodmate.shared.error.BusinessException invalidToken() { return new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.AUTH_TOKEN_EXPIRED); }
+    private static com.foodmate.shared.error.BusinessException conflict(String message) { return new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.CONFLICT, message); }
+    private static com.foodmate.shared.error.BusinessException notFound(String message) { return new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.NOT_FOUND, message); }
+
+    public record AuthResult(long userId, String username, String role, String accessToken, Instant accessExpiresAt, String refreshToken, Instant refreshExpiresAt) {}
+    public record UserRecord(long userId, String username, String email, String passwordHash, String nickname, String role, String status) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record ProfileRecord(long userId, String displayName, String gender, java.time.LocalDate birthday, java.math.BigDecimal heightCm, java.math.BigDecimal weightKg, String activityLevel, String dietGoal, Integer calorieTarget, Integer proteinTarget, String allergens, String dislikes, String preferredUnits) { ProfileRecord with(ProfileUpdate update) { return new ProfileRecord(userId, update.displayName() == null ? displayName : update.displayName(), update.gender() == null ? gender : update.gender(), birthday, update.heightCm() == null ? heightCm : update.heightCm(), update.weightKg() == null ? weightKg : update.weightKg(), update.activityLevel() == null ? activityLevel : update.activityLevel(), update.dietGoal() == null ? dietGoal : update.dietGoal(), update.calorieTarget() == null ? calorieTarget : update.calorieTarget(), update.proteinTarget() == null ? proteinTarget : update.proteinTarget(), allergens, dislikes, preferredUnits); } }
+    public record ProfileUpdate(String displayName, String gender, java.math.BigDecimal heightCm, java.math.BigDecimal weightKg, String activityLevel, String dietGoal, Integer calorieTarget, Integer proteinTarget) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record SessionRecord(long sessionId, long userId, String title, String mode, String status, Instant lastMessageAt) { SessionRecord withStatus(String value) { return new SessionRecord(sessionId, userId, title, mode, value, lastMessageAt); } }
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record MessageRecord(long messageId, long sessionId, String role, String content, String structuredPayload, int sequenceNo, Instant createdAt) {}
+    private record RefreshRecord(long userId, String tokenHash, Instant expiresAt, Instant revokedAt) {}
+    private record TokenClaims(long userId, String role) {}
+}
