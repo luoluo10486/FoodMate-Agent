@@ -48,3 +48,20 @@ export type ChatRunEvent = {
 export function getChatRunEvents(runId: string): Promise<ChatRunEvent[]> {
   return request<ChatRunEvent[]>(`/api/chat/runs/${encodeURIComponent(runId)}/events`);
 }
+
+export function streamChatRun(runId: string, onEvent: (event: ChatRunEvent) => void, lastEventId?: number): () => void {
+  const suffix = lastEventId && lastEventId > 0 ? `?lastEventId=${lastEventId}` : '';
+  const source = new EventSource(`${baseUrl}/api/chat/runs/${encodeURIComponent(runId)}/stream${suffix}`);
+  const listener = (message: Event) => {
+    try {
+      onEvent(JSON.parse((message as MessageEvent<string>).data) as ChatRunEvent);
+    } catch {
+      source.close();
+    }
+  };
+  source.addEventListener('run.event', listener);
+  return () => {
+    source.removeEventListener('run.event', listener);
+    source.close();
+  };
+}

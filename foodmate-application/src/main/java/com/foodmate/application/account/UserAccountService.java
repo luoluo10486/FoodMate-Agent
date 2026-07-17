@@ -149,23 +149,27 @@ public class UserAccountService {
     }
 
     public synchronized MessageRecord addMessage(long userId, long sessionId, String role, String content, Object structuredPayload) {
+        return addMessage(userId, sessionId, role, content, structuredPayload, null);
+    }
+
+    public synchronized MessageRecord addMessage(long userId, long sessionId, String role, String content, Object structuredPayload, Long agentRunId) {
         requireSession(userId, sessionId);
         if (!List.of("user", "assistant", "system", "tool").contains(role)) throw new IllegalArgumentException("invalid message role");
         int sequence = nextSequence(sessionId);
         long messageId = ids.nextId();
         String payload = json(structuredPayload == null ? Map.of() : structuredPayload);
         if (jdbc != null) {
-            jdbc.update("INSERT INTO messages(message_id,session_id,role,content,structured_payload,sequence_no,created_by) VALUES (?,?,?, ?,CAST(? AS jsonb),?,?)", messageId, sessionId, role, content, payload, sequence, userId);
+            jdbc.update("INSERT INTO messages(message_id,session_id,agent_run_id,role,content,structured_payload,sequence_no,created_by) VALUES (?,?, ?,?, ?,CAST(? AS jsonb),?,?)", messageId, sessionId, agentRunId, role, content, payload, sequence, userId);
             jdbc.update("UPDATE sessions SET last_message_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE session_id=?", sessionId);
         }
-        MessageRecord record = new MessageRecord(messageId, sessionId, role, content, payload, sequence, Instant.now());
+        MessageRecord record = new MessageRecord(messageId, sessionId, agentRunId, role, content, payload, sequence, Instant.now());
         messages.computeIfAbsent(sessionId, ignored -> new ArrayList<>()).add(record);
         return record;
     }
 
     public synchronized List<MessageRecord> listMessages(long userId, long sessionId) {
         requireSession(userId, sessionId);
-        if (jdbc != null) return jdbc.query("SELECT message_id,role,content,structured_payload::text,sequence_no,created_at FROM messages WHERE session_id=? AND is_deleted=FALSE ORDER BY sequence_no", (rs, row) -> new MessageRecord(rs.getLong(1), sessionId, rs.getString(2), rs.getString(3), rs.getString(4), rs.getInt(5), rs.getTimestamp(6).toInstant()), sessionId);
+        if (jdbc != null) return jdbc.query("SELECT message_id,agent_run_id,role,content,structured_payload::text,sequence_no,created_at FROM messages WHERE session_id=? AND is_deleted=FALSE ORDER BY sequence_no", (rs, row) -> new MessageRecord(rs.getLong(1), sessionId, rs.getObject(2, Long.class), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6), rs.getTimestamp(7).toInstant()), sessionId);
         return List.copyOf(messages.getOrDefault(sessionId, List.of()));
     }
 
@@ -229,7 +233,7 @@ public class UserAccountService {
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record SessionRecord(long sessionId, long userId, String title, String mode, String status, Instant lastMessageAt) { SessionRecord withStatus(String value) { return new SessionRecord(sessionId, userId, title, mode, value, lastMessageAt); } }
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record MessageRecord(long messageId, long sessionId, String role, String content, String structuredPayload, int sequenceNo, Instant createdAt) {}
+    public record MessageRecord(long messageId, long sessionId, Long agentRunId, String role, String content, String structuredPayload, int sequenceNo, Instant createdAt) {}
     private record RefreshRecord(long userId, String tokenHash, Instant expiresAt, Instant revokedAt) {}
     private record TokenClaims(long userId, String role) {}
 }

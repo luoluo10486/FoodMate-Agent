@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(ChatController.class)
+@WebMvcTest({ChatController.class, RunStreamController.class})
 @Import({RuntimeGatewayService.class, GlobalExceptionHandler.class, TraceContextFilter.class})
 class ChatControllerTest {
     @Autowired private MockMvc mockMvc;

@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.foodmate.shared.runtime.RunCommand;
 import com.foodmate.shared.runtime.RunEvent;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class RuntimeGatewayServiceTest {
@@ -36,5 +38,19 @@ class RuntimeGatewayServiceTest {
         service.dispatch(new RunCommand("d2", "r2", "hello", Instant.now().plusSeconds(30), 1));
         assertEquals("RUNTIME_DEADLINE_EXCEEDED", assertThrows(com.foodmate.shared.runtime.RuntimeException.class,
                 () -> service.cancel(new com.foodmate.shared.runtime.CancelCommand("c1", "r2", "timeout", expired))).code());
+    }
+    @Test void subscribersReceiveOnlyAcceptedEventsAndCanResumeFromSequence() {
+        var service = new RuntimeGatewayService();
+        service.dispatch(new RunCommand("d-stream", "r-stream", "hello", Instant.now().plusSeconds(30), 1));
+        List<Long> live = new ArrayList<>();
+        service.subscribe("r-stream", 0, event -> live.add(event.eventSeq()));
+        service.event(new RunEvent("e1", "r-stream", 1, RunEvent.State.DISPATCHED, null, Instant.now()));
+        service.event(new RunEvent("e2", "r-stream", 2, RunEvent.State.RUNNING, null, Instant.now()));
+        service.event(new RunEvent("e2", "r-stream", 2, RunEvent.State.RUNNING, null, Instant.now()));
+        assertEquals(List.of(1L, 2L), live);
+
+        List<Long> resumed = new ArrayList<>();
+        service.subscribe("r-stream", 1, event -> resumed.add(event.eventSeq()));
+        assertEquals(List.of(2L), resumed);
     }
 }
