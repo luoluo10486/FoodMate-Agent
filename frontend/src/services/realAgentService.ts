@@ -2,7 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AgentRunView, AgentDisplayStatus } from '../types/agent';
 import type { Message } from '../types/session';
 import type { AgentCard } from '../mock/agentReplayData';
-import { createChatRun, getChatRun, getChatRunEvents, type ChatRunEvent } from './chatApi';
+import {
+  cancelChatRun,
+  createChatRun,
+  getChatRun,
+  getChatRunEvents,
+  streamChatRun,
+  type ChatRunEvent,
+} from './chatApi';
 
 const emptyRun = (id = 'real-run'): AgentRunView => ({
   id,
@@ -32,7 +39,7 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
   const [input, setInput] = useState('');
   const [card, setCard] = useState<AgentCard>({ type: 'none' });
   const runIdRef = useRef<string>();
-  const timerRef = useRef<number | undefined>(undefined);
+  const stopStreamRef = useRef<(() => void) | undefined>(undefined);
   const seededRef = useRef(false);
 
   const refresh = useCallback(async (runId: string) => {
@@ -82,12 +89,34 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
         const started = await createChatRun(prompt, sessionId);
         runIdRef.current = started.run_id;
         setRun(emptyRun(started.run_id));
-        const poll = async () => {
-          if (!runIdRef.current) return;
-          const done = await refresh(runIdRef.current);
-          if (!done) timerRef.current = window.setTimeout(poll, 800);
-        };
-        await poll();
+        const initialDone = await refresh(started.run_id);
+        if (!initialDone) {
+          let latestEventId = 0;
+          stopStreamRef.current = streamChatRun(
+            started.run_id,
+            (event) => {
+              latestEventId = event.event_seq;
+              setEvents((current) => [...current.filter((item) => item.event_id !== event.event_id), event]);
+              setRun((current) => ({ ...current, status: statusFor(event) }));
+              const payload = event.payload as { answer?: unknown } | undefined;
+              if (payload?.answer !== undefined)
+                setMessages((current) => [
+                  ...current.filter((message) => message.id !== `answer-${started.run_id}`),
+                  {
+                    id: `answer-${started.run_id}`,
+                    role: 'assistant',
+                    content: String(payload.answer),
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  },
+                ]);
+              if (['SUCCEEDED', 'FAILED', 'CANCELED'].includes(event.state)) {
+                setRunning(false);
+                stopStreamRef.current?.();
+              }
+            },
+            latestEventId,
+          );
+        }
       } catch (error) {
         setRunning(false);
         setCard({ type: 'error', message: error instanceof Error ? error.message : '请求失败' });
@@ -98,7 +127,7 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
 
   useEffect(
     () => () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current);
+      stopStreamRef.current?.();
     },
     [],
   );
@@ -120,7 +149,8 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
     setInput,
     send,
     stop: () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current);
+      const runId = runIdRef.current;
+      if (runId) void cancelChatRun(runId).finally(() => stopStreamRef.current?.());
       setRunning(false);
     },
     answerClarification: () => {},

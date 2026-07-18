@@ -5,7 +5,7 @@ import { useGSAP } from '@gsap/react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandLogo } from '../../components/brand/BrandLogo';
-import { getLoginDefaults } from '../../services/authService';
+import { getLoginDefaults, login } from '../../services/authService';
 import type { LoginFormValues } from '../../mock/auth';
 import styles from './LoginPage.module.css';
 
@@ -164,8 +164,13 @@ export function LoginPage() {
     setCodeCountdown(60);
   };
 
-  const handleLogin = (_values: LoginFormValues) => {
-    navigate('/');
+  const handleLogin = async (values: LoginFormValues) => {
+    try {
+      await login(values);
+      navigate('/');
+    } catch (error) {
+      Message.error(error instanceof Error ? error.message : '登录失败');
+    }
   };
 
   const handleRegister = (_values: RegisterFormValues) => {

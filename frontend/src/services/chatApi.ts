@@ -4,6 +4,7 @@ export type ChatRun = {
   status: string;
   duplicate: boolean;
 };
+import { accessToken } from './authService';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -16,7 +17,12 @@ const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(accessToken() ? { Authorization: `Bearer ${accessToken()}` } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
   const body = (await response.json()) as ApiResponse<T>;
   if (!response.ok || !body.success) {
@@ -49,9 +55,18 @@ export function getChatRunEvents(runId: string): Promise<ChatRunEvent[]> {
   return request<ChatRunEvent[]>(`/api/chat/runs/${encodeURIComponent(runId)}/events`);
 }
 
+export function cancelChatRun(runId: string): Promise<ChatRun> {
+  return request<ChatRun>(`/api/chat/runs/${encodeURIComponent(runId)}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason: 'user_cancelled' }),
+  });
+}
+
 export function streamChatRun(runId: string, onEvent: (event: ChatRunEvent) => void, lastEventId?: number): () => void {
   const suffix = lastEventId && lastEventId > 0 ? `?lastEventId=${lastEventId}` : '';
-  const source = new EventSource(`${baseUrl}/api/chat/runs/${encodeURIComponent(runId)}/stream${suffix}`);
+  const source = new EventSource(`${baseUrl}/api/chat/runs/${encodeURIComponent(runId)}/stream${suffix}`, {
+    withCredentials: true,
+  });
   const listener = (message: Event) => {
     try {
       onEvent(JSON.parse((message as MessageEvent<string>).data) as ChatRunEvent);

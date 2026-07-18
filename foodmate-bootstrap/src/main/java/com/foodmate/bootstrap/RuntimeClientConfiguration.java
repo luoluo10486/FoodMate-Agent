@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(name = "foodmate.runtime.agent-base-url")
 public class RuntimeClientConfiguration {
     @Bean
-    GatewayClient gatewayClient(@Value("${foodmate.runtime.agent-base-url}") URI baseUrl, ObjectMapper objectMapper) {
-        return new HttpGatewayClient(baseUrl, Duration.ofSeconds(10), HttpClient.newHttpClient(), objectMapper);
+    GatewayClient gatewayClient(@Value("${foodmate.runtime.agent-base-url}") URI baseUrl, @Value("${foodmate.runtime.auth-token:}") String authToken, @Value("${foodmate.runtime.contract-version:v1}") String contractVersion, ObjectMapper objectMapper) {
+        return new HttpGatewayClient(baseUrl, Duration.ofSeconds(10), HttpClient.newHttpClient(), objectMapper, authToken, contractVersion);
     }
 }

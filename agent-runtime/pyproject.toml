@@ -1,0 +1,10 @@
+[project]
+name = "foodmate-agent-runtime"
+version = "0.1.0"
+description = "FoodMate Python Agent Runtime V1"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

@@ -12,13 +12,16 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 public final class HttpGatewayClient implements GatewayClient {
-    private final HttpClient client; private final ObjectMapper mapper; private final URI base; private final Duration timeout;
-    public HttpGatewayClient(URI base, Duration timeout, HttpClient client, ObjectMapper mapper) { this.base = base; this.timeout = timeout; this.client = client; this.mapper = mapper; }
+    private final HttpClient client; private final ObjectMapper mapper; private final URI base; private final Duration timeout; private final String runtimeToken; private final String contractVersion;
+    public HttpGatewayClient(URI base, Duration timeout, HttpClient client, ObjectMapper mapper) { this(base, timeout, client, mapper, "", "v1"); }
+    public HttpGatewayClient(URI base, Duration timeout, HttpClient client, ObjectMapper mapper, String runtimeToken, String contractVersion) { this.base = base; this.timeout = timeout; this.client = client; this.mapper = mapper; this.runtimeToken = runtimeToken == null ? "" : runtimeToken; this.contractVersion = contractVersion == null || contractVersion.isBlank() ? "v1" : contractVersion; }
     public Response dispatch(RunCommand command) { return send("/internal/runtime/runs:dispatch", command, "dispatch"); }
     public Response cancel(CancelCommand command) { return send("/internal/runtime/runs:cancel", command, "cancel"); }
     private Response send(String path, Object body, String operation) {
         try {
-            HttpRequest request = HttpRequest.newBuilder(base.resolve(path)).timeout(timeout).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
+            HttpRequest.Builder builder = HttpRequest.newBuilder(base.resolve(path)).timeout(timeout).header("Content-Type", "application/json").header("X-Contract-Version", contractVersion);
+            if (!runtimeToken.isBlank()) builder.header("X-Runtime-Token", runtimeToken);
+            HttpRequest request = builder.POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 200 && response.statusCode() < 300) return new Response(response.statusCode(), response.body());
             String code = response.statusCode() == 401 ? "RUNTIME_AUTH_INVALID" : response.statusCode() == 403 ? "RUNTIME_AUTH_FORBIDDEN" : response.statusCode() == 408 || response.statusCode() == 504 ? "RUNTIME_DEADLINE_EXCEEDED" : response.statusCode() == 429 || response.statusCode() >= 500 ? "RUNTIME_UNAVAILABLE" : "RUNTIME_CONTRACT_INVALID";

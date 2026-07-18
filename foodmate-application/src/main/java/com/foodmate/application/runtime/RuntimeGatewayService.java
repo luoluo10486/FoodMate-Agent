@@ -137,6 +137,20 @@ public class RuntimeGatewayService {
         runContexts.put(runId, new RunContext(userId, sessionId, userMessageId, null));
     }
 
+    /** Ensures that a user can only observe or control runs created from that user's session. */
+    public synchronized void requireRunOwner(String runId, long userId) {
+        RunContext context = runContexts.get(runId);
+        if (context != null) {
+            if (context.userId() != userId) throw new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.FORBIDDEN);
+            return;
+        }
+        if (jdbc != null && runId.matches("\\d+")) {
+            var owners = jdbc.query("SELECT created_by FROM agent_runs WHERE agent_run_id=? AND is_deleted=FALSE", (rs, row) -> rs.getLong(1), Long.parseLong(runId));
+            if (!owners.isEmpty() && owners.getFirst() == userId) return;
+        }
+        throw new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.FORBIDDEN);
+    }
+
     /** Registers a listener and replays events after the supplied sequence before accepting live events. */
     public synchronized void subscribe(String runId, long afterSequence, Consumer<RunEvent> listener) {
         if (!statuses.containsKey(runId) && jdbc == null && !runExistsJdbc(runId)) throw new IllegalArgumentException("runId does not exist");

@@ -5,6 +5,9 @@ import com.foodmate.shared.runtime.RunEvent;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import com.foodmate.application.account.UserAccountService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,10 +19,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RestController
 public class RunStreamController {
     private final RuntimeGatewayService service;
-    public RunStreamController(RuntimeGatewayService service) { this.service = service; }
+    private final UserAccountService accounts;
+    public RunStreamController(RuntimeGatewayService service, ObjectProvider<UserAccountService> accountProvider) { this.service = service; this.accounts = accountProvider.getIfAvailable(); }
 
     @GetMapping(value = "/api/chat/runs/{runId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter stream(@PathVariable String runId, @RequestHeader(value = "Last-Event-ID", required = false) String headerLastEventId, @RequestParam(value = "lastEventId", required = false) String queryLastEventId) {
+    public SseEmitter stream(@PathVariable String runId, @RequestHeader(value = "Last-Event-ID", required = false) String headerLastEventId, @RequestHeader(value = "Authorization", required = false) String authorization, @RequestParam(value = "lastEventId", required = false) String queryLastEventId, HttpServletRequest request) {
+        if (accounts != null) service.requireRunOwner(runId, new AuthenticatedControllerSupport(accounts) {}.user(authorization, request).userId());
         String lastEventId = headerLastEventId != null ? headerLastEventId : queryLastEventId;
         long afterSequence = parseSequence(lastEventId);
         SseEmitter emitter = new SseEmitter(0L);

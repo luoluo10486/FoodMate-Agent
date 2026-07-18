@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -22,29 +25,37 @@ public class AuthController {
     public AuthController(UserAccountService service) { this.service = service; }
 
     @PostMapping("/register")
-    public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         return response(service.register(request.username(), request.email(), request.password(), request.nickname()));
     }
 
     @PostMapping("/login")
-    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         return response(service.login(request.usernameOrEmail(), request.password()));
     }
 
     @PostMapping("/refresh")
-    public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
-        return response(service.refresh(request.refreshToken()));
+    public ResponseEntity<ApiResponse<AuthResponse>> refresh(@RequestHeader(value = "X-Refresh-Token", required = false) String header, @RequestBody(required = false) RefreshRequest request) {
+        String token = header != null ? header : request == null ? null : request.refreshToken();
+        return response(service.refresh(token));
     }
 
     @PostMapping("/logout")
-    public ApiResponse<Void> logout(@RequestHeader(value = "X-Refresh-Token", required = false) String header, @RequestBody(required = false) RefreshRequest request) {
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader(value = "X-Refresh-Token", required = false) String header, @RequestBody(required = false) RefreshRequest request) {
         service.logout(header != null ? header : request == null ? null : request.refreshToken());
-        return ApiResponse.success(null, TraceContextHolder.currentOrNew());
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_access").toString()).header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_refresh").toString()).body(ApiResponse.success(null, TraceContextHolder.currentOrNew()));
     }
 
-    private ApiResponse<AuthResponse> response(UserAccountService.AuthResult result) {
-        return ApiResponse.success(new AuthResponse(result.userId(), result.username(), result.role(), result.accessToken(), result.accessExpiresAt(), result.refreshToken(), result.refreshExpiresAt()), TraceContextHolder.currentOrNew());
+    private ResponseEntity<ApiResponse<AuthResponse>> response(UserAccountService.AuthResult result) {
+        AuthResponse body = new AuthResponse(result.userId(), result.username(), result.role(), result.accessToken(), result.accessExpiresAt(), result.refreshToken(), result.refreshExpiresAt());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie("foodmate_access", result.accessToken(), result.accessExpiresAt()).toString())
+                .header(HttpHeaders.SET_COOKIE, cookie("foodmate_refresh", result.refreshToken(), result.refreshExpiresAt()).toString())
+                .body(ApiResponse.success(body, TraceContextHolder.currentOrNew()));
     }
+
+    private static ResponseCookie cookie(String name, String value, java.time.Instant expiresAt) { return ResponseCookie.from(name, value).httpOnly(true).secure(false).sameSite("Lax").path("/").maxAge(java.time.Duration.between(java.time.Instant.now(), expiresAt)).build(); }
+    private static ResponseCookie expiredCookie(String name) { return ResponseCookie.from(name, "").httpOnly(true).secure(false).sameSite("Lax").path("/").maxAge(0).build(); }
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record RegisterRequest(@NotBlank @Size(max = 64) String username, @NotBlank @Email String email, @NotBlank @Size(min = 8, max = 128) String password, @Size(max = 128) String nickname) {}

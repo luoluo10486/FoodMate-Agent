@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.RequestHeader;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,17 +51,30 @@ public class ChatController {
     }
 
     @GetMapping("/runs/{runId}")
-    public ApiResponse<RuntimeGatewayService.StatusResult> status(@PathVariable String runId) {
+    public ApiResponse<RuntimeGatewayService.StatusResult> status(@PathVariable String runId, @RequestHeader(value = "Authorization", required = false) String authorization, HttpServletRequest request) {
+        requireOwner(runId, authorization, request);
         return ApiResponse.success(service.status(runId), TraceContextHolder.currentOrNew());
     }
 
     @GetMapping("/runs/{runId}/events")
-    public ApiResponse<java.util.List<com.foodmate.shared.runtime.RunEvent>> events(@PathVariable String runId) {
+    public ApiResponse<java.util.List<com.foodmate.shared.runtime.RunEvent>> events(@PathVariable String runId, @RequestHeader(value = "Authorization", required = false) String authorization, HttpServletRequest request) {
+        requireOwner(runId, authorization, request);
         return ApiResponse.success(service.events(runId), TraceContextHolder.currentOrNew());
     }
 
+    @PostMapping("/runs/{runId}/cancel")
+    public ApiResponse<RuntimeGatewayService.CommandResult> cancel(@PathVariable String runId, @RequestHeader(value = "Authorization", required = false) String authorization, HttpServletRequest request, @RequestBody(required = false) CancelRunRequest body) {
+        requireOwner(runId, authorization, request);
+        String reason = body == null || body.reason() == null || body.reason().isBlank() ? "user_cancelled" : body.reason();
+        return ApiResponse.success(service.cancel(new com.foodmate.shared.runtime.CancelCommand("cancel_" + UUID.randomUUID(), runId, reason, Instant.now().plusSeconds(30))), TraceContextHolder.currentOrNew());
+    }
+
     public record ChatRunRequest(@NotBlank String prompt, String sessionId) {}
+    public record CancelRunRequest(String reason) {}
     private static long parseSessionId(String value) { try { return Long.parseLong(value); } catch (NumberFormatException exception) { throw new IllegalArgumentException("sessionId must be a numeric session id"); } }
+    private void requireOwner(String runId, String authorization, HttpServletRequest request) {
+        if (accounts != null) service.requireRunOwner(runId, new AuthenticatedControllerSupport(accounts) {}.user(authorization, request).userId());
+    }
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record ChatRunResponse(String runId, String dispatchId, String status, boolean duplicate, Long sessionId, Long userMessageId) {}
 }

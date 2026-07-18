@@ -24,6 +24,7 @@ foodmate:
   runtime:
     stub-enabled: false
     auth-token: ${RUNTIME_AUTH_TOKEN:}
+    contract-version: ${RUNTIME_CONTRACT_VERSION:v1}
   model:
     default-chat-model: qwen-plus
     default-embed-model: text-embedding-v4
