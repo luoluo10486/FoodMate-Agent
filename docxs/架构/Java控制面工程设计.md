@@ -594,12 +594,11 @@ spring:
   application:
     name: foodmate
   datasource:
-    url: jdbc:postgresql://localhost:5432/foodmate
-    username: foodmate
+    url: jdbc:postgresql://localhost:5432/FoodMate
+    username: postgres
     password: ${DB_PASSWORD}
   flyway:
-    enabled: true
-    locations: classpath:db/migration
+    enabled: false # 数据库脚本由运维人员手动执行
   data:
     redis:
       host: localhost

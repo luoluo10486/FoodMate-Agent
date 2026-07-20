@@ -52,7 +52,7 @@ class FlywayRealMigrationTest {
         // Act: execute Flyway migration
         Flyway flyway = Flyway.configure()
                 .dataSource(jdbcUrl, username, password)
-                .locations("classpath:db/migration")
+                .locations("filesystem:../script/sql/FoodMate/baseline")
                 .load();
         flyway.migrate();
 
@@ -70,7 +70,7 @@ class FlywayRealMigrationTest {
         // Arrange: first migration
         Flyway flyway = Flyway.configure()
                 .dataSource(jdbcUrl, username, password)
-                .locations("classpath:db/migration")
+                .locations("filesystem:../script/sql/FoodMate/baseline")
                 .load();
         flyway.migrate();
 
@@ -86,7 +86,7 @@ class FlywayRealMigrationTest {
     void flywayValidateSucceeds() {
         Flyway flyway = Flyway.configure()
                 .dataSource(jdbcUrl, username, password)
-                .locations("classpath:db/migration")
+                .locations("filesystem:../script/sql/FoodMate/baseline")
                 .load();
         flyway.migrate();
 
@@ -98,7 +98,7 @@ class FlywayRealMigrationTest {
     void schemaHasRequiredIndexes() throws SQLException {
         Flyway flyway = Flyway.configure()
                 .dataSource(jdbcUrl, username, password)
-                .locations("classpath:db/migration")
+                .locations("filesystem:../script/sql/FoodMate/baseline")
                 .load();
         flyway.migrate();
 

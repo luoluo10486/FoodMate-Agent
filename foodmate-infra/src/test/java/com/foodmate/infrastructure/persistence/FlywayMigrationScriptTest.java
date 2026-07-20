@@ -26,19 +26,19 @@ class FlywayMigrationScriptTest {
         assertTrue(sql.contains("idx_user_auth_sessions_user_expires"));
     }
     private static final Path INIT_SCHEMA = Path.of(
-            "src",
-            "main",
-            "resources",
-            "db",
-            "migration",
+            "..",
+            "script",
+            "sql",
+            "FoodMate",
+            "baseline",
             "V1__init_core_schema.sql"
     );
 
     private static final Path ROLLBACK_SCHEMA = Path.of(
-            "src",
-            "main",
-            "resources",
-            "db",
+            "..",
+            "script",
+            "sql",
+            "FoodMate",
             "rollback",
             "R1__drop_core_schema.sql"
     );
