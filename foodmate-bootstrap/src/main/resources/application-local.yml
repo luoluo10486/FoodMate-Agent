@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/foodmate}
-    username: ${DB_USERNAME:foodmate}
-    password: ${DB_PASSWORD:foodmate}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/FoodMate}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   flyway:
     enabled: true
@@ -11,4 +11,3 @@ spring:
 foodmate:
   runtime:
     stub-enabled: false
-

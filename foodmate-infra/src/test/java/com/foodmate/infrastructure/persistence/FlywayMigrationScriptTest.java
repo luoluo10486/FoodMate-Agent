@@ -14,13 +14,16 @@ import org.junit.jupiter.api.Test;
 class FlywayMigrationScriptTest {
     @Test
     void runtimeMigrationDefinesDurableIdempotencyAndInboxTables() throws IOException {
-        String sql = Files.readString(Path.of("src", "main", "resources", "db", "migration", "V2__runtime_inbox.sql"));
+        String sql = Files.readString(INIT_SCHEMA);
         assertTrue(sql.contains("CREATE TABLE runtime_runs"));
         assertTrue(sql.contains("CREATE TABLE runtime_dispatches"));
         assertTrue(sql.contains("CREATE TABLE runtime_cancels"));
         assertTrue(sql.contains("CREATE TABLE runtime_event_inbox"));
+        assertTrue(sql.contains("CREATE TABLE user_auth_sessions"));
         assertTrue(sql.contains("PRIMARY KEY (run_id, event_id)"));
         assertTrue(sql.contains("UNIQUE (run_id, event_seq)"));
+        assertTrue(sql.contains("uk_user_auth_sessions_token_hash"));
+        assertTrue(sql.contains("idx_user_auth_sessions_user_expires"));
     }
     private static final Path INIT_SCHEMA = Path.of(
             "src",
@@ -65,6 +68,38 @@ class FlywayMigrationScriptTest {
             "model_usage_logs",
             "model_route_rules",
             "operation_audits"
+    );
+
+    private static final List<String> ALL_TABLES = List.of(
+            "users",
+            "user_profiles",
+            "auth_refresh_tokens",
+            "user_avatar_assets",
+            "sessions",
+            "messages",
+            "agent_runs",
+            "tool_calls",
+            "food_logs",
+            "analysis_reports",
+            "meal_plans",
+            "shopping_lists",
+            "user_memories",
+            "session_summaries",
+            "knowledge_documents",
+            "knowledge_chunks",
+            "data_sources",
+            "schema_catalogs",
+            "sql_query_audits",
+            "tool_registries",
+            "tool_schema_versions",
+            "model_usage_logs",
+            "model_route_rules",
+            "operation_audits",
+            "runtime_runs",
+            "runtime_dispatches",
+            "runtime_cancels",
+            "runtime_event_inbox",
+            "user_auth_sessions"
     );
 
     private static final List<String> TENANT_SCOPED_TABLES = List.of(
@@ -129,7 +164,7 @@ class FlywayMigrationScriptTest {
     void initSchemaDocumentsEveryCoreTableAndColumn() throws IOException {
         String sql = Files.readString(INIT_SCHEMA);
 
-        for (String table : CORE_TABLES) {
+        for (String table : ALL_TABLES) {
             String tableCommentPrefix = "COMMENT ON TABLE " + table + " IS";
             assertTrue(sql.contains(tableCommentPrefix), table + " must have a table comment");
             assertTrue(hasChineseComment(sql, tableCommentPrefix), table + " must have a Chinese table comment");
@@ -153,7 +188,7 @@ class FlywayMigrationScriptTest {
         String rollbackSql = Files.readString(ROLLBACK_SCHEMA);
 
         assertTrue(rollbackSql.contains("DROP CONSTRAINT IF EXISTS fk_messages_agent_run_id"));
-        for (String table : CORE_TABLES) {
+        for (String table : ALL_TABLES) {
             assertTrue(
                     rollbackSql.contains("DROP TABLE IF EXISTS " + table),
                     table + " must be dropped by the rollback script"
@@ -175,8 +210,11 @@ class FlywayMigrationScriptTest {
                 .lines()
                 .skip(1)
                 .map(String::trim)
-                .takeWhile(line -> !line.startsWith("CONSTRAINT "))
                 .filter(line -> !line.isBlank())
+                .filter(line -> !line.equals(")"))
+                .filter(line -> !line.startsWith("CONSTRAINT "))
+                .filter(line -> !line.startsWith("PRIMARY KEY"))
+                .filter(line -> !line.startsWith("UNIQUE"))
                 .map(line -> line.split("\\s+", 2)[0].replace(",", ""))
                 .toList();
     }

@@ -969,3 +969,104 @@ COMMENT ON COLUMN operation_audits.updated_by IS '最后更新人用户 ID。';
 COMMENT ON COLUMN operation_audits.is_deleted IS '逻辑删除标记。';
 COMMENT ON COLUMN operation_audits.deleted_at IS '逻辑删除时间。';
 COMMENT ON COLUMN operation_audits.deleted_by IS '执行逻辑删除的用户 ID。';
+
+-- Runtime 与认证会话表统一纳入首版 FoodMate Schema。
+CREATE TABLE runtime_runs (
+    run_id VARCHAR(128) PRIMARY KEY,
+    status VARCHAR(32) NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE runtime_dispatches (
+    dispatch_id VARCHAR(128) PRIMARY KEY,
+    run_id VARCHAR(128) NOT NULL REFERENCES runtime_runs (run_id),
+    request_fingerprint VARCHAR(256) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE runtime_cancels (
+    cancel_id VARCHAR(128) PRIMARY KEY,
+    run_id VARCHAR(128) NOT NULL REFERENCES runtime_runs (run_id),
+    request_fingerprint VARCHAR(256) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE runtime_event_inbox (
+    run_id VARCHAR(128) NOT NULL REFERENCES runtime_runs (run_id),
+    event_id VARCHAR(128) NOT NULL,
+    event_seq BIGINT NOT NULL,
+    event_fingerprint VARCHAR(512) NOT NULL,
+    state VARCHAR(32) NOT NULL,
+    payload_json JSONB,
+    occurred_at TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (run_id, event_id),
+    UNIQUE (run_id, event_seq)
+);
+
+CREATE TABLE user_auth_sessions (
+    auth_session_id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users (user_id),
+    session_token_hash VARCHAR(255) NOT NULL,
+    csrf_token_hash VARCHAR(255) NOT NULL,
+    device_id VARCHAR(128),
+    user_agent VARCHAR(512),
+    ip_address VARCHAR(64),
+    expires_at TIMESTAMPTZ NOT NULL,
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    revoked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
+    deleted_by BIGINT
+);
+
+CREATE UNIQUE INDEX uk_user_auth_sessions_token_hash ON user_auth_sessions (session_token_hash);
+CREATE INDEX idx_user_auth_sessions_user_expires ON user_auth_sessions (user_id, expires_at) WHERE revoked_at IS NULL AND is_deleted = FALSE;
+
+COMMENT ON TABLE runtime_runs IS 'Runtime 运行表，保存 Java 与 Python Agent Runtime 的运行状态。';
+COMMENT ON COLUMN runtime_runs.run_id IS 'Runtime 运行标识。';
+COMMENT ON COLUMN runtime_runs.status IS 'Runtime 运行状态。';
+COMMENT ON COLUMN runtime_runs.updated_at IS '运行状态最后更新时间。';
+
+COMMENT ON TABLE runtime_dispatches IS 'Runtime 派发表，保存 dispatch 幂等记录。';
+COMMENT ON COLUMN runtime_dispatches.dispatch_id IS '派发请求唯一标识。';
+COMMENT ON COLUMN runtime_dispatches.run_id IS '关联的 Runtime 运行标识。';
+COMMENT ON COLUMN runtime_dispatches.request_fingerprint IS '派发请求内容摘要，用于幂等冲突检测。';
+COMMENT ON COLUMN runtime_dispatches.created_at IS '派发记录创建时间。';
+
+COMMENT ON TABLE runtime_cancels IS 'Runtime 取消表，保存 cancel 幂等记录。';
+COMMENT ON COLUMN runtime_cancels.cancel_id IS '取消请求唯一标识。';
+COMMENT ON COLUMN runtime_cancels.run_id IS '关联的 Runtime 运行标识。';
+COMMENT ON COLUMN runtime_cancels.request_fingerprint IS '取消请求内容摘要，用于幂等冲突检测。';
+COMMENT ON COLUMN runtime_cancels.created_at IS '取消记录创建时间。';
+
+COMMENT ON TABLE runtime_event_inbox IS 'Runtime 事件收件箱，保存回调事件并执行去重、顺序和状态校验。';
+COMMENT ON COLUMN runtime_event_inbox.run_id IS '关联的 Runtime 运行标识。';
+COMMENT ON COLUMN runtime_event_inbox.event_id IS '事件唯一标识。';
+COMMENT ON COLUMN runtime_event_inbox.event_seq IS '同一运行内严格递增的事件序号。';
+COMMENT ON COLUMN runtime_event_inbox.event_fingerprint IS '事件内容摘要，用于重复事件和冲突检测。';
+COMMENT ON COLUMN runtime_event_inbox.state IS '事件对应的运行状态。';
+COMMENT ON COLUMN runtime_event_inbox.payload_json IS '事件结构化负载。';
+COMMENT ON COLUMN runtime_event_inbox.occurred_at IS '事件发生时间。';
+
+COMMENT ON TABLE user_auth_sessions IS '用户认证会话表，保存浏览器登录会话、设备信息、CSRF 绑定和撤销状态。';
+COMMENT ON COLUMN user_auth_sessions.auth_session_id IS '认证会话主键。';
+COMMENT ON COLUMN user_auth_sessions.user_id IS '认证会话所属用户 ID。';
+COMMENT ON COLUMN user_auth_sessions.session_token_hash IS '浏览器会话 ID 哈希，不保存明文会话凭据。';
+COMMENT ON COLUMN user_auth_sessions.csrf_token_hash IS '会话绑定的 CSRF Token 哈希。';
+COMMENT ON COLUMN user_auth_sessions.device_id IS '客户端设备标识。';
+COMMENT ON COLUMN user_auth_sessions.user_agent IS '创建会话时的客户端 User-Agent。';
+COMMENT ON COLUMN user_auth_sessions.ip_address IS '创建会话时的客户端 IP。';
+COMMENT ON COLUMN user_auth_sessions.expires_at IS '认证会话过期时间。';
+COMMENT ON COLUMN user_auth_sessions.last_seen_at IS '最近一次使用会话的时间。';
+COMMENT ON COLUMN user_auth_sessions.revoked_at IS '认证会话撤销时间。';
+COMMENT ON COLUMN user_auth_sessions.created_at IS '认证会话创建时间。';
+COMMENT ON COLUMN user_auth_sessions.updated_at IS '认证会话最后更新时间。';
+COMMENT ON COLUMN user_auth_sessions.created_by IS '创建会话的用户 ID。';
+COMMENT ON COLUMN user_auth_sessions.updated_by IS '最后更新会话的用户 ID。';
+COMMENT ON COLUMN user_auth_sessions.is_deleted IS '逻辑删除标记。';
+COMMENT ON COLUMN user_auth_sessions.deleted_at IS '逻辑删除时间。';
+COMMENT ON COLUMN user_auth_sessions.deleted_by IS '执行逻辑删除的用户 ID。';

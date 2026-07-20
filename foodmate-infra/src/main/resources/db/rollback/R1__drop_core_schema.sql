@@ -4,6 +4,12 @@
 
 BEGIN;
 
+DROP TABLE IF EXISTS user_auth_sessions;
+DROP TABLE IF EXISTS runtime_event_inbox;
+DROP TABLE IF EXISTS runtime_cancels;
+DROP TABLE IF EXISTS runtime_dispatches;
+DROP TABLE IF EXISTS runtime_runs;
+
 -- messages 和 agent_runs 之间存在互相引用，先解除 messages 指向 agent_runs 的外键。
 ALTER TABLE IF EXISTS messages
     DROP CONSTRAINT IF EXISTS fk_messages_agent_run_id;
