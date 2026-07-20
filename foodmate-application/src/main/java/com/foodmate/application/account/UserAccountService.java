@@ -134,7 +134,7 @@ public class UserAccountService {
         long id = ids.nextId();
         if (jdbc != null) jdbc.update("INSERT INTO sessions(session_id,user_id,title,mode) VALUES (?,?,?,?)", id, userId, title, actualMode);
         SessionRecord record = new SessionRecord(id, userId, title, actualMode, "active", null);
-        sessions.put(id, record);
+        if (jdbc == null) sessions.put(id, record);
         return record;
     }
 
@@ -164,7 +164,7 @@ public class UserAccountService {
             jdbc.update("UPDATE sessions SET last_message_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE session_id=?", sessionId);
         }
         MessageRecord record = new MessageRecord(messageId, sessionId, agentRunId, role, content, payload, sequence, Instant.now());
-        messages.computeIfAbsent(sessionId, ignored -> new ArrayList<>()).add(record);
+        if (jdbc == null) messages.computeIfAbsent(sessionId, ignored -> new ArrayList<>()).add(record);
         return record;
     }
 
@@ -191,8 +191,8 @@ public class UserAccountService {
         String sessionHash = sha256(sessionToken);
         Instant expiresAt = Instant.now().plusSeconds(AUTH_SESSION_SECONDS);
         AuthSessionRecord record = new AuthSessionRecord(userId, sessionHash, sha256(csrfToken), expiresAt, null);
-        if (jdbc != null) jdbc.update("INSERT INTO user_auth_sessions(auth_session_id,user_id,session_token_hash,csrf_token_hash,user_agent,ip_address,expires_at,created_by) VALUES (?,?,?,?,?,?,?,?)", ids.nextId(), userId, sessionHash, record.csrfTokenHash(), metadata.userAgent(), metadata.ipAddress(), expiresAt, userId);
-        authSessions.put(sessionHash, record);
+        if (jdbc != null) jdbc.update("INSERT INTO user_auth_sessions(auth_session_id,user_id,session_token_hash,csrf_token_hash,user_agent,ip_address,expires_at,created_by) VALUES (?,?,?,?,?,?,?,?)", ids.nextId(), userId, sessionHash, record.csrfTokenHash(), metadata.userAgent(), metadata.ipAddress(), java.sql.Timestamp.from(expiresAt), userId);
+        if (jdbc == null) authSessions.put(sessionHash, record);
         return new AuthResult(userId, username, role, sessionToken, csrfToken, expiresAt);
     }
 
