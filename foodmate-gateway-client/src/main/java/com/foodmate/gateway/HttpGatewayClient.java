@@ -12,15 +12,17 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 public final class HttpGatewayClient implements GatewayClient {
-    private final HttpClient client; private final ObjectMapper mapper; private final URI base; private final Duration timeout; private final String runtimeToken; private final String contractVersion;
-    public HttpGatewayClient(URI base, Duration timeout, HttpClient client, ObjectMapper mapper) { this(base, timeout, client, mapper, "", "v1"); }
-    public HttpGatewayClient(URI base, Duration timeout, HttpClient client, ObjectMapper mapper, String runtimeToken, String contractVersion) { this.base = base; this.timeout = timeout; this.client = client; this.mapper = mapper; this.runtimeToken = runtimeToken == null ? "" : runtimeToken; this.contractVersion = contractVersion == null || contractVersion.isBlank() ? "v1" : contractVersion; }
+    private final HttpClient client; private final ObjectMapper mapper; private final URI base; private final Duration timeout; private final String privateKey; private final String kid; private final String contractVersion;
+    public HttpGatewayClient(URI base, Duration timeout, HttpClient client, ObjectMapper mapper) { this(base, timeout, client, mapper, "", "", "v1"); }
+    public HttpGatewayClient(URI base, Duration timeout, HttpClient client, ObjectMapper mapper, String privateKey, String kid, String contractVersion) { this.base = base; this.timeout = timeout; this.client = client; this.mapper = mapper; this.privateKey = privateKey == null ? "" : privateKey; this.kid = kid == null ? "" : kid; this.contractVersion = contractVersion == null || contractVersion.isBlank() ? "v1" : contractVersion; }
     public Response dispatch(RunCommand command) { return send("/internal/runtime/runs:dispatch", command, "dispatch"); }
     public Response cancel(CancelCommand command) { return send("/internal/runtime/runs:cancel", command, "cancel"); }
     private Response send(String path, Object body, String operation) {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(base.resolve(path)).timeout(timeout).header("Content-Type", "application/json").header("X-Contract-Version", contractVersion);
-            if (!runtimeToken.isBlank()) builder.header("X-Runtime-Token", runtimeToken);
+            if (privateKey.isBlank() || kid.isBlank()) throw new RuntimeException("RUNTIME_AUTH_INVALID", "service JWT signing key is not configured");
+            String scope = "dispatch".equals(operation) ? "runtime:dispatch" : "runtime:cancel";
+            builder.header("Authorization", "Bearer " + ServiceJwt.sign(privateKey, "foodmate-control-plane", "foodmate-agent-runtime", scope, kid, 60));
             HttpRequest request = builder.POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 200 && response.statusCode() < 300) return new Response(response.statusCode(), response.body());

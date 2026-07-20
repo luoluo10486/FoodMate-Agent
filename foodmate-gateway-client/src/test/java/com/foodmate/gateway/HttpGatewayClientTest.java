@@ -12,6 +12,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.Instant;
+import java.security.KeyPairGenerator;
+import java.util.Base64;
 import org.junit.jupiter.api.Test;
 
 class HttpGatewayClientTest {
@@ -20,7 +22,8 @@ class HttpGatewayClientTest {
         server.createContext("/internal/runtime/runs:dispatch", e -> { e.sendResponseHeaders(429, 0); e.getResponseBody().close(); });
         server.start();
         try {
-            var client = new HttpGatewayClient(URI.create("http://localhost:" + server.getAddress().getPort()), Duration.ofSeconds(2), HttpClient.newHttpClient(), new ObjectMapper());
+            var keys = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+            var client = new HttpGatewayClient(URI.create("http://localhost:" + server.getAddress().getPort()), Duration.ofSeconds(2), HttpClient.newHttpClient(), new ObjectMapper(), Base64.getEncoder().encodeToString(keys.getPrivate().getEncoded()), "java-test", "v1");
             var command = new RunCommand("d1", "r1", "hello", Instant.now().plusSeconds(5), 1);
             assertEquals("RUNTIME_UNAVAILABLE", assertThrows(RuntimeException.class, () -> client.dispatch(command)).code());
         } finally { server.stop(0); }

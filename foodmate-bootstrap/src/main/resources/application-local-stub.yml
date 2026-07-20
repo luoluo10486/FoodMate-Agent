@@ -7,6 +7,9 @@ spring:
     enabled: false
 
 foodmate:
+  security:
+    cookie-secure: false
   runtime:
     stub-enabled: true
-
+    service-jwt:
+      enabled: false

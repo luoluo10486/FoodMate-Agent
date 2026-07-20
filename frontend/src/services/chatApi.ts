@@ -4,7 +4,7 @@ export type ChatRun = {
   status: string;
   duplicate: boolean;
 };
-import { accessToken } from './authService';
+import { csrfToken } from './authService';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -15,12 +15,14 @@ type ApiResponse<T> = {
 const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const csrf = csrfToken();
+  const needsCsrf = !['GET', 'HEAD', 'OPTIONS'].includes((init?.method ?? 'GET').toUpperCase());
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(accessToken() ? { Authorization: `Bearer ${accessToken()}` } : {}),
+      ...(needsCsrf && csrf ? { 'X-CSRF-Token': csrf } : {}),
       ...(init?.headers ?? {}),
     },
   });

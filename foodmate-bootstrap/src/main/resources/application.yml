@@ -21,10 +21,17 @@ management:
         enabled: true
 
 foodmate:
+  security:
+    cookie-secure: ${FOODMATE_COOKIE_SECURE:true}
   runtime:
     stub-enabled: false
-    auth-token: ${RUNTIME_AUTH_TOKEN:}
     contract-version: ${RUNTIME_CONTRACT_VERSION:v1}
+    service-jwt:
+      enabled: ${RUNTIME_SERVICE_JWT_ENABLED:true}
+      java-private-key: ${RUNTIME_JAVA_PRIVATE_KEY:}
+      java-public-key: ${RUNTIME_JAVA_PUBLIC_KEY:}
+      java-kid: ${RUNTIME_JAVA_KID:}
+      python-public-key: ${RUNTIME_PYTHON_PUBLIC_KEY:}
   model:
     default-chat-model: qwen-plus
     default-embed-model: text-embedding-v4

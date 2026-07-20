@@ -22,19 +22,19 @@ public class UserController extends AuthenticatedControllerSupport {
     public UserController(UserAccountService accounts) { super(accounts); }
 
     @GetMapping
-    public ApiResponse<UserResponse> me(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        UserAccountService.UserRecord user = user(authorization);
+    public ApiResponse<UserResponse> me(jakarta.servlet.http.HttpServletRequest request) {
+        UserAccountService.UserRecord user = user(request);
         return ApiResponse.success(new UserResponse(user.userId(), user.username(), user.email(), user.nickname(), user.role(), user.status()), TraceContextHolder.currentOrNew());
     }
 
     @GetMapping("/profile")
-    public ApiResponse<UserAccountService.ProfileRecord> profile(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        return ApiResponse.success(accounts.profile(user(authorization).userId()), TraceContextHolder.currentOrNew());
+    public ApiResponse<UserAccountService.ProfileRecord> profile(jakarta.servlet.http.HttpServletRequest request) {
+        return ApiResponse.success(accounts.profile(user(request).userId()), TraceContextHolder.currentOrNew());
     }
 
     @PutMapping("/profile")
-    public ApiResponse<UserAccountService.ProfileRecord> updateProfile(@RequestHeader(value = "Authorization", required = false) String authorization, @Valid @RequestBody ProfileRequest request) {
-        var current = user(authorization);
+    public ApiResponse<UserAccountService.ProfileRecord> updateProfile(jakarta.servlet.http.HttpServletRequest servletRequest, @Valid @RequestBody ProfileRequest request) {
+        var current = user(servletRequest);
         return ApiResponse.success(accounts.updateProfile(current.userId(), new UserAccountService.ProfileUpdate(request.displayName(), request.gender(), request.heightCm(), request.weightKg(), request.activityLevel(), request.dietGoal(), request.calorieTarget(), request.proteinTarget())), TraceContextHolder.currentOrNew());
     }
 

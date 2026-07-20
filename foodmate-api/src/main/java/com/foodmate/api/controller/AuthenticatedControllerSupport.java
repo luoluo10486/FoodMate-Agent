@@ -10,15 +10,9 @@ abstract class AuthenticatedControllerSupport {
     protected final UserAccountService accounts;
     protected AuthenticatedControllerSupport(UserAccountService accounts) { this.accounts = accounts; }
 
-    protected UserAccountService.UserRecord user(String authorization) {
-        if (authorization == null || !authorization.startsWith("Bearer ")) throw new BusinessException(ErrorCode.AUTH_REQUIRED);
-        return accounts.requireUser(authorization.substring(7));
-    }
-
-    protected UserAccountService.UserRecord user(String authorization, HttpServletRequest request) {
-        if (authorization != null && authorization.startsWith("Bearer ")) return accounts.requireUser(authorization.substring(7));
+    protected UserAccountService.UserRecord user(HttpServletRequest request) {
         if (request.getCookies() != null) for (Cookie cookie : request.getCookies()) {
-            if ("foodmate_access".equals(cookie.getName())) return accounts.requireUser(cookie.getValue());
+            if ("foodmate_session".equals(cookie.getName())) return accounts.requireSessionUser(cookie.getValue());
         }
         throw new BusinessException(ErrorCode.AUTH_REQUIRED);
     }

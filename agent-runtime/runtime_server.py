@@ -5,12 +5,19 @@ import os
 import threading
 import urllib.error
 import urllib.request
+import base64
+import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 JAVA_CALLBACK_URL = os.getenv("JAVA_CALLBACK_URL", "http://localhost:8080")
-RUNTIME_TOKEN = os.getenv("FOODMATE_RUNTIME_TOKEN", "")
 CONTRACT_VERSION = os.getenv("FOODMATE_CONTRACT_VERSION", "v1")
+JWT_ENABLED = os.getenv("FOODMATE_SERVICE_JWT_ENABLED", "true").lower() == "true"
+PYTHON_PRIVATE_KEY = os.getenv("FOODMATE_PYTHON_PRIVATE_KEY", "")
+PYTHON_KID = os.getenv("FOODMATE_PYTHON_KID", "")
+JAVA_PUBLIC_KEY = os.getenv("FOODMATE_JAVA_PUBLIC_KEY", "")
 _cancelled: set[str] = set()
 _dispatches: dict[str, dict] = {}
 _lock = threading.Lock()
@@ -18,9 +25,44 @@ _lock = threading.Lock()
 
 def _headers():
     headers = {"Content-Type": "application/json", "X-Contract-Version": CONTRACT_VERSION}
-    if RUNTIME_TOKEN:
-        headers["X-Runtime-Token"] = RUNTIME_TOKEN
+    if JWT_ENABLED:
+        headers["Authorization"] = "Bearer " + _sign("foodmate-agent-runtime", "foodmate-control-plane", "runtime:event")
     return headers
+
+
+def _b64(value):
+    return base64.urlsafe_b64encode(value).decode("ascii").rstrip("=")
+
+
+def _decode(value):
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def _sign(issuer, audience, scope):
+    if not PYTHON_PRIVATE_KEY or not PYTHON_KID:
+        raise ValueError("Python service JWT signing key is not configured")
+    now = int(datetime.now(timezone.utc).timestamp())
+    header = _b64(json.dumps({"alg": "EdDSA", "typ": "JWT", "kid": PYTHON_KID}, separators=(",", ":")).encode())
+    payload = _b64(json.dumps({"iss": issuer, "sub": issuer, "aud": audience, "scope": scope, "iat": now, "exp": now + 60, "jti": str(uuid.uuid4())}, separators=(",", ":")).encode())
+    unsigned = f"{header}.{payload}".encode("ascii")
+    key = serialization.load_der_private_key(base64.b64decode(PYTHON_PRIVATE_KEY), password=None)
+    return unsigned.decode("ascii") + "." + _b64(key.sign(unsigned))
+
+
+def _verify(token, issuer, audience, scope):
+    if not JWT_ENABLED or not JAVA_PUBLIC_KEY:
+        return False
+    try:
+        header, payload, signature = token.split(".")
+        header_json = json.loads(_decode(header))
+        claims = json.loads(_decode(payload))
+        if header_json.get("alg") != "EdDSA" or not header_json.get("kid"):
+            return False
+        key = serialization.load_der_public_key(base64.b64decode(JAVA_PUBLIC_KEY))
+        key.verify(_decode(signature), f"{header}.{payload}".encode("ascii"))
+        return claims.get("iss") == issuer and claims.get("aud") == audience and scope in claims.get("scope", "").split() and claims.get("exp", 0) > int(datetime.now(timezone.utc).timestamp()) and bool(claims.get("jti"))
+    except Exception:
+        return False
 
 
 def emit(command, event_id, sequence, state, payload=None):
@@ -108,7 +150,11 @@ class Handler(BaseHTTPRequestHandler):
         self._json(202, {"accepted": True, "cancel_id": command["cancel_id"]})
 
     def _authenticated(self):
-        return not RUNTIME_TOKEN or self.headers.get("X-Runtime-Token") == RUNTIME_TOKEN
+        authorization = self.headers.get("Authorization", "")
+        if not authorization.startswith("Bearer "):
+            return False
+        required_scope = "runtime:dispatch" if self.path.endswith("dispatch") else "runtime:cancel"
+        return _verify(authorization[7:], "foodmate-control-plane", "foodmate-agent-runtime", required_scope)
 
     def _json(self, status, value):
         body = json.dumps(value).encode("utf-8")
@@ -124,4 +170,3 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     ThreadingHTTPServer(("127.0.0.1", int(os.getenv("PORT", "9000"))), Handler).serve_forever()
-

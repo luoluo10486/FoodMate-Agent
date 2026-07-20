@@ -3,16 +3,19 @@ import type { AuthUser, LoginFormValues } from '../mock/auth';
 
 export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'forbidden';
 
-type AuthResponse = { access_token: string; username: string; role: string; user_id: number };
 type ApiResponse<T> = { success: boolean; data: T; error?: { message: string } };
 const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-const tokenKey = 'foodmate.access-token';
 
-export function accessToken(): string | undefined {
-  return sessionStorage.getItem(tokenKey) ?? undefined;
+type AuthResponse = { username: string; role: string; user_id: number; session_expires_at: string };
+
+export function csrfToken(): string | undefined {
+  return document.cookie
+    .split('; ')
+    .find((value) => value.startsWith('foodmate_csrf='))
+    ?.split('=')[1];
 }
 export function getAuthStatus(): AuthStatus {
-  return accessToken() ? 'authenticated' : mockAuthStatus;
+  return import.meta.env.VITE_AGENT_MODE === 'real' ? 'anonymous' : mockAuthStatus;
 }
 export function getAuthUser(): AuthUser {
   return mockAuthUser;
@@ -34,7 +37,6 @@ export async function login(credentials: LoginFormValues): Promise<AuthUser> {
   });
   const body = (await response.json()) as ApiResponse<AuthResponse>;
   if (!response.ok || !body.success) throw new Error(body.error?.message ?? '登录失败');
-  sessionStorage.setItem(tokenKey, body.data.access_token);
   return {
     ...mockAuthUser,
     id: String(body.data.user_id),
@@ -45,12 +47,10 @@ export async function login(credentials: LoginFormValues): Promise<AuthUser> {
 }
 
 export async function logout(): Promise<void> {
-  const token = accessToken();
   if (import.meta.env.VITE_AGENT_MODE === 'real')
     await fetch(`${baseUrl}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {},
     });
-  sessionStorage.removeItem(tokenKey);
 }

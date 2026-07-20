@@ -31,14 +31,14 @@ public class ChatController {
     public ChatController(RuntimeGatewayService service, ObjectProvider<UserAccountService> accountProvider, ObjectProvider<IdGenerator> idProvider) { this.service = service; this.accounts = accountProvider.getIfAvailable(); this.ids = idProvider.getIfAvailable(); }
 
     @PostMapping("/runs")
-    public ApiResponse<ChatRunResponse> createRun(@RequestHeader(value = "Authorization", required = false) String authorization, @Valid @RequestBody ChatRunRequest request) {
-        boolean authenticated = accounts != null && authorization != null && authorization.startsWith("Bearer ") && ids != null;
+    public ApiResponse<ChatRunResponse> createRun(HttpServletRequest servletRequest, @Valid @RequestBody ChatRunRequest request) {
+        boolean authenticated = accounts != null && ids != null;
         String runId = authenticated ? Long.toString(ids.nextId()) : "run_" + UUID.randomUUID();
         String dispatchId = "dispatch_" + UUID.randomUUID();
         Long sessionId = null;
         Long userMessageId = null;
-        if (accounts != null && authorization != null && authorization.startsWith("Bearer ")) {
-            var user = accounts.requireUser(authorization.substring(7));
+        if (accounts != null) {
+            var user = new AuthenticatedControllerSupport(accounts) {}.user(servletRequest);
             sessionId = request.sessionId() == null || request.sessionId().isBlank()
                     ? accounts.createSession(user.userId(), request.prompt().substring(0, Math.min(80, request.prompt().length())), "agent").sessionId()
                     : parseSessionId(request.sessionId());
@@ -51,20 +51,20 @@ public class ChatController {
     }
 
     @GetMapping("/runs/{runId}")
-    public ApiResponse<RuntimeGatewayService.StatusResult> status(@PathVariable String runId, @RequestHeader(value = "Authorization", required = false) String authorization, HttpServletRequest request) {
-        requireOwner(runId, authorization, request);
+    public ApiResponse<RuntimeGatewayService.StatusResult> status(@PathVariable String runId, HttpServletRequest request) {
+        requireOwner(runId, request);
         return ApiResponse.success(service.status(runId), TraceContextHolder.currentOrNew());
     }
 
     @GetMapping("/runs/{runId}/events")
-    public ApiResponse<java.util.List<com.foodmate.shared.runtime.RunEvent>> events(@PathVariable String runId, @RequestHeader(value = "Authorization", required = false) String authorization, HttpServletRequest request) {
-        requireOwner(runId, authorization, request);
+    public ApiResponse<java.util.List<com.foodmate.shared.runtime.RunEvent>> events(@PathVariable String runId, HttpServletRequest request) {
+        requireOwner(runId, request);
         return ApiResponse.success(service.events(runId), TraceContextHolder.currentOrNew());
     }
 
     @PostMapping("/runs/{runId}/cancel")
-    public ApiResponse<RuntimeGatewayService.CommandResult> cancel(@PathVariable String runId, @RequestHeader(value = "Authorization", required = false) String authorization, HttpServletRequest request, @RequestBody(required = false) CancelRunRequest body) {
-        requireOwner(runId, authorization, request);
+    public ApiResponse<RuntimeGatewayService.CommandResult> cancel(@PathVariable String runId, HttpServletRequest request, @RequestBody(required = false) CancelRunRequest body) {
+        requireOwner(runId, request);
         String reason = body == null || body.reason() == null || body.reason().isBlank() ? "user_cancelled" : body.reason();
         return ApiResponse.success(service.cancel(new com.foodmate.shared.runtime.CancelCommand("cancel_" + UUID.randomUUID(), runId, reason, Instant.now().plusSeconds(30))), TraceContextHolder.currentOrNew());
     }
@@ -72,8 +72,8 @@ public class ChatController {
     public record ChatRunRequest(@NotBlank String prompt, String sessionId) {}
     public record CancelRunRequest(String reason) {}
     private static long parseSessionId(String value) { try { return Long.parseLong(value); } catch (NumberFormatException exception) { throw new IllegalArgumentException("sessionId must be a numeric session id"); } }
-    private void requireOwner(String runId, String authorization, HttpServletRequest request) {
-        if (accounts != null) service.requireRunOwner(runId, new AuthenticatedControllerSupport(accounts) {}.user(authorization, request).userId());
+    private void requireOwner(String runId, HttpServletRequest request) {
+        if (accounts != null) service.requireRunOwner(runId, new AuthenticatedControllerSupport(accounts) {}.user(request).userId());
     }
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record ChatRunResponse(String runId, String dispatchId, String status, boolean duplicate, Long sessionId, Long userMessageId) {}

@@ -23,29 +23,29 @@ public class SessionController extends AuthenticatedControllerSupport {
     public SessionController(UserAccountService accounts) { super(accounts); }
 
     @GetMapping
-    public ApiResponse<List<UserAccountService.SessionRecord>> list(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        return ApiResponse.success(accounts.listSessions(user(authorization).userId()), TraceContextHolder.currentOrNew());
+    public ApiResponse<List<UserAccountService.SessionRecord>> list(jakarta.servlet.http.HttpServletRequest request) {
+        return ApiResponse.success(accounts.listSessions(user(request).userId()), TraceContextHolder.currentOrNew());
     }
 
     @PostMapping
-    public ApiResponse<UserAccountService.SessionRecord> create(@RequestHeader(value = "Authorization", required = false) String authorization, @Valid @RequestBody SessionRequest request) {
-        return ApiResponse.success(accounts.createSession(user(authorization).userId(), request.title(), request.mode()), TraceContextHolder.currentOrNew());
+    public ApiResponse<UserAccountService.SessionRecord> create(jakarta.servlet.http.HttpServletRequest servletRequest, @Valid @RequestBody SessionRequest request) {
+        return ApiResponse.success(accounts.createSession(user(servletRequest).userId(), request.title(), request.mode()), TraceContextHolder.currentOrNew());
     }
 
     @DeleteMapping("/{sessionId}")
-    public ApiResponse<Void> archive(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable long sessionId) {
-        accounts.archiveSession(user(authorization).userId(), sessionId);
+    public ApiResponse<Void> archive(jakarta.servlet.http.HttpServletRequest request, @PathVariable long sessionId) {
+        accounts.archiveSession(user(request).userId(), sessionId);
         return ApiResponse.success(null, TraceContextHolder.currentOrNew());
     }
 
     @GetMapping("/{sessionId}/messages")
-    public ApiResponse<List<UserAccountService.MessageRecord>> messages(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable long sessionId) {
-        return ApiResponse.success(accounts.listMessages(user(authorization).userId(), sessionId), TraceContextHolder.currentOrNew());
+    public ApiResponse<List<UserAccountService.MessageRecord>> messages(jakarta.servlet.http.HttpServletRequest request, @PathVariable long sessionId) {
+        return ApiResponse.success(accounts.listMessages(user(request).userId(), sessionId), TraceContextHolder.currentOrNew());
     }
 
     @PostMapping("/{sessionId}/messages")
-    public ApiResponse<UserAccountService.MessageRecord> addMessage(@RequestHeader(value = "Authorization", required = false) String authorization, @PathVariable long sessionId, @Valid @RequestBody MessageRequest request) {
-        return ApiResponse.success(accounts.addMessage(user(authorization).userId(), sessionId, request.role(), request.content(), request.structuredPayload()), TraceContextHolder.currentOrNew());
+    public ApiResponse<UserAccountService.MessageRecord> addMessage(jakarta.servlet.http.HttpServletRequest servletRequest, @PathVariable long sessionId, @Valid @RequestBody MessageRequest request) {
+        return ApiResponse.success(accounts.addMessage(user(servletRequest).userId(), sessionId, request.role(), request.content(), request.structuredPayload()), TraceContextHolder.currentOrNew());
     }
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
