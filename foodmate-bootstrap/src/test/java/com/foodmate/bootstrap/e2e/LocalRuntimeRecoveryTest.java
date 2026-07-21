@@ -14,12 +14,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import com.foodmate.gateway.GatewayClient;
+import com.foodmate.shared.runtime.CancelCommand;
 
 /** Verifies that runtime status and canonical events survive a service restart. */
 @SpringBootTest
 @ActiveProfiles("local")
 @EnabledIfSystemProperty(named = "foodmate.local-e2e", matches = "true")
 class LocalRuntimeRecoveryTest {
+    @TestConfiguration
+    static class RuntimeTestConfiguration {
+        @Bean
+        GatewayClient gatewayClient() {
+            return new GatewayClient() {
+                public Response dispatch(RunCommand command) { return new Response(202, "{}"); }
+                public Response cancel(CancelCommand command) { return new Response(202, "{}"); }
+            };
+        }
+    }
+
     @Autowired RuntimeGatewayService runtime;
     @Autowired JdbcTemplate jdbc;
 

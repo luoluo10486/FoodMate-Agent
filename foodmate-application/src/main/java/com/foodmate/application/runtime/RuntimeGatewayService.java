@@ -46,7 +46,14 @@ public class RuntimeGatewayService {
         return thread;
     });
 
-    public RuntimeGatewayService() { this.jdbc = null; this.gatewayClient = null; this.accounts = null; }
+    public RuntimeGatewayService() {
+        this.jdbc = null;
+        this.gatewayClient = new GatewayClient() {
+            public Response dispatch(RunCommand command) { return new Response(202, "{}"); }
+            public Response cancel(CancelCommand command) { return new Response(202, "{}"); }
+        };
+        this.accounts = null;
+    }
 
     @Autowired
     public RuntimeGatewayService(ObjectProvider<JdbcTemplate> jdbcProvider, ObjectProvider<GatewayClient> gatewayProvider, ObjectProvider<UserAccountService> accountProvider) {
@@ -57,6 +64,7 @@ public class RuntimeGatewayService {
 
     public synchronized CommandResult dispatch(RunCommand command) {
         if (command.deadlineAt().isBefore(Instant.now())) throw new RuntimeException("RUNTIME_DEADLINE_EXCEEDED", "dispatch deadline exceeded");
+        requireRuntimeAvailable();
         String fingerprint = command.runId() + "|" + command.input() + "|" + command.deadlineAt() + "|" + command.attempt();
         CommandResult result;
         if (jdbc != null) {
@@ -75,6 +83,7 @@ public class RuntimeGatewayService {
 
     public synchronized CommandResult cancel(CancelCommand command) {
         if (command.deadlineAt().isBefore(Instant.now())) throw new RuntimeException("RUNTIME_DEADLINE_EXCEEDED", "cancel deadline exceeded");
+        requireRuntimeAvailable();
         String fingerprint = command.runId() + "|" + command.reason() + "|" + command.deadlineAt();
         if (jdbc != null) {
             CommandResult result = cancelJdbc(command, fingerprint);
@@ -181,6 +190,12 @@ public class RuntimeGatewayService {
     private void scheduleTimeout(RunCommand command) {
         long delay = Math.max(1, command.deadlineAt().toEpochMilli() - Instant.now().toEpochMilli());
         timeoutExecutor.schedule(() -> timeout(command), delay, TimeUnit.MILLISECONDS);
+    }
+
+    public void requireRuntimeAvailable() {
+        if (gatewayClient == null) {
+            throw new RuntimeException("RUNTIME_UNAVAILABLE", "runtime is not configured");
+        }
     }
 
     private void timeout(RunCommand command) {

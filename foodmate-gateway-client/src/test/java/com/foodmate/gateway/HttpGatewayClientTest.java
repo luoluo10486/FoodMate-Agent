@@ -17,6 +17,12 @@ import java.util.Base64;
 import org.junit.jupiter.api.Test;
 
 class HttpGatewayClientTest {
+    @Test void missingSigningKeyFailsAsRuntimeUnavailable() {
+        var client = new HttpGatewayClient(URI.create("http://localhost:1"), Duration.ofSeconds(2), HttpClient.newHttpClient(), new ObjectMapper());
+        var command = new RunCommand("d1", "r1", "hello", Instant.now().plusSeconds(5), 1);
+        assertEquals("RUNTIME_UNAVAILABLE", assertThrows(RuntimeException.class, () -> client.dispatch(command)).code());
+    }
+
     @Test void dispatchPostsToGatewayAndMapsErrors() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/internal/runtime/runs:dispatch", e -> { e.sendResponseHeaders(429, 0); e.getResponseBody().close(); });

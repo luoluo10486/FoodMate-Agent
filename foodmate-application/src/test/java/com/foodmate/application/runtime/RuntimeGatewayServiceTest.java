@@ -19,6 +19,33 @@ class RuntimeGatewayServiceTest {
         assertEquals("RUNTIME_DISPATCH_IDEMPOTENCY_CONFLICT", assertThrows(RuntimeGatewayService.IdempotencyConflict.class, () -> service.dispatch(changed)).getMessage());
     }
 
+    @Test void configuredDataStoreWithoutRuntimeFailsBeforeWriting() {
+        var service = new RuntimeGatewayService(
+                new org.springframework.beans.factory.ObjectProvider<org.springframework.jdbc.core.JdbcTemplate>() {
+                    public org.springframework.jdbc.core.JdbcTemplate getObject(Object... args) { return null; }
+                    public org.springframework.jdbc.core.JdbcTemplate getIfAvailable() { return new org.springframework.jdbc.core.JdbcTemplate(); }
+                    public org.springframework.jdbc.core.JdbcTemplate getIfUnique() { return null; }
+                    public java.util.stream.Stream<org.springframework.jdbc.core.JdbcTemplate> orderedStream() { return java.util.stream.Stream.empty(); }
+                    public java.util.stream.Stream<org.springframework.jdbc.core.JdbcTemplate> stream() { return java.util.stream.Stream.empty(); }
+                },
+                new org.springframework.beans.factory.ObjectProvider<com.foodmate.gateway.GatewayClient>() {
+                    public com.foodmate.gateway.GatewayClient getObject(Object... args) { return null; }
+                    public com.foodmate.gateway.GatewayClient getIfAvailable() { return null; }
+                    public com.foodmate.gateway.GatewayClient getIfUnique() { return null; }
+                    public java.util.stream.Stream<com.foodmate.gateway.GatewayClient> orderedStream() { return java.util.stream.Stream.empty(); }
+                    public java.util.stream.Stream<com.foodmate.gateway.GatewayClient> stream() { return java.util.stream.Stream.empty(); }
+                },
+                new org.springframework.beans.factory.ObjectProvider<com.foodmate.application.account.UserAccountService>() {
+                    public com.foodmate.application.account.UserAccountService getObject(Object... args) { return null; }
+                    public com.foodmate.application.account.UserAccountService getIfAvailable() { return null; }
+                    public com.foodmate.application.account.UserAccountService getIfUnique() { return null; }
+                    public java.util.stream.Stream<com.foodmate.application.account.UserAccountService> orderedStream() { return java.util.stream.Stream.empty(); }
+                    public java.util.stream.Stream<com.foodmate.application.account.UserAccountService> stream() { return java.util.stream.Stream.empty(); }
+                });
+        assertEquals("RUNTIME_UNAVAILABLE", assertThrows(com.foodmate.shared.runtime.RuntimeException.class,
+                () -> service.dispatch(new RunCommand("d-missing", "r-missing", "hello", Instant.now().plusSeconds(30), 1))).code());
+    }
+
     @Test void eventsDriveRunStateAndRejectIllegalOrder() {
         var service = new RuntimeGatewayService();
         var deadline = Instant.now().plusSeconds(30);

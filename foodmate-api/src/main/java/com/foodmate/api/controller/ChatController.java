@@ -32,6 +32,7 @@ public class ChatController {
 
     @PostMapping("/runs")
     public ApiResponse<ChatRunResponse> createRun(HttpServletRequest servletRequest, @Valid @RequestBody ChatRunRequest request) {
+        service.requireRuntimeAvailable();
         boolean authenticated = accounts != null && ids != null;
         String runId = authenticated ? Long.toString(ids.nextId()) : "run_" + UUID.randomUUID();
         String dispatchId = "dispatch_" + UUID.randomUUID();

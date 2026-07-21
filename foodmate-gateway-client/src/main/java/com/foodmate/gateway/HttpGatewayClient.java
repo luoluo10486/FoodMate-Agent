@@ -20,7 +20,7 @@ public final class HttpGatewayClient implements GatewayClient {
     private Response send(String path, Object body, String operation) {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(base.resolve(path)).timeout(timeout).header("Content-Type", "application/json").header("X-Contract-Version", contractVersion);
-            if (privateKey.isBlank() || kid.isBlank()) throw new RuntimeException("RUNTIME_AUTH_INVALID", "service JWT signing key is not configured");
+            if (privateKey.isBlank() || kid.isBlank()) throw new RuntimeException("RUNTIME_UNAVAILABLE", "runtime service JWT is not configured");
             String scope = "dispatch".equals(operation) ? "runtime:dispatch" : "runtime:cancel";
             builder.header("Authorization", "Bearer " + ServiceJwt.sign(privateKey, "foodmate-control-plane", "foodmate-agent-runtime", scope, kid, 60));
             HttpRequest request = builder.POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
