@@ -5,6 +5,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.ArgumentMatchers.eq;
 
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.shared.error.BusinessException;
@@ -23,7 +24,7 @@ class CsrfProtectionMatrixTest {
         MockHttpServletRequest request = request("POST", "https://app.example.test", "https://app.example.test", "csrf-token");
         request.setCookies(new jakarta.servlet.http.Cookie("foodmate_session", "session-token"));
         new CsrfProtectionFilter(provider(service)).doFilter(request, new MockHttpServletResponse(), chain);
-        verify(chain).doFilter(request, org.mockito.ArgumentMatchers.any());
+        verify(chain).doFilter(eq(request), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -70,7 +71,7 @@ class CsrfProtectionMatrixTest {
         FilterChain chain = mock(FilterChain.class);
         MockHttpServletRequest request = request("GET", "https://app.example.test", "https://evil.example.test", null);
         new CsrfProtectionFilter(provider(service)).doFilter(request, new MockHttpServletResponse(), chain);
-        verify(chain).doFilter(request, org.mockito.ArgumentMatchers.any());
+        verify(chain).doFilter(eq(request), org.mockito.ArgumentMatchers.any());
         verifyNoInteractions(service);
     }
 

@@ -193,7 +193,7 @@ public class RuntimeGatewayService {
     }
 
     public void requireRuntimeAvailable() {
-        if (gatewayClient == null) {
+        if (jdbc != null && gatewayClient == null) {
             throw new RuntimeException("RUNTIME_UNAVAILABLE", "runtime is not configured");
         }
     }
