@@ -246,7 +246,7 @@ public class RuntimeGatewayService {
                     || (previous == RunEvent.State.RUNNING && !terminal(event.state()))) throw new RuntimeException("RUNTIME_STATE_CONFLICT", "invalid state transition");
         }
         jdbc.update("INSERT INTO runtime_event_inbox(run_id,event_id,event_seq,event_fingerprint,state,payload_json,occurred_at) VALUES (?,?,?,?,?,CAST(? AS jsonb),?)",
-                event.runId(), event.eventId(), event.eventSeq(), fingerprint, event.state().name(), payloadJson(event.payload()), event.occurredAt());
+                event.runId(), event.eventId(), event.eventSeq(), fingerprint, event.state().name(), payloadJson(event.payload()), java.sql.Timestamp.from(event.occurredAt()));
         jdbc.update("UPDATE runtime_runs SET status=?,updated_at=CURRENT_TIMESTAMP WHERE run_id=?", event.state().name(), event.runId());
         updateAgentStatus(event.runId(), toAgentStatus(event.state()), event.payload());
         publish(event);
