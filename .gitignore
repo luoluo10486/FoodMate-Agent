@@ -5,6 +5,9 @@ target/
 *.log
 *.tmp
 *.tsbuildinfo
+.env
+.env.*
+!.env.example
 
 .idea/
 .vscode/

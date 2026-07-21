@@ -1,11 +1,28 @@
 spring:
   application:
     name: foodmate
+  config:
+    # Load local secrets without requiring every developer to export shell variables.
+    import: optional:file:.env[.properties]
   profiles:
     default: local-stub
   jackson:
     time-zone: UTC
     default-property-inclusion: non_null
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    protocol: ${MAIL_PROTOCOL:smtps}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          ssl:
+            enable: ${MAIL_SMTP_SSL_ENABLE:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
 
 server:
   port: 8080
