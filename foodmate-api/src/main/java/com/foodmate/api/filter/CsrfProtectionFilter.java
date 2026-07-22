@@ -21,7 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class CsrfProtectionFilter extends OncePerRequestFilter {
     private static final Set<String> SAFE_METHODS = Set.of(HttpMethod.GET.name(), HttpMethod.HEAD.name(), HttpMethod.OPTIONS.name(), HttpMethod.TRACE.name());
-    private static final Set<String> PUBLIC_PATHS = Set.of("/api/auth/login", "/api/auth/register");
+    private static final Set<String> PUBLIC_PATHS = Set.of("/api/auth/login", "/api/auth/register", "/api/auth/password-reset/request", "/api/auth/password-reset/confirm");
     private final ObjectProvider<UserAccountService> accounts;
     private final ObjectMapper objectMapper = new ObjectMapper();
 

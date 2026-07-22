@@ -38,6 +38,11 @@ management:
         enabled: true
 
 foodmate:
+  storage:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+    bucket: ${MINIO_BUCKET:foodmate-private}
   security:
     cookie-secure: ${FOODMATE_COOKIE_SECURE:true}
   runtime:

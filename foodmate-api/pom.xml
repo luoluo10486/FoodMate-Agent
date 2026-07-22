@@ -15,6 +15,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-mail</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.foodmate</groupId>
       <artifactId>foodmate-application</artifactId>
       <version>${project.version}</version>
@@ -39,4 +43,3 @@
     </dependency>
   </dependencies>
 </project>
-

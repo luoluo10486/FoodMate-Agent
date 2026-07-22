@@ -1,5 +1,14 @@
 # FoodMate 数据库变更说明
 
+## V2__m1_account_and_privacy.sql（待人工执行）
+
+- 变更角色约束，加入 `superadmin`。
+- 增加密码重置令牌、个人数据导出任务和账号注销清理任务表；只保存哈希、对象键和任务元数据，不保存明文凭据或文件二进制。
+- 调整头像对象元数据，使私有 MinIO 签名 URL 不需要持久化。
+- 增加认证会话按用户和有效状态查询索引。
+- 执行前必须完成 `BACKUP_AND_ROLLBACK.md` 中的备份和恢复演练；执行后运行 `validation/V2__m1_account_and_privacy_validation.sql` 并填写 `EXECUTION_RECORD.md`。
+- Flyway 保持关闭；本脚本不得由应用启动自动执行。
+
 ## V1 基线
 
 - 脚本：`baseline/V1__init_core_schema.sql`

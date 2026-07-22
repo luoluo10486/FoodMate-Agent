@@ -15,9 +15,14 @@ export function csrfToken(): string | undefined {
     ?.split('=')[1];
 }
 export function getAuthStatus(): AuthStatus {
-  return import.meta.env.VITE_AGENT_MODE === 'real' ? 'anonymous' : mockAuthStatus;
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthStatus;
+  return localStorage.getItem('foodmate_auth_user') ? 'authenticated' : 'anonymous';
 }
 export function getAuthUser(): AuthUser {
+  if (import.meta.env.VITE_AGENT_MODE === 'real') {
+    const saved = localStorage.getItem('foodmate_auth_user');
+    if (saved) return JSON.parse(saved) as AuthUser;
+  }
   return mockAuthUser;
 }
 export function getLoginDefaults(): LoginFormValues {
@@ -37,13 +42,15 @@ export async function login(credentials: LoginFormValues): Promise<AuthUser> {
   });
   const body = (await response.json()) as ApiResponse<AuthResponse>;
   if (!response.ok || !body.success) throw new Error(body.error?.message ?? '登录失败');
-  return {
+  const user = {
     ...mockAuthUser,
     id: String(body.data.user_id),
     username: body.data.username,
     displayName: body.data.username,
     role: body.data.role as AuthUser['role'],
   };
+  localStorage.setItem('foodmate_auth_user', JSON.stringify(user));
+  return user;
 }
 
 export async function logout(): Promise<void> {
@@ -53,4 +60,17 @@ export async function logout(): Promise<void> {
       credentials: 'include',
       headers: csrfToken() ? { 'X-CSRF-Token': csrfToken()! } : {},
     });
+  localStorage.removeItem('foodmate_auth_user');
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const response = await fetch(`${baseUrl}/api/auth/password-reset/request`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+  const body = (await response.json()) as ApiResponse<unknown>;
+  if (!response.ok || !body.success) throw new Error(body.error?.message ?? '密码重置请求失败');
+}
+
+export async function confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+  const response = await fetch(`${baseUrl}/api/auth/password-reset/confirm`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, new_password: newPassword }) });
+  const body = (await response.json()) as ApiResponse<unknown>;
+  if (!response.ok || !body.success) throw new Error(body.error?.message ?? '密码重置失败');
 }

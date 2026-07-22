@@ -8,6 +8,7 @@ target/
 .env
 .env.*
 !.env.example
+script/sql/FoodMate/backups/*.dump
 
 .idea/
 .vscode/

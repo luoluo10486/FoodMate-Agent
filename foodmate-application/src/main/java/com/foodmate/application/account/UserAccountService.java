@@ -91,6 +91,54 @@ public class UserAccountService {
 
     public synchronized void logout(String sessionToken) { if (sessionToken != null && !sessionToken.isBlank()) revokeSession(sha256(sessionToken)); }
 
+    public synchronized void changePassword(long userId, String currentPassword, String newPassword) {
+        validatePassword(newPassword);
+        UserRecord user = getUser(userId).orElseThrow(UserAccountService::authRequired);
+        if (!verifyPassword(currentPassword, user.passwordHash())) throw invalidCredentials();
+        if (jdbc != null) {
+            jdbc.update("UPDATE users SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", hashPassword(newPassword), userId);
+            jdbc.update("UPDATE user_auth_sessions SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND revoked_at IS NULL", userId);
+        } else {
+            users.put(userId, new UserRecord(user.userId(), user.username(), user.email(), hashPassword(newPassword), user.nickname(), user.role(), user.status()));
+            authSessions.replaceAll((key, value) -> value.userId() == userId ? new AuthSessionRecord(value.userId(), value.sessionTokenHash(), value.csrfTokenHash(), value.expiresAt(), Instant.now()) : value);
+        }
+    }
+
+    public synchronized List<AuthSessionView> listAuthSessions(long userId) {
+        if (jdbc != null) return jdbc.query("SELECT auth_session_id,device_id,user_agent,ip_address,expires_at,last_seen_at,created_at,revoked_at FROM user_auth_sessions WHERE user_id=? AND is_deleted=FALSE ORDER BY last_seen_at DESC", (rs, row) -> new AuthSessionView(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getTimestamp(5).toInstant(), rs.getTimestamp(6).toInstant(), rs.getTimestamp(7).toInstant(), rs.getTimestamp(8) == null ? null : rs.getTimestamp(8).toInstant()), userId);
+        return authSessions.values().stream().filter(s -> s.userId() == userId).map(s -> new AuthSessionView(0, null, null, null, s.expiresAt(), null, null, s.revokedAt())).toList();
+    }
+
+    public synchronized void revokeAuthSession(long userId, long authSessionId) {
+        if (jdbc != null) jdbc.update("UPDATE user_auth_sessions SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE auth_session_id=? AND user_id=? AND revoked_at IS NULL", authSessionId, userId);
+    }
+
+    public synchronized void revokeAllAuthSessions(long userId) {
+        if (jdbc != null) jdbc.update("UPDATE user_auth_sessions SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND revoked_at IS NULL", userId);
+        else authSessions.replaceAll((key, value) -> value.userId() == userId ? new AuthSessionRecord(value.userId(), value.sessionTokenHash(), value.csrfTokenHash(), value.expiresAt(), Instant.now()) : value);
+    }
+
+    public synchronized String createPasswordResetToken(String email) {
+        UserRecord user = findUser(email).orElse(null);
+        String raw = randomToken();
+        if (user != null && jdbc != null) {
+            jdbc.update("UPDATE password_reset_tokens SET used_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND used_at IS NULL", user.userId());
+            jdbc.update("INSERT INTO password_reset_tokens(password_reset_token_id,user_id,token_hash,expires_at,created_by) VALUES (?,?,?,?,?)", ids.nextId(), user.userId(), sha256(raw), java.sql.Timestamp.from(Instant.now().plusSeconds(900)), user.userId());
+        }
+        return raw;
+    }
+
+    public synchronized void resetPassword(String token, String newPassword) {
+        validatePassword(newPassword);
+        if (jdbc == null) throw notFound("password reset is unavailable");
+        String hash = sha256(token);
+        Long userId = jdbc.query("SELECT user_id FROM password_reset_tokens WHERE token_hash=? AND used_at IS NULL AND is_deleted=FALSE AND expires_at>CURRENT_TIMESTAMP", rs -> rs.next() ? rs.getLong(1) : null, hash);
+        if (userId == null) throw notFound("invalid or expired reset token");
+        jdbc.update("UPDATE users SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", hashPassword(newPassword), userId);
+        jdbc.update("UPDATE password_reset_tokens SET used_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE token_hash=?", hash);
+        revokeAllAuthSessions(userId);
+    }
+
     public synchronized UserRecord requireSessionUser(String sessionToken) {
         if (sessionToken == null || sessionToken.isBlank()) throw authRequired();
         String hash = sha256(sessionToken);
@@ -224,6 +272,8 @@ public class UserAccountService {
 
     public record AuthResult(long userId, String username, String role, String sessionToken, String csrfToken, Instant expiresAt) {}
     public record SessionMetadata(String userAgent, String ipAddress) { public static final SessionMetadata EMPTY = new SessionMetadata(null, null); }
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record AuthSessionView(long authSessionId, String deviceId, String userAgent, String ipAddress, Instant expiresAt, Instant lastSeenAt, Instant createdAt, Instant revokedAt) {}
     public record UserRecord(long userId, String username, String email, String passwordHash, String nickname, String role, String status) {}
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record ProfileRecord(long userId, String displayName, String gender, java.time.LocalDate birthday, java.math.BigDecimal heightCm, java.math.BigDecimal weightKg, String activityLevel, String dietGoal, Integer calorieTarget, Integer proteinTarget, String allergens, String dislikes, String preferredUnits) { ProfileRecord with(ProfileUpdate update) { return new ProfileRecord(userId, update.displayName() == null ? displayName : update.displayName(), update.gender() == null ? gender : update.gender(), birthday, update.heightCm() == null ? heightCm : update.heightCm(), update.weightKg() == null ? weightKg : update.weightKg(), update.activityLevel() == null ? activityLevel : update.activityLevel(), update.dietGoal() == null ? dietGoal : update.dietGoal(), update.calorieTarget() == null ? calorieTarget : update.calorieTarget(), update.proteinTarget() == null ? proteinTarget : update.proteinTarget(), allergens, dislikes, preferredUnits); } }
