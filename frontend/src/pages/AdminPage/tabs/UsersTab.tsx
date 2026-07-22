@@ -1,6 +1,6 @@
 import { Button, Card, Table, Tag } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, AdminOnlyNotice, OperationAuditCard } from './AdminComponents';
 import {
@@ -13,9 +13,13 @@ import {
   statusTag,
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
+import { loadAdminUsers } from '../../../services/adminService';
 
 export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
-  const [selectedUser, setSelectedUser] = useState<UserRow>(adminUserRows[1]);
+  const [selectedUser, setSelectedUser] = useState<UserRow | undefined>(import.meta.env.VITE_AGENT_MODE === 'real' ? undefined : adminUserRows[1]);
+  const [users, setUsers] = useState<UserRow[]>(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminUserRows);
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => { loadAdminUsers().then((items) => { setUsers(items as UserRow[]); setSelectedUser((items[0] ?? adminUserRows[1]) as UserRow); }).catch((error) => { setUsers([]); setLoadError(error instanceof Error ? error.message : '用户列表加载失败'); }); }, []);
 
   if (!canManage) return <AdminOnlyNotice title="无权访问用户管理" />;
 
@@ -97,6 +101,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
   return (
     <>
       <AdminFilters placeholder="username / userId / email" />
+      {loadError ? <Tag color="red">{loadError}</Tag> : null}
       <section className={styles.sectionLayout}>
         <Card className={styles.wideCard} bordered={false}>
           <div className={styles.cardHead}>
@@ -105,13 +110,13 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
           </div>
           <Table
             columns={userColumns}
-            data={adminUserRows}
-            pagination={{ pageSize: 5, total: adminUserRows.length }}
+            data={users}
+            pagination={{ pageSize: 5, total: users.length }}
             size="small"
           />
         </Card>
         <aside className={styles.side}>
-          <UserDetailCard user={selectedUser} />
+          {selectedUser ? <UserDetailCard user={selectedUser} /> : <Card className={styles.card} bordered={false}>暂无用户详情</Card>}
         </aside>
       </section>
       <OperationAuditCard />

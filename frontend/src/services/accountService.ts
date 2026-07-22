@@ -26,4 +26,6 @@ export const revokeAllAuthSessions = () => api<void>('/api/users/me/sessions/rev
 export const uploadAvatar = (file: File) => { const form = new FormData(); form.append('file', file); return api<{ storage_key: string }>('/api/users/me/avatar', { method: 'POST', body: form }); };
 export const deleteAvatar = () => api<void>('/api/users/me/avatar', { method: 'DELETE' });
 export const requestDataExport = () => api<{ export_job_id: number }>('/api/users/me/export', { method: 'POST' });
-export const requestAccountDeletion = (confirmation: string) => api<{ deletion_job_id: number }>('/api/users/me/deletion', { method: 'POST', body: JSON.stringify({ confirmation }) });
+export const getDataExport = (id: number) => api<{ export_job_id: number; status: string; expires_at?: string; completed_at?: string; download_consumed_at?: string; failure_code?: string }>(`/api/users/me/export/${id}`);
+export const downloadDataExport = (id: number) => api<{ download_url: string }>(`/api/users/me/export/${id}/download`, { method: 'POST' });
+export const requestAccountDeletion = (confirmation: string, currentPassword: string) => api<{ deletion_job_id: number }>('/api/users/me/deletion', { method: 'POST', body: JSON.stringify({ confirmation, current_password: currentPassword }) });

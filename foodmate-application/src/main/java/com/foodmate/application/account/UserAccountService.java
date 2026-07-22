@@ -104,6 +104,11 @@ public class UserAccountService {
         }
     }
 
+    public synchronized void requireCurrentPassword(long userId, String currentPassword) {
+        UserRecord user = getUser(userId).orElseThrow(UserAccountService::authRequired);
+        if (!verifyPassword(currentPassword, user.passwordHash())) throw invalidCredentials();
+    }
+
     public synchronized List<AuthSessionView> listAuthSessions(long userId) {
         if (jdbc != null) return jdbc.query("SELECT auth_session_id,device_id,user_agent,ip_address,expires_at,last_seen_at,created_at,revoked_at FROM user_auth_sessions WHERE user_id=? AND is_deleted=FALSE ORDER BY last_seen_at DESC", (rs, row) -> new AuthSessionView(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getTimestamp(5).toInstant(), rs.getTimestamp(6).toInstant(), rs.getTimestamp(7).toInstant(), rs.getTimestamp(8) == null ? null : rs.getTimestamp(8).toInstant()), userId);
         return authSessions.values().stream().filter(s -> s.userId() == userId).map(s -> new AuthSessionView(0, null, null, null, s.expiresAt(), null, null, s.revokedAt())).toList();

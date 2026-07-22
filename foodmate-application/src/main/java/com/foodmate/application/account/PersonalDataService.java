@@ -3,6 +3,8 @@ package com.foodmate.application.account;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.http.Method;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 
 @Service
 public class PersonalDataService {
@@ -58,10 +62,29 @@ public class PersonalDataService {
     }
 
     public long requestDeletion(long userId) {
+        Integer existing = jdbc.queryForObject("SELECT COUNT(*) FROM account_deletion_jobs WHERE user_id=? AND is_deleted=FALSE AND status IN ('queued','running')", Integer.class, userId);
+        if (existing != null && existing > 0) throw new BusinessException(ErrorCode.CONFLICT, "account deletion already requested");
         long id = ids.nextId();
         jdbc.update("INSERT INTO account_deletion_jobs(deletion_job_id,user_id,status,created_by) VALUES (?,?, 'queued', ?)", id, userId, userId);
+        jdbc.update("UPDATE users SET status='disabled',updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
         jdbc.update("UPDATE user_auth_sessions SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND revoked_at IS NULL", userId);
         return id;
+    }
+
+    public ExportJob exportJob(long userId, long jobId) {
+        if (jdbc == null) throw new IllegalStateException("export unavailable");
+        ExportJob job = jdbc.query("SELECT export_job_id,status,expires_at,completed_at,download_consumed_at,failure_code FROM data_export_jobs WHERE export_job_id=? AND user_id=? AND is_deleted=FALSE", rs -> rs.next() ? new ExportJob(rs.getLong(1), rs.getString(2), rs.getTimestamp(3) == null ? null : rs.getTimestamp(3).toInstant(), rs.getTimestamp(4) == null ? null : rs.getTimestamp(4).toInstant(), rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant(), rs.getString(6)) : null, jobId, userId);
+        if (job == null) throw new BusinessException(ErrorCode.NOT_FOUND, "export job not found");
+        return job;
+    }
+
+    public String consumeExport(long userId, long jobId) {
+        if (jdbc == null || minio == null) throw new IllegalStateException("export unavailable");
+        int updated = jdbc.update("UPDATE data_export_jobs SET download_consumed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE export_job_id=? AND user_id=? AND status='completed' AND download_consumed_at IS NULL AND expires_at>CURRENT_TIMESTAMP", jobId, userId);
+        if (updated != 1) throw new BusinessException(ErrorCode.CONFLICT, "export is unavailable, expired, or already consumed");
+        String key = jdbc.queryForObject("SELECT object_key FROM data_export_jobs WHERE export_job_id=?", String.class, jobId);
+        try { return minio.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().method(Method.GET).bucket(bucket).object(key).expiry(600).build()); }
+        catch (Exception e) { throw new IllegalStateException("download link unavailable", e); }
     }
 
     @org.springframework.scheduling.annotation.Scheduled(fixedDelayString = "${foodmate.account.jobs-delay-ms:30000}")
@@ -90,13 +113,23 @@ public class PersonalDataService {
         Long userId = jdbc.queryForObject("SELECT user_id FROM account_deletion_jobs WHERE deletion_job_id=?", Long.class, jobId);
         jdbc.update("UPDATE account_deletion_jobs SET status='running',started_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE deletion_job_id=?", jobId);
         try {
+            List<String> objectKeys = jdbc.query("SELECT storage_key FROM user_avatar_assets WHERE user_id=? AND storage_key IS NOT NULL AND is_deleted=FALSE", (rs, row) -> rs.getString(1), userId);
+            objectKeys.addAll(jdbc.query("SELECT object_key FROM data_export_jobs WHERE user_id=? AND object_key IS NOT NULL AND is_deleted=FALSE", (rs, row) -> rs.getString(1), userId));
+            long deletedObjects = 0;
+            for (String key : objectKeys) {
+                try { minio.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(key).build()); deletedObjects++; }
+                catch (Exception ignored) { }
+            }
             jdbc.update("UPDATE users SET status='disabled',is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
             jdbc.update("UPDATE user_profiles SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
             jdbc.update("UPDATE sessions SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
             jdbc.update("UPDATE messages SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE created_by=?", userId);
-            jdbc.update("UPDATE account_deletion_jobs SET status='completed',completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE deletion_job_id=?", jobId);
+            jdbc.update("UPDATE user_avatar_assets SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
+            jdbc.update("UPDATE data_export_jobs SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
+            jdbc.update("UPDATE account_deletion_jobs SET status='completed',deleted_object_count=?,completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE deletion_job_id=?", deletedObjects, jobId);
         } catch (Exception e) { jdbc.update("UPDATE account_deletion_jobs SET status='failed',failure_code='DELETION_FAILED',retry_count=retry_count+1,updated_at=CURRENT_TIMESTAMP WHERE deletion_job_id=?", jobId); }
     }
 
     public record Avatar(long avatarAssetId, String storageKey, String mimeType, long sizeBytes) {}
+    public record ExportJob(long exportJobId, String status, Instant expiresAt, Instant completedAt, Instant downloadConsumedAt, String failureCode) {}
 }

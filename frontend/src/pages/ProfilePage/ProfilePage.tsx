@@ -3,7 +3,8 @@ import type { ChangeEvent } from 'react';
 import { Button, Card, Form, Input, InputNumber, Message, Modal, Select, Tag } from '@arco-design/web-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { getAuthUser } from '../../services/authService';
-import { changePassword, deleteAvatar, updateProfile, uploadAvatar } from '../../services/accountService';
+import { changePassword, deleteAvatar, updateProfile, uploadAvatar, requestDataExport, getDataExport, downloadDataExport, requestAccountDeletion } from '../../services/accountService';
+import { logout } from '../../services/authService';
 import styles from './ProfilePage.module.css';
 
 const Option = Select.Option;
@@ -17,6 +18,11 @@ export function ProfilePage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [passwordValues, setPasswordValues] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [saved, setSaved] = useState(false);
+  const [exportJobId, setExportJobId] = useState<number>();
+  const [exportStatus, setExportStatus] = useState('');
+  const [deletionVisible, setDeletionVisible] = useState(false);
+  const [deletionPassword, setDeletionPassword] = useState('');
+  const [deletionConfirmation, setDeletionConfirmation] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(
@@ -77,6 +83,29 @@ export function ProfilePage() {
     const finish = () => { setPasswordVisible(false); setPasswordValues({ oldPassword: '', newPassword: '', confirmPassword: '' }); Message.success('密码已修改，其他会话已撤销'); };
     if (import.meta.env.VITE_AGENT_MODE === 'real') changePassword(passwordValues.oldPassword, passwordValues.newPassword).then(finish).catch((error) => Message.error(error instanceof Error ? error.message : '密码修改失败'));
     else finish();
+  };
+
+  const handleExport = async () => {
+    if (import.meta.env.VITE_AGENT_MODE !== 'real') { Message.info('导出仅在真实模式可用'); return; }
+    try {
+      const created = await requestDataExport(); setExportJobId(created.export_job_id); setExportStatus('queued');
+      const poll = window.setInterval(async () => {
+        try { const job = await getDataExport(created.export_job_id); setExportStatus(job.status); if (job.status === 'completed' || job.status === 'failed') window.clearInterval(poll); } catch { window.clearInterval(poll); setExportStatus('failed'); }
+      }, 2000);
+      window.setTimeout(() => window.clearInterval(poll), 120000);
+    } catch (error) { Message.error(error instanceof Error ? error.message : '导出请求失败'); }
+  };
+
+  const handleDownload = async () => {
+    if (!exportJobId) return;
+    try { const result = await downloadDataExport(exportJobId); window.open(result.download_url, '_blank', 'noopener,noreferrer'); setExportStatus('downloaded'); }
+    catch (error) { Message.error(error instanceof Error ? error.message : '下载链接不可用'); }
+  };
+
+  const handleDeletion = async () => {
+    if (deletionConfirmation !== 'DELETE_MY_ACCOUNT' || !deletionPassword) { Message.warning('请输入当前密码和 DELETE_MY_ACCOUNT'); return; }
+    try { await requestAccountDeletion(deletionConfirmation, deletionPassword); await logout(); window.location.href = '/login'; }
+    catch (error) { Message.error(error instanceof Error ? error.message : '注销请求失败'); }
   };
 
   return (
@@ -241,6 +270,18 @@ export function ProfilePage() {
                 </div>
               </Form>
             </Card>
+            <Card className={styles.card} bordered={false}>
+              <div className={styles.cardHead}><strong>个人数据</strong><Tag color="arcoblue">一次性下载</Tag></div>
+              <div className={styles.actions}>
+                <Button onClick={handleExport}>创建数据导出</Button>
+                {exportJobId && <Button disabled={exportStatus !== 'completed'} type="primary" onClick={handleDownload}>下载导出文件</Button>}
+                {exportStatus && <Tag color={exportStatus === 'completed' ? 'green' : 'orange'}>{exportStatus}</Tag>}
+              </div>
+            </Card>
+            <Card className={styles.card} bordered={false}>
+              <div className={styles.cardHead}><strong>注销账号</strong><Tag color="red">不可撤销</Tag></div>
+              <Button status="danger" onClick={() => setDeletionVisible(true)}>申请注销</Button>
+            </Card>
           </main>
         </section>
       </div>
@@ -272,6 +313,11 @@ export function ProfilePage() {
             onChange={(value) => setPasswordValues((current) => ({ ...current, confirmPassword: value }))}
           />
         </div>
+      </Modal>
+      <Modal title="确认注销账号" visible={deletionVisible} okText="提交注销" cancelText="取消" onCancel={() => setDeletionVisible(false)} onOk={handleDeletion}>
+        <p>注销会立即禁用账号并撤销全部会话，后台异步清理数据和头像。请输入当前密码及确认语。</p>
+        <Input.Password placeholder="当前密码" value={deletionPassword} onChange={setDeletionPassword} />
+        <Input placeholder="DELETE_MY_ACCOUNT" value={deletionConfirmation} onChange={setDeletionConfirmation} style={{ marginTop: 12 }} />
       </Modal>
     </WorkspaceLayout>
   );

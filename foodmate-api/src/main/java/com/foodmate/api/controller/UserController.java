@@ -78,13 +78,19 @@ public class UserController extends AuthenticatedControllerSupport {
     @PostMapping("/export")
     public ApiResponse<java.util.Map<String, Long>> export(jakarta.servlet.http.HttpServletRequest request) { if (personal == null) throw new IllegalStateException("personal data unavailable"); long id = personal.requestExport(user(request).userId()); return ApiResponse.success(java.util.Map.of("export_job_id", id), TraceContextHolder.currentOrNew()); }
 
+    @GetMapping("/export/{id}")
+    public ApiResponse<com.foodmate.application.account.PersonalDataService.ExportJob> exportStatus(jakarta.servlet.http.HttpServletRequest request, @PathVariable long id) { if (personal == null) throw new IllegalStateException("personal data unavailable"); return ApiResponse.success(personal.exportJob(user(request).userId(), id), TraceContextHolder.currentOrNew()); }
+
+    @PostMapping("/export/{id}/download")
+    public ApiResponse<java.util.Map<String, String>> exportDownload(jakarta.servlet.http.HttpServletRequest request, @PathVariable long id) { if (personal == null) throw new IllegalStateException("personal data unavailable"); return ApiResponse.success(java.util.Map.of("download_url", personal.consumeExport(user(request).userId(), id)), TraceContextHolder.currentOrNew()); }
+
     @PostMapping("/deletion")
-    public ApiResponse<java.util.Map<String, Long>> deletion(jakarta.servlet.http.HttpServletRequest request, @Valid @RequestBody DeletionRequest body) { if (personal == null) throw new IllegalStateException("personal data unavailable"); if (!"DELETE_MY_ACCOUNT".equals(body.confirmation())) throw new IllegalArgumentException("confirmation required"); long id = personal.requestDeletion(user(request).userId()); return ApiResponse.success(java.util.Map.of("deletion_job_id", id), TraceContextHolder.currentOrNew()); }
+    public ApiResponse<java.util.Map<String, Long>> deletion(jakarta.servlet.http.HttpServletRequest request, @Valid @RequestBody DeletionRequest body) { if (personal == null) throw new IllegalStateException("personal data unavailable"); var current = user(request); accounts.requireCurrentPassword(current.userId(), body.currentPassword()); if (!"DELETE_MY_ACCOUNT".equals(body.confirmation())) throw new IllegalArgumentException("confirmation required"); long id = personal.requestDeletion(current.userId()); return ApiResponse.success(java.util.Map.of("deletion_job_id", id), TraceContextHolder.currentOrNew()); }
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record UserResponse(long userId, String username, String email, String nickname, String role, String status) {}
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record ProfileRequest(String displayName, String gender, @DecimalMin("30") @DecimalMax("250") BigDecimal heightCm, @DecimalMin("2") @DecimalMax("500") BigDecimal weightKg, String activityLevel, String dietGoal, Integer calorieTarget, Integer proteinTarget) {}
     public record PasswordChangeRequest(@jakarta.validation.constraints.NotBlank String currentPassword, @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(min = 8, max = 128) String newPassword) {}
-    public record DeletionRequest(@jakarta.validation.constraints.NotBlank String confirmation) {}
+    public record DeletionRequest(@jakarta.validation.constraints.NotBlank String confirmation, @jakarta.validation.constraints.NotBlank String currentPassword) {}
 }
