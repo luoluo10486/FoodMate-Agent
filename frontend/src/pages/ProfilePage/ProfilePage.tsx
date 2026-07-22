@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react';
 import { Button, Card, Form, Input, InputNumber, Message, Modal, Select, Tag } from '@arco-design/web-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { getAuthUser } from '../../services/authService';
+import { changePassword, deleteAvatar, updateProfile, uploadAvatar } from '../../services/accountService';
 import styles from './ProfilePage.module.css';
 
 const Option = Select.Option;
@@ -27,9 +28,10 @@ export function ProfilePage() {
     [avatarPreviewUrl],
   );
 
-  const handleSave = () => {
-    setSaved(true);
-    Message.success('个人资料已模拟保存');
+  const handleSave = async (values: Record<string, unknown>) => {
+    if (import.meta.env.VITE_AGENT_MODE !== 'real') { setSaved(true); Message.success('个人资料已模拟保存'); return; }
+    try { await updateProfile(values); setSaved(true); Message.success('个人资料已保存'); }
+    catch (error) { Message.error(error instanceof Error ? error.message : '保存失败'); }
   };
 
   const handleAvatarSelect = () => {
@@ -56,7 +58,8 @@ export function ProfilePage() {
     setAvatarError('');
     setAvatarFileName(file.name);
     setAvatarPreviewUrl(URL.createObjectURL(file));
-    Message.success('头像已模拟上传并生成预览');
+    if (import.meta.env.VITE_AGENT_MODE === 'real') uploadAvatar(file).then(() => Message.success('头像已上传')).catch((error) => Message.error(error instanceof Error ? error.message : '头像上传失败'));
+    else Message.success('头像已模拟上传并生成预览');
     event.target.value = '';
   };
 
@@ -71,9 +74,9 @@ export function ProfilePage() {
       return;
     }
 
-    setPasswordVisible(false);
-    setPasswordValues({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    Message.success('密码已模拟修改；真实接入后需要校验 old_password 并轮换 refresh token');
+    const finish = () => { setPasswordVisible(false); setPasswordValues({ oldPassword: '', newPassword: '', confirmPassword: '' }); Message.success('密码已修改，其他会话已撤销'); };
+    if (import.meta.env.VITE_AGENT_MODE === 'real') changePassword(passwordValues.oldPassword, passwordValues.newPassword).then(finish).catch((error) => Message.error(error instanceof Error ? error.message : '密码修改失败'));
+    else finish();
   };
 
   return (
@@ -122,7 +125,8 @@ export function ProfilePage() {
                     setAvatarError('');
                     setAvatarPreviewUrl('');
                     setAvatarFileName('');
-                    Message.info('头像已模拟删除');
+                    if (import.meta.env.VITE_AGENT_MODE === 'real') deleteAvatar().then(() => Message.success('头像已删除')).catch(() => Message.error('头像删除失败'));
+                    else Message.info('头像已模拟删除');
                   }}
                 >
                   删除头像

@@ -1,9 +1,10 @@
 ﻿import { Button, Dropdown, Input, Menu, Message, Tag, Tooltip } from '@arco-design/web-react';
 import { IconBook, IconMessage, IconMenu, IconPlus, IconSearch, IconUser } from '@arco-design/web-react/icon';
 import { Link, NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { ROUTES, buildChatPath } from '../../constants/routes';
-import { getSessions } from '../../services/sessionService';
-import { getAuthScenarios, getAuthStatus, getAuthUser } from '../../services/authService';
+import { loadSessions } from '../../services/sessionService';
+import { getAuthScenarios, getAuthStatus, getAuthUser, logout } from '../../services/authService';
 import { SidebarSessionList } from '../../components/workspace/SidebarSessionList';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import styles from './WorkspaceLayout.module.css';
@@ -17,10 +18,12 @@ type WorkspaceLayoutProps = {
 export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }: WorkspaceLayoutProps) {
   const authStatus = getAuthStatus();
   const authUser = getAuthUser();
+  const [sessions, setSessions] = useState<Awaited<ReturnType<typeof loadSessions>>>([]);
+  useEffect(() => { loadSessions().then(setSessions).catch(() => undefined); }, []);
   const authScenarios = getAuthScenarios();
   const currentAuth = authScenarios.find((item) => item.status === authStatus) ?? authScenarios[0];
   const isAuthenticated = authStatus === 'authenticated';
-  const canAccessAdmin = isAuthenticated && (authUser.role === 'admin' || authUser.role === 'operator');
+  const canAccessAdmin = isAuthenticated && (authUser.role === 'admin' || authUser.role === 'operator' || authUser.role === 'superadmin');
   const userMenu = (
     <Menu>
       <Menu.Item key="profile">
@@ -64,7 +67,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
           allowClear
           onChange={() => Message.info('会话搜索在真实接入后可用，当前为 mock 阶段。')}
         />
-        <SidebarSessionList sessions={getSessions()} />
+        <SidebarSessionList sessions={sessions} />
         <div className={styles.accountDock}>
           <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
             <div className={styles.avatar}>{isAuthenticated ? authUser.displayName.slice(0, 1) : '访'}</div>
@@ -74,7 +77,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
             </div>
           </Link>
           {isAuthenticated ? (
-            <Link className={styles.logoutLink} to={ROUTES.LOGIN}>
+            <Link className={styles.logoutLink} to={ROUTES.LOGIN} onClick={() => { void logout(); }}>
               <Button className={styles.logoutButton} long>
                 退出登录
               </Button>
@@ -118,7 +121,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
           </nav>
           <div className={styles.userActions}>
             {isAuthenticated ? (
-              <Link className={styles.topbarLogoutLink} to={ROUTES.LOGIN}>
+              <Link className={styles.topbarLogoutLink} to={ROUTES.LOGIN} onClick={() => { void logout(); }}>
                 <Button className={styles.topbarLogoutButton}>退出登录</Button>
               </Link>
             ) : null}

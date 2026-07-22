@@ -109,6 +109,11 @@ public class UserAccountService {
         return authSessions.values().stream().filter(s -> s.userId() == userId).map(s -> new AuthSessionView(0, null, null, null, s.expiresAt(), null, null, s.revokedAt())).toList();
     }
 
+    public synchronized List<AdminUserView> listUsersForAdmin() {
+        if (jdbc == null) return users.values().stream().map(u -> new AdminUserView(u.userId(), u.username(), u.email(), u.nickname(), u.role(), u.status())).toList();
+        return jdbc.query("SELECT user_id,username,email,nickname,role,status FROM users WHERE is_deleted=FALSE ORDER BY created_at DESC", (rs, row) -> new AdminUserView(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6)));
+    }
+
     public synchronized void revokeAuthSession(long userId, long authSessionId) {
         if (jdbc != null) jdbc.update("UPDATE user_auth_sessions SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE auth_session_id=? AND user_id=? AND revoked_at IS NULL", authSessionId, userId);
     }
@@ -274,6 +279,8 @@ public class UserAccountService {
     public record SessionMetadata(String userAgent, String ipAddress) { public static final SessionMetadata EMPTY = new SessionMetadata(null, null); }
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record AuthSessionView(long authSessionId, String deviceId, String userAgent, String ipAddress, Instant expiresAt, Instant lastSeenAt, Instant createdAt, Instant revokedAt) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record AdminUserView(long userId, String username, String email, String nickname, String role, String status) {}
     public record UserRecord(long userId, String username, String email, String passwordHash, String nickname, String role, String status) {}
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record ProfileRecord(long userId, String displayName, String gender, java.time.LocalDate birthday, java.math.BigDecimal heightCm, java.math.BigDecimal weightKg, String activityLevel, String dietGoal, Integer calorieTarget, Integer proteinTarget, String allergens, String dislikes, String preferredUnits) { ProfileRecord with(ProfileUpdate update) { return new ProfileRecord(userId, update.displayName() == null ? displayName : update.displayName(), update.gender() == null ? gender : update.gender(), birthday, update.heightCm() == null ? heightCm : update.heightCm(), update.weightKg() == null ? weightKg : update.weightKg(), update.activityLevel() == null ? activityLevel : update.activityLevel(), update.dietGoal() == null ? dietGoal : update.dietGoal(), update.calorieTarget() == null ? calorieTarget : update.calorieTarget(), update.proteinTarget() == null ? proteinTarget : update.proteinTarget(), allergens, dislikes, preferredUnits); } }

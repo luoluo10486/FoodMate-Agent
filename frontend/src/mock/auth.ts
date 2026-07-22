@@ -28,7 +28,7 @@ export type AuthUser = {
   id: string;
   username: string;
   displayName: string;
-  role: 'user' | 'admin' | 'operator';
+  role: 'user' | 'admin' | 'operator' | 'superadmin';
   status: 'active' | 'disabled' | 'locked';
   email: string;
   avatarUrl?: string;
