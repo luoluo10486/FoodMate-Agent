@@ -1,13 +1,16 @@
 import { Button, Card, Table, Tag } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, OperationAuditCard } from './AdminComponents';
 import { type ToolRow, adminToolRows, canManage, riskTag, statusTag } from './AdminShared';
 import type { AdminActionPayload } from './types';
+import { loadAdminDashboard, updateAdminToolStatus } from '../../../services/adminService';
 
 export function ToolsSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
-  const [selectedTool, setSelectedTool] = useState<ToolRow>(adminToolRows[0]);
+  const [tools, setTools] = useState<ToolRow[]>(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminToolRows);
+  const [selectedTool, setSelectedTool] = useState<ToolRow | undefined>(tools[0]);
+  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => { const rows = d.tools as ToolRow[]; setTools(rows); setSelectedTool(rows[0]); }).catch(() => setTools([])); }, []);
 
   const toolColumns: TableColumnProps<ToolRow>[] = [
     { title: '工具名', dataIndex: 'name' },
@@ -31,6 +34,7 @@ export function ToolsSection({ onAction }: { onAction: (payload: AdminActionPayl
                 targetLabel: record.name,
                 targetType: 'tool',
                 targetId: record.name,
+                execute: async () => { await updateAdminToolStatus(record.name, record.status === 'active' ? 'disabled' : 'active'); },
                 onApply: () => {
                   record.status = record.status === 'active' ? 'disabled' : 'active';
                 },
@@ -55,13 +59,13 @@ export function ToolsSection({ onAction }: { onAction: (payload: AdminActionPayl
           </div>
           <Table
             columns={toolColumns}
-            data={adminToolRows}
-            pagination={{ pageSize: 6, total: adminToolRows.length }}
+            data={tools}
+            pagination={{ pageSize: 6, total: tools.length }}
             size="small"
           />
         </Card>
         <aside className={styles.side}>
-          <ToolDetailCard tool={selectedTool} />
+          {selectedTool ? <ToolDetailCard tool={selectedTool} /> : null}
           <OperationAuditCard />
         </aside>
       </section>

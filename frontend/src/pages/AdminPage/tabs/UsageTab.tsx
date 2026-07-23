@@ -1,9 +1,13 @@
 import { Card, Table, Tag } from '@arco-design/web-react';
+import { useEffect, useState } from 'react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, MiniStat } from './AdminComponents';
 import { adminModelUsageRows, modelUsageColumns } from './AdminShared';
+import { loadAdminDashboard } from '../../../services/adminService';
 
 export function UsageSection() {
+  const [rows, setRows] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminModelUsageRows);
+  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => setRows(d.usage as typeof adminModelUsageRows)).catch(() => setRows([])); }, []);
   return (
     <>
       <section className={styles.sectionCards}>
@@ -19,8 +23,8 @@ export function UsageSection() {
         </div>
         <Table
           columns={modelUsageColumns}
-          data={adminModelUsageRows}
-          pagination={{ pageSize: 5, total: adminModelUsageRows.length }}
+          data={rows}
+          pagination={{ pageSize: 5, total: rows.length }}
           size="small"
         />
       </Card>

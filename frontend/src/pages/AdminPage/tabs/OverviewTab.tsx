@@ -1,4 +1,5 @@
 import { Card, Table, Tag } from '@arco-design/web-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../constants/routes';
 import { IconFile, IconThunderbolt, IconTool } from '@arco-design/web-react/icon';
@@ -6,12 +7,16 @@ import styles from '../AdminPage.module.css';
 import { AdminActionsCard, AdminFilters, GovernanceResourceCard, OperationAuditCard } from './AdminComponents';
 import { adminAuditRows, adminOverviewMetrics, auditColumns, canManage } from './AdminShared';
 import type { AdminActionPayload } from './types';
+import { loadAdminDashboard } from '../../../services/adminService';
 
 export function OverviewSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
+  const [metrics, setMetrics] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminOverviewMetrics);
+  const [rows, setRows] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminAuditRows);
+  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => { setMetrics(d.overview_metrics as typeof adminOverviewMetrics); setRows(d.runs as typeof adminAuditRows); }).catch(() => { setMetrics([]); setRows([]); }); }, []);
   return (
     <>
       <section className={styles.metrics}>
-        {adminOverviewMetrics.map((metric) => (
+        {metrics.map((metric) => (
           <article className={`${styles.metric} ${styles[metric.tone]}`} key={metric.label}>
             <span>{metric.label}</span>
             <strong>{metric.value}</strong>
@@ -28,8 +33,8 @@ export function OverviewSection({ onAction }: { onAction: (payload: AdminActionP
           </div>
           <Table
             columns={auditColumns}
-            data={adminAuditRows}
-            pagination={{ pageSize: 5, total: adminAuditRows.length }}
+            data={rows}
+            pagination={{ pageSize: 5, total: rows.length }}
             size="small"
           />
         </Card>

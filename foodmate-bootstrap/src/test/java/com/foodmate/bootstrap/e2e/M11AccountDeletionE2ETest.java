@@ -19,11 +19,13 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.LinkedMultiValueMap;
 
 /** M1-1 real PostgreSQL + MinIO account deletion acceptance. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("local")
+@TestPropertySource(properties = {"foodmate.storage.endpoint=http://localhost:9000", "foodmate.storage.access-key=foodmate-local", "foodmate.storage.secret-key=foodmate-local-secret-change-me-20260722", "foodmate.storage.bucket=foodmate-private"})
 @EnabledIfSystemProperty(named = "foodmate.local-e2e", matches = "true")
 class M11AccountDeletionE2ETest {
     @LocalServerPort int port;

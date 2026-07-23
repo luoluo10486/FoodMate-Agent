@@ -4,8 +4,12 @@ import styles from '../AdminPage.module.css';
 import { AdminFilters, AdminOnlyNotice, OperationAuditCard } from './AdminComponents';
 import { type DeletedRow, adminDeletedRows, canManage } from './AdminShared';
 import type { AdminActionPayload } from './types';
+import { useEffect, useState } from 'react';
+import { loadAdminDashboard, restoreAdminResource } from '../../../services/adminService';
 
 export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
+  const [rows, setRows] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminDeletedRows);
+  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => setRows(d.deleted as typeof adminDeletedRows)).catch(() => setRows([])); }, []);
   if (!canManage) return <AdminOnlyNotice title="无权访问软删除资源" />;
 
   const deletedColumns: TableColumnProps<DeletedRow>[] = [
@@ -25,9 +29,9 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
               targetLabel: `${record.resourceType}:${record.resourceId}`,
               targetType: record.resourceType,
               targetId: record.resourceId,
+              execute: async () => { await restoreAdminResource(record.resourceType, record.resourceId); },
               onApply: () => {
-                const rowIndex = adminDeletedRows.findIndex((item) => item.key === record.key);
-                if (rowIndex >= 0) adminDeletedRows.splice(rowIndex, 1);
+                setRows((current) => current.filter((item) => item.key !== record.key));
               },
             })
           }
@@ -50,8 +54,8 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
         </div>
         <Table
           columns={deletedColumns}
-          data={adminDeletedRows}
-          pagination={{ pageSize: 5, total: adminDeletedRows.length }}
+          data={rows}
+          pagination={{ pageSize: 5, total: rows.length }}
           size="small"
         />
       </Card>

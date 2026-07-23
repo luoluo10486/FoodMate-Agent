@@ -1,15 +1,19 @@
 import { Button, Card, Input, Modal, Table } from '@arco-design/web-react';
 import type { TableColumnProps } from '@arco-design/web-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Message } from '@arco-design/web-react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, OperationAuditCard } from './AdminComponents';
 import { type KnowledgeRow, adminKnowledgeRows, canManage, statusTag } from './AdminShared';
 import type { AdminActionPayload } from './types';
+import { loadAdminDashboard, updateKnowledgeStatus, uploadKnowledgeDocument } from '../../../services/adminService';
 
 export function KnowledgeSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
-  const [selectedDoc, setSelectedDoc] = useState<KnowledgeRow>(adminKnowledgeRows[0]);
+  const [documents, setDocuments] = useState<KnowledgeRow[]>(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminKnowledgeRows);
+  const [selectedDoc, setSelectedDoc] = useState<KnowledgeRow | undefined>(documents[0]);
   const [uploadVisible, setUploadVisible] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => { const rows = d.knowledge as KnowledgeRow[]; setDocuments(rows); setSelectedDoc(rows[0]); }).catch(() => setDocuments([])); }, []);
 
   const knowledgeColumns: TableColumnProps<KnowledgeRow>[] = [
     { title: '文档 ID', dataIndex: 'documentId' },
@@ -35,6 +39,7 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
                 targetLabel: record.documentId,
                 targetType: 'knowledge_document',
                 targetId: record.documentId,
+                execute: async () => { await updateKnowledgeStatus(record.documentId, record.status === 'indexed' ? 'disabled' : 'indexed'); },
                 onApply: () => {
                   record.status = record.status === 'indexed' ? 'disabled' : 'indexed';
                   record.indexProgress = record.status === 'indexed' ? '100%' : '0%';
@@ -62,13 +67,13 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
           </div>
           <Table
             columns={knowledgeColumns}
-            data={adminKnowledgeRows}
-            pagination={{ pageSize: 5, total: adminKnowledgeRows.length }}
+            data={documents}
+            pagination={{ pageSize: 5, total: documents.length }}
             size="small"
           />
         </Card>
         <aside className={styles.side}>
-          <KnowledgeDetailCard document={selectedDoc} />
+          {selectedDoc ? <KnowledgeDetailCard document={selectedDoc} /> : null}
           <OperationAuditCard />
         </aside>
       </section>
@@ -78,15 +83,19 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
         okText="提交 mock 上传"
         cancelText="取消"
         onCancel={() => setUploadVisible(false)}
-        onOk={() => {
+        onOk={async () => {
+          if (import.meta.env.VITE_AGENT_MODE === 'real') {
+            if (!uploadFile) { Message.warning('请选择文件'); return; }
+            await uploadKnowledgeDocument(uploadFile);
+          }
           setUploadVisible(false);
-          Message.success('文档上传已提交；真实接入会写 MinIO 对象和索引任务');
+          Message.success('文档上传已提交');
         }}
       >
         <div className={styles.uploadMock}>
           <strong>选择文件</strong>
           <span>支持 PDF / Markdown / Excel，真实接入后限制大小、类型并记录上传人。</span>
-          <Input placeholder="nutrition-guide.pdf" />
+          <input type="file" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} />
           <Input.TextArea placeholder="索引备注 / 标签" />
         </div>
       </Modal>

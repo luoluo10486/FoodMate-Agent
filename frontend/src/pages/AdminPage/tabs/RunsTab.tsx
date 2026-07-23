@@ -1,4 +1,5 @@
 import { Card, Table, Tabs, Tag } from '@arco-design/web-react';
+import { useEffect, useState } from 'react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, MiniStat } from './AdminComponents';
 import {
@@ -11,10 +12,13 @@ import {
   toolCallColumns,
   traceColumns,
 } from './AdminShared';
+import { loadAdminDashboard } from '../../../services/adminService';
 
 const TabPane = Tabs.TabPane;
 
 export function RunsSection() {
+  const [dashboard, setDashboard] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? { runs: [], toolCalls: [], sqlAudits: [], traces: [] } : { runs: adminAuditRows, toolCalls: adminToolCallRows, sqlAudits: adminSqlAuditRows, traces: adminTraceRows });
+  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => setDashboard({ runs: d.runs as typeof adminAuditRows, toolCalls: d.tool_calls as typeof adminToolCallRows, sqlAudits: d.sql_audits as typeof adminSqlAuditRows, traces: [] })).catch(() => setDashboard({ runs: [], toolCalls: [], sqlAudits: [], traces: [] })); }, []);
   return (
     <>
       <section className={styles.sectionCards}>
@@ -32,32 +36,32 @@ export function RunsSection() {
           <TabPane key="agent-runs" title="AgentRun">
             <Table
               columns={auditColumns}
-              data={adminAuditRows}
-              pagination={{ pageSize: 5, total: adminAuditRows.length }}
+              data={dashboard.runs}
+              pagination={{ pageSize: 5, total: dashboard.runs.length }}
               size="small"
             />
           </TabPane>
           <TabPane key="tool-calls" title="ToolCall">
             <Table
               columns={toolCallColumns}
-              data={adminToolCallRows}
-              pagination={{ pageSize: 5, total: adminToolCallRows.length }}
+              data={dashboard.toolCalls}
+              pagination={{ pageSize: 5, total: dashboard.toolCalls.length }}
               size="small"
             />
           </TabPane>
           <TabPane key="sql-audits" title="SQLAudit">
             <Table
               columns={sqlAuditColumns}
-              data={adminSqlAuditRows}
-              pagination={{ pageSize: 5, total: adminSqlAuditRows.length }}
+              data={dashboard.sqlAudits}
+              pagination={{ pageSize: 5, total: dashboard.sqlAudits.length }}
               size="small"
             />
           </TabPane>
           <TabPane key="traces" title="Trace">
             <Table
               columns={traceColumns}
-              data={adminTraceRows}
-              pagination={{ pageSize: 5, total: adminTraceRows.length }}
+              data={dashboard.traces}
+              pagination={{ pageSize: 5, total: dashboard.traces.length }}
               size="small"
             />
           </TabPane>

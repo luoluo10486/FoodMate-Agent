@@ -13,7 +13,7 @@ import {
   statusTag,
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
-import { loadAdminUsers } from '../../../services/adminService';
+import { loadAdminUsers, revokeAdminUserSessions, updateAdminUserStatus } from '../../../services/adminService';
 
 export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
   const [selectedUser, setSelectedUser] = useState<UserRow | undefined>(import.meta.env.VITE_AGENT_MODE === 'real' ? undefined : adminUserRows[1]);
@@ -46,6 +46,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
                 targetLabel: record.userId,
                 targetType: 'user',
                 targetId: record.userId,
+                execute: async () => { await updateAdminUserStatus(record.userId, 'locked'); },
                 onApply: () => {
                   record.status = 'locked';
                   record.lockedUntil = '2026-06-30 23:59';
@@ -64,6 +65,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
                 targetLabel: record.userId,
                 targetType: 'user',
                 targetId: record.userId,
+                execute: async () => { await updateAdminUserStatus(record.userId, 'disabled'); },
                 onApply: () => {
                   record.status = 'disabled';
                 },
@@ -81,6 +83,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
                 targetLabel: record.userId,
                 targetType: 'user_session',
                 targetId: record.userId,
+                execute: async () => { await revokeAdminUserSessions(record.userId); },
                 onApply: () => {
                   adminUserSessionRows
                     .filter((s) => s.userId === record.userId)

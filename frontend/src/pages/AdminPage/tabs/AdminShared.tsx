@@ -31,8 +31,8 @@ import { getAuthStatus, getAuthUser } from '../../../services/authService';
 const authStatus = getAuthStatus();
 const authUser = getAuthUser();
 export const canAccessAdmin =
-  authStatus === 'authenticated' && (authUser.role === 'admin' || authUser.role === 'operator');
-export const canManage = authStatus === 'authenticated' && authUser.role === 'admin';
+  authStatus === 'authenticated' && (authUser.role === 'admin' || authUser.role === 'operator' || authUser.role === 'superadmin');
+export const canManage = authStatus === 'authenticated' && (authUser.role === 'admin' || authUser.role === 'superadmin');
 
 // ── Re-export mock data ───────────────────────────
 export {

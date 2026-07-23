@@ -4,6 +4,8 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.BucketExistsArgs;
+import io.minio.MakeBucketArgs;
 import io.minio.http.Method;
 import java.io.InputStream;
 import java.time.Instant;
@@ -45,6 +47,20 @@ public class PersonalDataService {
             jdbc.update("UPDATE users SET avatar_url=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
             return new Avatar(id, key, contentType, size);
         } catch (Exception e) { throw new IllegalStateException("avatar upload failed", e); }
+    }
+
+    public long uploadKnowledge(long userId, String filename, String contentType, long size, InputStream input) {
+        if (jdbc == null || minio == null) throw new IllegalStateException("knowledge storage unavailable");
+        long documentId = ids.nextId();
+        String key = "knowledge/" + userId + "/" + documentId + "-" + filename.replaceAll("[^A-Za-z0-9._-]", "_");
+        try {
+            if (!minio.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
+                minio.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+            }
+            minio.putObject(PutObjectArgs.builder().bucket(bucket).object(key).stream(input, size, -1).contentType(contentType == null ? "application/octet-stream" : contentType).build());
+            jdbc.update("INSERT INTO knowledge_documents(document_id,title,source_type,status,version,storage_key,created_by,updated_by) VALUES (?,?,?,'uploaded','1',?,?,?)", documentId, filename, "admin_upload", key, userId, userId);
+            return documentId;
+        } catch (Exception e) { throw new IllegalStateException("knowledge upload failed", e); }
     }
 
     public void deleteAvatar(long userId) {

@@ -19,9 +19,6 @@ import { UsersSection } from './tabs/UsersTab';
 import type { AdminActionPayload, AdminSectionKey } from './tabs/types';
 
 function renderSection(sectionKey: AdminSectionKey, onAction: (payload: AdminActionPayload) => void) {
-  if (import.meta.env.VITE_AGENT_MODE === 'real' && sectionKey !== 'users') {
-    return <Card bordered={false}><Tag color="orange">API_NOT_CONNECTED</Tag><p>该管理模块尚未提供真实后端接口，未展示 mock 数据，也不会伪造写入成功。</p></Card>;
-  }
   switch (sectionKey) {
     case 'users':
       return <UsersSection onAction={onAction} />;
@@ -46,22 +43,24 @@ export function AdminPage() {
   const sectionKey = getSectionKey(pathname) as AdminSectionKey;
   const [, forceRefresh] = useState(0);
 
-  const confirmAdminAction = ({ action, targetLabel, targetType, targetId, onApply }: AdminActionPayload) => {
+  const confirmAdminAction = ({ action, targetLabel, targetType, targetId, onApply, execute }: AdminActionPayload) => {
     if (!canManage) {
       Message.warning('operator 只读，不能执行管理写操作');
       return;
     }
 
-    if (import.meta.env.VITE_AGENT_MODE === 'real') {
-      Message.warning(`${action} 接口尚未开放，本次未修改数据`);
-      return;
-    }
     Modal.confirm({
       title: action,
       content: `确认对 ${targetLabel} 执行该管理操作？`,
       okText: '确认执行',
       cancelText: '取消',
-      onOk: () => {
+      onOk: async () => {
+        if (import.meta.env.VITE_AGENT_MODE === 'real') {
+          await execute?.();
+          Message.success(`${action} 已完成`);
+          window.location.reload();
+          return;
+        }
         onApply?.();
         adminOperationAuditRows.unshift({
           key: `op-${Date.now()}`,
