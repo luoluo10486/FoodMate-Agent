@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -22,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 /** Explicit local PostgreSQL acceptance test. Run with -Dfoodmate.local-e2e=true. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("local")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @EnabledIfSystemProperty(named = "foodmate.local-e2e", matches = "true")
 class LocalPostgresE2ETest {
     @LocalServerPort int port;
@@ -49,7 +51,7 @@ class LocalPostgresE2ETest {
         JsonNode message = post(base + "/api/sessions/" + sessionId + "/messages", "{\"role\":\"user\",\"content\":\"postgres-persisted\"}", headers);
         assertEquals(1, message.path("data").path("sequence_no").asInt());
         ResponseEntity<String> read = rest.exchange(URI.create(base + "/api/sessions/" + sessionId + "/messages"), HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        assertEquals("postgres-persisted", json.readTree(read.getBody()).path("data").get(0).path("content").asText());
+        assertEquals("postgres-persisted", json.readTree(read.getBody()).path("data").path("items").get(0).path("content").asText());
     }
 
     private JsonNode post(String url, String body, HttpHeaders headers) throws Exception {

@@ -44,7 +44,7 @@ class P1AccountControllerTest {
         mockMvc.perform(post("/api/sessions/" + sessionId + "/messages").cookie(sessionCookie).header("X-CSRF-Token", csrfCookie.getValue()).contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"user\",\"content\":\"hello\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.sequence_no", is(1)));
         mockMvc.perform(get("/api/sessions/" + sessionId + "/messages").cookie(sessionCookie))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].content", is("hello")));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.items[0].content", is("hello")));
     }
 
     @Test

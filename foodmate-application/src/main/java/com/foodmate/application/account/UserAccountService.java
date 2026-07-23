@@ -189,22 +189,114 @@ public class UserAccountService {
     public synchronized SessionRecord createSession(long userId, String title, String mode) {
         String actualMode = mode == null || mode.isBlank() ? "agent" : mode;
         if (!List.of("agent", "chat").contains(actualMode)) throw new IllegalArgumentException("mode must be agent or chat");
+        String actualTitle = title == null || title.isBlank() ? "新会话" : title.trim();
+        if (actualTitle.length() > 255) throw new IllegalArgumentException("title must be at most 255 characters");
         long id = ids.nextId();
-        if (jdbc != null) jdbc.update("INSERT INTO sessions(session_id,user_id,title,mode) VALUES (?,?,?,?)", id, userId, title, actualMode);
-        SessionRecord record = new SessionRecord(id, userId, title, actualMode, "active", null);
+        if (jdbc != null) jdbc.update("INSERT INTO sessions(session_id,user_id,title,mode) VALUES (?,?,?,?)", id, userId, actualTitle, actualMode);
+        SessionRecord record = new SessionRecord(id, userId, actualTitle, actualMode, "active", null);
         if (jdbc == null) sessions.put(id, record);
         return record;
     }
 
     public synchronized List<SessionRecord> listSessions(long userId) {
-        if (jdbc != null) return jdbc.query("SELECT session_id,title,mode,status,last_message_at FROM sessions WHERE user_id=? AND is_deleted=FALSE ORDER BY COALESCE(last_message_at,created_at) DESC", (rs, row) -> new SessionRecord(rs.getLong(1), userId, rs.getString(2), rs.getString(3), rs.getString(4), rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant()), userId);
-        return sessions.values().stream().filter(session -> session.userId() == userId && "active".equals(session.status())).sorted(Comparator.comparing(SessionRecord::lastMessageAt, Comparator.nullsLast(Comparator.reverseOrder()))).toList();
+        return listSessions(userId, 1, 50, null, null).items();
+    }
+
+    public synchronized PageResult<SessionRecord> listSessions(long userId, int page, int size, String query, String status) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+        String q = query == null ? "" : query.trim();
+        String wantedStatus = status == null || status.isBlank() ? null : status.trim();
+        if (jdbc != null) {
+            String filter = " FROM sessions s WHERE s.user_id=? AND s.is_deleted=FALSE";
+            List<Object> args = new ArrayList<>();
+            args.add(userId);
+            if (wantedStatus != null) { filter += " AND s.status=?"; args.add(wantedStatus); }
+            if (!q.isBlank()) { filter += " AND (s.title ILIKE ? OR EXISTS (SELECT 1 FROM messages m WHERE m.session_id=s.session_id AND m.is_deleted=FALSE AND m.content ILIKE ?))"; args.add("%" + q + "%"); args.add("%" + q + "%"); }
+            long total = jdbc.queryForObject("SELECT COUNT(*)" + filter, Long.class, args.toArray());
+            String sql = "SELECT s.session_id,s.title,s.mode,s.status,s.last_message_at" + filter + " ORDER BY COALESCE(s.last_message_at,s.created_at) DESC LIMIT ? OFFSET ?";
+            List<Object> pageArgs = new ArrayList<>(args); pageArgs.add(safeSize); pageArgs.add((safePage - 1) * safeSize);
+            List<SessionRecord> items = jdbc.query(sql, (rs, row) -> new SessionRecord(rs.getLong(1), userId, rs.getString(2), rs.getString(3), rs.getString(4), rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant()), pageArgs.toArray());
+            return new PageResult<>(items, total, safePage, safeSize);
+        }
+        List<SessionRecord> all = sessions.values().stream().filter(s -> s.userId() == userId && !"deleted".equals(s.status()) && (wantedStatus == null || wantedStatus.equals(s.status())) && (q.isBlank() || s.title().toLowerCase().contains(q.toLowerCase()))).sorted(Comparator.comparing(SessionRecord::lastMessageAt, Comparator.nullsLast(Comparator.reverseOrder()))).toList();
+        int from = Math.min((safePage - 1) * safeSize, all.size());
+        int to = Math.min(from + safeSize, all.size());
+        return new PageResult<>(all.subList(from, to), all.size(), safePage, safeSize);
+    }
+
+    public synchronized PageResult<SessionRecord> listDeletedSessions(long userId, int page, int size) {
+        int safePage = Math.max(1, page), safeSize = Math.min(100, Math.max(1, size));
+        if (jdbc != null) {
+            long total = jdbc.queryForObject("SELECT COUNT(*) FROM sessions WHERE user_id=? AND is_deleted=TRUE AND deleted_at>CURRENT_TIMESTAMP-INTERVAL '30 days'", Long.class, userId);
+            int offset = (safePage - 1) * safeSize;
+            List<SessionRecord> items = jdbc.query("SELECT session_id,title,mode,'deleted',last_message_at FROM sessions WHERE user_id=? AND is_deleted=TRUE AND deleted_at>CURRENT_TIMESTAMP-INTERVAL '30 days' ORDER BY deleted_at DESC LIMIT ? OFFSET ?", (rs, row) -> new SessionRecord(rs.getLong(1), userId, rs.getString(2), rs.getString(3), rs.getString(4), rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant()), userId, safeSize, offset);
+            return new PageResult<>(items, total, safePage, safeSize);
+        }
+        List<SessionRecord> all = sessions.values().stream().filter(s -> s.userId() == userId && "deleted".equals(s.status())).toList();
+        return new PageResult<>(all, all.size(), safePage, safeSize);
+    }
+
+    public synchronized void renameSession(long userId, long sessionId, String title) {
+        requireText(title, "title"); String actual = title.trim();
+        if (actual.length() > 255) throw new IllegalArgumentException("title must be at most 255 characters");
+        requireSession(userId, sessionId);
+        if (jdbc != null) jdbc.update("UPDATE sessions SET title=?,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE session_id=? AND user_id=? AND is_deleted=FALSE", actual, userId, sessionId, userId);
+        sessions.computeIfPresent(sessionId, (key, value) -> value.withTitle(actual));
+    }
+
+    public synchronized void setSessionStatus(long userId, long sessionId, String status) {
+        if (!List.of("active", "archived").contains(status)) throw new IllegalArgumentException("invalid session status");
+        requireSession(userId, sessionId);
+        if (jdbc != null) jdbc.update("UPDATE sessions SET status=?,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE session_id=? AND user_id=? AND is_deleted=FALSE", status, userId, sessionId, userId);
+        sessions.computeIfPresent(sessionId, (key, value) -> value.withStatus(status));
+    }
+
+    public synchronized void deleteSession(long userId, long sessionId) {
+        requireSession(userId, sessionId);
+        if (jdbc != null) jdbc.update("UPDATE sessions SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,deleted_by=?,updated_at=CURRENT_TIMESTAMP WHERE session_id=? AND user_id=? AND is_deleted=FALSE", userId, sessionId, userId);
+        sessions.computeIfPresent(sessionId, (key, value) -> value.withStatus("deleted"));
+    }
+
+    public synchronized void restoreSession(long userId, long sessionId) {
+        if (jdbc != null) {
+            int changed = jdbc.update("UPDATE sessions SET is_deleted=FALSE,deleted_at=NULL,deleted_by=NULL,status='active',updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE session_id=? AND user_id=? AND is_deleted=TRUE AND deleted_at>CURRENT_TIMESTAMP-INTERVAL '30 days'", userId, sessionId, userId);
+            if (changed != 1) throw notFound("session not found or restore period expired");
+        } else {
+            SessionRecord session = sessions.get(sessionId);
+            if (session == null || session.userId() != userId || !"deleted".equals(session.status())) throw notFound("session not found or restore period expired");
+            sessions.put(sessionId, session.withStatus("active"));
+        }
+    }
+
+    public synchronized List<MessageRecord> listMessages(long userId, long sessionId) {
+        return listMessages(userId, sessionId, 1, 100).items();
+    }
+
+    public synchronized PageResult<MessageRecord> listMessages(long userId, long sessionId, int page, int size) {
+        requireSession(userId, sessionId);
+        int safePage = Math.max(1, page), safeSize = Math.min(100, Math.max(1, size));
+        if (jdbc != null) {
+            long total = jdbc.queryForObject("SELECT COUNT(*) FROM messages WHERE session_id=? AND is_deleted=FALSE", Long.class, sessionId);
+            int offset = (safePage - 1) * safeSize;
+            List<MessageRecord> items = jdbc.query("SELECT message_id,agent_run_id,role,content,structured_payload::text,sequence_no,created_at FROM messages WHERE session_id=? AND is_deleted=FALSE ORDER BY sequence_no LIMIT ? OFFSET ?", (rs, row) -> new MessageRecord(rs.getLong(1), sessionId, rs.getObject(2, Long.class), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6), rs.getTimestamp(7).toInstant()), sessionId, safeSize, offset);
+            return new PageResult<>(items, total, safePage, safeSize);
+        }
+        List<MessageRecord> all = messages.getOrDefault(sessionId, List.of());
+        int from = Math.min((safePage - 1) * safeSize, all.size());
+        return new PageResult<>(all.subList(from, Math.min(from + safeSize, all.size())), all.size(), safePage, safeSize);
+    }
+
+    public synchronized List<SearchResult> searchSessions(long userId, String query, int page, int size) {
+        String q = query == null ? "" : query.trim();
+        if (q.isBlank()) return List.of();
+        int safeSize = Math.min(100, Math.max(1, size)), offset = Math.max(0, page - 1) * safeSize;
+        if (jdbc != null) return jdbc.query("SELECT s.session_id,s.title,COALESCE(m.content,'') FROM sessions s LEFT JOIN LATERAL (SELECT content FROM messages WHERE session_id=s.session_id AND is_deleted=FALSE AND content ILIKE ? ORDER BY sequence_no LIMIT 1) m ON TRUE WHERE s.user_id=? AND s.is_deleted=FALSE AND (s.title ILIKE ? OR m.content IS NOT NULL) ORDER BY COALESCE(s.last_message_at,s.created_at) DESC LIMIT ? OFFSET ?", (rs, row) -> new SearchResult(rs.getLong(1), rs.getString(2), rs.getString(3).length() > 160 ? rs.getString(3).substring(0, 160) : rs.getString(3)), "%" + q + "%", userId, "%" + q + "%", safeSize, offset);
+        return sessions.values().stream().filter(s -> s.userId() == userId && !"deleted".equals(s.status()) && s.title().toLowerCase().contains(q.toLowerCase())).map(s -> new SearchResult(s.sessionId(), s.title(), s.title())).limit(safeSize).toList();
     }
 
     public synchronized void archiveSession(long userId, long sessionId) {
-        requireSession(userId, sessionId);
-        if (jdbc != null) jdbc.update("UPDATE sessions SET status='archived',updated_at=CURRENT_TIMESTAMP WHERE session_id=? AND user_id=?", sessionId, userId);
-        sessions.computeIfPresent(sessionId, (key, value) -> value.withStatus("archived"));
+        setSessionStatus(userId, sessionId, "archived");
     }
 
     public synchronized MessageRecord addMessage(long userId, long sessionId, String role, String content, Object structuredPayload) {
@@ -213,7 +305,9 @@ public class UserAccountService {
 
     public synchronized MessageRecord addMessage(long userId, long sessionId, String role, String content, Object structuredPayload, Long agentRunId) {
         requireSession(userId, sessionId);
-        if (!List.of("user", "assistant", "system", "tool").contains(role)) throw new IllegalArgumentException("invalid message role");
+        if (!"user".equals(role)) throw new IllegalArgumentException("only user messages are accepted in M1-2");
+        requireText(content, "content");
+        if (content.length() > 10000) throw new IllegalArgumentException("content must be at most 10000 characters");
         int sequence = nextSequence(sessionId);
         long messageId = ids.nextId();
         String payload = json(structuredPayload == null ? Map.of() : structuredPayload);
@@ -226,12 +320,6 @@ public class UserAccountService {
         return record;
     }
 
-    public synchronized List<MessageRecord> listMessages(long userId, long sessionId) {
-        requireSession(userId, sessionId);
-        if (jdbc != null) return jdbc.query("SELECT message_id,agent_run_id,role,content,structured_payload::text,sequence_no,created_at FROM messages WHERE session_id=? AND is_deleted=FALSE ORDER BY sequence_no", (rs, row) -> new MessageRecord(rs.getLong(1), sessionId, rs.getObject(2, Long.class), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6), rs.getTimestamp(7).toInstant()), sessionId);
-        return List.copyOf(messages.getOrDefault(sessionId, List.of()));
-    }
-
     private int nextSequence(long sessionId) {
         if (jdbc != null) return jdbc.queryForObject("SELECT COALESCE(MAX(sequence_no),0)+1 FROM messages WHERE session_id=? AND is_deleted=FALSE", Integer.class, sessionId);
         return messages.getOrDefault(sessionId, List.of()).size() + 1;
@@ -240,7 +328,7 @@ public class UserAccountService {
     private void requireSession(long userId, long sessionId) {
         if (jdbc != null) {
             if (!exists("SELECT 1 FROM sessions WHERE session_id=? AND user_id=? AND is_deleted=FALSE", sessionId, userId)) throw notFound("session not found");
-        } else if (!sessions.containsKey(sessionId) || sessions.get(sessionId).userId() != userId || !"active".equals(sessions.get(sessionId).status())) throw notFound("session not found");
+        } else if (!sessions.containsKey(sessionId) || sessions.get(sessionId).userId() != userId || "deleted".equals(sessions.get(sessionId).status())) throw notFound("session not found");
     }
 
     private AuthResult issueSession(long userId, String username, String role, SessionMetadata metadata) {
@@ -291,8 +379,12 @@ public class UserAccountService {
     public record ProfileRecord(long userId, String displayName, String gender, java.time.LocalDate birthday, java.math.BigDecimal heightCm, java.math.BigDecimal weightKg, String activityLevel, String dietGoal, Integer calorieTarget, Integer proteinTarget, String allergens, String dislikes, String preferredUnits) { ProfileRecord with(ProfileUpdate update) { return new ProfileRecord(userId, update.displayName() == null ? displayName : update.displayName(), update.gender() == null ? gender : update.gender(), birthday, update.heightCm() == null ? heightCm : update.heightCm(), update.weightKg() == null ? weightKg : update.weightKg(), update.activityLevel() == null ? activityLevel : update.activityLevel(), update.dietGoal() == null ? dietGoal : update.dietGoal(), update.calorieTarget() == null ? calorieTarget : update.calorieTarget(), update.proteinTarget() == null ? proteinTarget : update.proteinTarget(), allergens, dislikes, preferredUnits); } }
     public record ProfileUpdate(String displayName, String gender, java.math.BigDecimal heightCm, java.math.BigDecimal weightKg, String activityLevel, String dietGoal, Integer calorieTarget, Integer proteinTarget) {}
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record SessionRecord(long sessionId, long userId, String title, String mode, String status, Instant lastMessageAt) { SessionRecord withStatus(String value) { return new SessionRecord(sessionId, userId, title, mode, value, lastMessageAt); } }
+    public record SessionRecord(long sessionId, long userId, String title, String mode, String status, Instant lastMessageAt) { SessionRecord withStatus(String value) { return new SessionRecord(sessionId, userId, title, mode, value, lastMessageAt); } SessionRecord withTitle(String value) { return new SessionRecord(sessionId, userId, value, mode, status, lastMessageAt); } }
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record MessageRecord(long messageId, long sessionId, Long agentRunId, String role, String content, String structuredPayload, int sequenceNo, Instant createdAt) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record PageResult<T>(List<T> items, long total, int page, int size) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record SearchResult(long sessionId, String title, String snippet) {}
     private record AuthSessionRecord(long userId, String sessionTokenHash, String csrfTokenHash, Instant expiresAt, Instant revokedAt) {}
 }

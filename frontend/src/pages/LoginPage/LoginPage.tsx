@@ -5,7 +5,7 @@ import { useGSAP } from '@gsap/react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandLogo } from '../../components/brand/BrandLogo';
-import { getLoginDefaults, login } from '../../services/authService';
+import { getLoginDefaults, login, register } from '../../services/authService';
 import type { LoginFormValues } from '../../mock/auth';
 import styles from './LoginPage.module.css';
 
@@ -173,9 +173,13 @@ export function LoginPage() {
     }
   };
 
-  const handleRegister = (_values: RegisterFormValues) => {
-    Message.success('注册流程已提交（mock）');
-    switchMode('login');
+  const handleRegister = async (values: RegisterFormValues) => {
+    try {
+      await register(values);
+      navigate('/');
+    } catch (error) {
+      Message.error(error instanceof Error ? error.message : '注册失败');
+    }
   };
 
   const handleForgot = (_values: ForgotFormValues) => {

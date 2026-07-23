@@ -1,9 +1,9 @@
 ﻿import { Button, Dropdown, Input, Menu, Message, Tag, Tooltip } from '@arco-design/web-react';
 import { IconBook, IconMessage, IconMenu, IconPlus, IconSearch, IconUser } from '@arco-design/web-react/icon';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ROUTES, buildChatPath } from '../../constants/routes';
-import { loadSessions } from '../../services/sessionService';
+import { createSession, loadSessions, searchSessions } from '../../services/sessionService';
 import { getAuthScenarios, getAuthStatus, getAuthUser, logout } from '../../services/authService';
 import { SidebarSessionList } from '../../components/workspace/SidebarSessionList';
 import { BrandLogo } from '../../components/brand/BrandLogo';
@@ -18,8 +18,15 @@ type WorkspaceLayoutProps = {
 export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }: WorkspaceLayoutProps) {
   const authStatus = getAuthStatus();
   const authUser = getAuthUser();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<Awaited<ReturnType<typeof loadSessions>>>([]);
+  const [sessionQuery, setSessionQuery] = useState('');
   useEffect(() => { loadSessions().then(setSessions).catch(() => undefined); }, []);
+  useEffect(() => {
+    if (import.meta.env.VITE_AGENT_MODE !== 'real' || !sessionQuery.trim()) return;
+    const timer = window.setTimeout(() => { searchSessions(sessionQuery.trim()).then(setSessions).catch(() => undefined); }, 250);
+    return () => window.clearTimeout(timer);
+  }, [sessionQuery]);
   const authScenarios = getAuthScenarios();
   const currentAuth = authScenarios.find((item) => item.status === authStatus) ?? authScenarios[0];
   const isAuthenticated = authStatus === 'authenticated';
@@ -56,16 +63,20 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
           <BrandLogo />
           <span className={styles.modePill}>Agent 模式</span>
         </div>
-        <Link className={styles.newButton} to={buildChatPath('week-plan')}>
+        <button className={styles.newButton} onClick={() => {
+          if (import.meta.env.VITE_AGENT_MODE !== 'real') { navigate(buildChatPath('week-plan')); return; }
+          void createSession().then((session) => navigate(buildChatPath(String(session.session_id))));
+        }}>
           <IconPlus />
           <span>新建 Agent 会话</span>
-        </Link>
+        </button>
         <Input
           className={styles.search}
           prefix={<IconSearch />}
           placeholder="搜索会话"
           allowClear
-          onChange={() => Message.info('会话搜索在真实接入后可用，当前为 mock 阶段。')}
+          value={sessionQuery}
+          onChange={setSessionQuery}
         />
         <SidebarSessionList sessions={sessions} />
         <div className={styles.accountDock}>

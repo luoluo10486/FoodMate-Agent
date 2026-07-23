@@ -132,10 +132,12 @@ public class PersonalDataService {
             List<String> objectKeys = jdbc.query("SELECT storage_key FROM user_avatar_assets WHERE user_id=? AND storage_key IS NOT NULL AND is_deleted=FALSE", (rs, row) -> rs.getString(1), userId);
             objectKeys.addAll(jdbc.query("SELECT object_key FROM data_export_jobs WHERE user_id=? AND object_key IS NOT NULL AND is_deleted=FALSE", (rs, row) -> rs.getString(1), userId));
             long deletedObjects = 0;
+            String objectDeleteFailure = null;
             for (String key : objectKeys) {
                 try { minio.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(key).build()); deletedObjects++; }
-                catch (Exception ignored) { }
+                catch (Exception exception) { objectDeleteFailure = exception.getMessage(); }
             }
+            if (objectDeleteFailure != null) throw new IllegalStateException("object cleanup failed: " + objectDeleteFailure);
             jdbc.update("UPDATE users SET status='disabled',is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
             jdbc.update("UPDATE user_profiles SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
             jdbc.update("UPDATE sessions SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
@@ -143,7 +145,10 @@ public class PersonalDataService {
             jdbc.update("UPDATE user_avatar_assets SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
             jdbc.update("UPDATE data_export_jobs SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=?", userId);
             jdbc.update("UPDATE account_deletion_jobs SET status='completed',deleted_object_count=?,completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE deletion_job_id=?", deletedObjects, jobId);
-        } catch (Exception e) { jdbc.update("UPDATE account_deletion_jobs SET status='failed',failure_code='DELETION_FAILED',retry_count=retry_count+1,updated_at=CURRENT_TIMESTAMP WHERE deletion_job_id=?", jobId); }
+        } catch (Exception e) {
+            String detail = e.getMessage() == null ? "unknown" : e.getMessage();
+            jdbc.update("UPDATE account_deletion_jobs SET status='failed',failure_code=?,retry_count=retry_count+1,updated_at=CURRENT_TIMESTAMP WHERE deletion_job_id=?", ("DELETION_FAILED:" + detail).substring(0, Math.min(64, ("DELETION_FAILED:" + detail).length())), jobId);
+        }
     }
 
     public record Avatar(long avatarAssetId, String storageKey, String mimeType, long sizeBytes) {}
