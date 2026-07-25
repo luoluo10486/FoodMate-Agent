@@ -18,15 +18,25 @@ JWT_ENABLED = os.getenv("FOODMATE_SERVICE_JWT_ENABLED", "true").lower() == "true
 PYTHON_PRIVATE_KEY = os.getenv("FOODMATE_PYTHON_PRIVATE_KEY", "")
 PYTHON_KID = os.getenv("FOODMATE_PYTHON_KID", "")
 JAVA_PUBLIC_KEY = os.getenv("FOODMATE_JAVA_PUBLIC_KEY", "")
+STATE_FILE = os.getenv("FOODMATE_RUNTIME_STATE_FILE", "")
 _cancelled: set[str] = set()
 _dispatches: dict[str, dict] = {}
 _lock = threading.Lock()
 
 
+def _canonical(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+
+
+def _digest(value):
+    import hashlib
+    return "sha256:" + hashlib.sha256(_canonical(value)).hexdigest()
+
+
 def _headers():
     headers = {"Content-Type": "application/json", "X-Contract-Version": CONTRACT_VERSION}
     if JWT_ENABLED:
-        headers["Authorization"] = "Bearer " + _sign("foodmate-agent-runtime", "foodmate-control-plane", "runtime:event")
+        headers["Authorization"] = "Bearer " + _sign("foodmate-agent-runtime", "foodmate-control-plane", "agent:event")
     return headers
 
 
@@ -50,7 +60,9 @@ def _sign(issuer, audience, scope):
 
 
 def _verify(token, issuer, audience, scope):
-    if not JWT_ENABLED or not JAVA_PUBLIC_KEY:
+    if not JWT_ENABLED:
+        return True
+    if not JAVA_PUBLIC_KEY:
         return False
     try:
         header, payload, signature = token.split(".")
@@ -65,19 +77,36 @@ def _verify(token, issuer, audience, scope):
         return False
 
 
-def emit(command, event_id, sequence, state, payload=None):
+def emit(command, event_id, sequence, event_type, payload=None):
+    request_id = "req_evt_" + uuid.uuid4().hex
+    occurred_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    stable = {
+        "schema_version": CONTRACT_VERSION,
+        "run_id": command["run_id"],
+        "dispatch_id": command["dispatch_id"],
+        "attempt": command["attempt"],
+        "event_id": event_id,
+        "event_seq": sequence,
+        "occurred_at": occurred_at,
+        "event_type": event_type,
+        "payload": payload or {},
+    }
     body = json.dumps({
         "schema_version": CONTRACT_VERSION,
         "event_id": event_id,
         "run_id": command["run_id"],
         "dispatch_id": command["dispatch_id"],
+        "attempt": command["attempt"],
         "event_seq": sequence,
-        "state": state,
+        "request_id": request_id,
+        "trace_id": command.get("trace_id", "trace_stub"),
+        "request_hash": _digest(stable),
+        "occurred_at": occurred_at,
+        "event_type": event_type,
         "payload": payload or {},
-        "occurred_at": datetime.now(timezone.utc).isoformat(),
     }).encode("utf-8")
     request = urllib.request.Request(
-        JAVA_CALLBACK_URL.rstrip("/") + "/internal/runtime/runs:events",
+        JAVA_CALLBACK_URL.rstrip("/") + "/foodmate/internal/v1/agent-events",
         data=body,
         headers=_headers(),
         method="POST",
@@ -89,15 +118,27 @@ def emit(command, event_id, sequence, state, payload=None):
 def execute(command):
     prefix = command["dispatch_id"]
     try:
-        emit(command, prefix + "-accepted", 1, "DISPATCHED")
+        emit(command, prefix + "-accepted", 1, "run.accepted", {"status": "queued"})
         if command["run_id"] in _cancelled:
-            emit(command, prefix + "-cancelled", 2, "CANCELED", {"reason": "cancelled"})
+            emit(command, prefix + "-cancel-ack", 2, "run.cancel_acknowledged", {"reason": "user_requested"})
+            emit(command, prefix + "-cancelled", 3, "run.cancelled", {"reason": "user_requested"})
             return
-        emit(command, prefix + "-running", 2, "RUNNING")
+        emit(command, prefix + "-routed", 2, "run.routed", {"status": "routed"})
         if command["run_id"] in _cancelled:
-            emit(command, prefix + "-cancelled", 3, "CANCELED", {"reason": "cancelled"})
+            emit(command, prefix + "-cancel-ack", 3, "run.cancel_acknowledged", {"reason": "user_requested"})
+            emit(command, prefix + "-cancelled", 4, "run.cancelled", {"reason": "user_requested"})
             return
-        emit(command, prefix + "-completed", 3, "SUCCEEDED", {"answer": "Python runtime completed"})
+        content = command.get("message", {}).get("content", "")
+        answer = "运行链路已验证：已收到你的消息「" + content[:80] + "」。当前回复来自 M1-3 确定性 stub。"
+        first = answer[: len(answer) // 2]
+        second = answer[len(answer) // 2 :]
+        emit(command, prefix + "-answer-1", 3, "run.answer_stream", {"text": first, "status": "validating"})
+        if command["run_id"] in _cancelled:
+            emit(command, prefix + "-cancel-ack", 4, "run.cancel_acknowledged", {"reason": "user_requested"})
+            emit(command, prefix + "-cancelled", 5, "run.cancelled", {"reason": "user_requested"})
+            return
+        emit(command, prefix + "-answer-2", 4, "run.answer_stream", {"text": second, "status": "validating"})
+        emit(command, prefix + "-completed", 5, "run.completed", {"answer": answer, "status": "completed"})
     except (urllib.error.URLError, TimeoutError):
         # Java owns the timeout/retry policy. The runtime must not write business state directly.
         return
@@ -105,13 +146,15 @@ def execute(command):
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path not in {"/health/live", "/health/ready"}:
+        if self.path not in {"/foodmate/internal/health/live", "/foodmate/internal/health/ready"}:
             self.send_error(404)
             return
         self._json(200, {"status": "UP", "contract_version": CONTRACT_VERSION})
 
     def do_POST(self):
-        if self.path not in {"/internal/runtime/runs:dispatch", "/internal/runtime/runs:cancel"}:
+        is_dispatch = self.path == "/foodmate/internal/v1/runs"
+        is_cancel = self.path.startswith("/foodmate/internal/v1/runs/") and self.path.endswith("/cancel")
+        if not is_dispatch and not is_cancel:
             self.send_error(404)
             return
         if not self._authenticated() or self.headers.get("X-Contract-Version", CONTRACT_VERSION) != CONTRACT_VERSION:
@@ -119,10 +162,10 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             command = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
-            if self.path.endswith("dispatch"):
+            if is_dispatch:
                 self._dispatch(command)
             else:
-                self._cancel(command)
+                self._cancel(command, self.path.split("/")[-2])
         except (KeyError, ValueError, json.JSONDecodeError):
             self._json(400, {"code": "RUNTIME_CONTRACT_INVALID"})
 
@@ -142,9 +185,12 @@ class Handler(BaseHTTPRequestHandler):
         threading.Thread(target=execute, args=(command,), daemon=True).start()
         self._json(202, {"accepted": True, "duplicate": False, "dispatch_id": command["dispatch_id"]})
 
-    def _cancel(self, command):
+    def _cancel(self, command, path_run_id):
         if "run_id" not in command or "cancel_id" not in command:
             raise KeyError("run_id/cancel_id")
+        if command["run_id"] != path_run_id:
+            self._json(409, {"code": "RUNTIME_STATE_CONFLICT"})
+            return
         with _lock:
             _cancelled.add(command["run_id"])
         self._json(202, {"accepted": True, "cancel_id": command["cancel_id"]})
@@ -153,7 +199,7 @@ class Handler(BaseHTTPRequestHandler):
         authorization = self.headers.get("Authorization", "")
         if not authorization.startswith("Bearer "):
             return False
-        required_scope = "runtime:dispatch" if self.path.endswith("dispatch") else "runtime:cancel"
+        required_scope = "runtime:dispatch" if self.path.endswith("/runs") else "runtime:cancel"
         return _verify(authorization[7:], "foodmate-control-plane", "foodmate-agent-runtime", required_scope)
 
     def _json(self, status, value):

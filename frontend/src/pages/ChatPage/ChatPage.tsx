@@ -13,7 +13,16 @@ import { ErrorState } from '../../components/common/ErrorState';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
 import { createSession, loadSessionMessages, sendUserMessage, type RealMessage } from '../../services/sessionService';
+import { cancelAgentRun, openAgentRunStream } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
+
+function displayRunStatus(status: string) {
+  if (status === 'queued' || status === 'routed') return 'routing' as const;
+  if (status === 'planning' || status === 'retrieving' || status === 'executing') return status === 'executing' ? 'executing_tools' as const : status as 'planning' | 'retrieving';
+  if (status === 'validating') return 'validating' as const;
+  if (status === 'failed' || status === 'cancelled' || status === 'completed') return status;
+  return 'routing' as const;
+}
 
 export function ChatPage() {
   return import.meta.env.VITE_AGENT_MODE === 'real' ? <RealChatPage /> : <MockChatPage />;
@@ -27,6 +36,9 @@ function RealChatPage() {
   const [input, setInput] = useState(searchParams.get('prompt') ?? '');
   const [loading, setLoading] = useState(Boolean(sessionId));
   const [sending, setSending] = useState(false);
+  const [activeRunId, setActiveRunId] = useState<string>();
+  const [runStatus, setRunStatus] = useState('idle');
+  const [assistantText, setAssistantText] = useState('');
   const [error, setError] = useState<string>();
   const messagesRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +52,19 @@ function RealChatPage() {
 
   useEffect(() => { messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' }); }, [messages]);
 
+  useEffect(() => {
+    if (!activeRunId) return undefined;
+    setRunStatus('queued'); setAssistantText('');
+    const stream = openAgentRunStream(activeRunId, (eventType, payload) => {
+      if (eventType === 'run.answer_stream') { setRunStatus('validating'); setAssistantText((current) => current + (payload.text ?? '')); return; }
+      if (eventType === 'run.completed') { setRunStatus('completed'); setAssistantText(payload.answer ?? assistantText); return; }
+      if (eventType === 'run.failed') { setRunStatus('failed'); setError(payload.error_message ?? 'Agent 运行失败'); return; }
+      if (eventType === 'run.cancelled') { setRunStatus('cancelled'); return; }
+      setRunStatus(payload.status ?? eventType.replace('run.', ''));
+    }, () => setError('运行事件连接中断，浏览器将自动重连。'));
+    return () => stream.close();
+  }, [activeRunId]);
+
   const send = async () => {
     const content = input.trim();
     if (!content || sending) return;
@@ -49,6 +74,7 @@ function RealChatPage() {
       if (!target) { const created = await createSession(content.slice(0, 40)); target = String(created.session_id); navigate(`/chat/${target}`, { replace: true }); }
       const saved = await sendUserMessage(target, content);
       setMessages((current) => [...current, saved].sort((a, b) => a.sequence_no - b.sequence_no));
+      if (saved.agent_run_id) setActiveRunId(String(saved.agent_run_id));
       setInput('');
     } catch (reason) {
       if (reason instanceof ApiError && reason.code === 'FORBIDDEN') ArcoMessage.error(reason.message);
@@ -61,7 +87,7 @@ function RealChatPage() {
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.workspace}>
           <div className={styles.center}>
-            <AgentStatusStrip status="completed" />
+            <AgentStatusStrip status={displayRunStatus(runStatus === 'idle' ? 'completed' : runStatus)} />
             <div className={styles.messages} ref={messagesRef}>
               {loading ? <p>正在加载消息...</p> : null}
               {!loading && messages.length === 0 ? <p>暂无消息，发送第一条内容开始会话。</p> : null}
@@ -73,6 +99,7 @@ function RealChatPage() {
                   <span>{new Date(message.created_at).toLocaleString()}</span>
                 </article>
               ))}
+              {assistantText ? <article className={`${styles.message} ${styles.assistant}`}><Tag color="green">FoodMate（M1-3 stub）</Tag><p>{assistantText}</p></article> : null}
             </div>
           </div>
           <aside className={styles.tracePanel}>
@@ -82,7 +109,7 @@ function RealChatPage() {
             </Card>
           </aside>
         </section>
-        <Composer value={input} running={false} disabled={loading || sending} toolsUsed={0} toolsTotal={0} agentsUsed={0} agentsTotal={0} placeholder="输入要保存到会话中的内容..." onChange={setInput} onSend={() => void send()} />
+        <Composer value={input} running={runStatus !== 'idle' && !['completed', 'failed', 'cancelled'].includes(runStatus)} disabled={loading || sending} toolsUsed={0} toolsTotal={0} agentsUsed={0} agentsTotal={0} placeholder="输入要保存到会话中的内容..." onChange={setInput} onSend={() => void send()} onStop={() => { if (activeRunId) void cancelAgentRun(activeRunId); }} />
       </div>
     </WorkspaceLayout>
   );

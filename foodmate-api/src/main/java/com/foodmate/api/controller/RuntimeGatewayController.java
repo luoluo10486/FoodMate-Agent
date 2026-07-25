@@ -5,6 +5,9 @@ import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.RunCommand;
 import com.foodmate.shared.runtime.RunEvent;
+import com.foodmate.shared.runtime.V1RunEvent;
+import com.foodmate.application.runtime.V1RuntimeEventService;
+import org.springframework.beans.factory.ObjectProvider;
 import com.foodmate.shared.trace.TraceContextHolder;
 import com.foodmate.gateway.ServiceJwt;
 import jakarta.validation.Valid;
@@ -22,7 +25,18 @@ public class RuntimeGatewayController {
     private final boolean jwtEnabled;
     private final String javaPublicKey;
     private final String pythonPublicKey;
-    public RuntimeGatewayController(RuntimeGatewayService service, @Value("${foodmate.runtime.contract-version:v1}") String contractVersion, @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled, @Value("${foodmate.runtime.service-jwt.java-public-key:}") String javaPublicKey, @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey) { this.service = service; this.contractVersion = contractVersion; this.jwtEnabled = jwtEnabled; this.javaPublicKey = javaPublicKey; this.pythonPublicKey = pythonPublicKey; }
+    private final V1RuntimeEventService v1Events;
+    public RuntimeGatewayController(RuntimeGatewayService service, @Value("${foodmate.runtime.contract-version:v1}") String contractVersion, @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled, @Value("${foodmate.runtime.service-jwt.java-public-key:}") String javaPublicKey, @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey, ObjectProvider<V1RuntimeEventService> eventProvider) { this.service = service; this.contractVersion = contractVersion; this.jwtEnabled = jwtEnabled; this.javaPublicKey = javaPublicKey; this.pythonPublicKey = pythonPublicKey; this.v1Events = eventProvider.getIfAvailable(); }
+
+    @PostMapping("/foodmate/internal/v1/agent-events")
+    public ApiResponse<V1RuntimeEventService.EventResult> v1Event(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                                                    @RequestHeader(value = "X-Contract-Version", required = false) String version,
+                                                                    @Valid @RequestBody V1RunEvent event) {
+        if (!contractVersion.equals(version)) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_CONTRACT_INVALID", "V1 contract header is required");
+        authenticate(authorization, version, "foodmate-agent-runtime", pythonPublicKey, "agent:event");
+        if (v1Events == null) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_UNAVAILABLE", "V1 event service is not configured");
+        return ApiResponse.success(v1Events.accept(event), TraceContextHolder.currentOrNew());
+    }
 
     @PostMapping("/internal/runtime/runs:dispatch")
     public ApiResponse<RuntimeGatewayService.CommandResult> dispatch(@RequestHeader(value = "Authorization", required = false) String authorization, @RequestHeader(value = "X-Contract-Version", required = false) String version, @Valid @RequestBody RunCommand command) {

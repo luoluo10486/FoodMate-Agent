@@ -3,6 +3,7 @@ package com.foodmate.api.controller;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.application.account.UserAccountService;
+import com.foodmate.application.runtime.AgentRunCommandService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,11 +20,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.ObjectProvider;
 
 @RestController
 @RequestMapping("/api/sessions")
 public class SessionController extends AuthenticatedControllerSupport {
-    public SessionController(UserAccountService accounts) { super(accounts); }
+    private final AgentRunCommandService agentRuns;
+    public SessionController(UserAccountService accounts, ObjectProvider<AgentRunCommandService> agentRunProvider) {
+        super(accounts);
+        this.agentRuns = agentRunProvider.getIfAvailable();
+    }
 
     @GetMapping
     public ApiResponse<UserAccountService.PageResult<UserAccountService.SessionRecord>> list(HttpServletRequest request,
@@ -97,7 +103,9 @@ public class SessionController extends AuthenticatedControllerSupport {
                                                                      @PathVariable long sessionId,
                                                                      @Valid @RequestBody MessageRequest body) {
         if (!"user".equals(body.role())) throw new IllegalArgumentException("only role=user is accepted");
-        return ok(accounts.addMessage(user(request).userId(), sessionId, body.role(), body.content(), body.structuredPayload()));
+        var current = user(request);
+        if (agentRuns == null) return ok(accounts.addMessage(current.userId(), sessionId, body.role(), body.content(), body.structuredPayload()));
+        return ok(agentRuns.createUserMessageRun(current.userId(), sessionId, body.content(), TraceContextHolder.currentOrNew().traceId()));
     }
 
     private <T> ApiResponse<T> ok(T value) { return ApiResponse.success(value, TraceContextHolder.currentOrNew()); }
