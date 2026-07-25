@@ -13,6 +13,7 @@ const KnowledgePage = lazy(() =>
   import('./pages/KnowledgePage/KnowledgePage').then((module) => ({ default: module.KnowledgePage })),
 );
 const LoginPage = lazy(() => import('./pages/LoginPage/LoginPage').then((module) => ({ default: module.LoginPage })));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })));
 const ProfilePage = lazy(() =>
   import('./pages/ProfilePage/ProfilePage').then((module) => ({ default: module.ProfilePage })),
 );
@@ -28,6 +29,7 @@ export function App() {
         <Route path="/planning" element={<PlanningPage />} />
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin/*" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

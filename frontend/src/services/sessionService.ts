@@ -23,7 +23,10 @@ export async function loadSessionMessages(sessionId: string): Promise<RealMessag
 export async function sendUserMessage(sessionId: string, content: string): Promise<RealMessage> { return apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/messages`, { method: 'POST', body: JSON.stringify({ role: 'user', content }) }); }
 export async function renameSession(sessionId: string, title: string): Promise<void> { await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: 'PATCH', body: JSON.stringify({ title }) }); }
 export async function archiveSession(sessionId: string): Promise<void> { await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/archive`, { method: 'POST' }); }
+export async function unarchiveSession(sessionId: string): Promise<void> { await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/unarchive`, { method: 'POST' }); }
 export async function deleteSession(sessionId: string): Promise<void> { await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }); }
+export async function loadDeletedSessions(): Promise<RealSession[]> { const page = await apiRequest<{ items: RealSession[] }>('/api/sessions/deleted?size=50'); return page.items; }
+export async function restoreSession(sessionId: string): Promise<void> { await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/restore`, { method: 'POST' }); }
 export async function searchSessions(query: string): Promise<SessionSummary[]> { const rows = await apiRequest<Array<{ session_id: number; title: string; snippet: string }>>(`/api/sessions/search?q=${encodeURIComponent(query)}`); return rows.map((row) => ({ id: String(row.session_id), title: row.title, subtitle: row.snippet })); }
 
 export function getTaskCards(): TaskCardData[] {

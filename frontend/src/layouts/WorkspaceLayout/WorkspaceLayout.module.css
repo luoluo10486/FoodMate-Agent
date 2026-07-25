@@ -105,6 +105,27 @@
   border-top: 1px solid var(--fm-border);
 }
 
+.sessionTools {
+  min-height: 0;
+  overflow: auto;
+}
+
+.deletedButton {
+  width: 100%;
+  justify-content: flex-start;
+  margin-top: 8px;
+  color: var(--fm-muted);
+}
+
+.deletedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--fm-border);
+}
+
 .logoutLink,
 .topbarLogoutLink {
   display: block;

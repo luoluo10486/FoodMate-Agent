@@ -8,7 +8,7 @@ export class ApiError extends Error {
 }
 
 type ApiEnvelope<T> = { success: boolean; data: T; error?: { code: string; message: string } };
-const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 function csrfToken() {
