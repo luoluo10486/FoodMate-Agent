@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1250" height="700" viewBox="0 0 1250 700" role="img" aria-labelledby="title desc">
+  <title id="title">FoodMate Eval Gate 与退回规则</title><desc id="desc">最终候选答案经过硬规则和质量评分后，按固定动作交付、重写、重规划、追问、降级或安全失败。</desc>
+  <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#334155"/></marker><style>text{font-family:'Microsoft YaHei',sans-serif;fill:#172033}.h{font-size:27px;font-weight:700}.t{font-size:16px;font-weight:700}.s{font-size:13px}.b{stroke:#334155;stroke-width:1.8;rx:7}.l{fill:none;stroke:#334155;stroke-width:1.8;marker-end:url(#a)}</style></defs>
+  <rect width="1250" height="700" fill="#f8fafc"/><text x="625" y="43" text-anchor="middle" class="h">Final Eval Gate 与有界退回规则</text>
+  <rect x="60" y="275" width="185" height="75" fill="#e9f7fb" class="b"/><text x="152" y="307" text-anchor="middle" class="t">候选答案 + 轨迹</text><text x="152" y="333" text-anchor="middle" class="s">事实、引用、约束、失败</text>
+  <rect x="315" y="255" width="205" height="115" fill="#fdecec" class="b"/><text x="417" y="292" text-anchor="middle" class="t">确定性硬规则</text><text x="417" y="320" text-anchor="middle" class="s">安全 · 证据 · 权限</text><text x="417" y="345" text-anchor="middle" class="s">执行真实性 · 一致性</text>
+  <rect x="590" y="255" width="205" height="115" fill="#ffe9ef" class="b"/><text x="692" y="292" text-anchor="middle" class="t">质量评分器</text><text x="692" y="320" text-anchor="middle" class="s">完整性 · 约束满足</text><text x="692" y="345" text-anchor="middle" class="s">引用质量 · 清晰度</text>
+  <rect x="865" y="255" width="180" height="115" fill="#fff4d8" class="b"/><text x="955" y="292" text-anchor="middle" class="t">动作裁决</text><text x="955" y="320" text-anchor="middle" class="s">固定枚举 + 预算检查</text><text x="955" y="345" text-anchor="middle" class="s">禁止任意节点跳转</text>
+  <rect x="1075" y="75" width="135" height="65" fill="#dcfce7" class="b"/><text x="1142" y="114" text-anchor="middle" class="t">Deliver</text>
+  <rect x="1075" y="175" width="135" height="65" fill="#e9f7fb" class="b"/><text x="1142" y="214" text-anchor="middle" class="t">Rewrite ≤ 1</text>
+  <rect x="1075" y="275" width="135" height="65" fill="#eaf7ef" class="b"/><text x="1142" y="314" text-anchor="middle" class="t">Replan ≤ 1</text>
+  <rect x="1075" y="375" width="135" height="65" fill="#fff4d8" class="b"/><text x="1142" y="414" text-anchor="middle" class="t">Request User</text>
+  <rect x="1075" y="475" width="135" height="65" fill="#f1f5f9" class="b"/><text x="1142" y="514" text-anchor="middle" class="t">Degrade</text>
+  <rect x="1075" y="575" width="135" height="65" fill="#fecaca" class="b"/><text x="1142" y="614" text-anchor="middle" class="t">Fail Safe</text>
+  <path d="M245 312H315" class="l"/><path d="M520 312H590" class="l"/><path d="M795 312H865" class="l"/>
+  <path d="M1045 280L1075 110" class="l"/><path d="M1045 292L1075 208" class="l"/><path d="M1045 305H1075" class="l"/><path d="M1045 320L1075 407" class="l"/><path d="M1045 335L1075 507" class="l"/><path d="M1045 350L1075 607" class="l"/>
+  <text x="75" y="470" class="t">硬约束</text><text x="75" y="500" class="s">硬规则失败不能被 LLM Judge 覆盖。</text><text x="75" y="527" class="s">Eval 不得直接调用工具或改变权限。</text><text x="75" y="554" class="s">预算耗尽后不得继续反思。</text>
+  <text x="405" y="470" class="t">普通任务降级</text><text x="405" y="500" class="s">明确证据缺口、失败和未完成动作。</text><text x="405" y="527" class="s">禁止用流畅措辞掩盖执行失败。</text>
+  <text x="720" y="470" class="t">高风险任务</text><text x="720" y="500" class="s">Eval 不可用或安全失败时 fail closed。</text><text x="720" y="527" class="s">输出安全说明，不交付虚假成功结果。</text>
+</svg>

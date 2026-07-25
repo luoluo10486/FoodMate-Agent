@@ -2,13 +2,13 @@
 
 版本：v1.0 目标设计
 
-维护基线：2026-07-11
+维护基线：2026-07-25
 
-对应架构：[架构总览](./架构总览.md)、[Java 控制面工程设计](./Java控制面工程设计.md)
+对应架构：[架构总览](./架构总览.md)、[Agent 运行架构](./Agent运行架构.md)、[Java 控制面工程设计](./Java控制面工程设计.md)
 
 对应契约：[双运行时内部契约 V1](../契约/双运行时内部契约V1.md)、[智能体行为与工具协议](../契约/智能体行为与工具协议.md)
 
-文档定位：本文定义 Python Agent Runtime 的目标工程边界和实现结构。当前仓库没有 `agent-runtime/`、`pyproject.toml`、Python 项目虚拟环境或 pytest 基线；下述目录、接口和组件均为后续实现依据，不代表当前实现。
+文档定位：本文定义 Python Agent Runtime 的目标工程边界和实现结构。当前仓库已有 `agent-runtime/` 确定性 stub，但 Router、Planner、Execution、Validator、Composer 和 Evaluation 尚未实现；下述目标结构不代表当前实现。Workflow 节点、在线 Eval Gate、循环预算和退回矩阵以[Agent 运行架构](./Agent运行架构.md)为唯一依据。
 
 ## 1. 运行时定位
 
@@ -130,9 +130,13 @@ FastAPI dependency 必须校验短期 Service JWT 的签名、`iss`、`aud`、`e
 | RAG | 授权知识范围、查询 | 改写、召回、rerank、引用 | 扩大 ACL 或把检索文本当系统指令 |
 | Model | Prompt、结构化 schema | 模型输出、usage、latency、`model_call_id` | 保存业务真值或直接产生副作用 |
 | Composer | 已校验事实、引用、执行结果 | 结构化最终回答 | 暴露内部推理或伪造失败结果 |
-| Evaluation | 数据集、轨迹、最终回答 | 离线指标和回归结果 | 改写线上业务状态 |
+| Step Validator | 节点结果、计划约束、证据 | 硬校验结果和原因码 | 用模型评分覆盖硬规则 |
+| Final Eval Gate | 用户目标、候选答案、已验证事实和完整轨迹 | `pass/revise/replan/degrade/reject` 与固定动作 | 直接调用工具、扩大权限或无限退回 |
+| Offline Evaluation | 数据集、轨迹、最终回答 | 离线指标和回归结果 | 改写线上业务状态 |
 
-Execution 采用 Plan-Act-Observe-Reflect：每一步有明确输入、输出和终止条件。模型输出、RAG 内容和第三方文本均为不可信输入；工具与 SQL 只能形成 proposal，实际授权、执行和审计由 Java 完成。
+Execution 采用有界 Plan-Act-Observe-Reflect：每一步有明确输入、输出、终止条件和循环预算。最终候选答案必须通过在线 Eval Gate 后才能建议完成；退回只能沿固定边发生。模型输出、RAG 内容和第三方文本均为不可信输入；工具与 SQL 只能形成 proposal，实际授权、执行和审计由 Java 完成。
+
+![Agent 内部编排图](./资源/Agent内部编排图.svg)
 
 ## 5. 状态、事件与恢复
 

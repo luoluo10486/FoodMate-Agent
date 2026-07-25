@@ -21,7 +21,7 @@ FoodMate 是面向餐饮、营养、饮食记录、摄入分析和备餐规划�
 前端：
 
 ```bash
-cd frontend
+cd foodmate-ui
 npm install
 npm run dev
 ```

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">FoodMate Workflow 与 Agent 混合运行模式</title><desc id="desc">Java 控制面约束 Python Workflow、局部 Agent、工具、人工审批与 Eval Gate。</desc>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#334155"/></marker><style>text{font-family:'Microsoft YaHei',sans-serif;fill:#172033}.h{font-size:28px;font-weight:700}.t{font-size:18px;font-weight:700}.s{font-size:14px}.box{stroke:#334155;stroke-width:2;rx:8}.line{fill:none;stroke:#334155;stroke-width:2;marker-end:url(#a)}</style></defs>
+  <rect width="1200" height="720" fill="#f7f9fc"/><text x="600" y="48" text-anchor="middle" class="h">FoodMate 生产型 Workflow + Agent 混合架构</text>
+  <rect x="45" y="78" width="1110" height="115" fill="#e8f0ff" class="box"/><text x="75" y="112" class="t">Java 权威控制面</text><text x="75" y="143" class="s">AgentRun 状态机 · 身份权限 · Tool/SQL Policy · 人工审批 · 事务/幂等 · 审计 · SSE</text><text x="75" y="170" class="s">原则：Python 只能提出建议；Java 决定是否允许执行和是否接受终态。</text>
+  <rect x="390" y="235" width="420" height="105" fill="#eaf7ef" class="box"/><text x="600" y="274" text-anchor="middle" class="t">Workflow 固定主流程</text><text x="600" y="305" text-anchor="middle" class="s">节点、合法边、循环预算、checkpoint</text>
+  <rect x="110" y="405" width="250" height="100" fill="#fff4d8" class="box"/><text x="235" y="444" text-anchor="middle" class="t">Agent 局部决策</text><text x="235" y="475" text-anchor="middle" class="s">Router / Planner / Reflector</text>
+  <rect x="475" y="405" width="250" height="100" fill="#f0eafe" class="box"/><text x="600" y="444" text-anchor="middle" class="t">Tools / Approval</text><text x="600" y="475" text-anchor="middle" class="s">Java 执行 · 用户确认</text>
+  <rect x="840" y="405" width="250" height="100" fill="#fdecec" class="box"/><text x="965" y="444" text-anchor="middle" class="t">Validator</text><text x="965" y="475" text-anchor="middle" class="s">结构、事实、约束硬校验</text>
+  <rect x="390" y="575" width="250" height="90" fill="#e9f7fb" class="box"/><text x="515" y="611" text-anchor="middle" class="t">Answer Composer</text><text x="515" y="640" text-anchor="middle" class="s">生成候选答案</text>
+  <rect x="760" y="575" width="250" height="90" fill="#ffe9ef" class="box"/><text x="885" y="611" text-anchor="middle" class="t">Final Eval Gate</text><text x="885" y="640" text-anchor="middle" class="s">通过 / 重写 / 重规划 / 拒绝</text>
+  <path d="M600 193V235" class="line"/><path d="M470 340L275 405" class="line"/><path d="M600 340V405" class="line"/><path d="M730 340L925 405" class="line"/><path d="M360 455H475" class="line"/><path d="M725 455H840" class="line"/><path d="M925 505L610 575" class="line"/><path d="M640 620H760" class="line"/><path d="M885 575C885 540 650 540 600 340" class="line"/>
+  <text x="690" y="555" class="s">候选答案</text><text x="900" y="545" class="s">不通过时有界退回</text>
+</svg>

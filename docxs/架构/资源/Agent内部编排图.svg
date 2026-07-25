@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820" role="img" aria-labelledby="title desc">
+  <title id="title">FoodMate Agent 内部编排图</title><desc id="desc">从 Intake 到 Router、Planner、执行、校验、Composer、Eval 和交付的完整有界流程。</desc>
+  <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#334155"/></marker><style>text{font-family:'Microsoft YaHei',sans-serif;fill:#172033}.h{font-size:27px;font-weight:700}.t{font-size:16px;font-weight:700}.s{font-size:13px}.b{stroke:#334155;stroke-width:1.8;rx:7}.l{fill:none;stroke:#334155;stroke-width:1.8;marker-end:url(#a)}</style></defs>
+  <rect width="1400" height="820" fill="#f8fafc"/><text x="700" y="42" text-anchor="middle" class="h">FoodMate Agent Runtime 内部编排图</text>
+  <g fill="#e8f0ff"><rect x="55" y="90" width="150" height="65" class="b"/><rect x="255" y="90" width="150" height="65" class="b"/></g><text x="130" y="128" text-anchor="middle" class="t">Intake</text><text x="330" y="128" text-anchor="middle" class="t">Router</text>
+  <rect x="455" y="70" width="175" height="85" fill="#fff4d8" class="b"/><text x="542" y="108" text-anchor="middle" class="t">Clarification</text><text x="542" y="133" text-anchor="middle" class="s">waiting_user</text>
+  <rect x="455" y="200" width="175" height="65" fill="#eaf7ef" class="b"/><text x="542" y="238" text-anchor="middle" class="t">Planner</text>
+  <rect x="700" y="200" width="190" height="65" fill="#eaf7ef" class="b"/><text x="795" y="238" text-anchor="middle" class="t">Execution Engine</text>
+  <g fill="#f0eafe"><rect x="965" y="80" width="150" height="65" class="b"/><rect x="965" y="180" width="150" height="65" class="b"/><rect x="965" y="280" width="150" height="65" class="b"/></g><text x="1040" y="118" text-anchor="middle" class="t">RAG / Model</text><text x="1040" y="218" text-anchor="middle" class="t">Tool / SQL</text><text x="1040" y="318" text-anchor="middle" class="t">Human Approval</text>
+  <rect x="700" y="385" width="190" height="65" fill="#fdecec" class="b"/><text x="795" y="423" text-anchor="middle" class="t">Step Validator</text>
+  <rect x="455" y="385" width="175" height="65" fill="#fff4d8" class="b"/><text x="542" y="423" text-anchor="middle" class="t">Reflector</text>
+  <rect x="455" y="535" width="175" height="65" fill="#e9f7fb" class="b"/><text x="542" y="573" text-anchor="middle" class="t">Answer Composer</text>
+  <rect x="700" y="535" width="190" height="65" fill="#ffe9ef" class="b"/><text x="795" y="573" text-anchor="middle" class="t">Final Eval Gate</text>
+  <rect x="980" y="535" width="165" height="65" fill="#dcfce7" class="b"/><text x="1062" y="573" text-anchor="middle" class="t">Final Output</text>
+  <rect x="700" y="680" width="190" height="65" fill="#f1f5f9" class="b"/><text x="795" y="718" text-anchor="middle" class="t">Terminal Arbiter</text>
+  <path d="M205 122H255" class="l"/><path d="M405 110H455" class="l"/><text x="420" y="96" class="s">缺参</text><path d="M405 135C430 170 455 215 455 232" class="l"/><text x="420" y="183" class="s">复杂任务</text><path d="M630 232H700" class="l"/>
+  <path d="M890 218L965 120" class="l"/><path d="M890 232H965" class="l"/><path d="M1040 245V280" class="l"/><path d="M965 315C920 315 900 275 890 255" class="l"/>
+  <path d="M795 265V385" class="l"/><path d="M700 417H630" class="l"/><path d="M542 385V265" class="l"/><text x="555" y="330" class="s">重规划 ≤ 1</text><path d="M542 450V535" class="l"/><path d="M630 567H700" class="l"/><path d="M890 567H980" class="l"/>
+  <path d="M795 535C795 490 620 490 585 535" class="l"/><text x="685" y="495" class="s">仅答案问题：重写 ≤ 1</text><path d="M795 600V680" class="l"/><text x="810" y="645" class="s">拒绝 / 预算耗尽</text>
+  <path d="M700 560C650 510 400 500 405 150" class="l"/><text x="410" y="490" class="s">缺用户信息</text><path d="M330 155C330 520 405 550 455 560" class="l"/><text x="345" y="350" class="s">简单任务快速路径</text>
+  <text x="65" y="790" class="s">注：所有循环受 Run 预算、deadline、取消和 Java 终态裁决约束；图中节点是 Python 技术状态，不替代 Java AgentRun 状态。</text>
+</svg>
