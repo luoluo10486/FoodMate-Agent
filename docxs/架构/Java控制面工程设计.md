@@ -1,7 +1,7 @@
 # FoodMate Java 业务控制面工程骨架与跨语言边界设计
 
-版本：v1.1
-维护基线：2026-07-11
+版本：v1.2
+维护基线：2026-07-25
 对应总设计：[系统设计与技术方案](./系统设计与技术方案.md)
 对应接口文档：[接口与数据规范](../契约/接口与数据规范.md)
 对应行为协议：[智能体行为与工具协议](../契约/智能体行为与工具协议.md)
@@ -19,7 +19,7 @@ FoodMate 目标架构采用两个运行时：
 
 这不是让 Java 和 Python 成为两个业务后端。Java 是业务真值和最终授权点，Python 只能提出动作与查询建议。Python 不持有业务数据库写权限，不直接执行业务工具，也不向前端提供接口。
 
-当前仓库中的 `foodmate-orchestrator`、`foodmate-rag`、`foodmate-sql-agent`、`foodmate-model` 是已创建但尚未实现的旧 Java 占位模块。它们记录当前代码事实，但不再是未来 Agent 实现位置。
+当前 Java 控制面保留 6 个 Maven 模块；旧 Java Agent 占位模块已移除。Router、Planner、RAG、模型和 SQL Planner 归 Python Runtime，Tool/SQL Guard 在有真实实现前先按现有 Java 模块内的包组织。
 
 采用双运行时的原因是系统的智能复杂度集中在：
 
