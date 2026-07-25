@@ -146,7 +146,7 @@ public class RuntimeGatewayService {
         runContexts.put(runId, new RunContext(userId, sessionId, userMessageId, null));
     }
 
-    /** Ensures that a user can only observe or control runs created from that user's session. */
+    /** 确保用户只能查看或控制自己会话创建的运行记录。 */
     public synchronized void requireRunOwner(String runId, long userId) {
         RunContext context = runContexts.get(runId);
         if (context != null) {
@@ -160,7 +160,7 @@ public class RuntimeGatewayService {
         throw new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.FORBIDDEN);
     }
 
-    /** Registers a listener and replays events after the supplied sequence before accepting live events. */
+    /** 注册监听器，并先回放指定序号之后的事件，再接收实时事件。 */
     public synchronized void subscribe(String runId, long afterSequence, Consumer<RunEvent> listener) {
         if (!statuses.containsKey(runId) && jdbc == null && !runExistsJdbc(runId)) throw new IllegalArgumentException("runId does not exist");
         for (RunEvent event : events(runId)) if (event.eventSeq() > afterSequence) listener.accept(event);

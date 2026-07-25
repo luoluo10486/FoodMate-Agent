@@ -27,6 +27,7 @@ public class RuntimeCancellationService {
 
     @Transactional
     public CancelResult request(long userId, String runId, String reason) {
+        // 取消、状态检查和 cancellation_epoch 提升必须先完成用户归属校验。
         events.requireRunOwner(runId, userId);
         if (jdbc == null) return new CancelResult(runId, "requested", false);
         long numeric = parse(runId);
@@ -54,7 +55,9 @@ public class RuntimeCancellationService {
                 V1CancelCommand command = new V1CancelCommand("v1", pending.runId(), pending.dispatchId(), pending.attempt(), pending.cancelId(), "req_cancel_" + pending.cancelId(), "trace_cancel_" + pending.runId(), pending.requestHash(), pending.requestedAt().plusSeconds(30), pending.reason(), pending.requestedAt());
                 client.cancel(command);
                 jdbc.update("UPDATE agent_run_cancellations SET status='dispatched',updated_at=CURRENT_TIMESTAMP WHERE cancellation_id=? AND status='requested'", pending.id());
-            } catch (Exception exception) { /* keep requested for retry until the run deadline */ }
+            } catch (Exception exception) {
+                // Runtime 暂时不可用时保留 requested，下一轮定时任务使用同一取消记录重试。
+            }
         }
     }
 

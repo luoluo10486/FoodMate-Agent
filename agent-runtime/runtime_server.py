@@ -78,6 +78,7 @@ def _verify(token, issuer, audience, scope):
 
 
 def emit(command, event_id, sequence, event_type, payload=None):
+    # Runtime 只回传协议事件，不直接写 FoodMate 业务表；状态投影由 Java 完成。
     request_id = "req_evt_" + uuid.uuid4().hex
     occurred_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     stable = {
@@ -140,7 +141,7 @@ def execute(command):
         emit(command, prefix + "-answer-2", 4, "run.answer_stream", {"text": second, "status": "validating"})
         emit(command, prefix + "-completed", 5, "run.completed", {"answer": answer, "status": "completed"})
     except (urllib.error.URLError, TimeoutError):
-        # Java owns the timeout/retry policy. The runtime must not write business state directly.
+        # 超时和重试由 Java 控制面负责，Runtime 不直接写业务状态。
         return
 
 

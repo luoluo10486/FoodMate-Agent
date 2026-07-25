@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 
-/** Immutable Java representation of the V1 Java -> Python RunCommand envelope. */
+/** V1 Java -> Python RunCommand envelope 的不可变 Java 表示。 */
 public record V1RunCommand(
         @JsonProperty("schema_version") String schemaVersion,
         @JsonProperty("run_id") String runId,

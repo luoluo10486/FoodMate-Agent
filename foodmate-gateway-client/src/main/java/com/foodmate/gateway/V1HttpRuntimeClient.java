@@ -12,7 +12,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.UUID;
 
-/** Java -> Python V1 transport; it never rebuilds an outbox payload. */
+/** Java -> Python 的 V1 传输客户端，不重新拼装已持久化的 outbox payload。 */
 public final class V1HttpRuntimeClient implements V1RuntimeClient {
     private final URI base;
     private final Duration timeout;

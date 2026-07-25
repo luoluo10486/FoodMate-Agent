@@ -130,15 +130,12 @@ foodmate/
   ├── foodmate-bootstrap/
   ├── foodmate-api/
   ├── foodmate-application/
-  ├── foodmate-domain/
-  ├── foodmate-tool/
   ├── foodmate-gateway-client/   # 调整为 Python Runtime Client
-  ├── foodmate-worker/
   ├── foodmate-infra/
   └── foodmate-shared/
 ```
 
-仓库中暂时仍存在 `foodmate-orchestrator`、`foodmate-rag`、`foodmate-sql-agent`、`foodmate-model`。在迁移任务完成前保留这些目录，但禁止新增 Agent 实现；根 `pom.xml` 和依赖测试应在迁移时统一收缩，避免文档先假装代码已经删除。
+当前 Java 控制面采用 6 个 Maven 模块。Tool、Worker、领域规则、RAG、模型、编排和 SQL 的未来职责先在现有模块内以包组织；在出现独立部署、稳定边界或足够实现量前，不预建空 Maven module。
 
 ### 2.2 模块清单与角色
 
@@ -147,10 +144,7 @@ foodmate/
 | `foodmate-bootstrap` | Java 启动模块 | Spring Boot 启动、配置和 Bean 装配 |
 | `foodmate-api` | Java 接入层 | 外部 HTTP/SSE、鉴权、内部 Agent 事件接收 |
 | `foodmate-application` | Java 应用层 | 用例、事务、AgentRun 状态机、DTO 和事件映射 |
-| `foodmate-domain` | Java 领域层 | 业务实体、聚合、权限相关领域规则 |
-| `foodmate-tool` | Java 执行层 | Tool Registry、Policy、审批、幂等、执行和审计 |
 | `foodmate-gateway-client` | Java 客户端层 | Python Runtime Client、服务身份、超时、取消和协议转换 |
-| `foodmate-worker` | Java 异步层 | 业务后台任务；不承载 Agent 编排和 Prompt |
 | `foodmate-infra` | Java 基础设施层 | PostgreSQL、Redis、对象存储、SQL Guard/只读执行适配 |
 | `foodmate-shared` | Java 共享层 | 稳定公共对象、错误、Trace；不共享 Java 类给 Python |
 | `agent-runtime` | Python 智能执行面 | 编排、Prompt、模型、RAG、SQL proposal、checkpoint 和评测 |
@@ -162,30 +156,17 @@ Java 目标依赖方向固定如下：
 ```text
 foodmate-bootstrap
   -> foodmate-api / foodmate-application / foodmate-gateway-client
-  -> foodmate-tool / foodmate-worker / foodmate-infra / foodmate-shared
+  -> foodmate-infra / foodmate-shared
 
 foodmate-api
   -> foodmate-application
   -> foodmate-shared
 
 foodmate-application
-  -> foodmate-domain
-  -> foodmate-tool
   -> foodmate-gateway-client
   -> foodmate-shared
 
-foodmate-tool
-  -> foodmate-domain
-  -> foodmate-infra
-  -> foodmate-shared
-
 foodmate-gateway-client
-  -> foodmate-shared
-
-foodmate-worker
-  -> foodmate-application
-  -> foodmate-tool
-  -> foodmate-infra
   -> foodmate-shared
 
 foodmate-infra

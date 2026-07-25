@@ -1,5 +1,5 @@
 /**
- * 会话服务 — 当前转发 mock，后续替换为真实 API 调用。
+ * 会话服务：real 模式使用后端 API，mock 模式只保留开发期演示数据。
  */
 import { mockSessions, taskCards, recommendedPrompts } from '../mock/sessions';
 import type { SessionSummary } from '../types/session';
@@ -18,6 +18,7 @@ export async function loadSessions(): Promise<SessionSummary[]> {
 
 export type RealSession = { session_id: number; title: string; mode: string; status: string; last_message_at?: string };
 export type RealMessage = { message_id: number; session_id: number; agent_run_id?: number | string; role: 'user'; content: string; sequence_no: number; created_at: string };
+// 以下方法统一通过 apiRequest 发送真实会话和消息请求，由 apiRequest 负责 Cookie、CSRF 和错误映射。
 export async function createSession(title?: string): Promise<RealSession> { return apiRequest('/api/sessions', { method: 'POST', body: JSON.stringify({ title: title ?? '', mode: 'chat' }) }); }
 export async function loadSessionMessages(sessionId: string): Promise<RealMessage[]> { const page = await apiRequest<{ items: RealMessage[] }>(`/api/sessions/${encodeURIComponent(sessionId)}/messages?size=100`); return page.items; }
 export async function sendUserMessage(sessionId: string, content: string): Promise<RealMessage> { return apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/messages`, { method: 'POST', body: JSON.stringify({ role: 'user', content }) }); }

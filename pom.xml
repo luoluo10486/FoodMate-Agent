@@ -21,17 +21,10 @@
 
   <modules>
     <module>foodmate-shared</module>
-    <module>foodmate-domain</module>
     <module>foodmate-gateway-client</module>
-    <module>foodmate-model</module>
     <module>foodmate-infra</module>
-    <module>foodmate-rag</module>
-    <module>foodmate-tool</module>
-    <module>foodmate-sql-agent</module>
-    <module>foodmate-orchestrator</module>
     <module>foodmate-application</module>
     <module>foodmate-api</module>
-    <module>foodmate-worker</module>
     <module>foodmate-bootstrap</module>
   </modules>
 

@@ -39,16 +39,6 @@
     </dependency>
     <dependency>
       <groupId>com.foodmate</groupId>
-      <artifactId>foodmate-domain</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.foodmate</groupId>
-      <artifactId>foodmate-tool</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.foodmate</groupId>
       <artifactId>foodmate-shared</artifactId>
       <version>${project.version}</version>
     </dependency>

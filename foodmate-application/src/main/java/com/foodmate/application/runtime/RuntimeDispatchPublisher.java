@@ -10,7 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Claims and sends immutable V1 dispatch outbox rows after their transaction commits. */
+/** 在事务提交后领取并发送不可变的 V1 dispatch outbox 记录。 */
 @Component
 public class RuntimeDispatchPublisher {
     private final JdbcTemplate jdbc;

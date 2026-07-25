@@ -21,7 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Creates the durable AgentRun and immutable dispatch payload before any network call. */
+/** 在网络调用前持久化 AgentRun 和不可变 dispatch payload。 */
 @Service
 public class AgentRunCommandService {
     private final JdbcTemplate jdbc;
@@ -48,7 +48,7 @@ public class AgentRunCommandService {
             return accounts.addMessage(userId, sessionId, "user", content, null, runId);
         }
 
-        // The existing message FK points to agent_runs, so create the parent first and bind the message afterward.
+        // 消息外键依赖 agent_runs，因此先建运行记录，再保存消息并回填 user_message_id。
         accounts.listMessages(userId, sessionId, 1, 1);
         jdbc.update("INSERT INTO agent_runs(agent_run_id,session_id,status,trace_id,created_by) VALUES (?,?,?, ?,?)",
                 runId, sessionId, "queued", traceId, userId);
@@ -57,6 +57,7 @@ public class AgentRunCommandService {
         jdbc.update("UPDATE agent_runs SET user_message_id=?,updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=?",
                 message.messageId(), runId);
 
+        // command、摘要和 outbox 必须在同一事务里生成，publisher 提交后才允许发送。
         String dispatchId = "dsp_" + UUID.randomUUID().toString().replace("-", "");
         String requestId = "req_" + UUID.randomUUID().toString().replace("-", "");
         Instant deadline = Instant.now().plusSeconds(60);

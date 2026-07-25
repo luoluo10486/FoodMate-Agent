@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 
-/** Immutable Java representation of the V1 Python -> Java RunEvent envelope. */
+/** V1 Python -> Java RunEvent envelope 的不可变 Java 表示。 */
 public record V1RunEvent(
         @JsonProperty("schema_version") String schemaVersion,
         @JsonProperty("run_id") String runId,

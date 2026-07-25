@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** Polls durable SSE outbox rows and exposes them as a resumable browser stream. */
+/** 轮询持久化 SSE outbox，并向浏览器提供可恢复的事件流。 */
 @RestController
 @RequestMapping("/api/agent-runs")
 public class V1RunStreamController extends AuthenticatedControllerSupport {
@@ -35,6 +35,7 @@ public class V1RunStreamController extends AuthenticatedControllerSupport {
                              @RequestParam(value = "lastEventId", required = false) String query,
                              HttpServletRequest request) {
         requireOwner(runId, request);
+        // Last-Event-ID 可能是稳定的 sse_event_id，服务层会把它映射为真实 stream_seq。
         long after = events.cursorFor(runId, header == null ? query : header);
         SseEmitter emitter = new SseEmitter(120_000L);
         AtomicBoolean closed = new AtomicBoolean();
@@ -47,6 +48,7 @@ public class V1RunStreamController extends AuthenticatedControllerSupport {
             if (closed.get()) return;
             try {
                 for (var event : events.sseEvents(runId, cursor[0])) {
+                    // 发送成功后才推进内存游标；断线时仍可从数据库游标重新补发。
                     emitter.send(SseEmitter.event().id(event.sseEventId()).name(event.eventType()).data(event.payload()));
                     cursor[0] = event.streamSeq();
                     if (event.terminal()) { closed.set(true); emitter.complete(); executor.shutdown(); return; }

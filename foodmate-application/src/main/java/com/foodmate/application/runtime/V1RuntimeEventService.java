@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Validates and projects V1 Runtime events. Network publishing is intentionally outside this service. */
+/** 校验并投影 V1 Runtime 事件；网络发送由独立 publisher 负责。 */
 @Service
 public class V1RuntimeEventService {
     private final JdbcTemplate jdbc;
@@ -30,6 +30,7 @@ public class V1RuntimeEventService {
 
     @Transactional
     public synchronized EventResult accept(V1RunEvent event) {
+        // 先做幂等、dispatch fencing 和连续 event_seq 校验，合法事件才允许推进状态。
         if (jdbc == null) return acceptMemory(event);
         long runId = parseRunId(event.runId());
         if (!exists("SELECT 1 FROM agent_runs WHERE agent_run_id=? AND is_deleted=FALSE", runId)) {
@@ -72,6 +73,7 @@ public class V1RuntimeEventService {
         } else if ("run.cancelled".equals(event.eventType())) {
             jdbc.update("UPDATE agent_run_cancellations SET status='resolved',acknowledged_at=COALESCE(acknowledged_at,CURRENT_TIMESTAMP),resolved_at=COALESCE(resolved_at,CURRENT_TIMESTAMP),updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=? AND dispatch_id=? AND status IN ('requested','dispatched','acknowledged')", runId, event.dispatchId());
         }
+        // AgentRun 行锁保证同一个 run 的 SSE stream_seq 严格递增。
         long streamSeq = jdbc.queryForObject("SELECT sse_last_stream_seq + 1 FROM agent_runs WHERE agent_run_id=? FOR UPDATE", Long.class, runId);
         String sseId = "sse_" + ids.nextId();
         jdbc.update("INSERT INTO agent_run_sse_outbox(agent_run_sse_outbox_id,agent_run_id,sse_event_id,stream_seq,source_event_key,event_type,payload_json) VALUES (?,?,?,?,?,?,CAST(? AS jsonb))",
