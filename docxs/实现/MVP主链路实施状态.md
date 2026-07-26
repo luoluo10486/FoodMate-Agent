@@ -63,7 +63,12 @@ Java 校验事件身份、摘要、顺序和状态，再写入事件 inbox、Age
 - 固定 Python 版本、依赖锁、配置加载、健康检查、结构化日志和 pytest 门禁。
 - 建立模型供应商适配器、Router、Planner、Execution Engine、超时和降级策略。
 - 建立 Prompt 版本、离线样例、回归评测和模型用量事件。
+- 按已确认目标补齐 LangGraph、Redis 并发与队列、四类超时、预算快照、checkpoint 和 Final Eval Gate。
+- 普通缺参 continuation、`superseded`、预算追加和 Eval 后交付仍需契约、迁移、Java 与前端共同改造。
+- 当前无人审核，`request_review` 只能安全降级，不建设 `waiting_review`。
 - 继续禁止 Python 直接访问业务数据库或绕过 Java 授权。
+
+上述内容目前均是目标设计，不属于 M1-3 完成范围，也尚无代码完成证据。
 
 ### 5.2 后续阶段
 

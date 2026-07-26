@@ -7,11 +7,11 @@
   <rect x="590" y="255" width="205" height="115" fill="#ffe9ef" class="b"/><text x="692" y="292" text-anchor="middle" class="t">质量评分器</text><text x="692" y="320" text-anchor="middle" class="s">完整性 · 约束满足</text><text x="692" y="345" text-anchor="middle" class="s">引用质量 · 清晰度</text>
   <rect x="865" y="255" width="180" height="115" fill="#fff4d8" class="b"/><text x="955" y="292" text-anchor="middle" class="t">动作裁决</text><text x="955" y="320" text-anchor="middle" class="s">固定枚举 + 预算检查</text><text x="955" y="345" text-anchor="middle" class="s">禁止任意节点跳转</text>
   <rect x="1075" y="75" width="135" height="65" fill="#dcfce7" class="b"/><text x="1142" y="114" text-anchor="middle" class="t">Deliver</text>
-  <rect x="1075" y="175" width="135" height="65" fill="#e9f7fb" class="b"/><text x="1142" y="214" text-anchor="middle" class="t">Rewrite ≤ 1</text>
-  <rect x="1075" y="275" width="135" height="65" fill="#eaf7ef" class="b"/><text x="1142" y="314" text-anchor="middle" class="t">Replan ≤ 1</text>
+  <rect x="1075" y="175" width="135" height="65" fill="#e9f7fb" class="b"/><text x="1142" y="205" text-anchor="middle" class="t">Rewrite</text><text x="1142" y="226" text-anchor="middle" class="s">默认 1，可配置</text>
+  <rect x="1075" y="275" width="135" height="65" fill="#eaf7ef" class="b"/><text x="1142" y="305" text-anchor="middle" class="t">Replan</text><text x="1142" y="326" text-anchor="middle" class="s">默认 1，可配置</text>
   <rect x="1075" y="375" width="135" height="65" fill="#fff4d8" class="b"/><text x="1142" y="414" text-anchor="middle" class="t">Request User</text>
   <rect x="1075" y="475" width="135" height="65" fill="#f1f5f9" class="b"/><text x="1142" y="514" text-anchor="middle" class="t">Degrade</text>
-  <rect x="1075" y="575" width="135" height="65" fill="#fecaca" class="b"/><text x="1142" y="614" text-anchor="middle" class="t">Fail Safe</text>
+  <rect x="1075" y="575" width="135" height="65" fill="#fecaca" class="b"/><text x="1142" y="605" text-anchor="middle" class="t">Fail Safe</text><text x="1142" y="626" text-anchor="middle" class="s">无人审核时降级</text>
   <path d="M245 312H315" class="l"/><path d="M520 312H590" class="l"/><path d="M795 312H865" class="l"/>
   <path d="M1045 280L1075 110" class="l"/><path d="M1045 292L1075 208" class="l"/><path d="M1045 305H1075" class="l"/><path d="M1045 320L1075 407" class="l"/><path d="M1045 335L1075 507" class="l"/><path d="M1045 350L1075 607" class="l"/>
   <text x="75" y="470" class="t">硬约束</text><text x="75" y="500" class="s">硬规则失败不能被 LLM Judge 覆盖。</text><text x="75" y="527" class="s">Eval 不得直接调用工具或改变权限。</text><text x="75" y="554" class="s">预算耗尽后不得继续反思。</text>

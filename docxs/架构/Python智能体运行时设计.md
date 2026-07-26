@@ -2,7 +2,7 @@
 
 版本：v1.0 目标设计
 
-维护基线：2026-07-25
+维护基线：2026-07-26
 
 对应架构：[架构总览](./架构总览.md)、[Agent 运行架构](./Agent运行架构.md)、[Java 控制面工程设计](./Java控制面工程设计.md)
 
@@ -41,13 +41,25 @@ agent-runtime/                         # 目标目录，当前尚不存在
         tool.py
         sql.py
         error.py
-    orchestrator/
+    graph/
+      builder.py                       # LangGraph 图装配
+      state.py                         # 图内技术状态，不替代 AgentRun
+      routes.py                        # 白名单条件边
+      checkpoint.py                    # Redis checkpoint 适配与 Java 对账
+    nodes/
       router.py
       planner.py
       execution.py
+      reflector.py
+      validator.py
       composer.py
-      checkpoint.py
-      state.py
+      eval_gate.py
+    policies/
+      admission.py                     # Redis 并发准入客户端/结果模型
+      budget.py                        # Token、成本和循环预算
+      timeout.py                       # TimeoutSnapshot 与 deadline
+      model_routing.py                 # 确定性模型分层和 fallback
+      degradation.py                   # 软/硬阈值降级动作
     rag/
       query_understanding.py
       retrieval.py
@@ -62,6 +74,9 @@ agent-runtime/                         # 目标目录，当前尚不存在
       evaluators.py
       datasets.py
       regression.py
+    context/
+      builder.py
+      summarizer.py
     clients/
       java_control_plane.py
       tool_gateway.py
@@ -91,7 +106,7 @@ agent-runtime/                         # 目标目录，当前尚不存在
     evaluation/
 ```
 
-目录只表达目标职责。首次创建工程时应保持单一 Python 部署单元，不预先拆分 RAG、模型或评测微服务。
+目录只表达目标职责，不要求当前 stub 预建空包。首次创建正式编排工程时应保持单一 Python 部署单元，不预先拆分 RAG、模型或评测微服务。内部状态图固定使用 LangGraph，但 LangGraph checkpoint、事件和 memory 不能成为 Java 业务真值。
 
 ## 3. FastAPI 与 Pydantic 边界
 
@@ -150,7 +165,9 @@ Python 维护的是单次 dispatch 的技术执行状态，Java 维护 `AgentRun
 - checkpoint 至少保存计划版本、已完成节点、待处理 proposal、最后已发 `event_seq`、未确认事件的 `event_id/request_hash`、已消费运行内错误的 `error_id/request_hash`、Prompt 版本和模型调用引用。
 - checkpoint 只能保存恢复编排所需的技术状态，不保存业务库凭据，不替代 `agent_runs`、`tool_calls`、`sql_query_audits` 或审计表。
 - 恢复前必须向 Java 对账当前终态、取消请求和已完成 invocation；不能仅凭本地 checkpoint 重放副作用。
-- checkpoint 存储实现可后选，但配置必须与业务数据源完全分离，并设置保留期、加密和清理策略。
+- checkpoint 配置必须与业务数据源完全分离，并设置保留期、加密和清理策略。
+- 当前目标实现选择 Redis checkpoint namespace，并要求 AOF、版本 CAS、TTL、大小限制和敏感字段应用层加密；以后只有恢复规模出现明确证据时才评估独立技术 PostgreSQL。
+- 简单直接回答可以不写 checkpoint；多步骤、Tool/SQL、waiting_user、预算确认和 Eval 退回必须在关键安全节点写 checkpoint。
 
 ### 5.3 事件发送
 
@@ -191,6 +208,11 @@ Python 不读取 V1 `model_usage_logs` 来合成历史 `run.model_usage`，也�
 - 模型、Embedding、Rerank 供应商凭据。
 - Milvus/对象存储的受限技术访问配置（仅在授权架构落地后启用）。
 - checkpoint、Prompt、日志、Trace、指标和评测配置。
+- Workflow 预算：`FOODMATE_AGENT_MAX_STEP_RETRIES`、`FOODMATE_AGENT_MAX_REPLANS`、`FOODMATE_AGENT_MAX_ANSWER_REWRITES`、`FOODMATE_AGENT_MAX_TOTAL_STEPS` 和 `FOODMATE_AGENT_MAX_MODEL_CALLS`。
+
+Workflow 预算在 Runtime 启动时解析和校验，在接受 Run 时固化为不可变快照。checkpoint 必须保存该快照，恢复执行不得读取当前环境变量覆盖原值。默认值、单 Run 收紧规则和预算耗尽行为以[Agent 运行架构](./Agent运行架构.md)为准。
+
+并发、排队、四类超时、Token/成本、预算追加、模型路由、Eval、上下文、checkpoint、Trace 和反馈的完整环境变量及默认值以[配置指南](../项目/配置指南.md)为唯一配置说明。环境变量在进程启动时解析；改变环境变量需要受控重启，只影响新 Run，不能热修改已有 Run 的快照。
 
 明确禁止：
 
@@ -231,6 +253,18 @@ Python 不读取 V1 `model_usage_logs` 来合成历史 `run.model_usage`，也�
 - 收到 `CancelCommand` 后停止创建新的模型、Tool 或 SQL invocation，尝试取消可中断任务，并按当前 dispatch 序列发 `run.cancel_acknowledged`。
 - 已提交 Java 的 invocation 不能靠 Python 本地取消假定回滚；必须等待 Java 返回或对账。
 - Java 是终态竞争的裁决者；Python 收到 Java 已终态响应后停止执行并清理 checkpoint。
+- 取消后不再调用 Composer 或 LLM Eval；只根据 Java 已确认轨迹生成确定性部分摘要。已提交 Tool/SQL 必须继续对账，状态未知时禁止声称未执行。
+
+## 11.1 并发与 Redis 协调
+
+- PostgreSQL 保证每个 Session 最多一个 active Run。
+- Redis 协调每用户活跃 Session 上限、全局 active Run 上限、队列和 expirable permit。
+- Redis 不可用时新 Agent 请求 fail closed；不得退回进程内业务计数。
+- Python worker pool 只保护当前进程资源，不定义系统业务并发上限。
+
+## 11.2 Eval 前缓冲
+
+生产环境禁止在 Final Eval 通过前发送候选答案正文。Python 只回传业务进度事件；候选答案在受限缓冲区内完成 Eval，通过后才转换为 `run.answer_stream`。高风险 `request_review` 在当前无人审核条件下固定进入安全降级，不产生 `waiting_review`。
 
 ## 12. 测试与完成定义
 
