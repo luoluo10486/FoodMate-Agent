@@ -53,8 +53,10 @@ public class RuntimeCancellationService {
         for (PendingCancel pending : rows) {
             try {
                 V1CancelCommand command = new V1CancelCommand("v1", pending.runId(), pending.dispatchId(), pending.attempt(), pending.cancelId(), "req_cancel_" + pending.cancelId(), "trace_cancel_" + pending.runId(), pending.requestHash(), pending.requestedAt().plusSeconds(30), pending.reason(), pending.requestedAt());
-                client.cancel(command);
-                jdbc.update("UPDATE agent_run_cancellations SET status='dispatched',updated_at=CURRENT_TIMESTAMP WHERE cancellation_id=? AND status='requested'", pending.id());
+                // 浏览器取消先落库，再由这里通过 command Topic 可靠发布（ADR-0005 §控制命令）。
+                V1RuntimeClient.Response response = client.cancel(command);
+                jdbc.update("UPDATE agent_run_cancellations SET status='dispatched',transport=?,mq_message_id=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE cancellation_id=? AND status='requested'",
+                        response.messageId() == null ? "http" : "rocketmq", response.messageId(), pending.id());
             } catch (Exception exception) {
                 // Runtime 暂时不可用时保留 requested，下一轮定时任务使用同一取消记录重试。
             }

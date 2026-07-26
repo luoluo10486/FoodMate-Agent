@@ -51,11 +51,14 @@ done
 # 避免 Topic 列表出现无人负责的空 Topic。
 
 # consumer group 订阅关系。稳定命名，禁止每次启动随机生成（配置指南 §5.9）。
+# 最后一个是自动化测试专用组：Broker 关闭了 autoCreateSubscriptionGroup，
+# 测试无法临时创建消费组；用独立组消费才不会挪动 Java/Python 正式组的位点。
 for group in \
     "${GROUP_JAVA_AGENT_EVENT:-foodmate-java-agent-event-v1}" \
     "${GROUP_JAVA_AGENT_PROPOSAL:-foodmate-java-agent-proposal-v1}" \
     "${GROUP_PYTHON_AGENT_COMMAND:-foodmate-python-agent-command-v1}" \
-    "${GROUP_PYTHON_AGENT_RESULT:-foodmate-python-agent-result-v1}"; do
+    "${GROUP_PYTHON_AGENT_RESULT:-foodmate-python-agent-result-v1}" \
+    "${GROUP_SELFTEST:-foodmate-selftest-v1}"; do
     echo "[foodmate] 创建 consumer group ${group}"
     # RocketMQ 5.x 只有在消费者真正订阅后才建 %RETRY% Topic，因此不能用 topicList 回读；
     # updateSubGroup 成功时会打印 "success"，把它作为校验信号。

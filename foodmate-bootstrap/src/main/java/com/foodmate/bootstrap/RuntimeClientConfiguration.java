@@ -23,7 +23,13 @@ public class RuntimeClientConfiguration {
         return new HttpGatewayClient(baseUrl, Duration.ofSeconds(10), HttpClient.newHttpClient(), objectMapper, privateKey, kid, contractVersion);
     }
 
+    /**
+     * HTTP 兼容通道（M1-3）。transport=rocketmq 时不装配，由
+     * {@link RuntimeRocketMqConfiguration} 提供唯一的 {@link V1RuntimeClient}：
+     * 配置指南 §5.9 规则 10 要求同一进程不能同时启用 HTTP 与 MQ 业务派发。
+     */
     @Bean
+    @ConditionalOnProperty(name = "foodmate.runtime.transport", havingValue = "http", matchIfMissing = true)
     V1RuntimeClient v1RuntimeClient(@Value("${foodmate.runtime.agent-base-url}") URI baseUrl,
                                     @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
                                     @Value("${foodmate.runtime.service-jwt.java-private-key:}") String privateKey,

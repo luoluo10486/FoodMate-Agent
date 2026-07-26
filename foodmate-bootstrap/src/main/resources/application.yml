@@ -48,6 +48,21 @@ foodmate:
   runtime:
     stub-enabled: false
     contract-version: ${RUNTIME_CONTRACT_VERSION:v1}
+    # 业务派发通道：http 是 M1-3 兼容/契约测试通道，rocketmq 是 ADR-0005 正式主通道。
+    # 两者互斥，同一进程只能启用一个。
+    transport: ${FOODMATE_AGENT_TRANSPORT:http}
+    rocketmq:
+      name-server: ${FOODMATE_ROCKETMQ_NAMESRV_ADDR:localhost:9876}
+      command-topic: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_COMMAND:foodmate-agent-command-v1}
+      event-topic: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_EVENT:foodmate-agent-event-v1}
+      proposal-topic: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_PROPOSAL:foodmate-agent-proposal-v1}
+      result-topic: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_RESULT:foodmate-agent-result-v1}
+      java-event-consumer-group: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_AGENT_EVENT:foodmate-java-agent-event-v1}
+      java-proposal-consumer-group: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_AGENT_PROPOSAL:foodmate-java-agent-proposal-v1}
+      producer-group: ${FOODMATE_ROCKETMQ_PRODUCER_GROUP_JAVA:foodmate-java-agent-command-producer-v1}
+      send-timeout-ms: ${FOODMATE_ROCKETMQ_SEND_TIMEOUT_MS:3000}
+      producer-max-retries: ${FOODMATE_ROCKETMQ_PRODUCER_MAX_RETRIES:3}
+      consumer-max-retries: ${FOODMATE_ROCKETMQ_CONSUMER_MAX_RETRIES:8}
     service-jwt:
       enabled: ${RUNTIME_SERVICE_JWT_ENABLED:true}
       java-private-key: ${RUNTIME_JAVA_PRIVATE_KEY:}
