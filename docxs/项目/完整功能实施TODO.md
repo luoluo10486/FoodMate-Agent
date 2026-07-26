@@ -118,6 +118,9 @@
 ### M1-4 Python Agent Runtime 与模型能力（下一阶段）
 
 - [ ] 固定 Python 版本、虚拟环境、依赖锁、配置加载、健康检查、结构化日志和 pytest 门禁。
+- [ ] 在现有 Compose 中接入本地单 NameServer + 单 Broker，并初始化 command/event/proposal/result 四个 Agent Topic；本阶段不建设生产高可用集群。
+- [ ] 实现 Java PostgreSQL Outbox Relay、MQ Event/Proposal Consumer、Inbox 事务和 DLQ Reconciler；不使用 RocketMQ 事务消息。
+- [ ] 实现 Python Redis AOF Inbox、Event/Proposal Outbox、Relay 与 checkpoint 原子写入；Redis 不可用时停止消费。
 - [ ] 使用 LangGraph 完成 Router、Planner、Execution、Step Validator、Reflector、Composer、Final Eval Gate 和 Terminal Arbiter；所有循环只能沿白名单边并受环境变量预算约束。
 - [ ] 完成 Context Builder：始终保留最近 8 条原始消息，第 9 条有效消息写入后增量更新摘要；摘要、当前输入和安全指令共同受上下文 Token 上限约束。
 - [ ] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。
@@ -127,10 +130,12 @@
 - [ ] 完成 Token/成本预算快照、70%/85%/100% 分级降级和用户显式追加预算；每次追加生成新 revision 和 dispatch attempt。
 - [ ] 完成 Redis checkpoint 的 AOF、CAS、TTL、加密和 Java 对账；简单问答可不落 checkpoint，复杂、暂停、工具和 Eval 任务保存关键恢复点。
 - [ ] 建立确定性硬规则、分级 LLM Judge、Prompt 模板版本、离线 golden 样例、回归评测和安全策略测试；Eval 通过前不得发送候选答案正文。
+- [ ] Eval 通过后按可配置 150ms/2048 字节默认阈值切分回答事件，禁止逐 Token 发布 RocketMQ。
 - [ ] 当前无人审核时，`request_review` 必须返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。
 - [ ] 普通缺参补充创建 continuation Run，旧 Run 目标终态为 `superseded`；工具审批和预算追加恢复原 Run、创建新 dispatch attempt。
 - [ ] 完成结构化 Trace、预算与 Eval 指标、脱敏策略和用户反馈入口；不得保存 Chain-of-Thought、完整 Prompt 或默认原始模型响应。
 - [ ] 只允许 Python 产生 Tool/SQL Proposal；禁止注入 PostgreSQL 业务库凭据。
+- [ ] Tool/SQL Proposal 与 Result 使用独立 MQ Topic；SQL 只由 Java SQL Guard 使用只读账号执行。
 
 M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得把“能调用一次模型”标记为 M1-4 完成。状态、wire 和数据库扩展必须先更新契约与迁移，再进入实现。
 

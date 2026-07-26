@@ -419,3 +419,30 @@ Python 内部 Workflow 使用 LangGraph 承载节点图、条件边、中断和�
 - 前端通过确定性模板展示已完成、未完成和状态未知步骤。
 - Final Eval 已通过且答案已固化时，Java 的首次合法终态裁决仍可能是 completed。
 - 取消已发生的 Token 和成本继续计入用量。
+
+## 21. RocketMQ 异步主通道
+
+### 21.1 三类基础设施分工
+
+- PostgreSQL：AgentRun、排队事实、Java Outbox/Inbox、状态投影、审计和 SSE Outbox 的业务真值。
+- Redis AOF：P0-P3 准入、permit/lease、Python Inbox/Event Outbox、LangGraph checkpoint 和技术幂等状态。
+- RocketMQ：RunCommand、CancelCommand、RunEvent、RuntimeError、Tool/SQL Proposal/Result 的跨运行时可靠运输。
+
+Redis 不是跨运行时消息总线，RocketMQ 不是 AgentRun 状态真值，PostgreSQL Outbox 也不是传输 Broker。
+
+### 21.2 发布与消费
+
+Java 只有获得 permit 后才创建并发布 RunCommand。双方使用本地 Outbox Relay 发布普通 MQ 消息，不使用 RocketMQ 事务消息。Broker 确认只把 Outbox 标为 `published`；消费者在 Inbox 与本地事务或原子技术状态提交后才 ACK。
+
+消息采用至少一次投递。重复通过稳定 message ID、canonical digest、Inbox、fencing 和状态机吸收，不能宣称 exactly-once。
+
+### 21.3 顺序、取消和 DLQ
+
+- Agent 消息以 `run_id` 为局部顺序键，不同 Run 并行。
+- 浏览器取消、审批和预算追加进入 Java HTTP API；Java落库后通过 MQ 发送 CancelCommand 或新 RunCommand。
+- HTTP 直连 Runtime 只能作为非权威 wake-up 或测试适配，MQ 故障时不得自动双发。
+- DLQ 不自动裁决 AgentRun 失败；Java Reconciler 对账后选择重投、取消或明确失败。
+
+### 21.4 Eval 后回答分片
+
+候选答案通过 Final Eval 后才生成 `run.answer_stream`。Python 按 `FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS` 或 `FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES` 满足其一进行切片，禁止逐 Token 发布 MQ 消息。

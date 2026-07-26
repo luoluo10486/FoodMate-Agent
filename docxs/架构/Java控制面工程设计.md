@@ -41,8 +41,10 @@ FoodMate 目标架构采用两个运行时：
 
 - **Java 内部按模块化单体设计**
 - **Python 内部按单一 Agent Runtime 设计**
-- **两个运行时只通过版本化 HTTP/JSON 和事件契约协作**
+- **两个运行时通过同一版本化消息契约协作；目标异步主通道为 RocketMQ，HTTP 保留为兼容和测试适配**
 - **前端、业务数据库和业务工具只面向 Java**
+
+RocketMQ 采用普通消息，不使用事务消息。Java 以 PostgreSQL Outbox/Inbox 保证本地事务和幂等；Redis 负责准入，不替代 MQ。完整决策见[ADR-0005](../决策/ADR-0005-RocketMQ异步主通道.md)。
 
 ---
 

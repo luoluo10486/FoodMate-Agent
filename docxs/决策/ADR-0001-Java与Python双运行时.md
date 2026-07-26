@@ -5,15 +5,15 @@
 
 ## 背景
 
-FoodMate 的业务控制面需要权威状态、审计、授权、Tool/SQL 执行和数据库事务；Agent 推理需要编排、RAG、模型调用、Prompt、评测和可重建 checkpoint。当前仓库只有 Java 基础骨架，Python Runtime 尚不存在。双运行时内部契约 V1 和 V2 迁移设计是目标设计，不是代码完成证明。
+FoodMate 的业务控制面需要权威状态、审计、授权、Tool/SQL 执行和数据库事务；Agent 推理需要编排、RAG、模型调用、Prompt、评测和可重建 checkpoint。当前已具备 M1-3 Java/Python 确定性 stub 最小闭环；真实模型、RocketMQ 主通道和完整 Agent 编排仍是目标设计，不是代码完成证明。
 
 ## 决策
 
-采用 Java 控制面与独立 Python Agent Runtime 的双运行时架构。二者只通过已批准的 V1 内部 HTTPS/JSON 契约通信：Java 发送 RunCommand 和 CancelCommand；Python 回传 RunEvent、RuntimeError，并向 Java 提交 ToolProposal/SqlProposal。所有消息以 `run_id` 关联，使用短期 Service JWT、契约版本、request/trace 标识、RFC 3339 UTC 时间和幂等摘要。
+采用 Java 控制面与独立 Python Agent Runtime 的双运行时架构。跨运行时消息使用已批准的版本化 envelope；目标正式异步主通道为 RocketMQ，本地/契约测试保留 HTTP/JSON 适配器。Java 发送 RunCommand、CancelCommand 和 Tool/SQL Result；Python回传 RunEvent、RuntimeError 和 Tool/SQL Proposal。所有消息以 `run_id` 关联，并携带契约版本、request/trace 标识、RFC 3339 UTC 时间和幂等摘要。传输、Outbox/Inbox 和 Topic 规则以 ADR-0005 为准。
 
 ## 原因
 
-Java 更适合维护事务边界、业务数据、授权和审计，Python 更适合承载快速演进的推理与 RAG 技术栈。明确的 HTTP/JSON 契约使两端可独立部署、验证和演进，同时避免 Python 通过共享数据库绕过业务控制面。
+Java 更适合维护事务边界、业务数据、授权和审计，Python 更适合承载快速演进的推理与 RAG 技术栈。传输无关的结构化契约使两端可独立部署、验证和演进，同时避免 Python 通过共享业务数据库绕过控制面。
 
 ## 替代方案
 
@@ -23,7 +23,7 @@ Java 更适合维护事务边界、业务数据、授权和审计，Python 更�
 
 ## 后果
 
-需要维护 V1 Schema、双向 Service JWT、超时、重试、错误映射、观测和兼容测试。Java 必须先持久化 dispatch 并以 inbox 接受事件；Python 必须可从技术 checkpoint 恢复，不能自行裁决业务终态。当前没有 Runtime Client 或 Python 工程，任何实现和部署能力仍需单独落地与验证。
+需要维护 V1 Schema、MQ Topic/consumer group、HTTP Service JWT 测试适配、超时、重试、DLQ、错误映射、观测和兼容测试。Java必须先持久化 dispatch/outbox 并以 inbox 接受事件；Python 必须从 Redis 技术状态恢复，不能自行裁决业务终态。RocketMQ 目标链路仍需单独落地与验证。
 
 ## 约束
 

@@ -12,11 +12,11 @@
 
 当前事实：[当前实现审计与完善计划](./当前实现审计与完善计划.md)
 
-文档定位：本文是 `foodmate-gateway-client` 的目标实现蓝图，不是完成证明。当前模块只有 `com.foodmate.gateway.GatewayClientModule` marker 类，尚无 Runtime HTTP Client、Service JWT、内部 DTO、重试或契约测试。本文不新增消息类型、字段、摘要算法、状态或错误码；这些内容以双运行时内部契约 V1 为唯一依据。
+文档定位：本文记录 M1-3 HTTP Runtime Client 的实现边界，并作为后续兼容/契约测试适配器说明。M1-4 目标正式异步主通道已经改为 RocketMQ；Java MQ Producer/Consumer、PostgreSQL Outbox Relay、Inbox 和 DLQ Reconciler 应在 `foodmate-infra/foodmate-worker` 按 ADR-0005 实现，不把 MQ 逻辑塞进 HTTP Client。本文不新增消息类型、字段、摘要算法、状态或错误码。
 
 ## 1. 模块边界与目标包
 
-`foodmate-gateway-client` 只负责 Java 到 Python Runtime 的单次出站通信，不迁移 `AgentRun` 状态，不直接访问数据库，也不承载前端 SSE。持久化 dispatch outbox、lease/CAS publisher 和 AgentRun 收敛属于 Application/Worker/Infra；publisher 从 outbox 读取已经固化的 RunCommand 后调用本客户端。目标根包收敛为 `com.foodmate.agentclient`；现有 `com.foodmate.gateway` marker 仅表示当前骨架事实，实施时可保留为模块标记，但不得在两个根包各实现一套客户端。
+`foodmate-gateway-client` 只负责 HTTP 兼容模式下 Java 到 Python Runtime 的单次出站通信，不迁移 `AgentRun` 状态，不直接访问数据库，也不承载前端 SSE。RocketMQ 正式模式由独立 transport adapter 消费同一 envelope；HTTP 与 MQ 不得在一次业务派发中同时启用或自动互相回退。
 
 ```text
 com.foodmate.agentclient

@@ -266,6 +266,30 @@ Workflow 预算在 Runtime 启动时解析和校验，在接受 Run 时固化为
 
 生产环境禁止在 Final Eval 通过前发送候选答案正文。Python 只回传业务进度事件；候选答案在受限缓冲区内完成 Eval，通过后才转换为 `run.answer_stream`。高风险 `request_review` 在当前无人审核条件下固定进入安全降级，不产生 `waiting_review`。
 
+## 12. RocketMQ 与 Python 技术持久化
+
+### 12.1 消费 RunCommand
+
+- 目标正式模式从 `foodmate.agent.command.v1` 消费 RunCommand/CancelCommand；HTTP endpoint 只保留兼容和契约测试用途。
+- 使用 `run_id` 作为局部顺序键，消费并发不得让同 Run 的命令同时进入 LangGraph。
+- 先在 Redis Inbox 持久化 `dispatch_id/request_hash`，再 ACK；同 ID 同 hash 为重投，同 ID 不同 hash 终止并报告冲突。
+- Redis、契约校验器或 checkpoint repository 不可用时 readiness 失败并停止拉取新消息。
+
+### 12.2 Event/Proposal Outbox
+
+- LangGraph 节点不得直接裸发 RocketMQ；checkpoint 与 Event/Proposal Outbox 使用 Lua/Transaction/CAS 原子写入 Redis。
+- Relay 发布到 event/proposal Topic，收到 Broker 持久化确认后标记 `published`。
+- Relay 重试保持原 message ID、envelope、event seq 和 request hash。
+- Inbox 与已发布 Outbox 默认保留 7 天；不得写入完整 Prompt、Chain-of-Thought 或默认原始模型响应。
+
+### 12.3 回答事件
+
+Eval 通过后才把候选答案切为 `run.answer_stream`。默认每 150ms 或累计 2048 字节生成一个分片，两个阈值均由环境变量配置。时间或大小满足其一即切片；不得把每个模型 Token 作为独立 MQ 消息。
+
+### 12.4 SQL Agent
+
+Python 只消费脱敏、版本化 Schema Catalog，生成 SqlProposal 并等待 Java SqlResult。Runtime 不配置 FoodMate PostgreSQL 凭据，不执行 SQL；未来若引入独立技术 PostgreSQL，也只能保存 Python Inbox、Outbox 和 checkpoint。
+
 ## 12. 测试与完成定义
 
 Python 工程后续实现时至少需要：
