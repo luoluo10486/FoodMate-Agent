@@ -175,7 +175,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 
 - [ ] 实现 Tool Registry、版本、输入输出 Schema、scope、风险等级、启停、超时、重试和幂等策略。
 - [ ] 完成 Proposal -> Policy -> Confirm -> Execute -> Audit 的 Java 受控执行链路。
-- [ ] 实现只读 SQL Guard：AST 解析、单语句、只读、schema/字段白名单、敏感字段遮蔽、租户过滤、行数与超时限制。
+- [ ] 实现只读 SQL Guard：AST 解析、单语句、只读、schema/字段白名单、敏感字段遮蔽、用户过滤、行数与超时限制。
 - [ ] 实现 SQL 审计、结果脱敏、错误分类、攻击样例和越权回归测试。
 
 边界：Python 只能提议，不能访问数据源账号或绕过 Java Policy；SQL Agent 不允许任何写操作。

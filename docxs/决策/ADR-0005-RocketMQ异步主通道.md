@@ -58,7 +58,7 @@ RocketMQ 负责跨服务运输，Redis 负责业务调度，PostgreSQL 保存业
 
 ## SQL Agent 边界
 
-Python 只读取脱敏、版本化 Schema Catalog 并生成 SqlProposal。Java SQL Guard 使用只读业务数据库账号执行 AST、白名单、用户/租户过滤、限行、超时、脱敏和审计。Python 不连接 FoodMate 业务数据库。
+Python 只读取脱敏、版本化 Schema Catalog 并生成 SqlProposal。Java SQL Guard 使用只读业务数据库账号执行 AST、白名单、用户过滤、限行、超时、脱敏和审计。Python 不连接 FoodMate 业务数据库。
 
 ## 替代方案
 

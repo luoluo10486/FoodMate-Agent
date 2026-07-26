@@ -327,6 +327,7 @@ Run A -> waiting_user
 - 安全规则、权限检查、写操作确认和确定性 Eval 不能因预算跳过。
 - LLM Eval 预算不足时，低风险任务安全降级；高风险任务 fail closed。
 - Budget Manager 在每个模型、RAG、Tool、SQL 和 Reflection 前执行确定性检查。
+- 单 Run 预算之上还有 Runtime 全局日成本/Token 保险丝：当日累计用量触线后拒绝接受新 Run，已执行 Run 不被中断。它保护开发者 API Key，不是用户配额体系；阈值由[配置指南](../项目/配置指南.md#54-token成本与预算追加)的环境变量定义。
 
 ### 14.2 用户追加预算
 

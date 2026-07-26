@@ -28,7 +28,7 @@
 | `foodmate-tool` | `com.foodmate.tool.adapter` | calculator、time parser、knowledge search、food log writer 等确定性适配器 |
 | `foodmate-infra` | `com.foodmate.sqlaccess.catalog` | 授权后的 Schema Catalog |
 | `foodmate-infra` | `com.foodmate.sqlaccess.guard` | SQL AST、schema、敏感字段、LIMIT 与只读校验 |
-| `foodmate-infra` | `com.foodmate.sqlaccess.tenantfilter` | 可信租户/用户过滤注入 |
+| `foodmate-infra` | `com.foodmate.sqlaccess.tenantfilter` | 可信用户过滤注入 |
 | `foodmate-infra` | `com.foodmate.sqlaccess.executor` | 参数绑定、只读执行、deadline 和限行 |
 | `foodmate-infra` | `com.foodmate.sqlaccess.audit` | SQL 审计、脱敏结果与重放 |
 
@@ -49,7 +49,7 @@ Registry 返回 Python 的快照必须来自同一已发布版本，避免 schem
 
 ToolProposal 入口要求 Python Service JWT `scope=tool:propose`；SqlProposal 入口要求 `scope=sql:propose`。Service JWT 只证明调用服务，不授予最终用户权限。
 
-Java 根据 `run_id` 依次读取 AgentRun、session、用户、租户/角色和当前授权上下文，形成 `EffectiveScope`。必须校验 Proposal 的 `dispatch_id/attempt` 属于该 Run 且仍可创建 invocation。可信 scope 只来自 Java 数据和权限规则：
+Java 根据 `run_id` 依次读取 AgentRun、session、用户、角色和当前授权上下文，形成 `EffectiveScope`。必须校验 Proposal 的 `dispatch_id/attempt` 属于该 Run 且仍可创建 invocation。可信 scope 只来自 Java 数据和权限规则：
 
 ```text
 service identity
@@ -189,11 +189,11 @@ Guard 必须使用 SQL parser/AST，不使用正则或字符串拼接判断安�
 
 Parser 无法完整理解的 SQL 一律拒绝，不能降级为直接执行。Guard 必须对注释、大小写、quoted identifier、CTE、UNION、嵌套子查询和函数调用做反例测试。
 
-## 9. 租户过滤、参数绑定与只读执行
+## 9. 用户过滤、参数绑定与只读执行
 
 Python 不能提供可信 `user_id/tenant_id`。`TenantFilterInjector` 从 EffectiveScope 生成过滤谓词，并在 AST 每个可见业务表作用域注入必须条件，包括目标表要求的 `user_id/tenant_id` 和 `is_deleted=false`。已有同名条件也必须校验其值来源；不能因为 SQL 自带过滤就跳过 Java 注入。
 
-所有用户值、时间范围、租户/用户 ID 和分页参数使用 PreparedStatement 绑定。不得把参数拼入 SQL 文本，不得接受 Proposal 中伪造的可信过滤参数。最终执行 SQL、参数类型和 catalog version 进入脱敏审计。
+所有用户值、时间范围、用户 ID 和分页参数使用 PreparedStatement 绑定。不得把参数拼入 SQL 文本，不得接受 Proposal 中伪造的可信过滤参数。最终执行 SQL、参数类型和 catalog version 进入脱敏审计。
 
 执行层同时使用：只读数据库账号、read-only transaction/connection、statement timeout、最大行数、受限 fetch size。实际 timeout 取 SQL policy 与剩余 `deadline_at` 的较小值。即使 Guard 已通过，数据库只读权限仍是最后一道强制边界。
 
@@ -233,7 +233,7 @@ SqlResult 成功时 `rows` 必须经过字段级脱敏并受 `max_rows` 限制�
 | Tool 状态映射 | 六种 Result 到 V1/V2/完整 JSON 逐项一致 |
 | SQL AST | 多语句、DML/DDL、修改 CTE、注释绕过、锁语句全部拒绝 |
 | Catalog/sensitive field | 未授权表列、`*`、别名/子查询间接访问均拒绝 |
-| 租户过滤 | 每个作用域注入可信用户/租户与 `is_deleted=false`，无跨租户结果 |
+| 用户过滤 | 每个作用域注入可信用户过滤与 `is_deleted=false`，无跨用户结果 |
 | 参数绑定 | 恶意字符串只作为值，不改变 AST；无字符串拼接 |
 | 只读执行 | 数据库只读角色和 transaction 双重阻止写入 |
 | LIMIT/timeout | 行数被限制，`truncated`、statement timeout 和错误码正确 |
@@ -254,4 +254,4 @@ SQL Guard、事务、唯一约束和只读账号测试必须在真实 PostgreSQL
 .\mvnw.cmd clean verify
 ```
 
-验收报告必须记录测试数、失败数、PostgreSQL/Testcontainers/SQL parser 版本、Adapter 执行计数，并逐项给出 Tool/SQL 幂等、状态映射、恶意 SQL、租户隔离、只读执行、deadline、脱敏和审计结果。
+验收报告必须记录测试数、失败数、PostgreSQL/Testcontainers/SQL parser 版本、Adapter 执行计数，并逐项给出 Tool/SQL 幂等、状态映射、恶意 SQL、用户隔离、只读执行、deadline、脱敏和审计结果。

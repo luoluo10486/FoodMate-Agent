@@ -133,7 +133,7 @@ Python 通过 Java 的内部事件入口回传 `RunEvent`，并通过 Java Tool/
 
 ### 3.3 服务身份
 
-FastAPI dependency 必须校验短期 Service JWT 的签名、`iss`、`aud`、`exp`、`nbf` 和 service scope。Java 到 Python 固定 `iss=foodmate-control-plane`、`aud=foodmate-agent-runtime`；Python 回调 Java 使用相反方向。用户身份、租户和 scope 由 Java 按 `run_id` 派生，Python 请求体中的同名字段不能成为授权依据。
+FastAPI dependency 必须校验短期 Service JWT 的签名、`iss`、`aud`、`exp`、`nbf` 和 service scope。Java 到 Python 固定 `iss=foodmate-control-plane`、`aud=foodmate-agent-runtime`；Python 回调 Java 使用相反方向。用户身份和 scope 由 Java 按 `run_id` 派生，Python 请求体中的同名字段不能成为授权依据。
 
 ## 4. 编排组件
 
@@ -181,7 +181,7 @@ Python 只生成 `ToolProposal`。Java 根据 `run_id` 恢复可信用户上下�
 
 ### 6.2 SQL
 
-Python 只负责查询理解、授权 catalog 选择建议和只读 SQL proposal。Java 重新执行 Schema 授权、AST Guard、敏感字段、用户/租户过滤、LIMIT、超时、执行和审计。Python 代码、环境变量和 Secret 模板中均禁止出现 JDBC URL、业务 PostgreSQL 用户名或密码。
+Python 只负责查询理解、授权 catalog 选择建议和只读 SQL proposal。Java 重新执行 Schema 授权、AST Guard、敏感字段、用户过滤、LIMIT、超时、执行和审计。Python 代码、环境变量和 Secret 模板中均禁止出现 JDBC URL、业务 PostgreSQL 用户名或密码。
 
 ### 6.3 Model
 

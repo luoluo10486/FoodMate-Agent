@@ -340,7 +340,7 @@ com.foodmate.sqlaccess
 
 - 返回授权后的 Schema Catalog
 - 校验 Python SQL proposal
-- 强制只读、敏感字段、租户、LIMIT 和超时策略
+- 强制只读、敏感字段、用户过滤、LIMIT 和超时策略
 - 执行并记录 SQL 审计
 
 #### `tool`
@@ -467,7 +467,7 @@ Java 工具执行面至少公开：
 - `ToolExecutor`
 - `ToolResult`
 
-所有注册工具统一由 Java 执行，Java 是工具契约、启停、授权、幂等和审计状态源。Python 只能提交 `proposed_tool_call`。Java 从已认证会话派生用户、租户和 scope，校验工具版本、输入 schema、确认状态、幂等键和 deadline 后执行。`knowledge_search` 由 Java 强制 ACL 后返回候选结果，Python 可以继续重排和组装引用；`food_log_writer` 等写工具必须通过 Application/Domain 事务。
+所有注册工具统一由 Java 执行，Java 是工具契约、启停、授权、幂等和审计状态源。Python 只能提交 `proposed_tool_call`。Java 从已认证会话派生用户和 scope，校验工具版本、输入 schema、确认状态、幂等键和 deadline 后执行。`knowledge_search` 由 Java 强制 ACL 后返回候选结果，Python 可以继续重排和组装引用；`food_log_writer` 等写工具必须通过 Application/Domain 事务。
 
 ### 4.4 SQL Planning 与 SQL Access
 
@@ -526,7 +526,7 @@ Python Runtime 内部包含 `IntentRouter`、`TaskPlanner`、`ExecutionEngine`�
 
 1. Python 判断目标数据域并请求 Java 提供授权后的 Schema Catalog。
 2. Python 生成带参数和意图说明的只读 SQL proposal。
-3. Java 校验服务身份、schema 版本、AST、敏感字段、租户过滤、LIMIT 和超时。
+3. Java 校验服务身份、schema 版本、AST、敏感字段、用户过滤、LIMIT 和超时。
 4. Java 通过 MCP 或内部只读执行器执行并写 `sql_query_audits`。
 5. Java 将脱敏结果返回 Python 解释，Python 不接触凭据或 JDBC 连接。
 
