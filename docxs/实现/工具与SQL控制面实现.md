@@ -12,7 +12,7 @@
 
 当前事实：[当前实现审计与完善计划](./当前实现审计与完善计划.md)
 
-文档定位：本文是 Java Tool 与 SQL 权威执行面的目标实现蓝图，不是完成证明。当前 `foodmate-tool` 和旧 `foodmate-sql-agent` 都只有 marker，`foodmate-infra` 尚无 SQL Guard、只读执行器或 Tool/SQL invocation 持久化。V1 表也未完整持久化工具契约字段，V2 SQL 尚未创建。本文不创建代码或迁移，不新增 ToolProposal、ToolResult、SqlProposal、SqlResult wire 字段、状态、digest 或错误码；执行 fencing/lease 已正式纳入 V2 阶段 1，并且是阶段 4 主链路前置条件。
+文档定位：本文是 Java Tool 与 SQL 权威执行面的目标实现蓝图，不是完成证明。当前尚无完整 SQL Guard、只读执行器或 Tool/SQL invocation 主链路。Proposal/Result 的目标正式传输改为 RocketMQ `agent.proposal.v1/agent.result.v1`；HTTP + Service JWT 入口仅保留兼容与契约测试。本文不新增 wire 字段、状态、digest 或错误码。
 
 ## 1. 所有权与模块边界
 
@@ -20,7 +20,8 @@
 
 | 模块 | 目标包 | 职责 |
 |---|---|---|
-| `foodmate-api` | `com.foodmate.api.internal.tool` | Tool/SQL Proposal 入站和 Service JWT scope 校验 |
+| `foodmate-api` | `com.foodmate.api.internal.tool` | HTTP 兼容/契约测试入口，不作为正式 MQ 主入口 |
+| `foodmate-infra` | `com.foodmate.messaging.agent` | Proposal Consumer、Result Outbox Relay、MQ Inbox 和 transport rejection |
 | `foodmate-tool` | `com.foodmate.tool.registry` | Tool Registry、版本和 schema 快照 |
 | `foodmate-tool` | `com.foodmate.tool.policy` | scope、风险、确认和启停裁决 |
 | `foodmate-tool` | `com.foodmate.tool.executor` | 幂等门禁、deadline、Adapter 调用和 ToolResult |

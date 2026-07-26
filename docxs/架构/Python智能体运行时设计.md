@@ -24,7 +24,7 @@ FoodMate 只有两个受控运行时：
 ## 2. 目标目录
 
 ```text
-agent-runtime/                         # 目标目录，当前尚不存在
+agent-runtime/                         # 已有 M1-3 stub；下列为 M1-4 目标内部结构
   pyproject.toml
   src/foodmate_agent/
     main.py                            # FastAPI app 与生命周期
