@@ -270,7 +270,7 @@ Workflow 预算在 Runtime 启动时解析和校验，在接受 Run 时固化为
 
 ### 12.1 消费 RunCommand
 
-- 目标正式模式从 `foodmate.agent.command.v1` 消费 RunCommand/CancelCommand；HTTP endpoint 只保留兼容和契约测试用途。
+- 目标正式模式从 `foodmate-agent-command-v1` 消费 RunCommand/CancelCommand；HTTP endpoint 只保留兼容和契约测试用途。
 - 使用 `run_id` 作为局部顺序键，消费并发不得让同 Run 的命令同时进入 LangGraph。
 - 先在 Redis Inbox 持久化 `dispatch_id/request_hash`，再 ACK；同 ID 同 hash 为重投，同 ID 不同 hash 终止并报告冲突。
 - Redis、契约校验器或 checkpoint repository 不可用时 readiness 失败并停止拉取新消息。

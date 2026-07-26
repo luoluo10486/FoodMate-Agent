@@ -17,15 +17,17 @@ FoodMate 的 Java 控制面与 Python Agent Runtime 需要可靠传递 RunComman
 
 | Topic | 方向 | 消息 |
 |---|---|---|
-| `foodmate.agent.command.v1` | Java -> Python | RunCommand、CancelCommand |
-| `foodmate.agent.event.v1` | Python -> Java | RunEvent、RuntimeError |
-| `foodmate.agent.proposal.v1` | Python -> Java | ToolProposal、SqlProposal |
-| `foodmate.agent.result.v1` | Java -> Python | ToolResult、SqlResult |
-| `foodmate.knowledge.command.v1` | Java -> Worker | 文档解析、索引和删除命令 |
-| `foodmate.audit.event.v1` | 业务服务 -> 审计消费者 | 脱敏审计与用量事件 |
-| `foodmate.notification.command.v1` | Java -> Worker | 通知和异步导出结果 |
+| `foodmate-agent-command-v1` | Java -> Python | RunCommand、CancelCommand |
+| `foodmate-agent-event-v1` | Python -> Java | RunEvent、RuntimeError |
+| `foodmate-agent-proposal-v1` | Python -> Java | ToolProposal、SqlProposal |
+| `foodmate-agent-result-v1` | Java -> Python | ToolResult、SqlResult |
+| `foodmate-knowledge-command-v1` | Java -> Worker | 文档解析、索引和删除命令 |
+| `foodmate-audit-event-v1` | 业务服务 -> 审计消费者 | 脱敏审计与用量事件 |
+| `foodmate-notification-command-v1` | Java -> Worker | 通知和异步导出结果 |
 
 Agent 消息使用 `run_id` 作为局部顺序键；不同 Run 可并行。RocketMQ 顺序不能替代 `dispatch_id/attempt/event_seq`、数据库 inbox、gap 校验或终态裁决。
+
+Topic 与 consumer group 命名使用连字符，不使用点号：RocketMQ Broker 强制 Topic 名匹配 `^[%|a-zA-Z0-9_-]+$`，`foodmate.agent.command.v1` 这类点号命名会被直接拒绝（`CODE: 1 The specified topic contains illegal characters`）。`%` 是 RocketMQ 保留前缀（`%RETRY%`、`%DLQ%`），业务 Topic 不得使用。
 
 ## 准入与传输分工
 

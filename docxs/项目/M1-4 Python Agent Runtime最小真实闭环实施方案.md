@@ -74,7 +74,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 ### 5.1 RocketMQ Topic 与普通消息
 
 - 本地 Compose 增加单 NameServer + 单 Broker，不设计本阶段生产集群、TLS 或 ACL。
-- Agent Topic 固定为 `foodmate.agent.command.v1`、`foodmate.agent.event.v1`、`foodmate.agent.proposal.v1` 和 `foodmate.agent.result.v1`。
+- Agent Topic 固定为 `foodmate-agent-command-v1`、`foodmate-agent-event-v1`、`foodmate-agent-proposal-v1` 和 `foodmate-agent-result-v1`。
 - 后台域预留 knowledge、audit 和 notification Topic，但 M1-4 只实现所需 Agent Topic。
 - 不使用 RocketMQ 事务消息；Java 使用 PostgreSQL Outbox/Inbox，Python 使用 Redis AOF Outbox/Inbox。
 - 所有 Agent 消息使用 `run_id` 作为局部顺序键，不要求 Topic 全局有序。
