@@ -16,7 +16,7 @@ export function openAgentRunStream(
 ): EventSource {
   // SSE 由服务端持久化 outbox 驱动；前端只负责监听、去重和转发事件。
   const source = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream`, { withCredentials: true });
-  const eventTypes = ['run.accepted', 'run.routed', 'run.answer_stream', 'run.completed', 'run.failed', 'run.cancelled'];
+  const eventTypes = ['run.accepted', 'run.routed', 'run.clarification_requested', 'run.answer_stream', 'run.completed', 'run.failed', 'run.cancelled', 'run.superseded'];
   const seen = new Set<string>();
   for (const eventType of eventTypes) {
     source.addEventListener(eventType, (event) => {

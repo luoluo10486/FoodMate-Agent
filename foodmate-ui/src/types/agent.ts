@@ -8,7 +8,8 @@ export type AgentDisplayStatus =
   | 'waiting_user'
   | 'completed'
   | 'failed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'superseded';
 
 export type ToolCallStatus = 'pending' | 'running' | 'success' | 'failed' | 'timeout' | 'cancelled';
 

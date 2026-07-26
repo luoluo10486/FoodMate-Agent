@@ -20,7 +20,8 @@ function displayRunStatus(status: string) {
   if (status === 'queued' || status === 'routed') return 'routing' as const;
   if (status === 'planning' || status === 'retrieving' || status === 'executing') return status === 'executing' ? 'executing_tools' as const : status as 'planning' | 'retrieving';
   if (status === 'validating') return 'validating' as const;
-  if (status === 'failed' || status === 'cancelled' || status === 'completed') return status;
+  if (status === 'waiting_user') return 'waiting_user' as const;
+  if (status === 'failed' || status === 'cancelled' || status === 'completed' || status === 'superseded') return status;
   return 'routing' as const;
 }
 
@@ -60,6 +61,8 @@ function RealChatPage() {
       if (eventType === 'run.completed') { setRunStatus('completed'); setAssistantText(payload.answer ?? assistantText); return; }
       if (eventType === 'run.failed') { setRunStatus('failed'); setError(payload.error_message ?? 'Agent 运行失败'); return; }
       if (eventType === 'run.cancelled') { setRunStatus('cancelled'); return; }
+      if (eventType === 'run.superseded') { setRunStatus('superseded'); return; }
+      if (eventType === 'run.clarification_requested') { setRunStatus('waiting_user'); return; }
       setRunStatus(payload.status ?? eventType.replace('run.', ''));
     }, () => setError('运行事件连接中断，浏览器将自动重连。'));
     return () => stream.close();
