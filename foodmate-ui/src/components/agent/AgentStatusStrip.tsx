@@ -15,6 +15,7 @@ const labels: Record<AgentDisplayStatus, string> = {
   completed: 'completed',
   failed: 'failed',
   cancelled: 'cancelled',
+  superseded: '已由后续任务接续',
 };
 
 type AgentStatusStripProps = {
@@ -29,7 +30,7 @@ export function AgentStatusStrip({ status }: AgentStatusStripProps) {
     <section className={styles.strip}>
       <div className={styles.head}>
         <strong>Agent 运行状态</strong>
-        <Tag color={status === 'failed' || status === 'cancelled' ? 'red' : 'green'}>{labels[status]}</Tag>
+        <Tag color={status === 'failed' || status === 'cancelled' ? 'red' : status === 'superseded' ? 'gray' : 'green'}>{labels[status]}</Tag>
       </div>
       <Progress percent={percent} showText={false} size="small" />
       <div className={styles.steps}>

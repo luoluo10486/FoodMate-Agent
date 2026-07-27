@@ -63,7 +63,8 @@ public class V1RuntimeEventService {
                 event.eventSeq(), status, status, runId, event.dispatchId());
         String result = json(event.payload());
         if (changesRunStatus) {
-            jdbc.update("UPDATE agent_runs SET status=?,result_json=CASE WHEN ? IN ('completed','validating') THEN CAST(? AS jsonb) ELSE result_json END,error_code=CASE WHEN ?='failed' THEN 'RUNTIME_FAILED' ELSE error_code END,updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=?",
+            // 终态后不允许任何状态回退；superseded 等 Java 侧终态同样受保护。
+            jdbc.update("UPDATE agent_runs SET status=?,result_json=CASE WHEN ? IN ('completed','validating') THEN CAST(? AS jsonb) ELSE result_json END,error_code=CASE WHEN ?='failed' THEN 'RUNTIME_FAILED' ELSE error_code END,updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=? AND status NOT IN ('completed','failed','cancelled','superseded')",
                     status, status, result, status, runId);
         } else {
             jdbc.update("UPDATE agent_runs SET updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=?", runId);
@@ -107,6 +108,12 @@ public class V1RuntimeEventService {
     }
 
     public synchronized String status(String runId) {
+        // agent_runs.status 是唯一权威；superseded 等 Java 侧终态不产生 Python 事件，只能从投影读取。
+        if (jdbc != null) {
+            List<String> stored = jdbc.query("SELECT status FROM agent_runs WHERE agent_run_id=? AND is_deleted=FALSE",
+                    (rs, row) -> rs.getString(1), parseRunId(runId));
+            if (!stored.isEmpty()) return stored.getFirst();
+        }
         List<V1RunEvent> history = events(runId);
         if (history.isEmpty()) return "queued";
         String status = "queued";
@@ -164,5 +171,5 @@ public class V1RuntimeEventService {
     private record DispatchRow(long id, long lastEventSeq, String state, int attempt) {}
     public record EventResult(String runId, String eventId, boolean duplicate, String status) {}
     public record SseRecord(long streamSeq, String sseEventId, String eventType, Map<String, Object> payload, boolean terminal) {}
-    private static boolean terminalType(String type) { return type.equals("run.completed") || type.equals("run.failed") || type.equals("run.cancelled"); }
+    private static boolean terminalType(String type) { return type.equals("run.completed") || type.equals("run.failed") || type.equals("run.cancelled") || type.equals("run.superseded"); }
 }

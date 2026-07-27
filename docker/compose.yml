@@ -62,11 +62,111 @@ services:
       retries: 12
     networks: [foodmate]
 
+  # RocketMQ 是 Java 控制面与 Python Runtime 的异步主通道（ADR-0005）。
+  # 本地只部署单 NameServer + 单 Broker，不设计生产集群、TLS 或 ACL。
+  #
+  # 镜像里不存在 /home/rocketmq/{store,logs}，Docker 创建命名卷时会用 root 建目录，
+  # 而进程以 uid 3000(rocketmq) 运行，直接挂载会因权限被拒而启动失败。
+  # 这个一次性 root 容器先把属主交给 rocketmq，再放行 namesrv/broker。
+  rocketmq-prepare:
+    image: ${ROCKETMQ_IMAGE:-apache/rocketmq:5.2.0}
+    container_name: foodmate-rocketmq-prepare
+    restart: "no"
+    user: root
+    entrypoint: ["sh", "-c", "chown -R 3000:3000 /prepare && echo '[foodmate] RocketMQ 数据目录属主已就绪'"]
+    volumes:
+      - foodmate-rocketmq-namesrv-logs:/prepare/namesrv-logs
+      - foodmate-rocketmq-broker-store:/prepare/broker-store
+      - foodmate-rocketmq-broker-logs:/prepare/broker-logs
+    networks: [foodmate]
+
+  rocketmq-namesrv:
+    image: ${ROCKETMQ_IMAGE:-apache/rocketmq:5.2.0}
+    container_name: foodmate-rocketmq-namesrv
+    restart: unless-stopped
+    depends_on:
+      rocketmq-prepare:
+        condition: service_completed_successfully
+    command: ["sh", "mqnamesrv"]
+    environment:
+      # 镜像默认给 NameServer 分配 4g 堆，本地开发不需要。
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${ROCKETMQ_NAMESRV_PORT:-9876}:9876"
+    volumes:
+      - foodmate-rocketmq-namesrv-logs:/home/rocketmq/logs
+    healthcheck:
+      # NameServer 没有 HTTP 探针；能建立 TCP 连接即视为可注册。
+      test: ["CMD-SHELL", "timeout 2 sh -c '</dev/tcp/127.0.0.1/9876' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [foodmate]
+
+  rocketmq-broker:
+    image: ${ROCKETMQ_IMAGE:-apache/rocketmq:5.2.0}
+    container_name: foodmate-rocketmq-broker
+    restart: unless-stopped
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_healthy
+    command: ["sh", "mqbroker", "-c", "/home/rocketmq/conf/broker.conf"]
+    environment:
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${ROCKETMQ_BROKER_PORT:-10911}:10911"
+      # 10909 是 VIP 通道端口，客户端在关闭 VIP 时也可能探测。
+      - "${ROCKETMQ_BROKER_VIP_PORT:-10909}:10909"
+    volumes:
+      - ./rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
+      # store 使用命名卷：Broker 重启后 CommitLog 与消费进度必须保留。
+      - foodmate-rocketmq-broker-store:/home/rocketmq/store
+      - foodmate-rocketmq-broker-logs:/home/rocketmq/logs
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 2 sh -c '</dev/tcp/127.0.0.1/10911' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks: [foodmate]
+
+  # 一次性 Topic/consumer group 初始化。共享 Broker 的网络命名空间，
+  # 这样 mqadmin 的 127.0.0.1:10911 才等于 Broker 自身注册的地址。
+  rocketmq-init:
+    image: ${ROCKETMQ_IMAGE:-apache/rocketmq:5.2.0}
+    container_name: foodmate-rocketmq-init
+    restart: "no"
+    depends_on:
+      rocketmq-broker:
+        condition: service_healthy
+    network_mode: "service:rocketmq-broker"
+    entrypoint: ["sh", "/foodmate/init-topics.sh"]
+    environment:
+      ROCKETMQ_VERSION: ${ROCKETMQ_VERSION:-5.2.0}
+      NAMESRV_ADDR: foodmate-rocketmq-namesrv:9876
+      BROKER_ADDR: 127.0.0.1:10911
+      TOPIC_AGENT_COMMAND: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_COMMAND:-foodmate-agent-command-v1}
+      TOPIC_AGENT_EVENT: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_EVENT:-foodmate-agent-event-v1}
+      TOPIC_AGENT_PROPOSAL: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_PROPOSAL:-foodmate-agent-proposal-v1}
+      TOPIC_AGENT_RESULT: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_RESULT:-foodmate-agent-result-v1}
+      GROUP_JAVA_AGENT_EVENT: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_AGENT_EVENT:-foodmate-java-agent-event-v1}
+      GROUP_JAVA_AGENT_PROPOSAL: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_AGENT_PROPOSAL:-foodmate-java-agent-proposal-v1}
+      GROUP_PYTHON_AGENT_COMMAND: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_COMMAND:-foodmate-python-agent-command-v1}
+      GROUP_PYTHON_AGENT_RESULT: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_RESULT:-foodmate-python-agent-result-v1}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./rocketmq/init-topics.sh:/foodmate/init-topics.sh:ro
+
 volumes:
   foodmate-postgres-data:
   foodmate-redis-data:
   foodmate-minio-data:
   foodmate-minio-data-v2:
+  foodmate-rocketmq-namesrv-logs:
+  foodmate-rocketmq-broker-store:
+  foodmate-rocketmq-broker-logs:
 
 networks:
   foodmate:
