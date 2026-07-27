@@ -90,7 +90,8 @@ services:
     command: ["sh", "mqnamesrv"]
     environment:
       # 镜像默认给 NameServer 分配 4g 堆，本地开发不需要。
-      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
+      # 本地默认使用较小堆；可通过环境变量覆盖，避免 Docker Desktop 内存紧张。
+      JAVA_OPT_EXT: "-Xms${ROCKETMQ_NAMESRV_JAVA_XMS:-128m} -Xmx${ROCKETMQ_NAMESRV_JAVA_XMX:-256m} -Xmn${ROCKETMQ_NAMESRV_JAVA_XMN:-128m}"
       TZ: ${TZ:-Asia/Shanghai}
     ports:
       - "${ROCKETMQ_NAMESRV_PORT:-9876}:9876"
@@ -113,7 +114,8 @@ services:
         condition: service_healthy
     command: ["sh", "mqbroker", "-c", "/home/rocketmq/conf/broker.conf"]
     environment:
-      JAVA_OPT_EXT: "-Xms512m -Xmx512m -Xmn256m"
+      # 本地单 Broker 默认堆大小；生产环境应按消息量和磁盘吞吐单独评估。
+      JAVA_OPT_EXT: "-Xms${ROCKETMQ_BROKER_JAVA_XMS:-256m} -Xmx${ROCKETMQ_BROKER_JAVA_XMX:-512m} -Xmn${ROCKETMQ_BROKER_JAVA_XMN:-256m}"
       TZ: ${TZ:-Asia/Shanghai}
     ports:
       - "${ROCKETMQ_BROKER_PORT:-10911}:10911"
@@ -130,6 +132,33 @@ services:
       timeout: 5s
       retries: 18
       start_period: 30s
+    networks: [foodmate]
+
+  # Python RocketMQ 5.x 客户端使用 gRPC，需要通过本地 Proxy 访问单 Broker。
+  # Proxy 不存储消息，也不增加 Broker 数量；生产部署时可横向扩展，当前仅保留一个本地实例。
+  rocketmq-proxy:
+    image: ${ROCKETMQ_IMAGE:-apache/rocketmq:5.2.0}
+    container_name: foodmate-rocketmq-proxy
+    restart: unless-stopped
+    depends_on:
+      rocketmq-broker:
+        condition: service_healthy
+    command: ["sh", "mqproxy", "-pc", "/home/rocketmq/conf/rmq-proxy.json"]
+    environment:
+      # Proxy 只负责协议转发，本地开发不需要大堆。
+      JAVA_OPT_EXT: "-Xms${ROCKETMQ_PROXY_JAVA_XMS:-128m} -Xmx${ROCKETMQ_PROXY_JAVA_XMX:-256m} -Xmn${ROCKETMQ_PROXY_JAVA_XMN:-128m}"
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${ROCKETMQ_PROXY_GRPC_PORT:-8081}:8081"
+      - "${ROCKETMQ_PROXY_REMOTING_PORT:-8080}:8080"
+    volumes:
+      - ./rocketmq/rmq-proxy.json:/home/rocketmq/conf/rmq-proxy.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 2 sh -c '</dev/tcp/127.0.0.1/8081' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
     networks: [foodmate]
 
   # 一次性 Topic/consumer group 初始化。共享 Broker 的网络命名空间，
@@ -151,6 +180,8 @@ services:
       TOPIC_AGENT_EVENT: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_EVENT:-foodmate-agent-event-v1}
       TOPIC_AGENT_PROPOSAL: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_PROPOSAL:-foodmate-agent-proposal-v1}
       TOPIC_AGENT_RESULT: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_RESULT:-foodmate-agent-result-v1}
+      # 本地单 Python Runtime 使用单队列；扩展消费者实例时再提高该值。
+      TOPIC_QUEUE_COUNT: ${FOODMATE_ROCKETMQ_TOPIC_QUEUE_COUNT:-1}
       GROUP_JAVA_AGENT_EVENT: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_AGENT_EVENT:-foodmate-java-agent-event-v1}
       GROUP_JAVA_AGENT_PROPOSAL: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_AGENT_PROPOSAL:-foodmate-java-agent-proposal-v1}
       GROUP_PYTHON_AGENT_COMMAND: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_COMMAND:-foodmate-python-agent-command-v1}

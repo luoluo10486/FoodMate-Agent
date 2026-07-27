@@ -22,6 +22,7 @@ STATE_FILE = os.getenv("FOODMATE_RUNTIME_STATE_FILE", "")
 _cancelled: set[str] = set()
 _dispatches: dict[str, dict] = {}
 _lock = threading.Lock()
+_event_publisher = None
 
 
 def _canonical(value):
@@ -106,6 +107,9 @@ def emit(command, event_id, sequence, event_type, payload=None):
         "event_type": event_type,
         "payload": payload or {},
     }).encode("utf-8")
+    if _event_publisher is not None:
+        _event_publisher.publish(json.loads(body.decode("utf-8")))
+        return
     request = urllib.request.Request(
         JAVA_CALLBACK_URL.rstrip("/") + "/foodmate/internal/v1/agent-events",
         data=body,
@@ -216,4 +220,15 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    ThreadingHTTPServer(("127.0.0.1", int(os.getenv("PORT", "9000"))), Handler).serve_forever()
+    transport = os.getenv("FOODMATE_AGENT_TRANSPORT", "http").lower()
+    mq_runtime = None
+    if transport == "rocketmq":
+        from mq_runtime import RocketMqEventPublisher, RocketMqRuntime
+        _event_publisher = RocketMqEventPublisher()
+        mq_runtime = RocketMqRuntime(execute, publisher=_event_publisher)
+        mq_runtime.start()
+    try:
+        ThreadingHTTPServer(("127.0.0.1", int(os.getenv("PORT", "9000"))), Handler).serve_forever()
+    finally:
+        if mq_runtime is not None:
+            mq_runtime.close()

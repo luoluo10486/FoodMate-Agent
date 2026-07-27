@@ -33,13 +33,22 @@ fi
 #
 # 注意：mqadmin 在子命令抛异常时仍然返回退出码 0，因此不能只靠 set -e。
 # 每个对象创建后都要回读校验，否则「初始化成功」会掩盖 Topic 根本不存在。
+echo "[foodmate] 创建 RocketMQ Proxy 系统 Topic DefaultHeartBeatSyncerTopic"
+"$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "DefaultHeartBeatSyncerTopic" -r 1 -w 1 -p 6 -a +message.type=NORMAL || true
+if ! "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "DefaultHeartBeatSyncerTopic"; then
+    echo "[foodmate] Proxy 系统 Topic 初始化失败" >&2
+    exit 1
+fi
+
 for topic in \
     "${TOPIC_AGENT_COMMAND:-foodmate-agent-command-v1}" \
     "${TOPIC_AGENT_EVENT:-foodmate-agent-event-v1}" \
     "${TOPIC_AGENT_PROPOSAL:-foodmate-agent-proposal-v1}" \
     "${TOPIC_AGENT_RESULT:-foodmate-agent-result-v1}"; do
     echo "[foodmate] 创建 Topic ${topic}"
-    "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$topic" -r 4 -w 4 -p 6 || true
+    # 本地只有一个 Python Runtime 实例；固定单队列，避免 Python 5.x PushConsumer
+    # 单实例只领取一个分配队列时，Producer 把消息随机写到未领取队列。
+    "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$topic" -r "${TOPIC_QUEUE_COUNT:-1}" -w "${TOPIC_QUEUE_COUNT:-1}" -p 6 -a +message.type=NORMAL || true
     # Topic 名只允许 ^[%|a-zA-Z0-9_-]+$，点号会被 Broker 拒绝，因此契约使用连字符。
     if ! "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "$topic"; then
         echo "[foodmate] Topic ${topic} 创建后不可见，初始化失败" >&2

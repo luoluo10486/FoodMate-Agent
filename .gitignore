@@ -17,3 +17,9 @@ script/sql/FoodMate/backups/*.dump
 foodmate-ui/node_modules/
 foodmate-ui/dist/
 foodmate-ui/.tsbuild/
+
+# Python runtime generated files
+agent-runtime/__pycache__/
+agent-runtime/tests/__pycache__/
+agent-runtime/.pytest_cache/
+agent-runtime/*.egg-info/

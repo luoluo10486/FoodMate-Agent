@@ -117,6 +117,15 @@
 
 ### M1-4 Python Agent Runtime 与模型能力（下一阶段）
 
+当前已完成的基础闭环：Java PostgreSQL Dispatch Outbox -> RocketMQ command -> Python Redis Inbox -> 确定性 stub -> Redis Event Outbox -> RocketMQ event -> Java PostgreSQL Inbox/AgentRun/SSE Outbox。以下清单只记录尚未完成的 M1-4 Agent 能力，不把这次传输闭环重复列为待办。
+
+M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试通过，Compose 示例配置校验通过；本地单 NameServer、单 Broker、Proxy、四个 Agent Topic 和 Redis/PostgreSQL 依赖均已启动并完成一次真实消息往返。历史过期 Outbox/Run 只保留为故障验证记录，不作为当前闭环成功依据。
+
+- [x] Java PostgreSQL AgentRun/Dispatch/Outbox -> RocketMQ command。
+- [x] Python Redis Inbox 幂等消费 -> 确定性 stub -> Redis Event Outbox -> RocketMQ event。
+- [x] Java PostgreSQL Event Inbox/AgentRun/SSE Outbox 消费落库，重复消息和 request hash 冲突有自动化测试。
+- [x] 本地 RocketMQ Topic/consumer group 初始化、Compose 配置和 Java/Python 基础测试门禁。
+
 - [ ] 固定 Python 版本、虚拟环境、依赖锁、配置加载、健康检查、结构化日志和 pytest 门禁。
 - [ ] 在现有 Compose 中接入本地单 NameServer + 单 Broker，并初始化 command/event/proposal/result 四个 Agent Topic；本阶段不建设生产高可用集群。
 - [ ] 实现 Java PostgreSQL Outbox Relay、MQ Event/Proposal Consumer、Inbox 事务和 DLQ Reconciler；不使用 RocketMQ 事务消息。

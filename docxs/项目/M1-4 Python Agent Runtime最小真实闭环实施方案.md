@@ -8,10 +8,21 @@
 |---|---|
 | 功能编号/阶段 | M1-4 |
 | 功能名称 | Python Agent Runtime 最小真实模型闭环与生产治理基线 |
-| 文档状态 | 架构决策已确认，待代码、迁移和验收 |
+| 文档状态 | RocketMQ/Redis 最小真实传输闭环已验证；M1-4 Agent 能力仍待实现 |
 | 前置阶段 | M1-3 Java -> Python 确定性 stub -> Java -> SSE 已完成 |
 | 方案日期 | 2026-07-26 |
 | 架构依据 | `Agent运行架构.md`、`Python智能体运行时设计.md`、`ADR-0005-RocketMQ异步主通道.md`、`配置指南.md` |
+
+## 1.1 当前验证结论
+
+- [x] Java PostgreSQL AgentRun、Dispatch 和 Outbox 已提交，并由 Outbox Relay 发布到 RocketMQ command topic。
+- [x] Python Runtime 已通过 RocketMQ consumer 接收命令，并使用 Redis Inbox 按 `dispatch_id + request_hash` 幂等。
+- [x] Python 确定性 stub 已产生 `run.accepted`、`run.routed`、两条 `run.answer_stream` 和 `run.completed`。
+- [x] Python Event Outbox 在 Broker ACK 后清理；Java RocketMQ consumer 已将 5 条事件写入 PostgreSQL Inbox、AgentRun 和 SSE Outbox。
+- [x] 已验证结果：AgentRun 为 `completed`，PostgreSQL Inbox 为 5 条且全部 `applied`，SSE stream sequence 为 1 到 5。
+- [x] 前置门禁已验证：Python pytest 6/6、Java 全模块 Maven test 退出码 0、Compose 示例环境配置校验通过，RocketMQ 四个业务 Topic 已初始化。
+- [x] 联调清理规则已补充：Python 缓存、egg-info 和联调日志属于生成物并已加入 `.gitignore`，历史过期 Outbox 仅用于故障审计，不回写为成功。
+- [ ] LangGraph、真实模型、Router、Planner、Eval Gate、预算、checkpoint、Tool/SQL Proposal 仍未完成。
 
 ## 2. 阶段目标
 

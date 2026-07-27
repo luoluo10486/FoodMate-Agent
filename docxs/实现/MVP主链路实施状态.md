@@ -18,11 +18,11 @@
 
 Java 在同一事务中创建 AgentRun、dispatch 和 dispatch outbox。
 
-Java 使用 Service JWT 调用 Python V1 dispatch。
+Java 使用 PostgreSQL Dispatch Outbox 将 RunCommand 发布到 RocketMQ command topic；Python 通过 Redis Inbox 幂等消费。
 
-Python 确定性 stub 回传 run.accepted、run.routed、两段 run.answer_stream、run.completed。
+Python 确定性 stub 产生 run.accepted、run.routed、两段 run.answer_stream、run.completed，并经 Event Outbox 发布到 RocketMQ event topic。
 
-Java 校验事件身份、摘要、顺序和状态，再写入事件 inbox、AgentRun 投影和 SSE outbox。
+Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入 PostgreSQL 事件 Inbox、AgentRun 投影和 SSE Outbox。
 
 前端用 agent_run_id 订阅 SSE，展示分段文本、完成、失败或取消。
 
