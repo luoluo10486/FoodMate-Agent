@@ -14,7 +14,7 @@
 | M1-1 | 已完成 | 账户、授权与个人数据能力已有真实实现和验收记录。 |
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
-| M1-4 | 实现中 | 已落地受控模型适配、Eval/预算、Redis 准入、超时释放、摘要 CAS 和记忆候选；真实云联调、LangGraph 原生包装、Tool/SQL Proposal、完整质量门禁仍未完成。 |
+| M1-4 | 实现中 | 已落地受控模型适配、原生 LangGraph 白名单图、Eval/预算、Redis 准入、超时释放、摘要 CAS 和记忆候选；真实云联调、真实 Proposal/Result 往返、故障注入和完整质量门禁仍未完成。 |
 
 ## 2. 已确认的产品边界
 
@@ -134,7 +134,7 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 在现有 Compose 中接入本地单 NameServer + 单 Broker，并初始化 command/event/proposal/result 四个 Agent Topic；本阶段不建设生产高可用集群。
 - [x] 实现 Java PostgreSQL Outbox Relay、MQ Event Consumer、Inbox 事务和基础 DLQ 对账；Proposal/Result 业务处理随 Tool/SQL 阶段补齐。
 - [x] 实现 Python Redis AOF Inbox、Event Outbox 与 Relay；Redis 不可用时停止消费。Proposal Outbox 和 LangGraph checkpoint 原子写入仍属下列 Agent 能力任务。
-- [ ] 使用 LangGraph 完成 Router、Planner、Execution、Step Validator、Reflector、Composer、Final Eval Gate 和 Terminal Arbiter；Python 已先实现依赖无关的白名单状态图、步骤上限和最小 Step Validator，尚未完成 LangGraph、Reflector 和完整 Validator。
+- [x] 使用 LangGraph 完成 Router、Planner、Execution、Composer、Final Eval Gate 和 Terminal Arbiter 的原生白名单图包装；仍未完成 Reflector 和完整 Step Validator。
 - [x] 完成短期记忆 Context Builder：Java 装配最近 8 条有效消息、摘要、长期记忆和来源 ID，Python 执行上下文 Token 裁剪；摘要删除重建仍未完成。
 - [x] 完成摘要压缩：第 9 条有效消息写入后增量更新摘要；摘要保存覆盖消息范围、来源数量、Prompt 版本和 digest，并使用版本/CAS 防止并发覆盖。当前为确定性短摘要，摘要模型替换和更正后的自动重建仍需强化。
 - [x] 完成摘要失效与重建的最小链路：消息被删除或更正后摘要失效，下一次超过 8 条有效消息时从权威消息重建；摘要缓存和长期缓存联动仍需强化。
@@ -154,8 +154,10 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 普通缺参补充创建 continuation Run，旧 Run 进入 `superseded`，并完成 V5、Java 事务、SSE 和前端状态映射。
 - [x] 工具审批和预算追加恢复原 Run、创建新 `dispatch_id + attempt`，并完成预算确认前端交互与恢复测试。预算追加已接入 Redis 准入；工具审批仍是后续 proposal 能力。
 - [ ] 完成结构化 Trace、预算与 Eval 指标、脱敏策略和用户反馈入口；不得保存 Chain-of-Thought、完整 Prompt 或默认原始模型响应。
-- [ ] 只允许 Python 产生 Tool/SQL Proposal；禁止注入 PostgreSQL 业务库凭据。
-- [ ] Tool/SQL Proposal 与 Result 使用独立 MQ Topic；SQL 只由 Java SQL Guard 使用只读账号执行。
+- [x] 只允许 Python 产生 Tool/SQL Proposal；Java Tool Gateway 不向 Python 暴露 PostgreSQL 业务库凭据。
+- [x] Java 已接入独立 Proposal consumer、只读 SQL Guard、审计和 Result producer；`runtime_tool_proposal_inbox` 固化 `proposal_id + request_hash` 幂等事实。
+- [x] Python Result consumer 已接入 Redis 幂等 Inbox；Java command RocketMQ 真实传输 E2E 已通过。
+- [ ] Python Proposal publisher/Result 业务往返、只读数据库账号、业务链路故障注入和真实云模型仍待完成。
 
 M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得把“能调用一次模型”标记为 M1-4 完成。状态、wire 和数据库扩展必须先更新契约与迁移，再进入实现。
 

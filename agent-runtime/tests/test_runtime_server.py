@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).parents[1]))
 import runtime_server
 from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoint, Plan, RouteDecision, StepValidator, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
 from proposal_protocol import Proposal, validate_proposal
+from langgraph_adapter import build_graph
 
 
 class RuntimeContractTests(unittest.TestCase):
@@ -99,6 +100,11 @@ class RuntimeContractTests(unittest.TestCase):
         proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "UPDATE food_logs SET notes='x'"})
         with self.assertRaisesRegex(ValueError, "SQL_PROPOSAL_NOT_READ_ONLY"):
             validate_proposal(proposal)
+
+    def test_native_langgraph_adapter_compiles_whitelisted_graph(self):
+        graph = build_graph()
+        result = graph.invoke({})
+        self.assertIn("node", result)
 
     def test_checkpoint_uses_compare_and_set(self):
         checkpoint = InMemoryCheckpoint()

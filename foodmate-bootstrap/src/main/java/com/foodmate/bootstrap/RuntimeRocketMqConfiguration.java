@@ -3,6 +3,7 @@ package com.foodmate.bootstrap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.RuntimeDlqService;
 import com.foodmate.application.runtime.RuntimeEventMessageProcessor;
+import com.foodmate.application.runtime.RuntimeProposalMessageProcessor;
 import com.foodmate.gateway.RocketMqConsumerContainer;
 import com.foodmate.gateway.RocketMqSettings;
 import com.foodmate.gateway.V1RocketMqRuntimeClient;
@@ -44,18 +45,23 @@ public class RuntimeRocketMqConfiguration {
                 eventGroup, proposalGroup, producerGroup, sendTimeoutMs, producerMaxRetries, consumerMaxRetries);
     }
 
-    @Bean(destroyMethod = "close")
-    V1RuntimeClient v1RocketMqRuntimeClient(RocketMqSettings settings, ObjectMapper objectMapper,
+    @Bean(destroyMethod = "")
+    V1RuntimeClient v1RocketMqRuntimeClient(DefaultMQProducer producer, RocketMqSettings settings, ObjectMapper objectMapper,
                                             @Value("${foodmate.runtime.contract-version:v1}") String contractVersion) throws Exception {
+        // Broker 已确认但客户端未收到响应时不静默换队列重发：Outbox Relay 负责重试，
+        // 由 dispatch_id 幂等吸收，避免同一命令产生两条语义不同的消息。
+        return new V1RocketMqRuntimeClient(producer, settings, objectMapper, contractVersion);
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    DefaultMQProducer runtimeMqProducer(RocketMqSettings settings) throws Exception {
         DefaultMQProducer producer = new DefaultMQProducer(settings.producerGroup());
         producer.setNamesrvAddr(settings.nameServer());
         producer.setSendMsgTimeout(settings.sendTimeoutMs());
         producer.setRetryTimesWhenSendFailed(settings.producerMaxRetries());
-        // Broker 已确认但客户端未收到响应时不静默换队列重发：Outbox Relay 负责重试，
-        // 由 dispatch_id 幂等吸收，避免同一命令产生两条语义不同的消息。
         producer.setRetryAnotherBrokerWhenNotStoreOK(false);
         producer.start();
-        return new V1RocketMqRuntimeClient(producer, settings, objectMapper, contractVersion);
+        return producer;
     }
 
     /** 消费 Python 回传的 RunEvent；顺序消费保证同一 Run 的 event_seq 按序进入 Inbox。 */
@@ -71,5 +77,11 @@ public class RuntimeRocketMqConfiguration {
         String group = settings.javaEventConsumerGroup();
         return RocketMqConsumerContainer.concurrent(settings.nameServer(), group + "-dlq",
                 settings.deadLetterTopic(group), 1, dlqService);
+    }
+
+    @Bean(initMethod = "start", destroyMethod = "close")
+    RocketMqConsumerContainer runtimeProposalConsumer(RocketMqSettings settings, RuntimeProposalMessageProcessor processor) {
+        return RocketMqConsumerContainer.concurrent(settings.nameServer(), settings.javaProposalConsumerGroup(),
+                settings.proposalTopic(), settings.consumerMaxRetries(), processor);
     }
 }

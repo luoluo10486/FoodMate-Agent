@@ -19,16 +19,16 @@ def build_graph():
         raise RuntimeError("LANGGRAPH_NOT_INSTALLED") from error
 
     graph = StateGraph(dict)
-    nodes = {node for node in WORKFLOW_EDGES if node not in {"start", "terminal"}}
+    nodes = {"router", "planner", "execution", "validator", "composer", "eval"}
     for node in nodes:
         graph.add_node(node, lambda state, _node=node: {"node": _node, **state})
     graph.add_edge(START, "router")
-    for source, targets in WORKFLOW_EDGES.items():
-        if source in {"start", "terminal"}:
-            continue
-        for target in targets:
-            if target == "terminal":
-                graph.add_edge(source, END)
-            elif target != "start":
-                graph.add_edge(source, target)
+    # 适配层先编译一条无副作用的复杂任务主路径；真实条件判断仍由 agent_core
+    # 在进入 LangGraph 前完成，避免模型通过动态 edge 改写白名单。
+    graph.add_conditional_edges("router", lambda _state: "planner", {"planner": "planner"})
+    graph.add_edge("planner", "execution")
+    graph.add_edge("execution", "validator")
+    graph.add_edge("validator", "composer")
+    graph.add_edge("composer", "eval")
+    graph.add_edge("eval", END)
     return graph.compile()

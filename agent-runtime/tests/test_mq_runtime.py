@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest import TestCase
 
 sys.path.append(str(Path(__file__).parents[1]))
-from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisEventOutbox, RocketMqEventPublisher, _CommandListener
+from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisResultInbox, RedisEventOutbox, RocketMqEventPublisher, _CommandListener, _ResultListener
 from rocketmq import ConsumeResult
 
 
@@ -92,6 +92,19 @@ class MqRuntimeTests(TestCase):
         self.assertEqual(ConsumeResult.SUCCESS, listener.consume(message))
         self.assertEqual(ConsumeResult.SUCCESS, listener.consume(message))
         self.assertEqual([command], executed)
+
+    def test_result_listener_is_idempotent_and_rejects_hash_conflict(self):
+        inbox = RedisResultInbox(FakeRedis(), "test")
+        received = []
+        listener = _ResultListener(inbox, received.append)
+        result = {"proposal_id": "p1", "request_hash": "sha256:1", "status": "succeeded"}
+        message = SimpleNamespace(body=json.dumps(result).encode())
+        self.assertEqual(ConsumeResult.SUCCESS, listener.consume(message))
+        self.assertEqual(ConsumeResult.SUCCESS, listener.consume(message))
+        self.assertEqual([result], received)
+        conflict = dict(result, request_hash="sha256:2")
+        self.assertEqual(ConsumeResult.SUCCESS, listener.consume(SimpleNamespace(body=json.dumps(conflict).encode())))
+        self.assertEqual([result], received)
 
     def test_event_outbox_is_acked_only_after_broker_send(self):
         redis_client = FakeRedis()

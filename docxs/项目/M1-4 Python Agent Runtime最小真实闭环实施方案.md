@@ -8,7 +8,7 @@
 |---|---|
 | 功能编号/阶段 | M1-4 |
 | 功能名称 | Python Agent Runtime 最小真实模型闭环与生产治理基线 |
-| 文档状态 | M1-4 核心运行治理已实现一部分并通过本地测试；真实基础设施联调、LangGraph/Tool 完整能力和生产级质量门禁仍未完成 |
+| 文档状态 | M1-4 核心运行治理与原生 LangGraph 包装已实现一部分并通过本地测试；真实云模型、真实基础设施故障注入、完整 Tool/SQL 双向链路和生产级质量门禁仍未完成 |
 | 前置阶段 | M1-3 Java -> Python 确定性 stub -> Java -> SSE 已完成 |
 | 方案日期 | 2026-07-26 |
 | 架构依据 | `Agent运行架构.md`、`Python智能体运行时设计.md`、`ADR-0005-RocketMQ异步主通道.md`、`配置指南.md` |
@@ -28,7 +28,7 @@
 - [x] 已验证结果：AgentRun 为 `completed`，PostgreSQL Inbox 为 5 条且全部 `applied`，SSE stream sequence 为 1 到 5。
 - [x] 前置门禁已验证：Python pytest 6/6、Java 全模块 Maven test 退出码 0、Compose 示例环境配置校验通过，RocketMQ 四个业务 Topic 已初始化。
 - [x] 联调清理规则已补充：Python 缓存、egg-info 和联调日志属于生成物并已加入 `.gitignore`，历史过期 Outbox 仅用于故障审计，不回写为成功。
-- [ ] LangGraph、真实云端点联调、Tool/SQL Proposal、完整 Step Validator 和生产级故障注入仍未完成；当前已先落实依赖无关状态图、模型适配器、Eval/预算、Redis checkpoint、准入、摘要和记忆候选边界。
+- [ ] 真实云端点联调、完整 Step Validator、Reflector 和生产级故障注入仍未完成；当前已落实原生 LangGraph 白名单图、模型适配器、Eval/预算、Redis checkpoint、准入、摘要和记忆候选边界。
 
 ## 2. 阶段目标
 
@@ -226,7 +226,8 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 
 - Python 根据版本化 Schema Catalog 生成 ToolProposal 或 SqlProposal，通过 proposal Topic 发送。
 - Java执行权限、确认、SQL AST、只读、白名单、用户过滤、限行、超时、脱敏和审计。
-- Java 在业务事务中写 Tool/SQL Result Outbox，通过 result Topic 返回 Python。
+- Java 已接入 Proposal consumer、Java-only SQL Guard 和 Result producer；`runtime_tool_proposal_inbox` 以 `proposal_id + request_hash` 固化消费事实，重复消息复用已完成 Result，未完成执行保持重试。
+- Python Result consumer 已接入 Redis 幂等 Inbox；Java -> RocketMQ command 的真实传输 E2E 已通过。真实 Proposal -> Java Tool Gateway -> Result 的业务消息往返和真实 PostgreSQL SQL 执行仍未完成。
 - Python 不持有 FoodMate PostgreSQL 凭据，也不直接执行 SQL 或业务工具。
 
 ### 5.16 DLQ 与对账
@@ -299,14 +300,17 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] 通过 V5/V6 补齐 MQ 基础结构、`superseded`、父子 Run 和预算快照基础数据模型。
 - [x] 在 Compose 增加本地单节点 RocketMQ 和 Topic 初始化，并完成基础消息往返验证。
 - [x] Java 完成 PostgreSQL Outbox Relay、MQ Event Consumer/Inbox 和基础 DLQ 对账。
-- [x] Java 完成 Redis admission、queued Outbox、permit lease、queue/execution 超时释放和有限 priority + FIFO aging 基础；Proposal/Result 业务消费和 Redis 故障注入仍未完成。
+- [x] Java 完成 Redis admission、queued Outbox、permit lease、queue/execution 超时释放和有限 priority + FIFO aging 基础；Java Proposal consumer、Tool Gateway、SQL Guard 和 Result producer 已接入，真实 Proposal/Result 消息和 Redis 故障注入仍未完成。
 - [x] Python 完成 Redis Inbox/Event Outbox Repository 与 MQ command/event consumer/producer。
-- [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox；LangGraph 原生包装和 Proposal Outbox 业务协议仍未完成。
-- [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、最小 Step Validator、Final Eval 和 Eval 前缓冲；LangGraph 原生包装、Reflector 和完整 Validator 仍未完成。
-- [ ] 接入 Proposal/Result Topic 与 Java Tool/SQL 控制面；M1-4 只验证受控最小 proposal，不提前完成 M2 SQL Agent。
+- [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox，并加入原生 LangGraph 白名单图包装；Proposal Outbox 业务协议和 Result consumer 仍未完成。
+- [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、最小 Step Validator、Final Eval 和 Eval 前缓冲；Reflector 和完整 Validator 仍未完成。
+- [x] 完成 Python Result consumer、Java Proposal consumer、Tool Gateway 和 Result producer 的本地协议接入；Java command RocketMQ 真实传输 E2E 已通过。
+- [ ] 完成 Python Proposal publisher 与 Java Tool/SQL 控制面的真实 Proposal/Result RocketMQ 往返和真实 SQL 执行；不提前完成 M2 SQL Agent。
 - [x] 前端完成 continuation 与 `superseded` 状态展示。
 - [x] 前端完成 503、预算确认和安全降级交互；浏览器 E2E 仍未完成。
-- [ ] 完成新增能力的单元、契约、PostgreSQL/Redis/RocketMQ 故障注入和浏览器 E2E。
+- [x] 完成新增能力的 Python/Java 单元测试和前端生产构建。
+- [x] 完成本地 PostgreSQL、Redis、RocketMQ Broker 停止/恢复注入；恢复后 PostgreSQL、Redis 和 Broker 均重新健康。
+- [ ] 完成真实云模型联调、Proposal/Result 业务故障注入、浏览器完整 E2E 和生产级并发验证。
 
 ## 7. 验收门槛
 

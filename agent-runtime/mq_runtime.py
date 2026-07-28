@@ -97,6 +97,30 @@ class RedisCommandInbox:
         return "duplicate"
 
 
+class RedisResultInbox:
+    """记录 Java Tool Result，重复投递只允许回调一次。"""
+
+    def __init__(self, client=None, prefix=None):
+        self.client = client or redis.Redis.from_url(
+            os.getenv("FOODMATE_REDIS_URL", "redis://:foodmate-redis-change-me@localhost:6380"),
+            decode_responses=True,
+        )
+        self.prefix = prefix or os.getenv("FOODMATE_AGENT_REDIS_KEY_PREFIX", "foodmate:agent")
+        self.ttl_seconds = int(os.getenv("FOODMATE_AGENT_REDIS_INBOX_RETENTION_SECONDS", "604800"))
+
+    def claim(self, proposal_id: str, request_hash: str, result: dict) -> str:
+        key = f"{self.prefix}:inbox:result:{proposal_id}"
+        value = json.dumps({"request_hash": request_hash, "result": result}, ensure_ascii=False, sort_keys=True)
+        if self.client.set(key, value, nx=True, ex=self.ttl_seconds):
+            return "claimed"
+        existing = self.client.get(key)
+        if not existing:
+            raise RuntimeError("RUNTIME_COORDINATION_UNAVAILABLE")
+        if json.loads(existing).get("request_hash") != request_hash:
+            raise ValueError("RUNTIME_PROPOSAL_IDEMPOTENCY_CONFLICT")
+        return "duplicate"
+
+
 class RocketMqEventPublisher:
     """Publish immutable RunEvent envelopes after local execution emits them."""
 
@@ -156,6 +180,25 @@ class _CommandListener(MessageListener):
             return ConsumeResult.FAILURE
 
 
+class _ResultListener(MessageListener):
+    def __init__(self, inbox: RedisResultInbox, on_result: Callable[[dict], None]):
+        self.inbox = inbox
+        self.on_result = on_result
+
+    def consume(self, message):
+        try:
+            result = json.loads(message.body.decode("utf-8"))
+            proposal_id = result["proposal_id"]
+            request_hash = result["request_hash"]
+            if self.inbox.claim(proposal_id, request_hash, result) == "claimed":
+                self.on_result(result)
+            return ConsumeResult.SUCCESS
+        except ValueError:
+            return ConsumeResult.SUCCESS
+        except Exception:
+            return ConsumeResult.FAILURE
+
+
 class RedisEventOutbox:
     """Keep an event until the Broker confirms it; resend is intentionally idempotent."""
 
@@ -180,7 +223,7 @@ class RedisEventOutbox:
 class RocketMqRuntime:
     """Own the Python command consumer and event producer lifecycle."""
 
-    def __init__(self, execute: Callable[[dict], None], inbox=None, publisher=None):
+    def __init__(self, execute: Callable[[dict], None], inbox=None, publisher=None, on_result=None, result_inbox=None):
         endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
         config = ClientConfiguration(endpoint, Credentials())
         self.publisher = publisher or RocketMqEventPublisher()
@@ -193,6 +236,13 @@ class RocketMqRuntime:
             subscription={self.topic: FilterExpression("*")},
             consumption_thread_count=int(os.getenv("FOODMATE_AGENT_WORKER_CONCURRENCY", "1")),
         )
+        self.result_consumer = PushConsumer(
+            config,
+            os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_RESULT", "foodmate-python-agent-result-v1"),
+            _ResultListener(result_inbox or RedisResultInbox(), on_result or (lambda _result: None)),
+            subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_RESULT", "foodmate-agent-result-v1"): FilterExpression("*")},
+            consumption_thread_count=1,
+        )
         self._started = False
         self._lock = threading.Lock()
 
@@ -201,6 +251,7 @@ class RocketMqRuntime:
             if self._started:
                 return
             self.consumer.startup()
+            self.result_consumer.startup()
             self._started = True
 
     def close(self):
@@ -208,5 +259,6 @@ class RocketMqRuntime:
             if not self._started:
                 return
             self.consumer.shutdown()
+            self.result_consumer.shutdown()
             self.publisher.close()
             self._started = False

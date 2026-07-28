@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
 from typing import Any
 
 
@@ -14,9 +16,10 @@ class Proposal:
     schema_version: str
     payload: dict[str, Any]
     requires_confirmation: bool = True
+    request_hash: str = ""
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        body = {
             "proposal_id": self.proposal_id,
             "run_id": self.run_id,
             "proposal_type": self.proposal_type,
@@ -24,6 +27,10 @@ class Proposal:
             "payload": self.payload,
             "requires_confirmation": self.requires_confirmation,
         }
+        body["request_hash"] = self.request_hash or "sha256:" + hashlib.sha256(
+            json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        return body
 
 
 def validate_proposal(proposal: Proposal) -> None:
@@ -33,5 +40,5 @@ def validate_proposal(proposal: Proposal) -> None:
         statement = str(proposal.payload.get("statement", "")).strip().lower()
         if not statement.startswith("select") or any(token in statement for token in ("insert ", "update ", "delete ", "drop ", "alter ", ";")):
             raise ValueError("SQL_PROPOSAL_NOT_READ_ONLY")
-    if not proposal.proposal_id or not proposal.run_id:
+    if not proposal.proposal_id or not proposal.run_id or len(proposal.proposal_id) > 128:
         raise ValueError("PROPOSAL_ID_REQUIRED")

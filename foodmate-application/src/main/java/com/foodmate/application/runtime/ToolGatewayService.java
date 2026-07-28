@@ -1,0 +1,70 @@
+package com.foodmate.application.runtime;
+
+import com.foodmate.shared.id.IdGenerator;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Java Tool Gateway：Python 只提交 Proposal，Java 负责权限、SQL Guard、执行和审计。 */
+@Service
+public class ToolGatewayService {
+    private static final Pattern READ_ONLY = Pattern.compile("(?is)^\\s*select\\b.*");
+    private static final Pattern FORBIDDEN = Pattern.compile("(?is)(;|\\binsert\\b|\\bupdate\\b|\\bdelete\\b|\\bdrop\\b|\\balter\\b|\\btruncate\\b|\\bgrant\\b|\\brevoke\\b)");
+    private final JdbcTemplate jdbc;
+    private final IdGenerator ids;
+
+    public ToolGatewayService(ObjectProvider<JdbcTemplate> provider, IdGenerator ids) {
+        this.jdbc = provider.getIfAvailable();
+        this.ids = ids;
+    }
+
+    /** 执行最小 sql_read Proposal；无数据库时明确返回不可用，不回退到进程内伪造数据。 */
+    @Transactional
+    public ProposalResult execute(Map<String, Object> proposal) {
+        String proposalId = text(proposal.get("proposal_id"));
+        String runId = text(proposal.get("run_id"));
+        String type = text(proposal.get("proposal_type"));
+        Map<?, ?> payload = proposal.get("payload") instanceof Map<?, ?> value ? value : Map.of();
+        String statement = text(payload.get("statement"));
+        if (proposalId == null || runId == null || !"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
+        if (statement == null || !READ_ONLY.matcher(statement).matches() || FORBIDDEN.matcher(statement).find()) return reject(proposalId, "SQL_PROPOSAL_NOT_READ_ONLY");
+        if (jdbc == null) return new ProposalResult(proposalId, runId, "failed", "TOOL_GATEWAY_UNAVAILABLE", List.of());
+        long numericRunId;
+        try {
+            numericRunId = Long.parseLong(runId);
+        } catch (NumberFormatException exception) {
+            return reject(proposalId, "RUN_ID_INVALID");
+        }
+        if (!Boolean.TRUE.equals(jdbc.query("SELECT EXISTS(SELECT 1 FROM agent_runs WHERE agent_run_id=? AND is_deleted=FALSE)", rs -> rs.next() && rs.getBoolean(1), numericRunId))) {
+            return reject(proposalId, "RUN_NOT_FOUND");
+        }
+        long started = System.nanoTime();
+        List<Map<String, Object>> rows;
+        try {
+            rows = jdbc.queryForList(statement);
+            if (rows.size() > 500) rows = rows.subList(0, 500);
+            jdbc.update("INSERT INTO sql_query_audits(sql_audit_id,agent_run_id,sql_text,status,row_count,latency_ms,trace_id,created_by,updated_by) VALUES (?,?,?,'executed',?,?,?,0,0)",
+                    ids.nextId(), numericRunId, statement, rows.size(), (System.nanoTime() - started) / 1_000_000, "proposal:" + proposalId);
+            return new ProposalResult(proposalId, runId, "succeeded", null, rows);
+        } catch (RuntimeException error) {
+            jdbc.update("INSERT INTO sql_query_audits(sql_audit_id,agent_run_id,sql_text,status,reject_reason,latency_ms,trace_id,created_by,updated_by) VALUES (?,?,?,'rejected',?,?,?,0,0)",
+                    ids.nextId(), numericRunId, statement, error.getMessage(), (System.nanoTime() - started) / 1_000_000, "proposal:" + proposalId);
+            return new ProposalResult(proposalId, runId, "failed", "SQL_EXECUTION_FAILED", List.of());
+        }
+    }
+
+    private ProposalResult reject(String proposalId, String code) {
+        return new ProposalResult(proposalId, null, "rejected", code, List.of());
+    }
+
+    private static String text(Object value) {
+        if (value == null || value.toString().isBlank() || value.toString().length() > 10000) return null;
+        return value.toString();
+    }
+
+    public record ProposalResult(String proposalId, String runId, String status, String errorCode, List<Map<String, Object>> rows) {}
+}
