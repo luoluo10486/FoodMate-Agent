@@ -6,11 +6,11 @@
 
 ## M1-4 当前复核状态（2026-07-28）
 
-- [x] 浏览器登录、会话、消息、SSE 和助手消息刷新恢复闭环已通过。
+- [ ] 浏览器完整真实登录、会话、消息、SSE 尚未通过；当前仅验证 mock 页面交互，真实 API 注册返回 `500 INTERNAL_ERROR`。
 - [x] Proposal/Result 真实 MQ、Tool Gateway 失败审计、Result 发布后重试语义和重复 Proposal 幂等已通过。
 - [x] Redis 多实例准入 6/6：并发上限、队列满、continuation 优先、队列 lease 过期和 Redis 不可用错误码已验证。
 - [x] Python RocketMQ producer/consumer 启动超时已补齐；Proxy route 不可用不会永久阻塞。
-- [ ] 真实云模型联调：必须配置 primary/backup 真实 endpoint 与 key 后运行 gated 测试；当前环境无凭据，不能标记完成。
+- [ ] 真实云模型联调：已实际请求 SiliconFlow，但返回 HTTP 401 `MODEL_PROVIDER_REJECTED`；默认仍使用 deterministic stub。
 - [ ] 生产级长压、多实例吞吐、P95/P99、进程级 Redis/RocketMQ/PostgreSQL 故障恢复仍待执行。
 
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
@@ -167,7 +167,7 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] Java 已接入独立 Proposal consumer、只读 SQL Guard、审计和 Result producer；`runtime_tool_proposal_inbox` 固化 `proposal_id + request_hash` 幂等事实。
 - [x] Python Result consumer 已接入 Redis 幂等 Inbox；Java command RocketMQ 真实传输 E2E 已通过。
 - [x] Python Proposal Publisher/Result consumer 与 Java Tool Gateway 的业务往返已通过本地真实 E2E；验证只读 SQL、PostgreSQL 审计、Result 和 Proposal Inbox 幂等。
-- [ ] 只读数据库账号、Proposal/Result 业务故障注入和真实云模型仍待完成。
+- [ ] 只读数据库账号和真实云模型成功联调仍待完成；Proposal/Result Broker 故障注入已完成，生产级 Outbox 长时间重试容量仍待验证。
 
 M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得把“能调用一次模型”标记为 M1-4 完成。状态、wire 和数据库扩展必须先更新契约与迁移，再进入实现。
 
@@ -259,11 +259,11 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] 新增长压测试 `M14AdmissionLongStressTest`，30 秒真实 Redis 基线采集 P50/P95/P99、active 峰值、容量拒绝和协调错误。
 - [x] 两个独立 Java JVM 在 18082/18083 启动并通过 liveness；正式多实例业务流量验证仍未完成。
 - [ ] SiliconFlow 真实云调用成功：本轮实际请求返回 HTTP 401 `MODEL_PROVIDER_REJECTED`，需要先轮换/确认有效 API Key，不能以 fixture 代替。
-- [ ] Proposal/Result 业务故障注入后的重试、恢复、Inbox/Tool Gateway/Result 业务对账。
+- [x] Proposal/Result Broker 故障注入：Broker 停止时发送得到 `No route info of this topic`；恢复后真实 Proposal/Result 成功，Inbox 幂等测试通过。
 - [ ] 浏览器完整登录、会话、消息、SSE E2E；当前 RocketMQ 消费链仍有 queued/routing 停滞证据。
 - [ ] 生产级长时间容量结论、队列防饥饿和多 Java 实例业务流量验证；当前 30 秒结果仅作为本地单 Redis 基线。
 
 - 已完成：模型适配器 fixture 契约、Proposal/Result 幂等单测、真实模式会话路由修复、64 位 ID 字符串契约、代理 Origin 修复。
 - 已验证：Python pytest 27 项、Java API/依赖模块测试 27 项、前端 typecheck/build。
-- 仍未完成：真实云供应商凭据联调、Proposal/Result 运行中故障注入、浏览器完整 SSE E2E、生产级并发/队列防饥饿/多实例验证。
+- 仍未完成：真实云供应商成功调用、浏览器完整真实 SSE E2E、生产级并发/队列防饥饿/多实例业务流量验证。
 - 最新阻塞：本地 RocketMQ Proxy 曾报告 `DefaultHeartBeatSyncerTopic` 创建失败；重启 Proxy 和更换 Python consumer group 后，Run 仍有 `queued/routing` 停滞，不能将浏览器 E2E 标记为通过。

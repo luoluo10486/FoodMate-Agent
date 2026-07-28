@@ -6,14 +6,14 @@
 
 ### 已完成并有运行证据
 
-- [x] 浏览器完整登录、会话、消息和 SSE 闭环已通过，助手消息刷新后可恢复。
+- [ ] 浏览器完整真实登录、会话、消息和 SSE 闭环尚未通过；当前仅验证了 mock 页面交互与 SSE 展示，真实 Java API 注册请求返回 `500 INTERNAL_ERROR`。
 - [x] Proposal/Result 真实 RocketMQ 往返、Tool Gateway SQL 失败审计、Result 发布完成和重复 Proposal 幂等已通过。
 - [x] Redis 多实例准入 6/6 通过：并发上限、队列容量、continuation 优先、队列 lease 回收和协调不可用错误码均已覆盖。
 - [x] Python MQ producer/consumer 启动超时已实现，启动失败返回 `RUNTIME_MQ_STARTUP_FAILED`；Python pytest 28 passed、真实云 gated 测试 1 skipped。
 
 ### 未完成条件
 
-- [ ] 真实云模型供应商仍需 primary/backup 真实 endpoint 和 API key；当前只能证明 OpenAI-compatible fixture 契约和 gated 测试逻辑。
+- [ ] 真实云模型供应商联调未通过：SiliconFlow 请求返回 HTTP 401，Runtime 已正确映射为 `MODEL_PROVIDER_REJECTED`；默认仍使用无凭证 deterministic stub。
 - [ ] 生产级长时间吞吐、P95/P99、进程级故障恢复和真正多 Java 实例部署演练仍未完成。
 
 ## 1. 文档信息
@@ -42,7 +42,7 @@
 - [x] 已验证结果：AgentRun 为 `completed`，PostgreSQL Inbox 为 5 条且全部 `applied`，SSE stream sequence 为 1 到 5。
 - [x] 前置门禁已验证：Python pytest 6/6、Java 全模块 Maven test 退出码 0、Compose 示例环境配置校验通过，RocketMQ 四个业务 Topic 已初始化。
 - [x] 联调清理规则已补充：Python 缓存、egg-info 和联调日志属于生成物并已加入 `.gitignore`，历史过期 Outbox 仅用于故障审计，不回写为成功。
-- [ ] 真实云端点联调、完整 Step Validator、Reflector 和生产级故障注入仍未完成；当前已落实原生 LangGraph 白名单图、模型适配器、Eval/预算、Redis checkpoint、准入、摘要和记忆候选边界。
+- [ ] 真实云端点联调、完整 Step Validator、Reflector 和生产级故障注入仍未完成；当前已落实原生 LangGraph 白名单图、模型适配器、Eval/预算、Redis checkpoint、准入、摘要和记忆候选边界，并完成 Broker 运行中故障注入。
 
 ## 2. 阶段目标
 
@@ -314,7 +314,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] 通过 V5/V6 补齐 MQ 基础结构、`superseded`、父子 Run 和预算快照基础数据模型。
 - [x] 在 Compose 增加本地单节点 RocketMQ 和 Topic 初始化，并完成基础消息往返验证。
 - [x] Java 完成 PostgreSQL Outbox Relay、MQ Event Consumer/Inbox 和基础 DLQ 对账。
-- [x] Java 完成 Redis admission、queued Outbox、permit lease、queue/execution 超时释放和有限 priority + FIFO aging 基础；Java Proposal consumer、Tool Gateway、SQL Guard 和 Result producer 已接入，真实 Proposal/Result 消息和 Redis 故障注入仍未完成。
+- [x] Java 完成 Redis admission、queued Outbox、permit lease、queue/execution 超时释放和有限 priority + FIFO aging 基础；Java Proposal consumer、Tool Gateway、SQL Guard 和 Result producer 已接入，真实 Proposal/Result 消息及 Broker 故障注入已验证。
 - [x] Python 完成 Redis Inbox/Event Outbox Repository 与 MQ command/event consumer/producer。
 - [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox，并加入原生 LangGraph 白名单图包装；Proposal Outbox 业务协议和 Result consumer 仍未完成。
 - [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、最小 Step Validator、Final Eval 和 Eval 前缓冲；Reflector 和完整 Validator 仍未完成。
@@ -324,7 +324,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] 前端完成 503、预算确认和安全降级交互；浏览器 E2E 仍未完成。
 - [x] 完成新增能力的 Python/Java 单元测试和前端生产构建。
 - [x] 完成本地 PostgreSQL、Redis、RocketMQ Broker 停止/恢复注入；恢复后 PostgreSQL、Redis 和 Broker 均重新健康。
-- [ ] 完成真实云模型联调、Proposal/Result 业务故障注入、浏览器完整 E2E 和生产级并发验证。
+- [ ] 完成真实云模型成功联调、浏览器完整真实 E2E 和生产级并发验证；Proposal/Result Broker 故障注入已完成，仍需更长时间的 Outbox 重试容量验证。
 
 ## 7. 验收门槛
 
@@ -380,9 +380,9 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 
 ### 8.2 仍未完成
 
-- [ ] 真实云供应商调用：当前环境没有可用供应商 API Key；fixture 不能替代云端凭据联调。
-- [ ] Proposal/Result 真实 Broker 故障注入：单测已覆盖，尚未完成运行中的 Broker 发布失败、重试、恢复和业务结果对账。
-- [ ] 浏览器完整登录、会话、消息、SSE E2E：登录、注册、会话创建、消息落库和 ID 精度已实际验证；RocketMQ Proxy/consumer 重启后仍出现消息停在 queued/routing，尚未出现可交付的 run.answer_stream/run.completed，因此不能标记通过。
+- [ ] 真实云供应商调用：已实际请求 SiliconFlow，但返回 HTTP 401；需要轮换/确认有效凭据后才能验证成功响应、usage 和成本记录。
+- [x] Proposal/Result 真实 Broker 故障注入：停止 Broker 时 Proposal 发送得到 `No route info of this topic`；恢复 Broker 后 Proposal -> Tool Gateway -> Result 测试成功，未删除 volume。
+- [ ] 浏览器完整登录、会话、消息、SSE E2E：mock 页面已走到消息、工具成功和写入确认；真实 API 注册请求返回 `500 INTERNAL_ERROR`，因此尚不能标记真实登录和真实 SSE 闭环通过。
 - [ ] 生产级并发、队列防饥饿和多实例：当前只有 Redis Lua/ZSET 代码基础，没有完成双 Java 实例共享 Redis、长时间 aging、租约回收和容量压力证据。
 
 ## M1-4 2026-07-28 本轮联调与故障演练记录
@@ -391,7 +391,9 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 长时间并发基线：新增 `M14AdmissionLongStressTest`，显式开启后使用真实 Redis 和两个 admission service 实例运行。30 秒结果为 204 次完成准入、active 峰值 20、0 次协调错误、P50 4.705ms、P95 12.313ms、P99 123.302ms；容量拒绝 367731 次。该结果是本机单 Redis 基准，不是生产容量承诺。
 - 多 JVM：两个独立 Java JVM 已在 18082/18083 同时启动，共享本地 PostgreSQL/Redis，并且两个 liveness 均返回 200；临时 JVM 已停止。跨实例 admission 规则仍由 Redis 共享服务测试覆盖，尚未完成正式部署拓扑和多实例业务流量验证。
 - 进程故障恢复：PostgreSQL、Redis、RocketMQ Proxy、Broker 均完成停止后端口不可达、重新启动并恢复 healthy 的演练；NameServer 受 `restart: unless-stopped` 影响快速自动拉起，未形成可观测的长时间端口中断，但最终 healthy。未删除任何 volume。
-- 结论：以上补齐了联调和恢复证据，但“真实云调用成功、业务消息故障注入后的 Proposal/Result 对账、浏览器完整 SSE E2E、生产级长时间容量结论”仍保持未完成。
+- Proposal/Result 运行中故障注入：Broker 停止期间发送失败，恢复后同一真实成功测试通过；该证据证明失败可见和恢复可用，但还不是跨重启 Outbox 长时间重试容量结论。
+- 浏览器：5173 当前为 mock 模式，真实模式 API 端口 18080 的注册接口返回 `500 INTERNAL_ERROR`；因此真实登录、真实会话创建、真实消息落库和真实 SSE 仍保持未完成。
+- 结论：以上补齐了 Broker 故障注入和恢复证据，但“真实云调用成功、浏览器完整真实 SSE E2E、生产级长时间容量结论”仍保持未完成。
 
 ### 8.3 当前阻塞证据
 
