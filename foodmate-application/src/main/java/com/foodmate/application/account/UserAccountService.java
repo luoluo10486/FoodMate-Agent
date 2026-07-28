@@ -287,6 +287,45 @@ public class UserAccountService {
         return new PageResult<>(all.subList(from, Math.min(from + safeSize, all.size())), all.size(), safePage, safeSize);
     }
 
+    /** 更正用户消息后由上层失效会话摘要，避免旧摘要继续代表已删除内容。 */
+    public synchronized MessageRecord updateMessage(long userId, long sessionId, long messageId, String content) {
+        requireSession(userId, sessionId);
+        requireText(content, "content");
+        if (content.length() > 10000) throw new IllegalArgumentException("content must be at most 10000 characters");
+        if (jdbc != null) {
+            int changed = jdbc.update("UPDATE messages SET content=?,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE message_id=? AND session_id=? AND created_by=? AND role='user' AND is_deleted=FALSE",
+                    content, userId, messageId, sessionId, userId);
+            if (changed != 1) throw notFound("message not found");
+            return jdbc.query("SELECT message_id,agent_run_id,role,content,structured_payload::text,sequence_no,created_at FROM messages WHERE message_id=?",
+                    (rs, row) -> new MessageRecord(rs.getLong(1), sessionId, rs.getObject(2, Long.class), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6), rs.getTimestamp(7).toInstant()), messageId)
+                    .stream().findFirst().orElseThrow(() -> notFound("message not found"));
+        }
+        List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
+        for (int i = 0; i < records.size(); i++) {
+            MessageRecord current = records.get(i);
+            if (current.messageId() == messageId && current.role().equals("user")) {
+                MessageRecord updated = new MessageRecord(current.messageId(), current.sessionId(), current.agentRunId(), current.role(), content, current.structuredPayload(), current.sequenceNo(), current.createdAt());
+                records.set(i, updated);
+                return updated;
+            }
+        }
+        throw notFound("message not found");
+    }
+
+    /** 逻辑删除用户消息；sequence_no 不复用，保证历史事件和摘要来源仍可审计。 */
+    public synchronized void deleteMessage(long userId, long sessionId, long messageId) {
+        requireSession(userId, sessionId);
+        if (jdbc != null) {
+            int changed = jdbc.update("UPDATE messages SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,deleted_by=?,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE message_id=? AND session_id=? AND created_by=? AND role='user' AND is_deleted=FALSE",
+                    userId, userId, messageId, sessionId, userId);
+            if (changed != 1) throw notFound("message not found");
+            return;
+        }
+        List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
+        boolean removed = records.removeIf(item -> item.messageId() == messageId && item.role().equals("user"));
+        if (!removed) throw notFound("message not found");
+    }
+
     public synchronized List<SearchResult> searchSessions(long userId, String query, int page, int size) {
         String q = query == null ? "" : query.trim();
         if (q.isBlank()) return List.of();

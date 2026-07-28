@@ -45,7 +45,8 @@ public class AgentAdmissionService {
               return 'active'
             end
             if redis.call('ZCARD', KEYS[4]) >= queue_limit then return 'capacity' end
-            redis.call('ZADD', KEYS[4], now - tonumber(ARGV[10]), ARGV[1])
+            -- 分数同时保留提交时间和有限 priority；老任务会自然先于后续同优先级任务，避免无限插队。
+            redis.call('ZADD', KEYS[4], now - (tonumber(ARGV[10]) * 5), ARGV[1])
             redis.call('HSET', KEYS[3], 'state', 'queued', 'user_id', ARGV[3], 'session_id', ARGV[2], 'run_id', ARGV[1])
             redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[9]))
             return 'queued'

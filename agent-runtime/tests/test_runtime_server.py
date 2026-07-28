@@ -9,7 +9,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 sys.path.append(str(Path(__file__).parents[1]))
 import runtime_server
-from agent_core import BudgetSnapshot, ContextBuilder, InMemoryCheckpoint, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
+from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoint, Plan, RouteDecision, StepValidator, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
+from proposal_protocol import Proposal, validate_proposal
 
 
 class RuntimeContractTests(unittest.TestCase):
@@ -87,6 +88,17 @@ class RuntimeContractTests(unittest.TestCase):
         context = ContextBuilder(max_recent_messages=8, max_context_tokens=150).build(command, type("Route", (), {"missing_slots": ()})())
         self.assertEqual("current", context.messages[-1]["message_id"])
         self.assertLessEqual(context.estimated_tokens, 150)
+
+    def test_step_validator_rejects_complex_plan_without_fact_validation(self):
+        route = RouteDecision("analysis", "complex", "low")
+        context = Context((), None, (), (), {"message_id": ()})
+        with self.assertRaisesRegex(ValueError, "complex plan lacks fact validation"):
+            StepValidator().validate(route, Plan(("compose",), route), context)
+
+    def test_sql_proposal_rejects_write_statement(self):
+        proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "UPDATE food_logs SET notes='x'"})
+        with self.assertRaisesRegex(ValueError, "SQL_PROPOSAL_NOT_READ_ONLY"):
+            validate_proposal(proposal)
 
     def test_checkpoint_uses_compare_and_set(self):
         checkpoint = InMemoryCheckpoint()

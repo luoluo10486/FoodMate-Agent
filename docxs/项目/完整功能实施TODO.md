@@ -134,16 +134,16 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 在现有 Compose 中接入本地单 NameServer + 单 Broker，并初始化 command/event/proposal/result 四个 Agent Topic；本阶段不建设生产高可用集群。
 - [x] 实现 Java PostgreSQL Outbox Relay、MQ Event Consumer、Inbox 事务和基础 DLQ 对账；Proposal/Result 业务处理随 Tool/SQL 阶段补齐。
 - [x] 实现 Python Redis AOF Inbox、Event Outbox 与 Relay；Redis 不可用时停止消费。Proposal Outbox 和 LangGraph checkpoint 原子写入仍属下列 Agent 能力任务。
-- [ ] 使用 LangGraph 完成 Router、Planner、Execution、Step Validator、Reflector、Composer、Final Eval Gate 和 Terminal Arbiter；Python 已先实现依赖无关的白名单状态图和步骤上限，尚未完成 LangGraph、Reflector 和完整 Validator。
+- [ ] 使用 LangGraph 完成 Router、Planner、Execution、Step Validator、Reflector、Composer、Final Eval Gate 和 Terminal Arbiter；Python 已先实现依赖无关的白名单状态图、步骤上限和最小 Step Validator，尚未完成 LangGraph、Reflector 和完整 Validator。
 - [x] 完成短期记忆 Context Builder：Java 装配最近 8 条有效消息、摘要、长期记忆和来源 ID，Python 执行上下文 Token 裁剪；摘要删除重建仍未完成。
 - [x] 完成摘要压缩：第 9 条有效消息写入后增量更新摘要；摘要保存覆盖消息范围、来源数量、Prompt 版本和 digest，并使用版本/CAS 防止并发覆盖。当前为确定性短摘要，摘要模型替换和更正后的自动重建仍需强化。
-- [ ] 完成摘要失效与重建：消息被删除或更正后，使引用它的摘要、缓存和 Context 来源失效；下一次读取前从仍有效的权威消息重建。
+- [x] 完成摘要失效与重建的最小链路：消息被删除或更正后摘要失效，下一次超过 8 条有效消息时从权威消息重建；摘要缓存和长期缓存联动仍需强化。
 - [x] 完成长期记忆候选链路：Python 只产生带来源、类型、置信度、作用域和有效期的候选，Java 校验后写入 `user_memories`，不得把模型推测、一次性参数、审批或医疗判断自动记忆。
 - [x] 提供长期记忆查看、更正、删除和冲突确认 API；冲突记忆默认不进入 Agent Context，用户确认后才恢复可用。
 - [ ] 删除或更正长期记忆后同步失效所有相关摘要、缓存和历史 Context 引用；当前已完成记忆逻辑删除，摘要关联失效仍需继续接入。
 - [ ] 为每次 Context 装配保存可审计来源 ID：`message_id/summary_id/memory_id/citation_id`，但不得保存 Chain-of-Thought 或完整 Prompt。
 - [x] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。当前已接入 Lua/ZSET lease，未引入进程内 semaphore。
-- [ ] 完成优先队列、permit lease、aging、防饥饿和 Redis 故障关闭；协调不可用时新 Agent 请求返回 503 `RUNTIME_COORDINATION_UNAVAILABLE`。
+- [ ] 完成生产级优先队列、permit lease、aging、防饥饿和 Redis 故障关闭；当前已实现有限 priority + FIFO aging 基础和协调不可用 503，仍缺 Redis 故障注入与长期防饥饿验证。
 - [x] 完成 queue、execution、node、waiting_user、cancel drain 超时，Run 接受时固化 `TimeoutSnapshot`，取消或超时后可靠释放 permit。当前已实现 queue/execution 扫描和终态释放，node/cancel drain 的独立执行器与 waiting_user 专用 deadline 仍需强化。
 - [x] Python 已接入供应商无关的受控模型适配器，支持逻辑层级路由、兼容云端点、超时/限流 fallback、用量采集与失败归因；真实云凭据和联调仍待补充。
 - [ ] 完成 Token/成本预算快照、70%/85%/100% 分级降级和用户显式追加预算；每次追加生成新 revision 和 dispatch attempt。

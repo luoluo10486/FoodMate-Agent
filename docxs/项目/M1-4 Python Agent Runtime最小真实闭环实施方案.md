@@ -290,7 +290,8 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 已实现：Context Builder 保留最近消息和当前输入优先级，并按 `FOODMATE_AGENT_CONTEXT_MAX_TOKENS` 裁剪旧消息，记录估算 Token 与来源 ID。
 - 已实现：Java Redis admission/queued Outbox/lease/reconciler，摘要元数据 CAS、最近 8 条 Context 装配和长期记忆候选校验写入。
 - 已实现：长期记忆管理 API 支持用户查询、修改、逻辑删除和冲突确认；冲突状态不会进入 Agent Context。
-- 未完成：当前状态图仍是依赖无关实现，不是 LangGraph 包装；摘要删除重建、记忆变更后的摘要/缓存联动失效、aging 和完整 Step Validator 仍未完成。
+- 已实现：消息更正/删除 API 会使摘要失效；下一次超过最近 8 条阈值时按有效权威消息重建。Python 已加入最小 Step Validator，Proposal 协议拒绝非只读 SQL。
+- 未完成：当前状态图仍是依赖无关实现，不是 LangGraph 包装；记忆变更后的摘要/缓存联动失效、生产级 aging 防饥饿和完整 Validator/Reflector 仍未完成。
 
 ## 6. 实施顺序与当前状态
 
@@ -298,10 +299,10 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] 通过 V5/V6 补齐 MQ 基础结构、`superseded`、父子 Run 和预算快照基础数据模型。
 - [x] 在 Compose 增加本地单节点 RocketMQ 和 Topic 初始化，并完成基础消息往返验证。
 - [x] Java 完成 PostgreSQL Outbox Relay、MQ Event Consumer/Inbox 和基础 DLQ 对账。
-- [x] Java 完成 Redis admission、queued Outbox、permit lease 和 queue/execution 超时释放；优先级 aging 与 Proposal/Result 业务消费仍未完成。
+- [x] Java 完成 Redis admission、queued Outbox、permit lease、queue/execution 超时释放和有限 priority + FIFO aging 基础；Proposal/Result 业务消费和 Redis 故障注入仍未完成。
 - [x] Python 完成 Redis Inbox/Event Outbox Repository 与 MQ command/event consumer/producer。
 - [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox；LangGraph 原生包装和 Proposal Outbox 业务协议仍未完成。
-- [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、Final Eval 和 Eval 前缓冲；LangGraph 原生包装和完整 Validator 仍未完成。
+- [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、最小 Step Validator、Final Eval 和 Eval 前缓冲；LangGraph 原生包装、Reflector 和完整 Validator 仍未完成。
 - [ ] 接入 Proposal/Result Topic 与 Java Tool/SQL 控制面；M1-4 只验证受控最小 proposal，不提前完成 M2 SQL Agent。
 - [x] 前端完成 continuation 与 `superseded` 状态展示。
 - [x] 前端完成 503、预算确认和安全降级交互；浏览器 E2E 仍未完成。

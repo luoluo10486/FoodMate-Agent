@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
+from proposal_protocol import Proposal, validate_proposal
 
 
 def _digest(value: Any) -> str:
@@ -246,6 +247,22 @@ class DeterministicEvalGate:
         return EvalDecision("pass", "DETERMINISTIC_RULES_PASSED")
 
 
+class StepValidator:
+    """在进入 Composer 前检查步骤白名单、授权来源和必要输出，避免模型绕过状态机。"""
+
+    ALLOWED_STEPS = frozenset({"clarify", "compose", "retrieve_authorized_context", "validate_facts"})
+
+    def validate(self, route: RouteDecision, plan: Plan, context: Context) -> None:
+        if not plan.steps or any(step not in self.ALLOWED_STEPS for step in plan.steps):
+            raise ValueError("STEP_VALIDATION_FAILED: unknown plan step")
+        if route.complexity == "complex" and "validate_facts" not in plan.steps:
+            raise ValueError("STEP_VALIDATION_FAILED: complex plan lacks fact validation")
+        if route.missing_slots and plan.steps != ("clarify",):
+            raise ValueError("STEP_VALIDATION_FAILED: clarification plan has side effects")
+        if any(any(not item for item in source) for source in context.sources.values() if source is not None):
+            raise ValueError("STEP_VALIDATION_FAILED: invalid context source")
+
+
 class DeterministicComposer:
     def compose(self, content: str, route: RouteDecision, context: Context, budget_mode: str) -> str:
         if route.missing_slots:
@@ -355,6 +372,7 @@ class AgentExecution:
     model_attempts: list[ProviderAttempt] = field(default_factory=list)
     budget_actions: dict[str, object] = field(default_factory=dict)
     workflow: dict[str, object] = field(default_factory=dict)
+    proposals: list[dict[str, Any]] = field(default_factory=list)
 
 
 def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | None = None, model_router: ModelRouter | None = None) -> AgentExecution:
@@ -400,6 +418,18 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
                 "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
             })
         return AgentExecution(route, plan, context, answer, decision, usage, mode, [], [], policy.as_dict(), graph.as_dict())
+    try:
+        StepValidator().validate(route, plan, context)
+    except ValueError as error:
+        decision = EvalDecision("degrade", str(error).split(":", 1)[-1].strip())
+        answer = "当前请求无法通过步骤校验，已停止继续执行。"
+        if checkpoint is not None:
+            checkpoint.save(command["run_id"] + ":" + command["dispatch_id"], {
+                "route": route.__dict__, "plan": plan.__dict__, "usage": {"steps": len(graph.nodes)},
+                "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
+                "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
+            })
+        return AgentExecution(route, plan, context, answer, decision, Usage(steps=len(graph.nodes)), mode, [], [], policy.as_dict(), graph.as_dict())
     candidate = DeterministicComposer().compose(content, route, context, mode)
     router = model_router or ModelRouter()
     tier = router.tier_for("composer", route.complexity, route.risk_level, mode)
@@ -458,4 +488,4 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
             "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
             "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
         })
-    return AgentExecution(route, plan, context, answer, decision, usage, mode, generate_memory_candidates(context, content), attempts, policy.as_dict(), graph.as_dict())
+    return AgentExecution(route, plan, context, answer, decision, usage, mode, generate_memory_candidates(context, content), attempts, policy.as_dict(), graph.as_dict(), [])

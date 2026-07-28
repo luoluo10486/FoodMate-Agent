@@ -174,6 +174,7 @@ def execute(command):
             "budget_actions": execution.budget_actions,
             "workflow": execution.workflow,
             "usage": execution.usage.__dict__, "memory_candidates": execution.memory_candidates,
+            "proposals": execution.proposals,
         })
     except ModelProviderError as error:
         # 模型失败也必须回到 Java 状态机，不能由 Runtime 静默吞掉。

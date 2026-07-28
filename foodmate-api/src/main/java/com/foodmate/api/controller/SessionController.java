@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.AgentRunCommandService;
+import com.foodmate.application.runtime.SessionSummaryService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,9 +27,12 @@ import org.springframework.beans.factory.ObjectProvider;
 @RequestMapping("/api/sessions")
 public class SessionController extends AuthenticatedControllerSupport {
     private final AgentRunCommandService agentRuns;
-    public SessionController(UserAccountService accounts, ObjectProvider<AgentRunCommandService> agentRunProvider) {
+    private final SessionSummaryService summaries;
+    public SessionController(UserAccountService accounts, ObjectProvider<AgentRunCommandService> agentRunProvider,
+                             ObjectProvider<SessionSummaryService> summaryProvider) {
         super(accounts);
         this.agentRuns = agentRunProvider.getIfAvailable();
+        this.summaries = summaryProvider.getIfAvailable();
     }
 
     @GetMapping
@@ -108,6 +112,25 @@ public class SessionController extends AuthenticatedControllerSupport {
         return ok(agentRuns.createUserMessageRun(current.userId(), sessionId, body.content(), TraceContextHolder.currentOrNew().traceId()));
     }
 
+    @PatchMapping("/{sessionId}/messages/{messageId}")
+    public ApiResponse<UserAccountService.MessageRecord> updateMessage(HttpServletRequest request,
+                                                                       @PathVariable long sessionId,
+                                                                       @PathVariable long messageId,
+                                                                       @Valid @RequestBody MessageUpdateRequest body) {
+        long userId = user(request).userId();
+        UserAccountService.MessageRecord result = accounts.updateMessage(userId, sessionId, messageId, body.content());
+        if (summaries != null) summaries.invalidate(userId, sessionId);
+        return ok(result);
+    }
+
+    @DeleteMapping("/{sessionId}/messages/{messageId}")
+    public ApiResponse<Void> deleteMessage(HttpServletRequest request, @PathVariable long sessionId, @PathVariable long messageId) {
+        long userId = user(request).userId();
+        accounts.deleteMessage(userId, sessionId, messageId);
+        if (summaries != null) summaries.invalidate(userId, sessionId);
+        return ok(null);
+    }
+
     private <T> ApiResponse<T> ok(T value) { return ApiResponse.success(value, TraceContextHolder.currentOrNew()); }
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -116,4 +139,6 @@ public class SessionController extends AuthenticatedControllerSupport {
     public record RenameRequest(@NotBlank @Size(max = 255) String title) {}
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record MessageRequest(@NotBlank String role, @NotBlank @Size(max = 10000) String content, Object structuredPayload) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record MessageUpdateRequest(@NotBlank @Size(max = 10000) String content) {}
 }
