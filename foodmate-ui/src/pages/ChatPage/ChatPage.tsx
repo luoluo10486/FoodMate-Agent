@@ -54,6 +54,11 @@ function RealChatPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // 切换会话时必须清理旧 Run，否则新会话会继续订阅上一会话的 SSE。
+    setActiveRunId(undefined);
+    setRunStatus('idle');
+    setAssistantText('');
+    setBudgetConfirmation(false);
     if (!sessionId) { setLoading(false); return; }
     setLoading(true); setError(undefined);
     loadSessionMessages(sessionId).then((rows) => { if (!cancelled) setMessages(rows.sort((a, b) => a.sequence_no - b.sequence_no)); }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : '消息加载失败'); }).finally(() => { if (!cancelled) setLoading(false); });

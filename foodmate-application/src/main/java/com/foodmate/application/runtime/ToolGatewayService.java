@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** Java Tool Gateway：Python 只提交 Proposal，Java 负责权限、SQL Guard、执行和审计。 */
 @Service
@@ -23,7 +22,6 @@ public class ToolGatewayService {
     }
 
     /** 执行最小 sql_read Proposal；无数据库时明确返回不可用，不回退到进程内伪造数据。 */
-    @Transactional
     public ProposalResult execute(Map<String, Object> proposal) {
         String proposalId = text(proposal.get("proposal_id"));
         String runId = text(proposal.get("run_id"));

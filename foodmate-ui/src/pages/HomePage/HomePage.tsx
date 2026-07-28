@@ -17,7 +17,9 @@ export function HomePage() {
   const startPrompt = (value: string) => {
     const normalized = value.trim();
     if (!normalized) return;
-    navigate(`/chat/quick-start?prompt=${encodeURIComponent(normalized)}`);
+    // 真实模式必须先进入无会话路由，由 ChatPage 创建数据库会话；任务类型不能冒充 session_id。
+    const target = import.meta.env.VITE_AGENT_MODE === 'real' ? '/chat' : '/chat/quick-start';
+    navigate(`${target}?prompt=${encodeURIComponent(normalized)}`);
   };
 
   return (

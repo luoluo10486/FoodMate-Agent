@@ -7,10 +7,14 @@ import urllib.error
 import urllib.request
 import base64
 import uuid
+import traceback
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from runtime_env import load_project_env
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+load_project_env()
+
 from agent_core import InMemoryCheckpoint, run_deterministic, split_answer
 from model_provider import ModelProviderError
 
@@ -186,6 +190,14 @@ def execute(command):
     except (urllib.error.URLError, TimeoutError):
         # 超时和重试由 Java 控制面负责，Runtime 不直接写业务状态。
         return
+    except Exception as error:
+        # 未预期异常也必须留下终态事件，避免 Java/前端永久停在 routed。
+        print(f"runtime execution failed run_id={command.get('run_id')} error={type(error).__name__}: {error}", flush=True)
+        traceback.print_exc()
+        try:
+            emit(command, prefix + "-failed", 3, "run.failed", {"code": "RUNTIME_EXECUTION_FAILED", "retryable": False})
+        except Exception:
+            traceback.print_exc()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -240,6 +252,10 @@ class Handler(BaseHTTPRequestHandler):
         self._json(202, {"accepted": True, "cancel_id": command["cancel_id"]})
 
     def _authenticated(self):
+        # Local development can intentionally disable service JWT; production keeps
+        # the normal Bearer verification path below.
+        if not JWT_ENABLED:
+            return True
         authorization = self.headers.get("Authorization", "")
         if not authorization.startswith("Bearer "):
             return False

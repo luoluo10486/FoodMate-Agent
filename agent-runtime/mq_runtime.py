@@ -16,6 +16,25 @@ from rocketmq import ClientConfiguration, ConsumeResult, Credentials, FilterExpr
 from proposal_protocol import Proposal, validate_proposal
 
 
+def _startup_client_with_timeout(client, name: str, timeout_seconds: float):
+    """RocketMQ 客户端可能在 Proxy route 查询中阻塞，启动必须有明确上限。"""
+    outcome: list[BaseException] = []
+
+    def startup():
+        try:
+            client.startup()
+        except BaseException as error:
+            outcome.append(error)
+
+    thread = threading.Thread(target=startup, name=f"rocketmq-start-{name}", daemon=True)
+    thread.start()
+    thread.join(timeout_seconds)
+    if thread.is_alive():
+        raise RuntimeError("RUNTIME_MQ_STARTUP_FAILED")
+    if outcome:
+        raise RuntimeError("RUNTIME_MQ_STARTUP_FAILED") from outcome[0]
+
+
 class RedisCheckpoint:
     """Redis technical checkpoint with atomic version CAS, TTL and optional encryption."""
 
@@ -135,7 +154,7 @@ class RocketMqEventPublisher:
         endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
         config = ClientConfiguration(endpoint, Credentials())
         producer = Producer(config, topics=[os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_EVENT", "foodmate-agent-event-v1")])
-        producer.startup()
+        _startup_client_with_timeout(producer, "event-producer", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
         return producer
 
     def publish(self, event: dict):
@@ -192,7 +211,7 @@ class RocketMqProposalPublisher:
     def _new_producer():
         endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
         producer = Producer(ClientConfiguration(endpoint, Credentials()), topics=[os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_PROPOSAL", "foodmate-agent-proposal-v1")])
-        producer.startup()
+        _startup_client_with_timeout(producer, "proposal-producer", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
         return producer
 
     def publish(self, proposal: Proposal | dict):
@@ -320,9 +339,15 @@ class RocketMqRuntime:
         with self._lock:
             if self._started:
                 return
-            self.consumer.startup()
-            self.result_consumer.startup()
+            timeout_seconds = float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15"))
+            _startup_client_with_timeout(self.consumer, "command", timeout_seconds)
+            try:
+                _startup_client_with_timeout(self.result_consumer, "result", timeout_seconds)
+            except Exception:
+                self.consumer.shutdown()
+                raise
             self._started = True
+
 
     def close(self):
         with self._lock:

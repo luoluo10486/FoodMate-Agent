@@ -156,7 +156,7 @@ class OpenAICompatibleModelProvider(ModelProvider):
             input_tokens = int(usage.get("prompt_tokens", 0))
             output_tokens = int(usage.get("completion_tokens", 0))
             return ModelResponse(content, input_tokens, output_tokens, payload.get("id"))
-        except (KeyError, TypeError, ValueError) as error:
+        except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ModelProviderError("MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid") from error
 
 

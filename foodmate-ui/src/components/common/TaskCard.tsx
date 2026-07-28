@@ -11,7 +11,10 @@ type TaskCardProps = {
 };
 
 export function TaskCard({ task, state = 'normal', errorText = '任务模板暂不可用' }: TaskCardProps) {
-  const target = `/chat/${task.id}?prompt=${encodeURIComponent(task.prompt)}`;
+  // 真实模式由 ChatPage 创建真实 session，不能把模板 id 当成数字 session_id。
+  const target = import.meta.env.VITE_AGENT_MODE === 'real'
+    ? `/chat?prompt=${encodeURIComponent(task.prompt)}`
+    : `/chat/${task.id}?prompt=${encodeURIComponent(task.prompt)}`;
   const isInteractive = state === 'normal';
 
   if (state === 'loading') {

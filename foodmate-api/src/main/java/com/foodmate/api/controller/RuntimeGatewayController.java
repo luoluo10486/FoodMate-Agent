@@ -58,6 +58,8 @@ public class RuntimeGatewayController {
 
     private void authenticate(String authorization, String version, String issuer, String publicKey, String scope) {
         if (version != null && !contractVersion.equals(version)) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_CONTRACT_INVALID", "unsupported runtime contract version");
+        // Local development may disable service JWT; production keeps the strict path below.
+        if (!jwtEnabled) return;
         if (!jwtEnabled || authorization == null || !authorization.startsWith("Bearer ") || publicKey.isBlank()) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_AUTH_INVALID", "service JWT is required");
         try { ServiceJwt.verify(authorization.substring(7), publicKey, issuer, "foodmate-control-plane", scope); }
         catch (IllegalStateException exception) { throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_AUTH_INVALID", "invalid service JWT"); }

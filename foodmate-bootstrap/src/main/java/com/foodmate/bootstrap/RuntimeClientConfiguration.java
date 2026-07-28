@@ -36,10 +36,7 @@ public class RuntimeClientConfiguration {
                                     @Value("${foodmate.runtime.service-jwt.java-kid:}") String kid,
                                     @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
                                     ObjectMapper objectMapper) {
-        if (!jwtEnabled) return new V1RuntimeClient() {
-            public Response dispatch(com.foodmate.shared.runtime.V1RunCommand command) { throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_UNAVAILABLE", "runtime service is disabled"); }
-            public Response cancel(com.foodmate.shared.runtime.V1CancelCommand command) { throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_UNAVAILABLE", "runtime service is disabled"); }
-        };
-        return new V1HttpRuntimeClient(baseUrl, Duration.ofSeconds(10), HttpClient.newHttpClient(), objectMapper, privateKey, kid, contractVersion);
+        // Local profile may deliberately disable JWT; the HTTP transport still remains real.
+        return new V1HttpRuntimeClient(baseUrl, Duration.ofSeconds(10), HttpClient.newHttpClient(), objectMapper, privateKey, kid, contractVersion, jwtEnabled);
     }
 }

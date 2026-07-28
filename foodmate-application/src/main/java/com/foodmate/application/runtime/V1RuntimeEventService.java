@@ -89,6 +89,7 @@ public class V1RuntimeEventService {
                 if ("normal".equals(resultType) || "safety_degraded".equals(resultType)) {
                     jdbc.update("UPDATE agent_runs SET result_type=? WHERE agent_run_id=?", resultType, runId);
                 }
+                persistAssistantMessage(runId, readPayload(result));
                 if (memories != null) memories.persistFromCompletedRun(runId, readPayload(result));
             }
         } else {
@@ -220,6 +221,25 @@ public class V1RuntimeEventService {
                 ids.nextId(), event.requestId(), event.traceId(), payload.get("scene"), payload.get("provider_code"), payload.get("model_name"),
                 json(usage), number(payload.get("latency_ms")), amount == null ? null : new java.math.BigDecimal(amount.toString()), payload.getOrDefault("status", "success"));
     }
+
+    private void persistAssistantMessage(long runId, Map<String, Object> result) {
+        Object answer = result.get("answer");
+        if (!(answer instanceof String text) || text.isBlank()) return;
+        List<Long> existing = jdbc.query("SELECT message_id FROM messages WHERE agent_run_id=? AND role='assistant' AND is_deleted=FALSE LIMIT 1",
+                (rs, row) -> rs.getLong(1), runId);
+        if (!existing.isEmpty()) return;
+        var run = jdbc.query("SELECT session_id,created_by FROM agent_runs WHERE agent_run_id=? FOR UPDATE",
+                (rs, row) -> new RunOwner(rs.getLong(1), rs.getLong(2)), runId);
+        if (run.isEmpty()) return;
+        RunOwner owner = run.getFirst();
+        Integer sequence = jdbc.queryForObject("SELECT COALESCE(MAX(sequence_no),0)+1 FROM messages WHERE session_id=? AND is_deleted=FALSE",
+                Integer.class, owner.sessionId());
+        jdbc.update("INSERT INTO messages(message_id,session_id,agent_run_id,role,content,structured_payload,sequence_no,created_by) VALUES (?,?,?,'assistant',?,CAST(? AS jsonb),?,?)",
+                ids.nextId(), owner.sessionId(), runId, text, json(result), sequence, owner.userId());
+        jdbc.update("UPDATE sessions SET last_message_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE session_id=?", owner.sessionId());
+    }
+
+    private record RunOwner(long sessionId, long userId) {}
 
     private static Integer number(Object value) { try { return value == null ? null : Integer.valueOf(value.toString()); } catch (NumberFormatException ignored) { return null; } }
 }

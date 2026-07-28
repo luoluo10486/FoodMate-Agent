@@ -39,7 +39,7 @@ class P1AccountControllerTest {
 
         String conversation = mockMvc.perform(post("/api/sessions").cookie(sessionCookie).header("X-CSRF-Token", csrfCookie.getValue()).contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"test\",\"mode\":\"agent\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.session_id").exists()).andReturn().getResponse().getContentAsString();
-        String sessionId = conversation.replaceAll(".*\\\"session_id\\\":([0-9]+).*", "$1");
+        String sessionId = conversation.replaceAll(".*\\\"session_id\\\":\\\"([0-9]+)\\\".*", "$1");
 
         mockMvc.perform(post("/api/sessions/" + sessionId + "/messages").cookie(sessionCookie).header("X-CSRF-Token", csrfCookie.getValue()).contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"user\",\"content\":\"hello\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.sequence_no", is(1)));

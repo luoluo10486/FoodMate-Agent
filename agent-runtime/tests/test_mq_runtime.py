@@ -1,4 +1,5 @@
 import json
+import time
 import sys
 import base64
 from pathlib import Path
@@ -6,7 +7,7 @@ from types import SimpleNamespace
 from unittest import TestCase
 
 sys.path.append(str(Path(__file__).parents[1]))
-from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisProposalOutbox, RedisResultInbox, RedisEventOutbox, RocketMqEventPublisher, RocketMqProposalPublisher, _CommandListener, _ResultListener
+from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisProposalOutbox, RedisResultInbox, RedisEventOutbox, RocketMqEventPublisher, RocketMqProposalPublisher, _CommandListener, _ResultListener, _startup_client_with_timeout
 from proposal_protocol import Proposal
 from rocketmq import ConsumeResult
 
@@ -66,6 +67,16 @@ class FakeProducer:
 
 
 class MqRuntimeTests(TestCase):
+    def test_rocketmq_startup_timeout_returns_explicit_failure(self):
+        class HangingClient:
+            def startup(self):
+                time.sleep(1)
+
+        started = time.monotonic()
+        with self.assertRaisesRegex(RuntimeError, "RUNTIME_MQ_STARTUP_FAILED"):
+            _startup_client_with_timeout(HangingClient(), "test", 0.01)
+        self.assertLess(time.monotonic() - started, 0.5)
+
     def test_redis_checkpoint_uses_cas_and_round_trips_encrypted_value(self):
         client = FakeRedis()
         key = base64.urlsafe_b64encode(b"01234567890123456789012345678901").decode()

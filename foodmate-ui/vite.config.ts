@@ -6,11 +6,13 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 5173,
+    // 本地 RocketMQ Proxy 占用 8080 时，Java API 可切换到 18080；生产由部署层注入。
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8080',
+        target: process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8080',
         changeOrigin: true,
-        headers: { origin: 'http://127.0.0.1:8080' },
+        // 后端会校验 Origin，代理目标变更时必须同步发送同源 Origin。
+        headers: { origin: new URL(process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8080').origin },
       },
     },
   }

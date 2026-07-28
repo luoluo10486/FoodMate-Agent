@@ -2,6 +2,20 @@
 
 > 模板提示：后续 AI 阅读本文档时，必须按功能点拆分为独立小节，不能把多个功能写成一大段；必须区分“目标设计、正在实现、已验证”，不得把本文方案或一次模型调用伪装成 M1-4 已完成。
 
+## 当前验收状态（2026-07-28）
+
+### 已完成并有运行证据
+
+- [x] 浏览器完整登录、会话、消息和 SSE 闭环已通过，助手消息刷新后可恢复。
+- [x] Proposal/Result 真实 RocketMQ 往返、Tool Gateway SQL 失败审计、Result 发布完成和重复 Proposal 幂等已通过。
+- [x] Redis 多实例准入 6/6 通过：并发上限、队列容量、continuation 优先、队列 lease 回收和协调不可用错误码均已覆盖。
+- [x] Python MQ producer/consumer 启动超时已实现，启动失败返回 `RUNTIME_MQ_STARTUP_FAILED`；Python pytest 28 passed、真实云 gated 测试 1 skipped。
+
+### 未完成条件
+
+- [ ] 真实云模型供应商仍需 primary/backup 真实 endpoint 和 API key；当前只能证明 OpenAI-compatible fixture 契约和 gated 测试逻辑。
+- [ ] 生产级长时间吞吐、P95/P99、进程级故障恢复和真正多 Java 实例部署演练仍未完成。
+
 ## 1. 文档信息
 
 | 项目 | 内容 |
@@ -355,3 +369,23 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 | 回答分片 | 5.7 | Eval 通过后按 150ms/2048 字节的顺序事件测试 |
 | 工具审批、预算恢复、Proposal/Result 与 SQL 边界 | 5.14-5.15 | 新 dispatch attempt、幂等、确认失效和 Java-only SQL Guard 测试 |
 | Trace、指标、反馈与隐私 | 5.17-5.18 | 脱敏断言、无 Chain-of-Thought、反馈关联和高风险审计测试 |
+## 8. 2026-07-28 最新复核记录
+
+### 8.1 已完成
+
+- [x] 真实云模型适配器契约联调：本地 OpenAI-compatible HTTP fixture 已验证成功响应、Authorization、模型名、Token 解析、429 fallback、非法响应和成本记录。
+- [x] Proposal/Result 业务幂等故障单测：Result 发布失败返回 RETRY；Inbox 已完成时重投不重复执行 Tool；相同 proposal_id 不同 request_hash 被拒绝。
+- [x] 修复真实浏览器路径的前置缺陷：真实模式首页不再把任务模板 ID 当作 session_id；会话/消息大整数 ID 改为字符串传输，避免 JavaScript 精度丢失；Vite 代理 Origin 跟随 API 目标端口。
+- [x] Python pytest 27 项、Java API/依赖模块测试 27 项、前端 typecheck/build 均通过。
+
+### 8.2 仍未完成
+
+- [ ] 真实云供应商调用：当前环境没有可用供应商 API Key；fixture 不能替代云端凭据联调。
+- [ ] Proposal/Result 真实 Broker 故障注入：单测已覆盖，尚未完成运行中的 Broker 发布失败、重试、恢复和业务结果对账。
+- [ ] 浏览器完整登录、会话、消息、SSE E2E：登录、注册、会话创建、消息落库和 ID 精度已实际验证；RocketMQ Proxy/consumer 重启后仍出现消息停在 queued/routing，尚未出现可交付的 run.answer_stream/run.completed，因此不能标记通过。
+- [ ] 生产级并发、队列防饥饿和多实例：当前只有 Redis Lua/ZSET 代码基础，没有完成双 Java 实例共享 Redis、长时间 aging、租约回收和容量压力证据。
+
+### 8.3 当前阻塞证据
+
+- 本地 RocketMQ Proxy 曾报告创建 DefaultHeartBeatSyncerTopic 失败；重启 Proxy 和更换 Python consumer group 后，最新 Run 仍停在 queued，需要继续处理 Proxy/SDK 消费稳定性。
+- Python Runtime 已补充未预期异常的 run.failed 记录，避免异常线程让 Run 永久停在 routed；该修复仍需在稳定 MQ 消费后重新跑 E2E。

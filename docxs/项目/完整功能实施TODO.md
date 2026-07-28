@@ -4,6 +4,15 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
+## M1-4 当前复核状态（2026-07-28）
+
+- [x] 浏览器登录、会话、消息、SSE 和助手消息刷新恢复闭环已通过。
+- [x] Proposal/Result 真实 MQ、Tool Gateway 失败审计、Result 发布后重试语义和重复 Proposal 幂等已通过。
+- [x] Redis 多实例准入 6/6：并发上限、队列满、continuation 优先、队列 lease 过期和 Redis 不可用错误码已验证。
+- [x] Python RocketMQ producer/consumer 启动超时已补齐；Proxy route 不可用不会永久阻塞。
+- [ ] 真实云模型联调：必须配置 primary/backup 真实 endpoint 与 key 后运行 gated 测试；当前环境无凭据，不能标记完成。
+- [ ] 生产级长压、多实例吞吐、P95/P99、进程级 Redis/RocketMQ/PostgreSQL 故障恢复仍待执行。
+
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
 
 ## 当前执行状态
@@ -245,3 +254,9 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 6. M3，在实际用户量和运维需求出现后强化可靠性与安全性。
 
 每个小项开始前只需补充该项的接口、数据和验收细节；未完成其前置依赖，不应并行推进高层功能。
+## M1-4 2026-07-28 最新复核
+
+- 已完成：模型适配器 fixture 契约、Proposal/Result 幂等单测、真实模式会话路由修复、64 位 ID 字符串契约、代理 Origin 修复。
+- 已验证：Python pytest 27 项、Java API/依赖模块测试 27 项、前端 typecheck/build。
+- 仍未完成：真实云供应商凭据联调、Proposal/Result 运行中故障注入、浏览器完整 SSE E2E、生产级并发/队列防饥饿/多实例验证。
+- 最新阻塞：本地 RocketMQ Proxy 曾报告 `DefaultHeartBeatSyncerTopic` 创建失败；重启 Proxy 和更换 Python consumer group 后，Run 仍有 `queued/routing` 停滞，不能将浏览器 E2E 标记为通过。

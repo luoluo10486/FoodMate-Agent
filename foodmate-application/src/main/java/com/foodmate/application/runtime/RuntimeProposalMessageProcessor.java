@@ -61,7 +61,12 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
             Message message = new Message(settings.resultTopic(), payload.getBytes(StandardCharsets.UTF_8));
             message.setKeys(result.runId() == null ? context.messageId() : result.runId());
             message.putUserProperty("foodmate_proposal_id", result.proposalId() == null ? "" : result.proposalId());
-            producer.send(message);
+            // Inbox 已经固化执行结果，但 Broker 尚未确认时必须 RETRY；下次消费会重发同一个 Result，不能再次执行工具。
+            try {
+                producer.send(message);
+            } catch (RuntimeException publishFailure) {
+                return MqConsumeDecision.RETRY;
+            }
             return MqConsumeDecision.ACK;
         } catch (IllegalArgumentException exception) {
             return MqConsumeDecision.REJECT;

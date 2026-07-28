@@ -94,4 +94,51 @@ class M14ProposalResultE2ETest {
             resultConsumer.close();
         }
     }
+
+    @Test
+    void toolFailureProducesAuditedFailedResultAndDuplicateProposalDoesNotReexecute() throws Exception {
+        String username = "m14proposal_failure_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        long userId = accounts.register(username, username + "@example.com", "password123", "M14 Proposal Failure").userId();
+        long sessionId = accounts.createSession(userId, "m14 proposal failure", "agent").sessionId();
+        long runId = runs.createUserMessageRun(userId, sessionId, "故障注入", "trace-m14-proposal-failure").agentRunId();
+        String proposalId = "proposal-failure-" + UUID.randomUUID();
+        String requestHash = "sha256:m14-failure-" + UUID.randomUUID().toString().replace("-", "");
+        String body = mapper.writeValueAsString(Map.of(
+                "schema_version", "v1", "proposal_id", proposalId, "run_id", Long.toString(runId),
+                "proposal_type", "sql_read", "request_hash", requestHash,
+                "requires_confirmation", false, "payload", Map.of("statement", "SELECT * FROM table_that_does_not_exist")));
+        CountDownLatch received = new CountDownLatch(1);
+        RocketMqConsumerContainer resultConsumer = RocketMqConsumerContainer.concurrent(
+                settings.nameServer(), "foodmate-m14-failure-" + UUID.randomUUID(), settings.resultTopic(), 1,
+                (result, context) -> {
+                    try {
+                        if (proposalId.equals(mapper.readTree(result).path("proposal_id").asText())) received.countDown();
+                    } catch (Exception exception) { return MqConsumeDecision.REJECT; }
+                    return MqConsumeDecision.ACK;
+                });
+        resultConsumer.start();
+        try {
+            Thread.sleep(2500);
+            Message message = new Message(settings.proposalTopic(), body.getBytes(StandardCharsets.UTF_8));
+            message.setKeys(Long.toString(runId));
+            message.putUserProperty("foodmate_message_type", "ToolProposal");
+            message.putUserProperty("foodmate_proposal_id", proposalId);
+            message.putUserProperty("foodmate_request_hash", requestHash);
+            producer.send(message);
+            producer.send(new Message(settings.proposalTopic(), body.getBytes(StandardCharsets.UTF_8)));
+            // Inbox completed 只会在 Tool 执行、审计和 Result 发布都成功后写入，作为本次故障注入的权威完成事实。
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+            while (System.nanoTime() < deadline
+                    && jdbc.queryForObject("SELECT status FROM runtime_tool_proposal_inbox WHERE proposal_id=?", String.class, proposalId)
+                    .equals("claimed")) {
+                Thread.sleep(250);
+            }
+            assertEquals("completed", jdbc.queryForObject("SELECT status FROM runtime_tool_proposal_inbox WHERE proposal_id=?", String.class, proposalId));
+            assertTrue(jdbc.queryForObject("SELECT result_json::text FROM runtime_tool_proposal_inbox WHERE proposal_id=?", String.class, proposalId).contains("SQL_EXECUTION_FAILED"));
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM runtime_tool_proposal_inbox WHERE proposal_id=?", Integer.class, proposalId));
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM sql_query_audits WHERE trace_id=?", Integer.class, "proposal:" + proposalId));
+        } finally {
+            resultConsumer.close();
+        }
+    }
 }

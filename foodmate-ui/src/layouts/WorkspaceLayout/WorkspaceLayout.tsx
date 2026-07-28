@@ -73,7 +73,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.brandRow}><BrandLogo /><span className={styles.modePill}>Agent 模式</span></div>
-        <button className={styles.newButton} onClick={() => { if (!realMode) { navigate(buildChatPath('week-plan')); return; } void createSession().then((session) => { void refreshSessions(); navigate(buildChatPath(String(session.session_id))); }); }}><IconPlus /><span>新建 Agent 会话</span></button>
+        <button className={styles.newButton} onClick={() => { if (!realMode) { navigate(buildChatPath('week-plan')); return; } void createSession().then((session) => { void refreshSessions(); navigate(buildChatPath(session.session_id)); }); }}><IconPlus /><span>新建 Agent 会话</span></button>
         <Input className={styles.search} prefix={<IconSearch />} placeholder="搜索会话" allowClear value={sessionQuery} onChange={setSessionQuery} />
         <div className={styles.sessionTools}>
           <SidebarSessionList sessions={sessions} onAction={handleSessionAction} />

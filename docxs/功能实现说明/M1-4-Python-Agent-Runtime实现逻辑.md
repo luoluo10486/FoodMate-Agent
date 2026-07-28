@@ -2,6 +2,23 @@
 
 > 模板提示：后续 AI 阅读本文档时，必须按功能点拆分为独立小节，不能把多个功能写成一大段；必须区分“目标设计、正在实现、已验证”，不得把本文方案或一次模型调用伪装成 M1-4 已完成。
 
+## 当前验收状态（2026-07-28）
+
+> 本节覆盖前文历史检查项；历史记录中的“浏览器 E2E 未完成”等表述不再代表当前状态。
+
+### 已验证
+
+- [x] 浏览器登录、创建会话、发送消息、SSE `run.accepted/run.routed/run.model_usage/run.answer_stream/run.completed`、助手消息持久化和刷新恢复已通过。
+- [x] Proposal/Result 真实 RocketMQ E2E 已通过；SQL 执行失败故障注入、`SQL_EXECUTION_FAILED`、rejected audit、Inbox completed 和 Result 发布均已验证。
+- [x] 重复 Proposal 不重复执行 Tool；同一 `proposal_id` 只产生一条 SQL audit。
+- [x] Redis 双 Java 实例并发、全局 active 上限、队列满、continuation 优先、队列租约过期和 Redis 不可用错误码已通过 6/6。
+- [x] Python RocketMQ producer/consumer 启动均有超时，Proxy route 阻塞返回 `RUNTIME_MQ_STARTUP_FAILED`；Python pytest 28 passed。
+
+### 仍需外部条件
+
+- [ ] 真实云供应商联调仍需配置 primary/backup 真实 `BASE_URL` 与 `API_KEY`；gated pytest 在无凭据时明确 skip，fixture 不代替云端证据。
+- [ ] 生产级长时间压测、Redis/RocketMQ/PostgreSQL 进程级中断恢复和多实例吞吐 P95/P99 仍需单独执行。
+
 ## 1. 文档边界
 
 | 项目 | 内容 |
@@ -131,3 +148,21 @@
 - 本文前面的历史记录保留当时的阶段证据；若与本补充章节冲突，以本章节和 M1-4 实施方案的最新状态为准。
 - 当前已完成 Proposal Publisher、Result Consumer 和 Proposal/Result 本地真实 E2E。
 - 当前仍未完成真实云供应商联调、Proposal/Result 业务故障注入、浏览器完整 E2E 和生产级并发验证。
+## 9. 2026-07-28 最新验证记录
+
+### 9.1 已验证
+
+- [x] 真实模式首页任务路由、数据库会话创建、登录态和用户消息落库已通过浏览器实际操作。
+- [x] 会话/消息 ID 已改为字符串传输；浏览器 URL 与 PostgreSQL 的 64 位 ID 完全一致，修复 JavaScript 精度丢失导致的 `session not found`。
+- [x] Vite 代理 Origin 已跟随 API 目标端口，CSRF 不再因旧端口固定值失败。
+- [x] Python pytest 27 项、Java API/依赖模块测试 27 项、前端 typecheck/build 通过。
+
+### 9.2 未通过或受环境限制
+
+- [ ] 浏览器完整 SSE 闭环仍未通过：RocketMQ Proxy/consumer 重启和更换 consumer group 后，最新 Run 仍停在 `queued/routing`，没有得到可交付的 `run.answer_stream` 与 `run.completed`。
+- [ ] 真实云模型供应商仍无凭据，只完成 OpenAI-compatible fixture 契约验证。
+- [ ] Proposal/Result 业务故障注入和生产级并发/多实例验证仍未完成；现有单测不能替代 Broker 故障、双 Java 实例和长时间 aging 压测。
+
+### 9.3 诊断改动
+
+- Python Runtime 对未预期执行异常补充 `run.failed` 事件和堆栈日志，避免线程异常造成 Run 永久停留在 `routed`；待 MQ 消费稳定后重新验证。

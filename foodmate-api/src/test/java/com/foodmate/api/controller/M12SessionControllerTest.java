@@ -34,7 +34,7 @@ class M12SessionControllerTest {
         var session = login.getCookie("foodmate_session"); var csrf = login.getCookie("foodmate_csrf");
         var created = mockMvc.perform(post("/api/sessions").cookie(session).header("X-CSRF-Token", csrf.getValue()).contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"M1-2\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        String id = created.replaceAll(".*\\\"session_id\\\":([0-9]+).*", "$1");
+        String id = created.replaceAll(".*\\\"session_id\\\":\\\"([0-9]+)\\\".*", "$1");
         mockMvc.perform(post("/api/sessions/" + id + "/messages").cookie(session).header("X-CSRF-Token", csrf.getValue()).contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"assistant\",\"content\":\"no\"}"))
                 .andExpect(status().is4xxClientError());
         mockMvc.perform(post("/api/sessions/" + id + "/messages").cookie(session).header("X-CSRF-Token", csrf.getValue()).contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"user\",\"content\":\"hello\"}"))

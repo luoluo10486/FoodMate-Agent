@@ -11,7 +11,10 @@ dependencies = [
 ]
 
 [tool.setuptools]
-py-modules = ["runtime_server", "mq_runtime", "agent_core", "model_provider", "proposal_protocol"]
+py-modules = ["runtime_server", "runtime_env", "mq_runtime", "agent_core", "model_provider", "proposal_protocol"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: requires explicitly configured external services or credentials",
+]

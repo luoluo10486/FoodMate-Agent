@@ -29,7 +29,15 @@ public class AgentAdmissionService {
             local now = tonumber(ARGV[4])
             local lease_until = now + tonumber(ARGV[5])
             redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
-            redis.call('ZREMRANGEBYSCORE', KEYS[4], '-inf', now)
+            -- 全局集合过期清理不能替代用户集合清理；否则用户旧 lease 会永久占用用户并发额度。
+            redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now)
+            -- Queue score is an ordering score, not an expiry timestamp. Remove only
+            -- entries whose permit hash expired, otherwise normal FIFO entries vanish.
+            for _, queued_run in ipairs(redis.call('ZRANGE', KEYS[4], 0, -1)) do
+              if redis.call('EXISTS', 'foodmate:agent:admission:permit:' .. queued_run) == 0 then
+                redis.call('ZREM', KEYS[4], queued_run)
+              end
+            end
             local existing = redis.call('HGET', KEYS[3], 'state')
             if existing == 'active' or existing == 'queued' then return existing end
             local global_limit = tonumber(ARGV[6])
@@ -55,7 +63,12 @@ public class AgentAdmissionService {
     private static final DefaultRedisScript<String> PROMOTE = new DefaultRedisScript<>("""
             local now = tonumber(ARGV[1])
             redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
-            redis.call('ZREMRANGEBYSCORE', KEYS[4], '-inf', now)
+            redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now)
+            for _, queued_run in ipairs(redis.call('ZRANGE', KEYS[4], 0, -1)) do
+              if redis.call('EXISTS', 'foodmate:agent:admission:permit:' .. queued_run) == 0 then
+                redis.call('ZREM', KEYS[4], queued_run)
+              end
+            end
             local state = redis.call('HGET', KEYS[3], 'state')
             if state ~= 'queued' then return 'none' end
             if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[2]) then return 'waiting' end
@@ -120,12 +133,17 @@ public class AgentAdmissionService {
     public Admission admit(String runId, long userId, long sessionId, int priority) {
         if (!enabled) return new Admission(State.ACTIVE, List.of());
         requireRedis();
-        String result = redis.execute(ACQUIRE,
-                List.of(GLOBAL_KEY, userKey(userId), permitKey(runId), QUEUE_KEY),
-                runId, Long.toString(sessionId), Long.toString(userId),
-                Long.toString(System.currentTimeMillis() / 1000), Long.toString(lease.toMillis() / 1000),
-                Integer.toString(globalLimit), Integer.toString(userLimit), Integer.toString(queueLimit),
-                Long.toString(queueLease.toMillis()), Integer.toString(Math.max(0, priority)));
+        String result;
+        try {
+            result = redis.execute(ACQUIRE,
+                    List.of(GLOBAL_KEY, userKey(userId), permitKey(runId), QUEUE_KEY),
+                    runId, Long.toString(sessionId), Long.toString(userId),
+                    Long.toString(System.currentTimeMillis() / 1000), Long.toString(lease.toMillis() / 1000),
+                    Integer.toString(globalLimit), Integer.toString(userLimit), Integer.toString(queueLimit),
+                    Long.toString(queueLease.toMillis()), Integer.toString(Math.max(0, priority)));
+        } catch (RuntimeException exception) {
+            throw coordinationFailure(exception);
+        }
         return switch (result == null ? "unavailable" : result) {
             case "active" -> new Admission(State.ACTIVE, List.of());
             case "queued" -> new Admission(State.QUEUED, List.of());
@@ -138,10 +156,20 @@ public class AgentAdmissionService {
     public List<String> releaseAndPromote(String runId) {
         if (!enabled) return List.of();
         requireRedis();
-        Map<Object, Object> current = redis.opsForHash().entries(permitKey(runId));
+        Map<Object, Object> current;
+        try {
+            current = redis.opsForHash().entries(permitKey(runId));
+        } catch (RuntimeException exception) {
+            throw coordinationFailure(exception);
+        }
         Object user = current.get("user_id");
         if (user == null) return List.of();
-        Long released = redis.execute(RELEASE, List.of(GLOBAL_KEY, userKey(Long.parseLong(user.toString())), permitKey(runId), QUEUE_KEY), runId);
+        Long released;
+        try {
+            released = redis.execute(RELEASE, List.of(GLOBAL_KEY, userKey(Long.parseLong(user.toString())), permitKey(runId), QUEUE_KEY), runId);
+        } catch (RuntimeException exception) {
+            throw coordinationFailure(exception);
+        }
         if (released == null || released == 0) return List.of();
         List<String> promoted = new ArrayList<>();
         for (String queuedRun : redis.opsForZSet().range(QUEUE_KEY, 0, 9)) {
@@ -174,6 +202,11 @@ public class AgentAdmissionService {
 
     public void requireRedis() {
         if (redis == null) throw runtime("RUNTIME_COORDINATION_UNAVAILABLE", "Redis 准入协调不可用");
+    }
+
+    private com.foodmate.shared.runtime.RuntimeException coordinationFailure(RuntimeException exception) {
+        if (exception instanceof com.foodmate.shared.runtime.RuntimeException runtimeException) return runtimeException;
+        return runtime("RUNTIME_COORDINATION_UNAVAILABLE", "Redis 准入协调不可用");
     }
 
     private String userKey(long userId) { return USER_PREFIX + userId; }
