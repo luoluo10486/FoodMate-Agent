@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">FoodMate Agent 任务恢复机制</title>
+  <desc id="desc">从创建 AgentRun 到节点 checkpoint、故障、Java 对账和按 current_node 恢复的目标运行流程。</desc>
+  <defs>
+    <style>
+      .title { font: 700 28px 'Microsoft YaHei', Arial, sans-serif; fill: #172033; }
+      .note { font: 14px 'Microsoft YaHei', Arial, sans-serif; fill: #526076; }
+      .label { font: 600 16px 'Microsoft YaHei', Arial, sans-serif; fill: #172033; }
+      .small { font: 13px 'Microsoft YaHei', Arial, sans-serif; fill: #526076; }
+      .box { fill: #ffffff; stroke: #3b82b6; stroke-width: 1.7; rx: 8; }
+      .checkpoint { fill: #edf7ef; stroke: #3d8b5b; stroke-width: 1.7; rx: 8; }
+      .warn { fill: #fff3e8; stroke: #d46b08; stroke-width: 1.7; rx: 8; }
+      .decision { fill: #f4f6f8; stroke: #667085; stroke-width: 1.7; rx: 8; }
+      .end { fill: #e8f5ee; stroke: #2f855a; stroke-width: 1.7; rx: 8; }
+      .line { stroke: #5d6b82; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #d46b08; stroke-width: 1.6; stroke-dasharray: 6 5; fill: none; marker-end: url(#arrowWarn); }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5d6b82"/></marker>
+    <marker id="arrowWarn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#d46b08"/></marker>
+  </defs>
+  <rect width="1200" height="900" fill="#fbfcfe"/>
+  <text x="64" y="58" class="title">FoodMate Agent 任务恢复机制（目标运行模式）</text>
+  <text x="64" y="86" class="note">Java 保存业务事实并裁决终态；Python checkpoint 只保存可恢复编排状态。恢复绝不重复 Tool/SQL 副作用。</text>
+
+  <rect x="74" y="128" width="242" height="72" class="box"/>
+  <text x="195" y="158" text-anchor="middle" class="label">用户发起任务</text>
+  <text x="195" y="181" text-anchor="middle" class="small">创建 AgentRun / 用户消息</text>
+  <path d="M316 164 H380" class="line"/>
+
+  <rect x="380" y="128" width="300" height="72" class="box"/>
+  <text x="530" y="158" text-anchor="middle" class="label">Java 创建 Dispatch + Outbox</text>
+  <text x="530" y="181" text-anchor="middle" class="small">固定 dispatch_id、attempt、预算、deadline</text>
+  <path d="M680 164 H744" class="line"/>
+
+  <rect x="744" y="128" width="292" height="72" class="box"/>
+  <text x="890" y="158" text-anchor="middle" class="label">RocketMQ 投递 RunCommand</text>
+  <text x="890" y="181" text-anchor="middle" class="small">Python Redis Inbox 幂等接收</text>
+  <path d="M890 200 V248" class="line"/>
+
+  <rect x="744" y="248" width="292" height="72" class="box"/>
+  <text x="890" y="278" text-anchor="middle" class="label">执行节点 A</text>
+  <text x="890" y="301" text-anchor="middle" class="small">Router / Planner / 检索 / 观察</text>
+  <path d="M890 320 V368" class="line"/>
+
+  <rect x="658" y="368" width="464" height="104" class="checkpoint"/>
+  <text x="890" y="398" text-anchor="middle" class="label">原子保存 Checkpoint + Event/Proposal Outbox</text>
+  <text x="890" y="423" text-anchor="middle" class="small">current_node、已完成节点、事件序号、预算快照、待处理 proposal</text>
+  <text x="890" y="446" text-anchor="middle" class="small">已完成 invocation / idempotency_key、Prompt/工作流版本、CAS version</text>
+  <path d="M890 472 V520" class="line"/>
+
+  <rect x="744" y="520" width="292" height="72" class="box"/>
+  <text x="890" y="550" text-anchor="middle" class="label">执行节点 B</text>
+  <text x="890" y="573" text-anchor="middle" class="small">模型 / Tool Proposal / Eval / Composer</text>
+  <path d="M890 592 V640" class="line"/>
+
+  <rect x="744" y="640" width="292" height="72" class="warn"/>
+  <text x="890" y="670" text-anchor="middle" class="label">异常、超时或服务重启</text>
+  <text x="890" y="693" text-anchor="middle" class="small">模型、网络、Worker、等待用户、页面断开</text>
+
+  <path d="M744 676 H540 V552" class="dash"/>
+  <rect x="300" y="520" width="240" height="104" class="decision"/>
+  <text x="420" y="550" text-anchor="middle" class="label">Java 恢复前对账</text>
+  <text x="420" y="575" text-anchor="middle" class="small">终态 / 取消 / deadline</text>
+  <text x="420" y="596" text-anchor="middle" class="small">active dispatch / fencing / Tool 结果</text>
+  <path d="M420 520 V472 H658" class="line"/>
+  <text x="501" y="496" class="small">读取 Redis checkpoint</text>
+
+  <path d="M300 572 H174" class="line"/>
+  <rect x="62" y="520" width="112" height="104" class="end"/>
+  <text x="118" y="555" text-anchor="middle" class="label">终止</text>
+  <text x="118" y="580" text-anchor="middle" class="small">取消、过期、</text>
+  <text x="118" y="600" text-anchor="middle" class="small">已完成或拒绝</text>
+
+  <path d="M420 624 V770 H744 V712" class="line"/>
+  <text x="590" y="754" text-anchor="middle" class="small">校验通过：新 dispatch attempt 从 checkpoint.current_node 继续</text>
+
+  <path d="M1036 556 H1125 V782 H1036" class="line"/>
+  <rect x="744" y="782" width="292" height="70" class="end"/>
+  <text x="890" y="811" text-anchor="middle" class="label">Eval 通过后完成并发布 SSE</text>
+  <text x="890" y="834" text-anchor="middle" class="small">Java Event Inbox -> AgentRun -> SSE Outbox</text>
+
+  <rect x="64" y="760" width="502" height="92" fill="#fff" stroke="#d0d5dd" stroke-width="1" rx="8"/>
+  <text x="86" y="790" class="label">恢复边界</text>
+  <text x="86" y="816" class="small">简单问答可不落 checkpoint；用户只关闭页面不会取消 Run，SSE 按 event_id 重连。</text>
+  <text x="86" y="839" class="small">waiting_user、预算确认、审批和外部副作用必须持久化 checkpoint 并经 Java 对账后恢复。</text>
+</svg>

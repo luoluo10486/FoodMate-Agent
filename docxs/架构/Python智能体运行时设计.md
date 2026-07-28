@@ -158,6 +158,21 @@ Execution 采用有界 Plan-Act-Observe-Reflect：每一步有明确输入、输
 
 ## 5. 状态、事件与恢复
 
+![FoodMate Agent 任务恢复机制](./资源/Agent任务恢复机制.svg)
+
+### 5.1 任务恢复运行流程
+
+恢复流程采用“`AgentRun` 不变、恢复 dispatch 新建”的模式：用户请求先由 Java 创建 `AgentRun + Dispatch + Outbox`，Python 消费命令后按节点推进。每个可恢复安全点将 `current_node` 和编排技术状态写入 Redis checkpoint；发生模型超时、服务重启、第三方异常或等待用户后，Java 先裁决业务真值，Python 才能按 checkpoint 从下一个未完成节点继续。
+
+- 节点成功后保存 checkpoint，但简单直接问答可以跳过；多步骤、Tool/SQL、`waiting_user`、预算确认和 Eval 前后必须保存。
+- checkpoint 必须记录 `current_node`、workflow/Prompt 版本、已完成节点、待处理 proposal、已完成 invocation、`idempotency_key`、最后已发 `event_seq`、预算快照、deadline 和 CAS version。
+- 恢复前 Java 必须检查 Run 是否终态、是否取消、是否超过绝对 deadline、dispatch fencing 是否仍归属当前尝试，以及 Tool/SQL 是否已经完成。任一项不满足时不恢复，而是终止、重放已有结果或进入安全降级。
+- 自动故障恢复和预算/审批恢复都创建新的 `dispatch_id + attempt`，但保留原 `AgentRun`、原预算快照和原 checkpoint。用户明显改变任务目标时创建新 AgentRun，不复用旧 checkpoint。
+- 用户关闭页面只会断开 SSE，不会取消后台 Run；重新进入后由 Java SSE Outbox 按 `event_id/event_seq` 补发。用户主动取消才发布 CancelCommand。
+- 外部副作用绝不依据 checkpoint 直接重放。Python 先读取 checkpoint 中的 invocation 事实，再由 Java Tool Gateway/SQL Guard 的 Inbox 和幂等键裁决是否返回已有 Result、允许继续或拒绝。
+
+当前代码已具备 Redis checkpoint 的 CAS、TTL、加密和节点状态写入基础，但尚未实现“加载 checkpoint、Java 对账、从 `current_node` 继续”的执行器；本节是目标架构，不得把它表述为已经完成的恢复能力。
+
 ### 5.1 运行状态
 
 Python 维护的是单次 dispatch 的技术执行状态，Java 维护 `AgentRun` 权威状态。Python 可以建议或报告阶段，但不能覆盖 Java 已接受的终态。V1 不存在 `cancelling`；取消确认后由 Java 决定是否把数据库状态推进为 `cancelled`。

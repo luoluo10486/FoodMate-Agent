@@ -15,6 +15,12 @@
 
   <dependencies>
     <dependency>
+      <!-- 启动模块直接声明并创建 MinioClient，开发期 spring-boot:run 也必须取得该运行时类。 -->
+      <groupId>io.minio</groupId>
+      <artifactId>minio</artifactId>
+      <version>8.2.2</version>
+    </dependency>
+    <dependency>
       <groupId>com.foodmate</groupId>
       <artifactId>foodmate-api</artifactId>
       <version>${project.version}</version>

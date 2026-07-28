@@ -192,7 +192,10 @@ public class UserAccountService {
         String actualTitle = title == null || title.isBlank() ? "新会话" : title.trim();
         if (actualTitle.length() > 255) throw new IllegalArgumentException("title must be at most 255 characters");
         long id = ids.nextId();
-        if (jdbc != null) jdbc.update("INSERT INTO sessions(session_id,user_id,title,mode) VALUES (?,?,?,?)", id, userId, actualTitle, actualMode);
+        if (jdbc != null) {
+            // 当前 V1 为单租户运行模式；数据库仍要求显式写入 tenant_id，不能依赖不存在的列默认值。
+            jdbc.update("INSERT INTO sessions(session_id,tenant_id,user_id,title,mode) VALUES (?,0,?,?,?)", id, userId, actualTitle, actualMode);
+        }
         SessionRecord record = new SessionRecord(id, userId, actualTitle, actualMode, "active", null);
         if (jdbc == null) sessions.put(id, record);
         return record;

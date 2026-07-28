@@ -157,6 +157,7 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] Python 已接入供应商无关的受控模型适配器，支持逻辑层级路由、兼容云端点、超时/限流 fallback、用量采集与失败归因；真实云凭据和联调仍待补充。
 - [ ] 完成 Token/成本预算快照、70%/85%/100% 分级降级和用户显式追加预算；每次追加生成新 revision 和 dispatch attempt。
 - [ ] 完成 Redis checkpoint 的 AOF、CAS、TTL、加密和 Java 对账；简单问答可不落 checkpoint，复杂、暂停、工具和 Eval 任务保存关键恢复点。
+- [ ] 完成任务恢复执行器：异常/重启后读取原 AgentRun 的 checkpoint，Java 对账终态、取消、deadline、fencing 和 Tool/SQL 事实，再以新 dispatch attempt 从 `current_node` 继续；详见[Python 智能体运行时设计](../架构/Python智能体运行时设计.md)。
 - [ ] 建立确定性硬规则、分级 LLM Judge、Prompt 模板版本、离线 golden 样例、回归评测和安全策略测试；Eval 通过前不得发送候选答案正文。
 - [ ] Eval 通过后按可配置 150ms/2048 字节默认阈值切分回答事件，禁止逐 Token 发布 RocketMQ。
 - [ ] 当前无人审核时，`request_review` 必须返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。

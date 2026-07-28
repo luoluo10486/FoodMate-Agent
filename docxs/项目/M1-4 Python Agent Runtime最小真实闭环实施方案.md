@@ -42,7 +42,7 @@
 - [x] 已验证结果：AgentRun 为 `completed`，PostgreSQL Inbox 为 5 条且全部 `applied`，SSE stream sequence 为 1 到 5。
 - [x] 前置门禁已验证：Python pytest 6/6、Java 全模块 Maven test 退出码 0、Compose 示例环境配置校验通过，RocketMQ 四个业务 Topic 已初始化。
 - [x] 联调清理规则已补充：Python 缓存、egg-info 和联调日志属于生成物并已加入 `.gitignore`，历史过期 Outbox 仅用于故障审计，不回写为成功。
-- [ ] 真实云端点联调、完整 Step Validator、Reflector 和生产级故障注入仍未完成；当前已落实原生 LangGraph 白名单图、模型适配器、Eval/预算、Redis checkpoint、准入、摘要和记忆候选边界，并完成 Broker 运行中故障注入。
+- [ ] 完整 Step Validator、Reflector、浏览器真实 E2E 和生产级故障注入仍未完成；当前已落实原生 LangGraph 白名单图、模型适配器、Eval/预算、Redis checkpoint、准入、摘要和记忆候选边界，并完成真实云联调与 Broker 运行中故障注入。
 
 ## 2. 阶段目标
 
@@ -229,6 +229,16 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 
 ### 5.14 continuation、取消与恢复
 
+![FoodMate Agent 任务恢复机制](../架构/资源/Agent任务恢复机制.svg)
+
+#### 5.14.1 从 checkpoint 恢复的目标闭环
+
+- 与上图一致，恢复不是重新创建业务任务：保留原 `AgentRun`，由 Java 创建新的 `dispatch_id + attempt`，Python 从 checkpoint 的 `current_node` 恢复未完成编排。
+- 在恢复前，Java 对账 `AgentRun` 终态、取消标记、绝对 deadline、当前 fencing owner、已完成 Tool/SQL invocation 和预算 revision；Python 不能只凭 Redis 值直接执行。
+- checkpoint 必须在每个可恢复安全点原子写入，保存节点、工作流/Prompt 版本、已完成节点、待处理 proposal、事件序号、预算、deadline、已完成 invocation 和 CAS version。
+- 用户关闭页面不取消后台 Run；SSE 重连从 Java SSE Outbox 补发。用户补参、预算追加或工具审批恢复时使用新 dispatch attempt；用户改变目标时创建新 AgentRun。
+- 当前仅完成 checkpoint 存储基础，尚未完成 `load -> Java 对账 -> current_node` 的真实恢复执行器和故障恢复 E2E，不能提前标记为完成。
+
 - 普通缺参补充创建新 AgentRun，并关联 `parent_run_id + continuation_reason`。
 - 旧 Run 目标终态为 `superseded`，不再占用 Session active 位或 Redis permit。
 - 工具审批和预算追加恢复原 Run，但创建新的 `dispatch_id + attempt`。
@@ -287,7 +297,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 已实现：任意数量的 OpenAI Chat Completions 兼容云端点可由 `provider_id:model_name` 逻辑别名配置；`high/standard/economy/eval` 由确定性路由选择。
 - 已实现：只有 timeout、限流和供应商暂不可用才按白名单 tier fallback；安全、权限、schema 和预算问题不能通过换模型绕过。
 - 已实现：每次逻辑调用生成 `model_call_id`，每次 provider 尝试生成 `provider_attempt_id`，并通过已有 `run.model_usage` V1 事件上报 Token、成本估算、延迟和状态。
-- 已验证：本地 pytest 覆盖别名路由、可重试 fallback、不可重试拒绝和 V1 usage payload；未使用真实云凭据，未完成真实云联调。
+- 已验证：本地 pytest 覆盖别名路由、可重试 fallback、不可重试拒绝和 V1 usage payload；SiliconFlow 模型列表和 `deepseek-ai/DeepSeek-V4-Flash` 的真实 Chat Completions、primary + Eval gated 测试也已通过。
 - 未完成：真实供应商价格表审计仍属于 M1-4 后续切片；LLM Judge 已有独立调用，Java 已将 `run.model_usage` 幂等写入 `model_usage_logs`。
 
 ### 5.22 当前 Eval、预算与 checkpoint 实现切片
@@ -297,7 +307,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 已实现：Eval 结构无效、Judge 拒绝、供应商不可用和高风险无人审核均不会发布候选正文；高风险统一返回安全降级理由。
 - 已实现：预算策略输出 `allow_reflection`、`allow_optional_retrieval`、`allow_replan`、`allow_answer_rewrite`、`allow_new_model_call` 和 `requires_confirmation`，覆盖 70%/85%/100% 阈值。
 - 已实现：Redis checkpoint 支持独立 key namespace、原子 CAS、TTL、大小限制和 Fernet 应用层加密；本地默认仍可使用内存后端运行单元测试。
-- 已验证：Python pytest 已覆盖 Eval 独立调用、预算动作和 Redis checkpoint 加密/CAS；尚未完成真实云端点、Redis 容器故障注入和 Java 对账联调。
+- 已验证：Python pytest 已覆盖 Eval 独立调用、预算动作和 Redis checkpoint 加密/CAS；真实云端点已联调，Redis 容器故障注入和 Java 对账恢复执行器仍未完成。
 
 ### 5.23 当前状态图与上下文实现切片
 
@@ -317,7 +327,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] Java 完成 PostgreSQL Outbox Relay、MQ Event Consumer/Inbox 和基础 DLQ 对账。
 - [x] Java 完成 Redis admission、queued Outbox、permit lease、queue/execution 超时释放和有限 priority + FIFO aging 基础；Java Proposal consumer、Tool Gateway、SQL Guard 和 Result producer 已接入，真实 Proposal/Result 消息及 Broker 故障注入已验证。
 - [x] Python 完成 Redis Inbox/Event Outbox Repository 与 MQ command/event consumer/producer。
-- [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox，并加入原生 LangGraph 白名单图包装；Proposal Outbox 业务协议和 Result consumer 仍未完成。
+- [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox，并加入原生 LangGraph 白名单图包装；Proposal Outbox 业务协议、Result consumer 与 Java Tool Gateway 的真实往返已通过，恢复执行器仍未完成。
 - [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、最小 Step Validator、Final Eval 和 Eval 前缓冲；Reflector 和完整 Validator 仍未完成。
 - [x] 完成 Python Result consumer、Java Proposal consumer、Tool Gateway 和 Result producer 的本地协议接入；Java command RocketMQ 真实传输 E2E 已通过。
 - [x] 完成 Python Proposal Publisher/Result consumer 与 Java Tool/SQL 控制面的真实 Proposal/Result RocketMQ 往返；E2E 已验证只读 SQL、审计和 Proposal Inbox 幂等。
@@ -325,7 +335,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] 前端完成 503、预算确认和安全降级交互；浏览器 E2E 仍未完成。
 - [x] 完成新增能力的 Python/Java 单元测试和前端生产构建。
 - [x] 完成本地 PostgreSQL、Redis、RocketMQ Broker 停止/恢复注入；恢复后 PostgreSQL、Redis 和 Broker 均重新健康。
-- [ ] 完成真实云模型成功联调、浏览器完整真实 E2E 和生产级并发验证；Proposal/Result Broker 故障注入已完成，仍需更长时间的 Outbox 重试容量验证。
+- [ ] 完成浏览器完整真实 E2E 和生产级并发验证；真实云模型联调及 Proposal/Result Broker 故障注入已完成，仍需更长时间的 Outbox 重试容量验证。
 
 ## 7. 验收门槛
 
@@ -394,7 +404,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 进程故障恢复：PostgreSQL、Redis、RocketMQ Proxy、Broker 均完成停止后端口不可达、重新启动并恢复 healthy 的演练；NameServer 受 `restart: unless-stopped` 影响快速自动拉起，未形成可观测的长时间端口中断，但最终 healthy。未删除任何 volume。
 - Proposal/Result 运行中故障注入：Broker 停止期间发送失败，恢复后同一真实成功测试通过；该证据证明失败可见和恢复可用，但还不是跨重启 Outbox 长时间重试容量结论。
 - 浏览器：5173 当前为 mock 模式，真实模式 API 端口 18080 的注册接口返回 `500 INTERNAL_ERROR`；因此真实登录、真实会话创建、真实消息落库和真实 SSE 仍保持未完成。
-- 结论：以上补齐了 Broker 故障注入和恢复证据，但“真实云调用成功、浏览器完整真实 SSE E2E、生产级长时间容量结论”仍保持未完成。
+- 结论：以上补齐了真实云调用和 Broker 故障注入恢复证据；浏览器完整真实 SSE E2E、生产级长时间容量结论和价格表审计仍保持未完成。
 
 ### 8.3 当前阻塞证据
 
