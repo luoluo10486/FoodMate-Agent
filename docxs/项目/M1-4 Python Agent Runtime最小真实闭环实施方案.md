@@ -8,7 +8,7 @@
 |---|---|
 | 功能编号/阶段 | M1-4 |
 | 功能名称 | Python Agent Runtime 最小真实模型闭环与生产治理基线 |
-| 文档状态 | M1-4 核心运行治理与原生 LangGraph 包装已实现一部分并通过本地测试；真实云模型、真实基础设施故障注入、完整 Tool/SQL 双向链路和生产级质量门禁仍未完成 |
+| 文档状态 | M1-4 本地最小真实闭环已通过代码、基础设施和 Proposal/Result E2E 验证；真实云模型、完整浏览器路径和生产级质量门禁仍未完成 |
 | 前置阶段 | M1-3 Java -> Python 确定性 stub -> Java -> SSE 已完成 |
 | 方案日期 | 2026-07-26 |
 | 架构依据 | `Agent运行架构.md`、`Python智能体运行时设计.md`、`ADR-0005-RocketMQ异步主通道.md`、`配置指南.md` |
@@ -227,7 +227,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - Python 根据版本化 Schema Catalog 生成 ToolProposal 或 SqlProposal，通过 proposal Topic 发送。
 - Java执行权限、确认、SQL AST、只读、白名单、用户过滤、限行、超时、脱敏和审计。
 - Java 已接入 Proposal consumer、Java-only SQL Guard 和 Result producer；`runtime_tool_proposal_inbox` 以 `proposal_id + request_hash` 固化消费事实，重复消息复用已完成 Result，未完成执行保持重试。
-- Python Result consumer 已接入 Redis 幂等 Inbox；Java -> RocketMQ command 的真实传输 E2E 已通过。真实 Proposal -> Java Tool Gateway -> Result 的业务消息往返和真实 PostgreSQL SQL 执行仍未完成。
+- Python Proposal Publisher/Result consumer 已接入 Redis Outbox/Inbox；Java -> Tool Gateway -> PostgreSQL 审计 -> Result 的业务消息往返 E2E 已通过。
 - Python 不持有 FoodMate PostgreSQL 凭据，也不直接执行 SQL 或业务工具。
 
 ### 5.16 DLQ 与对账
@@ -305,7 +305,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox，并加入原生 LangGraph 白名单图包装；Proposal Outbox 业务协议和 Result consumer 仍未完成。
 - [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、最小 Step Validator、Final Eval 和 Eval 前缓冲；Reflector 和完整 Validator 仍未完成。
 - [x] 完成 Python Result consumer、Java Proposal consumer、Tool Gateway 和 Result producer 的本地协议接入；Java command RocketMQ 真实传输 E2E 已通过。
-- [ ] 完成 Python Proposal publisher 与 Java Tool/SQL 控制面的真实 Proposal/Result RocketMQ 往返和真实 SQL 执行；不提前完成 M2 SQL Agent。
+- [x] 完成 Python Proposal Publisher/Result consumer 与 Java Tool/SQL 控制面的真实 Proposal/Result RocketMQ 往返；E2E 已验证只读 SQL、审计和 Proposal Inbox 幂等。
 - [x] 前端完成 continuation 与 `superseded` 状态展示。
 - [x] 前端完成 503、预算确认和安全降级交互；浏览器 E2E 仍未完成。
 - [x] 完成新增能力的 Python/Java 单元测试和前端生产构建。

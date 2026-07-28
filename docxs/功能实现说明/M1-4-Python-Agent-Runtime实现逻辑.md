@@ -116,7 +116,7 @@
 - 已实现：执行结果写入 `sql_query_audits`；数据库不可用、Run 不存在、Run ID 非法和 SQL 执行异常均返回结构化错误。
 - 已实现：Proposal consumer 使用 `runtime_tool_proposal_inbox` 的 `proposal_id + request_hash` 幂等事实；已完成 Result 重复消费时复用原 Result。
 - 已实现：Python Result consumer 使用 Redis Inbox 按 `proposal_id + request_hash` 幂等，重复 Result 不重复回调。
-- 已验证：Java command -> RocketMQ -> Java consumer 真实传输 E2E 通过；真实 Proposal -> Tool Gateway -> Result 业务往返和真实只读数据库验证仍未完成。
+- 已验证：Java command -> RocketMQ -> Java consumer 真实传输 E2E 通过；Proposal -> Java Tool Gateway -> PostgreSQL SQL 审计 -> Result 的真实 E2E 通过，并校验 Proposal Inbox 幂等记录。
 
 ## 3. 当前验证证据
 
@@ -125,3 +125,9 @@
 - 前端：`npm.cmd run build` 通过。
 - 已验证：Docker 本地 PostgreSQL、Redis、RocketMQ Broker 停止/恢复注入通过；RocketMQ command 真实 E2E 通过。
 - 未完成证据：真实云供应商调用、Proposal/Result 业务故障注入、浏览器完整 E2E 和生产级并发压测尚未完成。
+
+## 4. 最新状态覆盖
+
+- 本文前面的历史记录保留当时的阶段证据；若与本补充章节冲突，以本章节和 M1-4 实施方案的最新状态为准。
+- 当前已完成 Proposal Publisher、Result Consumer 和 Proposal/Result 本地真实 E2E。
+- 当前仍未完成真实云供应商联调、Proposal/Result 业务故障注入、浏览器完整 E2E 和生产级并发验证。

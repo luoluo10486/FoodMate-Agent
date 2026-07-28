@@ -14,7 +14,7 @@
 | M1-1 | 已完成 | 账户、授权与个人数据能力已有真实实现和验收记录。 |
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
-| M1-4 | 实现中 | 已落地受控模型适配、原生 LangGraph 白名单图、Eval/预算、Redis 准入、超时释放、摘要 CAS 和记忆候选；真实云联调、真实 Proposal/Result 往返、故障注入和完整质量门禁仍未完成。 |
+| M1-4 | 实现中 | 已落地受控模型适配、原生 LangGraph 白名单图、Eval/预算、Redis 准入、超时释放、摘要 CAS 和记忆候选，并通过 Proposal/Result 本地真实 E2E；真实云联调、完整浏览器路径和生产质量门禁仍未完成。 |
 
 ## 2. 已确认的产品边界
 
@@ -157,7 +157,8 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 只允许 Python 产生 Tool/SQL Proposal；Java Tool Gateway 不向 Python 暴露 PostgreSQL 业务库凭据。
 - [x] Java 已接入独立 Proposal consumer、只读 SQL Guard、审计和 Result producer；`runtime_tool_proposal_inbox` 固化 `proposal_id + request_hash` 幂等事实。
 - [x] Python Result consumer 已接入 Redis 幂等 Inbox；Java command RocketMQ 真实传输 E2E 已通过。
-- [ ] Python Proposal publisher/Result 业务往返、只读数据库账号、业务链路故障注入和真实云模型仍待完成。
+- [x] Python Proposal Publisher/Result consumer 与 Java Tool Gateway 的业务往返已通过本地真实 E2E；验证只读 SQL、PostgreSQL 审计、Result 和 Proposal Inbox 幂等。
+- [ ] 只读数据库账号、Proposal/Result 业务故障注入和真实云模型仍待完成。
 
 M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得把“能调用一次模型”标记为 M1-4 完成。状态、wire 和数据库扩展必须先更新契约与迁移，再进入实现。
 

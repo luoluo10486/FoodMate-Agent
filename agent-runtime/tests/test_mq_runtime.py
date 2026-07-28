@@ -6,7 +6,8 @@ from types import SimpleNamespace
 from unittest import TestCase
 
 sys.path.append(str(Path(__file__).parents[1]))
-from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisResultInbox, RedisEventOutbox, RocketMqEventPublisher, _CommandListener, _ResultListener
+from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisProposalOutbox, RedisResultInbox, RedisEventOutbox, RocketMqEventPublisher, RocketMqProposalPublisher, _CommandListener, _ResultListener
+from proposal_protocol import Proposal
 from rocketmq import ConsumeResult
 
 
@@ -118,3 +119,15 @@ class MqRuntimeTests(TestCase):
         publisher.publish(event)
         self.assertEqual(1, len(producer.messages))
         self.assertEqual([], redis_client.lists["test:outbox:event"])
+
+    def test_proposal_publisher_persists_and_acknowledges_after_send(self):
+        redis_client = FakeRedis()
+        outbox = RedisProposalOutbox(redis_client, "test")
+        producer = FakeProducer()
+        publisher = RocketMqProposalPublisher(producer, "foodmate-agent-proposal-v1", outbox)
+        proposal = Proposal("p1", "42", "sql_read", "v1", {"statement": "SELECT 1"})
+        publisher.publish(proposal)
+        self.assertEqual(1, len(producer.messages))
+        self.assertEqual([], redis_client.lists["test:outbox:proposal"])
+        self.assertEqual("p1", producer.messages[0].properties["foodmate_proposal_id"])
+        self.assertIn('"request_hash":"sha256:', producer.messages[0].body.decode())

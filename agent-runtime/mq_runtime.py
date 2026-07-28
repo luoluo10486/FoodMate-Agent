@@ -13,6 +13,7 @@ from typing import Callable
 import redis
 from cryptography.fernet import Fernet, InvalidToken
 from rocketmq import ClientConfiguration, ConsumeResult, Credentials, FilterExpression, Message, MessageListener, Producer, PushConsumer
+from proposal_protocol import Proposal, validate_proposal
 
 
 class RedisCheckpoint:
@@ -150,6 +151,75 @@ class RocketMqEventPublisher:
         message.add_property("foodmate_dispatch_id", event["dispatch_id"])
         message.add_property("foodmate_event_id", event["event_id"])
         message.add_property("foodmate_event_seq", str(event["event_seq"]))
+        receipt = self.producer.send(message)
+        self.outbox.ack(entry_id)
+        return receipt
+
+    def close(self):
+        self.producer.shutdown()
+
+
+class RedisProposalOutbox:
+    """持久化 Proposal 原文；Broker 未确认前不能删除，重发保持同一 payload。"""
+
+    def __init__(self, client=None, prefix=None):
+        self.client = client or redis.Redis.from_url(
+            os.getenv("FOODMATE_REDIS_URL", "redis://:foodmate-redis-change-me@localhost:6380"),
+            decode_responses=True,
+        )
+        self.key = f"{prefix or os.getenv('FOODMATE_AGENT_REDIS_KEY_PREFIX', 'foodmate:agent')}:outbox:proposal"
+
+    def enqueue(self, proposal_json: str) -> str:
+        entry_id = self.client.incr(f"{self.key}:sequence")
+        self.client.hset(f"{self.key}:{entry_id}", mapping={"payload": proposal_json})
+        self.client.rpush(self.key, str(entry_id))
+        return str(entry_id)
+
+    def ack(self, entry_id: str):
+        self.client.lrem(self.key, 1, entry_id)
+        self.client.delete(f"{self.key}:{entry_id}")
+
+
+class RocketMqProposalPublisher:
+    """向 Java Tool Gateway 发布 Proposal；Python 不持有数据库凭据，也不执行 SQL。"""
+
+    def __init__(self, producer=None, topic=None, outbox=None):
+        self.topic = topic or os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_PROPOSAL", "foodmate-agent-proposal-v1")
+        self.producer = producer or self._new_producer()
+        self.outbox = outbox or RedisProposalOutbox()
+
+    @staticmethod
+    def _new_producer():
+        endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
+        producer = Producer(ClientConfiguration(endpoint, Credentials()), topics=[os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_PROPOSAL", "foodmate-agent-proposal-v1")])
+        producer.startup()
+        return producer
+
+    def publish(self, proposal: Proposal | dict):
+        if isinstance(proposal, Proposal):
+            validate_proposal(proposal)
+            payload = proposal.as_dict()
+        else:
+            payload = dict(proposal)
+            required = Proposal(
+                str(payload.get("proposal_id", "")), str(payload.get("run_id", "")),
+                str(payload.get("proposal_type", "")), str(payload.get("schema_version", "")),
+                dict(payload.get("payload") or {}), bool(payload.get("requires_confirmation", True)),
+                str(payload.get("request_hash", "")),
+            )
+            validate_proposal(required)
+            payload = required.as_dict()
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        entry_id = self.outbox.enqueue(body)
+        message = Message()
+        message.topic = self.topic
+        message.body = body.encode("utf-8")
+        message.keys = payload["run_id"]
+        message.add_property("foodmate_message_type", "ToolProposal")
+        message.add_property("foodmate_schema_version", payload["schema_version"])
+        message.add_property("foodmate_run_id", payload["run_id"])
+        message.add_property("foodmate_proposal_id", payload["proposal_id"])
+        message.add_property("foodmate_request_hash", payload["request_hash"])
         receipt = self.producer.send(message)
         self.outbox.ack(entry_id)
         return receipt
