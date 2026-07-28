@@ -13,7 +13,7 @@ import { ErrorState } from '../../components/common/ErrorState';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
 import { createSession, loadSessionMessages, sendUserMessage, type RealMessage } from '../../services/sessionService';
-import { cancelAgentRun, openAgentRunStream } from '../../services/agentRunService';
+import { cancelAgentRun, extendAgentRunBudget, openAgentRunStream } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
 
 function displayRunStatus(status: string) {
@@ -23,6 +23,14 @@ function displayRunStatus(status: string) {
   if (status === 'waiting_user') return 'waiting_user' as const;
   if (status === 'failed' || status === 'cancelled' || status === 'completed' || status === 'superseded') return status;
   return 'routing' as const;
+}
+
+function runtimeErrorMessage(payload: { code?: string; error_message?: string; message?: string }) {
+  if (payload.code === 'RUNTIME_COORDINATION_UNAVAILABLE') return '系统暂时异常，运行协调服务不可用，请稍后重试。';
+  if (payload.code === 'RUNTIME_CAPACITY_EXCEEDED') return '当前运行队列已满，请稍后重试。';
+  if (payload.code === 'RUNTIME_QUEUE_TIMEOUT') return '请求排队超时，请稍后重试。';
+  if (payload.code === 'MODEL_PROVIDER_UNAVAILABLE') return '模型服务暂时不可用，请稍后重试。';
+  return payload.error_message ?? payload.message ?? 'Agent 运行失败。';
 }
 
 export function ChatPage() {
@@ -41,6 +49,7 @@ function RealChatPage() {
   const [runStatus, setRunStatus] = useState('idle');
   const [assistantText, setAssistantText] = useState('');
   const [error, setError] = useState<string>();
+  const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,8 +67,12 @@ function RealChatPage() {
     setRunStatus('queued'); setAssistantText('');
     const stream = openAgentRunStream(activeRunId, (eventType, payload) => {
       if (eventType === 'run.answer_stream') { setRunStatus('validating'); setAssistantText((current) => current + (payload.text ?? '')); return; }
-      if (eventType === 'run.completed') { setRunStatus('completed'); setAssistantText(payload.answer ?? assistantText); return; }
-      if (eventType === 'run.failed') { setRunStatus('failed'); setError(payload.error_message ?? 'Agent 运行失败'); return; }
+      if (eventType === 'run.completed') {
+        setRunStatus('completed'); setAssistantText(payload.answer ?? assistantText);
+         setBudgetConfirmation(payload.result_type === 'safety_degraded' && (payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true));
+        return;
+      }
+      if (eventType === 'run.failed') { setRunStatus('failed'); setError(runtimeErrorMessage(payload)); return; }
       if (eventType === 'run.cancelled') { setRunStatus('cancelled'); return; }
       if (eventType === 'run.superseded') { setRunStatus('superseded'); return; }
       if (eventType === 'run.clarification_requested') { setRunStatus('waiting_user'); return; }
@@ -102,13 +115,21 @@ function RealChatPage() {
                   <span>{new Date(message.created_at).toLocaleString()}</span>
                 </article>
               ))}
-              {assistantText ? <article className={`${styles.message} ${styles.assistant}`}><Tag color="green">FoodMate（M1-3 stub）</Tag><p>{assistantText}</p></article> : null}
+              {assistantText ? <article className={`${styles.message} ${styles.assistant}`}><Tag color="green">FoodMate Agent</Tag><p>{assistantText}</p></article> : null}
+              {budgetConfirmation && activeRunId ? <ConfirmationCard
+                title="本次运行已达到预算上限"
+                helperText="继续执行会创建新的预算 revision，并接续当前 Run。"
+                data={[{ label: '追加 Token', value: '30000' }, { label: '追加成本上限', value: '¥1.00' }]}
+                onConfirm={() => { void extendAgentRunBudget(activeRunId, 30000, '1.00').then(() => setBudgetConfirmation(false)).catch((reason) => setError(reason instanceof Error ? reason.message : '预算追加失败')); }}
+                onEdit={() => setError('当前开发版本使用固定追加额度。')}
+                onCancel={() => setBudgetConfirmation(false)}
+              /> : null}
             </div>
           </div>
           <aside className={styles.tracePanel}>
             <Card className={styles.panelCard} bordered={false}>
-              <div className={styles.panelHead}><strong>当前阶段</strong><Tag color="gray">不生成 AI 回复</Tag></div>
-              <p>本阶段只保存用户消息，Agent、工具和流式回复将在后续阶段接入。</p>
+              <div className={styles.panelHead}><strong>Agent 运行</strong><Tag color="gray">Eval 后发布回答</Tag></div>
+              <p>回答会先经过运行时校验；模型用量、预算状态和降级原因由服务端事件记录。</p>
             </Card>
           </aside>
         </section>

@@ -1,6 +1,6 @@
 # FoodMate MVP 主链路实施状态
 
-更新时间：2026-07-25
+更新时间：2026-07-28
 
 > 模板提示：后续 AI 阅读本文档时，必须按功能点拆分为独立小节；只记录已实现和已验证的事实，不得把真实模型、RAG、工具调用或饮食业务写入提前写成已完成。
 
@@ -8,7 +8,7 @@
 
 - M1-2 已完成真实认证、会话、消息持久化和前端真实 API 接入。
 - M1-3 已完成 Java -> Python 确定性 stub -> Java -> SSE 的最小真实闭环。
-- 当前下一阶段是 M1-4：在不改变 Java 业务数据权威边界的前提下，建设受控的 Python 模型运行能力。
+- M1-4 已完成 RocketMQ/Redis 基础传输、V5 continuation/预算结构和 V6 MQ transport 迁移；下一步是在不改变 Java 业务数据权威边界的前提下建设受控的 Python 模型运行能力。
 
 ## 2. 已完成主链路
 
@@ -45,9 +45,8 @@ Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入
 
 ### 3.4 自动化验证
 
-- Python pytest：3 个测试通过。
-- Java：Shared 10、Gateway 4、Infrastructure 15、Application 5、API 27、Bootstrap 21 个测试通过；依赖环境的 5 个本地 E2E 按条件跳过。
-- 前端 typecheck 通过。
+- 历史 M1-3 验证曾记录 Python pytest、Java 全模块测试和前端 typecheck 通过；具体旧计数只对应当时提交，不作为当前测试总数。
+- M1-4 基础设施阶段另有 RocketMQ 真实往返、Redis/PostgreSQL 状态、continuation `superseded` 和 MQ transport E2E 记录；依赖当前是否在线必须现场检查。
 
 ## 4. 当前架构边界
 
@@ -60,15 +59,16 @@ Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入
 
 ### 5.1 M1-4
 
-- 固定 Python 版本、依赖锁、配置加载、健康检查、结构化日志和 pytest 门禁。
+- Python 基础版本、依赖、配置、健康检查、结构化日志和 pytest 门禁已建立；接入模型后继续收紧供应商依赖锁和 readiness。
 - 建立模型供应商适配器、Router、Planner、Execution Engine、超时和降级策略。
 - 建立 Prompt 版本、离线样例、回归评测和模型用量事件。
 - 按已确认目标补齐 LangGraph、Redis 并发与队列、四类超时、预算快照、checkpoint 和 Final Eval Gate。
-- 普通缺参 continuation、`superseded`、预算追加和 Eval 后交付仍需契约、迁移、Java 与前端共同改造。
+- 普通缺参 continuation 与 `superseded` 已由 V5、Java 事务、SSE 和前端状态映射落地；预算追加交互、LangGraph 恢复和 Eval 后交付仍需 Java、Python 与前端共同实现。
+- 短期记忆 Context Builder、最近 8 条消息后的增量摘要、摘要 CAS/删除重建、长期记忆候选与 Java 校验生命周期仍未实现。
 - 当前无人审核，`request_review` 只能安全降级，不建设 `waiting_review`。
 - 继续禁止 Python 直接访问业务数据库或绕过 Java 授权。
 
-上述内容目前均是目标设计，不属于 M1-3 完成范围，也尚无代码完成证据。
+上述未完成项属于 M1-4 Agent 能力目标；已经明确标注完成的基础设施和 continuation 项有迁移、代码或测试证据，但不代表 M1-4 整体完成。
 
 ### 5.2 后续阶段
 

@@ -77,8 +77,10 @@ agent-runtime/                         # 已有 M1-3 stub；下列为 M1-4 目�
     context/
       builder.py
       summarizer.py
+      memory_manager.py                # 短期上下文与长期记忆候选，不直接写业务库
     clients/
       java_control_plane.py
+      memory_gateway.py                # 读取授权记忆、提交候选和失效对账
       tool_gateway.py
       sql_gateway.py
     prompts/
@@ -147,6 +149,7 @@ FastAPI dependency 必须校验短期 Service JWT 的签名、`iss`、`aud`、`e
 | Composer | 已校验事实、引用、执行结果 | 结构化最终回答 | 暴露内部推理或伪造失败结果 |
 | Step Validator | 节点结果、计划约束、证据 | 硬校验结果和原因码 | 用模型评分覆盖硬规则 |
 | Final Eval Gate | 用户目标、候选答案、已验证事实和完整轨迹 | `pass/revise/replan/degrade/reject` 与固定动作 | 直接调用工具、扩大权限或无限退回 |
+| Context/Memory Manager | 当前消息、最近消息、Session 摘要、授权记忆 | 有来源 ID 的受限上下文、摘要或记忆候选 | 直接写 `user_memories`、把推测升级为长期事实 |
 | Offline Evaluation | 数据集、轨迹、最终回答 | 离线指标和回归结果 | 改写线上业务状态 |
 
 Execution 采用有界 Plan-Act-Observe-Reflect：每一步有明确输入、输出、终止条件和循环预算。最终候选答案必须通过在线 Eval Gate 后才能建议完成；退回只能沿固定边发生。模型输出、RAG 内容和第三方文本均为不可信输入；工具与 SQL 只能形成 proposal，实际授权、执行和审计由 Java 完成。
@@ -172,6 +175,15 @@ Python 维护的是单次 dispatch 的技术执行状态，Java 维护 `AgentRun
 ### 5.3 事件发送
 
 每个 `dispatch_id` 的 `event_seq` 从 1 开始严格递增 1。Python 在发送前持久化或可靠记录事件标识和 canonical request hash；重试重放保持原 `event_id/event_seq/occurred_at/event_type/payload/request_hash`。序号只能由单一 dispatch writer 分配，多个节点并发完成时先汇入有序事件出口。
+
+### 5.4 Context、摘要与记忆
+
+- Context Builder 固定保留最近 8 条有效原始消息；第 9 条有效消息写入后触发增量摘要。当前消息、安全规则和未解决槽位不可被摘要替代。
+- Summarizer 输出结构化摘要、覆盖消息 ID 区间、来源数量、Prompt 版本和 digest。Python 只生成候选；Java 以版本/CAS 写入 `session_summaries`。
+- 短期记忆只在当前 Session/Run 生效，来源是消息、Session 摘要、当前计划和 checkpoint 技术状态；不得跨用户或绕过 Java 授权复用。
+- Memory Manager 只生成长期记忆候选。Java 校验来源、用户归属、敏感性、冲突、scope、置信度和过期时间后写入 `user_memories`。
+- 模型推测、一次性参数、预算确认、工具审批和高风险健康推断不得自动写入长期记忆。用户删除或更正后，Python 缓存、摘要和 checkpoint 中的引用必须在恢复/下一次装配前失效。
+- Context Builder 输出必须携带实际使用的 `message_id/summary_id/memory_id/citation_id`，用于 Eval、审计和删除传播；不得在 Trace 中复制完整隐私内容。
 
 ## 6. Tool、SQL 与模型调用
 

@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from agent_core import InMemoryCheckpoint, run_deterministic, split_answer
+from model_provider import ModelProviderError
 
 JAVA_CALLBACK_URL = os.getenv("JAVA_CALLBACK_URL", "http://localhost:8080")
 CONTRACT_VERSION = os.getenv("FOODMATE_CONTRACT_VERSION", "v1")
@@ -23,6 +25,15 @@ _cancelled: set[str] = set()
 _dispatches: dict[str, dict] = {}
 _lock = threading.Lock()
 _event_publisher = None
+def _new_checkpoint():
+    # 本地默认内存后端；启用 Redis 时必须同时配置 checkpoint 加密密钥。
+    if os.getenv("FOODMATE_AGENT_CHECKPOINT_BACKEND", "inmemory").lower() == "redis":
+        from mq_runtime import RedisCheckpoint
+        return RedisCheckpoint()
+    return InMemoryCheckpoint()
+
+
+_checkpoint = _new_checkpoint()
 
 
 def _canonical(value):
@@ -128,22 +139,49 @@ def execute(command):
             emit(command, prefix + "-cancel-ack", 2, "run.cancel_acknowledged", {"reason": "user_requested"})
             emit(command, prefix + "-cancelled", 3, "run.cancelled", {"reason": "user_requested"})
             return
-        emit(command, prefix + "-routed", 2, "run.routed", {"status": "routed"})
+        execution = run_deterministic(command, _checkpoint)
+        emit(command, prefix + "-routed", 2, "run.routed", {
+            "status": "routed", "intent": execution.route.intent,
+            "complexity": execution.route.complexity, "risk_level": execution.route.risk_level,
+            "plan_version": execution.plan.plan_version,
+            "workflow": execution.workflow,
+        })
+        next_sequence = 3
+        for index, attempt in enumerate(execution.model_attempts, start=1):
+            emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
+            next_sequence += 1
         if command["run_id"] in _cancelled:
-            emit(command, prefix + "-cancel-ack", 3, "run.cancel_acknowledged", {"reason": "user_requested"})
-            emit(command, prefix + "-cancelled", 4, "run.cancelled", {"reason": "user_requested"})
+            emit(command, prefix + "-cancel-ack", next_sequence, "run.cancel_acknowledged", {"reason": "user_requested"})
+            emit(command, prefix + "-cancelled", next_sequence + 1, "run.cancelled", {"reason": "user_requested"})
             return
-        content = command.get("message", {}).get("content", "")
-        answer = "运行链路已验证：已收到你的消息「" + content[:80] + "」。当前回复来自 M1-3 确定性 stub。"
-        first = answer[: len(answer) // 2]
-        second = answer[len(answer) // 2 :]
-        emit(command, prefix + "-answer-1", 3, "run.answer_stream", {"text": first, "status": "validating"})
+        answer = execution.answer
+        if execution.eval.result == "pass":
+            stream_chunks = split_answer(answer, int(os.getenv("FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES", "2048")))
+        else:
+            stream_chunks = []
+        for index, chunk in enumerate(stream_chunks, start=1):
+            emit(command, prefix + f"-answer-{index}", next_sequence, "run.answer_stream", {"text": chunk, "status": "evaluated"})
+            next_sequence += 1
         if command["run_id"] in _cancelled:
-            emit(command, prefix + "-cancel-ack", 4, "run.cancel_acknowledged", {"reason": "user_requested"})
-            emit(command, prefix + "-cancelled", 5, "run.cancelled", {"reason": "user_requested"})
+            emit(command, prefix + "-cancel-ack", next_sequence, "run.cancel_acknowledged", {"reason": "user_requested"})
+            emit(command, prefix + "-cancelled", next_sequence + 1, "run.cancelled", {"reason": "user_requested"})
             return
-        emit(command, prefix + "-answer-2", 4, "run.answer_stream", {"text": second, "status": "validating"})
-        emit(command, prefix + "-completed", 5, "run.completed", {"answer": answer, "status": "completed"})
+        emit(command, prefix + "-completed", next_sequence, "run.completed", {
+            "answer": answer, "status": "completed", "eval_result": execution.eval.result,
+            "eval_reason": execution.eval.reason, "budget_mode": execution.budget_mode,
+            "result_type": "normal" if execution.eval.result == "pass" else "safety_degraded",
+            "requires_confirmation": bool(execution.budget_actions.get("requires_confirmation", False)),
+            "budget_actions": execution.budget_actions,
+            "workflow": execution.workflow,
+            "usage": execution.usage.__dict__, "memory_candidates": execution.memory_candidates,
+        })
+    except ModelProviderError as error:
+        # 模型失败也必须回到 Java 状态机，不能由 Runtime 静默吞掉。
+        next_sequence = 3
+        for index, attempt in enumerate(error.attempts, start=1):
+            emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
+            next_sequence += 1
+        emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": error.code, "retryable": error.retryable})
     except (urllib.error.URLError, TimeoutError):
         # 超时和重试由 Java 控制面负责，Runtime 不直接写业务状态。
         return

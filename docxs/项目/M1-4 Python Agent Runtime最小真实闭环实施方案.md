@@ -8,10 +8,16 @@
 |---|---|
 | 功能编号/阶段 | M1-4 |
 | 功能名称 | Python Agent Runtime 最小真实模型闭环与生产治理基线 |
-| 文档状态 | RocketMQ/Redis 最小真实传输闭环已验证；M1-4 Agent 能力仍待实现 |
+| 文档状态 | M1-4 核心运行治理已实现一部分并通过本地测试；真实基础设施联调、LangGraph/Tool 完整能力和生产级质量门禁仍未完成 |
 | 前置阶段 | M1-3 Java -> Python 确定性 stub -> Java -> SSE 已完成 |
 | 方案日期 | 2026-07-26 |
 | 架构依据 | `Agent运行架构.md`、`Python智能体运行时设计.md`、`ADR-0005-RocketMQ异步主通道.md`、`配置指南.md` |
+
+### 1.2 本方案与总 TODO 的关系
+
+本文件是[完整功能实施 TODO](./完整功能实施TODO.md)中 M1-4 未完成项的唯一实施分解和验收依据。总 TODO 记录范围与最终完成判定；本文件记录依赖顺序、代码边界、契约变更和测试证据。发生冲突时，以代码/迁移/测试事实优先，其次是 ADR 与契约，再由本方案和总 TODO 同步修正。
+
+普通缺参 continuation 与 `superseded` 已在 V5、Java 事务、SSE 和前端映射中完成，不再作为 M1-4 待实现项。本阶段不因基础设施已完成而降低真实模型、预算、Eval、记忆、并发和可观测性门槛。
 
 ## 1.1 当前验证结论
 
@@ -22,7 +28,7 @@
 - [x] 已验证结果：AgentRun 为 `completed`，PostgreSQL Inbox 为 5 条且全部 `applied`，SSE stream sequence 为 1 到 5。
 - [x] 前置门禁已验证：Python pytest 6/6、Java 全模块 Maven test 退出码 0、Compose 示例环境配置校验通过，RocketMQ 四个业务 Topic 已初始化。
 - [x] 联调清理规则已补充：Python 缓存、egg-info 和联调日志属于生成物并已加入 `.gitignore`，历史过期 Outbox 仅用于故障审计，不回写为成功。
-- [ ] LangGraph、真实模型、Router、Planner、Eval Gate、预算、checkpoint、Tool/SQL Proposal 仍未完成。
+- [ ] LangGraph、真实云端点联调、Tool/SQL Proposal、完整 Step Validator 和生产级故障注入仍未完成；当前已先落实依赖无关状态图、模型适配器、Eval/预算、Redis checkpoint、准入、摘要和记忆候选边界。
 
 ## 2. 阶段目标
 
@@ -42,6 +48,15 @@
 - 不让 Python 直接访问 FoodMate PostgreSQL 业务库。
 - 不把完整 M2 治理后台纳入 M1-4 完成门槛。
 
+### 2.3 已确认的模型策略
+
+- 先实现供应商无关的 Model Adapter 与确定性本地 provider；它用于无云凭据时完成编排、预算、Eval、降级和审计自动化测试。
+- 真实云模型通过环境变量配置 `high`、`standard`、`economy` 和 `eval` 逻辑别名；同一别名可按部署映射不同供应商与具体模型。
+- Model Routing Policy 是确定性代码，Agent 只能声明能力、质量等级和结构化输出要求，不能自行选择供应商或越过预算切换模型。
+- `eval` 使用独立逻辑别名。资源不足时可与生成模型同一供应商，但必须独立调用、独立 Prompt/rubric、独立 usage 记录，并在 Trace 标记 `judge_independence=degraded`。
+- 供应商 timeout、rate limit 或明确可重试故障可以按配置切换兼容 fallback；安全、权限、schema、预算耗尽和 Eval 硬失败不得通过换模型绕过。
+- 不在仓库中写入任何供应商密钥、默认厂商或价格猜测。接入真实供应商前必须补 provider contract fixture、价格表版本和失败注入测试。
+
 ## 3. 实施前契约门禁
 
 ### 3.1 当前 V1 可复用内容
@@ -51,15 +66,30 @@
 - 复用现有取消、幂等、乱序拒绝和终态竞争规则。
 - 复用既有消息 envelope 与 canonical digest，不创建 MQ 专用 DTO。
 
-### 3.2 必须升级后才能使用的内容
+### 3.2 已完成的契约与数据结构升级
 
 - `superseded` AgentRun 终态。
 - `parent_run_id`、`continuation_reason`。
-- `RunBudgetSnapshot`、`TimeoutSnapshot` 和预算 revision。
+- `agent_run_budget_snapshots`、预算 revision 和基础超时快照字段。
 - `result_type=safety_degraded` 的外部响应位置。
-- 预算确认请求、确认摘要和追加结果契约。
 
-上述能力必须先修改契约、Flyway、Java 状态机和前端映射，再进入代码主链路；V1 不得提前发送未知字段或状态。
+上述结构已由 V5 迁移、Java continuation 事务、SSE 和前端状态映射落地。它们是后续预算、恢复和安全降级能力的基础，不代表对应运行时行为已经全部实现。
+
+### 3.3 仍需升级或实现的行为
+
+- 预算达到 100% 后的确认请求、确认摘要、追加结果和前端确认交互。
+- 工具审批或预算追加时恢复原 Run，并创建新 `dispatch_id + attempt`。
+- `TimeoutSnapshot` 在准入、排队、执行、节点和等待用户阶段的实际执行与恢复语义。
+- `result_type=safety_degraded` 与 Eval `request_review` 的端到端安全降级行为。
+
+这些行为必须先补齐契约细节、Java/Python 实现和前端映射，再进入真实模型主链路；不得仅凭 V5 表结构将其标记为完成。
+
+### 3.4 Eval 与记忆的契约门禁
+
+- 当前 Java 只接受既有 V1 `event_type`，不能直接发送未被消费端识别的 `run.eval`。第一版 Eval 结果必须作为 `run.completed`、`run.failed` 或安全降级结果的受控 payload/Trace 字段落库；若新增独立 `run.evaluated`，必须先同时更新 V1 契约、Java `statusFor`、Inbox 测试和前端事件映射。
+- `run.model_usage` 是模型和 Judge 用量的唯一运行时事件；生成模型与 Eval 模型分别产生稳定 `model_call_id/provider_attempt_id`，不能把 Eval 成本混入回答模型调用。
+- `session_summaries` 的版本/CAS、摘要候选写入和 `user_memories` 候选协议必须先定义 Java HTTP/MQ DTO、权限校验和删除失效事件，再允许 Python 提交候选。
+- Python 不直接写 FoodMate PostgreSQL，也不把 checkpoint、进程内状态或模型输出当作用户记忆真值。
 
 ## 4. 目标消息链路
 
@@ -166,12 +196,15 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 排队时间不消耗 execution timeout，但必须服从请求级绝对 deadline。
 - 完成、失败、取消、超时和进程异常后均需通过 owner token/CAS 可靠释放 permit。
 
-### 5.12 Context Builder 与摘要
+### 5.12 Context Builder、摘要与记忆
 
-- 始终保留最近 8 条有效原始消息。
-- 第 9 条有效消息写入后增量更新会话摘要，再继续保留最近 8 条。
-- 上下文按系统安全指令、当前用户输入、近期消息、摘要和检索结果分配 Token。
-- 摘要失败时保留近期消息并明确降级，不能使用不完整摘要伪造用户偏好。
+- 短期记忆由最近 8 条有效原始消息、Session 摘要、`unresolved_slots`、当前 Run 追问和 checkpoint 技术状态组成，只在授权 Session/Run 内使用。
+- 第 9 条有效消息写入后，对尚未覆盖的旧消息增量更新会话摘要，再继续保留最近 8 条。
+- 摘要携带覆盖消息 ID 区间、版本、来源数量、Prompt 版本和 digest；Java 使用版本/CAS 写入 `session_summaries`。
+- 上下文按系统安全指令、当前用户输入、近期消息、摘要、授权长期记忆和检索结果分配 Token，并记录实际使用的来源 ID。
+- Python 只能生成长期记忆候选；Java 校验来源、归属、敏感性、冲突、scope、置信度和有效期后写入 `user_memories`。
+- 模型推测、一次性参数、预算确认、工具审批和医疗诊断不得自动写入长期记忆；高影响冲突必须请求用户确认。
+- 用户删除/更正消息或记忆后，相关摘要、缓存和上下文引用必须失效；摘要失败时保留近期消息并明确降级，不能使用不完整摘要伪造用户偏好。
 
 ### 5.13 Redis checkpoint
 
@@ -217,17 +250,62 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - continuation 在 UI 中关联父任务；`superseded` 显示“已由后续任务接续”。
 - 安全降级结果建议用户咨询医生或注册营养师，不显示虚假人工审核等待。
 
-## 6. 实施顺序
+### 5.19 模型适配、用量与降级实现切片
 
-1. 固化 ADR-0005、Topic、consumer group、消息 header 和传输无关 envelope。
-2. 升级目标契约和 Flyway，补齐 MQ message/outbox 状态、`superseded`、父子 Run、快照和预算确认数据模型。
-3. 在现有 Compose 增加本地单节点 RocketMQ和 Topic 初始化，验证 Broker 重启后消息保留。
-4. Java 实现 admission、Redis 调度、PostgreSQL Outbox Relay、MQ consumer/Inbox 和 DLQ Reconciler。
-5. Python 实现 Redis Inbox/Outbox Repository、MQ consumer/producer 和 checkpoint 原子写入。
-6. Python 建立 LangGraph、模型适配、预算、Context Builder、Validator、Composer、Final Eval 和 Eval 前缓冲。
-7. 接入 Proposal/Result Topic 与 Java Tool/SQL 控制面；M1-4 可只验证受控最小 proposal，不提前完成 M2 SQL Agent。
-8. 前端接入 503、预算确认、continuation、`superseded` 和安全降级展示。
-9. 完成单元、契约、PostgreSQL/Redis/RocketMQ 故障注入和浏览器 E2E。
+- `providers/` 定义统一 `ModelProvider`、`ModelRequest`、`ModelResponse`、`ProviderAttempt` 和结构化错误分类；本地 deterministic provider 与云 provider 共享同一接口。
+- `model_router.py` 按 `high/standard/economy/eval` 别名、风险、能力、预算等级和 fallback 白名单选择 provider，不从用户消息读取模型名或 endpoint。
+- 每次逻辑调用生成 `model_call_id`，每次供应商尝试生成 `provider_attempt_id`；成功、失败、timeout、取消、Token、估算成本、价格表版本和延迟全部形成脱敏 Trace，并按现有 `run.model_usage` 契约上报。
+- 70% 停止非必要 Reflection、缩减可选检索；85% 禁止 replan/rewrite 并允许低风险节点改走 economy；100% 不发起新调用，转可信部分结果或预算确认。
+- 未配置真实 provider 时只允许 deterministic provider；`high/standard/economy/eval` 任一被路由到未配置的云 provider 时返回明确可观测错误，不猜测或静默回落。
+
+### 5.20 方案状态与代码推进规则
+
+- 在本方案完成前，不把 Router、Context Builder 或本地 checkpoint 的局部代码标记为 M1-4 完成；每项必须同时满足契约、Java/Python、配置、测试与前端条件。
+- 所有新事件先由 Java 消费端接受或明确不发送；禁止 Python 单侧新增 `event_type` 破坏现有 Inbox 状态机。
+- 每个实现切片完成后，更新本文件的对应 `[x]`、总 TODO 的同一项和功能实现说明；未完成能力继续保持 `[ ]`。
+
+### 5.21 当前模型适配实现切片
+
+- 已实现：`agent-runtime/model_provider.py` 提供 `ModelProvider`、`ModelRequest`、`ModelResponse`、`ProviderAttempt` 和结构化错误分类。
+- 已实现：默认 `deterministic:local` provider 用于本地自动化测试；它不联网，不能表述为已接入真实大模型。
+- 已实现：任意数量的 OpenAI Chat Completions 兼容云端点可由 `provider_id:model_name` 逻辑别名配置；`high/standard/economy/eval` 由确定性路由选择。
+- 已实现：只有 timeout、限流和供应商暂不可用才按白名单 tier fallback；安全、权限、schema 和预算问题不能通过换模型绕过。
+- 已实现：每次逻辑调用生成 `model_call_id`，每次 provider 尝试生成 `provider_attempt_id`，并通过已有 `run.model_usage` V1 事件上报 Token、成本估算、延迟和状态。
+- 已验证：本地 pytest 覆盖别名路由、可重试 fallback、不可重试拒绝和 V1 usage payload；未使用真实云凭据，未完成真实云联调。
+- 未完成：真实供应商 fixture、价格表审计和真实云端联调仍属于 M1-4 后续切片；LLM Judge 已有独立调用，Java 已将 `run.model_usage` 幂等写入 `model_usage_logs`。
+
+### 5.22 当前 Eval、预算与 checkpoint 实现切片
+
+- 已实现：复杂任务强制执行独立 `scene=eval` 调用；低风险任务按 `FOODMATE_AGENT_LLM_EVAL_SAMPLE_RATIO` 和 `run_id` 稳定采样。
+- 已实现：Eval 与回答生成分别生成 `model_call_id`，每个供应商尝试生成独立 `provider_attempt_id`，并复用 `run.model_usage` 上报。
+- 已实现：Eval 结构无效、Judge 拒绝、供应商不可用和高风险无人审核均不会发布候选正文；高风险统一返回安全降级理由。
+- 已实现：预算策略输出 `allow_reflection`、`allow_optional_retrieval`、`allow_replan`、`allow_answer_rewrite`、`allow_new_model_call` 和 `requires_confirmation`，覆盖 70%/85%/100% 阈值。
+- 已实现：Redis checkpoint 支持独立 key namespace、原子 CAS、TTL、大小限制和 Fernet 应用层加密；本地默认仍可使用内存后端运行单元测试。
+- 已验证：Python pytest 已覆盖 Eval 独立调用、预算动作和 Redis checkpoint 加密/CAS；尚未完成真实云端点、Redis 容器故障注入和 Java 对账联调。
+
+### 5.23 当前状态图与上下文实现切片
+
+- 已实现：`WorkflowGraph` 固定 `router/planner/execution/validator/composer/eval/terminal` 白名单节点与条件边；非法边返回 `WORKFLOW_EDGE_NOT_ALLOWED`。
+- 已实现：每次节点进入计入 `max_total_steps`；超限进入 `terminal`，不再发起模型调用，并把节点、边和终止原因写入 checkpoint 与 `run.routed/run.completed` payload。
+- 已实现：Context Builder 保留最近消息和当前输入优先级，并按 `FOODMATE_AGENT_CONTEXT_MAX_TOKENS` 裁剪旧消息，记录估算 Token 与来源 ID。
+- 已实现：Java Redis admission/queued Outbox/lease/reconciler，摘要元数据 CAS、最近 8 条 Context 装配和长期记忆候选校验写入。
+- 已实现：长期记忆管理 API 支持用户查询、修改、逻辑删除和冲突确认；冲突状态不会进入 Agent Context。
+- 未完成：当前状态图仍是依赖无关实现，不是 LangGraph 包装；摘要删除重建、记忆变更后的摘要/缓存联动失效、aging 和完整 Step Validator 仍未完成。
+
+## 6. 实施顺序与当前状态
+
+- [x] 固化 ADR-0005、Topic、consumer group、消息 header 和传输无关 envelope。
+- [x] 通过 V5/V6 补齐 MQ 基础结构、`superseded`、父子 Run 和预算快照基础数据模型。
+- [x] 在 Compose 增加本地单节点 RocketMQ 和 Topic 初始化，并完成基础消息往返验证。
+- [x] Java 完成 PostgreSQL Outbox Relay、MQ Event Consumer/Inbox 和基础 DLQ 对账。
+- [x] Java 完成 Redis admission、queued Outbox、permit lease 和 queue/execution 超时释放；优先级 aging 与 Proposal/Result 业务消费仍未完成。
+- [x] Python 完成 Redis Inbox/Event Outbox Repository 与 MQ command/event consumer/producer。
+- [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox；LangGraph 原生包装和 Proposal Outbox 业务协议仍未完成。
+- [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、Final Eval 和 Eval 前缓冲；LangGraph 原生包装和完整 Validator 仍未完成。
+- [ ] 接入 Proposal/Result Topic 与 Java Tool/SQL 控制面；M1-4 只验证受控最小 proposal，不提前完成 M2 SQL Agent。
+- [x] 前端完成 continuation 与 `superseded` 状态展示。
+- [x] 前端完成 503、预算确认和安全降级交互；浏览器 E2E 仍未完成。
+- [ ] 完成新增能力的单元、契约、PostgreSQL/Redis/RocketMQ 故障注入和浏览器 E2E。
 
 ## 7. 验收门槛
 
@@ -256,3 +334,19 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - “模型能返回文本”不等于 M1-4 完成。
 - 代码、迁移、配置、自动化测试和浏览器验证全部具备证据后，才创建 `功能实现说明/M1-4-...实现逻辑.md`。
 - 未实现的 RAG、Tool/SQL 和业务写入继续留在 M1-5/M2，不得包装为本阶段完成。
+
+### 7.5 总 TODO 对齐矩阵
+
+| 总 TODO 未完成项 | 本方案实施章节 | 代码完成证据 |
+|---|---|---|
+| LangGraph Router/Planner/Validator/Reflector/Composer/Terminal Arbiter | 5.4-5.7 | 白名单图边、循环上限和每条退回边的单元测试 |
+| 短期上下文、摘要压缩、删除重建与来源 ID | 5.12、3.4 | Java 权威读取/写入、CAS、失效传播和来源审计测试 |
+| 长期记忆候选与查看/更正/删除 | 5.12、3.4 | Python 候选、Java 校验 API、冲突确认和删除 E2E |
+| Redis 并发、队列、lease、aging 与故障关闭 | 5.10-5.11 | Redis 协调测试、503 映射、permit 释放和恢复对账 |
+| 四类超时与 TimeoutSnapshot | 5.11、3.3 | queue/execution/node/waiting_user/cancel drain 自动化测试 |
+| 多供应商模型、降级、Token/成本与追加预算 | 2.3、5.8-5.9、5.19 | provider fixture、usage、70/85/100%、预算 revision 与前端确认 E2E |
+| Redis checkpoint、AOF、CAS、加密与 Java 对账 | 5.13 | 重启、CAS 冲突、加密、TTL 和副作用不重放测试 |
+| 确定性 Eval、LLM Judge、离线回归与安全降级 | 5.7、3.4、5.19 | Eval fixture、独立 Judge 标记、正文延迟发布和 `request_review` 测试 |
+| 回答分片 | 5.7 | Eval 通过后按 150ms/2048 字节的顺序事件测试 |
+| 工具审批、预算恢复、Proposal/Result 与 SQL 边界 | 5.14-5.15 | 新 dispatch attempt、幂等、确认失效和 Java-only SQL Guard 测试 |
+| Trace、指标、反馈与隐私 | 5.17-5.18 | 脱敏断言、无 Chain-of-Thought、反馈关联和高风险审计测试 |

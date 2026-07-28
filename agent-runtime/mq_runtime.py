@@ -7,10 +7,69 @@ command idempotency, while Java remains the PostgreSQL business authority.
 import json
 import os
 import threading
+import base64
 from typing import Callable
 
 import redis
+from cryptography.fernet import Fernet, InvalidToken
 from rocketmq import ClientConfiguration, ConsumeResult, Credentials, FilterExpression, Message, MessageListener, Producer, PushConsumer
+
+
+class RedisCheckpoint:
+    """Redis technical checkpoint with atomic version CAS, TTL and optional encryption."""
+
+    _CAS_SCRIPT = """
+    local current = redis.call('GET', KEYS[1])
+    local version = 0
+    if current then version = tonumber(current) end
+    if ARGV[1] ~= '' and tonumber(ARGV[1]) ~= version then return 0 end
+    local next_version = redis.call('INCR', KEYS[1])
+    redis.call('SET', KEYS[2], ARGV[2], 'EX', ARGV[3])
+    redis.call('EXPIRE', KEYS[1], ARGV[3])
+    return next_version
+    """
+
+    def __init__(self, client=None, prefix=None, ttl_seconds=None, encryption_key=None):
+        self.client = client or redis.Redis.from_url(
+            os.getenv("FOODMATE_REDIS_URL", "redis://:foodmate-redis-change-me@localhost:6380"),
+            decode_responses=True,
+        )
+        self.prefix = prefix or os.getenv("FOODMATE_AGENT_CHECKPOINT_REDIS_PREFIX", "foodmate:agent:checkpoint")
+        self.ttl_seconds = int(ttl_seconds or int(os.getenv("FOODMATE_AGENT_CHECKPOINT_TTL_DAYS", "7")) * 86400)
+        self.max_bytes = int(os.getenv("FOODMATE_AGENT_CHECKPOINT_MAX_BYTES", "262144"))
+        enabled = os.getenv("FOODMATE_AGENT_CHECKPOINT_ENCRYPTION_ENABLED", "true").lower() == "true"
+        raw_key = encryption_key or os.getenv("FOODMATE_AGENT_CHECKPOINT_ENCRYPTION_KEY", "")
+        if enabled and not raw_key:
+            raise RuntimeError("CHECKPOINT_ENCRYPTION_KEY_MISSING")
+        self._cipher = Fernet(raw_key.encode("ascii")) if enabled else None
+
+    def _keys(self, key: str) -> tuple[str, str]:
+        safe_key = key.replace("/", "_")
+        return f"{self.prefix}:{safe_key}:version", f"{self.prefix}:{safe_key}:value"
+
+    def load(self, key: str) -> tuple[int, dict] | None:
+        version_key, value_key = self._keys(key)
+        version = self.client.get(version_key)
+        value = self.client.get(value_key)
+        if version is None or value is None:
+            return None
+        try:
+            payload = self._cipher.decrypt(value.encode("ascii")).decode("utf-8") if self._cipher else value
+            return int(version), json.loads(payload)
+        except (InvalidToken, ValueError, json.JSONDecodeError) as error:
+            raise RuntimeError("CHECKPOINT_DATA_INVALID") from error
+
+    def save(self, key: str, value: dict, expected_version: int | None = None) -> int:
+        version_key, value_key = self._keys(key)
+        payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        encoded = self._cipher.encrypt(payload.encode("utf-8")).decode("ascii") if self._cipher else payload
+        if len(encoded.encode("utf-8")) > self.max_bytes:
+            raise RuntimeError("CHECKPOINT_TOO_LARGE")
+        expected = "" if expected_version is None else str(expected_version)
+        result = self.client.eval(self._CAS_SCRIPT, 2, version_key, value_key, expected, encoded, str(self.ttl_seconds))
+        if int(result or 0) == 0:
+            raise RuntimeError("CHECKPOINT_CAS_CONFLICT")
+        return int(result)
 
 
 class RedisCommandInbox:

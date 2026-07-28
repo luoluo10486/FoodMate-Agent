@@ -23,6 +23,9 @@ spring:
             enable: ${MAIL_SMTP_SSL_ENABLE:true}
           starttls:
             enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
+  data:
+    redis:
+      url: ${REDIS_URL:redis://:foodmate-redis-change-me@localhost:6379}
 
 server:
   port: 8080
@@ -51,6 +54,9 @@ foodmate:
     # 业务派发通道：http 是 M1-3 兼容/契约测试通道，rocketmq 是 ADR-0005 正式主通道。
     # 两者互斥，同一进程只能启用一个。
     transport: ${FOODMATE_AGENT_TRANSPORT:http}
+    admission:
+      # 开启后必须连接 Redis；Redis 不可用时新 Run 直接返回 503，不退回进程内计数。
+      enabled: ${FOODMATE_AGENT_ADMISSION_ENABLED:false}
     rocketmq:
       name-server: ${FOODMATE_ROCKETMQ_NAMESRV_ADDR:localhost:9876}
       command-topic: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_COMMAND:foodmate-agent-command-v1}

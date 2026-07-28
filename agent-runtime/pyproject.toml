@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-py-modules = ["runtime_server", "mq_runtime"]
+py-modules = ["runtime_server", "mq_runtime", "agent_core", "model_provider"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

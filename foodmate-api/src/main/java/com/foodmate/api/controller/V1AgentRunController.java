@@ -8,6 +8,9 @@ import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import java.math.BigDecimal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,9 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class V1AgentRunController extends AuthenticatedControllerSupport {
     private final V1RuntimeEventService events;
     private final RuntimeCancellationService cancellations;
+    private final com.foodmate.application.runtime.BudgetExtensionService budgets;
 
-    public V1AgentRunController(UserAccountService accounts, V1RuntimeEventService events, RuntimeCancellationService cancellations) {
-        super(accounts); this.events = events; this.cancellations = cancellations;
+    public V1AgentRunController(UserAccountService accounts, V1RuntimeEventService events, RuntimeCancellationService cancellations, com.foodmate.application.runtime.BudgetExtensionService budgets) {
+        super(accounts); this.events = events; this.cancellations = cancellations; this.budgets = budgets;
     }
 
     @GetMapping("/{runId}")
@@ -38,6 +42,12 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
         return ApiResponse.success(cancellations.request(user(request).userId(), runId, reason), TraceContextHolder.currentOrNew());
     }
 
+    @PostMapping("/{runId}/budget-extensions")
+    public ApiResponse<com.foodmate.application.runtime.BudgetExtensionService.ExtensionResult> extendBudget(@PathVariable String runId, HttpServletRequest request, @Valid @RequestBody BudgetExtensionRequest body) {
+        return ApiResponse.success(budgets.confirm(user(request).userId(), Long.parseLong(runId), body.additionalTokens(), body.additionalCostCny(), body.confirmationDigest()), TraceContextHolder.currentOrNew());
+    }
+
     public record RunView(String runId, String status, int acceptedEventCount) {}
     public record CancelRequest(@NotBlank String reason) {}
+    public record BudgetExtensionRequest(@Min(1) int additionalTokens, @DecimalMin("0.0001") BigDecimal additionalCostCny, @NotBlank String confirmationDigest) {}
 }

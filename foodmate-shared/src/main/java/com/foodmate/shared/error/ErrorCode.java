@@ -26,7 +26,10 @@ public enum ErrorCode {
     APP_BUSINESS_ERROR("APP_BUSINESS_ERROR", "业务处理失败", 400),
     RAG_FAILED("RAG_FAILED", "检索处理失败", 500),
     SQL_GUARD_DENIED("SQL_GUARD_DENIED", "SQL Guard 拒绝执行", 403),
-    MODEL_FAILED("MODEL_FAILED", "模型调用失败", 500);
+    MODEL_FAILED("MODEL_FAILED", "模型调用失败", 500),
+    COORDINATION_UNAVAILABLE("COORDINATION_UNAVAILABLE", "系统暂时异常，请稍后重试", 503),
+    RUNTIME_CAPACITY_EXCEEDED("RUNTIME_CAPACITY_EXCEEDED", "当前任务较多，请稍后重试", 429),
+    RUNTIME_QUEUE_TIMEOUT("RUNTIME_QUEUE_TIMEOUT", "任务排队超时，请稍后重试", 504);
 
     private final String code;
     private final String defaultMessage;

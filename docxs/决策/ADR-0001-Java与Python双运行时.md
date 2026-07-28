@@ -5,7 +5,7 @@
 
 ## 背景
 
-FoodMate 的业务控制面需要权威状态、审计、授权、Tool/SQL 执行和数据库事务；Agent 推理需要编排、RAG、模型调用、Prompt、评测和可重建 checkpoint。当前已具备 M1-3 Java/Python 确定性 stub 最小闭环；真实模型、RocketMQ 主通道和完整 Agent 编排仍是目标设计，不是代码完成证明。
+FoodMate 的业务控制面需要权威状态、审计、授权、Tool/SQL 执行和数据库事务；Agent 推理需要编排、RAG、模型调用、Prompt、评测和可重建 checkpoint。当前已具备 Java/PostgreSQL、RocketMQ、Python/Redis 确定性 stub 的双运行时基础闭环；真实模型、LangGraph、Eval 和完整记忆治理仍是目标设计，不是代码完成证明。
 
 ## 决策
 
@@ -23,7 +23,7 @@ Java 更适合维护事务边界、业务数据、授权和审计，Python 更�
 
 ## 后果
 
-需要维护 V1 Schema、MQ Topic/consumer group、HTTP Service JWT 测试适配、超时、重试、DLQ、错误映射、观测和兼容测试。Java必须先持久化 dispatch/outbox 并以 inbox 接受事件；Python 必须从 Redis 技术状态恢复，不能自行裁决业务终态。RocketMQ 目标链路仍需单独落地与验证。
+需要维护 V1 Schema、MQ Topic/consumer group、HTTP Service JWT 测试适配、超时、重试、DLQ、错误映射、观测和兼容测试。Java 必须先持久化 dispatch/outbox 并以 inbox 接受事件；Python 必须从 Redis 技术状态恢复，不能自行裁决业务终态。RocketMQ 基础链路已经落地并完成本地往返验证，Tool/SQL Proposal、真实模型和生产级故障门禁仍需后续实现。
 
 ## 约束
 

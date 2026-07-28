@@ -10,11 +10,11 @@
 
 | 阶段 | 当前结论 | 说明 |
 |---|---|---|
-| M0 | 已完成可验证基线 | 数据库、真实持久化和安全配置已有实现与验证；生产运维强化仍在后续阶段。 |
+| M0 | 最小可验证基线已完成 | 数据库、真实持久化和安全配置已有实现与验证；下方未勾选项只表示环境隔离、生产复验等强化工作。 |
 | M1-1 | 已完成 | 账户、授权与个人数据能力已有真实实现和验收记录。 |
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
-| M1-4 | 下一阶段 | 将确定性 stub 替换为受控的真实模型运行能力。 |
+| M1-4 | 实现中 | 已落地受控模型适配、Eval/预算、Redis 准入、超时释放、摘要 CAS 和记忆候选；真实云联调、LangGraph 原生包装、Tool/SQL Proposal、完整质量门禁仍未完成。 |
 
 ## 2. 已确认的产品边界
 
@@ -34,9 +34,9 @@
 
 当前已具备的基础：
 
-- PostgreSQL FoodMate 已执行基线和 M1-3 V4 追加迁移；账号、会话、消息与运行时表均已用于真实联调。
+- PostgreSQL FoodMate 已执行基线及 V2-V6 追加迁移；账号、会话、消息、continuation、预算基础结构与 MQ 运行时表均已用于真实联调。
 - Java 已实现账号、认证会话、会话、消息、AgentRun、dispatch outbox、事件 inbox、取消和 SSE。
-- Python agent-runtime 已实现 V1 Service JWT、dispatch/cancel 路由与确定性 stub，并通过 Java 回调事件。
+- Python agent-runtime 已实现 V1 Service JWT、RocketMQ command/event、Redis Inbox/Outbox 与确定性 stub；M1-3 HTTP 回调仅保留兼容和契约测试用途。
 - 前端真实模式已接入认证、会话、消息、AgentRun SSE 和取消；知识库、业务工具和部分运营能力仍未接入。
 
 当前不能宣称完成的部分：
@@ -55,31 +55,35 @@
 
 ## 5. M0：工程可信基线
 
+状态说明：M0 的本地最小基线已经通过并有功能实现说明。以下清单将“已验证基础”和“生产强化”分开记录，不能因为仍有生产强化项就把 M0 解释为从未完成，也不能因为本地验证通过就宣称具备生产发布条件。
+
 ### M0-1 数据库与本地环境
 
-- [ ] 固定 `script/sql/FoodMate/baseline`、`migration`、`rollback` 的目录规范，并为每次变更建立变更说明和人工执行记录。
-- [ ] 补充人工执行顺序、校验 SQL、回滚前置条件和备份要求；禁止以应用启动代替数据库变更。
-- [ ] 用 PostgreSQL 集成测试验证基线脚本、索引、约束、中文注释、软删除和恢复语义。
-- [ ] 明确开发、测试、预生产、生产数据库的隔离策略，禁止复用生产数据做本地调试。
-- [ ] 清理旧 Flyway 自动迁移认知和构建残留，确保 Java 不加载任何过时 SQL 资源。
+- [x] 固定 `script/sql/FoodMate/baseline`、`migration`、`rollback` 目录，迁移、校验与回滚脚本按版本管理。
+- [x] 建立人工执行、执行前备份和执行后校验流程；Java 各环境关闭 Flyway 自动迁移。
+- [x] 已用数据库脚本测试和本地 PostgreSQL E2E 验证核心表、索引、约束及软删除基础语义。
+- [x] 清理应用内过时迁移资源，Java 启动不自动执行建表、迁移或回滚。
+- [ ] 在独立测试、预生产和生产环境完成数据库隔离、备份恢复及人工执行记录演练；禁止复用生产数据做本地调试。
+- [ ] 扩大 PostgreSQL 集成测试，完整覆盖全部中文注释、软删除恢复和每个后续迁移的回滚前置条件。
 
 风险：手工 SQL 容易遗漏执行、执行顺序错误或环境漂移。控制方式：每份脚本必须有校验查询、执行记录、版本号和回滚说明。
 
 ### M0-2 Java 真实持久化验证
 
-- [ ] 用 `local` profile 启动 Java，并验证只连接 `FoodMate`，不自动运行 SQL。
-- [ ] 跑通注册、登录、登出、Cookie/CSRF、个人资料、会话创建、消息写入与重启后读取。
-- [ ] 将仍依赖内存集合的正式路径替换为 Repository/JDBC/MyBatis 持久化路径；内存实现只允许在 `local-stub`。
+- [x] 用 `local` profile 启动 Java，验证连接 `FoodMate` 且不自动运行 SQL。
+- [x] 跑通注册、登录、登出、Cookie/CSRF、个人资料、会话创建、消息写入与持久化恢复读取。
+- [x] 正式路径使用 Repository/JDBC 持久化，内存实现只用于 `local-stub`。
 - [ ] 为并发消息序号、唯一用户名/邮箱、会话撤销和幂等写入补充数据库级测试。
 
 风险：内存与数据库双写产生数据不一致；并发请求造成消息序号或幂等冲突。控制方式：单一权威存储、事务、唯一约束和冲突错误映射。
 
 ### M0-3 安全与配置基线
 
-- [ ] 完整梳理环境变量、密钥注入、日志脱敏、错误输出和前端环境变量边界。
-- [ ] 验证 Service JWT 双向校验、`kid` 轮换准备、过期时间、受众和 scope。
-- [ ] 为 Web 会话执行 HttpOnly、Secure、SameSite、CSRF、会话撤销和设备管理验证。
-- [ ] 明确开发环境允许的弱配置与生产环境的启动拒绝条件。
+- [x] 完成环境变量、Secret 注入、日志脱敏、错误输出和前端环境变量基础边界。
+- [x] 验证 Service JWT 签名、`kid`、过期时间、受众和 scope，并建立缺失配置时的启动拒绝门禁。
+- [x] 完成 Web 会话 HttpOnly、Secure 配置、SameSite、CSRF 和会话撤销测试。
+- [x] 建立开发弱配置与生产启动拒绝的自动化配置矩阵。
+- [ ] 使用真实 prod Secret、正式域名和跨源浏览器环境完成生产级复验与 `kid` 轮换演练。
 
 风险：真实密码、私钥、会话 token 或模型输入泄漏。控制方式：Secret 管理、禁止日志输出、启动校验、依赖漏洞扫描和最小权限。
 
@@ -87,11 +91,11 @@
 
 ### M1-1 账户、授权与个人数据
 
-- [ ] 完成注册、登录、登出、当前用户、密码变更、密码重置和设备会话管理。
-- [ ] 完成 `user/admin/operator` RBAC，所有资源查询均校验当前用户归属。
-- [ ] 完成个人资料、营养偏好、过敏原、忌口和单位偏好管理。
-- [ ] 完成头像上传的对象存储适配、文件类型/大小/尺寸校验与删除流程。
-- [ ] 完成数据导出、账号注销申请、立即禁用、会话全部撤销和不可撤销的异步物理清理。
+- [x] 完成注册、登录、登出、当前用户、密码变更、密码重置和设备会话管理。
+- [x] 完成 `user/admin/operator` RBAC，资源查询校验当前用户归属，operator 保持只读。
+- [x] 完成个人资料、营养偏好、过敏原、忌口和单位偏好管理。
+- [x] 完成头像 MinIO 私有对象存储、文件类型/大小校验、替换和删除流程。
+- [x] 完成数据导出、账号注销申请、立即禁用、会话全部撤销和异步物理清理。
 
 边界：不实现第三方登录、原生 App 登录或开放 API token。
 
@@ -115,7 +119,7 @@
 
 边界：Java 不替代 Python 推理；Python 不直接修改 AgentRun 或业务表。
 
-### M1-4 Python Agent Runtime 与模型能力（下一阶段）
+### M1-4 Python Agent Runtime 与模型能力（实现中）
 
 当前已完成的基础闭环：Java PostgreSQL Dispatch Outbox -> RocketMQ command -> Python Redis Inbox -> 确定性 stub -> Redis Event Outbox -> RocketMQ event -> Java PostgreSQL Inbox/AgentRun/SSE Outbox。以下清单只记录尚未完成的 M1-4 Agent 能力，不把这次传输闭环重复列为待办。
 
@@ -126,22 +130,29 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] Java PostgreSQL Event Inbox/AgentRun/SSE Outbox 消费落库，重复消息和 request hash 冲突有自动化测试。
 - [x] 本地 RocketMQ Topic/consumer group 初始化、Compose 配置和 Java/Python 基础测试门禁。
 
-- [ ] 固定 Python 版本、虚拟环境、依赖锁、配置加载、健康检查、结构化日志和 pytest 门禁。
-- [ ] 在现有 Compose 中接入本地单 NameServer + 单 Broker，并初始化 command/event/proposal/result 四个 Agent Topic；本阶段不建设生产高可用集群。
-- [ ] 实现 Java PostgreSQL Outbox Relay、MQ Event/Proposal Consumer、Inbox 事务和 DLQ Reconciler；不使用 RocketMQ 事务消息。
-- [ ] 实现 Python Redis AOF Inbox、Event/Proposal Outbox、Relay 与 checkpoint 原子写入；Redis 不可用时停止消费。
-- [ ] 使用 LangGraph 完成 Router、Planner、Execution、Step Validator、Reflector、Composer、Final Eval Gate 和 Terminal Arbiter；所有循环只能沿白名单边并受环境变量预算约束。
-- [ ] 完成 Context Builder：始终保留最近 8 条原始消息，第 9 条有效消息写入后增量更新摘要；摘要、当前输入和安全指令共同受上下文 Token 上限约束。
-- [ ] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。
+- [x] 固定 Python 版本与依赖、配置加载、健康检查、结构化日志和 pytest 基础门禁；真实模型依赖锁随 Agent 能力实现继续收紧。
+- [x] 在现有 Compose 中接入本地单 NameServer + 单 Broker，并初始化 command/event/proposal/result 四个 Agent Topic；本阶段不建设生产高可用集群。
+- [x] 实现 Java PostgreSQL Outbox Relay、MQ Event Consumer、Inbox 事务和基础 DLQ 对账；Proposal/Result 业务处理随 Tool/SQL 阶段补齐。
+- [x] 实现 Python Redis AOF Inbox、Event Outbox 与 Relay；Redis 不可用时停止消费。Proposal Outbox 和 LangGraph checkpoint 原子写入仍属下列 Agent 能力任务。
+- [ ] 使用 LangGraph 完成 Router、Planner、Execution、Step Validator、Reflector、Composer、Final Eval Gate 和 Terminal Arbiter；Python 已先实现依赖无关的白名单状态图和步骤上限，尚未完成 LangGraph、Reflector 和完整 Validator。
+- [x] 完成短期记忆 Context Builder：Java 装配最近 8 条有效消息、摘要、长期记忆和来源 ID，Python 执行上下文 Token 裁剪；摘要删除重建仍未完成。
+- [x] 完成摘要压缩：第 9 条有效消息写入后增量更新摘要；摘要保存覆盖消息范围、来源数量、Prompt 版本和 digest，并使用版本/CAS 防止并发覆盖。当前为确定性短摘要，摘要模型替换和更正后的自动重建仍需强化。
+- [ ] 完成摘要失效与重建：消息被删除或更正后，使引用它的摘要、缓存和 Context 来源失效；下一次读取前从仍有效的权威消息重建。
+- [x] 完成长期记忆候选链路：Python 只产生带来源、类型、置信度、作用域和有效期的候选，Java 校验后写入 `user_memories`，不得把模型推测、一次性参数、审批或医疗判断自动记忆。
+- [x] 提供长期记忆查看、更正、删除和冲突确认 API；冲突记忆默认不进入 Agent Context，用户确认后才恢复可用。
+- [ ] 删除或更正长期记忆后同步失效所有相关摘要、缓存和历史 Context 引用；当前已完成记忆逻辑删除，摘要关联失效仍需继续接入。
+- [ ] 为每次 Context 装配保存可审计来源 ID：`message_id/summary_id/memory_id/citation_id`，但不得保存 Chain-of-Thought 或完整 Prompt。
+- [x] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。当前已接入 Lua/ZSET lease，未引入进程内 semaphore。
 - [ ] 完成优先队列、permit lease、aging、防饥饿和 Redis 故障关闭；协调不可用时新 Agent 请求返回 503 `RUNTIME_COORDINATION_UNAVAILABLE`。
-- [ ] 完成 queue、execution、node、waiting_user、cancel drain 超时，Run 接受时固化 `TimeoutSnapshot`，取消或超时后可靠释放 permit。
-- [ ] 接入受控模型供应商适配器，支持模型路由、超时、降级、用量采集与失败归因。
+- [x] 完成 queue、execution、node、waiting_user、cancel drain 超时，Run 接受时固化 `TimeoutSnapshot`，取消或超时后可靠释放 permit。当前已实现 queue/execution 扫描和终态释放，node/cancel drain 的独立执行器与 waiting_user 专用 deadline 仍需强化。
+- [x] Python 已接入供应商无关的受控模型适配器，支持逻辑层级路由、兼容云端点、超时/限流 fallback、用量采集与失败归因；真实云凭据和联调仍待补充。
 - [ ] 完成 Token/成本预算快照、70%/85%/100% 分级降级和用户显式追加预算；每次追加生成新 revision 和 dispatch attempt。
 - [ ] 完成 Redis checkpoint 的 AOF、CAS、TTL、加密和 Java 对账；简单问答可不落 checkpoint，复杂、暂停、工具和 Eval 任务保存关键恢复点。
 - [ ] 建立确定性硬规则、分级 LLM Judge、Prompt 模板版本、离线 golden 样例、回归评测和安全策略测试；Eval 通过前不得发送候选答案正文。
 - [ ] Eval 通过后按可配置 150ms/2048 字节默认阈值切分回答事件，禁止逐 Token 发布 RocketMQ。
 - [ ] 当前无人审核时，`request_review` 必须返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。
-- [ ] 普通缺参补充创建 continuation Run，旧 Run 目标终态为 `superseded`；工具审批和预算追加恢复原 Run、创建新 dispatch attempt。
+- [x] 普通缺参补充创建 continuation Run，旧 Run 进入 `superseded`，并完成 V5、Java 事务、SSE 和前端状态映射。
+- [x] 工具审批和预算追加恢复原 Run、创建新 `dispatch_id + attempt`，并完成预算确认前端交互与恢复测试。预算追加已接入 Redis 准入；工具审批仍是后续 proposal 能力。
 - [ ] 完成结构化 Trace、预算与 Eval 指标、脱敏策略和用户反馈入口；不得保存 Chain-of-Thought、完整 Prompt 或默认原始模型响应。
 - [ ] 只允许 Python 产生 Tool/SQL Proposal；禁止注入 PostgreSQL 业务库凭据。
 - [ ] Tool/SQL Proposal 与 Result 使用独立 MQ Topic；SQL 只由 Java SQL Guard 使用只读账号执行。
@@ -223,7 +234,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 
 ## 11. 推荐执行顺序
 
-1. M0-1 至 M0-3，先建立真实环境和安全可信基线。
+1. M0-1 至 M0-3 的本地最小可信基线已完成；剩余生产复验和隔离演练与后续发布准备并行推进。
 2. M1-1、M1-2，先完成真实账号、会话和前端接入。
 3. M1-3、M1-4，完成 Java/Python Agent 可靠主链路。
 4. M1-5、M1-6，完成用户能感知的核心业务、审计和部署。

@@ -6,3 +6,15 @@
 - 每个脚本必须同时提供对应的校验 SQL、回滚前置条件和变更说明。
 - 已执行脚本不得原地修改；修正必须创建新的递增版本。
 - 执行前先备份并记录数据库、执行人、时间、版本和校验结果。
+
+当前增量顺序：
+
+- `V4`：双运行时 dispatch、事件 Inbox、SSE Outbox 和取消结构。
+- `V5`：continuation、`superseded` 和预算快照。
+- `V6`：RocketMQ 发布状态与 DLQ 对账。
+- `V7`：Redis admission 对应的 `queued` Outbox 状态。
+- `V8`：摘要覆盖范围、CAS 版本、Prompt 版本和 digest。
+- `V9`：预算追加确认摘要的幂等唯一约束。
+
+`V7`-`V9` 仍需在 PostgreSQL 实例上人工执行并完成校验后，才能开启本地真实 Redis admission 和预算追加恢复。
+`V10__m1_4_memory_confirmation.sql`：长期记忆确认状态、冲突隔离索引和用户确认后的 Context 放行。

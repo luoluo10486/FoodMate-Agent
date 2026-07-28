@@ -24,7 +24,7 @@ FoodMate 采用生产型 `Workflow + Agent` 混合架构：
 
 Java 保存面向业务和前端的粗粒度权威状态：
 
-当前 V1 数据库只允许 `queued/routed/waiting_user/planning/retrieving/executing/validating/completed/failed/cancelled`。确认后的目标状态额外增加终态 `superseded`，用于表示旧 Run 已被 continuation Run 接续；它需要后续契约、Flyway、Java 状态机和前端映射共同落地，当前代码尚不能写入。
+当前数据库已通过 V5 增加终态 `superseded`，用于表示旧 Run 已被 continuation Run 接续；Java continuation 事务、终态保护和前端映射已经落地。Python 仍只能报告执行阶段，不能自行写入或撤销 `superseded`。
 
 该状态用于查询、SSE、取消和审计，不承担 Python 内部节点游标的职责。Java 必须按合法迁移矩阵拒绝状态回退和终态后事件。
 
@@ -369,15 +369,43 @@ request_review
 
 只有安全回答本身失败时才进入 `failed + EVAL_SAFE_RESPONSE_FAILED`。未来必须先具备真实审核人员、权限、队列、SLA 和审计，并通过 ADR 后才能启用在线人工复核。
 
-## 16. Context Builder 与摘要
+## 16. Context Builder、短期记忆与长期记忆
 
-上下文按以下优先级装配：当前消息、上一 Run 的追问、`unresolved_slots`、Session 摘要、最近消息、授权记忆、授权数据与引用。
+上下文按以下优先级装配：系统安全规则、当前消息、上一 Run 的追问、`unresolved_slots`、最近原始消息、Session 摘要、授权长期记忆、授权业务数据与引用。所有层都受用户归属、Session 归属、数据授权和上下文 Token 上限约束。
 
-- 最多保留最近 8 条原始消息；第 9 条有效消息写入后增量更新摘要并继续保留最新 8 条。
-- 摘要保存版本、覆盖消息区间、来源数量、Prompt 版本和摘要 digest。
-- 当前消息、系统安全规则和未解决约束不得被裁剪。
-- 删除消息后，覆盖它的摘要必须失效并重建。
-- Context Builder 记录使用的 message/memory/citation ID，不在 Trace 复制完整内容。
+### 16.1 短期记忆
+
+短期记忆服务当前 Session 或当前任务，不等同于长期用户画像，包括：
+
+- 最近 8 条有效原始消息。
+- 当前 Session 的增量摘要、关键约束和未解决槽位。
+- 当前 Run/continuation 所需的追问、计划摘要和已验证结果引用。
+- 只在 checkpoint 中保存的临时 Workflow 技术状态。
+
+Java 的 `messages`、`session_summaries` 和 AgentRun 投影是短期业务事实；Python 只读取经授权的上下文并在运行内装配，不把 LangGraph memory 或进程内对象当成业务真值。Session 被删除、用户撤回消息或授权变化时，相关短期记忆必须失效。
+
+### 16.2 摘要压缩
+
+- 始终保留最近 8 条有效原始消息；第 9 条有效消息写入后，对尚未覆盖的旧消息做增量摘要，再继续保留最新 8 条。
+- 摘要至少区分稳定事实、当前目标、明确约束、已做决定、未解决问题和不可确认内容；不得把推测写成用户偏好。
+- 摘要保存版本、覆盖消息起止 ID、来源数量、Prompt 版本、生成时间和摘要 digest；更新使用版本/CAS，禁止并发覆盖较新的摘要。
+- 当前消息、系统安全规则、过敏/禁忌等明确约束和 `unresolved_slots` 不得仅依赖摘要，也不得因 Token 裁剪而消失。
+- 删除或更正被覆盖消息后，相关摘要标记失效并从仍有效的原始消息重建；重建前不得继续把旧摘要送入模型。
+- 摘要生成失败时保留最近消息并进入明确降级，不使用半成品摘要，不阻塞用户删除或隐私操作。
+
+### 16.3 长期记忆
+
+长期记忆是跨 Session 复用的用户事实，只允许保存到 Java 权威业务表 `user_memories`。典型内容包括用户明确表达的长期偏好、稳定约束和习惯；一次性任务参数、模型推测、工具审批、预算追加和医疗诊断不得自动变成长记忆。
+
+- Python Memory Manager 只能生成结构化候选，携带 `memory_type/key/value/source_message_ids/confidence/scope/expires_at`，不能直接写业务库。
+- Java 校验当前用户归属、来源消息、敏感性、冲突、置信度、scope 和过期时间后，才允许新增、更新、拒绝或合并。
+- 过敏、疾病、宗教禁忌等高影响信息必须来自用户明确输入；冲突时请求用户确认，不能由模型自行选择新旧值。
+- 用户必须能够查看、更正和删除长期记忆；删除后立即停止进入新上下文，并使相关缓存和派生摘要失效。
+- 每次 Context Builder 记录实际使用的 `message_id/summary_id/memory_id/citation_id`，Trace 只保存 ID、digest 和脱敏摘要，不复制完整隐私内容。
+
+### 16.4 当前实现边界
+
+最近消息和数据库表结构已经存在；M1-4 仍需实现 Context Builder、摘要版本/CAS、候选长期记忆写入协议、Java 校验接口及对应删除失效测试。配置默认值以[配置指南](../项目/配置指南.md#56-上下文会话摘要与记忆)为准。
 
 ## 17. Checkpoint 与 LangGraph
 

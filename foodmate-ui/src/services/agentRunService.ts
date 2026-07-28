@@ -5,6 +5,9 @@ export type AgentRunEvent = {
   reason?: string;
   error_code?: string;
   error_message?: string;
+  result_type?: string;
+  requires_confirmation?: boolean;
+  budget_actions?: { requires_confirmation?: boolean };
 };
 
 const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
@@ -40,4 +43,16 @@ export async function cancelAgentRun(runId: string): Promise<void> {
     body: JSON.stringify({ reason: 'user_requested' }),
   });
   if (!response.ok) throw new Error('取消运行失败');
+}
+
+export async function extendAgentRunBudget(runId: string, additionalTokens: number, additionalCostCny: string): Promise<void> {
+  const csrf = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='))?.split('=').slice(1).join('=');
+  const raw = `${runId}:${additionalTokens}:${additionalCostCny}:${Date.now()}`;
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))))
+    .map((value) => value.toString(16).padStart(2, '0')).join('');
+  const response = await fetch(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/budget-extensions`, {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+    body: JSON.stringify({ additional_tokens: additionalTokens, additional_cost_cny: additionalCostCny, confirmation_digest: `sha256:${digest}` }),
+  });
+  if (!response.ok) throw new Error('预算追加失败，请稍后重试。');
 }

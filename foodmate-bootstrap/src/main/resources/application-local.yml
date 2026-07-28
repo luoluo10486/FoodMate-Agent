@@ -10,3 +10,6 @@ spring:
 foodmate:
   runtime:
     stub-enabled: false
+    admission:
+      # 本地真实闭环也走 Redis 准入；临时关闭可设置 FOODMATE_AGENT_ADMISSION_ENABLED=false。
+      enabled: ${FOODMATE_AGENT_ADMISSION_ENABLED:true}

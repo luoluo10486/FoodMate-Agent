@@ -68,6 +68,9 @@ public class GlobalExceptionHandler {
             case "RUNTIME_DEADLINE_EXCEEDED" -> ErrorCode.AGENT_TIMEOUT;
             case "RUNTIME_DISPATCH_IDEMPOTENCY_CONFLICT", "RUNTIME_CANCEL_IDEMPOTENCY_CONFLICT", "RUNTIME_EVENT_IDEMPOTENCY_CONFLICT", "RUNTIME_STATE_CONFLICT", "RUNTIME_EVENT_GAP", "RUNTIME_EVENT_OUT_OF_ORDER" -> ErrorCode.CONFLICT;
             case "RUNTIME_UNAVAILABLE" -> ErrorCode.TOOL_FAILED;
+            case "RUNTIME_COORDINATION_UNAVAILABLE" -> ErrorCode.COORDINATION_UNAVAILABLE;
+            case "RUNTIME_CAPACITY_EXCEEDED" -> ErrorCode.RUNTIME_CAPACITY_EXCEEDED;
+            case "RUNTIME_QUEUE_TIMEOUT" -> ErrorCode.RUNTIME_QUEUE_TIMEOUT;
             default -> ErrorCode.INVALID_ARGUMENT;
         };
         return failure(code, exception.getMessage(), Map.of("runtime_code", exception.code()));

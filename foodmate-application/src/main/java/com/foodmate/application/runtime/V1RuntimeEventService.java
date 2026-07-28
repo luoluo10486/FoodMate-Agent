@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,13 +20,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class V1RuntimeEventService {
     private final JdbcTemplate jdbc;
     private final IdGenerator ids;
+    private final AgentAdmissionService admission;
+    private final MemoryCandidateService memories;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     private final Map<String, List<V1RunEvent>> memoryEvents = new HashMap<>();
     private final Map<String, Long> memorySequence = new HashMap<>();
 
     public V1RuntimeEventService(ObjectProvider<JdbcTemplate> jdbcProvider, IdGenerator ids) {
+        this(jdbcProvider, ids, null, null);
+    }
+
+    public V1RuntimeEventService(ObjectProvider<JdbcTemplate> jdbcProvider, IdGenerator ids,
+                                 ObjectProvider<AgentAdmissionService> admissionProvider) {
+        this(jdbcProvider, ids, admissionProvider, null);
+    }
+
+    @Autowired
+    public V1RuntimeEventService(ObjectProvider<JdbcTemplate> jdbcProvider, IdGenerator ids,
+                                 ObjectProvider<AgentAdmissionService> admissionProvider,
+                                 ObjectProvider<MemoryCandidateService> memoryProvider) {
         this.jdbc = jdbcProvider.getIfAvailable();
         this.ids = ids;
+        this.admission = admissionProvider == null ? null : admissionProvider.getIfAvailable();
+        this.memories = memoryProvider == null ? null : memoryProvider.getIfAvailable();
     }
 
     @Transactional
@@ -59,6 +76,7 @@ public class V1RuntimeEventService {
         String payload = json(event.payload());
         jdbc.update("INSERT INTO runtime_event_inbox_v2(runtime_event_inbox_id,agent_run_id,dispatch_id,event_id,event_seq,event_type,occurred_at,payload_json,request_hash,processing_status,applied_at) VALUES (?,?,?,?,?,?,?,CAST(? AS jsonb),?,'applied',CURRENT_TIMESTAMP)",
                 ids.nextId(), runId, event.dispatchId(), event.eventId(), event.eventSeq(), event.eventType(), java.sql.Timestamp.from(event.occurredAt()), payload, event.requestHash());
+        if ("run.model_usage".equals(event.eventType())) persistModelUsage(runId, event);
         jdbc.update("UPDATE agent_run_dispatches SET last_event_seq=?,accepted_at=COALESCE(accepted_at,CURRENT_TIMESTAMP),status=CASE WHEN ? IN ('completed','failed','cancelled') THEN 'delivered' ELSE status END,finished_at=CASE WHEN ? IN ('completed','failed','cancelled') THEN CURRENT_TIMESTAMP ELSE finished_at END,updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=? AND dispatch_id=?",
                 event.eventSeq(), status, status, runId, event.dispatchId());
         String result = json(event.payload());
@@ -66,6 +84,13 @@ public class V1RuntimeEventService {
             // 终态后不允许任何状态回退；superseded 等 Java 侧终态同样受保护。
             jdbc.update("UPDATE agent_runs SET status=?,result_json=CASE WHEN ? IN ('completed','validating') THEN CAST(? AS jsonb) ELSE result_json END,error_code=CASE WHEN ?='failed' THEN 'RUNTIME_FAILED' ELSE error_code END,updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=? AND status NOT IN ('completed','failed','cancelled','superseded')",
                     status, status, result, status, runId);
+            if ("completed".equals(status)) {
+                Object resultType = readPayload(result).get("result_type");
+                if ("normal".equals(resultType) || "safety_degraded".equals(resultType)) {
+                    jdbc.update("UPDATE agent_runs SET result_type=? WHERE agent_run_id=?", resultType, runId);
+                }
+                if (memories != null) memories.persistFromCompletedRun(runId, readPayload(result));
+            }
         } else {
             jdbc.update("UPDATE agent_runs SET updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=?", runId);
         }
@@ -80,6 +105,18 @@ public class V1RuntimeEventService {
         jdbc.update("INSERT INTO agent_run_sse_outbox(agent_run_sse_outbox_id,agent_run_id,sse_event_id,stream_seq,source_event_key,event_type,payload_json) VALUES (?,?,?,?,?,?,CAST(? AS jsonb))",
                 ids.nextId(), runId, sseId, streamSeq, event.runId() + ":" + event.eventId(), event.eventType(), payload);
         jdbc.update("UPDATE agent_runs SET sse_last_stream_seq=? WHERE agent_run_id=?", streamSeq, runId);
+        if (isTerminal(status) && admission != null) {
+            // 终态是释放 Redis lease 的唯一业务触发点；提升结果再回写数据库，Relay 才会继续发送。
+            try {
+                for (String promotedRunId : admission.releaseAndPromote(event.runId())) {
+                    jdbc.update("UPDATE runtime_dispatch_outbox SET status='pending',queued_at=NULL,next_attempt_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE run_id=? AND status='queued'",
+                            promotedRunId);
+                }
+            } catch (com.foodmate.shared.runtime.RuntimeException coordinationFailure) {
+                // Redis 故障不能回滚已经接受的终态；lease 到期后由下一轮协调修复。
+                if (!"RUNTIME_COORDINATION_UNAVAILABLE".equals(coordinationFailure.code())) throw coordinationFailure;
+            }
+        }
         return new EventResult(event.runId(), event.eventId(), false, status);
     }
 
@@ -172,4 +209,17 @@ public class V1RuntimeEventService {
     public record EventResult(String runId, String eventId, boolean duplicate, String status) {}
     public record SseRecord(long streamSeq, String sseEventId, String eventType, Map<String, Object> payload, boolean terminal) {}
     private static boolean terminalType(String type) { return type.equals("run.completed") || type.equals("run.failed") || type.equals("run.cancelled") || type.equals("run.superseded"); }
+    private static boolean isTerminal(String status) { return status.equals("completed") || status.equals("failed") || status.equals("cancelled"); }
+
+    private void persistModelUsage(long runId, V1RunEvent event) {
+        Map<String, Object> payload = event.payload();
+        Map<String, Object> usage = payload.get("usage") instanceof Map<?, ?> value ? (Map<String, Object>) value : Map.of();
+        Map<String, Object> cost = payload.get("cost") instanceof Map<?, ?> value ? (Map<String, Object>) value : Map.of();
+        Object amount = cost.get("amount");
+        jdbc.update("INSERT INTO model_usage_logs(model_usage_log_id,request_id,trace_id,scene,provider_code,model_name,usage_json,latency_ms,cost_amount,status,created_by,updated_by) VALUES (?,?,?,?,?,?,CAST(? AS jsonb),?,?,?,NULL,NULL) ON CONFLICT (request_id) DO NOTHING",
+                ids.nextId(), event.requestId(), event.traceId(), payload.get("scene"), payload.get("provider_code"), payload.get("model_name"),
+                json(usage), number(payload.get("latency_ms")), amount == null ? null : new java.math.BigDecimal(amount.toString()), payload.getOrDefault("status", "success"));
+    }
+
+    private static Integer number(Object value) { try { return value == null ? null : Integer.valueOf(value.toString()); } catch (NumberFormatException ignored) { return null; } }
 }

@@ -1,11 +1,12 @@
 import json
 import sys
+import base64
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import TestCase
 
 sys.path.append(str(Path(__file__).parents[1]))
-from mq_runtime import RedisCommandInbox, RedisEventOutbox, RocketMqEventPublisher, _CommandListener
+from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisEventOutbox, RocketMqEventPublisher, _CommandListener
 from rocketmq import ConsumeResult
 
 
@@ -41,6 +42,15 @@ class FakeRedis:
     def delete(self, key):
         self.hashes.pop(key, None)
 
+    def eval(self, script, key_count, version_key, value_key, expected, payload, ttl):
+        current = int(self.values.get(version_key, "0"))
+        if expected and int(expected) != current:
+            return 0
+        next_version = current + 1
+        self.values[version_key] = str(next_version)
+        self.values[value_key] = payload
+        return next_version
+
 
 class FakeProducer:
     def __init__(self):
@@ -55,6 +65,16 @@ class FakeProducer:
 
 
 class MqRuntimeTests(TestCase):
+    def test_redis_checkpoint_uses_cas_and_round_trips_encrypted_value(self):
+        client = FakeRedis()
+        key = base64.urlsafe_b64encode(b"01234567890123456789012345678901").decode()
+        checkpoint = RedisCheckpoint(client, "test-checkpoint", ttl_seconds=60, encryption_key=key)
+
+        version = checkpoint.save("r:d", {"node": "planner"})
+        self.assertEqual((version, {"node": "planner"}), checkpoint.load("r:d"))
+        self.assertEqual(2, checkpoint.save("r:d", {"node": "composer"}, version))
+        with self.assertRaisesRegex(RuntimeError, "CHECKPOINT_CAS_CONFLICT"):
+            checkpoint.save("r:d", {"node": "stale"}, version)
     def test_command_inbox_accepts_duplicate_and_rejects_hash_conflict(self):
         inbox = RedisCommandInbox(FakeRedis(), "test")
         command = {"dispatch_id": "d1", "request_hash": "sha256:1"}

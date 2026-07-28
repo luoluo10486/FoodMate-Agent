@@ -11,5 +11,7 @@ foodmate:
     cookie-secure: false
   runtime:
     stub-enabled: true
+    admission:
+      enabled: false
     service-jwt:
       enabled: false
