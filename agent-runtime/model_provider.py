@@ -15,7 +15,7 @@ import urllib.request
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Callable
 
 
@@ -136,7 +136,7 @@ class OpenAICompatibleModelProvider(ModelProvider):
             "max_tokens": request.max_output_tokens,
         }).encode("utf-8")
         http_request = urllib.request.Request(
-            self.base_url + "/chat/completions", data=body, method="POST",
+            self._completion_url(), data=body, method="POST",
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.api_key},
         )
         try:
@@ -158,6 +158,12 @@ class OpenAICompatibleModelProvider(ModelProvider):
             return ModelResponse(content, input_tokens, output_tokens, payload.get("id"))
         except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ModelProviderError("MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid") from error
+
+    def _completion_url(self) -> str:
+        """兼容配置基地址或完整的 OpenAI Chat Completions 地址。"""
+        if self.base_url.endswith("/chat/completions"):
+            return self.base_url
+        return self.base_url + "/chat/completions"
 
 
 @dataclass(frozen=True)
@@ -247,10 +253,18 @@ class ModelRouter:
             price_version=self.environment.get("FOODMATE_MODEL_PRICE_VERSION", "unconfigured"),
         )
 
-    def _cost(self, provider_code: str, input_tokens: int, output_tokens: int) -> Decimal:
+    def _cost(self, provider_code: str, input_tokens: int, output_tokens: int) -> Decimal | None:
         prefix = "FOODMATE_MODEL_PROVIDER_" + provider_code.upper().replace("-", "_") + "_"
-        in_price = Decimal(self.environment.get(prefix + "INPUT_CNY_PER_MILLION_TOKENS", "0"))
-        out_price = Decimal(self.environment.get(prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", "0"))
+        # 价格属于可选配置；留空时保留未知成本，不能让成功的模型调用因 Decimal('') 失败。
+        in_raw = self.environment.get(prefix + "INPUT_CNY_PER_MILLION_TOKENS", "").strip()
+        out_raw = self.environment.get(prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", "").strip()
+        if not in_raw or not out_raw:
+            return None
+        try:
+            in_price = Decimal(in_raw)
+            out_price = Decimal(out_raw)
+        except InvalidOperation:
+            return None
         return (Decimal(input_tokens) * in_price + Decimal(output_tokens) * out_price) / Decimal(1_000_000)
 
     def _enabled(self, key: str, default: bool) -> bool:

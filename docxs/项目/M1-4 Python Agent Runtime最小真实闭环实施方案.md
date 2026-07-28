@@ -9,11 +9,11 @@
 - [ ] 浏览器完整真实登录、会话、消息和 SSE 闭环尚未通过；当前仅验证了 mock 页面交互与 SSE 展示，真实 Java API 注册请求返回 `500 INTERNAL_ERROR`。
 - [x] Proposal/Result 真实 RocketMQ 往返、Tool Gateway SQL 失败审计、Result 发布完成和重复 Proposal 幂等已通过。
 - [x] Redis 多实例准入 6/6 通过：并发上限、队列容量、continuation 优先、队列 lease 回收和协调不可用错误码均已覆盖。
-- [x] Python MQ producer/consumer 启动超时已实现，启动失败返回 `RUNTIME_MQ_STARTUP_FAILED`；Python pytest 28 passed、真实云 gated 测试 1 skipped。
+- [x] Python MQ producer/consumer 启动超时已实现，启动失败返回 `RUNTIME_MQ_STARTUP_FAILED`；Python pytest 29 passed、真实云 gated 测试 1 passed。
 
 ### 未完成条件
 
-- [ ] 真实云模型供应商联调未通过：SiliconFlow 请求返回 HTTP 401，Runtime 已正确映射为 `MODEL_PROVIDER_REJECTED`；默认仍使用无凭证 deterministic stub。
+- [x] 真实云模型供应商联调已通过：官方 `/v1/models` 返回 200，模型列表包含 `deepseek-ai/DeepSeek-V4-Flash`；Python 适配器真实调用和 primary + Eval gated 测试均通过。默认仍使用无凭证 deterministic stub。
 - [ ] 生产级长时间吞吐、P95/P99、进程级故障恢复和真正多 Java 实例部署演练仍未完成。
 
 ## 1. 文档信息
@@ -22,7 +22,7 @@
 |---|---|
 | 功能编号/阶段 | M1-4 |
 | 功能名称 | Python Agent Runtime 最小真实模型闭环与生产治理基线 |
-| 文档状态 | M1-4 本地最小真实闭环已通过代码、基础设施和 Proposal/Result E2E 验证；真实云模型、完整浏览器路径和生产级质量门禁仍未完成 |
+| 文档状态 | M1-4 本地最小真实闭环、真实云模型和 Proposal/Result E2E 已通过；完整浏览器路径和生产级质量门禁仍未完成 |
 | 前置阶段 | M1-3 Java -> Python 确定性 stub -> Java -> SSE 已完成 |
 | 方案日期 | 2026-07-26 |
 | 架构依据 | `Agent运行架构.md`、`Python智能体运行时设计.md`、`ADR-0005-RocketMQ异步主通道.md`、`配置指南.md` |
@@ -282,12 +282,13 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 ### 5.21 当前模型适配实现切片
 
 - 已实现：`agent-runtime/model_provider.py` 提供 `ModelProvider`、`ModelRequest`、`ModelResponse`、`ProviderAttempt` 和结构化错误分类。
+- 已实现：OpenAI-compatible 适配器同时接受 `/v1` 基地址和完整 `/v1/chat/completions` 地址，避免完整地址被重复拼接；两种配置形式均有自动化测试。
 - 已实现：默认 `deterministic:local` provider 用于本地自动化测试；它不联网，不能表述为已接入真实大模型。
 - 已实现：任意数量的 OpenAI Chat Completions 兼容云端点可由 `provider_id:model_name` 逻辑别名配置；`high/standard/economy/eval` 由确定性路由选择。
 - 已实现：只有 timeout、限流和供应商暂不可用才按白名单 tier fallback；安全、权限、schema 和预算问题不能通过换模型绕过。
 - 已实现：每次逻辑调用生成 `model_call_id`，每次 provider 尝试生成 `provider_attempt_id`，并通过已有 `run.model_usage` V1 事件上报 Token、成本估算、延迟和状态。
 - 已验证：本地 pytest 覆盖别名路由、可重试 fallback、不可重试拒绝和 V1 usage payload；未使用真实云凭据，未完成真实云联调。
-- 未完成：真实供应商 fixture、价格表审计和真实云端联调仍属于 M1-4 后续切片；LLM Judge 已有独立调用，Java 已将 `run.model_usage` 幂等写入 `model_usage_logs`。
+- 未完成：真实供应商价格表审计仍属于 M1-4 后续切片；LLM Judge 已有独立调用，Java 已将 `run.model_usage` 幂等写入 `model_usage_logs`。
 
 ### 5.22 当前 Eval、预算与 checkpoint 实现切片
 
@@ -380,14 +381,14 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 
 ### 8.2 仍未完成
 
-- [ ] 真实云供应商调用：已实际请求 SiliconFlow，但返回 HTTP 401；需要轮换/确认有效凭据后才能验证成功响应、usage 和成本记录。
+- [x] 真实云供应商调用：SiliconFlow `/v1/models` 和 `DeepSeek-V4-Flash` Chat Completions 均已成功；真实调用记录了 provider request ID、Token usage 和 latency。当前联调价格使用 0 占位，生产价格仍需配置真实值。
 - [x] Proposal/Result 真实 Broker 故障注入：停止 Broker 时 Proposal 发送得到 `No route info of this topic`；恢复 Broker 后 Proposal -> Tool Gateway -> Result 测试成功，未删除 volume。
 - [ ] 浏览器完整登录、会话、消息、SSE E2E：mock 页面已走到消息、工具成功和写入确认；真实 API 注册请求返回 `500 INTERNAL_ERROR`，因此尚不能标记真实登录和真实 SSE 闭环通过。
 - [ ] 生产级并发、队列防饥饿和多实例：当前只有 Redis Lua/ZSET 代码基础，没有完成双 Java 实例共享 Redis、长时间 aging、租约回收和容量压力证据。
 
 ## M1-4 2026-07-28 本轮联调与故障演练记录
 
-- 真实云模型：已使用 SiliconFlow `cloud_primary` 实际发起一次 Chat Completions 请求；服务返回 HTTP 401，Runtime 正确记录为 `MODEL_PROVIDER_REJECTED`，因此真实云联调仍未通过。默认 tier 未改动，仍为 `deterministic:local`。
+- 真实云模型：早期使用旧进程/旧状态测试时曾得到 HTTP 401；本轮重新请求 `/v1/models` 返回 200，并用 `DeepSeek-V4-Flash` 完成真实 Chat Completions、provider request ID、usage 和 gated Eval 验证。默认 tier 未改动，仍为 `deterministic:local`。
 - 长时间并发基线：新增 `M14AdmissionLongStressTest`，显式开启后使用真实 Redis 和两个 admission service 实例运行。30 秒结果为 204 次完成准入、active 峰值 20、0 次协调错误、P50 4.705ms、P95 12.313ms、P99 123.302ms；容量拒绝 367731 次。该结果是本机单 Redis 基准，不是生产容量承诺。
 - 多 JVM：两个独立 Java JVM 已在 18082/18083 同时启动，共享本地 PostgreSQL/Redis，并且两个 liveness 均返回 200；临时 JVM 已停止。跨实例 admission 规则仍由 Redis 共享服务测试覆盖，尚未完成正式部署拓扑和多实例业务流量验证。
 - 进程故障恢复：PostgreSQL、Redis、RocketMQ Proxy、Broker 均完成停止后端口不可达、重新启动并恢复 healthy 的演练；NameServer 受 `restart: unless-stopped` 影响快速自动拉起，未形成可观测的长时间端口中断，但最终 healthy。未删除任何 volume。

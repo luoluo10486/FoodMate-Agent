@@ -37,7 +37,8 @@ class ModelRouterTests(TestCase):
         payload = attempts[0].event_payload()
         self.assertEqual("success", payload["status"])
         self.assertEqual(5, payload["usage"]["total_tokens"])
-        self.assertEqual("CNY", payload["cost"]["currency"])
+        # 未配置供应商价格时成本必须保持未知，不能伪造为 0 CNY。
+        self.assertIsNone(payload["cost"]["currency"])
 
     def test_retryable_error_uses_configured_fallback_only(self):
         first = FakeProvider("first", error=ModelProviderError("MODEL_TIMEOUT", "timeout", True))
@@ -170,6 +171,16 @@ class ProviderContractTests(TestCase):
         self.assertEqual(12, attempts[1].total_tokens)
         self.assertEqual(Decimal("0.000034"), attempts[1].cost_cny)
         _ProviderHandler.response_mode = original_mode
+
+    def test_full_chat_completion_url_is_not_appended_twice(self):
+        provider = OpenAICompatibleModelProvider(
+            "cloud_primary", self.base_url + "/chat/completions", "test-key"
+        )
+
+        response = provider.complete("qwen-plus", ModelRequest("composer", "hello"))
+
+        self.assertEqual("cloud answer", response.content)
+        self.assertEqual("/chat/completions", _ProviderHandler.requests[0][0])
 
     def test_malformed_cloud_response_is_not_fallback_retryable(self):
         _ProviderHandler.response_mode = "malformed"
