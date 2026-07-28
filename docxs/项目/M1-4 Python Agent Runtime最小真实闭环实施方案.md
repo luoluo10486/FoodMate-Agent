@@ -385,6 +385,14 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [ ] 浏览器完整登录、会话、消息、SSE E2E：登录、注册、会话创建、消息落库和 ID 精度已实际验证；RocketMQ Proxy/consumer 重启后仍出现消息停在 queued/routing，尚未出现可交付的 run.answer_stream/run.completed，因此不能标记通过。
 - [ ] 生产级并发、队列防饥饿和多实例：当前只有 Redis Lua/ZSET 代码基础，没有完成双 Java 实例共享 Redis、长时间 aging、租约回收和容量压力证据。
 
+## M1-4 2026-07-28 本轮联调与故障演练记录
+
+- 真实云模型：已使用 SiliconFlow `cloud_primary` 实际发起一次 Chat Completions 请求；服务返回 HTTP 401，Runtime 正确记录为 `MODEL_PROVIDER_REJECTED`，因此真实云联调仍未通过。默认 tier 未改动，仍为 `deterministic:local`。
+- 长时间并发基线：新增 `M14AdmissionLongStressTest`，显式开启后使用真实 Redis 和两个 admission service 实例运行。30 秒结果为 204 次完成准入、active 峰值 20、0 次协调错误、P50 4.705ms、P95 12.313ms、P99 123.302ms；容量拒绝 367731 次。该结果是本机单 Redis 基准，不是生产容量承诺。
+- 多 JVM：两个独立 Java JVM 已在 18082/18083 同时启动，共享本地 PostgreSQL/Redis，并且两个 liveness 均返回 200；临时 JVM 已停止。跨实例 admission 规则仍由 Redis 共享服务测试覆盖，尚未完成正式部署拓扑和多实例业务流量验证。
+- 进程故障恢复：PostgreSQL、Redis、RocketMQ Proxy、Broker 均完成停止后端口不可达、重新启动并恢复 healthy 的演练；NameServer 受 `restart: unless-stopped` 影响快速自动拉起，未形成可观测的长时间端口中断，但最终 healthy。未删除任何 volume。
+- 结论：以上补齐了联调和恢复证据，但“真实云调用成功、业务消息故障注入后的 Proposal/Result 对账、浏览器完整 SSE E2E、生产级长时间容量结论”仍保持未完成。
+
 ### 8.3 当前阻塞证据
 
 - 本地 RocketMQ Proxy 曾报告创建 DefaultHeartBeatSyncerTopic 失败；重启 Proxy 和更换 Python consumer group 后，最新 Run 仍停在 queued，需要继续处理 Proxy/SDK 消费稳定性。

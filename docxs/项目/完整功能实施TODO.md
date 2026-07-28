@@ -255,6 +255,13 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 
 每个小项开始前只需补充该项的接口、数据和验收细节；未完成其前置依赖，不应并行推进高层功能。
 ## M1-4 2026-07-28 最新复核
+- [x] PostgreSQL、Redis、RocketMQ Proxy/Broker 进程停止、端口不可达、重启恢复 healthy 的本地演练；未删除数据卷。
+- [x] 新增长压测试 `M14AdmissionLongStressTest`，30 秒真实 Redis 基线采集 P50/P95/P99、active 峰值、容量拒绝和协调错误。
+- [x] 两个独立 Java JVM 在 18082/18083 启动并通过 liveness；正式多实例业务流量验证仍未完成。
+- [ ] SiliconFlow 真实云调用成功：本轮实际请求返回 HTTP 401 `MODEL_PROVIDER_REJECTED`，需要先轮换/确认有效 API Key，不能以 fixture 代替。
+- [ ] Proposal/Result 业务故障注入后的重试、恢复、Inbox/Tool Gateway/Result 业务对账。
+- [ ] 浏览器完整登录、会话、消息、SSE E2E；当前 RocketMQ 消费链仍有 queued/routing 停滞证据。
+- [ ] 生产级长时间容量结论、队列防饥饿和多 Java 实例业务流量验证；当前 30 秒结果仅作为本地单 Redis 基线。
 
 - 已完成：模型适配器 fixture 契约、Proposal/Result 幂等单测、真实模式会话路由修复、64 位 ID 字符串契约、代理 Origin 修复。
 - 已验证：Python pytest 27 项、Java API/依赖模块测试 27 项、前端 typecheck/build。
