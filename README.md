@@ -27,14 +27,16 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 | 真实持久化 | PostgreSQL E2E 已验证注册、登录、Cookie/CSRF、会话创建、消息持久化和读取。 |
 | 异步传输 | Java PostgreSQL Outbox -> RocketMQ -> Consumer 的真实 E2E 已验证 envelope、`request_hash`、`dispatch_id` 与 `run_id`。 |
 | Tool/SQL 闭环 | Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result 的真实 E2E 已验证；SQL 失败会记录 `SQL_EXECUTION_FAILED`，重复 Proposal 不重复执行。 |
+| 真实云模型与 Eval | SiliconFlow `deepseek-ai/DeepSeek-V4-Flash` 已完成 composer 与独立 Eval 调用；Eval 拒绝时会安全降级，模型调用记录包含 Token、价格版本和成本。 |
+| 本地长压与多实例 | 120 秒 Redis 准入压测已通过并采集 P50/P95/P99；两个独立 Java JVM 已共享 PostgreSQL/Redis 跑通跨实例注册、会话、消息写入与读取。 |
 | 回归 | `mvn -pl foodmate-bootstrap -am test` 已通过。 |
 
 当前不能宣称完成的内容：
 
 - 浏览器真实登录、会话、消息、RocketMQ 消费和 SSE 的完整端到端闭环。
-- Python Runtime 的真实模型、RAG、Tool/SQL Proposal 到结果回注的完整跨进程编排闭环。
-- 生产级长时间压测、P95/P99 容量结论、多 Java 实例业务流量验证，以及 Redis、RocketMQ、PostgreSQL 的进程级故障恢复演练。
-- 可审计的生产模型价格表与成本治理数据。
+- Python Runtime 的 RAG、Tool/SQL Proposal 到 Result 回注的完整跨进程编排闭环。
+- 生产资源上的长时间压测、P95/P99 容量结论、跨节点故障切换以及持续业务 Agent 流量验证。
+- 供应商账单抽样对账和成本异常告警等生产成本治理。
 
 ## 本地启动
 

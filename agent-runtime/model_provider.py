@@ -46,6 +46,7 @@ class ModelResponse:
     input_tokens: int
     output_tokens: int
     provider_request_id: str | None = None
+    cached_input_tokens: int = 0
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,7 @@ class ProviderAttempt:
     provider_request_id: str | None = None
     error_code: str | None = None
     price_version: str = "unconfigured"
+    cached_input_tokens: int | None = None
 
     def event_payload(self) -> dict[str, object]:
         """Build exactly the existing V1 run.model_usage payload."""
@@ -79,6 +81,7 @@ class ProviderAttempt:
             "status": self.status,
             "usage": {
                 "input_tokens": self.input_tokens,
+                "cached_input_tokens": self.cached_input_tokens,
                 "output_tokens": self.output_tokens,
                 "total_tokens": self.total_tokens,
             },
@@ -87,6 +90,7 @@ class ProviderAttempt:
                 "amount": None if self.cost_cny is None else format(self.cost_cny, "f"),
                 "currency": None if self.cost_cny is None else "CNY",
             },
+            "price_version": self.price_version,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
         }
@@ -155,7 +159,9 @@ class OpenAICompatibleModelProvider(ModelProvider):
             content = str(payload["choices"][0]["message"]["content"])
             input_tokens = int(usage.get("prompt_tokens", 0))
             output_tokens = int(usage.get("completion_tokens", 0))
-            return ModelResponse(content, input_tokens, output_tokens, payload.get("id"))
+            prompt_details = usage.get("prompt_tokens_details") or {}
+            cached_input_tokens = int(prompt_details.get("cached_tokens", 0))
+            return ModelResponse(content, input_tokens, output_tokens, payload.get("id"), cached_input_tokens)
         except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ModelProviderError("MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid") from error
 
@@ -192,6 +198,7 @@ class ModelRouter:
         attempts: list[ProviderAttempt] = []
         for candidate in candidates:
             alias = self._alias(candidate)
+            self._require_audited_price(alias)
             started = datetime.now(timezone.utc)
             begin = time.monotonic()
             try:
@@ -245,27 +252,57 @@ class ModelRouter:
             model_call_id=model_call_id, provider_attempt_id="mat_" + uuid.uuid4().hex,
             scene=scene, provider_code=alias.provider_code, model_name=alias.model_name, status=status,
             input_tokens=input_tokens, output_tokens=output_tokens, total_tokens=total_tokens,
-            cost_cny=self._cost(alias.provider_code, input_tokens, output_tokens) if response else None,
+            cost_cny=self._cost(alias, input_tokens, output_tokens, response.cached_input_tokens if response else 0) if response else None,
             latency_ms=max(0, int((time.monotonic() - begin) * 1000)),
             started_at=started.isoformat().replace("+00:00", "Z"), finished_at=finished.isoformat().replace("+00:00", "Z"),
             provider_request_id=response.provider_request_id if response else None,
             error_code=error.code if error else None,
-            price_version=self.environment.get("FOODMATE_MODEL_PRICE_VERSION", "unconfigured"),
+            price_version=self._price(alias)[3],
+            cached_input_tokens=response.cached_input_tokens if response else None,
         )
 
-    def _cost(self, provider_code: str, input_tokens: int, output_tokens: int) -> Decimal | None:
-        prefix = "FOODMATE_MODEL_PROVIDER_" + provider_code.upper().replace("-", "_") + "_"
-        # 价格属于可选配置；留空时保留未知成本，不能让成功的模型调用因 Decimal('') 失败。
-        in_raw = self.environment.get(prefix + "INPUT_CNY_PER_MILLION_TOKENS", "").strip()
-        out_raw = self.environment.get(prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", "").strip()
-        if not in_raw or not out_raw:
+    def _cost(self, alias: ModelAlias, input_tokens: int | None, output_tokens: int | None, cached_input_tokens: int = 0) -> Decimal | None:
+        if input_tokens is None or output_tokens is None:
             return None
+        in_price, out_price, cached_price, _ = self._price(alias)
+        cached_tokens = max(0, min(cached_input_tokens, input_tokens))
+        if in_price is None or out_price is None or (cached_tokens and cached_price is None):
+            return None
+        regular_tokens = input_tokens - cached_tokens
+        input_cost = Decimal(regular_tokens) * in_price + Decimal(cached_tokens) * (cached_price or in_price)
+        return (input_cost + Decimal(output_tokens) * out_price) / Decimal(1_000_000)
+
+    def _price(self, alias: ModelAlias) -> tuple[Decimal | None, Decimal | None, Decimal | None, str]:
+        """优先读取供应商+模型价格，兼容旧的供应商级配置。"""
+        provider_key = alias.provider_code.upper().replace("-", "_")
+        model_key = "_".join(part for part in alias.model_name.upper().replace("-", "_").replace("/", "_").split("_") if part)
+        model_prefix = f"FOODMATE_MODEL_PROVIDER_{provider_key}_{model_key}_"
+        provider_prefix = f"FOODMATE_MODEL_PROVIDER_{provider_key}_"
+        in_raw = self.environment.get(model_prefix + "INPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "INPUT_CNY_PER_MILLION_TOKENS", "")).strip()
+        out_raw = self.environment.get(model_prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", "")).strip()
+        cached_raw = self.environment.get(model_prefix + "CACHED_INPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "CACHED_INPUT_CNY_PER_MILLION_TOKENS", "")).strip()
+        version = self.environment.get(model_prefix + "PRICE_VERSION", self.environment.get("FOODMATE_MODEL_PRICE_VERSION", "unconfigured")).strip() or "unconfigured"
+        if not in_raw or not out_raw:
+            return None, None, None, version
         try:
             in_price = Decimal(in_raw)
             out_price = Decimal(out_raw)
+            cached_price = Decimal(cached_raw) if cached_raw else None
         except InvalidOperation:
-            return None
-        return (Decimal(input_tokens) * in_price + Decimal(output_tokens) * out_price) / Decimal(1_000_000)
+            return None, None, None, version
+        if (not in_price.is_finite() or not out_price.is_finite() or in_price < 0 or out_price < 0
+                or (cached_price is not None and (not cached_price.is_finite() or cached_price < 0))):
+            return None, None, None, version
+        return in_price, out_price, cached_price, version
+
+    def _require_audited_price(self, alias: ModelAlias) -> None:
+        """生产成本审计开启时，禁止在价格未知的情况下产生云调用。"""
+        required = self.environment.get("FOODMATE_MODEL_PRICE_AUDIT_REQUIRED", "false").lower() == "true"
+        if alias.provider_code == "deterministic" or not required:
+            return
+        input_price, output_price, cached_price, version = self._price(alias)
+        if input_price is None or output_price is None or cached_price is None or version == "unconfigured":
+            raise ModelProviderError("MODEL_PRICE_UNCONFIGURED", "audited model price is not configured")
 
     def _enabled(self, key: str, default: bool) -> bool:
         return self.environment.get(key, str(default)).lower() == "true"

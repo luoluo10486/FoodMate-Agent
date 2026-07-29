@@ -281,7 +281,13 @@ public class V1RuntimeEventService {
         Map<String, Object> usage =
                 payload.get("usage") instanceof Map<?, ?> value
                         ? (Map<String, Object>) value
-                        : Map.of();
+                        : new HashMap<>();
+        // usage_json 同时保留供应商 attempt 和价格版本，便于事后按原始计价配置审计成本。
+        usage = new HashMap<>(usage);
+        usage.put("model_call_id", payload.get("model_call_id"));
+        usage.put("provider_attempt_id", payload.get("provider_attempt_id"));
+        usage.put("provider_request_id", payload.get("provider_request_id"));
+        usage.put("price_version", payload.get("price_version"));
         Map<String, Object> cost =
                 payload.get("cost") instanceof Map<?, ?> value
                         ? (Map<String, Object>) value

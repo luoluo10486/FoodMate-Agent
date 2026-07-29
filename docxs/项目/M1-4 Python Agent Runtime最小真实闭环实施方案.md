@@ -297,7 +297,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 已实现：任意数量的 OpenAI Chat Completions 兼容云端点可由 `provider_id:model_name` 逻辑别名配置；`high/standard/economy/eval` 由确定性路由选择。
 - 已实现：只有 timeout、限流和供应商暂不可用才按白名单 tier fallback；安全、权限、schema 和预算问题不能通过换模型绕过。
 - 已实现：每次逻辑调用生成 `model_call_id`，每次 provider 尝试生成 `provider_attempt_id`，并通过已有 `run.model_usage` V1 事件上报 Token、成本估算、延迟和状态。
-- 已验证：本地 pytest 覆盖别名路由、可重试 fallback、不可重试拒绝和 V1 usage payload；SiliconFlow 模型列表和 `deepseek-ai/DeepSeek-V4-Flash` 的真实 Chat Completions、primary + Eval gated 测试也已通过。
+- 已验证：本地 pytest 覆盖别名路由、可重试 fallback、不可重试拒绝和 V1 usage payload；SiliconFlow 模型列表和一次短 Chat Completions 已通过，但完整 Runtime 的 composer 超时，不能将 primary + Eval gated 编排标记为通过。
 - 未完成：真实供应商价格表审计仍属于 M1-4 后续切片；LLM Judge 已有独立调用，Java 已将 `run.model_usage` 幂等写入 `model_usage_logs`。
 
 ### 5.22 当前 Eval、预算与 checkpoint 实现切片
@@ -394,11 +394,11 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] 真实云供应商调用：SiliconFlow `/v1/models` 和 `DeepSeek-V4-Flash` Chat Completions 均已成功；真实调用记录了 provider request ID、Token usage 和 latency。当前联调价格使用 0 占位，生产价格仍需配置真实值。
 - [x] Proposal/Result 真实 Broker 故障注入：停止 Broker 时 Proposal 发送得到 `No route info of this topic`；恢复 Broker 后 Proposal -> Tool Gateway -> Result 测试成功，未删除 volume。
 - [ ] 浏览器完整登录、会话、消息、SSE E2E：mock 页面已走到消息、工具成功和写入确认；真实 API 注册请求返回 `500 INTERNAL_ERROR`，因此尚不能标记真实登录和真实 SSE 闭环通过。
-- [ ] 生产级并发、队列防饥饿和多实例：当前只有 Redis Lua/ZSET 代码基础，没有完成双 Java 实例共享 Redis、长时间 aging、租约回收和容量压力证据。
+- [ ] 生产级并发、队列防饥饿和多实例：双 Java 实例共享 Redis 与 120 秒本地基线已完成，但生产拓扑、长时间 aging、租约回收和容量结论仍未完成。
 
 ## M1-4 2026-07-28 本轮联调与故障演练记录
 
-- 真实云模型：早期使用旧进程/旧状态测试时曾得到 HTTP 401；本轮重新请求 `/v1/models` 返回 200，并用 `DeepSeek-V4-Flash` 完成真实 Chat Completions、provider request ID、usage 和 gated Eval 验证。默认 tier 未改动，仍为 `deterministic:local`。
+- 真实云模型：早期使用旧进程/旧状态测试时曾得到 HTTP 401；本轮重新请求 `/v1/models` 返回 200，并用 `DeepSeek-V4-Flash` 完成一次短 Chat Completions、provider request ID 和 usage 验证。完整 Runtime 的 composer 后续在 90 秒内超时，Eval 未启动；默认 tier 未改动，仍为 `deterministic:local`。
 - 长时间并发基线：新增 `M14AdmissionLongStressTest`，显式开启后使用真实 Redis 和两个 admission service 实例运行。30 秒结果为 204 次完成准入、active 峰值 20、0 次协调错误、P50 4.705ms、P95 12.313ms、P99 123.302ms；容量拒绝 367731 次。该结果是本机单 Redis 基准，不是生产容量承诺。
 - 多 JVM：两个独立 Java JVM 已在 18082/18083 同时启动，共享本地 PostgreSQL/Redis，并且两个 liveness 均返回 200；临时 JVM 已停止。跨实例 admission 规则仍由 Redis 共享服务测试覆盖，尚未完成正式部署拓扑和多实例业务流量验证。
 - 进程故障恢复：PostgreSQL、Redis、RocketMQ Proxy、Broker 均完成停止后端口不可达、重新启动并恢复 healthy 的演练；NameServer 受 `restart: unless-stopped` 影响快速自动拉起，未形成可观测的长时间端口中断，但最终 healthy。未删除任何 volume。
@@ -408,5 +408,34 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 
 ### 8.3 当前阻塞证据
 
+## 8.4 2026-07-29 本轮校正与验收证据
+
+- [x] 浏览器真实链路：真实登录态下完成会话、消息提交、RocketMQ command、Python Runtime、PostgreSQL event inbox、SSE outbox 和最终答案展示。一次运行的事件序列为 `run.accepted -> run.routed -> run.model_usage -> run.answer_stream -> run.completed`。
+- [x] Proposal/Result：`M14ProposalResultE2ETest` 2 项通过；RocketMQ 传输 E2E 通过。
+- [x] 多实例业务流量：Java 实例 `18080` 与 `18081` 同时运行，共享 PostgreSQL/Redis；第二实例完成注册、建会话、发消息并得到 `completed`。
+- [x] 长压基线：`M14AdmissionLongStressTest` 30 秒通过，`active_max=20`，`p50=4.204ms`，`p95=119.289ms`，`p99=119.467ms`；该结果是本地单 Redis 基线，不是生产容量承诺。
+- [x] 进程恢复：Redis、RocketMQ Broker、PostgreSQL 均执行 stop/start，恢复为 healthy；恢复后真实消息再次完成 `completed`，未删除数据卷。
+- [x] SSE 终态处理：前端在 `run.completed/run.failed/run.cancelled/run.superseded` 后主动关闭 EventSource，避免正常断开被误报为运行失败。
+- [ ] SiliconFlow 完整 Runtime 云编排：单次 Chat Completions 已成功，但 `composer` 在 90 秒 provider timeout 内未返回并记录 `MODEL_TIMEOUT`，Eval 尚未启动，默认仍保持 `deterministic:local`。
+- [ ] 生产价格表审计：代码已把 `price_version`、`model_call_id`、`provider_attempt_id` 写入 `run.model_usage` 审计 JSON，并在 `FOODMATE_MODEL_PRICE_AUDIT_REQUIRED=true` 时对缺价配置 fail-closed；官方价格确认、实际价格配置和账单抽样核对仍未完成。
+
 - 本地 RocketMQ Proxy 曾报告创建 DefaultHeartBeatSyncerTopic 失败；重启 Proxy 和更换 Python consumer group 后，最新 Run 仍停在 queued，需要继续处理 Proxy/SDK 消费稳定性。
 - Python Runtime 已补充未预期异常的 run.failed 记录，避免异常线程让 Run 永久停在 routed；该修复仍需在稳定 MQ 消费后重新跑 E2E。
+
+## 8.5 2026-07-29 追加验证
+
+- [x] 价格治理代码：支持供应商级价格、供应商+模型级覆盖、价格版本和缺价 fail-closed；Python 单测 9 项通过。
+- [x] 长压本地基线：`M14AdmissionLongStressTest` 运行 120 秒通过，`operations=518`，`active_max=10`，`queued=196`，`capacity_rejected=1573694`，`P50=2.468ms`，`P95=112.731ms`，`P99=113.219ms`。这是本机单 Redis 基线，不是生产容量承诺。
+- [ ] 真实云完整编排：单次 Chat Completions 已成功，但完整 Runtime composer 在 90 秒内超时并记录 `MODEL_TIMEOUT`，未进入 Eval；需要供应商侧响应稳定性或专用短 prompt/timeout 策略后重新 gated 验证。
+## 2026-07-29 价格审计校正（最新）
+
+- [x] SiliconFlow 单次真实调用已成功；完整 Runtime 仍保持 `deterministic:local` 默认，云模型只通过显式 tier 配置启用。
+- [x] 新增模型级价格变量覆盖、价格版本写入和生产审计 fail-closed：`FOODMATE_MODEL_PRICE_AUDIT_REQUIRED=true` 且价格缺失时返回 `MODEL_PRICE_UNCONFIGURED`，不会发出云请求。
+- [ ] 未擅自填写 SiliconFlow 价格；需依据官方当前价格表配置 `DeepSeek-V4-Flash` 输入/输出单价，并完成账单抽样对账后才能勾选生产价格审计。
+- [ ] 30 秒压力测试只作为本地单 Redis 基线；长时间压力、P95/P99 容量结论和生产拓扑验证仍未完成。
+## 2026-07-29 最终本地验证补充
+
+- [x] 真实云闭环：SiliconFlow `deepseek-ai/DeepSeek-V4-Flash` 已完成 composer 与独立 Eval 两次真实调用。Eval 拒绝候选答案后返回安全降级，说明 Eval Gate 是实际执行的交付门，而不是只记录日志。
+- [x] 成本审计：按用户提供的 SiliconFlow 控制台价格配置普通输入、缓存输入和输出价格；模型响应的 `cached_tokens` 被独立记录并计费，价格版本为 `siliconflow-console-2026-07-29`。
+- [x] 120 秒 Redis 长压和双 Java JVM 跨实例会话/消息流量已重新验证通过。
+- [ ] 这些仍是本地单机 Docker 证据；生产容量、跨节点故障切换和更长周期业务流量结论仍属于后续发布验证，不提前宣称完成。

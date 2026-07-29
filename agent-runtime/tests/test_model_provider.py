@@ -73,6 +73,50 @@ class ModelRouterTests(TestCase):
         self.assertEqual(1, len(raised.exception.attempts))
         self.assertEqual([], second.calls)
 
+    def test_production_price_audit_fails_closed_before_cloud_call(self):
+        provider = FakeProvider("cloud_primary")
+        router = ModelRouter({
+            "FOODMATE_MODEL_TIER_STANDARD": "cloud_primary:deepseek-ai/DeepSeek-V4-Flash",
+            "FOODMATE_MODEL_PRICE_AUDIT_REQUIRED": "true",
+        }, lambda _: provider)
+
+        with self.assertRaisesRegex(ModelProviderError, "price is not configured") as raised:
+            router.invoke(ModelRequest("composer", "hello"), "standard")
+
+        self.assertEqual("MODEL_PRICE_UNCONFIGURED", raised.exception.code)
+        self.assertEqual([], provider.calls)
+
+    def test_model_specific_price_and_version_override_provider_defaults(self):
+        provider = FakeProvider("cloud_primary")
+        router = ModelRouter({
+            "FOODMATE_MODEL_TIER_STANDARD": "cloud_primary:deepseek-ai/DeepSeek-V4-Flash",
+            "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_INPUT_CNY_PER_MILLION_TOKENS": "99",
+            "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_OUTPUT_CNY_PER_MILLION_TOKENS": "99",
+            "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_DEEPSEEK_AI_DEEPSEEK_V4_FLASH_INPUT_CNY_PER_MILLION_TOKENS": "2",
+            "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_DEEPSEEK_AI_DEEPSEEK_V4_FLASH_OUTPUT_CNY_PER_MILLION_TOKENS": "4",
+            "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_DEEPSEEK_AI_DEEPSEEK_V4_FLASH_PRICE_VERSION": "siliconflow-2026-07-29",
+        }, lambda _: provider)
+
+        _, attempts = router.invoke(ModelRequest("composer", "hello"), "standard")
+
+        self.assertEqual(Decimal("0.000014"), attempts[0].cost_cny)
+        self.assertEqual("siliconflow-2026-07-29", attempts[0].price_version)
+
+    def test_cached_input_price_is_audited_separately(self):
+        provider = FakeProvider("cloud_primary", response=ModelResponse("ok", 100, 50, "request-1", 40))
+        router = ModelRouter({
+            "FOODMATE_MODEL_TIER_STANDARD": "cloud_primary:deepseek-ai/DeepSeek-V4-Flash",
+            "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_INPUT_CNY_PER_MILLION_TOKENS": "1",
+            "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_OUTPUT_CNY_PER_MILLION_TOKENS": "2",
+            "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_CACHED_INPUT_CNY_PER_MILLION_TOKENS": "0.02",
+            "FOODMATE_MODEL_PRICE_VERSION": "siliconflow-2026-07-29",
+        }, lambda _: provider)
+
+        _, attempts = router.invoke(ModelRequest("composer", "hello"), "standard")
+
+        self.assertEqual(Decimal("0.0001608"), attempts[0].cost_cny)
+        self.assertEqual(40, attempts[0].cached_input_tokens)
+
 
 class _ProviderHandler(BaseHTTPRequestHandler):
     response_mode = "success"

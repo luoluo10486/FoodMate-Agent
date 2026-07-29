@@ -15,7 +15,7 @@
 - [ ] 浏览器完整真实登录、会话、消息、RocketMQ 消费与最终 SSE E2E 尚无通过证据。
 - [ ] Python 真实模型、RAG、Tool/SQL Proposal 生成及 Result 回注的完整跨进程编排尚无通过证据。
 - [ ] 生产级长压、多实例吞吐、P95/P99、进程级 Redis/RocketMQ/PostgreSQL 故障恢复仍待执行。
-- [ ] 真实供应商生产价格表与成本审计仍待完成；默认继续使用 deterministic stub。
+- [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
 
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
 
@@ -27,7 +27,7 @@
 | M1-1 | 已完成 | 账户、授权与个人数据能力已有真实实现和验收记录。 |
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
-| M1-4 | 实现中 | 已具备受控模型适配、LangGraph 白名单图、Eval/预算、Redis 准入、摘要 CAS、记忆候选、MQ Transport 与 Proposal/Result 局部真实 E2E；浏览器最终 SSE、Python 完整真实编排、生产压测及故障恢复仍未完成。 |
+| M1-4 | 实现中 | 已具备受控模型适配、LangGraph 白名单图、Eval/预算、Redis 准入、摘要 CAS、记忆候选、MQ Transport 与 Proposal/Result 局部真实 E2E；完整真实云编排仍受供应商响应超时影响，生产价格配置和生产容量结论仍未完成。 |
 
 ## 2. 已确认的产品边界
 
@@ -268,12 +268,31 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] PostgreSQL、Redis、RocketMQ Proxy/Broker 进程停止、端口不可达、重启恢复 healthy 的本地演练；未删除数据卷。
 - [x] 新增长压测试 `M14AdmissionLongStressTest`，30 秒真实 Redis 基线采集 P50/P95/P99、active 峰值、容量拒绝和协调错误。
 - [x] 两个独立 Java JVM 在 18082/18083 启动并通过 liveness；正式多实例业务流量验证仍未完成。
-- [x] SiliconFlow 真实云调用成功：模型列表、真实回答、provider request ID 和 usage 均已验证；联调价格为 0 占位，生产价格配置仍待补齐。
+- [x] SiliconFlow 单次真实云调用成功：模型列表、真实回答、provider request ID 和 usage 均已验证；完整 Runtime 的 composer 在 90 秒超时，Eval 未启动，不能据此宣称云编排验收完成。
 - [x] Proposal/Result Broker 故障注入：Broker 停止时发送得到 `No route info of this topic`；恢复后真实 Proposal/Result 成功，Inbox 幂等测试通过。
 - [ ] 浏览器完整登录、会话、消息、SSE E2E；当前 RocketMQ 消费链仍有 queued/routing 停滞证据。
-- [ ] 生产级长时间容量结论、队列防饥饿和多 Java 实例业务流量验证；当前 30 秒结果仅作为本地单 Redis 基线。
+- [ ] 生产级容量结论、队列防饥饿和多 Java 实例业务流量验证；120 秒结果仍只是本地单 Redis 基线。
 
 - 已完成：模型适配器 fixture 契约、Proposal/Result 幂等单测、真实模式会话路由修复、64 位 ID 字符串契约、代理 Origin 修复。
 - 已验证：Python pytest 27 项、Java API/依赖模块测试 27 项、前端 typecheck/build。
 - 仍未完成：真实云供应商价格表审计、浏览器完整真实 SSE E2E、生产级并发/队列防饥饿/多实例业务流量验证。
-- 最新阻塞：本地 RocketMQ Proxy 曾报告 `DefaultHeartBeatSyncerTopic` 创建失败；重启 Proxy 和更换 Python consumer group 后，Run 仍有 `queued/routing` 停滞，不能将浏览器 E2E 标记为通过。
+- 最新阻塞：完整 Runtime 的真实 SiliconFlow composer 在 90 秒内超时，Eval 尚未启动；生产价格尚未配置，长压仍只有本地单 Redis 基线。
+
+### 8.5 2026-07-29 追加验证
+
+- [x] 价格治理代码：支持供应商级价格、供应商+模型级覆盖、价格版本和缺价 fail-closed；Python 单测 9 项通过。
+- [x] 长压本地基线：`M14AdmissionLongStressTest` 运行 120 秒通过，`operations=518`，`active_max=10`，`queued=196`，`capacity_rejected=1573694`，`P50=2.468ms`，`P95=112.731ms`，`P99=113.219ms`。这是本机单 Redis 基线，不是生产容量承诺。
+- [ ] 真实云完整编排：单次 Chat Completions 已成功，但完整 Runtime composer 在 90 秒内超时并记录 `MODEL_TIMEOUT`，未进入 Eval；需要供应商侧响应稳定性或专用短 prompt/timeout 策略后重新 gated 验证。
+## M1-4 2026-07-29 价格审计校正（最新）
+
+- [x] Python 价格解析支持供应商 + 模型级覆盖，兼容旧供应商级变量；每条 `run.model_usage` 记录实际命中的 `price_version`。
+- [x] `FOODMATE_MODEL_PRICE_AUDIT_REQUIRED=true` 时，云模型缺少非负输入/输出价格或价格版本会在发出请求前返回 `MODEL_PRICE_UNCONFIGURED`；本地 `deterministic:local` 不受影响。
+- [ ] SiliconFlow 当前模型价格尚未从官方价格表核准，因此没有擅自填入价格；生产价格表审计和账单抽样对账仍未完成。
+- [ ] 30 秒压力测试仍只是本地单 Redis 基线；长时间容量、P95/P99 目标和生产拓扑结论仍未完成。
+## M1-4 2026-07-29 最终本地验证补充
+
+- [x] SiliconFlow `deepseek-ai/DeepSeek-V4-Flash` 已完成真实 composer 与独立 Eval 调用：composer 33.561 秒、Eval 14.282 秒，两个 request ID、Token、价格版本与成本均已记录。该次 Eval 返回拒绝并安全降级，证明 Gate 生效；不把拒绝结果伪装成通过。
+- [x] 价格表采用用户提供的 SiliconFlow 控制台数值：普通输入 ¥1.000/M Token、缓存命中输入 ¥0.020/M Token、输出 ¥2.000/M Token，版本为 `siliconflow-console-2026-07-29`。运行时支持缓存输入独立计价，并已开启缺价 fail-closed。
+- [x] `M14AdmissionLongStressTest` 重新运行 120 秒通过：579 次准入、`active_max=16`、0 次协调错误、P50 2.513ms、P95 136.629ms、P99 137.273ms。该结果只代表本机 Docker Redis 基线，不构成生产容量承诺。
+- [x] 两个独立 Java JVM (`18080`、`18081`) 共享 PostgreSQL/Redis 验证：A 注册/登录与写消息，B 创建会话并读取同一消息，跨实例业务数据一致。
+- [ ] 生产结论仍需接近生产的部署资源、持续更长时段负载、业务 Agent 全链路并发和故障期间的恢复指标；不能由本地单机结果替代。

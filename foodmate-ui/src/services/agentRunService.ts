@@ -19,6 +19,7 @@ export function openAgentRunStream(
 ): EventSource {
   // SSE 由服务端持久化 outbox 驱动；前端只负责监听、去重和转发事件。
   const source = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream`, { withCredentials: true });
+  let terminal = false;
   const eventTypes = ['run.accepted', 'run.routed', 'run.clarification_requested', 'run.answer_stream', 'run.completed', 'run.failed', 'run.cancelled', 'run.superseded'];
   const seen = new Set<string>();
   for (const eventType of eventTypes) {
@@ -27,11 +28,17 @@ export function openAgentRunStream(
       // 浏览器重连可能重新收到旧事件，使用稳定的 SSE ID 避免重复追加回答文本。
       if (message.lastEventId && seen.has(message.lastEventId)) return;
       if (message.lastEventId) seen.add(message.lastEventId);
-      try { onEvent(eventType, JSON.parse(message.data) as AgentRunEvent, message.lastEventId); }
+      try {
+        onEvent(eventType, JSON.parse(message.data) as AgentRunEvent, message.lastEventId);
+        if (['run.completed', 'run.failed', 'run.cancelled', 'run.superseded'].includes(eventType)) {
+          terminal = true;
+          source.close();
+        }
+      }
       catch { onError(); }
     });
   }
-  source.onerror = onError;
+  source.onerror = () => { if (!terminal) onError(); };
   return source;
 }
 
