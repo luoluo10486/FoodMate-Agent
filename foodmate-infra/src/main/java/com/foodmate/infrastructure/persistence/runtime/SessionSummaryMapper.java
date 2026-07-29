@@ -94,4 +94,19 @@ public interface SessionSummaryMapper extends SessionSummaryStore {
               )
             """)
     int invalidate(long userId, long sessionId);
+
+    @Override
+    @Update(
+            """
+            UPDATE session_summaries summary
+            SET invalidated_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP,
+                updated_by = #{userId}
+            FROM sessions session
+            WHERE summary.session_id = session.session_id
+              AND session.user_id = #{userId}
+              AND summary.is_deleted = FALSE
+              AND session.is_deleted = FALSE
+            """)
+    int invalidateForUser(long userId);
 }

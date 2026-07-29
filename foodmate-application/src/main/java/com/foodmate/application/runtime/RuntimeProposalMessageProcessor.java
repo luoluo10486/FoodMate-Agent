@@ -8,6 +8,7 @@ import com.foodmate.gateway.RocketMqSettings;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.slf4j.Logger;
@@ -79,8 +80,18 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                     "foodmate_proposal_id", result.proposalId() == null ? "" : result.proposalId());
             // Inbox 已经固化执行结果，但 Broker 尚未确认时必须 RETRY；下次消费会重发同一个 Result，不能再次执行工具。
             try {
-                producer.send(message);
-            } catch (RuntimeException publishFailure) {
+                SendResult sendResult = producer.send(message);
+                log.info(
+                        "Proposal result published: proposal_id={}, msg_id={}, send_status={}",
+                        proposalId,
+                        sendResult == null ? null : sendResult.getMsgId(),
+                        sendResult == null ? null : sendResult.getSendStatus());
+            } catch (Exception publishFailure) {
+                log.warn(
+                        "Proposal result publish failed: proposal_id={}, error_type={}, message={}",
+                        proposalId,
+                        publishFailure.getClass().getSimpleName(),
+                        publishFailure.getMessage());
                 return MqConsumeDecision.RETRY;
             }
             return MqConsumeDecision.ACK;

@@ -15,14 +15,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemoryCandidateService {
     private final MemoryStore store;
     private final IdGenerator ids;
+    private final SessionSummaryService summaries;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
-    public MemoryCandidateService(MemoryStore store, IdGenerator ids) {
+    public MemoryCandidateService(
+            MemoryStore store, IdGenerator ids, SessionSummaryService summaries) {
         this.store = store;
         this.ids = ids;
+        this.summaries = summaries;
     }
 
     @SuppressWarnings("unchecked")
+    @Transactional
     public void persistFromCompletedRun(long runId, Map<String, Object> payload) {
         if (payload == null) return;
         List<Map<String, Object>> candidates =
@@ -32,6 +36,7 @@ public class MemoryCandidateService {
         if (candidates.isEmpty()) return;
         Long userId = store.findRunOwner(runId);
         if (userId == null) return;
+        boolean persisted = false;
         for (Map<String, Object> candidate : candidates) {
             if (!allowed(candidate)) continue;
             String type = text(candidate.get("memory_type"), 32);
@@ -56,7 +61,9 @@ public class MemoryCandidateService {
                             text(candidate.get("source"), 32),
                             scope,
                             conflict ? "conflict" : "confirmed"));
+            persisted = true;
         }
+        if (persisted) summaries.invalidateForUser(userId);
     }
 
     /** 查询用户可见的长期记忆；过期和逻辑删除记录不会重新进入 Agent Context。 */
@@ -72,6 +79,7 @@ public class MemoryCandidateService {
                 store.updateOwned(
                         userId, memoryId, memoryValue == null ? "{}" : memoryValue, scope);
         if (changed != 1) throw new IllegalArgumentException("memory not found");
+        summaries.invalidateForUser(userId);
         return get(userId, memoryId);
     }
 
@@ -80,6 +88,7 @@ public class MemoryCandidateService {
     public void delete(long userId, long memoryId) {
         requireOwned(userId, memoryId);
         store.softDeleteOwned(userId, memoryId);
+        summaries.invalidateForUser(userId);
     }
 
     /** 用户明确确认同一 key 的冲突记忆后，才允许它参与后续 Context 装配。 */
@@ -87,6 +96,7 @@ public class MemoryCandidateService {
     public MemoryView confirm(long userId, long memoryId) {
         requireOwned(userId, memoryId);
         store.confirmOwned(userId, memoryId);
+        summaries.invalidateForUser(userId);
         return get(userId, memoryId);
     }
 

@@ -46,6 +46,10 @@ public class LocalStubPersistenceConfig {
             public int invalidate(long userId, long sessionId) {
                 return 0;
             }
+
+            public int invalidateForUser(long userId) {
+                return 0;
+            }
         };
     }
 

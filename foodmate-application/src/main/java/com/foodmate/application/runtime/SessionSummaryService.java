@@ -105,6 +105,12 @@ public class SessionSummaryService {
         store.invalidate(userId, sessionId);
     }
 
+    /** Memory 发生更正、删除或冲突确认后，用户已有摘要不再作为权威 Context 来源。 */
+    @Transactional
+    public void invalidateForUser(long userId) {
+        store.invalidateForUser(userId);
+    }
+
     private static byte[] sha256(String text) {
         try {
             return MessageDigest.getInstance("SHA-256")

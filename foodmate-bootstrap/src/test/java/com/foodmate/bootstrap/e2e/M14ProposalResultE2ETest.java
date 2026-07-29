@@ -74,7 +74,9 @@ class M14ProposalResultE2ETest {
                                 "requires_confirmation",
                                 false,
                                 "payload",
-                                Map.of("statement", "SELECT 1")));
+                                Map.of(
+                                        "statement", "SELECT 1",
+                                        "invocation_id", "invocation-" + proposalId)));
 
         CountDownLatch received = new CountDownLatch(1);
         Map<String, String> resultBody = new ConcurrentHashMap<>();
@@ -165,7 +167,9 @@ class M14ProposalResultE2ETest {
                                 "requires_confirmation",
                                 false,
                                 "payload",
-                                Map.of("statement", "SELECT * FROM table_that_does_not_exist")));
+                                Map.of(
+                                        "statement", "SELECT * FROM table_that_does_not_exist",
+                                        "invocation_id", "invocation-" + proposalId)));
         CountDownLatch received = new CountDownLatch(1);
         RocketMqConsumerContainer resultConsumer =
                 RocketMqConsumerContainer.concurrent(
@@ -197,20 +201,18 @@ class M14ProposalResultE2ETest {
                     new Message(settings.proposalTopic(), body.getBytes(StandardCharsets.UTF_8)));
             // Inbox completed 只会在 Tool 执行、审计和 Result 发布都成功后写入，作为本次故障注入的权威完成事实。
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
-            while (System.nanoTime() < deadline
-                    && jdbc.queryForObject(
-                                    "SELECT status FROM runtime_tool_proposal_inbox WHERE proposal_id=?",
-                                    String.class,
-                                    proposalId)
-                            .equals("claimed")) {
+            String status = null;
+            while (System.nanoTime() < deadline) {
+                status =
+                        jdbc.query(
+                                "SELECT status FROM runtime_tool_proposal_inbox WHERE proposal_id=?",
+                                resultSet -> resultSet.next() ? resultSet.getString(1) : null,
+                                proposalId);
+                if ("completed".equals(status)) break;
                 Thread.sleep(250);
             }
             assertEquals(
-                    "completed",
-                    jdbc.queryForObject(
-                            "SELECT status FROM runtime_tool_proposal_inbox WHERE proposal_id=?",
-                            String.class,
-                            proposalId));
+                    "completed", status, "Proposal inbox must be completed within 30 seconds");
             assertTrue(
                     jdbc.queryForObject(
                                     "SELECT result_json::text FROM runtime_tool_proposal_inbox WHERE proposal_id=?",

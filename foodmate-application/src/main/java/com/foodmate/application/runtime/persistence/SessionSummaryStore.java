@@ -16,6 +16,8 @@ public interface SessionSummaryStore {
 
     int invalidate(long userId, long sessionId);
 
+    int invalidateForUser(long userId);
+
     record MessageSnapshot(long messageId, int sequence, String role, String content) {}
 
     record SummarySnapshot(long id, int version, int sourceCount) {}
