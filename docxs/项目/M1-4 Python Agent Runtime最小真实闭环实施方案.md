@@ -327,7 +327,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] Java 完成 PostgreSQL Outbox Relay、MQ Event Consumer/Inbox 和基础 DLQ 对账。
 - [x] Java 完成 Redis admission、queued Outbox、permit lease、queue/execution 超时释放和有限 priority + FIFO aging 基础；Java Proposal consumer、Tool Gateway、SQL Guard 和 Result producer 已接入，真实 Proposal/Result 消息及 Broker 故障注入已验证。
 - [x] Python 完成 Redis Inbox/Event Outbox Repository 与 MQ command/event consumer/producer。
-- [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox，并加入原生 LangGraph 白名单图包装；Proposal Outbox 业务协议、Result consumer 与 Java Tool Gateway 的真实往返已通过，恢复执行器仍未完成。
+- [x] Python 完成 Redis checkpoint CAS/TTL/加密与 Event Outbox，并加入原生 LangGraph 白名单图包装；Proposal Outbox 业务协议、Result consumer 与 Java Tool Gateway 的真实往返已通过；Python 恢复契约和 `tool_wait/execution` 安全点已实现，Java 对账恢复命令仍未完成。
 - [x] Python 建立依赖无关状态图、模型适配、预算、Context Builder、Composer、最小 Step Validator、Final Eval 和 Eval 前缓冲；Reflector 和完整 Validator 仍未完成。
 - [x] 完成 Python Result consumer、Java Proposal consumer、Tool Gateway 和 Result producer 的本地协议接入；Java command RocketMQ 真实传输 E2E 已通过。
 - [x] 完成 Python Proposal Publisher/Result consumer 与 Java Tool/SQL 控制面的真实 Proposal/Result RocketMQ 往返；E2E 已验证只读 SQL、审计和 Proposal Inbox 幂等。

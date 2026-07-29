@@ -8,7 +8,7 @@
 
 - M1-2 已完成真实认证、会话、消息持久化和前端真实 API 接入。
 - M1-3 已完成 Java -> Python 确定性 stub -> Java -> SSE 的最小真实闭环。
-- M1-4 已完成 RocketMQ/Redis 基础传输、V5 continuation/预算结构和 V6 MQ transport 迁移；下一步是在不改变 Java 业务数据权威边界的前提下建设受控的 Python 模型运行能力。
+- M1-4 已完成 RocketMQ/Redis 基础传输、V5 continuation/预算结构和 V6 MQ transport 迁移；本轮已补入 Python 恢复契约、Proposal/Result 回注安全点、结构化会话摘要和记忆 TTL。Java 恢复命令对账、跨进程恢复 E2E、精细记忆检索及 Eval 回归仍未完成。
 
 ## 2. 已完成主链路
 
@@ -64,7 +64,7 @@ Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入
 - 建立 Prompt 版本、离线样例、回归评测和模型用量事件。
 - 按已确认目标补齐 LangGraph、Redis 并发与队列、四类超时、预算快照、checkpoint 和 Final Eval Gate。
 - 普通缺参 continuation 与 `superseded` 已由 V5、Java 事务、SSE 和前端状态映射落地；预算追加交互、LangGraph 恢复和 Eval 后交付仍需 Java、Python 与前端共同实现。
-- 短期记忆 Context Builder、最近 8 条消息后的增量摘要、摘要 CAS/删除重建、长期记忆候选与 Java 校验生命周期仍未实现。
+- 已实现最近 8 条消息、结构化摘要、摘要 CAS、计划型/临时型记忆 TTL 与过期过滤；按意图精细检索、删除防再生、派生摘要失效和完整 Java 恢复对账仍未实现。
 - 当前无人审核，`request_review` 只能安全降级，不建设 `waiting_review`。
 - 继续禁止 Python 直接访问业务数据库或绕过 Java 授权。
 

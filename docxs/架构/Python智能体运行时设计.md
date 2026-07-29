@@ -171,7 +171,7 @@ Execution 采用有界 Plan-Act-Observe-Reflect：每一步有明确输入、输
 - 用户关闭页面只会断开 SSE，不会取消后台 Run；重新进入后由 Java SSE Outbox 按 `event_id/event_seq` 补发。用户主动取消才发布 CancelCommand。
 - 外部副作用绝不依据 checkpoint 直接重放。Python 先读取 checkpoint 中的 invocation 事实，再由 Java Tool Gateway/SQL Guard 的 Inbox 和幂等键裁决是否返回已有 Result、允许继续或拒绝。
 
-当前代码已具备 Redis checkpoint 的 CAS、TTL、加密和节点状态写入基础，但尚未实现“加载 checkpoint、Java 对账、从 `current_node` 继续”的执行器；本节是目标架构，不得把它表述为已经完成的恢复能力。
+当前代码已具备 Redis checkpoint 的 CAS、TTL、加密和节点状态写入基础，并新增 Python 恢复契约校验：新 attempt 必须校验前一 dispatch、checkpoint version/digest、预算 revision、deadline 与已完成 invocation，且只允许从 `tool_wait/execution` 安全点恢复。Java 侧恢复命令生成、业务对账事实持久化及跨进程故障恢复 E2E 尚未完成，本节仍不能表述为完整恢复能力。
 
 ### 5.1 运行状态
 

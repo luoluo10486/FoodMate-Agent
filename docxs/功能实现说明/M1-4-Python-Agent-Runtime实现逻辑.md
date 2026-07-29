@@ -6,6 +6,17 @@
 
 > 本节是本文的当前事实入口。后文保留历史实现记录；若与本节冲突，以本节和实际代码/测试结果为准。
 
+### 本轮构建计划落实（Eval 暂缓）
+
+| 功能点 | 已实现代码 | 验证证据 | 仍未完成 |
+|---|---|---|---|
+| 恢复契约 | `recovery_protocol.py` 校验旧 dispatch、checkpoint version/digest、预算 revision、deadline 与 completed invocation；只允许 `tool_wait/execution` 恢复点 | Python Runtime 单元测试通过 | Java 生成恢复命令、持久化对账事实、跨进程恢复 E2E |
+| Proposal/Result 回注 | Proposal 校验 `v1`、request hash、`invocation_id` 与只读 SQL；Result 带回 invocation ID，回注后第二次 Composer；checkpoint 记录已完成调用 | Python 回注、超时、重复消息 Inbox 测试通过；Java Tool Gateway/Processor 定向测试通过 | 重新取得本轮跨进程 E2E 证据 |
+| 结构化摘要 | 第 9 条有效消息触发，保存 goals、constraints、decisions、open_questions 与 source_message_ids，并使用 CAS/digest | Java Application/Infrastructure 编译通过 | 模型摘要和删除记忆后的派生摘要失效 |
+| 记忆有效期 | 计划型记忆 7 天，temporary/session_context 24 小时；过期记录不参与冲突判断或 Context 注入；最多注入 8 条 | Java Infrastructure 编译通过 | 按意图精细检索、衰减、删除防再生 |
+
+Eval Gate、LLM Judge、golden 样例和 Eval 回归按本轮范围保持现状，未因上述实现变更而标记完成。
+
 ### 已通过的真实联调
 
 | 功能点 | 执行方式 | 结论 |
@@ -110,7 +121,7 @@
 ### 5.2 当前实现边界
 
 1. 当前 Python 主要识别“我喜欢”“我不吃”类偏好，尚不是完整类型白名单。
-2. 当前 Java 按更新时间读取最近 20 条已确认记忆，尚未在 Router 后按意图筛选。
+2. 当前 Java 按更新时间读取最近 8 条已确认且未过期的白名单记忆，尚未在 Router 后按意图筛选。
 3. `expires_at` 已存在并参与读取过滤，但候选写入尚未按类型自动分配 TTL。
 4. Session 摘要当前为确定性文本拼接，不是结构化语义摘要。
 5. M1 明确不引入 `pgvector`，当前使用 PostgreSQL 结构化过滤；未来是否启用必须由检索 Eval 结果决定。

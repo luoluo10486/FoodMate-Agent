@@ -153,9 +153,9 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 完成摘要失效与重建的最小链路：消息被删除或更正后摘要失效，下一次超过 8 条有效消息时从权威消息重建；摘要缓存和长期缓存联动仍需强化。
 - [x] 完成长期记忆候选链路：Python 只产生带来源、类型、置信度、作用域和有效期的候选，Java 校验后写入 `user_memories`，不得把模型推测、一次性参数、审批或医疗判断自动记忆。
 - [x] 提供长期记忆查看、更正、删除和冲突确认 API；冲突记忆默认不进入 Agent Context，用户确认后才恢复可用。
-- [ ] 将确定性文本摘要升级为结构化摘要，至少输出目标、已确认约束、决定、待确认问题和引用实体 ID；保留摘要版本、来源 digest 与失败降级。
+- [x] 将确定性文本摘要升级为结构化摘要：已输出 `goals`、`constraints`、`decisions`、`open_questions` 和 `source_message_ids`，并保留摘要版本、来源 digest 与 CAS；摘要模型和失败降级策略仍属于后续增强。
 - [ ] 将当前“最近更新 20 条”长期记忆读取改为 Router 后按意图、类型、scope、状态和有效期检索，每次最多注入 5 至 8 条。
-- [ ] 建立记忆 TTL、推断衰减、来源失效、用户遗忘和删除防再生；每 Run 最多 3 个候选，每用户 active memory 上限配置化。
+- [ ] 建立完整记忆治理：计划型记忆已自动分配 7 天 TTL，临时型记忆已自动分配 24 小时 TTL，过期记录已从冲突判断和 Context 读取中排除；推断衰减、来源失效、用户遗忘、删除防再生及 active memory 上限配置化仍待完成。
 - [ ] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表，`user_memories` 不复制权威业务实体。
 - [x] M1 不引入 `pgvector`；仅当结构化检索经 Eval 证明召回不足后作为可选增强评估。
 - [ ] 删除或更正长期记忆后同步失效所有相关摘要、缓存和历史 Context 引用；当前已完成记忆逻辑删除，摘要关联失效仍需继续接入。
@@ -165,8 +165,8 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 完成 queue、execution、node、waiting_user、cancel drain 超时，Run 接受时固化 `TimeoutSnapshot`，取消或超时后可靠释放 permit。当前已实现 queue/execution 扫描和终态释放，node/cancel drain 的独立执行器与 waiting_user 专用 deadline 仍需强化。
 - [x] Python 已接入供应商无关的受控模型适配器，支持逻辑层级路由、兼容云端点、超时/限流 fallback、用量采集与失败归因；真实云凭据和联调仍待补充。
 - [ ] 完成 Token/成本预算快照、70%/85%/100% 分级降级和用户显式追加预算；每次追加生成新 revision 和 dispatch attempt。
-- [ ] 完成 Redis checkpoint 的 AOF、CAS、TTL、加密和 Java 对账；简单问答可不落 checkpoint，复杂、暂停、工具和 Eval 任务保存关键恢复点。
-- [ ] 完成任务恢复执行器：异常/重启后读取原 AgentRun 的 checkpoint，Java 对账终态、取消、deadline、fencing 和 Tool/SQL 事实，再以新 dispatch attempt 从 `current_node` 继续；详见[Python 智能体运行时设计](../架构/Python智能体运行时设计.md)。
+- [ ] 完成 Redis checkpoint 的 AOF、CAS、TTL、加密和 Java 对账；CAS、TTL、加密与 `tool_wait/execution` 关键恢复点已实现，Java 对账事实持久化仍待完成。
+- [ ] 完成任务恢复执行器：Python 已校验新 dispatch attempt 的旧 dispatch、checkpoint version/digest、预算 revision、deadline 与已完成 invocation；Java 生成恢复命令、所有权/终态/取消/fencing 对账及跨进程恢复 E2E 仍待完成，详见[Python 智能体运行时设计](../架构/Python智能体运行时设计.md)。
 - [ ] 建立确定性硬规则、分级 LLM Judge、Prompt 模板版本、离线 golden 样例、回归评测和安全策略测试；Eval 通过前不得发送候选答案正文。
 - [ ] Eval 通过后按可配置 150ms/2048 字节默认阈值切分回答事件，禁止逐 Token 发布 RocketMQ。
 - [ ] 当前无人审核时，`request_review` 必须返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。
