@@ -17,6 +17,7 @@ load_project_env()
 
 from agent_core import InMemoryCheckpoint, run_deterministic, split_answer
 from model_provider import ModelProviderError
+from recovery_protocol import checkpoint_digest, validate_recovery_command
 
 JAVA_CALLBACK_URL = os.getenv("JAVA_CALLBACK_URL", "http://localhost:8080")
 CONTRACT_VERSION = os.getenv("FOODMATE_CONTRACT_VERSION", "v1")
@@ -29,6 +30,9 @@ _cancelled: set[str] = set()
 _dispatches: dict[str, dict] = {}
 _lock = threading.Lock()
 _event_publisher = None
+_proposal_publisher = None
+_result_waiters: dict[str, dict] = {}
+_result_condition = threading.Condition(_lock)
 def _new_checkpoint():
     # 本地默认内存后端；启用 Redis 时必须同时配置 checkpoint 加密密钥。
     if os.getenv("FOODMATE_AGENT_CHECKPOINT_BACKEND", "inmemory").lower() == "redis":
@@ -135,6 +139,64 @@ def emit(command, event_id, sequence, event_type, payload=None):
         pass
 
 
+def _on_result(result: dict):
+    """只按 proposal_id 暂存一次结果，真正的业务幂等由 Redis Result Inbox 保证。"""
+    proposal_id = str(result.get("proposal_id", ""))
+    if not proposal_id:
+        return
+    with _result_condition:
+        _result_waiters[proposal_id] = result
+        _result_condition.notify_all()
+
+
+def _await_result(proposal_id: str, timeout_seconds: float) -> dict:
+    end = datetime.now(timezone.utc).timestamp() + timeout_seconds
+    with _result_condition:
+        while proposal_id not in _result_waiters:
+            remaining = end - datetime.now(timezone.utc).timestamp()
+            if remaining <= 0:
+                raise TimeoutError("TOOL_RESULT_TIMEOUT")
+            _result_condition.wait(remaining)
+        return _result_waiters.pop(proposal_id)
+
+
+def _save_tool_wait_checkpoint(command: dict, proposals: list[dict]) -> None:
+    """Persist the only resumable boundary before a Java-owned tool invocation."""
+    budget = ((command.get("runtime_options") or {}).get("budget_snapshot") or command.get("budget_snapshot") or {})
+    checkpoint = {
+        "schema_version": "v1",
+        "workflow_version": "foodmate-m1-4-v1",
+        "prompt_version": str((command.get("runtime_options") or {}).get("prompt_set_version", "")),
+        "run_id": str(command["run_id"]),
+        "dispatch_id": str(command["dispatch_id"]),
+        "attempt": int(command["attempt"]),
+        "current_node": "tool_wait",
+        "deadline_at": command["deadline_at"],
+        "budget_revision": int(budget.get("revision", 1)),
+        "completed_invocation_ids": [],
+        "pending_proposals": proposals,
+        "event_seq": 1,
+    }
+    _checkpoint.save(f"{command['run_id']}:{command['dispatch_id']}", checkpoint)
+
+
+def _mark_tool_results_applied(command: dict, results: list[dict]) -> None:
+    """Advance the resumable checkpoint before the follow-up Composer call."""
+    key = f"{command['run_id']}:{command['dispatch_id']}"
+    loaded = _checkpoint.load(key)
+    if loaded is None:
+        raise RuntimeError("CHECKPOINT_NOT_FOUND")
+    version, checkpoint = loaded
+    checkpoint = dict(checkpoint)
+    checkpoint["current_node"] = "execution"
+    checkpoint["completed_invocation_ids"] = sorted(
+        {str(item["invocation_id"]) for item in results if item.get("invocation_id")}
+    )
+    checkpoint["pending_proposals"] = []
+    checkpoint["event_seq"] = 2
+    _checkpoint.save(key, checkpoint, version)
+
+
 def execute(command):
     prefix = command["dispatch_id"]
     try:
@@ -143,7 +205,37 @@ def execute(command):
             emit(command, prefix + "-cancel-ack", 2, "run.cancel_acknowledged", {"reason": "user_requested"})
             emit(command, prefix + "-cancelled", 3, "run.cancelled", {"reason": "user_requested"})
             return
+        recovered = validate_recovery_command(command, _checkpoint)
+        if recovered is not None:
+            authorized = dict(command.get("authorized_context") or {})
+            completed_results = (command.get("recovery_context") or {}).get("completed_tool_results") or []
+            if completed_results:
+                authorized["tool_results"] = completed_results
+            command = dict(command)
+            command["authorized_context"] = authorized
         execution = run_deterministic(command, _checkpoint)
+        if execution.proposals:
+            if _proposal_publisher is None:
+                raise RuntimeError("TOOL_RUNTIME_UNAVAILABLE")
+            _save_tool_wait_checkpoint(command, execution.proposals)
+            results = []
+            for proposal in execution.proposals:
+                _proposal_publisher.publish(proposal)
+                results.append(_await_result(
+                    proposal["proposal_id"],
+                    float(os.getenv("FOODMATE_AGENT_TOOL_RESULT_TIMEOUT_SECONDS", "30")),
+                ))
+            _mark_tool_results_applied(command, results)
+            resumed = dict(command)
+            authorized = dict(resumed.get("authorized_context") or {})
+            authorized["tool_results"] = results
+            resumed["authorized_context"] = authorized
+            follow_up = run_deterministic(resumed, _checkpoint)
+            follow_up.model_attempts = execution.model_attempts + follow_up.model_attempts
+            follow_up.usage.tokens += execution.usage.tokens
+            follow_up.usage.cost_cny += execution.usage.cost_cny
+            follow_up.usage.model_calls += execution.usage.model_calls
+            execution = follow_up
         emit(command, prefix + "-routed", 2, "run.routed", {
             "status": "routed", "intent": execution.route.intent,
             "complexity": execution.route.complexity, "risk_level": execution.route.risk_level,
@@ -187,7 +279,9 @@ def execute(command):
             emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
             next_sequence += 1
         emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": error.code, "retryable": error.retryable})
-    except (urllib.error.URLError, TimeoutError):
+    except TimeoutError as error:
+        emit(command, prefix + "-failed", 3, "run.failed", {"code": str(error), "retryable": True})
+    except urllib.error.URLError:
         # 超时和重试由 Java 控制面负责，Runtime 不直接写业务状态。
         return
     except Exception as error:
@@ -278,9 +372,10 @@ if __name__ == "__main__":
     transport = os.getenv("FOODMATE_AGENT_TRANSPORT", "http").lower()
     mq_runtime = None
     if transport == "rocketmq":
-        from mq_runtime import RocketMqEventPublisher, RocketMqRuntime
+        from mq_runtime import RocketMqEventPublisher, RocketMqProposalPublisher, RocketMqRuntime
         _event_publisher = RocketMqEventPublisher()
-        mq_runtime = RocketMqRuntime(execute, publisher=_event_publisher)
+        _proposal_publisher = RocketMqProposalPublisher()
+        mq_runtime = RocketMqRuntime(execute, publisher=_event_publisher, proposal_publisher=_proposal_publisher, on_result=_on_result)
         mq_runtime.start()
     try:
         ThreadingHTTPServer(("127.0.0.1", int(os.getenv("PORT", "9000"))), Handler).serve_forever()

@@ -237,7 +237,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 在恢复前，Java 对账 `AgentRun` 终态、取消标记、绝对 deadline、当前 fencing owner、已完成 Tool/SQL invocation 和预算 revision；Python 不能只凭 Redis 值直接执行。
 - checkpoint 必须在每个可恢复安全点原子写入，保存节点、工作流/Prompt 版本、已完成节点、待处理 proposal、事件序号、预算、deadline、已完成 invocation 和 CAS version。
 - 用户关闭页面不取消后台 Run；SSE 重连从 Java SSE Outbox 补发。用户补参、预算追加或工具审批恢复时使用新 dispatch attempt；用户改变目标时创建新 AgentRun。
-- 当前仅完成 checkpoint 存储基础，尚未完成 `load -> Java 对账 -> current_node` 的真实恢复执行器和故障恢复 E2E，不能提前标记为完成。
+- 已实现 Python 恢复输入校验与 `tool_wait/execution` 安全点：新 attempt 必须携带前一 dispatch、checkpoint version/digest、预算 revision、deadline 和已完成 invocation；Python 以 CAS 加载并拒绝旧 dispatch 复用、版本漂移、deadline 不一致或副作用清单不一致。Java 生成恢复命令、持久化对账摘要及跨进程故障恢复 E2E 仍未完成，不能提前标记为完整恢复能力。
 
 - 普通缺参补充创建新 AgentRun，并关联 `parent_run_id + continuation_reason`。
 - 旧 Run 目标终态为 `superseded`，不再占用 Session active 位或 Redis permit。
@@ -439,3 +439,37 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - [x] 成本审计：按用户提供的 SiliconFlow 控制台价格配置普通输入、缓存输入和输出价格；模型响应的 `cached_tokens` 被独立记录并计费，价格版本为 `siliconflow-console-2026-07-29`。
 - [x] 120 秒 Redis 长压和双 Java JVM 跨实例会话/消息流量已重新验证通过。
 - [ ] 这些仍是本地单机 Docker 证据；生产容量、跨节点故障切换和更长周期业务流量结论仍属于后续发布验证，不提前宣称完成。
+## 2026-07-29 本轮执行计划（Eval 暂缓）
+
+本轮按“文档契约 -> 代码实现 -> 定向测试 -> E2E 证据”的顺序推进。Eval Gate 的规则、Judge Prompt、golden 样例和评测回归暂不修改，也不把本轮结果标记为 Eval 完成。
+
+### P1 任务恢复执行器
+
+实施状态（2026-07-29）：Python 恢复契约、CAS checkpoint 校验和 `tool_wait -> execution` 两个安全点已实现并完成单元测试；Java 侧恢复命令生成、运行权威对账持久化和跨进程故障恢复 E2E 仍待完成。
+
+- 先定义 checkpoint 恢复输入：原 `run_id`、上一次 `dispatch_id`、新 `dispatch_id`、attempt、Java 对账摘要、fencing token、预算 revision 和 deadline。
+- Java 在恢复前校验 Run 所有权、终态、取消、deadline、预算和已完成 Tool/SQL invocation；Python 只接受带有校验摘要的恢复命令。
+- Python 通过 CAS 读取 checkpoint，校验 `run_id`、checkpoint version、workflow/prompt 版本和已完成副作用，恢复后只使用新 dispatch 继续。
+- 验收：恢复命令拒绝缺少对账摘要、拒绝旧 dispatch、允许同 Run 新 attempt，并证明已完成 invocation 不重复执行。
+
+### P2 Python Proposal/Result 回注
+
+实施状态（2026-07-29）：已实现 `sql_read` Proposal 的版本、请求哈希、只读 SQL 长度和 `invocation_id` 校验；Proposal 经 Redis Outbox/RocketMQ 发送，Java Result 带回 `invocation_id`，Python 去重接收后回注下一次 Composer，并在回注前推进 checkpoint。成功回注和 Result 超时已有 Python 测试；真实跨进程 E2E 仍待重新运行取证。
+
+- Python 在确定性能力边界内生成版本化 `sql_read` Proposal，不执行 SQL。
+- Proposal 进入 Redis Outbox -> RocketMQ -> Java Tool Gateway；Result 通过 RocketMQ -> Redis Inbox 回到原 Run。
+- Python 以 `invocation_id` 去重 Result，将脱敏结果摘要放入下一次 Composer 输入，并把 checkpoint 更新为 `tool_result_applied`。
+- 验收：成功、拒绝、失败、重复 Result 和 Result 冲突均有测试；同一 invocation 不产生第二次 Java 副作用。
+
+### P3 记忆与摘要治理
+
+实施状态（2026-07-29）：最近 8 条原始消息、结构化摘要（goals/constraints/decisions/open_questions/source_message_ids）、摘要 CAS/digest、计划型 7 天 TTL、临时型 24 小时 TTL、过期记忆过滤及长期记忆注入上限 8 条已实现并编译验证。按意图的精细检索与删除记忆后的摘要关联失效仍待完成。
+
+- 保持最近 8 条原始消息；第 9 条消息触发摘要更新。
+- 摘要改为结构化字段：目标、已确认约束、决定、待确认问题和来源消息 ID；保留版本/CAS/digest。
+- 长期记忆读取只注入已确认、未过期、属于当前用户且与意图匹配的少量记录；周食谱等计划型记忆必须有 TTL。
+- 删除、更正或冲突确认后失效相关摘要和 Context 引用；不把领域权威表复制成长期记忆。
+
+### 暂缓项
+
+- Eval Gate、LLM Judge、golden 样例、离线评测和正文发布规则保持现状，本轮只保留现有硬规则与已有测试。

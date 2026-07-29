@@ -16,7 +16,7 @@ public interface SessionSummaryStore {
 
     int invalidate(long userId, long sessionId);
 
-    record MessageSnapshot(int sequence, String role, String content) {}
+    record MessageSnapshot(long messageId, int sequence, String role, String content) {}
 
     record SummarySnapshot(long id, int version, int sourceCount) {}
 
@@ -24,6 +24,7 @@ public interface SessionSummaryStore {
             long id,
             long sessionId,
             String text,
+            String structuredJson,
             int coveredFrom,
             int coveredTo,
             int sourceCount,
@@ -35,6 +36,7 @@ public interface SessionSummaryStore {
             long id,
             int expectedVersion,
             String text,
+            String structuredJson,
             int coveredFrom,
             int coveredTo,
             int sourceCount,

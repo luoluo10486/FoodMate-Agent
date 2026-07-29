@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 /** Java Tool Gateway：Python 只提交 Proposal，Java 负责权限、SQL Guard、执行和审计。 */
 @Service
 public class ToolGatewayService {
+    private static final int MAX_ID_LENGTH = 128;
+    private static final int MAX_SQL_LENGTH = 8_192;
     private static final Pattern READ_ONLY = Pattern.compile("(?is)^\\s*select\\b.*");
     private static final Pattern FORBIDDEN =
             Pattern.compile(
@@ -29,9 +31,18 @@ public class ToolGatewayService {
         String type = text(proposal.get("proposal_type"));
         Map<?, ?> payload = proposal.get("payload") instanceof Map<?, ?> value ? value : Map.of();
         String statement = text(payload.get("statement"));
-        if (proposalId == null || runId == null || !"sql_read".equals(type))
+        String invocationId = text(payload.get("invocation_id"));
+        if (!"v1".equals(text(proposal.get("schema_version")))
+                || proposalId == null
+                || runId == null
+                || invocationId == null
+                || proposalId.length() > MAX_ID_LENGTH
+                || runId.length() > MAX_ID_LENGTH
+                || invocationId.length() > MAX_ID_LENGTH
+                || !"sql_read".equals(type))
             return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
         if (statement == null
+                || statement.length() > MAX_SQL_LENGTH
                 || !READ_ONLY.matcher(statement).matches()
                 || FORBIDDEN.matcher(statement).find())
             return reject(proposalId, "SQL_PROPOSAL_NOT_READ_ONLY");

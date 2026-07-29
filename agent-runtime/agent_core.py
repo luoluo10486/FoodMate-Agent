@@ -149,6 +149,7 @@ class Context:
     unresolved_slots: tuple[str, ...]
     sources: dict[str, tuple[str, ...]]
     estimated_tokens: int = 0
+    tool_results: tuple[dict[str, Any], ...] = ()
 
 
 class ContextBuilder:
@@ -159,9 +160,9 @@ class ContextBuilder:
         self.max_context_tokens = max_context_tokens
 
     @staticmethod
-    def _estimate_tokens(messages: tuple[dict[str, Any], ...], summary: dict[str, Any] | None, memories: tuple[dict[str, Any], ...]) -> int:
+    def _estimate_tokens(messages: tuple[dict[str, Any], ...], summary: dict[str, Any] | None, memories: tuple[dict[str, Any], ...], tool_results: tuple[dict[str, Any], ...] = ()) -> int:
         # 这是预算上界估算，不冒充供应商 tokenizer；真实 usage 仍以 provider 返回为准。
-        raw = json.dumps({"messages": messages, "summary": summary, "memories": memories}, ensure_ascii=False, separators=(",", ":"), default=str)
+        raw = json.dumps({"messages": messages, "summary": summary, "memories": memories, "tool_results": tool_results}, ensure_ascii=False, separators=(",", ":"), default=str)
         return max(1, len(raw))
 
     def build(self, command: dict[str, Any], route: RouteDecision) -> Context:
@@ -173,8 +174,9 @@ class ContextBuilder:
         messages = list(raw_messages[-self.max_recent_messages:])
         summary = authorized.get("session_summary")
         memories = tuple(authorized.get("long_term_memories") or ())
+        tool_results = tuple(authorized.get("tool_results") or ())
         # 先保留最新消息，再从最旧的原始消息开始裁剪；当前输入在最后，不会被裁掉。
-        while len(messages) > 1 and self._estimate_tokens(tuple(messages), summary, memories) > self.max_context_tokens:
+        while len(messages) > 1 and self._estimate_tokens(tuple(messages), summary, memories, tool_results) > self.max_context_tokens:
             messages.pop(0)
         messages = tuple(messages)
         unresolved = tuple(route.missing_slots)
@@ -183,8 +185,9 @@ class ContextBuilder:
             "summary_id": ((str(summary["summary_id"]),) if summary and summary.get("summary_id") is not None else ()),
             "memory_id": tuple(str(item["memory_id"]) for item in memories if item.get("memory_id") is not None),
             "citation_id": tuple(str(item["citation_id"]) for item in authorized.get("citations") or () if item.get("citation_id") is not None),
+            "invocation_id": tuple(str(item["invocation_id"]) for item in tool_results if item.get("invocation_id") is not None),
         }
-        return Context(messages, summary, memories, unresolved, sources, self._estimate_tokens(messages, summary, memories))
+        return Context(messages, summary, memories, unresolved, sources, self._estimate_tokens(messages, summary, memories, tool_results), tool_results)
 
 
 class DeterministicRouter:
@@ -269,7 +272,10 @@ class DeterministicComposer:
             return "为了继续处理，请补充以下信息：" + "、".join(route.missing_slots) + "。"
         prefix = "节省模式：" if budget_mode in {"economy", "partial"} else ""
         recent = len(context.messages)
-        return f"{prefix}已完成{route.intent}请求的受控分析，已读取当前会话中的 {recent} 条有效消息。"
+        tool_note = ""
+        if context.tool_results:
+            tool_note = f"已回注 {len(context.tool_results)} 个 Java 工具结果。"
+        return f"{prefix}已完成{route.intent}请求的受控分析，已读取当前会话中的 {recent} 条有效消息。{tool_note}"
 
 
 def budget_mode(usage: Usage, budget: BudgetSnapshot) -> str:
@@ -338,6 +344,30 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
             "source_message_ids": list(context.sources["message_id"]),
         })
     return candidates[:max_candidates]
+
+
+def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> list[dict[str, Any]]:
+    """只将 Java 授权的只读请求包装成 Proposal；Python 不自行拼接业务 SQL。"""
+    request = (command.get("authorized_context") or {}).get("sql_read_request") or {}
+    if not isinstance(request, dict) or not request.get("statement") or route.intent not in {"record", "analysis"}:
+        return []
+    if (command.get("authorized_context") or {}).get("tool_results"):
+        return []
+    statement = str(request["statement"]).strip()
+    invocation_id = str(request.get("invocation_id") or "inv_" + hashlib.sha256(statement.encode("utf-8")).hexdigest()[:24])
+    proposal = Proposal(
+        proposal_id="prop_" + invocation_id,
+        run_id=str(command["run_id"]),
+        proposal_type="sql_read",
+        schema_version="v1",
+        payload={"statement": statement, "invocation_id": invocation_id},
+        requires_confirmation=bool(request.get("requires_confirmation", False)),
+    ).as_dict()
+    validate_proposal(Proposal(
+        proposal["proposal_id"], proposal["run_id"], proposal["proposal_type"], proposal["schema_version"],
+        proposal["payload"], proposal["requires_confirmation"], proposal["request_hash"],
+    ))
+    return [proposal]
 
 
 class InMemoryCheckpoint:
@@ -488,4 +518,4 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
             "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
             "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
         })
-    return AgentExecution(route, plan, context, answer, decision, usage, mode, generate_memory_candidates(context, content), attempts, policy.as_dict(), graph.as_dict(), [])
+    return AgentExecution(route, plan, context, answer, decision, usage, mode, generate_memory_candidates(context, content), attempts, policy.as_dict(), graph.as_dict(), generate_tool_proposals(command, route))

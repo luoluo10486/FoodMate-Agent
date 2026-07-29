@@ -100,7 +100,7 @@ class RuntimeProposalMessageProcessorTest {
                 + proposalId
                 + "\",\"request_hash\":\""
                 + requestHash
-                + "\",\"run_id\":\"42\",\"proposal_type\":\"sql_read\",\"payload\":{\"statement\":\"SELECT 1\"}}";
+                + "\",\"run_id\":\"42\",\"proposal_type\":\"sql_read\",\"payload\":{\"statement\":\"SELECT 1\",\"invocation_id\":\"invocation-1\"}}";
     }
 
     private static MqMessageContext context() {

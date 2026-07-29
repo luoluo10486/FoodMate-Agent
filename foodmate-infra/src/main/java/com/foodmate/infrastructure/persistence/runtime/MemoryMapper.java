@@ -32,6 +32,7 @@ public interface MemoryMapper extends MemoryStore {
                   AND memory_type = #{type}
                   AND memory_key = #{key}
                   AND is_deleted = FALSE
+                  AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
                   AND memory_value::text &lt;&gt; CAST(#{valueJson} AS jsonb)::text
             )
             """)
@@ -49,7 +50,15 @@ public interface MemoryMapper extends MemoryStore {
                 confidence, source, scope, confirmation_status, expires_at, created_by, updated_by
             ) VALUES (
                 #{id}, #{userId}, #{type}, #{key}, CAST(#{valueJson} AS jsonb),
-                #{confidence}, #{source}, #{scope}, #{confirmationStatus}, NULL, #{userId}, #{userId}
+                #{confidence}, #{source}, #{scope}, #{confirmationStatus},
+                CASE
+                    WHEN #{type} IN ('plan', 'meal_plan', 'recipe_plan', 'weekly_recipe')
+                        THEN CURRENT_TIMESTAMP + INTERVAL '7 days'
+                    WHEN #{type} IN ('temporary', 'session_context')
+                        THEN CURRENT_TIMESTAMP + INTERVAL '24 hours'
+                    ELSE NULL
+                END,
+                #{userId}, #{userId}
             )
             """)
     void insert(NewMemory memory);

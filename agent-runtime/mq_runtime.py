@@ -312,10 +312,11 @@ class RedisEventOutbox:
 class RocketMqRuntime:
     """Own the Python command consumer and event producer lifecycle."""
 
-    def __init__(self, execute: Callable[[dict], None], inbox=None, publisher=None, on_result=None, result_inbox=None):
+    def __init__(self, execute: Callable[[dict], None], inbox=None, publisher=None, proposal_publisher=None, on_result=None, result_inbox=None):
         endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
         config = ClientConfiguration(endpoint, Credentials())
         self.publisher = publisher or RocketMqEventPublisher()
+        self.proposal_publisher = proposal_publisher
         self.inbox = inbox or RedisCommandInbox()
         self.topic = os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_COMMAND", "foodmate-agent-command-v1")
         self.consumer = PushConsumer(
@@ -356,4 +357,6 @@ class RocketMqRuntime:
             self.consumer.shutdown()
             self.result_consumer.shutdown()
             self.publisher.close()
+            if self.proposal_publisher is not None:
+                self.proposal_publisher.close()
             self._started = False

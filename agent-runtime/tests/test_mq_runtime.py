@@ -136,7 +136,7 @@ class MqRuntimeTests(TestCase):
         outbox = RedisProposalOutbox(redis_client, "test")
         producer = FakeProducer()
         publisher = RocketMqProposalPublisher(producer, "foodmate-agent-proposal-v1", outbox)
-        proposal = Proposal("p1", "42", "sql_read", "v1", {"statement": "SELECT 1"})
+        proposal = Proposal("p1", "42", "sql_read", "v1", {"statement": "SELECT 1", "invocation_id": "inv-1"})
         publisher.publish(proposal)
         self.assertEqual(1, len(producer.messages))
         self.assertEqual([], redis_client.lists["test:outbox:proposal"])

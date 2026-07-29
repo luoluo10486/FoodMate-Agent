@@ -24,7 +24,7 @@ public interface SessionSummaryMapper extends SessionSummaryStore {
     @Override
     @Select(
             """
-            SELECT sequence_no AS sequence, role, content
+            SELECT message_id AS messageId, sequence_no AS sequence, role, content
             FROM messages
             WHERE session_id = #{sessionId} AND is_deleted = FALSE
             ORDER BY sequence_no
@@ -51,7 +51,7 @@ public interface SessionSummaryMapper extends SessionSummaryStore {
                 covered_from_sequence, covered_to_sequence, source_message_count,
                 prompt_version, content_digest, version, created_by, updated_by
             ) VALUES (
-                #{id}, #{sessionId}, #{text}, '{}'::jsonb,
+                #{id}, #{sessionId}, #{text}, CAST(#{structuredJson} AS jsonb),
                 #{coveredFrom}, #{coveredTo}, #{sourceCount},
                 #{promptVersion}, #{digest}, 1, #{operatorId}, #{operatorId}
             )
@@ -63,6 +63,7 @@ public interface SessionSummaryMapper extends SessionSummaryStore {
             """
             UPDATE session_summaries
             SET summary_text = #{text},
+                key_constraints = CAST(#{structuredJson} AS jsonb),
                 covered_from_sequence = #{coveredFrom},
                 covered_to_sequence = #{coveredTo},
                 source_message_count = #{sourceCount},

@@ -42,6 +42,7 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
             Map<String, Object> proposal = mapper.readValue(body, Map.class);
             String proposalId = requiredText(proposal.get("proposal_id"));
             String requestHash = requiredText(proposal.get("request_hash"));
+            String invocationId = invocationId(proposal);
             ToolGatewayService.ProposalResult result;
             {
                 String existing = claimOrExisting(proposalId, requestHash, body);
@@ -63,6 +64,8 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                                     requestHash,
                                     "run_id",
                                     result.runId() == null ? "" : result.runId(),
+                                    "invocation_id",
+                                    invocationId,
                                     "status",
                                     result.status(),
                                     "error_code",
@@ -120,5 +123,13 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
             throw new IllegalArgumentException("proposal contract is invalid");
         }
         return value.toString();
+    }
+
+    private static String invocationId(Map<String, Object> proposal) {
+        Object payload = proposal.get("payload");
+        if (!(payload instanceof Map<?, ?> values)) {
+            throw new IllegalArgumentException("proposal payload is invalid");
+        }
+        return requiredText(values.get("invocation_id"));
     }
 }

@@ -3,6 +3,7 @@ import sys
 import unittest
 import base64
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -11,6 +12,7 @@ sys.path.append(str(Path(__file__).parents[1]))
 import runtime_server
 from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoint, Plan, RouteDecision, StepValidator, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
 from proposal_protocol import Proposal, validate_proposal
+from recovery_protocol import checkpoint_digest, validate_recovery_command
 from langgraph_adapter import build_graph
 
 
@@ -18,6 +20,8 @@ class RuntimeContractTests(unittest.TestCase):
     def setUp(self):
         runtime_server._cancelled.clear()
         runtime_server._dispatches.clear()
+        runtime_server._result_waiters.clear()
+        runtime_server._checkpoint = InMemoryCheckpoint()
 
     def test_execute_emits_ordered_lifecycle(self):
         events = []
@@ -97,9 +101,54 @@ class RuntimeContractTests(unittest.TestCase):
             StepValidator().validate(route, Plan(("compose",), route), context)
 
     def test_sql_proposal_rejects_write_statement(self):
-        proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "UPDATE food_logs SET notes='x'"})
+        proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "UPDATE food_logs SET notes='x'", "invocation_id": "inv-1"})
         with self.assertRaisesRegex(ValueError, "SQL_PROPOSAL_NOT_READ_ONLY"):
             validate_proposal(proposal)
+
+    def test_proposal_requires_invocation_id_and_valid_request_hash(self):
+        with self.assertRaisesRegex(ValueError, "PROPOSAL_INVOCATION_ID_REQUIRED"):
+            validate_proposal(Proposal("p1", "r1", "sql_read", "v1", {"statement": "SELECT 1"}))
+        proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "SELECT 1", "invocation_id": "inv-1"})
+        payload = proposal.as_dict()
+        validate_proposal(Proposal(**payload))
+        payload["request_hash"] = "sha256:tampered"
+        with self.assertRaisesRegex(ValueError, "PROPOSAL_REQUEST_HASH_INVALID"):
+            validate_proposal(Proposal(**payload))
+
+    def test_execute_reinjects_tool_result_before_follow_up_run(self):
+        events, published, commands = [], [], []
+        proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "SELECT 1", "invocation_id": "inv-1"}).as_dict()
+        route = SimpleNamespace(intent="analysis", complexity="complex", risk_level="low")
+        first = SimpleNamespace(proposals=[proposal], route=route, plan=SimpleNamespace(plan_version="v1"), workflow={"nodes": []}, model_attempts=[], usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1))
+        second = SimpleNamespace(proposals=[], route=route, plan=SimpleNamespace(plan_version="v1"), workflow={"nodes": []}, model_attempts=[], usage=SimpleNamespace(tokens=2, cost_cny=0.0, model_calls=1), answer="ok", eval=SimpleNamespace(result="pass", reason="ok"), budget_mode="normal", budget_actions={}, memory_candidates=[])
+
+        def run(command, _checkpoint):
+            commands.append(command)
+            return first if len(commands) == 1 else second
+
+        class Publisher:
+            def publish(self, value):
+                published.append(value)
+                runtime_server._on_result({"proposal_id": "p1", "invocation_id": "inv-1", "status": "succeeded", "request_hash": proposal["request_hash"], "rows": []})
+
+        command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
+        with patch.object(runtime_server, "run_deterministic", side_effect=run), patch.object(runtime_server, "emit", side_effect=lambda *args: events.append(args[3])), patch.object(runtime_server, "_proposal_publisher", Publisher()):
+            runtime_server.execute(command)
+        self.assertEqual([proposal], published)
+        self.assertEqual("inv-1", commands[1]["authorized_context"]["tool_results"][0]["invocation_id"])
+        checkpoint = runtime_server._checkpoint.load("r1:d1")
+        self.assertIsNotNone(checkpoint)
+        self.assertEqual(["inv-1"], checkpoint[1]["completed_invocation_ids"])
+        self.assertEqual("run.completed", events[-1])
+
+    def test_execute_marks_result_timeout_as_retryable_failure(self):
+        events = []
+        proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "SELECT 1", "invocation_id": "inv-1"}).as_dict()
+        execution = SimpleNamespace(proposals=[proposal])
+        command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
+        with patch.object(runtime_server, "run_deterministic", return_value=execution), patch.object(runtime_server, "emit", side_effect=lambda *args: events.append((args[3], args[4] if len(args) > 4 else {}))), patch.object(runtime_server, "_proposal_publisher", SimpleNamespace(publish=lambda _proposal: None)), patch.object(runtime_server, "_await_result", side_effect=TimeoutError("TOOL_RESULT_TIMEOUT")):
+            runtime_server.execute(command)
+        self.assertEqual(("run.failed", {"code": "TOOL_RESULT_TIMEOUT", "retryable": True}), events[-1])
 
     def test_native_langgraph_adapter_compiles_whitelisted_graph(self):
         graph = build_graph()
@@ -112,6 +161,25 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual(2, checkpoint.save("r:d", {"node": "composer"}, version))
         with self.assertRaisesRegex(RuntimeError, "CHECKPOINT_CAS_CONFLICT"):
             checkpoint.save("r:d", {"node": "bad"}, version)
+
+    def test_recovery_requires_new_dispatch_and_matching_checkpoint_reconciliation(self):
+        checkpoint = InMemoryCheckpoint()
+        saved = {
+            "run_id": "r1", "dispatch_id": "d1", "attempt": 1,
+            "current_node": "tool_wait", "deadline_at": "2030-01-01T00:00:00Z",
+            "budget_revision": 2, "completed_invocation_ids": ["inv-1"],
+        }
+        version = checkpoint.save("r1:d1", saved)
+        recovery = {
+            "previous_dispatch_id": "d1", "previous_attempt": 1,
+            "checkpoint_version": version, "checkpoint_digest": checkpoint_digest(saved),
+            "budget_revision": 2, "completed_invocation_ids": ["inv-1"],
+        }
+        command = {"run_id": "r1", "dispatch_id": "d2", "attempt": 2, "deadline_at": "2030-01-01T00:00:00Z", "recovery_context": recovery}
+        self.assertEqual(saved, validate_recovery_command(command, checkpoint))
+        command["dispatch_id"] = "d1"
+        with self.assertRaisesRegex(ValueError, "RECOVERY_DISPATCH_REUSED"):
+            validate_recovery_command(command, checkpoint)
 
     def test_high_risk_request_is_safely_degraded(self):
         execution = run_deterministic({"run_id": "r1", "dispatch_id": "d1", "message": {"content": "我有疾病，怎么诊断"}})

@@ -33,6 +33,15 @@ class ToolGatewayServiceTest {
     }
 
     @Test
+    void rejectsProposalWithoutInvocationIdBeforeDatabaseExecution() {
+        var proposal = proposal("SELECT 1");
+        proposal.put("payload", Map.of("statement", "SELECT 1"));
+        var result = gateway.execute(proposal);
+        assertEquals("PROPOSAL_NOT_ALLOWED", result.errorCode());
+        verifyNoInteractions(store);
+    }
+
+    @Test
     void executesReadAndAuditsIt() {
         when(store.runExists(42L)).thenReturn(true);
         when(store.executeRead("SELECT 1")).thenReturn(List.of(Map.of("value", 1)));
@@ -47,11 +56,13 @@ class ToolGatewayServiceTest {
                 Map.of(
                         "proposal_id",
                         "proposal-1",
+                        "schema_version",
+                        "v1",
                         "run_id",
                         "42",
                         "proposal_type",
                         "sql_read",
                         "payload",
-                        Map.of("statement", sql)));
+                        Map.of("statement", sql, "invocation_id", "invocation-1")));
     }
 }
