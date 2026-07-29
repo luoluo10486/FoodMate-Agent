@@ -68,7 +68,7 @@ public class ToolGatewayService {
                             statement,
                             "rejected",
                             null,
-                            error.getMessage(),
+                            truncateReason(error.getMessage()),
                             (System.nanoTime() - started) / 1_000_000,
                             "proposal:" + proposalId));
             return new ProposalResult(
@@ -78,6 +78,12 @@ public class ToolGatewayService {
 
     private ProposalResult reject(String proposalId, String code) {
         return new ProposalResult(proposalId, null, "rejected", code, List.of());
+    }
+
+    /** 审计表的 reject_reason 是 varchar(255)，避免数据库异常文本反过来遮蔽原始失败结果。 */
+    private static String truncateReason(String value) {
+        if (value == null || value.isBlank()) return "tool execution failed";
+        return value.substring(0, Math.min(255, value.length()));
     }
 
     private static String text(Object value) {

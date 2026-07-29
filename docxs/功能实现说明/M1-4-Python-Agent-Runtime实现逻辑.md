@@ -2,6 +2,33 @@
 
 > 模板提示：后续 AI 阅读本文档时，必须按功能点拆分为独立小节，不能把多个功能写成一大段；必须区分“目标设计、正在实现、已验证”，不得把本文方案或一次模型调用伪装成 M1-4 已完成。
 
+## 当前复核结论（2026-07-29，优先级最高）
+
+> 本节是本文的当前事实入口。后文保留历史实现记录；若与本节冲突，以本节和实际代码/测试结果为准。
+
+### 已通过的真实联调
+
+| 功能点 | 执行方式 | 结论 |
+|---|---|---|
+| PostgreSQL 用户主链路 | `LocalPostgresE2ETest` 连接本地 Docker PostgreSQL | 注册、登录、Cookie/CSRF、会话和消息读写通过。 |
+| Java MQ Transport | `M14RocketMqTransportE2ETest` 连接本地 RocketMQ | Dispatch Outbox 到 RocketMQ 再到 Consumer 通过；校验 `request_hash`、`dispatch_id`、`run_id`。 |
+| Proposal/Result | `M14ProposalResultE2ETest` 连接 PostgreSQL 与 RocketMQ | 只读 SQL 成功、SQL 失败审计、Result 发布、重复 Proposal 幂等均通过。 |
+| 全量 Java 回归 | `mvn -pl foodmate-bootstrap -am test` | BUILD SUCCESS。 |
+
+### 本轮修复并验证的运行问题
+
+1. MyBatis Mapper 扫描范围改为 `com.foodmate.infrastructure.persistence`，让 `local` profile 能装配真实持久化 Store；`local-stub` 不加载 Mapper。
+2. 本地 RocketMQ Broker 广播地址随当前 Docker 主机网络更新；这是开发环境配置，网络变化后必须重新核对，不能复用为生产配置。
+3. `sql_query_audits.reject_reason` 限制为 255 字符，写审计前截断异常文本，避免业务 SQL 失败被二次数据库异常覆盖。
+4. Proposal Inbox 使用 `claimed_at` 的 5 分钟 lease 回收旧 claim，消息仍按至少一次投递处理，必须依靠 `proposal_id + request_hash` 与业务幂等防止副作用重复。
+
+### 尚未通过或尚未执行
+
+1. 浏览器登录、会话、消息、MQ 消费、最终 `run.answer_stream/run.completed` 的完整 E2E 尚无通过证据。
+2. Python 真实模型、RAG、Tool/SQL Proposal 生成到 Result 回注的完整跨进程 Agent 编排尚无通过证据。
+3. 生产级长时间压力、多实例业务流量、P95/P99 与 Redis、RocketMQ、PostgreSQL 进程级恢复演练尚未完成。
+4. 真实供应商的生产价格表审计与成本数据治理尚未完成；默认模型仍是 `deterministic:local`。
+
 ## 当前验收状态（2026-07-28）
 
 > 本节覆盖前文历史检查项；历史记录中的“浏览器 E2E 未完成”等表述不再代表当前状态。

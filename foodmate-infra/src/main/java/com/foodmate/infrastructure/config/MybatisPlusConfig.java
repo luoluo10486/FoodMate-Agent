@@ -4,17 +4,17 @@ import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import java.time.Instant;
-import javax.sql.DataSource;
 import org.apache.ibatis.reflection.MetaObject;
 import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /** MyBatis-Plus 与审计字段的基础配置。 */
 @Configuration
-@ConditionalOnBean(DataSource.class)
-@MapperScan("com.foodmate.infrastructure.**.mapper")
+@Profile("local")
+// 生产 Mapper 位于 persistence 下的多个领域子包，使用根包扫描避免漏掉非 mapper 命名层级的接口。
+@MapperScan("com.foodmate.infrastructure.persistence")
 public class MybatisPlusConfig {
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {

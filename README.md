@@ -1,52 +1,84 @@
 # FoodMate
 
-FoodMate 是面向餐饮、营养、饮食记录、摄入分析和备餐规划的任务型 Agent 产品。
+FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent 产品。它不提供医疗诊断、治疗、处方或紧急健康决策；涉及高风险健康判断时，系统应安全降级并提示用户咨询医生或注册营养师。
 
-## 当前真实状态
+## 项目架构
 
-截至 2026-07-26，M1-2 与 M1-3 最小真实闭环已完成：前端已接入真实认证、会话、消息、AgentRun SSE、取消和续传；Java 已实现权威 AgentRun、dispatch/outbox、事件 inbox 和 SSE outbox；Python `agent-runtime/` 已实现确定性 stub、Service JWT、dispatch/cancel 和事件回调。真实模型、LangGraph、Eval、预算治理和 RocketMQ 正式异步主通道尚未实现。
+![FoodMate 当前架构](./docxs/架构/图/FoodMate当前架构.svg)
 
-| 范围 | 当前事实 |
+核心边界：
+
+- `foodmate-ui` 负责用户界面、认证交互和 SSE 展示。
+- Java 控制面是用户、授权、业务数据、工具执行和审计的唯一权威。
+- Python `agent-runtime` 负责受控 Agent 编排、模型适配与结果组装，不能直连 FoodMate 业务数据库。
+- PostgreSQL 是业务真值；Redis 保存协调、租约和 checkpoint 等技术状态；RocketMQ 提供至少一次异步传输。
+
+![FoodMate Agent 运行闭环](./docxs/架构/图/FoodMateAgent运行闭环.svg)
+
+完整的边界、状态机、预算、Eval 与退回规则见：[架构总览](./docxs/架构/架构总览.md)、[Agent 运行架构](./docxs/架构/Agent运行架构.md)、[ADR-0005](./docxs/决策/ADR-0005-RocketMQ异步主通道.md)。
+
+## 当前真实状态（2026-07-29）
+
+以下仅记录已经运行验证的事实；“已实现”不等于已经完成完整生产闭环。
+
+| 范围 | 已验证事实 |
 |---|---|
-| 前端构建 | `npm run build` 通过 |
-| 前端 lint | `npm run lint` 因 35 个 warning 与零 warning 门槛失败 |
-| 前端测试 | `npm run test` 因没有测试文件失败 |
-| Java 验证 | `./mvnw.cmd clean verify` 通过 |
-| Python Runtime | `.venv` 中 pytest 实测 3 passed；只证明 M1-3 确定性 stub |
-| RocketMQ | 目标架构与 M1-4 方案已确认；Compose、Topic 和代码尚未实现 |
+| 本地基础设施 | Docker 中 PostgreSQL、Redis、MinIO、RocketMQ NameServer/Broker/Proxy 均可 healthy。 |
+| 真实持久化 | PostgreSQL E2E 已验证注册、登录、Cookie/CSRF、会话创建、消息持久化和读取。 |
+| 异步传输 | Java PostgreSQL Outbox -> RocketMQ -> Consumer 的真实 E2E 已验证 envelope、`request_hash`、`dispatch_id` 与 `run_id`。 |
+| Tool/SQL 闭环 | Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result 的真实 E2E 已验证；SQL 失败会记录 `SQL_EXECUTION_FAILED`，重复 Proposal 不重复执行。 |
+| 回归 | `mvn -pl foodmate-bootstrap -am test` 已通过。 |
 
-完整文档入口、权威优先级和更新条件见 [文档索引](./docxs/文档索引.md)。
+当前不能宣称完成的内容：
 
-## 启动
+- 浏览器真实登录、会话、消息、RocketMQ 消费和 SSE 的完整端到端闭环。
+- Python Runtime 的真实模型、RAG、Tool/SQL Proposal 到结果回注的完整跨进程编排闭环。
+- 生产级长时间压测、P95/P99 容量结论、多 Java 实例业务流量验证，以及 Redis、RocketMQ、PostgreSQL 的进程级故障恢复演练。
+- 可审计的生产模型价格表与成本治理数据。
 
-前端：
+## 本地启动
 
-```bash
-cd foodmate-ui
-npm install
-npm run dev
+### 1. 启动基础设施
+
+先参考 [`docker/.env.example`](./docker/.env.example) 补齐本地根目录 `.env`，尤其是 MinIO 管理员凭据；不要把真实云模型密钥提交到仓库。
+
+```powershell
+docker compose --env-file .env -f docker/compose.yml up -d
+docker compose --env-file .env -f docker/compose.yml ps
 ```
 
-Java：
+`rocketmq-namesrv` 与 `rocketmq-broker` 分别是名称服务和消息存储/投递节点；`rocketmq-proxy` 是 Python RocketMQ 5.x gRPC 客户端使用的协议代理，不是额外的 Broker。
+
+### 2. 启动 Java 控制面
 
 ```powershell
 .\mvnw.cmd -pl foodmate-bootstrap -am package
-& java -jar '.\foodmate-bootstrap\target\foodmate-bootstrap-0.1.0-SNAPSHOT.jar' '--spring.profiles.active=local-stub'
+& java -jar '.\foodmate-bootstrap\target\foodmate-bootstrap-0.1.0-SNAPSHOT.jar' '--spring.profiles.active=local'
 ```
 
-启动后在另一个 PowerShell 中检查：
+`local` 连接本地真实 PostgreSQL 等基础设施；`local-stub` 只用于不依赖真实基础设施的兼容/开发场景。
 
 ```powershell
 Invoke-WebRequest http://localhost:8080/actuator/health
 ```
 
-以上 JAR 命令已于 2026-07-11 以 `local-stub` profile 实际启动并返回 HTTP 200；在前台运行时按 Ctrl+C 正常停止。
-
-Python Runtime 测试：
+### 3. 启动前端
 
 ```powershell
-cd agent-runtime
-.\.venv\Scripts\python.exe -m pytest -q
+cd foodmate-ui
+npm install
+npm run dev
 ```
 
-RocketMQ 目标设计见 [ADR-0005](./docxs/决策/ADR-0005-RocketMQ异步主通道.md)。当前不要把 HTTP stub 链路描述为 RocketMQ 已接入。
+### 4. 运行已使用的验证命令
+
+```powershell
+mvn -pl foodmate-bootstrap -am '-Dfoodmate.local-e2e=true' '-Dtest=LocalPostgresE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+mvn -pl foodmate-bootstrap -am '-Dfoodmate.local-mq-e2e=true' '-Dtest=M14RocketMqTransportE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+mvn -pl foodmate-bootstrap -am '-Dfoodmate.local-mq-e2e=true' '-Dtest=M14ProposalResultE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+mvn -pl foodmate-bootstrap -am test
+```
+
+## 文档
+
+[文档索引](./docxs/文档索引.md) 是唯一导航入口。发生冲突时，以实际代码、迁移和测试事实优先；内部 Java/Python 消息以[双运行时内部契约 V1](./docxs/契约/双运行时内部契约V1.md)为准。

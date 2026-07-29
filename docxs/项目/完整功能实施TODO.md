@@ -4,14 +4,18 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## M1-4 当前复核状态（2026-07-28）
+## M1-4 当前复核状态（2026-07-29）
 
-- [ ] 浏览器完整真实登录、会话、消息、SSE 尚未通过；当前仅验证 mock 页面交互，真实 API 注册返回 `500 INTERNAL_ERROR`。
-- [x] Proposal/Result 真实 MQ、Tool Gateway 失败审计、Result 发布后重试语义和重复 Proposal 幂等已通过。
-- [x] Redis 多实例准入 6/6：并发上限、队列满、continuation 优先、队列 lease 过期和 Redis 不可用错误码已验证。
-- [x] Python RocketMQ producer/consumer 启动超时已补齐；Proxy route 不可用不会永久阻塞。
-- [x] 真实云模型联调：官方 `/v1/models` 返回 200，`deepseek-ai/DeepSeek-V4-Flash` 实际 Chat Completions 和 primary + Eval gated 测试均通过；默认仍使用 deterministic stub。
+> 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
+
+- [x] 本地 Docker PostgreSQL E2E：注册、登录、Cookie/CSRF、会话创建、消息持久化/读取。
+- [x] Java PostgreSQL Outbox -> RocketMQ -> Consumer：真实传输、`request_hash`、`dispatch_id`、`run_id` 已验证。
+- [x] Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result：成功、失败 `SQL_EXECUTION_FAILED` 和重复 Proposal 幂等已验证。
+- [x] Proposal Inbox claim lease：超过 5 分钟的 `claimed` 记录可回收，避免旧失败消息造成消费者饥饿。
+- [ ] 浏览器完整真实登录、会话、消息、RocketMQ 消费与最终 SSE E2E 尚无通过证据。
+- [ ] Python 真实模型、RAG、Tool/SQL Proposal 生成及 Result 回注的完整跨进程编排尚无通过证据。
 - [ ] 生产级长压、多实例吞吐、P95/P99、进程级 Redis/RocketMQ/PostgreSQL 故障恢复仍待执行。
+- [ ] 真实供应商生产价格表与成本审计仍待完成；默认继续使用 deterministic stub。
 
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
 
@@ -23,7 +27,7 @@
 | M1-1 | 已完成 | 账户、授权与个人数据能力已有真实实现和验收记录。 |
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
-| M1-4 | 实现中 | 已落地受控模型适配、原生 LangGraph 白名单图、Eval/预算、Redis 准入、超时释放、摘要 CAS 和记忆候选，并通过 Proposal/Result 本地真实 E2E；真实云联调、完整浏览器路径和生产质量门禁仍未完成。 |
+| M1-4 | 实现中 | 已具备受控模型适配、LangGraph 白名单图、Eval/预算、Redis 准入、摘要 CAS、记忆候选、MQ Transport 与 Proposal/Result 局部真实 E2E；浏览器最终 SSE、Python 完整真实编排、生产压测及故障恢复仍未完成。 |
 
 ## 2. 已确认的产品边界
 

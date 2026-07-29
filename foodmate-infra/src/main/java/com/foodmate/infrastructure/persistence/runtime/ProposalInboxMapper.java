@@ -11,7 +11,8 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface ProposalInboxMapper extends ProposalInboxStore {
     @Insert(
-            "INSERT INTO runtime_tool_proposal_inbox(proposal_id,request_hash,payload_json,status) VALUES (#{proposalId},#{requestHash},CAST(#{payload} AS jsonb),'claimed') ON CONFLICT (proposal_id) DO NOTHING")
+            // claimed 是带租约的处理中状态；超过 5 分钟仍未完成时允许重试者重新取得执行权，避免旧消息永久占满消费线程。
+            "INSERT INTO runtime_tool_proposal_inbox(proposal_id,request_hash,payload_json,status) VALUES (#{proposalId},#{requestHash},CAST(#{payload} AS jsonb),'claimed') ON CONFLICT (proposal_id) DO UPDATE SET claimed_at=CURRENT_TIMESTAMP WHERE runtime_tool_proposal_inbox.status='claimed' AND runtime_tool_proposal_inbox.claimed_at < CURRENT_TIMESTAMP - INTERVAL '5 minutes'")
     int claim(
             @Param("proposalId") String proposalId,
             @Param("requestHash") String requestHash,

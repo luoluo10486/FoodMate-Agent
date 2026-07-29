@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">FoodMate 当前架构</title>
+  <desc id="desc">FoodMate 的前端、Java 控制面、PostgreSQL、Redis、RocketMQ、Python Agent Runtime、工具网关和 MinIO 的关系图。</desc>
+  <style>
+    .bg { fill: #f7f9fc; } .title { font: 700 30px Arial, 'Microsoft YaHei', sans-serif; fill: #172033; }
+    .sub { font: 15px Arial, 'Microsoft YaHei', sans-serif; fill: #56627a; } .h { font: 700 18px Arial, 'Microsoft YaHei', sans-serif; fill: #172033; }
+    .t { font: 14px Arial, 'Microsoft YaHei', sans-serif; fill: #34405a; } .small { font: 12px Arial, 'Microsoft YaHei', sans-serif; fill: #526079; }
+    .box { fill: #fff; stroke: #b8c5d8; stroke-width: 1.5; rx: 8; } .java { fill: #e8f0ff; stroke: #4a78c2; }
+    .data { fill: #e9f8f0; stroke: #318264; } .runtime { fill: #fff5df; stroke: #bf7d18; } .future { fill: #fffaf0; stroke: #d69123; stroke-dasharray: 6 5; }
+    .verified { fill: none; stroke: #26835f; stroke-width: 3; marker-end: url(#arrowGreen); } .implemented { fill: none; stroke: #3978c6; stroke-width: 3; marker-end: url(#arrowBlue); }
+    .planned { fill: none; stroke: #cf8b22; stroke-width: 2.5; stroke-dasharray: 7 5; marker-end: url(#arrowOrange); }
+  </style>
+  <defs>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#26835f"/></marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#3978c6"/></marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#cf8b22"/></marker>
+  </defs>
+  <rect class="bg" width="1280" height="760"/>
+  <text class="title" x="50" y="55">FoodMate 当前架构（2026-07-29）</text>
+  <text class="sub" x="50" y="82">Java 持有业务真值与授权；Python 负责受控编排；MQ 只提供至少一次传输。</text>
+  <rect class="box" x="65" y="180" width="190" height="112"/><text class="h" x="105" y="220">foodmate-ui</text><text class="t" x="91" y="248">React / Vite</text><text class="small" x="91" y="273">认证、会话、SSE 展示</text>
+  <rect class="box java" x="355" y="145" width="255" height="180"/><text class="h" x="402" y="184">Java 控制面</text><text class="t" x="382" y="215">API / Auth / Application</text><text class="t" x="382" y="242">AgentRun / 状态机 / SSE</text><text class="t" x="382" y="269">Dispatch Outbox / Event Inbox</text><text class="small" x="382" y="297">业务授权与审计权威</text>
+  <rect class="box data" x="710" y="105" width="210" height="120"/><text class="h" x="755" y="147">PostgreSQL</text><text class="t" x="742" y="176">业务真值、Outbox</text><text class="small" x="742" y="201">审计、会话、消息、Run</text>
+  <rect class="box data" x="710" y="290" width="210" height="120"/><text class="h" x="776" y="332">Redis</text><text class="t" x="737" y="361">准入、租约、Checkpoint</text><text class="small" x="737" y="386">技术状态，非业务真值</text>
+  <rect class="box runtime" x="1000" y="195" width="220" height="150"/><text class="h" x="1030" y="235">Python Runtime</text><text class="t" x="1027" y="264">确定性 Stub / Adapter</text><text class="t" x="1027" y="291">Workflow / Eval / Budget</text><text class="small" x="1027" y="318">不直连业务数据库</text>
+  <rect class="box" x="382" y="500" width="228" height="130"/><text class="h" x="420" y="540">Java Tool Gateway</text><text class="t" x="414" y="570">Policy / SQL Guard</text><text class="t" x="414" y="596">幂等、只读执行、审计</text>
+  <rect class="box data" x="710" y="510" width="210" height="100"/><text class="h" x="774" y="550">MinIO</text><text class="t" x="743" y="578">对象存储基础设施</text>
+  <rect class="box java" x="690" y="685" width="250" height="45"/><text class="h" x="728" y="714">RocketMQ（异步主通道）</text>
+  <path class="verified" d="M255 236 H355"/><path class="verified" d="M610 190 H710"/><path class="implemented" d="M610 281 H710"/>
+  <path class="verified" d="M610 554 H710"/><path class="verified" d="M920 707 H1110 V345"/><path class="verified" d="M1110 345 V685 H940"/>
+  <path class="implemented" d="M500 325 V500"/><path class="implemented" d="M610 565 H710"/>
+  <path class="planned" d="M920 350 H1000"/><path class="planned" d="M1000 305 H920 V555 H610"/>
+  <rect x="65" y="665" width="18" height="12" fill="none" stroke="#26835f" stroke-width="3"/><text class="small" x="92" y="676">绿色实线：本地真实联调已通过</text>
+  <rect x="280" y="665" width="18" height="12" fill="none" stroke="#3978c6" stroke-width="3"/><text class="small" x="307" y="676">蓝色实线：代码与本地基础能力已实现</text>
+  <rect x="525" y="665" width="18" height="12" fill="none" stroke="#cf8b22" stroke-width="2" stroke-dasharray="5 4"/><text class="small" x="552" y="676">橙色虚线：已设计/受控，尚无完整端到端证据</text>
+</svg>
