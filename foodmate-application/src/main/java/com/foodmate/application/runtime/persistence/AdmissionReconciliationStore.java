@@ -1,0 +1,31 @@
+package com.foodmate.application.runtime.persistence;
+
+import java.util.List;
+
+public interface AdmissionReconciliationStore {
+    List<RunRef> findQueueExpired(int timeoutSeconds, int limit);
+
+    List<RunRef> findExecutionExpired(int limit);
+
+    int failRun(long agentRunId, String code, String resultJson);
+
+    int expireDispatches(long agentRunId);
+
+    int failOutboxes(long agentRunId, String code);
+
+    Long nextSseSequence(long agentRunId);
+
+    void insertFailedEvent(
+            long eventId,
+            long agentRunId,
+            String sseEventId,
+            long sequence,
+            String sourceKey,
+            String payload);
+
+    void updateSseSequence(long agentRunId, long sequence);
+
+    void promoteOutboxes(List<String> runIds);
+
+    record RunRef(long agentRunId, String runId) {}
+}

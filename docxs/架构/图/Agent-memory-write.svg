@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390" role="img" aria-labelledby="title desc">
+  <title id="title">FoodMate 记忆候选写入流程</title>
+  <desc id="desc">用户消息或工具结果经过规则预筛选、Python 候选生成和 Java 校验后写入 PostgreSQL。</desc>
+  <style>
+    text { font-family: "Microsoft YaHei", sans-serif; fill: #17202a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .label { font-size: 16px; font-weight: 600; }
+    .note { font-size: 14px; fill: #566573; }
+    .box { fill: #fff; stroke: #2c3e50; stroke-width: 2; rx: 6; }
+    .python { fill: #eaf2f8; stroke: #2874a6; }
+    .java { fill: #e9f7ef; stroke: #1e8449; }
+    .reject { fill: #fdedec; stroke: #b03a2e; }
+    .db { fill: #fef9e7; stroke: #b7950b; }
+    .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#34495e"/></marker></defs>
+  <text x="40" y="38" class="title">FoodMate 轻量记忆候选写入</text>
+  <rect x="40" y="90" width="180" height="80" class="box"/><text x="130" y="122" text-anchor="middle" class="label">消息 / Tool Result</text><text x="130" y="148" text-anchor="middle" class="note">只接受可追溯来源</text>
+  <rect x="270" y="90" width="180" height="80" class="box"/><text x="360" y="122" text-anchor="middle" class="label">硬规则预筛选</text><text x="360" y="148" text-anchor="middle" class="note">类型白名单、非一次性</text>
+  <rect x="500" y="90" width="190" height="80" class="box python"/><text x="595" y="122" text-anchor="middle" class="label">Python 生成候选</text><text x="595" y="148" text-anchor="middle" class="note">每 Run 最多 3 条</text>
+  <rect x="740" y="90" width="200" height="80" class="box java"/><text x="840" y="122" text-anchor="middle" class="label">Java 权威校验</text><text x="840" y="148" text-anchor="middle" class="note">归属、来源、TTL、冲突</text>
+  <rect x="990" y="90" width="170" height="80" class="box db"/><text x="1075" y="122" text-anchor="middle" class="label">user_memories</text><text x="1075" y="148" text-anchor="middle" class="note">确认后 Upsert</text>
+  <path d="M220 130 H270" class="arrow"/><path d="M450 130 H500" class="arrow"/><path d="M690 130 H740" class="arrow"/><path d="M940 130 H990" class="arrow"/>
+  <rect x="270" y="245" width="220" height="80" class="box reject"/><text x="380" y="277" text-anchor="middle" class="label">不生成长期记忆</text><text x="380" y="303" text-anchor="middle" class="note">一次性、无价值或禁止类型</text>
+  <rect x="730" y="245" width="260" height="80" class="box reject"/><text x="860" y="277" text-anchor="middle" class="label">拒绝或请求用户确认</text><text x="860" y="303" text-anchor="middle" class="note">推断、冲突、敏感或来源不明</text>
+  <path d="M360 170 V245" class="arrow"/><path d="M840 170 V245" class="arrow"/>
+</svg>

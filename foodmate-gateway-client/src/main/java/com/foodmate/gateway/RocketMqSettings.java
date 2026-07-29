@@ -5,8 +5,8 @@ import java.util.Objects;
 /**
  * RocketMQ 传输配置（ADR-0005）。
  *
- * <p>Topic 与 consumer group 属于契约化配置，构造时即校验：命名非法或为空时直接拒绝启动，
- * 而不是等到第一条消息发送失败。Topic 名只允许 {@code ^[%|a-zA-Z0-9_-]+$}，点号会被 Broker 拒绝。
+ * <p>Topic 与 consumer group 属于契约化配置，构造时即校验：命名非法或为空时直接拒绝启动， 而不是等到第一条消息发送失败。Topic 名只允许 {@code
+ * ^[%|a-zA-Z0-9_-]+$}，点号会被 Broker 拒绝。
  */
 public record RocketMqSettings(
         String nameServer,
@@ -31,11 +31,15 @@ public record RocketMqSettings(
         proposalTopic = requireTopic(proposalTopic, "proposalTopic");
         resultTopic = requireTopic(resultTopic, "resultTopic");
         javaEventConsumerGroup = requireTopic(javaEventConsumerGroup, "javaEventConsumerGroup");
-        javaProposalConsumerGroup = requireTopic(javaProposalConsumerGroup, "javaProposalConsumerGroup");
+        javaProposalConsumerGroup =
+                requireTopic(javaProposalConsumerGroup, "javaProposalConsumerGroup");
         producerGroup = requireTopic(producerGroup, "producerGroup");
-        if (sendTimeoutMs <= 0) throw new IllegalArgumentException("sendTimeoutMs must be positive");
-        if (producerMaxRetries < 0) throw new IllegalArgumentException("producerMaxRetries must not be negative");
-        if (consumerMaxRetries < 0) throw new IllegalArgumentException("consumerMaxRetries must not be negative");
+        if (sendTimeoutMs <= 0)
+            throw new IllegalArgumentException("sendTimeoutMs must be positive");
+        if (producerMaxRetries < 0)
+            throw new IllegalArgumentException("producerMaxRetries must not be negative");
+        if (consumerMaxRetries < 0)
+            throw new IllegalArgumentException("consumerMaxRetries must not be negative");
     }
 
     /** 消费失败耗尽重试后，Broker 把消息投递到该消费组的 DLQ Topic。 */
@@ -47,7 +51,8 @@ public record RocketMqSettings(
         requireText(value, name);
         String trimmed = value.trim();
         if (!trimmed.matches(TOPIC_PATTERN)) {
-            throw new IllegalArgumentException(name + " must match " + TOPIC_PATTERN + " (RocketMQ 拒绝点号): " + trimmed);
+            throw new IllegalArgumentException(
+                    name + " must match " + TOPIC_PATTERN + " (RocketMQ 拒绝点号): " + trimmed);
         }
         return trimmed;
     }

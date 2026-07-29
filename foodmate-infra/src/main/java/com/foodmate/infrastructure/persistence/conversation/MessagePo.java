@@ -6,7 +6,9 @@ import com.foodmate.infrastructure.persistence.BasePo;
 
 @TableName("messages")
 public class MessagePo extends BasePo {
-    @TableId("message_id") public Long messageId;
+    @TableId("message_id")
+    public Long messageId;
+
     public Long sessionId;
     public Long agentRunId;
     public String role;

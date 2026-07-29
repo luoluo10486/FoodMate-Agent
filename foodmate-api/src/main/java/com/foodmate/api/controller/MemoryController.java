@@ -33,9 +33,13 @@ public class MemoryController extends AuthenticatedControllerSupport {
     }
 
     @PatchMapping("/{memoryId}")
-    public ApiResponse<?> update(HttpServletRequest request, @PathVariable long memoryId,
-                                 @Valid @RequestBody MemoryUpdateRequest body) {
-        return ok(memories.update(user(request).userId(), memoryId, body.memoryValue(), body.scope()));
+    public ApiResponse<?> update(
+            HttpServletRequest request,
+            @PathVariable long memoryId,
+            @Valid @RequestBody MemoryUpdateRequest body) {
+        return ok(
+                memories.update(
+                        user(request).userId(), memoryId, body.memoryValue(), body.scope()));
     }
 
     @DeleteMapping("/{memoryId}")
@@ -53,5 +57,6 @@ public class MemoryController extends AuthenticatedControllerSupport {
         return ApiResponse.success(value, TraceContextHolder.currentOrNew());
     }
 
-    public record MemoryUpdateRequest(@Size(max = 4000) String memoryValue, @Size(max = 32) String scope) {}
+    public record MemoryUpdateRequest(
+            @Size(max = 4000) String memoryValue, @Size(max = 32) String scope) {}
 }

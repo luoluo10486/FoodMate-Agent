@@ -1,0 +1,44 @@
+package com.foodmate.application.runtime.persistence;
+
+import java.util.List;
+
+/** 会话摘要持久化端口；数据库锁和 SQL 细节由基础设施层实现。 */
+public interface SessionSummaryStore {
+    boolean ownsSession(long userId, long sessionId);
+
+    List<MessageSnapshot> findEffectiveMessages(long sessionId);
+
+    SummarySnapshot lockSummary(long sessionId);
+
+    void insertSummary(NewSummary summary);
+
+    int updateSummary(UpdatedSummary summary);
+
+    int invalidate(long userId, long sessionId);
+
+    record MessageSnapshot(int sequence, String role, String content) {}
+
+    record SummarySnapshot(long id, int version, int sourceCount) {}
+
+    record NewSummary(
+            long id,
+            long sessionId,
+            String text,
+            int coveredFrom,
+            int coveredTo,
+            int sourceCount,
+            String promptVersion,
+            String digest,
+            long operatorId) {}
+
+    record UpdatedSummary(
+            long id,
+            int expectedVersion,
+            String text,
+            int coveredFrom,
+            int coveredTo,
+            int sourceCount,
+            String promptVersion,
+            String digest,
+            long operatorId) {}
+}

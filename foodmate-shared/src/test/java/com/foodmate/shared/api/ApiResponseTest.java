@@ -9,16 +9,12 @@ import com.foodmate.shared.trace.TraceContext;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/**
- * ApiResponse 的单元测试。
- */
+/** ApiResponse 的单元测试。 */
 class ApiResponseTest {
     @Test
     void createsSuccessResponseWithTraceMeta() {
-        ApiResponse<Map<String, String>> response = ApiResponse.success(
-                Map.of("status", "ok"),
-                TraceContext.of("req_1", "trace_1")
-        );
+        ApiResponse<Map<String, String>> response =
+                ApiResponse.success(Map.of("status", "ok"), TraceContext.of("req_1", "trace_1"));
 
         assertTrue(response.success());
         assertEquals("ok", response.data().get("status"));
@@ -28,12 +24,12 @@ class ApiResponseTest {
 
     @Test
     void createsFailureResponseWithStructuredError() {
-        ApiResponse<Void> response = ApiResponse.failure(
-                ErrorCode.INVALID_ARGUMENT,
-                "bad request",
-                Map.of("field", "title"),
-                TraceContext.of("req_2", "trace_2")
-        );
+        ApiResponse<Void> response =
+                ApiResponse.failure(
+                        ErrorCode.INVALID_ARGUMENT,
+                        "bad request",
+                        Map.of("field", "title"),
+                        TraceContext.of("req_2", "trace_2"));
 
         assertFalse(response.success());
         assertEquals("INVALID_ARGUMENT", response.error().code());

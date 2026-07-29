@@ -8,9 +8,7 @@ import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/**
- * 校验首版 Flyway 迁移脚本的表结构、索引和数据库注释。
- */
+/** 校验首版 Flyway 迁移脚本的表结构、索引和数据库注释。 */
 class FlywayMigrationScriptTest {
     @Test
     void runtimeMigrationDefinesDurableIdempotencyAndInboxTables() throws IOException {
@@ -25,89 +23,74 @@ class FlywayMigrationScriptTest {
         assertTrue(sql.contains("uk_user_auth_sessions_token_hash"));
         assertTrue(sql.contains("idx_user_auth_sessions_user_expires"));
     }
-    private static final Path INIT_SCHEMA = Path.of(
-            "..",
-            "script",
-            "sql",
-            "FoodMate",
-            "baseline",
-            "V1__init_core_schema.sql"
-    );
 
-    private static final Path ROLLBACK_SCHEMA = Path.of(
-            "..",
-            "script",
-            "sql",
-            "FoodMate",
-            "rollback",
-            "R1__drop_core_schema.sql"
-    );
+    private static final Path INIT_SCHEMA =
+            Path.of("..", "script", "sql", "FoodMate", "baseline", "V1__init_core_schema.sql");
 
-    private static final List<String> CORE_TABLES = List.of(
-            "users",
-            "user_profiles",
-            "auth_refresh_tokens",
-            "user_avatar_assets",
-            "sessions",
-            "messages",
-            "agent_runs",
-            "tool_calls",
-            "food_logs",
-            "analysis_reports",
-            "meal_plans",
-            "shopping_lists",
-            "user_memories",
-            "session_summaries",
-            "knowledge_documents",
-            "knowledge_chunks",
-            "data_sources",
-            "schema_catalogs",
-            "sql_query_audits",
-            "tool_registries",
-            "tool_schema_versions",
-            "model_usage_logs",
-            "model_route_rules",
-            "operation_audits"
-    );
+    private static final Path ROLLBACK_SCHEMA =
+            Path.of("..", "script", "sql", "FoodMate", "rollback", "R1__drop_core_schema.sql");
 
-    private static final List<String> ALL_TABLES = List.of(
-            "users",
-            "user_profiles",
-            "auth_refresh_tokens",
-            "user_avatar_assets",
-            "sessions",
-            "messages",
-            "agent_runs",
-            "tool_calls",
-            "food_logs",
-            "analysis_reports",
-            "meal_plans",
-            "shopping_lists",
-            "user_memories",
-            "session_summaries",
-            "knowledge_documents",
-            "knowledge_chunks",
-            "data_sources",
-            "schema_catalogs",
-            "sql_query_audits",
-            "tool_registries",
-            "tool_schema_versions",
-            "model_usage_logs",
-            "model_route_rules",
-            "operation_audits",
-            "runtime_runs",
-            "runtime_dispatches",
-            "runtime_cancels",
-            "runtime_event_inbox",
-            "user_auth_sessions"
-    );
+    private static final List<String> CORE_TABLES =
+            List.of(
+                    "users",
+                    "user_profiles",
+                    "auth_refresh_tokens",
+                    "user_avatar_assets",
+                    "sessions",
+                    "messages",
+                    "agent_runs",
+                    "tool_calls",
+                    "food_logs",
+                    "analysis_reports",
+                    "meal_plans",
+                    "shopping_lists",
+                    "user_memories",
+                    "session_summaries",
+                    "knowledge_documents",
+                    "knowledge_chunks",
+                    "data_sources",
+                    "schema_catalogs",
+                    "sql_query_audits",
+                    "tool_registries",
+                    "tool_schema_versions",
+                    "model_usage_logs",
+                    "model_route_rules",
+                    "operation_audits");
 
-    private static final List<String> TENANT_SCOPED_TABLES = List.of(
-            "users",
-            "sessions",
-            "knowledge_documents",
-            "model_route_rules"
-    );
+    private static final List<String> ALL_TABLES =
+            List.of(
+                    "users",
+                    "user_profiles",
+                    "auth_refresh_tokens",
+                    "user_avatar_assets",
+                    "sessions",
+                    "messages",
+                    "agent_runs",
+                    "tool_calls",
+                    "food_logs",
+                    "analysis_reports",
+                    "meal_plans",
+                    "shopping_lists",
+                    "user_memories",
+                    "session_summaries",
+                    "knowledge_documents",
+                    "knowledge_chunks",
+                    "data_sources",
+                    "schema_catalogs",
+                    "sql_query_audits",
+                    "tool_registries",
+                    "tool_schema_versions",
+                    "model_usage_logs",
+                    "model_route_rules",
+                    "operation_audits",
+                    "runtime_runs",
+                    "runtime_dispatches",
+                    "runtime_cancels",
+                    "runtime_event_inbox",
+                    "user_auth_sessions");
+
+    private static final List<String> TENANT_SCOPED_TABLES =
+            List.of("users", "sessions", "knowledge_documents", "model_route_rules");
 
     @Test
     void initSchemaDefinesCoreTablesWithSoftDeleteColumns() throws IOException {
@@ -117,10 +100,12 @@ class FlywayMigrationScriptTest {
             String tableBlock = tableBlock(sql, table);
             assertTrue(
                     tableBlock.contains("is_deleted BOOLEAN NOT NULL DEFAULT FALSE"),
-                    table + " must include the soft delete flag"
-            );
-            assertTrue(tableBlock.contains("deleted_at TIMESTAMPTZ"), table + " must include deleted_at");
-            assertTrue(tableBlock.contains("deleted_by BIGINT"), table + " must include deleted_by");
+                    table + " must include the soft delete flag");
+            assertTrue(
+                    tableBlock.contains("deleted_at TIMESTAMPTZ"),
+                    table + " must include deleted_at");
+            assertTrue(
+                    tableBlock.contains("deleted_by BIGINT"), table + " must include deleted_by");
         }
     }
 
@@ -144,8 +129,7 @@ class FlywayMigrationScriptTest {
             String tableBlock = tableBlock(sql, table);
             assertTrue(
                     tableBlock.contains("tenant_id BIGINT NOT NULL DEFAULT 0"),
-                    table + " must default to the single-tenant placeholder"
-            );
+                    table + " must default to the single-tenant placeholder");
         }
     }
 
@@ -156,8 +140,7 @@ class FlywayMigrationScriptTest {
 
         assertTrue(
                 tableBlock.contains("timeout_ms INT NOT NULL DEFAULT 5000"),
-                "tool schema versions must default tool execution timeout to 5000 ms"
-        );
+                "tool schema versions must default tool execution timeout to 5000 ms");
     }
 
     @Test
@@ -167,18 +150,18 @@ class FlywayMigrationScriptTest {
         for (String table : ALL_TABLES) {
             String tableCommentPrefix = "COMMENT ON TABLE " + table + " IS";
             assertTrue(sql.contains(tableCommentPrefix), table + " must have a table comment");
-            assertTrue(hasChineseComment(sql, tableCommentPrefix), table + " must have a Chinese table comment");
+            assertTrue(
+                    hasChineseComment(sql, tableCommentPrefix),
+                    table + " must have a Chinese table comment");
 
             for (String column : columnsIn(sql, table)) {
                 String columnCommentPrefix = "COMMENT ON COLUMN " + table + "." + column + " IS";
                 assertTrue(
                         sql.contains(columnCommentPrefix),
-                        table + "." + column + " must have a column comment"
-                );
+                        table + "." + column + " must have a column comment");
                 assertTrue(
                         hasChineseComment(sql, columnCommentPrefix),
-                        table + "." + column + " must have a Chinese column comment"
-                );
+                        table + "." + column + " must have a Chinese column comment");
             }
         }
     }
@@ -191,8 +174,7 @@ class FlywayMigrationScriptTest {
         for (String table : ALL_TABLES) {
             assertTrue(
                     rollbackSql.contains("DROP TABLE IF EXISTS " + table),
-                    table + " must be dropped by the rollback script"
-            );
+                    table + " must be dropped by the rollback script");
         }
     }
 
@@ -224,6 +206,8 @@ class FlywayMigrationScriptTest {
         assertTrue(start >= 0, prefix + " must exist");
         int end = sql.indexOf(";", start);
         assertTrue(end > start, prefix + " must end with semicolon");
-        return sql.substring(start, end).codePoints().anyMatch(codePoint -> codePoint >= 0x4E00 && codePoint <= 0x9FFF);
+        return sql.substring(start, end)
+                .codePoints()
+                .anyMatch(codePoint -> codePoint >= 0x4E00 && codePoint <= 0x9FFF);
     }
 }

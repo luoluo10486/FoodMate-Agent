@@ -3,8 +3,7 @@ package com.foodmate.gateway;
 /**
  * MQ 消息消费结果。消费端在业务事务提交后才返回 {@link #ACK}（ADR-0005）。
  *
- * <p>三类结果对应 §5.16 的失败分类：可重试异常走 Broker 重投，schema/digest/权限/fencing
- * 这类确定性错误直接 rejection，不做无意义重试。
+ * <p>三类结果对应 §5.16 的失败分类：可重试异常走 Broker 重投，schema/digest/权限/fencing 这类确定性错误直接 rejection，不做无意义重试。
  */
 public enum MqConsumeDecision {
     /** 业务事务已提交，或消息是可安全忽略的重复投递。 */

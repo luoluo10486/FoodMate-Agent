@@ -1,8 +1,6 @@
 package com.foodmate.shared.error;
 
-/**
- * 统一错误码枚举。
- */
+/** 统一错误码枚举。 */
 public enum ErrorCode {
     UNAUTHORIZED("UNAUTHORIZED", "未认证", 401),
     FORBIDDEN("FORBIDDEN", "无权限", 403),

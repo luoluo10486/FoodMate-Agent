@@ -6,9 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.junit.jupiter.api.Test;
 
-/**
- * LongIdJsonSerializer 的序列化测试。
- */
+/** LongIdJsonSerializer 的序列化测试。 */
 class LongIdJsonSerializerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -19,9 +17,6 @@ class LongIdJsonSerializerTest {
         assertEquals("{\"id\":\"1912345678901234567\"}", json);
     }
 
-    /**
-     * 序列化测试用 DTO。
-     */
-    private record SampleDto(@JsonSerialize(using = LongIdJsonSerializer.class) Long id) {
-    }
+    /** 序列化测试用 DTO。 */
+    private record SampleDto(@JsonSerialize(using = LongIdJsonSerializer.class) Long id) {}
 }

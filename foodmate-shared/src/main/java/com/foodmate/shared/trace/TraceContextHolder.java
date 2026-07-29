@@ -2,14 +2,11 @@ package com.foodmate.shared.trace;
 
 import java.util.Objects;
 
-/**
- * 基于 ThreadLocal 保存当前请求的 TraceContext。
- */
+/** 基于 ThreadLocal 保存当前请求的 TraceContext。 */
 public final class TraceContextHolder {
     private static final ThreadLocal<TraceContext> CURRENT = new ThreadLocal<>();
 
-    private TraceContextHolder() {
-    }
+    private TraceContextHolder() {}
 
     public static void set(TraceContext traceContext) {
         CURRENT.set(traceContext);

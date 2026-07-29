@@ -9,9 +9,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-/**
- * SseTraceContext 的上下文传播测试。
- */
+/** SseTraceContext 的上下文传播测试。 */
 class SseTraceContextTest {
     @AfterEach
     void tearDown() {

@@ -6,7 +6,9 @@ import com.foodmate.infrastructure.persistence.BasePo;
 
 @TableName("sessions")
 public class SessionPo extends BasePo {
-    @TableId("session_id") public Long sessionId;
+    @TableId("session_id")
+    public Long sessionId;
+
     public Long tenantId;
     public Long userId;
     public String title;

@@ -16,6 +16,11 @@
   <dependencies>
     <dependency>
       <groupId>com.foodmate</groupId>
+      <artifactId>foodmate-application</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.foodmate</groupId>
       <artifactId>foodmate-shared</artifactId>
       <version>${project.version}</version>
     </dependency>

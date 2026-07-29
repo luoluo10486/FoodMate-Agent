@@ -1,14 +1,11 @@
 package com.foodmate.shared.id;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * SnowflakeIdGenerator 的单元测试。
- */
+/** SnowflakeIdGenerator 的单元测试。 */
 class SnowflakeIdGeneratorTest {
     @Test
     void createsIncreasingPositiveIds() {

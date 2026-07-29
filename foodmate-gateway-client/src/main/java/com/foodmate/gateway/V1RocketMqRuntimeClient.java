@@ -19,14 +19,14 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  * Java -> Python 的 RocketMQ 传输客户端（ADR-0005 正式异步主通道）。
  *
  * <p>三条不可违反的规则：
+ *
  * <ol>
- *   <li>消息体直接使用 Outbox 中已持久化的 envelope，不重新拼装，重试保持同一 payload 与 request_hash。</li>
- *   <li>用 {@code run_id} 选择队列，保证同一 Run 的命令局部有序；不同 Run 可并行。</li>
- *   <li>只有 Broker 返回 {@link SendStatus#SEND_OK} 才算发布成功，其余状态一律当失败重试。</li>
+ *   <li>消息体直接使用 Outbox 中已持久化的 envelope，不重新拼装，重试保持同一 payload 与 request_hash。
+ *   <li>用 {@code run_id} 选择队列，保证同一 Run 的命令局部有序；不同 Run 可并行。
+ *   <li>只有 Broker 返回 {@link SendStatus#SEND_OK} 才算发布成功，其余状态一律当失败重试。
  * </ol>
  *
- * <p>消息不携带 Service JWT：MQ 通道的身份由部署边界保证，Java 仍然按 {@code run_id}
- * 重新推导可信用户上下文，不信任消息体里的身份字段。
+ * <p>消息不携带 Service JWT：MQ 通道的身份由部署边界保证，Java 仍然按 {@code run_id} 重新推导可信用户上下文，不信任消息体里的身份字段。
  */
 public final class V1RocketMqRuntimeClient implements V1RuntimeClient, AutoCloseable {
     private final DefaultMQProducer producer;
@@ -34,28 +34,47 @@ public final class V1RocketMqRuntimeClient implements V1RuntimeClient, AutoClose
     private final ObjectMapper mapper;
     private final String contractVersion;
 
-    public V1RocketMqRuntimeClient(DefaultMQProducer producer, RocketMqSettings settings,
-                                   ObjectMapper mapper, String contractVersion) {
+    public V1RocketMqRuntimeClient(
+            DefaultMQProducer producer,
+            RocketMqSettings settings,
+            ObjectMapper mapper,
+            String contractVersion) {
         this.producer = producer;
         this.settings = settings;
         this.mapper = mapper.findAndRegisterModules();
-        this.contractVersion = contractVersion == null || contractVersion.isBlank() ? "v1" : contractVersion;
+        this.contractVersion =
+                contractVersion == null || contractVersion.isBlank() ? "v1" : contractVersion;
     }
 
     @Override
     public Response dispatch(V1RunCommand command) {
-        return send(command.runId(), command.dispatchId(), command.attempt(),
-                "RunCommand", command.requestHash(), command);
+        return send(
+                command.runId(),
+                command.dispatchId(),
+                command.attempt(),
+                "RunCommand",
+                command.requestHash(),
+                command);
     }
 
     @Override
     public Response cancel(V1CancelCommand command) {
-        return send(command.runId(), command.dispatchId(), command.attempt(),
-                "CancelCommand", command.requestHash(), command);
+        return send(
+                command.runId(),
+                command.dispatchId(),
+                command.attempt(),
+                "CancelCommand",
+                command.requestHash(),
+                command);
     }
 
-    private Response send(String runId, String dispatchId, int attempt,
-                          String messageType, String requestHash, Object envelope) {
+    private Response send(
+            String runId,
+            String dispatchId,
+            int attempt,
+            String messageType,
+            String requestHash,
+            Object envelope) {
         try {
             byte[] body = mapper.writeValueAsBytes(envelope);
             Message message = new Message(settings.commandTopic(), body);
@@ -69,11 +88,14 @@ public final class V1RocketMqRuntimeClient implements V1RuntimeClient, AutoClose
             message.putUserProperty("foodmate_attempt", Integer.toString(attempt));
             message.putUserProperty("foodmate_request_hash", requestHash);
 
-            SendResult result = producer.send(message, this::selectByRunId, runId, settings.sendTimeoutMs());
+            SendResult result =
+                    producer.send(message, this::selectByRunId, runId, settings.sendTimeoutMs());
             if (result == null || result.getSendStatus() != SendStatus.SEND_OK) {
                 // SLAVE_NOT_AVAILABLE / FLUSH_*_TIMEOUT 都不能视为已持久化确认。
-                throw new RuntimeException("RUNTIME_UNAVAILABLE",
-                        "broker did not confirm the message: " + (result == null ? "null" : result.getSendStatus()));
+                throw new RuntimeException(
+                        "RUNTIME_UNAVAILABLE",
+                        "broker did not confirm the message: "
+                                + (result == null ? "null" : result.getSendStatus()));
             }
             return new Response(202, new String(body, StandardCharsets.UTF_8), result.getMsgId());
         } catch (RuntimeException exception) {

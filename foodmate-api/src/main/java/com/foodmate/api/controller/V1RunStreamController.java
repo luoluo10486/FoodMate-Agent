@@ -1,6 +1,5 @@
 package com.foodmate.api.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.V1RuntimeEventService;
@@ -26,51 +25,92 @@ public class V1RunStreamController extends AuthenticatedControllerSupport {
     private final ObjectMapper mapper = new ObjectMapper();
 
     public V1RunStreamController(UserAccountService accounts, V1RuntimeEventService events) {
-        super(accounts); this.events = events;
+        super(accounts);
+        this.events = events;
     }
 
     @GetMapping(value = "/{runId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter stream(@PathVariable String runId,
-                             @RequestHeader(value = "Last-Event-ID", required = false) String header,
-                             @RequestParam(value = "lastEventId", required = false) String query,
-                             HttpServletRequest request) {
+    public SseEmitter stream(
+            @PathVariable String runId,
+            @RequestHeader(value = "Last-Event-ID", required = false) String header,
+            @RequestParam(value = "lastEventId", required = false) String query,
+            HttpServletRequest request) {
         requireOwner(runId, request);
         // Last-Event-ID 可能是稳定的 sse_event_id，服务层会把它映射为真实 stream_seq。
         long after = events.cursorFor(runId, header == null ? query : header);
         SseEmitter emitter = new SseEmitter(120_000L);
         AtomicBoolean closed = new AtomicBoolean();
-        var executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "foodmate-sse-" + runId);
-            thread.setDaemon(true); return thread;
-        });
+        var executor =
+                Executors.newSingleThreadScheduledExecutor(
+                        runnable -> {
+                            Thread thread = new Thread(runnable, "foodmate-sse-" + runId);
+                            thread.setDaemon(true);
+                            return thread;
+                        });
         final long[] cursor = {after};
-        var task = executor.scheduleWithFixedDelay(() -> {
-            if (closed.get()) return;
-            try {
-                for (var event : events.sseEvents(runId, cursor[0])) {
-                    // 发送成功后才推进内存游标；断线时仍可从数据库游标重新补发。
-                    emitter.send(SseEmitter.event().id(event.sseEventId()).name(event.eventType()).data(event.payload()));
-                    cursor[0] = event.streamSeq();
-                    if (event.terminal()) { closed.set(true); emitter.complete(); executor.shutdown(); return; }
-                }
-            } catch (IOException exception) {
-                closed.set(true); emitter.completeWithError(exception); executor.shutdown();
-            } catch (RuntimeException exception) {
-                closed.set(true); emitter.completeWithError(exception); executor.shutdown();
-            }
-        }, 0, 200, TimeUnit.MILLISECONDS);
-        emitter.onCompletion(() -> { closed.set(true); task.cancel(false); executor.shutdown(); });
-        emitter.onTimeout(() -> { closed.set(true); task.cancel(false); executor.shutdown(); });
+        var task =
+                executor.scheduleWithFixedDelay(
+                        () -> {
+                            if (closed.get()) return;
+                            try {
+                                for (var event : events.sseEvents(runId, cursor[0])) {
+                                    // 发送成功后才推进内存游标；断线时仍可从数据库游标重新补发。
+                                    emitter.send(
+                                            SseEmitter.event()
+                                                    .id(event.sseEventId())
+                                                    .name(event.eventType())
+                                                    .data(event.payload()));
+                                    cursor[0] = event.streamSeq();
+                                    if (event.terminal()) {
+                                        closed.set(true);
+                                        emitter.complete();
+                                        executor.shutdown();
+                                        return;
+                                    }
+                                }
+                            } catch (IOException exception) {
+                                closed.set(true);
+                                emitter.completeWithError(exception);
+                                executor.shutdown();
+                            } catch (RuntimeException exception) {
+                                closed.set(true);
+                                emitter.completeWithError(exception);
+                                executor.shutdown();
+                            }
+                        },
+                        0,
+                        200,
+                        TimeUnit.MILLISECONDS);
+        emitter.onCompletion(
+                () -> {
+                    closed.set(true);
+                    task.cancel(false);
+                    executor.shutdown();
+                });
+        emitter.onTimeout(
+                () -> {
+                    closed.set(true);
+                    task.cancel(false);
+                    executor.shutdown();
+                });
         return emitter;
     }
 
     private void requireOwner(String runId, HttpServletRequest request) {
         long numeric;
-        try { numeric = Long.parseLong(runId); } catch (NumberFormatException exception) { throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_STATE_CONFLICT", "run id is invalid"); }
-        if (events == null || numeric < 1) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_STATE_CONFLICT", "run not found");
+        try {
+            numeric = Long.parseLong(runId);
+        } catch (NumberFormatException exception) {
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_STATE_CONFLICT", "run id is invalid");
+        }
+        if (events == null || numeric < 1)
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_STATE_CONFLICT", "run not found");
         var user = user(request);
-        if (user == null) throw new com.foodmate.shared.error.BusinessException(com.foodmate.shared.error.ErrorCode.AUTH_REQUIRED);
+        if (user == null)
+            throw new com.foodmate.shared.error.BusinessException(
+                    com.foodmate.shared.error.ErrorCode.AUTH_REQUIRED);
         events.requireRunOwner(runId, user.userId());
     }
-
 }

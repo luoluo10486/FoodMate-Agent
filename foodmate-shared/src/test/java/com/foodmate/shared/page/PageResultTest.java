@@ -6,9 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/**
- * PageResult 和 PageRequest 的单元测试。
- */
+/** PageResult 和 PageRequest 的单元测试。 */
 class PageResultTest {
     @Test
     void computesOffsetAndResult() {

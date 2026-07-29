@@ -9,9 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-/**
- * TraceContextFilter 的单元测试。
- */
+/** TraceContextFilter 的单元测试。 */
 class TraceContextFilterTest {
     private final TraceContextFilter filter = new TraceContextFilter();
 
@@ -27,10 +25,11 @@ class TraceContextFilterTest {
         request.addHeader(TraceContextFilter.TRACE_ID_HEADER, "trace_header");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        FilterChain chain = (servletRequest, servletResponse) -> {
-            assertEquals("req_header", TraceContextHolder.currentOrNew().requestId());
-            assertEquals("trace_header", TraceContextHolder.currentOrNew().traceId());
-        };
+        FilterChain chain =
+                (servletRequest, servletResponse) -> {
+                    assertEquals("req_header", TraceContextHolder.currentOrNew().requestId());
+                    assertEquals("trace_header", TraceContextHolder.currentOrNew().traceId());
+                };
 
         filter.doFilter(request, response, chain);
 

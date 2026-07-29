@@ -6,7 +6,9 @@ import com.foodmate.infrastructure.persistence.BasePo;
 
 @TableName("auth_refresh_tokens")
 public class AuthRefreshTokenPo extends BasePo {
-    @TableId("refresh_token_id") public Long refreshTokenId;
+    @TableId("refresh_token_id")
+    public Long refreshTokenId;
+
     public Long userId;
     public String tokenHash;
     public String deviceId;

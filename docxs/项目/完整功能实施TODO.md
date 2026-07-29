@@ -149,6 +149,11 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 完成摘要失效与重建的最小链路：消息被删除或更正后摘要失效，下一次超过 8 条有效消息时从权威消息重建；摘要缓存和长期缓存联动仍需强化。
 - [x] 完成长期记忆候选链路：Python 只产生带来源、类型、置信度、作用域和有效期的候选，Java 校验后写入 `user_memories`，不得把模型推测、一次性参数、审批或医疗判断自动记忆。
 - [x] 提供长期记忆查看、更正、删除和冲突确认 API；冲突记忆默认不进入 Agent Context，用户确认后才恢复可用。
+- [ ] 将确定性文本摘要升级为结构化摘要，至少输出目标、已确认约束、决定、待确认问题和引用实体 ID；保留摘要版本、来源 digest 与失败降级。
+- [ ] 将当前“最近更新 20 条”长期记忆读取改为 Router 后按意图、类型、scope、状态和有效期检索，每次最多注入 5 至 8 条。
+- [ ] 建立记忆 TTL、推断衰减、来源失效、用户遗忘和删除防再生；每 Run 最多 3 个候选，每用户 active memory 上限配置化。
+- [ ] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表，`user_memories` 不复制权威业务实体。
+- [x] M1 不引入 `pgvector`；仅当结构化检索经 Eval 证明召回不足后作为可选增强评估。
 - [ ] 删除或更正长期记忆后同步失效所有相关摘要、缓存和历史 Context 引用；当前已完成记忆逻辑删除，摘要关联失效仍需继续接入。
 - [ ] 为每次 Context 装配保存可审计来源 ID：`message_id/summary_id/memory_id/citation_id`，但不得保存 Chain-of-Thought 或完整 Prompt。
 - [x] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。当前已接入 Lua/ZSET lease，未引入进程内 semaphore。

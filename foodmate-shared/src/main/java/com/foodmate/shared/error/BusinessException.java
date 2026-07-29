@@ -2,9 +2,7 @@ package com.foodmate.shared.error;
 
 import java.util.Map;
 
-/**
- * 业务异常基类，携带标准错误码和详情。
- */
+/** 业务异常基类，携带标准错误码和详情。 */
 public class BusinessException extends RuntimeException {
     private final ErrorCode errorCode;
     private final Map<String, Object> details;

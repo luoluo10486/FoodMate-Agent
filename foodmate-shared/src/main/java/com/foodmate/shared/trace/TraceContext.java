@@ -2,15 +2,8 @@ package com.foodmate.shared.trace;
 
 import java.util.UUID;
 
-/**
- * TraceContext 记录请求级链路标识。
- */
-public record TraceContext(
-        String requestId,
-        String traceId,
-        String sessionId,
-        String agentRunId
-) {
+/** TraceContext 记录请求级链路标识。 */
+public record TraceContext(String requestId, String traceId, String sessionId, String agentRunId) {
     public static TraceContext of(String requestId, String traceId) {
         return new TraceContext(requestId, traceId, null, null);
     }

@@ -39,7 +39,9 @@ public final class M03ConfigurationValidator {
         }
         if (production) {
             String lowerUrl = url.toLowerCase(Locale.ROOT);
-            if (lowerUrl.contains("localhost") || lowerUrl.contains("127.0.0.1") || lowerUrl.contains("socketfactory")) {
+            if (lowerUrl.contains("localhost")
+                    || lowerUrl.contains("127.0.0.1")
+                    || lowerUrl.contains("socketfactory")) {
                 throw invalid("database host");
             }
             if ("postgres".equalsIgnoreCase(username) && "postgres".equalsIgnoreCase(password)) {
@@ -74,7 +76,8 @@ public final class M03ConfigurationValidator {
 
     private static void parsePrivateKey(String value) {
         try {
-            KeyFactory.getInstance("Ed25519").generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(value)));
+            KeyFactory.getInstance("Ed25519")
+                    .generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(value)));
         } catch (Exception exception) {
             throw invalid("runtime private key format");
         }
@@ -82,7 +85,8 @@ public final class M03ConfigurationValidator {
 
     private static void parsePublicKey(String value) {
         try {
-            KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(value)));
+            KeyFactory.getInstance("Ed25519")
+                    .generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(value)));
         } catch (Exception exception) {
             throw invalid("runtime public key format");
         }

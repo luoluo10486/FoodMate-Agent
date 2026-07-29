@@ -430,6 +430,8 @@ com.foodmate.infrastructure
 | `Tool Adapter` | 确定性执行 | 负责路由和最终答复 |
 | `Worker Handler` | 异步任务处理 | 直接承接用户同步请求 |
 
+持久化调用固定遵循 `Application Port -> Infra Repository/Mapper -> PostgreSQL`。Controller 和 Application Service 不允许直接注入 `JdbcTemplate`、MyBatis Mapper 或 Wrapper。简单 CRUD 使用 MyBatis-Plus；`FOR UPDATE`、CAS、JSONB、Outbox 抢占和 Inbox 去重等依赖数据库语义的查询允许在 Infra Mapper XML/注解中保留显式 SQL，但 SQL 不得散落到业务编排类。
+
 ---
 
 ## 4. 核心边界与对外接口
@@ -702,6 +704,8 @@ foodmate:
 - `DELETE` 操作统一走软删除更新，不允许默认物理删除
 - 恢复操作必须记录 `operator_id`、`request_id`、`trace_id`
 - Mapper 只能放在 `foodmate-infra`，`api`、`application` 和 Python Runtime 不直接使用 MyBatis-Plus Mapper 或 Wrapper
+- 生产代码中的直接 `JdbcTemplate` 访问属于待迁移技术债；测试夹具用于准备数据和断言时可以继续使用 JDBC
+- 数据库组件缺失时不得使用 `if (jdbc == null) return` 静默关闭业务能力；可选能力必须由显式配置控制，必选能力缺失应启动失败或返回明确错误
 
 推荐抽象：
 

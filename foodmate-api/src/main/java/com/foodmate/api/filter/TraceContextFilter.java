@@ -12,9 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * 在每个请求中初始化并回写链路上下文。
- */
+/** 在每个请求中初始化并回写链路上下文。 */
 @Component
 public class TraceContextFilter extends OncePerRequestFilter {
     public static final String REQUEST_ID_HEADER = "X-Request-Id";
@@ -22,10 +20,8 @@ public class TraceContextFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         String requestId = headerOrNew(request, REQUEST_ID_HEADER, "req_");
         String traceId = headerOrNew(request, TRACE_ID_HEADER, "trace_");
         TraceContext traceContext = TraceContext.of(requestId, traceId);

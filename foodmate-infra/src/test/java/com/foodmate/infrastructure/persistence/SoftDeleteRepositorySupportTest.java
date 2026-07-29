@@ -12,9 +12,7 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
-/**
- * 软删除仓储支持基类测试。
- */
+/** 软删除仓储支持基类测试。 */
 class SoftDeleteRepositorySupportTest {
     @Test
     void softDeleteMarksAuditFieldsAndUpdatesEntity() {
@@ -36,7 +34,8 @@ class SoftDeleteRepositorySupportTest {
         TestPo po = new TestPo();
         po.markDeleted(100L, Instant.parse("2026-07-03T00:00:00Z"));
         TestRepository repository = repositoryReturning(1);
-        RestoreCommand command = new RestoreCommand("test", 1L, 200L, "req_restore", "trace_restore");
+        RestoreCommand command =
+                new RestoreCommand("test", 1L, 200L, "req_restore", "trace_restore");
 
         int updated = repository.restoreEntity(po, command);
 
@@ -51,26 +50,25 @@ class SoftDeleteRepositorySupportTest {
     @SuppressWarnings("unchecked")
     private TestRepository repositoryReturning(int updateCount) {
         AtomicReference<TestPo> updatedEntity = new AtomicReference<>();
-        BaseMapper<TestPo> mapper = (BaseMapper<TestPo>) Proxy.newProxyInstance(
-                BaseMapper.class.getClassLoader(),
-                new Class<?>[]{BaseMapper.class},
-                (proxy, method, args) -> {
-                    if ("updateById".equals(method.getName())) {
-                        updatedEntity.set((TestPo) args[0]);
-                        return updateCount;
-                    }
-                    if ("toString".equals(method.getName())) {
-                        return "TestBaseMapper";
-                    }
-                    throw new UnsupportedOperationException(method.getName());
-                }
-        );
+        BaseMapper<TestPo> mapper =
+                (BaseMapper<TestPo>)
+                        Proxy.newProxyInstance(
+                                BaseMapper.class.getClassLoader(),
+                                new Class<?>[] {BaseMapper.class},
+                                (proxy, method, args) -> {
+                                    if ("updateById".equals(method.getName())) {
+                                        updatedEntity.set((TestPo) args[0]);
+                                        return updateCount;
+                                    }
+                                    if ("toString".equals(method.getName())) {
+                                        return "TestBaseMapper";
+                                    }
+                                    throw new UnsupportedOperationException(method.getName());
+                                });
         return new TestRepository(mapper, updatedEntity);
     }
 
-    /**
-     * 测试用软删除仓储实现。
-     */
+    /** 测试用软删除仓储实现。 */
     private static final class TestRepository extends SoftDeleteRepositorySupport<TestPo> {
         private final AtomicReference<TestPo> updatedEntity;
 
@@ -88,9 +86,6 @@ class SoftDeleteRepositorySupportTest {
         }
     }
 
-    /**
-     * 测试用持久化对象。
-     */
-    private static final class TestPo extends BasePo {
-    }
+    /** 测试用持久化对象。 */
+    private static final class TestPo extends BasePo {}
 }

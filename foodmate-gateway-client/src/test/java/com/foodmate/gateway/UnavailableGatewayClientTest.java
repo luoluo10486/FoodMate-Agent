@@ -11,8 +11,17 @@ class UnavailableGatewayClientTest {
     @Test
     void alwaysFailsClosed() {
         var client = new UnavailableGatewayClient();
-        var exception = assertThrows(com.foodmate.shared.runtime.RuntimeException.class,
-                () -> client.dispatch(new RunCommand("d1", "r1", "hello", Instant.now().plusSeconds(5), 1)));
+        var exception =
+                assertThrows(
+                        com.foodmate.shared.runtime.RuntimeException.class,
+                        () ->
+                                client.dispatch(
+                                        new RunCommand(
+                                                "d1",
+                                                "r1",
+                                                "hello",
+                                                Instant.now().plusSeconds(5),
+                                                1)));
         assertEquals("RUNTIME_UNAVAILABLE", exception.code());
     }
 }

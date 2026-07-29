@@ -20,10 +20,11 @@ public class RuntimeProposalController {
     private final boolean jwtEnabled;
     private final String pythonPublicKey;
 
-    public RuntimeProposalController(ToolGatewayService gateway,
-                                     @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
-                                     @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
-                                     @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey) {
+    public RuntimeProposalController(
+            ToolGatewayService gateway,
+            @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
+            @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
+            @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey) {
         this.gateway = gateway;
         this.contractVersion = contractVersion;
         this.jwtEnabled = jwtEnabled;
@@ -35,19 +36,31 @@ public class RuntimeProposalController {
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestHeader(value = "X-Contract-Version", required = false) String version,
             @Valid @RequestBody Map<String, Object> body) {
-        if (!contractVersion.equals(version)) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_CONTRACT_INVALID", "V1 contract header is required");
+        if (!contractVersion.equals(version))
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_CONTRACT_INVALID", "V1 contract header is required");
         authenticate(authorization);
         return ApiResponse.success(gateway.execute(body), TraceContextHolder.currentOrNew());
     }
 
     private void authenticate(String authorization) {
-        if (!jwtEnabled || authorization == null || !authorization.startsWith("Bearer ") || pythonPublicKey.isBlank()) {
-            throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_AUTH_INVALID", "service JWT is required");
+        if (!jwtEnabled
+                || authorization == null
+                || !authorization.startsWith("Bearer ")
+                || pythonPublicKey.isBlank()) {
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_AUTH_INVALID", "service JWT is required");
         }
         try {
-            ServiceJwt.verify(authorization.substring(7), pythonPublicKey, "foodmate-agent-runtime", "foodmate-control-plane", "runtime:proposal");
+            ServiceJwt.verify(
+                    authorization.substring(7),
+                    pythonPublicKey,
+                    "foodmate-agent-runtime",
+                    "foodmate-control-plane",
+                    "runtime:proposal");
         } catch (IllegalStateException exception) {
-            throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_AUTH_INVALID", "invalid service JWT");
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_AUTH_INVALID", "invalid service JWT");
         }
     }
 }

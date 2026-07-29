@@ -6,7 +6,9 @@ import com.foodmate.infrastructure.persistence.BasePo;
 
 @TableName("user_profiles")
 public class UserProfilePo extends BasePo {
-    @TableId("profile_id") public Long profileId;
+    @TableId("profile_id")
+    public Long profileId;
+
     public Long userId;
     public String displayName;
     public String gender;

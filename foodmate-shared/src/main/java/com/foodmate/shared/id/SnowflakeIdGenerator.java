@@ -1,8 +1,6 @@
 package com.foodmate.shared.id;
 
-/**
- * Snowflake ID 生成器。
- */
+/** Snowflake ID 生成器。 */
 public class SnowflakeIdGenerator implements IdGenerator {
     private static final long CUSTOM_EPOCH = 1_704_067_200_000L;
     private static final long WORKER_ID_BITS = 10L;
@@ -27,7 +25,8 @@ public class SnowflakeIdGenerator implements IdGenerator {
     public synchronized long nextId() {
         long timestamp = timestamp();
         if (timestamp < lastTimestamp) {
-            throw new IllegalStateException("Clock moved backwards by " + (lastTimestamp - timestamp) + " ms");
+            throw new IllegalStateException(
+                    "Clock moved backwards by " + (lastTimestamp - timestamp) + " ms");
         }
         if (timestamp == lastTimestamp) {
             sequence = (sequence + 1) & SEQUENCE_MASK;

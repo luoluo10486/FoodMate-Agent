@@ -21,17 +21,33 @@ import org.springframework.test.web.servlet.MockMvc;
 class ChatControllerTest {
     @Autowired private MockMvc mockMvc;
 
-    @Test void createsRunAndExposesStatus() throws Exception {
-        String response = mockMvc.perform(post("/api/chat/runs").contentType(MediaType.APPLICATION_JSON).content("{\"prompt\":\"分析本周饮食\"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status", is("DISPATCHED")))
-                .andReturn().getResponse().getContentAsString();
+    @Test
+    void createsRunAndExposesStatus() throws Exception {
+        String response =
+                mockMvc.perform(
+                                post("/api/chat/runs")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content("{\"prompt\":\"分析本周饮食\"}"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.data.status", is("DISPATCHED")))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
         String runId = response.replaceAll(".*\\\"run_id\\\":\\\"([^\\\"]+)\\\".*", "$1");
-        mockMvc.perform(get("/api/chat/runs/" + runId)).andExpect(status().isOk()).andExpect(jsonPath("$.data.status", is("DISPATCHED")));
-        mockMvc.perform(get("/api/chat/runs/" + runId + "/events")).andExpect(status().isOk()).andExpect(jsonPath("$.data", is(java.util.List.of())));
+        mockMvc.perform(get("/api/chat/runs/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status", is("DISPATCHED")));
+        mockMvc.perform(get("/api/chat/runs/" + runId + "/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", is(java.util.List.of())));
     }
 
-    @Test void rejectsBlankPrompt() throws Exception {
-        mockMvc.perform(post("/api/chat/runs").contentType(MediaType.APPLICATION_JSON).content("{\"prompt\":\" \"}"))
+    @Test
+    void rejectsBlankPrompt() throws Exception {
+        mockMvc.perform(
+                        post("/api/chat/runs")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"prompt\":\" \"}"))
                 .andExpect(status().isBadRequest());
     }
 }

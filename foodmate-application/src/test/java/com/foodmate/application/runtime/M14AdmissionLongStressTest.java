@@ -23,10 +23,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-/**
- * 在真实 Redis 上运行可配置的本地长压测试，输出准入延迟分位数和容量事实。
- * 该测试默认关闭，避免普通单元测试意外产生长时间负载。
- */
+/** 在真实 Redis 上运行可配置的本地长压测试，输出准入延迟分位数和容量事实。 该测试默认关闭，避免普通单元测试意外产生长时间负载。 */
 @EnabledIfSystemProperty(named = "foodmate.redis-stress", matches = "true")
 class M14AdmissionLongStressTest {
     private LettuceConnectionFactory factory;
@@ -74,53 +71,63 @@ class M14AdmissionLongStressTest {
 
         for (int worker = 0; worker < workers; worker++) {
             final int workerId = worker;
-            executor.submit(() -> {
-                ready.countDown();
-                try {
-                    start.await();
-                    while (System.nanoTime() < endNanos) {
-                        String runId = "m14-stress-" + workerId + "-" + submitted.incrementAndGet();
-                        long userId = 10000L + (workerId % users);
-                        long sessionId = userId * 100 + (workerId % 2);
-                        long started = System.nanoTime();
+            executor.submit(
+                    () -> {
+                        ready.countDown();
                         try {
-                            AgentAdmissionService service = (workerId & 1) == 0 ? instanceA : instanceB;
-                            AgentAdmissionService.Admission admission = service.admit(runId, userId, sessionId);
-                            latencies.add(TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - started));
-                            operations.increment();
-                            if (admission.state() == AgentAdmissionService.State.ACTIVE) {
-                                owned.put(runId, workerId % 2 == 0 ? "A" : "B");
-                                int current = active.incrementAndGet();
-                                maxActive.accumulateAndGet(current, Math::max);
-                                for (String promoted : admission.promotedRunIds()) {
-                                    if (owned.remove(promoted) != null) {
-                                        active.decrementAndGet();
-                                        service.releaseAndPromote(promoted);
+                            start.await();
+                            while (System.nanoTime() < endNanos) {
+                                String runId =
+                                        "m14-stress-"
+                                                + workerId
+                                                + "-"
+                                                + submitted.incrementAndGet();
+                                long userId = 10000L + (workerId % users);
+                                long sessionId = userId * 100 + (workerId % 2);
+                                long started = System.nanoTime();
+                                try {
+                                    AgentAdmissionService service =
+                                            (workerId & 1) == 0 ? instanceA : instanceB;
+                                    AgentAdmissionService.Admission admission =
+                                            service.admit(runId, userId, sessionId);
+                                    latencies.add(
+                                            TimeUnit.NANOSECONDS.toMicros(
+                                                    System.nanoTime() - started));
+                                    operations.increment();
+                                    if (admission.state() == AgentAdmissionService.State.ACTIVE) {
+                                        owned.put(runId, workerId % 2 == 0 ? "A" : "B");
+                                        int current = active.incrementAndGet();
+                                        maxActive.accumulateAndGet(current, Math::max);
+                                        for (String promoted : admission.promotedRunIds()) {
+                                            if (owned.remove(promoted) != null) {
+                                                active.decrementAndGet();
+                                                service.releaseAndPromote(promoted);
+                                            }
+                                        }
+                                        Thread.yield();
+                                        if (owned.remove(runId) != null) {
+                                            active.decrementAndGet();
+                                            service.releaseAndPromote(runId);
+                                            lastCompletedAt.set(System.nanoTime());
+                                        }
+                                    } else {
+                                        queued.incrementAndGet();
+                                    }
+                                } catch (com.foodmate.shared.runtime.RuntimeException exception) {
+                                    if ("RUNTIME_CAPACITY_EXCEEDED".equals(exception.code())) {
+                                        capacityRejected.incrementAndGet();
+                                    } else if ("RUNTIME_COORDINATION_UNAVAILABLE"
+                                            .equals(exception.code())) {
+                                        coordinationErrors.incrementAndGet();
+                                    } else {
+                                        throw exception;
                                     }
                                 }
-                                Thread.yield();
-                                if (owned.remove(runId) != null) {
-                                    active.decrementAndGet();
-                                    service.releaseAndPromote(runId);
-                                    lastCompletedAt.set(System.nanoTime());
-                                }
-                            } else {
-                                queued.incrementAndGet();
                             }
-                        } catch (com.foodmate.shared.runtime.RuntimeException exception) {
-                            if ("RUNTIME_CAPACITY_EXCEEDED".equals(exception.code())) {
-                                capacityRejected.incrementAndGet();
-                            } else if ("RUNTIME_COORDINATION_UNAVAILABLE".equals(exception.code())) {
-                                coordinationErrors.incrementAndGet();
-                            } else {
-                                throw exception;
-                            }
+                        } catch (InterruptedException exception) {
+                            Thread.currentThread().interrupt();
                         }
-                    }
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                }
-            });
+                    });
         }
         assertTrue(ready.await(10, TimeUnit.SECONDS));
         start.countDown();
@@ -133,26 +140,61 @@ class M14AdmissionLongStressTest {
             instanceB.releaseAndPromote(runId);
         }
         assertTrue(maxActive.get() <= 20, "Redis global active limit exceeded: " + maxActive.get());
-        assertTrue(coordinationErrors.get() == 0, "Redis coordination errors: " + coordinationErrors.get());
+        assertTrue(
+                coordinationErrors.get() == 0,
+                "Redis coordination errors: " + coordinationErrors.get());
 
         List<Long> ordered = new ArrayList<>(latencies);
         Collections.sort(ordered);
         System.out.printf(
                 "M14_STRESS seconds=%d workers=%d operations=%d active_max=%d queued=%d capacity_rejected=%d p50_us=%d p95_us=%d p99_us=%d last_completion_age_ms=%d%n",
-                seconds, workers, operations.sum(), maxActive.get(), queued.get(), capacityRejected.get(),
-                percentile(ordered, 0.50), percentile(ordered, 0.95), percentile(ordered, 0.99),
+                seconds,
+                workers,
+                operations.sum(),
+                maxActive.get(),
+                queued.get(),
+                capacityRejected.get(),
+                percentile(ordered, 0.50),
+                percentile(ordered, 0.95),
+                percentile(ordered, 0.99),
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastCompletedAt.get()));
     }
 
     private AgentAdmissionService service() {
-        ObjectProvider<StringRedisTemplate> provider = new ObjectProvider<>() {
-            @Override public StringRedisTemplate getIfAvailable() { return redis; }
-            @Override public StringRedisTemplate getIfUnique() { return redis; }
-            @Override public StringRedisTemplate getIfAvailable(java.util.function.Supplier<StringRedisTemplate> s) { return redis; }
-            @Override public StringRedisTemplate getIfUnique(java.util.function.Supplier<StringRedisTemplate> s) { return redis; }
-            @Override public StringRedisTemplate getObject(Object... args) { return redis; }
-            @Override public StringRedisTemplate getObject() { return redis; }
-        };
+        ObjectProvider<StringRedisTemplate> provider =
+                new ObjectProvider<>() {
+                    @Override
+                    public StringRedisTemplate getIfAvailable() {
+                        return redis;
+                    }
+
+                    @Override
+                    public StringRedisTemplate getIfUnique() {
+                        return redis;
+                    }
+
+                    @Override
+                    public StringRedisTemplate getIfAvailable(
+                            java.util.function.Supplier<StringRedisTemplate> s) {
+                        return redis;
+                    }
+
+                    @Override
+                    public StringRedisTemplate getIfUnique(
+                            java.util.function.Supplier<StringRedisTemplate> s) {
+                        return redis;
+                    }
+
+                    @Override
+                    public StringRedisTemplate getObject(Object... args) {
+                        return redis;
+                    }
+
+                    @Override
+                    public StringRedisTemplate getObject() {
+                        return redis;
+                    }
+                };
         return new AgentAdmissionService(provider, true, 20, 2, 100, 30, 3600);
     }
 

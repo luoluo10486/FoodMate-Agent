@@ -7,19 +7,21 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Import;
 
 class M03ProductionStartupMatrixTest {
-    private final ApplicationContextRunner runner = new ApplicationContextRunner()
-            .withUserConfiguration(ValidatorConfiguration.class)
-            .withPropertyValues(
-                    "spring.profiles.active=prod",
-                    "spring.datasource.url=jdbc:postgresql://db.internal:5432/FoodMate",
-                    "spring.datasource.username=foodmate_app",
-                    "spring.datasource.password=strong-test-password",
-                    "foodmate.security.cookie-secure=true",
-                    "foodmate.runtime.service-jwt.enabled=false");
+    private final ApplicationContextRunner runner =
+            new ApplicationContextRunner()
+                    .withUserConfiguration(ValidatorConfiguration.class)
+                    .withPropertyValues(
+                            "spring.profiles.active=prod",
+                            "spring.datasource.url=jdbc:postgresql://db.internal:5432/FoodMate",
+                            "spring.datasource.username=foodmate_app",
+                            "spring.datasource.password=strong-test-password",
+                            "foodmate.security.cookie-secure=true",
+                            "foodmate.runtime.service-jwt.enabled=false");
 
     @Test
     void missingDatabaseConfigurationFailsStartup() {
-        runner.withPropertyValues("spring.datasource.url=").run(context -> assertThat(context).hasFailed());
+        runner.withPropertyValues("spring.datasource.url=")
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
@@ -30,7 +32,9 @@ class M03ProductionStartupMatrixTest {
 
     @Test
     void defaultCredentialsFailStartup() {
-        runner.withPropertyValues("spring.datasource.username=postgres", "spring.datasource.password=postgres")
+        runner.withPropertyValues(
+                        "spring.datasource.username=postgres",
+                        "spring.datasource.password=postgres")
                 .run(context -> assertThat(context).hasFailed());
     }
 
@@ -48,10 +52,11 @@ class M03ProductionStartupMatrixTest {
 
     @Test
     void completeProductionConfigurationStarts() {
-        runner.run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(M03ConfigurationValidator.class);
-        });
+        runner.run(
+                context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(M03ConfigurationValidator.class);
+                });
     }
 
     @Import(M03ConfigurationValidator.class)

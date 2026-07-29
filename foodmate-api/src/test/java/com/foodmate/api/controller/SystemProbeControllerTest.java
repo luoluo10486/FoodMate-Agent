@@ -14,21 +14,19 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-/**
- * SystemProbeController 的 WebMvc 测试。
- */
+/** SystemProbeController 的 WebMvc 测试。 */
 @WebMvcTest(SystemProbeController.class)
 @Import({GlobalExceptionHandler.class, TraceContextFilter.class})
 class SystemProbeControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
     @Test
     void returnsStructuredPingResponseWithTraceHeaders() throws Exception {
-        mockMvc.perform(get("/foodmate/_system/ping")
-                        .param("echo", "hello")
-                        .header(TraceContextFilter.REQUEST_ID_HEADER, "req_mock")
-                        .header(TraceContextFilter.TRACE_ID_HEADER, "trace_mock"))
+        mockMvc.perform(
+                        get("/foodmate/_system/ping")
+                                .param("echo", "hello")
+                                .header(TraceContextFilter.REQUEST_ID_HEADER, "req_mock")
+                                .header(TraceContextFilter.TRACE_ID_HEADER, "trace_mock"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(TraceContextFilter.REQUEST_ID_HEADER, "req_mock"))
                 .andExpect(header().string(TraceContextFilter.TRACE_ID_HEADER, "trace_mock"))
@@ -41,10 +39,11 @@ class SystemProbeControllerTest {
 
     @Test
     void mapsParameterValidationErrors() throws Exception {
-        mockMvc.perform(get("/foodmate/_system/ping")
-                        .param("echo", "x".repeat(65))
-                        .header(TraceContextFilter.REQUEST_ID_HEADER, "req_mock")
-                        .header(TraceContextFilter.TRACE_ID_HEADER, "trace_mock"))
+        mockMvc.perform(
+                        get("/foodmate/_system/ping")
+                                .param("echo", "x".repeat(65))
+                                .header(TraceContextFilter.REQUEST_ID_HEADER, "req_mock")
+                                .header(TraceContextFilter.TRACE_ID_HEADER, "trace_mock"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.error.code", is("INVALID_ARGUMENT")))

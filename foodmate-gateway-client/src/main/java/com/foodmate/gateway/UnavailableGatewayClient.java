@@ -16,6 +16,7 @@ public final class UnavailableGatewayClient implements GatewayClient {
     }
 
     private static com.foodmate.shared.runtime.RuntimeException unavailable() {
-        return new com.foodmate.shared.runtime.RuntimeException("RUNTIME_UNAVAILABLE", "runtime is not configured");
+        return new com.foodmate.shared.runtime.RuntimeException(
+                "RUNTIME_UNAVAILABLE", "runtime is not configured");
     }
 }

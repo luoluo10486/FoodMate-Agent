@@ -1,0 +1,49 @@
+package com.foodmate.application.runtime.persistence;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+
+/** 长期语义记忆持久化端口。 */
+public interface MemoryStore {
+    Long findRunOwner(long runId);
+
+    boolean hasDifferentValue(long userId, String type, String key, String valueJson);
+
+    void insert(NewMemory memory);
+
+    List<MemorySnapshot> findVisible(long userId, int limit);
+
+    MemorySnapshot findOwned(long userId, long memoryId);
+
+    boolean existsOwned(long userId, long memoryId);
+
+    int updateOwned(long userId, long memoryId, String valueJson, String scope);
+
+    int softDeleteOwned(long userId, long memoryId);
+
+    int confirmOwned(long userId, long memoryId);
+
+    record NewMemory(
+            long id,
+            long userId,
+            String type,
+            String key,
+            String valueJson,
+            BigDecimal confidence,
+            String source,
+            String scope,
+            String confirmationStatus) {}
+
+    record MemorySnapshot(
+            long memoryId,
+            String memoryType,
+            String memoryKey,
+            String memoryValue,
+            BigDecimal confidence,
+            String source,
+            String scope,
+            String confirmationStatus,
+            Instant expiresAt,
+            Instant updatedAt) {}
+}

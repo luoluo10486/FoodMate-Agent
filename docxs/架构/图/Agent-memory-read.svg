@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">FoodMate 记忆读取与 Prompt 注入</title>
+  <desc id="desc">Router 前读取短期上下文，Router 后按意图读取长期记忆和业务事实，再分层注入 Prompt。</desc>
+  <style>
+    text { font-family: "Microsoft YaHei", sans-serif; fill: #17202a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .label { font-size: 16px; font-weight: 600; }
+    .note { font-size: 14px; fill: #566573; }
+    .box { fill: #fff; stroke: #2c3e50; stroke-width: 2; rx: 6; }
+    .short { fill: #eaf2f8; stroke: #2874a6; }
+    .long { fill: #e9f7ef; stroke: #1e8449; }
+    .fact { fill: #fef9e7; stroke: #b7950b; }
+    .prompt { fill: #f4ecf7; stroke: #7d3c98; }
+    .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#34495e"/></marker></defs>
+  <text x="40" y="38" class="title">FoodMate 两阶段记忆读取与受控注入</text>
+  <rect x="40" y="85" width="220" height="95" class="box short"/><text x="150" y="117" text-anchor="middle" class="label">Router 前：短期上下文</text><text x="150" y="143" text-anchor="middle" class="note">最近 8 条 + Session 摘要</text><text x="150" y="164" text-anchor="middle" class="note">未解决槽位 + 硬约束</text>
+  <rect x="330" y="85" width="170" height="95" class="box"/><text x="415" y="127" text-anchor="middle" class="label">Intent Router</text><text x="415" y="153" text-anchor="middle" class="note">确定任务类型</text>
+  <rect x="570" y="70" width="230" height="105" class="box long"/><text x="685" y="105" text-anchor="middle" class="label">相关长期语义记忆</text><text x="685" y="131" text-anchor="middle" class="note">类型 / scope / TTL / confidence</text><text x="685" y="153" text-anchor="middle" class="note">最多 5 至 8 条</text>
+  <rect x="570" y="230" width="230" height="105" class="box fact"/><text x="685" y="265" text-anchor="middle" class="label">权威业务事实</text><text x="685" y="291" text-anchor="middle" class="note">Profile、食谱、日志、目标</text><text x="685" y="313" text-anchor="middle" class="note">Java Gateway 按需读取</text>
+  <rect x="900" y="135" width="250" height="150" class="box prompt"/><text x="1025" y="170" text-anchor="middle" class="label">分层 Prompt Context</text><text x="1025" y="199" text-anchor="middle" class="note">authoritative_facts</text><text x="1025" y="222" text-anchor="middle" class="note">confirmed_memories</text><text x="1025" y="245" text-anchor="middle" class="note">session_summary / sources</text><text x="1025" y="267" text-anchor="middle" class="note">记忆是数据，不是指令</text>
+  <path d="M260 132 H330" class="arrow"/><path d="M500 122 H570" class="arrow"/><path d="M500 143 C535 143 535 282 570 282" class="arrow"/><path d="M800 122 C850 122 850 180 900 180" class="arrow"/><path d="M800 282 C850 282 850 240 900 240" class="arrow"/>
+  <rect x="40" y="390" width="1110" height="65" class="box"/><text x="595" y="418" text-anchor="middle" class="label">权限与安全边界</text><text x="595" y="442" text-anchor="middle" class="note">所有查询固定绑定 authenticated user_id；Python 不连接业务库；Trace 记录来源 ID 与 digest，不复制敏感正文。</text>
+</svg>

@@ -18,25 +18,49 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(name = "foodmate.runtime.agent-base-url")
 public class RuntimeClientConfiguration {
     @Bean
-    GatewayClient gatewayClient(@Value("${foodmate.runtime.agent-base-url}") URI baseUrl, @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled, @Value("${foodmate.runtime.service-jwt.java-private-key:}") String privateKey, @Value("${foodmate.runtime.service-jwt.java-kid:}") String kid, @Value("${foodmate.runtime.contract-version:v1}") String contractVersion, ObjectMapper objectMapper) {
+    GatewayClient gatewayClient(
+            @Value("${foodmate.runtime.agent-base-url}") URI baseUrl,
+            @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
+            @Value("${foodmate.runtime.service-jwt.java-private-key:}") String privateKey,
+            @Value("${foodmate.runtime.service-jwt.java-kid:}") String kid,
+            @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
+            ObjectMapper objectMapper) {
         if (!jwtEnabled) return new UnavailableGatewayClient();
-        return new HttpGatewayClient(baseUrl, Duration.ofSeconds(10), HttpClient.newHttpClient(), objectMapper, privateKey, kid, contractVersion);
+        return new HttpGatewayClient(
+                baseUrl,
+                Duration.ofSeconds(10),
+                HttpClient.newHttpClient(),
+                objectMapper,
+                privateKey,
+                kid,
+                contractVersion);
     }
 
     /**
-     * HTTP 兼容通道（M1-3）。transport=rocketmq 时不装配，由
-     * {@link RuntimeRocketMqConfiguration} 提供唯一的 {@link V1RuntimeClient}：
-     * 配置指南 §5.9 规则 10 要求同一进程不能同时启用 HTTP 与 MQ 业务派发。
+     * HTTP 兼容通道（M1-3）。transport=rocketmq 时不装配，由 {@link RuntimeRocketMqConfiguration} 提供唯一的 {@link
+     * V1RuntimeClient}： 配置指南 §5.9 规则 10 要求同一进程不能同时启用 HTTP 与 MQ 业务派发。
      */
     @Bean
-    @ConditionalOnProperty(name = "foodmate.runtime.transport", havingValue = "http", matchIfMissing = true)
-    V1RuntimeClient v1RuntimeClient(@Value("${foodmate.runtime.agent-base-url}") URI baseUrl,
-                                    @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
-                                    @Value("${foodmate.runtime.service-jwt.java-private-key:}") String privateKey,
-                                    @Value("${foodmate.runtime.service-jwt.java-kid:}") String kid,
-                                    @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
-                                    ObjectMapper objectMapper) {
+    @ConditionalOnProperty(
+            name = "foodmate.runtime.transport",
+            havingValue = "http",
+            matchIfMissing = true)
+    V1RuntimeClient v1RuntimeClient(
+            @Value("${foodmate.runtime.agent-base-url}") URI baseUrl,
+            @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
+            @Value("${foodmate.runtime.service-jwt.java-private-key:}") String privateKey,
+            @Value("${foodmate.runtime.service-jwt.java-kid:}") String kid,
+            @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
+            ObjectMapper objectMapper) {
         // Local profile may deliberately disable JWT; the HTTP transport still remains real.
-        return new V1HttpRuntimeClient(baseUrl, Duration.ofSeconds(10), HttpClient.newHttpClient(), objectMapper, privateKey, kid, contractVersion, jwtEnabled);
+        return new V1HttpRuntimeClient(
+                baseUrl,
+                Duration.ofSeconds(10),
+                HttpClient.newHttpClient(),
+                objectMapper,
+                privateKey,
+                kid,
+                contractVersion,
+                jwtEnabled);
     }
 }

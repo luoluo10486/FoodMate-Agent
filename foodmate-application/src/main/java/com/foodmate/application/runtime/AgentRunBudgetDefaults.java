@@ -4,10 +4,7 @@ import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * 新 Run 接受时固化的预算与超时默认值；环境变量名与配置指南保持一致。
- * 变更环境变量只影响之后新接受的 Run，正在执行的 Run 继续使用原快照。
- */
+/** 新 Run 接受时固化的预算与超时默认值；环境变量名与配置指南保持一致。 变更环境变量只影响之后新接受的 Run，正在执行的 Run 继续使用原快照。 */
 @Component
 public class AgentRunBudgetDefaults {
     private final int maxTotalTokens;
@@ -34,7 +31,8 @@ public class AgentRunBudgetDefaults {
             @Value("${FOODMATE_AGENT_QUEUE_TIMEOUT_SECONDS:30}") int queueTimeoutSeconds,
             @Value("${FOODMATE_AGENT_EXECUTION_TIMEOUT_SECONDS:120}") int executionTimeoutSeconds,
             @Value("${FOODMATE_AGENT_NODE_TIMEOUT_SECONDS:30}") int nodeTimeoutSeconds,
-            @Value("${FOODMATE_AGENT_WAITING_USER_TIMEOUT_SECONDS:86400}") int waitingUserTimeoutSeconds,
+            @Value("${FOODMATE_AGENT_WAITING_USER_TIMEOUT_SECONDS:86400}")
+                    int waitingUserTimeoutSeconds,
             @Value("${foodmate.agent.budget.config-version:m1-4-default}") String configVersion) {
         if (maxTotalTokens <= 0 || maxTotalSteps <= 0 || maxModelCalls <= 0) {
             throw new IllegalStateException("agent budget totals must be positive");
@@ -45,7 +43,10 @@ public class AgentRunBudgetDefaults {
         if (maxCostCny == null || maxCostCny.signum() <= 0) {
             throw new IllegalStateException("agent cost budget must be positive");
         }
-        if (queueTimeoutSeconds <= 0 || executionTimeoutSeconds <= 0 || nodeTimeoutSeconds <= 0 || waitingUserTimeoutSeconds <= 0) {
+        if (queueTimeoutSeconds <= 0
+                || executionTimeoutSeconds <= 0
+                || nodeTimeoutSeconds <= 0
+                || waitingUserTimeoutSeconds <= 0) {
             throw new IllegalStateException("agent timeouts must be positive");
         }
         this.maxTotalTokens = maxTotalTokens;
@@ -62,16 +63,51 @@ public class AgentRunBudgetDefaults {
         this.configVersion = configVersion;
     }
 
-    public int maxTotalTokens() { return maxTotalTokens; }
-    public BigDecimal maxCostCny() { return maxCostCny; }
-    public int maxStepRetries() { return maxStepRetries; }
-    public int maxReplans() { return maxReplans; }
-    public int maxAnswerRewrites() { return maxAnswerRewrites; }
-    public int maxTotalSteps() { return maxTotalSteps; }
-    public int maxModelCalls() { return maxModelCalls; }
-    public int queueTimeoutSeconds() { return queueTimeoutSeconds; }
-    public int executionTimeoutSeconds() { return executionTimeoutSeconds; }
-    public int nodeTimeoutSeconds() { return nodeTimeoutSeconds; }
-    public int waitingUserTimeoutSeconds() { return waitingUserTimeoutSeconds; }
-    public String configVersion() { return configVersion; }
+    public int maxTotalTokens() {
+        return maxTotalTokens;
+    }
+
+    public BigDecimal maxCostCny() {
+        return maxCostCny;
+    }
+
+    public int maxStepRetries() {
+        return maxStepRetries;
+    }
+
+    public int maxReplans() {
+        return maxReplans;
+    }
+
+    public int maxAnswerRewrites() {
+        return maxAnswerRewrites;
+    }
+
+    public int maxTotalSteps() {
+        return maxTotalSteps;
+    }
+
+    public int maxModelCalls() {
+        return maxModelCalls;
+    }
+
+    public int queueTimeoutSeconds() {
+        return queueTimeoutSeconds;
+    }
+
+    public int executionTimeoutSeconds() {
+        return executionTimeoutSeconds;
+    }
+
+    public int nodeTimeoutSeconds() {
+        return nodeTimeoutSeconds;
+    }
+
+    public int waitingUserTimeoutSeconds() {
+        return waitingUserTimeoutSeconds;
+    }
+
+    public String configVersion() {
+        return configVersion;
+    }
 }
