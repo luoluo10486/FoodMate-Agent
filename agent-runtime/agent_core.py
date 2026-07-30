@@ -557,7 +557,14 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
             }, ensure_ascii=False, sort_keys=True)
             try:
                 judge_response, judge_attempts = router.invoke(
-                    ModelRequest(scene="eval", prompt=eval_prompt), eval_tier,
+                ModelRequest(
+                    scene="eval",
+                    prompt=eval_prompt,
+                    max_output_tokens=128,
+                    temperature=0.0,
+                    response_format={"type": "json_object"},
+                    extra_body={"enable_thinking": False},
+                ), eval_tier,
                     router.fallback_tiers_for(eval_tier),
                 )
                 attempts.extend(judge_attempts)

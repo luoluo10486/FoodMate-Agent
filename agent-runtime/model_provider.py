@@ -38,6 +38,8 @@ class ModelRequest:
     prompt: str
     max_output_tokens: int = 512
     temperature: float = 0.0
+    response_format: dict[str, str] | None = None
+    extra_body: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -133,12 +135,17 @@ class OpenAICompatibleModelProvider(ModelProvider):
         self.timeout_seconds = timeout_seconds
 
     def complete(self, model_name: str, request: ModelRequest) -> ModelResponse:
-        body = json.dumps({
+        body = {
             "model": model_name,
             "messages": [{"role": "user", "content": request.prompt}],
             "temperature": request.temperature,
             "max_tokens": request.max_output_tokens,
-        }).encode("utf-8")
+        }
+        if request.response_format is not None:
+            body["response_format"] = request.response_format
+        if request.extra_body:
+            body.update(request.extra_body)
+        body = json.dumps(body).encode("utf-8")
         http_request = urllib.request.Request(
             self._completion_url(), data=body, method="POST",
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.api_key},
@@ -301,7 +308,7 @@ class ModelRouter:
         if alias.provider_code == "deterministic" or not required:
             return
         input_price, output_price, cached_price, version = self._price(alias)
-        if input_price is None or output_price is None or cached_price is None or version == "unconfigured":
+        if input_price is None or output_price is None or version == "unconfigured":
             raise ModelProviderError("MODEL_PRICE_UNCONFIGURED", "audited model price is not configured")
 
     def _enabled(self, key: str, default: bool) -> bool:
