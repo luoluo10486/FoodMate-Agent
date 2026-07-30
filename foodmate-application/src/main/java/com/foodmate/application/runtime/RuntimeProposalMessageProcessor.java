@@ -10,16 +10,17 @@ import java.util.Map;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 /** Proposal Topic 消费器：事务完成并发布 Result 后才 ACK，重复 Proposal 由业务幂等键隔离。 */
 @Service
 @ConditionalOnBean(DefaultMQProducer.class)
 public class RuntimeProposalMessageProcessor implements MqMessageHandler {
-    private static final Logger log = LoggerFactory.getLogger(RuntimeProposalMessageProcessor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(RuntimeProposalMessageProcessor.class);
     private final ToolGatewayService gateway;
     private final DefaultMQProducer producer;
     private final RocketMqSettings settings;
@@ -99,8 +100,11 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
             return MqConsumeDecision.REJECT;
         } catch (Exception exception) {
             // 这里只记录标识和异常类型，不记录 Proposal 正文，便于定位重试原因并避免泄漏用户数据。
-            log.warn("Proposal processing failed, will retry: proposal_id={}, error_type={}, message={}",
-                    safeId(body), exception.getClass().getSimpleName(), exception.getMessage());
+            log.warn(
+                    "Proposal processing failed, will retry: proposal_id={}, error_type={}, message={}",
+                    safeId(body),
+                    exception.getClass().getSimpleName(),
+                    exception.getMessage());
             return MqConsumeDecision.RETRY;
         }
     }

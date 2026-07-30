@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import com.foodmate.application.runtime.persistence.ProtocolAuditStore;
+import com.foodmate.application.runtime.persistence.V1RuntimeEventStore;
 import com.foodmate.gateway.MqConsumeDecision;
 import com.foodmate.gateway.MqMessageHandler;
 import com.foodmate.shared.runtime.V1RunEvent;
@@ -11,7 +12,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
-import com.foodmate.application.runtime.persistence.V1RuntimeEventStore;
 
 /**
  * MQ 事件消费的失败分类（实施方案 §5.16）。

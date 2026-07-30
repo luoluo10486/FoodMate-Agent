@@ -1,8 +1,8 @@
 package com.foodmate.application.runtime;
 
-import com.foodmate.application.runtime.persistence.SessionSummaryStore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.persistence.SessionSummaryStore;
 import com.foodmate.shared.id.IdGenerator;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -79,11 +79,28 @@ public class SessionSummaryService {
     /** 保存可检索的摘要骨架；原始消息仍是唯一事实，摘要只是可失效的压缩视图。 */
     private String structuredSummary(List<SessionSummaryStore.MessageSnapshot> messages) {
         Map<String, Object> value = new LinkedHashMap<>();
-        value.put("goals", messages.stream().filter(this::isGoal).map(SessionSummaryStore.MessageSnapshot::content).toList());
-        value.put("constraints", messages.stream().filter(this::isConstraint).map(SessionSummaryStore.MessageSnapshot::content).toList());
-        value.put("decisions", messages.stream().filter(item -> "assistant".equals(item.role())).map(SessionSummaryStore.MessageSnapshot::content).toList());
+        value.put(
+                "goals",
+                messages.stream()
+                        .filter(this::isGoal)
+                        .map(SessionSummaryStore.MessageSnapshot::content)
+                        .toList());
+        value.put(
+                "constraints",
+                messages.stream()
+                        .filter(this::isConstraint)
+                        .map(SessionSummaryStore.MessageSnapshot::content)
+                        .toList());
+        value.put(
+                "decisions",
+                messages.stream()
+                        .filter(item -> "assistant".equals(item.role()))
+                        .map(SessionSummaryStore.MessageSnapshot::content)
+                        .toList());
         value.put("open_questions", List.of());
-        value.put("source_message_ids", messages.stream().map(SessionSummaryStore.MessageSnapshot::messageId).toList());
+        value.put(
+                "source_message_ids",
+                messages.stream().map(SessionSummaryStore.MessageSnapshot::messageId).toList());
         try {
             return mapper.writeValueAsString(value);
         } catch (JsonProcessingException exception) {
@@ -92,11 +109,11 @@ public class SessionSummaryService {
     }
 
     private boolean isGoal(SessionSummaryStore.MessageSnapshot item) {
-        return "user".equals(item.role()) && item.content().matches(".*(想|希望|计划|目标|安排|帮我).*" );
+        return "user".equals(item.role()) && item.content().matches(".*(想|希望|计划|目标|安排|帮我).*");
     }
 
     private boolean isConstraint(SessionSummaryStore.MessageSnapshot item) {
-        return item.content().matches(".*(不吃|忌口|过敏|低盐|低糖|预算|不能).*" );
+        return item.content().matches(".*(不吃|忌口|过敏|低盐|低糖|预算|不能).*");
     }
 
     /** 消息被更正或删除后，先失效摘要，下一次读取时重新生成。 */

@@ -5,15 +5,15 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.application.runtime.persistence.BudgetExtensionStore;
 import com.foodmate.application.runtime.persistence.BudgetExtensionStore.*;
+import com.foodmate.shared.id.IdGenerator;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,7 +55,9 @@ public class BudgetExtensionService {
             int additionalTokens,
             BigDecimal additionalCost,
             String confirmationDigest) {
-        if (store == null) throw new com.foodmate.shared.runtime.RuntimeException("RUNTIME_UNAVAILABLE", "database is not configured");
+        if (store == null)
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_UNAVAILABLE", "database is not configured");
         if (additionalTokens <= 0
                 || additionalTokens > maxTokens
                 || additionalCost == null
@@ -71,7 +73,9 @@ public class BudgetExtensionService {
                     "BUDGET_CONFIRMATION_INVALID", "confirmation digest is required");
         }
         RunRow run = store.lockRun(runId, userId);
-        if (run == null || !("completed".equals(run.status()) && "safety_degraded".equals(run.resultType()))) {
+        if (run == null
+                || !("completed".equals(run.status())
+                        && "safety_degraded".equals(run.resultType()))) {
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_STATE_CONFLICT", "run is not waiting for budget confirmation");
         }
@@ -84,7 +88,13 @@ public class BudgetExtensionService {
                         "confirmation digest does not match the requested budget");
             }
             DispatchResult currentDispatch = store.latestDispatchResult(runId);
-            if (currentDispatch != null) return new ExtensionResult(Long.toString(runId), currentDispatch.dispatchId(), currentDispatch.attempt(), currentDispatch.revision(), "queued");
+            if (currentDispatch != null)
+                return new ExtensionResult(
+                        Long.toString(runId),
+                        currentDispatch.dispatchId(),
+                        currentDispatch.attempt(),
+                        currentDispatch.revision(),
+                        "queued");
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_STATE_CONFLICT", "confirmed budget dispatch is missing");
         }
@@ -95,9 +105,23 @@ public class BudgetExtensionService {
         int extensionNo = store.nextExtensionNo(runId);
         long extensionId = ids.nextId();
         Instant expiresAt = Instant.now().plusSeconds(ttlSeconds);
-        store.insertExtension(extensionId, runId, extensionNo, additionalTokens, additionalCost, confirmationDigest, expiresAt);
+        store.insertExtension(
+                extensionId,
+                runId,
+                extensionNo,
+                additionalTokens,
+                additionalCost,
+                confirmationDigest,
+                expiresAt);
         int revision = current.revision() + 1;
-        store.insertSnapshot(ids.nextId(), runId, revision, current.tokens() + additionalTokens, current.cost().add(additionalCost), current, confirmationDigest);
+        store.insertSnapshot(
+                ids.nextId(),
+                runId,
+                revision,
+                current.tokens() + additionalTokens,
+                current.cost().add(additionalCost),
+                current,
+                confirmationDigest);
         PreviousDispatch old = store.lockPreviousDispatch(runId);
         if (old == null)
             throw new com.foodmate.shared.runtime.RuntimeException(
@@ -119,8 +143,24 @@ public class BudgetExtensionService {
         long dispatchRowId = ids.nextId();
         store.expireDispatch(old.dispatchRowId());
         store.expireOutbox(old.dispatchRowId());
-        store.insertDispatch(dispatchRowId, runId, dispatchId, old.attempt() + 1, old.epoch() + 1, "fence_" + UUID.randomUUID().toString().replace("-", ""), deadline);
-        store.insertOutbox(ids.nextId(), dispatchRowId, runId, dispatchId, old.attempt() + 1, deadline, old.epoch() + 1, payload, requestHash);
+        store.insertDispatch(
+                dispatchRowId,
+                runId,
+                dispatchId,
+                old.attempt() + 1,
+                old.epoch() + 1,
+                "fence_" + UUID.randomUUID().toString().replace("-", ""),
+                deadline);
+        store.insertOutbox(
+                ids.nextId(),
+                dispatchRowId,
+                runId,
+                dispatchId,
+                old.attempt() + 1,
+                deadline,
+                old.epoch() + 1,
+                payload,
+                requestHash);
         AgentAdmissionService.Admission admissionResult =
                 admission.admit(Long.toString(runId), userId, run.sessionId(), 20);
         if (admissionResult.state() == AgentAdmissionService.State.QUEUED) {

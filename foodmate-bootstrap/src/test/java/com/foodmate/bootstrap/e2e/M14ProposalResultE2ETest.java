@@ -75,8 +75,10 @@ class M14ProposalResultE2ETest {
                                 false,
                                 "payload",
                                 Map.of(
-                                        "statement", "SELECT 1",
-                                        "invocation_id", "invocation-" + proposalId)));
+                                        "statement",
+                                        "SELECT 1",
+                                        "invocation_id",
+                                        "invocation-" + proposalId)));
 
         CountDownLatch received = new CountDownLatch(1);
         Map<String, String> resultBody = new ConcurrentHashMap<>();
@@ -168,8 +170,10 @@ class M14ProposalResultE2ETest {
                                 false,
                                 "payload",
                                 Map.of(
-                                        "statement", "SELECT * FROM table_that_does_not_exist",
-                                        "invocation_id", "invocation-" + proposalId)));
+                                        "statement",
+                                        "SELECT * FROM table_that_does_not_exist",
+                                        "invocation_id",
+                                        "invocation-" + proposalId)));
         CountDownLatch received = new CountDownLatch(1);
         RocketMqConsumerContainer resultConsumer =
                 RocketMqConsumerContainer.concurrent(
@@ -211,8 +215,7 @@ class M14ProposalResultE2ETest {
                 if ("completed".equals(status)) break;
                 Thread.sleep(250);
             }
-            assertEquals(
-                    "completed", status, "Proposal inbox must be completed within 30 seconds");
+            assertEquals("completed", status, "Proposal inbox must be completed within 30 seconds");
             assertTrue(
                     jdbc.queryForObject(
                                     "SELECT result_json::text FROM runtime_tool_proposal_inbox WHERE proposal_id=?",

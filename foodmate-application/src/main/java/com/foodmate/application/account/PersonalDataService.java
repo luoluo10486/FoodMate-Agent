@@ -18,9 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.ObjectProvider;
 
 @Service
 public class PersonalDataService {
@@ -45,7 +45,8 @@ public class PersonalDataService {
 
     public Avatar uploadAvatar(
             long userId, String filename, String contentType, long size, InputStream input) {
-        if (store == null || minio == null) throw new IllegalStateException("avatar storage unavailable");
+        if (store == null || minio == null)
+            throw new IllegalStateException("avatar storage unavailable");
         String key =
                 "avatars/"
                         + userId
@@ -70,7 +71,8 @@ public class PersonalDataService {
 
     public long uploadKnowledge(
             long userId, String filename, String contentType, long size, InputStream input) {
-        if (store == null || minio == null) throw new IllegalStateException("knowledge storage unavailable");
+        if (store == null || minio == null)
+            throw new IllegalStateException("knowledge storage unavailable");
         long documentId = ids.nextId();
         String key =
                 "knowledge/"
@@ -130,7 +132,16 @@ public class PersonalDataService {
     public ExportJob exportJob(long userId, long jobId) {
         if (store == null) throw new IllegalStateException("export unavailable");
         PersonalDataStore.ExportRow row = store.findExport(userId, jobId);
-        ExportJob job = row == null ? null : new ExportJob(row.id(), row.status(), row.expiresAt(), row.completedAt(), row.consumedAt(), row.failureCode());
+        ExportJob job =
+                row == null
+                        ? null
+                        : new ExportJob(
+                                row.id(),
+                                row.status(),
+                                row.expiresAt(),
+                                row.completedAt(),
+                                row.consumedAt(),
+                                row.failureCode());
         if (job == null) throw new BusinessException(ErrorCode.NOT_FOUND, "export job not found");
         return job;
     }
@@ -224,7 +235,9 @@ public class PersonalDataService {
             store.completeDeletion(jobId, deletedObjects);
         } catch (Exception e) {
             String detail = e.getMessage() == null ? "unknown" : e.getMessage();
-            String code = ("DELETION_FAILED:" + detail).substring(0, Math.min(64, ("DELETION_FAILED:" + detail).length()));
+            String code =
+                    ("DELETION_FAILED:" + detail)
+                            .substring(0, Math.min(64, ("DELETION_FAILED:" + detail).length()));
             store.failDeletion(jobId, code);
         }
     }

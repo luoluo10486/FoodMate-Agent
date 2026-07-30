@@ -31,28 +31,35 @@ class RuntimeGatewayServiceTest {
         var service =
                 new RuntimeGatewayService(
                         new org.springframework.beans.factory.ObjectProvider<
-                                com.foodmate.application.runtime.persistence.RuntimeGatewayStore>() {
-                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore getObject(
-                                    Object... args) {
+                                com.foodmate.application.runtime.persistence
+                                        .RuntimeGatewayStore>() {
+                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore
+                                    getObject(Object... args) {
                                 return null;
                             }
 
-                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore getIfAvailable() {
-                                return org.mockito.Mockito.mock(com.foodmate.application.runtime.persistence.RuntimeGatewayStore.class);
+                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore
+                                    getIfAvailable() {
+                                return org.mockito.Mockito.mock(
+                                        com.foodmate.application.runtime.persistence
+                                                .RuntimeGatewayStore.class);
                             }
 
-                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore getIfUnique() {
+                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore
+                                    getIfUnique() {
                                 return null;
                             }
 
                             public java.util.stream.Stream<
-                                            com.foodmate.application.runtime.persistence.RuntimeGatewayStore>
+                                            com.foodmate.application.runtime.persistence
+                                                    .RuntimeGatewayStore>
                                     orderedStream() {
                                 return java.util.stream.Stream.empty();
                             }
 
                             public java.util.stream.Stream<
-                                            com.foodmate.application.runtime.persistence.RuntimeGatewayStore>
+                                            com.foodmate.application.runtime.persistence
+                                                    .RuntimeGatewayStore>
                                     stream() {
                                 return java.util.stream.Stream.empty();
                             }

@@ -39,8 +39,7 @@ public class ToolGatewayService {
                 || proposalId.length() > MAX_ID_LENGTH
                 || runId.length() > MAX_ID_LENGTH
                 || invocationId.length() > MAX_ID_LENGTH
-                || !"sql_read".equals(type))
-            return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
+                || !"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
         if (statement == null
                 || statement.length() > MAX_SQL_LENGTH
                 || !READ_ONLY.matcher(statement).matches()

@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.application.account.UserAccountService;
-import com.foodmate.gateway.GatewayClient;
 import com.foodmate.application.runtime.persistence.RuntimeGatewayStore;
+import com.foodmate.gateway.GatewayClient;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.EventInbox;
 import com.foodmate.shared.runtime.RunCommand;
@@ -175,8 +175,17 @@ public class RuntimeGatewayService {
         if (store == null)
             return java.util.List.copyOf(eventHistory.getOrDefault(runId, java.util.List.of()));
         if (statusJdbc(runId) == null) throw new IllegalArgumentException("runId does not exist");
-        return store.events(runId).stream().map(row -> new RunEvent(row.id(), runId, row.seq(),
-                RunEvent.State.valueOf(row.state()), readPayload(row.payload()), row.occurredAt())).toList();
+        return store.events(runId).stream()
+                .map(
+                        row ->
+                                new RunEvent(
+                                        row.id(),
+                                        runId,
+                                        row.seq(),
+                                        RunEvent.State.valueOf(row.state()),
+                                        readPayload(row.payload()),
+                                        row.occurredAt()))
+                .toList();
     }
 
     public synchronized StatusResult status(String runId) {
@@ -189,7 +198,14 @@ public class RuntimeGatewayService {
             String runId, long userId, long sessionId, long userMessageId, String traceId) {
         AgentStatus status = AgentStatus.QUEUED;
         agentStatuses.put(runId, status);
-        if (store != null) store.registerAgentRun(Long.parseLong(runId), sessionId, userMessageId, status.value(), traceId, userId);
+        if (store != null)
+            store.registerAgentRun(
+                    Long.parseLong(runId),
+                    sessionId,
+                    userMessageId,
+                    status.value(),
+                    traceId,
+                    userId);
         runContexts.put(
                 runId, new RunContext(userId, sessionId, userMessageId, Long.parseLong(runId)));
     }
@@ -373,8 +389,15 @@ public class RuntimeGatewayService {
     private void updateAgentStatus(String runId, AgentStatus status, Object payload) {
         agentStatuses.put(runId, status);
         if (store != null && runId.matches("\\d+")) {
-            String error = status == AgentStatus.FAILED ? "RUNTIME_FAILED" : status == AgentStatus.CANCELLED ? "RUNTIME_CANCELED" : null;
-            store.updateAgentRun(Long.parseLong(runId), status.value(), payloadJson(payload == null ? Map.of() : payload), error);
+            String error =
+                    status == AgentStatus.FAILED
+                            ? "RUNTIME_FAILED"
+                            : status == AgentStatus.CANCELLED ? "RUNTIME_CANCELED" : null;
+            store.updateAgentRun(
+                    Long.parseLong(runId),
+                    status.value(),
+                    payloadJson(payload == null ? Map.of() : payload),
+                    error);
         }
     }
 

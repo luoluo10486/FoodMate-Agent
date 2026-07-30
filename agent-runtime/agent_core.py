@@ -258,12 +258,55 @@ class StepValidator:
     def validate(self, route: RouteDecision, plan: Plan, context: Context) -> None:
         if not plan.steps or any(step not in self.ALLOWED_STEPS for step in plan.steps):
             raise ValueError("STEP_VALIDATION_FAILED: unknown plan step")
+        if plan.route != route:
+            raise ValueError("STEP_VALIDATION_FAILED: plan route mismatch")
+        if plan.steps == ("clarify",) and not route.missing_slots:
+            raise ValueError("STEP_VALIDATION_FAILED: clarification has no missing slot")
         if route.complexity == "complex" and "validate_facts" not in plan.steps:
             raise ValueError("STEP_VALIDATION_FAILED: complex plan lacks fact validation")
         if route.missing_slots and plan.steps != ("clarify",):
             raise ValueError("STEP_VALIDATION_FAILED: clarification plan has side effects")
         if any(any(not item for item in source) for source in context.sources.values() if source is not None):
             raise ValueError("STEP_VALIDATION_FAILED: invalid context source")
+        invocation_ids = [item.get("invocation_id") for item in context.tool_results]
+        if any(not item for item in invocation_ids) or len(invocation_ids) != len(set(invocation_ids)):
+            raise ValueError("STEP_VALIDATION_FAILED: duplicate or missing tool invocation")
+        if any(item.get("status") not in {"succeeded", "failed", "rejected"} for item in context.tool_results):
+            raise ValueError("STEP_VALIDATION_FAILED: invalid tool result status")
+        if set(invocation_ids) - set(context.sources.get("invocation_id", ())):
+            raise ValueError("STEP_VALIDATION_FAILED: tool result source mismatch")
+
+
+@dataclass(frozen=True)
+class ReflectionResult:
+    accepted: bool
+    reason: str
+
+
+class Reflector:
+    """Deterministic post-composition check; it never calls Eval or a model."""
+
+    MAX_ANSWER_CHARS = 12000
+
+    def reflect(
+        self, answer: str, route: RouteDecision, context: Context
+    ) -> ReflectionResult:
+        if not answer or not answer.strip():
+            return ReflectionResult(False, "REFLECTION_ANSWER_EMPTY")
+        if len(answer) > self.MAX_ANSWER_CHARS:
+            return ReflectionResult(False, "REFLECTION_ANSWER_TOO_LONG")
+        if route.missing_slots and not all(slot in answer for slot in route.missing_slots):
+            return ReflectionResult(False, "REFLECTION_CLARIFICATION_MISSING_SLOT")
+        if route.complexity == "complex" and not context.messages:
+            return ReflectionResult(False, "REFLECTION_NO_AUTHORIZED_SOURCE")
+        if any(
+            item.get("status") == "succeeded"
+            and not item.get("rows")
+            and not item.get("error_code")
+            for item in context.tool_results
+        ):
+            return ReflectionResult(False, "REFLECTION_TOOL_RESULT_INCOMPLETE")
+        return ReflectionResult(True, "REFLECTION_PASSED")
 
 
 class DeterministicComposer:
@@ -476,6 +519,9 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
     policy = budget_policy(usage, budget)
     mode = policy.mode
     answer = response.content
+    reflection = Reflector().reflect(answer, route, context)
+    if not reflection.accepted:
+        answer = "当前候选答案未通过确定性反思校验，已停止继续交付。"
     decision = DeterministicEvalGate().evaluate(answer, route, usage, budget)
     if decision.reason != "BUDGET_EXHAUSTED" and decision.reason != "ANSWER_EMPTY" and should_run_llm_eval(command, route):
         # 预算已耗尽时不能为 Eval 再发起一次供应商调用。

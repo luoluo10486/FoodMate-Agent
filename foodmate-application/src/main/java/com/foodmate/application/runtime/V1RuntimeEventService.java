@@ -2,10 +2,10 @@ package com.foodmate.application.runtime;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodmate.shared.id.IdGenerator;
-import com.foodmate.shared.runtime.V1RunEvent;
 import com.foodmate.application.runtime.persistence.V1RuntimeEventStore;
 import com.foodmate.application.runtime.persistence.V1RuntimeEventStore.*;
+import com.foodmate.shared.id.IdGenerator;
+import com.foodmate.shared.runtime.V1RunEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +26,8 @@ public class V1RuntimeEventService {
     private final Map<String, List<V1RunEvent>> memoryEvents = new HashMap<>();
     private final Map<String, Long> memorySequence = new HashMap<>();
 
-    public V1RuntimeEventService(ObjectProvider<V1RuntimeEventStore> storeProvider, IdGenerator ids) {
+    public V1RuntimeEventService(
+            ObjectProvider<V1RuntimeEventStore> storeProvider, IdGenerator ids) {
         this(storeProvider, ids, null, null);
     }
 
@@ -66,7 +67,9 @@ public class V1RuntimeEventService {
             return new EventResult(event.runId(), event.eventId(), true, statusFor(event));
         }
         DispatchRow dispatch = store.dispatch(runId, event.dispatchId());
-        if (dispatch == null || !"active".equals(dispatch.state()) || dispatch.attempt() != event.attempt()) {
+        if (dispatch == null
+                || !"active".equals(dispatch.state())
+                || dispatch.attempt() != event.attempt()) {
             reject(event, runId, "old_dispatch", "RUNTIME_STATE_CONFLICT");
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_STATE_CONFLICT", "dispatch is not active");
@@ -110,7 +113,14 @@ public class V1RuntimeEventService {
         // AgentRun 行锁保证同一个 run 的 SSE stream_seq 严格递增。
         long streamSeq = store.lockNextSseSequence(runId);
         String sseId = "sse_" + ids.nextId();
-        store.insertSse(ids.nextId(), runId, sseId, streamSeq, event.runId() + ":" + event.eventId(), event.eventType(), payload);
+        store.insertSse(
+                ids.nextId(),
+                runId,
+                sseId,
+                streamSeq,
+                event.runId() + ":" + event.eventId(),
+                event.eventType(),
+                payload);
         store.updateSseSequence(runId, streamSeq);
         if (isTerminal(status) && admission != null) {
             // 终态是释放 Redis lease 的唯一业务触发点；提升结果再回写数据库，Relay 才会继续发送。
@@ -129,9 +139,23 @@ public class V1RuntimeEventService {
 
     public synchronized List<V1RunEvent> events(String runId) {
         if (store == null) return List.copyOf(memoryEvents.getOrDefault(runId, List.of()));
-        return store.events(parseRunId(runId)).stream().map(row -> new V1RunEvent("v1", runId,
-                row.dispatchId(), row.attempt(), row.eventId(), row.seq(), "persisted", "persisted",
-                row.hash(), row.occurredAt(), row.type(), readPayload(row.payload()))).toList();
+        return store.events(parseRunId(runId)).stream()
+                .map(
+                        row ->
+                                new V1RunEvent(
+                                        "v1",
+                                        runId,
+                                        row.dispatchId(),
+                                        row.attempt(),
+                                        row.eventId(),
+                                        row.seq(),
+                                        "persisted",
+                                        "persisted",
+                                        row.hash(),
+                                        row.occurredAt(),
+                                        row.type(),
+                                        readPayload(row.payload())))
+                .toList();
     }
 
     public synchronized List<SseRecord> sseEvents(String runId, long afterSequence) {
@@ -149,8 +173,16 @@ public class V1RuntimeEventService {
                                                     || event.eventType().equals("run.failed")
                                                     || event.eventType().equals("run.cancelled")))
                     .toList();
-        return store.sseEvents(parseRunId(runId), afterSequence).stream().map(row ->
-                new SseRecord(row.seq(), row.id(), row.type(), readPayload(row.payload()), terminalType(row.type()))).toList();
+        return store.sseEvents(parseRunId(runId), afterSequence).stream()
+                .map(
+                        row ->
+                                new SseRecord(
+                                        row.seq(),
+                                        row.id(),
+                                        row.type(),
+                                        readPayload(row.payload()),
+                                        terminalType(row.type())))
+                .toList();
     }
 
     public synchronized long cursorFor(String runId, String cursor) {
@@ -293,8 +325,14 @@ public class V1RuntimeEventService {
                         ? (Map<String, Object>) value
                         : Map.of();
         Object amount = cost.get("amount");
-        store.insertUsage(ids.nextId(), event, string(payload.get("scene")), string(payload.get("provider_code")),
-                string(payload.get("model_name")), json(usage), number(payload.get("latency_ms")),
+        store.insertUsage(
+                ids.nextId(),
+                event,
+                string(payload.get("scene")),
+                string(payload.get("provider_code")),
+                string(payload.get("model_name")),
+                json(usage),
+                number(payload.get("latency_ms")),
                 amount == null ? null : new java.math.BigDecimal(amount.toString()),
                 string(payload.getOrDefault("status", "success")));
     }
@@ -310,7 +348,10 @@ public class V1RuntimeEventService {
         store.touchSession(owner.sessionId());
     }
 
-    private static String string(Object value) { return value == null ? null : value.toString(); }
+    private static String string(Object value) {
+        return value == null ? null : value.toString();
+    }
+
     private static Integer number(Object value) {
         try {
             return value == null ? null : Integer.valueOf(value.toString());

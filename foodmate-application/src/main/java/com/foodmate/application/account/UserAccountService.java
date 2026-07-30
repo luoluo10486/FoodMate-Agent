@@ -24,9 +24,7 @@ import javax.crypto.spec.PBEKeySpec;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
-/**
- * P1-1 账户、会话和消息用例。生产持久化通过端口访问，local-stub 显式使用内存。
- */
+/** P1-1 账户、会话和消息用例。生产持久化通过端口访问，local-stub 显式使用内存。 */
 @Service
 public class UserAccountService {
     private static final int PASSWORD_ITERATIONS = 120_000;
@@ -43,7 +41,8 @@ public class UserAccountService {
     private final Map<Long, List<MessageRecord>> messages = new HashMap<>();
 
     public UserAccountService(
-            ObjectProvider<UserAccountStore> storeProvider, ObjectProvider<IdGenerator> idProvider) {
+            ObjectProvider<UserAccountStore> storeProvider,
+            ObjectProvider<IdGenerator> idProvider) {
         this.store = storeProvider.getIfAvailable();
         this.ids = Objects.requireNonNull(idProvider.getIfAvailable(), "IdGenerator is required");
     }
@@ -67,7 +66,8 @@ public class UserAccountService {
                 throw conflict("username or email already exists");
             }
             long userId = ids.nextId();
-            store.insertUser(userId, "U" + userId, username, email, hashPassword(password), nickname);
+            store.insertUser(
+                    userId, "U" + userId, username, email, hashPassword(password), nickname);
             store.insertProfile(ids.nextId(), userId, nickname);
             return issueSession(userId, username, "user", metadata);
         }
@@ -215,7 +215,8 @@ public class UserAccountService {
         String raw = randomToken();
         if (user != null && store != null) {
             store.expireResetTokens(user.userId());
-            store.insertResetToken(ids.nextId(), user.userId(), sha256(raw), Instant.now().plusSeconds(900));
+            store.insertResetToken(
+                    ids.nextId(), user.userId(), sha256(raw), Instant.now().plusSeconds(900));
         }
         return raw;
     }
@@ -315,7 +316,8 @@ public class UserAccountService {
         String wantedStatus = status == null || status.isBlank() ? null : status.trim();
         if (store != null) {
             long total = store.countSessions(userId, q, wantedStatus);
-            List<SessionRecord> items = store.sessions(userId, q, wantedStatus, safeSize, (safePage - 1) * safeSize);
+            List<SessionRecord> items =
+                    store.sessions(userId, q, wantedStatus, safeSize, (safePage - 1) * safeSize);
             return new PageResult<>(items, total, safePage, safeSize);
         }
         List<SessionRecord> all =
@@ -510,7 +512,8 @@ public class UserAccountService {
         long messageId = ids.nextId();
         String payload = json(structuredPayload == null ? Map.of() : structuredPayload);
         if (store != null) {
-            store.insertMessage(messageId, sessionId, agentRunId, role, content, payload, sequence, userId);
+            store.insertMessage(
+                    messageId, sessionId, agentRunId, role, content, payload, sequence, userId);
             store.touchSession(sessionId);
         }
         MessageRecord record =
@@ -550,7 +553,15 @@ public class UserAccountService {
         Instant expiresAt = Instant.now().plusSeconds(AUTH_SESSION_SECONDS);
         AuthSessionRecord record =
                 new AuthSessionRecord(userId, sessionHash, sha256(csrfToken), expiresAt, null);
-        if (store != null) store.insertAuthSession(ids.nextId(), userId, sessionHash, record.csrfTokenHash(), metadata.userAgent(), metadata.ipAddress(), expiresAt);
+        if (store != null)
+            store.insertAuthSession(
+                    ids.nextId(),
+                    userId,
+                    sessionHash,
+                    record.csrfTokenHash(),
+                    metadata.userAgent(),
+                    metadata.ipAddress(),
+                    expiresAt);
         if (store == null) authSessions.put(sessionHash, record);
         return new AuthResult(userId, username, role, sessionToken, csrfToken, expiresAt);
     }
@@ -572,7 +583,10 @@ public class UserAccountService {
 
     private AuthSessionRecord findSession(String hash) {
         UserAccountStore.AuthSessionRow row = store.findAuthSession(hash);
-        return row == null ? null : new AuthSessionRecord(row.userId(), hash, row.csrfTokenHash(), row.expiresAt(), row.revokedAt());
+        return row == null
+                ? null
+                : new AuthSessionRecord(
+                        row.userId(), hash, row.csrfTokenHash(), row.expiresAt(), row.revokedAt());
     }
 
     private void revokeSession(String hash) {

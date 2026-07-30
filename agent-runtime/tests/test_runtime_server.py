@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 sys.path.append(str(Path(__file__).parents[1]))
 import runtime_server
-from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoint, Plan, RouteDecision, StepValidator, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
+from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoint, Plan, Reflector, RouteDecision, StepValidator, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
 from proposal_protocol import Proposal, validate_proposal
 from recovery_protocol import checkpoint_digest, validate_recovery_command
 from langgraph_adapter import build_graph
@@ -99,6 +99,39 @@ class RuntimeContractTests(unittest.TestCase):
         context = Context((), None, (), (), {"message_id": ()})
         with self.assertRaisesRegex(ValueError, "complex plan lacks fact validation"):
             StepValidator().validate(route, Plan(("compose",), route), context)
+
+    def test_step_validator_rejects_duplicate_tool_invocation(self):
+        route = RouteDecision("analysis", "complex", "low")
+        context = Context(
+            ({"message_id": "m1"},),
+            None,
+            (),
+            (),
+            {"message_id": ("m1",), "invocation_id": ("inv-1",)},
+            tool_results=(
+                {"invocation_id": "inv-1", "status": "succeeded", "rows": []},
+                {"invocation_id": "inv-1", "status": "succeeded", "rows": []},
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate or missing tool invocation"):
+            StepValidator().validate(route, Plan(("retrieve_authorized_context", "validate_facts", "compose"), route), context)
+
+    def test_reflector_rejects_empty_or_incomplete_candidate(self):
+        route = RouteDecision("analysis", "complex", "low")
+        context = Context(({"message_id": "m1"},), None, (), (), {"message_id": ("m1",)})
+        self.assertEqual("REFLECTION_ANSWER_EMPTY", Reflector().reflect("", route, context).reason)
+        incomplete = Context(
+            ({"message_id": "m1"},),
+            None,
+            (),
+            (),
+            {"message_id": ("m1",), "invocation_id": ("inv-1",)},
+            tool_results=({"invocation_id": "inv-1", "status": "succeeded", "rows": []},),
+        )
+        self.assertEqual(
+            "REFLECTION_TOOL_RESULT_INCOMPLETE",
+            Reflector().reflect("answer", route, incomplete).reason,
+        )
 
     def test_sql_proposal_rejects_write_statement(self):
         proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "UPDATE food_logs SET notes='x'", "invocation_id": "inv-1"})

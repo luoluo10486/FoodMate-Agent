@@ -16,9 +16,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.ObjectProvider;
 
 /** 在网络调用前持久化 AgentRun 和不可变 dispatch payload。 */
 @Service
@@ -56,7 +56,8 @@ public class AgentRunCommandService {
             long userId, long sessionId, String content, String traceId) {
         long runId = ids.nextId();
         String runIdText = Long.toString(runId);
-        if (store == null) return accounts.addMessage(userId, sessionId, "user", content, null, runId);
+        if (store == null)
+            return accounts.addMessage(userId, sessionId, "user", content, null, runId);
         // waiting_user 的旧 Run 由本次补充消息接续：新 Run 记 parent，旧 Run 迁移为 superseded 终态。
         accounts.listMessages(userId, sessionId, 1, 1);
         Long parentRunId = store.waitingRun(sessionId);
@@ -84,15 +85,11 @@ public class AgentRunCommandService {
         authorizedContext.put("timezone", "Asia/Shanghai");
         authorizedContext.put("locale", "zh-CN");
         authorizedContext.put("tool_contract_version", "v1");
-        authorizedContext.put(
-                "recent_messages",
-                store.recentMessages(sessionId).reversed());
+        authorizedContext.put("recent_messages", store.recentMessages(sessionId).reversed());
         // Context 只装配授权后的摘要和长期记忆；Python 不直接查询 FoodMate 数据库。
-        Map<String,Object> summary = store.summary(sessionId);
+        Map<String, Object> summary = store.summary(sessionId);
         if (summary != null) authorizedContext.put("session_summary", summary);
-        authorizedContext.put(
-                "long_term_memories",
-                store.memories(userId));
+        authorizedContext.put("long_term_memories", store.memories(userId));
         Map<String, Object> runtimeOptions = new LinkedHashMap<>();
         runtimeOptions.put("prompt_set_version", "foodmate-m1-4-deterministic-v1");
         runtimeOptions.put("max_steps", budgetDefaults.maxTotalSteps());
@@ -144,7 +141,8 @@ public class AgentRunCommandService {
         long dispatchRowId = ids.nextId();
         String fence = "fence_" + UUID.randomUUID().toString().replace("-", "");
         store.insertDispatch(dispatchRowId, runId, dispatchId, fence, deadline);
-        store.insertOutbox(ids.nextId(), dispatchRowId, runId, dispatchId, deadline, payload, requestHash);
+        store.insertOutbox(
+                ids.nextId(), dispatchRowId, runId, dispatchId, deadline, payload, requestHash);
         // Redis 准入结果必须回写 Outbox：queued 状态不能被 Relay 当作 pending 发送。
         int queuePriority = parentRunId == null ? 0 : 10;
         AgentAdmissionService.Admission admissionResult =
@@ -167,18 +165,32 @@ public class AgentRunCommandService {
         store.expireOutbox(parentRunId);
         // 旧 Run 的 SSE 订阅方通过 run.superseded 终态事件结束等待。
         long streamSeq = store.lockNextSseSequence(parentRunId);
-        store.insertSse(ids.nextId(), parentRunId, "sse_" + ids.nextId(), streamSeq,
+        store.insertSse(
+                ids.nextId(),
+                parentRunId,
+                "sse_" + ids.nextId(),
+                streamSeq,
                 parentRunId + ":superseded:" + continuationRunId,
                 json(Map.of("superseded_by_run_id", Long.toString(continuationRunId))));
         store.updateSseSequence(parentRunId, streamSeq);
     }
 
     private void insertInitialBudgetSnapshot(long runId) {
-        store.insertBudget(ids.nextId(), runId, budgetDefaults.maxTotalTokens(), budgetDefaults.maxCostCny(),
-                budgetDefaults.maxStepRetries(), budgetDefaults.maxReplans(), budgetDefaults.maxAnswerRewrites(),
-                budgetDefaults.maxTotalSteps(), budgetDefaults.maxModelCalls(), budgetDefaults.queueTimeoutSeconds(),
-                budgetDefaults.executionTimeoutSeconds(), budgetDefaults.nodeTimeoutSeconds(),
-                budgetDefaults.waitingUserTimeoutSeconds(), budgetDefaults.configVersion());
+        store.insertBudget(
+                ids.nextId(),
+                runId,
+                budgetDefaults.maxTotalTokens(),
+                budgetDefaults.maxCostCny(),
+                budgetDefaults.maxStepRetries(),
+                budgetDefaults.maxReplans(),
+                budgetDefaults.maxAnswerRewrites(),
+                budgetDefaults.maxTotalSteps(),
+                budgetDefaults.maxModelCalls(),
+                budgetDefaults.queueTimeoutSeconds(),
+                budgetDefaults.executionTimeoutSeconds(),
+                budgetDefaults.nodeTimeoutSeconds(),
+                budgetDefaults.waitingUserTimeoutSeconds(),
+                budgetDefaults.configVersion());
     }
 
     private String json(Object value) {
