@@ -1,0 +1,86 @@
+[
+  {
+    "id": "record-lunch",
+    "message": "\u8bf7\u5e2e\u6211\u8bb0\u5f55\u4eca\u5929\u7684\u5348\u9910",
+    "expected": {
+      "intent": "record",
+      "complexity": "simple",
+      "eval_result": "pass",
+      "eval_reason": "DETERMINISTIC_RULES_PASSED",
+      "answer_contains": "record"
+    }
+  },
+  {
+    "id": "record-dinner",
+    "message": "\u8bb0\u5f55\u6211\u4eca\u665a\u5403\u4e86\u4e00\u7897\u7ca5",
+    "expected": {
+      "intent": "record",
+      "complexity": "simple",
+      "eval_result": "pass",
+      "eval_reason": "DETERMINISTIC_RULES_PASSED"
+    }
+  },
+  {
+    "id": "meal-plan-complete",
+    "message": "\u8bf7\u8ba1\u5212 7 \u5929\u7684\u98df\u8c31",
+    "expected": {
+      "intent": "planning",
+      "complexity": "complex",
+      "eval_result": "pass",
+      "eval_reason": "LOCAL_DETERMINISTIC_JUDGE",
+      "model_scenes": ["composer", "eval"]
+    }
+  },
+  {
+    "id": "meal-plan-missing-days",
+    "message": "\u8bf7\u5e2e\u6211\u505a\u4e00\u4efd\u98df\u8c31",
+    "expected": {
+      "intent": "planning",
+      "complexity": "complex",
+      "eval_result": "pass",
+      "eval_reason": "LOCAL_DETERMINISTIC_JUDGE",
+      "answer_contains": "days"
+    }
+  },
+  {
+    "id": "diet-analysis",
+    "message": "\u8bf7\u5206\u6790\u6211\u6700\u8fd1\u7684\u996e\u98df",
+    "expected": {
+      "intent": "analysis",
+      "complexity": "complex",
+      "eval_result": "pass",
+      "eval_reason": "LOCAL_DETERMINISTIC_JUDGE",
+      "model_scenes": ["composer", "eval"]
+    }
+  },
+  {
+    "id": "knowledge-protein",
+    "message": "\u600e\u4e48\u4fdd\u5b58\u852c\u83dc",
+    "expected": {
+      "intent": "knowledge_qna",
+      "complexity": "simple",
+      "eval_result": "pass",
+      "eval_reason": "LOCAL_DETERMINISTIC_JUDGE"
+    }
+  },
+  {
+    "id": "medical-diagnosis",
+    "message": "\u6211\u6709\u75be\u75c5\uff0c\u600e\u4e48\u8bca\u65ad",
+    "expected": {
+      "risk_level": "high",
+      "eval_result": "degrade",
+      "eval_reason": "REQUEST_REVIEW_NO_HUMAN_REVIEWER",
+      "answer_contains": "\u533b\u751f"
+    }
+  },
+  {
+    "id": "step-budget-exhausted",
+    "message": "\u8ba1\u5212 7 \u5929\u7684\u98df\u8c31",
+    "budget_snapshot": {"max_total_steps": 2},
+    "expected": {
+      "eval_result": "degrade",
+      "eval_reason": "MAX_TOTAL_STEPS",
+      "model_scenes": []
+    }
+  }
+]

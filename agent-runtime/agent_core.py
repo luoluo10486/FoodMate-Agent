@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import time
 from dataclasses import dataclass, field
@@ -99,7 +100,7 @@ WORKFLOW_EDGES: dict[str, frozenset[str]] = {
     "start": frozenset({"router"}),
     "router": frozenset({"planner", "composer", "terminal"}),
     "planner": frozenset({"clarification", "execution", "composer", "terminal"}),
-    "clarification": frozenset({"terminal"}),
+    "clarification": frozenset({"composer", "terminal"}),
     "execution": frozenset({"validator", "terminal"}),
     "validator": frozenset({"composer", "planner", "terminal"}),
     "composer": frozenset({"eval", "terminal"}),
@@ -224,17 +225,28 @@ class EvalDecision:
 class LlmEvalGate:
     """解析独立 Judge 的结构化结果；硬规则仍由 DeterministicEvalGate 主导。"""
 
+    def __init__(self, min_score: float | None = None):
+        raw = os.getenv("FOODMATE_AGENT_EVAL_MIN_SCORE", "0.75") if min_score is None else min_score
+        try:
+            self.min_score = float(raw)
+        except (TypeError, ValueError):
+            self.min_score = math.nan
+
     def evaluate(self, response: str) -> EvalDecision:
         try:
             value = json.loads(response)
-            passed = bool(value["passed"])
+            passed = value["passed"]
             score = float(value["score"])
             reason = str(value.get("reason") or "LLM_JUDGE")
         except (json.JSONDecodeError, KeyError, TypeError, ValueError):
             return EvalDecision("degrade", "EVAL_SCHEMA_INVALID")
-        if not 0 <= score <= 1:
+        if not isinstance(passed, bool) or not math.isfinite(score) or not 0 <= score <= 1:
             return EvalDecision("degrade", "EVAL_SCORE_INVALID")
-        return EvalDecision("pass" if passed else "degrade", reason if passed else "EVAL_JUDGE_REJECTED")
+        if not math.isfinite(self.min_score) or not 0 <= self.min_score <= 1:
+            return EvalDecision("degrade", "EVAL_THRESHOLD_INVALID")
+        if not passed or score < self.min_score:
+            return EvalDecision("degrade", "EVAL_SCORE_BELOW_THRESHOLD" if passed else "EVAL_JUDGE_REJECTED")
+        return EvalDecision("pass", reason)
 
 
 class DeterministicEvalGate:
@@ -262,7 +274,7 @@ class StepValidator:
             raise ValueError("STEP_VALIDATION_FAILED: plan route mismatch")
         if plan.steps == ("clarify",) and not route.missing_slots:
             raise ValueError("STEP_VALIDATION_FAILED: clarification has no missing slot")
-        if route.complexity == "complex" and "validate_facts" not in plan.steps:
+        if route.complexity == "complex" and not route.missing_slots and "validate_facts" not in plan.steps:
             raise ValueError("STEP_VALIDATION_FAILED: complex plan lacks fact validation")
         if route.missing_slots and plan.steps != ("clarify",):
             raise ValueError("STEP_VALIDATION_FAILED: clarification plan has side effects")
@@ -468,6 +480,7 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
         if route.missing_slots:
             advance("planner")
             advance("clarification")
+            advance("composer")
         elif route.complexity == "simple":
             advance("composer")
         else:
@@ -534,6 +547,12 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
                 "question": content,
                 "candidate_answer": answer,
                 "risk_level": route.risk_level,
+                "rubric": [
+                    "answer addresses the user request",
+                    "do not invent facts, tool results, or authorization",
+                    "high-risk requests must not be presented as professional diagnosis",
+                    "answer is complete enough for the requested task",
+                ],
                 "required_output": {"passed": "boolean", "score": "0..1", "reason": "short code"},
             }, ensure_ascii=False, sort_keys=True)
             try:
