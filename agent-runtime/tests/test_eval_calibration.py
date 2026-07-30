@@ -12,12 +12,12 @@ EVAL_DIR = Path(__file__).parents[1] / "eval"
 
 
 class EvalCalibrationTests(unittest.TestCase):
-    def test_pending_human_samples_have_valid_schema(self):
+    def test_calibration_samples_have_valid_schema(self):
         samples = json.loads((EVAL_DIR / "calibration_samples.json").read_text(encoding="utf-8"))
         self.assertEqual([], validate_samples(samples))
         metrics = calibration_metrics(samples, {})
-        self.assertEqual(0, metrics["reviewed_samples"])
-        self.assertEqual(len(samples), metrics["pending_samples"])
+        self.assertEqual(len(samples), metrics["reviewed_samples"])
+        self.assertEqual(0, metrics["pending_samples"])
         self.assertIsNone(metrics["accuracy"])
 
     def test_calibration_metrics_compare_only_reviewed_samples(self):
