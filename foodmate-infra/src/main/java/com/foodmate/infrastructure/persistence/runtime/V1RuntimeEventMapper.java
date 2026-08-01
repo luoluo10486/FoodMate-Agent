@@ -21,7 +21,7 @@ public interface V1RuntimeEventMapper extends V1RuntimeEventStore {
     DispatchRow dispatch(long runId, String dispatchId);
 
     @Insert(
-            "INSERT INTO runtime_event_inbox_v2(runtime_event_inbox_id,agent_run_id,dispatch_id,event_id,event_seq,event_type,occurred_at,payload_json,request_hash,processing_status,applied_at) VALUES (#{id},#{runId},#{event.dispatchId},#{event.eventId},#{event.eventSeq},#{event.eventType},#{event.occurredAt},CAST(#{payload} AS jsonb),#{event.requestHash},'applied',CURRENT_TIMESTAMP)")
+            "INSERT INTO runtime_event_inbox_v2(runtime_event_inbox_id,agent_run_id,dispatch_id,attempt,event_id,event_seq,event_type,occurred_at,payload_json,request_hash,processing_status,applied_at) VALUES (#{id},#{runId},#{event.dispatchId},#{event.attempt},#{event.eventId},#{event.eventSeq},#{event.eventType},#{event.occurredAt},CAST(#{payload} AS jsonb),#{event.requestHash},'applied',CURRENT_TIMESTAMP)")
     void insertEvent(long id, long runId, V1RunEvent event, String payload);
 
     @Update(

@@ -1,5 +1,6 @@
 package com.foodmate.shared.runtime;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 import java.util.Map;
@@ -17,7 +18,9 @@ public record V1RunCommand(
         @JsonProperty("deadline_at") Instant deadlineAt,
         V1Message message,
         @JsonProperty("authorized_context") Map<String, Object> authorizedContext,
-        @JsonProperty("runtime_options") Map<String, Object> runtimeOptions) {
+        @JsonProperty("runtime_options") Map<String, Object> runtimeOptions,
+        @JsonProperty("recovery_context") @JsonInclude(JsonInclude.Include.NON_EMPTY)
+                Map<String, Object> recoveryContext) {
     public V1RunCommand {
         require(schemaVersion, "schemaVersion");
         require(runId, "runId");
@@ -29,6 +32,7 @@ public record V1RunCommand(
         Objects.requireNonNull(message, "message");
         Objects.requireNonNull(authorizedContext, "authorizedContext");
         Objects.requireNonNull(runtimeOptions, "runtimeOptions");
+        recoveryContext = recoveryContext == null ? Map.of() : Map.copyOf(recoveryContext);
         if (!"v1".equals(schemaVersion))
             throw new IllegalArgumentException("schemaVersion must be v1");
         if (attempt < 1) throw new IllegalArgumentException("attempt must be positive");

@@ -1,17 +1,23 @@
 package com.foodmate.application.runtime;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore;
+import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore.CheckpointFact;
 import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore.RecoveryRequest;
 import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore.RecoveryRun;
 import com.foodmate.shared.id.IdGenerator;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -60,12 +66,24 @@ public class RuntimeRecoveryService {
             throw error("RUNTIME_DEADLINE_EXCEEDED", "Run deadline has expired");
         if (run.payload() == null || run.payload().isBlank())
             throw error("RUNTIME_CONTRACT_INVALID", "previous dispatch payload is missing");
+        CheckpointFact checkpoint =
+                store.latestCheckpoint(request.runId(), run.previousDispatchId());
+        validateCheckpoint(request, run, checkpoint);
+        List<String> completedToolResults = store.completedToolResults(request.runId());
+        List<String> effectiveInvocationIds = mergeInvocationIds(request, completedToolResults);
         List<String> persistedInvocations = store.completedInvocationIds(request.runId());
         if (persistedInvocations == null
-                || !Set.copyOf(request.completedInvocationIds()).containsAll(persistedInvocations))
+                || !Set.copyOf(effectiveInvocationIds).containsAll(persistedInvocations))
             throw error(
                     "RECOVERY_COMPLETED_INVOCATIONS_MISMATCH",
                     "recovery request does not include all completed invocations");
+        RecoveryRequest effectiveRequest =
+                new RecoveryRequest(
+                        request.userId(),
+                        request.runId(),
+                        request.checkpointVersion(),
+                        request.checkpointDigest(),
+                        effectiveInvocationIds);
 
         String previousDispatchId = run.previousDispatchId();
         String dispatchId = "dsp_" + UUID.randomUUID().toString().replace("-", "");
@@ -73,12 +91,13 @@ public class RuntimeRecoveryService {
         String payload =
                 withRecoveryContext(
                         run.payload(),
-                        request,
+                        effectiveRequest,
                         previousDispatchId,
                         dispatchId,
                         attempt,
                         run.deadline(),
-                        run.budgetRevision());
+                        run.budgetRevision(),
+                        completedToolResults);
         String requestHash = digestWithoutRequestHash(payload);
         payload = replaceRequestHash(payload, requestHash);
         long dispatchRowId = ids.nextId();
@@ -116,6 +135,78 @@ public class RuntimeRecoveryService {
         return new RecoveryResult(Long.toString(request.runId()), dispatchId, attempt, "queued");
     }
 
+    /**
+     * Production trigger used by a confirmed tool/budget recovery: Java reads the durable
+     * checkpoint event instead of trusting a browser to reconstruct checkpoint metadata.
+     */
+    @Transactional
+    public RecoveryResult recoverFromPersistedCheckpoint(long userId, long runId) {
+        if (store == null) throw error("RUNTIME_UNAVAILABLE", "database is not configured");
+        RecoveryRun run = store.lockRun(runId, userId);
+        if (run == null) throw error("RUNTIME_NOT_FOUND", "run does not belong to user");
+        CheckpointFact checkpoint = store.latestCheckpoint(runId, run.previousDispatchId());
+        if (checkpoint == null)
+            throw error("RECOVERY_CHECKPOINT_NOT_FOUND", "no Java-acknowledged checkpoint exists");
+        return recover(
+                new RecoveryRequest(
+                        userId,
+                        runId,
+                        checkpoint.version(),
+                        checkpoint.digest(),
+                        readInvocationIds(checkpoint.completedInvocationIdsJson())));
+    }
+
+    private void validateCheckpoint(
+            RecoveryRequest request, RecoveryRun run, CheckpointFact checkpoint) {
+        if (checkpoint == null)
+            throw error(
+                    "RECOVERY_CHECKPOINT_NOT_FOUND",
+                    "checkpoint event has not been acknowledged by Java");
+        if (checkpoint.version() != request.checkpointVersion()
+                || !checkpoint.digest().equals(request.checkpointDigest()))
+            throw error(
+                    "RECOVERY_CONTEXT_CONFLICT",
+                    "checkpoint metadata does not match Java event facts");
+        if (checkpoint.budgetRevision() != run.budgetRevision())
+            throw error("RECOVERY_BUDGET_REVISION_CONFLICT", "checkpoint budget is stale");
+        if (!List.of("tool_wait", "execution").contains(checkpoint.currentNode()))
+            throw error("RECOVERY_CONTEXT_INVALID", "checkpoint node cannot be resumed");
+    }
+
+    private List<String> readInvocationIds(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            JsonNode node = mapper.readTree(json);
+            if (!node.isArray()) throw new IllegalArgumentException("not an array");
+            List<String> result = new ArrayList<>();
+            for (JsonNode item : node) {
+                if (!item.isTextual() || item.asText().isBlank())
+                    throw new IllegalArgumentException("invalid invocation id");
+                result.add(item.asText());
+            }
+            return List.copyOf(result);
+        } catch (Exception exception) {
+            throw error("RECOVERY_CONTEXT_INVALID", "checkpoint invocation list is invalid");
+        }
+    }
+
+    private List<String> mergeInvocationIds(
+            RecoveryRequest request, List<String> completedToolResults) {
+        LinkedHashSet<String> result = new LinkedHashSet<>(request.completedInvocationIds());
+        for (String raw : completedToolResults == null ? List.<String>of() : completedToolResults) {
+            try {
+                JsonNode node = mapper.readTree(raw);
+                String invocationId = node.path("invocation_id").asText("");
+                if (invocationId.isBlank())
+                    throw new IllegalArgumentException("missing invocation id");
+                result.add(invocationId);
+            } catch (Exception exception) {
+                throw error("RECOVERY_CONTEXT_INVALID", "completed Tool Result is invalid");
+            }
+        }
+        return List.copyOf(result);
+    }
+
     private String withRecoveryContext(
             String payload,
             RecoveryRequest request,
@@ -123,7 +214,8 @@ public class RuntimeRecoveryService {
             String dispatchId,
             int attempt,
             Instant deadline,
-            int budgetRevision) {
+            int budgetRevision,
+            List<String> completedToolResults) {
         try {
             ObjectNode root = (ObjectNode) mapper.readTree(payload);
             root.put("dispatch_id", dispatchId);
@@ -138,6 +230,15 @@ public class RuntimeRecoveryService {
             recovery.put("budget_revision", budgetRevision);
             ArrayNode completed = recovery.putArray("completed_invocation_ids");
             request.completedInvocationIds().forEach(completed::add);
+            ArrayNode results = recovery.putArray("completed_tool_results");
+            for (String result :
+                    completedToolResults == null ? List.<String>of() : completedToolResults) {
+                try {
+                    results.add(mapper.readTree(result));
+                } catch (JsonProcessingException exception) {
+                    throw error("RECOVERY_CONTEXT_INVALID", "completed Tool Result is invalid");
+                }
+            }
             return mapper.writeValueAsString(root);
         } catch (JsonProcessingException | ClassCastException exception) {
             throw error("RUNTIME_CONTRACT_INVALID", "stored dispatch payload is invalid");
@@ -181,5 +282,6 @@ public class RuntimeRecoveryService {
         return result.toString();
     }
 
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record RecoveryResult(String runId, String dispatchId, int attempt, String status) {}
 }

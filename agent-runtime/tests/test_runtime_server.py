@@ -28,7 +28,77 @@ class RuntimeContractTests(unittest.TestCase):
         command = {"run_id": "1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
         with patch.object(runtime_server, "emit", side_effect=lambda *args: events.append(args[3])):
             runtime_server.execute(command)
-        self.assertEqual(["run.accepted", "run.routed", "run.model_usage", "run.answer_stream", "run.completed"], events)
+        self.assertEqual(["run.accepted", "run.routed", "run.model_usage", "run.eval_decided", "run.answer_stream", "run.completed"], events)
+
+    def test_model_failure_still_has_contiguous_route_event(self):
+        events = []
+        command = {"run_id": "1", "dispatch_id": "d-failed", "deadline_at": "x", "attempt": 1}
+        error = runtime_server.ModelProviderError("MODEL_PROVIDER_REJECTED", "rejected")
+        with patch.object(runtime_server, "run_deterministic", side_effect=error):
+            with patch.object(
+                runtime_server,
+                "emit",
+                side_effect=lambda *args: events.append((args[2], args[3])),
+            ):
+                runtime_server.execute(command)
+        self.assertEqual([(1, "run.accepted"), (2, "run.routed"), (3, "run.failed")], events)
+
+    def test_readiness_reports_coordination_failure(self):
+        with patch.dict(
+            runtime_server.os.environ,
+            {"FOODMATE_AGENT_TRANSPORT": "rocketmq", "FOODMATE_AGENT_CHECKPOINT_BACKEND": "redis"},
+            clear=False,
+        ):
+            with patch.object(runtime_server, "_event_publisher", None), patch.object(
+                runtime_server, "_proposal_publisher", None
+            ), patch.object(runtime_server, "_mq_runtime", None), patch.object(
+                runtime_server, "_checkpoint", InMemoryCheckpoint()
+            ):
+                status, payload = runtime_server._readiness()
+        self.assertEqual(503, status)
+        self.assertEqual("RUNTIME_COORDINATION_UNAVAILABLE", payload["code"])
+        self.assertIn("redis", payload["unavailable_dependencies"])
+
+    def test_readiness_is_up_for_local_http_runtime(self):
+        with patch.dict(
+            runtime_server.os.environ,
+            {"FOODMATE_AGENT_TRANSPORT": "http", "FOODMATE_AGENT_CHECKPOINT_BACKEND": "inmemory"},
+            clear=False,
+        ):
+            with patch.object(runtime_server, "_checkpoint", InMemoryCheckpoint()):
+                status, payload = runtime_server._readiness()
+        self.assertEqual(200, status)
+        self.assertEqual("UP", payload["status"])
+        self.assertEqual("disabled", payload["dependencies"]["redis"]["status"])
+
+    def test_missing_parameter_enters_waiting_user_without_answer_body(self):
+        events = []
+        command = {
+            "run_id": "waiting-run",
+            "dispatch_id": "waiting-dispatch",
+            "deadline_at": "2099-01-01T00:00:00Z",
+            "attempt": 1,
+            "message": {"content": "计划 食谱"},
+            "runtime_options": {
+                "budget_snapshot": {"revision": 1},
+                "prompt_set_version": "test",
+            },
+        }
+        with patch.object(
+            runtime_server,
+            "emit",
+            side_effect=lambda *args: events.append((args[3], args[4] if len(args) > 4 else {})),
+        ):
+            runtime_server.execute(command)
+        self.assertEqual(
+            ["run.accepted", "run.routed", "run.checkpoint_saved", "run.eval_decided", "run.clarification_requested"],
+            [event[0] for event in events],
+        )
+        self.assertEqual(1, events[2][1]["checkpoint_version"])
+        self.assertTrue(events[2][1]["checkpoint_digest"].startswith("sha256:"))
+        checkpoint = runtime_server._checkpoint.load("waiting-run:waiting-dispatch")
+        self.assertIsNotNone(checkpoint)
+        self.assertEqual("execution", checkpoint[1]["current_node"])
 
     def test_budget_thresholds_and_utf8_chunking(self):
         budget = BudgetSnapshot(max_total_tokens=100, max_cost_cny=1)
@@ -165,13 +235,19 @@ class RuntimeContractTests(unittest.TestCase):
                 runtime_server._on_result({"proposal_id": "p1", "invocation_id": "inv-1", "status": "succeeded", "request_hash": proposal["request_hash"], "rows": []})
 
         command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
-        with patch.object(runtime_server, "run_deterministic", side_effect=run), patch.object(runtime_server, "emit", side_effect=lambda *args: events.append(args[3])), patch.object(runtime_server, "_proposal_publisher", Publisher()):
+        emitted = []
+        with patch.object(runtime_server, "run_deterministic", side_effect=run), patch.object(runtime_server, "emit", side_effect=lambda *args: (events.append(args[3]), emitted.append((args[2], args[3])))), patch.object(runtime_server, "_proposal_publisher", Publisher()):
             runtime_server.execute(command)
         self.assertEqual([proposal], published)
         self.assertEqual("inv-1", commands[1]["authorized_context"]["tool_results"][0]["invocation_id"])
         checkpoint = runtime_server._checkpoint.load("r1:d1")
         self.assertIsNotNone(checkpoint)
         self.assertEqual(["inv-1"], checkpoint[1]["completed_invocation_ids"])
+        recovery_snapshot = runtime_server._checkpoint.load("r1:d1:recovery")
+        self.assertIsNotNone(recovery_snapshot)
+        self.assertEqual("tool_wait", recovery_snapshot[1]["current_node"])
+        self.assertEqual(list(range(1, len(emitted) + 1)), [sequence for sequence, _ in emitted])
+        self.assertEqual(["run.tool_started", "run.tool_finished"], [event for _, event in emitted[3:5]])
         self.assertEqual("run.completed", events[-1])
 
     def test_execute_marks_result_timeout_as_retryable_failure(self):
@@ -179,9 +255,10 @@ class RuntimeContractTests(unittest.TestCase):
         proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "SELECT 1", "invocation_id": "inv-1"}).as_dict()
         execution = SimpleNamespace(proposals=[proposal])
         command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
-        with patch.object(runtime_server, "run_deterministic", return_value=execution), patch.object(runtime_server, "emit", side_effect=lambda *args: events.append((args[3], args[4] if len(args) > 4 else {}))), patch.object(runtime_server, "_proposal_publisher", SimpleNamespace(publish=lambda _proposal: None)), patch.object(runtime_server, "_await_result", side_effect=TimeoutError("TOOL_RESULT_TIMEOUT")):
+        with patch.object(runtime_server, "run_deterministic", return_value=execution), patch.object(runtime_server, "emit", side_effect=lambda *args: events.append((args[2], args[3], args[4] if len(args) > 4 else {}))), patch.object(runtime_server, "_proposal_publisher", SimpleNamespace(publish=lambda _proposal: None)), patch.object(runtime_server, "_await_result", side_effect=TimeoutError("TOOL_RESULT_TIMEOUT")):
             runtime_server.execute(command)
-        self.assertEqual(("run.failed", {"code": "TOOL_RESULT_TIMEOUT", "retryable": True}), events[-1])
+        self.assertEqual((5, "run.failed"), events[-1][:2])
+        self.assertEqual({"code": "TOOL_RESULT_TIMEOUT", "retryable": True}, events[-1][2])
 
     def test_native_langgraph_adapter_compiles_whitelisted_graph(self):
         graph = build_graph()
@@ -194,6 +271,40 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual(2, checkpoint.save("r:d", {"node": "composer"}, version))
         with self.assertRaisesRegex(RuntimeError, "CHECKPOINT_CAS_CONFLICT"):
             checkpoint.save("r:d", {"node": "bad"}, version)
+
+    def test_runtime_checkpoint_payload_is_json_serializable(self):
+        checkpoint = InMemoryCheckpoint()
+        run_deterministic(
+            {
+                "run_id": "checkpoint-json",
+                "dispatch_id": "d1",
+                "message": {"content": "今天晚餐吃什么"},
+            },
+            checkpoint,
+        )
+        stored = checkpoint.load("checkpoint-json:d1")
+        self.assertIsNotNone(stored)
+        json.dumps(stored[1], ensure_ascii=False)
+
+    def test_runtime_execution_state_does_not_overwrite_recovery_checkpoint(self):
+        checkpoint = InMemoryCheckpoint()
+        command = {
+            "run_id": "checkpoint-isolation",
+            "dispatch_id": "d1",
+            "deadline_at": "2099-01-01T00:00:00Z",
+            "message": {"content": "帮我记录今天的晚餐"},
+            "authorized_context": {
+                "sql_read_request": {
+                    "statement": "SELECT 1",
+                    "invocation_id": "inv-1",
+                }
+            },
+            "_checkpoint_key": "checkpoint-isolation:d1:state",
+        }
+        execution = run_deterministic(command, checkpoint)
+        self.assertEqual(["inv-1"], [item["payload"]["invocation_id"] for item in execution.proposals])
+        self.assertIsNone(checkpoint.load("checkpoint-isolation:d1"))
+        self.assertIsNotNone(checkpoint.load("checkpoint-isolation:d1:state"))
 
     def test_recovery_requires_new_dispatch_and_matching_checkpoint_reconciliation(self):
         checkpoint = InMemoryCheckpoint()
@@ -213,6 +324,107 @@ class RuntimeContractTests(unittest.TestCase):
         command["dispatch_id"] = "d1"
         with self.assertRaisesRegex(ValueError, "RECOVERY_DISPATCH_REUSED"):
             validate_recovery_command(command, checkpoint)
+
+    def test_recovery_accepts_completed_tool_results_only_for_completed_invocations(self):
+        checkpoint = InMemoryCheckpoint()
+        saved = {
+            "run_id": "r1", "dispatch_id": "d1", "attempt": 1,
+            "current_node": "tool_wait", "deadline_at": "2030-01-01T00:00:00Z",
+            "budget_revision": 2, "completed_invocation_ids": [],
+        }
+        version = checkpoint.save("r1:d1", saved)
+        command = {
+            "run_id": "r1", "dispatch_id": "d2", "attempt": 2,
+            "deadline_at": "2030-01-01T00:00:00Z",
+            "recovery_context": {
+                "previous_dispatch_id": "d1", "previous_attempt": 1,
+                "checkpoint_version": version, "checkpoint_digest": checkpoint_digest(saved),
+                "budget_revision": 2, "completed_invocation_ids": [],
+                "completed_tool_results": [{"invocation_id": "inv-1"}],
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "RECOVERY_TOOL_RESULTS_MISMATCH"):
+            validate_recovery_command(command, checkpoint)
+
+    def test_recovery_uses_immutable_boundary_when_live_checkpoint_advances(self):
+        checkpoint = InMemoryCheckpoint()
+        saved = {
+            "run_id": "r1", "dispatch_id": "d1", "attempt": 1,
+            "current_node": "tool_wait", "deadline_at": "2030-01-01T00:00:00Z",
+            "budget_revision": 2, "completed_invocation_ids": [],
+        }
+        version = checkpoint.save("r1:d1", saved)
+        checkpoint.save("r1:d1:recovery", saved)
+        checkpoint.save("r1:d1", {**saved, "current_node": "execution"}, version)
+        command = {
+            "run_id": "r1", "dispatch_id": "d2", "attempt": 2,
+            "deadline_at": "2030-01-01T00:00:00Z",
+            "recovery_context": {
+                "previous_dispatch_id": "d1", "previous_attempt": 1,
+                "checkpoint_version": 1, "checkpoint_digest": checkpoint_digest(saved),
+                "budget_revision": 2, "completed_invocation_ids": [],
+            },
+        }
+        self.assertEqual(saved, validate_recovery_command(command, checkpoint))
+
+    def test_recovery_accepts_java_iso_deadline_after_epoch_timestamp_rounding(self):
+        checkpoint = InMemoryCheckpoint()
+        saved = {
+            "run_id": "r1", "dispatch_id": "d1", "attempt": 1,
+            "current_node": "tool_wait", "deadline_at": "2026-08-01T09:08:01.613745600Z",
+            "budget_revision": 2, "completed_invocation_ids": [],
+        }
+        version = checkpoint.save("r1:d1", saved)
+        command = {
+            "run_id": "r1", "dispatch_id": "d2", "attempt": 2,
+            "deadline_at": "2026-08-01T09:08:01.613746Z",
+            "recovery_context": {
+                "previous_dispatch_id": "d1", "previous_attempt": 1,
+                "checkpoint_version": version, "checkpoint_digest": checkpoint_digest(saved),
+                "budget_revision": 2, "completed_invocation_ids": [],
+            },
+        }
+        self.assertEqual(saved, validate_recovery_command(command, checkpoint))
+
+    def test_recovered_tool_result_is_reinjected_without_republishing_proposal(self):
+        saved = {
+            "run_id": "r1", "dispatch_id": "d1", "attempt": 1,
+            "current_node": "tool_wait", "deadline_at": "2030-01-01T00:00:00Z",
+            "budget_revision": 2, "completed_invocation_ids": [],
+        }
+        version = runtime_server._checkpoint.save("r1:d1", saved)
+        command = {
+            "run_id": "r1", "dispatch_id": "d2", "attempt": 2,
+            "deadline_at": "2030-01-01T00:00:00Z",
+            "recovery_context": {
+                "previous_dispatch_id": "d1", "previous_attempt": 1,
+                "checkpoint_version": version, "checkpoint_digest": checkpoint_digest(saved),
+                "budget_revision": 2, "completed_invocation_ids": ["inv-1"],
+                "completed_tool_results": [{
+                    "proposal_id": "p1", "invocation_id": "inv-1", "request_hash": "sha256:p1",
+                    "status": "succeeded", "rows": [],
+                }],
+            },
+        }
+        captured = []
+        execution = SimpleNamespace(
+            proposals=[],
+            route=SimpleNamespace(missing_slots=()),
+            model_attempts=[],
+            eval=SimpleNamespace(result="pass", reason="OK"),
+            answer="recovered",
+            budget_mode="normal",
+            budget_actions={},
+            usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1),
+            workflow={},
+            memory_candidates=[],
+        )
+        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store: captured.append(value) or execution), patch.object(
+            runtime_server, "emit"
+        ):
+            runtime_server.execute(command)
+        self.assertEqual([], execution.proposals)
+        self.assertEqual("inv-1", captured[0]["authorized_context"]["tool_results"][0]["invocation_id"])
 
     def test_high_risk_request_is_safely_degraded(self):
         execution = run_deterministic({"run_id": "r1", "dispatch_id": "d1", "message": {"content": "我有疾病，怎么诊断"}})

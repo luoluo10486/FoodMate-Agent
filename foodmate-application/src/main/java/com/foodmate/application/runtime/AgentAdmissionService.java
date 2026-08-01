@@ -50,7 +50,8 @@ public class AgentAdmissionService {
               redis.call('ZADD', KEYS[1], lease_until, ARGV[1])
               redis.call('ZADD', KEYS[2], lease_until, ARGV[2])
               redis.call('HSET', KEYS[3], 'state', 'active', 'user_id', ARGV[3], 'session_id', ARGV[2], 'run_id', ARGV[1])
-              redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[5]))
+              -- ARGV[5] is seconds for the sorted-set lease; PEXPIRE needs milliseconds.
+              redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[5]) * 1000)
               return 'active'
             end
             if redis.call('ZCARD', KEYS[4]) >= queue_limit then return 'capacity' end
@@ -83,7 +84,8 @@ public class AgentAdmissionService {
             redis.call('ZADD', KEYS[1], lease_until, ARGV[5])
             redis.call('ZADD', user_key, lease_until, ARGV[6])
             redis.call('HSET', KEYS[3], 'state', 'active')
-            redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[4]))
+            -- ARGV[4] is seconds for the promoted sorted-set lease.
+            redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[4]) * 1000)
             return 'active'
             """,
                     String.class);
@@ -247,6 +249,14 @@ public class AgentAdmissionService {
 
     public void requireRedis() {
         if (redis == null) throw runtime("RUNTIME_COORDINATION_UNAVAILABLE", "Redis 准入协调不可用");
+    }
+
+    /** Checks the durable Redis permit when a database promotion may have been interrupted. */
+    public boolean isActive(String runId) {
+        if (!enabled) return true;
+        requireRedis();
+        Object state = redis.opsForHash().get(permitKey(runId), "state");
+        return "active".equals(state == null ? null : state.toString());
     }
 
     private com.foodmate.shared.runtime.RuntimeException coordinationFailure(

@@ -10,6 +10,22 @@ MQADMIN="/home/rocketmq/rocketmq-${ROCKETMQ_VERSION}/bin/mqadmin"
 NAMESRV="${NAMESRV_ADDR:-foodmate-rocketmq-namesrv:9876}"
 BROKER="${BROKER_ADDR:-127.0.0.1:10911}"
 
+# RocketMQ 5.x gRPC PushConsumer uses group-only retry topics. The older
+# remoting client may create a topic containing the source topic as well, but
+# the Python runtime queries these group-only topics during consumption.
+for group in \
+    "${GROUP_PYTHON_AGENT_COMMAND:-foodmate-python-agent-command-v1}" \
+    "${GROUP_PYTHON_AGENT_RESULT:-foodmate-python-agent-result-v1}"; do
+    retry_topic="%RETRY%${group}"
+    echo "[foodmate] creating gRPC retry topic ${retry_topic}"
+    "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$retry_topic" -r 1 -w 1 -p 6 -a +message.type=NORMAL || true
+    if ! "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "$retry_topic"; then
+        echo "[foodmate] gRPC retry topic ${retry_topic} is not visible" >&2
+        exit 1
+    fi
+done
+
+
 # mqadmin 默认 JVM 参数偏大，本地限制到 256m。
 export JAVA_OPT_EXT="-Xms256m -Xmx256m -Xmn128m"
 
@@ -63,6 +79,7 @@ done
 # 最后一个是自动化测试专用组：Broker 关闭了 autoCreateSubscriptionGroup，
 # 测试无法临时创建消费组；用独立组消费才不会挪动 Java/Python 正式组的位点。
 for group in \
+    "CID_DefaultHeartBeatSyncerTopic" \
     "${GROUP_JAVA_AGENT_EVENT:-foodmate-java-agent-event-v1}" \
     "${GROUP_JAVA_AGENT_PROPOSAL:-foodmate-java-agent-proposal-v1}" \
     "${GROUP_PYTHON_AGENT_COMMAND:-foodmate-python-agent-command-v1}" \
@@ -71,8 +88,13 @@ for group in \
     echo "[foodmate] 创建 consumer group ${group}"
     # RocketMQ 5.x 只有在消费者真正订阅后才建 %RETRY% Topic，因此不能用 topicList 回读；
     # updateSubGroup 成功时会打印 "success"，把它作为校验信号。
+    broadcast="false"
+    if [ "$group" = "CID_DefaultHeartBeatSyncerTopic" ]; then
+        # Proxy 的系统心跳主题必须广播给每个 Proxy 实例；-d 才是广播开关，-m 仅表示消费起点。
+        broadcast="true"
+    fi
     if ! "$MQADMIN" updateSubGroup -n "$NAMESRV" -b "$BROKER" -g "$group" \
-        -s true -m false -d false -q 1 -w 1 2>&1 | grep -q "success"; then
+        -s true -m false -d "$broadcast" -q 1 -w 1 2>&1 | grep -q "success"; then
         echo "[foodmate] consumer group ${group} 创建失败" >&2
         exit 1
     fi

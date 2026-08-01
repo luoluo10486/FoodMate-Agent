@@ -13,7 +13,7 @@ import { ErrorState } from '../../components/common/ErrorState';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
 import { createSession, loadSessionMessages, sendUserMessage, type RealMessage } from '../../services/sessionService';
-import { cancelAgentRun, extendAgentRunBudget, openAgentRunStream } from '../../services/agentRunService';
+import { cancelAgentRun, extendAgentRunBudget, openAgentRunStream, recoverAgentRun } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
 
 function displayRunStatus(status: string) {
@@ -50,6 +50,7 @@ function RealChatPage() {
   const [assistantText, setAssistantText] = useState('');
   const [error, setError] = useState<string>();
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
+  const [checkpointAvailable, setCheckpointAvailable] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,6 +60,7 @@ function RealChatPage() {
     setRunStatus('idle');
     setAssistantText('');
     setBudgetConfirmation(false);
+    setCheckpointAvailable(false);
     if (!sessionId) { setLoading(false); return; }
     setLoading(true); setError(undefined);
     loadSessionMessages(sessionId).then((rows) => { if (!cancelled) setMessages(rows.sort((a, b) => a.sequence_no - b.sequence_no)); }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : '消息加载失败'); }).finally(() => { if (!cancelled) setLoading(false); });
@@ -73,13 +75,18 @@ function RealChatPage() {
     const stream = openAgentRunStream(activeRunId, (eventType, payload) => {
       if (eventType === 'run.answer_stream') { setRunStatus('validating'); setAssistantText((current) => current + (payload.text ?? '')); return; }
       if (eventType === 'run.completed') {
-        setRunStatus('completed'); setAssistantText(payload.answer ?? assistantText);
+        setRunStatus('completed'); setCheckpointAvailable(false); setAssistantText(payload.answer ?? assistantText);
          setBudgetConfirmation(payload.result_type === 'safety_degraded' && (payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true));
         return;
       }
-      if (eventType === 'run.failed') { setRunStatus('failed'); setError(runtimeErrorMessage(payload)); return; }
-      if (eventType === 'run.cancelled') { setRunStatus('cancelled'); return; }
-      if (eventType === 'run.superseded') { setRunStatus('superseded'); return; }
+      if (eventType === 'run.checkpoint_saved') {
+        setRunStatus('waiting_user');
+        setCheckpointAvailable(true);
+        return;
+      }
+      if (eventType === 'run.failed') { setRunStatus('failed'); setCheckpointAvailable(false); setError(runtimeErrorMessage(payload)); return; }
+      if (eventType === 'run.cancelled') { setRunStatus('cancelled'); setCheckpointAvailable(false); return; }
+      if (eventType === 'run.superseded') { setRunStatus('superseded'); setCheckpointAvailable(false); return; }
       if (eventType === 'run.clarification_requested') { setRunStatus('waiting_user'); return; }
       setRunStatus(payload.status ?? eventType.replace('run.', ''));
     }, () => setError('运行事件连接中断，浏览器将自动重连。'));
@@ -120,8 +127,16 @@ function RealChatPage() {
                   <span>{new Date(message.created_at).toLocaleString()}</span>
                 </article>
               ))}
-              {assistantText ? <article className={`${styles.message} ${styles.assistant}`}><Tag color="green">FoodMate Agent</Tag><p>{assistantText}</p></article> : null}
-              {budgetConfirmation && activeRunId ? <ConfirmationCard
+                {assistantText ? <article className={`${styles.message} ${styles.assistant}`}><Tag color="green">FoodMate Agent</Tag><p>{assistantText}</p></article> : null}
+                {checkpointAvailable && activeRunId ? <ConfirmationCard
+                  title="运行已暂停，可从检查点继续"
+                  helperText="系统已保存运行进度。继续后会创建新的 dispatch attempt，不会重复已完成的工具调用。"
+                  data={[{ label: '恢复方式', value: '从已校验 checkpoint 恢复' }, { label: '安全校验', value: 'Java 服务端完成' }]}
+                  onConfirm={() => { void recoverAgentRun(activeRunId).then(() => { setCheckpointAvailable(false); setRunStatus('queued'); }).catch((reason) => setError(reason instanceof Error ? reason.message : '运行恢复失败')); }}
+                  onEdit={() => setError('当前恢复入口不接受浏览器修改 checkpoint 内容。')}
+                  onCancel={() => setCheckpointAvailable(false)}
+                /> : null}
+                {budgetConfirmation && activeRunId ? <ConfirmationCard
                 title="本次运行已达到预算上限"
                 helperText="继续执行会创建新的预算 revision，并接续当前 Run。"
                 data={[{ label: '追加 Token', value: '30000' }, { label: '追加成本上限', value: '¥1.00' }]}
@@ -138,7 +153,7 @@ function RealChatPage() {
             </Card>
           </aside>
         </section>
-        <Composer value={input} running={runStatus !== 'idle' && !['completed', 'failed', 'cancelled'].includes(runStatus)} disabled={loading || sending} toolsUsed={0} toolsTotal={0} agentsUsed={0} agentsTotal={0} placeholder="输入要保存到会话中的内容..." onChange={setInput} onSend={() => void send()} onStop={() => { if (activeRunId) void cancelAgentRun(activeRunId); }} />
+        <Composer value={input} running={runStatus !== 'idle' && !['completed', 'failed', 'cancelled', 'waiting_user', 'superseded'].includes(runStatus)} disabled={loading || sending} toolsUsed={0} toolsTotal={0} agentsUsed={0} agentsTotal={0} placeholder="输入要保存到会话中的内容..." onChange={setInput} onSend={() => void send()} onStop={() => { if (activeRunId) void cancelAgentRun(activeRunId); }} />
       </div>
     </WorkspaceLayout>
   );

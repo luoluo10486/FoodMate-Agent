@@ -1,8 +1,12 @@
 package com.foodmate.api.controller;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.RuntimeCancellationService;
+import com.foodmate.application.runtime.RuntimeRecoveryService;
 import com.foodmate.application.runtime.V1RuntimeEventService;
+import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,7 +14,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,16 +30,19 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
     private final V1RuntimeEventService events;
     private final RuntimeCancellationService cancellations;
     private final com.foodmate.application.runtime.BudgetExtensionService budgets;
+    private final RuntimeRecoveryService recovery;
 
     public V1AgentRunController(
             UserAccountService accounts,
             V1RuntimeEventService events,
             RuntimeCancellationService cancellations,
-            com.foodmate.application.runtime.BudgetExtensionService budgets) {
+            com.foodmate.application.runtime.BudgetExtensionService budgets,
+            RuntimeRecoveryService recovery) {
         super(accounts);
         this.events = events;
         this.cancellations = cancellations;
         this.budgets = budgets;
+        this.recovery = recovery;
     }
 
     @GetMapping("/{runId}")
@@ -75,6 +84,54 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
                 TraceContextHolder.currentOrNew());
     }
 
+    /**
+     * 用户补参、预算确认或工具审批后，从已校验 checkpoint 恢复原 Run。
+     *
+     * <p>恢复不会复用旧 dispatch，而是由应用服务创建新的 dispatch attempt，并把恢复命令写入 PostgreSQL Outbox，后续仍由 Outbox Relay
+     * 投递到 Python Runtime。
+     */
+    @PostMapping("/{runId}/recover")
+    public ApiResponse<RuntimeRecoveryService.RecoveryResult> recover(
+            @PathVariable String runId,
+            HttpServletRequest request,
+            @Valid @RequestBody RecoveryRequest body) {
+        UserAccountService.UserRecord current = user(request);
+        long parsedRunId;
+        try {
+            parsedRunId = Long.parseLong(runId);
+        } catch (NumberFormatException exception) {
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_CONTRACT_INVALID", "run_id must be numeric");
+        }
+        return ApiResponse.success(
+                recovery.recover(
+                        new RuntimeRecoveryStore.RecoveryRequest(
+                                current.userId(),
+                                parsedRunId,
+                                body.checkpointVersion(),
+                                body.checkpointDigest(),
+                                body.completedInvocationIds())),
+                TraceContextHolder.currentOrNew());
+    }
+
+    /**
+     * Uses the checkpoint fact already accepted by Java; clients do not submit checkpoint metadata.
+     */
+    @PostMapping("/{runId}/recover-from-checkpoint")
+    public ApiResponse<RuntimeRecoveryService.RecoveryResult> recoverFromCheckpoint(
+            @PathVariable String runId, HttpServletRequest request) {
+        UserAccountService.UserRecord current = user(request);
+        try {
+            return ApiResponse.success(
+                    recovery.recoverFromPersistedCheckpoint(
+                            current.userId(), Long.parseLong(runId)),
+                    TraceContextHolder.currentOrNew());
+        } catch (NumberFormatException exception) {
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_CONTRACT_INVALID", "run_id must be numeric");
+        }
+    }
+
     public record RunView(String runId, String status, int acceptedEventCount) {}
 
     public record CancelRequest(@NotBlank String reason) {}
@@ -83,4 +140,10 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
             @Min(1) int additionalTokens,
             @DecimalMin("0.0001") BigDecimal additionalCostCny,
             @NotBlank String confirmationDigest) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record RecoveryRequest(
+            @Min(1) int checkpointVersion,
+            @NotBlank @Size(max = 71) String checkpointDigest,
+            @Size(max = 128) List<@NotBlank @Size(max = 128) String> completedInvocationIds) {}
 }

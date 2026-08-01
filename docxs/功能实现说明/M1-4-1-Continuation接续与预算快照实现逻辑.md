@@ -1,7 +1,7 @@
 # M1-4-1 Continuation 接续与预算快照实现逻辑
 
 > 本文档按[功能实现逻辑说明模板](./功能实现逻辑说明模板.md)记录 M1-4 阶段 B 已实现并验证的功能点。
-> 只记录已验证事实；RocketMQ、LangGraph、真实模型等 M1-4 其余部分见后续文档。
+> 只记录已验证事实；RocketMQ、LangGraph、真实模型和 Eval 等 M1-4 其余部分见后续文档。
 
 ## 1. 文档信息
 
@@ -12,7 +12,7 @@
 | 文档版本 | v1.0 |
 | 实现日期 | 2026-07-26 |
 | 适用环境 | local |
-| 实现状态 | 已实现待验收（本地 E2E 已通过） |
+| 实现状态 | 已实现并通过本地 E2E；预算追加恢复入口已接入 |
 | 关联方案或需求 | [M1-4 实施方案](../项目/M1-4%20Python%20Agent%20Runtime最小真实闭环实施方案.md) §3.2、§5.14；[Agent 运行架构](../架构/Agent运行架构.md) §11 |
 
 ## 2. 功能概述
@@ -26,7 +26,7 @@
 ### 2.2 适用范围
 
 - 包含：数据库迁移 V5/R5、Java continuation 事务、初始预算快照、`run.superseded` SSE 事件、前端 superseded 状态展示、终态不回退保护。
-- 不包含：预算追加确认 API、工具审批恢复（`continuation_reason='tool_approval'/'budget_extension'` 仅预留枚举）、Python 侧对 continuation 上下文（`unresolved_slots`）的消费——这些属于后续阶段。
+- 不包含：工具审批恢复和 Python 侧完整 continuation 上下文消费；预算追加确认 API 已在 Java/前端接入并沿用原 Run + 新 dispatch attempt。
 
 ### 2.3 前置条件
 
@@ -100,7 +100,7 @@
 
 ## 7. 已知限制和后续工作
 
-- `continuation_reason` 的 `tool_approval`、`budget_extension` 路径（恢复原 Run + 新 dispatch attempt）尚未实现。
+- `continuation_reason='tool_approval'` 路径仍未实现；`budget_extension` 已由预算确认入口恢复原 Run 并创建新 dispatch attempt，仍需生产业务流量验证。
 - Run B 目前不向 Python 传递 clarification 上下文（`unresolved_slots`、会话摘要），Python 仍是确定性 stub；属阶段 E/F。
 - 预算快照尚未进入 RunCommand wire 契约，Python 侧感知预算属阶段 F。
 - 取消与接续的并发（用户同时点取消并发消息）按数据库状态条件裁决：先到者生效，后到者收到 `RUNTIME_STATE_CONFLICT`。

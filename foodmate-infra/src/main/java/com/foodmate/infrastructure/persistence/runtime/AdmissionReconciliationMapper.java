@@ -16,6 +16,10 @@ public interface AdmissionReconciliationMapper extends AdmissionReconciliationSt
             @Param("timeoutSeconds") int timeoutSeconds, @Param("limit") int limit);
 
     @Select(
+            "SELECT agent_run_id,run_id FROM runtime_dispatch_outbox WHERE status='queued' ORDER BY queued_at LIMIT #{limit}")
+    List<RunRef> findQueued(@Param("limit") int limit);
+
+    @Select(
             "SELECT d.agent_run_id,CAST(d.agent_run_id AS VARCHAR) AS run_id FROM agent_run_dispatches d JOIN agent_runs r ON r.agent_run_id=d.agent_run_id WHERE d.dispatch_arbitration_state='active' AND d.deadline_at<=CURRENT_TIMESTAMP AND r.status NOT IN ('completed','failed','cancelled','superseded','waiting_user') ORDER BY d.deadline_at LIMIT #{limit}")
     List<RunRef> findExecutionExpired(int limit);
 

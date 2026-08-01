@@ -2,19 +2,19 @@
 
 > 模板提示：后续 AI 阅读本文档时，必须按功能点拆分为独立小节，不能把多个功能写成一大段；必须区分“目标设计、正在实现、已验证”，不得把本文方案或一次模型调用伪装成 M1-4 已完成。
 
-## 当前验收状态（2026-07-28）
+## 当前验收状态（2026-08-01）
 
 ### 已完成并有运行证据
 
-- [ ] 浏览器完整真实登录、会话、消息和 SSE 闭环尚未通过；当前仅验证了 mock 页面交互与 SSE 展示，真实 Java API 注册请求返回 `500 INTERNAL_ERROR`。
+- [x] 浏览器真实登录、会话、消息、RocketMQ command/event、Java PostgreSQL Inbox 和最终 SSE 闭环已通过；checkpoint 恢复入口也已完成一次 Python 重启后的跨进程验证。
 - [x] Proposal/Result 真实 RocketMQ 往返、Tool Gateway SQL 失败审计、Result 发布完成和重复 Proposal 幂等已通过。
 - [x] Redis 多实例准入 6/6 通过：并发上限、队列容量、continuation 优先、队列 lease 回收和协调不可用错误码均已覆盖。
 - [x] Python MQ producer/consumer 启动超时已实现，启动失败返回 `RUNTIME_MQ_STARTUP_FAILED`；Python pytest 29 passed、真实云 gated 测试 1 passed。
 
 ### 未完成条件
 
-- [x] 真实云模型供应商联调已通过：官方 `/v1/models` 返回 200，模型列表包含 `deepseek-ai/DeepSeek-V4-Flash`；Python 适配器真实调用和 primary + Eval gated 测试均通过。默认仍使用无凭证 deterministic stub。
-- [ ] 生产级长时间吞吐、P95/P99、进程级故障恢复和真正多 Java 实例部署演练仍未完成。
+- [x] 真实云模型供应商适配和独立 Eval 调用均已验证；默认仍使用无凭证 `deterministic:local`，云模型长时间重复稳定性不作通过结论。
+- [ ] 生产级长时间吞吐、容量 P95/P99、队列防饥饿、生产多实例业务流量、进程级故障恢复、正式价格/账单审计和生产 Eval 治理仍未完成。
 
 ## 1. 文档信息
 
@@ -22,7 +22,7 @@
 |---|---|
 | 功能编号/阶段 | M1-4 |
 | 功能名称 | Python Agent Runtime 最小真实模型闭环与生产治理基线 |
-| 文档状态 | M1-4 本地最小真实闭环、真实云模型和 Proposal/Result E2E 已通过；完整浏览器路径和生产级质量门禁仍未完成 |
+| 文档状态 | M1-4 本地最小真实闭环、浏览器 SSE、跨进程恢复、真实云单次调用、Proposal/Result 和 Eval Gate 已通过；生产级质量门禁仍未完成 |
 | 前置阶段 | M1-3 Java -> Python 确定性 stub -> Java -> SSE 已完成 |
 | 方案日期 | 2026-07-26 |
 | 架构依据 | `Agent运行架构.md`、`Python智能体运行时设计.md`、`ADR-0005-RocketMQ异步主通道.md`、`配置指南.md` |
@@ -473,3 +473,79 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 ### 暂缓项
 
 - Eval Gate、LLM Judge、golden 样例、离线评测和正文发布规则保持现状，本轮只保留现有硬规则与已有测试。
+## 2026-08-01 对齐补充：本轮代码与验收结论
+
+本节覆盖文档中较早的“事件顺序、readiness、Eval 和真实闭环”状态描述；设计原则不变，未完成项仍以本节为准。
+
+### 本轮已完成
+
+1. Python 在进入 Composer、Tool 或其他模型调用前确定性发布一次 `run.routed`。因此 Composer provider timeout、provider rejected、Eval provider failure 都不会跳过 `event_seq=2`。
+2. `/foodmate/internal/health/ready` 已返回 checkpoint backend、Redis、event/proposal producer、command/result consumer 状态；依赖不可用时返回 `503/RUNTIME_COORDINATION_UNAVAILABLE`。
+3. Eval 增加进程内统计：pass/degrade、provider failure、schema invalid、P95/P99 gate latency；离线 golden、schema fail-closed 和统计回归均有测试。统计不保存 Prompt/答案，重启后清零，正式部署要接统一指标系统。
+4. 真实浏览器登录态下完成一条 deterministic 本地模型的完整闭环，Java PostgreSQL 事件 Inbox 看到连续事件，最终 SSE 展示回答；本轮成功事件序列为 `1 accepted, 2 routed, 3/4 model_usage, 5 answer_stream, 6 completed`。
+5. 真实 SiliconFlow 超时样本已形成连续失败证据：`accepted -> routed -> model_usage(timeout) -> failed(MODEL_PROVIDER_UNAVAILABLE)`。该证据证明错误可观测，不证明云模型已经稳定。
+
+### 本轮仍未完成
+
+- Java `RuntimeRecoveryService` 已有受保护 HTTP 入口和单元测试，但还没有自动生产触发器、checkpoint 元数据持久化对账以及 Python 重启后的跨进程恢复 E2E。
+- 生产级长压、P95/P99 容量结论、队列防饥饿和多实例业务流量仍未完成；本地单机 Docker 基线只用于开发验收。
+- SiliconFlow 正式价格表核准、价格版本人工复核和账单抽样对账仍未完成；不能因为 `.env` 中存在价格值就标记为正式审计完成。
+- RAG 生产检索、完整真实 Tool/SQL 业务编排，以及真实云 Composer + Eval 的长时间重复稳定性仍未完成。
+
+### 配置裁决
+
+代码默认和 `docker/.env.example` 默认使用 `deterministic:local`。根目录 `.env` 可以显式覆盖 tier，因此当前工作区若设置了 `FOODMATE_MODEL_TIER_STANDARD/HIGH/EVAL`，实际运行模式以该进程启动时环境为准；变更后必须重启 Runtime 并重新读取 readiness。
+
+## 2026-08-01 恢复与 Eval 收尾补充
+
+本节覆盖文档中较早的“Java 恢复未接入口”和“Eval 暂缓”描述。
+
+### 已实现
+
+- Python 在 `tool_wait` 或可恢复 `execution` checkpoint 保存成功后发布非终态 `run.checkpoint_saved`，只携带版本、digest、预算 revision、节点和 invocation ID 摘要。
+- Java 将 checkpoint 事件按既有 Event Inbox 持久化，并从 PostgreSQL 事实校验 Run 所有权、旧 dispatch、deadline、预算 revision 和已完成 invocation。
+- 新增 `POST /api/agent-runs/{runId}/recover-from-checkpoint`。它从 Java 已确认的 checkpoint 构造新的 `dispatch_id + attempt`，不接受浏览器自行伪造的 checkpoint 元数据。
+- 新增 Java 服务/控制器单测、Python 事件序列和 CAS 回归；`M14RuntimeCheckpointRecoveryE2ETest` 已在本地 PostgreSQL/Redis 上通过（使用 `-Dfoodmate.local-e2e=true`），覆盖 Java Inbox 对账和新 attempt 创建。
+- Eval 已纳入当前实现门禁：复杂请求先完成 Composer，再独立 Judge，正文只能在 Gate 通过后发布；Golden、schema invalid、provider failure、工具失败、安全降级和 P95/P99 统计均有回归覆盖。
+
+### 仍需真实环境执行
+
+- 需要停止并重启真实 Python Runtime，保留 Redis checkpoint，调用新恢复入口，再验证新 dispatch 经 RocketMQ 回到 Python 并完成 SSE；当前代码和测试已具备，真实进程重启证据尚未采集。
+- 生产级长压、容量 P95/P99、队列防饥饿、多 Java 实例业务流量和 Redis/RocketMQ/PostgreSQL 故障期间的业务恢复，仍不能用本地单机 Docker 结果替代。
+- SiliconFlow 价格表正式核准、账单抽样对账、人工校准样本和统一 Eval 指标系统仍属于生产发布前工作。
+
+### Eval 发布边界
+
+当前 Eval 是可执行的本地质量门和回归基线，不是生产质量结论。生产发布还需要固定 Prompt/模型/价格版本，维护人工 reviewed calibration samples，记录通过率、降级率、provider failure、schema invalid、P95/P99，并设置告警和账单对账。
+## 2026-08-01 Eval 与恢复收尾对齐
+
+### 已实现并完成本地验证
+
+- [x] Eval Gate 除 `run.completed` 摘要外，新增独立 `run.eval_decided` 事件，事件只携带 `result`、`reason`、`score` 和 `evaluator_version`，不携带候选正文或 Prompt。
+- [x] Java `statusFor`、Inbox 顺序校验和 SSE 投影接受 `run.eval_decided` 非终态事件；正文仍只能在 Eval 通过后进入 `run.answer_stream`。
+- [x] Python 使用项目 `.venv` 回归：`56 passed, 1 skipped`；前端 Vitest `4 passed`，typecheck 通过；Java 受影响模块编译通过。
+- [x] 修正 `V12__m1_4_event_attempt_compatibility.sql` 的未闭合 COMMENT，并在本地 PostgreSQL 幂等执行成功。
+
+### 仍未达到生产收尾门槛
+
+- [ ] Python 进程停止、Redis checkpoint 保留、重启后 Java 自动恢复、新 attempt 经 RocketMQ 返回 Python 并最终 SSE 的完整跨进程业务演练。
+- [ ] 生产级长压、P95/P99 容量结论、队列防饥饿、多 Java 实例真实业务流量和 Redis/RocketMQ/PostgreSQL 进程级故障恢复指标。
+- [ ] 真实云模型长时间重复稳定性；默认模型继续为 `deterministic:local`。
+- [ ] SiliconFlow 正式价格表核准、账单抽样对账，以及人工校准样本驱动的生产 Eval 指标告警。
+
+## 2026-08-01 最终执行对齐（覆盖本方案早期状态）
+
+### 已完成
+
+- [x] Java 恢复服务已接入真实认证触发入口；Python checkpoint 保存事实先进入 Java PostgreSQL Inbox，恢复时创建新的 `dispatch_id + attempt`，不复用旧 dispatch。
+- [x] 本地浏览器真实登录、会话、消息、RocketMQ、Python Runtime、最终 SSE 已验证；恢复场景也已验证 Python 重启后重新经 MQ 完成。
+- [x] Eval Gate 已是运行时强制门：复杂请求独立调用 Judge，`run.eval_decided` 只发布门禁元数据；Judge schema/provider/分数失败均 fail-closed，Eval 通过前不发布正文。
+- [x] 使用项目 `.venv` 的 Python 回归为 `56 passed, 1 skipped`；Java Redis 并发测试 `6 passed`；前端 Vitest `4 passed`、typecheck 和 build 通过。
+- [x] Redis 30 秒本地长压已通过：`operations=268`、`active_max=20`、`queued=140`、0 次协调错误、P50 `5.227ms`、P95 `121.163ms`、P99 `121.733ms`。测试使用专用 logical DB 15，避免运行中应用租约续期干扰。
+
+### 仍未完成，不能标记为生产验收通过
+
+- [ ] 生产资源长压、容量 P95/P99 结论、队列防饥饿、多实例 Agent 业务流量和进程级故障恢复指标；本地单机 Docker 基线不能替代生产结论。
+- [ ] 真实云模型长时间重复稳定性和 RAG/完整 Tool/SQL 业务编排的重复验证；默认仍为 `deterministic:local`。
+- [ ] 正式 SiliconFlow 价格表核准、价格版本人工复核和账单抽样对账；代码只保证价格缺失 fail-closed，不替代财务审计。
+- [ ] 生产 Eval 质量闭环：固定版本的 Prompt/模型/价格、人工 reviewed calibration、统一指标存储以及通过率/降级率/provider failure/schema invalid/P95/P99 告警。

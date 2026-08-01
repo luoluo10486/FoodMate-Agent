@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +31,8 @@ class M14AdmissionConcurrencyE2ETest {
     void setUp() {
         factory = new LettuceConnectionFactory("localhost", 6380);
         factory.setPassword("foodmate-redis-change-me");
+        // 使用测试专用 logical DB，避免被运行中的 Java 服务续租任务干扰。
+        factory.setDatabase(15);
         factory.afterPropertiesSet();
         redis = new StringRedisTemplate(factory);
         redis.afterPropertiesSet();
@@ -65,15 +68,17 @@ class M14AdmissionConcurrencyE2ETest {
 
     @Test
     void expiredLeaseDoesNotKeepUserSlotOccupied() throws InterruptedException {
-        AgentAdmissionService shortLeaseA = service(2, 1, 2, 1, 5);
-        AgentAdmissionService shortLeaseB = service(2, 1, 2, 1, 5);
+        AgentAdmissionService shortLeaseA = service(100, 1, 2, 1, 5);
+        AgentAdmissionService shortLeaseB = service(100, 1, 2, 1, 5);
+        String expiredRun = "m14-expired-" + UUID.randomUUID();
+        long expiredUser = 920100000L + Math.abs(System.nanoTime() % 100000L);
         assertEquals(
                 AgentAdmissionService.State.ACTIVE,
-                shortLeaseA.admit("m14-expired", 9201, 21).state());
+                shortLeaseA.admit(expiredRun, expiredUser, 21).state());
         Thread.sleep(Duration.ofMillis(2200));
         assertEquals(
                 AgentAdmissionService.State.ACTIVE,
-                shortLeaseB.admit("m14-renewed", 9201, 22).state());
+                shortLeaseB.admit("m14-renewed-" + UUID.randomUUID(), expiredUser, 22).state());
     }
 
     @Test

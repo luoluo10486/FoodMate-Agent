@@ -11,7 +11,7 @@ import json
 import math
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
@@ -220,6 +220,8 @@ class DeterministicPlanner:
 class EvalDecision:
     result: str
     reason: str
+    score: float | None = None
+    evaluator_version: str = "deterministic-eval-v1"
 
 
 class LlmEvalGate:
@@ -239,14 +241,19 @@ class LlmEvalGate:
             score = float(value["score"])
             reason = str(value.get("reason") or "LLM_JUDGE")
         except (json.JSONDecodeError, KeyError, TypeError, ValueError):
-            return EvalDecision("degrade", "EVAL_SCHEMA_INVALID")
+            return EvalDecision("degrade", "EVAL_SCHEMA_INVALID", evaluator_version="llm-judge-v1")
         if not isinstance(passed, bool) or not math.isfinite(score) or not 0 <= score <= 1:
-            return EvalDecision("degrade", "EVAL_SCORE_INVALID")
+            return EvalDecision("degrade", "EVAL_SCORE_INVALID", evaluator_version="llm-judge-v1")
         if not math.isfinite(self.min_score) or not 0 <= self.min_score <= 1:
-            return EvalDecision("degrade", "EVAL_THRESHOLD_INVALID")
+            return EvalDecision("degrade", "EVAL_THRESHOLD_INVALID", score=score, evaluator_version="llm-judge-v1")
         if not passed or score < self.min_score:
-            return EvalDecision("degrade", "EVAL_SCORE_BELOW_THRESHOLD" if passed else "EVAL_JUDGE_REJECTED")
-        return EvalDecision("pass", reason)
+            return EvalDecision(
+                "degrade",
+                "EVAL_SCORE_BELOW_THRESHOLD" if passed else "EVAL_JUDGE_REJECTED",
+                score=score,
+                evaluator_version="llm-judge-v1",
+            )
+        return EvalDecision("pass", reason, score=score, evaluator_version="llm-judge-v1")
 
 
 class DeterministicEvalGate:
@@ -254,12 +261,12 @@ class DeterministicEvalGate:
 
     def evaluate(self, answer: str, route: RouteDecision, usage: Usage, budget: BudgetSnapshot) -> EvalDecision:
         if not answer.strip():
-            return EvalDecision("reject", "ANSWER_EMPTY")
+            return EvalDecision("reject", "ANSWER_EMPTY", score=0.0)
         if usage.ratio(budget) >= 1:
-            return EvalDecision("degrade", "BUDGET_EXHAUSTED")
+            return EvalDecision("degrade", "BUDGET_EXHAUSTED", score=0.0)
         if route.risk_level == "high":
-            return EvalDecision("degrade", "REQUEST_REVIEW_NO_HUMAN_REVIEWER")
-        return EvalDecision("pass", "DETERMINISTIC_RULES_PASSED")
+            return EvalDecision("degrade", "REQUEST_REVIEW_NO_HUMAN_REVIEWER", score=0.0)
+        return EvalDecision("pass", "DETERMINISTIC_RULES_PASSED", score=1.0)
 
 
 class StepValidator:
@@ -461,6 +468,13 @@ class AgentExecution:
 
 
 def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | None = None, model_router: ModelRouter | None = None) -> AgentExecution:
+    # Runtime execution state must not overwrite the resumable tool-wait checkpoint.
+    # Direct callers keep the historical key; the RocketMQ path supplies a private
+    # state key and leaves the recovery key to checkpoint boundary writes.
+    checkpoint_key = str(
+        command.get("_checkpoint_key")
+        or (str(command["run_id"]) + ":" + str(command["dispatch_id"]))
+    )
     """执行 M1-4 内核；默认本地 provider，云模型由环境别名显式启用。"""
     content = str((command.get("message") or {}).get("content", ""))
     budget = BudgetSnapshot.from_command(command)
@@ -498,8 +512,8 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
         answer = "当前任务超过了可执行步骤上限，已停止继续调用模型。"
         decision = EvalDecision("degrade", "MAX_TOTAL_STEPS")
         if checkpoint is not None:
-            checkpoint.save(command["run_id"] + ":" + command["dispatch_id"], {
-                "route": route.__dict__, "plan": plan.__dict__, "usage": usage.__dict__,
+            checkpoint.save(checkpoint_key, {
+                "route": asdict(route), "plan": asdict(plan), "usage": usage.__dict__,
                 "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
                 "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
             })
@@ -510,18 +524,44 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
         decision = EvalDecision("degrade", str(error).split(":", 1)[-1].strip())
         answer = "当前请求无法通过步骤校验，已停止继续执行。"
         if checkpoint is not None:
-            checkpoint.save(command["run_id"] + ":" + command["dispatch_id"], {
-                "route": route.__dict__, "plan": plan.__dict__, "usage": {"steps": len(graph.nodes)},
+            checkpoint.save(checkpoint_key, {
+                "route": asdict(route), "plan": asdict(plan), "usage": {"steps": len(graph.nodes)},
                 "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
                 "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
             })
         return AgentExecution(route, plan, context, answer, decision, Usage(steps=len(graph.nodes)), mode, [], [], policy.as_dict(), graph.as_dict())
+    if route.missing_slots:
+        # 缺少业务参数时只生成澄清候选，不调用模型，也不发布回答正文。
+        answer = DeterministicComposer().compose(content, route, context, mode)
+        return AgentExecution(
+            route,
+            plan,
+            context,
+            answer,
+            EvalDecision("pass", "CLARIFICATION_REQUIRED"),
+            usage,
+            mode,
+            [],
+            [],
+            policy.as_dict(),
+            graph.as_dict(),
+            [],
+        )
     candidate = DeterministicComposer().compose(content, route, context, mode)
     router = model_router or ModelRouter()
     tier = router.tier_for("composer", route.complexity, route.risk_level, mode)
+    deadline_at = command.get("deadline_at")
+    composer_timeout = _model_timeout_seconds("COMPOSER", 45.0)
     try:
         response, attempts = router.invoke(
-            ModelRequest(scene="composer", prompt=candidate), tier, router.fallback_tiers_for(tier)
+            ModelRequest(
+                scene="composer",
+                prompt=candidate,
+                deadline_at=deadline_at,
+                timeout_seconds=composer_timeout,
+            ),
+            tier,
+            router.fallback_tiers_for(tier),
         )
     except ModelProviderError:
         # 不能静默伪造云模型回答；上层会把该失败写为可观测终态。
@@ -564,6 +604,8 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
                     temperature=0.0,
                     response_format={"type": "json_object"},
                     extra_body={"enable_thinking": False},
+                    deadline_at=deadline_at,
+                    timeout_seconds=_model_timeout_seconds("EVAL", 20.0),
                 ), eval_tier,
                     router.fallback_tiers_for(eval_tier),
                 )
@@ -585,9 +627,18 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
     if decision.result != "pass":
         answer = "当前请求无法直接交付完整答案，建议咨询医生或注册营养师后再继续。"
     if checkpoint is not None:
-        checkpoint.save(command["run_id"] + ":" + command["dispatch_id"], {
-            "route": route.__dict__, "plan": plan.__dict__, "usage": usage.__dict__,
+        checkpoint.save(checkpoint_key, {
+            "route": asdict(route), "plan": asdict(plan), "usage": usage.__dict__,
             "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
             "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
         })
     return AgentExecution(route, plan, context, answer, decision, usage, mode, generate_memory_candidates(context, content), attempts, policy.as_dict(), graph.as_dict(), generate_tool_proposals(command, route))
+
+
+def _model_timeout_seconds(scene: str, default: float) -> float:
+    """Keep one slow provider call from consuming the whole Run deadline."""
+    raw = os.getenv(f"FOODMATE_AGENT_{scene}_TIMEOUT_SECONDS", str(default))
+    try:
+        return max(0.1, float(raw))
+    except ValueError:
+        return default

@@ -38,8 +38,9 @@
       "intent": "planning",
       "complexity": "complex",
       "eval_result": "pass",
-      "eval_reason": "LOCAL_DETERMINISTIC_JUDGE",
-      "answer_contains": "days"
+      "eval_reason": "CLARIFICATION_REQUIRED",
+      "answer_contains": "days",
+      "model_scenes": []
     }
   },
   {

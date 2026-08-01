@@ -177,6 +177,10 @@ public class LocalStubPersistenceConfig {
                 return List.of();
             }
 
+            public List<RunRef> findQueued(int limit) {
+                return List.of();
+            }
+
             public List<RunRef> findExecutionExpired(int limit) {
                 return List.of();
             }

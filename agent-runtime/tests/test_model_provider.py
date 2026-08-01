@@ -235,3 +235,25 @@ class ProviderContractTests(TestCase):
 
         self.assertEqual("MODEL_PROVIDER_INVALID_RESPONSE", raised.exception.code)
         self.assertFalse(raised.exception.retryable)
+
+    def test_expired_run_deadline_rejects_before_network_request(self):
+        provider = OpenAICompatibleModelProvider("cloud_primary", self.base_url, "test-key")
+
+        with self.assertRaisesRegex(ModelProviderError, "deadline has expired") as raised:
+            provider.complete(
+                "qwen-plus",
+                ModelRequest("composer", "hello", deadline_at="2000-01-01T00:00:00Z"),
+            )
+
+        self.assertEqual("RUNTIME_DEADLINE_EXCEEDED", raised.exception.code)
+        self.assertEqual([], _ProviderHandler.requests)
+
+    def test_run_deadline_clips_provider_timeout(self):
+        provider = OpenAICompatibleModelProvider("cloud_primary", self.base_url, "test-key", 60)
+        request = ModelRequest(
+            "composer",
+            "hello",
+            deadline_at="2099-01-01T00:00:00Z",
+            timeout_seconds=7,
+        )
+        self.assertEqual(7, provider._request_timeout(request))

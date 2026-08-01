@@ -8,6 +8,9 @@ spring:
     enabled: false
 
 foodmate:
+  security:
+    # 本地 HTTP 开发不能发送 Secure Cookie；生产 profile 继续默认开启 Secure。
+    cookie-secure: ${FOODMATE_COOKIE_SECURE:false}
   runtime:
     stub-enabled: false
     admission:

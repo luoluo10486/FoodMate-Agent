@@ -5,6 +5,9 @@ import java.util.List;
 public interface AdmissionReconciliationStore {
     List<RunRef> findQueueExpired(int timeoutSeconds, int limit);
 
+    /** Finds queued rows whose Redis permit was promoted before the database update completed. */
+    List<RunRef> findQueued(int limit);
+
     List<RunRef> findExecutionExpired(int limit);
 
     int failRun(long agentRunId, String code, String resultJson);

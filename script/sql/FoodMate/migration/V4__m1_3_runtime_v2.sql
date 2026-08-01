@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS runtime_event_inbox_v2 (
     runtime_event_inbox_id BIGINT PRIMARY KEY,
     agent_run_id BIGINT NOT NULL REFERENCES agent_runs(agent_run_id),
     dispatch_id VARCHAR(64) NOT NULL,
+    attempt INT NOT NULL DEFAULT 1 CHECK (attempt >= 1),
     event_id VARCHAR(64) NOT NULL,
     event_seq BIGINT NOT NULL CHECK (event_seq >= 1),
     event_type VARCHAR(64) NOT NULL,

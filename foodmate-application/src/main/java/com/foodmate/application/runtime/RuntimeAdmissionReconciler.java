@@ -40,12 +40,30 @@ public class RuntimeAdmissionReconciler {
         } catch (com.foodmate.shared.runtime.RuntimeException failure) {
             if (!"RUNTIME_COORDINATION_UNAVAILABLE".equals(failure.code())) throw failure;
         }
+        reconcilePromotedQueueRows();
         List<AdmissionReconciliationStore.RunRef> queued =
                 store.findQueueExpired(queueTimeoutSeconds, 20);
         queued.forEach(run -> fail(run, "RUNTIME_QUEUE_TIMEOUT", "Agent 排队超时"));
 
         List<AdmissionReconciliationStore.RunRef> expired = store.findExecutionExpired(20);
         expired.forEach(run -> fail(run, "RUNTIME_DEADLINE_EXCEEDED", "Agent 执行超时"));
+    }
+
+    /**
+     * Redis promotion and PostgreSQL outbox promotion are deliberately separate operations. If the
+     * JVM stops between them, this pass repairs the database from the Redis permit fact.
+     */
+    private void reconcilePromotedQueueRows() {
+        try {
+            List<String> promoted =
+                    store.findQueued(20).stream()
+                            .filter(run -> admission.isActive(run.runId()))
+                            .map(AdmissionReconciliationStore.RunRef::runId)
+                            .toList();
+            if (!promoted.isEmpty()) store.promoteOutboxes(promoted);
+        } catch (com.foodmate.shared.runtime.RuntimeException failure) {
+            if (!"RUNTIME_COORDINATION_UNAVAILABLE".equals(failure.code())) throw failure;
+        }
     }
 
     protected void fail(AdmissionReconciliationStore.RunRef run, String code, String message) {

@@ -1,5 +1,6 @@
 package com.foodmate.api.controller;
 
+import com.foodmate.application.runtime.RuntimeCheckpointRecoveryReconciler;
 import com.foodmate.application.runtime.RuntimeGatewayService;
 import com.foodmate.application.runtime.V1RuntimeEventService;
 import com.foodmate.gateway.ServiceJwt;
@@ -25,6 +26,7 @@ public class RuntimeGatewayController {
     private final String javaPublicKey;
     private final String pythonPublicKey;
     private final V1RuntimeEventService v1Events;
+    private final RuntimeCheckpointRecoveryReconciler recoveryReconciler;
 
     public RuntimeGatewayController(
             RuntimeGatewayService service,
@@ -32,13 +34,15 @@ public class RuntimeGatewayController {
             @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
             @Value("${foodmate.runtime.service-jwt.java-public-key:}") String javaPublicKey,
             @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey,
-            ObjectProvider<V1RuntimeEventService> eventProvider) {
+            ObjectProvider<V1RuntimeEventService> eventProvider,
+            ObjectProvider<RuntimeCheckpointRecoveryReconciler> recoveryProvider) {
         this.service = service;
         this.contractVersion = contractVersion;
         this.jwtEnabled = jwtEnabled;
         this.javaPublicKey = javaPublicKey;
         this.pythonPublicKey = pythonPublicKey;
         this.v1Events = eventProvider.getIfAvailable();
+        this.recoveryReconciler = recoveryProvider.getIfAvailable();
     }
 
     @PostMapping("/foodmate/internal/v1/agent-events")
@@ -89,6 +93,24 @@ public class RuntimeGatewayController {
         authenticate(
                 authorization, version, "foodmate-agent-runtime", pythonPublicKey, "runtime:event");
         return ApiResponse.success(service.event(event), TraceContextHolder.currentOrNew());
+    }
+
+    /** Runtime startup notification used to trigger PostgreSQL-backed stale checkpoint recovery. */
+    @PostMapping("/foodmate/internal/v1/runtime/recovered")
+    public ApiResponse<RuntimeCheckpointRecoveryReconciler.TriggerResult> recovered(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "X-Contract-Version", required = false) String version) {
+        authenticate(
+                authorization,
+                version,
+                "foodmate-agent-runtime",
+                pythonPublicKey,
+                "runtime:recovery");
+        if (recoveryReconciler == null)
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_UNAVAILABLE", "recovery reconciler is not configured");
+        return ApiResponse.success(
+                recoveryReconciler.triggerStaleRecoveries(), TraceContextHolder.currentOrNew());
     }
 
     private void authenticate(

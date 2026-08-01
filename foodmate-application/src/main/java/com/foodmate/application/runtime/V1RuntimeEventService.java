@@ -158,6 +158,12 @@ public class V1RuntimeEventService {
                 .toList();
     }
 
+    /** Returns whether the run belongs to the V1 durable runtime or the in-memory test runtime. */
+    public synchronized boolean exists(String runId) {
+        if (store == null) return memoryEvents.containsKey(runId);
+        return store.runExists(parseRunId(runId));
+    }
+
     public synchronized List<SseRecord> sseEvents(String runId, long afterSequence) {
         if (store == null)
             return memoryEvents.getOrDefault(runId, List.of()).stream()
@@ -281,7 +287,11 @@ public class V1RuntimeEventService {
             case "run.completed" -> "completed";
             case "run.failed" -> "failed";
             case "run.cancelled" -> "cancelled";
-            case "run.cancel_acknowledged", "run.model_usage" -> "unchanged";
+            case "run.cancel_acknowledged",
+                    "run.model_usage",
+                    "run.checkpoint_saved",
+                    "run.eval_decided" ->
+                    "unchanged";
             default ->
                     throw new com.foodmate.shared.runtime.RuntimeException(
                             "RUNTIME_CONTRACT_INVALID", "unsupported event type");

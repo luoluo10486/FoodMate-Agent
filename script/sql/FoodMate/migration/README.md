@@ -18,3 +18,5 @@
 
 `V7`-`V9` 仍需在 PostgreSQL 实例上人工执行并完成校验后，才能开启本地真实 Redis admission 和预算追加恢复。
 `V10__m1_4_memory_confirmation.sql`：长期记忆确认状态、冲突隔离索引和用户确认后的 Context 放行。
+
+`V12__m1_4_event_attempt_compatibility.sql`：为已有 `runtime_event_inbox_v2` 补齐 `dispatch attempt` 字段，兼容恢复 Run 的事件顺序校验。该脚本使用 `IF NOT EXISTS`，可重复执行；执行前仍需按项目规则完成备份和执行记录。

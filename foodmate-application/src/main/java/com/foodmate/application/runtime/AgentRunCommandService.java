@@ -54,10 +54,27 @@ public class AgentRunCommandService {
     @Transactional
     public UserAccountService.MessageRecord createUserMessageRun(
             long userId, long sessionId, String content, String traceId) {
+        return createUserMessageRunDetails(userId, sessionId, content, traceId).message();
+    }
+
+    /**
+     * Creates the persisted V1 run and returns the identifiers needed by an HTTP caller.
+     *
+     * <p>The old method intentionally keeps returning only the message record for callers that only
+     * persist messages. The V1 HTTP entry point must also expose the dispatch identifier so the
+     * caller can subscribe to the matching durable SSE stream.
+     */
+    @Transactional
+    public RunCreation createUserMessageRunDetails(
+            long userId, long sessionId, String content, String traceId) {
         long runId = ids.nextId();
         String runIdText = Long.toString(runId);
         if (store == null)
-            return accounts.addMessage(userId, sessionId, "user", content, null, runId);
+            return new RunCreation(
+                    accounts.addMessage(userId, sessionId, "user", content, null, runId),
+                    runIdText,
+                    null,
+                    "persisted");
         // waiting_user 的旧 Run 由本次补充消息接续：新 Run 记 parent，旧 Run 迁移为 superseded 终态。
         accounts.listMessages(userId, sessionId, 1, 1);
         Long parentRunId = store.waitingRun(sessionId);
@@ -90,6 +107,16 @@ public class AgentRunCommandService {
         Map<String, Object> summary = store.summary(sessionId);
         if (summary != null) authorizedContext.put("session_summary", summary);
         authorizedContext.put("long_term_memories", store.memories(userId));
+        // 仅预授权当前会话的最近消息只读查询；Python 只能提出 Proposal，不能自行拼接或执行 SQL。
+        authorizedContext.put(
+                "sql_read_request",
+                Map.of(
+                        "statement",
+                                "SELECT sequence_no,role,content FROM messages WHERE session_id="
+                                        + sessionId
+                                        + " AND is_deleted=FALSE ORDER BY sequence_no DESC LIMIT 8",
+                        "invocation_id", "context_messages_" + runId,
+                        "requires_confirmation", false));
         Map<String, Object> runtimeOptions = new LinkedHashMap<>();
         runtimeOptions.put("prompt_set_version", "foodmate-m1-4-deterministic-v1");
         runtimeOptions.put("max_steps", budgetDefaults.maxTotalSteps());
@@ -136,7 +163,8 @@ public class AgentRunCommandService {
                         deadline,
                         commandMessage,
                         authorizedContext,
-                        runtimeOptions);
+                        runtimeOptions,
+                        Map.of());
         String payload = json(command);
         long dispatchRowId = ids.nextId();
         String fence = "fence_" + UUID.randomUUID().toString().replace("-", "");
@@ -151,7 +179,11 @@ public class AgentRunCommandService {
             store.queueOutbox(runId, dispatchId, queuePriority);
         }
         store.activateDispatch(runId, dispatchRowId);
-        return message;
+        return new RunCreation(
+                message,
+                runIdText,
+                dispatchId,
+                admissionResult.state().name().toLowerCase(java.util.Locale.ROOT));
     }
 
     private void supersedeParentRun(long parentRunId, long continuationRunId) {
@@ -218,4 +250,10 @@ public class AgentRunCommandService {
             return result.toString();
         }
     }
+
+    public record RunCreation(
+            UserAccountService.MessageRecord message,
+            String runId,
+            String dispatchId,
+            String status) {}
 }

@@ -4,7 +4,7 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## M1-4 当前复核状态（2026-07-29）
+## M1-4 当前复核状态（2026-08-01）
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
 
@@ -12,8 +12,8 @@
 - [x] Java PostgreSQL Outbox -> RocketMQ -> Consumer：真实传输、`request_hash`、`dispatch_id`、`run_id` 已验证。
 - [x] Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result：成功、失败 `SQL_EXECUTION_FAILED` 和重复 Proposal 幂等已验证。
 - [x] Proposal Inbox claim lease：超过 5 分钟的 `claimed` 记录可回收，避免旧失败消息造成消费者饥饿。
-- [ ] 浏览器完整真实登录、会话、消息、RocketMQ 消费与最终 SSE E2E 尚无通过证据。
-- [ ] Python 真实模型、RAG、Tool/SQL Proposal 生成及 Result 回注的完整跨进程编排尚无通过证据。
+- [x] 浏览器真实登录、会话、消息、RocketMQ command/event、Java PostgreSQL Inbox、最终 SSE E2E 已通过；恢复入口也已完成一次 Python 重启后的跨进程验证。
+- [x] Python deterministic Runtime、Eval Gate、Proposal/Result 回注和 Java Tool Gateway 的本地真实跨进程链路已通过；生产 RAG 和完整业务 Tool 仍不属于本轮已完成范围。
 - [ ] 生产级长压、多实例吞吐、P95/P99、进程级 Redis/RocketMQ/PostgreSQL 故障恢复仍待执行。
 - [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
 
@@ -27,7 +27,7 @@
 | M1-1 | 已完成 | 账户、授权与个人数据能力已有真实实现和验收记录。 |
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
-| M1-4 | 实现中 | 已具备受控模型适配、LangGraph 白名单图、Eval/预算、Redis 准入、摘要 CAS、记忆候选、MQ Transport 与 Proposal/Result 局部真实 E2E；完整真实云编排仍受供应商响应超时影响，生产价格配置和生产容量结论仍未完成。 |
+| M1-4 | 本地闭环完成，生产收尾中 | 已具备受控模型适配、LangGraph 白名单图、独立 Eval/预算、Redis 准入、摘要 CAS、记忆候选、MQ Transport、Proposal/Result、浏览器 SSE 和跨进程恢复；生产长压、真实云稳定性、价格/账单审计和生产 Eval 治理仍未完成。 |
 
 ## 2. 已确认的产品边界
 
@@ -296,3 +296,50 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] `M14AdmissionLongStressTest` 重新运行 120 秒通过：579 次准入、`active_max=16`、0 次协调错误、P50 2.513ms、P95 136.629ms、P99 137.273ms。该结果只代表本机 Docker Redis 基线，不构成生产容量承诺。
 - [x] 两个独立 Java JVM (`18080`、`18081`) 共享 PostgreSQL/Redis 验证：A 注册/登录与写消息，B 创建会话并读取同一消息，跨实例业务数据一致。
 - [ ] 生产结论仍需接近生产的部署资源、持续更长时段负载、业务 Agent 全链路并发和故障期间的恢复指标；不能由本地单机结果替代。
+## 2026-08-01 本轮执行裁决（以本节覆盖旧状态）
+
+### 已完成并有验证证据
+
+- [x] Python 事件顺序修复：所有模型调用前先发布 `run.routed(event_seq=2)`；模型失败从 `event_seq=3` 开始，不再生成 Java `RUNTIME_EVENT_GAP`。
+- [x] Runtime readiness：真实报告 Redis、checkpoint backend、RocketMQ event/proposal producer、command/result consumer；协调依赖不可用返回 `503/RUNTIME_COORDINATION_UNAVAILABLE`。
+- [x] Eval 基础统计：记录 pass/degrade、Eval provider failure、schema invalid、P95/P99 gate latency；Python 回归测试覆盖 schema、provider failure、统计分位数。
+- [x] Eval 运行时回归：复杂请求在独立 Judge 前不发布正文，Judge schema/分数/provider 失败均 fail-closed；Golden、模型失败、工具失败和安全降级路径均有自动化测试。
+- [x] 本地真实浏览器闭环：真实登录态、会话、消息、RocketMQ command/event、Java PostgreSQL Inbox、最终 SSE 已通过；成功 Run 事件序列为 `accepted -> routed -> model_usage -> model_usage -> answer_stream -> completed`。
+- [x] SiliconFlow 云调用失败可观测：本轮 Composer 超时记录为 `run.model_usage(status=timeout) -> run.failed(MODEL_PROVIDER_UNAVAILABLE)`，且序列连续；这不等于云模型稳定性通过。
+- [x] Java 恢复生产入口：Python checkpoint 保存后发布 `run.checkpoint_saved`，Java 从 PostgreSQL Inbox 对账版本/digest/预算 revision/节点；新增认证入口 `/api/agent-runs/{runId}/recover-from-checkpoint`，创建新的 dispatch attempt。
+- [x] 恢复契约回归：Java 单测、控制器鉴权测试、Python CAS/recovery 校验测试和 PostgreSQL `M14RuntimeCheckpointRecoveryE2ETest` 已通过；该证据覆盖 Java Inbox 对账和新 attempt，不等同于 Python 进程重启后的业务恢复。
+
+### 仍未完成，不得提前勾选
+
+- [ ] Python 进程重启后的真实 checkpoint 恢复 E2E：代码入口和 Java Inbox 对账已完成，仍需在 Docker 中制造 Runtime 中断、重启 Python、调用恢复入口并验证新 attempt 重新经 RocketMQ 完成。
+- [ ] 生产级长压、P95/P99 容量结论、队列防饥饿和多实例业务流量验证；本地单机 Redis/单 Broker 基线不能替代生产结论。
+- [ ] 正式 SiliconFlow 价格表核准和账单抽样对账；代码已支持 `price_version`、成本记录和价格缺失 fail-closed，但未把任何价格表视为正式审计结论。
+- [ ] RAG 生产检索、完整 Tool/SQL 业务场景和真实云 Composer + Eval 长时间稳定性重复验证。
+- [ ] 生产 Eval 质量闭环：本地 Golden 与运行时指标已完成，仍需固定版本的人工校准样本、通过率/降级率告警和统一指标存储后才能形成生产质量结论。
+
+本轮 Python 验证使用 `agent-runtime/.venv`，结果为 `51 passed, 1 skipped`。本地 deterministic 闭环通过不代表 M1-4 整体完成，M1-4 的发布门槛仍由上述未完成项决定。
+## 2026-08-01 Eval Gate 与迁移修正补充
+
+- [x] Python 发布独立 `run.eval_decided` 质量门事件；Java 作为非终态事件写入 Inbox/SSE，正文仍在 Eval 通过后才发布。
+- [x] Eval 本地 Golden、Judge schema/provider fail-closed、安全降级、P95/P99 指标回归已用项目 `.venv` 执行：`56 passed, 1 skipped`。
+- [x] 前端 Vitest `4 passed`、typecheck 通过；Java 受影响模块编译通过。
+- [x] 修正并幂等执行 V12 迁移；此前运行中的旧进程曾在补列前报告 `runtime_event_inbox_v2.attempt` 缺失，重启后应以当前 schema 为准。
+- [ ] 生产 Eval 质量闭环仍未完成：需要固定 Prompt/模型/价格版本、人工 reviewed calibration、统一指标存储、通过/降级/失败告警和账单对账。
+
+## 2026-08-01 最新执行结果（覆盖本文件早期 M1-4 复核记录）
+
+### 已完成并有本轮证据
+
+- [x] Python Eval 回归：使用 `agent-runtime/.venv` 执行，`56 passed, 1 skipped`；覆盖 Golden、Judge schema/provider fail-closed、安全降级、正文延迟发布、模型失败、工具失败和 P95/P99 指标。
+- [x] Java Redis 并发回归：`M14AdmissionConcurrencyE2ETest` 为 `6 passed, 0 failed`；测试使用 Redis logical DB 15，已隔离运行中服务的后台续租任务。
+- [x] Java Redis 30 秒长压：`M14AdmissionLongStressTest` 通过，`operations=268`、`active_max=20`、`queued=140`、`coordination_errors=0`、P50 `5.227ms`、P95 `121.163ms`、P99 `121.733ms`。该结果仅是本机 Docker Redis 基线。
+- [x] Java 恢复服务真实入口、浏览器真实登录/会话/消息/SSE、RocketMQ 主链路和 Python 重启后的 checkpoint 恢复已完成本地闭环验证；恢复使用新的 `dispatch_id + attempt`。
+- [x] 前端 typecheck、Vitest `4 passed` 和生产构建通过；`run.eval_decided` 在正文前发布，正文只有在 Eval 通过后才进入 `run.answer_stream`。
+
+### 仍未完成的生产收尾项
+
+- [ ] 生产资源上的长时间压力、容量 P95/P99 目标、队列防饥饿、多 Java 实例真实 Agent 业务流量和 Redis/RocketMQ/PostgreSQL 故障期间的恢复指标。
+- [ ] 真实云模型的长时间、重复运行稳定性；默认模型仍是 `deterministic:local`，不能把一次云调用当作稳定性验收。
+- [ ] SiliconFlow 正式价格表核准、价格版本人工复核、账单抽样对账和成本异常告警；代码已有价格缺失 fail-closed 与 `price_version` 记录，但配置值不是审计结论。
+- [ ] 生产 Eval 质量闭环：固定 Prompt/模型/价格版本、人工 reviewed calibration、统一指标存储、通过/降级/provider failure/schema invalid/P95/P99 告警和账单关联。
+- [ ] 生产 RAG 检索与完整业务 Tool/SQL 场景的真实云 Composer + Eval 长时间重复验证。

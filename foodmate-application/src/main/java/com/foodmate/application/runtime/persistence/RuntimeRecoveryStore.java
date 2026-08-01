@@ -7,7 +7,16 @@ import java.util.List;
 public interface RuntimeRecoveryStore {
     RecoveryRun lockRun(long runId, long userId);
 
+    /** Reads the last checkpoint fact acknowledged by the Java event inbox. */
+    CheckpointFact latestCheckpoint(long runId, String dispatchId);
+
     List<String> completedInvocationIds(long runId);
+
+    /** Reads idempotently completed Tool Results that can be replayed after Runtime restart. */
+    List<String> completedToolResults(long runId);
+
+    /** Finds active tool-wait dispatches that stopped producing events before a Runtime restart. */
+    List<RecoveryCandidate> findStaleToolWaitRuns(int staleSeconds, int limit);
 
     void expireDispatch(long dispatchRowId);
 
@@ -48,6 +57,13 @@ public interface RuntimeRecoveryStore {
             int budgetRevision,
             String payload) {}
 
+    record CheckpointFact(
+            int version,
+            String digest,
+            int budgetRevision,
+            String currentNode,
+            String completedInvocationIdsJson) {}
+
     record RecoveryRequest(
             long userId,
             long runId,
@@ -61,4 +77,6 @@ public interface RuntimeRecoveryStore {
                             : List.copyOf(completedInvocationIds);
         }
     }
+
+    record RecoveryCandidate(long runId, long userId) {}
 }

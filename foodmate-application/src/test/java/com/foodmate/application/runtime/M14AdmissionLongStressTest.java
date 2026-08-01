@@ -33,6 +33,8 @@ class M14AdmissionLongStressTest {
     void setUp() {
         factory = new LettuceConnectionFactory("localhost", 6380);
         factory.setPassword("foodmate-redis-change-me");
+        // 使用测试专用 logical DB，避免被运行中的 Java 服务续租任务干扰。
+        factory.setDatabase(15);
         factory.afterPropertiesSet();
         redis = new StringRedisTemplate(factory);
         redis.afterPropertiesSet();

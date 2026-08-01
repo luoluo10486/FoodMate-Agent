@@ -40,6 +40,9 @@ class ModelRequest:
     temperature: float = 0.0
     response_format: dict[str, str] | None = None
     extra_body: dict[str, object] | None = None
+    # Run 的绝对截止时间由 Java 固化，Provider 只能缩短等待时间，不能延长它。
+    deadline_at: str | None = None
+    timeout_seconds: float | None = None
 
 
 @dataclass(frozen=True)
@@ -126,13 +129,13 @@ class DeterministicModelProvider(ModelProvider):
 class OpenAICompatibleModelProvider(ModelProvider):
     """多个兼容云端点共用的协议适配器，端点与密钥只从环境变量读取。"""
 
-    def __init__(self, provider_code: str, base_url: str, api_key: str, timeout_seconds: int = 30):
+    def __init__(self, provider_code: str, base_url: str, api_key: str, timeout_seconds: float = 30):
         if not base_url or not api_key:
             raise ModelProviderError("MODEL_PROVIDER_UNAVAILABLE", "cloud provider is not configured")
         self.provider_code = provider_code
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
-        self.timeout_seconds = timeout_seconds
+        self.timeout_seconds = max(0.1, float(timeout_seconds))
 
     def complete(self, model_name: str, request: ModelRequest) -> ModelResponse:
         body = {
@@ -151,7 +154,7 @@ class OpenAICompatibleModelProvider(ModelProvider):
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.api_key},
         )
         try:
-            with urllib.request.urlopen(http_request, timeout=self.timeout_seconds) as response:
+            with urllib.request.urlopen(http_request, timeout=self._request_timeout(request)) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as error:
             if error.code == 429:
@@ -171,6 +174,21 @@ class OpenAICompatibleModelProvider(ModelProvider):
             return ModelResponse(content, input_tokens, output_tokens, payload.get("id"), cached_input_tokens)
         except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ModelProviderError("MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid") from error
+
+    def _request_timeout(self, request: ModelRequest) -> float:
+        """Return the smaller of provider, node and Run-level deadlines."""
+        configured = request.timeout_seconds
+        timeout = self.timeout_seconds if configured is None else max(0.1, float(configured))
+        if not request.deadline_at:
+            return timeout
+        try:
+            deadline = datetime.fromisoformat(request.deadline_at.replace("Z", "+00:00"))
+            remaining = (deadline - datetime.now(timezone.utc)).total_seconds()
+        except (TypeError, ValueError):
+            return timeout
+        if remaining <= 0:
+            raise ModelProviderError("RUNTIME_DEADLINE_EXCEEDED", "run deadline has expired")
+        return max(0.1, min(timeout, remaining))
 
     def _completion_url(self) -> str:
         """兼容配置基地址或完整的 OpenAI Chat Completions 地址。"""
@@ -247,7 +265,7 @@ class ModelRouter:
             provider_code,
             self.environment.get(prefix + "BASE_URL", ""),
             self.environment.get(prefix + "API_KEY", ""),
-            int(self.environment.get(prefix + "TIMEOUT_SECONDS", "30")),
+            float(self.environment.get(prefix + "TIMEOUT_SECONDS", "30")),
         )
 
     def _attempt(self, model_call_id: str, scene: str, alias: ModelAlias, status: str, started: datetime, begin: float, response: ModelResponse | None = None, error: ModelProviderError | None = None) -> ProviderAttempt:

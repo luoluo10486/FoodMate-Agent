@@ -112,8 +112,10 @@ services:
     depends_on:
       rocketmq-namesrv:
         condition: service_healthy
-    command: ["sh", "mqbroker", "-c", "/home/rocketmq/conf/broker.conf"]
+    command: ["sh", "/home/rocketmq/start-broker.sh"]
     environment:
+      # Broker 返回给 Java/Python 客户端的可达地址；本地网络变化时只改 .env，不改 broker.conf。
+      ROCKETMQ_BROKER_IP1: ${ROCKETMQ_BROKER_IP1:-host.docker.internal}
       # 本地单 Broker 默认堆大小；生产环境应按消息量和磁盘吞吐单独评估。
       JAVA_OPT_EXT: "-Xms${ROCKETMQ_BROKER_JAVA_XMS:-256m} -Xmx${ROCKETMQ_BROKER_JAVA_XMX:-512m} -Xmn${ROCKETMQ_BROKER_JAVA_XMN:-256m}"
       TZ: ${TZ:-Asia/Shanghai}
@@ -123,6 +125,7 @@ services:
       - "${ROCKETMQ_BROKER_VIP_PORT:-10909}:10909"
     volumes:
       - ./rocketmq/broker.conf:/home/rocketmq/conf/broker.conf:ro
+      - ./rocketmq/start-broker.sh:/home/rocketmq/start-broker.sh:ro
       # store 使用命名卷：Broker 重启后 CommitLog 与消费进度必须保留。
       - foodmate-rocketmq-broker-store:/home/rocketmq/store
       - foodmate-rocketmq-broker-logs:/home/rocketmq/logs

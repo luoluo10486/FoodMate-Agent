@@ -32,8 +32,73 @@ public interface RuntimeRecoveryMapper extends RuntimeRecoveryStore {
     RecoveryRun lockRun(long runId, long userId);
 
     @Select(
+            """
+            SELECT (payload_json->>'checkpoint_version')::int AS version,
+                   payload_json->>'checkpoint_digest' AS digest,
+                   (payload_json->>'budget_revision')::int AS budgetRevision,
+                   payload_json->>'current_node' AS currentNode,
+                   COALESCE(payload_json->'completed_invocation_ids','[]'::jsonb)::text AS completedInvocationIdsJson
+            FROM runtime_event_inbox_v2
+            WHERE agent_run_id=#{runId}
+              AND dispatch_id=#{dispatchId}
+              AND event_type='run.checkpoint_saved'
+            ORDER BY event_seq DESC
+            LIMIT 1
+            """)
+    CheckpointFact latestCheckpoint(long runId, String dispatchId);
+
+    @Select(
             "SELECT tool_call_id::text FROM tool_calls WHERE agent_run_id=#{runId} AND status='success' AND is_deleted=FALSE ORDER BY created_at, tool_call_id")
     List<String> completedInvocationIds(long runId);
+
+    @Select(
+            """
+            SELECT jsonb_build_object(
+                       'proposal_id', p.proposal_id,
+                       'invocation_id', p.payload_json #>> '{payload,invocation_id}',
+                       'request_hash', p.request_hash,
+                       'status', COALESCE(p.result_json->>'status', 'failed'),
+                       'error_code', COALESCE(p.result_json->>'errorCode', ''),
+                       'rows', COALESCE(p.result_json->'rows', '[]'::jsonb)
+                   )::text
+            FROM runtime_tool_proposal_inbox p
+            WHERE p.payload_json->>'run_id'=CAST(#{runId} AS text)
+              AND p.status='completed'
+              AND p.result_json IS NOT NULL
+            ORDER BY p.completed_at, p.proposal_id
+            """)
+    List<String> completedToolResults(long runId);
+
+    @Select(
+            """
+            WITH latest_checkpoint AS (
+                SELECT DISTINCT ON (agent_run_id, dispatch_id)
+                       agent_run_id, dispatch_id, attempt, event_seq, occurred_at
+                FROM runtime_event_inbox_v2
+                WHERE event_type='run.checkpoint_saved'
+                  AND payload_json->>'current_node'='tool_wait'
+                ORDER BY agent_run_id, dispatch_id, event_seq DESC
+            )
+            SELECT r.agent_run_id AS runId, r.created_by AS userId
+            FROM latest_checkpoint c
+            JOIN agent_runs r ON r.agent_run_id=c.agent_run_id AND r.is_deleted=FALSE
+            JOIN agent_run_dispatches d ON d.agent_run_id=c.agent_run_id
+                                        AND d.dispatch_id=c.dispatch_id
+                                        AND d.attempt=c.attempt
+                                        AND d.dispatch_arbitration_state='active'
+            WHERE r.status NOT IN ('completed','failed','cancelled','superseded')
+              AND c.occurred_at < CURRENT_TIMESTAMP - (#{staleSeconds} * INTERVAL '1 second')
+              AND NOT EXISTS (
+                  SELECT 1 FROM runtime_event_inbox_v2 newer
+                  WHERE newer.agent_run_id=c.agent_run_id
+                    AND newer.dispatch_id=c.dispatch_id
+                    AND newer.attempt=c.attempt
+                    AND newer.event_seq > c.event_seq
+              )
+            ORDER BY c.occurred_at
+            LIMIT #{limit}
+            """)
+    List<RecoveryCandidate> findStaleToolWaitRuns(int staleSeconds, int limit);
 
     @Update(
             "UPDATE agent_run_dispatches SET dispatch_arbitration_state='expired', status='expired', updated_at=CURRENT_TIMESTAMP WHERE agent_run_dispatch_id=#{dispatchRowId} AND dispatch_arbitration_state='active'")

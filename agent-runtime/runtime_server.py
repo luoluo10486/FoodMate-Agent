@@ -8,6 +8,7 @@ import urllib.request
 import base64
 import uuid
 import traceback
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from runtime_env import load_project_env
@@ -15,7 +16,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 load_project_env()
 
-from agent_core import InMemoryCheckpoint, run_deterministic, split_answer
+from agent_core import DeterministicPlanner, DeterministicRouter, InMemoryCheckpoint, run_deterministic, split_answer
+from eval.metrics import EvalMetrics
 from model_provider import ModelProviderError
 from recovery_protocol import checkpoint_digest, validate_recovery_command
 
@@ -33,6 +35,9 @@ _event_publisher = None
 _proposal_publisher = None
 _result_waiters: dict[str, dict] = {}
 _result_condition = threading.Condition(_lock)
+_eval_metrics = EvalMetrics()
+_runtime_started_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+_mq_runtime = None
 def _new_checkpoint():
     # 本地默认内存后端；启用 Redis 时必须同时配置 checkpoint 加密密钥。
     if os.getenv("FOODMATE_AGENT_CHECKPOINT_BACKEND", "inmemory").lower() == "redis":
@@ -44,6 +49,111 @@ def _new_checkpoint():
 _checkpoint = _new_checkpoint()
 
 
+def _route_payload(command: dict) -> dict[str, object]:
+    """Build the stable route fact before any model or tool call can fail."""
+    content = str((command.get("message") or {}).get("content", ""))
+    route = DeterministicRouter().route(content)
+    plan = DeterministicPlanner().plan(route)
+    return {
+        "status": "routed",
+        "intent": route.intent,
+        "complexity": route.complexity,
+        "risk_level": route.risk_level,
+        "missing_slots": list(route.missing_slots),
+        "plan_version": plan.plan_version,
+    }
+
+
+def _record_execution_eval(execution, elapsed_ms: int) -> None:
+    _eval_metrics.record(execution.eval.result, execution.eval.reason, elapsed_ms)
+
+
+def _record_provider_failure(error: ModelProviderError, elapsed_ms: int) -> None:
+    """Count a failed composer or Judge call without retaining provider prompts or answers."""
+    reason = (
+        "EVAL_PROVIDER_UNAVAILABLE"
+        if any(attempt.scene == "eval" for attempt in error.attempts)
+        else error.code
+    )
+    _eval_metrics.record("degrade", reason, elapsed_ms)
+
+
+def _eval_payload(execution) -> dict[str, object]:
+    """Expose the quality-gate fact without retaining the candidate answer or prompt."""
+    return {
+        "result": execution.eval.result,
+        "reason": execution.eval.reason,
+        "score": getattr(execution.eval, "score", None),
+        "evaluator_version": getattr(execution.eval, "evaluator_version", "deterministic-eval-v1"),
+    }
+
+
+def _redis_client():
+    candidates = [
+        getattr(_checkpoint, "client", None),
+        getattr(getattr(_event_publisher, "outbox", None), "client", None),
+        getattr(getattr(_mq_runtime, "inbox", None), "client", None),
+    ]
+    return next((client for client in candidates if client is not None), None)
+
+
+def _readiness() -> tuple[int, dict[str, object]]:
+    backend = os.getenv("FOODMATE_AGENT_CHECKPOINT_BACKEND", "inmemory").lower()
+    transport = os.getenv("FOODMATE_AGENT_TRANSPORT", "http").lower()
+    dependencies: dict[str, object] = {
+        "checkpoint_backend": {"name": backend, "status": "ready"},
+        "redis": {"status": "disabled"},
+        "rocketmq_event_producer": {"status": "disabled"},
+        "rocketmq_proposal_producer": {"status": "disabled"},
+        "rocketmq_command_consumer": {"status": "disabled"},
+        "rocketmq_result_consumer": {"status": "disabled"},
+    }
+    problems: list[str] = []
+    needs_redis = backend == "redis" or transport == "rocketmq"
+    if needs_redis:
+        client = _redis_client()
+        try:
+            if client is None:
+                raise RuntimeError("redis client missing")
+            client.ping()
+            dependencies["redis"] = {"status": "ready"}
+        except Exception:
+            dependencies["redis"] = {"status": "unavailable"}
+            problems.append("redis")
+
+    if transport == "rocketmq":
+        event_ready = _event_publisher is not None and getattr(_event_publisher, "producer", None) is not None
+        proposal_ready = _proposal_publisher is not None and getattr(_proposal_publisher, "producer", None) is not None
+        consumer_ready = _mq_runtime is not None and _mq_runtime.started
+        result_ready = consumer_ready and getattr(_mq_runtime, "result_consumer", None) is not None
+        dependencies["rocketmq_event_producer"] = {"status": "ready" if event_ready else "unavailable"}
+        dependencies["rocketmq_proposal_producer"] = {"status": "ready" if proposal_ready else "unavailable"}
+        dependencies["rocketmq_command_consumer"] = {"status": "ready" if consumer_ready else "unavailable"}
+        dependencies["rocketmq_result_consumer"] = {"status": "ready" if result_ready else "unavailable"}
+        for name, ready in (
+            ("rocketmq_event_producer", event_ready),
+            ("rocketmq_proposal_producer", proposal_ready),
+            ("rocketmq_command_consumer", consumer_ready),
+            ("rocketmq_result_consumer", result_ready),
+        ):
+            if not ready:
+                problems.append(name)
+
+    payload: dict[str, object] = {
+        "status": "UP" if not problems else "DOWN",
+        "contract_version": CONTRACT_VERSION,
+        "transport": transport,
+        "started_at": _runtime_started_at,
+        "dependencies": dependencies,
+        "eval": _eval_metrics.snapshot(),
+    }
+    if problems:
+        payload["code"] = "RUNTIME_COORDINATION_UNAVAILABLE"
+        payload["unavailable_dependencies"] = problems
+        return 503, payload
+    return 200, payload
+
+
 def _canonical(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
 
@@ -53,11 +163,35 @@ def _digest(value):
     return "sha256:" + hashlib.sha256(_canonical(value)).hexdigest()
 
 
-def _headers():
+def _headers(scope="agent:event"):
     headers = {"Content-Type": "application/json", "X-Contract-Version": CONTRACT_VERSION}
     if JWT_ENABLED:
-        headers["Authorization"] = "Bearer " + _sign("foodmate-agent-runtime", "foodmate-control-plane", "agent:event")
+        headers["Authorization"] = "Bearer " + _sign("foodmate-agent-runtime", "foodmate-control-plane", scope)
     return headers
+
+
+def _notify_java_runtime_recovered():
+    """Notify Java after MQ startup; Java still decides which stale Runs are recoverable."""
+    if os.getenv("FOODMATE_AGENT_TRANSPORT", "http").lower() != "rocketmq":
+        return
+    body = json.dumps({
+        "schema_version": CONTRACT_VERSION,
+        "runtime_instance_id": os.getenv("HOSTNAME", "python-runtime") + "-" + uuid.uuid4().hex,
+        "started_at": _runtime_started_at,
+    }).encode("utf-8")
+    try:
+        request = urllib.request.Request(
+            JAVA_CALLBACK_URL.rstrip("/") + "/foodmate/internal/v1/runtime/recovered",
+            data=body,
+            headers=_headers("runtime:recovery"),
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=5):
+            pass
+    except Exception as error:
+        # Startup must remain available when Java is temporarily restarting; the next startup
+        # notification or the scheduled Java scan will retry the reconciliation.
+        print(f"runtime recovery notification unavailable: {type(error).__name__}", flush=True)
 
 
 def _b64(value):
@@ -160,7 +294,7 @@ def _await_result(proposal_id: str, timeout_seconds: float) -> dict:
         return _result_waiters.pop(proposal_id)
 
 
-def _save_tool_wait_checkpoint(command: dict, proposals: list[dict]) -> None:
+def _save_tool_wait_checkpoint(command: dict, proposals: list[dict]) -> dict[str, object]:
     """Persist the only resumable boundary before a Java-owned tool invocation."""
     budget = ((command.get("runtime_options") or {}).get("budget_snapshot") or command.get("budget_snapshot") or {})
     checkpoint = {
@@ -177,7 +311,15 @@ def _save_tool_wait_checkpoint(command: dict, proposals: list[dict]) -> None:
         "pending_proposals": proposals,
         "event_seq": 1,
     }
-    _checkpoint.save(f"{command['run_id']}:{command['dispatch_id']}", checkpoint)
+    version = _checkpoint.save(f"{command['run_id']}:{command['dispatch_id']}", checkpoint)
+    # Keep the event-referenced boundary immutable even when the live technical
+    # checkpoint advances after a Java Tool Result is applied.
+    _checkpoint.save(f"{command['run_id']}:{command['dispatch_id']}:recovery", checkpoint)
+    return _checkpoint_event_payload(
+        checkpoint,
+        version,
+        [str(item.get("invocation_id")) for item in proposals if item.get("invocation_id")],
+    )
 
 
 def _mark_tool_results_applied(command: dict, results: list[dict]) -> None:
@@ -197,14 +339,57 @@ def _mark_tool_results_applied(command: dict, results: list[dict]) -> None:
     _checkpoint.save(key, checkpoint, version)
 
 
+def _save_clarification_checkpoint(command: dict) -> dict[str, object]:
+    """Persist a small, deterministic boundary that Java can reconcile and resume."""
+    options = command.get("runtime_options") or {}
+    budget = options.get("budget_snapshot") or command.get("budget_snapshot") or {}
+    checkpoint = {
+        "schema_version": "v1",
+        "workflow_version": "foodmate-m1-4-v1",
+        "prompt_version": str(options.get("prompt_set_version", "")),
+        "run_id": str(command["run_id"]),
+        "dispatch_id": str(command["dispatch_id"]),
+        "attempt": int(command["attempt"]),
+        "current_node": "execution",
+        "deadline_at": command["deadline_at"],
+        "budget_revision": int(budget.get("revision", 1)),
+        "completed_invocation_ids": [],
+        "pending_proposals": [],
+        "event_seq": 2,
+    }
+    version = _checkpoint.save(f"{command['run_id']}:{command['dispatch_id']}", checkpoint)
+    return _checkpoint_event_payload(checkpoint, version, [])
+
+
+def _checkpoint_event_payload(
+    checkpoint: dict[str, object], version: int, pending_invocation_ids: list[str]
+) -> dict[str, object]:
+    """Expose only reconciliation metadata; proposal inputs remain in the checkpoint store."""
+    return {
+        "checkpoint_version": version,
+        "checkpoint_digest": checkpoint_digest(checkpoint),
+        "workflow_version": checkpoint.get("workflow_version"),
+        "prompt_version": checkpoint.get("prompt_version"),
+        "current_node": checkpoint.get("current_node"),
+        "budget_revision": checkpoint.get("budget_revision"),
+        "completed_invocation_ids": checkpoint.get("completed_invocation_ids", []),
+        "pending_invocation_ids": pending_invocation_ids,
+    }
+
+
 def execute(command):
     prefix = command["dispatch_id"]
+    started = time.monotonic()
+    next_sequence = 3
     try:
         emit(command, prefix + "-accepted", 1, "run.accepted", {"status": "queued"})
         if command["run_id"] in _cancelled:
             emit(command, prefix + "-cancel-ack", 2, "run.cancel_acknowledged", {"reason": "user_requested"})
             emit(command, prefix + "-cancelled", 3, "run.cancelled", {"reason": "user_requested"})
             return
+        # Java requires contiguous event_seq. Publish the route fact before
+        # recovery, tools, and model calls so failures cannot create a gap.
+        emit(command, prefix + "-routed", 2, "run.routed", _route_payload(command))
         recovered = validate_recovery_command(command, _checkpoint)
         if recovered is not None:
             authorized = dict(command.get("authorized_context") or {})
@@ -213,20 +398,52 @@ def execute(command):
                 authorized["tool_results"] = completed_results
             command = dict(command)
             command["authorized_context"] = authorized
-        execution = run_deterministic(command, _checkpoint)
+        execution_command = dict(command)
+        execution_command["_checkpoint_key"] = (
+            str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
+        )
+        execution = run_deterministic(execution_command, _checkpoint)
         if execution.proposals:
             if _proposal_publisher is None:
                 raise RuntimeError("TOOL_RUNTIME_UNAVAILABLE")
-            _save_tool_wait_checkpoint(command, execution.proposals)
+            checkpoint_payload = _save_tool_wait_checkpoint(command, execution.proposals)
+            emit(command, prefix + "-checkpoint", next_sequence, "run.checkpoint_saved", checkpoint_payload)
+            next_sequence += 1
+            # 仅用于本地故障演练：暂停点让测试可以在 checkpoint 已落 Redis、Tool 尚未发送前终止进程。
+            # 默认 0，不改变生产路径，也不把测试状态写入业务协议。
+            pause_after_checkpoint = float(os.getenv("FOODMATE_TEST_PAUSE_AFTER_CHECKPOINT_SECONDS", "0"))
+            if pause_after_checkpoint > 0:
+                time.sleep(pause_after_checkpoint)
             results = []
             for proposal in execution.proposals:
+                # Tool 的开始/结束事实和 checkpoint 同属运行轨迹，保证 Java 能看见
+                # Python 等待外部 Tool 的边界；事件只携带标识和结果状态，不回传 SQL 原文。
+                emit(command, prefix + "-tool-started-" + str(proposal["proposal_id"]), next_sequence,
+                     "run.tool_started", {
+                         "proposal_id": proposal["proposal_id"],
+                         "invocation_id": proposal.get("payload", {}).get("invocation_id"),
+                         "tool_type": proposal.get("proposal_type"),
+                     })
+                next_sequence += 1
                 _proposal_publisher.publish(proposal)
-                results.append(_await_result(
+                result = _await_result(
                     proposal["proposal_id"],
                     float(os.getenv("FOODMATE_AGENT_TOOL_RESULT_TIMEOUT_SECONDS", "30")),
-                ))
+                )
+                results.append(result)
+                emit(command, prefix + "-tool-finished-" + str(proposal["proposal_id"]), next_sequence,
+                     "run.tool_finished", {
+                         "proposal_id": proposal["proposal_id"],
+                         "invocation_id": proposal.get("payload", {}).get("invocation_id"),
+                         "status": result.get("status"),
+                         "error_code": result.get("error_code"),
+                     })
+                next_sequence += 1
             _mark_tool_results_applied(command, results)
             resumed = dict(command)
+            resumed["_checkpoint_key"] = (
+                str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
+            )
             authorized = dict(resumed.get("authorized_context") or {})
             authorized["tool_results"] = results
             resumed["authorized_context"] = authorized
@@ -236,16 +453,24 @@ def execute(command):
             follow_up.usage.cost_cny += execution.usage.cost_cny
             follow_up.usage.model_calls += execution.usage.model_calls
             execution = follow_up
-        emit(command, prefix + "-routed", 2, "run.routed", {
-            "status": "routed", "intent": execution.route.intent,
-            "complexity": execution.route.complexity, "risk_level": execution.route.risk_level,
-            "plan_version": execution.plan.plan_version,
-            "workflow": execution.workflow,
-        })
-        next_sequence = 3
+        missing_slots = tuple(getattr(execution.route, "missing_slots", ()))
+        if missing_slots:
+            _record_execution_eval(execution, int((time.monotonic() - started) * 1000))
+            checkpoint_payload = _save_clarification_checkpoint(command)
+            emit(command, prefix + "-checkpoint", next_sequence, "run.checkpoint_saved", checkpoint_payload)
+            next_sequence += 1
+            emit(command, prefix + "-eval", next_sequence, "run.eval_decided", _eval_payload(execution))
+            next_sequence += 1
+            emit(command, prefix + "-clarification", next_sequence, "run.clarification_requested", {
+                "missing_slots": list(missing_slots),
+                "reason": "REQUIRED_PARAMETER_MISSING",
+            })
+            return
         for index, attempt in enumerate(execution.model_attempts, start=1):
             emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
             next_sequence += 1
+        emit(command, prefix + "-eval", next_sequence, "run.eval_decided", _eval_payload(execution))
+        next_sequence += 1
         if command["run_id"] in _cancelled:
             emit(command, prefix + "-cancel-ack", next_sequence, "run.cancel_acknowledged", {"reason": "user_requested"})
             emit(command, prefix + "-cancelled", next_sequence + 1, "run.cancelled", {"reason": "user_requested"})
@@ -265,6 +490,8 @@ def execute(command):
         emit(command, prefix + "-completed", next_sequence, "run.completed", {
             "answer": answer, "status": "completed", "eval_result": execution.eval.result,
             "eval_reason": execution.eval.reason, "budget_mode": execution.budget_mode,
+            "eval_score": getattr(execution.eval, "score", None),
+            "evaluator_version": getattr(execution.eval, "evaluator_version", "deterministic-eval-v1"),
             "result_type": "normal" if execution.eval.result == "pass" else "safety_degraded",
             "requires_confirmation": bool(execution.budget_actions.get("requires_confirmation", False)),
             "budget_actions": execution.budget_actions,
@@ -272,15 +499,16 @@ def execute(command):
             "usage": execution.usage.__dict__, "memory_candidates": execution.memory_candidates,
             "proposals": execution.proposals,
         })
+        _record_execution_eval(execution, int((time.monotonic() - started) * 1000))
     except ModelProviderError as error:
         # 模型失败也必须回到 Java 状态机，不能由 Runtime 静默吞掉。
-        next_sequence = 3
         for index, attempt in enumerate(error.attempts, start=1):
             emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
             next_sequence += 1
+        _record_provider_failure(error, int((time.monotonic() - started) * 1000))
         emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": error.code, "retryable": error.retryable})
     except TimeoutError as error:
-        emit(command, prefix + "-failed", 3, "run.failed", {"code": str(error), "retryable": True})
+        emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": str(error), "retryable": True})
     except urllib.error.URLError:
         # 超时和重试由 Java 控制面负责，Runtime 不直接写业务状态。
         return
@@ -289,7 +517,7 @@ def execute(command):
         print(f"runtime execution failed run_id={command.get('run_id')} error={type(error).__name__}: {error}", flush=True)
         traceback.print_exc()
         try:
-            emit(command, prefix + "-failed", 3, "run.failed", {"code": "RUNTIME_EXECUTION_FAILED", "retryable": False})
+            emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": "RUNTIME_EXECUTION_FAILED", "retryable": False})
         except Exception:
             traceback.print_exc()
 
@@ -298,6 +526,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path not in {"/foodmate/internal/health/live", "/foodmate/internal/health/ready"}:
             self.send_error(404)
+            return
+        if self.path.endswith("/ready"):
+            status, payload = _readiness()
+            self._json(status, payload)
             return
         self._json(200, {"status": "UP", "contract_version": CONTRACT_VERSION})
 
@@ -375,8 +607,10 @@ if __name__ == "__main__":
         from mq_runtime import RocketMqEventPublisher, RocketMqProposalPublisher, RocketMqRuntime
         _event_publisher = RocketMqEventPublisher()
         _proposal_publisher = RocketMqProposalPublisher()
-        mq_runtime = RocketMqRuntime(execute, publisher=_event_publisher, proposal_publisher=_proposal_publisher, on_result=_on_result)
-        mq_runtime.start()
+        _mq_runtime = RocketMqRuntime(execute, publisher=_event_publisher, proposal_publisher=_proposal_publisher, on_result=_on_result)
+        _mq_runtime.start()
+        _notify_java_runtime_recovered()
+        mq_runtime = _mq_runtime
     try:
         ThreadingHTTPServer(("127.0.0.1", int(os.getenv("PORT", "9000"))), Handler).serve_forever()
     finally:

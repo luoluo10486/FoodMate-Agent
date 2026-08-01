@@ -21,5 +21,10 @@ foodmate-ui/.tsbuild/
 # Python runtime generated files
 agent-runtime/__pycache__/
 agent-runtime/tests/__pycache__/
+agent-runtime/eval/__pycache__/
 agent-runtime/.pytest_cache/
 agent-runtime/*.egg-info/
+
+# Local M1-4 process diagnostics
+java-m14.err
+python-m14-run.err

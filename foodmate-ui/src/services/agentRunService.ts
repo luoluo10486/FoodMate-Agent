@@ -3,6 +3,10 @@ export type AgentRunEvent = {
   text?: string;
   answer?: string;
   reason?: string;
+  checkpoint_version?: number;
+  checkpoint_digest?: string;
+  current_node?: string;
+  budget_revision?: number;
   error_code?: string;
   error_message?: string;
   result_type?: string;
@@ -20,7 +24,7 @@ export function openAgentRunStream(
   // SSE 由服务端持久化 outbox 驱动；前端只负责监听、去重和转发事件。
   const source = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream`, { withCredentials: true });
   let terminal = false;
-  const eventTypes = ['run.accepted', 'run.routed', 'run.clarification_requested', 'run.answer_stream', 'run.completed', 'run.failed', 'run.cancelled', 'run.superseded'];
+  const eventTypes = ['run.accepted', 'run.routed', 'run.checkpoint_saved', 'run.clarification_requested', 'run.answer_stream', 'run.completed', 'run.failed', 'run.cancelled', 'run.superseded'];
   const seen = new Set<string>();
   for (const eventType of eventTypes) {
     source.addEventListener(eventType, (event) => {
@@ -62,4 +66,19 @@ export async function extendAgentRunBudget(runId: string, additionalTokens: numb
     body: JSON.stringify({ additional_tokens: additionalTokens, additional_cost_cny: additionalCostCny, confirmation_digest: `sha256:${digest}` }),
   });
   if (!response.ok) throw new Error('预算追加失败，请稍后重试。');
+}
+
+/**
+ * 恢复必须由 Java 根据已持久化 checkpoint 对账，前端不提交 checkpoint 内容。
+ */
+export async function recoverAgentRun(runId: string): Promise<{ run_id: string; dispatch_id: string; attempt: number; status: string }> {
+  const csrf = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='))?.split('=').slice(1).join('=');
+  const response = await fetch(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/recover-from-checkpoint`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+  });
+  const body = await response.json() as { success: boolean; data?: { run_id: string; dispatch_id: string; attempt: number; status: string }; error?: { message?: string } };
+  if (!response.ok || !body.success || !body.data) throw new Error(body.error?.message ?? '运行恢复失败，请稍后重试。');
+  return body.data;
 }

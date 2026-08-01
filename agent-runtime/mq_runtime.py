@@ -360,3 +360,9 @@ class RocketMqRuntime:
             if self.proposal_publisher is not None:
                 self.proposal_publisher.close()
             self._started = False
+
+    @property
+    def started(self) -> bool:
+        """Expose startup state for the Runtime readiness contract."""
+        with self._lock:
+            return self._started
