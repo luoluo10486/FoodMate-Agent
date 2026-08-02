@@ -3,6 +3,9 @@ package com.foodmate.application.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.foodmate.application.runtime.port.out.RuntimeRepository;
+import com.foodmate.application.runtime.service.RuntimeGatewayService;
+import com.foodmate.application.runtime.service.impl.RuntimeGatewayServiceImpl;
 import com.foodmate.shared.runtime.RunCommand;
 import com.foodmate.shared.runtime.RunEvent;
 import java.time.Instant;
@@ -13,7 +16,7 @@ import org.junit.jupiter.api.Test;
 class RuntimeGatewayServiceTest {
     @Test
     void dispatchIsIdempotentAndConflictsOnChangedRequest() {
-        var service = new RuntimeGatewayService();
+        var service = new RuntimeGatewayServiceImpl();
         var command = new RunCommand("d1", "r1", "hello", Instant.now().plusSeconds(30), 1);
         assertEquals(false, service.dispatch(command).duplicate());
         assertEquals(true, service.dispatch(command).duplicate());
@@ -29,38 +32,25 @@ class RuntimeGatewayServiceTest {
     @Test
     void configuredDataStoreWithoutRuntimeFailsBeforeWriting() {
         var service =
-                new RuntimeGatewayService(
-                        new org.springframework.beans.factory.ObjectProvider<
-                                com.foodmate.application.runtime.persistence
-                                        .RuntimeGatewayStore>() {
-                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore
-                                    getObject(Object... args) {
+                new RuntimeGatewayServiceImpl(
+                        new org.springframework.beans.factory.ObjectProvider<RuntimeRepository>() {
+                            public RuntimeRepository getObject(Object... args) {
                                 return null;
                             }
 
-                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore
-                                    getIfAvailable() {
-                                return org.mockito.Mockito.mock(
-                                        com.foodmate.application.runtime.persistence
-                                                .RuntimeGatewayStore.class);
+                            public RuntimeRepository getIfAvailable() {
+                                return org.mockito.Mockito.mock(RuntimeRepository.class);
                             }
 
-                            public com.foodmate.application.runtime.persistence.RuntimeGatewayStore
-                                    getIfUnique() {
+                            public RuntimeRepository getIfUnique() {
                                 return null;
                             }
 
-                            public java.util.stream.Stream<
-                                            com.foodmate.application.runtime.persistence
-                                                    .RuntimeGatewayStore>
-                                    orderedStream() {
+                            public java.util.stream.Stream<RuntimeRepository> orderedStream() {
                                 return java.util.stream.Stream.empty();
                             }
 
-                            public java.util.stream.Stream<
-                                            com.foodmate.application.runtime.persistence
-                                                    .RuntimeGatewayStore>
-                                    stream() {
+                            public java.util.stream.Stream<RuntimeRepository> stream() {
                                 return java.util.stream.Stream.empty();
                             }
                         },
@@ -89,30 +79,32 @@ class RuntimeGatewayServiceTest {
                             }
                         },
                         new org.springframework.beans.factory.ObjectProvider<
-                                com.foodmate.application.account.UserAccountService>() {
-                            public com.foodmate.application.account.UserAccountService getObject(
-                                    Object... args) {
+                                com.foodmate.application.account.service.UserAccountService>() {
+                            public com.foodmate.application.account.service.UserAccountService
+                                    getObject(Object... args) {
                                 return null;
                             }
 
-                            public com.foodmate.application.account.UserAccountService
+                            public com.foodmate.application.account.service.UserAccountService
                                     getIfAvailable() {
                                 return null;
                             }
 
-                            public com.foodmate.application.account.UserAccountService
+                            public com.foodmate.application.account.service.UserAccountService
                                     getIfUnique() {
                                 return null;
                             }
 
                             public java.util.stream.Stream<
-                                            com.foodmate.application.account.UserAccountService>
+                                            com.foodmate.application.account.service
+                                                    .UserAccountService>
                                     orderedStream() {
                                 return java.util.stream.Stream.empty();
                             }
 
                             public java.util.stream.Stream<
-                                            com.foodmate.application.account.UserAccountService>
+                                            com.foodmate.application.account.service
+                                                    .UserAccountService>
                                     stream() {
                                 return java.util.stream.Stream.empty();
                             }
@@ -134,7 +126,7 @@ class RuntimeGatewayServiceTest {
 
     @Test
     void eventsDriveRunStateAndRejectIllegalOrder() {
-        var service = new RuntimeGatewayService();
+        var service = new RuntimeGatewayServiceImpl();
         var deadline = Instant.now().plusSeconds(30);
         service.dispatch(new RunCommand("d1", "r1", "hello", deadline, 1));
         assertEquals(
@@ -183,7 +175,7 @@ class RuntimeGatewayServiceTest {
 
     @Test
     void cancelAndDispatchDeadlinesAreEnforced() {
-        var service = new RuntimeGatewayService();
+        var service = new RuntimeGatewayServiceImpl();
         var expired = Instant.now().minusSeconds(1);
         assertEquals(
                 "RUNTIME_DEADLINE_EXCEEDED",
@@ -207,7 +199,7 @@ class RuntimeGatewayServiceTest {
 
     @Test
     void subscribersReceiveOnlyAcceptedEventsAndCanResumeFromSequence() {
-        var service = new RuntimeGatewayService();
+        var service = new RuntimeGatewayServiceImpl();
         service.dispatch(
                 new RunCommand("d-stream", "r-stream", "hello", Instant.now().plusSeconds(30), 1));
         List<Long> live = new ArrayList<>();

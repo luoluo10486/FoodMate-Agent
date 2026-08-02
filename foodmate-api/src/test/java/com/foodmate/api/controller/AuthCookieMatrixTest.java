@@ -6,7 +6,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.foodmate.application.account.UserAccountService;
+import com.foodmate.api.controller.account.AuthController;
+import com.foodmate.application.account.service.UserAccountService;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;

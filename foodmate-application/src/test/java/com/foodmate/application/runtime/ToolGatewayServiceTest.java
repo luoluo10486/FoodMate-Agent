@@ -4,16 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.foodmate.application.runtime.persistence.ToolGatewayStore;
+import com.foodmate.application.runtime.port.out.ToolGatewayPort;
+import com.foodmate.application.runtime.service.ToolGatewayService;
+import com.foodmate.application.runtime.service.impl.ToolGatewayServiceImpl;
 import com.foodmate.shared.id.IdGenerator;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ToolGatewayServiceTest {
-    private final ToolGatewayStore store = mock(ToolGatewayStore.class);
+    private final ToolGatewayPort store = mock(ToolGatewayPort.class);
     private final ToolGatewayService gateway =
-            new ToolGatewayService(store, (IdGenerator) () -> 99L);
+            new ToolGatewayServiceImpl(store, (IdGenerator) () -> 99L);
 
     @Test
     void rejectsWriteSqlBeforeDatabaseExecution() {
@@ -48,7 +50,7 @@ class ToolGatewayServiceTest {
         var result = gateway.executeLegacy(proposal("SELECT 1"));
         assertEquals("succeeded", result.status());
         assertEquals(1, result.rows().size());
-        verify(store).audit(any(ToolGatewayStore.Audit.class));
+        verify(store).audit(any(ToolGatewayPort.Audit.class));
     }
 
     private static Map<String, Object> proposal(String sql) {

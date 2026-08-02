@@ -1,13 +1,13 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.AdminDashboardStore;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.*;
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
 @Mapper
-public interface AdminDashboardMapper extends AdminDashboardStore {
+public interface AdminDashboardMapper {
     @Select(
             "SELECT COUNT(*) FILTER (WHERE created_at>=CURRENT_DATE) AS runs_today,COALESCE(ROUND(100.0*COUNT(*) FILTER (WHERE status='failed')/NULLIF(COUNT(*),0),1),0) AS failure_rate,COUNT(*) AS total_runs FROM agent_runs WHERE is_deleted=FALSE")
     Map<String, Object> overview();

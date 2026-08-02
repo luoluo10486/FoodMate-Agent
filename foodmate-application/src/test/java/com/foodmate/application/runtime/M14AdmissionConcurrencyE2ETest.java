@@ -3,6 +3,8 @@ package com.foodmate.application.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.foodmate.application.runtime.admission.AgentAdmissionService;
+import com.foodmate.application.runtime.admission.impl.AgentAdmissionServiceImpl;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -176,7 +178,8 @@ class M14AdmissionConcurrencyE2ETest {
             int queue,
             int lease,
             int queueLease) {
-        return new AgentAdmissionService(provider, true, global, user, queue, lease, queueLease);
+        return new AgentAdmissionServiceImpl(
+                provider, true, global, user, queue, lease, queueLease);
     }
 
     private void clearCoordinationKeys() {

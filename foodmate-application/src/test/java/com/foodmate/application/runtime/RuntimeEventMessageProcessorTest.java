@@ -3,8 +3,11 @@ package com.foodmate.application.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
-import com.foodmate.application.runtime.persistence.ProtocolAuditStore;
-import com.foodmate.application.runtime.persistence.V1RuntimeEventStore;
+import com.foodmate.application.runtime.port.out.ProtocolAuditRepository;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository;
+import com.foodmate.application.runtime.processor.RuntimeEventMessageProcessor;
+import com.foodmate.application.runtime.service.V1RuntimeEventService;
+import com.foodmate.application.runtime.service.impl.V1RuntimeEventServiceImpl;
 import com.foodmate.gateway.MqConsumeDecision;
 import com.foodmate.gateway.MqMessageHandler;
 import com.foodmate.shared.runtime.V1RunEvent;
@@ -35,7 +38,7 @@ class RuntimeEventMessageProcessorTest {
     /** 让 accept() 抛出指定错误码的事件服务替身。 */
     private static RuntimeEventMessageProcessor processorFailingWith(String code) {
         V1RuntimeEventService events =
-                new V1RuntimeEventService(nullProvider(), () -> 1L) {
+                new V1RuntimeEventServiceImpl(nullProvider(), () -> 1L) {
                     @Override
                     public synchronized EventResult accept(V1RunEvent event) {
                         if (code == null)
@@ -43,7 +46,8 @@ class RuntimeEventMessageProcessorTest {
                         throw new com.foodmate.shared.runtime.RuntimeException(code, "test");
                     }
                 };
-        return new RuntimeEventMessageProcessor(events, mock(ProtocolAuditStore.class), () -> 1L);
+        return new RuntimeEventMessageProcessor(
+                events, mock(ProtocolAuditRepository.class), () -> 1L);
     }
 
     @Test
@@ -84,7 +88,7 @@ class RuntimeEventMessageProcessorTest {
     @Test
     void infrastructureFailuresRetry() {
         V1RuntimeEventService events =
-                new V1RuntimeEventService(nullProvider(), () -> 1L) {
+                new V1RuntimeEventServiceImpl(nullProvider(), () -> 1L) {
                     @Override
                     public synchronized EventResult accept(V1RunEvent event) {
                         throw new IllegalStateException("connection pool exhausted");
@@ -92,7 +96,8 @@ class RuntimeEventMessageProcessorTest {
                 };
         assertEquals(
                 MqConsumeDecision.RETRY,
-                new RuntimeEventMessageProcessor(events, mock(ProtocolAuditStore.class), () -> 1L)
+                new RuntimeEventMessageProcessor(
+                                events, mock(ProtocolAuditRepository.class), () -> 1L)
                         .handle(EVENT_JSON, CONTEXT));
     }
 
@@ -103,25 +108,25 @@ class RuntimeEventMessageProcessorTest {
                 MqConsumeDecision.REJECT, processorFailingWith(null).handle("{not json", CONTEXT));
     }
 
-    private static ObjectProvider<V1RuntimeEventStore> nullProvider() {
+    private static ObjectProvider<RuntimeEventRepository> nullProvider() {
         return new ObjectProvider<>() {
-            public V1RuntimeEventStore getObject(Object... args) {
+            public RuntimeEventRepository getObject(Object... args) {
                 return null;
             }
 
-            public V1RuntimeEventStore getIfAvailable() {
+            public RuntimeEventRepository getIfAvailable() {
                 return null;
             }
 
-            public V1RuntimeEventStore getIfUnique() {
+            public RuntimeEventRepository getIfUnique() {
                 return null;
             }
 
-            public Stream<V1RuntimeEventStore> orderedStream() {
+            public Stream<RuntimeEventRepository> orderedStream() {
                 return Stream.empty();
             }
 
-            public Stream<V1RuntimeEventStore> stream() {
+            public Stream<RuntimeEventRepository> stream() {
                 return Stream.empty();
             }
         };

@@ -11,12 +11,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.foodmate.api.advice.GlobalExceptionHandler;
-import com.foodmate.application.account.UserAccountService;
-import com.foodmate.application.runtime.BudgetExtensionService;
-import com.foodmate.application.runtime.RuntimeCancellationService;
-import com.foodmate.application.runtime.RuntimeRecoveryService;
-import com.foodmate.application.runtime.V1RuntimeEventService;
-import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore;
+import com.foodmate.api.controller.runtime.V1AgentRunController;
+import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository;
+import com.foodmate.application.runtime.service.BudgetExtensionService;
+import com.foodmate.application.runtime.service.RuntimeCancellationService;
+import com.foodmate.application.runtime.service.RuntimeRecoveryService;
+import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,8 +73,8 @@ class V1AgentRunControllerTest {
                 .andExpect(jsonPath("$.data.dispatch_id", is("d-new")))
                 .andExpect(jsonPath("$.data.attempt", is(2)));
 
-        ArgumentCaptor<RuntimeRecoveryStore.RecoveryRequest> request =
-                ArgumentCaptor.forClass(RuntimeRecoveryStore.RecoveryRequest.class);
+        ArgumentCaptor<RuntimeRecoveryRepository.RecoveryRequest> request =
+                ArgumentCaptor.forClass(RuntimeRecoveryRepository.RecoveryRequest.class);
         verify(recovery).recover(request.capture());
         assertEquals(7L, request.getValue().userId());
         assertEquals(1L, request.getValue().runId());

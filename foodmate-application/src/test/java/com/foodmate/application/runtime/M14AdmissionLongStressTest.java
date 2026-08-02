@@ -2,6 +2,8 @@ package com.foodmate.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.foodmate.application.runtime.admission.AgentAdmissionService;
+import com.foodmate.application.runtime.admission.impl.AgentAdmissionServiceImpl;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -197,7 +199,7 @@ class M14AdmissionLongStressTest {
                         return redis;
                     }
                 };
-        return new AgentAdmissionService(provider, true, 20, 2, 100, 30, 3600);
+        return new AgentAdmissionServiceImpl(provider, true, 20, 2, 100, 30, 3600);
     }
 
     private void clearCoordinationKeys() {

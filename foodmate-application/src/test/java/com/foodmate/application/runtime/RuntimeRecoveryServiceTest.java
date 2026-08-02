@@ -8,10 +8,13 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore;
-import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore.CheckpointFact;
-import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore.RecoveryRequest;
-import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore.RecoveryRun;
+import com.foodmate.application.runtime.admission.AgentAdmissionService;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.CheckpointFact;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryRequest;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryRun;
+import com.foodmate.application.runtime.service.RuntimeRecoveryService;
+import com.foodmate.application.runtime.service.impl.RuntimeRecoveryServiceImpl;
 import com.foodmate.shared.id.IdGenerator;
 import java.time.Instant;
 import java.util.List;
@@ -23,10 +26,10 @@ import org.springframework.beans.factory.ObjectProvider;
 class RuntimeRecoveryServiceTest {
     @Test
     void recoveryCreatesNewAttemptWithReconciliationContext() throws Exception {
-        RuntimeRecoveryStore store = Mockito.mock(RuntimeRecoveryStore.class);
+        RuntimeRecoveryRepository store = Mockito.mock(RuntimeRecoveryRepository.class);
         AgentAdmissionService admission = Mockito.mock(AgentAdmissionService.class);
         IdGenerator ids = Mockito.mock(IdGenerator.class);
-        ObjectProvider<RuntimeRecoveryStore> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<RuntimeRecoveryRepository> provider = Mockito.mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(store);
         when(ids.nextId()).thenReturn(100L, 101L);
         when(admission.admit("1", 7L, 9L, 10))
@@ -62,7 +65,8 @@ class RuntimeRecoveryServiceTest {
                 .thenReturn(
                         new CheckpointFact(4, "sha256:checkpoint", 2, "tool_wait", "[\"inv-1\"]"));
 
-        RuntimeRecoveryService service = new RuntimeRecoveryService(provider, ids, admission, 10);
+        RuntimeRecoveryService service =
+                new RuntimeRecoveryServiceImpl(provider, ids, admission, 10);
         RuntimeRecoveryService.RecoveryResult result =
                 service.recover(
                         new RecoveryRequest(7L, 1L, 4, "sha256:checkpoint", List.of("inv-1")));
@@ -111,10 +115,10 @@ class RuntimeRecoveryServiceTest {
 
     @Test
     void persistedCheckpointTriggerBuildsRecoveryRequestFromJavaFact() {
-        RuntimeRecoveryStore store = Mockito.mock(RuntimeRecoveryStore.class);
+        RuntimeRecoveryRepository store = Mockito.mock(RuntimeRecoveryRepository.class);
         AgentAdmissionService admission = Mockito.mock(AgentAdmissionService.class);
         IdGenerator ids = Mockito.mock(IdGenerator.class);
-        ObjectProvider<RuntimeRecoveryStore> provider = Mockito.mock(ObjectProvider.class);
+        ObjectProvider<RuntimeRecoveryRepository> provider = Mockito.mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(store);
         when(ids.nextId()).thenReturn(100L, 101L);
         when(admission.admit("1", 7L, 9L, 10))
@@ -140,7 +144,8 @@ class RuntimeRecoveryServiceTest {
                 .thenReturn(new CheckpointFact(4, "sha256:checkpoint", 2, "execution", "[]"));
         when(store.completedInvocationIds(1L)).thenReturn(List.of());
 
-        RuntimeRecoveryService service = new RuntimeRecoveryService(provider, ids, admission, 10);
+        RuntimeRecoveryService service =
+                new RuntimeRecoveryServiceImpl(provider, ids, admission, 10);
         RuntimeRecoveryService.RecoveryResult result =
                 service.recoverFromPersistedCheckpoint(7L, 1L);
 
@@ -150,8 +155,8 @@ class RuntimeRecoveryServiceTest {
 
     @Test
     void terminalRunCannotBeRecovered() {
-        RuntimeRecoveryStore store = Mockito.mock(RuntimeRecoveryStore.class);
-        ObjectProvider<RuntimeRecoveryStore> provider = Mockito.mock(ObjectProvider.class);
+        RuntimeRecoveryRepository store = Mockito.mock(RuntimeRecoveryRepository.class);
+        ObjectProvider<RuntimeRecoveryRepository> provider = Mockito.mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(store);
         when(store.lockRun(1L, 7L))
                 .thenReturn(
@@ -167,7 +172,7 @@ class RuntimeRecoveryServiceTest {
                                 "{}"));
 
         RuntimeRecoveryService service =
-                new RuntimeRecoveryService(
+                new RuntimeRecoveryServiceImpl(
                         provider,
                         Mockito.mock(IdGenerator.class),
                         Mockito.mock(AgentAdmissionService.class),

@@ -8,9 +8,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.foodmate.api.advice.GlobalExceptionHandler;
+import com.foodmate.api.controller.account.AuthController;
+import com.foodmate.api.controller.conversation.SessionController;
 import com.foodmate.api.filter.CsrfProtectionFilter;
 import com.foodmate.api.filter.TraceContextFilter;
-import com.foodmate.application.account.UserAccountService;
+import com.foodmate.application.account.service.impl.UserAccountServiceImpl;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.id.SnowflakeIdGenerator;
 import org.junit.jupiter.api.Test;
@@ -24,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest({AuthController.class, SessionController.class, CsrfProtectionFilter.class})
 @Import({
-    UserAccountService.class,
+    UserAccountServiceImpl.class,
     GlobalExceptionHandler.class,
     TraceContextFilter.class,
     M12SessionControllerTest.Config.class

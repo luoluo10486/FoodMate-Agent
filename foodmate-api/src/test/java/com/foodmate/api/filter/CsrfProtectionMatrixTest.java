@@ -7,7 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.foodmate.application.account.UserAccountService;
+import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.error.BusinessException;
 import jakarta.servlet.FilterChain;
 import java.util.stream.Stream;

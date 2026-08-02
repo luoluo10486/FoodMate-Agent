@@ -7,7 +7,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodmate.application.runtime.persistence.ProposalInboxStore;
+import com.foodmate.application.runtime.port.out.InboxRepository;
+import com.foodmate.application.runtime.processor.RuntimeProposalMessageProcessor;
+import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.gateway.MqConsumeDecision;
 import com.foodmate.gateway.MqMessageHandler.MqMessageContext;
 import com.foodmate.gateway.RocketMqSettings;
@@ -36,7 +38,7 @@ class RuntimeProposalMessageProcessorTest {
     @Test
     void resultPublishFailureReturnsRetryButCompletedInboxPreventsSecondSqlExecution()
             throws Exception {
-        ProposalInboxStore inbox = mock(ProposalInboxStore.class);
+        InboxRepository inbox = mock(InboxRepository.class);
         ToolGatewayService gateway = mock(ToolGatewayService.class);
         DefaultMQProducer producer = mock(DefaultMQProducer.class);
         RuntimeProposalMessageProcessor processor =
@@ -73,7 +75,7 @@ class RuntimeProposalMessageProcessorTest {
 
     @Test
     void sameProposalIdWithDifferentHashIsRejectedWithoutExecutingTool() {
-        ProposalInboxStore inbox = mock(ProposalInboxStore.class);
+        InboxRepository inbox = mock(InboxRepository.class);
         ToolGatewayService gateway = mock(ToolGatewayService.class);
         DefaultMQProducer producer = mock(DefaultMQProducer.class);
         RuntimeProposalMessageProcessor processor =

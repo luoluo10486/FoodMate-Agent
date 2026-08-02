@@ -3,7 +3,7 @@ package com.foodmate.bootstrap.e2e;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.foodmate.application.runtime.RuntimeGatewayService;
+import com.foodmate.application.runtime.service.RuntimeGatewayService;
 import com.foodmate.gateway.GatewayClient;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.RunCommand;

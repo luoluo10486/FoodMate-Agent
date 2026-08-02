@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.foodmate.application.account.UserAccountService;
-import com.foodmate.application.runtime.AgentRunCommandService;
+import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.runtime.service.AgentRunCommandService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;

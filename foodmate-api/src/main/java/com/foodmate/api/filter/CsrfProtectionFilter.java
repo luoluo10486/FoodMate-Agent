@@ -1,7 +1,7 @@
 package com.foodmate.api.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodmate.application.account.UserAccountService;
+import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.FilterChain;

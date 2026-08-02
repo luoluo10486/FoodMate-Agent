@@ -3,9 +3,9 @@ package com.foodmate.bootstrap.e2e;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.foodmate.application.account.UserAccountService;
-import com.foodmate.application.runtime.AgentRunCommandService;
-import com.foodmate.application.runtime.RuntimeDlqService;
+import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.runtime.service.AgentRunCommandService;
+import com.foodmate.application.runtime.service.RuntimeDlqService;
 import com.foodmate.shared.id.IdGenerator;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

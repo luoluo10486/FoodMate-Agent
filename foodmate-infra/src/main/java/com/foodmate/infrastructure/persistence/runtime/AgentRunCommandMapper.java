@@ -1,13 +1,13 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.AgentRunCommandStore;
+import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
-public interface AgentRunCommandMapper extends AgentRunCommandStore {
+public interface AgentRunCommandMapper {
     @Select(
             "SELECT agent_run_id FROM agent_runs WHERE session_id=#{sessionId} AND status='waiting_user' AND is_deleted=FALSE ORDER BY created_at DESC LIMIT 1")
     Long waitingRun(long sessionId);

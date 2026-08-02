@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodmate.application.account.UserAccountService;
-import com.foodmate.application.runtime.AgentRunCommandService;
-import com.foodmate.application.runtime.RuntimeDispatchPublisher;
+import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.runtime.messaging.RuntimeDispatchPublisher;
+import com.foodmate.application.runtime.service.AgentRunCommandService;
 import com.foodmate.gateway.MqConsumeDecision;
 import com.foodmate.gateway.RocketMqConsumerContainer;
 import com.foodmate.gateway.RocketMqSettings;

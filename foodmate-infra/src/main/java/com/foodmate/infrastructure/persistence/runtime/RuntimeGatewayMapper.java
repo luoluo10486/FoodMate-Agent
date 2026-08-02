@@ -1,12 +1,12 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.RuntimeGatewayStore;
+import com.foodmate.application.runtime.port.out.RuntimeRepository.*;
 import com.foodmate.shared.runtime.RunEvent;
 import java.util.List;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
-public interface RuntimeGatewayMapper extends RuntimeGatewayStore {
+public interface RuntimeGatewayMapper {
     @Select("SELECT request_fingerprint FROM runtime_dispatches WHERE dispatch_id=#{id}")
     String dispatchFingerprint(String id);
 

@@ -1,13 +1,13 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.V1RuntimeEventStore;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.*;
 import com.foodmate.shared.runtime.V1RunEvent;
 import java.math.BigDecimal;
 import java.util.List;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
-public interface V1RuntimeEventMapper extends V1RuntimeEventStore {
+public interface V1RuntimeEventMapper {
     @Select(
             "SELECT EXISTS(SELECT 1 FROM agent_runs WHERE agent_run_id=#{runId} AND is_deleted=FALSE)")
     boolean runExists(long runId);

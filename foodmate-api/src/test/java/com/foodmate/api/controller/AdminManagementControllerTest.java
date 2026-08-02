@@ -9,11 +9,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.foodmate.api.advice.GlobalExceptionHandler;
+import com.foodmate.api.controller.account.AdminManagementController;
 import com.foodmate.api.filter.TraceContextFilter;
-import com.foodmate.application.account.AdminManagementService;
-import com.foodmate.application.account.PersonalDataService;
-import com.foodmate.application.account.UserAccountService;
-import com.foodmate.shared.account.UserStatus;
+import com.foodmate.application.account.service.AdminManagementService;
+import com.foodmate.application.account.service.PersonalDataService;
+import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.shared.account.enums.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

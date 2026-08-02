@@ -37,7 +37,7 @@ class M11AccountDeletionE2ETest {
     @Autowired ObjectMapper json;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
     @Autowired MinioClient minio;
-    @Autowired com.foodmate.application.account.PersonalDataService personal;
+    @Autowired com.foodmate.application.account.service.PersonalDataService personal;
 
     @Test
     void accountDeletionRevokesAndCleansPostgresAndMinio() throws Exception {

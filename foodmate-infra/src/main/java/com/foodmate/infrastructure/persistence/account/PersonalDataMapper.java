@@ -1,12 +1,12 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.PersonalDataStore;
+import com.foodmate.application.account.port.out.PersonalDataRepository.*;
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
-public interface PersonalDataMapper extends PersonalDataStore {
+public interface PersonalDataMapper {
     @Update(
             "UPDATE user_avatar_assets SET status='replaced',updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND status='active'")
     void replaceAvatars(long userId);

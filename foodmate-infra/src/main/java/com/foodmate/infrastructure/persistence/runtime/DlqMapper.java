@@ -1,6 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.DlqStore;
+import com.foodmate.application.runtime.port.out.DeadLetterRepository.*;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
-public interface DlqMapper extends DlqStore {
+public interface DlqMapper {
     @Insert(
             """
             INSERT INTO runtime_message_dlq(dlq_id,consumer_group,source_topic,mq_message_id,message_key,

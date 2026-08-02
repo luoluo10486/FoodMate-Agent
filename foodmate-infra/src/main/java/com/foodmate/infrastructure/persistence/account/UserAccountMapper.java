@@ -1,13 +1,13 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.UserAccountService.*;
-import com.foodmate.application.account.UserAccountStore;
+import com.foodmate.application.account.port.out.UserAccountRepository.*;
+import com.foodmate.application.account.service.UserAccountService.*;
 import java.time.Instant;
 import java.util.List;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
-public interface UserAccountMapper extends UserAccountStore {
+public interface UserAccountMapper {
     @Select(
             "SELECT EXISTS(SELECT 1 FROM users WHERE (username=#{username} OR email=#{email}) AND is_deleted=FALSE)")
     boolean userExists(String username, String email);

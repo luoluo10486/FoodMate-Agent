@@ -32,7 +32,7 @@ class M11ExportDownloadE2ETest {
     @LocalServerPort int port;
     @Autowired TestRestTemplate rest;
     @Autowired ObjectMapper json;
-    @Autowired com.foodmate.application.account.PersonalDataService personal;
+    @Autowired com.foodmate.application.account.service.PersonalDataService personal;
 
     @Test
     void exportCompletesAndDownloadLinkIsOneTime() throws Exception {

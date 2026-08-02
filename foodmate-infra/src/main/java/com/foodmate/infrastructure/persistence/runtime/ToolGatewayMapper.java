@@ -1,6 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.ToolGatewayStore;
+import com.foodmate.application.runtime.port.out.ToolGatewayPort.*;
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.Insert;
@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Select;
 
 /** 动态 SQL 只能从通过 Java SQL Guard 的 sql_read Proposal 调用。 */
 @Mapper
-public interface ToolGatewayMapper extends ToolGatewayStore {
+public interface ToolGatewayMapper {
     @Select(
             "SELECT EXISTS(SELECT 1 FROM agent_runs WHERE agent_run_id=#{runId} AND is_deleted=FALSE)")
     boolean runExists(long runId);

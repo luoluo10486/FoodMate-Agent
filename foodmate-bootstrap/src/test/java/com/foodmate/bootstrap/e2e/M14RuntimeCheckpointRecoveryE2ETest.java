@@ -3,10 +3,10 @@ package com.foodmate.bootstrap.e2e;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.foodmate.application.account.UserAccountService;
-import com.foodmate.application.runtime.AgentRunCommandService;
-import com.foodmate.application.runtime.RuntimeRecoveryService;
-import com.foodmate.application.runtime.V1RuntimeEventService;
+import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.runtime.service.AgentRunCommandService;
+import com.foodmate.application.runtime.service.RuntimeRecoveryService;
+import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.shared.runtime.V1RunEvent;
 import java.time.Instant;
 import java.util.List;

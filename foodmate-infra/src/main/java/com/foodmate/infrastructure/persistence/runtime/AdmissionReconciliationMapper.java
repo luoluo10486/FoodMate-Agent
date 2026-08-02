@@ -1,6 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.AdmissionReconciliationStore;
+import com.foodmate.application.runtime.port.out.AdmissionReconciliationRepository.*;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
-public interface AdmissionReconciliationMapper extends AdmissionReconciliationStore {
+public interface AdmissionReconciliationMapper {
     @Select(
             "SELECT agent_run_id,run_id FROM runtime_dispatch_outbox WHERE status='queued' AND queued_at<=CURRENT_TIMESTAMP-(#{timeoutSeconds}*INTERVAL '1 second') ORDER BY queued_at LIMIT #{limit}")
     List<RunRef> findQueueExpired(

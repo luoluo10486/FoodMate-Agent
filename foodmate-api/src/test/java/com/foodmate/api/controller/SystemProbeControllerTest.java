@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.foodmate.api.advice.GlobalExceptionHandler;
+import com.foodmate.api.controller.runtime.SystemProbeController;
 import com.foodmate.api.filter.TraceContextFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

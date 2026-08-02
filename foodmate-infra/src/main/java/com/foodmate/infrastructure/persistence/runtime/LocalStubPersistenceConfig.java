@@ -1,16 +1,16 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.account.AdminDashboardStore;
-import com.foodmate.application.account.AdminManagementStore;
-import com.foodmate.application.runtime.persistence.AdmissionReconciliationStore;
-import com.foodmate.application.runtime.persistence.CancellationStore;
-import com.foodmate.application.runtime.persistence.DispatchOutboxStore;
-import com.foodmate.application.runtime.persistence.DlqStore;
-import com.foodmate.application.runtime.persistence.MemoryStore;
-import com.foodmate.application.runtime.persistence.ProposalInboxStore;
-import com.foodmate.application.runtime.persistence.ProtocolAuditStore;
-import com.foodmate.application.runtime.persistence.SessionSummaryStore;
-import com.foodmate.application.runtime.persistence.ToolGatewayStore;
+import com.foodmate.application.account.port.out.AdminDashboardRepository;
+import com.foodmate.application.account.port.out.AdminManagementRepository;
+import com.foodmate.application.conversation.port.out.ConversationSummaryRepository;
+import com.foodmate.application.conversation.port.out.MemoryRepository;
+import com.foodmate.application.runtime.port.out.AdmissionReconciliationRepository;
+import com.foodmate.application.runtime.port.out.CancellationRepository;
+import com.foodmate.application.runtime.port.out.DeadLetterRepository;
+import com.foodmate.application.runtime.port.out.InboxRepository;
+import com.foodmate.application.runtime.port.out.OutboxRepository;
+import com.foodmate.application.runtime.port.out.ProtocolAuditRepository;
+import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,8 +21,8 @@ import org.springframework.context.annotation.Profile;
 @Profile("local-stub")
 public class LocalStubPersistenceConfig {
     @Bean
-    SessionSummaryStore localSessionSummaryStore() {
-        return new SessionSummaryStore() {
+    ConversationSummaryRepository localConversationSummaryRepository() {
+        return new ConversationSummaryRepository() {
             public boolean ownsSession(long userId, long sessionId) {
                 return false;
             }
@@ -54,8 +54,8 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
-    MemoryStore localMemoryStore() {
-        return new MemoryStore() {
+    MemoryRepository localMemoryRepository() {
+        return new MemoryRepository() {
             public Long findRunOwner(long runId) {
                 return null;
             }
@@ -96,8 +96,8 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
-    DispatchOutboxStore localDispatchOutboxStore() {
-        return new DispatchOutboxStore() {
+    OutboxRepository localOutboxRepository() {
+        return new OutboxRepository() {
             public List<OutboxSnapshot> findPending(int limit) {
                 return List.of();
             }
@@ -121,8 +121,8 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
-    CancellationStore localCancellationStore() {
-        return new CancellationStore() {
+    CancellationRepository localCancellationRepository() {
+        return new CancellationRepository() {
             public ActiveDispatch findActiveDispatch(long runId) {
                 return null;
             }
@@ -146,8 +146,8 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
-    DlqStore localDlqStore() {
-        return new DlqStore() {
+    DeadLetterRepository localDeadLetterRepository() {
+        return new DeadLetterRepository() {
             public void insert(DlqMessage message) {
                 throw unavailable();
             }
@@ -171,8 +171,8 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
-    AdmissionReconciliationStore localAdmissionReconciliationStore() {
-        return new AdmissionReconciliationStore() {
+    AdmissionReconciliationRepository localAdmissionReconciliationRepository() {
+        return new AdmissionReconciliationRepository() {
             public List<RunRef> findQueueExpired(int timeoutSeconds, int limit) {
                 return List.of();
             }
@@ -222,13 +222,13 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
-    ProtocolAuditStore localProtocolAuditStore() {
+    ProtocolAuditRepository localProtocolAuditRepository() {
         return (id, requestId, fingerprint, errorCode, envelopeJson) -> {};
     }
 
     @Bean
-    ProposalInboxStore localProposalInboxStore() {
-        return new ProposalInboxStore() {
+    InboxRepository localInboxRepository() {
+        return new InboxRepository() {
             public int claim(String proposalId, String requestHash, String payload) {
                 return 1;
             }
@@ -244,8 +244,8 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
-    AdminManagementStore localAdminManagementStore() {
-        return new AdminManagementStore() {
+    AdminManagementRepository localAdminManagementRepository() {
+        return new AdminManagementRepository() {
             public int updateUserStatus(long userId, String status, long operatorId) {
                 return 0;
             }
@@ -270,13 +270,13 @@ public class LocalStubPersistenceConfig {
                 return 1;
             }
 
-            public void insertAudit(AdminManagementStore.Audit audit) {}
+            public void insertAudit(AdminManagementRepository.Audit audit) {}
         };
     }
 
     @Bean
-    AdminDashboardStore localAdminDashboardStore() {
-        return new AdminDashboardStore() {
+    AdminDashboardRepository localAdminDashboardRepository() {
+        return new AdminDashboardRepository() {
             public java.util.Map<String, Object> overview() {
                 return java.util.Map.of("runs_today", 0, "failure_rate", 0);
             }
@@ -324,8 +324,8 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
-    ToolGatewayStore localToolGatewayStore() {
-        return new ToolGatewayStore() {
+    ToolGatewayPort localToolGatewayPort() {
+        return new ToolGatewayPort() {
             public boolean runExists(long runId) {
                 return false;
             }

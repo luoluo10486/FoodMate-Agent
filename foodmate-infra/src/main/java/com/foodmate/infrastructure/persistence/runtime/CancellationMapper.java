@@ -1,6 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.CancellationStore;
+import com.foodmate.application.runtime.port.out.CancellationRepository.*;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
-public interface CancellationMapper extends CancellationStore {
+public interface CancellationMapper {
     @Select(
             "SELECT d.dispatch_id AS dispatchId,d.attempt,r.status AS runStatus FROM agent_runs r JOIN agent_run_dispatches d ON d.agent_run_dispatch_id=r.active_dispatch_id WHERE r.agent_run_id=#{runId} AND r.is_deleted=FALSE")
     ActiveDispatch findActiveDispatch(long runId);

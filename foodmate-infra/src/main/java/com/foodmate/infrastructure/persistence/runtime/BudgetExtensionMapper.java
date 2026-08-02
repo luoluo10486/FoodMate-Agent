@@ -1,12 +1,12 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.BudgetExtensionStore;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
-public interface BudgetExtensionMapper extends BudgetExtensionStore {
+public interface BudgetExtensionMapper {
     @Select(
             "SELECT r.status,r.result_type AS resultType,r.session_id AS sessionId FROM agent_runs r JOIN sessions s ON s.session_id=r.session_id WHERE r.agent_run_id=#{runId} AND r.created_by=#{userId} AND s.user_id=#{userId} AND r.is_deleted=FALSE AND s.is_deleted=FALSE FOR UPDATE")
     RunRow lockRun(long runId, long userId);

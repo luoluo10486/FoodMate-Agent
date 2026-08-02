@@ -1,6 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.DispatchOutboxStore;
+import com.foodmate.application.runtime.port.out.OutboxRepository.*;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
-public interface DispatchOutboxMapper extends DispatchOutboxStore {
+public interface DispatchOutboxMapper {
     @Select(
             "SELECT outbox_id AS id, payload_json::text AS payload FROM runtime_dispatch_outbox WHERE status='pending' AND next_attempt_at<=CURRENT_TIMESTAMP ORDER BY created_at LIMIT #{limit}")
     List<OutboxSnapshot> findPending(int limit);

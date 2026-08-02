@@ -6,8 +6,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.foodmate.api.advice.GlobalExceptionHandler;
+import com.foodmate.api.controller.runtime.RuntimeGatewayController;
 import com.foodmate.api.filter.TraceContextFilter;
-import com.foodmate.application.runtime.RuntimeGatewayService;
+import com.foodmate.application.runtime.service.impl.RuntimeGatewayServiceImpl;
 import com.foodmate.gateway.ServiceJwt;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -23,7 +24,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(RuntimeGatewayController.class)
-@Import({RuntimeGatewayService.class, GlobalExceptionHandler.class, TraceContextFilter.class})
+@Import({RuntimeGatewayServiceImpl.class, GlobalExceptionHandler.class, TraceContextFilter.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class RuntimeGatewayControllerTest {
     private static final KeyPair JAVA_KEYS = keys();

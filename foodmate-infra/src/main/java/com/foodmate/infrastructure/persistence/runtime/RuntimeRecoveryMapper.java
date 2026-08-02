@@ -1,6 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.persistence.RuntimeRecoveryStore;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.*;
 import java.time.Instant;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Update;
 
 /** PostgreSQL authority used to reconcile a checkpoint before creating a new attempt. */
 @Mapper
-public interface RuntimeRecoveryMapper extends RuntimeRecoveryStore {
+public interface RuntimeRecoveryMapper {
     @Select(
             """
             SELECT r.status,

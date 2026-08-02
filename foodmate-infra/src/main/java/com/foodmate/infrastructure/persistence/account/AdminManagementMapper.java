@@ -1,6 +1,6 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.AdminManagementStore;
+import com.foodmate.application.account.port.out.AdminManagementRepository.*;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
-public interface AdminManagementMapper extends AdminManagementStore {
+public interface AdminManagementMapper {
     @Update(
             "UPDATE users SET status=#{status},updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE user_id=#{userId} AND is_deleted=FALSE")
     int updateUserStatus(

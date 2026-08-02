@@ -7,8 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.foodmate.api.advice.GlobalExceptionHandler;
+import com.foodmate.api.controller.runtime.ChatController;
+import com.foodmate.api.controller.runtime.RunStreamController;
 import com.foodmate.api.filter.TraceContextFilter;
-import com.foodmate.application.runtime.RuntimeGatewayService;
+import com.foodmate.application.runtime.service.impl.RuntimeGatewayServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -17,7 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest({ChatController.class, RunStreamController.class})
-@Import({RuntimeGatewayService.class, GlobalExceptionHandler.class, TraceContextFilter.class})
+@Import({RuntimeGatewayServiceImpl.class, GlobalExceptionHandler.class, TraceContextFilter.class})
 class ChatControllerTest {
     @Autowired private MockMvc mockMvc;
 

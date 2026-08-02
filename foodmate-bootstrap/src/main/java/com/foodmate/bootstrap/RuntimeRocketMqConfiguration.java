@@ -1,9 +1,9 @@
 package com.foodmate.bootstrap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodmate.application.runtime.RuntimeDlqService;
-import com.foodmate.application.runtime.RuntimeEventMessageProcessor;
-import com.foodmate.application.runtime.RuntimeProposalMessageProcessor;
+import com.foodmate.application.runtime.processor.RuntimeEventMessageProcessor;
+import com.foodmate.application.runtime.processor.RuntimeProposalMessageProcessor;
+import com.foodmate.application.runtime.service.RuntimeDlqService;
 import com.foodmate.gateway.RocketMqConsumerContainer;
 import com.foodmate.gateway.RocketMqSettings;
 import com.foodmate.gateway.V1RocketMqRuntimeClient;
