@@ -294,21 +294,39 @@ API DTO 规则：
 ```text
 com.foodmate.shared
 ├── account/
-│   ├── UserRole
-│   ├── UserStatus
-│   ├── SessionStatus
-│   ├── SessionMode
-│   ├── MessageRole
-│   ├── ToolStatus
-│   ├── KnowledgeDocumentStatus
-│   └── RestorableResourceType
+│   └── enums/
+│       ├── UserRole
+│       └── UserStatus
+├── conversation/
+│   └── enums/
+│       ├── SessionStatus
+│       ├── SessionMode
+│       └── MessageRole
+├── knowledge/
+│   └── enums/
+│       └── KnowledgeDocumentStatus
+├── runtime/
+│   ├── enums/
+│   │   └── ToolStatus
+│   ├── CancelCommand
+│   ├── EventInbox
+│   ├── RunCommand
+│   ├── RunEvent
+│   ├── RuntimeException
+│   ├── V1CancelCommand
+│   ├── V1RunCommand
+│   └── V1RunEvent
+├── admin/
+│   └── enums/
+│       └── RestorableResourceType
 ├── api/
 ├── error/
-├── runtime/
 └── trace/
 ```
 
-跨模块共享的稳定业务枚举放在 `shared`，保留对外 JSON 和持久化使用的小写 code；API Request 可以直接绑定这些枚举，application 在调用 infra 端口时再转换为数据库或消息协议值。运行时状态、事件类型和 Redis/SQL 内部状态只在所属模块维护，不创建一个跨业务复用的通用 `Status`。
+跨模块共享的稳定业务枚举放在 `shared/<业务>/enums`，而不是集中放在 `shared/account` 或统一的 `shared/enums`。`enums` 是业务包下的分类子包，不是新的模块，也不要求为没有枚举的业务创建空目录。枚举必须按实际业务归属放置：用户角色和用户状态属于 `account`，会话和消息类型属于 `conversation`，知识文档状态属于 `knowledge`，工具状态属于 `runtime`，跨业务恢复操作的资源类型属于 `admin`。
+
+这些枚举保留对外 JSON 和持久化使用的小写 `code`；API Request 可以直接绑定它们，application 在调用 infra 端口时再转换为数据库或消息协议值。仅在某个模块内部使用的枚举不放进 `shared`，应放在该模块对应业务包的 `enums` 下。运行时内部状态、事件类型和 Redis/SQL 内部状态只在所属模块维护，不创建一个跨业务复用的通用 `Status`，也不把动态协议字符串强行转换为共享业务枚举。
 
 允许放置：
 
