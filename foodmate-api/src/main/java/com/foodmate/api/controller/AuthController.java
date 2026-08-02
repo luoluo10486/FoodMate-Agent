@@ -1,14 +1,14 @@
 package com.foodmate.api.controller;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.foodmate.api.request.LoginRequest;
+import com.foodmate.api.request.PasswordResetConfirmRequest;
+import com.foodmate.api.request.PasswordResetRequest;
+import com.foodmate.api.request.RegisterRequest;
+import com.foodmate.api.response.AuthResponse;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -180,23 +180,4 @@ public class AuthController {
                 .maxAge(0)
                 .build();
     }
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record RegisterRequest(
-            @NotBlank @Size(max = 64) String username,
-            @NotBlank @Email String email,
-            @NotBlank @Size(min = 8, max = 128) String password,
-            @Size(max = 128) String nickname) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record LoginRequest(@NotBlank String usernameOrEmail, @NotBlank String password) {}
-
-    public record PasswordResetRequest(@NotBlank @Email String email) {}
-
-    public record PasswordResetConfirmRequest(
-            @NotBlank String token, @NotBlank @Size(min = 8, max = 128) String newPassword) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record AuthResponse(
-            long userId, String username, String role, java.time.Instant sessionExpiresAt) {}
 }

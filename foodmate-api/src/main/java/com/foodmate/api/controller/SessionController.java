@@ -1,16 +1,21 @@
 package com.foodmate.api.controller;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.foodmate.api.request.MessageRequest;
+import com.foodmate.api.request.MessageUpdateRequest;
+import com.foodmate.api.request.RenameRequest;
+import com.foodmate.api.request.SessionRequest;
+import com.foodmate.api.response.MessageResponse;
+import com.foodmate.api.response.SearchResponse;
+import com.foodmate.api.response.SessionResponse;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.AgentRunCommandService;
 import com.foodmate.application.runtime.SessionSummaryService;
+import com.foodmate.shared.account.MessageRole;
+import com.foodmate.shared.account.SessionStatus;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -45,8 +50,10 @@ public class SessionController extends AuthenticatedControllerSupport {
             @RequestParam(defaultValue = "50") int size,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String status) {
+        String statusCode = status == null ? null : SessionStatus.fromCode(status).code();
         return ok(
-                mapSessions(accounts.listSessions(user(request).userId(), page, size, q, status)));
+                mapSessions(
+                        accounts.listSessions(user(request).userId(), page, size, q, statusCode)));
     }
 
     @GetMapping("/deleted")
@@ -74,7 +81,10 @@ public class SessionController extends AuthenticatedControllerSupport {
             HttpServletRequest request, @Valid @RequestBody SessionRequest body) {
         return ok(
                 toSessionResponse(
-                        accounts.createSession(user(request).userId(), body.title(), body.mode())));
+                        accounts.createSession(
+                                user(request).userId(),
+                                body.title(),
+                                body.mode() == null ? null : body.mode().code())));
     }
 
     @PatchMapping("/{sessionId}")
@@ -88,13 +98,13 @@ public class SessionController extends AuthenticatedControllerSupport {
 
     @PostMapping("/{sessionId}/archive")
     public ApiResponse<Void> archive(HttpServletRequest request, @PathVariable long sessionId) {
-        accounts.setSessionStatus(user(request).userId(), sessionId, "archived");
+        accounts.setSessionStatus(user(request).userId(), sessionId, SessionStatus.ARCHIVED.code());
         return ok(null);
     }
 
     @PostMapping("/{sessionId}/unarchive")
     public ApiResponse<Void> unarchive(HttpServletRequest request, @PathVariable long sessionId) {
-        accounts.setSessionStatus(user(request).userId(), sessionId, "active");
+        accounts.setSessionStatus(user(request).userId(), sessionId, SessionStatus.ACTIVE.code());
         return ok(null);
     }
 
@@ -125,7 +135,7 @@ public class SessionController extends AuthenticatedControllerSupport {
             HttpServletRequest request,
             @PathVariable long sessionId,
             @Valid @RequestBody MessageRequest body) {
-        if (!"user".equals(body.role()))
+        if (body.role() != MessageRole.USER)
             throw new IllegalArgumentException("only role=user is accepted");
         var current = user(request);
         if (agentRuns == null)
@@ -134,7 +144,7 @@ public class SessionController extends AuthenticatedControllerSupport {
                             accounts.addMessage(
                                     current.userId(),
                                     sessionId,
-                                    body.role(),
+                                    body.role().code(),
                                     body.content(),
                                     body.structuredPayload())));
         return ok(
@@ -217,42 +227,4 @@ public class SessionController extends AuthenticatedControllerSupport {
     private SearchResponse toSearchResponse(UserAccountService.SearchResult value) {
         return new SearchResponse(Long.toString(value.sessionId()), value.title(), value.snippet());
     }
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record SessionRequest(String title, String mode) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record RenameRequest(@NotBlank @Size(max = 255) String title) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record MessageRequest(
-            @NotBlank String role,
-            @NotBlank @Size(max = 10000) String content,
-            Object structuredPayload) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record MessageUpdateRequest(@NotBlank @Size(max = 10000) String content) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record SessionResponse(
-            String sessionId,
-            String userId,
-            String title,
-            String mode,
-            String status,
-            java.time.Instant lastMessageAt) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record MessageResponse(
-            String messageId,
-            String sessionId,
-            String agentRunId,
-            String role,
-            String content,
-            String structuredPayload,
-            int sequenceNo,
-            java.time.Instant createdAt) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record SearchResponse(String sessionId, String title, String snippet) {}
 }

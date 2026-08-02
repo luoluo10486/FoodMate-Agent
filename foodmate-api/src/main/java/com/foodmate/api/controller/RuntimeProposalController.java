@@ -1,11 +1,11 @@
 package com.foodmate.api.controller;
 
+import com.foodmate.api.request.RuntimeProposalRequest;
 import com.foodmate.application.runtime.ToolGatewayService;
 import com.foodmate.gateway.ServiceJwt;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,12 +35,24 @@ public class RuntimeProposalController {
     public ApiResponse<ToolGatewayService.ProposalResult> proposal(
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestHeader(value = "X-Contract-Version", required = false) String version,
-            @Valid @RequestBody Map<String, Object> body) {
+            @Valid @RequestBody RuntimeProposalRequest body) {
         if (!contractVersion.equals(version))
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_CONTRACT_INVALID", "V1 contract header is required");
         authenticate(authorization);
-        return ApiResponse.success(gateway.execute(body), TraceContextHolder.currentOrNew());
+        RuntimeProposalRequest.Payload payload = body.payload();
+        return ApiResponse.success(
+                gateway.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                body.proposalId(),
+                                body.runId(),
+                                body.proposalType(),
+                                body.schemaVersion(),
+                                payload == null
+                                        ? null
+                                        : new ToolGatewayService.ProposalPayload(
+                                                payload.statement(), payload.invocationId()))),
+                TraceContextHolder.currentOrNew());
     }
 
     private void authenticate(String authorization) {

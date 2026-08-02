@@ -3,6 +3,7 @@ package com.foodmate.application.runtime;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.persistence.SessionSummaryStore;
+import com.foodmate.shared.account.MessageRole;
 import com.foodmate.shared.id.IdGenerator;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -94,7 +95,7 @@ public class SessionSummaryService {
         value.put(
                 "decisions",
                 messages.stream()
-                        .filter(item -> "assistant".equals(item.role()))
+                        .filter(item -> MessageRole.ASSISTANT.code().equals(item.role()))
                         .map(SessionSummaryStore.MessageSnapshot::content)
                         .toList());
         value.put("open_questions", List.of());
@@ -109,7 +110,8 @@ public class SessionSummaryService {
     }
 
     private boolean isGoal(SessionSummaryStore.MessageSnapshot item) {
-        return "user".equals(item.role()) && item.content().matches(".*(想|希望|计划|目标|安排|帮我).*");
+        return MessageRole.USER.code().equals(item.role())
+                && item.content().matches(".*(想|希望|计划|目标|安排|帮我).*");
     }
 
     private boolean isConstraint(SessionSummaryStore.MessageSnapshot item) {

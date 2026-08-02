@@ -24,8 +24,27 @@ public class ToolGatewayService {
         this.ids = ids;
     }
 
+    public ProposalResult execute(ProposalCommand proposal) {
+        if (proposal == null) return reject(null, "PROPOSAL_NOT_ALLOWED");
+        String proposalId = text(proposal.proposalId());
+        String runId = text(proposal.runId());
+        String type = text(proposal.proposalType());
+        ProposalPayload payload = proposal.payload();
+        String statement = payload == null ? null : text(payload.statement());
+        String invocationId = payload == null ? null : text(payload.invocationId());
+        if (!"v1".equals(text(proposal.schemaVersion()))
+                || proposalId == null
+                || runId == null
+                || invocationId == null
+                || proposalId.length() > MAX_ID_LENGTH
+                || runId.length() > MAX_ID_LENGTH
+                || invocationId.length() > MAX_ID_LENGTH
+                || !"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
+        return executeValidated(proposalId, runId, statement, invocationId);
+    }
+
     /** 执行最小 sql_read Proposal；无数据库时明确返回不可用，不回退到进程内伪造数据。 */
-    public ProposalResult execute(Map<String, Object> proposal) {
+    public ProposalResult executeLegacy(Map<String, Object> proposal) {
         String proposalId = text(proposal.get("proposal_id"));
         String runId = text(proposal.get("run_id"));
         String type = text(proposal.get("proposal_type"));
@@ -40,6 +59,11 @@ public class ToolGatewayService {
                 || runId.length() > MAX_ID_LENGTH
                 || invocationId.length() > MAX_ID_LENGTH
                 || !"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
+        return executeValidated(proposalId, runId, statement, invocationId);
+    }
+
+    private ProposalResult executeValidated(
+            String proposalId, String runId, String statement, String invocationId) {
         if (statement == null
                 || statement.length() > MAX_SQL_LENGTH
                 || !READ_ONLY.matcher(statement).matches()
@@ -108,4 +132,13 @@ public class ToolGatewayService {
             String status,
             String errorCode,
             List<Map<String, Object>> rows) {}
+
+    public record ProposalCommand(
+            String proposalId,
+            String runId,
+            String proposalType,
+            String schemaVersion,
+            ProposalPayload payload) {}
+
+    public record ProposalPayload(String statement, String invocationId) {}
 }

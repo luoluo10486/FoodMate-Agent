@@ -13,6 +13,7 @@ import com.foodmate.api.filter.TraceContextFilter;
 import com.foodmate.application.account.AdminManagementService;
 import com.foodmate.application.account.PersonalDataService;
 import com.foodmate.application.account.UserAccountService;
+import com.foodmate.shared.account.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -66,7 +67,8 @@ class AdminManagementControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.updated", is(true)))
                 .andExpect(jsonPath("$.data.status", is("disabled")));
-        Mockito.verify(management).updateUserStatus(anyLong(), anyString(), anyLong(), anyString());
+        Mockito.verify(management)
+                .updateUserStatus(anyLong(), Mockito.any(UserStatus.class), anyLong(), anyString());
     }
 
     private UserAccountService.UserRecord user(String role) {

@@ -1,5 +1,6 @@
 package com.foodmate.api.controller;
 
+import com.foodmate.api.response.SystemProbeResponse;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.constraints.Size;
@@ -22,7 +23,4 @@ public class SystemProbeController {
                 new SystemProbeResponse("ok", echo, Instant.now()),
                 TraceContextHolder.currentOrNew());
     }
-
-    /** 系统探针返回体。 */
-    public record SystemProbeResponse(String status, String echo, Instant timestamp) {}
 }

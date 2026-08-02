@@ -1,14 +1,16 @@
 package com.foodmate.api.controller;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.foodmate.api.request.DeletionRequest;
+import com.foodmate.api.request.PasswordChangeRequest;
+import com.foodmate.api.request.ProfileRequest;
+import com.foodmate.api.response.DeletionRequestedResponse;
+import com.foodmate.api.response.ExportCreatedResponse;
+import com.foodmate.api.response.ExportDownloadResponse;
+import com.foodmate.api.response.UserResponse;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
-import java.math.BigDecimal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -134,12 +136,12 @@ public class UserController extends AuthenticatedControllerSupport {
     }
 
     @PostMapping("/export")
-    public ApiResponse<java.util.Map<String, Long>> export(
+    public ApiResponse<ExportCreatedResponse> export(
             jakarta.servlet.http.HttpServletRequest request) {
         if (personal == null) throw new IllegalStateException("personal data unavailable");
         long id = personal.requestExport(user(request).userId());
         return ApiResponse.success(
-                java.util.Map.of("export_job_id", id), TraceContextHolder.currentOrNew());
+                new ExportCreatedResponse(id), TraceContextHolder.currentOrNew());
     }
 
     @GetMapping("/export/{id}")
@@ -151,17 +153,16 @@ public class UserController extends AuthenticatedControllerSupport {
     }
 
     @PostMapping("/export/{id}/download")
-    public ApiResponse<java.util.Map<String, String>> exportDownload(
+    public ApiResponse<ExportDownloadResponse> exportDownload(
             jakarta.servlet.http.HttpServletRequest request, @PathVariable long id) {
         if (personal == null) throw new IllegalStateException("personal data unavailable");
         return ApiResponse.success(
-                java.util.Map.of(
-                        "download_url", personal.consumeExport(user(request).userId(), id)),
+                new ExportDownloadResponse(personal.consumeExport(user(request).userId(), id)),
                 TraceContextHolder.currentOrNew());
     }
 
     @PostMapping("/deletion")
-    public ApiResponse<java.util.Map<String, Long>> deletion(
+    public ApiResponse<DeletionRequestedResponse> deletion(
             jakarta.servlet.http.HttpServletRequest request,
             @Valid @RequestBody DeletionRequest body) {
         if (personal == null) throw new IllegalStateException("personal data unavailable");
@@ -171,36 +172,6 @@ public class UserController extends AuthenticatedControllerSupport {
             throw new IllegalArgumentException("confirmation required");
         long id = personal.requestDeletion(current.userId());
         return ApiResponse.success(
-                java.util.Map.of("deletion_job_id", id), TraceContextHolder.currentOrNew());
+                new DeletionRequestedResponse(id), TraceContextHolder.currentOrNew());
     }
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record UserResponse(
-            long userId,
-            String username,
-            String email,
-            String nickname,
-            String role,
-            String status) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record ProfileRequest(
-            String displayName,
-            String gender,
-            @DecimalMin("30") @DecimalMax("250") BigDecimal heightCm,
-            @DecimalMin("2") @DecimalMax("500") BigDecimal weightKg,
-            String activityLevel,
-            String dietGoal,
-            Integer calorieTarget,
-            Integer proteinTarget) {}
-
-    public record PasswordChangeRequest(
-            @jakarta.validation.constraints.NotBlank String currentPassword,
-            @jakarta.validation.constraints.NotBlank
-                    @jakarta.validation.constraints.Size(min = 8, max = 128)
-                    String newPassword) {}
-
-    public record DeletionRequest(
-            @jakarta.validation.constraints.NotBlank String confirmation,
-            @jakarta.validation.constraints.NotBlank String currentPassword) {}
 }

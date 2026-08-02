@@ -1,11 +1,12 @@
 package com.foodmate.api.controller;
 
+import com.foodmate.api.response.AdminDashboardResponse;
 import com.foodmate.application.account.AdminDashboardService;
 import com.foodmate.application.account.UserAccountService;
+import com.foodmate.shared.account.UserRole;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,8 +23,10 @@ public class AdminDashboardController extends AuthenticatedControllerSupport {
     }
 
     @GetMapping
-    public ApiResponse<Map<String, Object>> dashboard(HttpServletRequest request) {
-        requireAnyRole(request, "admin", "operator", "superadmin");
-        return ApiResponse.success(dashboard.dashboard(), TraceContextHolder.currentOrNew());
+    public ApiResponse<AdminDashboardResponse> dashboard(HttpServletRequest request) {
+        requireAnyRole(request, UserRole.ADMIN, UserRole.OPERATOR, UserRole.SUPERADMIN);
+        return ApiResponse.success(
+                AdminDashboardResponse.from(dashboard.dashboard()),
+                TraceContextHolder.currentOrNew());
     }
 }

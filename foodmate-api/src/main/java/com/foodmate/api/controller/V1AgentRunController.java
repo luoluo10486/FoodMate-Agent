@@ -1,7 +1,9 @@
 package com.foodmate.api.controller;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.foodmate.api.request.BudgetExtensionRequest;
+import com.foodmate.api.request.CancelRequest;
+import com.foodmate.api.request.RecoveryRequest;
+import com.foodmate.api.response.RunView;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.RuntimeCancellationService;
 import com.foodmate.application.runtime.RuntimeRecoveryService;
@@ -11,12 +13,6 @@ import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
-import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -131,19 +127,4 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
                     "RUNTIME_CONTRACT_INVALID", "run_id must be numeric");
         }
     }
-
-    public record RunView(String runId, String status, int acceptedEventCount) {}
-
-    public record CancelRequest(@NotBlank String reason) {}
-
-    public record BudgetExtensionRequest(
-            @Min(1) int additionalTokens,
-            @DecimalMin("0.0001") BigDecimal additionalCostCny,
-            @NotBlank String confirmationDigest) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record RecoveryRequest(
-            @Min(1) int checkpointVersion,
-            @NotBlank @Size(max = 71) String checkpointDigest,
-            @Size(max = 128) List<@NotBlank @Size(max = 128) String> completedInvocationIds) {}
 }

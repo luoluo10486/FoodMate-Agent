@@ -45,7 +45,7 @@ class RuntimeProposalMessageProcessorTest {
         var result =
                 new ToolGatewayService.ProposalResult(
                         "proposal-1", "42", "succeeded", null, List.of());
-        when(gateway.execute(any())).thenReturn(result);
+        when(gateway.executeLegacy(any())).thenReturn(result);
         when(inbox.claim(eq("proposal-1"), eq("sha256:one"), eq(body))).thenReturn(1);
         when(inbox.complete(eq("proposal-1"), anyString())).thenReturn(1);
         doThrow(new RuntimeException("broker down")).when(producer).send(any(Message.class));
@@ -67,7 +67,7 @@ class RuntimeProposalMessageProcessorTest {
         when(producer.send(any(Message.class))).thenReturn(null);
 
         assertEquals(MqConsumeDecision.ACK, processor.handle(body, context()));
-        verify(gateway, times(1)).execute(any());
+        verify(gateway, times(1)).executeLegacy(any());
         verify(producer, times(1)).send(any(Message.class));
     }
 

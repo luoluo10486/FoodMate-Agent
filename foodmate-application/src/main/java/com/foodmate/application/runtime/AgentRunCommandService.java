@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.persistence.AgentRunCommandStore;
+import com.foodmate.shared.account.MessageRole;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1RunCommand;
 import java.nio.charset.StandardCharsets;
@@ -71,7 +72,8 @@ public class AgentRunCommandService {
         String runIdText = Long.toString(runId);
         if (store == null)
             return new RunCreation(
-                    accounts.addMessage(userId, sessionId, "user", content, null, runId),
+                    accounts.addMessage(
+                            userId, sessionId, MessageRole.USER.code(), content, null, runId),
                     runIdText,
                     null,
                     "persisted");
@@ -82,7 +84,8 @@ public class AgentRunCommandService {
         // 消息外键依赖 agent_runs，因此先建运行记录，再保存消息并回填 user_message_id。
         store.insertRun(runId, sessionId, traceId, userId, parentRunId);
         UserAccountService.MessageRecord message =
-                accounts.addMessage(userId, sessionId, "user", content, null, runId);
+                accounts.addMessage(
+                        userId, sessionId, MessageRole.USER.code(), content, null, runId);
         // 超过 8 条有效原始消息后更新摘要；摘要不是消息权威，只是下一次 Context 的压缩来源。
         summaries.maybeRefresh(userId, sessionId);
 

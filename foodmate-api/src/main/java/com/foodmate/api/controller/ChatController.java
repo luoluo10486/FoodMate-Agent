@@ -1,12 +1,17 @@
 package com.foodmate.api.controller;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.foodmate.api.request.CancelRunRequest;
+import com.foodmate.api.request.ChatRunRequest;
+import com.foodmate.api.response.ChatRunEvent;
+import com.foodmate.api.response.ChatRunResponse;
+import com.foodmate.api.response.ChatStatusResponse;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.AgentRunCommandService;
 import com.foodmate.application.runtime.RuntimeCancellationService;
 import com.foodmate.application.runtime.RuntimeGatewayService;
 import com.foodmate.application.runtime.V1RuntimeEventService;
+import com.foodmate.shared.account.MessageRole;
+import com.foodmate.shared.account.SessionMode;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.RunCommand;
@@ -14,7 +19,6 @@ import com.foodmate.shared.runtime.V1RunEvent;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
@@ -67,7 +71,7 @@ public class ChatController {
                                                             0,
                                                             Math.min(
                                                                     80, request.prompt().length())),
-                                            "agent")
+                                            SessionMode.AGENT.code())
                                     .sessionId()
                             : parseSessionId(request.sessionId());
             var creation =
@@ -102,14 +106,14 @@ public class ChatController {
                                                             0,
                                                             Math.min(
                                                                     80, request.prompt().length())),
-                                            "agent")
+                                            SessionMode.AGENT.code())
                                     .sessionId()
                             : parseSessionId(request.sessionId());
             userMessageId =
                     accounts.addMessage(
                                     user.userId(),
                                     sessionId,
-                                    "user",
+                                    MessageRole.USER.code(),
                                     request.prompt(),
                                     null,
                                     authenticated ? Long.parseLong(runId) : null)
@@ -189,10 +193,6 @@ public class ChatController {
                 TraceContextHolder.currentOrNew());
     }
 
-    public record ChatRunRequest(@NotBlank String prompt, String sessionId) {}
-
-    public record CancelRunRequest(String reason) {}
-
     private static long parseSessionId(String value) {
         try {
             return Long.parseLong(value);
@@ -233,25 +233,4 @@ public class ChatController {
             default -> "RUNNING";
         };
     }
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record ChatRunResponse(
-            String runId,
-            String dispatchId,
-            String status,
-            boolean duplicate,
-            Long sessionId,
-            Long userMessageId) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record ChatStatusResponse(String runId, String status) {}
-
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record ChatRunEvent(
-            String eventId,
-            String runId,
-            long eventSeq,
-            String state,
-            Object payload,
-            Instant occurredAt) {}
 }

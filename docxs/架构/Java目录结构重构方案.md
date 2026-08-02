@@ -1,6 +1,6 @@
 # FoodMate Java 目录结构重构方案（最终版）
 
-版本：v2.0
+版本：v2.1
 维护基线：2026-08-02
 适用基线：当前工作树（包含尚未提交的 nutrition、admin detail、knowledge ingestion 代码）
 对应总设计：[Java 控制面工程设计](./Java控制面工程设计.md)
@@ -35,6 +35,7 @@ bootstrap -> api/application/infra/shared
 4. Mapper 只负责 SQL 映射，Po 只负责持久化模型，API DTO、application 结果和领域对象不得跨边界复用。
 5. `Domain` 表示业务模型和纯业务规则，不是 `Repository` 或 `Port` 的另一种命名；只有出现真实领域行为时才建立独立领域模块。
 6. 先完成依赖反转和类型边界，再进行大规模重命名；第一阶段不改变数据库表、SQL 语义和公开 HTTP/SSE 字段。
+7. API 请求和响应使用明确的 `Request/Response` DTO；业务接口禁止以 `Map` 作为前端请求体或响应体，动态 SQL 行、消息 payload 等内部动态结构单独例外。
 
 本方案不是单纯的目录移动。任何包路径变化都必须同步处理 Java 包名、Spring 扫描、模块依赖、测试、ArchUnit 和配置类。
 
@@ -277,7 +278,37 @@ com.foodmate.api
 
 Controller 只做参数校验、鉴权上下文提取、调用 `XxxService` 和响应包装，不写 SQL、事务编排或外部客户端调用。
 
+API DTO 规则：
+
+- `api/request` 放前端输入对象，例如 `LoginRequest`、`SessionRequest`、`RuntimeProposalRequest`。
+- `api/response` 放前端输出对象，例如 `AuthResponse`、`SessionResponse`、`ChatRunResponse`、`AdminDashboardResponse`。
+- `AuthResponse`、`SessionResponse`、`ChatRunResponse` 等已有响应名称保留，只从 Controller 内嵌 `record` 迁移为独立类型。
+- Controller 不再声明业务 Request/Response 内嵌 `record`，也不使用 `@RequestBody Map<String, Object>`。
+- 普通业务结果使用明确的 Response record；后台统计、导出任务、状态操作等不能返回 `Map.of(...)`。
+- `Map` 只允许留在确实动态的内部结构，例如动态 SQL 查询行、Runtime 消息 payload、Redis Hash 或错误扩展详情；这些结构不能直接作为普通前端 DTO 使用。
+
+当前前端 JSON 由 Spring MVC + Jackson 绑定到 `@RequestBody XxxRequest`，路径、查询参数、请求头、Cookie 和 multipart 文件分别使用 `@PathVariable`、`@RequestParam`、`@RequestHeader`、`@CookieValue` 和 `@RequestPart`。字段校验由 Request DTO 上的 Jakarta Validation 注解完成。
+
 ### 3.4 foodmate-shared
+
+```text
+com.foodmate.shared
+├── account/
+│   ├── UserRole
+│   ├── UserStatus
+│   ├── SessionStatus
+│   ├── SessionMode
+│   ├── MessageRole
+│   ├── ToolStatus
+│   ├── KnowledgeDocumentStatus
+│   └── RestorableResourceType
+├── api/
+├── error/
+├── runtime/
+└── trace/
+```
+
+跨模块共享的稳定业务枚举放在 `shared`，保留对外 JSON 和持久化使用的小写 code；API Request 可以直接绑定这些枚举，application 在调用 infra 端口时再转换为数据库或消息协议值。运行时状态、事件类型和 Redis/SQL 内部状态只在所属模块维护，不创建一个跨业务复用的通用 `Status`。
 
 允许放置：
 
@@ -642,6 +673,7 @@ infra/persistence/account/po/UserPo
 - 新增代码不使用含义不明的 `XxxStore` 作为通用出站接口。
 - Mapper 不继承 application 的 `Store/Repository`；Po 不跨出 infra。
 - `Repository` 只用于持久化边界；外部能力使用 `Port` 或具体职责名称。
+- API 业务请求和响应不使用 `Map`；新增 `@RequestBody Map` 或 `ApiResponse<Map<...>>` 视为结构验收失败。
 - `DomainService` 不包含 I/O、事务、Spring Bean 或外部 SDK。
 - account、conversation、knowledge、nutrition、runtime 均有清晰的 service、port、adapter 归属。
 - 不创建没有实际类、规则或依赖边界支撑的空包和空模块。
@@ -677,4 +709,3 @@ infra/persistence/account/po/UserPo
 6. gateway-client 不再承载混合业务、传输和基础设施职责；无引用时完成删除或收缩。
 7. 真实领域规则才进入 domain；没有真实领域模型时不保留空 domain 模块。
 8. 所有阶段性测试、`mvnw.cmd verify` 和架构检查通过，且既有业务行为保持兼容。
-

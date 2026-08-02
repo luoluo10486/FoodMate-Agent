@@ -51,7 +51,7 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                 if (existing != null) {
                     result = mapper.readValue(existing, ToolGatewayService.ProposalResult.class);
                 } else {
-                    result = gateway.execute(proposal);
+                    result = gateway.executeLegacy(proposal);
                     inbox.complete(proposalId, mapper.writeValueAsString(result));
                 }
             }

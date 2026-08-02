@@ -1,5 +1,9 @@
 package com.foodmate.application.account;
 
+import com.foodmate.shared.account.KnowledgeDocumentStatus;
+import com.foodmate.shared.account.RestorableResourceType;
+import com.foodmate.shared.account.ToolStatus;
+import com.foodmate.shared.account.UserStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,14 +17,9 @@ public class AdminManagementService {
     }
 
     @Transactional
-    public void updateUserStatus(long userId, String status, long operatorId, String traceId) {
-        require(
-                userId > 0
-                        && ("active".equals(status)
-                                || "disabled".equals(status)
-                                || "locked".equals(status)),
-                "invalid user status");
-        require(store.updateUserStatus(userId, status, operatorId) == 1, "user not found");
+    public void updateUserStatus(long userId, UserStatus status, long operatorId, String traceId) {
+        require(userId > 0 && status != null, "invalid user status");
+        require(store.updateUserStatus(userId, status.code(), operatorId) == 1, "user not found");
         audit(operatorId, traceId, "user.status.update", "user", Long.toString(userId));
     }
 
@@ -37,21 +36,19 @@ public class AdminManagementService {
     }
 
     @Transactional
-    public void updateToolStatus(String name, String status, long operatorId, String traceId) {
-        require("active".equals(status) || "disabled".equals(status), "invalid tool status");
-        require(store.updateToolStatus(name, status, operatorId) == 1, "tool not found");
+    public void updateToolStatus(String name, ToolStatus status, long operatorId, String traceId) {
+        require(status != null, "invalid tool status");
+        require(store.updateToolStatus(name, status.code(), operatorId) == 1, "tool not found");
         audit(operatorId, traceId, "tool.status.update", "tool", name);
     }
 
     @Transactional
-    public void updateKnowledgeStatus(long id, String status, long operatorId, String traceId) {
+    public void updateKnowledgeStatus(
+            long id, KnowledgeDocumentStatus status, long operatorId, String traceId) {
+        require(status != null, "invalid document status");
         require(
-                "uploaded".equals(status)
-                        || "parsed".equals(status)
-                        || "indexed".equals(status)
-                        || "disabled".equals(status),
-                "invalid document status");
-        require(store.updateKnowledgeStatus(id, status, operatorId) == 1, "document not found");
+                store.updateKnowledgeStatus(id, status.code(), operatorId) == 1,
+                "document not found");
         audit(
                 operatorId,
                 traceId,
@@ -61,9 +58,10 @@ public class AdminManagementService {
     }
 
     @Transactional
-    public void restore(String type, long id, long operatorId, String traceId) {
-        require(store.restore(type, id, operatorId) == 1, "resource not found");
-        audit(operatorId, traceId, "resource.restore", type, Long.toString(id));
+    public void restore(RestorableResourceType type, long id, long operatorId, String traceId) {
+        require(type != null, "invalid resource type");
+        require(store.restore(type.code(), id, operatorId) == 1, "resource not found");
+        audit(operatorId, traceId, "resource.restore", type.code(), Long.toString(id));
     }
 
     @Transactional

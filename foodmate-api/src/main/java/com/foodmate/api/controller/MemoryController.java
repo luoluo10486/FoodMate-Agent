@@ -1,12 +1,13 @@
 package com.foodmate.api.controller;
 
+import com.foodmate.api.request.MemoryUpdateRequest;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.MemoryCandidateService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Size;
+import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -28,35 +29,32 @@ public class MemoryController extends AuthenticatedControllerSupport {
     }
 
     @GetMapping
-    public ApiResponse<?> list(HttpServletRequest request) {
-        return ok(memories.list(user(request).userId()));
+    public ApiResponse<List<MemoryCandidateService.MemoryView>> list(HttpServletRequest request) {
+        return ApiResponse.success(
+                memories.list(user(request).userId()), TraceContextHolder.currentOrNew());
     }
 
     @PatchMapping("/{memoryId}")
-    public ApiResponse<?> update(
+    public ApiResponse<MemoryCandidateService.MemoryView> update(
             HttpServletRequest request,
             @PathVariable long memoryId,
             @Valid @RequestBody MemoryUpdateRequest body) {
-        return ok(
-                memories.update(
-                        user(request).userId(), memoryId, body.memoryValue(), body.scope()));
+        return ApiResponse.success(
+                memories.update(user(request).userId(), memoryId, body.memoryValue(), body.scope()),
+                TraceContextHolder.currentOrNew());
     }
 
     @DeleteMapping("/{memoryId}")
     public ApiResponse<Void> delete(HttpServletRequest request, @PathVariable long memoryId) {
         memories.delete(user(request).userId(), memoryId);
-        return ok(null);
+        return ApiResponse.success(null, TraceContextHolder.currentOrNew());
     }
 
     @PostMapping("/{memoryId}/confirm")
-    public ApiResponse<?> confirm(HttpServletRequest request, @PathVariable long memoryId) {
-        return ok(memories.confirm(user(request).userId(), memoryId));
+    public ApiResponse<MemoryCandidateService.MemoryView> confirm(
+            HttpServletRequest request, @PathVariable long memoryId) {
+        return ApiResponse.success(
+                memories.confirm(user(request).userId(), memoryId),
+                TraceContextHolder.currentOrNew());
     }
-
-    private <T> ApiResponse<T> ok(T value) {
-        return ApiResponse.success(value, TraceContextHolder.currentOrNew());
-    }
-
-    public record MemoryUpdateRequest(
-            @Size(max = 4000) String memoryValue, @Size(max = 32) String scope) {}
 }

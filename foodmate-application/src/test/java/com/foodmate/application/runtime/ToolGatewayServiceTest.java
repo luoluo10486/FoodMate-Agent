@@ -17,7 +17,7 @@ class ToolGatewayServiceTest {
 
     @Test
     void rejectsWriteSqlBeforeDatabaseExecution() {
-        var result = gateway.execute(proposal("UPDATE agent_runs SET status='completed'"));
+        var result = gateway.executeLegacy(proposal("UPDATE agent_runs SET status='completed'"));
         assertEquals("rejected", result.status());
         assertEquals("SQL_PROPOSAL_NOT_READ_ONLY", result.errorCode());
         verifyNoInteractions(store);
@@ -27,7 +27,7 @@ class ToolGatewayServiceTest {
     void rejectsMalformedRunId() {
         var proposal = proposal("SELECT 1");
         proposal.put("run_id", "not-a-number");
-        var result = gateway.execute(proposal);
+        var result = gateway.executeLegacy(proposal);
         assertEquals("RUN_ID_INVALID", result.errorCode());
         verifyNoInteractions(store);
     }
@@ -36,7 +36,7 @@ class ToolGatewayServiceTest {
     void rejectsProposalWithoutInvocationIdBeforeDatabaseExecution() {
         var proposal = proposal("SELECT 1");
         proposal.put("payload", Map.of("statement", "SELECT 1"));
-        var result = gateway.execute(proposal);
+        var result = gateway.executeLegacy(proposal);
         assertEquals("PROPOSAL_NOT_ALLOWED", result.errorCode());
         verifyNoInteractions(store);
     }
@@ -45,7 +45,7 @@ class ToolGatewayServiceTest {
     void executesReadAndAuditsIt() {
         when(store.runExists(42L)).thenReturn(true);
         when(store.executeRead("SELECT 1")).thenReturn(List.of(Map.of("value", 1)));
-        var result = gateway.execute(proposal("SELECT 1"));
+        var result = gateway.executeLegacy(proposal("SELECT 1"));
         assertEquals("succeeded", result.status());
         assertEquals(1, result.rows().size());
         verify(store).audit(any(ToolGatewayStore.Audit.class));

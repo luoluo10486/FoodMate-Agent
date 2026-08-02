@@ -1,6 +1,7 @@
 package com.foodmate.api.controller;
 
 import com.foodmate.application.account.UserAccountService;
+import com.foodmate.shared.account.UserRole;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +19,7 @@ public class AdminUserController extends AuthenticatedControllerSupport {
 
     @GetMapping
     public ApiResponse<List<UserAccountService.AdminUserView>> list(HttpServletRequest request) {
-        requireAnyRole(request, "admin", "operator", "superadmin");
+        requireAnyRole(request, UserRole.ADMIN, UserRole.OPERATOR, UserRole.SUPERADMIN);
         return ApiResponse.success(accounts.listUsersForAdmin(), TraceContextHolder.currentOrNew());
     }
 }

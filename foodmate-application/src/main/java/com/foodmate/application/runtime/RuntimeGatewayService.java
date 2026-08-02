@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.application.account.UserAccountService;
 import com.foodmate.application.runtime.persistence.RuntimeGatewayStore;
 import com.foodmate.gateway.GatewayClient;
+import com.foodmate.shared.account.MessageRole;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.EventInbox;
 import com.foodmate.shared.runtime.RunCommand;
@@ -380,7 +381,7 @@ public class RuntimeGatewayService {
             accounts.addMessage(
                     context.userId(),
                     context.sessionId(),
-                    "assistant",
+                    MessageRole.ASSISTANT.code(),
                     String.valueOf(answer),
                     event.payload(),
                     context.agentRunId());

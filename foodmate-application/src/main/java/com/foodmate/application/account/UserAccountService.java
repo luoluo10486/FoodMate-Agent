@@ -4,6 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.foodmate.shared.account.MessageRole;
+import com.foodmate.shared.account.SessionMode;
+import com.foodmate.shared.account.SessionStatus;
+import com.foodmate.shared.account.UserRole;
+import com.foodmate.shared.account.UserStatus;
 import com.foodmate.shared.id.IdGenerator;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -69,7 +74,7 @@ public class UserAccountService {
             store.insertUser(
                     userId, "U" + userId, username, email, hashPassword(password), nickname);
             store.insertProfile(ids.nextId(), userId, nickname);
-            return issueSession(userId, username, "user", metadata);
+            return issueSession(userId, username, UserRole.USER.code(), metadata);
         }
         if (users.values().stream()
                 .anyMatch(
@@ -87,14 +92,14 @@ public class UserAccountService {
                         email,
                         hashPassword(password),
                         nickname,
-                        "user",
-                        "active"));
+                        UserRole.USER.code(),
+                        UserStatus.ACTIVE.code()));
         profiles.put(
                 userId,
                 new ProfileRecord(
                         userId, nickname, null, null, null, null, null, null, null, null, "[]",
                         "[]", "{}"));
-        return issueSession(userId, username, "user", metadata);
+        return issueSession(userId, username, UserRole.USER.code(), metadata);
     }
 
     public synchronized AuthResult login(String usernameOrEmail, String password) {
@@ -105,10 +110,10 @@ public class UserAccountService {
             String usernameOrEmail, String password, SessionMetadata metadata) {
         requireText(usernameOrEmail, "username");
         UserRecord user = findUser(usernameOrEmail).orElseThrow(() -> invalidCredentials());
-        if ("disabled".equals(user.status()))
+        if (UserStatus.DISABLED.code().equals(user.status()))
             throw new com.foodmate.shared.error.BusinessException(
                     com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_DISABLED);
-        if ("locked".equals(user.status()))
+        if (UserStatus.LOCKED.code().equals(user.status()))
             throw new com.foodmate.shared.error.BusinessException(
                     com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_LOCKED);
         if (!verifyPassword(password, user.passwordHash())) throw invalidCredentials();
@@ -241,9 +246,9 @@ public class UserAccountService {
                 || session.expiresAt().isBefore(Instant.now())) throw authRequired();
         if (store != null) store.touchAuthSession(hash);
         UserRecord user = getUser(session.userId()).orElseThrow(UserAccountService::authRequired);
-        if (!"active".equals(user.status()))
+        if (!UserStatus.ACTIVE.code().equals(user.status()))
             throw new com.foodmate.shared.error.BusinessException(
-                    "disabled".equals(user.status())
+                    UserStatus.DISABLED.code().equals(user.status())
                             ? com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_DISABLED
                             : com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_LOCKED);
         return user;
@@ -287,8 +292,8 @@ public class UserAccountService {
     }
 
     public synchronized SessionRecord createSession(long userId, String title, String mode) {
-        String actualMode = mode == null || mode.isBlank() ? "agent" : mode;
-        if (!List.of("agent", "chat").contains(actualMode))
+        String actualMode = mode == null || mode.isBlank() ? SessionMode.AGENT.code() : mode;
+        if (!List.of(SessionMode.AGENT.code(), SessionMode.CHAT.code()).contains(actualMode))
             throw new IllegalArgumentException("mode must be agent or chat");
         String actualTitle = title == null || title.isBlank() ? "新会话" : title.trim();
         if (actualTitle.length() > 255)
@@ -299,7 +304,8 @@ public class UserAccountService {
             store.insertSession(id, userId, actualTitle, actualMode);
         }
         SessionRecord record =
-                new SessionRecord(id, userId, actualTitle, actualMode, "active", null);
+                new SessionRecord(
+                        id, userId, actualTitle, actualMode, SessionStatus.ACTIVE.code(), null);
         if (store == null) sessions.put(id, record);
         return record;
     }
@@ -325,7 +331,7 @@ public class UserAccountService {
                         .filter(
                                 s ->
                                         s.userId() == userId
-                                                && !"deleted".equals(s.status())
+                                                && !SessionStatus.DELETED.code().equals(s.status())
                                                 && (wantedStatus == null
                                                         || wantedStatus.equals(s.status()))
                                                 && (q.isBlank()
@@ -353,7 +359,10 @@ public class UserAccountService {
         }
         List<SessionRecord> all =
                 sessions.values().stream()
-                        .filter(s -> s.userId() == userId && "deleted".equals(s.status()))
+                        .filter(
+                                s ->
+                                        s.userId() == userId
+                                                && SessionStatus.DELETED.code().equals(s.status()))
                         .toList();
         return new PageResult<>(all, all.size(), safePage, safeSize);
     }
@@ -369,7 +378,7 @@ public class UserAccountService {
     }
 
     public synchronized void setSessionStatus(long userId, long sessionId, String status) {
-        if (!List.of("active", "archived").contains(status))
+        if (!List.of(SessionStatus.ACTIVE.code(), SessionStatus.ARCHIVED.code()).contains(status))
             throw new IllegalArgumentException("invalid session status");
         requireSession(userId, sessionId);
         if (store != null) store.setSessionStatus(userId, sessionId, status);
@@ -379,7 +388,8 @@ public class UserAccountService {
     public synchronized void deleteSession(long userId, long sessionId) {
         requireSession(userId, sessionId);
         if (store != null) store.deleteSession(userId, sessionId);
-        sessions.computeIfPresent(sessionId, (key, value) -> value.withStatus("deleted"));
+        sessions.computeIfPresent(
+                sessionId, (key, value) -> value.withStatus(SessionStatus.DELETED.code()));
     }
 
     public synchronized void restoreSession(long userId, long sessionId) {
@@ -390,9 +400,9 @@ public class UserAccountService {
             SessionRecord session = sessions.get(sessionId);
             if (session == null
                     || session.userId() != userId
-                    || !"deleted".equals(session.status()))
+                    || !SessionStatus.DELETED.code().equals(session.status()))
                 throw notFound("session not found or restore period expired");
-            sessions.put(sessionId, session.withStatus("active"));
+            sessions.put(sessionId, session.withStatus(SessionStatus.ACTIVE.code()));
         }
     }
 
@@ -436,7 +446,8 @@ public class UserAccountService {
         List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
         for (int i = 0; i < records.size(); i++) {
             MessageRecord current = records.get(i);
-            if (current.messageId() == messageId && current.role().equals("user")) {
+            if (current.messageId() == messageId
+                    && MessageRole.USER.code().equals(current.role())) {
                 MessageRecord updated =
                         new MessageRecord(
                                 current.messageId(),
@@ -465,7 +476,9 @@ public class UserAccountService {
         List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
         boolean removed =
                 records.removeIf(
-                        item -> item.messageId() == messageId && item.role().equals("user"));
+                        item ->
+                                item.messageId() == messageId
+                                        && MessageRole.USER.code().equals(item.role()));
         if (!removed) throw notFound("message not found");
     }
 
@@ -479,7 +492,7 @@ public class UserAccountService {
                 .filter(
                         s ->
                                 s.userId() == userId
-                                        && !"deleted".equals(s.status())
+                                        && !SessionStatus.DELETED.code().equals(s.status())
                                         && s.title().toLowerCase().contains(q.toLowerCase()))
                 .map(s -> new SearchResult(s.sessionId(), s.title(), s.title()))
                 .limit(safeSize)
@@ -487,7 +500,7 @@ public class UserAccountService {
     }
 
     public synchronized void archiveSession(long userId, long sessionId) {
-        setSessionStatus(userId, sessionId, "archived");
+        setSessionStatus(userId, sessionId, SessionStatus.ARCHIVED.code());
     }
 
     public synchronized MessageRecord addMessage(
@@ -503,7 +516,7 @@ public class UserAccountService {
             Object structuredPayload,
             Long agentRunId) {
         requireSession(userId, sessionId);
-        if (!"user".equals(role))
+        if (!MessageRole.USER.code().equals(role))
             throw new IllegalArgumentException("only user messages are accepted in M1-2");
         requireText(content, "content");
         if (content.length() > 10000)
@@ -541,7 +554,7 @@ public class UserAccountService {
             if (!store.sessionExists(userId, sessionId)) throw notFound("session not found");
         } else if (!sessions.containsKey(sessionId)
                 || sessions.get(sessionId).userId() != userId
-                || "deleted".equals(sessions.get(sessionId).status()))
+                || SessionStatus.DELETED.code().equals(sessions.get(sessionId).status()))
             throw notFound("session not found");
     }
 

@@ -1,6 +1,7 @@
 package com.foodmate.api.controller;
 
 import com.foodmate.application.account.UserAccountService;
+import com.foodmate.shared.account.UserRole;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import jakarta.servlet.http.Cookie;
@@ -23,9 +24,9 @@ abstract class AuthenticatedControllerSupport {
     }
 
     protected UserAccountService.UserRecord requireAnyRole(
-            HttpServletRequest request, String... roles) {
+            HttpServletRequest request, UserRole... roles) {
         UserAccountService.UserRecord current = user(request);
-        for (String role : roles) if (role.equals(current.role())) return current;
+        for (UserRole role : roles) if (role.code().equals(current.role())) return current;
         throw new BusinessException(ErrorCode.FORBIDDEN, "insufficient role");
     }
 }
