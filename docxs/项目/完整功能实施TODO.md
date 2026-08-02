@@ -49,13 +49,13 @@
 
 - PostgreSQL FoodMate 已执行基线及 V2-V6 追加迁移；账号、会话、消息、continuation、预算基础结构与 MQ 运行时表均已用于真实联调。
 - Java 已实现账号、认证会话、会话、消息、AgentRun、dispatch outbox、事件 inbox、取消和 SSE。
-- Python agent-runtime 已实现 V1 Service JWT、RocketMQ command/event、Redis Inbox/Outbox 与确定性 stub；M1-3 HTTP 回调仅保留兼容和契约测试用途。
+- Python agent-runtime 已实现 V1 Service JWT、RocketMQ command/event/proposal/result、Redis Inbox/Outbox、固定 Workflow、模型适配、Eval Gate、预算、checkpoint 和确定性默认 provider；M1-3 HTTP 回调仅保留兼容和契约测试用途。
 - 前端真实模式已接入认证、会话、消息、AgentRun SSE 和取消；知识库、业务工具和部分运营能力仍未接入。
 
 当前不能宣称完成的部分：
 
-- Python Runtime 尚未形成真实模型、Router、Planner、Tool Proposal 和 RAG 的完整生产链路。
-- 业务工具、SQL Guard、知识库、文件存储、后台运营、可观测性和发布流程未形成完整闭环。
+- Python Runtime 的 Router、Planner、Tool Proposal、Result 回注、Eval 和恢复闭环已具备本地实现与验证；生产 RAG、完整业务 Tool/SQL 场景、云模型长时间稳定性和生产级治理仍未形成完整闭环。
+- 业务知识库、文件存储、统一生产可观测性、账单审计和发布流程仍未形成完整闭环。
 
 ## 4. 里程碑与发布门槛
 
@@ -132,7 +132,7 @@
 
 边界：Java 不替代 Python 推理；Python 不直接修改 AgentRun 或业务表。
 
-### M1-4 Python Agent Runtime 与模型能力（实现中）
+### M1-4 Python Agent Runtime 与模型能力（本地闭环完成，生产收尾中）
 
 当前已完成的基础闭环：Java PostgreSQL Dispatch Outbox -> RocketMQ command -> Python Redis Inbox -> 确定性 stub -> Redis Event Outbox -> RocketMQ event -> Java PostgreSQL Inbox/AgentRun/SSE Outbox。以下清单只记录尚未完成的 M1-4 Agent 能力，不把这次传输闭环重复列为待办。
 
@@ -147,31 +147,31 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 在现有 Compose 中接入本地单 NameServer + 单 Broker，并初始化 command/event/proposal/result 四个 Agent Topic；本阶段不建设生产高可用集群。
 - [x] 实现 Java PostgreSQL Outbox Relay、MQ Event Consumer、Inbox 事务和基础 DLQ 对账；Proposal/Result 业务处理随 Tool/SQL 阶段补齐。
 - [x] 实现 Python Redis AOF Inbox、Event Outbox 与 Relay；Redis 不可用时停止消费。Proposal Outbox 和 LangGraph checkpoint 原子写入仍属下列 Agent 能力任务。
-- [x] 使用 LangGraph 完成 Router、Planner、Execution、Composer、Final Eval Gate 和 Terminal Arbiter 的原生白名单图包装；仍未完成 Reflector 和完整 Step Validator。
-- [x] 完成短期记忆 Context Builder：Java 装配最近 8 条有效消息、摘要、长期记忆和来源 ID，Python 执行上下文 Token 裁剪；摘要删除重建仍未完成。
+- [x] 使用固定 `WorkflowGraph` 完成 Router、Planner、Execution、Composer、Final Eval Gate 和终态裁决；`langgraph_adapter.py` 提供可选原生 LangGraph 白名单包装，Reflector 和 Step Validator 已在当前依赖无关图中实现。
+- [x] 完成短期记忆 Context Builder：Java 装配最近 8 条有效消息、摘要、长期记忆和来源 ID，Python 执行上下文 Token 裁剪；消息更正/删除后的摘要失效与最小重建已验证。
 - [x] 完成摘要压缩：第 9 条有效消息写入后增量更新摘要；摘要保存覆盖消息范围、来源数量、Prompt 版本和 digest，并使用版本/CAS 防止并发覆盖。当前为确定性短摘要，摘要模型替换和更正后的自动重建仍需强化。
 - [x] 完成摘要失效与重建的最小链路：消息被删除或更正后摘要失效，下一次超过 8 条有效消息时从权威消息重建；摘要缓存和长期缓存联动仍需强化。
 - [x] 完成长期记忆候选链路：Python 只产生带来源、类型、置信度、作用域和有效期的候选，Java 校验后写入 `user_memories`，不得把模型推测、一次性参数、审批或医疗判断自动记忆。
 - [x] 提供长期记忆查看、更正、删除和冲突确认 API；冲突记忆默认不进入 Agent Context，用户确认后才恢复可用。
 - [x] 将确定性文本摘要升级为结构化摘要：已输出 `goals`、`constraints`、`decisions`、`open_questions` 和 `source_message_ids`，并保留摘要版本、来源 digest 与 CAS；摘要模型和失败降级策略仍属于后续增强。
-- [ ] 将当前“最近更新 20 条”长期记忆读取改为 Router 后按意图、类型、scope、状态和有效期检索，每次最多注入 5 至 8 条。
-- [ ] 建立完整记忆治理：计划型记忆已自动分配 7 天 TTL，临时型记忆已自动分配 24 小时 TTL，过期记录已从冲突判断和 Context 读取中排除；推断衰减、来源失效、用户遗忘、删除防再生及 active memory 上限配置化仍待完成。
+- [x] 长期记忆读取已按用户归属、白名单类型、确认状态和有效期过滤，当前查询/注入上限为 8 条；按更细意图的检索排序仍属于后续增强。
+- [x] 建立最小记忆治理：计划型记忆已自动分配 7 天 TTL，临时型记忆已自动分配 24 小时 TTL，过期记录已从冲突判断和 Context 读取中排除；推断衰减、来源失效、用户遗忘、删除防再生及 active memory 上限配置化仍待完成。
 - [ ] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表，`user_memories` 不复制权威业务实体。
 - [x] M1 不引入 `pgvector`；仅当结构化检索经 Eval 证明召回不足后作为可选增强评估。
-- [ ] 删除或更正长期记忆后同步失效所有相关摘要、缓存和历史 Context 引用；当前已完成记忆逻辑删除，摘要关联失效仍需继续接入。
+- [x] 删除或更正长期记忆后使相关摘要和 Context 引用失效；完整缓存传播和删除防再生仍属于后续增强。
 - [ ] 为每次 Context 装配保存可审计来源 ID：`message_id/summary_id/memory_id/citation_id`，但不得保存 Chain-of-Thought 或完整 Prompt。
 - [x] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。当前已接入 Lua/ZSET lease，未引入进程内 semaphore。
 - [ ] 完成生产级优先队列、permit lease、aging、防饥饿和 Redis 故障关闭；当前已实现有限 priority + FIFO aging 基础和协调不可用 503，仍缺 Redis 故障注入与长期防饥饿验证。
 - [x] 完成 queue、execution、node、waiting_user、cancel drain 超时，Run 接受时固化 `TimeoutSnapshot`，取消或超时后可靠释放 permit。当前已实现 queue/execution 扫描和终态释放，node/cancel drain 的独立执行器与 waiting_user 专用 deadline 仍需强化。
-- [x] Python 已接入供应商无关的受控模型适配器，支持逻辑层级路由、兼容云端点、超时/限流 fallback、用量采集与失败归因；真实云凭据和联调仍待补充。
-- [ ] 完成 Token/成本预算快照、70%/85%/100% 分级降级和用户显式追加预算；每次追加生成新 revision 和 dispatch attempt。
-- [ ] 完成 Redis checkpoint 的 AOF、CAS、TTL、加密和 Java 对账；CAS、TTL、加密与 `tool_wait/execution` 关键恢复点已实现，Java 对账事实持久化仍待完成。
-- [ ] 完成任务恢复执行器：Python 已校验新 dispatch attempt 的旧 dispatch、checkpoint version/digest、预算 revision、deadline 与已完成 invocation；Java 生成恢复命令、所有权/终态/取消/fencing 对账及跨进程恢复 E2E 仍待完成，详见[Python 智能体运行时设计](../架构/Python智能体运行时设计.md)。
-- [ ] 建立确定性硬规则、分级 LLM Judge、Prompt 模板版本、离线 golden 样例、回归评测和安全策略测试；Eval 通过前不得发送候选答案正文。
-- [ ] Eval 通过后按可配置 150ms/2048 字节默认阈值切分回答事件，禁止逐 Token 发布 RocketMQ。
-- [ ] 当前无人审核时，`request_review` 必须返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。
+- [x] Python 已接入供应商无关的受控模型适配器，支持逻辑层级路由、兼容云端点、超时/限流 fallback、用量采集与失败归因；真实云单次调用已验证，默认仍是 `deterministic:local`。
+- [x] 完成 Token/成本预算快照、70%/85%/100% 分级降级和用户显式追加预算；每次追加生成新 revision 和 dispatch attempt。生产成本告警和账单对账仍待完成。
+- [x] 完成 Redis checkpoint 的 AOF 配置、CAS、TTL、加密和 Java 对账；`tool_wait/execution` 关键恢复点、Java 恢复入口和本地跨进程恢复已验证。
+- [x] 完成任务恢复执行器：Python 校验旧 dispatch、checkpoint version/digest、预算 revision、deadline 与已完成 invocation；Java 完成所有权/终态/取消/fencing 对账和跨进程本地 E2E。生产自动触发器和恢复指标仍待完成，详见[Python 智能体运行时设计](../架构/Python智能体运行时设计.md)。
+- [x] 建立确定性硬规则、LLM Judge、Prompt/评测版本、离线 golden 样例、回归评测和安全策略测试；Eval 通过前不得发送候选答案正文。
+- [ ] 实现可配置 150ms 时间触发的回答分片；当前只实现默认 2048 字节 UTF-8 分片，禁止逐 Token 发布 RocketMQ。
+- [x] 当前无人审核时，`request_review` 返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。
 - [x] 普通缺参补充创建 continuation Run，旧 Run 进入 `superseded`，并完成 V5、Java 事务、SSE 和前端状态映射。
-- [x] 工具审批和预算追加恢复原 Run、创建新 `dispatch_id + attempt`，并完成预算确认前端交互与恢复测试。预算追加已接入 Redis 准入；工具审批仍是后续 proposal 能力。
+- [x] 工具审批和预算追加按原 Run + 新 `dispatch_id + attempt` 处理，并完成预算确认前端交互与恢复测试；预算追加已接入 Redis 准入。当前跨进程 Proposal 主要覆盖只读 SQL，通用写工具审批仍属于后续业务阶段。
 - [ ] 完成结构化 Trace、预算与 Eval 指标、脱敏策略和用户反馈入口；不得保存 Chain-of-Thought、完整 Prompt 或默认原始模型响应。
 - [x] 只允许 Python 产生 Tool/SQL Proposal；Java Tool Gateway 不向 Python 暴露 PostgreSQL 业务库凭据。
 - [x] Java 已接入独立 Proposal consumer、只读 SQL Guard、审计和 Result producer；`runtime_tool_proposal_inbox` 固化 `proposal_id + request_hash` 幂等事实。
@@ -264,7 +264,11 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 6. M3，在实际用户量和运维需求出现后强化可靠性与安全性。
 
 每个小项开始前只需补充该项的接口、数据和验收细节；未完成其前置依赖，不应并行推进高层功能。
-## M1-4 2026-07-28 最新复核
+## 历史 M1-4 复核记录（不覆盖顶部当前状态）
+
+> 以下记录保留历次测试的原始结论，便于追溯失败和修复过程；当前唯一状态入口是本文顶部的“当前复核状态”和 M1-4 最新执行结果。
+
+### 2026-07-28 最新复核
 - [x] PostgreSQL、Redis、RocketMQ Proxy/Broker 进程停止、端口不可达、重启恢复 healthy 的本地演练；未删除数据卷。
 - [x] 新增长压测试 `M14AdmissionLongStressTest`，30 秒真实 Redis 基线采集 P50/P95/P99、active 峰值、容量拒绝和协调错误。
 - [x] 两个独立 Java JVM 在 18082/18083 启动并通过 liveness；正式多实例业务流量验证仍未完成。
@@ -278,25 +282,25 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - 仍未完成：真实云供应商价格表审计、浏览器完整真实 SSE E2E、生产级并发/队列防饥饿/多实例业务流量验证。
 - 最新阻塞：完整 Runtime 的真实 SiliconFlow composer 在 90 秒内超时，Eval 尚未启动；生产价格尚未配置，长压仍只有本地单 Redis 基线。
 
-### 8.5 2026-07-29 追加验证
+### 历史记录：2026-07-29 追加验证
 
 - [x] 价格治理代码：支持供应商级价格、供应商+模型级覆盖、价格版本和缺价 fail-closed；Python 单测 9 项通过。
 - [x] 长压本地基线：`M14AdmissionLongStressTest` 运行 120 秒通过，`operations=518`，`active_max=10`，`queued=196`，`capacity_rejected=1573694`，`P50=2.468ms`，`P95=112.731ms`，`P99=113.219ms`。这是本机单 Redis 基线，不是生产容量承诺。
 - [ ] 真实云完整编排：单次 Chat Completions 已成功，但完整 Runtime composer 在 90 秒内超时并记录 `MODEL_TIMEOUT`，未进入 Eval；需要供应商侧响应稳定性或专用短 prompt/timeout 策略后重新 gated 验证。
-## M1-4 2026-07-29 价格审计校正（最新）
+### 历史记录：2026-07-29 价格审计校正
 
 - [x] Python 价格解析支持供应商 + 模型级覆盖，兼容旧供应商级变量；每条 `run.model_usage` 记录实际命中的 `price_version`。
 - [x] `FOODMATE_MODEL_PRICE_AUDIT_REQUIRED=true` 时，云模型缺少非负输入/输出价格或价格版本会在发出请求前返回 `MODEL_PRICE_UNCONFIGURED`；本地 `deterministic:local` 不受影响。
 - [ ] SiliconFlow 当前模型价格尚未从官方价格表核准，因此没有擅自填入价格；生产价格表审计和账单抽样对账仍未完成。
 - [ ] 30 秒压力测试仍只是本地单 Redis 基线；长时间容量、P95/P99 目标和生产拓扑结论仍未完成。
-## M1-4 2026-07-29 最终本地验证补充
+### 历史记录：2026-07-29 最终本地验证补充
 
 - [x] SiliconFlow `deepseek-ai/DeepSeek-V4-Flash` 已完成真实 composer 与独立 Eval 调用：composer 33.561 秒、Eval 14.282 秒，两个 request ID、Token、价格版本与成本均已记录。该次 Eval 返回拒绝并安全降级，证明 Gate 生效；不把拒绝结果伪装成通过。
 - [x] 价格表采用用户提供的 SiliconFlow 控制台数值：普通输入 ¥1.000/M Token、缓存命中输入 ¥0.020/M Token、输出 ¥2.000/M Token，版本为 `siliconflow-console-2026-07-29`。运行时支持缓存输入独立计价，并已开启缺价 fail-closed。
 - [x] `M14AdmissionLongStressTest` 重新运行 120 秒通过：579 次准入、`active_max=16`、0 次协调错误、P50 2.513ms、P95 136.629ms、P99 137.273ms。该结果只代表本机 Docker Redis 基线，不构成生产容量承诺。
 - [x] 两个独立 Java JVM (`18080`、`18081`) 共享 PostgreSQL/Redis 验证：A 注册/登录与写消息，B 创建会话并读取同一消息，跨实例业务数据一致。
 - [ ] 生产结论仍需接近生产的部署资源、持续更长时段负载、业务 Agent 全链路并发和故障期间的恢复指标；不能由本地单机结果替代。
-## 2026-08-01 本轮执行裁决（以本节覆盖旧状态）
+### 历史记录：2026-08-01 本轮执行裁决
 
 ### 已完成并有验证证据
 
@@ -318,7 +322,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [ ] 生产 Eval 质量闭环：本地 Golden 与运行时指标已完成，仍需固定版本的人工校准样本、通过率/降级率告警和统一指标存储后才能形成生产质量结论。
 
 本轮 Python 验证使用 `agent-runtime/.venv`，结果为 `51 passed, 1 skipped`。本地 deterministic 闭环通过不代表 M1-4 整体完成，M1-4 的发布门槛仍由上述未完成项决定。
-## 2026-08-01 Eval Gate 与迁移修正补充
+### 历史记录：2026-08-01 Eval Gate 与迁移修正补充
 
 - [x] Python 发布独立 `run.eval_decided` 质量门事件；Java 作为非终态事件写入 Inbox/SSE，正文仍在 Eval 通过后才发布。
 - [x] Eval 本地 Golden、Judge schema/provider fail-closed、安全降级、P95/P99 指标回归已用项目 `.venv` 执行：`56 passed, 1 skipped`。
@@ -326,7 +330,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] 修正并幂等执行 V12 迁移；此前运行中的旧进程曾在补列前报告 `runtime_event_inbox_v2.attempt` 缺失，重启后应以当前 schema 为准。
 - [ ] 生产 Eval 质量闭环仍未完成：需要固定 Prompt/模型/价格版本、人工 reviewed calibration、统一指标存储、通过/降级/失败告警和账单对账。
 
-## 2026-08-01 最新执行结果（覆盖本文件早期 M1-4 复核记录）
+### 历史记录：2026-08-01 最新执行结果
 
 ### 已完成并有本轮证据
 

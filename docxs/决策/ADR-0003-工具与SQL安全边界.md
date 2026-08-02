@@ -23,7 +23,7 @@ Python Runtime 只能发送 ToolProposal 或 SqlProposal，不能直接调用业
 
 ## 后果
 
-Java 需要实现工具注册/version、Policy、确认、参数校验、执行、结果脱敏、审计和幂等。SQL 需要 AST、只读限制、白名单、参数绑定、最大行数和 timeout 测试。Python 必须处理被拒绝、超时、重放和失败结果，而不是自行重试副作用。当前这些组件都尚未实现。
+Java 已实现本地 Proposal consumer、只读 SQL Guard、结果脱敏/审计、幂等 Inbox 和 Result producer；Python 只生成 Proposal 并处理拒绝、超时、重放和失败结果。完整业务 Tool Registry、写工具确认链路、生产 SQL 场景和更广泛的攻击回归仍未完成。
 
 ## 约束
 

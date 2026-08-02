@@ -1,8 +1,16 @@
 # FoodMate Agent 运行架构
 
-版本：v1.0 目标设计  
-维护基线：2026-07-26
-文档定位：本文是 Workflow、Agent 局部决策、人工审批、在线 Eval Gate 和退回规则的唯一架构依据。代码是否完成必须另查实现状态文档，不能根据本文推断。
+版本：v1.1 目标架构与实现对齐
+维护基线：2026-08-01
+文档定位：本文是 Workflow、Agent 局部决策、在线 Eval Gate 和退回规则的架构依据；目标能力与当前代码状态必须同时阅读本节的实现对齐说明和 M1-4 实现逻辑文档，不能只根据目标设计推断完成情况。
+
+## 当前实现对齐（2026-08-01）
+
+- 当前 Python 主执行图由 agent_core.py 的固定 WorkflowGraph 实现，状态边不可由模型动态增加；langgraph_adapter.py 是可选白名单编译适配层，未安装 LangGraph 时不会伪装成已安装。
+- 当前 Runtime 使用标准库 HTTP Handler，不是完整 FastAPI/Pydantic 目标工程；Java/Python 仍通过现有 V1 envelope、request_hash、event_seq 和 Inbox 交换事实。
+- 当前已实现本地 deterministic Composer、独立 Eval、预算动作、Redis checkpoint、RocketMQ Event/Proposal/Result、Tool Result 回注、Java 恢复入口和浏览器 SSE；RAG、完整业务 Tool、生产级长压、多实例业务流量和真实云长稳仍未完成。
+- 当前没有实际审核人员。高风险 request_review 不进入 waiting_review，而是安全降级、提示医生或注册营养师并记录原因。Human Approval 仍作为未来具备审核人员后的目标架构能力保留。
+- 当前代码默认使用 deterministic:local；云模型、真实价格和 Judge 必须显式配置，生产价格审计和人工校准尚未完成。
 
 ## 1. 架构结论
 
@@ -47,7 +55,7 @@ Python checkpoint 保存当前 dispatch 的节点、计划版本、循环预算�
 3. 缺少必要参数时进入 `Clarification`，由 Java 将 AgentRun 置为 `waiting_user`。
 4. 简单且无工具任务可走 `Direct Compose`；复杂任务进入 `Planner`。
 5. `Execution Engine` 按计划选择 RAG、Model 或向 Java 提交 Tool/SQL proposal。
-6. 高风险 proposal 经 Java Policy 判定后进入 `Human Approval`。
+6. 目标架构中高风险 proposal 可经 Java Policy 进入 `Human Approval`；当前无人审核时不进入该节点，而按第 15 节安全降级。
 7. 每个执行结果先经过 `Step Validator`，再由 `Reflector` 决定继续、有限重试、重规划或降级。
 8. `Answer Composer` 只使用已验证事实、引用和明确失败信息生成候选答案。
 9. `Final Eval Gate` 评价候选答案与轨迹，只有 `pass` 才允许完成。
@@ -356,7 +364,7 @@ Run A -> waiting_user
 
 ### 15.2 当前没有人工审核人员
 
-当前 `FOODMATE_AGENT_HUMAN_REVIEW_ENABLED=false`，不新增 `waiting_review`：
+当前代码没有真实审核人员，不新增 `waiting_review`：
 
 ```text
 request_review
@@ -445,11 +453,11 @@ M1 不引入 `pgvector`。当前使用 PostgreSQL 结构化过滤和确定性排
 
 ### 16.8 当前实现边界
 
-当前已实现最近 8 条消息、结构化摘要（goals/constraints/decisions/open_questions/source_message_ids）、摘要版本/CAS、候选写入、Java 基础校验和用户管理接口；计划型记忆自动分配 7 天 TTL，临时型记忆自动分配 24 小时 TTL，过期记录不会参与冲突判断或 Context 注入。按意图检索、衰减、删除防再生以及记忆变更后的完整派生失效仍未实现。配置默认值以[配置指南](../项目/配置指南.md#56-上下文会话摘要与记忆)为准。
+当前已实现最近 8 条消息、结构化摘要（goals/constraints/decisions/open_questions/source_message_ids）、摘要版本/CAS、候选写入、Java 基础校验和用户管理接口；计划型记忆自动分配 7 天 TTL，临时型记忆自动分配 24 小时 TTL，过期记录不会参与冲突判断或 Context 注入。消息更正/删除后的最小摘要失效与重建已接入；按意图精细检索、衰减、删除防再生和完整缓存传播仍未实现。配置默认值以[配置指南](../项目/配置指南.md#56-上下文会话摘要与记忆)为准。
 
 ## 17. Checkpoint 与 LangGraph
 
-Python 内部 Workflow 使用 LangGraph 承载节点图、条件边、中断和恢复；Java AgentRun 状态机仍为业务权威。
+Python 当前以 `agent_core.py` 的固定 `WorkflowGraph` 承载节点图、条件边、中断和恢复；`langgraph_adapter.py` 只在依赖显式安装时编译同一白名单图。Java AgentRun 状态机仍为业务权威。
 
 - checkpoint 使用独立 Redis namespace、AOF、TTL、大小限制和应用层加密。
 - 简单直接回答不强制 checkpoint；规划完成、工具结果确认、进入等待和 Eval 前后保存安全恢复点。

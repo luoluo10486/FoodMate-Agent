@@ -20,7 +20,7 @@ Java 在同一事务中创建 AgentRun、dispatch 和 dispatch outbox。
 
 Java 使用 PostgreSQL Dispatch Outbox 将 RunCommand 发布到 RocketMQ command topic；Python 通过 Redis Inbox 幂等消费。
 
-Python 确定性 stub 产生 run.accepted、run.routed、两段 run.answer_stream、run.completed，并经 Event Outbox 发布到 RocketMQ event topic。
+Python 默认 `deterministic:local` 产生 `run.accepted`、`run.routed`、`run.model_usage` 和 `run.eval_decided`；Eval 通过后才产生 `run.answer_stream`，最后发布 `run.completed`，全部经 Event Outbox 进入 RocketMQ event topic。
 
 Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入 PostgreSQL 事件 Inbox、AgentRun 投影和 SSE Outbox。
 
@@ -31,7 +31,7 @@ Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入
 ### 3.1 主链路
 
 - 真实 PostgreSQL 下已验证注册、创建会话、发送消息、创建 AgentRun、Java/Python 回调和 SSE。
-- 成功 run 的状态为 completed，事件 inbox 有 5 条事件，SSE outbox 有 5 条事件。
+- 成功 deterministic run 的状态为 `completed`；事件 Inbox/SSE Outbox 会按当前是否包含 Eval、模型用量和分片产生对应的连续事件，不能再用固定 5 条作为所有场景的断言。
 
 ### 3.2 取消
 
@@ -63,7 +63,7 @@ Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入
 - LangGraph 白名单图、独立 Eval、正文延迟发布、模型用量事件、Redis 并发与队列基线已实现并有测试证据。
 - 普通缺参 continuation 与 `superseded`、预算追加、恢复入口和 Eval 后交付已由 Java、Python 与前端共同落地。
 - 仍需在生产目标环境完成真实云长时间重复稳定性、长压容量结论、多实例业务流量、故障恢复指标和正式价格/账单审计。
-- 已实现最近 8 条消息、结构化摘要、摘要 CAS、计划型/临时型记忆 TTL 与过期过滤；按意图精细检索、删除防再生、派生摘要失效和完整 Java 恢复对账仍未实现。
+- 已实现最近 8 条消息、结构化摘要、摘要 CAS、计划型/临时型记忆 TTL 与过期过滤；消息更正/删除后的最小摘要失效与重建、Java 恢复对账已验证。按意图精细检索、删除防再生和完整缓存传播仍未实现。
 - 当前无人审核，`request_review` 只能安全降级，不建设 `waiting_review`。
 - 继续禁止 Python 直接访问业务数据库或绕过 Java 授权。
 

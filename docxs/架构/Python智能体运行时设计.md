@@ -1,14 +1,40 @@
 # FoodMate Python 智能体运行时设计
 
-版本：v1.0 目标设计
+版本：v1.1 实现对齐基线
 
-维护基线：2026-07-26
+维护基线：2026-08-01
 
 对应架构：[架构总览](./架构总览.md)、[Agent 运行架构](./Agent运行架构.md)、[Java 控制面工程设计](./Java控制面工程设计.md)
 
 对应契约：[双运行时内部契约 V1](../契约/双运行时内部契约V1.md)、[智能体行为与工具协议](../契约/智能体行为与工具协议.md)
 
-文档定位：本文定义 Python Agent Runtime 的目标工程边界和实现结构。当前仓库已有 `agent-runtime/` 确定性 stub，但 Router、Planner、Execution、Validator、Composer 和 Evaluation 尚未实现；下述目标结构不代表当前实现。Workflow 节点、在线 Eval Gate、循环预算和退回矩阵以[Agent 运行架构](./Agent运行架构.md)为唯一依据。
+文档定位：本文同时记录 Python Agent Runtime 的工程边界、当前实现结构和未来扩展方向。当前实现已经包含固定 Workflow、Router、Planner、Execution、Step Validator、Reflector、Composer、Eval、预算、Proposal/Result、Redis checkpoint 和 RocketMQ 适配；RAG 目前只有授权上下文边界和扩展位置，生产检索、完整业务 Tool/SQL 场景和生产级治理仍是后续能力。Workflow 节点、在线 Eval Gate、循环预算和退回矩阵以[Agent 运行架构](./Agent运行架构.md)为架构依据，实际完成状态以本文当前实现对齐小节和 M1-4 实现说明为准。
+
+## 当前实现对齐基线（2026-08-01）
+
+本文的“当前实现”只指仓库中已存在并有测试或本地 E2E 证据的代码；目标目录、目标架构和未来增强不会自动计入完成状态。
+
+### 已实现并完成本地验证
+
+- `agent_core.py` 提供固定的 `WorkflowGraph`、Router、Planner、Execution、Step Validator、Reflector、Composer、Eval 和终态处理；模型不能动态增加边或直接执行工具。
+- `runtime_server.py` 使用标准库 HTTP Handler、显式 JSON 校验和 Service JWT，不是已经迁移完成的 FastAPI/Pydantic 工程。
+- 默认 provider 为无凭证的 `deterministic:local`；OpenAI-compatible 云适配器、tier 路由、可重试 fallback、usage/cost/price version 记录和独立 Eval 调用已实现。真实云调用已有单次验证，但不代表长时间稳定性通过。
+- Redis Inbox/Outbox、CAS/TTL/可选加密 checkpoint、RocketMQ command/event/proposal/result、Tool/SQL Result 回注、Java 恢复入口和本地浏览器 SSE 闭环已有验证。
+- 最近 8 条原始消息、摘要更新、过期长期记忆过滤、记忆候选协议和来源元数据已经接入；Python 不持有 FoodMate PostgreSQL 业务凭据。
+- Eval Gate 已在正文发布前执行，运行时发布 `run.eval_decided` 元数据事件；Judge schema/provider/分数失败和高风险无人审核路径均 fail-closed 到安全降级。
+
+### 尚未完成的发布级能力
+
+- 生产 RAG 检索、完整业务 Tool/SQL 场景和统一生产 Trace/指标系统仍未完成。
+- 生产资源上的长时间压力、容量 P95/P99、队列防饥饿、多 Java 实例业务流量和进程级故障恢复指标仍未形成结论。
+- 真实云模型长时间重复稳定性、正式供应商价格核准、账单抽样对账和成本异常告警仍未完成。
+- 生产 Eval 还需要固定 Prompt/模型/价格版本、人工 reviewed calibration、统一指标存储和告警；本地 Golden/pytest 只构成回归基线。
+
+### 文档阅读规则
+
+- “已实现”表示代码存在；“已验证”表示有本地测试或 E2E 证据；“生产待办”表示不能用本地证据替代的发布门禁。
+- 下文的未来目录和 FastAPI/Pydantic 只表示职责演进方向，不应当被当作当前文件已经存在或当前运行时已经采用。
+
 
 ## 1. 运行时定位
 
@@ -21,10 +47,25 @@ FoodMate 只有两个受控运行时：
 
 跨运行时契约统一使用 `run_id`。它在 Java 数据库中映射为 `agent_runs.agent_run_id`；`agent_run_id` 只作为现有 V1 数据库列名或外部业务 API 资源字段存在，不进入 Python 内部契约模型。
 
-## 2. 目标目录
+## 2. 当前目录与未来扩展
+
+当前实际代码保持单一 Python 部署单元，目录如下：
+
+    agent-runtime/
+      agent_core.py          # Router、Planner、WorkflowGraph、Context、Budget、Composer、Eval、Proposal
+      runtime_server.py      # HTTP 接入、事件发布、执行线程、取消、checkpoint 和 Result 等待
+      model_provider.py      # deterministic 与 OpenAI-compatible Provider、tier、fallback、usage、成本
+      mq_runtime.py          # RocketMQ producer/consumer、Redis Inbox/Outbox、Redis checkpoint
+      recovery_protocol.py   # checkpoint digest 和恢复命令校验
+      langgraph_adapter.py   # 可选 LangGraph 白名单适配层
+      proposal_protocol.py   # Tool/SQL Proposal 校验
+      eval/                  # Golden、Judge、校准样本和运行时指标
+      tests/                 # Python 单测、契约测试和真实适配器测试
+
+未来拆分目录如下，当前仅作为职责演进参考，不应被当作已经存在的代码路径：
 
 ```text
-agent-runtime/                         # 已有 M1-3 stub；下列为 M1-4 目标内部结构
+agent-runtime/                         # 未来按职责拆分时的单一部署单元
   pyproject.toml
   src/foodmate_agent/
     main.py                            # FastAPI app 与生命周期
@@ -108,9 +149,9 @@ agent-runtime/                         # 已有 M1-3 stub；下列为 M1-4 目�
     evaluation/
 ```
 
-目录只表达目标职责，不要求当前 stub 预建空包。首次创建正式编排工程时应保持单一 Python 部署单元，不预先拆分 RAG、模型或评测微服务。内部状态图固定使用 LangGraph，但 LangGraph checkpoint、事件和 memory 不能成为 Java 业务真值。
+下方目录只表达未来职责，不要求当前代码预建空包。即使后续拆分，也保持单一 Python 部署单元，不预先拆分 RAG、模型或评测微服务。LangGraph checkpoint、事件和 memory 不能成为 Java 业务真值。
 
-## 3. FastAPI 与 Pydantic 边界
+## 3. HTTP/JSON 与 Service JWT 边界（当前实现）
 
 ### 3.1 内部 HTTP 入口
 
@@ -123,19 +164,17 @@ agent-runtime/                         # 已有 M1-3 stub；下列为 M1-4 目�
 
 Python 通过 Java 的内部事件入口回传 `RunEvent`，并通过 Java Tool/SQL Gateway 提交 `ToolProposal` 或 `SqlProposal`、接收 `ToolResult` 或 `SqlResult`。具体字段以[双运行时内部契约 V1](../契约/双运行时内部契约V1.md)为唯一依据。
 
-### 3.2 Pydantic v2 约束
+### 3.2 当前 JSON 与契约约束
 
-- 所有跨运行时 DTO 使用 Pydantic v2 `BaseModel`，`extra="forbid"`；V1 不静默接收未知字段。
-- 字段名固定为 `snake_case`，时间固定为带时区 RFC 3339 UTC，ID 在 JSON 中均为字符串。
-- 命令、事件、Proposal、Result 和 RuntimeError 按内部契约规定的字段集执行 RFC 8785 JCS + SHA-256；`request_id/trace_id` 是传输追踪字段，不进入幂等摘要。
-- `schema_version` 必须精确为受支持版本；不兼容时返回 `RUNTIME_VERSION_UNSUPPORTED`。
-- `deadline_at` 在入站校验后立即比较当前 UTC 时间，过期命令不得启动新模型、工具或 SQL 调用。
-- API 层只做认证、契约校验、deadline 和幂等入口，不承载规划或模型逻辑。
-- OpenAPI 仅作为生成和联调产物；Java/Python 双端必须用同一组 JSON Schema golden fixtures 做契约测试。
+- 当前 Handler 使用标准库 JSON 解析和显式必填字段检查；未采用 FastAPI/Pydantic 运行时模型。
+- 当前 HTTP 层检查 dispatch/cancel 路径、Service JWT、X-Contract-Version、run_id、dispatch_id、attempt 和 deadline_at。
+- 事件 envelope 使用 schema_version、event_id、request_hash、event_seq 和 payload；Java Inbox 负责业务侧顺序、幂等和状态投影。
+- API 层只做认证、契约入口、幂等和取消标记，不承载业务规划或数据库写入。
+- 未来引入 Pydantic 或完整 JSON Schema 时，必须先保持 V1 字段和错误码兼容，并补充 Java/Python 双端 fixture 测试。
 
 ### 3.3 服务身份
 
-FastAPI dependency 必须校验短期 Service JWT 的签名、`iss`、`aud`、`exp`、`nbf` 和 service scope。Java 到 Python 固定 `iss=foodmate-control-plane`、`aud=foodmate-agent-runtime`；Python 回调 Java 使用相反方向。用户身份和 scope 由 Java 按 `run_id` 派生，Python 请求体中的同名字段不能成为授权依据。
+当前 runtime_server.py 使用自有 EdDSA JWT 校验函数，检查 issuer、audience、scope、过期时间和 jti；本地开发可以通过配置关闭 Service JWT。Java 到 Python 固定 iss=foodmate-control-plane、aud=foodmate-agent-runtime。用户身份和 scope 仍由 Java 按 run_id 派生，Python 请求体中的同名字段不能成为授权依据。
 
 ## 4. 编排组件
 
@@ -171,7 +210,7 @@ Execution 采用有界 Plan-Act-Observe-Reflect：每一步有明确输入、输
 - 用户关闭页面只会断开 SSE，不会取消后台 Run；重新进入后由 Java SSE Outbox 按 `event_id/event_seq` 补发。用户主动取消才发布 CancelCommand。
 - 外部副作用绝不依据 checkpoint 直接重放。Python 先读取 checkpoint 中的 invocation 事实，再由 Java Tool Gateway/SQL Guard 的 Inbox 和幂等键裁决是否返回已有 Result、允许继续或拒绝。
 
-当前代码已具备 Redis checkpoint 的 CAS、TTL、加密和节点状态写入基础，并新增 Python 恢复契约校验：新 attempt 必须校验前一 dispatch、checkpoint version/digest、预算 revision、deadline 与已完成 invocation，且只允许从 `tool_wait/execution` 安全点恢复。Java 侧恢复命令生成、业务对账事实持久化及跨进程故障恢复 E2E 尚未完成，本节仍不能表述为完整恢复能力。
+当前代码已具备 Redis checkpoint 的 CAS、TTL、加密和节点状态写入，Python 恢复契约会校验前一 dispatch、checkpoint version/digest、预算 revision、deadline 与已完成 invocation，只允许从 tool_wait/execution 安全点恢复。Java 已有认证恢复入口、PostgreSQL Inbox 对账和新 dispatch attempt，本地 Python 重启恢复闭环已验证；生产故障期间的恢复指标和自动恢复触发器仍未完成。
 
 ### 5.1 运行状态
 
@@ -184,7 +223,7 @@ Python 维护的是单次 dispatch 的技术执行状态，Java 维护 `AgentRun
 - checkpoint 只能保存恢复编排所需的技术状态，不保存业务库凭据，不替代 `agent_runs`、`tool_calls`、`sql_query_audits` 或审计表。
 - 恢复前必须向 Java 对账当前终态、取消请求和已完成 invocation；不能仅凭本地 checkpoint 重放副作用。
 - checkpoint 配置必须与业务数据源完全分离，并设置保留期、加密和清理策略。
-- 当前目标实现选择 Redis checkpoint namespace，并要求 AOF、版本 CAS、TTL、大小限制和敏感字段应用层加密；以后只有恢复规模出现明确证据时才评估独立技术 PostgreSQL。
+- 当前代码使用 Redis checkpoint namespace、版本 CAS、TTL、大小限制和可选应用层加密；Redis AOF 和故障切换属于部署运维责任，不是 Python 代码自动保证。只有恢复规模出现明确证据时才评估独立技术 PostgreSQL。
 - 简单直接回答可以不写 checkpoint；多步骤、Tool/SQL、waiting_user、预算确认和 Eval 退回必须在关键安全节点写 checkpoint。
 
 ### 5.3 事件发送
@@ -237,7 +276,7 @@ Python 不读取 V1 `model_usage_logs` 来合成历史 `run.model_usage`，也�
 - checkpoint、Prompt、日志、Trace、指标和评测配置。
 - Workflow 预算：`FOODMATE_AGENT_MAX_STEP_RETRIES`、`FOODMATE_AGENT_MAX_REPLANS`、`FOODMATE_AGENT_MAX_ANSWER_REWRITES`、`FOODMATE_AGENT_MAX_TOTAL_STEPS` 和 `FOODMATE_AGENT_MAX_MODEL_CALLS`。
 
-Workflow 预算在 Runtime 启动时解析和校验，在接受 Run 时固化为不可变快照。checkpoint 必须保存该快照，恢复执行不得读取当前环境变量覆盖原值。默认值、单 Run 收紧规则和预算耗尽行为以[Agent 运行架构](./Agent运行架构.md)为准。
+Java 的 AgentRunBudgetDefaults 读取 Run 预算环境变量并在发送命令前固化 BudgetSnapshot；Python 从 RunCommand 读取快照，不自行扩大业务预算。checkpoint 保存该快照，恢复执行不得使用当前环境变量覆盖原值。上下文 token、Eval、模型 timeout 和 MQ 配置由 Python 在进程启动或调用时读取。
 
 并发、排队、四类超时、Token/成本、预算追加、模型路由、Eval、上下文、checkpoint、Trace 和反馈的完整环境变量及默认值以[配置指南](../项目/配置指南.md)为唯一配置说明。环境变量在进程启动时解析；改变环境变量需要受控重启，只影响新 Run，不能热修改已有 Run 的快照。
 
@@ -252,14 +291,14 @@ Workflow 预算在 Runtime 启动时解析和校验，在接受 Run 时固化为
 
 ## 9. 健康检查
 
-`live` 只验证进程、事件循环和基本线程池，不探测外部依赖。`ready` 验证：
+当前 live 返回进程存活和合约版本；ready 验证：
 
-- 配置和 Service JWT key set 可加载。
-- Prompt manifest、版本和摘要完整。
-- Java 控制面回调地址可解析，契约版本受支持。
-- 必需模型适配器已配置；可选供应商失败时按降级策略报告。
-- checkpoint backend 可用且 schema 兼容。
-- 未检测到业务库凭据。
+- checkpoint backend 状态。
+- Redis 状态（启用 Redis 时）。
+- RocketMQ event/proposal producer 状态。
+- RocketMQ command/result consumer 启动状态。
+- 进程内 Eval 指标快照。
+- 协调依赖不可用时返回 503/RUNTIME_COORDINATION_UNAVAILABLE，不继续假装 ready。
 
 健康响应不得泄露 Secret、供应商 token 或内部网络凭据。依赖退化通过组件状态和错误码表达，不把 `live` 与 `ready` 混用。
 
@@ -311,7 +350,7 @@ Workflow 预算在 Runtime 启动时解析和校验，在接受 Run 时固化为
 
 ### 12.3 回答事件
 
-Eval 通过后才把候选答案切为 `run.answer_stream`。默认每 150ms 或累计 2048 字节生成一个分片，两个阈值均由环境变量配置。时间或大小满足其一即切片；不得把每个模型 Token 作为独立 MQ 消息。
+Eval 通过后才生成 run.answer_stream。当前代码按 FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES 以 UTF-8 字节上限切片，默认 2048 字节；当前未实现 150ms 时间阈值和逐 Token 发布，不能把时间阈值写成已实现能力。
 
 ### 12.4 SQL Agent
 
@@ -319,9 +358,9 @@ Python 只消费脱敏、版本化 Schema Catalog，生成 SqlProposal 并等待
 
 ## 12. 测试与完成定义
 
-Python 工程后续实现时至少需要：
+当前运行时已使用标准库 Handler、`unittest`/`pytest` 和 Java 集成测试完成基础验收；未来迁移到 FastAPI/Pydantic 时，仍需保留同一契约和以下测试范围：
 
-1. Pydantic 单元测试：必填字段、枚举、未知字段、UTC 时间和 deadline。
+1. JSON/契约单元测试；迁移到 Pydantic 后补齐必填字段、枚举、未知字段、UTC 时间和 deadline。
 2. 双端契约测试：八类消息 golden JSON 在 Java DTO 与 Pydantic 双向通过，并验证每类 canonical digest、稳定重放与同 ID 不同 hash 冲突。
 3. 编排测试：追问、工具拒绝、SQL 拒绝、模型失败、重试、取消和终态竞争。
 4. 事件测试：重复、乱序、缺口、断线重放、`event_seq` 单调性和 `run.model_usage` 多 attempt 幂等。
@@ -329,4 +368,4 @@ Python 工程后续实现时至少需要：
 6. 恢复测试：checkpoint 恢复前与 Java 对账，不重复 Tool/SQL 副作用。
 7. Evaluation 回归：固定数据集、Prompt 版本、结构化输出和引用准确性。
 
-完成标准不是目录存在，而是 FastAPI/pytest 可在项目虚拟环境中启动和通过上述测试，并与 Java stub 完成 dispatch、事件、proposal、取消和错误闭环。
+本地闭环完成标准是当前 `runtime_server.py` 能在项目虚拟环境中启动，Python 测试通过，并与 Java 完成 dispatch、事件、proposal、取消、恢复和错误闭环。生产完成还必须额外满足本节“尚未完成的发布级能力”；未来迁移到 FastAPI/Pydantic 后仍需保持同一契约。

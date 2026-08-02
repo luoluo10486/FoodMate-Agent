@@ -56,7 +56,7 @@ RocketMQ 负责跨服务运输，Redis 负责业务调度，PostgreSQL 保存业
 
 ## 回答分片
 
-候选答案通过 Final Eval 后，Python 按可配置时间或大小切分 `run.answer_stream`，默认 150ms 或 2048 字节满足其一即形成分片。不得逐 Token 发布 MQ 消息。每个分片仍具有稳定 `event_id/event_seq/request_hash`。
+目标协议要求候选答案通过 Final Eval 后，Python 按可配置时间或大小切分 `run.answer_stream`，默认 150ms 或 2048 字节满足其一即形成分片。当前 Runtime 只实现默认 2048 字节的 UTF-8 切分，150ms 时间触发仍待实现；不得逐 Token 发布 MQ 消息。每个分片仍具有稳定 `event_id/event_seq/request_hash`。
 
 ## SQL Agent 边界
 
