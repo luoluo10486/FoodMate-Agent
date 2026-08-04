@@ -38,7 +38,7 @@ public class RuntimeClientConfiguration {
 
     /**
      * HTTP 兼容通道（M1-3）。transport=rocketmq 时不装配，由 {@link RuntimeRocketMqConfiguration} 提供唯一的 {@link
-     * V1RuntimeClient}： 配置指南 §5.9 规则 10 要求同一进程不能同时启用 HTTP 与 MQ 业务派发。
+     * RuntimeClientPort}： 配置指南 §5.9 规则 10 要求同一进程不能同时启用 HTTP 与 MQ 业务派发。
      */
     @Bean
     @ConditionalOnProperty(

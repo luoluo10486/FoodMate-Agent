@@ -1,7 +1,6 @@
 package com.foodmate.bootstrap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodmate.application.runtime.messaging.MqMessageHandler;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.application.runtime.processor.RuntimeEventMessageProcessor;
@@ -20,8 +19,8 @@ import org.springframework.context.annotation.Configuration;
 /**
  * RocketMQ 异步主通道装配（ADR-0005）。
  *
- * <p>只有 {@code foodmate.runtime.transport=rocketmq} 时才装配，此时本类提供的 {@link V1RuntimeClient} 会覆盖 {@link
- * RuntimeClientConfiguration} 的 HTTP 实现—— 配置指南 §5.9 规则 10 要求「同一进程不能同时启用 HTTP 与 MQ 业务派发」。
+ * <p>只有 {@code foodmate.runtime.transport=rocketmq} 时才装配，此时本类提供的 {@link RuntimeClientPort} 会覆盖
+ * {@link RuntimeClientConfiguration} 的 HTTP 实现—— 配置指南 §5.9 规则 10 要求「同一进程不能同时启用 HTTP 与 MQ 业务派发」。
  *
  * <p>Topic 与 consumer group 的合法性在 {@link RocketMqSettings} 构造时校验， 非法命名会让 Spring 装配直接失败，符合「非法配置使
  * readiness 失败」的架构规则。

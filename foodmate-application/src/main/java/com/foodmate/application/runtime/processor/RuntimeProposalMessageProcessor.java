@@ -10,8 +10,8 @@ import com.foodmate.application.runtime.service.ToolGatewayService;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 /** Proposal Topic 消费器：事务完成并发布 Result 后才 ACK，重复 Proposal 由业务幂等键隔离。 */
@@ -80,11 +80,15 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                         publisher.publish(
                                 new MessagePublisherPort.PublishRequest(
                                         resultTopic,
-                                        result.runId() == null ? context.messageId() : result.runId(),
+                                        result.runId() == null
+                                                ? context.messageId()
+                                                : result.runId(),
                                         payload,
                                         Map.of(
                                                 "foodmate_proposal_id",
-                                                result.proposalId() == null ? "" : result.proposalId())));
+                                                result.proposalId() == null
+                                                        ? ""
+                                                        : result.proposalId())));
                 log.info(
                         "Proposal result published: proposal_id={}, msg_id={}, send_status={}",
                         proposalId,

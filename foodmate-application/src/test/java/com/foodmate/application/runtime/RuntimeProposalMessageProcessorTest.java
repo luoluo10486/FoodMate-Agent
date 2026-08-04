@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 class RuntimeProposalMessageProcessorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
+
     @Test
     void resultPublishFailureReturnsRetryButCompletedInboxPreventsSecondSqlExecution()
             throws Exception {

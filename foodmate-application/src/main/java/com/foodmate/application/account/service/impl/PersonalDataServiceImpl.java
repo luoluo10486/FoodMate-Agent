@@ -1,20 +1,15 @@
 package com.foodmate.application.account.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.account.port.out.ObjectStoragePort;
 import com.foodmate.application.account.port.out.PersonalDataRepository;
 import com.foodmate.application.account.service.PersonalDataService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
-import io.minio.BucketExistsArgs;
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
-import io.minio.http.Method;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -26,27 +21,27 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PersonalDataServiceImpl implements PersonalDataService {
     private final PersonalDataRepository store;
-    private final MinioClient minio;
+    private final ObjectStoragePort storage;
     private final String bucket;
     private final com.foodmate.shared.id.IdGenerator ids;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public PersonalDataServiceImpl(
             ObjectProvider<PersonalDataRepository> store,
-            ObjectProvider<MinioClient> minio,
+            ObjectProvider<ObjectStoragePort> storage,
             ObjectProvider<com.foodmate.shared.id.IdGenerator> ids,
             @org.springframework.beans.factory.annotation.Value(
                             "${foodmate.storage.bucket:foodmate-private}")
                     String bucket) {
         this.store = store.getIfAvailable();
-        this.minio = minio.getIfAvailable();
+        this.storage = storage.getIfAvailable();
         this.ids = ids.getIfAvailable();
         this.bucket = bucket;
     }
 
     public Avatar uploadAvatar(
             long userId, String filename, String contentType, long size, InputStream input) {
-        if (store == null || minio == null)
+        if (store == null || storage == null)
             throw new IllegalStateException("avatar storage unavailable");
         String key =
                 "avatars/"
@@ -56,10 +51,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                         + "-"
                         + filename.replaceAll("[^A-Za-z0-9._-]", "_");
         try {
-            minio.putObject(
-                    PutObjectArgs.builder().bucket(bucket).object(key).stream(input, size, -1)
-                            .contentType(contentType)
-                            .build());
+            storage.put(bucket, key, input, size, contentType);
             store.replaceAvatars(userId);
             long id = ids.nextId();
             store.insertAvatar(id, userId, key, contentType, size);
@@ -72,7 +64,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
 
     public long uploadKnowledge(
             long userId, String filename, String contentType, long size, InputStream input) {
-        if (store == null || minio == null)
+        if (store == null || storage == null)
             throw new IllegalStateException("knowledge storage unavailable");
         long documentId = ids.nextId();
         String key =
@@ -83,14 +75,13 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                         + "-"
                         + filename.replaceAll("[^A-Za-z0-9._-]", "_");
         try {
-            if (!minio.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
-                minio.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
-            }
-            minio.putObject(
-                    PutObjectArgs.builder().bucket(bucket).object(key).stream(input, size, -1)
-                            .contentType(
-                                    contentType == null ? "application/octet-stream" : contentType)
-                            .build());
+            storage.ensureBucket(bucket);
+            storage.put(
+                    bucket,
+                    key,
+                    input,
+                    size,
+                    contentType == null ? "application/octet-stream" : contentType);
             store.insertKnowledge(documentId, filename, key, userId);
             return documentId;
         } catch (Exception e) {
@@ -101,11 +92,10 @@ public class PersonalDataServiceImpl implements PersonalDataService {
     public void deleteAvatar(long userId) {
         if (store == null) throw new IllegalStateException("avatar storage unavailable");
         List<String> keys = store.activeAvatarKeys(userId);
-        if (minio != null)
+        if (storage != null)
             for (String key : keys)
                 try {
-                    minio.removeObject(
-                            RemoveObjectArgs.builder().bucket(bucket).object(key).build());
+                    storage.delete(bucket, key);
                 } catch (Exception ignored) {
                 }
         store.deleteAvatars(userId);
@@ -148,20 +138,14 @@ public class PersonalDataServiceImpl implements PersonalDataService {
     }
 
     public String consumeExport(long userId, long jobId) {
-        if (store == null || minio == null) throw new IllegalStateException("export unavailable");
+        if (store == null || storage == null) throw new IllegalStateException("export unavailable");
         int updated = store.consumeExport(userId, jobId);
         if (updated != 1)
             throw new BusinessException(
                     ErrorCode.CONFLICT, "export is unavailable, expired, or already consumed");
         String key = store.exportObjectKey(jobId);
         try {
-            return minio.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(bucket)
-                            .object(key)
-                            .expiry(600)
-                            .build());
+            return storage.presignedGet(bucket, key, Duration.ofMinutes(10));
         } catch (Exception e) {
             throw new IllegalStateException("download link unavailable", e);
         }
@@ -170,7 +154,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
     @org.springframework.scheduling.annotation.Scheduled(
             fixedDelayString = "${foodmate.account.jobs-delay-ms:30000}")
     public synchronized void processJobs() {
-        if (store == null || minio == null) return;
+        if (store == null || storage == null) return;
         List<Long> exports = store.queuedExports(2);
         for (Long id : exports) processExport(id);
         List<Long> deletions = store.queuedDeletions(2);
@@ -197,11 +181,12 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                 zip.closeEntry();
             }
             String key = "exports/" + userId + "/" + jobId + ".zip";
-            minio.putObject(
-                    PutObjectArgs.builder().bucket(bucket).object(key).stream(
-                                    new ByteArrayInputStream(bytes.toByteArray()), bytes.size(), -1)
-                            .contentType("application/zip")
-                            .build());
+            storage.put(
+                    bucket,
+                    key,
+                    new ByteArrayInputStream(bytes.toByteArray()),
+                    bytes.size(),
+                    "application/zip");
             store.completeExport(jobId, key);
         } catch (Exception e) {
             store.failExport(jobId);
@@ -218,8 +203,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
             String objectDeleteFailure = null;
             for (String key : objectKeys) {
                 try {
-                    minio.removeObject(
-                            RemoveObjectArgs.builder().bucket(bucket).object(key).build());
+                    storage.delete(bucket, key);
                     deletedObjects++;
                 } catch (Exception exception) {
                     objectDeleteFailure = exception.getMessage();

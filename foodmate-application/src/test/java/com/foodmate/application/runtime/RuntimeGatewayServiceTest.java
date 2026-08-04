@@ -55,8 +55,7 @@ class RuntimeGatewayServiceTest {
                                 return java.util.stream.Stream.empty();
                             }
                         },
-                        new org.springframework.beans.factory.ObjectProvider<
-                                RuntimeGatewayPort>() {
+                        new org.springframework.beans.factory.ObjectProvider<RuntimeGatewayPort>() {
                             public RuntimeGatewayPort getObject(Object... args) {
                                 return null;
                             }
@@ -69,13 +68,11 @@ class RuntimeGatewayServiceTest {
                                 return null;
                             }
 
-                            public java.util.stream.Stream<RuntimeGatewayPort>
-                                    orderedStream() {
+                            public java.util.stream.Stream<RuntimeGatewayPort> orderedStream() {
                                 return java.util.stream.Stream.empty();
                             }
 
-                            public java.util.stream.Stream<RuntimeGatewayPort>
-                                    stream() {
+                            public java.util.stream.Stream<RuntimeGatewayPort> stream() {
                                 return java.util.stream.Stream.empty();
                             }
                         },
