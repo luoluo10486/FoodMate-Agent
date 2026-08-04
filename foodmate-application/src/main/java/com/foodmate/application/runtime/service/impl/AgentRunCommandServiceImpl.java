@@ -13,13 +13,12 @@ import com.foodmate.application.runtime.service.AgentRunCommandService;
 import com.foodmate.shared.conversation.enums.MessageRole;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1RunCommand;
+import com.foodmate.shared.runtime.V1RunSupersededEvent;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -106,60 +105,96 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         String requestId = "req_" + UUID.randomUUID().toString().replace("-", "");
         // 请求级 deadline 至少覆盖固化的执行预算，排队时间由独立 queue timeout 处理。
         Instant deadline = Instant.now().plusSeconds(budgetDefaults.executionTimeoutSeconds());
-        Map<String, Object> authorizedContext = new LinkedHashMap<>();
-        authorizedContext.put("session_id", Long.toString(sessionId));
-        authorizedContext.put("timezone", "Asia/Shanghai");
-        authorizedContext.put("locale", "zh-CN");
-        authorizedContext.put("tool_contract_version", "v1");
-        authorizedContext.put("recent_messages", store.recentMessages(sessionId).reversed());
+        List<V1RunCommand.RecentMessage> recentMessages =
+                store.recentMessages(sessionId).reversed().stream()
+                        .map(
+                                row ->
+                                        new V1RunCommand.RecentMessage(
+                                                row.messageId(),
+                                                row.role(),
+                                                row.content(),
+                                                row.sequenceNo()))
+                        .toList();
         // Context 只装配授权后的摘要和长期记忆；Python 不直接查询 FoodMate 数据库。
         AgentRunCommandRepository.SummarySnapshot summary = store.summary(sessionId);
-        if (summary != null) authorizedContext.put("session_summary", summary);
-        authorizedContext.put("long_term_memories", store.memories(userId));
+        V1RunCommand.SessionSummary sessionSummary =
+                summary == null
+                        ? null
+                        : new V1RunCommand.SessionSummary(
+                                summary.summaryId(),
+                                summary.summaryText(),
+                                summary.keyConstraints(),
+                                summary.coveredFromSequence(),
+                                summary.coveredToSequence(),
+                                summary.sourceMessageCount(),
+                                summary.promptVersion(),
+                                summary.contentDigest(),
+                                summary.version());
+        List<V1RunCommand.MemoryContext> longTermMemories =
+                store.memories(userId).stream()
+                        .map(
+                                memory ->
+                                        new V1RunCommand.MemoryContext(
+                                                memory.memoryId(),
+                                                memory.memoryType(),
+                                                memory.memoryKey(),
+                                                memory.memoryValue(),
+                                                memory.confidence(),
+                                                memory.scope()))
+                        .toList();
         // 仅预授权当前会话的最近消息只读查询；Python 只能提出 Proposal，不能自行拼接或执行 SQL。
-        authorizedContext.put(
-                "sql_read_request",
-                Map.of(
-                        "statement",
-                                "SELECT sequence_no,role,content FROM messages WHERE session_id="
-                                        + sessionId
-                                        + " AND is_deleted=FALSE ORDER BY sequence_no DESC LIMIT 8",
-                        "invocation_id", "context_messages_" + runId,
-                        "requires_confirmation", false));
-        Map<String, Object> runtimeOptions = new LinkedHashMap<>();
-        runtimeOptions.put("prompt_set_version", "foodmate-m1-4-deterministic-v1");
-        runtimeOptions.put("max_steps", budgetDefaults.maxTotalSteps());
-        runtimeOptions.put("stream_answer", true);
+        V1RunCommand.SqlReadRequest sqlReadRequest =
+                new V1RunCommand.SqlReadRequest(
+                        "SELECT sequence_no,role,content FROM messages WHERE session_id="
+                                + sessionId
+                                + " AND is_deleted=FALSE ORDER BY sequence_no DESC LIMIT 8",
+                        "context_messages_" + runId,
+                        false);
+        V1RunCommand.AuthorizedContext authorizedContext =
+                new V1RunCommand.AuthorizedContext(
+                        Long.toString(sessionId),
+                        "Asia/Shanghai",
+                        "zh-CN",
+                        "v1",
+                        recentMessages,
+                        sessionSummary,
+                        longTermMemories,
+                        sqlReadRequest);
+        V1RunCommand.BudgetSnapshot budgetSnapshot =
+                new V1RunCommand.BudgetSnapshot(
+                        budgetDefaults.maxTotalTokens(),
+                        budgetDefaults.maxCostCny(),
+                        budgetDefaults.maxStepRetries(),
+                        budgetDefaults.maxReplans(),
+                        budgetDefaults.maxAnswerRewrites(),
+                        budgetDefaults.maxTotalSteps(),
+                        budgetDefaults.maxModelCalls(),
+                        budgetDefaults.queueTimeoutSeconds(),
+                        budgetDefaults.executionTimeoutSeconds(),
+                        budgetDefaults.nodeTimeoutSeconds(),
+                        budgetDefaults.waitingUserTimeoutSeconds(),
+                        1,
+                        budgetDefaults.configVersion());
+        V1RunCommand.RuntimeOptions runtimeOptions =
+                new V1RunCommand.RuntimeOptions(
+                        "foodmate-m1-4-deterministic-v1",
+                        budgetDefaults.maxTotalSteps(),
+                        true,
+                        budgetSnapshot);
         // 将接受 Run 时的不可变预算快照随命令发送，Python 恢复时不得读取新环境变量覆盖它。
-        Map<String, Object> budgetSnapshot = new LinkedHashMap<>();
-        budgetSnapshot.put("max_total_tokens", budgetDefaults.maxTotalTokens());
-        budgetSnapshot.put("max_cost_cny", budgetDefaults.maxCostCny());
-        budgetSnapshot.put("max_step_retries", budgetDefaults.maxStepRetries());
-        budgetSnapshot.put("max_replans", budgetDefaults.maxReplans());
-        budgetSnapshot.put("max_answer_rewrites", budgetDefaults.maxAnswerRewrites());
-        budgetSnapshot.put("max_total_steps", budgetDefaults.maxTotalSteps());
-        budgetSnapshot.put("max_model_calls", budgetDefaults.maxModelCalls());
-        budgetSnapshot.put("queue_timeout_seconds", budgetDefaults.queueTimeoutSeconds());
-        budgetSnapshot.put("execution_timeout_seconds", budgetDefaults.executionTimeoutSeconds());
-        budgetSnapshot.put("node_timeout_seconds", budgetDefaults.nodeTimeoutSeconds());
-        budgetSnapshot.put(
-                "waiting_user_timeout_seconds", budgetDefaults.waitingUserTimeoutSeconds());
-        budgetSnapshot.put("revision", 1);
-        budgetSnapshot.put("config_version", budgetDefaults.configVersion());
-        runtimeOptions.put("budget_snapshot", budgetSnapshot);
         V1RunCommand.V1Message commandMessage =
                 new V1RunCommand.V1Message(Long.toString(message.messageId()), content, List.of());
         String requestHash =
                 digest(
-                        Map.of(
-                                "schema_version", "v1",
-                                "run_id", runIdText,
-                                "dispatch_id", dispatchId,
-                                "attempt", 1,
-                                "deadline_at", deadline,
-                                "message", commandMessage,
-                                "authorized_context", authorizedContext,
-                                "runtime_options", runtimeOptions));
+                        new V1RunCommand.RequestHashInput(
+                                "v1",
+                                runIdText,
+                                dispatchId,
+                                1,
+                                deadline,
+                                commandMessage,
+                                authorizedContext,
+                                runtimeOptions));
         V1RunCommand command =
                 new V1RunCommand(
                         "v1",
@@ -173,7 +208,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                         commandMessage,
                         authorizedContext,
                         runtimeOptions,
-                        Map.of());
+                        null);
         String payload = json(command);
         long dispatchRowId = ids.nextId();
         String fence = "fence_" + UUID.randomUUID().toString().replace("-", "");
@@ -212,7 +247,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                 "sse_" + ids.nextId(),
                 streamSeq,
                 parentRunId + ":superseded:" + continuationRunId,
-                json(Map.of("superseded_by_run_id", Long.toString(continuationRunId))));
+                json(new V1RunSupersededEvent(Long.toString(continuationRunId))));
         store.updateSseSequence(parentRunId, streamSeq);
     }
 
