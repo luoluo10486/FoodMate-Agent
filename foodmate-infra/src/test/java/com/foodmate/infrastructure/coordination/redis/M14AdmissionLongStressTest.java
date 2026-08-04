@@ -1,9 +1,10 @@
-package com.foodmate.application.runtime;
+package com.foodmate.infrastructure.coordination.redis;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.admission.impl.AgentAdmissionServiceImpl;
+import com.foodmate.application.runtime.admission.port.out.AdmissionCoordinationPort;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,7 +26,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-/** 在真实 Redis 上运行可配置的本地长压测试，输出准入延迟分位数和容量事实。 该测试默认关闭，避免普通单元测试意外产生长时间负载。 */
+/** Runs a configurable admission stress test against the Redis adapter. */
 @EnabledIfSystemProperty(named = "foodmate.redis-stress", matches = "true")
 class M14AdmissionLongStressTest {
     private LettuceConnectionFactory factory;
@@ -35,7 +36,6 @@ class M14AdmissionLongStressTest {
     void setUp() {
         factory = new LettuceConnectionFactory("localhost", 6380);
         factory.setPassword("foodmate-redis-change-me");
-        // 使用测试专用 logical DB，避免被运行中的 Java 服务续租任务干扰。
         factory.setDatabase(15);
         factory.afterPropertiesSet();
         redis = new StringRedisTemplate(factory);
@@ -138,7 +138,6 @@ class M14AdmissionLongStressTest {
         executor.shutdown();
         assertTrue(executor.awaitTermination(seconds + 15L, TimeUnit.SECONDS));
 
-        // 将仍在队列中的 permit 清掉，避免测试之间共享脏状态。
         for (String runId : new ArrayList<>(owned.keySet())) {
             instanceA.releaseAndPromote(runId);
             instanceB.releaseAndPromote(runId);
@@ -165,38 +164,39 @@ class M14AdmissionLongStressTest {
     }
 
     private AgentAdmissionService service() {
-        ObjectProvider<StringRedisTemplate> provider =
+        AdmissionCoordinationPort port = new RedisAdmissionCoordinationAdapter(redis);
+        ObjectProvider<AdmissionCoordinationPort> provider =
                 new ObjectProvider<>() {
                     @Override
-                    public StringRedisTemplate getIfAvailable() {
-                        return redis;
+                    public AdmissionCoordinationPort getIfAvailable() {
+                        return port;
                     }
 
                     @Override
-                    public StringRedisTemplate getIfUnique() {
-                        return redis;
+                    public AdmissionCoordinationPort getIfUnique() {
+                        return port;
                     }
 
                     @Override
-                    public StringRedisTemplate getIfAvailable(
-                            java.util.function.Supplier<StringRedisTemplate> s) {
-                        return redis;
+                    public AdmissionCoordinationPort getIfAvailable(
+                            java.util.function.Supplier<AdmissionCoordinationPort> s) {
+                        return port;
                     }
 
                     @Override
-                    public StringRedisTemplate getIfUnique(
-                            java.util.function.Supplier<StringRedisTemplate> s) {
-                        return redis;
+                    public AdmissionCoordinationPort getIfUnique(
+                            java.util.function.Supplier<AdmissionCoordinationPort> s) {
+                        return port;
                     }
 
                     @Override
-                    public StringRedisTemplate getObject(Object... args) {
-                        return redis;
+                    public AdmissionCoordinationPort getObject(Object... args) {
+                        return port;
                     }
 
                     @Override
-                    public StringRedisTemplate getObject() {
-                        return redis;
+                    public AdmissionCoordinationPort getObject() {
+                        return port;
                     }
                 };
         return new AgentAdmissionServiceImpl(provider, true, 20, 2, 100, 30, 3600);

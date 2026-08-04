@@ -12,7 +12,7 @@ public interface AgentAdmissionService {
 
     void renewActiveLeases();
 
-    void requireRedis();
+    void requireCoordination();
 
     boolean isActive(String runId);
 

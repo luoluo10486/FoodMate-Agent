@@ -1,10 +1,11 @@
-package com.foodmate.application.runtime;
+package com.foodmate.infrastructure.coordination.redis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.admission.impl.AgentAdmissionServiceImpl;
+import com.foodmate.application.runtime.admission.port.out.AdmissionCoordinationPort;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-/** 两个独立 Java 准入服务共享真实 Redis 时的上限、晋升和租约回收验证。 */
+/** Validates admission limits, promotion, and lease recovery against shared Redis. */
 @EnabledIfSystemProperty(named = "foodmate.redis-e2e", matches = "true")
 class M14AdmissionConcurrencyE2ETest {
     private LettuceConnectionFactory factory;
@@ -33,7 +34,6 @@ class M14AdmissionConcurrencyE2ETest {
     void setUp() {
         factory = new LettuceConnectionFactory("localhost", 6380);
         factory.setPassword("foodmate-redis-change-me");
-        // 使用测试专用 logical DB，避免被运行中的 Java 服务续租任务干扰。
         factory.setDatabase(15);
         factory.afterPropertiesSet();
         redis = new StringRedisTemplate(factory);
@@ -172,7 +172,7 @@ class M14AdmissionConcurrencyE2ETest {
     }
 
     private AgentAdmissionService service(
-            ObjectProvider<StringRedisTemplate> provider,
+            ObjectProvider<AdmissionCoordinationPort> provider,
             int global,
             int user,
             int queue,
@@ -187,26 +187,27 @@ class M14AdmissionConcurrencyE2ETest {
         if (keys != null && !keys.isEmpty()) redis.delete(keys);
     }
 
-    private static ObjectProvider<StringRedisTemplate> provider(StringRedisTemplate value) {
+    private static ObjectProvider<AdmissionCoordinationPort> provider(StringRedisTemplate value) {
+        AdmissionCoordinationPort port = new RedisAdmissionCoordinationAdapter(value);
         return new ObjectProvider<>() {
-            public StringRedisTemplate getObject(Object... args) {
-                return value;
+            public AdmissionCoordinationPort getObject(Object... args) {
+                return port;
             }
 
-            public StringRedisTemplate getIfAvailable() {
-                return value;
+            public AdmissionCoordinationPort getIfAvailable() {
+                return port;
             }
 
-            public StringRedisTemplate getIfUnique() {
-                return value;
+            public AdmissionCoordinationPort getIfUnique() {
+                return port;
             }
 
-            public Stream<StringRedisTemplate> orderedStream() {
-                return Stream.of(value);
+            public Stream<AdmissionCoordinationPort> orderedStream() {
+                return Stream.of(port);
             }
 
-            public Stream<StringRedisTemplate> stream() {
-                return Stream.of(value);
+            public Stream<AdmissionCoordinationPort> stream() {
+                return Stream.of(port);
             }
         };
     }
