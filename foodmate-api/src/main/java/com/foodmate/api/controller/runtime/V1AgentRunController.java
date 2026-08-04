@@ -6,7 +6,6 @@ import com.foodmate.api.request.runtime.CancelRequest;
 import com.foodmate.api.request.runtime.RecoveryRequest;
 import com.foodmate.api.response.runtime.RunView;
 import com.foodmate.application.account.service.UserAccountService;
-import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository;
 import com.foodmate.application.runtime.service.RuntimeCancellationService;
 import com.foodmate.application.runtime.service.RuntimeRecoveryService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
@@ -103,7 +102,7 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
         }
         return ApiResponse.success(
                 recovery.recover(
-                        new RuntimeRecoveryRepository.RecoveryRequest(
+                        new RuntimeRecoveryService.RecoveryCommand(
                                 current.userId(),
                                 parsedRunId,
                                 body.checkpointVersion(),

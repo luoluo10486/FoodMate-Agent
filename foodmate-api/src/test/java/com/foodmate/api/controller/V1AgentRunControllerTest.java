@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.foodmate.api.advice.GlobalExceptionHandler;
 import com.foodmate.api.controller.runtime.V1AgentRunController;
 import com.foodmate.application.account.service.UserAccountService;
-import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository;
 import com.foodmate.application.runtime.service.BudgetExtensionService;
 import com.foodmate.application.runtime.service.RuntimeCancellationService;
 import com.foodmate.application.runtime.service.RuntimeRecoveryService;
@@ -73,8 +72,8 @@ class V1AgentRunControllerTest {
                 .andExpect(jsonPath("$.data.dispatch_id", is("d-new")))
                 .andExpect(jsonPath("$.data.attempt", is(2)));
 
-        ArgumentCaptor<RuntimeRecoveryRepository.RecoveryRequest> request =
-                ArgumentCaptor.forClass(RuntimeRecoveryRepository.RecoveryRequest.class);
+        ArgumentCaptor<RuntimeRecoveryService.RecoveryCommand> request =
+                ArgumentCaptor.forClass(RuntimeRecoveryService.RecoveryCommand.class);
         verify(recovery).recover(request.capture());
         assertEquals(7L, request.getValue().userId());
         assertEquals(1L, request.getValue().runId());

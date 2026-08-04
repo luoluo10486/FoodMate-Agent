@@ -13,28 +13,34 @@ import java.time.Duration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PersonalDataServiceImpl implements PersonalDataService {
+    private static final Logger log = LoggerFactory.getLogger(PersonalDataServiceImpl.class);
+
     private final PersonalDataRepository store;
     private final ObjectStoragePort storage;
     private final String bucket;
     private final com.foodmate.shared.id.IdGenerator ids;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
 
     public PersonalDataServiceImpl(
             ObjectProvider<PersonalDataRepository> store,
             ObjectProvider<ObjectStoragePort> storage,
             ObjectProvider<com.foodmate.shared.id.IdGenerator> ids,
+            ObjectMapper mapper,
             @org.springframework.beans.factory.annotation.Value(
                             "${foodmate.storage.bucket:foodmate-private}")
                     String bucket) {
         this.store = store.getIfAvailable();
         this.storage = storage.getIfAvailable();
         this.ids = ids.getIfAvailable();
+        this.mapper = mapper;
         this.bucket = bucket;
     }
 
@@ -158,6 +164,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                     "application/zip");
             store.completeExport(jobId, key);
         } catch (Exception e) {
+            log.error("account export failed: jobId={}, userId={}", jobId, userId, e);
             store.failExport(jobId);
         }
     }

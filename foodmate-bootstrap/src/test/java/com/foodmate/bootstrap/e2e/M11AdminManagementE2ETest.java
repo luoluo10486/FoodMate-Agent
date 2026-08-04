@@ -138,7 +138,7 @@ class M11AdminManagementE2ETest {
                         new HttpEntity<>(multipart, multipartHeaders),
                         String.class);
         assertEquals(200, upload.getStatusCode().value(), upload.getBody());
-        long uploadedId = json.readTree(upload.getBody()).path("data").path("documentId").asLong();
+        long uploadedId = json.readTree(upload.getBody()).path("data").path("document_id").asLong();
         String storageKey =
                 jdbc.queryForObject(
                         "SELECT storage_key FROM knowledge_documents WHERE document_id=?",

@@ -13,6 +13,7 @@ import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.Check
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryRequest;
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryRun;
 import com.foodmate.application.runtime.service.RuntimeRecoveryService;
+import com.foodmate.application.runtime.service.RuntimeRecoveryService.RecoveryCommand;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.enums.RunStatus;
 import java.security.MessageDigest;
@@ -53,8 +54,15 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
 
     @Transactional
     @Override
-    public RecoveryResult recover(RecoveryRequest request) {
+    public RecoveryResult recover(RecoveryCommand command) {
         if (store == null) throw error("RUNTIME_UNAVAILABLE", "database is not configured");
+        RecoveryRequest request =
+                new RecoveryRequest(
+                        command.userId(),
+                        command.runId(),
+                        command.checkpointVersion(),
+                        command.checkpointDigest(),
+                        command.completedInvocationIds());
         if (request.checkpointVersion() < 1
                 || blank(request.checkpointDigest())
                 || request.checkpointDigest().length() > 71)
@@ -151,7 +159,7 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
         if (checkpoint == null)
             throw error("RECOVERY_CHECKPOINT_NOT_FOUND", "no Java-acknowledged checkpoint exists");
         return recover(
-                new RecoveryRequest(
+                new RecoveryCommand(
                         userId,
                         runId,
                         checkpoint.version(),

@@ -3,11 +3,11 @@ package com.foodmate.infrastructure.persistence.knowledge.adapter;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.infrastructure.persistence.knowledge.KnowledgeMapper;
 import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@ConditionalOnBean(KnowledgeMapper.class)
+@Profile("local")
 public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     private final KnowledgeMapper mapper;
 

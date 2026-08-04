@@ -27,6 +27,26 @@ class ModuleDependencyArchTest {
                             "com.foodmate.worker..");
 
     @ArchTest
+    static final ArchRule applicationMustNotDependOnApi =
+            noClasses()
+                    .that()
+                    .resideInAPackage("com.foodmate.application..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAPackage("com.foodmate.api..");
+
+    @ArchTest
+    static final ArchRule apiControllersMustUseApplicationContracts =
+            noClasses()
+                    .that()
+                    .resideInAPackage("com.foodmate.api.controller..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage(
+                            "com.foodmate.application..service.impl..",
+                            "com.foodmate.application..port.out..");
+
+    @ArchTest
     static final ArchRule useCasesMustNotBypassInfrastructurePorts =
             noClasses()
                     .that()

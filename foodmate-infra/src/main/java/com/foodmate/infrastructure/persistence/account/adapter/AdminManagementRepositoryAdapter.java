@@ -5,11 +5,11 @@ import com.foodmate.infrastructure.persistence.account.AdminManagementMapper;
 import com.foodmate.shared.account.enums.UserStatus;
 import com.foodmate.shared.admin.enums.RestorableResourceType;
 import com.foodmate.shared.runtime.enums.ToolStatus;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@ConditionalOnBean(AdminManagementMapper.class)
+@Profile("local")
 public class AdminManagementRepositoryAdapter implements AdminManagementRepository {
     private final AdminManagementMapper mapper;
 

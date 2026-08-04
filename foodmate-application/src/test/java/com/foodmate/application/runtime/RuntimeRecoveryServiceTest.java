@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository;
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.CheckpointFact;
-import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryRequest;
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryRun;
 import com.foodmate.application.runtime.service.RuntimeRecoveryService;
 import com.foodmate.application.runtime.service.impl.RuntimeRecoveryServiceImpl;
@@ -69,7 +68,8 @@ class RuntimeRecoveryServiceTest {
                 new RuntimeRecoveryServiceImpl(provider, ids, admission, 10);
         RuntimeRecoveryService.RecoveryResult result =
                 service.recover(
-                        new RecoveryRequest(7L, 1L, 4, "sha256:checkpoint", List.of("inv-1")));
+                        new RuntimeRecoveryService.RecoveryCommand(
+                                7L, 1L, 4, "sha256:checkpoint", List.of("inv-1")));
 
         assertEquals("1", result.runId());
         assertEquals(2, result.attempt());
@@ -184,7 +184,7 @@ class RuntimeRecoveryServiceTest {
                                 com.foodmate.shared.runtime.RuntimeException.class,
                                 () ->
                                         service.recover(
-                                                new RecoveryRequest(
+                                                new RuntimeRecoveryService.RecoveryCommand(
                                                         7L, 1L, 1, "sha256:x", List.of())))
                         .code());
     }
