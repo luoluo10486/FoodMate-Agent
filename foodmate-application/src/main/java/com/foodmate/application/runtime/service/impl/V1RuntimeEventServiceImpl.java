@@ -1,7 +1,9 @@
 package com.foodmate.application.runtime.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.conversation.service.MemoryCandidateService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository;
@@ -101,12 +103,14 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
             // 终态后不允许任何状态回退；superseded 等 Java 侧终态同样受保护。
             store.updateRun(runId, status, result);
             if (RunStatus.COMPLETED.code().equals(status)) {
-                Object resultType = readPayload(result).get("result_type");
+                JsonNode resultPayload = readPayload(result);
+                String resultType = resultPayload.path("result_type").asText(null);
                 if ("normal".equals(resultType) || "safety_degraded".equals(resultType)) {
-                    store.setResultType(runId, resultType.toString());
+                    store.setResultType(runId, resultType);
                 }
-                persistAssistantMessage(runId, readPayload(result));
-                if (memories != null) memories.persistFromCompletedRun(runId, readPayload(result));
+                persistAssistantMessage(runId, resultPayload);
+                if (memories != null)
+                    memories.persistFromCompletedRun(runId, completedRunPayload(resultPayload));
             }
         } else {
             store.touchRun(runId);
@@ -278,12 +282,11 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> readPayload(String value) {
+    private JsonNode readPayload(String value) {
         try {
-            return mapper.readValue(value, Map.class);
+            return mapper.readTree(value);
         } catch (JsonProcessingException e) {
-            return Map.of();
+            return mapper.createObjectNode();
         }
     }
 
@@ -323,22 +326,17 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
     }
 
     private void persistModelUsage(long runId, V1RunEvent event) {
-        Map<String, Object> payload = event.payload();
-        Map<String, Object> usage =
-                payload.get("usage") instanceof Map<?, ?> value
-                        ? (Map<String, Object>) value
-                        : new HashMap<>();
+        JsonNode payload = event.payload();
+        ObjectNode usage =
+                payload.path("usage").isObject()
+                        ? payload.path("usage").deepCopy()
+                        : mapper.createObjectNode();
         // usage_json 同时保留供应商 attempt 和价格版本，便于事后按原始计价配置审计成本。
-        usage = new HashMap<>(usage);
-        usage.put("model_call_id", payload.get("model_call_id"));
-        usage.put("provider_attempt_id", payload.get("provider_attempt_id"));
-        usage.put("provider_request_id", payload.get("provider_request_id"));
-        usage.put("price_version", payload.get("price_version"));
-        Map<String, Object> cost =
-                payload.get("cost") instanceof Map<?, ?> value
-                        ? (Map<String, Object>) value
-                        : Map.of();
-        Object amount = cost.get("amount");
+        copyField(usage, payload, "model_call_id");
+        copyField(usage, payload, "provider_attempt_id");
+        copyField(usage, payload, "provider_request_id");
+        copyField(usage, payload, "price_version");
+        JsonNode amount = payload.path("cost").path("amount");
         store.insertUsage(
                 ids.nextId(),
                 event,
@@ -347,13 +345,15 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
                 string(payload.get("model_name")),
                 json(usage),
                 number(payload.get("latency_ms")),
-                amount == null ? null : new java.math.BigDecimal(amount.toString()),
-                string(payload.getOrDefault("status", "success")));
+                amount.isMissingNode() || amount.isNull()
+                        ? null
+                        : new java.math.BigDecimal(amount.asText()),
+                payload.path("status").asText("success"));
     }
 
-    private void persistAssistantMessage(long runId, Map<String, Object> result) {
-        Object answer = result.get("answer");
-        if (!(answer instanceof String text) || text.isBlank()) return;
+    private void persistAssistantMessage(long runId, JsonNode result) {
+        String text = string(result.get("answer"));
+        if (text == null || text.isBlank()) return;
         if (store.assistantExists(runId)) return;
         RunOwner owner = store.lockOwner(runId);
         if (owner == null) return;
@@ -362,13 +362,59 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         store.touchSession(owner.sessionId());
     }
 
-    private static String string(Object value) {
-        return value == null ? null : value.toString();
+    private static String string(JsonNode value) {
+        return value == null || value.isNull() || value.isMissingNode() ? null : value.asText();
     }
 
-    private static Integer number(Object value) {
+    private static Integer number(JsonNode value) {
         try {
-            return value == null ? null : Integer.valueOf(value.toString());
+            return value == null || value.isNull() || value.isMissingNode()
+                    ? null
+                    : Integer.valueOf(value.asText());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static void copyField(ObjectNode target, JsonNode source, String field) {
+        JsonNode value = source.get(field);
+        target.set(
+                field,
+                value == null ? com.fasterxml.jackson.databind.node.NullNode.instance : value);
+    }
+
+    private MemoryCandidateService.CompletedRunPayload completedRunPayload(JsonNode payload) {
+        JsonNode rawCandidates = payload.get("memory_candidates");
+        if (rawCandidates == null || !rawCandidates.isArray())
+            return new MemoryCandidateService.CompletedRunPayload(List.of());
+        List<MemoryCandidateService.MemoryCandidate> candidates = new ArrayList<>();
+        for (JsonNode candidate : rawCandidates) {
+            if (!candidate.isObject()) continue;
+            List<String> sourceMessageIds = new ArrayList<>();
+            JsonNode rawIds = candidate.get("source_message_ids");
+            if (rawIds != null && rawIds.isArray()) {
+                for (JsonNode id : rawIds) {
+                    if (id.isTextual() && !id.asText().isBlank()) sourceMessageIds.add(id.asText());
+                }
+            }
+            candidates.add(
+                    new MemoryCandidateService.MemoryCandidate(
+                            string(candidate.get("memory_type")),
+                            string(candidate.get("memory_key")),
+                            candidate.get("memory_value"),
+                            decimal(candidate.get("confidence")),
+                            string(candidate.get("source")),
+                            string(candidate.get("scope")),
+                            sourceMessageIds));
+        }
+        return new MemoryCandidateService.CompletedRunPayload(candidates);
+    }
+
+    private static java.math.BigDecimal decimal(JsonNode value) {
+        try {
+            return value == null || value.isNull() || value.isMissingNode()
+                    ? null
+                    : new java.math.BigDecimal(value.asText());
         } catch (NumberFormatException ignored) {
             return null;
         }

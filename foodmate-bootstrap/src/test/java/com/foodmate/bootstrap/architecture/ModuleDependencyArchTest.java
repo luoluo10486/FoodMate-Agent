@@ -6,6 +6,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import java.util.Map;
 
 /** 模块依赖约束测试，防止分层边界被破坏。 */
 @AnalyzeClasses(packages = "com.foodmate", importOptions = ImportOption.DoNotIncludeTests.class)
@@ -45,6 +46,16 @@ class ModuleDependencyArchTest {
                     .resideInAnyPackage(
                             "com.foodmate.application..service.impl..",
                             "com.foodmate.application..port.out..");
+
+    @ArchTest
+    static final ArchRule apiBoundariesMustUseTypedPayloads =
+            noClasses()
+                    .that()
+                    .resideInAnyPackage(
+                            "com.foodmate.api.controller..", "com.foodmate.api.request..")
+                    .should()
+                    .dependOnClassesThat()
+                    .areAssignableTo(Map.class);
 
     @ArchTest
     static final ArchRule useCasesMustNotBypassInfrastructurePorts =

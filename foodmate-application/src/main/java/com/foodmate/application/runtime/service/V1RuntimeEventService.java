@@ -1,8 +1,8 @@
 package com.foodmate.application.runtime.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.foodmate.shared.runtime.V1RunEvent;
 import java.util.List;
-import java.util.Map;
 
 /** Validates, persists, and exposes acknowledged V1 runtime events. */
 public interface V1RuntimeEventService {
@@ -26,6 +26,6 @@ public interface V1RuntimeEventService {
             long streamSeq,
             String sseEventId,
             String eventType,
-            Map<String, Object> payload,
+            JsonNode payload,
             boolean terminal) {}
 }

@@ -1,6 +1,7 @@
 package com.foodmate.application.conversation.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.conversation.port.out.MemoryRepository;
 import com.foodmate.application.conversation.service.MemoryCandidateService;
@@ -8,7 +9,6 @@ import com.foodmate.application.conversation.service.SessionSummaryService;
 import com.foodmate.shared.id.IdGenerator;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,31 +27,27 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
         this.summaries = summaries;
     }
 
-    @SuppressWarnings("unchecked")
     @Transactional
     @Override
-    public void persistFromCompletedRun(long runId, Map<String, Object> payload) {
+    public void persistFromCompletedRun(long runId, CompletedRunPayload payload) {
         if (payload == null) return;
-        List<Map<String, Object>> candidates =
-                payload.get("memory_candidates") instanceof List<?> list
-                        ? (List<Map<String, Object>>) (List<?>) list
-                        : List.of();
+        List<MemoryCandidate> candidates = payload.memoryCandidates();
         if (candidates.isEmpty()) return;
         Long userId = store.findRunOwner(runId);
         if (userId == null) return;
         boolean persisted = false;
-        for (Map<String, Object> candidate : candidates) {
+        for (MemoryCandidate candidate : candidates) {
             if (!allowed(candidate)) continue;
-            String type = text(candidate.get("memory_type"), 32);
-            String key = text(candidate.get("memory_key"), 64);
-            String scope = text(candidate.get("scope"), 32);
-            BigDecimal confidence = decimal(candidate.get("confidence"));
+            String type = text(candidate.memoryType(), 32);
+            String key = text(candidate.memoryKey(), 64);
+            String scope = text(candidate.scope(), 32);
+            BigDecimal confidence = candidate.confidence();
             if (type == null
                     || key == null
                     || confidence == null
                     || confidence.signum() < 0
                     || confidence.compareTo(BigDecimal.ONE) > 0) continue;
-            String candidateJson = json(candidate.get("memory_value"));
+            String candidateJson = json(candidate.memoryValue());
             boolean conflict = store.hasDifferentValue(userId, type, key, candidateJson);
             store.insert(
                     new MemoryRepository.NewMemory(
@@ -61,7 +57,7 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
                             key,
                             candidateJson,
                             confidence,
-                            text(candidate.get("source"), 32),
+                            text(candidate.source(), 32),
                             scope,
                             conflict ? "conflict" : "confirmed"));
             persisted = true;
@@ -121,12 +117,11 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
         }
     }
 
-    private boolean allowed(Map<String, Object> candidate) {
+    private boolean allowed(MemoryCandidate candidate) {
         String text = String.valueOf(candidate).toLowerCase();
         // 医疗判断、预算确认和模型推测不能自动进入长期记忆。
         return !text.matches(".*(诊断|处方|疾病|药物|医疗|预算|审批|推测|猜测|diagnos|prescription|medication).*")
-                && candidate.get("source_message_ids") instanceof List<?> ids
-                && !ids.isEmpty();
+                && !candidate.sourceMessageIds().isEmpty();
     }
 
     private static String text(Object value, int max) {
@@ -135,17 +130,9 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
         return value.toString();
     }
 
-    private static BigDecimal decimal(Object value) {
+    private String json(JsonNode value) {
         try {
-            return value == null ? null : new BigDecimal(value.toString());
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
-    private String json(Object value) {
-        try {
-            return mapper.writeValueAsString(value == null ? Map.of() : value);
+            return mapper.writeValueAsString(value == null ? mapper.createObjectNode() : value);
         } catch (JsonProcessingException e) {
             return "{}";
         }

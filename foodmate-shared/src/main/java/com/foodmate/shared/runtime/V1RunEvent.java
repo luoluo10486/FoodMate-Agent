@@ -1,10 +1,8 @@
 package com.foodmate.shared.runtime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 
 /** V1 Python -> Java RunEvent envelope 的不可变 Java 表示。 */
@@ -20,7 +18,7 @@ public record V1RunEvent(
         @JsonProperty("request_hash") String requestHash,
         @JsonProperty("occurred_at") Instant occurredAt,
         @JsonProperty("event_type") String eventType,
-        Map<String, Object> payload) {
+        JsonNode payload) {
     public V1RunEvent {
         require(schemaVersion, "schemaVersion");
         require(runId, "runId");
@@ -31,12 +29,10 @@ public record V1RunEvent(
         require(requestHash, "requestHash");
         require(eventType, "eventType");
         Objects.requireNonNull(occurredAt, "occurredAt");
-        // Usage events intentionally contain nullable provider/cost fields; Map.copyOf rejects
-        // them.
         payload =
                 payload == null
-                        ? Map.of()
-                        : Collections.unmodifiableMap(new LinkedHashMap<>(payload));
+                        ? com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode()
+                        : payload.deepCopy();
         if (!"v1".equals(schemaVersion))
             throw new IllegalArgumentException("schemaVersion must be v1");
         if (attempt < 1 || eventSeq < 1)

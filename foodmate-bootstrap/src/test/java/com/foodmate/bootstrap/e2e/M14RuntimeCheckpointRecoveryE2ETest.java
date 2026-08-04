@@ -123,6 +123,6 @@ class M14RuntimeCheckpointRecoveryE2ETest {
                         "sha256:event-" + sequence,
                         Instant.now(),
                         type,
-                        payload));
+                        new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(payload)));
     }
 }

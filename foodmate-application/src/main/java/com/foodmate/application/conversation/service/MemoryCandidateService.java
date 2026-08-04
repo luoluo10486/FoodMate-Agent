@@ -1,13 +1,13 @@
 package com.foodmate.application.conversation.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 /** Validates and manages long-term memory candidates. */
 public interface MemoryCandidateService {
-    void persistFromCompletedRun(long runId, Map<String, Object> payload);
+    void persistFromCompletedRun(long runId, CompletedRunPayload payload);
 
     List<MemoryView> list(long userId);
 
@@ -16,6 +16,25 @@ public interface MemoryCandidateService {
     void delete(long userId, long memoryId);
 
     MemoryView confirm(long userId, long memoryId);
+
+    record CompletedRunPayload(List<MemoryCandidate> memoryCandidates) {
+        public CompletedRunPayload {
+            memoryCandidates = memoryCandidates == null ? List.of() : List.copyOf(memoryCandidates);
+        }
+    }
+
+    record MemoryCandidate(
+            String memoryType,
+            String memoryKey,
+            JsonNode memoryValue,
+            BigDecimal confidence,
+            String source,
+            String scope,
+            List<String> sourceMessageIds) {
+        public MemoryCandidate {
+            sourceMessageIds = sourceMessageIds == null ? List.of() : List.copyOf(sourceMessageIds);
+        }
+    }
 
     record MemoryView(
             long memoryId,
