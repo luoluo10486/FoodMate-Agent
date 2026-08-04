@@ -3,6 +3,7 @@ package com.foodmate.gateway;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.foodmate.shared.security.ServiceJwt;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;

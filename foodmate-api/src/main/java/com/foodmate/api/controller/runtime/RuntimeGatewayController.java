@@ -3,7 +3,7 @@ package com.foodmate.api.controller.runtime;
 import com.foodmate.application.runtime.recovery.RuntimeCheckpointRecoveryReconciler;
 import com.foodmate.application.runtime.service.RuntimeGatewayService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
-import com.foodmate.gateway.ServiceJwt;
+import com.foodmate.shared.security.ServiceJwt;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.RunCommand;

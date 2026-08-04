@@ -2,8 +2,9 @@ package com.foodmate.application.runtime.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.port.out.DeadLetterRepository;
+import com.foodmate.application.runtime.messaging.MqConsumeDecision;
+import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
 import com.foodmate.application.runtime.service.RuntimeDlqService;
-import com.foodmate.gateway.MqConsumeDecision;
 import com.foodmate.shared.id.IdGenerator;
 import java.util.List;
 import java.util.Map;

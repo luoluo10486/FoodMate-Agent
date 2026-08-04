@@ -1,11 +1,11 @@
 package com.foodmate.bootstrap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodmate.gateway.GatewayClient;
+import com.foodmate.application.runtime.port.out.RuntimeClientPort;
+import com.foodmate.application.runtime.port.out.RuntimeGatewayPort;
 import com.foodmate.gateway.HttpGatewayClient;
 import com.foodmate.gateway.UnavailableGatewayClient;
 import com.foodmate.gateway.V1HttpRuntimeClient;
-import com.foodmate.gateway.V1RuntimeClient;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(name = "foodmate.runtime.agent-base-url")
 public class RuntimeClientConfiguration {
     @Bean
-    GatewayClient gatewayClient(
+    RuntimeGatewayPort gatewayClient(
             @Value("${foodmate.runtime.agent-base-url}") URI baseUrl,
             @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
             @Value("${foodmate.runtime.service-jwt.java-private-key:}") String privateKey,
@@ -45,7 +45,7 @@ public class RuntimeClientConfiguration {
             name = "foodmate.runtime.transport",
             havingValue = "http",
             matchIfMissing = true)
-    V1RuntimeClient v1RuntimeClient(
+    RuntimeClientPort v1RuntimeClient(
             @Value("${foodmate.runtime.agent-base-url}") URI baseUrl,
             @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
             @Value("${foodmate.runtime.service-jwt.java-private-key:}") String privateKey,

@@ -1,4 +1,4 @@
-package com.foodmate.gateway;
+package com.foodmate.shared.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

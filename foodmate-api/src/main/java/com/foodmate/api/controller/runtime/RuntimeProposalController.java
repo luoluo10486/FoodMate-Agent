@@ -2,7 +2,7 @@ package com.foodmate.api.controller.runtime;
 
 import com.foodmate.api.request.runtime.RuntimeProposalRequest;
 import com.foodmate.application.runtime.service.ToolGatewayService;
-import com.foodmate.gateway.ServiceJwt;
+import com.foodmate.shared.security.ServiceJwt;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;

@@ -7,42 +7,26 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.messaging.MqConsumeDecision;
+import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
 import com.foodmate.application.runtime.port.out.InboxRepository;
+import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import com.foodmate.application.runtime.processor.RuntimeProposalMessageProcessor;
 import com.foodmate.application.runtime.service.ToolGatewayService;
-import com.foodmate.gateway.MqConsumeDecision;
-import com.foodmate.gateway.MqMessageHandler.MqMessageContext;
-import com.foodmate.gateway.RocketMqSettings;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.message.Message;
 import org.junit.jupiter.api.Test;
 
 class RuntimeProposalMessageProcessorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
-    private static final RocketMqSettings SETTINGS =
-            new RocketMqSettings(
-                    "localhost:9876",
-                    "command",
-                    "event",
-                    "proposal",
-                    "result",
-                    "java-events",
-                    "java-proposals",
-                    "java-producer",
-                    1000,
-                    3,
-                    3);
-
     @Test
     void resultPublishFailureReturnsRetryButCompletedInboxPreventsSecondSqlExecution()
             throws Exception {
         InboxRepository inbox = mock(InboxRepository.class);
         ToolGatewayService gateway = mock(ToolGatewayService.class);
-        DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        MessagePublisherPort publisher = mock(MessagePublisherPort.class);
         RuntimeProposalMessageProcessor processor =
-                new RuntimeProposalMessageProcessor(gateway, producer, SETTINGS, inbox);
+                new RuntimeProposalMessageProcessor(gateway, publisher, inbox, "result");
         String body = body("proposal-1", "sha256:one");
         var result =
                 new ToolGatewayService.ProposalResult(
@@ -50,7 +34,9 @@ class RuntimeProposalMessageProcessorTest {
         when(gateway.executeLegacy(any())).thenReturn(result);
         when(inbox.claim(eq("proposal-1"), eq("sha256:one"), eq(body))).thenReturn(1);
         when(inbox.complete(eq("proposal-1"), anyString())).thenReturn(1);
-        doThrow(new RuntimeException("broker down")).when(producer).send(any(Message.class));
+        doThrow(new RuntimeException("broker down"))
+                .when(publisher)
+                .publish(any(MessagePublisherPort.PublishRequest.class));
 
         assertEquals(MqConsumeDecision.RETRY, processor.handle(body, context()));
 
@@ -65,21 +51,22 @@ class RuntimeProposalMessageProcessorTest {
                                 "completed",
                                 "result_json",
                                 resultJson));
-        reset(producer);
-        when(producer.send(any(Message.class))).thenReturn(null);
+        reset(publisher);
+        when(publisher.publish(any(MessagePublisherPort.PublishRequest.class)))
+                .thenReturn(new MessagePublisherPort.PublishResult("message-1"));
 
         assertEquals(MqConsumeDecision.ACK, processor.handle(body, context()));
         verify(gateway, times(1)).executeLegacy(any());
-        verify(producer, times(1)).send(any(Message.class));
+        verify(publisher, times(1)).publish(any(MessagePublisherPort.PublishRequest.class));
     }
 
     @Test
     void sameProposalIdWithDifferentHashIsRejectedWithoutExecutingTool() {
         InboxRepository inbox = mock(InboxRepository.class);
         ToolGatewayService gateway = mock(ToolGatewayService.class);
-        DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        MessagePublisherPort publisher = mock(MessagePublisherPort.class);
         RuntimeProposalMessageProcessor processor =
-                new RuntimeProposalMessageProcessor(gateway, producer, SETTINGS, inbox);
+                new RuntimeProposalMessageProcessor(gateway, publisher, inbox, "result");
         when(inbox.claim(eq("proposal-1"), eq("sha256:changed"), anyString())).thenReturn(0);
         when(inbox.find("proposal-1"))
                 .thenReturn(
@@ -94,7 +81,7 @@ class RuntimeProposalMessageProcessorTest {
         assertEquals(
                 MqConsumeDecision.REJECT,
                 processor.handle(body("proposal-1", "sha256:changed"), context()));
-        verifyNoInteractions(gateway, producer);
+        verifyNoInteractions(gateway, publisher);
     }
 
     private static String body(String proposalId, String requestHash) {

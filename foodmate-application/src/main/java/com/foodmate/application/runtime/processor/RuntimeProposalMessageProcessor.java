@@ -1,42 +1,41 @@
 package com.foodmate.application.runtime.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.messaging.MqConsumeDecision;
+import com.foodmate.application.runtime.messaging.MqMessageHandler;
+import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
 import com.foodmate.application.runtime.port.out.InboxRepository;
+import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import com.foodmate.application.runtime.service.ToolGatewayService;
-import com.foodmate.gateway.MqConsumeDecision;
-import com.foodmate.gateway.MqMessageHandler;
-import com.foodmate.gateway.RocketMqSettings;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.common.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /** Proposal Topic 消费器：事务完成并发布 Result 后才 ACK，重复 Proposal 由业务幂等键隔离。 */
 @Service
-@ConditionalOnBean(DefaultMQProducer.class)
+@ConditionalOnBean(MessagePublisherPort.class)
 public class RuntimeProposalMessageProcessor implements MqMessageHandler {
     private static final Logger log =
             LoggerFactory.getLogger(RuntimeProposalMessageProcessor.class);
     private final ToolGatewayService gateway;
-    private final DefaultMQProducer producer;
-    private final RocketMqSettings settings;
+    private final MessagePublisherPort publisher;
+    private final String resultTopic;
     private final InboxRepository inbox;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     public RuntimeProposalMessageProcessor(
             ToolGatewayService gateway,
-            DefaultMQProducer producer,
-            RocketMqSettings settings,
-            InboxRepository inbox) {
+            MessagePublisherPort publisher,
+            InboxRepository inbox,
+            @Value("${foodmate.runtime.rocketmq.result-topic:foodmate-agent-result-v1}")
+                    String resultTopic) {
         this.gateway = gateway;
-        this.producer = producer;
-        this.settings = settings;
+        this.publisher = publisher;
         this.inbox = inbox;
+        this.resultTopic = resultTopic;
     }
 
     @Override
@@ -75,19 +74,22 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                                     result.errorCode() == null ? "" : result.errorCode(),
                                     "rows",
                                     result.rows()));
-            Message message =
-                    new Message(settings.resultTopic(), payload.getBytes(StandardCharsets.UTF_8));
-            message.setKeys(result.runId() == null ? context.messageId() : result.runId());
-            message.putUserProperty(
-                    "foodmate_proposal_id", result.proposalId() == null ? "" : result.proposalId());
             // Inbox 已经固化执行结果，但 Broker 尚未确认时必须 RETRY；下次消费会重发同一个 Result，不能再次执行工具。
             try {
-                SendResult sendResult = producer.send(message);
+                MessagePublisherPort.PublishResult published =
+                        publisher.publish(
+                                new MessagePublisherPort.PublishRequest(
+                                        resultTopic,
+                                        result.runId() == null ? context.messageId() : result.runId(),
+                                        payload,
+                                        Map.of(
+                                                "foodmate_proposal_id",
+                                                result.proposalId() == null ? "" : result.proposalId())));
                 log.info(
                         "Proposal result published: proposal_id={}, msg_id={}, send_status={}",
                         proposalId,
-                        sendResult == null ? null : sendResult.getMsgId(),
-                        sendResult == null ? null : sendResult.getSendStatus());
+                        published == null ? null : published.messageId(),
+                        published == null ? null : "confirmed");
             } catch (Exception publishFailure) {
                 log.warn(
                         "Proposal result publish failed: proposal_id={}, error_type={}, message={}",

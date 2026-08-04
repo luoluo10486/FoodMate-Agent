@@ -1,5 +1,7 @@
 package com.foodmate.gateway;
 
+import com.foodmate.application.runtime.messaging.MqConsumeDecision;
+import com.foodmate.application.runtime.messaging.MqMessageHandler;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;

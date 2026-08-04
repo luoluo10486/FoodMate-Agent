@@ -3,6 +3,7 @@ package com.foodmate.application.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.foodmate.application.runtime.port.out.RuntimeGatewayPort;
 import com.foodmate.application.runtime.port.out.RuntimeRepository;
 import com.foodmate.application.runtime.service.RuntimeGatewayService;
 import com.foodmate.application.runtime.service.impl.RuntimeGatewayServiceImpl;
@@ -55,25 +56,25 @@ class RuntimeGatewayServiceTest {
                             }
                         },
                         new org.springframework.beans.factory.ObjectProvider<
-                                com.foodmate.gateway.GatewayClient>() {
-                            public com.foodmate.gateway.GatewayClient getObject(Object... args) {
+                                RuntimeGatewayPort>() {
+                            public RuntimeGatewayPort getObject(Object... args) {
                                 return null;
                             }
 
-                            public com.foodmate.gateway.GatewayClient getIfAvailable() {
+                            public RuntimeGatewayPort getIfAvailable() {
                                 return null;
                             }
 
-                            public com.foodmate.gateway.GatewayClient getIfUnique() {
+                            public RuntimeGatewayPort getIfUnique() {
                                 return null;
                             }
 
-                            public java.util.stream.Stream<com.foodmate.gateway.GatewayClient>
+                            public java.util.stream.Stream<RuntimeGatewayPort>
                                     orderedStream() {
                                 return java.util.stream.Stream.empty();
                             }
 
-                            public java.util.stream.Stream<com.foodmate.gateway.GatewayClient>
+                            public java.util.stream.Stream<RuntimeGatewayPort>
                                     stream() {
                                 return java.util.stream.Stream.empty();
                             }

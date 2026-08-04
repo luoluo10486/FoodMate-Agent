@@ -1,9 +1,11 @@
 package com.foodmate.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.shared.runtime.RuntimeException;
 import com.foodmate.shared.runtime.V1CancelCommand;
 import com.foodmate.shared.runtime.V1RunCommand;
+import com.foodmate.shared.security.ServiceJwt;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,7 +15,7 @@ import java.time.Duration;
 import java.util.UUID;
 
 /** Java -> Python 的 V1 传输客户端，不重新拼装已持久化的 outbox payload。 */
-public final class V1HttpRuntimeClient implements V1RuntimeClient {
+public final class V1HttpRuntimeClient implements RuntimeClientPort {
     private final URI base;
     private final Duration timeout;
     private final HttpClient client;
@@ -55,19 +57,19 @@ public final class V1HttpRuntimeClient implements V1RuntimeClient {
     }
 
     @Override
-    public Response dispatch(V1RunCommand command) {
+    public RuntimeClientPort.Response dispatch(V1RunCommand command) {
         return send("/foodmate/internal/v1/runs", command, "runtime:dispatch");
     }
 
     @Override
-    public Response cancel(V1CancelCommand command) {
+    public RuntimeClientPort.Response cancel(V1CancelCommand command) {
         return send(
                 "/foodmate/internal/v1/runs/" + command.runId() + "/cancel",
                 command,
                 "runtime:cancel");
     }
 
-    private Response send(String path, Object body, String scope) {
+    private RuntimeClientPort.Response send(String path, Object body, String scope) {
         try {
             HttpRequest.Builder builder =
                     HttpRequest.newBuilder(base.resolve(path))
@@ -110,7 +112,7 @@ public final class V1HttpRuntimeClient implements V1RuntimeClient {
             HttpResponse<String> response =
                     client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 200 && response.statusCode() < 300)
-                return new Response(response.statusCode(), response.body());
+                return new RuntimeClientPort.Response(response.statusCode(), response.body());
             String code =
                     response.statusCode() >= 500
                                     || response.statusCode() == 408

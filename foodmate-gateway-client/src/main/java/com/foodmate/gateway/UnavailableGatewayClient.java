@@ -1,17 +1,18 @@
 package com.foodmate.gateway;
 
+import com.foodmate.application.runtime.port.out.RuntimeGatewayPort;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.RunCommand;
 
 /** Explicit fail-closed client used when the Runtime integration is disabled. */
-public final class UnavailableGatewayClient implements GatewayClient {
+public final class UnavailableGatewayClient implements RuntimeGatewayPort {
     @Override
-    public Response dispatch(RunCommand command) {
+    public RuntimeGatewayPort.Response dispatch(RunCommand command) {
         throw unavailable();
     }
 
     @Override
-    public Response cancel(CancelCommand command) {
+    public RuntimeGatewayPort.Response cancel(CancelCommand command) {
         throw unavailable();
     }
 

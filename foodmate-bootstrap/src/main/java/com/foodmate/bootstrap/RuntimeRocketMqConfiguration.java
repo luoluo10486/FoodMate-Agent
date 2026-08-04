@@ -1,13 +1,16 @@
 package com.foodmate.bootstrap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.messaging.MqMessageHandler;
+import com.foodmate.application.runtime.port.out.MessagePublisherPort;
+import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.application.runtime.processor.RuntimeEventMessageProcessor;
 import com.foodmate.application.runtime.processor.RuntimeProposalMessageProcessor;
 import com.foodmate.application.runtime.service.RuntimeDlqService;
 import com.foodmate.gateway.RocketMqConsumerContainer;
+import com.foodmate.gateway.RocketMqMessagePublisher;
 import com.foodmate.gateway.RocketMqSettings;
 import com.foodmate.gateway.V1RocketMqRuntimeClient;
-import com.foodmate.gateway.V1RuntimeClient;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -65,7 +68,7 @@ public class RuntimeRocketMqConfiguration {
     }
 
     @Bean(destroyMethod = "")
-    V1RuntimeClient v1RocketMqRuntimeClient(
+    RuntimeClientPort v1RocketMqRuntimeClient(
             DefaultMQProducer producer,
             RocketMqSettings settings,
             ObjectMapper objectMapper,
@@ -74,6 +77,15 @@ public class RuntimeRocketMqConfiguration {
         // Broker 已确认但客户端未收到响应时不静默换队列重发：Outbox Relay 负责重试，
         // 由 dispatch_id 幂等吸收，避免同一命令产生两条语义不同的消息。
         return new V1RocketMqRuntimeClient(producer, settings, objectMapper, contractVersion);
+    }
+
+    @Bean(destroyMethod = "")
+    MessagePublisherPort runtimeMessagePublisher(
+            DefaultMQProducer producer,
+            RocketMqSettings settings,
+            ObjectMapper objectMapper,
+            @Value("${foodmate.runtime.contract-version:v1}") String contractVersion) {
+        return new RocketMqMessagePublisher(producer, settings, objectMapper, contractVersion);
     }
 
     @Bean(destroyMethod = "shutdown")

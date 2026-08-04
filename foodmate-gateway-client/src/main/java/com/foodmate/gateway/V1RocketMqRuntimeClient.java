@@ -1,6 +1,7 @@
 package com.foodmate.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.shared.runtime.RuntimeException;
 import com.foodmate.shared.runtime.V1CancelCommand;
 import com.foodmate.shared.runtime.V1RunCommand;
@@ -28,7 +29,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  *
  * <p>消息不携带 Service JWT：MQ 通道的身份由部署边界保证，Java 仍然按 {@code run_id} 重新推导可信用户上下文，不信任消息体里的身份字段。
  */
-public final class V1RocketMqRuntimeClient implements V1RuntimeClient, AutoCloseable {
+public final class V1RocketMqRuntimeClient implements RuntimeClientPort, AutoCloseable {
     private final DefaultMQProducer producer;
     private final RocketMqSettings settings;
     private final ObjectMapper mapper;
@@ -47,7 +48,7 @@ public final class V1RocketMqRuntimeClient implements V1RuntimeClient, AutoClose
     }
 
     @Override
-    public Response dispatch(V1RunCommand command) {
+    public RuntimeClientPort.Response dispatch(V1RunCommand command) {
         return send(
                 command.runId(),
                 command.dispatchId(),
@@ -58,7 +59,7 @@ public final class V1RocketMqRuntimeClient implements V1RuntimeClient, AutoClose
     }
 
     @Override
-    public Response cancel(V1CancelCommand command) {
+    public RuntimeClientPort.Response cancel(V1CancelCommand command) {
         return send(
                 command.runId(),
                 command.dispatchId(),
@@ -68,7 +69,7 @@ public final class V1RocketMqRuntimeClient implements V1RuntimeClient, AutoClose
                 command);
     }
 
-    private Response send(
+    private RuntimeClientPort.Response send(
             String runId,
             String dispatchId,
             int attempt,
@@ -97,7 +98,8 @@ public final class V1RocketMqRuntimeClient implements V1RuntimeClient, AutoClose
                         "broker did not confirm the message: "
                                 + (result == null ? "null" : result.getSendStatus()));
             }
-            return new Response(202, new String(body, StandardCharsets.UTF_8), result.getMsgId());
+            return new RuntimeClientPort.Response(
+                    202, new String(body, StandardCharsets.UTF_8), result.getMsgId());
         } catch (RuntimeException exception) {
             throw exception;
         } catch (InterruptedException exception) {

@@ -1,9 +1,9 @@
 package com.foodmate.application.runtime.service.impl;
 
 import com.foodmate.application.runtime.port.out.CancellationRepository;
+import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.application.runtime.service.RuntimeCancellationService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
-import com.foodmate.gateway.V1RuntimeClient;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1CancelCommand;
 import java.nio.charset.StandardCharsets;
@@ -19,13 +19,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class RuntimeCancellationServiceImpl implements RuntimeCancellationService {
     private final CancellationRepository store;
     private final IdGenerator ids;
-    private final V1RuntimeClient client;
+    private final RuntimeClientPort client;
     private final V1RuntimeEventService events;
 
     public RuntimeCancellationServiceImpl(
             CancellationRepository store,
             IdGenerator ids,
-            ObjectProvider<V1RuntimeClient> clientProvider,
+            ObjectProvider<RuntimeClientPort> clientProvider,
             V1RuntimeEventService events) {
         this.store = store;
         this.ids = ids;
@@ -92,7 +92,7 @@ public class RuntimeCancellationServiceImpl implements RuntimeCancellationServic
                                 pending.reason(),
                                 pending.requestedAt());
                 // 浏览器取消先落库，再由这里通过 command Topic 可靠发布（ADR-0005 §控制命令）。
-                V1RuntimeClient.Response response = client.cancel(command);
+                RuntimeClientPort.Response response = client.cancel(command);
                 store.markDispatched(
                         pending.id(),
                         response.messageId() == null ? "http" : "rocketmq",

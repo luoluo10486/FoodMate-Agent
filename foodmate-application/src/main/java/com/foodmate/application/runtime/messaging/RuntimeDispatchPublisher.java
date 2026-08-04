@@ -2,7 +2,7 @@ package com.foodmate.application.runtime.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.port.out.OutboxRepository;
-import com.foodmate.gateway.V1RuntimeClient;
+import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.shared.runtime.V1RunCommand;
 import java.time.Instant;
 import java.util.List;
@@ -26,14 +26,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class RuntimeDispatchPublisher {
     private final OutboxRepository store;
-    private final V1RuntimeClient client;
+    private final RuntimeClientPort client;
     private final String transport;
     private final String commandTopic;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     public RuntimeDispatchPublisher(
             OutboxRepository store,
-            ObjectProvider<V1RuntimeClient> clientProvider,
+            ObjectProvider<RuntimeClientPort> clientProvider,
             @Value("${foodmate.runtime.transport:http}") String transport,
             @Value("${foodmate.runtime.rocketmq.command-topic:foodmate-agent-command-v1}")
                     String commandTopic) {
@@ -52,7 +52,7 @@ public class RuntimeDispatchPublisher {
             try {
                 V1RunCommand command = mapper.readValue(row.payload(), V1RunCommand.class);
                 if (store.lease(row.id(), owner()) == 1) {
-                    V1RuntimeClient.Response response = client.dispatch(command);
+                    RuntimeClientPort.Response response = client.dispatch(command);
                     if (mq) {
                         store.markPublished(row.id(), commandTopic, response.messageId());
                     } else {

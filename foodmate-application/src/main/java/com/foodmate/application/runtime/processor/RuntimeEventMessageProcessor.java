@@ -1,10 +1,11 @@
 package com.foodmate.application.runtime.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.messaging.MqConsumeDecision;
+import com.foodmate.application.runtime.messaging.MqMessageHandler;
+import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
 import com.foodmate.application.runtime.port.out.ProtocolAuditRepository;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
-import com.foodmate.gateway.MqConsumeDecision;
-import com.foodmate.gateway.MqMessageHandler;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1RunEvent;
 import java.nio.charset.StandardCharsets;

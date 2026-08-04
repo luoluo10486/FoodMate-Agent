@@ -1,9 +1,11 @@
 package com.foodmate.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.port.out.RuntimeGatewayPort;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.RunCommand;
 import com.foodmate.shared.runtime.RuntimeException;
+import com.foodmate.shared.security.ServiceJwt;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -11,7 +13,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-public final class HttpGatewayClient implements GatewayClient {
+public final class HttpGatewayClient implements RuntimeGatewayPort {
     private final HttpClient client;
     private final ObjectMapper mapper;
     private final URI base;
@@ -42,15 +44,15 @@ public final class HttpGatewayClient implements GatewayClient {
                 contractVersion == null || contractVersion.isBlank() ? "v1" : contractVersion;
     }
 
-    public Response dispatch(RunCommand command) {
+    public RuntimeGatewayPort.Response dispatch(RunCommand command) {
         return send("/internal/runtime/runs:dispatch", command, "dispatch");
     }
 
-    public Response cancel(CancelCommand command) {
+    public RuntimeGatewayPort.Response cancel(CancelCommand command) {
         return send("/internal/runtime/runs:cancel", command, "cancel");
     }
 
-    private Response send(String path, Object body, String operation) {
+    private RuntimeGatewayPort.Response send(String path, Object body, String operation) {
         try {
             HttpRequest.Builder builder =
                     HttpRequest.newBuilder(base.resolve(path))
@@ -79,7 +81,7 @@ public final class HttpGatewayClient implements GatewayClient {
             HttpResponse<String> response =
                     client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 200 && response.statusCode() < 300)
-                return new Response(response.statusCode(), response.body());
+                return new RuntimeGatewayPort.Response(response.statusCode(), response.body());
             String code =
                     response.statusCode() == 401
                             ? "RUNTIME_AUTH_INVALID"

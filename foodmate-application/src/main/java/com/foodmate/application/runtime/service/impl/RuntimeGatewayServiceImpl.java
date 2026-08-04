@@ -3,9 +3,9 @@ package com.foodmate.application.runtime.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.runtime.port.out.RuntimeGatewayPort;
 import com.foodmate.application.runtime.port.out.RuntimeRepository;
 import com.foodmate.application.runtime.service.RuntimeGatewayService;
-import com.foodmate.gateway.GatewayClient;
 import com.foodmate.shared.conversation.enums.MessageRole;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.EventInbox;
@@ -35,7 +35,7 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     private final EventInbox inbox = new EventInbox();
     private final RuntimeRepository store;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final GatewayClient gatewayClient;
+    private final RuntimeGatewayPort gatewayClient;
     private final UserAccountService accounts;
     private final Map<String, RunContext> runContexts = new HashMap<>();
     private final Map<String, AgentStatus> agentStatuses = new HashMap<>();
@@ -51,7 +51,7 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     public RuntimeGatewayServiceImpl() {
         this.store = null;
         this.gatewayClient =
-                new GatewayClient() {
+                new RuntimeGatewayPort() {
                     public Response dispatch(RunCommand command) {
                         return new Response(202, "{}");
                     }
@@ -66,7 +66,7 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     @Autowired
     public RuntimeGatewayServiceImpl(
             ObjectProvider<RuntimeRepository> storeProvider,
-            ObjectProvider<GatewayClient> gatewayProvider,
+            ObjectProvider<RuntimeGatewayPort> gatewayProvider,
             ObjectProvider<UserAccountService> accountProvider) {
         this.store = storeProvider.getIfAvailable();
         this.gatewayClient = gatewayProvider.getIfAvailable();

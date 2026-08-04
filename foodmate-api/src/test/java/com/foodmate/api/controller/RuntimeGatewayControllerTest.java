@@ -9,7 +9,7 @@ import com.foodmate.api.advice.GlobalExceptionHandler;
 import com.foodmate.api.controller.runtime.RuntimeGatewayController;
 import com.foodmate.api.filter.TraceContextFilter;
 import com.foodmate.application.runtime.service.impl.RuntimeGatewayServiceImpl;
-import com.foodmate.gateway.ServiceJwt;
+import com.foodmate.shared.security.ServiceJwt;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
