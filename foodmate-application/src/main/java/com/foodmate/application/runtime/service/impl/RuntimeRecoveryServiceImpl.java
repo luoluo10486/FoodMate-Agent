@@ -14,6 +14,7 @@ import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.Recov
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryRun;
 import com.foodmate.application.runtime.service.RuntimeRecoveryService;
 import com.foodmate.shared.id.IdGenerator;
+import com.foodmate.shared.runtime.enums.RunStatus;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
 
         RecoveryRun run = store.lockRun(request.runId(), request.userId());
         if (run == null) throw error("RUNTIME_NOT_FOUND", "run does not belong to user");
-        if (List.of("completed", "failed", "cancelled", "superseded").contains(run.status()))
+        if (RunStatus.fromCode(run.status()).isTerminal())
             throw error("RECOVERY_RUN_TERMINAL", "terminal Run cannot be resumed");
         if (run.deadline() == null || !run.deadline().isAfter(Instant.now()))
             throw error("RUNTIME_DEADLINE_EXCEEDED", "Run deadline has expired");

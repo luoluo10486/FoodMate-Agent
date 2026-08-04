@@ -6,6 +6,7 @@ import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageCont
 import com.foodmate.application.runtime.port.out.DeadLetterRepository;
 import com.foodmate.application.runtime.service.RuntimeDlqService;
 import com.foodmate.shared.id.IdGenerator;
+import com.foodmate.shared.runtime.enums.RunStatus;
 import java.util.List;
 import java.util.Map;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -102,8 +103,7 @@ public class RuntimeDlqServiceImpl implements RuntimeDlqService {
             List<String> status = store.findRunStatuses(runId);
             if (status.isEmpty()) {
                 resolve(row.id(), "needs_attention", "run 不存在，可能是过期或非法消息");
-            } else if (List.of("completed", "failed", "cancelled", "superseded")
-                    .contains(status.getFirst())) {
+            } else if (RunStatus.fromCode(status.getFirst()).isTerminal()) {
                 resolve(
                         row.id(),
                         "resolved_terminal",

@@ -4,7 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
@@ -32,7 +38,7 @@ class RuntimeProposalMessageProcessorTest {
         var result =
                 new ToolGatewayService.ProposalResult(
                         "proposal-1", "42", "succeeded", null, List.of());
-        when(gateway.executeLegacy(any())).thenReturn(result);
+        when(gateway.execute(any())).thenReturn(result);
         when(inbox.claim(eq("proposal-1"), eq("sha256:one"), eq(body))).thenReturn(1);
         when(inbox.complete(eq("proposal-1"), anyString())).thenReturn(1);
         doThrow(new RuntimeException("broker down"))
@@ -44,20 +50,13 @@ class RuntimeProposalMessageProcessorTest {
         when(inbox.claim(eq("proposal-1"), eq("sha256:one"), eq(body))).thenReturn(0);
         String resultJson = MAPPER.writeValueAsString(result);
         when(inbox.find("proposal-1"))
-                .thenReturn(
-                        Map.of(
-                                "request_hash",
-                                "sha256:one",
-                                "status",
-                                "completed",
-                                "result_json",
-                                resultJson));
+                .thenReturn(new InboxRepository.InboxRecord("sha256:one", resultJson, "completed"));
         reset(publisher);
         when(publisher.publish(any(MessagePublisherPort.PublishRequest.class)))
                 .thenReturn(new MessagePublisherPort.PublishResult("message-1"));
 
         assertEquals(MqConsumeDecision.ACK, processor.handle(body, context()));
-        verify(gateway, times(1)).executeLegacy(any());
+        verify(gateway, times(1)).execute(any());
         verify(publisher, times(1)).publish(any(MessagePublisherPort.PublishRequest.class));
     }
 
@@ -71,13 +70,10 @@ class RuntimeProposalMessageProcessorTest {
         when(inbox.claim(eq("proposal-1"), eq("sha256:changed"), anyString())).thenReturn(0);
         when(inbox.find("proposal-1"))
                 .thenReturn(
-                        Map.of(
-                                "request_hash",
+                        new InboxRepository.InboxRecord(
                                 "sha256:original",
-                                "status",
-                                "completed",
-                                "result_json",
-                                "{\"proposalId\":\"proposal-1\",\"runId\":\"42\",\"status\":\"succeeded\",\"rows\":[]}"));
+                                "{\"proposalId\":\"proposal-1\",\"runId\":\"42\",\"status\":\"succeeded\",\"rows\":[]}",
+                                "completed"));
 
         assertEquals(
                 MqConsumeDecision.REJECT,

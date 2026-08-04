@@ -8,9 +8,6 @@ public interface PersonalDataService {
     Avatar uploadAvatar(
             long userId, String filename, String contentType, long size, InputStream input);
 
-    long uploadKnowledge(
-            long userId, String filename, String contentType, long size, InputStream input);
-
     void deleteAvatar(long userId);
 
     long requestExport(long userId);

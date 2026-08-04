@@ -2,13 +2,10 @@ package com.foodmate.api.controller.account;
 
 import com.foodmate.api.request.account.ToolStatusRequest;
 import com.foodmate.api.request.account.UserStatusRequest;
-import com.foodmate.api.request.knowledge.KnowledgeStatusRequest;
 import com.foodmate.api.response.account.RestoreResponse;
 import com.foodmate.api.response.account.RevokedSessionsResponse;
 import com.foodmate.api.response.account.StatusUpdateResponse;
-import com.foodmate.api.response.knowledge.DocumentUploadResponse;
 import com.foodmate.application.account.service.AdminManagementService;
-import com.foodmate.application.account.service.PersonalDataService;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.account.enums.UserRole;
 import com.foodmate.shared.admin.enums.RestorableResourceType;
@@ -17,46 +14,16 @@ import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin")
 public class AdminManagementController extends AuthenticatedControllerSupport {
-    private final PersonalDataService personalData;
     private final AdminManagementService management;
 
     public AdminManagementController(
-            UserAccountService accounts,
-            PersonalDataService personalData,
-            AdminManagementService management) {
+            UserAccountService accounts, AdminManagementService management) {
         super(accounts);
-        this.personalData = personalData;
         this.management = management;
-    }
-
-    @PostMapping(value = "/knowledge", consumes = "multipart/form-data")
-    public ApiResponse<DocumentUploadResponse> uploadKnowledge(
-            @RequestPart("file") MultipartFile file, HttpServletRequest request)
-            throws java.io.IOException {
-        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
-        if (file.isEmpty() || file.getSize() > 20 * 1024 * 1024)
-            throw new IllegalArgumentException("unsupported document");
-        long id =
-                personalData.uploadKnowledge(
-                        operator.userId(),
-                        file.getOriginalFilename() == null
-                                ? "document"
-                                : file.getOriginalFilename(),
-                        file.getContentType(),
-                        file.getSize(),
-                        file.getInputStream());
-        management.recordAudit(
-                operator.userId(),
-                TraceContextHolder.currentOrNew().traceId(),
-                "knowledge.upload",
-                "knowledge_document",
-                String.valueOf(id));
-        return ok(new DocumentUploadResponse(id));
     }
 
     @PatchMapping("/users/{id}/status")
@@ -91,17 +58,6 @@ public class AdminManagementController extends AuthenticatedControllerSupport {
                 body.status(),
                 operator.userId(),
                 TraceContextHolder.currentOrNew().traceId());
-        return ok(new StatusUpdateResponse(true, body.status().code()));
-    }
-
-    @PatchMapping("/knowledge/{id}/status")
-    public ApiResponse<StatusUpdateResponse> knowledgeStatus(
-            @PathVariable long id,
-            @Valid @RequestBody KnowledgeStatusRequest body,
-            HttpServletRequest request) {
-        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
-        management.updateKnowledgeStatus(
-                id, body.status(), operator.userId(), TraceContextHolder.currentOrNew().traceId());
         return ok(new StatusUpdateResponse(true, body.status().code()));
     }
 

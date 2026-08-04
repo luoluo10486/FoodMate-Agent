@@ -1,28 +1,92 @@
 package com.foodmate.application.account.port.out;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 public interface AdminDashboardRepository {
-    Map<String, Object> overview();
+    Overview overview();
 
     long modelUsageCount();
 
     long knowledgeCount();
 
-    List<Map<String, Object>> runs();
+    List<RunRow> runs();
 
-    List<Map<String, Object>> toolCalls();
+    List<ToolCallRow> toolCalls();
 
-    List<Map<String, Object>> sqlAudits();
+    List<SqlAuditRow> sqlAudits();
 
-    List<Map<String, Object>> tools();
+    List<ToolRow> tools();
 
-    List<Map<String, Object>> usage();
+    List<UsageRow> usage();
 
-    List<Map<String, Object>> knowledge();
+    List<KnowledgeRow> knowledge();
 
-    List<Map<String, Object>> deleted();
+    List<DeletedRow> deleted();
 
-    List<Map<String, Object>> operationAudits();
+    List<OperationAuditRow> operationAudits();
+
+    record Overview(long runsToday, BigDecimal failureRate) {}
+
+    record RunRow(
+            Long agentRunId,
+            Long sessionId,
+            String intent,
+            String status,
+            String traceId,
+            BigDecimal durationMs,
+            String username) {}
+
+    record ToolCallRow(
+            Long toolCallId,
+            Long agentRunId,
+            String toolName,
+            String status,
+            Long latencyMs,
+            String traceId) {}
+
+    record SqlAuditRow(
+            Long sqlAuditId, Long actor, String statement, String result, String traceId) {}
+
+    record ToolRow(
+            String name,
+            String version,
+            String risk,
+            String status,
+            String scope,
+            String owner,
+            String lastCalledAt) {}
+
+    record UsageRow(
+            String provider,
+            String model,
+            String scene,
+            String tokens,
+            BigDecimal cost,
+            Long latencyMs,
+            String status) {}
+
+    record KnowledgeRow(
+            Long documentId,
+            String title,
+            String status,
+            Long chunks,
+            String owner,
+            String source,
+            String indexProgress,
+            Instant updatedAt) {}
+
+    record DeletedRow(
+            String resourceType, Long resourceId, String owner, Instant deletedAt, String reason) {}
+
+    record OperationAuditRow(
+            Long operatorId,
+            String action,
+            String targetType,
+            String targetId,
+            String result,
+            String requestId,
+            String traceId,
+            Instant createdAt) {}
 }

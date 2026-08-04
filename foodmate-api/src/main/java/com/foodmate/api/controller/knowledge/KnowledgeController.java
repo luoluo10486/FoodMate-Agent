@@ -1,0 +1,69 @@
+package com.foodmate.api.controller.knowledge;
+
+import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
+import com.foodmate.api.request.knowledge.KnowledgeStatusRequest;
+import com.foodmate.api.response.account.StatusUpdateResponse;
+import com.foodmate.api.response.knowledge.DocumentUploadResponse;
+import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.knowledge.service.KnowledgeService;
+import com.foodmate.shared.account.enums.UserRole;
+import com.foodmate.shared.api.ApiResponse;
+import com.foodmate.shared.trace.TraceContextHolder;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import java.io.IOException;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+@RestController
+@RequestMapping("/api/admin")
+public class KnowledgeController extends AuthenticatedControllerSupport {
+    private final KnowledgeService knowledge;
+
+    public KnowledgeController(UserAccountService accounts, KnowledgeService knowledge) {
+        super(accounts);
+        this.knowledge = knowledge;
+    }
+
+    @PostMapping(value = "/knowledge", consumes = "multipart/form-data")
+    public ApiResponse<DocumentUploadResponse> upload(
+            @RequestPart("file") MultipartFile file, HttpServletRequest request)
+            throws IOException {
+        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        if (file.isEmpty() || file.getSize() > 20 * 1024 * 1024)
+            throw new IllegalArgumentException("unsupported document");
+        String traceId = TraceContextHolder.currentOrNew().traceId();
+        long id =
+                knowledge.upload(
+                        operator.userId(),
+                        file.getOriginalFilename() == null
+                                ? "document"
+                                : file.getOriginalFilename(),
+                        file.getContentType(),
+                        file.getSize(),
+                        file.getInputStream(),
+                        traceId);
+        return ok(new DocumentUploadResponse(id));
+    }
+
+    @PatchMapping("/knowledge/{id}/status")
+    public ApiResponse<StatusUpdateResponse> updateStatus(
+            @PathVariable long id,
+            @Valid @RequestBody KnowledgeStatusRequest body,
+            HttpServletRequest request) {
+        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        knowledge.updateStatus(
+                id, body.status(), operator.userId(), TraceContextHolder.currentOrNew().traceId());
+        return ok(new StatusUpdateResponse(true, body.status().code()));
+    }
+
+    private <T> ApiResponse<T> ok(T value) {
+        return ApiResponse.success(value, TraceContextHolder.currentOrNew());
+    }
+}

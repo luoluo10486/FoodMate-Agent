@@ -1,7 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
 import com.foodmate.application.runtime.port.out.InboxRepository.*;
-import java.util.Map;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -20,7 +19,7 @@ public interface ProposalInboxMapper {
 
     @Select(
             "SELECT request_hash,result_json::text AS result_json,status FROM runtime_tool_proposal_inbox WHERE proposal_id=#{proposalId}")
-    Map<String, Object> find(String proposalId);
+    InboxRecord find(String proposalId);
 
     @Update(
             "UPDATE runtime_tool_proposal_inbox SET status='completed',result_json=CAST(#{resultJson} AS jsonb),completed_at=CURRENT_TIMESTAMP WHERE proposal_id=#{proposalId}")

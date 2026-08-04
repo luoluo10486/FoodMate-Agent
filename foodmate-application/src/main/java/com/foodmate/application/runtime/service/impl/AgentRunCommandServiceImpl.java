@@ -113,7 +113,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         authorizedContext.put("tool_contract_version", "v1");
         authorizedContext.put("recent_messages", store.recentMessages(sessionId).reversed());
         // Context 只装配授权后的摘要和长期记忆；Python 不直接查询 FoodMate 数据库。
-        Map<String, Object> summary = store.summary(sessionId);
+        AgentRunCommandRepository.SummarySnapshot summary = store.summary(sessionId);
         if (summary != null) authorizedContext.put("session_summary", summary);
         authorizedContext.put("long_term_memories", store.memories(userId));
         // 仅预授权当前会话的最近消息只读查询；Python 只能提出 Proposal，不能自行拼接或执行 SQL。

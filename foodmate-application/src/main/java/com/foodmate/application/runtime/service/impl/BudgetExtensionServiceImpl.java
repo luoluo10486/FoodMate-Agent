@@ -10,6 +10,7 @@ import com.foodmate.application.runtime.port.out.BudgetExtensionRepository;
 import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.*;
 import com.foodmate.application.runtime.service.BudgetExtensionService;
 import com.foodmate.shared.id.IdGenerator;
+import com.foodmate.shared.runtime.enums.RunStatus;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -77,7 +78,7 @@ public class BudgetExtensionServiceImpl implements BudgetExtensionService {
         }
         RunRow run = store.lockRun(runId, userId);
         if (run == null
-                || !("completed".equals(run.status())
+                || !(RunStatus.COMPLETED.code().equals(run.status())
                         && "safety_degraded".equals(run.resultType()))) {
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_STATE_CONFLICT", "run is not waiting for budget confirmation");

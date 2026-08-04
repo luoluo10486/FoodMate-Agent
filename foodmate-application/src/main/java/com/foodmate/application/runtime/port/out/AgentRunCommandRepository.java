@@ -1,9 +1,10 @@
 package com.foodmate.application.runtime.port.out;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 /** AgentRun 命令、上下文和 Outbox 的持久化端口。 */
 public interface AgentRunCommandRepository {
@@ -13,11 +14,11 @@ public interface AgentRunCommandRepository {
 
     void bindMessage(long runId, long messageId);
 
-    List<Map<String, Object>> recentMessages(long sessionId);
+    List<RecentMessageRow> recentMessages(long sessionId);
 
-    Map<String, Object> summary(long sessionId);
+    SummarySnapshot summary(long sessionId);
 
-    List<Map<String, Object>> memories(long userId);
+    List<MemoryContextRow> memories(long userId);
 
     void insertDispatch(long id, long runId, String dispatchId, String fence, Instant deadline);
 
@@ -61,4 +62,28 @@ public interface AgentRunCommandRepository {
             int nodeTimeout,
             int waitingTimeout,
             String version);
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record RecentMessageRow(String messageId, String role, String content, Integer sequenceNo) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record SummarySnapshot(
+            String summaryId,
+            String summaryText,
+            String keyConstraints,
+            Integer coveredFromSequence,
+            Integer coveredToSequence,
+            Integer sourceMessageCount,
+            String promptVersion,
+            String contentDigest,
+            Integer version) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record MemoryContextRow(
+            String memoryId,
+            String memoryType,
+            String memoryKey,
+            String memoryValue,
+            java.math.BigDecimal confidence,
+            String scope) {}
 }

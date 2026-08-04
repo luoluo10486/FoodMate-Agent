@@ -1,0 +1,63 @@
+package com.foodmate.infrastructure.client.runtime;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.shared.runtime.RunCommand;
+import com.foodmate.shared.runtime.RuntimeException;
+import com.sun.net.httpserver.HttpServer;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.security.KeyPairGenerator;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
+import org.junit.jupiter.api.Test;
+
+class HttpGatewayClientTest {
+    @Test
+    void missingSigningKeyFailsAsRuntimeUnavailable() {
+        var client =
+                new HttpGatewayClient(
+                        URI.create("http://localhost:1"),
+                        Duration.ofSeconds(2),
+                        HttpClient.newHttpClient(),
+                        new ObjectMapper());
+        var command = new RunCommand("d1", "r1", "hello", Instant.now().plusSeconds(5), 1);
+        assertEquals(
+                "RUNTIME_UNAVAILABLE",
+                assertThrows(RuntimeException.class, () -> client.dispatch(command)).code());
+    }
+
+    @Test
+    void dispatchPostsToGatewayAndMapsErrors() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext(
+                "/internal/runtime/runs:dispatch",
+                exchange -> {
+                    exchange.sendResponseHeaders(429, 0);
+                    exchange.getResponseBody().close();
+                });
+        server.start();
+        try {
+            var keys = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+            var client =
+                    new HttpGatewayClient(
+                            URI.create("http://localhost:" + server.getAddress().getPort()),
+                            Duration.ofSeconds(2),
+                            HttpClient.newHttpClient(),
+                            new ObjectMapper(),
+                            Base64.getEncoder().encodeToString(keys.getPrivate().getEncoded()),
+                            "java-test",
+                            "v1");
+            var command = new RunCommand("d1", "r1", "hello", Instant.now().plusSeconds(5), 1);
+            assertEquals(
+                    "RUNTIME_UNAVAILABLE",
+                    assertThrows(RuntimeException.class, () -> client.dispatch(command)).code());
+        } finally {
+            server.stop(0);
+        }
+    }
+}

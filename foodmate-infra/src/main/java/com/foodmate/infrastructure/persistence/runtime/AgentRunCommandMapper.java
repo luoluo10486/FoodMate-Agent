@@ -3,7 +3,7 @@ package com.foodmate.infrastructure.persistence.runtime;
 import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
@@ -21,16 +21,16 @@ public interface AgentRunCommandMapper {
     void bindMessage(long runId, long messageId);
 
     @Select(
-            "SELECT message_id::text AS message_id,role,content,sequence_no FROM messages WHERE session_id=#{sessionId} AND is_deleted=FALSE ORDER BY sequence_no DESC LIMIT 8")
-    List<Map<String, Object>> recentMessages(long sessionId);
+            "SELECT message_id::text AS messageId,role,content,sequence_no AS sequenceNo FROM messages WHERE session_id=#{sessionId} AND is_deleted=FALSE ORDER BY sequence_no DESC LIMIT 8")
+    List<RecentMessageRow> recentMessages(long sessionId);
 
     @Select(
-            "SELECT summary_id::text AS summary_id,summary_text,key_constraints::text AS key_constraints,covered_from_sequence,covered_to_sequence,source_message_count,prompt_version,content_digest,version FROM session_summaries WHERE session_id=#{sessionId} AND is_deleted=FALSE AND invalidated_at IS NULL")
-    Map<String, Object> summary(long sessionId);
+            "SELECT summary_id::text AS summaryId,summary_text AS summaryText,key_constraints::text AS keyConstraints,covered_from_sequence AS coveredFromSequence,covered_to_sequence AS coveredToSequence,source_message_count AS sourceMessageCount,prompt_version AS promptVersion,content_digest AS contentDigest,version FROM session_summaries WHERE session_id=#{sessionId} AND is_deleted=FALSE AND invalidated_at IS NULL")
+    SummarySnapshot summary(long sessionId);
 
     @Select(
-            "SELECT memory_id::text AS memory_id,memory_type,memory_key,memory_value::text AS memory_value,confidence,scope FROM user_memories WHERE user_id=#{userId} AND is_deleted=FALSE AND confirmation_status='confirmed' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND memory_type IN ('preference','constraint','routine','plan','meal_plan','recipe_plan','weekly_recipe') ORDER BY updated_at DESC LIMIT 8")
-    List<Map<String, Object>> memories(long userId);
+            "SELECT memory_id::text AS memoryId,memory_type AS memoryType,memory_key AS memoryKey,memory_value::text AS memoryValue,confidence,scope FROM user_memories WHERE user_id=#{userId} AND is_deleted=FALSE AND confirmation_status='confirmed' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND memory_type IN ('preference','constraint','routine','plan','meal_plan','recipe_plan','weekly_recipe') ORDER BY updated_at DESC LIMIT 8")
+    List<MemoryContextRow> memories(long userId);
 
     @Insert(
             "INSERT INTO agent_run_dispatches(agent_run_dispatch_id,agent_run_id,dispatch_id,attempt,active_epoch,fencing_token,admission_epoch,deadline_at) VALUES (#{id},#{runId},#{dispatchId},1,1,#{fence},0,#{deadline})")

@@ -12,7 +12,6 @@ import com.foodmate.api.advice.GlobalExceptionHandler;
 import com.foodmate.api.controller.account.AdminManagementController;
 import com.foodmate.api.filter.TraceContextFilter;
 import com.foodmate.application.account.service.AdminManagementService;
-import com.foodmate.application.account.service.PersonalDataService;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.account.enums.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,11 +30,7 @@ class AdminManagementControllerTest {
         accounts = Mockito.mock(UserAccountService.class);
         management = Mockito.mock(AdminManagementService.class);
         mvc =
-                MockMvcBuilders.standaloneSetup(
-                                new AdminManagementController(
-                                        accounts,
-                                        Mockito.mock(PersonalDataService.class),
-                                        management))
+                MockMvcBuilders.standaloneSetup(new AdminManagementController(accounts, management))
                         .setControllerAdvice(new GlobalExceptionHandler())
                         .addFilters(new TraceContextFilter())
                         .build();

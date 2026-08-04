@@ -28,13 +28,6 @@ public interface AdminManagementMapper {
             @Param("operatorId") long operatorId);
 
     @Update(
-            "UPDATE knowledge_documents SET status=#{status},updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE document_id=#{documentId} AND is_deleted=FALSE")
-    int updateKnowledgeStatus(
-            @Param("documentId") long documentId,
-            @Param("status") String status,
-            @Param("operatorId") long operatorId);
-
-    @Update(
             "<script><choose><when test=\"resourceType == 'user'\">UPDATE users SET is_deleted=FALSE,deleted_at=NULL,deleted_by=NULL,updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE user_id=#{resourceId} AND is_deleted=TRUE</when><when test=\"resourceType == 'knowledge_document'\">UPDATE knowledge_documents SET is_deleted=FALSE,deleted_at=NULL,deleted_by=NULL,updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE document_id=#{resourceId} AND is_deleted=TRUE</when><when test=\"resourceType == 'food_log'\">UPDATE food_logs SET is_deleted=FALSE,deleted_at=NULL,deleted_by=NULL,updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE food_log_id=#{resourceId} AND is_deleted=TRUE</when><when test=\"resourceType == 'meal_plan'\">UPDATE meal_plans SET is_deleted=FALSE,deleted_at=NULL,deleted_by=NULL,updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE meal_plan_id=#{resourceId} AND is_deleted=TRUE</when><when test=\"resourceType == 'message'\">UPDATE messages SET is_deleted=FALSE,deleted_at=NULL,deleted_by=NULL,updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE message_id=#{resourceId} AND is_deleted=TRUE</when><otherwise>SELECT 0</otherwise></choose></script>")
     int restore(
             @Param("resourceType") String resourceType,

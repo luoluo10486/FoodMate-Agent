@@ -1,8 +1,9 @@
 package com.foodmate.application.account.port.out;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 public interface PersonalDataRepository {
     void replaceAvatars(long userId);
@@ -10,8 +11,6 @@ public interface PersonalDataRepository {
     void insertAvatar(long id, long userId, String key, String mime, long size);
 
     void clearAvatar(long userId);
-
-    void insertKnowledge(long id, String title, String key, long userId);
 
     List<String> activeAvatarKeys(long userId);
 
@@ -41,11 +40,11 @@ public interface PersonalDataRepository {
 
     void startExport(long jobId);
 
-    Map<String, Object> exportUserData(long userId);
+    ExportUserData exportUserData(long userId);
 
-    List<Map<String, Object>> exportProfile(long userId);
+    List<ExportProfileRow> exportProfile(long userId);
 
-    List<Map<String, Object>> exportSessions(long userId);
+    List<ExportSessionRow> exportSessions(long userId);
 
     void completeExport(long jobId, String key);
 
@@ -80,4 +79,47 @@ public interface PersonalDataRepository {
             Instant completedAt,
             Instant consumedAt,
             String failureCode) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record ExportUserData(
+            Long userId,
+            String userNo,
+            String username,
+            String email,
+            String nickname,
+            String role,
+            String status,
+            Instant createdAt) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record ExportProfileRow(
+            Long profileId,
+            Long userId,
+            String displayName,
+            String gender,
+            String birthday,
+            String heightCm,
+            String weightKg,
+            String activityLevel,
+            String dietGoal,
+            Integer calorieTarget,
+            Integer proteinTarget,
+            String allergens,
+            String dislikes,
+            String preferredUnits,
+            String profileJson,
+            Instant createdAt,
+            Instant updatedAt,
+            Long createdBy,
+            Long updatedBy,
+            Boolean isDeleted,
+            Instant deletedAt,
+            Long deletedBy) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record ExportSessionRow(
+            Long sessionId, String title, String mode, String status, Instant createdAt) {}
+
+    record ExportDocument(
+            ExportUserData user, List<ExportProfileRow> profile, List<ExportSessionRow> sessions) {}
 }

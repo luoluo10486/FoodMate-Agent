@@ -2,7 +2,6 @@ package com.foodmate.infrastructure.persistence.account;
 
 import com.foodmate.application.account.port.out.PersonalDataRepository.*;
 import java.util.List;
-import java.util.Map;
 import org.apache.ibatis.annotations.*;
 
 @Mapper
@@ -17,10 +16,6 @@ public interface PersonalDataMapper {
 
     @Update("UPDATE users SET avatar_url=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId}")
     void clearAvatar(long userId);
-
-    @Insert(
-            "INSERT INTO knowledge_documents(document_id,title,source_type,status,version,storage_key,created_by,updated_by) VALUES (#{id},#{title},'admin_upload','uploaded','1',#{key},#{userId},#{userId})")
-    void insertKnowledge(long id, String title, String key, long userId);
 
     @Select(
             "SELECT storage_key FROM user_avatar_assets WHERE user_id=#{userId} AND status='active' AND is_deleted=FALSE")
@@ -77,15 +72,16 @@ public interface PersonalDataMapper {
     void startExport(long jobId);
 
     @Select(
-            "SELECT user_id,user_no,username,email,nickname,role,status,created_at FROM users WHERE user_id=#{userId}")
-    Map<String, Object> exportUserData(long userId);
-
-    @Select("SELECT * FROM user_profiles WHERE user_id=#{userId} AND is_deleted=FALSE")
-    List<Map<String, Object>> exportProfile(long userId);
+            "SELECT user_id AS userId,user_no AS userNo,username,email,nickname,role,status,created_at AS createdAt FROM users WHERE user_id=#{userId}")
+    ExportUserData exportUserData(long userId);
 
     @Select(
-            "SELECT session_id,title,mode,status,created_at FROM sessions WHERE user_id=#{userId} AND is_deleted=FALSE")
-    List<Map<String, Object>> exportSessions(long userId);
+            "SELECT profile_id AS profileId,user_id AS userId,display_name AS displayName,gender,birthday::text AS birthday,height_cm::text AS heightCm,weight_kg::text AS weightKg,activity_level AS activityLevel,diet_goal AS dietGoal,calorie_target AS calorieTarget,protein_target AS proteinTarget,allergens::text AS allergens,dislikes::text AS dislikes,preferred_units::text AS preferredUnits,profile_json::text AS profileJson,created_at AS createdAt,updated_at AS updatedAt,created_by AS createdBy,updated_by AS updatedBy,is_deleted AS isDeleted,deleted_at AS deletedAt,deleted_by AS deletedBy FROM user_profiles WHERE user_id=#{userId} AND is_deleted=FALSE")
+    List<ExportProfileRow> exportProfile(long userId);
+
+    @Select(
+            "SELECT session_id AS sessionId,title,mode,status,created_at AS createdAt FROM sessions WHERE user_id=#{userId} AND is_deleted=FALSE")
+    List<ExportSessionRow> exportSessions(long userId);
 
     @Update(
             "UPDATE data_export_jobs SET status='completed',object_key=#{key},completed_at=CURRENT_TIMESTAMP,expires_at=CURRENT_TIMESTAMP+INTERVAL '24 hours',updated_at=CURRENT_TIMESTAMP WHERE export_job_id=#{jobId}")

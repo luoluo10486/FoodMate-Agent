@@ -9,6 +9,8 @@ import com.foodmate.application.runtime.port.out.RuntimeEventRepository.*;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1RunEvent;
+import com.foodmate.shared.runtime.enums.DispatchState;
+import com.foodmate.shared.runtime.enums.RunStatus;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +74,7 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         }
         DispatchRow dispatch = store.dispatch(runId, event.dispatchId());
         if (dispatch == null
-                || !"active".equals(dispatch.state())
+                || !DispatchState.ACTIVE.code().equals(dispatch.state())
                 || dispatch.attempt() != event.attempt()) {
             reject(event, runId, "old_dispatch", "RUNTIME_STATE_CONFLICT");
             throw new com.foodmate.shared.runtime.RuntimeException(
@@ -98,7 +100,7 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         if (changesRunStatus) {
             // 终态后不允许任何状态回退；superseded 等 Java 侧终态同样受保护。
             store.updateRun(runId, status, result);
-            if ("completed".equals(status)) {
+            if (RunStatus.COMPLETED.code().equals(status)) {
                 Object resultType = readPayload(result).get("result_type");
                 if ("normal".equals(resultType) || "safety_degraded".equals(resultType)) {
                     store.setResultType(runId, resultType.toString());
@@ -218,8 +220,8 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
             if (stored != null) return stored;
         }
         List<V1RunEvent> history = events(runId);
-        if (history.isEmpty()) return "queued";
-        String status = "queued";
+        if (history.isEmpty()) return RunStatus.QUEUED.code();
+        String status = RunStatus.QUEUED.code();
         for (V1RunEvent event : history) {
             String candidate = statusFor(event);
             if (!"unchanged".equals(candidate)) status = candidate;
@@ -287,16 +289,16 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
 
     private String statusFor(V1RunEvent event) {
         return switch (event.eventType()) {
-            case "run.accepted" -> "queued";
-            case "run.routed" -> "routed";
-            case "run.clarification_requested" -> "waiting_user";
-            case "run.planned" -> "planning";
-            case "run.retrieval_started", "run.retrieval_finished" -> "retrieving";
-            case "run.tool_started", "run.tool_finished" -> "executing";
-            case "run.answer_stream" -> "validating";
-            case "run.completed" -> "completed";
-            case "run.failed" -> "failed";
-            case "run.cancelled" -> "cancelled";
+            case "run.accepted" -> RunStatus.QUEUED.code();
+            case "run.routed" -> RunStatus.ROUTED.code();
+            case "run.clarification_requested" -> RunStatus.WAITING_USER.code();
+            case "run.planned" -> RunStatus.PLANNING.code();
+            case "run.retrieval_started", "run.retrieval_finished" -> RunStatus.RETRIEVING.code();
+            case "run.tool_started", "run.tool_finished" -> RunStatus.EXECUTING.code();
+            case "run.answer_stream" -> RunStatus.VALIDATING.code();
+            case "run.completed" -> RunStatus.COMPLETED.code();
+            case "run.failed" -> RunStatus.FAILED.code();
+            case "run.cancelled" -> RunStatus.CANCELLED.code();
             case "run.cancel_acknowledged",
                     "run.model_usage",
                     "run.checkpoint_saved",
@@ -316,7 +318,8 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
     }
 
     private static boolean isTerminal(String status) {
-        return status.equals("completed") || status.equals("failed") || status.equals("cancelled");
+        if ("unchanged".equals(status)) return false;
+        return RunStatus.fromCode(status).isTerminal();
     }
 
     private void persistModelUsage(long runId, V1RunEvent event) {

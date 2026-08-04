@@ -7,6 +7,8 @@ import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageCont
 import com.foodmate.application.runtime.port.out.InboxRepository;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import com.foodmate.application.runtime.service.ToolGatewayService;
+import com.foodmate.shared.runtime.V1ToolProposal;
+import com.foodmate.shared.runtime.V1ToolResult;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
-/** Proposal Topic 消费器：事务完成并发布 Result 后才 ACK，重复 Proposal 由业务幂等键隔离。 */
+/** Proposal topic consumer with durable idempotency and typed V1 wire messages. */
 @Service
 @ConditionalOnBean(MessagePublisherPort.class)
 public class RuntimeProposalMessageProcessor implements MqMessageHandler {
@@ -41,40 +43,40 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
     @Override
     public MqConsumeDecision handle(String body, MqMessageContext context) {
         try {
-            Map<String, Object> proposal = mapper.readValue(body, Map.class);
-            String proposalId = requiredText(proposal.get("proposal_id"));
-            String requestHash = requiredText(proposal.get("request_hash"));
-            String invocationId = invocationId(proposal);
+            V1ToolProposal proposal = mapper.readValue(body, V1ToolProposal.class);
+            String proposalId = requiredText(proposal.proposalId());
+            String requestHash = requiredText(proposal.requestHash());
+            String invocationId = invocationId(proposal.payload());
             ToolGatewayService.ProposalResult result;
-            {
-                String existing = claimOrExisting(proposalId, requestHash, body);
-                if (existing != null) {
-                    result = mapper.readValue(existing, ToolGatewayService.ProposalResult.class);
-                } else {
-                    result = gateway.executeLegacy(proposal);
-                    inbox.complete(proposalId, mapper.writeValueAsString(result));
-                }
+            String existing = claimOrExisting(proposalId, requestHash, body);
+            if (existing != null) {
+                result = mapper.readValue(existing, ToolGatewayService.ProposalResult.class);
+            } else {
+                result =
+                        gateway.execute(
+                                new ToolGatewayService.ProposalCommand(
+                                        proposal.proposalId(),
+                                        proposal.runId(),
+                                        proposal.proposalType(),
+                                        proposal.schemaVersion(),
+                                        proposal.payload() == null
+                                                ? null
+                                                : new ToolGatewayService.ProposalPayload(
+                                                        proposal.payload().statement(),
+                                                        proposal.payload().invocationId())));
+                inbox.complete(proposalId, mapper.writeValueAsString(result));
             }
             String payload =
                     mapper.writeValueAsString(
-                            Map.of(
-                                    "schema_version",
+                            new V1ToolResult(
                                     "v1",
-                                    "proposal_id",
                                     result.proposalId() == null ? "" : result.proposalId(),
-                                    "request_hash",
                                     requestHash,
-                                    "run_id",
                                     result.runId() == null ? "" : result.runId(),
-                                    "invocation_id",
                                     invocationId,
-                                    "status",
                                     result.status(),
-                                    "error_code",
                                     result.errorCode() == null ? "" : result.errorCode(),
-                                    "rows",
                                     result.rows()));
-            // Inbox 已经固化执行结果，但 Broker 尚未确认时必须 RETRY；下次消费会重发同一个 Result，不能再次执行工具。
             try {
                 MessagePublisherPort.PublishResult published =
                         publisher.publish(
@@ -106,7 +108,6 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
         } catch (IllegalArgumentException exception) {
             return MqConsumeDecision.REJECT;
         } catch (Exception exception) {
-            // 这里只记录标识和异常类型，不记录 Proposal 正文，便于定位重试原因并避免泄漏用户数据。
             log.warn(
                     "Proposal processing failed, will retry: proposal_id={}, error_type={}, message={}",
                     safeId(body),
@@ -124,34 +125,25 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
         }
     }
 
-    /** 返回已固化的 Result；首次消费返回 null，允许执行一次。 */
     private String claimOrExisting(String proposalId, String requestHash, String body) {
-        try {
-            int inserted = inbox.claim(proposalId, requestHash, body);
-            if (inserted == 1) return null;
-            Map<String, Object> existing = inbox.find(proposalId);
-            if (!requestHash.equals(existing.get("request_hash")))
-                throw new IllegalArgumentException("proposal idempotency conflict");
-            if ("completed".equals(existing.get("status")) && existing.get("result_json") != null)
-                return existing.get("result_json").toString();
-            throw new IllegalStateException("proposal execution is incomplete");
-        } catch (org.springframework.dao.DataAccessException exception) {
-            throw exception;
-        }
+        int inserted = inbox.claim(proposalId, requestHash, body);
+        if (inserted == 1) return null;
+        InboxRepository.InboxRecord existing = inbox.find(proposalId);
+        if (existing == null || !requestHash.equals(existing.requestHash()))
+            throw new IllegalArgumentException("proposal idempotency conflict");
+        if ("completed".equals(existing.status()) && existing.resultJson() != null)
+            return existing.resultJson();
+        throw new IllegalStateException("proposal execution is incomplete");
     }
 
-    private static String requiredText(Object value) {
-        if (value == null || value.toString().isBlank() || value.toString().length() > 128) {
+    private static String requiredText(String value) {
+        if (value == null || value.isBlank() || value.length() > 128)
             throw new IllegalArgumentException("proposal contract is invalid");
-        }
-        return value.toString();
+        return value;
     }
 
-    private static String invocationId(Map<String, Object> proposal) {
-        Object payload = proposal.get("payload");
-        if (!(payload instanceof Map<?, ?> values)) {
-            throw new IllegalArgumentException("proposal payload is invalid");
-        }
-        return requiredText(values.get("invocation_id"));
+    private static String invocationId(V1ToolProposal.Payload payload) {
+        if (payload == null) throw new IllegalArgumentException("proposal payload is invalid");
+        return requiredText(payload.invocationId());
     }
 }

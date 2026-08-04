@@ -32,11 +32,6 @@
     </dependency>
     <dependency>
       <groupId>com.foodmate</groupId>
-      <artifactId>foodmate-gateway-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.foodmate</groupId>
       <artifactId>foodmate-infra</artifactId>
       <version>${project.version}</version>
     </dependency>

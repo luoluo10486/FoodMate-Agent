@@ -4,6 +4,7 @@ import com.foodmate.application.account.port.out.AdminDashboardRepository;
 import com.foodmate.application.account.port.out.AdminManagementRepository;
 import com.foodmate.application.conversation.port.out.ConversationSummaryRepository;
 import com.foodmate.application.conversation.port.out.MemoryRepository;
+import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.application.runtime.port.out.AdmissionReconciliationRepository;
 import com.foodmate.application.runtime.port.out.CancellationRepository;
 import com.foodmate.application.runtime.port.out.DeadLetterRepository;
@@ -11,12 +12,13 @@ import com.foodmate.application.runtime.port.out.InboxRepository;
 import com.foodmate.application.runtime.port.out.OutboxRepository;
 import com.foodmate.application.runtime.port.out.ProtocolAuditRepository;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-/** 本地无数据库 stub 的显式持久化适配器。 仅用于 local-stub Profile；正式运行不会静默降级到该实现。 */
+/** 本地无数据 stub 的显式持久化适配器。 */
 @Configuration
 @Profile("local-stub")
 public class LocalStubPersistenceConfig {
@@ -233,8 +235,8 @@ public class LocalStubPersistenceConfig {
                 return 1;
             }
 
-            public java.util.Map<String, Object> find(String proposalId) {
-                return java.util.Map.of();
+            public InboxRecord find(String proposalId) {
+                return null;
             }
 
             public int complete(String proposalId, String resultJson) {
@@ -246,7 +248,10 @@ public class LocalStubPersistenceConfig {
     @Bean
     AdminManagementRepository localAdminManagementRepository() {
         return new AdminManagementRepository() {
-            public int updateUserStatus(long userId, String status, long operatorId) {
+            public int updateUserStatus(
+                    long userId,
+                    com.foodmate.shared.account.enums.UserStatus status,
+                    long operatorId) {
                 return 0;
             }
 
@@ -254,15 +259,17 @@ public class LocalStubPersistenceConfig {
                 return 0;
             }
 
-            public int updateToolStatus(String name, String status, long operatorId) {
+            public int updateToolStatus(
+                    String name,
+                    com.foodmate.shared.runtime.enums.ToolStatus status,
+                    long operatorId) {
                 return 0;
             }
 
-            public int updateKnowledgeStatus(long documentId, String status, long operatorId) {
-                return 0;
-            }
-
-            public int restore(String resourceType, long resourceId, long operatorId) {
+            public int restore(
+                    com.foodmate.shared.admin.enums.RestorableResourceType resourceType,
+                    long resourceId,
+                    long operatorId) {
                 return 0;
             }
 
@@ -275,10 +282,31 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
+    KnowledgeRepository localKnowledgeRepository() {
+        return new KnowledgeRepository() {
+            public void insertDocument(
+                    long documentId, String title, String storageKey, long operatorId) {}
+
+            public int updateStatus(
+                    long documentId,
+                    com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus status,
+                    long operatorId) {
+                return 0;
+            }
+
+            public long nextAuditId() {
+                return 1;
+            }
+
+            public void insertAudit(Audit audit) {}
+        };
+    }
+
+    @Bean
     AdminDashboardRepository localAdminDashboardRepository() {
         return new AdminDashboardRepository() {
-            public java.util.Map<String, Object> overview() {
-                return java.util.Map.of("runs_today", 0, "failure_rate", 0);
+            public Overview overview() {
+                return new Overview(0, BigDecimal.ZERO);
             }
 
             public long modelUsageCount() {
@@ -289,35 +317,35 @@ public class LocalStubPersistenceConfig {
                 return 0;
             }
 
-            public List<java.util.Map<String, Object>> runs() {
+            public List<RunRow> runs() {
                 return List.of();
             }
 
-            public List<java.util.Map<String, Object>> toolCalls() {
+            public List<ToolCallRow> toolCalls() {
                 return List.of();
             }
 
-            public List<java.util.Map<String, Object>> sqlAudits() {
+            public List<SqlAuditRow> sqlAudits() {
                 return List.of();
             }
 
-            public List<java.util.Map<String, Object>> tools() {
+            public List<ToolRow> tools() {
                 return List.of();
             }
 
-            public List<java.util.Map<String, Object>> usage() {
+            public List<UsageRow> usage() {
                 return List.of();
             }
 
-            public List<java.util.Map<String, Object>> knowledge() {
+            public List<KnowledgeRow> knowledge() {
                 return List.of();
             }
 
-            public List<java.util.Map<String, Object>> deleted() {
+            public List<DeletedRow> deleted() {
                 return List.of();
             }
 
-            public List<java.util.Map<String, Object>> operationAudits() {
+            public List<OperationAuditRow> operationAudits() {
                 return List.of();
             }
         };

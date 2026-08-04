@@ -22,7 +22,6 @@
   <modules>
     <module>foodmate-shared</module>
     <module>foodmate-application</module>
-    <module>foodmate-gateway-client</module>
     <module>foodmate-infra</module>
     <module>foodmate-api</module>
     <module>foodmate-bootstrap</module>

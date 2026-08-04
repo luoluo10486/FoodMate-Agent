@@ -1,6 +1,6 @@
 package com.foodmate.infrastructure.storage;
 
-import com.foodmate.application.account.port.out.ObjectStoragePort;
+import com.foodmate.application.common.port.out.ObjectStoragePort;
 import io.minio.BucketExistsArgs;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MakeBucketArgs;

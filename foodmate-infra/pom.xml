@@ -24,6 +24,11 @@
       <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.rocketmq</groupId>
+      <artifactId>rocketmq-client</artifactId>
+      <version>${rocketmq.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.foodmate</groupId>
       <artifactId>foodmate-application</artifactId>
       <version>${project.version}</version>

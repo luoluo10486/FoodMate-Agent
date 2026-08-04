@@ -1,9 +1,9 @@
 package com.foodmate.application.account.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foodmate.application.account.port.out.ObjectStoragePort;
 import com.foodmate.application.account.port.out.PersonalDataRepository;
 import com.foodmate.application.account.service.PersonalDataService;
+import com.foodmate.application.common.port.out.ObjectStoragePort;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import java.io.ByteArrayInputStream;
@@ -11,7 +11,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.springframework.beans.factory.ObjectProvider;
@@ -59,33 +58,6 @@ public class PersonalDataServiceImpl implements PersonalDataService {
             return new Avatar(id, key, contentType, size);
         } catch (Exception e) {
             throw new IllegalStateException("avatar upload failed", e);
-        }
-    }
-
-    public long uploadKnowledge(
-            long userId, String filename, String contentType, long size, InputStream input) {
-        if (store == null || storage == null)
-            throw new IllegalStateException("knowledge storage unavailable");
-        long documentId = ids.nextId();
-        String key =
-                "knowledge/"
-                        + userId
-                        + "/"
-                        + documentId
-                        + "-"
-                        + filename.replaceAll("[^A-Za-z0-9._-]", "_");
-        try {
-            storage.ensureBucket(bucket);
-            storage.put(
-                    bucket,
-                    key,
-                    input,
-                    size,
-                    contentType == null ? "application/octet-stream" : contentType);
-            store.insertKnowledge(documentId, filename, key, userId);
-            return documentId;
-        } catch (Exception e) {
-            throw new IllegalStateException("knowledge upload failed", e);
         }
     }
 
@@ -167,12 +139,9 @@ public class PersonalDataServiceImpl implements PersonalDataService {
         try {
             String json =
                     mapper.writeValueAsString(
-                            Map.of(
-                                    "user",
+                            new PersonalDataRepository.ExportDocument(
                                     store.exportUserData(userId),
-                                    "profile",
                                     store.exportProfile(userId),
-                                    "sessions",
                                     store.exportSessions(userId)));
             java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
             try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
