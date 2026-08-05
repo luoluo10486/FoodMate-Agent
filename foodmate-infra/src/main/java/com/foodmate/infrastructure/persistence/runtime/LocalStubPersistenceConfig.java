@@ -1,5 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.foodmate.application.account.port.out.AdminDashboardRepository;
 import com.foodmate.application.account.port.out.AdminManagementRepository;
 import com.foodmate.application.conversation.port.out.ConversationSummaryRepository;
@@ -358,7 +359,7 @@ public class LocalStubPersistenceConfig {
                 return false;
             }
 
-            public List<java.util.Map<String, Object>> executeRead(String statement) {
+            public List<JsonNode> executeRead(String statement) {
                 return List.of();
             }
 

@@ -3,6 +3,7 @@ package com.foodmate.application.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
+import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler;
 import com.foodmate.application.runtime.port.out.ProtocolAuditRepository;
@@ -11,7 +12,6 @@ import com.foodmate.application.runtime.processor.RuntimeEventMessageProcessor;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.application.runtime.service.impl.V1RuntimeEventServiceImpl;
 import com.foodmate.shared.runtime.V1RunEvent;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -33,7 +33,7 @@ class RuntimeEventMessageProcessorTest {
 
     private static final MqMessageHandler.MqMessageContext CONTEXT =
             new MqMessageHandler.MqMessageContext(
-                    "foodmate-agent-event-v1", "MSG1", "1001", 0, Map.of());
+                    "foodmate-agent-event-v1", "MSG1", "1001", 0, MessageProperties.empty());
 
     /** 让 accept() 抛出指定错误码的事件服务替身。 */
     private static RuntimeEventMessageProcessor processorFailingWith(String code) {

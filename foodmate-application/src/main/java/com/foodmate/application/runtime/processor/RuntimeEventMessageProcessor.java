@@ -83,13 +83,14 @@ public class RuntimeEventMessageProcessor implements MqMessageHandler {
                     digest(body),
                     errorCode,
                     mapper.writeValueAsString(
-                            java.util.Map.of(
-                                    "topic", context.topic(),
-                                    "message_key",
+                            mapper.createObjectNode()
+                                    .put("topic", context.topic())
+                                    .put(
+                                            "message_key",
                                             context.messageKey() == null
                                                     ? ""
-                                                    : context.messageKey(),
-                                    "reconsume_times", context.reconsumeTimes())));
+                                                    : context.messageKey())
+                                    .put("reconsume_times", context.reconsumeTimes())));
         } catch (Exception ignored) {
             // 审计写入失败不能改变消费结论：消息本身已确定无法处理。
         }

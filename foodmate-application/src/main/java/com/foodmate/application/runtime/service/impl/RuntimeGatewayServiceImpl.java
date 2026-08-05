@@ -1,7 +1,9 @@
 package com.foodmate.application.runtime.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.port.out.RuntimeGatewayPort;
 import com.foodmate.application.runtime.port.out.RuntimeRepository;
@@ -137,7 +139,7 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
                             command.runId(),
                             nextSequence(command.runId()),
                             RunEvent.State.CANCELED,
-                            Map.of("reason", command.reason()),
+                            objectMapper.createObjectNode().put("reason", command.reason()),
                             Instant.now());
             eventHistory
                     .computeIfAbsent(command.runId(), ignored -> new ArrayList<>())
@@ -382,18 +384,18 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     }
 
     private void persistAssistantAnswer(RunEvent event) {
-        if (accounts == null
-                || !terminal(event.state())
-                || !(event.payload() instanceof Map<?, ?> payload)) return;
-        Object answer = payload.get("answer");
+        if (accounts == null || !terminal(event.state()) || event.payload() == null) return;
+        JsonNode payload = objectMapper.valueToTree(event.payload());
+        if (!payload.isObject()) return;
+        JsonNode answer = payload.get("answer");
         RunContext context = runContexts.get(event.runId());
-        if (answer != null && context != null)
+        if (answer != null && !answer.isNull() && context != null)
             accounts.addMessage(
                     context.userId(),
                     context.sessionId(),
                     MessageRole.ASSISTANT.code(),
-                    String.valueOf(answer),
-                    event.payload(),
+                    answer.asText(),
+                    payload,
                     context.agentRunId());
     }
 
@@ -407,7 +409,10 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
             store.updateAgentRun(
                     Long.parseLong(runId),
                     status.value(),
-                    payloadJson(payload == null ? Map.of() : payload),
+                    payloadJson(
+                            payload == null
+                                    ? JsonNodeFactory.instance.objectNode()
+                                    : objectMapper.valueToTree(payload)),
                     error);
         }
     }

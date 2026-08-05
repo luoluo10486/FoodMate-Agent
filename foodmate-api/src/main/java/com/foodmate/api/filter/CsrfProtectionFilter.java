@@ -10,7 +10,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpMethod;
@@ -65,7 +64,6 @@ public class CsrfProtectionFilter extends OncePerRequestFilter {
                     ApiResponse.failure(
                             exception.errorCode(),
                             exception.getMessage(),
-                            Map.of(),
                             TraceContextHolder.currentOrNew()));
         }
     }

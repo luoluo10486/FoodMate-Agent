@@ -2,15 +2,14 @@ package com.foodmate.application.conversation.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.conversation.port.out.ConversationSummaryRepository;
 import com.foodmate.application.conversation.service.SessionSummaryService;
 import com.foodmate.shared.conversation.enums.MessageRole;
 import com.foodmate.shared.id.IdGenerator;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,31 +81,35 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
 
     /** 保存可检索的摘要骨架；原始消息仍是唯一事实，摘要只是可失效的压缩视图。 */
     private String structuredSummary(List<ConversationSummaryRepository.MessageSnapshot> messages) {
-        Map<String, Object> value = new LinkedHashMap<>();
-        value.put(
+        ObjectNode value = mapper.createObjectNode();
+        value.set(
                 "goals",
-                messages.stream()
-                        .filter(this::isGoal)
-                        .map(ConversationSummaryRepository.MessageSnapshot::content)
-                        .toList());
-        value.put(
+                mapper.valueToTree(
+                        messages.stream()
+                                .filter(this::isGoal)
+                                .map(ConversationSummaryRepository.MessageSnapshot::content)
+                                .toList()));
+        value.set(
                 "constraints",
-                messages.stream()
-                        .filter(this::isConstraint)
-                        .map(ConversationSummaryRepository.MessageSnapshot::content)
-                        .toList());
-        value.put(
+                mapper.valueToTree(
+                        messages.stream()
+                                .filter(this::isConstraint)
+                                .map(ConversationSummaryRepository.MessageSnapshot::content)
+                                .toList()));
+        value.set(
                 "decisions",
-                messages.stream()
-                        .filter(item -> MessageRole.ASSISTANT.code().equals(item.role()))
-                        .map(ConversationSummaryRepository.MessageSnapshot::content)
-                        .toList());
-        value.put("open_questions", List.of());
-        value.put(
+                mapper.valueToTree(
+                        messages.stream()
+                                .filter(item -> MessageRole.ASSISTANT.code().equals(item.role()))
+                                .map(ConversationSummaryRepository.MessageSnapshot::content)
+                                .toList()));
+        value.putArray("open_questions");
+        value.set(
                 "source_message_ids",
-                messages.stream()
-                        .map(ConversationSummaryRepository.MessageSnapshot::messageId)
-                        .toList());
+                mapper.valueToTree(
+                        messages.stream()
+                                .map(ConversationSummaryRepository.MessageSnapshot::messageId)
+                                .toList()));
         try {
             return mapper.writeValueAsString(value);
         } catch (JsonProcessingException exception) {

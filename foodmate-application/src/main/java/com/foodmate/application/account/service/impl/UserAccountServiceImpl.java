@@ -2,6 +2,7 @@ package com.foodmate.application.account.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.foodmate.application.account.port.out.UserAccountRepository;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.account.service.UserAccountService.*;
@@ -525,7 +526,11 @@ public class UserAccountServiceImpl implements UserAccountService {
             throw new IllegalArgumentException("content must be at most 10000 characters");
         int sequence = nextSequence(sessionId);
         long messageId = ids.nextId();
-        String payload = json(structuredPayload == null ? Map.of() : structuredPayload);
+        String payload =
+                json(
+                        structuredPayload == null
+                                ? JsonNodeFactory.instance.objectNode()
+                                : structuredPayload);
         if (store != null) {
             store.insertMessage(
                     messageId, sessionId, agentRunId, role, content, payload, sequence, userId);

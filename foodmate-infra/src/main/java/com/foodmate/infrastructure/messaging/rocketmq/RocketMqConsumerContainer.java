@@ -1,10 +1,10 @@
 package com.foodmate.infrastructure.messaging.rocketmq;
 
+import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
@@ -91,8 +91,16 @@ public final class RocketMqConsumerContainer implements AutoCloseable {
     }
 
     private static MqMessageHandler.MqMessageContext context(MessageExt message) {
-        Map<String, String> properties = new HashMap<>();
-        if (message.getProperties() != null) properties.putAll(message.getProperties());
+        MessageProperties properties =
+                MessageProperties.copyOf(
+                        message.getProperties() == null
+                                ? List.of()
+                                : message.getProperties().entrySet().stream()
+                                        .map(
+                                                entry ->
+                                                        new MessageProperties.Property(
+                                                                entry.getKey(), entry.getValue()))
+                                        .toList());
         return new MqMessageHandler.MqMessageContext(
                 message.getTopic(),
                 message.getMsgId(),

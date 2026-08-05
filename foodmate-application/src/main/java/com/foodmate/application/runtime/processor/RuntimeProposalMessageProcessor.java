@@ -1,6 +1,7 @@
 package com.foodmate.application.runtime.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler;
 import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
@@ -9,7 +10,6 @@ import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.shared.runtime.V1ToolProposal;
 import com.foodmate.shared.runtime.V1ToolResult;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,11 +86,12 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                                                 ? context.messageId()
                                                 : result.runId(),
                                         payload,
-                                        Map.of(
-                                                "foodmate_proposal_id",
-                                                result.proposalId() == null
-                                                        ? ""
-                                                        : result.proposalId())));
+                                        MessageProperties.of(
+                                                new MessageProperties.Property(
+                                                        "foodmate_proposal_id",
+                                                        result.proposalId() == null
+                                                                ? ""
+                                                                : result.proposalId()))));
                 log.info(
                         "Proposal result published: proposal_id={}, msg_id={}, send_status={}",
                         proposalId,

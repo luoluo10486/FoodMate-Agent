@@ -1,7 +1,5 @@
 package com.foodmate.application.runtime.messaging;
 
-import java.util.Map;
-
 /** application 层的传输无关消息处理契约。 */
 @FunctionalInterface
 public interface MqMessageHandler {
@@ -12,9 +10,9 @@ public interface MqMessageHandler {
             String messageId,
             String messageKey,
             int reconsumeTimes,
-            Map<String, String> properties) {
+            MessageProperties properties) {
         public MqMessageContext {
-            properties = properties == null ? Map.of() : Map.copyOf(properties);
+            properties = properties == null ? MessageProperties.empty() : properties;
         }
     }
 }

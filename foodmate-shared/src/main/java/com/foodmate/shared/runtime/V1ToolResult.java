@@ -1,8 +1,8 @@
 package com.foodmate.shared.runtime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
-import java.util.Map;
 
 /** V1 Java -> Python tool result message. */
 public record V1ToolResult(
@@ -13,4 +13,4 @@ public record V1ToolResult(
         @JsonProperty("invocation_id") String invocationId,
         String status,
         @JsonProperty("error_code") String errorCode,
-        List<Map<String, Object>> rows) {}
+        List<JsonNode> rows) {}

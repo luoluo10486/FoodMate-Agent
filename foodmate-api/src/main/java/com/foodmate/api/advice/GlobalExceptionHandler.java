@@ -1,13 +1,14 @@
 package com.foodmate.api.advice;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.runtime.RuntimeException;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.ConstraintViolationException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
             MethodArgumentNotValidException exception) {
-        Map<String, Object> details = new LinkedHashMap<>();
+        ObjectNode details = JsonNodeFactory.instance.objectNode();
         for (FieldError error : exception.getBindingResult().getFieldErrors()) {
             details.put(error.getField(), error.getDefaultMessage());
         }
@@ -37,7 +38,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(
             ConstraintViolationException exception) {
-        Map<String, Object> details = new LinkedHashMap<>();
+        ObjectNode details = JsonNodeFactory.instance.objectNode();
         exception
                 .getConstraintViolations()
                 .forEach(
@@ -55,7 +56,7 @@ public class GlobalExceptionHandler {
         return failure(
                 ErrorCode.INVALID_ARGUMENT,
                 "缺少必要参数",
-                Map.of("parameter", exception.getParameterName()));
+                objectDetails("parameter", exception.getParameterName()));
     }
 
     @ExceptionHandler(BusinessException.class)
@@ -66,7 +67,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(
             IllegalArgumentException exception) {
-        return failure(ErrorCode.INVALID_ARGUMENT, exception.getMessage(), Map.of());
+        return failure(
+                ErrorCode.INVALID_ARGUMENT,
+                exception.getMessage(),
+                JsonNodeFactory.instance.objectNode());
     }
 
     @ExceptionHandler(RuntimeException.class)
@@ -88,7 +92,8 @@ public class GlobalExceptionHandler {
                     case "RUNTIME_QUEUE_TIMEOUT" -> ErrorCode.RUNTIME_QUEUE_TIMEOUT;
                     default -> ErrorCode.INVALID_ARGUMENT;
                 };
-        return failure(code, exception.getMessage(), Map.of("runtime_code", exception.code()));
+        return failure(
+                code, exception.getMessage(), objectDetails("runtime_code", exception.code()));
     }
 
     @ExceptionHandler(Exception.class)
@@ -100,15 +105,21 @@ public class GlobalExceptionHandler {
                 traceContext.traceId(),
                 exception);
         return failure(
-                ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.defaultMessage(), Map.of());
+                ErrorCode.INTERNAL_ERROR,
+                ErrorCode.INTERNAL_ERROR.defaultMessage(),
+                JsonNodeFactory.instance.objectNode());
     }
 
     private ResponseEntity<ApiResponse<Void>> failure(
-            ErrorCode code, String message, Map<String, Object> details) {
+            ErrorCode code, String message, JsonNode details) {
         HttpStatus status = HttpStatus.resolve(code.httpStatus());
         ApiResponse<Void> response =
                 ApiResponse.failure(code, message, details, TraceContextHolder.currentOrNew());
         return ResponseEntity.status(status == null ? HttpStatus.INTERNAL_SERVER_ERROR : status)
                 .body(response);
+    }
+
+    private static ObjectNode objectDetails(String key, String value) {
+        return JsonNodeFactory.instance.objectNode().put(key, value);
     }
 }

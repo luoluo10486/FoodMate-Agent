@@ -86,7 +86,11 @@ class M14RocketMqTransportE2ETest {
                                 return MqConsumeDecision.ACK; // 其他用例的消息，跳过
                             }
                             captured.put("body", body);
-                            captured.putAll(context.properties());
+                            context.properties()
+                                    .values()
+                                    .forEach(
+                                            property ->
+                                                    captured.put(property.key(), property.value()));
                             if (context.messageKey() != null)
                                 captured.put("key", context.messageKey());
                             received.countDown();

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
 import com.foodmate.application.runtime.port.out.InboxRepository;
@@ -20,7 +21,6 @@ import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import com.foodmate.application.runtime.processor.RuntimeProposalMessageProcessor;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class RuntimeProposalMessageProcessorTest {
@@ -90,6 +90,6 @@ class RuntimeProposalMessageProcessorTest {
     }
 
     private static MqMessageContext context() {
-        return new MqMessageContext("proposal", "message-1", "42", 0, Map.of());
+        return new MqMessageContext("proposal", "message-1", "42", 0, MessageProperties.empty());
     }
 }

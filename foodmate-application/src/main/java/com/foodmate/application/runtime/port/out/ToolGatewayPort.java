@@ -1,12 +1,12 @@
 package com.foodmate.application.runtime.port.out;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
-import java.util.Map;
 
 public interface ToolGatewayPort {
     boolean runExists(long runId);
 
-    List<Map<String, Object>> executeRead(String statement);
+    List<JsonNode> executeRead(String statement);
 
     void audit(Audit audit);
 

@@ -1,10 +1,10 @@
 package com.foodmate.application.runtime.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.shared.id.IdGenerator;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
@@ -46,25 +46,6 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
     }
 
     /** 执行最小 sql_read Proposal；无数据库时明确返回不可用，不回退到进程内伪造数据。 */
-    @Override
-    public ProposalResult executeLegacy(Map<String, Object> proposal) {
-        String proposalId = text(proposal.get("proposal_id"));
-        String runId = text(proposal.get("run_id"));
-        String type = text(proposal.get("proposal_type"));
-        Map<?, ?> payload = proposal.get("payload") instanceof Map<?, ?> value ? value : Map.of();
-        String statement = text(payload.get("statement"));
-        String invocationId = text(payload.get("invocation_id"));
-        if (!"v1".equals(text(proposal.get("schema_version")))
-                || proposalId == null
-                || runId == null
-                || invocationId == null
-                || proposalId.length() > MAX_ID_LENGTH
-                || runId.length() > MAX_ID_LENGTH
-                || invocationId.length() > MAX_ID_LENGTH
-                || !"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
-        return executeValidated(proposalId, runId, statement, invocationId);
-    }
-
     private ProposalResult executeValidated(
             String proposalId, String runId, String statement, String invocationId) {
         if (statement == null
@@ -82,7 +63,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             return reject(proposalId, "RUN_NOT_FOUND");
         }
         long started = System.nanoTime();
-        List<Map<String, Object>> rows;
+        List<JsonNode> rows;
         try {
             rows = store.executeRead(statement);
             if (rows.size() > 500) rows = rows.subList(0, 500);

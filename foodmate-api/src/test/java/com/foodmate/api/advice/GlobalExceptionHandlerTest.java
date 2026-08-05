@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHolder;
-import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -47,7 +47,9 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ApiResponse<Void>> response =
                 handler.handleBusinessException(
                         new BusinessException(
-                                ErrorCode.CONFLICT, "duplicated", Map.of("field", "username")));
+                                ErrorCode.CONFLICT,
+                                "duplicated",
+                                JsonNodeFactory.instance.objectNode().put("field", "username")));
 
         assertEquals(409, response.getStatusCode().value());
         assertNotNull(response.getBody());

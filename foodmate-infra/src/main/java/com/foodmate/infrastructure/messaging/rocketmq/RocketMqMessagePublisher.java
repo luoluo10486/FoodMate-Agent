@@ -1,10 +1,10 @@
 package com.foodmate.infrastructure.messaging.rocketmq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import com.foodmate.shared.runtime.RuntimeException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -40,8 +40,8 @@ public final class RocketMqMessagePublisher implements MessagePublisherPort {
                     new Message(request.topic(), request.body().getBytes(StandardCharsets.UTF_8));
             if (request.key() != null && !request.key().isBlank()) message.setKeys(request.key());
             message.putUserProperty("foodmate_schema_version", contractVersion);
-            for (Map.Entry<String, String> property : request.properties().entrySet()) {
-                message.putUserProperty(property.getKey(), property.getValue());
+            for (MessageProperties.Property property : request.properties().values()) {
+                message.putUserProperty(property.key(), property.value());
             }
             SendResult result =
                     producer.send(

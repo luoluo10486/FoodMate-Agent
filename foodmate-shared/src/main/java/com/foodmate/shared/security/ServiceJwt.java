@@ -2,6 +2,7 @@ package com.foodmate.shared.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -11,8 +12,6 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.UUID;
 
 /** Minimal Ed25519 service-to-service JWT implementation with strict claim validation. */
@@ -36,17 +35,19 @@ public final class ServiceJwt {
                             .generatePrivate(
                                     new PKCS8EncodedKeySpec(
                                             Base64.getDecoder().decode(privateKeyBase64)));
-            String header = encoded(Map.of("alg", "EdDSA", "typ", "JWT", "kid", kid));
+            ObjectNode header =
+                    JSON.createObjectNode().put("alg", "EdDSA").put("typ", "JWT").put("kid", kid);
             Instant now = Instant.now();
-            Map<String, Object> claims = new LinkedHashMap<>();
-            claims.put("iss", issuer);
-            claims.put("sub", issuer);
-            claims.put("aud", audience);
-            claims.put("scope", scope);
-            claims.put("iat", now.getEpochSecond());
-            claims.put("exp", now.plusSeconds(ttlSeconds).getEpochSecond());
-            claims.put("jti", UUID.randomUUID().toString());
-            String unsigned = header + "." + encoded(claims);
+            ObjectNode claims =
+                    JSON.createObjectNode()
+                            .put("iss", issuer)
+                            .put("sub", issuer)
+                            .put("aud", audience)
+                            .put("scope", scope)
+                            .put("iat", now.getEpochSecond())
+                            .put("exp", now.plusSeconds(ttlSeconds).getEpochSecond())
+                            .put("jti", UUID.randomUUID().toString());
+            String unsigned = encoded(header) + "." + encoded(claims);
             Signature signature = Signature.getInstance("Ed25519");
             signature.initSign(key);
             signature.update(unsigned.getBytes(StandardCharsets.US_ASCII));
@@ -92,7 +93,7 @@ public final class ServiceJwt {
         }
     }
 
-    private static String encoded(Object value) {
+    private static String encoded(JsonNode value) {
         try {
             return ENCODER.encodeToString(JSON.writeValueAsBytes(value));
         } catch (Exception exception) {

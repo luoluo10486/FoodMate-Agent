@@ -8,7 +8,6 @@ import com.foodmate.application.runtime.service.RuntimeDlqService;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.enums.RunStatus;
 import java.util.List;
-import java.util.Map;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +44,7 @@ public class RuntimeDlqServiceImpl implements RuntimeDlqService {
 
     @Override
     public MqConsumeDecision handle(String body, MqMessageContext context) {
-        Map<String, String> properties = context.properties();
+        var properties = context.properties();
         try {
             store.insert(
                     new DeadLetterRepository.DlqMessage(
@@ -128,7 +127,7 @@ public class RuntimeDlqServiceImpl implements RuntimeDlqService {
             return body;
         } catch (Exception exception) {
             try {
-                return mapper.writeValueAsString(Map.of("raw", body));
+                return mapper.writeValueAsString(mapper.createObjectNode().put("raw", body));
             } catch (Exception nested) {
                 return "{}";
             }
