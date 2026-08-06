@@ -974,6 +974,36 @@ Figma 文件建议包含：
 - 基础控件与领域组件分层命名，并为每个组件记录目标代码路径、可用 Variant 和交互状态。
 - iconfont 资源集中登记并与代码语义名称对应；不能将图标字体的原始字码直接写入页面文案或组件属性。
 
+#### 12.2.1 Foundations 命名与变量
+
+`01 Foundations` 必须建立以下变量集合，首版只建立 `Light` Mode，但集合、变量和模式名称不能使用页面或业务临时名称：
+
+| 集合 | 变量命名示例 | 规则 |
+|---|---|---|
+| `Color` | `color/background/default`、`color/action/primary`、`color/status/danger` | 只建立语义颜色；页面不能直接绑定原始品牌色 |
+| `Space` | `space/1` 至 `space/12` | 使用 4px 基础刻度，对应 `4/8/12/16/20/24/32/40/48` 等常用值 |
+| `Radius` | `radius/control`、`radius/container` | 控件为 8px，容器为 12px；不得为单个页面临时建圆角 |
+| `Typography` | `text/body/sm`、`text/title/lg`、`text/label/md` | 使用文字样式承载字号、行高、字重和数字特性 |
+| `Elevation` | `elevation/raised`、`elevation/overlay` | 只用于存在空间层级的卡片和浮层，不能用阴影制造无意义卡片 |
+
+每个 Color Variable 都要记录 Web CSS 变量映射，例如 `color/background/default -> --background`、`color/action/primary -> --primary`、`color/focus/default -> --ring`。同一语义在 Figma 与代码中的名称允许不同，但必须在交付页给出一对一映射表。
+
+#### 12.2.2 组件契约与交付信息
+
+每个共享组件的 Figma 描述或交付表必须包含以下内容：
+
+| 字段 | 要求 |
+|---|---|
+| 组件名称与所属层 | 标明基础组件或 FoodMate 领域组件，禁止用页面名称命名共享组件 |
+| 目标代码位置 | 例如 `components/ui/button.tsx` 或 `components/workspace/Composer.tsx` |
+| Variant | 记录尺寸、视觉样式、状态、权限和响应式差异，禁止用复制节点表达状态 |
+| 内容规则 | 说明标题、描述、长 ID、数字和空值如何换行或截断 |
+| 交互规则 | 说明默认、hover、focus-visible、pressed、disabled、loading、error 的可见差异 |
+| 可访问性 | 图标按钮名称、键盘焦点、Dialog 焦点转移、状态的非颜色表达 |
+| 依赖 Token | 只引用 Foundations 语义 Token，不记录孤立的颜色和尺寸 |
+
+基础组件的 Figma Variant 与后续 shadcn/ui `variant`、`size`、`disabled`、`loading` 等 props 对齐。领域组件不得把 API 字段、SSE 事件名或业务权限硬编码在基础组件中。
+
 ### 12.3 原型流程
 
 至少连通以下可点击流程：
@@ -992,6 +1022,19 @@ Figma 文件建议包含：
 每个核心页面至少包含：Default、Loading、Empty、Error。  
 会话页额外包含本文件 6.3-J 的 11 个状态。  
 管理写操作额外包含：operator 无权限、admin 确认、提交中、成功、失败。
+
+### 12.5 设计交付包
+
+设计评审通过后，交付包至少包含：
+
+1. Figma 文件 URL、页名称和关键画板/组件 Node ID。
+2. Foundations 的变量、文字样式、效果样式和 Web CSS 变量映射。
+3. 组件清单：Figma 组件名称、目标代码路径、Variant、待实现状态和负责人。
+4. iconfont 清单：语义名称、资源名称、来源、授权、默认尺寸、替代方案和无障碍名称。
+5. 页面清单：路由、目标画板、必测状态、关键 Prototype 流程和最低视口。
+6. 已知偏差清单：暂未接入的接口、后端待建能力、刻意延期的响应式画板；不得把这些写进最终用户界面。
+
+设计交付不以单张静态截图为完成条件。只有变量、组件实例、状态画板、Prototype 和上述交付信息能够共同追溯到代码时，页面才允许进入重构开发。
 
 ---
 

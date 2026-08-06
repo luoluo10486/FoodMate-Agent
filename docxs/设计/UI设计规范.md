@@ -422,9 +422,41 @@ UI 行为：
 | 强调色 | `#D88A3D` |
 | 危险色 | `#B94A48` |
 | 信息色 | `#326B8E` |
-| 圆角 | 卡片和控件统一 `8px` |
+| 容器圆角 | 工作台卡片、结果卡和抽屉内容使用 `12px` |
+| 控件圆角 | Button、Input、Select、Badge 等基础控件使用 `8px` |
 | 正文字体 | `Aptos`、`Noto Sans SC` 或项目选定的可读 UI 字体 |
 | 数字字体 | 优先使用等宽或 tabular numeric 字体特性 |
+
+### 8.0 Token 分层与代码映射
+
+`foodmate-ui/src/styles/tokens.css` 中现有的 `--fm-*` 值是迁移输入，不应被新组件直接当作最终 API。后续应保留 FoodMate 品牌 Token，并建立 shadcn/ui 使用的语义 Token；业务组件只能消费语义 Token，不直接写十六进制颜色、阴影或圆角值。
+
+| 语义角色 | Figma Variable 名称 | 当前迁移输入 | 目标 CSS Variable | 使用边界 |
+|---|---|---|---|---|
+| 页面底色 | `color/background/default` | `--fm-bg` | `--background` | 页面和工作台画布 |
+| 主前景 | `color/foreground/default` | `--fm-ink` | `--foreground` | 正文、标题和图标默认色 |
+| 卡片表面 | `color/surface/default` | `--fm-surface` | `--card` / `--popover` | 结果、确认和浮层表面 |
+| 弱化表面 | `color/surface/muted` | `--fm-bg-soft` / `--fm-green-soft` | `--muted` / `--secondary` | 次级容器、筛选与空态 |
+| 品牌主操作 | `color/action/primary` | `--fm-green` | `--primary` | 主按钮、当前导航、可执行主路径 |
+| 强调操作 | `color/action/accent` | `--fm-orange` | `--accent` | 推荐、提醒、需关注但非错误状态 |
+| 危险操作 | `color/status/danger` | `--fm-danger` | `--destructive` | 删除、注销、不可逆写操作 |
+| 边框 | `color/border/default` | `--fm-border` | `--border` / `--input` | 分隔、输入框和表格边界 |
+| 焦点环 | `color/focus/default` | 基于 `--fm-green` 生成 | `--ring` | 键盘焦点，不得仅依赖 hover |
+| 圆角 | `radius/control` / `radius/container` | `--fm-radius-sm` / `--fm-radius` | `--radius` 及派生值 | 控件 8px、容器 12px，禁止任意新增值 |
+
+空间只使用 `4px` 基础刻度：`4/8/12/16/20/24/32/40/48`。页面级布局、组件内边距、列表间距和 Figma Auto Layout 间距必须从该刻度取值；例外必须在组件说明中记录原因。
+
+### 8.0.1 状态表达
+
+状态由文字、图标、颜色和可操作性共同表达，颜色不能单独承担语义。
+
+| 状态 | 视觉角色 | 最低表达要求 | 可操作性 |
+|---|---|---|---|
+| `success` | 完成、已保存、可用 | 成功图标、明确结果文字、绿色辅助色 | 提供下一步或关闭入口 |
+| `warning` | 预算提醒、数据不完整、需注意 | 警告图标、原因和影响说明、橙色辅助色 | 提供查看详情或修正路径 |
+| `danger` | 删除、失败、阻断 | 错误图标、稳定错误文案、红色辅助色 | 说明是否可重试及恢复路径 |
+| `info` | 运行说明、提示、只读信息 | 信息图标或标题、蓝色辅助色 | 不伪装成可执行操作 |
+| `neutral` | 草稿、禁用、未知、归档 | 中性图标/文字、低对比表面 | 禁用时不响应键盘或鼠标操作 |
 
 交互规则：
 

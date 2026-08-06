@@ -452,3 +452,15 @@
 - [ ] Figma `02 Components - User`、`03 Components - Admin` 完成基础组件与领域组件 Variant 的实际建模。
 - [ ] iconfont 资源清单与最终代码类名、图标尺寸和授权信息完成逐项确认。
 - [ ] 前端重构开始后，逐页面完成 Figma 画板、Prototype、状态矩阵与实际实现的视觉验收。
+
+## 12. 前端重构门槛清单
+
+以下清单用于约束代码重构，不回写第 2 至第 10 节已有的 Figma 页面覆盖结论。
+
+- [ ] G0：当前首页、会话页、个人资料页和管理端关键状态完成可重复的浏览器截图基线。
+- [ ] G1：Vite/TypeScript `@/*` 别名、Tailwind、shadcn/ui 配置、语义 Token、`cn` 工具和图标封装完成，并通过构建与键盘基本交互检查。
+- [ ] G2：Button、Input、Textarea、Dialog、Sheet、Tooltip、Tabs、Table、Badge、Alert 等基础组件完成 Figma Variant 对照。
+- [ ] G3：工作台壳层、会话列表、Composer 和 Agent 领域组件迁移后，真实 SSE、取消、续传、追问、确认和安全降级语义保持不变。
+- [ ] G4：用户业务页在 1440x900、1366x768、1024x768、390x844 下完成 Figma 状态和无重叠检查。
+- [ ] G5：管理端完成普通用户、operator、admin 的可见性、禁用、确认和审计反馈矩阵检查。
+- [ ] G6：全仓无 Arco 运行时 import 和主题样式引用后，才删除 Arco 依赖并完成完整前端验证。
