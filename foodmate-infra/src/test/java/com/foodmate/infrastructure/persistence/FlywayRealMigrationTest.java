@@ -57,7 +57,7 @@ class FlywayRealMigrationTest {
                         .load();
         flyway.migrate();
 
-        // Assert: all 24 core tables exist
+        // Assert: all application tables exist. Flyway's metadata table is excluded.
         List<String> actualTables = queryTables();
         for (String table : CORE_TABLES) {
             assertTrue(
@@ -111,12 +111,12 @@ class FlywayRealMigrationTest {
 
         List<String> indexes = queryIndexes();
 
-        assertTrue(indexes.contains("idx_sessions_user_last_message_at"));
-        assertTrue(indexes.contains("idx_messages_session_sequence"));
-        assertTrue(indexes.contains("idx_agent_runs_session_created_at"));
-        assertTrue(indexes.contains("idx_tool_calls_run_created_at"));
-        assertTrue(indexes.contains("idx_food_logs_user_meal_time"));
-        assertTrue(indexes.contains("idx_knowledge_documents_tenant_status"));
+        assertTrue(indexes.contains("idx_sessions_user_last_message_at"), indexes.toString());
+        assertTrue(indexes.contains("idx_messages_session_sequence"), indexes.toString());
+        assertTrue(indexes.contains("idx_agent_runs_session_created_at"), indexes.toString());
+        assertTrue(indexes.contains("idx_tool_calls_run_created_at"), indexes.toString());
+        assertTrue(indexes.contains("idx_food_logs_user_meal_time"), indexes.toString());
+        assertTrue(indexes.contains("idx_knowledge_documents_tenant_status"), indexes.toString());
     }
 
     // ── Core tables list ─────────────────────────────────────────────────
@@ -150,7 +150,8 @@ class FlywayRealMigrationTest {
                     "runtime_runs",
                     "runtime_dispatches",
                     "runtime_cancels",
-                    "runtime_event_inbox");
+                    "runtime_event_inbox",
+                    "user_auth_sessions");
 
     // ── Query helpers ───────────────────────────────────────────────────
 
@@ -161,7 +162,10 @@ class FlywayRealMigrationTest {
                         conn.getMetaData()
                                 .getTables(null, "public", null, new String[] {"TABLE"})) {
             while (rs.next()) {
-                tables.add(rs.getString("TABLE_NAME"));
+                String tableName = rs.getString("TABLE_NAME");
+                if (!"flyway_schema_history".equals(tableName)) {
+                    tables.add(tableName);
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -172,10 +176,12 @@ class FlywayRealMigrationTest {
     private List<String> queryIndexes() throws SQLException {
         List<String> indexes = new ArrayList<>();
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
+                var statement = conn.createStatement();
                 ResultSet rs =
-                        conn.getMetaData().getIndexInfo(null, "public", null, false, false)) {
+                        statement.executeQuery(
+                                "SELECT indexname FROM pg_indexes WHERE schemaname = 'public'")) {
             while (rs.next()) {
-                String indexName = rs.getString("INDEX_NAME");
+                String indexName = rs.getString("indexname");
                 if (indexName != null
                         && !indexName.startsWith("pk_")
                         && !indexName.contains("_pkey")) {

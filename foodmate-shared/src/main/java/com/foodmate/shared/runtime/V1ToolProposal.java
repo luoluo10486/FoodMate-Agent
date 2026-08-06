@@ -9,6 +9,7 @@ public record V1ToolProposal(
         @JsonProperty("request_hash") String requestHash,
         @JsonProperty("run_id") String runId,
         @JsonProperty("proposal_type") String proposalType,
+        @JsonProperty("requires_confirmation") boolean requiresConfirmation,
         Payload payload) {
     public record Payload(String statement, @JsonProperty("invocation_id") String invocationId) {}
 }

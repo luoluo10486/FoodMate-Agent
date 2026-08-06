@@ -1,6 +1,3 @@
-/**
- * 管理后台服务 — 当前转发 mock，后续替换为真实 API 调用。
- */
 import {
   adminAuditRows,
   adminDeletedRows,
@@ -16,70 +13,364 @@ import {
   adminUserRows,
   adminUserSessionRows,
 } from '../mock/admin';
+import { apiRequest } from './apiClient';
 
 export type AdminDashboard = {
-  overview_metrics: Array<Record<string, string>>;
-  runs: Array<Record<string, unknown>>;
-  tool_calls: Array<Record<string, unknown>>;
-  sql_audits: Array<Record<string, unknown>>;
-  tools: Array<Record<string, unknown>>;
-  usage: Array<Record<string, unknown>>;
-  knowledge: Array<Record<string, unknown>>;
-  deleted: Array<Record<string, unknown>>;
-  operation_audits: Array<Record<string, unknown>>;
+  overview_metrics: AdminMetricRow[];
+  runs: AdminRunRow[];
+  tool_calls: AdminToolCallRow[];
+  sql_audits: AdminSqlAuditRow[];
+  tools: AdminToolRow[];
+  usage: AdminUsageRow[];
+  knowledge: AdminKnowledgeRow[];
+  deleted: AdminDeletedRow[];
+  operation_audits: AdminOperationAuditRow[];
 };
 
-export async function loadAdminDashboard(): Promise<AdminDashboard> {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('真实管理后台接口未启用');
-  const csrf = document.cookie.split('; ').find((v) => v.startsWith('foodmate_csrf='))?.split('=')[1];
-  const response = await fetch(`${baseUrl}/api/admin/dashboard`, { credentials: 'include', headers: csrf ? { 'X-CSRF-Token': csrf } : {} });
-  const body = (await response.json()) as { success: boolean; data: AdminDashboard; error?: { message: string } };
-  if (!response.ok || !body.success) throw new Error(body.error?.message ?? '管理数据加载失败');
-  const map = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()), value]));
-  const runs = body.data.runs.map(map).map((row) => ({ ...row, runId: row.agentRunId, user: row.username, durationMs: Number(row.durationMs ?? 0) }));
-  const toolCalls = body.data.tool_calls.map(map).map((row) => ({ ...row, callId: row.toolCallId, runId: row.agentRunId, toolName: row.toolName }));
-  const sqlAudits = body.data.sql_audits.map(map).map((row) => ({ ...row, auditId: row.sqlAuditId, actor: row.actor ?? 'system' }));
-  const knowledge = body.data.knowledge.map(map).map((row) => ({ ...row, documentId: row.documentId }));
-  const deleted = body.data.deleted.map(map).map((row) => ({ ...row, resourceId: row.resourceId }));
+type AdminDashboardResponse = {
+  overview_metrics: AdminMetricResponse[];
+  runs: AdminRunResponse[];
+  tool_calls: AdminToolCallResponse[];
+  sql_audits: AdminSqlAuditResponse[];
+  tools: AdminToolResponse[];
+  usage: AdminUsageResponse[];
+  knowledge: AdminKnowledgeResponse[];
+  deleted: AdminDeletedResponse[];
+  operation_audits: AdminOperationAuditResponse[];
+};
+
+type AdminMetricResponse = { label: string; value: string; hint: string; tone: string };
+type AdminRunResponse = {
+  agent_run_id: number | null;
+  session_id: number | null;
+  intent: string;
+  status: string;
+  trace_id: string;
+  duration_ms: number | string | null;
+  username: string;
+};
+type AdminToolCallResponse = {
+  tool_call_id: number | null;
+  agent_run_id: number | null;
+  tool_name: string;
+  status: string;
+  latency_ms: number | null;
+  trace_id: string;
+};
+type AdminSqlAuditResponse = {
+  sql_audit_id: number | null;
+  actor: number | null;
+  statement: string;
+  result: string;
+  trace_id: string;
+};
+type AdminToolResponse = {
+  name: string;
+  version: string;
+  risk: string;
+  status: string;
+  scope: string;
+  owner: string;
+  last_called_at: string;
+};
+type AdminUsageResponse = {
+  provider: string;
+  model: string;
+  scene: string;
+  tokens: string;
+  cost: number | string | null;
+  latency_ms: number | null;
+  status: string;
+};
+type AdminKnowledgeResponse = {
+  document_id: number | null;
+  title: string;
+  status: string;
+  chunks: number | null;
+  owner: string;
+  source: string;
+  index_progress: string;
+  updated_at: string | null;
+};
+type AdminDeletedResponse = {
+  resource_type: string;
+  resource_id: number | null;
+  owner: string;
+  deleted_at: string | null;
+  reason: string;
+};
+type AdminOperationAuditResponse = {
+  operator_id: number | null;
+  action: string;
+  target_type: string;
+  target_id: string;
+  result: string;
+  request_id: string;
+  trace_id: string;
+  created_at: string | null;
+};
+
+export type AdminMetricRow = AdminMetricResponse;
+export type AdminRunRow = {
+  key: string;
+  runId: string;
+  userId?: string;
+  user: string;
+  intent: string;
+  status: string;
+  durationMs: number;
+  toolCalls?: number;
+  traceId: string;
+};
+export type AdminToolCallRow = {
+  key: string;
+  callId: string;
+  runId: string;
+  toolName: string;
+  status: string;
+  latencyMs: number;
+  traceId: string;
+};
+export type AdminSqlAuditRow = {
+  key: string;
+  auditId: string;
+  actor: string;
+  statement: string;
+  risk: string;
+  result: string;
+  traceId: string;
+};
+export type AdminToolRow = {
+  key: string;
+  name: string;
+  version: string;
+  risk: string;
+  status: string;
+  scope: string;
+  owner: string;
+  schema: string;
+  lastCalledAt: string;
+};
+export type AdminUsageRow = {
+  key: string;
+  provider: string;
+  model: string;
+  scene: string;
+  tokens: string;
+  cost: string;
+  latencyMs: number;
+  status: string;
+};
+export type AdminKnowledgeRow = {
+  key: string;
+  documentId: string;
+  title: string;
+  status: string;
+  chunks: number;
+  owner: string;
+  source: string;
+  indexProgress: string;
+  updatedAt: string;
+};
+export type AdminDeletedRow = {
+  key: string;
+  resourceType: string;
+  resourceId: string;
+  owner: string;
+  deletedAt: string;
+  reason: string;
+};
+export type AdminOperationAuditRow = {
+  key: string;
+  operator_id: string;
+  operator: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  result: string;
+  request_id: string;
+  trace_id: string;
+};
+
+const text = (value: string | number | null | undefined) => (value == null ? '-' : String(value));
+const numeric = (value: number | string | null | undefined) => (value == null ? 0 : Number(value));
+
+function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
   return {
-    overview_metrics: body.data.overview_metrics,
-    runs, tool_calls: toolCalls, sql_audits: sqlAudits,
-    tools: body.data.tools.map(map), usage: body.data.usage.map(map), knowledge, deleted, operation_audits: body.data.operation_audits.map(map),
+    overview_metrics: data.overview_metrics,
+    runs: data.runs.map((row, index) => ({
+      key: `run-${row.agent_run_id ?? index}`,
+      runId: text(row.agent_run_id),
+      userId: row.session_id == null ? undefined : String(row.session_id),
+      user: row.username || '-',
+      intent: row.intent || '-',
+      status: row.status || '-',
+      durationMs: numeric(row.duration_ms),
+      traceId: row.trace_id || '-',
+      toolCalls: 0,
+    })),
+    tool_calls: data.tool_calls.map((row, index) => ({
+      key: `call-${row.tool_call_id ?? index}`,
+      callId: text(row.tool_call_id),
+      runId: text(row.agent_run_id),
+      toolName: row.tool_name,
+      status: row.status,
+      latencyMs: row.latency_ms ?? 0,
+      traceId: row.trace_id || '-',
+    })),
+    sql_audits: data.sql_audits.map((row, index) => ({
+      key: `sql-${row.sql_audit_id ?? index}`,
+      auditId: text(row.sql_audit_id),
+      actor: text(row.actor),
+      statement: row.statement,
+      risk: 'low',
+      result: row.result,
+      traceId: row.trace_id || '-',
+    })),
+    tools: data.tools.map((row, index) => ({
+      key: `tool-${row.name || index}`,
+      name: row.name,
+      version: row.version,
+      risk: row.risk,
+      status: row.status,
+      scope: row.scope,
+      owner: row.owner,
+      schema: '-',
+      lastCalledAt: row.last_called_at || '-',
+    })),
+    usage: data.usage.map((row, index) => ({
+      key: `usage-${row.provider}-${row.model}-${index}`,
+      provider: row.provider,
+      model: row.model,
+      scene: row.scene,
+      tokens: row.tokens,
+      cost: text(row.cost),
+      latencyMs: row.latency_ms ?? 0,
+      status: row.status,
+    })),
+    knowledge: data.knowledge.map((row, index) => ({
+      key: `knowledge-${row.document_id ?? index}`,
+      documentId: text(row.document_id),
+      title: row.title,
+      status: row.status,
+      chunks: row.chunks ?? 0,
+      owner: row.owner,
+      source: row.source,
+      indexProgress: row.index_progress,
+      updatedAt: text(row.updated_at),
+    })),
+    deleted: data.deleted.map((row, index) => ({
+      key: `deleted-${row.resource_id ?? index}`,
+      resourceType: row.resource_type,
+      resourceId: text(row.resource_id),
+      owner: row.owner,
+      deletedAt: text(row.deleted_at),
+      reason: row.reason,
+    })),
+    operation_audits: data.operation_audits.map((row, index) => ({
+      key: `operation-${row.request_id || index}`,
+      operator_id: text(row.operator_id),
+      operator: text(row.operator_id),
+      action: row.action,
+      target_type: row.target_type,
+      target_id: row.target_id,
+      result: row.result,
+      request_id: row.request_id,
+      trace_id: row.trace_id,
+    })),
   };
 }
 
-export async function loadAdminUsers() {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+export async function loadAdminDashboard(): Promise<AdminDashboard> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  return normalizeDashboard(await apiRequest<AdminDashboardResponse>('/api/admin/dashboard'));
+}
+
+export type AdminUserRow = {
+  key: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  role: string;
+  status: string;
+  email: string;
+  phone: string;
+  dietGoal: string;
+  calorieTarget: number;
+  loginFailedCount: number;
+  lockedUntil: string;
+  lastLoginAt: string;
+  createdAt: string;
+};
+
+type AdminUserResponse = {
+  user_id: number;
+  username: string;
+  nickname?: string;
+  email: string;
+  role: string;
+  status: string;
+};
+
+export async function loadAdminUsers(): Promise<AdminUserRow[]> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return adminUserRows;
-  const csrf = document.cookie.split('; ').find((v) => v.startsWith('foodmate_csrf='))?.split('=')[1];
-  const response = await fetch(`${baseUrl}/api/admin/users`, { credentials: 'include', headers: csrf ? { 'X-CSRF-Token': csrf } : {} });
-  const body = (await response.json()) as { success: boolean; data: Array<{ user_id: number; username: string; nickname?: string; email: string; role: string; status: string }>; error?: { message: string } };
-  if (!response.ok || !body.success) throw new Error(body.error?.message ?? '用户列表加载失败');
-  return body.data.map((u) => ({ userId: String(u.user_id), username: u.username, displayName: u.nickname ?? u.username, role: u.role, status: u.status, email: u.email, phone: '-', dietGoal: '-', calorieTarget: 0, loginFailedCount: 0, lockedUntil: '-' }));
+  const data = await apiRequest<AdminUserResponse[]>('/api/admin/users');
+  return data.map((user) => ({
+    key: `user-${user.user_id}`,
+    userId: String(user.user_id),
+    username: user.username,
+    displayName: user.nickname ?? user.username,
+    role: user.role,
+    status: user.status,
+    email: user.email,
+    phone: '-',
+    dietGoal: '-',
+    calorieTarget: 0,
+    loginFailedCount: 0,
+    lockedUntil: '-',
+    lastLoginAt: '-',
+    createdAt: '-',
+  }));
 }
 
-async function adminWrite<T>(path: string, method: string, payload?: unknown): Promise<T> {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const csrf = document.cookie.split('; ').find((v) => v.startsWith('foodmate_csrf='))?.split('=')[1];
-  const response = await fetch(`${baseUrl}${path}`, { method, credentials: 'include', headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) }, body: payload === undefined ? undefined : JSON.stringify(payload) });
-  const body = (await response.json()) as { success: boolean; data: T; error?: { message?: string } };
-  if (!response.ok || !body.success) throw new Error(body.error?.message ?? '管理操作失败');
-  return body.data;
+async function adminWrite<T>(path: string, method: string, payload?: object): Promise<T> {
+  return apiRequest<T>(path, {
+    method,
+    body: payload === undefined ? undefined : JSON.stringify(payload),
+  });
 }
 
-export const updateAdminUserStatus = (id: string, status: string) => adminWrite(`/api/admin/users/${encodeURIComponent(id)}/status`, 'PATCH', { status });
-export const revokeAdminUserSessions = (id: string) => adminWrite(`/api/admin/users/${encodeURIComponent(id)}/sessions/revoke-all`, 'POST');
-export const updateAdminToolStatus = (name: string, status: string) => adminWrite(`/api/admin/tools/${encodeURIComponent(name)}/status`, 'PATCH', { status });
-export const updateKnowledgeStatus = (id: string, status: string) => adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status });
-export const restoreAdminResource = (type: string, id: string) => adminWrite(`/api/admin/resources/${encodeURIComponent(type)}/${encodeURIComponent(id)}/restore`, 'POST');
+export const updateAdminUserStatus = (id: string, status: string) =>
+  adminWrite(`/api/admin/users/${encodeURIComponent(id)}/status`, 'PATCH', { status });
+export const revokeAdminUserSessions = (id: string) =>
+  adminWrite(`/api/admin/users/${encodeURIComponent(id)}/sessions/revoke-all`, 'POST');
+export const updateAdminToolStatus = (name: string, status: string) =>
+  adminWrite(`/api/admin/tools/${encodeURIComponent(name)}/status`, 'PATCH', { status });
+export const updateKnowledgeStatus = (id: string, status: string) =>
+  adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status });
+export const restoreAdminResource = (type: string, id: string) =>
+  adminWrite(`/api/admin/resources/${encodeURIComponent(type)}/${encodeURIComponent(id)}/restore`, 'POST');
+
 export async function uploadKnowledgeDocument(file: File) {
   const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const csrf = document.cookie.split('; ').find((v) => v.startsWith('foodmate_csrf='))?.split('=')[1];
-  const form = new FormData(); form.append('file', file);
-  const response = await fetch(`${baseUrl}/api/admin/knowledge`, { method: 'POST', credentials: 'include', headers: csrf ? { 'X-CSRF-Token': csrf } : {}, body: form });
-  const body = await response.json() as { success: boolean; data: { documentId: number }; error?: { message?: string } };
-  if (!response.ok || !body.success) throw new Error(body.error?.message ?? '知识文档上传失败');
+  const csrf = document.cookie
+    .split('; ')
+    .find((value) => value.startsWith('foodmate_csrf='))
+    ?.split('=')[1];
+  const form = new FormData();
+  form.append('file', file);
+  const response = await fetch(`${baseUrl}/api/admin/knowledge`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: csrf ? { 'X-CSRF-Token': csrf } : {},
+    body: form,
+  });
+  const body = (await response.json()) as {
+    success: boolean;
+    data: { document_id: number };
+    error?: { message?: string };
+  };
+  if (!response.ok || !body.success) throw new Error(body.error?.message ?? 'Knowledge document upload failed');
   return body.data;
 }
 

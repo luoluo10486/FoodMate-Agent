@@ -1,8 +1,9 @@
 # FoodMate Figma 设计稿功能覆盖审查与修改清单
 
-审查日期：2026-08-02
+审查日期：2026-08-05
 审查对象：[Fintech dashboard Community](https://www.figma.com/design/MX18RZCfAmgprNzxItkHUH/Fintech-dashboard--Community-?node-id=647-214)  
 需求依据：[Figma前端重构设计需求规格.md](./Figma前端重构设计需求规格.md)
+设计系统依据：[UI设计规范.md](./UI设计规范.md)、[前端实现指南.md](../实现/前端实现指南.md)
 
 ## 1. 审查范围
 
@@ -15,11 +16,11 @@
 - 桌面端要求是否覆盖；平板和移动端按本期范围明确不交付。
 - 管理端权限、确认、异步任务和失败反馈是否覆盖。
 
-本次不评价配色、字体、间距、排版、美术风格和具体组件视觉表现。上述内容由设计人员按设计规范处理。
+本次历史页面覆盖审查不评价配色、字体、间距、排版、美术风格和具体组件视觉表现；2026-08-05 起新增的重构前置清单会单独检查 Figma 设计系统是否能够映射到 shadcn/ui、CSS Token 和 iconfont 资源，不回写本次页面覆盖结论。
 
 ## 2. 总体结论
 
-2026-08-02 复核后，FoodMate 桌面端设计稿的页面覆盖、主要状态画板和 Prototype 入口已经完成本轮设计范围。当前 `🎨 :: Design` 页面共有 105 个顶层画板，其中 104 个为 FoodMate 桌面画板、1 个为待归档旧模板；`⚡ :: Assets` 和 `💐 :: Cover` 页面已存在；响应式画板为 0 个；可见空白顶层画板为 0 个；Prototype actions 为 2096 条，无效目标为 0 个，画板之间无重叠，FoodMate 可见文字越界为 0 条。
+2026-08-05 复核后，FoodMate 桌面端设计稿的页面覆盖、主要状态画板和 Prototype 入口已经完成本轮设计范围。当前 `🎨 :: Design` 页面共有 105 个 FoodMate 桌面画板；旧 Fintech 模板和资源已统一移至 `🗄 :: Archive`；`⚡ :: Assets` 和 `💐 :: Cover` 页面仅保留 FoodMate 内容；响应式画板为 0 个；可见空白顶层画板为 0 个；全文件本次 MCP 扫描 Prototype reactions 为 1980 条，可解析目标无效数为 0 个。
 
 本次清单中的“设计已完成”仅表示 Figma 已有对应的桌面展示层和 Prototype 入口，不表示后端接口、数据库、异步 Worker 或真实数据已经实现。
 
@@ -76,7 +77,7 @@
 - [x] 本期不交付 1024x768 平板页面，已删除现有平板画板并完成残留目标扫描。
 - [x] 本期不交付 390x844 移动端页面，已删除现有移动端画板并完成残留目标扫描。
 - [x] 已扫描长中文、长 ID、错误信息和大数值状态；FoodMate 画板可见文字越界为 0 条。
-- [ ] 清理或归档与 FoodMate 无关的 Fintech 模板画板。
+- [x] 与 FoodMate 无关的 Fintech 模板及旧资源已统一移动到 `🗄 :: Archive`，Design、Assets 和 Cover 交付页不再混入旧内容。
 - [x] 已确认当前不存在需要重命名的 `FigmaCanvas` 顶层画板。
 
 ## 4. 用户端逐页修改清单
@@ -402,7 +403,7 @@
 - [x] 桌面：1440x900 或对应核心页面桌面尺寸。
 - [x] 平板：本期不交付，现有 1024x768 画板已删除。
 - [x] 移动：本期不交付，现有 390x844 画板已删除。
-- [ ] Agent 会话页额外检查 1366x768 低高度视口。
+- [x] 已新增 `agent-chat-viewport-1366x768`，完成低高度桌面视口检查；聊天区、Trace、导航滚动区和固定底部信息均无重叠。
 - [x] 移动端会话列表、运行轨迹、餐食规划和管理表格按本期范围不交付，相关画板已删除。
 
 ## 9. 最终验收条件
@@ -421,10 +422,10 @@
 - [x] 本期桌面关键操作均可见且可执行；平板和移动端不在交付范围。
 - [x] 本文第 6 节列出的 8 条 Prototype 流程均已建立入口、目标和返回路径，并通过画板级可达性复核。
 
-## 10. 2026-08-02 Figma 复核记录
+## 10. 2026-08-05 Figma 复核记录
 
-- [x] `🎨 :: Design` 顶层画板扫描：105 个，其中 FoodMate 桌面画板 104 个、旧模板 1 个；`⚡ :: Assets` 和 `💐 :: Cover` 页面已存在；响应式画板：0 个；可见空白顶层画板：0 个。
-- [x] Prototype actions：2096 条；无效目标：0 个。
+- [x] `🎨 :: Design` 顶层画板扫描：105 个，全部为 FoodMate 桌面画板；旧模板和旧资源已移至 `🗄 :: Archive`；`⚡ :: Assets` 和 `💐 :: Cover` 页面仅保留 FoodMate 内容；响应式画板：0 个；可见空白顶层画板：0 个。
+- [x] 本次 MCP 扫描 Prototype reactions：1980 条；可解析目标无效数：0 个。
 - [x] 用户桌面导航扫描：现有 FoodMate 桌面画板与 `689:690` 结构一致；可见文字越界：0 个；画板重叠：0 个。
 - [x] `640:1314`、`640:2303` 旧粘连容器已删除；顶层 `FigmaCanvas`：0 个；`profile-basic`：1 个。
 - [x] 22 个状态卡均有状态色条和状态标记；19 个临时状态卡有带有效 Prototype 目标的关闭按钮，3 个用户知识库结果页保留为页面状态，不添加自引用关闭动作。
@@ -436,4 +437,18 @@
 - [x] 新增 `workspace-home-input-states`、`agent-chat-running-stop`、`profile-memories-empty`、`profile-security-logout-confirm` 和 `profile-privacy-delete-confirm`，并复核新增画板截图。
 - [x] 管理概览已展示 P99、模型 Token、平均耗时、知识库索引、工具健康和取消率；用户详情已展示五个业务 Tab。
 
-说明：FoodMate 画板的可见文字边界扫描为 0 条告警。原始 `MacBook Pro - 1` 模板仍不属于 FoodMate 交付范围，未纳入本轮页面验收；如要将最终文件交付给开发，仍建议后续归档或删除该模板画板。当前清单中的 `[x]` 只代表 Figma 桌面展示和 Prototype 设计完成，不代表后端接口、数据库、异步 Worker 或真实数据已经实现；后端批量任务、进度查询、批量索引和失败重试仍保留为后续工作。
+说明：FoodMate 画板的可见文字边界扫描为 0 条告警；本次新增的 `agent-chat-viewport-1366x768` 已通过截图复核。旧 Fintech 模板及资源已统一归档，不属于 FoodMate 交付页。当前清单中的 `[x]` 只代表 Figma 桌面展示和 Prototype 设计完成，不代表后端接口、数据库、异步 Worker 或真实数据已经实现；后端批量任务、进度查询、批量索引和失败重试仍保留为后续工作。
+
+## 11. 2026-08-05 重构前置文档与设计系统清单
+
+本节记录从既有 Arco 方案转向 Figma + shadcn/ui + iconfont 目标方案的前置工作。它不表示前端代码或 Figma 文件已经完成迁移。
+
+- [x] 已在 UI 规范中明确 Figma 作为视觉设计源、shadcn/ui 作为目标基础组件、iconfont 作为按需领域矢量资源。
+- [x] 已在前端实现指南中区分当前 Arco 代码基线与目标 shadcn/ui 重构基线。
+- [x] 已补充 Figma 基础组件、领域组件、Token、Variant 和代码路径映射要求。
+- [x] 已补充 iconfont 资源登记、语义映射、授权和 Figma SVG 兜底规则。
+- [x] 本轮未修改前端代码、依赖或 Figma 文件。
+- [ ] Figma `01 Foundations` 完成 shadcn/ui 目标 Token 和 CSS 变量的实际建模。
+- [ ] Figma `02 Components - User`、`03 Components - Admin` 完成基础组件与领域组件 Variant 的实际建模。
+- [ ] iconfont 资源清单与最终代码类名、图标尺寸和授权信息完成逐项确认。
+- [ ] 前端重构开始后，逐页面完成 Figma 画板、Prototype、状态矩阵与实际实现的视觉验收。

@@ -16,9 +16,19 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export type Profile = { user_id: number; display_name?: string; gender?: string; height_cm?: number; weight_kg?: number; activity_level?: string; diet_goal?: string; calorie_target?: number; protein_target?: number; allergens?: string; dislikes?: string; preferred_units?: string };
 export type AuthSession = { auth_session_id: number; device_id?: string; user_agent?: string; ip_address?: string; expires_at: string; last_seen_at?: string; created_at?: string; revoked_at?: string };
+export type ProfileUpdateRequest = {
+  display_name?: string;
+  gender?: string;
+  height_cm?: number;
+  weight_kg?: number;
+  activity_level?: string;
+  diet_goal?: string;
+  calorie_target?: number;
+  protein_target?: number;
+};
 
 export const getProfile = () => api<Profile>('/api/users/me/profile');
-export const updateProfile = (profile: Record<string, unknown>) => api<Profile>('/api/users/me/profile', { method: 'PUT', body: JSON.stringify(profile) });
+export const updateProfile = (profile: ProfileUpdateRequest) => api<Profile>('/api/users/me/profile', { method: 'PUT', body: JSON.stringify(profile) });
 export const changePassword = (currentPassword: string, newPassword: string) => api<void>('/api/users/me/password', { method: 'POST', body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }) });
 export const getAuthSessions = () => api<AuthSession[]>('/api/users/me/sessions');
 export const revokeAuthSession = (id: number) => api<void>(`/api/users/me/sessions/${id}`, { method: 'DELETE' });

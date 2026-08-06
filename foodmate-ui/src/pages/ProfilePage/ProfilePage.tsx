@@ -4,6 +4,7 @@ import { Button, Card, Form, Input, InputNumber, Message, Modal, Select, Tag } f
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { getAuthUser } from '../../services/authService';
 import { changePassword, deleteAvatar, updateProfile, uploadAvatar, requestDataExport, getDataExport, downloadDataExport, requestAccountDeletion } from '../../services/accountService';
+import type { ProfileUpdateRequest } from '../../services/accountService';
 import { logout } from '../../services/authService';
 import styles from './ProfilePage.module.css';
 
@@ -34,9 +35,32 @@ export function ProfilePage() {
     [avatarPreviewUrl],
   );
 
-  const handleSave = async (values: Record<string, unknown>) => {
+  const handleSave = async (values: {
+    displayName?: string;
+    email?: string;
+    gender?: string;
+    heightCm?: number;
+    weightKg?: number;
+    activityLevel?: string;
+    dietGoal?: string;
+    calorieTarget?: number;
+    proteinTarget?: number;
+    dislikes?: string;
+    allergens?: string;
+    units?: string;
+  }) => {
     if (import.meta.env.VITE_AGENT_MODE !== 'real') { setSaved(true); Message.success('个人资料已模拟保存'); return; }
-    try { await updateProfile(values); setSaved(true); Message.success('个人资料已保存'); }
+    const payload: ProfileUpdateRequest = {
+      display_name: values.displayName,
+      gender: values.gender,
+      height_cm: values.heightCm,
+      weight_kg: values.weightKg,
+      activity_level: values.activityLevel,
+      diet_goal: values.dietGoal,
+      calorie_target: values.calorieTarget,
+      protein_target: values.proteinTarget,
+    };
+    try { await updateProfile(payload); setSaved(true); Message.success('个人资料已保存'); }
     catch (error) { Message.error(error instanceof Error ? error.message : '保存失败'); }
   };
 
