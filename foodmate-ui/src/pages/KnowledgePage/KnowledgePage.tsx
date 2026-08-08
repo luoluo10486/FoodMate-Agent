@@ -1,6 +1,6 @@
-import { Button, Card, Input, Tag } from '@arco-design/web-react';
-import { IconSearch } from '@arco-design/web-react/icon';
+import { Search } from 'lucide-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { Button, Card, Input, Tag } from '../../components/ui/legacy-primitives';
 import styles from './KnowledgePage.module.css';
 
 const knowledgeItems = [
@@ -35,7 +35,7 @@ export function KnowledgePage() {
           </div>
           <Input.Search
             className={styles.search}
-            prefix={<IconSearch />}
+            prefix={<Search aria-hidden="true" size={16} />}
             placeholder="搜索食材、烹饪方式或营养规则"
             searchButton="检索"
           />

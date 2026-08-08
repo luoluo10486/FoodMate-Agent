@@ -143,7 +143,7 @@
   gap: 2px 18px;
 }
 
-.form :global(.arco-input-number) {
+.form input[type='number'] {
   width: 100%;
 }
 

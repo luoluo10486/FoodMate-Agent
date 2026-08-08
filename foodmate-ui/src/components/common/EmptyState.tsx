@@ -1,4 +1,5 @@
-import { Button, Skeleton } from '@arco-design/web-react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { UiComponentState } from '../../types/ui';
 import styles from './EmptyState.module.css';
 
@@ -20,7 +21,11 @@ export function EmptyState({
   if (state === 'loading') {
     return (
       <section className={`${styles.empty} ${styles.loading}`}>
-        <Skeleton text={{ rows: 2 }} animation />
+        <div className="grid w-full max-w-sm gap-3">
+          <Skeleton className="mx-auto h-5 w-2/3" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="mx-auto h-10 w-40" />
+        </div>
       </section>
     );
   }
@@ -29,12 +34,7 @@ export function EmptyState({
     <section className={`${styles.empty} ${styles[state]}`}>
       <strong>{state === 'error' ? '状态加载失败' : title}</strong>
       <span>{state === 'error' ? '请稍后重试，或从左侧新建一个会话。' : description}</span>
-      <Button
-        disabled={state === 'disabled'}
-        status={state === 'error' ? 'danger' : 'default'}
-        type="primary"
-        onClick={onAction}
-      >
+      <Button disabled={state === 'disabled'} variant={state === 'error' ? 'destructive' : 'default'} onClick={onAction}>
         {state === 'error' ? '重试' : actionLabel}
       </Button>
     </section>

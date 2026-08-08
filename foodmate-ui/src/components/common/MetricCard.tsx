@@ -1,4 +1,5 @@
-import { Card, Skeleton } from '@arco-design/web-react';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { UiComponentState } from '../../types/ui';
 import styles from './MetricCard.module.css';
 
@@ -21,14 +22,17 @@ export function MetricCard({
 }: MetricCardProps) {
   if (state === 'loading') {
     return (
-      <Card className={`${styles.card} ${styles.loading}`} bordered={false}>
-        <Skeleton text={{ rows: 2 }} animation />
+      <Card className={`${styles.card} ${styles.loading}`}>
+        <div className="grid gap-3">
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-8 w-2/3" />
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className={`${styles.card} ${styles[state]}`} bordered={false}>
+    <Card className={`${styles.card} ${styles[state]}`}>
       <span>{label}</span>
       <strong className={styles[tone]}>
         {state === 'error' ? errorText : value}

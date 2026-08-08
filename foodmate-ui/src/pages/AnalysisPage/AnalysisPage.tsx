@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { Card, Select, Tag } from '@arco-design/web-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
@@ -16,6 +15,7 @@ import {
   proteinTrendByRange,
 } from '../../services/analysisService';
 import styles from './AnalysisPage.module.css';
+import { Card, Select, Tag } from '../../components/ui/legacy-primitives';
 
 const Option = Select.Option;
 
@@ -80,7 +80,7 @@ export function AnalysisPage() {
   );
 
   return (
-    <WorkspaceLayout activeModule="analysis" moduleLabel={<Tag color="arcoblue">数据分析</Tag>}>
+    <WorkspaceLayout activeModule="analysis" moduleLabel={<Tag color="blue">数据分析</Tag>}>
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.header}>
           <div>

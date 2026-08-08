@@ -447,9 +447,9 @@
 - [x] 已在前端实现指南中区分当前 Arco 代码基线与目标 shadcn/ui 重构基线。
 - [x] 已补充 Figma 基础组件、领域组件、Token、Variant 和代码路径映射要求。
 - [x] 已补充 iconfont 资源登记、语义映射、授权和 Figma SVG 兜底规则。
-- [x] 本轮未修改前端代码、依赖或 Figma 文件。
-- [ ] Figma `01 Foundations` 完成 shadcn/ui 目标 Token 和 CSS 变量的实际建模。
-- [ ] Figma `02 Components - User`、`03 Components - Admin` 完成基础组件与领域组件 Variant 的实际建模。
+- [x] 本轮仅修改 Figma 设计系统页面与本清单，未修改前端代码或依赖。
+- [x] Figma `01 Foundations` 已完成 shadcn/ui 目标 Token、变量作用域和 CSS code syntax 的实际建模。
+- [x] Figma `02 Components - User`、`03 Components - Admin` 已完成基础组件与领域组件 Variant 的实际建模；User 24 个、Admin 14 个独立 Component Set 均已建立。
 - [ ] iconfont 资源清单与最终代码类名、图标尺寸和授权信息完成逐项确认。
 - [ ] 前端重构开始后，逐页面完成 Figma 画板、Prototype、状态矩阵与实际实现的视觉验收。
 
@@ -464,3 +464,24 @@
 - [ ] G4：用户业务页在 1440x900、1366x768、1024x768、390x844 下完成 Figma 状态和无重叠检查。
 - [ ] G5：管理端完成普通用户、operator、admin 的可见性、禁用、确认和审计反馈矩阵检查。
 - [ ] G6：全仓无 Arco 运行时 import 和主题样式引用后，才删除 Arco 依赖并完成完整前端验证。
+
+## 13. 2026-08-08 Figma 设计系统补充记录
+
+本次使用已登录且可编辑的 Figma 会话，对设计系统前置内容进行了实际核验和补充。以下结论只描述 Figma 设计交付，不代表前端 shadcn/ui 基础设施已经落地。
+
+- [x] 新增 `01 Foundations`、`02 Components - User`、`03 Components - Admin` 页面，并在页面中补充 Token 契约、组件 Variant 契约、代码路径和交付门槛说明。
+- [x] 已确认 Figma Variables 中存在 `FoodMate Color`（16 个）、`FoodMate Primitives`（16 个）、`FoodMate Prototype State`（2 个）、`FoodMate Radius`（3 个）和 `FoodMate Spacing`（9 个）集合。
+- [x] 已核对 `FoodMate Spacing` 为 `xs=4`、`sm=8`、`md=12`、`lg=16`、`lg-plus=20`、`xl=24`、`2xl=32`、`3xl=40`、`4xl=48`；`FoodMate Radius` 为 `8/12/999`，与控件、容器、页面留白和胶囊控件的分层约定一致。
+- [x] 已通过已登录 Figma 编辑器逐项回读 `01 Foundations`、`02 Components - User`、`03 Components - Admin` 页面；三个页面均可切换，页面说明文本仍在，当前页面级核验不依赖截图接口。
+- [x] 已核对 Assets 页的 `Button` Component Set：12 个 Variant，属性为 `Size (Small/Medium)`、`Style (Primary/Secondary/Ghost)`、`State (Default/Disabled)`，并带有 `Label` 文本属性。
+- [x] 已核对 Assets 页的 `Input` Component Set：`Default/Focused/Error/Disabled` 四种状态；`Status Card` Component Set：`Running/Success/Warning/Error` 四种状态。
+- [x] Foundations 页面已补充标准命令图标、iconfont 领域图标、许可 SVG 兜底、尺寸和无障碍检查契约，并将画板上的 Spacing 说明同步为 `4/8/12/16/20/24/32/40/48`。
+- [x] User 页面已区分 Button 的目标 Variant 契约与 Assets 历史基线；目标页面已建立 24 个独立 Component Set，Assets 页仍保留原有 `Small/Medium`、`Primary/Secondary/Ghost`、`Default/Disabled` 基线。
+- [x] Admin 页面已区分目标基础组件与 Assets 历史基线；目标页面已建立 14 个独立 Component Set，Assets 页仍保留原有基础组件索引，不再将目标组件误记为待建模。
+- [x] `lg-plus` 和 `4xl` 已加入 `FoodMate Spacing` 集合，并已与既有变量统一归入 `spacing` 分组；最终回读为 9 个变量，值为 `4/8/12/16/20/24/32/40/48`。
+- [ ] 已创建 `Iconfont Resource Registry`（节点 `1065:2`），但实体字体包、最终字形类名、资源来源、授权范围和实际 Figma 资产仍缺失，登记状态明确为 `BLOCKED`；本次没有虚构或导入未确认授权的字形。
+- [x] User/Admin 领域组件已完成全部独立 Component Set：User 24 个（页面 `1045:3`），Admin 14 个（页面 `1045:4`）；组件页顶层重叠均为 0，组件标签可见且页面契约文本已同步。
+- [x] User Prototype 已建立并验证 4 个画板：`1064:2` Gallery -> `1064:5` Composer -> `1064:8` Confirmation -> `1064:11` Complete -> Gallery；4 条 `ON_CLICK` 目标全部有效。
+- [x] Admin Prototype 已建立并验证 4 个画板：`1064:18` Overview -> `1064:21` User Detail -> `1064:24` Disable Confirm -> `1064:27` Audit -> Overview；4 条 `ON_CLICK` 目标全部有效。
+- [x] 已完成 `01 Foundations`、`02 Components - User`、`03 Components - Admin` 三页截图级验收；Foundations 登记框与文档无重叠，三页顶层重叠均为 0，未发现组件标签或契约文本裁切。
+- [ ] 前端 `@/*`、Tailwind、shadcn/ui、`cn`、代码图标封装和 Arco 退场仍属于后续 G0-G6 迁移工作，本次未修改前端代码。

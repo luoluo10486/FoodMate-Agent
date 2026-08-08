@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Button, Card, Modal, Progress, Tag } from '@arco-design/web-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { MealPlanTable } from '../../components/planning/MealPlanTable';
 import { ShoppingList } from '../../components/planning/ShoppingList';
 import { mealRows, planConstraints, shoppingGroups, validationItems } from '../../services/planningService';
 import styles from './PlanningPage.module.css';
+import { Button, Card, Modal, Progress, Tag } from '../../components/ui/legacy-primitives';
 
 export function PlanningPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);

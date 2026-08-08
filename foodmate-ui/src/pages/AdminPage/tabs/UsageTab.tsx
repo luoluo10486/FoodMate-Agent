@@ -1,4 +1,4 @@
-import { Card, Table, Tag } from '@arco-design/web-react';
+import { Card, Table, Tag } from './AdminPrimitives';
 import { useEffect, useState } from 'react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, MiniStat } from './AdminComponents';
@@ -19,7 +19,7 @@ export function UsageSection() {
       <Card className={styles.wideCard} bordered={false}>
         <div className={styles.cardHead}>
           <strong>模型调用明细</strong>
-          <Tag color="arcoblue">成本和延迟治理</Tag>
+          <Tag color="blue">成本和延迟治理</Tag>
         </div>
         <Table
           columns={modelUsageColumns}

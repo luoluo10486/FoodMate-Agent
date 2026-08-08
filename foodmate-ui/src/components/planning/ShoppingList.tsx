@@ -1,4 +1,4 @@
-import { Tag } from '@arco-design/web-react';
+import { Tag } from '../ui/legacy-primitives';
 import styles from './ShoppingList.module.css';
 
 export type ShoppingGroup = {

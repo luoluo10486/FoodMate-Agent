@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { Card, Message as ArcoMessage, Tag } from '@arco-design/web-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
@@ -15,6 +16,16 @@ import { ApiError } from '../../services/apiClient';
 import { createSession, loadSessionMessages, sendUserMessage, type RealMessage } from '../../services/sessionService';
 import { cancelAgentRun, extendAgentRunBudget, openAgentRunStream, recoverAgentRun } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
+
+type TagProps = {
+  color?: string;
+  children: ReactNode;
+};
+
+function Tag({ color, children }: TagProps) {
+  const variant = color === 'red' ? 'destructive' : color === 'orange' ? 'warning' : color === 'gray' ? 'secondary' : 'default';
+  return <Badge variant={variant}>{children}</Badge>;
+}
 
 function displayRunStatus(status: string) {
   if (status === 'queued' || status === 'routed') return 'routing' as const;
@@ -105,7 +116,7 @@ function RealChatPage() {
       if (saved.agent_run_id) setActiveRunId(String(saved.agent_run_id));
       setInput('');
     } catch (reason) {
-      if (reason instanceof ApiError && reason.code === 'FORBIDDEN') ArcoMessage.error(reason.message);
+      if (reason instanceof ApiError && reason.code === 'FORBIDDEN') setError(reason.message);
       setError(reason instanceof Error ? reason.message : '消息发送失败');
     } finally { setSending(false); }
   };
@@ -147,7 +158,7 @@ function RealChatPage() {
             </div>
           </div>
           <aside className={styles.tracePanel}>
-            <Card className={styles.panelCard} bordered={false}>
+            <Card className={styles.panelCard}>
               <div className={styles.panelHead}><strong>Agent 运行</strong><Tag color="gray">Eval 后发布回答</Tag></div>
               <p>回答会先经过运行时校验；模型用量、预算状态和降级原因由服务端事件记录。</p>
             </Card>
@@ -169,7 +180,7 @@ function MockChatPage() {
   return (
     <WorkspaceLayout activeModule="chat">
       <div className={`${styles.page} fm-enter`}>
-        <section className={styles.workspace}><div className={styles.center}><AgentStatusStrip status={agent.run.status} /><div className={styles.messages} ref={messagesRef}>{agent.messages.map((message) => <article className={`${styles.message} ${styles[message.role]}`} key={message.id}><Tag color={message.role === 'user' ? 'gray' : 'green'}>{message.role === 'user' ? '你' : 'FoodMate'}</Tag><p>{message.content}</p><span>{message.time}</span></article>)}{agent.card.type === 'result' ? <ResultCard label={agent.card.label} title={agent.card.title} description={agent.card.description} primaryAction={agent.card.primaryAction} secondaryAction={agent.card.secondaryAction} onPrimary={agent.handleResultPrimary} onSecondary={agent.handleResultSecondary} /> : null}{agent.card.type === 'clarification' ? <ClarificationCard title={agent.card.title} options={agent.card.options} fields={agent.card.fields} submitLabel={agent.card.submitLabel} onSelect={agent.answerClarification} onSubmit={agent.answerClarification} /> : null}{agent.card.type === 'confirmation' ? <ConfirmationCard title={agent.card.title} helperText={agent.card.helperText} data={agent.card.data} onConfirm={agent.confirmWrite} onEdit={agent.editWrite} onCancel={agent.cancelWrite} /> : null}{agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}</div></div><aside className={styles.tracePanel}><Card className={styles.panelCard} bordered={false}><div className={styles.panelHead}><strong>工具与引用</strong><Tag color="orange">Tools（{agent.run.toolsUsed}/{agent.run.toolsTotal}）</Tag></div><div className={styles.traceList}>{agent.run.toolCalls.map((tool) => <ToolTraceItem key={tool.id} tool={tool} />)}</div><div className={styles.citationList}>{agent.run.citations.map((citation) => <CitationBlock citation={citation} key={citation.id} />)}</div></Card></aside></section><Composer value={agent.input} running={agent.running} toolsUsed={agent.run.toolsUsed} toolsTotal={agent.run.toolsTotal} agentsUsed={agent.run.agentsUsed} agentsTotal={agent.run.agentsTotal} placeholder="输入任务，例如：给我做一周备餐计划 / 帮我记录今天午餐 / 分析最近一周蛋白质摄入..." onChange={agent.setInput} onSend={() => agent.send()} onStop={agent.stop} /></div>
+        <section className={styles.workspace}><div className={styles.center}><AgentStatusStrip status={agent.run.status} /><div className={styles.messages} ref={messagesRef}>{agent.messages.map((message) => <article className={`${styles.message} ${styles[message.role]}`} key={message.id}><Tag color={message.role === 'user' ? 'gray' : 'green'}>{message.role === 'user' ? '你' : 'FoodMate'}</Tag><p>{message.content}</p><span>{message.time}</span></article>)}{agent.card.type === 'result' ? <ResultCard label={agent.card.label} title={agent.card.title} description={agent.card.description} primaryAction={agent.card.primaryAction} secondaryAction={agent.card.secondaryAction} onPrimary={agent.handleResultPrimary} onSecondary={agent.handleResultSecondary} /> : null}{agent.card.type === 'clarification' ? <ClarificationCard title={agent.card.title} options={agent.card.options} fields={agent.card.fields} submitLabel={agent.card.submitLabel} onSelect={agent.answerClarification} onSubmit={agent.answerClarification} /> : null}{agent.card.type === 'confirmation' ? <ConfirmationCard title={agent.card.title} helperText={agent.card.helperText} data={agent.card.data} onConfirm={agent.confirmWrite} onEdit={agent.editWrite} onCancel={agent.cancelWrite} /> : null}{agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}</div></div><aside className={styles.tracePanel}><Card className={styles.panelCard}><div className={styles.panelHead}><strong>工具与引用</strong><Tag color="orange">Tools（{agent.run.toolsUsed}/{agent.run.toolsTotal}）</Tag></div><div className={styles.traceList}>{agent.run.toolCalls.map((tool) => <ToolTraceItem key={tool.id} tool={tool} />)}</div><div className={styles.citationList}>{agent.run.citations.map((citation) => <CitationBlock citation={citation} key={citation.id} />)}</div></Card></aside></section><Composer value={agent.input} running={agent.running} toolsUsed={agent.run.toolsUsed} toolsTotal={agent.run.toolsTotal} agentsUsed={agent.run.agentsUsed} agentsTotal={agent.run.agentsTotal} placeholder="输入任务，例如：给我做一周备餐计划 / 帮我记录今天午餐 / 分析最近一周蛋白质摄入..." onChange={agent.setInput} onSend={() => agent.send()} onStop={agent.stop} /></div>
     </WorkspaceLayout>
   );
 }

@@ -1,10 +1,9 @@
-import { Button, Form, Input, Message } from '@arco-design/web-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { getLoginDefaults, login, register, requestPasswordReset } from '../../services/authService';
-import type { LoginFormValues } from '../../mock/auth';
 import styles from './LoginPage.module.css';
+import { Button, Form, Input, Message } from '../../components/ui/legacy-primitives';
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -13,8 +12,13 @@ export function LoginPage() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [registerPassword, setRegisterPassword] = useState('');
 
-  const handleLogin = async (values: LoginFormValues) => {
-    try { await login(values); navigate('/'); } catch (error) { Message.error(error instanceof Error ? error.message : '登录失败'); }
+  const handleLogin = async (values: Record<string, string>) => {
+    const credentials = {
+      username: values.username ?? '',
+      password: values.password ?? '',
+      rememberMe: values.rememberMe === 'true',
+    };
+    try { await login(credentials); navigate('/'); } catch (error) { Message.error(error instanceof Error ? error.message : '登录失败'); }
   };
   const handleRegister = async (values: { username: string; email: string; password: string; confirmPassword: string }) => {
     try { await register(values); navigate('/'); } catch (error) { Message.error(error instanceof Error ? error.message : '注册失败'); }

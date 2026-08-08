@@ -1,4 +1,7 @@
-import { Button, Card, Skeleton, Tag } from '@arco-design/web-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { UiComponentState } from '../../types/ui';
 import styles from './ResultCard.module.css';
 
@@ -27,27 +30,31 @@ export function ResultCard({
 }: ResultCardProps) {
   if (state === 'loading') {
     return (
-      <Card className={`${styles.card} ${styles.loading}`} bordered={false}>
-        <Skeleton text={{ rows: 3 }} animation />
+      <Card className={`${styles.card} ${styles.loading}`}>
+        <div className="grid gap-3">
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-10 w-32" />
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className={`${styles.card} ${styles[state]}`} bordered={false}>
-      <Tag color={state === 'error' ? 'red' : 'green'}>{state === 'error' ? '执行失败' : label}</Tag>
+    <Card className={`${styles.card} ${styles[state]}`}>
+      <Badge variant={state === 'error' ? 'destructive' : 'default'}>{state === 'error' ? '执行失败' : label}</Badge>
       <h3>{state === 'error' ? '结果暂不可用' : title}</h3>
       <p>{state === 'error' ? errorText : description}</p>
       <div className={styles.actions}>
         <Button
           disabled={state === 'disabled'}
-          status={state === 'error' ? 'danger' : 'default'}
-          type="primary"
+          variant={state === 'error' ? 'destructive' : 'default'}
           onClick={onPrimary}
         >
           {state === 'error' ? '重试' : primaryAction}
         </Button>
-        <Button disabled={state === 'disabled'} onClick={onSecondary}>
+        <Button variant="outline" disabled={state === 'disabled'} onClick={onSecondary}>
           {secondaryAction}
         </Button>
       </div>

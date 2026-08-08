@@ -1,4 +1,5 @@
-import { Progress, Tag } from '@arco-design/web-react';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import type { AgentDisplayStatus } from '../../types/agent';
 import styles from './AgentStatusStrip.module.css';
 
@@ -25,14 +26,16 @@ type AgentStatusStripProps = {
 export function AgentStatusStrip({ status }: AgentStatusStripProps) {
   const index = Math.max(steps.indexOf(status), 0);
   const percent = status === 'completed' ? 100 : Math.min(96, Math.round(((index + 1) / steps.length) * 100));
+  const statusVariant =
+    status === 'failed' || status === 'cancelled' ? 'destructive' : status === 'superseded' ? 'secondary' : 'default';
 
   return (
-    <section className={styles.strip}>
+    <section className={styles.strip} aria-label="Agent 运行状态">
       <div className={styles.head}>
         <strong>Agent 运行状态</strong>
-        <Tag color={status === 'failed' || status === 'cancelled' ? 'red' : status === 'superseded' ? 'gray' : 'green'}>{labels[status]}</Tag>
+        <Badge variant={statusVariant}>{labels[status]}</Badge>
       </div>
-      <Progress percent={percent} showText={false} size="small" />
+      <Progress value={percent} aria-label={`Agent progress ${percent}%`} />
       <div className={styles.steps}>
         {steps.map((step) => (
           <span className={step === status ? styles.active : ''} key={step}>

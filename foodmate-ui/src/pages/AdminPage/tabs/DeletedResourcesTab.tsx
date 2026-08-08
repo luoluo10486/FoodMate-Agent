@@ -1,5 +1,4 @@
-import { Button, Card, Table } from '@arco-design/web-react';
-import type { TableColumnProps } from '@arco-design/web-react';
+import { Button, Card, Table, type TableColumnProps } from './AdminPrimitives';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, AdminOnlyNotice, OperationAuditCard } from './AdminComponents';
 import { type DeletedRow, adminDeletedRows, canManage } from './AdminShared';

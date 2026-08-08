@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Button, Card, Input, Skeleton, Tag } from '@arco-design/web-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { UiComponentState } from '../../types/ui';
 import styles from './ClarificationCard.module.css';
 
@@ -32,22 +36,17 @@ export function ClarificationCard({
   onSubmit,
   submitLabel = '继续生成计划',
 }: ClarificationCardProps) {
-  // Derive default values from fields; resets when fields identity changes
   const defaultValues = useMemo(() => {
     if (!fields.length) return {};
-    return fields.reduce<Record<string, string>>(
-      (current, field) => {
-        current[field.key] = field.defaultValue ?? '';
-        return current;
-      },
-      {} as Record<string, string>,
-    );
+    return fields.reduce<Record<string, string>>((current, field) => {
+      current[field.key] = field.defaultValue ?? '';
+      return current;
+    }, {});
   }, [fields]);
   const [values, setValues] = useState(defaultValues);
-
-  // Sync internal state when fields definition changes
-  const fieldsKey = fields.map((f) => f.key).join(',');
+  const fieldsKey = fields.map((field) => field.key).join(',');
   const [prevFieldsKey, setPrevFieldsKey] = useState(fieldsKey);
+
   if (fieldsKey !== prevFieldsKey) {
     setPrevFieldsKey(fieldsKey);
     setValues(defaultValues);
@@ -55,15 +54,22 @@ export function ClarificationCard({
 
   if (state === 'loading') {
     return (
-      <Card className={`${styles.card} ${styles.loading}`} bordered={false}>
-        <Skeleton text={{ rows: 2 }} animation />
+      <Card className={`${styles.card} ${styles.loading}`}>
+        <div className="grid gap-3">
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-32" />
+        </div>
       </Card>
     );
   }
 
+  const disabled = state === 'disabled' || state === 'error';
+
   return (
-    <Card className={`${styles.card} ${styles[state]}`} bordered={false}>
-      <Tag color={state === 'error' ? 'red' : 'orange'}>{state === 'error' ? '追问失败' : '需要补充'}</Tag>
+    <Card className={`${styles.card} ${styles[state]}`}>
+      <Badge variant={state === 'error' ? 'destructive' : 'warning'}>{state === 'error' ? '追问失败' : '需要补充'}</Badge>
       <h3>{state === 'error' ? errorText : title}</h3>
       {fields.length ? (
         <div className={styles.form}>
@@ -75,12 +81,11 @@ export function ClarificationCard({
                   <div className={styles.options}>
                     {field.quickOptions.map((option) => (
                       <Button
-                        disabled={state === 'disabled' || state === 'error'}
+                        variant="outline"
+                        size="sm"
+                        disabled={disabled}
                         key={option}
-                        size="mini"
-                        onClick={() => {
-                          setValues((current) => ({ ...current, [field.key]: option }));
-                        }}
+                        onClick={() => setValues((current) => ({ ...current, [field.key]: option }))}
                       >
                         {option}
                       </Button>
@@ -89,21 +94,16 @@ export function ClarificationCard({
                 ) : null}
               </div>
               <Input
-                disabled={state === 'disabled' || state === 'error'}
+                disabled={disabled}
                 placeholder={field.placeholder}
                 value={values[field.key] ?? ''}
-                onChange={(value) => {
-                  setValues((current) => ({ ...current, [field.key]: value }));
-                }}
+                onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}
               />
             </div>
           ))}
           <div className={styles.actions}>
             <Button
-              disabled={
-                state === 'disabled' || state === 'error' || fields.some((field) => !(values[field.key] ?? '').trim())
-              }
-              type="primary"
+              disabled={disabled || fields.some((field) => !(values[field.key] ?? '').trim())}
               onClick={() => onSubmit?.(values)}
             >
               {submitLabel}
@@ -113,11 +113,7 @@ export function ClarificationCard({
       ) : (
         <div className={styles.options}>
           {options.map((option) => (
-            <Button
-              disabled={state === 'disabled' || state === 'error'}
-              onClick={() => onSelect?.(option)}
-              key={option}
-            >
+            <Button variant="outline" disabled={disabled} onClick={() => onSelect?.(option)} key={option}>
               {option}
             </Button>
           ))}

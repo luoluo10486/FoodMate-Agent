@@ -1,4 +1,4 @@
-import { Table } from '@arco-design/web-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 export type MealPlanRow = {
   day: string;
@@ -12,15 +12,23 @@ type MealPlanTableProps = {
 
 export function MealPlanTable({ rows }: MealPlanTableProps) {
   return (
-    <Table
-      pagination={false}
-      data={rows}
-      rowKey="day"
-      columns={[
-        { title: '日期', dataIndex: 'day' },
-        { title: '午餐', dataIndex: 'lunch' },
-        { title: '晚餐', dataIndex: 'dinner' },
-      ]}
-    />
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>日期</TableHead>
+          <TableHead>午餐</TableHead>
+          <TableHead>晚餐</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <TableRow key={row.day}>
+            <TableCell>{row.day}</TableCell>
+            <TableCell>{row.lunch}</TableCell>
+            <TableCell>{row.dinner}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

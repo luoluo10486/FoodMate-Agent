@@ -1,4 +1,24 @@
 :root {
+  --background: #f7f5ef;
+  --foreground: #23251f;
+  --card: #ffffff;
+  --card-foreground: #23251f;
+  --popover: #ffffff;
+  --popover-foreground: #23251f;
+  --primary: #2f6f4e;
+  --primary-foreground: #ffffff;
+  --secondary: #edf4ef;
+  --secondary-foreground: #1f4f38;
+  --muted: #fbfaf6;
+  --muted-foreground: #6f7468;
+  --accent: #fff0df;
+  --accent-foreground: #7f4b1e;
+  --destructive: #b94a48;
+  --destructive-foreground: #ffffff;
+  --border: #d9d5c8;
+  --input: #d9d5c8;
+  --ring: #326b8e;
+  --radius: 0.5rem;
   --fm-bg: #f7f5ef;
   --fm-bg-soft: #fbfaf6;
   --fm-surface: #ffffff;

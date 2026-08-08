@@ -17,6 +17,31 @@
   line-height: 1.6;
 }
 
+.details {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.details > div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.details dt {
+  color: var(--fm-muted);
+  font-size: 13px;
+}
+
+.details dd {
+  margin: 0;
+  color: var(--fm-ink);
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
 .actions {
   display: flex;
   gap: 10px;

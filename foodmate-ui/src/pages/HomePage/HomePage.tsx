@@ -1,5 +1,4 @@
-import { Button, Skeleton } from '@arco-design/web-react';
-import { IconArrowRight } from '@arco-design/web-react/icon';
+import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
@@ -8,6 +7,7 @@ import { TaskCard } from '../../components/common/TaskCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
+import { Button, Skeleton } from '../../components/ui/legacy-primitives';
 import styles from './HomePage.module.css';
 
 export function HomePage() {
@@ -45,7 +45,7 @@ export function HomePage() {
             {getRecommendedPrompts().map((prompt) => (
               <Button key={prompt} className={styles.promptButton} onClick={() => startPrompt(prompt)}>
                 {prompt}
-                <IconArrowRight />
+                <ArrowRight aria-hidden="true" size={16} />
               </Button>
             ))}
           </div>

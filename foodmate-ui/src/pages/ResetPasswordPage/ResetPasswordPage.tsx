@@ -1,8 +1,8 @@
-import { Button, Form, Input, Message } from '@arco-design/web-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { confirmPasswordReset } from '../../services/authService';
 import styles from '../LoginPage/LoginPage.module.css';
+import { Button, Form, Input, Message } from '../../components/ui/legacy-primitives';
 
 type ResetValues = { password: string; confirmPassword: string };
 

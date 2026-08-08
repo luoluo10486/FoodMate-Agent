@@ -84,6 +84,48 @@
 
 .search {
   border-radius: 12px;
+  padding-left: 34px;
+}
+
+.searchWrap {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  color: var(--fm-muted);
+  transform: translateY(-50%);
+}
+
+.clearSearch {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fm-muted);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.clearSearch:hover {
+  background: var(--fm-bg);
+  color: var(--fm-ink);
+}
+
+.clearSearch svg {
+  width: 14px;
+  height: 14px;
 }
 
 .profile {
@@ -136,6 +178,10 @@
   border-color: var(--fm-border);
   color: var(--fm-ink);
   background: rgba(255, 255, 255, 0.86);
+}
+
+.logoutButton {
+  width: 100%;
 }
 
 .logoutButton:hover,
@@ -200,6 +246,15 @@
   gap: 10px;
 }
 
+.notice {
+  max-width: 280px;
+  overflow: hidden;
+  color: var(--fm-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .menuLink {
   display: block;
   color: inherit;
@@ -243,6 +298,7 @@
   }
 
   .main {
+    grid-template-rows: auto minmax(0, 1fr);
     min-height: 100vh;
     height: auto;
     width: 100%;
@@ -252,28 +308,58 @@
   .topbar {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    padding: 14px 16px;
-    gap: 10px;
+    grid-template-rows: 40px 40px;
+    min-height: 96px;
+    align-items: center;
+    padding: 10px 16px 6px;
+    gap: 8px 10px;
   }
 
   .moduleLabel {
+    grid-column: 2;
+    grid-row: 1;
     max-width: 100%;
     overflow: hidden;
   }
 
   .nav {
     grid-column: 1 / -1;
+    grid-row: 2;
     width: 100%;
+    min-width: 0;
+    height: 40px;
     overflow-x: auto;
+    overflow-y: hidden;
     justify-content: flex-start;
   }
 
-  .userButton {
-    justify-self: end;
-    max-width: 76px;
+  .navItem {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
-  .topbarLogoutButton {
-    padding-inline: 12px;
+  .userActions {
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 0;
+    justify-self: end;
+  }
+
+  .topbarLogoutLink {
+    display: none;
+  }
+
+  .userButton {
+    width: 40px;
+    max-width: 40px;
+    justify-content: center;
+    padding-inline: 0;
+    overflow: hidden;
+    font-size: 0;
+  }
+
+  .userButton svg {
+    width: 16px;
+    height: 16px;
   }
 }

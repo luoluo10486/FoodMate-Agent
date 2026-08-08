@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss(), tsconfigPaths()],
   server: {
     host: '127.0.0.1',
     port: 5173,
@@ -15,5 +17,5 @@ export default defineConfig({
         headers: { origin: new URL(process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8080').origin },
       },
     },
-  }
+  },
 });

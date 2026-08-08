@@ -30,15 +30,25 @@
   background: rgba(246, 249, 244, 0.76);
 }
 
-.details :global(.arco-collapse-item-header) {
+.details summary {
   min-height: 32px;
   padding: 8px 10px;
   color: var(--fm-muted);
   font-size: 12px;
   font-weight: 800;
+  cursor: pointer;
+  list-style-position: inside;
 }
 
-.details :global(.arco-collapse-item-content-box) {
+.details summary::marker {
+  color: var(--fm-green);
+}
+
+.details[open] summary {
+  border-bottom: 1px solid var(--fm-border-soft);
+}
+
+.details dl {
   padding: 0 10px 10px;
 }
 

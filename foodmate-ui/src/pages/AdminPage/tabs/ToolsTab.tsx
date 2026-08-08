@@ -1,5 +1,4 @@
-import { Button, Card, Table, Tag } from '@arco-design/web-react';
-import type { TableColumnProps } from '@arco-design/web-react';
+import { Button, Card, Table, Tag, type TableColumnProps } from './AdminPrimitives';
 import { useEffect, useState } from 'react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, OperationAuditCard } from './AdminComponents';

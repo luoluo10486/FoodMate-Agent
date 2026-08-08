@@ -1,14 +1,14 @@
-import { Collapse, Tag } from '@arco-design/web-react';
+import { Badge } from '@/components/ui/badge';
 import type { ToolCall } from '../../types/agent';
 import styles from './ToolTraceItem.module.css';
 
-const colors: Record<ToolCall['status'], 'gray' | 'green' | 'red' | 'orange' | 'blue'> = {
-  pending: 'gray',
-  running: 'orange',
-  success: 'green',
-  failed: 'red',
-  timeout: 'red',
-  cancelled: 'gray',
+const variants: Record<ToolCall['status'], 'secondary' | 'warning' | 'default' | 'destructive'> = {
+  pending: 'secondary',
+  running: 'warning',
+  success: 'default',
+  failed: 'destructive',
+  timeout: 'destructive',
+  cancelled: 'secondary',
 };
 
 type ToolTraceItemProps = {
@@ -22,21 +22,20 @@ export function ToolTraceItem({ tool }: ToolTraceItemProps) {
         <strong>{tool.name}</strong>
         <span>{tool.displayName}</span>
       </div>
-      <Tag color={colors[tool.status]}>
+      <Badge variant={variants[tool.status]}>
         {tool.status}
         {tool.latencyMs ? ` · ${tool.latencyMs}ms` : ''}
-      </Tag>
+      </Badge>
       <p>{tool.error ?? tool.summary}</p>
-      <Collapse className={styles.details} bordered={false}>
-        <Collapse.Item header="查看调用详情" name="detail">
-          <dl>
-            <dt>输入</dt>
-            <dd>{tool.input ?? '等待工具入参'}</dd>
-            <dt>输出</dt>
-            <dd>{tool.error ?? tool.output ?? tool.summary}</dd>
-          </dl>
-        </Collapse.Item>
-      </Collapse>
+      <details className={styles.details}>
+        <summary>查看调用详情</summary>
+        <dl>
+          <dt>输入</dt>
+          <dd>{tool.input ?? '等待工具入参'}</dd>
+          <dt>输出</dt>
+          <dd>{tool.error ?? tool.output ?? tool.summary}</dd>
+        </dl>
+      </details>
     </article>
   );
 }

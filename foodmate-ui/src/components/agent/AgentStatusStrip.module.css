@@ -21,7 +21,21 @@
   font-size: 12px;
 }
 
+.steps span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .active {
   color: var(--fm-green);
   font-weight: 900;
+}
+
+@media (max-width: 720px) {
+  .steps {
+    gap: 4px;
+    font-size: 10px;
+  }
 }

@@ -1,4 +1,4 @@
-import { Card, Table, Tabs, Tag } from '@arco-design/web-react';
+import { Card, Table, Tabs, Tag } from './AdminPrimitives';
 import { useEffect, useState } from 'react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, MiniStat } from './AdminComponents';
@@ -30,7 +30,7 @@ export function RunsSection() {
       <Card className={styles.wideCard} bordered={false}>
         <div className={styles.cardHead}>
           <strong>运行治理</strong>
-          <Tag color="arcoblue">AgentRun / ToolCall / SQLAudit / Trace</Tag>
+          <Tag color="blue">AgentRun / ToolCall / SQLAudit / Trace</Tag>
         </div>
         <Tabs defaultActiveTab="agent-runs">
           <TabPane key="agent-runs" title="AgentRun">

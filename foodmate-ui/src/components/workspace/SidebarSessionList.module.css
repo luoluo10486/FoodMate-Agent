@@ -79,9 +79,18 @@
   font-size: 14px;
 }
 
-.item span {
+.itemLink > div > span {
   display: block;
   margin-top: 4px;
   color: var(--fm-muted);
   font-size: 12px;
+}
+
+.statusBadge {
+  align-self: start;
+}
+
+.moreButton svg {
+  width: 16px;
+  height: 16px;
 }

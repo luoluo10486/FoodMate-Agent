@@ -1,7 +1,5 @@
-import { Button, Card, Input, Modal, Table } from '@arco-design/web-react';
-import type { TableColumnProps } from '@arco-design/web-react';
+import { Button, Card, Input, Message, Modal, Table, type TableColumnProps } from './AdminPrimitives';
 import { useEffect, useState } from 'react';
-import { Message } from '@arco-design/web-react';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, OperationAuditCard } from './AdminComponents';
 import { type KnowledgeRow, adminKnowledgeRows, canManage, statusTag } from './AdminShared';

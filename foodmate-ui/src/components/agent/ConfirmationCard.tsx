@@ -1,4 +1,7 @@
-import { Button, Card, Descriptions, Skeleton, Tag } from '@arco-design/web-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { UiComponentState } from '../../types/ui';
 import styles from './ConfirmationCard.module.css';
 
@@ -33,30 +36,46 @@ export function ConfirmationCard({
 }: ConfirmationCardProps) {
   if (state === 'loading') {
     return (
-      <Card className={`${styles.card} ${styles.loading}`} bordered={false}>
-        <Skeleton text={{ rows: 3 }} animation />
+      <Card className={`${styles.card} ${styles.loading}`}>
+        <div className="grid gap-3">
+          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-10 w-32" />
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className={`${styles.card} ${styles[state]}`} bordered={false}>
-      <Tag color="red">{state === 'error' ? '确认失败' : '写入前确认'}</Tag>
+    <Card className={`${styles.card} ${styles[state]}`}>
+      <Badge variant="destructive">{state === 'error' ? '确认失败' : '写入前确认'}</Badge>
       <h3 className={styles.title}>{title}</h3>
-      {state === 'error' ? <p className={styles.errorText}>{errorText}</p> : <Descriptions column={1} data={data} />}
+      {state === 'error' ? (
+        <p className={styles.errorText}>{errorText}</p>
+      ) : (
+        <dl className={styles.details}>
+          {data.map((item) => (
+            <div key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {state !== 'error' ? <p className={styles.helperText}>{helperText}</p> : null}
       <div className={styles.actions}>
-        <Button disabled={state === 'disabled' || state === 'error'} type="primary" onClick={onConfirm}>
+        <Button disabled={state === 'disabled' || state === 'error'} onClick={onConfirm}>
           确认保存
         </Button>
-        <Button disabled={state === 'disabled'} onClick={onEdit}>
+        <Button variant="outline" disabled={state === 'disabled'} onClick={onEdit}>
           修改
         </Button>
-        <Button disabled={state === 'disabled'} status="danger" onClick={onCancel}>
+        <Button variant="destructive" disabled={state === 'disabled'} onClick={onCancel}>
           取消
         </Button>
         {onRetry ? (
-          <Button disabled={state === 'disabled'} onClick={onRetry}>
+          <Button variant="outline" disabled={state === 'disabled'} onClick={onRetry}>
             {retryLabel}
           </Button>
         ) : null}

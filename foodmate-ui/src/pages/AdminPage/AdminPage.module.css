@@ -148,6 +148,16 @@
   font-weight: 900;
 }
 
+.notice {
+  padding: 10px 14px;
+  border: 1px solid #b9d1bf;
+  border-radius: 8px;
+  background: var(--fm-green-soft);
+  color: var(--fm-green);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .page {
   display: grid;
   grid-template-rows: auto auto auto auto auto;
@@ -315,12 +325,12 @@
   overflow-x: auto;
 }
 
-.auditCard :global(.arco-table-th),
-.auditCard :global(.arco-table-td),
-.userCard :global(.arco-table-th),
-.userCard :global(.arco-table-td),
-.wideCard :global(.arco-table-th),
-.wideCard :global(.arco-table-td) {
+.auditCard :global(th),
+.auditCard :global(td),
+.userCard :global(th),
+.userCard :global(td),
+.wideCard :global(th),
+.wideCard :global(td) {
   white-space: nowrap;
 }
 
@@ -477,7 +487,7 @@
   line-height: 1.6;
 }
 
-.wideCard :global(.arco-tabs-content) {
+.wideCard :global([role='tabpanel']) {
   padding-top: 2px;
 }
 
@@ -491,7 +501,7 @@
   }
 
   .brandBlock :global([class*='copy']),
-  .brandBlock :global(.arco-tag),
+  .brandBlock :global(.inline-flex),
   .workspaceLink span,
   .navButton span,
   .navButtonLocked::after,

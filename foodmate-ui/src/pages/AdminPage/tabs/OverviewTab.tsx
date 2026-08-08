@@ -1,8 +1,8 @@
-import { Card, Table, Tag } from '@arco-design/web-react';
+import { Card, Table, Tag } from './AdminPrimitives';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../constants/routes';
-import { IconFile, IconThunderbolt, IconTool } from '@arco-design/web-react/icon';
+import { IconFile, IconThunderbolt, IconTool } from './AdminPrimitives';
 import styles from '../AdminPage.module.css';
 import { AdminActionsCard, AdminFilters, GovernanceResourceCard, OperationAuditCard } from './AdminComponents';
 import { adminAuditRows, adminOverviewMetrics, auditColumns, canManage } from './AdminShared';
@@ -29,7 +29,7 @@ export function OverviewSection({ onAction }: { onAction: (payload: AdminActionP
         <Card className={styles.auditCard} bordered={false}>
           <div className={styles.cardHead}>
             <strong>运行审计</strong>
-            <Tag color="arcoblue">AgentRun / ToolCall / Trace</Tag>
+            <Tag color="blue">AgentRun / ToolCall / Trace</Tag>
           </div>
           <Table
             columns={auditColumns}

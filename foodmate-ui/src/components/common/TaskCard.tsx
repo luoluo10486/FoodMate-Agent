@@ -1,7 +1,8 @@
-import { Card, Skeleton, Tag } from '@arco-design/web-react';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
-import type { TaskCardData } from '../../types/ui';
-import type { UiComponentState } from '../../types/ui';
+import type { TaskCardData, UiComponentState } from '../../types/ui';
 import styles from './TaskCard.module.css';
 
 type TaskCardProps = {
@@ -11,7 +12,6 @@ type TaskCardProps = {
 };
 
 export function TaskCard({ task, state = 'normal', errorText = '任务模板暂不可用' }: TaskCardProps) {
-  // 真实模式由 ChatPage 创建真实 session，不能把模板 id 当成数字 session_id。
   const target = import.meta.env.VITE_AGENT_MODE === 'real'
     ? `/chat?prompt=${encodeURIComponent(task.prompt)}`
     : `/chat/${task.id}?prompt=${encodeURIComponent(task.prompt)}`;
@@ -19,20 +19,22 @@ export function TaskCard({ task, state = 'normal', errorText = '任务模板暂�
 
   if (state === 'loading') {
     return (
-      <Card className={`${styles.card} ${styles.loading}`} bordered={false}>
-        <Skeleton text={{ rows: 3 }} animation />
+      <Card className={`${styles.card} ${styles.loading}`}>
+        <div className="grid gap-3">
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className={`${styles.card} ${styles[task.accent]} ${styles[state]}`} bordered={false}>
-      {isInteractive ? (
-        <Link className={styles.linkOverlay} to={target} aria-label={`开始任务：${task.prompt}`} />
-      ) : null}
-      <Tag className={styles.tag} color={state === 'error' ? 'red' : undefined}>
+    <Card className={`${styles.card} ${styles[task.accent]} ${styles[state]}`}>
+      {isInteractive ? <Link className={styles.linkOverlay} to={target} aria-label={`开始任务：${task.prompt}`} /> : null}
+      <Badge className={styles.tag} variant={state === 'error' ? 'destructive' : 'secondary'}>
         {task.title}
-      </Tag>
+      </Badge>
       <p>{state === 'error' ? errorText : task.description}</p>
       <strong>{task.prompt}</strong>
     </Card>

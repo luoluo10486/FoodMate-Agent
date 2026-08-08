@@ -18,7 +18,7 @@
   border-radius: inherit;
 }
 
-.card :global(.arco-tag),
+.card :global(.inline-flex),
 .card p,
 .card strong {
   position: relative;

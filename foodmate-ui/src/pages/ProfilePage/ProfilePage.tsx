@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { Button, Card, Form, Input, InputNumber, Message, Modal, Select, Tag } from '@arco-design/web-react';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { getAuthUser } from '../../services/authService';
 import { changePassword, deleteAvatar, updateProfile, uploadAvatar, requestDataExport, getDataExport, downloadDataExport, requestAccountDeletion } from '../../services/accountService';
 import type { ProfileUpdateRequest } from '../../services/accountService';
 import { logout } from '../../services/authService';
 import styles from './ProfilePage.module.css';
+import { Button, Card, Form, Input, InputNumber, Message, Modal, Select, Tag } from '../../components/ui/legacy-primitives';
 
 const Option = Select.Option;
 
@@ -156,7 +156,7 @@ export function ProfilePage() {
                 </div>
                 <strong>{authUser.displayName}</strong>
                 <span>{authUser.email}</span>
-                {avatarFileName ? <Tag color="arcoblue">{avatarFileName}</Tag> : null}
+                {avatarFileName ? <Tag color="blue">{avatarFileName}</Tag> : null}
               </div>
               <div className={styles.avatarActions}>
                 <input
@@ -209,7 +209,7 @@ export function ProfilePage() {
                 </article>
                 <article>
                   <span>角色</span>
-                  <Tag color="arcoblue">{authUser.role}</Tag>
+                  <Tag color="blue">{authUser.role}</Tag>
                 </article>
                 <article>
                   <span>状态</span>
@@ -295,7 +295,7 @@ export function ProfilePage() {
               </Form>
             </Card>
             <Card className={styles.card} bordered={false}>
-              <div className={styles.cardHead}><strong>个人数据</strong><Tag color="arcoblue">一次性下载</Tag></div>
+              <div className={styles.cardHead}><strong>个人数据</strong><Tag color="blue">一次性下载</Tag></div>
               <div className={styles.actions}>
                 <Button onClick={handleExport}>创建数据导出</Button>
                 {exportJobId && <Button disabled={exportStatus !== 'completed'} type="primary" onClick={handleDownload}>下载导出文件</Button>}

@@ -1,7 +1,14 @@
-import { Button, Card, Message, Modal, Tag } from '@arco-design/web-react';
-import { useState } from 'react';
-import { IconApps, IconHome, IconLeft, IconSafe, IconUser } from '@arco-design/web-react/icon';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Button, Card, IconApps, IconHome, IconLeft, IconSafe, IconUser, Tag } from './tabs/AdminPrimitives';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ROUTES } from '../../constants/routes';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { adminOperationAuditRows } from '../../services/adminService';
@@ -41,55 +48,60 @@ export function AdminPage() {
   const authUser = getAuthUser();
   const { pathname } = useLocation();
   const sectionKey = getSectionKey(pathname) as AdminSectionKey;
-  const [, forceRefresh] = useState(0);
+  const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
+  const [notice, setNotice] = useState('');
 
-  const confirmAdminAction = ({ action, targetLabel, targetType, targetId, onApply, execute }: AdminActionPayload) => {
+  useEffect(() => {
+    const handleNotice = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      if (detail?.message) setNotice(detail.message);
+    };
+    window.addEventListener('foodmate:admin-notice', handleNotice);
+    return () => window.removeEventListener('foodmate:admin-notice', handleNotice);
+  }, []);
+
+  const requestAdminAction = (payload: AdminActionPayload) => {
     if (!canManage) {
-      Message.warning('operator 只读，不能执行管理写操作');
+      setNotice('operator 只读，不能执行管理写操作');
       return;
     }
+    setPendingAction(payload);
+  };
 
-    Modal.confirm({
-      title: action,
-      content: `确认对 ${targetLabel} 执行该管理操作？`,
-      okText: '确认执行',
-      cancelText: '取消',
-      onOk: async () => {
-        if (import.meta.env.VITE_AGENT_MODE === 'real') {
-          await execute?.();
-          Message.success(`${action} 已完成`);
-          window.location.reload();
-          return;
-        }
-        onApply?.();
-        adminOperationAuditRows.unshift({
-          key: `op-${Date.now()}`,
-          operator_id: `user_${authUser.id}`,
-          operator: authUser.role,
-          action,
-          target_type: targetType,
-          target_id: targetId,
-          result: 'success',
-          request_id: `req_admin_${Date.now()}`,
-          trace_id: `trace_admin_${Date.now()}`,
-          created_at: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
-        });
-        if (adminOperationAuditRows.length > 8) {
-          adminOperationAuditRows.length = 8;
-        }
-        forceRefresh((current) => current + 1);
-        Message.success(`${action} 已提交`);
-      },
+  const executePendingAction = async () => {
+    if (!pendingAction) return;
+    const { action, targetType, targetId, onApply, execute } = pendingAction;
+    setPendingAction(undefined);
+    if (import.meta.env.VITE_AGENT_MODE === 'real') {
+      await execute?.();
+      setNotice(`${action} 已完成`);
+      window.location.reload();
+      return;
+    }
+    onApply?.();
+    adminOperationAuditRows.unshift({
+      key: `op-${Date.now()}`,
+      operator_id: `user_${authUser.id}`,
+      operator: authUser.role,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      result: 'success',
+      request_id: `req_admin_${Date.now()}`,
+      trace_id: `trace_admin_${Date.now()}`,
+      created_at: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
     });
+    if (adminOperationAuditRows.length > 8) adminOperationAuditRows.length = 8;
+    setNotice(`${action} 已提交，审计记录已写入`);
   };
 
   if (!canAccessAdmin) {
     return (
       <div className={styles.authShell}>
-        <Card className={styles.noAccessCard} bordered={false}>
+        <Card className={styles.noAccessCard}>
           <Tag color="red">AUTH_FORBIDDEN</Tag>
           <h1>无权访问管理后台</h1>
-          <p>管理后台仅对 admin/operator 开放。普通用户不会看到入口。</p>
+          <p>管理后台仅对 admin/operator 开放，普通用户不会看到入口。</p>
           <Link to="/">
             <Button icon={<IconLeft />}>返回工作台</Button>
           </Link>
@@ -144,10 +156,23 @@ export function AdminPage() {
           </div>
         </header>
         <div className={`${styles.page} fm-enter`}>
+          {notice ? <div className={styles.notice} role="status">{notice}</div> : null}
           <AdminHeader sectionKey={sectionKey} />
-          {renderSection(sectionKey, confirmAdminAction)}
+          {renderSection(sectionKey, requestAdminAction)}
         </div>
       </main>
+      <Dialog open={Boolean(pendingAction)} onOpenChange={(open) => { if (!open) setPendingAction(undefined); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{pendingAction?.action}</DialogTitle>
+            <DialogDescription>确认对 {pendingAction?.targetLabel} 执行该管理操作？操作完成后会记录审计事件。</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingAction(undefined)}>取消</Button>
+            <Button onClick={() => void executePendingAction()}>确认执行</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

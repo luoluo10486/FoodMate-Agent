@@ -13,11 +13,20 @@
 
 .toolPill,
 .agentPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 0;
   background: transparent;
   cursor: pointer;
   font-size: 14px;
   font-weight: 900;
+}
+
+.toolPill svg,
+.agentPill svg {
+  width: 14px;
+  height: 14px;
 }
 
 .toolPill {
@@ -28,9 +37,18 @@
   color: var(--fm-green);
 }
 
+.notice {
+  max-width: 420px;
+  overflow: hidden;
+  color: var(--fm-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .inputRow {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 40px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
   gap: 10px;
   align-items: center;
   min-height: 54px;
@@ -41,10 +59,20 @@
   box-shadow: var(--fm-shadow-soft);
 }
 
-.input textarea {
+.input {
   min-height: 34px !important;
   max-height: 34px !important;
   resize: none;
   border: 0;
   box-shadow: none;
+}
+
+.input:focus-visible {
+  border-color: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+.iconButton {
+  border-radius: 999px;
 }

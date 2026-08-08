@@ -1,9 +1,14 @@
-import { Alert } from '@arco-design/web-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type ErrorStateProps = {
   message: string;
 };
 
 export function ErrorState({ message }: ErrorStateProps) {
-  return <Alert type="error" title="任务执行失败" content={message} />;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>任务执行失败</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+  );
 }
