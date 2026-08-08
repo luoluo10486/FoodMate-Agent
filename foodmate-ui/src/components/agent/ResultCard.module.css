@@ -1,7 +1,7 @@
 .card {
   border: 1px solid var(--fm-border);
   border-radius: 16px;
-  background: linear-gradient(145deg, rgba(237, 244, 239, 0.9), rgba(255, 255, 255, 0.92));
+  background: #ffffff;
 }
 
 .card h3 {

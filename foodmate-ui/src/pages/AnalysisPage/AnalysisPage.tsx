@@ -1,209 +1,166 @@
-import { useRef, useState } from 'react';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { Composer } from '../../components/workspace/Composer';
-import { MetricCard } from '../../components/common/MetricCard';
-import {
-  type AnalysisRange,
-  analysisRangeOptions,
-  getAnalysisInsights,
-  getAnalysisMetrics,
-  proteinGoal,
-  proteinTargetMax,
-  proteinTargetMin,
-  proteinTrendByRange,
-} from '../../services/analysisService';
 import styles from './AnalysisPage.module.css';
-import { Card, Select, Tag } from '../../components/ui/legacy-primitives';
 
-const Option = Select.Option;
+type RangeKey = '7d' | '30d' | '90d';
 
-const chartWidth = 760;
-const chartHeight = 250;
-const chartPadding = { top: 28, right: 28, bottom: 42, left: 48 };
+const ranges: Array<{ key: RangeKey; label: string }> = [
+  { key: '7d', label: '7 天' },
+  { key: '30d', label: '30 天' },
+  { key: '90d', label: '90 天' },
+];
+
+const rangeData: Record<RangeKey, { calories: string; protein: string; activeDays: string; bars: number[] }> = {
+  '7d': { calories: '1,940 kcal', protein: '114 g', activeDays: '6 / 7 Days', bars: [52, 78, 64, 96, 88, 112, 74] },
+  '30d': { calories: '1,896 kcal', protein: '109 g', activeDays: '26 / 30 Days', bars: [72, 86, 64, 104, 92, 118, 82] },
+  '90d': { calories: '1,872 kcal', protein: '106 g', activeDays: '79 / 90 Days', bars: [62, 94, 76, 110, 86, 116, 98] },
+};
+
+function MiniBars({ bars }: { bars: number[] }) {
+  return (
+    <div className={styles.miniBars} aria-hidden="true">
+      {bars.slice(0, 4).map((height, index) => (
+        <span key={`${height}-${index}`} style={{ height: `${Math.round(height / 5)}px` }} />
+      ))}
+    </div>
+  );
+}
 
 export function AnalysisPage() {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const [range, setRange] = useState<AnalysisRange>('7d');
-  const proteinTrend = proteinTrendByRange[range];
-  const analysisMetrics = getAnalysisMetrics(range, proteinTrend);
-  const analysisInsights = getAnalysisInsights(proteinTrend);
-  const values = proteinTrend.map((item) => item.protein);
-  const yMax = Math.ceil(Math.max(proteinTargetMax, ...values) / 20) * 20;
-  const plotWidth = chartWidth - chartPadding.left - chartPadding.right;
-  const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom;
-  const getX = (index: number) =>
-    proteinTrend.length > 1
-      ? chartPadding.left + (index / (proteinTrend.length - 1)) * plotWidth
-      : chartPadding.left + plotWidth / 2;
-  const getY = (value: number) => chartPadding.top + (1 - value / yMax) * plotHeight;
-  const points = proteinTrend.map((item, index) => `${getX(index)},${getY(item.protein)}`).join(' ');
-  const targetMinY = getY(proteinTargetMin);
-  const targetMaxY = getY(proteinTargetMax);
-  const targetBandHeight = targetMinY - targetMaxY;
-  const ticks = [0, Math.round(yMax * 0.25), Math.round(yMax * 0.5), Math.round(yMax * 0.75), yMax];
-  const targetLabel = `${proteinTargetMin}-${proteinTargetMax}g/天`;
-  const multiplierLabel = `${proteinGoal.proteinMultiplierRange[0]}-${proteinGoal.proteinMultiplierRange[1]}`;
-  const labelEvery = proteinTrend.length > 14 ? 5 : proteinTrend.length > 7 ? 2 : 1;
-  const rangeLabel = analysisRangeOptions.find((option) => option.value === range)?.label ?? '最近 7 天';
+  const navigate = useNavigate();
+  const [range, setRange] = useState<RangeKey>('7d');
+  const [notice, setNotice] = useState('');
+  const data = rangeData[range];
 
-  useGSAP(
-    () => {
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const trendLine = chartRef.current?.querySelector(`.${styles.trendLine}`) as SVGPolylineElement | null;
-      const lineLength = trendLine?.getTotalLength() ?? 0;
-
-      if (trendLine && lineLength > 0) {
-        gsap.set(trendLine, { strokeDasharray: lineLength, strokeDashoffset: lineLength });
-      }
-
-      const timeline = gsap.timeline({ defaults: { duration: reduceMotion ? 0 : 0.55, ease: 'power3.out' } });
-
-      timeline
-        .from(`.${styles.targetBand}`, { autoAlpha: 0, scaleY: 0.82, transformOrigin: '50% 50%' })
-        .from(`.${styles.gridLine}`, { autoAlpha: 0, stagger: 0.035 }, '<0.05')
-        .from(`.${styles.axisLabel}, .${styles.dayLabel}`, { autoAlpha: 0, y: 6, stagger: 0.015 }, '<0.05');
-
-      if (trendLine && lineLength > 0) {
-        timeline.to(trendLine, { strokeDashoffset: 0, duration: reduceMotion ? 0 : 0.7 }, '<0.05');
-      }
-
-      timeline.from(
-        `.${styles.goodPoint}, .${styles.lowPoint}`,
-        { autoAlpha: 0, scale: 0.45, transformOrigin: '50% 50%', stagger: 0.025 },
-        '<0.2',
-      );
-      timeline.from(`.${styles.valueLabel}, .${styles.targetLabel}`, { autoAlpha: 0, y: -4, stagger: 0.02 }, '<0.1');
-    },
-    { dependencies: [range], scope: chartRef, revertOnUpdate: true },
-  );
+  const exportCsv = () => {
+    setNotice('分析报告已排队，完成后可下载 CSV。');
+  };
 
   return (
-    <WorkspaceLayout activeModule="analysis" moduleLabel={<Tag color="blue">数据分析</Tag>}>
-      <div className={`${styles.page} fm-enter`}>
-        <section className={styles.header}>
-          <div>
-            <h1>{rangeLabel}摄入复盘</h1>
-          </div>
-          <Select value={range} onChange={(value) => setRange(value as AnalysisRange)} className={styles.select}>
-            {analysisRangeOptions.map((option) => (
-              <Option value={option.value} key={option.value}>
-                {option.label}
-              </Option>
-            ))}
-          </Select>
-        </section>
+    <WorkspaceLayout activeModule="analysis">
+      <div className={styles.page}>
+        <section className={styles.analysisBody} aria-label="摄入分析">
+          <header className={styles.filterRow}>
+            <div className={styles.filters} role="tablist" aria-label="分析范围">
+              {ranges.map((item) => (
+                <button
+                  className={range === item.key ? styles.rangeActive : ''}
+                  key={item.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={range === item.key}
+                  onClick={() => setRange(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+              <button
+                className={styles.filterPill}
+                type="button"
+                onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
+              >
+                自定义范围
+              </button>
+              <button className={styles.filterPill} type="button" onClick={() => setNotice('当前分析覆盖全部餐次。')}>
+                全部餐次
+              </button>
+            </div>
+            <Button className={styles.exportButton} variant="ghost" onClick={exportCsv}>
+              导出 CSV
+            </Button>
+          </header>
 
-        <section className={styles.metrics}>
-          {analysisMetrics.map((metric) => (
-            <MetricCard key={metric.label} {...metric} />
-          ))}
-        </section>
+          <section className={styles.metrics} aria-label="分析摘要">
+            <article className={styles.metricCard}>
+              <span>日均能量</span>
+              <div className={styles.metricValueRow}>
+                <strong>{data.calories}</strong>
+                <MiniBars bars={data.bars} />
+              </div>
+            </article>
+            <article className={styles.metricCard}>
+              <span>日均蛋白质</span>
+              <strong>{data.protein}</strong>
+            </article>
+            <article className={styles.metricCard}>
+              <span>活跃记录天数</span>
+              <strong>{data.activeDays}</strong>
+            </article>
+          </section>
 
-        <section className={styles.body}>
-          <Card className={styles.chartCard} bordered={false}>
-            <div className={styles.cardHead}>
-              <div>
-                <strong>蛋白质趋势</strong>
+          <section className={styles.chartCard} aria-labelledby="calorie-chart-title">
+            <h2 id="calorie-chart-title">能量摄入与目标对比</h2>
+            <div className={styles.chartArea}>
+              <div className={styles.legend} aria-label="图例">
                 <span>
-                  按 {proteinGoal.weightKg}kg × {multiplierLabel}，推荐 {targetLabel}
+                  <i className={styles.actualDot} />
+                  实际摄入
+                </span>
+                <span>
+                  <i className={styles.targetDot} />
+                  目标对比
                 </span>
               </div>
-              <Tag color="green">Tools（2/6）time_parser · database_query</Tag>
+              <div
+                className={styles.barChart}
+                role="img"
+                aria-label={`${ranges.find((item) => item.key === range)?.label}能量摄入柱状图`}
+              >
+                {data.bars.map((height, index) => (
+                  <span className={styles.bar} key={`${height}-${index}`} style={{ height }} />
+                ))}
+              </div>
             </div>
-            <div className={styles.chart} ref={chartRef}>
-              {proteinTrend.length === 0 ? (
-                <div className={styles.emptyChart}>当前时间范围暂无蛋白质记录</div>
-              ) : (
-                <svg
-                  aria-label={`蛋白质趋势，推荐区间 ${targetLabel}`}
-                  className={styles.trendSvg}
-                  viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                  role="img"
-                >
-                  <title>{`蛋白质趋势，推荐区间 ${targetLabel}`}</title>
-                  <rect
-                    className={styles.targetBand}
-                    x={chartPadding.left}
-                    y={targetMaxY}
-                    width={plotWidth}
-                    height={targetBandHeight}
-                    rx="10"
-                  />
-                  <text className={styles.targetLabel} x={chartPadding.left + 12} y={targetMaxY + 18}>
-                    推荐 {targetLabel}
-                  </text>
-                  {ticks.map((tick) => {
-                    const y = getY(tick);
-                    return (
-                      <g key={tick}>
-                        <line
-                          className={styles.gridLine}
-                          x1={chartPadding.left}
-                          y1={y}
-                          x2={chartWidth - chartPadding.right}
-                          y2={y}
-                        />
-                        <text className={styles.axisLabel} x={chartPadding.left - 12} y={y + 4} textAnchor="end">
-                          {tick}g
-                        </text>
-                      </g>
-                    );
-                  })}
-                  {proteinTrend.length > 1 ? <polyline className={styles.trendLine} points={points} /> : null}
-                  {proteinTrend.map((item, index) => {
-                    const x = getX(index);
-                    const y = getY(item.protein);
-                    const isLow = item.protein < proteinTargetMin;
-                    const shouldShowLabel = index % labelEvery === 0 || index === proteinTrend.length - 1;
+          </section>
 
-                    return (
-                      <g key={item.day}>
-                        {shouldShowLabel ? (
-                          <text className={styles.valueLabel} x={x} y={y - 14} textAnchor="middle">
-                            {item.protein}g
-                          </text>
-                        ) : null}
-                        <circle
-                          className={isLow ? styles.lowPoint : styles.goodPoint}
-                          cx={x}
-                          cy={y}
-                          r={shouldShowLabel ? 6 : 4}
-                        />
-                        {shouldShowLabel ? (
-                          <text className={styles.dayLabel} x={x} y={chartHeight - 14} textAnchor="middle">
-                            {item.day}
-                          </text>
-                        ) : null}
-                      </g>
-                    );
-                  })}
-                </svg>
-              )}
-            </div>
-          </Card>
-
-          <Card className={styles.insightCard} bordered={false}>
-            <strong>异常与建议</strong>
+          <section className={styles.insightCard} aria-labelledby="insight-title">
+            <h2 id="insight-title">营养洞察（由 Agent 生成）</h2>
             <div className={styles.insights}>
-              {analysisInsights.map((item) => (
-                <article className={`${styles.insight} ${styles[item.tone]}`} key={item.title}>
-                  <strong>{item.title}</strong>
-                  <span>{item.detail}</span>
-                </article>
-              ))}
+              <p>
+                <i className={styles.insightPurple} />
+                Protein distribution is heavily skewed toward dinner. Consider adding 15g to breakfast.
+              </p>
+              <p>
+                <i className={styles.insightBlue} />
+                Energy intake is consistently in your targeted deficit zone of 1,800 - 2,000 kcal.
+              </p>
+              <p>
+                <i className={styles.insightOrange} />
+                Sodium logging was omitted for 2 days. The Agent assumed average database values.
+              </p>
             </div>
-          </Card>
+            <div className={styles.insightActions}>
+              <Button
+                className={styles.interpretButton}
+                onClick={() => navigate('/chat/protein-review?prompt=请解读这份摄入分析')}
+              >
+                让 Agent 解读
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/planning')}>
+                基于分析制定计划
+              </Button>
+            </div>
+          </section>
         </section>
 
-        <Composer
-          toolsUsed={2}
-          toolsTotal={6}
-          agentsUsed={1}
-          agentsTotal={1}
-          placeholder="继续追问分析口径，例如：按早餐/午餐拆开..."
-        />
+        <section className={styles.qualityPanel} aria-label="分析维度与数据质量">
+          <h2>分析维度与数据质量</h2>
+          <p>趋势指标：能量 · 蛋白质 · 碳水 · 脂肪 · 对比：上一周期 / 不对比 · 餐次：全部餐次 / 指定餐次</p>
+          <p>统计口径：7 天内有效记录 6 天 · 缺失 1 天 · 估算记录 2 / 7（28%） · 目标区间 1,800–2,000 kcal</p>
+          <p className={styles.qualityNote}>
+            异常点可打开当天饮食记录；洞察按事实 / 风险 / 建议分层展示，缺失数据不会伪造图表值。
+          </p>
+          <p className={styles.exportStatus}>
+            导出报告：已排队 queued · 生成中 running · 可下载 completed · 失败可重新创建 failed
+          </p>
+          {notice ? (
+            <p className={styles.notice} role="status">
+              {notice}
+            </p>
+          ) : null}
+        </section>
       </div>
     </WorkspaceLayout>
   );

@@ -1,40 +1,15 @@
 .composer {
   display: grid;
-  gap: 8px;
-  width: min(880px, calc(100% - 32px));
-  margin: 0 auto;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 24px;
+  background: var(--fm-surface);
+  border-top: 1px solid var(--fm-border);
 }
 
 .statusRow {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.toolPill,
-.agentPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.toolPill svg,
-.agentPill svg {
-  width: 14px;
-  height: 14px;
-}
-
-.toolPill {
-  color: var(--fm-orange);
-}
-
-.agentPill {
-  color: var(--fm-green);
+  display: none;
 }
 
 .notice {
@@ -50,20 +25,24 @@
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
   gap: 10px;
+  width: 100%;
+  height: 64px;
   align-items: center;
-  min-height: 54px;
-  padding: 7px 10px;
-  border: 1px solid var(--fm-border);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: var(--fm-shadow-soft);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fm-bg-soft);
 }
 
 .input {
-  min-height: 34px !important;
-  max-height: 34px !important;
-  resize: none;
+  width: 100%;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
   border: 0;
+  background: transparent;
+  color: var(--fm-ink);
+  font-size: 13px;
   box-shadow: none;
 }
 
@@ -72,7 +51,42 @@
   box-shadow: none;
   outline: none;
 }
+.input::placeholder {
+  color: var(--fm-muted);
+}
 
 .iconButton {
-  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--fm-muted);
+}
+
+.iconButton:hover {
+  background: #e9eeeb;
+  color: var(--fm-ink);
+}
+.iconButton svg {
+  width: 18px;
+  height: 18px;
+}
+.inputRow > .iconButton:last-child {
+  background: var(--fm-orange-soft);
+  color: #ffffff;
+}
+.inputRow > .iconButton:last-child:hover {
+  background: #ffefd0;
+  color: #ffffff;
+}
+.inputRow > .iconButton:last-child[data-state='running'] {
+  background: var(--fm-danger);
+}
+
+@media (max-width: 720px) {
+  .composer {
+    padding: 16px;
+  }
+  .inputRow {
+    height: 64px;
+  }
 }

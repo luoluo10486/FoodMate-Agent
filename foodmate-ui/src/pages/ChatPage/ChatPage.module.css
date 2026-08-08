@@ -1,36 +1,36 @@
 .page {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 14px;
+  grid-template-rows: minmax(0, 1fr) 112px;
+  min-width: 0;
   min-height: 0;
-  padding: 8px 34px 20px;
+  height: calc(100dvh - 68px);
+  margin-right: 320px;
   overflow: hidden;
+  background: var(--fm-bg);
 }
 
 .workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 306px;
-  gap: 18px;
-  min-height: 0;
-}
-
-.center,
-.tracePanel {
+  display: block;
+  min-width: 0;
   min-height: 0;
 }
 
 .center {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 14px;
+  grid-template-rows: 44px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
 }
 
 .messages {
   display: grid;
+  align-content: start;
   gap: 14px;
+  min-width: 0;
   min-height: 0;
+  padding: 32px 0 24px 32px;
   overflow: auto;
-  padding-right: 0;
   scrollbar-width: none;
 }
 
@@ -38,84 +38,287 @@
   display: none;
 }
 
+.systemMessage {
+  margin: 0;
+  color: var(--fm-muted);
+  font-size: 13px;
+}
+
 .message {
   display: grid;
+  min-width: 0;
   gap: 8px;
-  max-width: 78%;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid var(--fm-border);
 }
 
-.message p {
-  margin: 0;
-  color: var(--fm-ink);
-  line-height: 1.7;
-}
-
-.message span {
-  color: var(--fm-subtle);
-  font-size: 12px;
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .user {
-  margin-left: auto;
-  background: var(--fm-green-soft);
+  justify-items: end;
+  gap: 14px;
+}
+
+.userLine {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
 }
 
 .assistant {
-  margin-right: auto;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 12px;
+  max-width: 100%;
 }
 
-.panelCard {
-  height: 100%;
-  overflow: auto;
-  scrollbar-width: none;
-  border: 1px solid var(--fm-border);
-  border-radius: 16px;
-  background: rgba(251, 250, 246, 0.9);
+.messageBubble {
+  max-width: 780px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  color: var(--fm-ink);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
-.panelCard::-webkit-scrollbar {
-  display: none;
+.user .messageBubble {
+  max-width: 620px;
+  background: var(--fm-orange-soft);
+  color: var(--fm-orange);
 }
 
-.panelHead {
+.assistant .messageBubble {
+  background: var(--fm-bg-soft);
+}
+
+.assistantBody {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.agentAvatar,
+.userAvatar {
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-weight: 900;
+}
+
+.agentAvatar {
+  width: 36px;
+  height: 36px;
+  background: var(--fm-green);
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1e4e8;
+  color: #b97984;
+  font-size: 12px;
+}
+
+.messageMeta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 8px;
+  color: var(--fm-muted);
+  font-size: 10px;
+  line-height: 1.3;
 }
 
-.traceList,
-.citationList {
+.user .messageMeta {
+  justify-content: flex-end;
+  padding-right: 44px;
+}
+
+.cardWrap {
+  width: min(780px, 100%);
+  margin-left: 48px;
+}
+
+.messageActions {
+  width: min(796px, 100%);
+  min-height: 150px;
+  margin-top: 36px;
+  padding: 14px 20px;
+  border: 1px solid #dce9d9;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.messageActions h2 {
+  margin: 0;
+  color: var(--fm-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.messageActions p {
+  margin: 6px 0 0;
+  color: var(--fm-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.messageActions .actionGreen {
+  color: #70a867;
+}
+
+.tracePanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  width: 320px;
+  background: var(--fm-surface);
+  border-left: 1px solid var(--fm-border);
+}
+
+.traceCard {
+  display: grid;
+  grid-template-rows: 96px minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+  background: var(--fm-surface);
+}
+
+.traceHeader {
+  display: grid;
+  grid-template-rows: 56px 40px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--fm-border);
+}
+
+.traceHeader > strong {
+  align-self: center;
+  color: var(--fm-ink);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.traceTabs {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.traceTabs button {
+  min-width: 136px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fm-muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.traceTabs button:hover {
+  color: var(--fm-ink);
+  background: var(--fm-bg-soft);
+}
+.traceTabs .traceTabActive {
+  background: var(--fm-purple-soft);
+  color: #c395d9;
+}
+
+.traceBody {
+  min-height: 0;
+  padding: 12px 20px 24px;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.traceBody::-webkit-scrollbar {
+  display: none;
+}
+.runId {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--fm-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+.traceList {
   display: grid;
   gap: 12px;
 }
-
 .citationList {
-  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.traceEmpty {
+  padding: 16px 0;
+  color: var(--fm-muted);
+  font-size: 12px;
+}
+.traceJson {
+  margin: 0;
+  color: var(--fm-muted);
+  font-size: 10px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
-@media (max-width: 980px) {
-  .workspace {
-    grid-template-columns: 1fr;
+@media (max-width: 1100px) {
+  .page {
+    margin-right: 0;
   }
-
   .tracePanel {
-    max-height: 260px;
+    display: none;
   }
 }
 
 @media (max-width: 720px) {
   .page {
-    min-height: calc(100vh - 64px);
-    padding: 8px 16px 18px;
+    grid-template-rows: minmax(0, 1fr) 96px;
+    height: calc(100dvh - 96px);
+    margin-right: 0;
     overflow: visible;
   }
 
-  .message {
+  .messages {
+    padding: 22px 16px 18px;
+  }
+  .messageBubble {
     max-width: 100%;
+    padding: 12px 14px;
+  }
+  .assistant {
+    grid-template-columns: 30px minmax(0, 1fr);
+    column-gap: 8px;
+  }
+  .agentAvatar {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+  .cardWrap {
+    width: 100%;
+    margin-left: 0;
+  }
+  .messageActions {
+    margin-top: 22px;
   }
 }

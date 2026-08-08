@@ -1,226 +1,403 @@
 .page {
+  min-height: calc(100dvh - 68px);
+  overflow: auto;
+  background: var(--fm-bg);
+  color: var(--fm-ink);
+  scrollbar-width: none;
+}
+
+.page::-webkit-scrollbar {
+  display: none;
+}
+
+.analysisBody {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: 18px;
-  min-height: 0;
-  padding: 8px 34px 20px;
-  overflow: hidden;
+  gap: 24px;
+  padding: 32px;
 }
 
-.header {
+.filterRow {
   display: flex;
-  align-items: end;
+  height: 40px;
+  align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
 }
 
-.header h1 {
-  margin: 12px 0 0;
-  font-size: 32px;
-  letter-spacing: -0.03em;
+.filters {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--fm-border);
+  border-radius: 999px;
+  background: var(--fm-surface);
 }
 
-.select {
-  width: 160px;
+.filters button {
+  height: 30px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fm-muted);
+  font-family: Inter, var(--fm-font);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filters button:hover {
+  color: var(--fm-ink);
+}
+
+.filters .rangeActive {
+  background: rgba(236, 204, 255, 0.24);
+  color: #b58cc4;
+  font-weight: 700;
+}
+
+.filters .filterPill {
+  height: 32px;
+  border: 1px solid #d1d6e0;
+  border-radius: 8px;
+  color: #474d5c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.exportButton {
+  height: 37px;
+  padding-inline: 16px;
+  border: 1px solid var(--fm-border);
+  border-radius: 12px;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
+  font-family: Inter, var(--fm-font);
+  font-size: 14px;
+}
+
+.exportButton:hover {
+  background: #fafafa;
+  color: var(--fm-ink);
 }
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  height: 101px;
 }
 
-.body {
+.metricCard {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 18px;
-  min-height: 0;
-  overflow: auto;
-  scrollbar-width: none;
+  gap: 12px;
+  height: 101px;
+  padding: 20px;
+  border: 1px solid var(--fm-border);
+  border-radius: 20px;
+  background: var(--fm-surface);
 }
 
-.body::-webkit-scrollbar {
-  display: none;
+.metricCard > span {
+  color: var(--fm-muted);
+  font-family: Inter, var(--fm-font);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.metricCard strong {
+  color: var(--fm-ink);
+  font-family: Inter, var(--fm-font);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.metricValueRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.miniBars {
+  display: flex;
+  height: 24px;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.miniBars span {
+  width: 4px;
+  border-radius: 2px;
+  background: #ecccff;
 }
 
 .chartCard,
 .insightCard {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
   border: 1px solid var(--fm-border);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
+  border-radius: 20px;
+  background: var(--fm-surface);
 }
 
-.cardHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.chartCard {
+  height: 303px;
 }
 
-.cardHead > div {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
+.chartCard h2,
+.insightCard h2,
+.qualityPanel h2 {
+  margin: 0;
+  color: var(--fm-ink);
+  font-family: Inter, var(--fm-font);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 19px;
 }
 
-.cardHead span {
-  color: var(--fm-subtle);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.chart {
-  min-height: 238px;
-  padding: 16px 2px 0;
-}
-
-.trendSvg {
-  display: block;
-  width: 100%;
-  height: 238px;
-  overflow: visible;
-}
-
-.emptyChart {
-  display: grid;
-  min-height: 238px;
-  place-items: center;
-  border: 1px dashed var(--fm-border);
+.chartArea {
+  position: relative;
+  height: 220px;
   border-radius: 12px;
+  background: var(--fm-bg-soft);
+}
+
+.legend {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 24px;
   color: var(--fm-muted);
-  font-weight: 700;
-}
-
-.targetBand {
-  fill: rgba(47, 111, 78, 0.1);
-  stroke: rgba(47, 111, 78, 0.18);
-}
-
-.targetLabel {
-  fill: var(--fm-green);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.gridLine {
-  stroke: rgba(64, 80, 96, 0.1);
-  stroke-width: 1;
-}
-
-.axisLabel,
-.dayLabel {
-  fill: var(--fm-subtle);
+  font-family: Inter, var(--fm-font);
   font-size: 12px;
-  font-weight: 700;
 }
 
-.trendLine {
-  fill: none;
-  stroke: var(--fm-green);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 4;
-  filter: drop-shadow(0 10px 18px rgba(47, 111, 78, 0.18));
-  will-change: stroke-dashoffset;
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.valueLabel {
-  fill: var(--fm-ink);
-  font-size: 12px;
-  font-weight: 800;
+.legend i,
+.insights i {
+  display: block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
 }
 
-.goodPoint,
-.lowPoint {
-  stroke: #fff;
-  stroke-width: 3;
-  will-change: transform, opacity;
+.actualDot,
+.insightPurple {
+  background: #ecccff;
 }
 
-.goodPoint {
-  fill: var(--fm-green);
+.targetDot,
+.insightOrange {
+  background: #ffb5b6;
 }
 
-.lowPoint {
-  fill: var(--fm-orange);
+.barChart {
+  position: absolute;
+  right: 28px;
+  bottom: 42px;
+  left: 28px;
+  display: flex;
+  height: 140px;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 24px;
+}
+
+.bar {
+  width: 72px;
+  min-height: 8px;
+  border-radius: 0;
+  background: #ecccff;
 }
 
 .insightCard {
-  display: grid;
-  gap: 18px;
+  height: 219px;
 }
 
 .insights {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
-.insight {
+.insights p {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--fm-ink);
+  font-family: Inter, var(--fm-font);
+  font-size: 14px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.insightBlue,
+.targetDot {
+  background: #73d4df;
+}
+
+.insightActions {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.insightActions button {
+  height: 40px;
+  padding-inline: 16px;
+  border-radius: 12px;
+  font-family: Inter, var(--fm-font);
+  font-size: 14px;
+}
+
+.interpretButton {
+  background: #ecccff;
+  color: #ffffff;
+}
+
+.interpretButton:hover {
+  background: #dfb9f7;
+  color: #ffffff;
+}
+
+.qualityPanel {
   display: grid;
   gap: 6px;
-  padding: 16px;
-  border-radius: 12px;
+  width: min(1116px, calc(100% - 64px));
+  height: 140px;
+  padding: 12px 20px;
+  border: 1px solid #e5dbf5;
+  border-radius: 14px;
+  background: #fcfaff;
+  font-family: Inter, var(--fm-font);
 }
 
-.insight span {
-  color: var(--fm-muted);
+.qualityPanel p {
+  margin: 0;
+  color: #59635e;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
 }
 
-.warning {
-  background: var(--fm-orange-soft);
-  border: 1px solid #e6c49b;
+.qualityPanel .qualityNote {
+  color: #78827d;
+  font-size: 12px;
 }
 
-.info {
-  background: var(--fm-blue-soft);
-  border: 1px solid #b7cbd8;
+.qualityPanel .exportStatus {
+  color: #854da6;
+  font-size: 12px;
+}
+
+.qualityPanel .notice {
+  color: #40914d;
+  font-size: 12px;
 }
 
 @media (max-width: 980px) {
-  .metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .filters {
+    max-width: 100%;
+    overflow-x: auto;
   }
 
-  .body {
+  .metrics {
     grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .metricCard {
+    height: 101px;
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 680px) {
   .page {
-    min-height: calc(100vh - 64px);
-    padding: 8px 16px 18px;
-    overflow: visible;
-    width: 100%;
-    max-width: 100vw;
+    min-height: calc(100dvh - 96px);
   }
 
-  .header,
-  .metrics,
-  .body {
-    grid-template-columns: 1fr;
+  .analysisBody {
+    gap: 20px;
+    padding: 20px 16px 24px;
   }
 
-  .header {
-    display: grid;
-    align-items: start;
-  }
-
-  .header h1 {
-    font-size: 26px;
-    line-height: 1.18;
-  }
-
-  .select {
-    width: 100%;
-  }
-
-  .cardHead {
-    align-items: flex-start;
+  .filterRow {
+    height: auto;
+    align-items: stretch;
     flex-direction: column;
   }
 
-  .chart {
-    padding-top: 10px;
+  .filters {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .filters button {
+    padding-inline: 12px;
+  }
+
+  .exportButton {
+    align-self: flex-start;
+  }
+
+  .chartCard {
+    height: 303px;
+    padding: 16px;
+  }
+
+  .barChart {
+    right: 14px;
+    left: 14px;
+    gap: 8px;
+  }
+
+  .bar {
+    width: 28px;
+  }
+
+  .legend {
+    right: 14px;
+    gap: 10px;
+    font-size: 10px;
+  }
+
+  .insightCard {
+    height: auto;
+    min-height: 219px;
+    padding: 16px;
+  }
+
+  .insights p {
+    align-items: flex-start;
+    white-space: normal;
+  }
+
+  .qualityPanel {
+    width: calc(100% - 32px);
+    min-height: 140px;
+    height: auto;
+    margin-bottom: 24px;
+    padding: 12px 16px;
+  }
+
+  .qualityPanel p {
+    white-space: normal;
   }
 }

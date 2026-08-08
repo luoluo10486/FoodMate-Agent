@@ -1,22 +1,25 @@
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import type { AgentDisplayStatus } from '../../types/agent';
 import styles from './AgentStatusStrip.module.css';
 
-const steps: AgentDisplayStatus[] = ['routing', 'planning', 'retrieving', 'executing_tools', 'validating', 'composing'];
+const steps: Array<{ key: AgentDisplayStatus; label: string; tone: string }> = [
+  { key: 'planning', label: 'Planning', tone: 'purple' },
+  { key: 'retrieving', label: 'Retrieving', tone: 'blue' },
+  { key: 'executing_tools', label: 'Executing', tone: 'orange' },
+  { key: 'composing', label: 'Composing', tone: 'gray' },
+];
 
-const labels: Record<AgentDisplayStatus, string> = {
-  routing: 'routing',
-  planning: 'planning',
-  retrieving: 'retrieving',
-  executing_tools: 'executing',
-  validating: 'validating',
-  composing: 'composing',
-  waiting_user: 'waiting',
-  completed: 'completed',
-  failed: 'failed',
-  cancelled: 'cancelled',
-  superseded: '已由后续任务接续',
+const statusIndex: Record<AgentDisplayStatus, number> = {
+  routing: -1,
+  planning: 0,
+  retrieving: 1,
+  executing_tools: 2,
+  validating: 2,
+  composing: 3,
+  waiting_user: 3,
+  completed: 4,
+  failed: 4,
+  cancelled: 4,
+  superseded: 4,
 };
 
 type AgentStatusStripProps = {
@@ -24,24 +27,25 @@ type AgentStatusStripProps = {
 };
 
 export function AgentStatusStrip({ status }: AgentStatusStripProps) {
-  const index = Math.max(steps.indexOf(status), 0);
-  const percent = status === 'completed' ? 100 : Math.min(96, Math.round(((index + 1) / steps.length) * 100));
-  const statusVariant =
-    status === 'failed' || status === 'cancelled' ? 'destructive' : status === 'superseded' ? 'secondary' : 'default';
-
+  const currentIndex = statusIndex[status];
   return (
     <section className={styles.strip} aria-label="Agent 运行状态">
-      <div className={styles.head}>
-        <strong>Agent 运行状态</strong>
-        <Badge variant={statusVariant}>{labels[status]}</Badge>
-      </div>
-      <Progress value={percent} aria-label={`Agent progress ${percent}%`} />
-      <div className={styles.steps}>
-        {steps.map((step) => (
-          <span className={step === status ? styles.active : ''} key={step}>
-            {labels[step]}
-          </span>
-        ))}
+      <strong className={styles.label}>代理流程：</strong>
+      <div className={styles.steps} role="list">
+        {steps.map((step, index) => {
+          const completed = currentIndex > index || status === 'completed';
+          const active = currentIndex === index && !completed;
+          return (
+            <span
+              className={`${styles.step} ${styles[step.tone]} ${active ? styles.active : ''}`}
+              key={step.key}
+              role="listitem"
+            >
+              {step.label}
+              <small aria-hidden="true">{completed ? '✓' : active ? '●' : '○'}</small>
+            </span>
+          );
+        })}
       </div>
     </section>
   );

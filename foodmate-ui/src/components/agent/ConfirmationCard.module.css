@@ -1,26 +1,26 @@
 .card {
-  border: 1px solid rgba(185, 74, 72, 0.25);
-  border-radius: 16px;
-  background: #fff8f6;
+  border: 0;
+  border-radius: 12px;
+  background: #ffffff;
 }
 
 .title {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   color: var(--fm-ink);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .helperText {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   color: var(--fm-muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .details {
   display: grid;
-  gap: 10px;
-  margin: 14px 0 0;
+  gap: 7px;
+  margin: 10px 0 0;
 }
 
 .details > div {
@@ -31,14 +31,14 @@
 
 .details dt {
   color: var(--fm-muted);
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .details dd {
   margin: 0;
   color: var(--fm-ink);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 11px;
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
@@ -46,7 +46,15 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 14px;
+  margin-top: 12px;
+}
+
+.actions :global(button:first-child) {
+  background: var(--fm-green);
+  color: #3d7035;
+}
+.actions :global(button:first-child:hover) {
+  background: #96d286;
 }
 
 .loading,

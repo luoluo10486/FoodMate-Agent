@@ -1,7 +1,7 @@
 import { ChevronDown, Paperclip, Send, Square } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import styles from './Composer.module.css';
 
 type ComposerProps = {
@@ -81,7 +81,7 @@ export function Composer({
         >
           <Paperclip />
         </Button>
-        <Textarea
+        <Input
           className={styles.input}
           disabled={disabled}
           placeholder={placeholder}

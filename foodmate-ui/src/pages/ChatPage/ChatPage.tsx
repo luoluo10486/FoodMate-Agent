@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import type { AgentRunView, AgentDisplayStatus } from '../../types/agent';
+import type { Message } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { AgentStatusStrip } from '../../components/agent/AgentStatusStrip';
@@ -14,26 +14,30 @@ import { ErrorState } from '../../components/common/ErrorState';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
 import { createSession, loadSessionMessages, sendUserMessage, type RealMessage } from '../../services/sessionService';
-import { cancelAgentRun, extendAgentRunBudget, openAgentRunStream, recoverAgentRun } from '../../services/agentRunService';
+import {
+  cancelAgentRun,
+  extendAgentRunBudget,
+  openAgentRunStream,
+  recoverAgentRun,
+} from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
 
-type TagProps = {
-  color?: string;
-  children: ReactNode;
+type ChatMessage = {
+  id: string;
+  role: Message['role'];
+  content: string;
+  time: string;
 };
 
-function Tag({ color, children }: TagProps) {
-  const variant = color === 'red' ? 'destructive' : color === 'orange' ? 'warning' : color === 'gray' ? 'secondary' : 'default';
-  return <Badge variant={variant}>{children}</Badge>;
-}
-
-function displayRunStatus(status: string) {
-  if (status === 'queued' || status === 'routed') return 'routing' as const;
-  if (status === 'planning' || status === 'retrieving' || status === 'executing') return status === 'executing' ? 'executing_tools' as const : status as 'planning' | 'retrieving';
-  if (status === 'validating') return 'validating' as const;
-  if (status === 'waiting_user') return 'waiting_user' as const;
+function displayRunStatus(status: string): AgentDisplayStatus {
+  if (status === 'queued' || status === 'routed') return 'routing';
+  if (status === 'planning' || status === 'retrieving' || status === 'executing') {
+    return status === 'executing' ? 'executing_tools' : status;
+  }
+  if (status === 'validating') return 'validating';
+  if (status === 'waiting_user') return 'waiting_user';
   if (status === 'failed' || status === 'cancelled' || status === 'completed' || status === 'superseded') return status;
-  return 'routing' as const;
+  return 'routing';
 }
 
 function runtimeErrorMessage(payload: { code?: string; error_message?: string; message?: string }) {
@@ -42,6 +46,151 @@ function runtimeErrorMessage(payload: { code?: string; error_message?: string; m
   if (payload.code === 'RUNTIME_QUEUE_TIMEOUT') return '请求排队超时，请稍后重试。';
   if (payload.code === 'MODEL_PROVIDER_UNAVAILABLE') return '模型服务暂时不可用，请稍后重试。';
   return payload.error_message ?? payload.message ?? 'Agent 运行失败。';
+}
+
+function formatMessageTime(value: string) {
+  if (!value.includes('-')) return value;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function MessageBubble({ message }: { message: ChatMessage }) {
+  const isUser = message.role === 'user';
+  return (
+    <article className={`${styles.message} ${isUser ? styles.user : styles.assistant}`}>
+      {isUser ? (
+        <>
+          <div className={styles.userLine}>
+            <div className={styles.messageBubble}>{message.content}</div>
+            <span className={styles.srOnly}>你</span>
+            <span className={styles.userAvatar} aria-hidden="true">
+              梁
+            </span>
+          </div>
+          <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
+        </>
+      ) : (
+        <>
+          <span className={styles.agentAvatar} aria-hidden="true">
+            F
+          </span>
+          <div className={styles.assistantBody}>
+            <div className={styles.messageBubble}>{message.content}</div>
+            <div className={styles.messageMeta}>Fustat-v2 Agent · {formatMessageTime(message.time)} PM</div>
+          </div>
+        </>
+      )}
+    </article>
+  );
+}
+
+function TraceRail({ run }: { run: AgentRunView }) {
+  const [tab, setTab] = useState<'steps' | 'json'>('steps');
+  return (
+    <aside className={styles.tracePanel} aria-label="运行轨迹">
+      <div className={styles.traceCard}>
+        <header className={styles.traceHeader}>
+          <strong>运行轨迹</strong>
+          <span className={styles.srOnly}>工具与引用</span>
+          <div className={styles.traceTabs} role="tablist" aria-label="运行轨迹视图">
+            <button
+              className={tab === 'steps' ? styles.traceTabActive : ''}
+              type="button"
+              onClick={() => setTab('steps')}
+            >
+              步骤
+            </button>
+            <button
+              className={tab === 'json' ? styles.traceTabActive : ''}
+              type="button"
+              onClick={() => setTab('json')}
+            >
+              原始 JSON
+            </button>
+          </div>
+        </header>
+        {tab === 'steps' ? (
+          <div className={styles.traceBody}>
+            <span className={styles.runId}>RUN ID: {run.id}</span>
+            {run.toolCalls.length ? (
+              <div className={styles.traceList}>
+                {run.toolCalls.map((tool) => (
+                  <ToolTraceItem key={tool.id} tool={tool} />
+                ))}
+              </div>
+            ) : (
+              <div className={styles.traceEmpty}>等待运行事件...</div>
+            )}
+            {run.citations.length ? (
+              <div className={styles.citationList}>
+                {run.citations.map((citation) => (
+                  <CitationBlock citation={citation} key={citation.id} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <pre className={styles.traceJson}>{JSON.stringify(run, null, 2)}</pre>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+type ChatSurfaceProps = {
+  run: AgentRunView;
+  messagesRef: React.RefObject<HTMLDivElement>;
+  children: ReactNode;
+  input: string;
+  running: boolean;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  onSend: () => void;
+  onStop: () => void;
+  placeholder: string;
+};
+
+function ChatSurface({
+  run,
+  messagesRef,
+  children,
+  input,
+  running,
+  disabled,
+  onChange,
+  onSend,
+  onStop,
+  placeholder,
+}: ChatSurfaceProps) {
+  return (
+    <WorkspaceLayout activeModule="chat">
+      <div className={styles.page}>
+        <section className={styles.workspace}>
+          <div className={styles.center}>
+            <AgentStatusStrip status={run.status} />
+            <div className={styles.messages} ref={messagesRef}>
+              {children}
+            </div>
+          </div>
+          <TraceRail run={run} />
+        </section>
+        <Composer
+          value={input}
+          running={running}
+          disabled={disabled}
+          toolsUsed={run.toolsUsed}
+          toolsTotal={run.toolsTotal}
+          agentsUsed={run.agentsUsed}
+          agentsTotal={run.agentsTotal}
+          placeholder={placeholder}
+          onChange={onChange}
+          onSend={onSend}
+          onStop={onStop}
+        />
+      </div>
+    </WorkspaceLayout>
+  );
 }
 
 export function ChatPage() {
@@ -66,51 +215,102 @@ function RealChatPage() {
 
   useEffect(() => {
     let cancelled = false;
-    // 切换会话时必须清理旧 Run，否则新会话会继续订阅上一会话的 SSE。
     setActiveRunId(undefined);
     setRunStatus('idle');
     setAssistantText('');
     setBudgetConfirmation(false);
     setCheckpointAvailable(false);
-    if (!sessionId) { setLoading(false); return; }
-    setLoading(true); setError(undefined);
-    loadSessionMessages(sessionId).then((rows) => { if (!cancelled) setMessages(rows.sort((a, b) => a.sequence_no - b.sequence_no)); }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : '消息加载失败'); }).finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    if (!sessionId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(undefined);
+    loadSessionMessages(sessionId)
+      .then((rows) => {
+        if (!cancelled) setMessages(rows.sort((a, b) => a.sequence_no - b.sequence_no));
+      })
+      .catch((reason) => {
+        if (!cancelled) setError(reason instanceof Error ? reason.message : '消息加载失败');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId]);
 
-  useEffect(() => { messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' }); }, [messages]);
+  useEffect(() => {
+    messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages, assistantText]);
 
   useEffect(() => {
     if (!activeRunId) return undefined;
-    setRunStatus('queued'); setAssistantText('');
-    const stream = openAgentRunStream(activeRunId, (eventType, payload) => {
-      if (eventType === 'run.answer_stream') { setRunStatus('validating'); setAssistantText((current) => current + (payload.text ?? '')); return; }
-      if (eventType === 'run.completed') {
-        setRunStatus('completed'); setCheckpointAvailable(false); setAssistantText(payload.answer ?? assistantText);
-         setBudgetConfirmation(payload.result_type === 'safety_degraded' && (payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true));
-        return;
-      }
-      if (eventType === 'run.checkpoint_saved') {
-        setRunStatus('waiting_user');
-        setCheckpointAvailable(true);
-        return;
-      }
-      if (eventType === 'run.failed') { setRunStatus('failed'); setCheckpointAvailable(false); setError(runtimeErrorMessage(payload)); return; }
-      if (eventType === 'run.cancelled') { setRunStatus('cancelled'); setCheckpointAvailable(false); return; }
-      if (eventType === 'run.superseded') { setRunStatus('superseded'); setCheckpointAvailable(false); return; }
-      if (eventType === 'run.clarification_requested') { setRunStatus('waiting_user'); return; }
-      setRunStatus(payload.status ?? eventType.replace('run.', ''));
-    }, () => setError('运行事件连接中断，浏览器将自动重连。'));
+    setRunStatus('queued');
+    setAssistantText('');
+    const stream = openAgentRunStream(
+      activeRunId,
+      (eventType, payload) => {
+        if (eventType === 'run.answer_stream') {
+          setRunStatus('validating');
+          setAssistantText((current) => current + (payload.text ?? ''));
+          return;
+        }
+        if (eventType === 'run.completed') {
+          setRunStatus('completed');
+          setCheckpointAvailable(false);
+          setAssistantText((current) => payload.answer ?? current);
+          setBudgetConfirmation(
+            payload.result_type === 'safety_degraded' &&
+              (payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true),
+          );
+          return;
+        }
+        if (eventType === 'run.checkpoint_saved') {
+          setRunStatus('waiting_user');
+          setCheckpointAvailable(true);
+          return;
+        }
+        if (eventType === 'run.failed') {
+          setRunStatus('failed');
+          setCheckpointAvailable(false);
+          setError(runtimeErrorMessage(payload));
+          return;
+        }
+        if (eventType === 'run.cancelled') {
+          setRunStatus('cancelled');
+          setCheckpointAvailable(false);
+          return;
+        }
+        if (eventType === 'run.superseded') {
+          setRunStatus('superseded');
+          setCheckpointAvailable(false);
+          return;
+        }
+        if (eventType === 'run.clarification_requested') {
+          setRunStatus('waiting_user');
+          return;
+        }
+        setRunStatus(payload.status ?? eventType.replace('run.', ''));
+      },
+      () => setError('运行事件连接中断，浏览器将自动重连。'),
+    );
     return () => stream.close();
   }, [activeRunId]);
 
   const send = async () => {
     const content = input.trim();
     if (!content || sending) return;
-    setError(undefined); setSending(true);
+    setError(undefined);
+    setSending(true);
     try {
       let target = sessionId;
-      if (!target) { const created = await createSession(content.slice(0, 40)); target = String(created.session_id); navigate(`/chat/${target}`, { replace: true }); }
+      if (!target) {
+        const created = await createSession(content.slice(0, 40));
+        target = String(created.session_id);
+        navigate(`/chat/${target}`, { replace: true });
+      }
       const saved = await sendUserMessage(target, content);
       setMessages((current) => [...current, saved].sort((a, b) => a.sequence_no - b.sequence_no));
       if (saved.agent_run_id) setActiveRunId(String(saved.agent_run_id));
@@ -118,55 +318,99 @@ function RealChatPage() {
     } catch (reason) {
       if (reason instanceof ApiError && reason.code === 'FORBIDDEN') setError(reason.message);
       setError(reason instanceof Error ? reason.message : '消息发送失败');
-    } finally { setSending(false); }
+    } finally {
+      setSending(false);
+    }
   };
 
+  const realRun: AgentRunView = {
+    id: activeRunId ?? '等待运行',
+    status: displayRunStatus(runStatus === 'idle' ? 'completed' : runStatus),
+    intent: 'planning',
+    toolsUsed: 0,
+    toolsTotal: 6,
+    agentsUsed: 0,
+    agentsTotal: 1,
+    toolCalls: [],
+    citations: [],
+  };
+
+  const mappedMessages: ChatMessage[] = messages.map((message) => ({
+    id: message.message_id,
+    role: message.role,
+    content: message.content,
+    time: message.created_at,
+  }));
+
   return (
-    <WorkspaceLayout activeModule="chat">
-      <div className={`${styles.page} fm-enter`}>
-        <section className={styles.workspace}>
-          <div className={styles.center}>
-            <AgentStatusStrip status={displayRunStatus(runStatus === 'idle' ? 'completed' : runStatus)} />
-            <div className={styles.messages} ref={messagesRef}>
-              {loading ? <p>正在加载消息...</p> : null}
-              {!loading && messages.length === 0 ? <p>暂无消息，发送第一条内容开始会话。</p> : null}
-              {error ? <ErrorState message={error} /> : null}
-              {messages.map((message) => (
-                <article className={`${styles.message} ${styles.user}`} key={message.message_id}>
-                  <Tag color="gray">你</Tag>
-                  <p>{message.content}</p>
-                  <span>{new Date(message.created_at).toLocaleString()}</span>
-                </article>
-              ))}
-                {assistantText ? <article className={`${styles.message} ${styles.assistant}`}><Tag color="green">FoodMate Agent</Tag><p>{assistantText}</p></article> : null}
-                {checkpointAvailable && activeRunId ? <ConfirmationCard
-                  title="运行已暂停，可从检查点继续"
-                  helperText="系统已保存运行进度。继续后会创建新的 dispatch attempt，不会重复已完成的工具调用。"
-                  data={[{ label: '恢复方式', value: '从已校验 checkpoint 恢复' }, { label: '安全校验', value: 'Java 服务端完成' }]}
-                  onConfirm={() => { void recoverAgentRun(activeRunId).then(() => { setCheckpointAvailable(false); setRunStatus('queued'); }).catch((reason) => setError(reason instanceof Error ? reason.message : '运行恢复失败')); }}
-                  onEdit={() => setError('当前恢复入口不接受浏览器修改 checkpoint 内容。')}
-                  onCancel={() => setCheckpointAvailable(false)}
-                /> : null}
-                {budgetConfirmation && activeRunId ? <ConfirmationCard
-                title="本次运行已达到预算上限"
-                helperText="继续执行会创建新的预算 revision，并接续当前 Run。"
-                data={[{ label: '追加 Token', value: '30000' }, { label: '追加成本上限', value: '¥1.00' }]}
-                onConfirm={() => { void extendAgentRunBudget(activeRunId, 30000, '1.00').then(() => setBudgetConfirmation(false)).catch((reason) => setError(reason instanceof Error ? reason.message : '预算追加失败')); }}
-                onEdit={() => setError('当前开发版本使用固定追加额度。')}
-                onCancel={() => setBudgetConfirmation(false)}
-              /> : null}
-            </div>
-          </div>
-          <aside className={styles.tracePanel}>
-            <Card className={styles.panelCard}>
-              <div className={styles.panelHead}><strong>Agent 运行</strong><Tag color="gray">Eval 后发布回答</Tag></div>
-              <p>回答会先经过运行时校验；模型用量、预算状态和降级原因由服务端事件记录。</p>
-            </Card>
-          </aside>
-        </section>
-        <Composer value={input} running={runStatus !== 'idle' && !['completed', 'failed', 'cancelled', 'waiting_user', 'superseded'].includes(runStatus)} disabled={loading || sending} toolsUsed={0} toolsTotal={0} agentsUsed={0} agentsTotal={0} placeholder="输入要保存到会话中的内容..." onChange={setInput} onSend={() => void send()} onStop={() => { if (activeRunId) void cancelAgentRun(activeRunId); }} />
-      </div>
-    </WorkspaceLayout>
+    <ChatSurface
+      run={realRun}
+      messagesRef={messagesRef}
+      input={input}
+      running={
+        runStatus !== 'idle' && !['completed', 'failed', 'cancelled', 'waiting_user', 'superseded'].includes(runStatus)
+      }
+      disabled={loading || sending}
+      onChange={setInput}
+      onSend={() => void send()}
+      onStop={() => {
+        if (activeRunId) void cancelAgentRun(activeRunId);
+      }}
+      placeholder="输入要保存到会话中的内容..."
+    >
+      {loading ? <p className={styles.systemMessage}>正在加载消息...</p> : null}
+      {!loading && mappedMessages.length === 0 ? (
+        <p className={styles.systemMessage}>暂无消息，发送第一条内容开始会话。</p>
+      ) : null}
+      {error ? <ErrorState message={error} /> : null}
+      {mappedMessages.map((message) => (
+        <MessageBubble key={message.id} message={message} />
+      ))}
+      {assistantText ? (
+        <MessageBubble message={{ id: 'assistant-stream', role: 'assistant', content: assistantText, time: '12:46' }} />
+      ) : null}
+      {checkpointAvailable && activeRunId ? (
+        <div className={styles.cardWrap}>
+          <ConfirmationCard
+            title="运行已暂停，可从检查点继续"
+            helperText="系统已保存运行进度。继续后会创建新的 dispatch attempt，不会重复已完成的工具调用。"
+            data={[
+              { label: '恢复方式', value: '从已校验 checkpoint 恢复' },
+              { label: '安全校验', value: 'Java 服务端完成' },
+            ]}
+            onConfirm={() => {
+              void recoverAgentRun(activeRunId)
+                .then(() => {
+                  setCheckpointAvailable(false);
+                  setRunStatus('queued');
+                })
+                .catch((reason) => setError(reason instanceof Error ? reason.message : '运行恢复失败'));
+            }}
+            onEdit={() => setError('当前恢复入口不接受浏览器修改 checkpoint 内容。')}
+            onCancel={() => setCheckpointAvailable(false)}
+          />
+        </div>
+      ) : null}
+      {budgetConfirmation && activeRunId ? (
+        <div className={styles.cardWrap}>
+          <ConfirmationCard
+            title="本次运行已达到预算上限"
+            helperText="继续执行会创建新的预算 revision，并接续当前 Run。"
+            data={[
+              { label: '追加 Token', value: '30000' },
+              { label: '追加成本上限', value: '¥1.00' },
+            ]}
+            onConfirm={() => {
+              void extendAgentRunBudget(activeRunId, 30000, '1.00')
+                .then(() => setBudgetConfirmation(false))
+                .catch((reason) => setError(reason instanceof Error ? reason.message : '预算追加失败'));
+            }}
+            onEdit={() => setError('当前开发版本使用固定追加额度。')}
+            onCancel={() => setBudgetConfirmation(false)}
+          />
+        </div>
+      ) : null}
+    </ChatSurface>
   );
 }
 
@@ -176,11 +420,72 @@ function MockChatPage() {
   const [searchParams] = useSearchParams();
   const agent = useAgentReplay(sessionId, searchParams.get('prompt'));
   const messagesRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' }); }, [agent.messages, agent.card]);
+
+  useEffect(() => {
+    messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
+  }, [agent.messages, agent.card]);
+
   return (
-    <WorkspaceLayout activeModule="chat">
-      <div className={`${styles.page} fm-enter`}>
-        <section className={styles.workspace}><div className={styles.center}><AgentStatusStrip status={agent.run.status} /><div className={styles.messages} ref={messagesRef}>{agent.messages.map((message) => <article className={`${styles.message} ${styles[message.role]}`} key={message.id}><Tag color={message.role === 'user' ? 'gray' : 'green'}>{message.role === 'user' ? '你' : 'FoodMate'}</Tag><p>{message.content}</p><span>{message.time}</span></article>)}{agent.card.type === 'result' ? <ResultCard label={agent.card.label} title={agent.card.title} description={agent.card.description} primaryAction={agent.card.primaryAction} secondaryAction={agent.card.secondaryAction} onPrimary={agent.handleResultPrimary} onSecondary={agent.handleResultSecondary} /> : null}{agent.card.type === 'clarification' ? <ClarificationCard title={agent.card.title} options={agent.card.options} fields={agent.card.fields} submitLabel={agent.card.submitLabel} onSelect={agent.answerClarification} onSubmit={agent.answerClarification} /> : null}{agent.card.type === 'confirmation' ? <ConfirmationCard title={agent.card.title} helperText={agent.card.helperText} data={agent.card.data} onConfirm={agent.confirmWrite} onEdit={agent.editWrite} onCancel={agent.cancelWrite} /> : null}{agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}</div></div><aside className={styles.tracePanel}><Card className={styles.panelCard}><div className={styles.panelHead}><strong>工具与引用</strong><Tag color="orange">Tools（{agent.run.toolsUsed}/{agent.run.toolsTotal}）</Tag></div><div className={styles.traceList}>{agent.run.toolCalls.map((tool) => <ToolTraceItem key={tool.id} tool={tool} />)}</div><div className={styles.citationList}>{agent.run.citations.map((citation) => <CitationBlock citation={citation} key={citation.id} />)}</div></Card></aside></section><Composer value={agent.input} running={agent.running} toolsUsed={agent.run.toolsUsed} toolsTotal={agent.run.toolsTotal} agentsUsed={agent.run.agentsUsed} agentsTotal={agent.run.agentsTotal} placeholder="输入任务，例如：给我做一周备餐计划 / 帮我记录今天午餐 / 分析最近一周蛋白质摄入..." onChange={agent.setInput} onSend={() => agent.send()} onStop={agent.stop} /></div>
-    </WorkspaceLayout>
+    <ChatSurface
+      run={agent.run}
+      messagesRef={messagesRef}
+      input={agent.input}
+      running={agent.running}
+      onChange={agent.setInput}
+      onSend={() => agent.send()}
+      onStop={agent.stop}
+      placeholder="输入任务，例如：给我做一周备餐计划 / 帮我记录今天午餐 / 分析最近一周蛋白质摄入..."
+    >
+      {agent.messages.map((message) => (
+        <MessageBubble key={message.id} message={message} />
+      ))}
+      {agent.card.type === 'result' ? (
+        <div className={styles.cardWrap}>
+          <ResultCard
+            label={agent.card.label}
+            title={agent.card.title}
+            description={agent.card.description}
+            primaryAction={agent.card.primaryAction}
+            secondaryAction={agent.card.secondaryAction}
+            onPrimary={agent.handleResultPrimary}
+            onSecondary={agent.handleResultSecondary}
+          />
+        </div>
+      ) : null}
+      {agent.card.type === 'clarification' ? (
+        <div className={styles.cardWrap}>
+          <ClarificationCard
+            title={agent.card.title}
+            options={agent.card.options}
+            fields={agent.card.fields}
+            submitLabel={agent.card.submitLabel}
+            onSelect={agent.answerClarification}
+            onSubmit={agent.answerClarification}
+          />
+        </div>
+      ) : null}
+      {agent.card.type === 'confirmation' ? (
+        <div className={styles.cardWrap}>
+          <ConfirmationCard
+            title={agent.card.title}
+            helperText={agent.card.helperText}
+            data={agent.card.data}
+            onConfirm={agent.confirmWrite}
+            onEdit={agent.editWrite}
+            onCancel={agent.cancelWrite}
+          />
+        </div>
+      ) : null}
+      {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
+      <section className={styles.messageActions} aria-label="消息操作">
+        <h2>消息操作</h2>
+        <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
+        <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
+        <p className={styles.actionGreen}>
+          工具失败时显示重试；运行中发送按钮切换停止；写入确认/预算追加仍需确认后继续。
+        </p>
+        <p>右侧面板：运行 · 工具 · 引用 · 原始 JSON 默认折叠并隐藏敏感参数。</p>
+      </section>
+    </ChatSurface>
   );
 }

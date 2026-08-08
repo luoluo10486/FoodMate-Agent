@@ -1,5 +1,4 @@
 import {
-  Archive,
   Bell,
   BookOpen,
   CalendarDays,
@@ -55,7 +54,7 @@ import styles from './WorkspaceLayout.module.css';
 
 type WorkspaceLayoutProps = {
   children: React.ReactNode;
-  activeModule?: 'home' | 'chat' | 'analysis' | 'planning' | 'knowledge' | 'profile' | 'admin';
+  activeModule?: 'home' | 'chat' | 'records' | 'analysis' | 'planning' | 'knowledge' | 'profile' | 'admin';
   moduleLabel?: React.ReactNode;
 };
 
@@ -167,6 +166,8 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
     });
   };
   const sideLink = ({ isActive }: { isActive: boolean }) => `${styles.sideLink} ${isActive ? styles.active : ''}`;
+  const fixedSideLink = (active: boolean) => `${styles.sideLink} ${active ? styles.active : ''}`;
+  const topLink = (active: boolean) => `${styles.topNavLink} ${active ? styles.topNavActive : ''}`;
 
   if (!authReady) return <div className={styles.loadingState}>正在校验登录状态...</div>;
   if (realMode && !isAuthenticated) return null;
@@ -221,11 +222,11 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
             ) : null}
           </div>
           <nav className={styles.secondarySideNav} aria-label="饮食工具">
-            <NavLink className={sideLink} to={`${ROUTES.ANALYSIS}?view=records`}>
+            <NavLink className={fixedSideLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
               <Table2 aria-hidden="true" />
               <span>饮食记录</span>
             </NavLink>
-            <NavLink className={sideLink} to={ROUTES.ANALYSIS}>
+            <NavLink className={fixedSideLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
               <ChartColumn aria-hidden="true" />
               <span>摄入分析</span>
             </NavLink>
@@ -272,20 +273,16 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
           <header className={styles.topbar}>
             <BrandLogo size="compact" />
             <nav className={styles.nav} aria-label="主导航">
-              <NavLink
-                className={`${styles.topNavLink} ${activeModule === 'home' ? styles.topNavActive : ''}`}
-                to={ROUTES.HOME}
-                end
-              >
+              <NavLink className={topLink(activeModule === 'home')} to={ROUTES.HOME} end>
                 工作台
               </NavLink>
-              <NavLink className={styles.topNavLink} to={`${ROUTES.ANALYSIS}?view=records`}>
+              <NavLink className={topLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
                 饮食记录
               </NavLink>
-              <NavLink className={styles.topNavLink} to={ROUTES.ANALYSIS}>
+              <NavLink className={topLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
                 摄入分析
               </NavLink>
-              <NavLink className={styles.topNavLink} to={ROUTES.PLANNING}>
+              <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
                 餐食规划
               </NavLink>
               {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
