@@ -5,45 +5,37 @@
 }
 
 .mark {
+  display: grid;
   flex: 0 0 auto;
-  filter: drop-shadow(0 14px 28px rgba(47, 111, 78, 0.12));
-}
-
-.halo,
-.leaf,
-.bowl,
-.bowlShine {
-  transform-box: fill-box;
-  will-change: opacity, transform;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--fm-green);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .copy {
   display: grid;
-  gap: 6px;
+  gap: 3px;
   min-width: 0;
 }
 
 .wordmark {
-  display: flex;
-  align-items: baseline;
+  color: var(--fm-ink);
   font-weight: 900;
-  line-height: 0.9;
-  letter-spacing: -0.055em;
-}
-
-.food {
-  color: var(--fm-green);
-}
-
-.mate {
-  color: var(--fm-orange);
+  line-height: 1.1;
+  letter-spacing: 0;
 }
 
 .copy p {
   margin: 0;
   color: var(--fm-muted);
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.1;
   letter-spacing: 0;
 }
 
@@ -52,36 +44,50 @@
 }
 
 .small .mark {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
 }
 
 .small .wordmark {
-  font-size: 23px;
+  font-size: 18px;
+}
+
+.compact {
+  gap: 8px;
+}
+
+.compact .mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.compact .wordmark {
+  font-size: 18px;
 }
 
 .hero {
-  gap: 20px;
+  gap: 12px;
 }
 
 .hero .mark {
-  width: 96px;
-  height: 96px;
+  width: 52px;
+  height: 52px;
 }
 
 .hero .wordmark {
-  font-size: clamp(44px, 5.4vw, 68px);
+  font-size: 24px;
 }
 
 @media (max-width: 720px) {
   .hero {
-    flex-direction: column;
     gap: 12px;
     text-align: center;
   }
 
   .hero .mark {
-    width: 78px;
-    height: 78px;
+    width: 44px;
+    height: 44px;
   }
 }

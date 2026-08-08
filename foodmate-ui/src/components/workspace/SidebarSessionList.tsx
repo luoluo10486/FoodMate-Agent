@@ -1,6 +1,5 @@
-import { Archive, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Archive, MessageCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,32 +15,22 @@ type SidebarSessionListProps = {
   onAction?: (action: SessionAction, session: SessionSummary) => void;
 };
 
-const statusLabel: Record<string, string> = {
-  validating: '校验中',
-  completed: '完成',
-  waiting_user: '待确认',
-  archived: '已归档',
-};
-
 export function SidebarSessionList({ sessions, onAction }: SidebarSessionListProps) {
   return (
     <section className={styles.section}>
-      <div className={styles.label}>最近 Agent 会话</div>
+      <NavLink className={styles.sectionTitle} to="/chat">
+        <MessageCircle aria-hidden="true" />
+        <span>Agent 对话</span>
+      </NavLink>
       <div className={styles.list}>
         {sessions.map((session) => {
           const archived = (session.status as string) === 'archived';
           return (
             <div className={`${styles.item} ${session.active ? styles.active : ''}`} key={session.id}>
               <NavLink className={styles.itemLink} to={`/chat/${session.id}`}>
-                <div>
-                  <strong>{session.title}</strong>
-                  <span>{session.subtitle}</span>
-                </div>
-                {session.status ? (
-                  <Badge className={styles.statusBadge} variant={session.active ? 'default' : 'secondary'}>
-                    {statusLabel[session.status] ?? session.status}
-                  </Badge>
-                ) : null}
+                <span className={styles.dot} aria-hidden="true" />
+                <span className={styles.title}>{session.title}</span>
+                <span className={styles.meta}>{session.subtitle}</span>
               </NavLink>
               {onAction ? (
                 <DropdownMenu>

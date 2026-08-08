@@ -1,20 +1,22 @@
 import {
-  BarChart3,
+  Archive,
+  Bell,
   BookOpen,
-  MessageSquare,
-  PanelLeft,
+  CalendarDays,
+  ChartColumn,
+  Home,
+  MoreHorizontal,
   Plus,
   RotateCcw,
   Search,
-  ShieldCheck,
+  Settings,
+  Table2,
   Trash2,
-  Utensils,
   User,
   X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,6 +35,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { SidebarSessionList, type SessionAction } from '../../components/workspace/SidebarSessionList';
+import { BrandLogo } from '../../components/brand/BrandLogo';
 import { ROUTES, buildChatPath } from '../../constants/routes';
 import {
   archiveSession,
@@ -47,8 +51,6 @@ import {
   type RealSession,
 } from '../../services/sessionService';
 import { getAuthScenarios, getAuthStatus, getAuthUser, loadCurrentUser, logout } from '../../services/authService';
-import { SidebarSessionList, type SessionAction } from '../../components/workspace/SidebarSessionList';
-import { BrandLogo } from '../../components/brand/BrandLogo';
 import styles from './WorkspaceLayout.module.css';
 
 type WorkspaceLayoutProps = {
@@ -100,10 +102,11 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
   }, [authReady, realMode, isAuthenticated, location.pathname, location.search, navigate]);
 
   useEffect(() => {
-    if (authReady && isAuthenticated)
+    if (authReady && isAuthenticated) {
       loadSessions()
         .then(setSessions)
         .catch(() => undefined);
+    }
   }, [authReady, isAuthenticated]);
 
   useEffect(() => {
@@ -153,39 +156,42 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
     if (location.pathname === `/chat/${deleteTarget.id}`) navigate('/chat', { replace: true });
     announce('会话已移入回收站，可在 30 天内恢复。');
   };
+  const createNewSession = () => {
+    if (!realMode) {
+      navigate(buildChatPath('week-plan'));
+      return;
+    }
+    void createSession().then((session) => {
+      void refreshSessions();
+      navigate(buildChatPath(session.session_id));
+    });
+  };
+  const sideLink = ({ isActive }: { isActive: boolean }) => `${styles.sideLink} ${isActive ? styles.active : ''}`;
 
-  if (!authReady) return <div style={{ padding: 32 }}>正在校验登录状态...</div>;
+  if (!authReady) return <div className={styles.loadingState}>正在校验登录状态...</div>;
   if (realMode && !isAuthenticated) return null;
 
   return (
     <TooltipProvider delayDuration={300}>
       <div className={styles.shell}>
         <aside className={styles.sidebar}>
-          <div className={styles.brandRow}>
-            <BrandLogo />
-            <span className={styles.modePill}>Agent 模式</span>
+          <div className={styles.windowControls} aria-hidden="true">
+            <span className={styles.windowRed} />
+            <span className={styles.windowYellow} />
+            <span className={styles.windowGreen} />
           </div>
-          <Button
-            className={styles.newButton}
-            onClick={() => {
-              if (!realMode) {
-                navigate(buildChatPath('week-plan'));
-                return;
-              }
-              void createSession().then((session) => {
-                void refreshSessions();
-                navigate(buildChatPath(session.session_id));
-              });
-            }}
-          >
+          <div className={styles.sidebarBrand}>
+            <BrandLogo showTagline />
+          </div>
+          <Button className={styles.newButton} onClick={createNewSession}>
             <Plus aria-hidden="true" />
-            <span>新建 Agent 会话</span>
+            <span>新建任务</span>
           </Button>
           <div className={styles.searchWrap}>
             <Search className={styles.searchIcon} aria-hidden="true" />
             <Input
               className={styles.search}
-              placeholder="搜索会话"
+              placeholder="搜索会话..."
               value={sessionQuery}
               onChange={(event) => setSessionQuery(event.target.value)}
             />
@@ -201,6 +207,12 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
             ) : null}
           </div>
           <div className={styles.sessionTools}>
+            <nav className={styles.primarySideNav} aria-label="工作区导航">
+              <NavLink className={sideLink} to={ROUTES.HOME} end>
+                <Home aria-hidden="true" />
+                <span>工作台</span>
+              </NavLink>
+            </nav>
             <SidebarSessionList sessions={sessions} onAction={handleSessionAction} />
             {realMode ? (
               <Button className={styles.deletedButton} variant="ghost" onClick={() => void openDeletedSessions()}>
@@ -208,96 +220,107 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
               </Button>
             ) : null}
           </div>
+          <nav className={styles.secondarySideNav} aria-label="饮食工具">
+            <NavLink className={sideLink} to={`${ROUTES.ANALYSIS}?view=records`}>
+              <Table2 aria-hidden="true" />
+              <span>饮食记录</span>
+            </NavLink>
+            <NavLink className={sideLink} to={ROUTES.ANALYSIS}>
+              <ChartColumn aria-hidden="true" />
+              <span>摄入分析</span>
+            </NavLink>
+            <NavLink className={sideLink} to={ROUTES.PLANNING}>
+              <CalendarDays aria-hidden="true" />
+              <span>餐食规划</span>
+            </NavLink>
+            <NavLink className={sideLink} to={ROUTES.KNOWLEDGE}>
+              <BookOpen aria-hidden="true" />
+              <span>知识库</span>
+            </NavLink>
+            <button
+              className={styles.sideButton}
+              type="button"
+              onClick={() => announce('设置入口将在设置页面完成后启用。')}
+            >
+              <Settings aria-hidden="true" />
+              <span>设置</span>
+            </button>
+          </nav>
           <div className={styles.accountDock}>
+            <button
+              className={styles.collapseButton}
+              type="button"
+              onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
+            >
+              <MoreHorizontal aria-hidden="true" />
+              <span>收起导航</span>
+            </button>
+            <div className={styles.statusPill}>
+              <span />
+              <span>就绪 (Fustat-v2)</span>
+            </div>
             <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
               <div className={styles.avatar}>{isAuthenticated ? authUser.displayName.slice(0, 1) : '访'}</div>
               <div>
-                <strong>{isAuthenticated ? authUser.displayName : '未登录'}</strong>
-                <span>{isAuthenticated ? `${authUser.role} · ${authUser.profile.preference}` : currentAuth.title}</span>
+                <strong>{isAuthenticated ? `${authUser.displayName} 的工作区` : '未登录'}</strong>
+                <span>ID: {isAuthenticated ? authUser.id : currentAuth.code}</span>
               </div>
             </Link>
-            {isAuthenticated ? (
-              <Link className={styles.logoutLink} to={ROUTES.LOGIN} onClick={() => void logout()}>
-                <Button className={styles.logoutButton} variant="outline">
-                  退出登录
-                </Button>
-              </Link>
-            ) : null}
           </div>
         </aside>
         <main className={styles.main}>
           <header className={styles.topbar}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  aria-label="折叠导航"
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => announce('导航折叠将在侧栏响应式迁移阶段启用。')}
-                >
-                  <PanelLeft aria-hidden="true" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>折叠导航</TooltipContent>
-            </Tooltip>
-            {moduleLabel ? <div className={styles.moduleLabel}>{moduleLabel}</div> : null}
+            <BrandLogo size="compact" />
             <nav className={styles.nav} aria-label="主导航">
-              <NavLink className={styles.navItem} to={buildChatPath('week-plan')}>
-                <Badge variant={activeModule === 'chat' ? 'default' : 'secondary'}>
-                  <MessageSquare aria-hidden="true" />
-                  Agent 会话
-                </Badge>
+              <NavLink
+                className={`${styles.topNavLink} ${activeModule === 'home' ? styles.topNavActive : ''}`}
+                to={ROUTES.HOME}
+                end
+              >
+                工作台
               </NavLink>
-              <NavLink className={styles.navItem} to={ROUTES.PLANNING}>
-                <Badge variant={activeModule === 'planning' ? 'default' : 'secondary'}>
-                  <Utensils aria-hidden="true" />
-                  饮食管理
-                </Badge>
+              <NavLink className={styles.topNavLink} to={`${ROUTES.ANALYSIS}?view=records`}>
+                饮食记录
               </NavLink>
-              <NavLink className={styles.navItem} to={ROUTES.KNOWLEDGE}>
-                <Badge variant={activeModule === 'knowledge' ? 'default' : 'secondary'}>
-                  <BookOpen aria-hidden="true" />
-                  知识库
-                </Badge>
+              <NavLink className={styles.topNavLink} to={ROUTES.ANALYSIS}>
+                摄入分析
               </NavLink>
-              <NavLink className={styles.navItem} to={ROUTES.ANALYSIS}>
-                <Badge variant={activeModule === 'analysis' ? 'default' : 'secondary'}>
-                  <BarChart3 aria-hidden="true" />
-                  数据分析
-                </Badge>
+              <NavLink className={styles.topNavLink} to={ROUTES.PLANNING}>
+                餐食规划
               </NavLink>
-              {canAccessAdmin ? (
-                <NavLink className={styles.navItem} to={ROUTES.ADMIN}>
-                  <Badge variant={activeModule === 'admin' ? 'default' : 'secondary'}>
-                    <ShieldCheck aria-hidden="true" />
-                    管理后台
-                  </Badge>
-                </NavLink>
-              ) : null}
+              {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
             </nav>
             <div className={styles.userActions}>
-              {notice ? (
-                <div className={styles.notice} role="status" aria-live="polite">
-                  {notice}
-                </div>
-              ) : null}
-              {isAuthenticated ? (
-                <Link className={styles.topbarLogoutLink} to={ROUTES.LOGIN} onClick={() => void logout()}>
-                  <Button className={styles.topbarLogoutButton} variant="outline">
-                    退出登录
-                  </Button>
-                </Link>
-              ) : null}
+              <div className={styles.workspaceSearch}>
+                <Search aria-hidden="true" />
+                <Input placeholder="搜索工作区..." aria-label="搜索工作区" />
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className={styles.iconButton}
+                    type="button"
+                    aria-label="通知"
+                    onClick={() => announce('暂无新的工作区通知。')}
+                  >
+                    <Bell aria-hidden="true" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>通知</TooltipContent>
+              </Tooltip>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className={styles.userButton} variant="ghost">
-                    <User aria-hidden="true" />
-                    {isAuthenticated ? authUser.displayName : '登录'}
-                  </Button>
+                  <button className={styles.userButton} type="button">
+                    <span className={styles.topAvatar}>
+                      {isAuthenticated ? authUser.displayName.slice(0, 1) : '访'}
+                    </span>
+                    <span>{isAuthenticated ? authUser.displayName : '登录'}</span>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
                     <Link className={styles.menuLink} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
+                      <User aria-hidden="true" />
                       个人资料
                     </Link>
                   </DropdownMenuItem>
@@ -320,15 +343,15 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+            {notice ? (
+              <div className={styles.notice} role="status" aria-live="polite">
+                {notice}
+              </div>
+            ) : null}
           </header>
           {children}
         </main>
-        <Dialog
-          open={Boolean(renameTarget)}
-          onOpenChange={(open) => {
-            if (!open) setRenameTarget(undefined);
-          }}
-        >
+        <Dialog open={Boolean(renameTarget)} onOpenChange={(open) => !open && setRenameTarget(undefined)}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>重命名会话</DialogTitle>
@@ -350,12 +373,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Dialog
-          open={Boolean(deleteTarget)}
-          onOpenChange={(open) => {
-            if (!open) setDeleteTarget(undefined);
-          }}
-        >
+        <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(undefined)}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>删除会话</DialogTitle>

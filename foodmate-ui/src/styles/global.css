@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme inline {
   --color-background: var(--background);
@@ -40,10 +40,7 @@ body,
 }
 
 body {
-  background:
-    radial-gradient(circle at 16% 8%, rgba(216, 138, 61, 0.16), transparent 26%),
-    radial-gradient(circle at 86% 20%, rgba(47, 111, 78, 0.12), transparent 28%),
-    linear-gradient(135deg, #f7f5ef 0%, #f2efe6 100%);
+  background: var(--fm-bg);
   color: var(--fm-ink);
   font-family: var(--fm-font);
 }
@@ -57,6 +54,14 @@ button,
 input,
 textarea {
   font-family: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(166, 217, 151, 0.85);
+  outline-offset: 2px;
 }
 
 @media (max-width: 720px) {

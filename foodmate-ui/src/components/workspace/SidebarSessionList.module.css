@@ -8,89 +8,124 @@
   display: none;
 }
 
-.label {
-  margin-bottom: 10px;
-  color: var(--fm-subtle);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+.sectionTitle {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--fm-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sectionTitle:hover {
+  color: var(--fm-ink);
+  background: #fafafa;
+}
+.sectionTitle svg {
+  width: 17px;
+  height: 17px;
+  color: var(--fm-orange);
 }
 
 .list {
   display: grid;
-  gap: 10px;
+  gap: 2px;
+  max-height: 285px;
+  padding: 4px 0 4px 12px;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.list::-webkit-scrollbar {
+  display: none;
 }
 
 .item {
   position: relative;
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.62);
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease;
-}
-
-.itemLink {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  color: inherit;
-}
-
-.itemLink:hover {
-  color: inherit;
-}
-
-.moreButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 0;
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 8px 0 12px;
   border-radius: 8px;
-  background: transparent;
-  color: var(--fm-muted);
-  cursor: pointer;
-}
-
-.moreButton:hover {
-  background: var(--fm-bg);
-  color: var(--fm-green);
 }
 
 .item:hover,
 .active {
-  border-color: var(--fm-border);
-  box-shadow: var(--fm-shadow-soft);
-  transform: translateY(-1px);
+  background: rgba(255, 246, 226, 0.2);
 }
 
-.item strong {
-  display: block;
+.itemLink {
+  display: grid;
+  grid-template-columns: 6px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
   color: var(--fm-ink);
-  font-size: 14px;
 }
 
-.itemLink > div > span {
-  display: block;
-  margin-top: 4px;
+.itemLink:hover {
+  color: var(--fm-ink);
+}
+.dot {
+  grid-row: 1 / span 2;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fm-muted);
+}
+.active .dot {
+  background: var(--fm-green);
+}
+.title,
+.meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.title {
+  color: var(--fm-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.active .title {
+  color: var(--fm-orange);
+  font-weight: 700;
+}
+.meta {
   color: var(--fm-muted);
-  font-size: 12px;
+  font-size: 10px;
+  line-height: 1.25;
 }
 
-.statusBadge {
-  align-self: start;
+.moreButton {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fm-muted);
+  cursor: pointer;
+  opacity: 0;
 }
 
+.item:hover .moreButton,
+.moreButton:focus-visible {
+  opacity: 1;
+}
+.moreButton:hover {
+  color: var(--fm-ink);
+  background: #eef1ef;
+}
 .moreButton svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }

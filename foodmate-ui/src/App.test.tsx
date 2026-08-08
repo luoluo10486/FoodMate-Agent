@@ -25,7 +25,7 @@ describe('App 路由', () => {
     // 等待首页内容加载
     await waitFor(
       () => {
-        expect(screen.getByText('推荐任务')).toBeInTheDocument();
+        expect(screen.getByText('活跃会话')).toBeInTheDocument();
       },
       { timeout: 5000 },
     );
@@ -40,7 +40,7 @@ describe('App 路由', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText('推荐任务')).toBeInTheDocument();
+        expect(screen.getByText('待确认队列')).toBeInTheDocument();
       },
       { timeout: 5000 },
     );
@@ -48,16 +48,17 @@ describe('App 路由', () => {
 });
 
 describe('HomePage 独立渲染', () => {
-  it('渲染任务卡片和推荐提示', () => {
+  it('渲染 Figma 工作台首页内容', () => {
     render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('推荐任务')).toBeInTheDocument();
-    expect(screen.getByText('热量计算')).toBeInTheDocument();
-    expect(screen.getByText('摄入分析')).toBeInTheDocument();
-    expect(screen.getByText('复杂规划')).toBeInTheDocument();
+    expect(screen.getByText('活跃会话')).toBeInTheDocument();
+    expect(screen.getByText('待确认队列')).toBeInTheDocument();
+    expect(screen.getByText('记录饮食')).toBeInTheDocument();
+    expect(screen.getByText('分析摄入')).toBeInTheDocument();
+    expect(screen.getByText('创建计划')).toBeInTheDocument();
   });
 });
