@@ -518,4 +518,15 @@
 - 已完成静态与行为验证：管理页定向测试 `3/3`、typecheck、定向 ESLint、定向 Prettier 和生产构建通过；浏览器四视口检查无页面级横向溢出。
 - 工具注册表 `692:3847` 已完成独立迁移和四视口验收，新增 `ToolsRegistryTab.test.tsx`，定向测试 `3/3`；页面不虚构创建/编辑/删除接口，启停仍从工具调用页发起。
 - 删除资源 `692:4104` 已完成独立迁移和四视口验收，新增 `DeletedResourcesTab.test.tsx`，定向测试 `3/3`；恢复沿用真实接口或 mock 审计确认链路，永久删除保持禁用。
-- 后续顺序：管理操作状态页 -> 用户详情、Run、Tool Call、Trace -> G5 权限矩阵；完成 G5 权限矩阵后再处理 G6 Arco 清理。iconfont 最终资源登记和 shadcn 基础设施迁移收尾保持独立阻塞项。
+- 后续顺序：用户详情、Run、Tool Call、Trace -> G5 权限矩阵 -> G6 Arco 清理。管理操作状态页已作为 G5-4 完成代码边界，但不代表 G5 权限矩阵已关闭。iconfont 最终资源登记和 shadcn 基础设施迁移收尾保持独立阻塞项。
+
+## 15. 2026-08-09 前端 G5-4 管理操作状态页实现记录
+
+- [x] 已按 Figma G5-4 状态节点 `692:4319`、`692:4539`、`692:4766`、`692:4995`、`692:5207` 建立统一状态契约：`idle`、`no-permission`、`confirm`、`submitting`、`success`、`failed`。
+- [x] `AdminPage.tsx` 已接入管理写操作状态机：管理员确认后提交，提交中禁用重复操作，成功保留成功横幅，异常展示失败弹窗；operator 写操作展示无权限横幅。
+- [x] 新增 `AdminOperationStatus.tsx`，使用 shadcn `Dialog`、`Alert`、`Card`、`Button` 与 Lucide `AlertTriangle`、`LoaderCircle`、`Info`、`XCircle`、`RefreshCw`，不直接使用未经登记的 iconfont 字码。
+- [x] 工具注册表配置详情和操作态入口已支持停用/启用工具；确认态复现 Figma 的警告图标、受影响资源框和 Coral 确认按钮，失败态展示 `ERROR_CODE` 和 `REQUEST_ID`。
+- [x] 成功和失败都会写入操作审计；失败记录使用 `result=failed` 和错误请求 ID，重试只由用户主动触发，避免自动重放管理写操作。
+- [x] 新增状态组件与工具注册表回归测试；定向测试 `9/9`、全量前端测试 `50/50`，`npm run typecheck`、`npm run build`、本次改动文件的定向 ESLint/Prettier 与 `git diff --check` 均通过。浏览器已检查 `1440x1024`、`1366x768`、`1024x768`、`390x844` 的页面宽度与弹窗边界；全仓 `format:check` 仍被 10 个既有文件阻塞，全仓 lint 仍有既有格式/Hook 警告，因此不宣称全仓静态检查已清零。
+- [ ] iconfont 实体字体包、最终类名、图标尺寸、来源与授权仍未确认，不能标记为完成。
+- [ ] shadcn 基础设施迁移收尾仍未完成；后续需要继续检查全仓 Arco 运行时 import、主题样式入口和无引用依赖，再单独关闭 G6。

@@ -337,6 +337,313 @@
   font-weight: 700;
 }
 
+.operationOverlay {
+  background: rgba(51, 51, 51, 0.4) !important;
+  backdrop-filter: none !important;
+}
+
+.operationBanner {
+  display: flex !important;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.operationBanner > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.operationBanner > div {
+  min-width: 0;
+}
+
+.operationBanner :global(h5) {
+  margin: 0 0 2px;
+  font-size: 13px;
+  line-height: 17px;
+}
+
+.operationBanner :global([data-slot='alert-description']) {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.operationBanner > div > div {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.operationPermissionBanner {
+  border-color: rgba(199, 150, 84, 0.28) !important;
+  background: #fff6e2 !important;
+  color: #c79654 !important;
+}
+
+.operationPermissionBanner :global([data-slot='alert-description']) {
+  color: #6b7280;
+}
+
+.operationPermissionBanner > div > div {
+  color: #6b7280;
+}
+
+.operationSuccessBanner {
+  border-color: rgba(137, 178, 124, 0.35) !important;
+  background: rgba(166, 217, 151, 0.08) !important;
+  color: #89b27c !important;
+}
+
+.operationSuccessBanner :global([data-slot='alert-description']) {
+  color: #6b7280;
+}
+
+.operationSuccessBanner > div > div {
+  color: #6b7280;
+}
+
+.operationBannerDismiss {
+  height: 28px !important;
+  min-height: 28px !important;
+  margin-left: auto;
+  padding: 6px 10px !important;
+  color: #6b7280 !important;
+  font-size: 12px !important;
+}
+
+.operationDialogCard {
+  display: flex !important;
+  width: min(480px, calc(100vw - 32px)) !important;
+  max-width: 480px !important;
+  min-height: 344px;
+  flex-direction: column;
+  gap: 24px !important;
+  padding: 32px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.operationDialogCard > :global(button) {
+  display: none;
+}
+
+.operationSubmittingCard {
+  min-height: 288px;
+}
+
+.operationFailedCard {
+  min-height: 338px;
+}
+
+.operationDialogHeader {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px !important;
+  text-align: left !important;
+}
+
+.operationDialogHeader > * {
+  margin: 0 !important;
+}
+
+.operationDialogHeader :global(h2) {
+  color: #333333;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.operationIconWrapper {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+}
+
+.operationIconWrapper svg {
+  width: 20px;
+  height: 20px;
+}
+
+.operationWarningIcon {
+  background: #fff6e2;
+  color: #c79654;
+}
+
+.operationInfoIcon {
+  background: rgba(93, 169, 178, 0.1);
+  color: #5da9b2;
+}
+
+.operationErrorIcon {
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
+}
+
+.operationSpinner {
+  animation: operation-spin 1s linear infinite;
+}
+
+.operationDialogBody {
+  display: flex !important;
+  flex-direction: column;
+  gap: 11px;
+  width: 100%;
+  padding: 0 !important;
+  color: #333333 !important;
+  font-size: 14px !important;
+  line-height: 21px !important;
+  text-align: left;
+}
+
+.operationDialogBody p {
+  margin: 0;
+}
+
+.operationDialogBody strong {
+  font-weight: 700;
+}
+
+.operationDialogMuted {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.operationAffectedBox {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: #f4f6f5 !important;
+  color: #333333;
+  font-size: 12px;
+  line-height: 16px;
+  box-shadow: none !important;
+}
+
+.operationAffectedBox strong {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #d67676;
+}
+
+.operationAffectedBox strong svg {
+  width: 13px;
+  height: 13px;
+}
+
+.operationDialogActions {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end;
+  gap: 12px !important;
+  width: 100%;
+  margin-top: auto;
+}
+
+.operationDialogActions :global(button) {
+  height: 40px;
+  min-height: 40px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.operationPrimaryButton {
+  border: 1px solid #ff7576 !important;
+  background: #ff7576 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.operationPrimaryButton:hover {
+  background: #d67676 !important;
+}
+
+.operationPrimaryButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.operationProgressTrack {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f4f6f5;
+}
+
+.operationProgressValue {
+  display: block;
+  width: 64%;
+  height: 100%;
+  border-radius: inherit;
+  background: #5da9b2;
+  animation: operation-progress 1.8s ease-in-out infinite;
+}
+
+.operationProgressLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+
+.operationProgressLabel svg {
+  width: 14px;
+  height: 14px;
+  color: #5da9b2;
+}
+
+.operationDebugBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f4f6f5;
+  color: #333333;
+  font-family: 'Space Mono', Consolas, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+@keyframes operation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes operation-progress {
+  0% {
+    transform: translateX(-58%);
+  }
+  50%,
+  100% {
+    transform: translateX(58%);
+  }
+}
+
 .overviewFilters {
   display: flex;
   align-items: center;

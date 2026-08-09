@@ -23,7 +23,7 @@ import {
   riskTag,
   statusTag,
 } from './AdminShared';
-import type { AdminActionPayload } from './types';
+import type { AdminActionPayload, AdminOperationState } from './types';
 import { loadAdminDashboard, updateAdminToolStatus } from '../../../services/adminService';
 
 const registryMetrics = [
@@ -97,7 +97,15 @@ function RegistryFilterSelect({
   );
 }
 
-function ToolRegistrySection({ refreshNonce = 0 }: { refreshNonce?: number }) {
+function ToolRegistrySection({
+  onAction,
+  operationStatus = 'idle',
+  refreshNonce = 0,
+}: {
+  onAction: (payload: AdminActionPayload) => void;
+  operationStatus?: AdminOperationState;
+  refreshNonce?: number;
+}) {
   const [tools, setTools] = useState<ToolRegistryRow[]>(
     import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminToolRegistryRows,
   );
@@ -107,6 +115,25 @@ function ToolRegistrySection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [selectedTool, setSelectedTool] = useState<ToolRegistryRow>();
+  const showOperationActions = operationStatus !== 'idle';
+
+  const createToolAction = (record: ToolRegistryRow): AdminActionPayload => {
+    const nextStatus = record.status === 'active' ? 'disabled' : 'active';
+    return {
+      action: nextStatus === 'disabled' ? '停用工具' : '启用工具',
+      targetLabel: record.name,
+      targetType: 'tool',
+      targetId: record.name,
+      execute: async () => {
+        await updateAdminToolStatus(record.name, nextStatus);
+      },
+      onApply: () => {
+        setTools((current) =>
+          current.map((tool) => (tool.key === record.key ? { ...tool, status: nextStatus } : tool)),
+        );
+      },
+    };
+  };
 
   useEffect(() => {
     if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
@@ -189,9 +216,22 @@ function ToolRegistrySection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, record) => (
-        <Button className={styles.registryActionButton} size="small" onClick={() => setSelectedTool(record)}>
-          配置详情
-        </Button>
+        <>
+          {showOperationActions ? (
+            <Button
+              className={styles.registryActionButton}
+              size="small"
+              disabled={operationStatus === 'submitting'}
+              onClick={() => onAction(createToolAction(record))}
+            >
+              {record.status === 'active' ? '停用工具' : '启用工具'}
+            </Button>
+          ) : (
+            <Button className={styles.registryActionButton} size="small" onClick={() => setSelectedTool(record)}>
+              配置详情
+            </Button>
+          )}
+        </>
       ),
     },
   ];
@@ -322,7 +362,7 @@ function ToolRegistrySection({ refreshNonce = 0 }: { refreshNonce?: number }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{selectedTool?.name} 配置详情</DialogTitle>
-            <DialogDescription>注册表只读展示工具契约，启停操作仍需从工具调用页发起并经过权限确认。</DialogDescription>
+            <DialogDescription>注册表展示工具契约；启停操作需要管理员确认并写入操作审计。</DialogDescription>
           </DialogHeader>
           {selectedTool ? (
             <div className={styles.registryDetailGrid}>
@@ -343,6 +383,19 @@ function ToolRegistrySection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             </div>
           ) : null}
           <DialogFooter>
+            {selectedTool ? (
+              <Button
+                className={styles.registryActionButton}
+                disabled={operationStatus === 'submitting'}
+                onClick={() => {
+                  const target = selectedTool;
+                  setSelectedTool(undefined);
+                  onAction(createToolAction(target));
+                }}
+              >
+                {selectedTool.status === 'active' ? '停用工具' : '启用工具'}
+              </Button>
+            ) : null}
             <Button onClick={() => setSelectedTool(undefined)}>关闭</Button>
           </DialogFooter>
         </DialogContent>
@@ -353,14 +406,16 @@ function ToolRegistrySection({ refreshNonce = 0 }: { refreshNonce?: number }) {
 
 export function ToolsSection({
   onAction,
+  operationStatus = 'idle',
   refreshNonce = 0,
 }: {
   onAction: (payload: AdminActionPayload) => void;
+  operationStatus?: AdminOperationState;
   refreshNonce?: number;
 }) {
   const [searchParams] = useSearchParams();
   return searchParams.get('tab') === 'registry' ? (
-    <ToolRegistrySection refreshNonce={refreshNonce} />
+    <ToolRegistrySection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />
   ) : (
     <ToolCallsSection onAction={onAction} refreshNonce={refreshNonce} />
   );

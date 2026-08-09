@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button, Card, IconLeft, Tag } from './tabs/AdminPrimitives';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { ROUTES } from '../../constants/routes';
 import { adminOperationAuditRows } from '../../services/adminService';
 import { getAuthUser } from '../../services/authService';
@@ -22,13 +14,22 @@ import { RunsSection } from './tabs/RunsTab';
 import { ToolsSection } from './tabs/ToolsTab';
 import { UsageSection } from './tabs/UsageTab';
 import { UsersSection } from './tabs/UsersTab';
-import type { AdminActionPayload, AdminSectionKey } from './tabs/types';
+import { AdminOperationStatus } from './tabs/AdminOperationStatus';
+import type { AdminActionPayload, AdminOperationError, AdminOperationState, AdminSectionKey } from './tabs/types';
+
+const defaultOperationError: AdminOperationError = {
+  code: 'REGISTRY_TIMEOUT_504',
+  requestId: 'req-foodmate-9082ac918',
+  message: '管理服务未能在规定时间内完成请求，请检查服务状态后重试。',
+};
 
 function appendOperationAudit(
   authUser: ReturnType<typeof getAuthUser>,
   action: string,
   targetType: string,
   targetId: string,
+  result: 'success' | 'failed' = 'success',
+  requestId?: string,
 ) {
   const stamp = Date.now();
   adminOperationAuditRows.unshift({
@@ -38,8 +39,8 @@ function appendOperationAudit(
     action,
     target_type: targetType,
     target_id: targetId,
-    result: 'success',
-    request_id: `req_admin_${stamp}`,
+    result,
+    request_id: requestId ?? `req_admin_${stamp}`,
     trace_id: `trace_admin_${stamp}`,
     created_at: new Date(stamp).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
   });
@@ -50,6 +51,7 @@ function renderSection(
   sectionKey: AdminSectionKey,
   onAction: (payload: AdminActionPayload) => void,
   refreshNonce: number,
+  operationStatus: AdminOperationState,
 ) {
   switch (sectionKey) {
     case 'users':
@@ -57,7 +59,7 @@ function renderSection(
     case 'runs':
       return <RunsSection />;
     case 'tools':
-      return <ToolsSection onAction={onAction} refreshNonce={refreshNonce} />;
+      return <ToolsSection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />;
     case 'usage':
       return <UsageSection />;
     case 'knowledge':
@@ -76,6 +78,8 @@ export function AdminPage() {
   const isRegistryRoute = pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry';
   const isDeletedRoute = pathname.endsWith('/deleted');
   const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
+  const [operationStatus, setOperationStatus] = useState<AdminOperationState>('idle');
+  const [operationError, setOperationError] = useState<AdminOperationError>();
   const [notice, setNotice] = useState('');
   const [refreshNonce, setRefreshNonce] = useState(0);
 
@@ -89,26 +93,66 @@ export function AdminPage() {
   }, []);
 
   const requestAdminAction = (payload: AdminActionPayload) => {
+    setOperationError(undefined);
+    setNotice('');
+    setPendingAction(payload);
     if (!canManage) {
-      setNotice('operator 只读，不能执行管理写操作');
+      setOperationStatus('no-permission');
       return;
     }
-    setPendingAction(payload);
+    setOperationStatus('confirm');
   };
 
   const executePendingAction = async () => {
     if (!pendingAction) return;
     const { action, targetType, targetId, onApply, execute } = pendingAction;
-    setPendingAction(undefined);
-    if (import.meta.env.VITE_AGENT_MODE === 'real') {
-      await execute?.();
-      setNotice(`${action} 已完成`);
-      window.location.reload();
-      return;
+    setOperationStatus('submitting');
+    try {
+      if (import.meta.env.VITE_AGENT_MODE === 'real') {
+        await execute?.();
+      } else {
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 280));
+      }
+      onApply?.();
+      appendOperationAudit(authUser, action, targetType, targetId);
+      setRefreshNonce((current) => current + 1);
+      setOperationStatus('success');
+    } catch (error) {
+      const candidate = (error ?? {}) as {
+        code?: unknown;
+        message?: unknown;
+        requestId?: unknown;
+        request_id?: unknown;
+      };
+      const fallback =
+        targetType === 'tool'
+          ? defaultOperationError
+          : {
+              code: 'ADMIN_OPERATION_FAILED',
+              requestId: 'req_admin_operation_failed',
+              message: '管理操作未完成，请检查服务状态后重试。',
+            };
+      const failedCode = typeof candidate.code === 'string' ? candidate.code : fallback.code;
+      const failedRequestId =
+        typeof candidate.requestId === 'string'
+          ? candidate.requestId
+          : typeof candidate.request_id === 'string'
+            ? candidate.request_id
+            : fallback.requestId;
+      setOperationError({
+        code: failedCode,
+        requestId: failedRequestId,
+        message: typeof candidate.message === 'string' ? candidate.message : fallback.message,
+      });
+      appendOperationAudit(authUser, action, targetType, targetId, 'failed', failedRequestId);
+      setOperationStatus('failed');
     }
-    onApply?.();
-    appendOperationAudit(authUser, action, targetType, targetId);
-    setNotice(`${action} 已提交，审计记录已写入`);
+  };
+
+  const dismissOperation = () => {
+    setPendingAction(undefined);
+    setOperationError(undefined);
+    setOperationStatus('idle');
   };
 
   const handleRefresh = () => setRefreshNonce((current) => current + 1);
@@ -214,33 +258,21 @@ export function AdminPage() {
               {notice}
             </div>
           ) : null}
+          <AdminOperationStatus
+            status={operationStatus}
+            action={pendingAction}
+            error={operationError}
+            onConfirm={() => void executePendingAction()}
+            onCancel={dismissOperation}
+            onRetry={() => void executePendingAction()}
+            onDismiss={dismissOperation}
+          />
           {sectionKey === 'overview' || isRegistryRoute || isDeletedRoute ? null : (
             <AdminHeader sectionKey={sectionKey} />
           )}
-          {renderSection(sectionKey, requestAdminAction, refreshNonce)}
+          {renderSection(sectionKey, requestAdminAction, refreshNonce, operationStatus)}
         </div>
       </main>
-      <Dialog
-        open={Boolean(pendingAction)}
-        onOpenChange={(open) => {
-          if (!open) setPendingAction(undefined);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{pendingAction?.action}</DialogTitle>
-            <DialogDescription>
-              确认对 {pendingAction?.targetLabel} 执行该管理操作？操作完成后会记录审计事件。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingAction(undefined)}>
-              取消
-            </Button>
-            <Button onClick={() => void executePendingAction()}>确认执行</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -53,5 +53,21 @@ describe('Admin tool registry', () => {
       within(screen.getByRole('dialog', { name: 'nutrition_lookup 配置详情' })).getByText('3x exponential'),
     ).toBeInTheDocument();
     expect(screen.getByText('foodId, serving')).toBeInTheDocument();
+  });
+
+  it('runs the registry operation through confirm, submitting and success states', async () => {
+    const user = userEvent.setup();
+    renderRegistry();
+
+    await user.click(screen.getAllByRole('button', { name: '配置详情' })[0]);
+    const details = screen.getByRole('dialog', { name: 'nutrition_lookup 配置详情' });
+    await user.click(within(details).getByRole('button', { name: '停用工具' }));
+
+    expect(screen.getByRole('dialog', { name: '确认停用工具' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '确认停用' }));
+    expect(screen.getByRole('dialog', { name: '正在提交操作' })).toBeInTheDocument();
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('操作成功'), { timeout: 1200 });
+    expect(screen.getByRole('alert')).toHaveTextContent('nutrition_lookup');
   });
 });
