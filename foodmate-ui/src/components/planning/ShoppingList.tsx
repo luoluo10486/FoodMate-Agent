@@ -1,4 +1,4 @@
-import { Tag } from '../ui/legacy-primitives';
+import { Badge } from '../ui/badge';
 import styles from './ShoppingList.module.css';
 
 export type ShoppingGroup = {
@@ -16,7 +16,7 @@ export function ShoppingList({ groups, estimate }: ShoppingListProps) {
     <div className={styles.list}>
       {groups.map((group) => (
         <div className={styles.group} key={group.name}>
-          <Tag color="green">{group.name}</Tag>
+          <Badge variant="default">{group.name}</Badge>
           <span>{group.items.join('、')}</span>
         </div>
       ))}

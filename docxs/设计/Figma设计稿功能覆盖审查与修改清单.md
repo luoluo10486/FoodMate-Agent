@@ -441,7 +441,7 @@
 
 ## 11. 2026-08-05 重构前置文档与设计系统清单
 
-本节记录从既有 Arco 方案转向 Figma + shadcn/ui + iconfont 目标方案的前置工作。它不表示前端代码或 Figma 文件已经完成迁移。
+本节记录从既有 Arco 方案转向 Figma + shadcn/ui + iconfont 目标方案的前置工作。前端代码迁移已于 2026-08-09 开始，当前状态以第 12 节门槛和本节末尾的实现记录为准。
 
 - [x] 已在 UI 规范中明确 Figma 作为视觉设计源、shadcn/ui 作为目标基础组件、iconfont 作为按需领域矢量资源。
 - [x] 已在前端实现指南中区分当前 Arco 代码基线与目标 shadcn/ui 重构基线。
@@ -458,7 +458,7 @@
 以下清单用于约束代码重构，不回写第 2 至第 10 节已有的 Figma 页面覆盖结论。
 
 - [ ] G0：当前首页、会话页、个人资料页和管理端关键状态完成可重复的浏览器截图基线。
-- [ ] G1：Vite/TypeScript `@/*` 别名、Tailwind、shadcn/ui 配置、语义 Token、`cn` 工具和图标封装完成，并通过构建与键盘基本交互检查。
+- [x] G1：Vite/TypeScript `@/*` 别名、Tailwind、shadcn/ui 配置、语义 Token、`cn` 工具和图标封装完成，并通过构建与键盘基本交互检查。
 - [ ] G2：Button、Input、Textarea、Dialog、Sheet、Tooltip、Tabs、Table、Badge、Alert 等基础组件完成 Figma Variant 对照。
 - [ ] G3：工作台壳层、会话列表、Composer 和 Agent 领域组件迁移后，真实 SSE、取消、续传、追问、确认和安全降级语义保持不变。
 - [ ] G4：用户业务页在 1440x900、1366x768、1024x768、390x844 下完成 Figma 状态和无重叠检查。
@@ -467,7 +467,7 @@
 
 ## 13. 2026-08-08 Figma 设计系统补充记录
 
-本次使用已登录且可编辑的 Figma 会话，对设计系统前置内容进行了实际核验和补充。以下结论只描述 Figma 设计交付，不代表前端 shadcn/ui 基础设施已经落地。
+本次使用已登录且可编辑的 Figma 会话，对设计系统前置内容进行了实际核验和补充。以下条目描述 Figma 设计交付；前端代码状态另见末尾实现记录。
 
 - [x] 新增 `01 Foundations`、`02 Components - User`、`03 Components - Admin` 页面，并在页面中补充 Token 契约、组件 Variant 契约、代码路径和交付门槛说明。
 - [x] 已确认 Figma Variables 中存在 `FoodMate Color`（16 个）、`FoodMate Primitives`（16 个）、`FoodMate Prototype State`（2 个）、`FoodMate Radius`（3 个）和 `FoodMate Spacing`（9 个）集合。
@@ -484,4 +484,6 @@
 - [x] User Prototype 已建立并验证 4 个画板：`1064:2` Gallery -> `1064:5` Composer -> `1064:8` Confirmation -> `1064:11` Complete -> Gallery；4 条 `ON_CLICK` 目标全部有效。
 - [x] Admin Prototype 已建立并验证 4 个画板：`1064:18` Overview -> `1064:21` User Detail -> `1064:24` Disable Confirm -> `1064:27` Audit -> Overview；4 条 `ON_CLICK` 目标全部有效。
 - [x] 已完成 `01 Foundations`、`02 Components - User`、`03 Components - Admin` 三页截图级验收；Foundations 登记框与文档无重叠，三页顶层重叠均为 0，未发现组件标签或契约文本裁切。
-- [ ] 前端 `@/*`、Tailwind、shadcn/ui、`cn`、代码图标封装和 Arco 退场仍属于后续 G0-G6 迁移工作，本次未修改前端代码。
+- [x] 截至 2026-08-09，前端已落地 `@/*`、Tailwind、shadcn/ui、`cn`、Lucide 代码图标入口和 FoodMate 语义 Token；基础 primitives 已通过类型检查、基础键盘交互测试和生产构建。
+- [x] 已将登录页、重置密码页和购物清单从 `legacy-primitives` 迁移到 shadcn `Button`、`Input`、`Badge` 与原生语义表单，并删除无引用的 `legacy-primitives.tsx`。
+- [ ] G2-G6 仍需按工作台、用户业务页和管理端边界逐步完成，不因 G1 完成而提前宣称全站迁移完成。

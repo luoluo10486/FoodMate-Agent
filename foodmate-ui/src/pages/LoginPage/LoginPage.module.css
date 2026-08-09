@@ -327,6 +327,19 @@
   gap: 8px;
 }
 
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  color: var(--fm-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fieldLabel {
+  color: var(--fm-muted);
+}
+
 .options {
   display: flex;
   align-items: center;

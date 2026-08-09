@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Button } from './button';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from './dialog';
 import { Input } from './input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 import { Textarea } from './textarea';
 
@@ -76,5 +77,25 @@ describe('FoodMate UI primitives', () => {
     await user.keyboard('{ArrowRight}');
     await waitFor(() => expect(detailsTab).toHaveAttribute('aria-selected', 'true'));
     expect(screen.getByText('详情内容')).toBeVisible();
+  });
+
+  it('opens Select and commits an option', async () => {
+    render(
+      <Select defaultValue="green">
+        <SelectTrigger aria-label="颜色">
+          <SelectValue placeholder="选择颜色" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="green">绿色</SelectItem>
+          <SelectItem value="orange">橙色</SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+
+    const trigger = screen.getByRole('combobox', { name: '颜色' });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    await waitFor(() => expect(screen.getByRole('option', { name: '橙色' })).toBeVisible());
+    fireEvent.click(screen.getByRole('option', { name: '橙色' }));
+    await waitFor(() => expect(trigger).toHaveTextContent('橙色'));
   });
 });
