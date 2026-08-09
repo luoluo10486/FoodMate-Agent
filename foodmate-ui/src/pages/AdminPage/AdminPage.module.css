@@ -2211,19 +2211,207 @@
 }
 .detailGrid {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
   gap: 10px 12px;
-  margin-top: 8px;
+  margin: 0;
 }
-.detailGrid span {
+.detailGrid > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+.detailGrid dt,
+.detailGrid dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.detailGrid dt {
   color: #6b7280;
   font-size: 12px;
+  line-height: 18px;
 }
-.detailGrid strong {
+.detailGrid dd {
   min-width: 0;
   color: #333333;
   font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
   overflow-wrap: anywhere;
+}
+.readOnlyNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(93, 169, 178, 0.25);
+  border-radius: 8px;
+  background: rgba(93, 169, 178, 0.08);
+  color: #5da9b2;
+  font-size: 12px;
+  line-height: 18px;
+}
+.readOnlyNotice svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+.emptyState,
+.detailEmptyState {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 28px 12px;
+  color: #6b7280;
+  text-align: center;
+}
+.emptyState svg {
+  width: 24px;
+  height: 24px;
+  color: #5da9b2;
+}
+.emptyState strong {
+  color: #333333;
+  font-size: 13px;
+}
+.emptyState span,
+.detailEmptyState span {
+  font-size: 12px;
+  line-height: 18px;
+}
+.userDetailCard {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px;
+}
+.userDetailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.userDetailIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.userDetailAvatar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
+  font-size: 16px;
+  font-weight: 900;
+}
+.userDetailName {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.userDetailName strong {
+  overflow-wrap: anywhere;
+  color: #333333;
+  font-size: 16px;
+  line-height: 21px;
+}
+.userDetailName span {
+  overflow-wrap: anywhere;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 16px;
+}
+.userDetailBadges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.userDetailMeta {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f4f6f5;
+  color: #6b7280;
+  font-family: 'Space Mono', Consolas, monospace;
+  font-size: 11px;
+  line-height: 16px;
+}
+.userDetailMeta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.userDetailMeta svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: #5da9b2;
+}
+.userDetailTabsRoot {
+  min-width: 0;
+}
+.userDetailTabsList {
+  display: flex;
+  width: 100%;
+  height: auto;
+  justify-content: flex-start;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid #f4f6f5;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-width: none;
+}
+.userDetailTabsList::-webkit-scrollbar {
+  display: none;
+}
+.userDetailTabsList button {
+  min-height: 34px;
+  padding: 8px 10px;
+  border-radius: 6px 6px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
+.userDetailTabsList button[data-state='active'] {
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
+  box-shadow: inset 0 -2px #ff7576;
+}
+.userDetailPanel {
+  min-width: 0;
+  margin-top: 14px;
+}
+.detailSectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: #333333;
+  font-size: 13px;
+  line-height: 18px;
+}
+.detailSectionHeading svg {
+  width: 15px;
+  height: 15px;
+  color: #5da9b2;
+}
+.detailEmptyState {
+  min-height: 112px;
+  border: 1px dashed #e8edeb;
+  border-radius: 8px;
+  background: #fcfcfc;
 }
 .resourceList {
   display: grid;

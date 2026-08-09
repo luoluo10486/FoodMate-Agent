@@ -29,6 +29,8 @@ import {
   adminToolRows,
   adminTraceRows,
   adminUserRows,
+  adminUserBusinessSessionRows,
+  adminUserOperationHistoryRows,
   adminUserSessionRows,
 } from '../../../services/adminService';
 import type { AdminToolRegistryRow, AdminToolRow } from '../../../services/adminService';
@@ -55,6 +57,8 @@ export {
   adminToolRows,
   adminTraceRows,
   adminUserRows,
+  adminUserBusinessSessionRows,
+  adminUserOperationHistoryRows,
   adminUserSessionRows,
 };
 
@@ -64,6 +68,8 @@ export type SqlAuditRow = (typeof adminSqlAuditRows)[number];
 export type TraceRow = (typeof adminTraceRows)[number];
 export type UserRow = (typeof adminUserRows)[number];
 export type UserSessionRow = (typeof adminUserSessionRows)[number];
+export type UserBusinessSessionRow = (typeof adminUserBusinessSessionRows)[number];
+export type UserOperationHistoryRow = (typeof adminUserOperationHistoryRows)[number];
 export type ToolRow = AdminToolRow;
 export type ToolRegistryRow = AdminToolRegistryRow;
 export type ModelUsageRow = (typeof adminModelUsageRows)[number];

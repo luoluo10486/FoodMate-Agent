@@ -13,6 +13,8 @@ import {
   adminToolRows,
   adminTraceRows,
   adminUserRows,
+  adminUserBusinessSessionRows,
+  adminUserOperationHistoryRows,
   adminUserSessionRows,
 } from '../mock/admin';
 import { apiRequest } from './apiClient';
@@ -314,8 +316,16 @@ export type AdminUserRow = {
   status: string;
   email: string;
   phone: string;
+  gender: string;
+  heightCm: number;
+  weightKg: number;
+  activityLevel: string;
   dietGoal: string;
   calorieTarget: number;
+  proteinTarget: number;
+  allergens: string;
+  dislikes: string;
+  preferredUnits: string;
   loginFailedCount: number;
   lockedUntil: string;
   lastLoginAt: string;
@@ -329,6 +339,21 @@ type AdminUserResponse = {
   email: string;
   role: string;
   status: string;
+  phone?: string;
+  gender?: string;
+  height_cm?: number;
+  weight_kg?: number;
+  activity_level?: string;
+  diet_goal?: string;
+  calorie_target?: number;
+  protein_target?: number;
+  allergens?: string;
+  dislikes?: string;
+  preferred_units?: string;
+  login_failed_count?: number;
+  locked_until?: string;
+  last_login_at?: string;
+  created_at?: string;
 };
 
 export async function loadAdminUsers(): Promise<AdminUserRow[]> {
@@ -342,13 +367,21 @@ export async function loadAdminUsers(): Promise<AdminUserRow[]> {
     role: user.role,
     status: user.status,
     email: user.email,
-    phone: '-',
-    dietGoal: '-',
-    calorieTarget: 0,
-    loginFailedCount: 0,
-    lockedUntil: '-',
-    lastLoginAt: '-',
-    createdAt: '-',
+    phone: user.phone ?? '-',
+    gender: user.gender ?? '-',
+    heightCm: user.height_cm ?? 0,
+    weightKg: user.weight_kg ?? 0,
+    activityLevel: user.activity_level ?? '-',
+    dietGoal: user.diet_goal ?? '-',
+    calorieTarget: user.calorie_target ?? 0,
+    proteinTarget: user.protein_target ?? 0,
+    allergens: user.allergens ?? '-',
+    dislikes: user.dislikes ?? '-',
+    preferredUnits: user.preferred_units ?? '-',
+    loginFailedCount: user.login_failed_count ?? 0,
+    lockedUntil: user.locked_until ?? '-',
+    lastLoginAt: user.last_login_at ?? '-',
+    createdAt: user.created_at ?? '-',
   }));
 }
 
@@ -408,5 +441,7 @@ export {
   adminToolRows,
   adminTraceRows,
   adminUserRows,
+  adminUserBusinessSessionRows,
+  adminUserOperationHistoryRows,
   adminUserSessionRows,
 };
