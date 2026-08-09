@@ -1,10 +1,9 @@
 .page {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 112px;
+  grid-template-rows: minmax(0, 1fr) 88px;
   min-width: 0;
   min-height: 0;
-  height: calc(100dvh - 68px);
-  margin-right: 320px;
+  height: 100%;
   overflow: hidden;
   background: var(--fm-bg);
 }
@@ -17,7 +16,7 @@
 
 .center {
   display: grid;
-  grid-template-rows: 44px minmax(0, 1fr);
+  grid-template-rows: 45px minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -52,6 +51,7 @@
 
 .srOnly {
   position: absolute;
+  left: -9999px;
   width: 1px;
   height: 1px;
   padding: 0;
@@ -148,7 +148,7 @@
 }
 
 .cardWrap {
-  width: min(780px, 100%);
+  width: min(780px, calc(100% - 48px));
   margin-left: 48px;
 }
 
@@ -181,14 +181,9 @@
 }
 
 .tracePanel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10;
-  width: 320px;
+  width: 100%;
+  height: 100%;
   background: var(--fm-surface);
-  border-left: 1px solid var(--fm-border);
 }
 
 .traceCard {
@@ -216,11 +211,12 @@
 .traceTabs {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 8px;
 }
 
 .traceTabs button {
-  min-width: 136px;
+  min-width: 0;
+  flex: 1 1 0;
   height: 28px;
   padding: 0 10px;
   border: 0;
@@ -282,9 +278,6 @@
 }
 
 @media (max-width: 1100px) {
-  .page {
-    margin-right: 0;
-  }
   .tracePanel {
     display: none;
   }
@@ -292,9 +285,8 @@
 
 @media (max-width: 720px) {
   .page {
-    grid-template-rows: minmax(0, 1fr) 96px;
+    grid-template-rows: minmax(0, 1fr) 88px;
     height: calc(100dvh - 96px);
-    margin-right: 0;
     overflow: visible;
   }
 

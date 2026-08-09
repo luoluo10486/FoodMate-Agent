@@ -1,12 +1,17 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { Alert, AlertDescription, AlertTitle } from './alert';
+import { Badge } from './badge';
 import { Button } from './button';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from './dialog';
 import { Input } from './input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from './sheet';
+import { Table, TableBody, TableCell, TableCaption, TableHead, TableHeader, TableRow } from './table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 import { Textarea } from './textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 
 describe('FoodMate UI primitives', () => {
   it('supports Button states and click handlers', () => {
@@ -21,6 +26,26 @@ describe('FoodMate UI primitives', () => {
     fireEvent.click(screen.getByRole('button', { name: '保存' }));
     expect(onClick).toHaveBeenCalledOnce();
     expect(screen.getByRole('button', { name: '禁用' })).toBeDisabled();
+  });
+
+  it('maps Button variant and size contracts to stable classes', () => {
+    render(
+      <div>
+        <Button variant="destructive" size="lg">
+          删除
+        </Button>
+        <Button variant="ghost" size="icon" aria-label="更多操作">
+          ...
+        </Button>
+      </div>,
+    );
+
+    expect(screen.getByRole('button', { name: '删除' })).toHaveClass(
+      'bg-destructive',
+      'text-destructive-foreground',
+      'h-11',
+    );
+    expect(screen.getByRole('button', { name: '更多操作' })).toHaveClass('hover:bg-accent', 'size-10');
   });
 
   it('exposes accessible input and textarea controls', () => {
@@ -38,6 +63,7 @@ describe('FoodMate UI primitives', () => {
   });
 
   it('opens and closes Dialog with keyboard escape', async () => {
+    const user = userEvent.setup();
     render(
       <Dialog>
         <DialogTrigger asChild>
@@ -50,11 +76,121 @@ describe('FoodMate UI primitives', () => {
       </Dialog>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '打开确认' }));
+    const trigger = screen.getByRole('button', { name: '打开确认' });
+    await user.click(trigger);
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toBeVisible();
-    fireEvent.keyDown(dialog, { key: 'Escape' });
+    await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it('opens Sheet content on the requested side and restores trigger focus', async () => {
+    const user = userEvent.setup();
+    render(
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button>打开侧栏</Button>
+        </SheetTrigger>
+        <SheetContent side="left">
+          <SheetTitle>会话详情</SheetTitle>
+          <SheetDescription>查看当前会话的更多信息。</SheetDescription>
+        </SheetContent>
+      </Sheet>,
+    );
+
+    const trigger = screen.getByRole('button', { name: '打开侧栏' });
+    await user.click(trigger);
+    const sheet = await screen.findByRole('dialog');
+    expect(sheet).toHaveClass('left-0', 'border-r');
+    expect(sheet).toHaveAccessibleName('会话详情');
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it('shows Tooltip content through TooltipProvider and hides it after leaving', async () => {
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider delayDuration={0} skipDelayDuration={0} disableHoverableContent>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="打开帮助">
+              ?
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>查看帮助信息</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>,
+    );
+
+    const trigger = screen.getByRole('button', { name: '打开帮助' });
+    await user.hover(trigger);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('查看帮助信息');
+
+    fireEvent.pointerLeave(trigger);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+  });
+
+  it('maps Badge variants to the semantic visual states', () => {
+    render(
+      <div>
+        <Badge>默认</Badge>
+        <Badge variant="secondary">次要</Badge>
+        <Badge variant="outline">轮廓</Badge>
+        <Badge variant="warning">警告</Badge>
+        <Badge variant="destructive">危险</Badge>
+      </div>,
+    );
+
+    expect(screen.getByText('默认')).toHaveClass('bg-primary', 'text-primary-foreground');
+    expect(screen.getByText('次要')).toHaveClass('bg-secondary', 'text-secondary-foreground');
+    expect(screen.getByText('轮廓')).toHaveClass('border', 'text-foreground');
+    expect(screen.getByText('警告')).toHaveClass('bg-accent', 'text-accent-foreground');
+    expect(screen.getByText('危险')).toHaveClass('bg-destructive', 'text-destructive-foreground');
+  });
+
+  it('exposes Alert semantics and destructive state styling', () => {
+    render(
+      <Alert variant="destructive">
+        <AlertTitle>操作失败</AlertTitle>
+        <AlertDescription>请稍后重试。</AlertDescription>
+      </Alert>,
+    );
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('操作失败请稍后重试。');
+    expect(alert).toHaveClass('border-destructive/40', 'bg-destructive/10', 'text-destructive');
+    expect(screen.getByRole('heading', { name: '操作失败' })).toHaveClass('font-semibold');
+  });
+
+  it('preserves native Table semantics and the narrow-screen scroll wrapper', () => {
+    render(
+      <Table aria-label="营养明细">
+        <TableCaption>每餐营养摄入</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">餐次</TableHead>
+            <TableHead scope="col">热量</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>午餐</TableCell>
+            <TableCell>520 kcal</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+
+    const table = screen.getByRole('table', { name: '营养明细' });
+    expect(table).toHaveClass('w-full');
+    expect(table.parentElement).toHaveClass('overflow-auto');
+    expect(screen.getAllByRole('row')).toHaveLength(2);
+    expect(screen.getAllByRole('columnheader')).toHaveLength(2);
+    expect(screen.getAllByRole('cell')).toHaveLength(2);
+    expect(screen.getByText('每餐营养摄入')).toBeInTheDocument();
   });
 
   it('changes Tabs with a keyboard-friendly trigger', async () => {

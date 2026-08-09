@@ -1,7 +1,7 @@
 .strip {
   display: flex;
   min-width: 0;
-  height: 44px;
+  height: 45px;
   align-items: center;
   gap: 12px;
   padding: 0 24px;

@@ -88,7 +88,8 @@ export function Composer({
           value={value}
           onChange={(event) => onChange?.(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
+            const composing = event.nativeEvent.isComposing || event.keyCode === 229;
+            if (event.key === 'Enter' && !event.shiftKey && !composing) {
               event.preventDefault();
               handleSubmit();
             }
@@ -100,6 +101,7 @@ export function Composer({
           disabled={!running && disabled}
           variant={running ? 'destructive' : 'default'}
           size="icon"
+          data-state={running ? 'running' : 'idle'}
           onClick={handleSubmit}
         >
           {running ? <Square /> : <Send />}

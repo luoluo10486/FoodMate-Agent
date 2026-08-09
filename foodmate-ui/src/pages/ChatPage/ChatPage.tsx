@@ -164,7 +164,7 @@ function ChatSurface({
   placeholder,
 }: ChatSurfaceProps) {
   return (
-    <WorkspaceLayout activeModule="chat">
+    <WorkspaceLayout activeModule="chat" rightRail={<TraceRail run={run} />}>
       <div className={styles.page}>
         <section className={styles.workspace}>
           <div className={styles.center}>
@@ -173,7 +173,6 @@ function ChatSurface({
               {children}
             </div>
           </div>
-          <TraceRail run={run} />
         </section>
         <Composer
           value={input}

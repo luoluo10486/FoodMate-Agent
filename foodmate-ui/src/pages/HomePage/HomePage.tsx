@@ -7,10 +7,9 @@ import {
   Paperclip,
   Search,
   SendHorizontal,
-  Table2,
   Utensils,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -40,6 +39,8 @@ export function HomePage() {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
   const [confirmedItems, setConfirmedItems] = useState<string[]>([]);
+  const [attachmentName, setAttachmentName] = useState('');
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const currentUser = getAuthUser();
   const taskCards = getTaskCards();
   const recommendedPrompts = getRecommendedPrompts();
@@ -100,10 +101,18 @@ export function HomePage() {
             variant="ghost"
             size="icon"
             aria-label="添加附件"
-            onClick={() => undefined}
+            onClick={() => attachmentInputRef.current?.click()}
           >
             <Paperclip aria-hidden="true" />
           </Button>
+          <input
+            ref={attachmentInputRef}
+            className={styles.fileInput}
+            type="file"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(event) => setAttachmentName(event.target.files?.[0]?.name ?? '')}
+          />
           <Input
             className={styles.taskInput}
             value={prompt}
@@ -111,7 +120,8 @@ export function HomePage() {
             aria-label="任务内容"
             onChange={(event) => setPrompt(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
+              const composing = event.nativeEvent.isComposing || event.keyCode === 229;
+              if (event.key === 'Enter' && !event.shiftKey && !composing) {
                 event.preventDefault();
                 startPrompt(prompt);
               }
@@ -128,13 +138,19 @@ export function HomePage() {
           </Button>
         </section>
 
+        {attachmentName ? (
+          <span className={styles.visuallyHidden} role="status">
+            {attachmentName}
+          </span>
+        ) : null}
+
         <section className={styles.quickActions} aria-label="快速操作">
           {quickActions.map(({ icon: Icon, label, prompt: actionPrompt, tone }) => (
             <Button
               className={`${styles.quickButton} ${styles[`quick${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
               key={label}
               variant="outline"
-              onClick={() => startPrompt(actionPrompt)}
+              onClick={() => setPrompt(actionPrompt)}
             >
               <Icon aria-hidden="true" />
               <span>{label}</span>

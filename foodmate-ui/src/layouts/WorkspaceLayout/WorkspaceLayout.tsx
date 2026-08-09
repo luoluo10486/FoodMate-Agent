@@ -56,10 +56,17 @@ type WorkspaceLayoutProps = {
   children: React.ReactNode;
   activeModule?: 'home' | 'chat' | 'records' | 'analysis' | 'planning' | 'knowledge' | 'profile' | 'admin';
   moduleLabel?: React.ReactNode;
+  rightRail?: React.ReactNode;
   pageOverlay?: React.ReactNode;
 };
 
-export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel, pageOverlay }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({
+  children,
+  activeModule = 'home',
+  moduleLabel,
+  rightRail,
+  pageOverlay,
+}: WorkspaceLayoutProps) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [authReady, setAuthReady] = useState(!realMode);
   const [currentUser, setCurrentUser] = useState(getAuthUser());
@@ -175,7 +182,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel, 
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className={styles.shell}>
+      <div className={`${styles.shell} ${rightRail ? styles.withRail : ''}`}>
         <aside className={styles.sidebar}>
           <div className={styles.windowControls} aria-hidden="true">
             <span className={styles.windowRed} />
@@ -371,6 +378,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel, 
           </header>
           {children}
         </main>
+        {rightRail ? <div className={styles.rightRail}>{rightRail}</div> : null}
         {pageOverlay}
         <Dialog open={Boolean(renameTarget)} onOpenChange={(open) => !open && setRenameTarget(undefined)}>
           <DialogContent>

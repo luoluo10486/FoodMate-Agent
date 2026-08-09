@@ -3,7 +3,7 @@
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding: 24px;
+  padding: 16px;
   background: var(--fm-surface);
   border-top: 1px solid var(--fm-border);
 }
@@ -23,10 +23,10 @@
 
 .inputRow {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
   gap: 10px;
   width: 100%;
-  height: 64px;
+  height: 56px;
   align-items: center;
   padding: 0 12px;
   border: 0;
@@ -56,8 +56,8 @@
 }
 
 .iconButton {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   color: var(--fm-muted);
 }
@@ -87,6 +87,6 @@
     padding: 16px;
   }
   .inputRow {
-    height: 64px;
+    height: 56px;
   }
 }

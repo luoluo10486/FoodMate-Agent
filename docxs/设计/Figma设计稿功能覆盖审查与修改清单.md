@@ -459,8 +459,8 @@
 
 - [ ] G0：当前首页、会话页、个人资料页和管理端关键状态完成可重复的浏览器截图基线。
 - [x] G1：Vite/TypeScript `@/*` 别名、Tailwind、shadcn/ui 配置、语义 Token、`cn` 工具和图标封装完成，并通过构建与键盘基本交互检查。
-- [ ] G2：Button、Input、Textarea、Dialog、Sheet、Tooltip、Tabs、Table、Badge、Alert 等基础组件完成 Figma Variant 对照。
-- [ ] G3：工作台壳层、会话列表、Composer 和 Agent 领域组件迁移后，真实 SSE、取消、续传、追问、确认和安全降级语义保持不变。
+- [x] G2：Button、Input、Textarea、Dialog、Sheet、Tooltip、Tabs、Table、Badge、Alert 等基础组件完成 Figma Variant 对照，并通过状态、焦点、ARIA 语义和窄屏容器验收。
+- [x] G3：工作台壳层、会话列表、Composer 和 Agent 领域组件迁移完成；真实 SSE、取消、续传、追问、确认和安全降级语义保持不变，并通过工作台与会话页视口验收。
 - [ ] G4：用户业务页在 1440x900、1366x768、1024x768、390x844 下完成 Figma 状态和无重叠检查。
 - [ ] G5：管理端完成普通用户、operator、admin 的可见性、禁用、确认和审计反馈矩阵检查。
 - [ ] G6：全仓无 Arco 运行时 import 和主题样式引用后，才删除 Arco 依赖并完成完整前端验证。
@@ -486,4 +486,7 @@
 - [x] 已完成 `01 Foundations`、`02 Components - User`、`03 Components - Admin` 三页截图级验收；Foundations 登记框与文档无重叠，三页顶层重叠均为 0，未发现组件标签或契约文本裁切。
 - [x] 截至 2026-08-09，前端已落地 `@/*`、Tailwind、shadcn/ui、`cn`、Lucide 代码图标入口和 FoodMate 语义 Token；基础 primitives 已通过类型检查、基础键盘交互测试和生产构建。
 - [x] 已将登录页、重置密码页和购物清单从 `legacy-primitives` 迁移到 shadcn `Button`、`Input`、`Badge` 与原生语义表单，并删除无引用的 `legacy-primitives.tsx`。
-- [ ] G2-G6 仍需按工作台、用户业务页和管理端边界逐步完成，不因 G1 完成而提前宣称全站迁移完成。
+- [x] G2 基础组件验收已完成：`components.test.tsx` 覆盖 15 个测试，包含 Button variant/size/disabled、Input/Textarea 可访问名称、Dialog/Sheet Escape 与焦点归还、Tooltip Provider 显示/隐藏、Tabs 键盘切换、Select 选项提交、Badge 状态、Alert `role=alert`、Table 原生语义和窄屏滚动容器。
+- [x] G3 工作台迁移验收已完成：WorkspaceLayout 右栏按 Figma 使用 `246px`，Chat 在 1366x768 下使用 `860px` 聊天区；Agent 状态条 `45px`、消息区 `567px`、Composer `88px` 与 `1029:117` 结构一致。
+- [x] G3 交互与响应式验收已完成：Composer IME Enter 不误发送，运行中可停止，快捷任务先带入输入框；1024x768、390x844 无文档横向溢出，390px 首页 quick actions 已改为两列换行。
+- [ ] G4-G6 仍需按用户业务页、管理端和 Arco 清理边界逐步完成，不因 G1-G3 完成而提前宣称全站迁移完成。
