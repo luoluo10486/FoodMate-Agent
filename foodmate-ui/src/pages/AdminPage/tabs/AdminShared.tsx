@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react';
 import {
   IconBook,
+  IconAudit,
   IconDashboard,
   IconHistory,
+  IconSql,
   IconStorage,
   IconThunderbolt,
+  IconToolRegistry,
   IconTool,
+  IconTrace,
   IconUserGroup,
   TableColumnProps,
   Tag,
@@ -17,14 +21,17 @@ import {
   adminModelUsageRows,
   adminOperationAuditRows,
   adminOverviewMetrics,
+  adminOverviewRows,
   adminResourceCards,
   adminSqlAuditRows,
+  adminToolRegistryRows,
   adminToolCallRows,
   adminToolRows,
   adminTraceRows,
   adminUserRows,
   adminUserSessionRows,
 } from '../../../services/adminService';
+import type { AdminToolRegistryRow, AdminToolRow } from '../../../services/adminService';
 import { getAuthStatus, getAuthUser } from '../../../services/authService';
 
 const authStatus = getAuthStatus();
@@ -40,8 +47,10 @@ export {
   adminModelUsageRows,
   adminOperationAuditRows,
   adminOverviewMetrics,
+  adminOverviewRows,
   adminResourceCards,
   adminSqlAuditRows,
+  adminToolRegistryRows,
   adminToolCallRows,
   adminToolRows,
   adminTraceRows,
@@ -55,26 +64,49 @@ export type SqlAuditRow = (typeof adminSqlAuditRows)[number];
 export type TraceRow = (typeof adminTraceRows)[number];
 export type UserRow = (typeof adminUserRows)[number];
 export type UserSessionRow = (typeof adminUserSessionRows)[number];
-export type ToolRow = (typeof adminToolRows)[number];
+export type ToolRow = AdminToolRow;
+export type ToolRegistryRow = AdminToolRegistryRow;
 export type ModelUsageRow = (typeof adminModelUsageRows)[number];
 export type KnowledgeRow = (typeof adminKnowledgeRows)[number];
 export type DeletedRow = (typeof adminDeletedRows)[number];
 export type OperationAuditRow = (typeof adminOperationAuditRows)[number];
 
-export const adminNavItems: Array<{ key: string; path: string; label: string; icon: ReactNode; adminOnly?: boolean }> = [
-  { key: 'overview', path: '/admin', label: '概览', icon: <IconDashboard /> },
-  { key: 'users', path: '/admin/users', label: '用户管理', icon: <IconUserGroup />, adminOnly: true },
-  { key: 'runs', path: '/admin/runs', label: 'Agent 运行', icon: <IconThunderbolt /> },
-  { key: 'tools', path: '/admin/tools', label: '工具调用', icon: <IconTool /> },
-  { key: 'usage', path: '/admin/usage', label: '模型用量', icon: <IconStorage /> },
-  { key: 'knowledge', path: '/admin/knowledge', label: '知识库', icon: <IconBook /> },
-  { key: 'deleted', path: '/admin/deleted', label: '软删除资源', icon: <IconHistory />, adminOnly: true },
-];
+export const adminNavItems: Array<{ key: string; path: string; label: string; icon: ReactNode; adminOnly?: boolean }> =
+  [
+    { key: 'overview', path: '/admin', label: '概览', icon: <IconDashboard /> },
+    { key: 'users', path: '/admin/users', label: '用户管理', icon: <IconUserGroup />, adminOnly: true },
+    { key: 'runs', path: '/admin/runs', label: 'Agent 运行', icon: <IconThunderbolt /> },
+    { key: 'tools', path: '/admin/tools', label: '工具调用', icon: <IconTool /> },
+    { key: 'sql', path: '/admin/runs?tab=sql', label: 'SQL 审计', icon: <IconSql /> },
+    { key: 'trace', path: '/admin/runs?tab=trace', label: 'Trace', icon: <IconTrace /> },
+    { key: 'usage', path: '/admin/usage', label: '模型用量', icon: <IconStorage /> },
+    { key: 'knowledge', path: '/admin/knowledge', label: '知识库管理', icon: <IconBook /> },
+    { key: 'registry', path: '/admin/tools?tab=registry', label: '工具注册表', icon: <IconToolRegistry /> },
+    { key: 'deleted', path: '/admin/deleted', label: '软删除资源', icon: <IconHistory />, adminOnly: true },
+    { key: 'audit', path: '/admin?view=audit', label: '操作审计', icon: <IconAudit />, adminOnly: true },
+  ];
+
+export function isAdminNavItemActive(path: string, pathname: string, search: string) {
+  const target = new URL(path, 'http://foodmate.local');
+  return target.pathname === pathname && target.search === search;
+}
 
 export const sectionMeta: Record<string, { title: string; description: string; tag: string }> = {
-  overview: { title: '系统概览', description: '运行、用户、工具、模型和知识库索引状态。当前为 mock 管理视图。', tag: 'Overview' },
-  users: { title: '用户管理', description: '查询用户详情、登录会话、角色和状态；状态变更与会话重置仅 admin 可执行。', tag: 'RBAC' },
-  runs: { title: 'Agent 运行', description: '查看 AgentRun、ToolCall、SQLAudit 和 Trace，定位失败任务与异常链路。', tag: 'AgentRun' },
+  overview: {
+    title: '系统概览',
+    description: '运行、用户、工具、模型和知识库索引状态。当前为 mock 管理视图。',
+    tag: 'Overview',
+  },
+  users: {
+    title: '用户管理',
+    description: '查询用户详情、登录会话、角色和状态；状态变更与会话重置仅 admin 可执行。',
+    tag: 'RBAC',
+  },
+  runs: {
+    title: 'Agent 运行',
+    description: '查看 AgentRun、ToolCall、SQLAudit 和 Trace，定位失败任务与异常链路。',
+    tag: 'AgentRun',
+  },
   tools: { title: '工具调用', description: '管理工具注册表、版本、权限范围、风险等级和启停状态。', tag: 'Tools' },
   usage: { title: '模型用量', description: '查看供应商、模型、场景、Token、成本和耗时。', tag: 'Model Usage' },
   knowledge: { title: '知识库', description: '管理知识库文档、解析状态、索引进度和下线恢复。', tag: 'Knowledge' },
@@ -82,16 +114,21 @@ export const sectionMeta: Record<string, { title: string; description: string; t
 };
 
 export function statusTag(status: string) {
-  const color = status === 'active' || status === 'success' || status === 'completed' || status === 'indexed'
-    ? 'green'
-    : status === 'failed' || status === 'disabled' || status === 'locked'
-      ? 'red'
-      : 'orange';
+  const color =
+    status === 'active' || status === 'success' || status === 'completed' || status === 'indexed'
+      ? 'green'
+      : status === 'failed' || status === 'disabled' || status === 'locked'
+        ? 'red'
+        : 'orange';
   return <Tag color={color}>{status}</Tag>;
 }
 
 export function roleTag(role: string) {
-  return <Tag color={role === 'admin' || role === 'superadmin' ? 'blue' : role === 'operator' ? 'orange' : 'gray'}>{role}</Tag>;
+  return (
+    <Tag color={role === 'admin' || role === 'superadmin' ? 'blue' : role === 'operator' ? 'orange' : 'gray'}>
+      {role}
+    </Tag>
+  );
 }
 
 export function riskTag(risk: string) {

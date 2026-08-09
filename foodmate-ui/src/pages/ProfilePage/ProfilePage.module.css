@@ -796,35 +796,71 @@
 
 .memoryEmpty {
   display: grid;
+  width: min(100%, 680px);
+  height: 320px;
   min-height: 320px;
-  place-items: center;
-  align-content: center;
-  gap: 12px;
-  padding: 32px;
-  border-color: #e2e7ee;
-  text-align: center;
+  margin: 0 auto;
+  align-content: start;
+  justify-items: start;
+  gap: 0;
+  padding: 27px 30px;
+  border-color: #d1e8d9;
+  border-radius: 18px;
+  background: #fcfffc;
+  text-align: left;
 }
 
 .emptyEyebrow {
-  color: #c79654;
+  color: #549e6b;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 400;
+  line-height: 18px;
 }
 
 .memoryEmpty h2 {
-  margin: 0;
-  color: #333;
+  margin: 16px 0 16px;
+  color: #1f3629;
   font-size: 22px;
+  font-weight: 400;
+  line-height: 30px;
 }
 
 .memoryEmpty p,
 .memoryEmpty span {
   max-width: 520px;
   margin: 0;
-  color: #6b7280;
-  font-size: 13px;
+  color: #526359;
+  font-size: 14px;
   line-height: 1.5;
+}
+
+.memoryEmpty p {
+  margin-bottom: 18px;
+}
+
+.memoryEmpty span {
+  margin-bottom: 42px;
+  color: #7d8c82;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.memoryEmpty .saveButton {
+  width: 160px;
+  height: 40px;
+  justify-content: flex-start;
+  padding: 0 24px;
+  border-radius: 10px;
+  background: #9ed685;
+  color: #1c4026;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.memoryEmpty .saveButton:hover,
+.memoryEmpty .saveButton:focus-visible {
+  background: #8bc875;
+  color: #1c4026;
 }
 
 .securityPage {
@@ -1528,5 +1564,11 @@
 
   .deletionImpact {
     position: static;
+  }
+
+  .memoryEmpty {
+    height: auto;
+    min-height: 320px;
+    padding: 24px;
   }
 }

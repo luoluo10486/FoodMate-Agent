@@ -7,11 +7,22 @@ import type { AdminActionPayload } from './types';
 import { loadAdminDashboard, updateKnowledgeStatus, uploadKnowledgeDocument } from '../../../services/adminService';
 
 export function KnowledgeSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
-  const [documents, setDocuments] = useState<KnowledgeRow[]>(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminKnowledgeRows);
+  const [documents, setDocuments] = useState<KnowledgeRow[]>(
+    import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminKnowledgeRows,
+  );
   const [selectedDoc, setSelectedDoc] = useState<KnowledgeRow | undefined>(documents[0]);
   const [uploadVisible, setUploadVisible] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => { const rows = d.knowledge as KnowledgeRow[]; setDocuments(rows); setSelectedDoc(rows[0]); }).catch(() => setDocuments([])); }, []);
+  useEffect(() => {
+    if (import.meta.env.VITE_AGENT_MODE === 'real')
+      loadAdminDashboard()
+        .then((d) => {
+          const rows = d.knowledge as KnowledgeRow[];
+          setDocuments(rows);
+          setSelectedDoc(rows[0]);
+        })
+        .catch(() => setDocuments([]));
+  }, []);
 
   const knowledgeColumns: TableColumnProps<KnowledgeRow>[] = [
     { title: '文档 ID', dataIndex: 'documentId' },
@@ -37,7 +48,9 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
                 targetLabel: record.documentId,
                 targetType: 'knowledge_document',
                 targetId: record.documentId,
-                execute: async () => { await updateKnowledgeStatus(record.documentId, record.status === 'indexed' ? 'disabled' : 'indexed'); },
+                execute: async () => {
+                  await updateKnowledgeStatus(record.documentId, record.status === 'indexed' ? 'disabled' : 'indexed');
+                },
                 onApply: () => {
                   record.status = record.status === 'indexed' ? 'disabled' : 'indexed';
                   record.indexProgress = record.status === 'indexed' ? '100%' : '0%';
@@ -83,7 +96,10 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
         onCancel={() => setUploadVisible(false)}
         onOk={async () => {
           if (import.meta.env.VITE_AGENT_MODE === 'real') {
-            if (!uploadFile) { Message.warning('请选择文件'); return; }
+            if (!uploadFile) {
+              Message.warning('请选择文件');
+              return;
+            }
             await uploadKnowledgeDocument(uploadFile);
           }
           setUploadVisible(false);

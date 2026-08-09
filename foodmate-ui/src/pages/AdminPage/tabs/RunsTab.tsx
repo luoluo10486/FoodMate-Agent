@@ -17,8 +17,24 @@ import { loadAdminDashboard } from '../../../services/adminService';
 const TabPane = Tabs.TabPane;
 
 export function RunsSection() {
-  const [dashboard, setDashboard] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? { runs: [], toolCalls: [], sqlAudits: [], traces: [] } : { runs: adminAuditRows, toolCalls: adminToolCallRows, sqlAudits: adminSqlAuditRows, traces: adminTraceRows });
-  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => setDashboard({ runs: d.runs as typeof adminAuditRows, toolCalls: d.tool_calls as typeof adminToolCallRows, sqlAudits: d.sql_audits as typeof adminSqlAuditRows, traces: [] })).catch(() => setDashboard({ runs: [], toolCalls: [], sqlAudits: [], traces: [] })); }, []);
+  const [dashboard, setDashboard] = useState(
+    import.meta.env.VITE_AGENT_MODE === 'real'
+      ? { runs: [], toolCalls: [], sqlAudits: [], traces: [] }
+      : { runs: adminAuditRows, toolCalls: adminToolCallRows, sqlAudits: adminSqlAuditRows, traces: adminTraceRows },
+  );
+  useEffect(() => {
+    if (import.meta.env.VITE_AGENT_MODE === 'real')
+      loadAdminDashboard()
+        .then((d) =>
+          setDashboard({
+            runs: d.runs as typeof adminAuditRows,
+            toolCalls: d.tool_calls as typeof adminToolCallRows,
+            sqlAudits: d.sql_audits as typeof adminSqlAuditRows,
+            traces: [],
+          }),
+        )
+        .catch(() => setDashboard({ runs: [], toolCalls: [], sqlAudits: [], traces: [] }));
+  }, []);
   return (
     <>
       <section className={styles.sectionCards}>

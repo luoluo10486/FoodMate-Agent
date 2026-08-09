@@ -15,10 +15,22 @@ import type { AdminActionPayload } from './types';
 import { loadAdminUsers, revokeAdminUserSessions, updateAdminUserStatus } from '../../../services/adminService';
 
 export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
-  const [selectedUser, setSelectedUser] = useState<UserRow | undefined>(import.meta.env.VITE_AGENT_MODE === 'real' ? undefined : adminUserRows[1]);
+  const [selectedUser, setSelectedUser] = useState<UserRow | undefined>(
+    import.meta.env.VITE_AGENT_MODE === 'real' ? undefined : adminUserRows[1],
+  );
   const [users, setUsers] = useState<UserRow[]>(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminUserRows);
   const [loadError, setLoadError] = useState('');
-  useEffect(() => { loadAdminUsers().then((items) => { setUsers(items as UserRow[]); setSelectedUser((items[0] ?? adminUserRows[1]) as UserRow); }).catch((error) => { setUsers([]); setLoadError(error instanceof Error ? error.message : '用户列表加载失败'); }); }, []);
+  useEffect(() => {
+    loadAdminUsers()
+      .then((items) => {
+        setUsers(items as UserRow[]);
+        setSelectedUser((items[0] ?? adminUserRows[1]) as UserRow);
+      })
+      .catch((error) => {
+        setUsers([]);
+        setLoadError(error instanceof Error ? error.message : '用户列表加载失败');
+      });
+  }, []);
 
   if (!canManage) return <AdminOnlyNotice title="无权访问用户管理" />;
 
@@ -45,7 +57,9 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
                 targetLabel: record.userId,
                 targetType: 'user',
                 targetId: record.userId,
-                execute: async () => { await updateAdminUserStatus(record.userId, 'locked'); },
+                execute: async () => {
+                  await updateAdminUserStatus(record.userId, 'locked');
+                },
                 onApply: () => {
                   record.status = 'locked';
                   record.lockedUntil = '2026-06-30 23:59';
@@ -64,7 +78,9 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
                 targetLabel: record.userId,
                 targetType: 'user',
                 targetId: record.userId,
-                execute: async () => { await updateAdminUserStatus(record.userId, 'disabled'); },
+                execute: async () => {
+                  await updateAdminUserStatus(record.userId, 'disabled');
+                },
                 onApply: () => {
                   record.status = 'disabled';
                 },
@@ -82,7 +98,9 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
                 targetLabel: record.userId,
                 targetType: 'user_session',
                 targetId: record.userId,
-                execute: async () => { await revokeAdminUserSessions(record.userId); },
+                execute: async () => {
+                  await revokeAdminUserSessions(record.userId);
+                },
                 onApply: () => {
                   adminUserSessionRows
                     .filter((s) => s.userId === record.userId)
@@ -110,15 +128,16 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
             <strong>用户列表</strong>
             <Tag color="orange">状态变更写审计</Tag>
           </div>
-          <Table
-            columns={userColumns}
-            data={users}
-            pagination={{ pageSize: 5, total: users.length }}
-            size="small"
-          />
+          <Table columns={userColumns} data={users} pagination={{ pageSize: 5, total: users.length }} size="small" />
         </Card>
         <aside className={styles.side}>
-          {selectedUser ? <UserDetailCard user={selectedUser} /> : <Card className={styles.card} bordered={false}>暂无用户详情</Card>}
+          {selectedUser ? (
+            <UserDetailCard user={selectedUser} />
+          ) : (
+            <Card className={styles.card} bordered={false}>
+              暂无用户详情
+            </Card>
+          )}
         </aside>
       </section>
       <OperationAuditCard />

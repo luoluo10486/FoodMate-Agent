@@ -31,6 +31,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { getAuthUser, logout } from '@/services/authService';
@@ -488,15 +490,19 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
               />
             </Field>
             <Field label="性别（可选）">
-              <select
-                className={styles.select}
-                value={profileForm.gender}
-                onChange={(event) => setField('gender', event.target.value)}
+              <Select
+                value={profileForm.gender || 'unset'}
+                onValueChange={(value) => setField('gender', value === 'unset' ? '' : value)}
               >
-                <option value="">未设置</option>
-                <option value="男">男</option>
-                <option value="女">女</option>
-              </select>
+                <SelectTrigger className={styles.select} aria-label="性别（可选）">
+                  <SelectValue placeholder="未设置" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">未设置</SelectItem>
+                  <SelectItem value="男">男</SelectItem>
+                  <SelectItem value="女">女</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="身高 (cm)">
               <Input
@@ -513,17 +519,18 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
               />
             </Field>
             <Field label="活动水平">
-              <select
-                className={styles.select}
-                value={profileForm.activityLevel}
-                onChange={(event) => setField('activityLevel', event.target.value)}
-              >
-                {activityOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <Select value={profileForm.activityLevel} onValueChange={(value) => setField('activityLevel', value)}>
+                <SelectTrigger className={styles.select} aria-label="活动水平">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {activityOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="饮食目标">
               <Input value={profileForm.dietGoal} onChange={(event) => setField('dietGoal', event.target.value)} />
@@ -674,20 +681,20 @@ function MemoriesTab() {
             </button>
           ))}
         </div>
-        <select
-          className={styles.categorySelect}
-          aria-label="记忆分类"
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
-        >
-          <option>全部分类</option>
-          <option>偏好</option>
-          <option>限制</option>
-          <option>过敏原</option>
-          <option>目标</option>
-          <option>单位</option>
-          <option>常用餐型</option>
-        </select>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className={styles.categorySelect} aria-label="记忆分类">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="全部分类">全部分类</SelectItem>
+            <SelectItem value="偏好">偏好</SelectItem>
+            <SelectItem value="限制">限制</SelectItem>
+            <SelectItem value="过敏原">过敏原</SelectItem>
+            <SelectItem value="目标">目标</SelectItem>
+            <SelectItem value="单位">单位</SelectItem>
+            <SelectItem value="常用餐型">常用餐型</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       {visibleMemories.length ? (
         <div className={styles.memoryList}>
@@ -713,7 +720,7 @@ function MemoriesTab() {
           <p>当你在 Agent 会话中确认一条偏好后，它会出现在这里。临时偏好不会自动保存。</p>
           <span>可保存类别：忌口 · 过敏原 · 目标 · 单位 · 常用餐型</span>
           <Button className={styles.saveButton} type="button" onClick={() => navigate('/chat')}>
-            <Plus aria-hidden="true" /> 去会话确认
+            去会话确认
           </Button>
         </Card>
       )}
@@ -756,7 +763,7 @@ function MemoriesTab() {
             <DialogTitle>编辑记忆</DialogTitle>
             <DialogDescription>保存后会更新这条长期记忆的内容。</DialogDescription>
           </DialogHeader>
-          <textarea
+          <Textarea
             className={styles.dialogTextarea}
             value={editValue}
             onChange={(event) => setEditValue(event.target.value)}

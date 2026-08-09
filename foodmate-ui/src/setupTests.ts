@@ -4,6 +4,9 @@ import '@testing-library/jest-dom';
 window.scrollTo = () => {};
 Element.prototype.scrollTo = () => {};
 Element.prototype.scrollIntoView = () => {};
+Element.prototype.hasPointerCapture = () => false;
+Element.prototype.setPointerCapture = () => {};
+Element.prototype.releasePointerCapture = () => {};
 
 // jsdom 未实现 matchMedia，多个组件依赖它判断动画偏好
 Object.defineProperty(window, 'matchMedia', {

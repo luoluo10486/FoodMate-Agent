@@ -1,6 +1,7 @@
 /** Admin-specific composed components built on the shared shadcn primitives. */
 import { Button, Card, Input, Table, Tag, IconLeft } from './AdminPrimitives';
 import { Link } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ROUTES } from '../../../constants/routes';
 import {
   adminDeletedRows,
@@ -37,17 +38,27 @@ export function AdminFilters({ placeholder = 'trace_id / user_id' }: { placehold
   return (
     <section className={styles.filters}>
       <strong>筛选</strong>
-      <select className={styles.filterControl} defaultValue="all" aria-label="状态筛选">
-        <option value="all">全部状态</option>
-        <option value="active">active</option>
-        <option value="completed">completed</option>
-        <option value="failed">failed</option>
-      </select>
-      <select className={styles.filterControl} defaultValue="24h" aria-label="时间范围">
-        <option value="24h">近 24h</option>
-        <option value="7d">近 7 天</option>
-        <option value="30d">近 30 天</option>
-      </select>
+      <Select defaultValue="all">
+        <SelectTrigger className={styles.filterControl} aria-label="状态筛选">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">全部状态</SelectItem>
+          <SelectItem value="active">active</SelectItem>
+          <SelectItem value="completed">completed</SelectItem>
+          <SelectItem value="failed">failed</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select defaultValue="24h">
+        <SelectTrigger className={styles.filterControl} aria-label="时间范围">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="24h">近 24h</SelectItem>
+          <SelectItem value="7d">近 7 天</SelectItem>
+          <SelectItem value="30d">近 30 天</SelectItem>
+        </SelectContent>
+      </Select>
       <Input className={styles.filterInput} placeholder={placeholder} aria-label={placeholder} />
       <Button onClick={() => emitNotice('筛选为 mock 操作')}>查询</Button>
     </section>
@@ -67,7 +78,17 @@ export function AdminOnlyNotice({ title }: { title: string }) {
   );
 }
 
-export function MiniStat({ label, value, hint, tone = 'green' }: { label: string; value: string; hint: string; tone?: string }) {
+export function MiniStat({
+  label,
+  value,
+  hint,
+  tone = 'green',
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone?: string;
+}) {
   return (
     <article className={`${styles.metric} ${styles[tone]}`}>
       <span>{label}</span>
@@ -96,58 +117,71 @@ export function AdminActionsCard({ onAction }: { onAction: (payload: AdminAction
       <div className={styles.actionGrid}>
         <Button
           disabled={!canManage}
-          onClick={() => onAction({
-            action: '禁用用户',
-            targetLabel: 'user_10002',
-            targetType: 'user',
-            targetId: 'user_10002',
-            onApply: () => {
-              const target = adminUserRows.find((item) => item.userId === 'user_10002');
-              if (target) target.status = 'disabled';
-            },
-          })}
+          onClick={() =>
+            onAction({
+              action: '禁用用户',
+              targetLabel: 'user_10002',
+              targetType: 'user',
+              targetId: 'user_10002',
+              onApply: () => {
+                const target = adminUserRows.find((item) => item.userId === 'user_10002');
+                if (target) target.status = 'disabled';
+              },
+            })
+          }
         >
           禁用用户
         </Button>
         <Button
           disabled={!canManage}
-          onClick={() => onAction({
-            action: '重置会话',
-            targetLabel: 'user_10002',
-            targetType: 'user_session',
-            targetId: 'user_10002',
-            onApply: () => adminUserSessionRows.filter((session) => session.userId === 'user_10002').forEach((session) => { session.status = 'revoked'; }),
-          })}
+          onClick={() =>
+            onAction({
+              action: '重置会话',
+              targetLabel: 'user_10002',
+              targetType: 'user_session',
+              targetId: 'user_10002',
+              onApply: () =>
+                adminUserSessionRows
+                  .filter((session) => session.userId === 'user_10002')
+                  .forEach((session) => {
+                    session.status = 'revoked';
+                  }),
+            })
+          }
         >
           重置会话
         </Button>
         <Button
           disabled={!canManage}
-          onClick={() => onAction({
-            action: '工具启停',
-            targetLabel: 'food_log_writer',
-            targetType: 'tool',
-            targetId: 'food_log_writer',
-            onApply: () => {
-              const tool = adminToolRows.find((item) => item.name === 'food_log_writer');
-              if (tool) tool.status = tool.status === 'active' ? 'disabled' : 'active';
-            },
-          })}
+          onClick={() =>
+            onAction({
+              action: '工具启停',
+              targetLabel: 'food_log_writer',
+              targetType: 'tool',
+              targetId: 'food_log_writer',
+              onApply: () => {
+                const tool = adminToolRows.find((item) => item.name === 'food_log_writer');
+                if (tool) tool.status = tool.status === 'active' ? 'disabled' : 'active';
+              },
+            })
+          }
         >
           工具启停
         </Button>
         <Button
           disabled={!canManage}
-          onClick={() => onAction({
-            action: '恢复资源',
-            targetLabel: 'meal_plan_73',
-            targetType: 'meal_plan',
-            targetId: 'meal_plan_73',
-            onApply: () => {
-              const rowIndex = adminDeletedRows.findIndex((row) => row.resourceId === 'meal_plan_73');
-              if (rowIndex >= 0) adminDeletedRows.splice(rowIndex, 1);
-            },
-          })}
+          onClick={() =>
+            onAction({
+              action: '恢复资源',
+              targetLabel: 'plan_33910',
+              targetType: 'plan',
+              targetId: 'plan_33910',
+              onApply: () => {
+                const rowIndex = adminDeletedRows.findIndex((row) => row.resourceId === 'plan_33910');
+                if (rowIndex >= 0) adminDeletedRows.splice(rowIndex, 1);
+              },
+            })
+          }
         >
           恢复资源
         </Button>

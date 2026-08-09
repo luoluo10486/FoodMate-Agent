@@ -7,7 +7,12 @@ import { loadAdminDashboard } from '../../../services/adminService';
 
 export function UsageSection() {
   const [rows, setRows] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminModelUsageRows);
-  useEffect(() => { if (import.meta.env.VITE_AGENT_MODE === 'real') loadAdminDashboard().then((d) => setRows(d.usage as typeof adminModelUsageRows)).catch(() => setRows([])); }, []);
+  useEffect(() => {
+    if (import.meta.env.VITE_AGENT_MODE === 'real')
+      loadAdminDashboard()
+        .then((d) => setRows(d.usage as typeof adminModelUsageRows))
+        .catch(() => setRows([]));
+  }, []);
   return (
     <>
       <section className={styles.sectionCards}>
@@ -21,12 +26,7 @@ export function UsageSection() {
           <strong>模型调用明细</strong>
           <Tag color="blue">成本和延迟治理</Tag>
         </div>
-        <Table
-          columns={modelUsageColumns}
-          data={rows}
-          pagination={{ pageSize: 5, total: rows.length }}
-          size="small"
-        />
+        <Table columns={modelUsageColumns} data={rows} pagination={{ pageSize: 5, total: rows.length }} size="small" />
       </Card>
     </>
   );

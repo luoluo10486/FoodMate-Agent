@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Button, Card, IconApps, IconHome, IconLeft, IconSafe, IconUser, Tag } from './tabs/AdminPrimitives';
+import { Link, useLocation } from 'react-router-dom';
+import { Button, Card, IconLeft, Tag } from './tabs/AdminPrimitives';
 import {
   Dialog,
   DialogContent,
@@ -10,12 +10,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ROUTES } from '../../constants/routes';
-import { BrandLogo } from '../../components/brand/BrandLogo';
 import { adminOperationAuditRows } from '../../services/adminService';
 import { getAuthUser } from '../../services/authService';
 import styles from './AdminPage.module.css';
 import { AdminHeader } from './tabs/AdminComponents';
-import { adminNavItems, canAccessAdmin, canManage, getSectionKey } from './tabs/AdminShared';
+import { adminNavItems, canAccessAdmin, canManage, getSectionKey, isAdminNavItemActive } from './tabs/AdminShared';
 import { DeletedSection } from './tabs/DeletedResourcesTab';
 import { KnowledgeSection } from './tabs/KnowledgeTab';
 import { OverviewSection } from './tabs/OverviewTab';
@@ -25,14 +24,40 @@ import { UsageSection } from './tabs/UsageTab';
 import { UsersSection } from './tabs/UsersTab';
 import type { AdminActionPayload, AdminSectionKey } from './tabs/types';
 
-function renderSection(sectionKey: AdminSectionKey, onAction: (payload: AdminActionPayload) => void) {
+function appendOperationAudit(
+  authUser: ReturnType<typeof getAuthUser>,
+  action: string,
+  targetType: string,
+  targetId: string,
+) {
+  const stamp = Date.now();
+  adminOperationAuditRows.unshift({
+    key: `op-${stamp}`,
+    operator_id: `user_${authUser.id}`,
+    operator: authUser.role,
+    action,
+    target_type: targetType,
+    target_id: targetId,
+    result: 'success',
+    request_id: `req_admin_${stamp}`,
+    trace_id: `trace_admin_${stamp}`,
+    created_at: new Date(stamp).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+  });
+  if (adminOperationAuditRows.length > 8) adminOperationAuditRows.splice(8);
+}
+
+function renderSection(
+  sectionKey: AdminSectionKey,
+  onAction: (payload: AdminActionPayload) => void,
+  refreshNonce: number,
+) {
   switch (sectionKey) {
     case 'users':
       return <UsersSection onAction={onAction} />;
     case 'runs':
       return <RunsSection />;
     case 'tools':
-      return <ToolsSection onAction={onAction} />;
+      return <ToolsSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'usage':
       return <UsageSection />;
     case 'knowledge':
@@ -40,16 +65,19 @@ function renderSection(sectionKey: AdminSectionKey, onAction: (payload: AdminAct
     case 'deleted':
       return <DeletedSection onAction={onAction} />;
     default:
-      return <OverviewSection onAction={onAction} />;
+      return <OverviewSection onAction={onAction} refreshNonce={refreshNonce} />;
   }
 }
 
 export function AdminPage() {
   const authUser = getAuthUser();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const sectionKey = getSectionKey(pathname) as AdminSectionKey;
+  const isRegistryRoute = pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry';
+  const isDeletedRoute = pathname.endsWith('/deleted');
   const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
   const [notice, setNotice] = useState('');
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   useEffect(() => {
     const handleNotice = (event: Event) => {
@@ -79,21 +107,11 @@ export function AdminPage() {
       return;
     }
     onApply?.();
-    adminOperationAuditRows.unshift({
-      key: `op-${Date.now()}`,
-      operator_id: `user_${authUser.id}`,
-      operator: authUser.role,
-      action,
-      target_type: targetType,
-      target_id: targetId,
-      result: 'success',
-      request_id: `req_admin_${Date.now()}`,
-      trace_id: `trace_admin_${Date.now()}`,
-      created_at: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
-    });
-    if (adminOperationAuditRows.length > 8) adminOperationAuditRows.length = 8;
+    appendOperationAudit(authUser, action, targetType, targetId);
     setNotice(`${action} 已提交，审计记录已写入`);
   };
+
+  const handleRefresh = () => setRefreshNonce((current) => current + 1);
 
   if (!canAccessAdmin) {
     return (
@@ -114,61 +132,111 @@ export function AdminPage() {
     <div className={styles.adminShell}>
       <aside className={styles.adminSidebar}>
         <div className={styles.brandBlock}>
-          <BrandLogo />
-          <Tag color="green">Admin Console</Tag>
+          <div className={styles.adminBrand}>
+            <span className={styles.adminLogoMark}>F</span>
+            <span className={styles.adminLogoCopy}>
+              <strong>FoodMate</strong>
+              <small>管理控制台</small>
+            </span>
+          </div>
+          <span className={styles.adminTag}>FoodMate 管理</span>
         </div>
-        <Link className={styles.workspaceLink} to={ROUTES.HOME}>
-          <IconHome />
-          <span>返回 Agent 工作台</span>
-        </Link>
         <nav className={styles.adminNav} aria-label="管理后台导航">
-          {adminNavItems.map((item) => (
-            <NavLink
-              className={({ isActive }) =>
-                `${styles.navButton} ${item.adminOnly && !canManage ? styles.navButtonLocked : ''} ${isActive ? styles.navButtonActive : ''}`
-              }
-              end={item.path === '/admin'}
-              key={item.key}
-              to={item.path}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {adminNavItems.map((item) => {
+            const isActive = isAdminNavItemActive(item.path, pathname, search);
+            return (
+              <Link
+                aria-current={isActive ? 'page' : undefined}
+                className={`${styles.navButton} ${item.adminOnly && !canManage ? styles.navButtonLocked : ''} ${isActive ? styles.navButtonActive : ''}`}
+                key={item.key}
+                to={item.path}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
-        <div className={styles.policyBox}>
-          <IconSafe />
-          <strong>{canManage ? 'admin 可操作' : 'operator 只读'}</strong>
-          <span>高风险操作需要二次确认并写入审计。</span>
+        <div className={styles.sidebarFooter}>
+          <div className={styles.privilegeBox}>
+            <span className={styles.privilegeDot} aria-hidden="true" />
+            <strong>{canManage ? '管理员：完全权限' : '操作员：只读'}</strong>
+          </div>
+          <Link className={styles.workspaceLink} to={ROUTES.HOME}>
+            返回 Agent 工作区
+          </Link>
+          <div className={styles.userSection}>
+            <div className={styles.userAvatar}>{authUser.displayName.slice(0, 1)}</div>
+            <div className={styles.userMetadata}>
+              <strong>{authUser.displayName}</strong>
+              <small>ID: {authUser.id}</small>
+            </div>
+          </div>
         </div>
       </aside>
       <main className={styles.adminMain}>
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
-            <IconApps />
-            <span>FoodMate 管理后台</span>
+            <strong>
+              {sectionKey === 'overview'
+                ? '管理概览'
+                : isRegistryRoute
+                  ? '工具注册表'
+                  : isDeletedRoute
+                    ? '删除资源管理'
+                    : '管理控制台'}
+            </strong>
+            {sectionKey === 'overview' || isRegistryRoute ? (
+              <span className={styles.envBadge}>生产环境</span>
+            ) : isDeletedRoute ? (
+              <span className={styles.securityBadge}>审计存档区</span>
+            ) : null}
           </div>
           <div className={styles.topbarActions}>
-            <Tag color={canManage ? 'green' : 'orange'}>{canManage ? 'admin 可操作' : 'operator 只读'}</Tag>
-            <Link to={ROUTES.PROFILE}>
-              <Button icon={<IconUser />}>{authUser.displayName}</Button>
-            </Link>
+            <span className={styles.refreshStatus}>
+              {isRegistryRoute
+                ? '服务节点：healthy-cluster-0'
+                : isDeletedRoute
+                  ? '存档保留时长：90天安全窗口'
+                  : '数据刷新：刚刚'}
+            </span>
+            <Button
+              className={styles.topbarRefresh}
+              onClick={isDeletedRoute ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。') : handleRefresh}
+            >
+              {isRegistryRoute ? '更新状态' : isDeletedRoute ? '合规性审计' : '刷新数据'}
+            </Button>
           </div>
         </header>
         <div className={`${styles.page} fm-enter`}>
-          {notice ? <div className={styles.notice} role="status">{notice}</div> : null}
-          <AdminHeader sectionKey={sectionKey} />
-          {renderSection(sectionKey, requestAdminAction)}
+          {notice ? (
+            <div className={styles.notice} role="status">
+              {notice}
+            </div>
+          ) : null}
+          {sectionKey === 'overview' || isRegistryRoute || isDeletedRoute ? null : (
+            <AdminHeader sectionKey={sectionKey} />
+          )}
+          {renderSection(sectionKey, requestAdminAction, refreshNonce)}
         </div>
       </main>
-      <Dialog open={Boolean(pendingAction)} onOpenChange={(open) => { if (!open) setPendingAction(undefined); }}>
+      <Dialog
+        open={Boolean(pendingAction)}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(undefined);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{pendingAction?.action}</DialogTitle>
-            <DialogDescription>确认对 {pendingAction?.targetLabel} 执行该管理操作？操作完成后会记录审计事件。</DialogDescription>
+            <DialogDescription>
+              确认对 {pendingAction?.targetLabel} 执行该管理操作？操作完成后会记录审计事件。
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingAction(undefined)}>取消</Button>
+            <Button variant="outline" onClick={() => setPendingAction(undefined)}>
+              取消
+            </Button>
             <Button onClick={() => void executePendingAction()}>确认执行</Button>
           </DialogFooter>
         </DialogContent>

@@ -5,8 +5,10 @@ import {
   adminModelUsageRows,
   adminOperationAuditRows,
   adminOverviewMetrics,
+  adminOverviewRows,
   adminResourceCards,
   adminSqlAuditRows,
+  adminToolRegistryRows,
   adminToolCallRows,
   adminToolRows,
   adminTraceRows,
@@ -95,8 +97,11 @@ type AdminKnowledgeResponse = {
 type AdminDeletedResponse = {
   resource_type: string;
   resource_id: number | null;
+  summary?: string;
   owner: string;
+  deleted_by?: string;
   deleted_at: string | null;
+  restorable?: boolean;
   reason: string;
 };
 type AdminOperationAuditResponse = {
@@ -150,6 +155,14 @@ export type AdminToolRow = {
   owner: string;
   schema: string;
   lastCalledAt: string;
+  timeoutMs?: string;
+  retryPolicy?: string;
+  failedRate?: string;
+};
+export type AdminToolRegistryRow = AdminToolRow & {
+  timeoutMs: string;
+  retryPolicy: string;
+  failedRate: string;
 };
 export type AdminUsageRow = {
   key: string;
@@ -176,8 +189,11 @@ export type AdminDeletedRow = {
   key: string;
   resourceType: string;
   resourceId: string;
+  summary: string;
   owner: string;
+  deletedBy: string;
   deletedAt: string;
+  restorable: boolean;
   reason: string;
 };
 export type AdminOperationAuditRow = {
@@ -263,8 +279,11 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       key: `deleted-${row.resource_id ?? index}`,
       resourceType: row.resource_type,
       resourceId: text(row.resource_id),
+      summary: row.summary || row.reason || '-',
       owner: row.owner,
+      deletedBy: row.deleted_by || 'system_cleanup',
       deletedAt: text(row.deleted_at),
+      restorable: row.restorable ?? true,
       reason: row.reason,
     })),
     operation_audits: data.operation_audits.map((row, index) => ({
@@ -381,8 +400,10 @@ export {
   adminModelUsageRows,
   adminOperationAuditRows,
   adminOverviewMetrics,
+  adminOverviewRows,
   adminResourceCards,
   adminSqlAuditRows,
+  adminToolRegistryRows,
   adminToolCallRows,
   adminToolRows,
   adminTraceRows,

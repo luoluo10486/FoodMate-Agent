@@ -1,3 +1,5 @@
+/* Compatibility facade for the existing admin tabs. */
+/* eslint-disable react-refresh/only-export-components */
 import * as React from 'react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
@@ -17,18 +19,21 @@ import { Table as ShadcnTable, TableBody, TableCell, TableHead, TableHeader, Tab
 import { TabsContent, TabsList, TabsTrigger, Tabs as ShadcnTabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Archive,
   BookOpen,
+  CircleGauge,
+  CirclePlay,
   Database,
   FileText,
-  History,
+  GitBranch,
   House,
-  LayoutDashboard,
   ArrowLeft,
+  LayoutDashboard,
+  PackageCheck,
   ShieldCheck,
   User,
-  Users,
+  UsersRound,
   Wrench,
-  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -40,7 +45,17 @@ type AdminButtonProps = Omit<React.ComponentProps<typeof ShadcnButton>, 'size' |
   size?: 'mini' | 'small' | 'default' | 'large' | 'sm' | 'lg' | 'icon' | null;
 };
 
-export function Button({ icon, status, color, type = 'button', variant, size, className, children, ...props }: AdminButtonProps) {
+export function Button({
+  icon,
+  status,
+  color,
+  type = 'button',
+  variant,
+  size,
+  className,
+  children,
+  ...props
+}: AdminButtonProps) {
   const resolvedVariant =
     variant ?? (status === 'danger' || color === 'red' ? 'destructive' : type === 'primary' ? 'default' : 'outline');
   const resolvedSize = size === 'mini' || size === 'small' ? 'sm' : size === 'large' ? 'lg' : size;
@@ -53,7 +68,11 @@ export function Button({ icon, status, color, type = 'button', variant, size, cl
   );
 }
 
-export function Card({ bordered: _bordered, className, ...props }: React.ComponentProps<typeof ShadcnCard> & { bordered?: boolean }) {
+export function Card({
+  bordered: _bordered,
+  className,
+  ...props
+}: React.ComponentProps<typeof ShadcnCard> & { bordered?: boolean }) {
   return <ShadcnCard className={className} {...props} />;
 }
 
@@ -66,7 +85,11 @@ const badgeVariant = (color?: string) => {
 };
 
 export function Tag({ color, children, className }: { color?: string; children: ReactNode; className?: string }) {
-  return <ShadcnBadge className={className} variant={badgeVariant(color)}>{children}</ShadcnBadge>;
+  return (
+    <ShadcnBadge className={className} variant={badgeVariant(color)}>
+      {children}
+    </ShadcnBadge>
+  );
 }
 
 type AdminInputProps = React.ComponentProps<typeof ShadcnInput> & {
@@ -86,7 +109,9 @@ type AdminSelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
 };
 
 function AdminSelect({ className, size: _size, triggerProps: _triggerProps, ...props }: AdminSelectProps) {
-  return <select className={cn('h-10 rounded-md border border-input bg-background px-3 text-sm', className)} {...props} />;
+  return (
+    <select className={cn('h-10 rounded-md border border-input bg-background px-3 text-sm', className)} {...props} />
+  );
 }
 
 function AdminOption({ value, children }: { value: string; children: ReactNode }) {
@@ -106,27 +131,48 @@ type AdminTableProps<T extends { key?: string }> = {
   data: T[];
   pagination?: false | { pageSize?: number; total?: number };
   size?: 'mini' | 'small';
+  className?: string;
+  tableClassName?: string;
 };
 
-export function Table<T extends { key?: string }>({ columns, data, pagination: _pagination, size: _size }: AdminTableProps<T>) {
+export function Table<T extends { key?: string }>({
+  columns,
+  data,
+  pagination: _pagination,
+  size: _size,
+  className,
+  tableClassName,
+}: AdminTableProps<T>) {
   return (
-    <div className="w-full overflow-x-auto">
-      <ShadcnTable>
+    <div className={cn('w-full overflow-x-auto', className)}>
+      <ShadcnTable className={tableClassName}>
         <TableHeader>
           <TableRow>
-            {columns.map((column, index) => <TableHead key={`${String(column.dataIndex ?? column.title)}-${index}`}>{column.title}</TableHead>)}
+            {columns.map((column, index) => (
+              <TableHead key={`${String(column.dataIndex ?? column.title)}-${index}`}>{column.title}</TableHead>
+            ))}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.length ? data.map((record, rowIndex) => (
-            <TableRow key={record.key ?? rowIndex}>
-              {columns.map((column, columnIndex) => {
-                const value = column.dataIndex ? record[column.dataIndex] : undefined;
-                return <TableCell key={`${String(column.dataIndex ?? column.title)}-${columnIndex}`}>{column.render ? column.render(value as never, record, rowIndex) : String(value ?? '-')}</TableCell>;
-              })}
+          {data.length ? (
+            data.map((record, rowIndex) => (
+              <TableRow key={record.key ?? rowIndex}>
+                {columns.map((column, columnIndex) => {
+                  const value = column.dataIndex ? record[column.dataIndex] : undefined;
+                  return (
+                    <TableCell key={`${String(column.dataIndex ?? column.title)}-${columnIndex}`}>
+                      {column.render ? column.render(value as never, record, rowIndex) : String(value ?? '-')}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                暂无数据
+              </TableCell>
             </TableRow>
-          )) : (
-            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">暂无数据</TableCell></TableRow>
           )}
         </TableBody>
       </ShadcnTable>
@@ -143,14 +189,24 @@ function TabPane(_props: AdminTabPaneProps) {
 type AdminTabsProps = { defaultActiveTab: string; children: ReactNode };
 
 function AdminTabs({ defaultActiveTab, children }: AdminTabsProps) {
-  const panes = (Array.isArray(children) ? children : [children]).filter(Boolean) as React.ReactElement<AdminTabPaneProps>[];
+  const panes = (Array.isArray(children) ? children : [children]).filter(
+    Boolean,
+  ) as React.ReactElement<AdminTabPaneProps>[];
   const [active, setActive] = useState(defaultActiveTab);
   return (
     <ShadcnTabs value={active} onValueChange={setActive}>
       <TabsList>
-        {panes.map((pane) => <TabsTrigger key={String(pane.key)} value={String(pane.key)}>{pane.props.title}</TabsTrigger>)}
+        {panes.map((pane) => (
+          <TabsTrigger key={String(pane.key)} value={String(pane.key)}>
+            {pane.props.title}
+          </TabsTrigger>
+        ))}
       </TabsList>
-      {panes.map((pane) => <TabsContent key={String(pane.key)} value={String(pane.key)}>{pane.props.children}</TabsContent>)}
+      {panes.map((pane) => (
+        <TabsContent key={String(pane.key)} value={String(pane.key)}>
+          {pane.props.children}
+        </TabsContent>
+      ))}
     </ShadcnTabs>
   );
 }
@@ -167,9 +223,22 @@ type AdminModalProps = {
   children: ReactNode;
 };
 
-export function Modal({ title, visible, okText = '确定', cancelText = '取消', onCancel, onOk, children }: AdminModalProps) {
+export function Modal({
+  title,
+  visible,
+  okText = '确定',
+  cancelText = '取消',
+  onCancel,
+  onOk,
+  children,
+}: AdminModalProps) {
   return (
-    <Dialog open={visible} onOpenChange={(open) => { if (!open) onCancel(); }}>
+    <Dialog
+      open={visible}
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -177,7 +246,9 @@ export function Modal({ title, visible, okText = '确定', cancelText = '取消'
         </DialogHeader>
         {children}
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>{cancelText}</Button>
+          <Button variant="outline" onClick={onCancel}>
+            {cancelText}
+          </Button>
           <Button onClick={() => void onOk()}>{okText}</Button>
         </DialogFooter>
       </DialogContent>
@@ -186,9 +257,15 @@ export function Modal({ title, visible, okText = '确定', cancelText = '取消'
 }
 
 export const Message = {
-  info(message: string) { window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone: 'info' } })); },
-  warning(message: string) { window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone: 'warning' } })); },
-  success(message: string) { window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone: 'success' } })); },
+  info(message: string) {
+    window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone: 'info' } }));
+  },
+  warning(message: string) {
+    window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone: 'warning' } }));
+  },
+  success(message: string) {
+    window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone: 'success' } }));
+  },
 };
 
 export const IconApps = LayoutDashboard;
@@ -197,10 +274,14 @@ export const IconLeft = ArrowLeft;
 export const IconSafe = ShieldCheck;
 export const IconUser = User;
 export const IconFile = FileText;
-export const IconThunderbolt = Zap;
+export const IconThunderbolt = CirclePlay;
 export const IconTool = Wrench;
 export const IconBook = BookOpen;
-export const IconDashboard = LayoutDashboard;
-export const IconHistory = History;
+export const IconDashboard = CircleGauge;
+export const IconHistory = Archive;
 export const IconStorage = Database;
-export const IconUserGroup = Users;
+export const IconUserGroup = UsersRound;
+export const IconSql = Database;
+export const IconTrace = GitBranch;
+export const IconToolRegistry = PackageCheck;
+export const IconAudit = ShieldCheck;
