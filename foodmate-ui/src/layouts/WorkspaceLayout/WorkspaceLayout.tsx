@@ -56,9 +56,10 @@ type WorkspaceLayoutProps = {
   children: React.ReactNode;
   activeModule?: 'home' | 'chat' | 'records' | 'analysis' | 'planning' | 'knowledge' | 'profile' | 'admin';
   moduleLabel?: React.ReactNode;
+  pageOverlay?: React.ReactNode;
 };
 
-export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel, pageOverlay }: WorkspaceLayoutProps) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [authReady, setAuthReady] = useState(!realMode);
   const [currentUser, setCurrentUser] = useState(getAuthUser());
@@ -285,6 +286,9 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
               <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
                 餐食规划
               </NavLink>
+              <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
+                知识库
+              </NavLink>
               {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
             </nav>
             <div className={styles.userActions}>
@@ -348,6 +352,7 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel }
           </header>
           {children}
         </main>
+        {pageOverlay}
         <Dialog open={Boolean(renameTarget)} onOpenChange={(open) => !open && setRenameTarget(undefined)}>
           <DialogContent>
             <DialogHeader>
