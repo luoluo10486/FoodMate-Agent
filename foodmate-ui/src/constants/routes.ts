@@ -6,6 +6,9 @@ export const ROUTES = {
   KNOWLEDGE: '/knowledge',
   LOGIN: '/login',
   PROFILE: '/profile',
+  PROFILE_MEMORIES: '/profile/memories',
+  PROFILE_SECURITY: '/profile/security',
+  PROFILE_DATA: '/profile/data',
   ADMIN: '/admin',
 } as const;
 

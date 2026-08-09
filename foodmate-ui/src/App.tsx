@@ -42,6 +42,9 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/memories" element={<ProfilePage />} />
+        <Route path="/profile/security" element={<ProfilePage />} />
+        <Route path="/profile/data" element={<ProfilePage />} />
         <Route path="/admin/*" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

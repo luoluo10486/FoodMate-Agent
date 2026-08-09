@@ -273,23 +273,42 @@ export function WorkspaceLayout({ children, activeModule = 'home', moduleLabel, 
         <main className={styles.main}>
           <header className={styles.topbar}>
             <BrandLogo size="compact" />
-            <nav className={styles.nav} aria-label="主导航">
-              <NavLink className={topLink(activeModule === 'home')} to={ROUTES.HOME} end>
-                工作台
-              </NavLink>
-              <NavLink className={topLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
-                饮食记录
-              </NavLink>
-              <NavLink className={topLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
-                摄入分析
-              </NavLink>
-              <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
-                餐食规划
-              </NavLink>
-              <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
-                知识库
-              </NavLink>
-              {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
+            <nav className={styles.nav} aria-label={activeModule === 'profile' ? '个人中心导航' : '主导航'}>
+              {activeModule === 'profile' ? (
+                <>
+                  <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE} end>
+                    基本资料
+                  </NavLink>
+                  <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_MEMORIES}>
+                    记忆与偏好
+                  </NavLink>
+                  <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_SECURITY}>
+                    安全与设备
+                  </NavLink>
+                  <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_DATA}>
+                    数据与隐私
+                  </NavLink>
+                </>
+              ) : (
+                <>
+                  <NavLink className={topLink(activeModule === 'home')} to={ROUTES.HOME} end>
+                    工作台
+                  </NavLink>
+                  <NavLink className={topLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
+                    饮食记录
+                  </NavLink>
+                  <NavLink className={topLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
+                    摄入分析
+                  </NavLink>
+                  <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
+                    餐食规划
+                  </NavLink>
+                  <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
+                    知识库
+                  </NavLink>
+                  {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
+                </>
+              )}
             </nav>
             <div className={styles.userActions}>
               <div className={styles.workspaceSearch}>
