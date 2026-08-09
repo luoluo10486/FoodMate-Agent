@@ -309,12 +309,12 @@
 
 ### 5.5 工具调用、SQL 审计和 Trace
 
-- [x] Tool Calls、SQL Audit、Trace 已分别提供实际内容画板，不只显示 Tab 标签。
-- [x] Tool Calls 已展示时间筛选、重试次数、创建时间和详情字段。
-- [x] SQL Audit 已展示筛选、列表和详情。
-- [x] Trace 已按 trace_id 聚合请求、Run、工具、模型和管理操作。
-- [x] Trace 已提供复制、展开节点和仅看失败语义。
-- [x] 所有敏感数据均以脱敏摘要展示，不展示数据库凭据。
+- [ ] Tool Calls、SQL Audit、Trace 的 Figma 文件中仍未提供可检查的实际内容画板，目前对应 Admin Flow 节点只是流程占位卡。
+- [ ] Tool Calls 的时间筛选、重试次数、创建时间和详情字段尚未完成 Figma 画板级确认；代码侧已按现有契约实现可用字段和详情入口。
+- [ ] SQL Audit 的 Figma 筛选、列表和详情画板尚未完成；代码侧已实现筛选、列表和详情 Sheet。
+- [ ] Trace 尚无可检查的 Figma 聚合画板；代码侧已实现按 trace_id 关联 Run、Tool Call、SQL Audit 和链路节点。
+- [ ] Trace 的复制、展开节点和仅看失败语义尚未完成 Figma 画板级确认；代码侧已实现复制、详情节点和状态筛选入口。
+- [x] 代码侧所有敏感数据均以脱敏摘要展示，不展示数据库凭据；Figma 画板侧仍需在真实内容画板补做审查。
 
 ### 5.6 模型用量
 
@@ -539,3 +539,13 @@
 - [x] 新增 `UsersTab.test.tsx` 三条回归测试；全量前端测试 `53/53`，`npm run typecheck`、`npm run build`、本次改动文件定向 ESLint/Prettier 通过。浏览器验收覆盖 `1440x1024`、`1366x768`、`1024x768`、`390x844`，四个视口均无页面级横向溢出，确认禁用弹窗实测 `480x344`。
 - [ ] Figma 节点 `1064:21` 当前实际读取为 `260x112` 的 `Admin Flow / User Detail` 流程占位卡，只包含 `User detail` 和 `Prototype: click to continue`，没有可用于五 Tab 详情页像素验收的实际画板。因此本次只完成代码功能边界和项目 Token 下的响应式验收，不能宣称已完成该详情页的 Figma 像素级对照；需要先补齐真实详情画板或提供对应节点。
 - [ ] 该边界不关闭 G5 全量权限矩阵、iconfont 实体资源登记、Run/Tool Call/Trace、操作审计独立页面、shadcn 基础设施迁移收尾或 G6 Arco 清理。
+
+## 17. 2026-08-09 前端 G5-6 Run / Tool Call / Trace 实现记录
+
+- [x] `/admin/runs` 已实现 `AgentRun`、`ToolCall`、`SQLAudit`、`Trace` 四个独立 Tab；统一筛选覆盖 Run ID、用户、Session ID、Trace ID、状态、结果类型和错误码，列表字段与当前前端/管理 dashboard 契约一致。
+- [x] 已实现 Run、Tool Call、SQL Audit、Trace 详情 Sheet、ID 复制、Run -> Tool Call -> Trace -> Run 的关联跳转，以及 SQL Audit 的策略、查询哈希、返回行数和错误码详情；敏感输入/输出只显示脱敏摘要。
+- [x] `?tab=tool`、`?tab=sql`、`?tab=trace` 可直接定位治理 Tab；真实模式只消费现有 `loadAdminDashboard()` 数据，Trace 未由接口返回时显示明确空态，不伪造后端结果；mock 模式提供可重复追踪样例。
+- [x] 新增 `RunsTab.test.tsx`，覆盖筛选重置、Tab URL、Run -> Tool Call -> Trace 和 SQL Audit 详情；前端全量测试 `56/56`，typecheck、build 和定向 ESLint/Prettier 已通过。
+- [x] 浏览器验收覆盖 `1440x1024`、`1366x768`、`1024x768`、`390x844`；四个视口无页面级横向溢出，移动端筛选区单列，宽表只在表格容器内横向滚动，详情 Sheet 不超出移动视口。
+- [ ] Figma 当前实际可读的 Admin 节点 `1064:18`、`1064:21`、`1064:24`、`1064:27` 均为 `260x112` 流程占位卡，只包含标题和 `Prototype: click to continue`，没有 Run、Tool Call、SQL Audit、Trace 的真实画板、字体层级、颜色层级、间距或组件实例。因此本次不能标记 Figma 像素级验收完成；需要先补齐对应画板或提供可检查的节点。
+- [ ] 本边界仍不关闭 G5 普通用户/operator/admin 全量权限矩阵、iconfont 实体资源登记、操作审计独立页面、shadcn 基础设施迁移收尾或 G6 Arco 清理。

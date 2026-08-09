@@ -24,6 +24,7 @@ export type AdminDashboard = {
   runs: AdminRunRow[];
   tool_calls: AdminToolCallRow[];
   sql_audits: AdminSqlAuditRow[];
+  traces: AdminTraceRow[];
   tools: AdminToolRow[];
   usage: AdminUsageRow[];
   knowledge: AdminKnowledgeRow[];
@@ -36,6 +37,7 @@ type AdminDashboardResponse = {
   runs: AdminRunResponse[];
   tool_calls: AdminToolCallResponse[];
   sql_audits: AdminSqlAuditResponse[];
+  traces?: AdminTraceResponse[];
   tools: AdminToolResponse[];
   usage: AdminUsageResponse[];
   knowledge: AdminKnowledgeResponse[];
@@ -52,6 +54,11 @@ type AdminRunResponse = {
   trace_id: string;
   duration_ms: number | string | null;
   username: string;
+  result_type?: string;
+  error_code?: string;
+  stage?: string;
+  model?: string;
+  created_at?: string;
 };
 type AdminToolCallResponse = {
   tool_call_id: number | null;
@@ -60,6 +67,12 @@ type AdminToolCallResponse = {
   status: string;
   latency_ms: number | null;
   trace_id: string;
+  request_id?: string;
+  input_summary?: string;
+  output_summary?: string;
+  error_code?: string;
+  started_at?: string;
+  completed_at?: string;
 };
 type AdminSqlAuditResponse = {
   sql_audit_id: number | null;
@@ -67,6 +80,24 @@ type AdminSqlAuditResponse = {
   statement: string;
   result: string;
   trace_id: string;
+  risk?: string;
+  duration_ms?: number | null;
+  row_count?: number | null;
+  policy?: string;
+  query_hash?: string;
+  error_code?: string;
+  created_at?: string;
+};
+type AdminTraceResponse = {
+  trace_id: string;
+  run_id?: number | string | null;
+  entry?: string;
+  status: string;
+  started_at?: string;
+  duration_ms?: number | null;
+  span_count?: number | null;
+  root_service?: string;
+  error_code?: string;
 };
 type AdminToolResponse = {
   name: string;
@@ -128,6 +159,12 @@ export type AdminRunRow = {
   durationMs: number;
   toolCalls?: number;
   traceId: string;
+  sessionId?: string;
+  resultType?: string;
+  errorCode?: string;
+  stage?: string;
+  model?: string;
+  createdAt?: string;
 };
 export type AdminToolCallRow = {
   key: string;
@@ -137,6 +174,12 @@ export type AdminToolCallRow = {
   status: string;
   latencyMs: number;
   traceId: string;
+  requestId?: string;
+  inputSummary?: string;
+  outputSummary?: string;
+  errorCode?: string;
+  startedAt?: string;
+  completedAt?: string;
 };
 export type AdminSqlAuditRow = {
   key: string;
@@ -146,6 +189,24 @@ export type AdminSqlAuditRow = {
   risk: string;
   result: string;
   traceId: string;
+  durationMs?: number;
+  rowCount?: number;
+  policy?: string;
+  queryHash?: string;
+  errorCode?: string;
+  createdAt?: string;
+};
+export type AdminTraceRow = {
+  key: string;
+  traceId: string;
+  runId?: string;
+  entry: string;
+  status: string;
+  startedAt: string;
+  durationMs?: number;
+  spanCount?: number;
+  rootService?: string;
+  errorCode?: string;
 };
 export type AdminToolRow = {
   key: string;
@@ -226,6 +287,12 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       durationMs: numeric(row.duration_ms),
       traceId: row.trace_id || '-',
       toolCalls: 0,
+      sessionId: row.session_id == null ? undefined : String(row.session_id),
+      resultType: row.result_type || '-',
+      errorCode: row.error_code || '-',
+      stage: row.stage || '-',
+      model: row.model || '-',
+      createdAt: row.created_at || '-',
     })),
     tool_calls: data.tool_calls.map((row, index) => ({
       key: `call-${row.tool_call_id ?? index}`,
@@ -235,15 +302,39 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       status: row.status,
       latencyMs: row.latency_ms ?? 0,
       traceId: row.trace_id || '-',
+      requestId: row.request_id || '-',
+      inputSummary: row.input_summary || '-',
+      outputSummary: row.output_summary || '-',
+      errorCode: row.error_code || '-',
+      startedAt: row.started_at || '-',
+      completedAt: row.completed_at || '-',
     })),
     sql_audits: data.sql_audits.map((row, index) => ({
       key: `sql-${row.sql_audit_id ?? index}`,
       auditId: text(row.sql_audit_id),
       actor: text(row.actor),
       statement: row.statement,
-      risk: 'low',
+      risk: row.risk || 'low',
       result: row.result,
       traceId: row.trace_id || '-',
+      durationMs: row.duration_ms ?? 0,
+      rowCount: row.row_count ?? 0,
+      policy: row.policy || '-',
+      queryHash: row.query_hash || '-',
+      errorCode: row.error_code || '-',
+      createdAt: row.created_at || '-',
+    })),
+    traces: (data.traces ?? []).map((row, index) => ({
+      key: `trace-${row.trace_id || index}`,
+      traceId: row.trace_id || '-',
+      runId: row.run_id == null ? undefined : String(row.run_id),
+      entry: row.entry || '-',
+      status: row.status || '-',
+      startedAt: row.started_at || '-',
+      durationMs: row.duration_ms ?? 0,
+      spanCount: row.span_count ?? 0,
+      rootService: row.root_service || '-',
+      errorCode: row.error_code || '-',
     })),
     tools: data.tools.map((row, index) => ({
       key: `tool-${row.name || index}`,

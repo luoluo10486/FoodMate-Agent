@@ -57,7 +57,7 @@ function renderSection(
     case 'users':
       return <UsersSection onAction={onAction} />;
     case 'runs':
-      return <RunsSection />;
+      return <RunsSection refreshNonce={refreshNonce} />;
     case 'tools':
       return <ToolsSection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />;
     case 'usage':
