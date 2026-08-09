@@ -1,7 +1,9 @@
-import { ExternalLink, Search } from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import styles from './KnowledgePage.module.css';
@@ -15,6 +17,13 @@ type KnowledgeResult = {
   source: string;
   updated: string;
   sourceTone: 'green' | 'blue' | 'purple';
+  topic: 'nutrition';
+  details: {
+    sourceName: string;
+    documentId: string;
+    access: string;
+    quote: string;
+  };
 };
 
 const knowledgeResults: KnowledgeResult[] = [
@@ -25,6 +34,14 @@ const knowledgeResults: KnowledgeResult[] = [
     source: 'NIH §4.2',
     updated: '2天前更新',
     sourceTone: 'blue',
+    topic: 'nutrition',
+    details: {
+      sourceName: 'NIH 研究实验室文献库',
+      documentId: 'DOC ID: NIH-451992-B',
+      access: 'Access: Open Access Dataset, last cached 12h ago.',
+      quote:
+        'Peroxidation of monounsaturated chains remains statistically minor compared to polyunsaturated chains under identical baking parameters...',
+    },
   },
   {
     title: '藜麦与酸面包淀粉的血糖指数动态',
@@ -33,6 +50,13 @@ const knowledgeResults: KnowledgeResult[] = [
     source: 'USDA 数据库',
     updated: '1周前更新',
     sourceTone: 'green',
+    topic: 'nutrition',
+    details: {
+      sourceName: 'USDA FoodData Central',
+      documentId: 'DOC ID: USDA-GLYCEMIC-2204',
+      access: 'Access: Open Access Dataset, last cached 1d ago.',
+      quote: 'Quinoa retains a more stable glycemic load when its insoluble structural fiber remains intact...',
+    },
   },
   {
     title: '运动后最佳蛋白质吸收窗口期',
@@ -41,6 +65,13 @@ const knowledgeResults: KnowledgeResult[] = [
     source: 'PubMed Central',
     updated: '3天前更新',
     sourceTone: 'purple',
+    topic: 'nutrition',
+    details: {
+      sourceName: 'PubMed Central research archive',
+      documentId: 'DOC ID: PMC-PROTEIN-4571',
+      access: 'Access: Open Access Dataset, last cached 6h ago.',
+      quote: 'Amino acid circulation reaches peak efficiency during the 45-75 minute post-exercise window...',
+    },
   },
 ];
 
@@ -60,18 +91,25 @@ export function KnowledgePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
-  const [selectedResult, setSelectedResult] = useState(0);
+  const [selectedResultTitle, setSelectedResultTitle] = useState(knowledgeResults[0].title);
   const [activeFilter, setActiveFilter] = useState('全部主题');
   const knowledgeState = getKnowledgeState(searchParams.get('state'));
-  const selected = knowledgeResults[selectedResult] ?? knowledgeResults[0];
+
+  const selected = knowledgeResults.find((item) => item.title === selectedResultTitle) ?? knowledgeResults[0];
 
   const visibleResults = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return knowledgeResults;
-    return knowledgeResults.filter((item) =>
-      `${item.title} ${item.snippet} ${item.source}`.toLowerCase().includes(normalizedQuery),
+    const filterMatches = (item: KnowledgeResult) => {
+      if (activeFilter === '营养素') return item.topic === 'nutrition';
+      return true;
+    };
+
+    if (!normalizedQuery) return knowledgeResults.filter(filterMatches);
+    return knowledgeResults.filter(
+      (item) =>
+        filterMatches(item) && `${item.title} ${item.snippet} ${item.source}`.toLowerCase().includes(normalizedQuery),
     );
-  }, [query]);
+  }, [activeFilter, query]);
 
   const updateState = (state: KnowledgeState) => {
     const next = new URLSearchParams(searchParams);
@@ -127,20 +165,19 @@ export function KnowledgePage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
-              <Button aria-label="搜索知识" className={styles.searchButton} size="icon" type="submit">
-                <Search aria-hidden="true" />
-              </Button>
             </form>
             <div className={styles.filters} aria-label="知识库筛选">
               {filterOptions.map((filter) => (
-                <button
+                <Button
                   className={`${styles.filter} ${activeFilter === filter ? styles.filterActive : ''}`}
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
                   type="button"
+                  variant="outline"
+                  aria-pressed={activeFilter === filter}
                 >
                   {filter}
-                </button>
+                </Button>
               ))}
             </div>
           </header>
@@ -148,24 +185,34 @@ export function KnowledgePage() {
           <div className={styles.resultCount}>显示 {visibleResults.length === 0 ? 0 : 24} 条结果</div>
 
           <section className={styles.resultList} aria-label="知识库结果列表">
-            {visibleResults.map((item, index) => (
-              <article className={styles.resultCard} key={item.title}>
+            {visibleResults.map((item) => (
+              <Card
+                aria-labelledby={`knowledge-result-${item.title}`}
+                className={styles.resultCard}
+                key={item.title}
+                role="article"
+              >
                 <div className={styles.resultTitleRow}>
-                  <h2>{item.title}</h2>
-                  <span className={styles.matchBadge}>{item.match}</span>
+                  <h2 id={`knowledge-result-${item.title}`}>{item.title}</h2>
+                  <Badge className={styles.matchBadge}>{item.match}</Badge>
                 </div>
                 <p className={styles.snippet}>{item.snippet}</p>
                 <div className={styles.resultFooter}>
                   <div className={styles.resultMeta}>
-                    <span className={`${styles.sourceBadge} ${styles[`source-${item.sourceTone}`]}`}>
+                    <Badge className={`${styles.sourceBadge} ${styles[`source-${item.sourceTone}`]}`}>
                       {item.source}
-                    </span>
+                    </Badge>
                     <span>{item.updated}</span>
                   </div>
                   <div className={styles.resultActions}>
-                    <button className={styles.citationButton} onClick={() => setSelectedResult(index)} type="button">
+                    <Button
+                      className={styles.citationButton}
+                      onClick={() => setSelectedResultTitle(item.title)}
+                      type="button"
+                      variant="link"
+                    >
                       查看引用
-                    </button>
+                    </Button>
                     <Button
                       className={styles.askButton}
                       onClick={() =>
@@ -178,30 +225,38 @@ export function KnowledgePage() {
                     </Button>
                   </div>
                 </div>
-              </article>
+              </Card>
             ))}
           </section>
         </main>
 
         <aside className={styles.detailsPanel} aria-label={`当前引用详情：${selected.title}`}>
           <h2>当前引用详情</h2>
-          <section className={styles.sourceCard}>
-            <strong>NIH 研究实验室文献库</strong>
-            <span>DOC ID: NIH-451992-B</span>
-            <p>Access: Open Access Dataset, last cached 12h ago.</p>
-          </section>
-          <blockquote className={styles.quote}>
-            &quot;Peroxidation of monounsaturated chains remains statistically minor compared to polyunsaturated chains
-            under identical baking parameters...&quot;
-          </blockquote>
-          <button className={styles.sourceLink} onClick={() => updateState('source-unavailable')} type="button">
-            打开原始来源 <ExternalLink aria-hidden="true" />
-          </button>
+          <Card className={styles.sourceCard}>
+            <strong>{selected.details.sourceName}</strong>
+            <span>{selected.details.documentId}</span>
+            <p>{selected.details.access}</p>
+          </Card>
+          <blockquote className={styles.quote}>&quot;{selected.details.quote}&quot;</blockquote>
+          <Button
+            className={styles.sourceLink}
+            onClick={() => updateState('source-unavailable')}
+            type="button"
+            variant="link"
+          >
+            打开原始来源 <ArrowRight aria-hidden="true" />
+          </Button>
           <div className={styles.divider} />
           <h3>推荐主题</h3>
           <div className={styles.topicList}>
             {topics.map((topic) => (
-              <button className={styles.topic} key={topic.title} onClick={() => setQuery(topic.title)} type="button">
+              <Button
+                className={styles.topic}
+                key={topic.title}
+                onClick={() => setQuery(topic.title)}
+                type="button"
+                variant="ghost"
+              >
                 <span className={styles.topicIcon} aria-hidden="true">
                   {topic.icon}
                 </span>
@@ -209,7 +264,7 @@ export function KnowledgePage() {
                   <strong>{topic.title}</strong>
                   <small>{topic.count}</small>
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
         </aside>
@@ -249,9 +304,9 @@ function KnowledgeStateCard({ state, onAction }: { state: Exclude<KnowledgeState
         <h2>{content.title}</h2>
         <p>{content.body}</p>
         {content.detail ? <span className={styles.stateDetail}>{content.detail}</span> : null}
-        <button className={styles.stateAction} onClick={onAction} type="button">
+        <Button className={styles.stateAction} onClick={onAction} type="button" variant="link">
           {content.action}
-        </button>
+        </Button>
       </section>
     </div>
   );

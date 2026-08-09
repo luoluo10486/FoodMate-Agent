@@ -757,12 +757,15 @@
 @media (max-width: 1050px) {
   .page {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: max-content max-content;
+    align-content: start;
     height: auto;
     min-height: 100%;
     overflow: auto;
   }
 
   .planMain {
+    height: max-content;
     overflow: visible;
   }
 
@@ -774,11 +777,14 @@
 
   .loadingPage {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: max-content max-content;
+    align-content: start;
     height: auto;
     min-height: 100%;
   }
 
   .loadingMain {
+    height: max-content;
     overflow: visible;
   }
 

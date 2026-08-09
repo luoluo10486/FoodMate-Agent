@@ -1379,6 +1379,11 @@
     padding: 20px 16px 24px;
   }
 
+  .conflictPage {
+    height: calc(100dvh - 96px);
+    min-height: 0;
+  }
+
   .listHeader,
   .shoppingHeader,
   .planListCard,
@@ -1493,6 +1498,7 @@
 
   .conflictSchedule {
     overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: 4px;
   }
 

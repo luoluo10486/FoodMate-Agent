@@ -29,10 +29,15 @@
   height: 40px;
   align-items: center;
   gap: 4px;
+  scrollbar-width: none;
   padding: 4px;
   border: 1px solid var(--fm-border);
   border-radius: 999px;
   background: var(--fm-surface);
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
 }
 
 .filters button {

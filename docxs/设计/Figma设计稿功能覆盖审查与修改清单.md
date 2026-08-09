@@ -461,7 +461,11 @@
 - [x] G1：Vite/TypeScript `@/*` 别名、Tailwind、shadcn/ui 配置、语义 Token、`cn` 工具和图标封装完成，并通过构建与键盘基本交互检查。
 - [x] G2：Button、Input、Textarea、Dialog、Sheet、Tooltip、Tabs、Table、Badge、Alert 等基础组件完成 Figma Variant 对照，并通过状态、焦点、ARIA 语义和窄屏容器验收。
 - [x] G3：工作台壳层、会话列表、Composer 和 Agent 领域组件迁移完成；真实 SSE、取消、续传、追问、确认和安全降级语义保持不变，并通过工作台与会话页视口验收。
-- [ ] G4：用户业务页在 1440x900、1366x768、1024x768、390x844 下完成 Figma 状态和无重叠检查。
+- [x] G4 首个页面：`DietRecordsPage` 已按 Figma `diet-records-v2`（节点 `640:588`）完成页面结构、Token、shadcn 交互和四视口无重叠/无横向溢出验收；其余用户业务页仍未关闭 G4。
+- [x] G4 第二个页面：`AnalysisPage` 已按 Figma `intake-analysis-v2`（节点 `640:773`）完成筛选、指标、趋势、洞察和质量面板的四视口无横向溢出验收；其余用户业务页仍未关闭 G4。
+- [x] G4 第三个页面：`PlanningPage` 已按 Figma `meal-planning-v2`（节点 `640:901`）完成默认态结构、颜色/字体/间距、约束校验、购物清单和状态流的四视口验收；`1024px` Grid 压缩重叠与移动端冲突态重复滚动问题已修复。
+- [x] G4 第四个页面：`KnowledgePage` 已按 Figma 节点 `795:838` 完成默认态、空态 `795:963`、检索失败 `795:1145`、来源不可用 `795:1328` 的四视口状态和无重叠/无横向溢出验收；结果卡实测 `776x155`，iconfont 仍为 `BLOCKED`。
+- [ ] G4：剩余 `ProfilePage` 在 1440x900、1366x768、1024x768、390x844 下完成 Figma 状态和无重叠检查。
 - [ ] G5：管理端完成普通用户、operator、admin 的可见性、禁用、确认和审计反馈矩阵检查。
 - [ ] G6：全仓无 Arco 运行时 import 和主题样式引用后，才删除 Arco 依赖并完成完整前端验证。
 
@@ -489,4 +493,5 @@
 - [x] G2 基础组件验收已完成：`components.test.tsx` 覆盖 15 个测试，包含 Button variant/size/disabled、Input/Textarea 可访问名称、Dialog/Sheet Escape 与焦点归还、Tooltip Provider 显示/隐藏、Tabs 键盘切换、Select 选项提交、Badge 状态、Alert `role=alert`、Table 原生语义和窄屏滚动容器。
 - [x] G3 工作台迁移验收已完成：WorkspaceLayout 右栏按 Figma 使用 `246px`，Chat 在 1366x768 下使用 `860px` 聊天区；Agent 状态条 `45px`、消息区 `567px`、Composer `88px` 与 `1029:117` 结构一致。
 - [x] G3 交互与响应式验收已完成：Composer IME Enter 不误发送，运行中可停止，快捷任务先带入输入框；1024x768、390x844 无文档横向溢出，390px 首页 quick actions 已改为两列换行。
-- [ ] G4-G6 仍需按用户业务页、管理端和 Arco 清理边界逐步完成，不因 G1-G3 完成而提前宣称全站迁移完成。
+- [x] G4 `KnowledgePage` 验收已完成：默认态 `795:838`、空态 `795:963`、检索失败 `795:1145`、来源不可用 `795:1328` 均完成实现与四视口检查；搜索、筛选、引用切换、重试和“就此提问”回归测试通过。
+- [ ] G4 剩余 `ProfilePage` 以及 G5-G6 仍需按用户业务页、管理端和 Arco 清理边界逐步完成，不因 G1-G4 已完成的页面而提前宣称全站迁移完成。

@@ -410,10 +410,7 @@ function WizardStepThree({ onNavigate }: { onNavigate: NavigateToView }) {
 
 function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
   const [tab, setTab] = useState<'active' | 'draft' | 'archived'>('active');
-  const visiblePlans =
-    tab === 'active'
-      ? plans
-      : plans.filter((plan) => (tab === 'draft' ? plan.statusTone === 'draft' : plan.statusTone === 'archived'));
+  const visiblePlans = plans.filter((plan) => plan.statusTone === tab);
 
   return (
     <div className={`${styles.flowPage} ${styles.listPage}`}>
@@ -598,7 +595,7 @@ function ShoppingListView() {
   );
   const [notice, setNotice] = useState('');
   const allChecked = initialItems.every((item) => checked[item.key]);
-  const totalItems = 12;
+  const totalItems = initialItems.length;
   const checkedCount = Object.values(checked).filter(Boolean).length;
   const toggleAll = () =>
     setChecked(allChecked ? {} : Object.fromEntries(initialItems.map((item) => [item.key, true])));
