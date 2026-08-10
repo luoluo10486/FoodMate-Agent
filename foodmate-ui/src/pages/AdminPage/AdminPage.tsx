@@ -15,6 +15,7 @@ import { ToolsSection } from './tabs/ToolsTab';
 import { UsageSection } from './tabs/UsageTab';
 import { UsersSection } from './tabs/UsersTab';
 import { AdminOperationStatus } from './tabs/AdminOperationStatus';
+import { OperationAuditSection } from './tabs/OperationAuditTab';
 import type { AdminActionPayload, AdminOperationError, AdminOperationState, AdminSectionKey } from './tabs/types';
 
 const defaultOperationError: AdminOperationError = {
@@ -43,6 +44,11 @@ function appendOperationAudit(
     request_id: requestId ?? `req_admin_${stamp}`,
     trace_id: `trace_admin_${stamp}`,
     created_at: new Date(stamp).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+    request_summary: `${action} ${targetId}`,
+    before_state: '待提交',
+    after_state: result === 'success' ? '已完成' : '失败',
+    error_code: result === 'success' ? '-' : 'ADMIN_OPERATION_FAILED',
+    client_info: 'FoodMate Admin Console',
   });
   if (adminOperationAuditRows.length > 8) adminOperationAuditRows.splice(8);
 }
@@ -66,6 +72,8 @@ function renderSection(
       return <KnowledgeSection onAction={onAction} />;
     case 'deleted':
       return <DeletedSection onAction={onAction} />;
+    case 'audit':
+      return <OperationAuditSection refreshNonce={refreshNonce} />;
     default:
       return <OverviewSection onAction={onAction} refreshNonce={refreshNonce} />;
   }
@@ -74,7 +82,7 @@ function renderSection(
 export function AdminPage() {
   const authUser = getAuthUser();
   const { pathname, search } = useLocation();
-  const sectionKey = getSectionKey(pathname) as AdminSectionKey;
+  const sectionKey = getSectionKey(pathname, search) as AdminSectionKey;
   const isRegistryRoute = pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry';
   const isDeletedRoute = pathname.endsWith('/deleted');
   const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
@@ -188,12 +196,18 @@ export function AdminPage() {
         <nav className={styles.adminNav} aria-label="管理后台导航">
           {adminNavItems.map((item) => {
             const isActive = isAdminNavItemActive(item.path, pathname, search);
+            const isLocked = Boolean(item.adminOnly && !canManage);
             return (
               <Link
                 aria-current={isActive ? 'page' : undefined}
-                className={`${styles.navButton} ${item.adminOnly && !canManage ? styles.navButtonLocked : ''} ${isActive ? styles.navButtonActive : ''}`}
+                aria-disabled={isLocked ? 'true' : undefined}
+                className={`${styles.navButton} ${isLocked ? styles.navButtonLocked : ''} ${isActive ? styles.navButtonActive : ''}`}
                 key={item.key}
                 to={item.path}
+                tabIndex={isLocked ? -1 : undefined}
+                onClick={(event) => {
+                  if (isLocked) event.preventDefault();
+                }}
               >
                 {item.icon}
                 <span>{item.label}</span>
@@ -228,7 +242,9 @@ export function AdminPage() {
                   ? '工具注册表'
                   : isDeletedRoute
                     ? '删除资源管理'
-                    : '管理控制台'}
+                    : sectionKey === 'audit'
+                      ? '操作审计'
+                      : '管理控制台'}
             </strong>
             {sectionKey === 'overview' || isRegistryRoute ? (
               <span className={styles.envBadge}>生产环境</span>
@@ -242,13 +258,21 @@ export function AdminPage() {
                 ? '服务节点：healthy-cluster-0'
                 : isDeletedRoute
                   ? '存档保留时长：90天安全窗口'
-                  : '数据刷新：刚刚'}
+                  : sectionKey === 'audit'
+                    ? '审计记录只读'
+                    : '数据刷新：刚刚'}
             </span>
             <Button
               className={styles.topbarRefresh}
               onClick={isDeletedRoute ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。') : handleRefresh}
             >
-              {isRegistryRoute ? '更新状态' : isDeletedRoute ? '合规性审计' : '刷新数据'}
+              {isRegistryRoute
+                ? '更新状态'
+                : isDeletedRoute
+                  ? '合规性审计'
+                  : sectionKey === 'audit'
+                    ? '刷新审计'
+                    : '刷新数据'}
             </Button>
           </div>
         </header>

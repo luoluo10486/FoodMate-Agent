@@ -13,7 +13,7 @@ import {
 import { Button, Card, Table, type TableColumnProps } from './AdminPrimitives';
 import styles from '../AdminPage.module.css';
 import { AdminOnlyNotice } from './AdminComponents';
-import { type DeletedRow, adminDeletedRows, canManage } from './AdminShared';
+import { type DeletedRow, adminDeletedRows, canRestoreResources } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import { loadAdminDashboard, restoreAdminResource } from '../../../services/adminService';
 
@@ -234,7 +234,7 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
             className={styles.deletedRestoreButton}
             size="small"
             color="red"
-            disabled={!record.restorable || !canManage}
+            disabled={!record.restorable || !canRestoreResources}
             onClick={() =>
               onAction({
                 action: '恢复软删除资源',
@@ -255,7 +255,7 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
     },
   ];
 
-  if (!canManage) return <AdminOnlyNotice title="无权访问软删除资源" />;
+  if (!canRestoreResources) return <AdminOnlyNotice title="无权访问软删除资源" />;
 
   return (
     <>

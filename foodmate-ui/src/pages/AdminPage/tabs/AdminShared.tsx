@@ -34,13 +34,36 @@ import {
   adminUserSessionRows,
 } from '../../../services/adminService';
 import type { AdminToolRegistryRow, AdminToolRow } from '../../../services/adminService';
-import { getAuthStatus, getAuthUser } from '../../../services/authService';
+import { getAuthStatus, getAuthUser, type AuthStatus } from '../../../services/authService';
 
 const authStatus = getAuthStatus();
 const authUser = getAuthUser();
-export const canAccessAdmin =
-  authStatus === 'authenticated' && ['admin', 'operator', 'superadmin'].includes(authUser.role);
-export const canManage = authStatus === 'authenticated' && ['admin', 'superadmin'].includes(authUser.role);
+
+export type AdminAccess = {
+  canAccess: boolean;
+  canManage: boolean;
+  canViewUserDetails: boolean;
+  canViewAudit: boolean;
+  canRestoreResources: boolean;
+};
+
+export function resolveAdminAccess(status: AuthStatus, role: string): AdminAccess {
+  const canAccess = status === 'authenticated' && ['admin', 'operator', 'superadmin'].includes(role);
+  const canManage = canAccess && ['admin', 'superadmin'].includes(role);
+  return {
+    canAccess,
+    canManage,
+    canViewUserDetails: canAccess,
+    canViewAudit: canManage,
+    canRestoreResources: canManage,
+  };
+}
+
+const adminAccess = resolveAdminAccess(authStatus, authUser.role);
+export const canAccessAdmin = adminAccess.canAccess;
+export const canManage = adminAccess.canManage;
+export const canViewAudit = adminAccess.canViewAudit;
+export const canRestoreResources = adminAccess.canRestoreResources;
 
 export {
   adminAuditRows,
@@ -80,7 +103,7 @@ export type OperationAuditRow = (typeof adminOperationAuditRows)[number];
 export const adminNavItems: Array<{ key: string; path: string; label: string; icon: ReactNode; adminOnly?: boolean }> =
   [
     { key: 'overview', path: '/admin', label: '概览', icon: <IconDashboard /> },
-    { key: 'users', path: '/admin/users', label: '用户管理', icon: <IconUserGroup />, adminOnly: true },
+    { key: 'users', path: '/admin/users', label: '用户管理', icon: <IconUserGroup /> },
     { key: 'runs', path: '/admin/runs', label: 'Agent 运行', icon: <IconThunderbolt /> },
     { key: 'tools', path: '/admin/tools', label: '工具调用', icon: <IconTool /> },
     { key: 'sql', path: '/admin/runs?tab=sql', label: 'SQL 审计', icon: <IconSql /> },
@@ -117,6 +140,11 @@ export const sectionMeta: Record<string, { title: string; description: string; t
   usage: { title: '模型用量', description: '查看供应商、模型、场景、Token、成本和耗时。', tag: 'Model Usage' },
   knowledge: { title: '知识库', description: '管理知识库文档、解析状态、索引进度和下线恢复。', tag: 'Knowledge' },
   deleted: { title: '软删除资源', description: '查看已删除业务资源，并由 admin 执行恢复操作。', tag: 'Recovery' },
+  audit: {
+    title: '操作审计',
+    description: '按动作、目标、结果和请求链路查询管理操作，并查看不可变审计详情。',
+    tag: 'Audit',
+  },
 };
 
 export function statusTag(status: string) {
@@ -202,7 +230,8 @@ export const sessionColumns: TableColumnProps<UserSessionRow>[] = [
   { title: '状态', dataIndex: 'status', render: (_, record) => statusTag(record.status) },
 ];
 
-export function getSectionKey(pathname: string): string {
+export function getSectionKey(pathname: string, search = ''): string {
+  if (pathname === '/admin' && new URLSearchParams(search).get('view') === 'audit') return 'audit';
   if (pathname.endsWith('/users')) return 'users';
   if (pathname.endsWith('/runs')) return 'runs';
   if (pathname.endsWith('/tools')) return 'tools';

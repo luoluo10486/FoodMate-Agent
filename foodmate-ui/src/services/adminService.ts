@@ -146,6 +146,11 @@ type AdminOperationAuditResponse = {
   request_id: string;
   trace_id: string;
   created_at: string | null;
+  request_summary?: string;
+  before_state?: string;
+  after_state?: string;
+  error_code?: string;
+  client_info?: string;
 };
 
 export type AdminMetricRow = AdminMetricResponse;
@@ -269,6 +274,12 @@ export type AdminOperationAuditRow = {
   result: string;
   request_id: string;
   trace_id: string;
+  createdAt: string;
+  requestSummary: string;
+  beforeState: string;
+  afterState: string;
+  errorCode: string;
+  clientInfo: string;
 };
 
 const text = (value: string | number | null | undefined) => (value == null ? '-' : String(value));
@@ -389,6 +400,12 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       result: row.result,
       request_id: row.request_id,
       trace_id: row.trace_id,
+      createdAt: text(row.created_at),
+      requestSummary: row.request_summary || '-',
+      beforeState: row.before_state || '-',
+      afterState: row.after_state || '-',
+      errorCode: row.error_code || '-',
+      clientInfo: row.client_info || '-',
     })),
   };
 }

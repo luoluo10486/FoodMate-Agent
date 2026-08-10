@@ -1,4 +1,4 @@
-export type AdminSectionKey = 'overview' | 'users' | 'runs' | 'tools' | 'usage' | 'knowledge' | 'deleted';
+export type AdminSectionKey = 'overview' | 'users' | 'runs' | 'tools' | 'usage' | 'knowledge' | 'deleted' | 'audit';
 
 export type AdminOperationState = 'idle' | 'no-permission' | 'confirm' | 'submitting' | 'success' | 'failed';
 
