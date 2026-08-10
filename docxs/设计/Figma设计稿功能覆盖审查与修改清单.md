@@ -486,7 +486,7 @@
 - [ ] 已创建 `Iconfont Resource Registry`（节点 `1065:2`），但实体字体包、最终字形类名、资源来源、授权范围和实际 Figma 资产仍缺失，登记状态明确为 `BLOCKED`；本次没有虚构或导入未确认授权的字形。
 - [x] User/Admin 领域组件已完成全部独立 Component Set：User 24 个（页面 `1045:3`），Admin 14 个（页面 `1045:4`）；组件页顶层重叠均为 0，组件标签可见且页面契约文本已同步。
 - [x] User Prototype 已建立并验证 4 个画板：`1064:2` Gallery -> `1064:5` Composer -> `1064:8` Confirmation -> `1064:11` Complete -> Gallery；4 条 `ON_CLICK` 目标全部有效。
-- [x] Admin Prototype 已建立并验证 4 个画板：`1064:18` Overview -> `1064:21` User Detail -> `1064:24` Disable Confirm -> `1064:27` Audit -> Overview；4 条 `ON_CLICK` 目标全部有效。
+- [x] 历史记录中的 Admin Prototype 流程卡已完成入口验证；当前实际画板与关键 Prototype 目标以第 19 节的 `995:977`、`801:215`、`692:4539`、`995:1499` 及治理画板节点为准。
 - [x] 已完成 `01 Foundations`、`02 Components - User`、`03 Components - Admin` 三页截图级验收；Foundations 登记框与文档无重叠，三页顶层重叠均为 0，未发现组件标签或契约文本裁切。
 - [x] 截至 2026-08-09，前端已落地 `@/*`、Tailwind、shadcn/ui、`cn`、Lucide 代码图标入口和 FoodMate 语义 Token；基础 primitives 已通过类型检查、基础键盘交互测试和生产构建。
 - [x] 已将登录页、重置密码页和购物清单从 `legacy-primitives` 迁移到 shadcn `Button`、`Input`、`Badge` 与原生语义表单，并删除无引用的 `legacy-primitives.tsx`。
@@ -537,7 +537,7 @@
 - [x] `operator` 可查看用户详情但不能执行状态或会话写操作；`admin/superadmin` 的锁定、禁用、启用和撤销全部会话继续复用 G5-4 的统一确认、提交中、成功/失败和审计状态机。
 - [x] mock 详情数据已补齐饮食画像、业务会话和用户操作历史；真实模式只消费真实用户列表返回的数据，未接入真实详情接口的会话与历史展示显式空态，不伪造接口结果。
 - [x] 新增 `UsersTab.test.tsx` 三条回归测试；全量前端测试 `53/53`，`npm run typecheck`、`npm run build`、本次改动文件定向 ESLint/Prettier 通过。浏览器验收覆盖 `1440x1024`、`1366x768`、`1024x768`、`390x844`，四个视口均无页面级横向溢出，确认禁用弹窗实测 `480x344`。
-- [ ] Figma 节点 `1064:21` 当前实际读取为 `260x112` 的 `Admin Flow / User Detail` 流程占位卡，只包含 `User detail` 和 `Prototype: click to continue`，没有可用于五 Tab 详情页像素验收的实际画板。因此本次只完成代码功能边界和项目 Token 下的响应式验收，不能宣称已完成该详情页的 Figma 像素级对照；需要先补齐真实详情画板或提供对应节点。
+- [x] 历史检查曾将 `1064:21` 读取为 `260x112` 的流程占位卡；当前已由真实画板 `801:215` 替代，并完成五 Tab 详情页的 Figma 截图级对照，具体见第 19 节。
 - [ ] 该边界不关闭 Figma 实际详情画板像素验收、iconfont 实体资源登记或真实后端授权；G5 前端权限矩阵、操作审计页和 G6 Arco 清理由后续记录单独说明。
 
 ## 17. 2026-08-09 前端 G5-6 Run / Tool Call / Trace 实现记录
@@ -547,7 +547,7 @@
 - [x] `?tab=tool`、`?tab=sql`、`?tab=trace` 可直接定位治理 Tab；真实模式只消费现有 `loadAdminDashboard()` 数据，Trace 未由接口返回时显示明确空态，不伪造后端结果；mock 模式提供可重复追踪样例。
 - [x] 新增 `RunsTab.test.tsx`，覆盖筛选重置、Tab URL、Run -> Tool Call -> Trace 和 SQL Audit 详情；前端全量测试 `56/56`，typecheck、build 和定向 ESLint/Prettier 已通过。
 - [x] 浏览器验收覆盖 `1440x1024`、`1366x768`、`1024x768`、`390x844`；四个视口无页面级横向溢出，移动端筛选区单列，宽表只在表格容器内横向滚动，详情 Sheet 不超出移动视口。
-- [ ] Figma 当前实际可读的 Admin 节点 `1064:18`、`1064:21`、`1064:24`、`1064:27` 均为 `260x112` 流程占位卡，只包含标题和 `Prototype: click to continue`，没有 Run、Tool Call、SQL Audit、Trace 的真实画板、字体层级、颜色层级、间距或组件实例。因此本次不能标记 Figma 像素级验收完成；需要先补齐对应画板或提供可检查的节点。
+- [x] 历史检查曾将 `1064:18`、`1064:21`、`1064:24`、`1064:27` 读取为流程占位卡；该结论已由第 19 节当前实际画板和截图级验收记录替代。
 - [ ] 本边界不关闭 Figma 四张 Admin 流程占位卡的实际画板像素验收、iconfont 实体资源登记或真实管理数据闭环；G5 前端权限矩阵、操作审计页和 G6 Arco 清理已在后续记录完成代码侧核验。
 
 ## 18. 2026-08-10 前端 G5-7 与 G6 收尾记录
@@ -558,4 +558,27 @@
 - [x] 浏览器实际检查 `1440x1000` 与 `390x844`：结果筛选、关键词筛选、详情 Dialog 均可操作；移动端表格只在自身容器内横向滚动，页面和弹窗不横向溢出，控制台无 error/warning。
 - [x] G6 Arco 清理已通过静态核验：`foodmate-ui/package.json` 无 `@arco-design/web-react`，`src/main.tsx` 无 Arco 样式入口，源码无 Arco 组件 import 或 `arco-theme` 引用。
 - [ ] iconfont 仍为 `BLOCKED`：实体字体包、最终字形类名、来源、授权和实际 Figma 资产尚未提供，不能登记虚构资源。
-- [ ] `1064:18`、`1064:21`、`1064:24`、`1064:27` 仍为 `260x112` 的 `Admin Flow` 流程占位卡；代码页面完成不代表 Run / Tool Call / SQL Audit / Trace / 操作审计已经完成 Figma 像素级验收。
+- [x] 本节中的旧 `1064:*` Admin Flow 占位卡结论已由第 19 节实际画板记录替代；当前 Admin 实际画板、字体统一、Prototype 去重和截图级验收已完成，iconfont 实体资源与真实管理数据仍保持独立未完成状态。
+
+## 19. 2026-08-10 Admin 实际画板与像素级验收
+
+本节覆盖并替代第 13、16、17、18 节中关于 `1064:18`、`1064:21`、`1064:24`、`1064:27` 的历史占位卡结论。当前 `🎨 :: Design` 页面已存在可直接用于实现对照的完整 Admin 画板：
+
+| 画板 | 节点 | 尺寸 | 验收结论 |
+|---|---:|---:|---|
+| Admin Overview | `995:977` | `1440x1024` | 侧栏 `260px`、主区 `1180px`、概览指标/筛选/运行表/分析卡完整 |
+| Admin User Detail | `801:215` | `1440x1024` | 用户列表、详情侧栏和资料/饮食/登录会话/业务会话/操作历史五个 Tab 完整 |
+| Admin Operation Confirmation | `692:4539` | `1440x1024` | 工具停用确认、影响说明、取消/确认按钮和全屏遮罩完整 |
+| Admin Operation Audit | `995:1499` | `1440x1024` | 结果/目标/动作筛选、request_id、trace_id、审计表和详情入口完整 |
+| Admin Run Detail | `797:212` | `1440x1024` | Run 摘要、事件追踪、错误状态、脱敏字段和关联入口完整 |
+| Admin Tool Calls | `797:359` | `1440x1024` | Tool Call 筛选、调用摘要、脱敏参数和详情契约完整 |
+| Admin SQL Audit | `797:490` | `1440x1024` | SQL 审计筛选、策略结果、脱敏参数和审计字段完整 |
+| Admin Trace | `797:621` | `1440x1024` | Trace 聚合、时间线、节点状态、request/trace 标识和返回 Run 入口完整 |
+
+- [x] 已对上述 8 张核心 Admin 画板执行截图检查和 Figma Plugin API 回读：尺寸均为 `1440x1024`；核心色值包含 `#FCFCFC`、`#FFFFFF`、`#F4F6F5`、`#333333`、`#6B7280`、`#FF7576`、`#D67676`、`#C79654`、`#5DA9B2`、`#89B27C`，与 FoodMate Token 契约一致。
+- [x] 已统一上述 Admin 画板的字体集合为 `Noto Sans SC` 与 `Space Mono`；清理了 10 张画板共 347 个 Inter 字体片段，并按 `Extra Bold -> Black`、`Bold/Semi Bold -> Bold`、`Medium -> Medium`、`Regular -> Regular` 映射到文件中实际可用的 Noto Sans SC 字重。
+- [x] 同级节点重叠检查未发现非预期重叠。确认/提交中/失败弹窗的 `modal-backdrop` 与底层页面叠层，以及知识库上传进度条填充层均为设计定义的有意覆盖，不作为缺陷。
+- [x] 已去除核心 Admin 画板中完全重复的 Prototype reactions；关键入口可解析到 `admin-overview`、`admin-user-detail`、`admin-op-confirm`、`admin-operation-audit`、`admin-run-detail`、`admin-tool-calls`、`admin-sql-audit` 和 `admin-trace` 等有效节点。
+- [x] `admin-user-detail` 字体修正后已重新截图复核，未发现文字裁切、布局挤压或内容重叠；其余 7 张画板已完成同等尺寸/字体/结构回读。
+- [ ] iconfont Resource Registry 仍为 `BLOCKED`：实体字体包、最终字形类名、来源、授权范围和实际 Figma 字形资产未提供；标准命令图标继续使用 Lucide，不创建虚构字体资源。
+- [ ] 真实管理数据、服务端权限授权、并发冲突和生产环境失败重试仍需接口级验收；Figma 画板完成不等于真实后端闭环完成。
