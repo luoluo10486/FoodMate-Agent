@@ -15,7 +15,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { getAuthUser } from '../../services/authService';
-import { getRecommendedPrompts, getSessions, getTaskCards } from '../../services/sessionService';
+import { getHomeSessions, getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
 import styles from './HomePage.module.css';
 
 const metricCards = [
@@ -44,7 +44,7 @@ export function HomePage() {
   const currentUser = getAuthUser();
   const taskCards = getTaskCards();
   const recommendedPrompts = getRecommendedPrompts();
-  const sessions = getSessions();
+  const sessions = getHomeSessions();
 
   const quickActions = useMemo(
     () => [

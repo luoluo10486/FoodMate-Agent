@@ -57,14 +57,47 @@ export const seededPrompts: Record<string, string> = {
 };
 
 export const baseRun: AgentRunView = {
-  id: 'mock-run',
-  status: 'completed',
-  intent: 'planning',
-  toolsUsed: 0,
+  id: 'fst_trace_88192a',
+  status: 'executing_tools',
+  intent: 'record',
+  toolsUsed: 3,
   toolsTotal: 6,
   agentsUsed: 1,
   agentsTotal: 1,
-  toolCalls: [],
+  toolCalls: [
+    {
+      id: 'trace-query-expansion',
+      name: 'query_expansion',
+      displayName: '查询扩展',
+      status: 'success',
+      latencyMs: 12,
+      summary: '已完成用户意图和食材名称扩展。',
+    },
+    {
+      id: 'trace-vector-search',
+      name: 'vector_search',
+      displayName: '向量索引检索',
+      status: 'success',
+      latencyMs: 184,
+      summary: '已命中 USDA 食品营养数据。',
+    },
+    {
+      id: 'trace-usda',
+      name: 'usda_lookup',
+      displayName: 'USDA 数据库调用',
+      status: 'success',
+      latencyMs: 92,
+      summary: '已返回三文鱼和藜麦的营养参考值。',
+    },
+    {
+      id: 'trace-compose',
+      name: 'response_composer',
+      displayName: '响应合成',
+      status: 'running',
+      latencyMs: 45,
+      summary: '正在整理回答和写入确认。',
+    },
+  ],
   citations: [],
 };
 
@@ -72,14 +105,16 @@ export const initialMessages: Message[] = [
   {
     id: 'm1',
     role: 'user',
-    content: '给 2 个人制定一周高蛋白备餐计划，预算 300 元以内。',
-    time: '09:31',
+    content: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
+    time: '12:45',
   },
   {
     id: 'm2',
     role: 'assistant',
-    content: '我会先检索食材搭配和保存建议，再校验预算、蛋白质目标和烹饪时间。',
-    time: '09:31',
+    content:
+      'I have analyzed the typical values for wild salmon (150g) and cooked quinoa (100g). Together, they provide approximately 38g of high-quality protein.',
+    source: 'Source: USDA FoodData Central Ref #451992',
+    time: '12:46',
   },
 ];
 

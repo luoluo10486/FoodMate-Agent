@@ -41,14 +41,12 @@ export function useMockAgentReplay(
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [run, setRun] = useState<AgentRunView>(baseRun);
   const [card, setCard] = useState<AgentCard>({
-    type: 'result',
-    mode: 'planning',
-    label: '计划草案',
-    title: '3 天高蛋白备餐已生成，预算预计 286 元',
-    description:
-      '计划优先复用鸡胸肉、鸡蛋、豆腐和西兰花，降低采购成本和食材浪费。当前正在校验晚餐烹饪时间和蛋白质目标。',
-    primaryAction: '确认保存',
-    secondaryAction: '查看购物清单',
+    type: 'confirmation',
+    title: '是否将此记录到你的周二饮食日志？',
+    data: [
+      { label: '目标', value: '今天的午餐' },
+      { label: '来源', value: '当前对话参考' },
+    ],
   });
   const [events, setEvents] = useState<MockRunEvent[]>([]);
   const [running, setRunning] = useState(false);

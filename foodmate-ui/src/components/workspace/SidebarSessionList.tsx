@@ -1,4 +1,4 @@
-import { Archive, MessageCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Archive, ChevronLeft, ChevronRight, MessageCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -63,6 +63,15 @@ export function SidebarSessionList({ sessions, onAction }: SidebarSessionListPro
             </div>
           );
         })}
+      </div>
+      <div className={styles.pagination} aria-label="会话分页">
+        <button aria-label="上一页" disabled type="button">
+          <ChevronLeft aria-hidden="true" />
+        </button>
+        <span>1 / 3</span>
+        <button aria-label="下一页" type="button">
+          <ChevronRight aria-hidden="true" />
+        </button>
       </div>
     </section>
   );

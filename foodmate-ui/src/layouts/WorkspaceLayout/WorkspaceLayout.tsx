@@ -269,7 +269,9 @@ export function WorkspaceLayout({
               <span>就绪 (Fustat-v2)</span>
             </div>
             <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
-              <div className={styles.avatar}>{isAuthenticated ? authUser.displayName.slice(0, 1) : '访'}</div>
+              <div className={styles.avatar}>
+                <img src="/assets/figma/agent-chat/user-avatar.png" alt="" />
+              </div>
               <div>
                 <strong>{isAuthenticated ? `${authUser.displayName} 的工作区` : '未登录'}</strong>
                 <span>ID: {isAuthenticated ? authUser.id : currentAuth.code}</span>
@@ -310,9 +312,6 @@ export function WorkspaceLayout({
                   <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
                     餐食规划
                   </NavLink>
-                  <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
-                    知识库
-                  </NavLink>
                   {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
                 </>
               )}
@@ -339,7 +338,7 @@ export function WorkspaceLayout({
                 <DropdownMenuTrigger asChild>
                   <button className={styles.userButton} type="button">
                     <span className={styles.topAvatar}>
-                      {isAuthenticated ? authUser.displayName.slice(0, 1) : '访'}
+                      <img src="/assets/figma/agent-chat/user-avatar.png" alt="" />
                     </span>
                     <span>{isAuthenticated ? authUser.displayName : '登录'}</span>
                   </button>

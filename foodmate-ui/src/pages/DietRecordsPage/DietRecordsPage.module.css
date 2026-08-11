@@ -1,8 +1,10 @@
 .page {
+  min-width: 0;
   min-height: calc(100dvh - 68px);
+  height: 100%;
   overflow: auto;
-  background: var(--fm-bg);
-  color: var(--fm-ink);
+  background: #fcfcfc;
+  color: #333333;
   scrollbar-width: none;
 }
 
@@ -32,58 +34,64 @@
 .dateButton {
   width: 34px;
   height: 34px;
-  padding: 9px;
-  border: 1px solid var(--fm-border);
+  padding: 0;
+  border: 1px solid #f4f6f5;
   border-radius: 50%;
-  background: var(--fm-surface);
-  color: var(--fm-ink);
+  background: #ffffff;
+  color: #333333;
+  box-shadow: none;
 }
 
-.dateButton:hover {
-  background: var(--fm-bg-soft);
+.dateButton:hover,
+.dateButton:focus-visible {
+  background: #f4f6f5;
+  color: #333333;
 }
 
 .dateButton svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .dateLabel {
   height: 37px;
-  padding: 10px 16px;
-  border: 1px solid var(--fm-border);
+  padding: 0 16px;
+  border: 1px solid #f4f6f5;
   border-radius: 999px;
-  background: var(--fm-surface);
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  background: #ffffff;
+  color: #333333;
+  font-family: var(--fm-font);
   font-size: 14px;
   font-weight: 700;
+  box-shadow: none;
 }
 
-.dateLabel:hover {
-  background: var(--fm-bg-soft);
-  color: var(--fm-ink);
+.dateLabel:hover,
+.dateLabel:focus-visible {
+  background: #f4f6f5;
+  color: #333333;
 }
 
 .viewSwitch {
   display: flex;
+  width: 154px;
   height: 40px;
   gap: 4px;
   padding: 4px;
-  border: 1px solid var(--fm-border);
+  border: 1px solid #f4f6f5;
   border-radius: 999px;
-  background: var(--fm-surface);
+  background: #ffffff;
 }
 
 .viewSwitch button {
+  width: 71px;
   height: 32px;
-  min-width: 71px;
-  padding: 8px 16px;
+  padding: 0 16px;
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  color: #6b7280;
+  font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 500;
   line-height: 16px;
@@ -91,11 +99,11 @@
 }
 
 .viewSwitch button:hover {
-  color: var(--fm-ink);
+  color: #333333;
 }
 
 .viewSwitch .viewActive {
-  background: rgba(236, 204, 255, 0.08);
+  background: #fbf4ff;
   color: #b58cc4;
   font-weight: 700;
 }
@@ -114,93 +122,107 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px;
-  border: 1px solid var(--fm-border);
+  border: 1px solid #f4f6f5;
   border-radius: 16px;
-  background: var(--fm-surface);
+  background: #ffffff;
 }
 
 .metricCopy {
-  display: grid;
+  display: flex;
   min-width: 0;
+  flex: 1;
+  flex-direction: column;
   gap: 4px;
+  white-space: nowrap;
 }
 
 .metricCopy > span {
-  color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  color: #6b7280;
+  font-family: var(--fm-font);
   font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
+  font-weight: 700;
+  line-height: 14px;
 }
 
 .metricCopy > div {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  white-space: nowrap;
 }
 
 .metricCopy strong {
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  color: #333333;
+  font-family: var(--fm-font-mono);
   font-size: 24px;
-  font-weight: 800;
-  line-height: 1;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .metricCopy small {
-  color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  color: #6b7280;
+  font-family: var(--fm-font-mono);
   font-size: 13px;
+  line-height: 19px;
 }
 
 .progressRing {
-  --ring-track: var(--fm-bg-soft);
+  --ring-track: rgba(51, 51, 51, 0.04);
   display: grid;
   position: relative;
-  flex: 0 0 auto;
   width: 56px;
   height: 56px;
+  flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  background: conic-gradient(var(--ring-color) var(--progress-angle), var(--ring-track) 0deg);
+  background: var(--ring-track);
 }
 
 .progressRing::before {
   position: absolute;
-  width: 40px;
-  height: 40px;
+  inset: 8px;
   border-radius: 50%;
-  background: var(--fm-surface);
+  background: conic-gradient(var(--ring-color) calc(var(--progress) * 1%), transparent 0);
+  content: '';
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+}
+
+.progressRing::after {
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  background: #ffffff;
   content: '';
 }
 
 .progressRing span {
   position: relative;
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  z-index: 1;
+  color: #333333;
+  font-family: var(--fm-font-mono);
   font-size: 11px;
   font-weight: 700;
+  line-height: 16px;
 }
 
 .purple {
-  --ring-color: var(--fm-purple);
-  --ring-track: rgba(236, 204, 255, 0.08);
+  --ring-color: #dbb4f4;
+  --ring-track: rgba(219, 180, 244, 0.18);
 }
 
 .green {
-  --ring-color: var(--fm-green);
-  --ring-track: rgba(166, 217, 151, 0.08);
+  --ring-color: #a6d997;
+  --ring-track: rgba(166, 217, 151, 0.18);
 }
 
 .orange {
-  --ring-color: var(--fm-orange);
-  --ring-track: rgba(255, 246, 226, 0.08);
+  --ring-color: #c79654;
+  --ring-track: rgba(255, 246, 226, 0.8);
 }
 
 .red {
-  --ring-color: var(--fm-red);
-  --ring-track: rgba(255, 117, 118, 0.08);
+  --ring-color: #ff7576;
+  --ring-track: rgba(255, 117, 118, 0.18);
 }
 
 .meals {
@@ -211,10 +233,10 @@
 .mealCard {
   display: grid;
   gap: 12px;
-  padding: 19.2px 20px;
-  border: 1px solid var(--fm-border);
+  padding: 19.2px;
+  border: 1px solid #f4f6f5;
   border-radius: 20px;
-  background: var(--fm-surface);
+  background: #ffffff;
 }
 
 .mealHeader,
@@ -233,41 +255,46 @@
   gap: 16px;
 }
 
+.mealHeader {
+  height: 22px;
+}
+
 .mealHeading {
-  gap: 12px;
   min-width: 0;
+  gap: 12px;
 }
 
 .mealHeading h2 {
   margin: 0;
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  color: #333333;
+  font-family: var(--fm-font);
   font-size: 18px;
   font-weight: 700;
-  line-height: 23px;
+  line-height: 22px;
   white-space: nowrap;
 }
 
 .mealHeading > span {
   padding: 4px 8px;
   border-radius: 6px;
-  background: var(--fm-bg-soft);
-  color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  background: #f4f6f5;
+  color: #6b7280;
+  font-family: var(--fm-font);
   font-size: 12px;
-  line-height: 15px;
+  line-height: 14px;
   white-space: nowrap;
 }
 
 .addFoodButton,
 .entryActions button {
+  line-height: 17px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--fm-orange);
-  font-family: Inter, var(--fm-font);
+  color: #c79654;
+  font-family: var(--fm-font);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -282,22 +309,23 @@
 }
 
 .foodRow {
-  min-height: 41px;
+  min-height: 44px;
   padding: 12px;
   border-radius: 12px;
-  background: var(--fm-bg-soft);
+  background: #f4f6f5;
 }
 
 .foodName {
-  gap: 12px;
   min-width: 0;
+  gap: 12px;
 }
 
 .foodName strong {
   overflow: hidden;
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  color: #333333;
+  font-family: var(--fm-font);
   font-size: 14px;
+  font-weight: 700;
   line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -306,7 +334,7 @@
 .foodName span {
   padding: 2px 8px;
   border-radius: 4px;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 11px;
   font-weight: 700;
   line-height: 13px;
@@ -314,13 +342,13 @@
 }
 
 .confirmed {
-  background: var(--fm-green-soft);
-  color: var(--fm-green-dark);
+  background: rgba(166, 217, 151, 0.1);
+  color: #89b27c;
 }
 
 .pending {
-  background: rgba(255, 246, 226, 0.6);
-  color: var(--fm-orange);
+  background: rgba(255, 246, 226, 0.1);
+  color: #c79654;
 }
 
 .foodMeta {
@@ -335,23 +363,23 @@
 .macroTags span {
   padding: 2px 8px;
   border-radius: 4px;
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  color: #333333;
+  font-family: var(--fm-font-mono);
   font-size: 11px;
-  line-height: 13px;
+  line-height: 16px;
   white-space: nowrap;
 }
 
 .carb {
-  background: rgba(255, 246, 226, 0.8);
+  background: rgba(255, 246, 226, 0.1);
 }
 
 .protein {
-  background: rgba(166, 217, 151, 0.18);
+  background: rgba(166, 217, 151, 0.1);
 }
 
 .fat {
-  background: rgba(255, 117, 118, 0.12);
+  background: rgba(255, 117, 118, 0.1);
 }
 
 .removeButton {
@@ -362,12 +390,12 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--fm-muted);
+  color: #6b7280;
   cursor: pointer;
 }
 
 .removeButton:hover {
-  color: var(--fm-danger);
+  color: #e56d70;
 }
 
 .removeButton svg {
@@ -384,7 +412,8 @@
   border: 1px solid #e0ede0;
   border-radius: 16px;
   background: #fafcfa;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
+  overflow: hidden;
 }
 
 .entryDetail h2,
@@ -397,11 +426,13 @@
   color: #29302b;
   font-size: 16px;
   font-weight: 400;
+  line-height: 22px;
 }
 
 .entryDetail p {
   color: #57635c;
   font-size: 14px;
+  line-height: 20px;
 }
 
 .entryActions {
@@ -414,16 +445,19 @@
 .entryActions button {
   color: #40914d;
   font-size: 13px;
+  line-height: 20px;
 }
 
 .entryNote {
   color: #8c968f !important;
   font-size: 12px !important;
+  line-height: 18px !important;
 }
 
 .notice {
   color: #40914d !important;
   font-size: 12px !important;
+  line-height: 18px !important;
 }
 
 @media (max-width: 1100px) {
@@ -435,6 +469,8 @@
 @media (max-width: 680px) {
   .page {
     min-height: calc(100dvh - 96px);
+    height: auto;
+    overflow: visible;
   }
 
   .recordsBody {
@@ -450,7 +486,7 @@
   }
 
   .viewSwitch {
-    align-self: stretch;
+    width: 100%;
   }
 
   .viewSwitch button {
@@ -489,16 +525,28 @@
     gap: 10px;
   }
 
+  .foodName {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .foodName strong {
+    max-width: 100%;
+  }
+
   .foodMeta {
     width: 100%;
     justify-content: space-between;
   }
 
+  .macroTags {
+    flex-wrap: wrap;
+  }
+
   .entryDetail {
     width: calc(100% - 32px);
     min-height: 220px;
-    margin-bottom: 24px;
-    margin-inline: 16px;
+    margin: 0 16px;
     padding: 16px;
   }
 }

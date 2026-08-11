@@ -3,23 +3,75 @@ import type { TaskCardData } from '../types/ui';
 
 export const mockSessions: SessionSummary[] = [
   {
-    id: 'week-plan',
-    title: '一周备餐计划',
-    subtitle: '预算 300 元 · 高蛋白',
+    id: 'weekly-adjustment',
+    title: '每周饮食微调',
+    subtitle: '12:45',
     pinned: true,
     active: true,
     status: 'validating',
   },
   {
+    id: 'pre-workout-snack',
+    title: '运动前零食建议',
+    subtitle: '12:45',
+    status: 'completed',
+  },
+  {
+    id: 'allergen-rules',
+    title: '过敏原排除规则',
+    subtitle: '12:45',
+    status: 'completed',
+  },
+  {
+    id: 'protein-supplement',
+    title: '蛋白质补充方案',
+    subtitle: '12:45',
+    status: 'completed',
+  },
+  {
+    id: 'bedtime-snack',
+    title: '睡前加餐建议',
+    subtitle: '12:45',
+    status: 'completed',
+  },
+  {
+    id: 'breakfast-carbs',
+    title: '早餐碳水搭配',
+    subtitle: '12:45',
+    status: 'completed',
+  },
+  {
+    id: 'dinner-protein',
+    title: '晚餐蛋白质补充',
+    subtitle: '12:45',
+    status: 'completed',
+  },
+  {
+    id: 'low-carb-diet',
+    title: '低碳水饮食建议',
+    subtitle: '12:45',
+    status: 'completed',
+  },
+];
+
+export const mockHomeSessions: SessionSummary[] = [
+  {
+    id: 'week-plan',
+    title: '每周宏量调整',
+    subtitle: '5分钟前活跃',
+    active: true,
+    status: 'validating',
+  },
+  {
     id: 'protein-review',
-    title: '最近一周蛋白质复盘',
-    subtitle: '18 餐记录 · 66% 达成',
+    title: '生酮餐食计划制定',
+    subtitle: '1小时前',
     status: 'completed',
   },
   {
     id: 'lunch-log',
-    title: '午餐记录确认',
-    subtitle: '鸡胸肉、米饭、西兰花',
+    title: '食物照片标注代理',
+    subtitle: '昨天完成',
     status: 'waiting_user',
   },
 ];

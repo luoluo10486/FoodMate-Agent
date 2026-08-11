@@ -95,7 +95,7 @@ function shiftDate(date: Date, amount: number) {
 }
 
 function ProgressRing({ percentage, tone }: { percentage: number; tone: (typeof metrics)[number]['tone'] }) {
-  const style = { '--progress-angle': `${percentage * 3.6}deg` } as CSSProperties;
+  const style = { '--progress': percentage } as CSSProperties;
   return (
     <div className={`${styles.progressRing} ${styles[tone]}`} style={style} aria-label={`${percentage}% 完成`}>
       <span>{percentage}%</span>
@@ -127,6 +127,7 @@ export function DietRecordsPage() {
   const addFood = () => {
     const name = foodName.trim();
     if (!name || !dialogMealId) return;
+
     setMeals((current) =>
       current.map((meal) =>
         meal.id === dialogMealId
@@ -162,7 +163,7 @@ export function DietRecordsPage() {
 
   return (
     <WorkspaceLayout activeModule="records">
-      <div className={styles.page}>
+      <div className={`${styles.page} fm-enter`}>
         <section className={styles.recordsBody} aria-label="饮食记录">
           <header className={styles.dateToolbar}>
             <div className={styles.dateNavigation}>
@@ -249,7 +250,7 @@ export function DietRecordsPage() {
                         </span>
                       </div>
                       <div className={styles.foodMeta}>
-                        <div className={styles.macroTags}>
+                        <div className={styles.macroTags} aria-label="营养素">
                           <span className={styles.carb}>{item.carbs}</span>
                           <span className={styles.protein}>{item.protein}</span>
                           <span className={styles.fat}>{item.fat}</span>
@@ -295,7 +296,7 @@ export function DietRecordsPage() {
           </div>
           <p className={styles.entryNote}>保存失败时保留草稿；已删除记录进入可恢复状态，不改变当天统计历史。</p>
           {notice ? (
-            <p className={styles.notice} role="status">
+            <p className={styles.notice} role="status" aria-live="polite">
               {notice}
             </p>
           ) : null}

@@ -1,13 +1,17 @@
 /**
  * 会话服务：real 模式使用后端 API，mock 模式只保留开发期演示数据。
  */
-import { mockSessions, taskCards, recommendedPrompts } from '../mock/sessions';
+import { mockHomeSessions, mockSessions, taskCards, recommendedPrompts } from '../mock/sessions';
 import type { SessionSummary } from '../types/session';
 import type { TaskCardData } from '../types/ui';
 import { apiRequest } from './apiClient';
 
 export function getSessions(): SessionSummary[] {
   return mockSessions;
+}
+
+export function getHomeSessions(): SessionSummary[] {
+  return mockHomeSessions;
 }
 
 export async function loadSessions(): Promise<SessionSummary[]> {

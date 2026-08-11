@@ -8,7 +8,7 @@
 }
 
 .withRail {
-  grid-template-columns: 260px minmax(0, 1fr) 246px;
+  grid-template-columns: 260px minmax(0, 1fr) 320px;
 }
 
 .rightRail {
@@ -309,6 +309,14 @@
   width: 36px;
   height: 36px;
   font-size: 14px;
+  overflow: hidden;
+}
+
+.avatar img,
+.topAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .deletedButton {

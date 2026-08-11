@@ -14,4 +14,5 @@ export type Message = {
   role: 'user' | 'assistant';
   content: string;
   time: string;
+  source?: string;
 };

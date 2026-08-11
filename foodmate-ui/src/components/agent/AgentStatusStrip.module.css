@@ -5,14 +5,14 @@
   align-items: center;
   gap: 12px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--fm-border);
-  background: var(--fm-surface);
+  border-bottom: 1px solid #f4f6f5;
+  background: #ffffff;
 }
 
 .label {
   flex: 0 0 auto;
   color: var(--fm-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -20,7 +20,7 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -31,7 +31,7 @@
 
 .step {
   display: inline-flex;
-  height: 24px;
+  height: 21px;
   align-items: center;
   gap: 4px;
   padding: 0 10px;
@@ -47,27 +47,24 @@
   line-height: 1;
 }
 .purple {
-  background: var(--fm-purple-soft);
-  color: #b689ce;
+  background: rgba(236, 204, 255, 0.08);
+  color: #b58cc4;
 }
 .blue {
-  background: var(--fm-blue-soft);
-  color: #54aeb8;
+  background: rgba(128, 224, 230, 0.08);
+  color: #5da9b2;
 }
 .orange {
-  background: #fff9f1;
-  color: var(--fm-orange);
+  background: rgba(255, 246, 226, 0.08);
+  color: #c79654;
 }
 .green {
   background: var(--fm-green-soft);
   color: var(--fm-green-dark);
 }
 .gray {
-  background: var(--fm-bg-soft);
-  color: var(--fm-muted);
-}
-.active {
-  box-shadow: 0 0 0 1px currentColor;
+  background: rgba(107, 114, 128, 0.08);
+  color: #6b7280;
 }
 
 @media (max-width: 720px) {

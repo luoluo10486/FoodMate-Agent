@@ -7,7 +7,6 @@ import { Composer } from '../../components/workspace/Composer';
 import { AgentStatusStrip } from '../../components/agent/AgentStatusStrip';
 import { CitationBlock } from '../../components/agent/CitationBlock';
 import { ResultCard } from '../../components/agent/ResultCard';
-import { ToolTraceItem } from '../../components/agent/ToolTraceItem';
 import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
 import { ErrorState } from '../../components/common/ErrorState';
@@ -27,6 +26,7 @@ type ChatMessage = {
   role: Message['role'];
   content: string;
   time: string;
+  source?: string;
 };
 
 function displayRunStatus(status: string): AgentDisplayStatus {
@@ -55,7 +55,7 @@ function formatMessageTime(value: string) {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message, children }: { message: ChatMessage; children?: ReactNode }) {
   const isUser = message.role === 'user';
   return (
     <article className={`${styles.message} ${isUser ? styles.user : styles.assistant}`}>
@@ -65,18 +65,20 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             <div className={styles.messageBubble}>{message.content}</div>
             <span className={styles.srOnly}>你</span>
             <span className={styles.userAvatar} aria-hidden="true">
-              梁
+              <img src="/assets/figma/agent-chat/user-avatar-message.png" alt="" />
             </span>
           </div>
           <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
         </>
       ) : (
         <>
-          <span className={styles.agentAvatar} aria-hidden="true">
-            F
-          </span>
+          <span className={styles.agentAvatar} aria-hidden="true" />
           <div className={styles.assistantBody}>
-            <div className={styles.messageBubble}>{message.content}</div>
+            <div className={styles.messageBubble}>
+              <p className={styles.messageText}>{message.content}</p>
+              {message.source ? <div className={styles.source}>{message.source}</div> : null}
+              {children}
+            </div>
             <div className={styles.messageMeta}>Fustat-v2 Agent · {formatMessageTime(message.time)} PM</div>
           </div>
         </>
@@ -89,52 +91,78 @@ function TraceRail({ run }: { run: AgentRunView }) {
   const [tab, setTab] = useState<'steps' | 'json'>('steps');
   return (
     <aside className={styles.tracePanel} aria-label="运行轨迹">
-      <div className={styles.traceCard}>
-        <header className={styles.traceHeader}>
-          <strong>运行轨迹</strong>
-          <span className={styles.srOnly}>工具与引用</span>
-          <div className={styles.traceTabs} role="tablist" aria-label="运行轨迹视图">
-            <button
-              className={tab === 'steps' ? styles.traceTabActive : ''}
-              type="button"
-              onClick={() => setTab('steps')}
-            >
-              步骤
-            </button>
-            <button
-              className={tab === 'json' ? styles.traceTabActive : ''}
-              type="button"
-              onClick={() => setTab('json')}
-            >
-              原始 JSON
-            </button>
-          </div>
-        </header>
-        {tab === 'steps' ? (
-          <div className={styles.traceBody}>
-            <span className={styles.runId}>RUN ID: {run.id}</span>
-            {run.toolCalls.length ? (
-              <div className={styles.traceList}>
-                {run.toolCalls.map((tool) => (
-                  <ToolTraceItem key={tool.id} tool={tool} />
-                ))}
-              </div>
-            ) : (
-              <div className={styles.traceEmpty}>等待运行事件...</div>
-            )}
-            {run.citations.length ? (
-              <div className={styles.citationList}>
-                {run.citations.map((citation) => (
-                  <CitationBlock citation={citation} key={citation.id} />
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <pre className={styles.traceJson}>{JSON.stringify(run, null, 2)}</pre>
-        )}
+      <div className={styles.traceTitle}>运行轨迹</div>
+      <span className={styles.srOnly}>工具与引用</span>
+      <div className={styles.traceTabs} role="tablist" aria-label="运行轨迹视图">
+        <button
+          className={tab === 'steps' ? styles.traceTabActive : ''}
+          type="button"
+          onClick={() => setTab('steps')}
+        >
+          步骤
+        </button>
+        <button
+          className={tab === 'json' ? styles.traceTabActive : ''}
+          type="button"
+          onClick={() => setTab('json')}
+        >
+          原始 JSON
+        </button>
       </div>
+      {tab === 'steps' ? (
+        <div className={styles.traceBody}>
+          <span className={styles.runId}>RUN ID: {run.id}</span>
+          {run.toolCalls.length ? (
+            <div className={styles.traceList}>
+              {run.toolCalls.map((tool) => (
+                <div
+                  className={`${styles.traceStep} ${tool.status === 'running' ? styles.traceStepActive : ''}`}
+                  key={tool.id}
+                >
+                  <strong>{tool.displayName || tool.name}</strong>
+                  <span>{tool.latencyMs ? `${tool.latencyMs}ms` : tool.status}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.traceEmpty}>等待运行事件...</div>
+          )}
+          {run.citations.length ? (
+            <div className={styles.citationList}>
+              {run.citations.map((citation) => (
+                <CitationBlock citation={citation} key={citation.id} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <pre className={styles.traceJson}>{JSON.stringify(run, null, 2)}</pre>
+      )}
     </aside>
+  );
+}
+
+function InlineConfirmationCard({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <section className={styles.inlineConfirmation} aria-label="饮食记录确认">
+      <h3>是否将此记录到你的周二饮食日志？</h3>
+      <label>
+        <input defaultChecked name="meal-log-target" type="radio" />
+        <span>是，添加到今天的午餐</span>
+      </label>
+      <label>
+        <input name="meal-log-target" type="radio" />
+        <span>否，仅作为对话参考</span>
+      </label>
+      <div className={styles.inlineConfirmationActions}>
+        <button type="button" onClick={onConfirm}>
+          提交并继续
+        </button>
+        <button type="button" onClick={onCancel}>
+          取消
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -339,6 +367,7 @@ function RealChatPage() {
     role: message.role,
     content: message.content,
     time: message.created_at,
+    source: undefined,
   }));
 
   return (
@@ -355,7 +384,7 @@ function RealChatPage() {
       onStop={() => {
         if (activeRunId) void cancelAgentRun(activeRunId);
       }}
-      placeholder="输入要保存到会话中的内容..."
+      placeholder="追问或添加自定义指令..."
     >
       {loading ? <p className={styles.systemMessage}>正在加载消息...</p> : null}
       {!loading && mappedMessages.length === 0 ? (
@@ -433,10 +462,14 @@ function MockChatPage() {
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}
-      placeholder="输入任务，例如：给我做一周备餐计划 / 帮我记录今天午餐 / 分析最近一周蛋白质摄入..."
+      placeholder="追问或添加自定义指令..."
     >
-      {agent.messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+      {agent.messages.map((message, index) => (
+        <MessageBubble key={message.id} message={message}>
+          {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
+            <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />
+          ) : null}
+        </MessageBubble>
       ))}
       {agent.card.type === 'result' ? (
         <div className={styles.cardWrap}>
@@ -463,18 +496,7 @@ function MockChatPage() {
           />
         </div>
       ) : null}
-      {agent.card.type === 'confirmation' ? (
-        <div className={styles.cardWrap}>
-          <ConfirmationCard
-            title={agent.card.title}
-            helperText={agent.card.helperText}
-            data={agent.card.data}
-            onConfirm={agent.confirmWrite}
-            onEdit={agent.editWrite}
-            onCancel={agent.cancelWrite}
-          />
-        </div>
-      ) : null}
+      {agent.card.type === 'confirmation' ? null : null}
       {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
       <section className={styles.messageActions} aria-label="消息操作">
         <h2>消息操作</h2>

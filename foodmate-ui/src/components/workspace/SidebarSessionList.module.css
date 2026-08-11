@@ -59,8 +59,7 @@
 
 .itemLink {
   display: grid;
-  grid-template-columns: 6px minmax(0, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: 6px minmax(0, 1fr) auto;
   column-gap: 8px;
   min-width: 0;
   flex: 1;
@@ -72,7 +71,6 @@
   color: var(--fm-ink);
 }
 .dot {
-  grid-row: 1 / span 2;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -91,7 +89,7 @@
   color: var(--fm-ink);
   font-size: 13px;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.25;
 }
 .active .title {
   color: var(--fm-orange);
@@ -100,7 +98,44 @@
 .meta {
   color: var(--fm-muted);
   font-size: 10px;
-  line-height: 1.25;
+  line-height: 1;
+}
+
+.pagination {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  color: var(--fm-muted);
+  font-family: var(--fm-font-mono);
+  font-size: 10px;
+}
+
+.pagination button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fm-ink);
+  cursor: pointer;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: var(--fm-bg-soft);
+}
+
+.pagination button:disabled {
+  color: var(--fm-muted);
+  cursor: default;
+}
+
+.pagination svg {
+  width: 14px;
+  height: 14px;
 }
 
 .moreButton {

@@ -1,15 +1,15 @@
 .page {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 88px;
+  grid-template-rows: minmax(0, 1fr) 112px;
   min-width: 0;
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--fm-bg);
+  background: #fcfcfc;
 }
 
-.workspace {
-  display: block;
+.workspace,
+.center {
   min-width: 0;
   min-height: 0;
 }
@@ -17,18 +17,16 @@
 .center {
   display: grid;
   grid-template-rows: 45px minmax(0, 1fr);
-  min-width: 0;
-  min-height: 0;
   height: 100%;
 }
 
 .messages {
-  display: grid;
-  align-content: start;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   min-width: 0;
   min-height: 0;
-  padding: 32px 0 24px 32px;
+  padding: 32px;
   overflow: auto;
   scrollbar-width: none;
 }
@@ -39,14 +37,14 @@
 
 .systemMessage {
   margin: 0;
-  color: var(--fm-muted);
+  color: #6b7280;
   font-size: 13px;
 }
 
 .message {
-  display: grid;
+  display: flex;
   min-width: 0;
-  gap: 8px;
+  width: 100%;
 }
 
 .srOnly {
@@ -63,183 +61,294 @@
 }
 
 .user {
-  justify-items: end;
-  gap: 14px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 .userLine {
   display: flex;
-  align-items: center;
+  width: 100%;
+  align-items: flex-start;
   justify-content: flex-end;
   gap: 12px;
-  width: 100%;
 }
 
 .assistant {
-  grid-template-columns: 36px minmax(0, 1fr);
-  column-gap: 12px;
-  max-width: 100%;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .messageBubble {
-  max-width: 780px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  color: var(--fm-ink);
-  font-size: 13px;
-  line-height: 1.6;
-  white-space: pre-wrap;
+  min-width: 0;
+  color: #333333;
+  font-size: 14px;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
+.messageText {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 .user .messageBubble {
-  max-width: 620px;
-  background: var(--fm-orange-soft);
-  color: var(--fm-orange);
+  width: min(452px, calc(100% - 48px));
+  height: 49px;
+  padding: 16px;
+  border-radius: 16px 16px 0 16px;
+  background: #fff6e2;
+  color: #ffffff;
+  line-height: 17px;
 }
 
 .assistant .messageBubble {
-  background: var(--fm-bg-soft);
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px 16px 16px 0;
+  background: #f4f6f5;
 }
 
 .assistantBody {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  width: min(560px, calc(100% - 48px));
   min-width: 0;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .agentAvatar,
 .userAvatar {
   display: grid;
+  flex: 0 0 auto;
   place-items: center;
-  border-radius: 10px;
-  font-weight: 900;
 }
 
 .agentAvatar {
   width: 36px;
   height: 36px;
-  background: var(--fm-green);
+  border-radius: 10px;
+  background: #a6d997;
   color: #ffffff;
   font-size: 18px;
+  font-weight: 900;
 }
 
 .userAvatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  overflow: hidden;
   background: #f1e4e8;
-  color: #b97984;
-  font-size: 12px;
+}
+
+.userAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .messageMeta {
   display: flex;
+  height: 13px;
   align-items: center;
-  gap: 8px;
-  color: var(--fm-muted);
-  font-size: 10px;
-  line-height: 1.3;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 13px;
 }
 
 .user .messageMeta {
-  justify-content: flex-end;
-  padding-right: 44px;
+  padding-right: 48px;
 }
 
-.cardWrap {
-  width: min(780px, calc(100% - 48px));
-  margin-left: 48px;
+.source {
+  min-height: 18px;
+  padding-left: 12px;
+  border-left: 3px solid #ecccff;
+  color: #6b7280;
+  font-family: var(--fm-font-mono);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 18px;
 }
 
-.messageActions {
-  width: min(796px, 100%);
-  min-height: 150px;
-  margin-top: 36px;
-  padding: 14px 20px;
-  border: 1px solid #dce9d9;
+.inlineConfirmation {
+  display: flex;
+  width: 100%;
+  height: 142px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #f4f6f5;
   border-radius: 12px;
   background: #ffffff;
 }
 
-.messageActions h2 {
+.inlineConfirmation h3 {
   margin: 0;
-  color: var(--fm-ink);
-  font-size: 14px;
-  font-weight: 500;
+  color: #333333;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.inlineConfirmation label {
+  display: flex;
+  height: 16px;
+  align-items: center;
+  gap: 8px;
+  color: #333333;
+  font-size: 13px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.inlineConfirmation label + label {
+  margin-top: -4px;
+}
+
+.inlineConfirmation input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: #c79654;
+}
+
+.inlineConfirmationActions {
+  display: flex;
+  height: 30px;
+  align-items: center;
+  gap: 12px;
+}
+
+.inlineConfirmationActions button {
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inlineConfirmationActions button:first-child {
+  padding: 0 16px;
+  background: #a6d997;
+  color: #333333;
+}
+
+.inlineConfirmationActions button:first-child:hover {
+  background: #96d286;
+}
+
+.inlineConfirmationActions button:last-child {
+  padding: 0;
+}
+
+.cardWrap {
+  width: min(560px, calc(100% - 48px));
+  margin-left: 48px;
+}
+
+.messageActions {
+  display: flex;
+  width: min(796px, 100%);
+  height: 150px;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 5px;
+  padding: 14px 18px;
+  border: 1px solid #e0ebe3;
+  border-radius: 14px;
+  background: #fcfcfa;
+  overflow: hidden;
+}
+
+.messageActions h2 {
+  height: 20px;
+  margin: 0;
+  color: #29302e;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
 }
 
 .messageActions p {
-  margin: 6px 0 0;
-  color: var(--fm-muted);
-  font-size: 11px;
-  line-height: 1.45;
+  height: 18px;
+  margin: 0;
+  color: #57635c;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
 }
 
 .messageActions .actionGreen {
-  color: #70a867;
+  color: #876e45;
+  font-size: 12px;
 }
 
 .tracePanel {
+  display: flex;
   width: 100%;
   height: 100%;
-  background: var(--fm-surface);
-}
-
-.traceCard {
-  display: grid;
-  grid-template-rows: 96px minmax(0, 1fr);
-  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  padding: 20px;
   overflow: hidden;
-  background: var(--fm-surface);
+  background: #ffffff;
 }
 
-.traceHeader {
-  display: grid;
-  grid-template-rows: 56px 40px;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--fm-border);
-}
-
-.traceHeader > strong {
-  align-self: center;
-  color: var(--fm-ink);
-  font-size: 17px;
-  font-weight: 900;
+.traceTitle {
+  flex: 0 0 auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 19px;
 }
 
 .traceTabs {
   display: flex;
-  align-items: center;
+  width: 100%;
+  height: 26px;
+  flex: 0 0 auto;
   gap: 8px;
+  margin-top: 20px;
 }
 
 .traceTabs button {
   min-width: 0;
+  height: 26px;
   flex: 1 1 0;
-  height: 28px;
-  padding: 0 10px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 100px;
   background: transparent;
-  color: var(--fm-muted);
-  font-size: 11px;
+  color: #6b7280;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .traceTabs button:hover {
-  color: var(--fm-ink);
-  background: var(--fm-bg-soft);
+  background: #f4f6f5;
+  color: #333333;
 }
+
 .traceTabs .traceTabActive {
-  background: var(--fm-purple-soft);
-  color: #c395d9;
+  background: rgba(236, 204, 255, 0.1);
+  color: #b58cc4;
 }
 
 .traceBody {
+  min-width: 0;
   min-height: 0;
-  padding: 12px 20px 24px;
+  margin-top: 20px;
   overflow: auto;
   scrollbar-width: none;
 }
@@ -247,30 +356,82 @@
 .traceBody::-webkit-scrollbar {
   display: none;
 }
+
 .runId {
   display: block;
-  margin-bottom: 12px;
-  color: var(--fm-muted);
+  margin: 0;
+  color: #6b7280;
+  font-family: var(--fm-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.traceList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.traceStep {
+  display: flex;
+  width: 100%;
+  height: 43px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f4f6f5;
+}
+
+.traceStep strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #333333;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.traceStep span {
+  flex: 0 0 auto;
+  height: 19px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(166, 217, 151, 0.1);
+  color: #89b27c;
+  font-family: var(--fm-font-mono);
   font-size: 10px;
   font-weight: 700;
+  line-height: 15px;
 }
-.traceList {
-  display: grid;
-  gap: 12px;
+
+.traceStepActive span {
+  background: rgba(255, 246, 226, 0.1);
+  color: #c79654;
 }
+
+.traceEmpty {
+  padding-top: 16px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
 .citationList {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   margin-top: 16px;
 }
-.traceEmpty {
-  padding: 16px 0;
-  color: var(--fm-muted);
-  font-size: 12px;
-}
+
 .traceJson {
-  margin: 0;
-  color: var(--fm-muted);
+  min-width: 0;
+  margin: 20px 0 0;
+  color: #6b7280;
+  font-family: var(--fm-font-mono);
   font-size: 10px;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -285,32 +446,60 @@
 
 @media (max-width: 720px) {
   .page {
-    grid-template-rows: minmax(0, 1fr) 88px;
+    grid-template-rows: minmax(0, 1fr) 112px;
     height: calc(100dvh - 96px);
-    overflow: visible;
   }
 
   .messages {
+    gap: 20px;
     padding: 22px 16px 18px;
   }
-  .messageBubble {
-    max-width: 100%;
-    padding: 12px 14px;
+
+  .user .messageBubble {
+    width: min(452px, calc(100% - 48px));
   }
-  .assistant {
-    grid-template-columns: 30px minmax(0, 1fr);
-    column-gap: 8px;
+
+  .assistantBody {
+    width: min(560px, calc(100% - 48px));
   }
-  .agentAvatar {
-    width: 30px;
-    height: 30px;
-    font-size: 15px;
-  }
-  .cardWrap {
-    width: 100%;
-    margin-left: 0;
-  }
+
   .messageActions {
-    margin-top: 22px;
+    width: 100%;
+    height: auto;
+    min-height: 150px;
+    overflow: visible;
+  }
+
+  .messageActions p {
+    height: auto;
+    min-height: 18px;
+    flex: 0 0 auto;
+    white-space: normal;
+  }
+
+  .messageActions h2 {
+    height: auto;
+    flex: 0 0 auto;
+  }
+
+  .cardWrap {
+    width: calc(100% - 48px);
+  }
+}
+
+@media (max-width: 420px) {
+  .user .messageBubble,
+  .assistantBody,
+  .cardWrap {
+    width: calc(100% - 48px);
+  }
+
+  .user .messageText {
+    white-space: normal;
+  }
+
+  .inlineConfirmation {
+    height: auto;
+    min-height: 142px;
   }
 }
