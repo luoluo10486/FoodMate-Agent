@@ -201,131 +201,134 @@ function PlanningFeedbackView({ kind, onPrimary, onSecondary }: PlanningFeedback
 
 function DefaultPlanningView() {
   const [activeDay, setActiveDay] = useState<DayKey>('14');
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [notice, setNotice] = useState('');
 
   const announce = (message: string) => setNotice(message);
+
+  return (
+    <main className={styles.planMain} aria-label="餐食规划">
+      <section className={styles.planBanner} aria-labelledby="plan-title">
+        <div className={styles.planSummary}>
+          <h1 id="plan-title">增肌计划 v3</h1>
+          <div className={styles.planMeta}>
+            <span className={styles.goalTag}>目标：2,400千卡</span>
+            <span className={styles.durationTag}>时长：7天</span>
+          </div>
+        </div>
+        <div className={styles.bannerActions}>
+          <Button
+            className={styles.regenerateButton}
+            variant="ghost"
+            onClick={() => announce('已重新生成当前 7 天计划。')}
+          >
+            重新生成
+          </Button>
+          <Button className={styles.saveButton} variant="outline" onClick={() => announce('计划已保存。')}>
+            保存计划
+          </Button>
+        </div>
+      </section>
+
+      <section className={styles.scheduleSection} aria-labelledby="schedule-title">
+        <h2 id="schedule-title">每周日程</h2>
+        <div className={styles.scheduleGrid}>
+          <div className={styles.scheduleSpacer} aria-hidden="true" />
+          <div className={styles.dayButtons} role="tablist" aria-label="每周日程日期">
+            {days.map((day) => (
+              <button
+                className={`${styles.dayButton} ${activeDay === day.key ? styles.dayButtonActive : ''}`}
+                key={day.key}
+                type="button"
+                role="tab"
+                aria-selected={activeDay === day.key}
+                onClick={() => {
+                  setActiveDay(day.key);
+                  announce(`已查看${day.label}的计划。`);
+                }}
+              >
+                {day.label}
+              </button>
+            ))}
+          </div>
+
+          {mealRows.map((row) => (
+            <div className={styles.mealRow} key={row.label}>
+              <div className={styles.mealLabel}>{row.label}</div>
+              {row.meals.map((meal, index) =>
+                meal.name ? (
+                  <article className={styles.mealCard} key={`${row.label}-${index}`}>
+                    <strong>{meal.name}</strong>
+                    <span>{meal.kcal}</span>
+                  </article>
+                ) : (
+                  <button
+                    className={styles.emptyMeal}
+                    key={`${row.label}-${index}`}
+                    type="button"
+                    onClick={() => announce(`已打开${row.label}的计划入口。`)}
+                  >
+                    + 计划
+                  </button>
+                ),
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {notice ? (
+        <p className={styles.notice} role="status" aria-live="polite">
+          {notice}
+        </p>
+      ) : null}
+    </main>
+  );
+}
+
+function PlanSidebar() {
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
   const toggleShoppingItem = (item: string) => {
     setCheckedItems((current) => ({ ...current, [item]: !current[item] }));
   };
 
   return (
-    <div className={styles.page}>
-      <main className={styles.planMain} aria-label="餐食规划">
-        <section className={styles.planBanner} aria-labelledby="plan-title">
-          <div className={styles.planSummary}>
-            <h1 id="plan-title">增肌计划 v3</h1>
-            <div className={styles.planMeta}>
-              <span className={styles.goalTag}>目标：2,400千卡</span>
-              <span className={styles.durationTag}>时长：7天</span>
-            </div>
-          </div>
-          <div className={styles.bannerActions}>
-            <Button
-              className={styles.regenerateButton}
-              variant="ghost"
-              onClick={() => announce('已重新生成当前 7 天计划。')}
-            >
-              重新生成
-            </Button>
-            <Button className={styles.saveButton} variant="outline" onClick={() => announce('计划已保存。')}>
-              保存计划
-            </Button>
-          </div>
-        </section>
-
-        <section className={styles.scheduleSection} aria-labelledby="schedule-title">
-          <h2 id="schedule-title">每周日程</h2>
-          <div className={styles.scheduleGrid}>
-            <div className={styles.scheduleSpacer} aria-hidden="true" />
-            <div className={styles.dayButtons} role="tablist" aria-label="每周日程日期">
-              {days.map((day) => (
-                <button
-                  className={`${styles.dayButton} ${activeDay === day.key ? styles.dayButtonActive : ''}`}
-                  key={day.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeDay === day.key}
-                  onClick={() => {
-                    setActiveDay(day.key);
-                    announce(`已查看${day.label}的计划。`);
-                  }}
-                >
-                  {day.label}
-                </button>
-              ))}
-            </div>
-
-            {mealRows.map((row) => (
-              <div className={styles.mealRow} key={row.label}>
-                <div className={styles.mealLabel}>{row.label}</div>
-                {row.meals.map((meal, index) =>
-                  meal.name ? (
-                    <article className={styles.mealCard} key={`${row.label}-${index}`}>
-                      <strong>{meal.name}</strong>
-                      <span>{meal.kcal}</span>
-                    </article>
-                  ) : (
-                    <button
-                      className={styles.emptyMeal}
-                      key={`${row.label}-${index}`}
-                      type="button"
-                      onClick={() => announce(`已打开${row.label}的计划入口。`)}
-                    >
-                      + 计划
-                    </button>
-                  ),
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {notice ? (
-          <p className={styles.notice} role="status" aria-live="polite">
-            {notice}
-          </p>
-        ) : null}
-      </main>
-
-      <aside className={styles.planSidebar} aria-label="计划校验与购物清单">
-        <section className={styles.constraintSection} aria-labelledby="constraints-title">
-          <h2 id="constraints-title">约束校验</h2>
-          <div className={styles.constraintList}>
-            {constraints.map((item) => (
-              <div className={styles.constraintRow} key={item.label}>
-                <span>{item.label}</span>
-                <strong className={item.tone === 'pass' ? styles.pass : styles.review}>{item.status}</strong>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <div className={styles.divider} aria-hidden="true" />
-
-        <section className={styles.shoppingSection} aria-labelledby="shopping-title">
-          <h2 id="shopping-title">购物清单预览</h2>
-          {shoppingGroups.map((group) => (
-            <div className={styles.shoppingGroup} key={group.label}>
-              <h3>{group.label}</h3>
-              <div className={styles.shoppingItems}>
-                {group.items.map((item) => (
-                  <label className={styles.shoppingItem} key={item}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(checkedItems[item])}
-                      onChange={() => toggleShoppingItem(item)}
-                    />
-                    <span>{item}</span>
-                  </label>
-                ))}
-              </div>
+    <aside className={styles.planSidebar} aria-label="计划校验与购物清单">
+      <section className={styles.constraintSection} aria-labelledby="constraints-title">
+        <h2 id="constraints-title">约束校验</h2>
+        <div className={styles.constraintList}>
+          {constraints.map((item) => (
+            <div className={styles.constraintRow} key={item.label}>
+              <span>{item.label}</span>
+              <strong className={item.tone === 'pass' ? styles.pass : styles.review}>{item.status}</strong>
             </div>
           ))}
-        </section>
-      </aside>
-    </div>
+        </div>
+      </section>
+
+      <div className={styles.divider} aria-hidden="true" />
+
+      <section className={styles.shoppingSection} aria-labelledby="shopping-title">
+        <h2 id="shopping-title">购物清单预览</h2>
+        {shoppingGroups.map((group) => (
+          <div className={styles.shoppingGroup} key={group.label}>
+            <h3>{group.label}</h3>
+            <div className={styles.shoppingItems}>
+              {group.items.map((item) => (
+                <label className={styles.shoppingItem} key={item}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(checkedItems[item])}
+                    onChange={() => toggleShoppingItem(item)}
+                  />
+                  <span>{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+    </aside>
   );
 }
 
@@ -358,5 +361,13 @@ export function PlanningPage() {
       <DefaultPlanningView />
     );
 
-  return <WorkspaceLayout activeModule="planning">{content}</WorkspaceLayout>;
+  return (
+    <WorkspaceLayout
+      activeModule="planning"
+      rightRail={view === 'default' ? <PlanSidebar /> : undefined}
+      rightRailWidth={view === 'default' ? 340 : undefined}
+    >
+      {content}
+    </WorkspaceLayout>
+  );
 }

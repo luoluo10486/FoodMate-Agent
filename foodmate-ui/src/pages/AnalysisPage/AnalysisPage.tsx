@@ -12,17 +12,38 @@ const ranges: Array<{ key: RangeKey; label: string }> = [
   { key: '90d', label: '90 天' },
 ];
 
-const rangeData: Record<RangeKey, { calories: string; protein: string; activeDays: string; bars: number[] }> = {
-  '7d': { calories: '1,940 kcal', protein: '114 g', activeDays: '6 / 7 Days', bars: [52, 78, 64, 96, 88, 112, 74] },
-  '30d': { calories: '1,896 kcal', protein: '109 g', activeDays: '26 / 30 Days', bars: [72, 86, 64, 104, 92, 118, 82] },
-  '90d': { calories: '1,872 kcal', protein: '106 g', activeDays: '79 / 90 Days', bars: [62, 94, 76, 110, 86, 116, 98] },
+const rangeData: Record<
+  RangeKey,
+  { calories: string; protein: string; activeDays: string; bars: number[]; miniBars: number[] }
+> = {
+  '7d': {
+    calories: '1,940 kcal',
+    protein: '114 g',
+    activeDays: '6 / 7 Days',
+    bars: [52, 78, 64, 96, 88, 112, 74],
+    miniBars: [12, 18, 8, 22],
+  },
+  '30d': {
+    calories: '1,896 kcal',
+    protein: '109 g',
+    activeDays: '26 / 30 Days',
+    bars: [72, 86, 64, 104, 92, 118, 82],
+    miniBars: [10, 16, 12, 22],
+  },
+  '90d': {
+    calories: '1,872 kcal',
+    protein: '106 g',
+    activeDays: '79 / 90 Days',
+    bars: [62, 94, 76, 110, 86, 116, 98],
+    miniBars: [14, 20, 10, 22],
+  },
 };
 
 function MiniBars({ bars }: { bars: number[] }) {
   return (
     <div className={styles.miniBars} aria-hidden="true">
-      {bars.slice(0, 4).map((height, index) => (
-        <span key={`${height}-${index}`} style={{ height: `${Math.round(height / 5)}px` }} />
+      {bars.map((height, index) => (
+        <span key={`${height}-${index}`} style={{ height: `${height}px` }} />
       ))}
     </div>
   );
@@ -77,7 +98,7 @@ export function AnalysisPage() {
               <span>日均能量</span>
               <div className={styles.metricValueRow}>
                 <strong>{data.calories}</strong>
-                <MiniBars bars={data.bars} />
+                <MiniBars bars={data.miniBars} />
               </div>
             </article>
             <article className={styles.metricCard}>

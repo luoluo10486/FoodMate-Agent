@@ -1,4 +1,5 @@
 :root {
+  /* Figma 01 Foundations: Light mode semantic color contract. */
   --background: #fcfcfc;
   --foreground: #333333;
   --card: #ffffff;
@@ -6,19 +7,62 @@
   --popover: #ffffff;
   --popover-foreground: #333333;
   --primary: #a6d997;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #333333;
   --secondary: #f4f6f5;
   --secondary-foreground: #333333;
   --muted: #f4f6f5;
   --muted-foreground: #6b7280;
   --accent: #fff6e2;
   --accent-foreground: #c79654;
-  --destructive: #e56d70;
+  --destructive: #ff7576;
   --destructive-foreground: #ffffff;
   --border: #f4f6f5;
   --input: #f4f6f5;
   --ring: #a6d997;
   --radius: 0.75rem;
+
+  /* Figma semantic aliases used by page CSS and domain components. */
+  --fm-color-success: #a6d997;
+  --fm-color-success-strong: #89b27c;
+  --fm-color-success-surface: #f0faf4;
+  --fm-color-warning: #c79654;
+  --fm-color-warning-surface: #fff6e2;
+  --fm-color-info: #5da9b2;
+  --fm-color-info-surface: #eefcff;
+  --fm-color-danger: #ff7576;
+  --fm-color-danger-strong: #d67676;
+  --fm-color-danger-surface: #fff5f5;
+  --fm-color-danger-border: #fa8080;
+  --fm-color-purple: #b58cc4;
+  --fm-color-purple-surface: #f7f6ff;
+  --fm-color-focus: rgba(166, 217, 151, 0.85);
+  --fm-color-text-primary: #333333;
+  --fm-color-text-secondary: #6b7280;
+  --fm-color-border-subtle: #e2e7ee;
+  --fm-color-surface-soft: #f4f6f5;
+  --fm-color-surface-success: #f0faf4;
+  --fm-color-surface-warning: #fff6e2;
+  --fm-color-surface-danger: #fff5f5;
+  --fm-color-info-strong: #80e0e6;
+
+  /* Figma spacing, radius and elevation foundations. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-control: 8px;
+  --radius-container: 12px;
+  --radius-pill: 999px;
+  --elevation-raised: 0 8px 18px rgba(51, 51, 51, 0.05);
+  --elevation-overlay: 0 14px 28px rgba(51, 51, 51, 0.06);
+  --font-ui: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'Space Mono', Consolas, monospace;
+
   --fm-bg: #fcfcfc;
   --fm-bg-soft: #f4f6f5;
   --fm-surface: #ffffff;
@@ -43,6 +87,6 @@
   --fm-radius-sm: 8px;
   --fm-shadow: 0 14px 28px rgba(51, 51, 51, 0.06);
   --fm-shadow-soft: 0 8px 18px rgba(51, 51, 51, 0.05);
-  --fm-font: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
-  --fm-font-mono: 'Space Mono', Consolas, monospace;
+  --fm-font: var(--font-ui);
+  --fm-font-mono: var(--font-mono);
 }

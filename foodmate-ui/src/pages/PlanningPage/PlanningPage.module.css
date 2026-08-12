@@ -133,7 +133,7 @@
 .loadingMealLabel {
   padding-top: 28px;
   color: #6b7280;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
@@ -267,7 +267,7 @@
 .feedbackCard h1 {
   margin: 0;
   color: #333333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 20px;
   font-weight: 800;
   line-height: 1.2;
@@ -277,7 +277,7 @@
   max-width: 420px;
   margin: 0;
   color: #6b7280;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -287,7 +287,7 @@
   border-radius: 6px;
   background: #f4f6f5;
   color: #6b7280;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 11px;
   line-height: 1.2;
 }
@@ -301,7 +301,7 @@
 .feedbackActions button {
   height: 40px;
   border-radius: 10px;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 13px;
 }
 
@@ -332,7 +332,7 @@
 .feedbackHint {
   margin: 20px 0 0;
   color: #6b7280;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 12px;
   line-height: 1.4;
   text-align: center;
@@ -360,7 +360,8 @@
 
 .planBanner {
   display: flex;
-  min-height: 98px;
+  height: 97px;
+  min-height: 97px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
@@ -387,7 +388,7 @@
 
 .planSummary h1 {
   color: #333333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 20px;
   font-weight: 800;
   line-height: 1.2;
@@ -406,9 +407,9 @@
   min-height: 21px;
   padding: 4px 8px;
   border-radius: 6px;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 11px;
-  line-height: 1;
+  line-height: 13px;
   white-space: nowrap;
 }
 
@@ -431,12 +432,13 @@
 }
 
 .bannerActions button {
-  height: 42px;
+  height: 37px;
   padding: 10px 16px;
   border-radius: 12px;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 14px;
-  line-height: 1;
+  font-weight: 700;
+  line-height: 17px;
 }
 
 .regenerateButton {
@@ -473,16 +475,17 @@
 
 .scheduleSection h2 {
   color: #333333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 16px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 19px;
 }
 
 .scheduleGrid {
   display: grid;
   min-width: 0;
   grid-template-columns: 100px repeat(5, minmax(0, 1fr));
+  grid-template-rows: 100px repeat(3, 74px);
   gap: 12px;
 }
 
@@ -501,7 +504,8 @@
 .dayButton {
   display: flex;
   min-width: 0;
-  min-height: 42px;
+  height: 40px;
+  min-height: 40px;
   align-items: flex-start;
   justify-content: center;
   padding: 12px;
@@ -509,10 +513,10 @@
   border-radius: 10px;
   background: #ffffff;
   color: #333333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
-  line-height: 1;
+  line-height: 16px;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -531,9 +535,9 @@
   display: flex;
   min-width: 0;
   align-items: flex-start;
-  padding-top: 28px;
+  padding-top: 29px;
   color: #6b7280;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
@@ -551,7 +555,7 @@
   gap: 6px;
   padding: 12px;
   border-radius: 12px;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
 }
 
 .mealCard {
@@ -568,7 +572,7 @@
   color: #333333;
   font-size: 13px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -579,8 +583,9 @@
   border-radius: 4px;
   background: rgba(166, 217, 151, 0.08);
   color: #89b27c;
+  font-family: var(--fm-font-mono);
   font-size: 10px;
-  line-height: 1.1;
+  line-height: 15px;
   white-space: nowrap;
 }
 
@@ -591,7 +596,7 @@
   color: #6b7280;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 14px;
   cursor: pointer;
 }
 
@@ -604,20 +609,21 @@
 .notice {
   margin: -8px 0 0;
   color: #6b7280;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 12px;
   line-height: 1.4;
 }
 
 .planSidebar {
   display: flex;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   gap: 24px;
   padding: 24px;
   overflow: auto;
-  border-left: 1px solid #f4f6f5;
+  border-left: 0;
   background: #ffffff;
   scrollbar-width: none;
 }
@@ -636,7 +642,7 @@
 
 .planSidebar h2 {
   color: #333333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 15px;
   font-weight: 700;
   line-height: 1.2;
@@ -650,7 +656,8 @@
 .constraintRow {
   display: flex;
   min-width: 0;
-  min-height: 42px;
+  height: 45px;
+  min-height: 45px;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -658,9 +665,10 @@
   border-radius: 10px;
   background: #f4f6f5;
   color: #333333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 14px;
 }
 
 .constraintRow > span {
@@ -677,7 +685,7 @@
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 11px;
-  line-height: 1;
+  line-height: 13px;
   white-space: nowrap;
 }
 
@@ -692,10 +700,21 @@
 }
 
 .divider {
+  position: relative;
   width: 100%;
-  height: 1px;
+  height: 0;
   flex: 0 0 auto;
+  background: transparent;
+}
+
+.divider::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 1px;
   background: #f4f6f5;
+  content: '';
 }
 
 .shoppingGroup {
@@ -706,10 +725,10 @@
 
 .shoppingGroup h3 {
   color: #6b7280;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 14px;
 }
 
 .shoppingItems {
@@ -723,9 +742,9 @@
   align-items: center;
   gap: 8px;
   color: #333333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 13px;
-  line-height: 1.2;
+  line-height: 16px;
   cursor: pointer;
 }
 
@@ -765,8 +784,8 @@
   }
 
   .planMain {
-    height: max-content;
-    overflow: visible;
+    height: 100%;
+    overflow: auto;
   }
 
   .planSidebar {
@@ -805,6 +824,8 @@
     align-items: stretch;
     flex-direction: column;
     gap: 16px;
+    height: auto;
+    min-height: 0;
     padding: 20px;
   }
 

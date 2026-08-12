@@ -11,6 +11,10 @@
   grid-template-columns: 260px minmax(0, 1fr) 320px;
 }
 
+.withWideRail {
+  grid-template-columns: 260px minmax(0, 1fr) 340px;
+}
+
 .rightRail {
   min-width: 0;
   min-height: 0;
@@ -507,6 +511,15 @@
   .rightRail {
     display: none;
   }
+  .workspaceSearch {
+    display: none;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1399px) {
+  .withWideRail .workspaceSearch {
+    display: none;
+  }
 }
 
 @media (max-width: 1060px) {
@@ -595,5 +608,53 @@
   }
   .notice {
     right: 16px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .withWideRail .topbar {
+    gap: 0;
+  }
+
+  .withWideRail .topbar > :first-child {
+    flex: 0 0 136px;
+  }
+
+  .withWideRail .nav {
+    flex: 0 0 auto;
+    gap: 16px;
+    margin-left: 24px;
+  }
+
+  .withWideRail .topNavLink {
+    padding-inline: 16px;
+  }
+
+  .withWideRail .userActions {
+    gap: 16px;
+  }
+
+  .knowledgeLayout .topbar {
+    gap: 0;
+    justify-content: space-between;
+  }
+
+  .knowledgeLayout .topbar > :first-child {
+    flex: 0 0 136px;
+  }
+
+  .knowledgeLayout .nav {
+    flex: 0 0 auto;
+    gap: 16px;
+    margin-left: 24px;
+  }
+
+  .knowledgeLayout .topNavLink {
+    padding-inline: 16px;
+  }
+
+  .knowledgeLayout .userActions {
+    gap: 16px;
+    margin-left: auto;
   }
 }

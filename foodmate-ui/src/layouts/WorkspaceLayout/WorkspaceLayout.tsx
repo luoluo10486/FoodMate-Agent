@@ -57,6 +57,8 @@ type WorkspaceLayoutProps = {
   activeModule?: 'home' | 'chat' | 'records' | 'analysis' | 'planning' | 'knowledge' | 'profile' | 'admin';
   moduleLabel?: React.ReactNode;
   rightRail?: React.ReactNode;
+  rightRailWidth?: 320 | 340;
+  avatarSrc?: string;
   pageOverlay?: React.ReactNode;
 };
 
@@ -65,6 +67,8 @@ export function WorkspaceLayout({
   activeModule = 'home',
   moduleLabel,
   rightRail,
+  rightRailWidth,
+  avatarSrc = '/assets/figma/agent-chat/user-avatar.png',
   pageOverlay,
 }: WorkspaceLayoutProps) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
@@ -182,7 +186,9 @@ export function WorkspaceLayout({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className={`${styles.shell} ${rightRail ? styles.withRail : ''}`}>
+      <div
+        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''}`}
+      >
         <aside className={styles.sidebar}>
           <div className={styles.windowControls} aria-hidden="true">
             <span className={styles.windowRed} />
@@ -270,7 +276,7 @@ export function WorkspaceLayout({
             </div>
             <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
               <div className={styles.avatar}>
-                <img src="/assets/figma/agent-chat/user-avatar.png" alt="" />
+                <img src={avatarSrc} alt="" />
               </div>
               <div>
                 <strong>{isAuthenticated ? `${authUser.displayName} 的工作区` : '未登录'}</strong>
@@ -312,6 +318,9 @@ export function WorkspaceLayout({
                   <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
                     餐食规划
                   </NavLink>
+                  <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
+                    知识库
+                  </NavLink>
                   {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
                 </>
               )}
@@ -338,7 +347,7 @@ export function WorkspaceLayout({
                 <DropdownMenuTrigger asChild>
                   <button className={styles.userButton} type="button">
                     <span className={styles.topAvatar}>
-                      <img src="/assets/figma/agent-chat/user-avatar.png" alt="" />
+                      <img src={avatarSrc} alt="" />
                     </span>
                     <span>{isAuthenticated ? authUser.displayName : '登录'}</span>
                   </button>

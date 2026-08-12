@@ -1,8 +1,8 @@
 .page {
   min-height: calc(100dvh - 68px);
   overflow: auto;
-  background: var(--fm-bg);
-  color: var(--fm-ink);
+  background: #fcfcfc;
+  color: #333333;
   scrollbar-width: none;
 }
 
@@ -18,7 +18,7 @@
 
 .filterRow {
   display: flex;
-  height: 40px;
+  min-height: 40px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -26,14 +26,17 @@
 
 .filters {
   display: flex;
+  width: 384px;
+  min-width: 0;
   height: 40px;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
-  scrollbar-width: none;
   padding: 4px;
-  border: 1px solid var(--fm-border);
-  border-radius: 999px;
-  background: var(--fm-surface);
+  overflow-x: auto;
+  border: 1px solid #f4f6f5;
+  border-radius: 100px;
+  background: #ffffff;
+  scrollbar-width: none;
 }
 
 .filters::-webkit-scrollbar {
@@ -41,99 +44,108 @@
 }
 
 .filters button {
-  height: 30px;
-  padding: 0 16px;
+  height: 32px;
+  flex: 0 0 auto;
+  padding: 8px 16px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 100px;
   background: transparent;
-  color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  color: #6b7280;
+  font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 500;
+  line-height: 16px;
   white-space: nowrap;
   cursor: pointer;
 }
 
 .filters button:hover {
-  color: var(--fm-ink);
+  color: #333333;
 }
 
 .filters .rangeActive {
-  background: rgba(236, 204, 255, 0.24);
+  background: rgba(236, 204, 255, 0.08);
   color: #b58cc4;
   font-weight: 700;
 }
 
 .filters .filterPill {
+  width: 84px;
   height: 32px;
+  padding: 8px 11px;
   border: 1px solid #d1d6e0;
   border-radius: 8px;
   color: #474d5c;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 14px;
 }
 
 .exportButton {
-  height: 37px;
-  padding-inline: 16px;
-  border: 1px solid var(--fm-border);
+  height: 40px;
+  padding: 10px 16px;
+  border: 1px solid #f4f6f5;
   border-radius: 12px;
-  background: var(--fm-surface);
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  background: #ffffff;
+  color: #333333;
+  font-family: var(--fm-font);
   font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
 }
 
 .exportButton:hover {
-  background: #fafafa;
-  color: var(--fm-ink);
+  background: #ffffff;
+  color: #333333;
 }
 
 .metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  height: 101px;
+  height: 107px;
 }
 
 .metricCard {
   display: grid;
+  min-width: 0;
+  height: 107px;
   gap: 12px;
-  height: 101px;
   padding: 20px;
-  border: 1px solid var(--fm-border);
+  border: 1px solid #f4f6f5;
   border-radius: 20px;
-  background: var(--fm-surface);
+  background: #ffffff;
 }
 
 .metricCard > span {
-  color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  color: #6b7280;
+  font-family: var(--fm-font);
   font-size: 12px;
   font-weight: 700;
-  line-height: 1;
+  line-height: 14px;
   text-transform: uppercase;
 }
 
 .metricCard strong {
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  color: #333333;
+  font-family: var(--fm-font-mono);
   font-size: 28px;
-  font-weight: 800;
-  line-height: 1;
+  font-weight: 700;
+  line-height: 41px;
   white-space: nowrap;
 }
 
 .metricValueRow {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
   min-width: 0;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .miniBars {
   display: flex;
   height: 24px;
+  flex: 0 0 auto;
   align-items: flex-end;
   gap: 4px;
 }
@@ -149,21 +161,24 @@
   display: grid;
   gap: 16px;
   padding: 24px;
-  border: 1px solid var(--fm-border);
+  border: 1px solid #f4f6f5;
   border-radius: 20px;
-  background: var(--fm-surface);
+  background: #ffffff;
 }
 
 .chartCard {
   height: 303px;
 }
 
+.insightCard {
+  height: 219px;
+}
+
 .chartCard h2,
-.insightCard h2,
-.qualityPanel h2 {
+.insightCard h2 {
   margin: 0;
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  color: #333333;
+  font-family: var(--fm-font);
   font-size: 16px;
   font-weight: 700;
   line-height: 19px;
@@ -172,19 +187,24 @@
 .chartArea {
   position: relative;
   height: 220px;
+  min-height: 220px;
   border-radius: 12px;
-  background: var(--fm-bg-soft);
+  background: #f4f6f5;
 }
 
 .legend {
   position: absolute;
-  top: 20px;
+  top: 4px;
   right: 20px;
   display: flex;
-  gap: 24px;
-  color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  height: 34px;
+  gap: 40px;
+  align-items: flex-start;
+  padding-top: 20px;
+  color: #6b7280;
+  font-family: var(--fm-font);
   font-size: 12px;
+  line-height: 14px;
 }
 
 .legend span {
@@ -202,37 +222,39 @@
   border-radius: 50%;
 }
 
-.actualDot,
-.insightPurple {
+.actualDot {
   background: #ecccff;
 }
 
 .targetDot,
-.insightOrange {
-  background: #ffb5b6;
+.insightPurple {
+  background: #fff6e2;
 }
 
 .barChart {
   position: absolute;
-  right: 28px;
-  bottom: 42px;
+  top: 42px;
+  right: 30px;
+  bottom: 38px;
   left: 28px;
   display: flex;
-  height: 140px;
   align-items: flex-end;
-  justify-content: space-around;
-  gap: 24px;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  padding-right: 84px;
+  padding-left: 38px;
 }
 
 .bar {
   width: 72px;
+  min-width: 72px;
+  height: auto;
   min-height: 8px;
-  border-radius: 0;
   background: #ecccff;
 }
 
 .insightCard {
-  height: 219px;
+  min-height: 219px;
 }
 
 .insights {
@@ -242,18 +264,21 @@
 
 .insights p {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 12px;
   margin: 0;
-  color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  color: #333333;
+  font-family: var(--fm-font);
   font-size: 14px;
-  line-height: 18px;
-  white-space: nowrap;
+  line-height: 17px;
 }
 
-.insightBlue,
-.targetDot {
+.insightBlue {
+  background: #a6d997;
+}
+
+.insightOrange {
   background: #73d4df;
 }
 
@@ -265,33 +290,46 @@
 }
 
 .insightActions button {
-  height: 40px;
-  padding-inline: 16px;
+  height: 37px;
+  padding: 10px 16px;
   border-radius: 12px;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 14px;
+  font-weight: 700;
+  line-height: 17px;
 }
 
 .interpretButton {
+  border-color: #ecccff;
   background: #ecccff;
   color: #ffffff;
 }
 
 .interpretButton:hover {
-  background: #dfb9f7;
+  border-color: #ecccff;
+  background: #ecccff;
   color: #ffffff;
 }
 
 .qualityPanel {
   display: grid;
-  gap: 6px;
   width: min(1116px, calc(100% - 64px));
   height: 140px;
+  gap: 6px;
+  overflow: hidden;
   padding: 12px 20px;
   border: 1px solid #e5dbf5;
   border-radius: 14px;
   background: #fcfaff;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
+}
+
+.qualityPanel h2 {
+  margin: 0;
+  color: #292e2e;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
 }
 
 .qualityPanel p {
@@ -299,7 +337,6 @@
   color: #59635e;
   font-size: 13px;
   line-height: 18px;
-  white-space: nowrap;
 }
 
 .qualityPanel .qualityNote {
@@ -317,10 +354,9 @@
   font-size: 12px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1100px) {
   .filters {
     max-width: 100%;
-    overflow-x: auto;
   }
 
   .metrics {
@@ -328,8 +364,14 @@
     height: auto;
   }
 
-  .metricCard {
-    height: 101px;
+  .barChart {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .bar {
+    width: min(72px, 9vw);
+    min-width: 16px;
   }
 }
 
@@ -344,14 +386,12 @@
   }
 
   .filterRow {
-    height: auto;
     align-items: stretch;
     flex-direction: column;
   }
 
   .filters {
     width: 100%;
-    box-sizing: border-box;
   }
 
   .filters button {
@@ -367,14 +407,22 @@
     padding: 16px;
   }
 
+  .chartArea {
+    min-height: 220px;
+  }
+
   .barChart {
     right: 14px;
+    bottom: 38px;
     left: 14px;
-    gap: 8px;
+    padding-bottom: 18px;
+    padding-right: 8px;
+    padding-left: 8px;
   }
 
   .bar {
     width: 28px;
+    min-width: 28px;
   }
 
   .legend {
@@ -391,18 +439,16 @@
 
   .insights p {
     align-items: flex-start;
-    white-space: normal;
+  }
+
+  .insightActions {
+    flex-wrap: wrap;
   }
 
   .qualityPanel {
     width: calc(100% - 32px);
     min-height: 140px;
-    height: auto;
     margin-bottom: 24px;
     padding: 12px 16px;
-  }
-
-  .qualityPanel p {
-    white-space: normal;
   }
 }

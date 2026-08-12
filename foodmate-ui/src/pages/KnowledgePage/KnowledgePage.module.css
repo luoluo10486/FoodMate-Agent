@@ -7,7 +7,7 @@
   overflow: hidden;
   background: var(--fm-bg);
   color: var(--fm-ink);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
 }
 
 .resultsPanel {
@@ -28,7 +28,7 @@
 .pageHeader h1 {
   margin: 0;
   color: #333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 28px;
   font-weight: 800;
   line-height: 34px;
@@ -60,7 +60,7 @@
   border-radius: 16px;
   background: #fff;
   color: #333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 15px;
   box-shadow: none;
 }
@@ -88,7 +88,7 @@
   border-radius: 999px;
   background: #fff;
   color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 500;
   line-height: 16px;
@@ -111,7 +111,7 @@
   flex: 0 0 auto;
   margin-top: 24px;
   color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 14px;
   font-weight: 600;
   line-height: 17px;
@@ -134,16 +134,15 @@
   display: grid;
   gap: 16px;
   flex: 0 0 auto;
-  height: 155px;
+  height: 157px;
   min-width: 0;
-  min-height: 155px;
+  min-height: 157px;
   padding: 24px;
   border: 0;
   border-radius: 16px;
   background: #fff;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-  outline: 1px solid var(--fm-border);
-  outline-offset: -1px;
+  border: 1px solid var(--fm-border);
 }
 
 .resultTitleRow,
@@ -166,7 +165,7 @@
   margin: 0;
   overflow: hidden;
   color: #333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 18px;
   font-weight: 700;
   line-height: 22px;
@@ -181,7 +180,7 @@
   border-radius: 6px;
   background: rgba(236, 204, 255, 0.08);
   color: #b58cc4;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font-mono);
   font-size: 11px;
   font-weight: 700;
   line-height: 13px;
@@ -191,7 +190,7 @@
   min-height: 21px;
   margin: 0;
   color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -204,9 +203,13 @@
 .resultMeta {
   min-width: 0;
   color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 12px;
   line-height: 15px;
+}
+
+.resultMeta > span {
+  font-family: var(--fm-font-mono);
 }
 
 .sourceBadge {
@@ -214,7 +217,7 @@
   padding: 4px 8px;
   border: 0;
   border-radius: 4px;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 12px;
   font-weight: 700;
   line-height: 15px;
@@ -244,7 +247,7 @@
 .stateAction {
   border: 0;
   background: transparent;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   box-shadow: none;
 }
 
@@ -271,7 +274,7 @@
   border-radius: 999px;
   background: var(--fm-green);
   color: #333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
   box-shadow: none;
@@ -284,6 +287,7 @@
 }
 
 .detailsPanel {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -292,7 +296,6 @@
   padding: 24px;
   overflow-y: auto;
   border: 0;
-  border-left: 1px solid var(--fm-border);
   border-radius: 0;
   background: #fff;
 }
@@ -301,7 +304,7 @@
 .detailsPanel h3 {
   margin: 0;
   color: #333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 16px;
   font-weight: 700;
   line-height: 19px;
@@ -309,28 +312,45 @@
 
 .detailsPanel h3 {
   font-size: 14px;
+  line-height: 17px;
 }
 
 .sourceCard {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 118px;
+  height: 127px;
+  min-height: 127px;
   padding: 16px;
   border: 1px solid var(--fm-border);
   border-radius: 12px;
   background: var(--fm-bg-soft);
   color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 11px;
   line-height: 1.45;
   box-shadow: none;
+}
+
+.detailsPanel::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: var(--fm-border);
+  content: '';
 }
 
 .sourceCard strong {
   color: #333;
   font-size: 14px;
   line-height: 17px;
+}
+
+.sourceCard span,
+.sourceCard p {
+  font-family: var(--fm-font-mono);
 }
 
 .sourceCard p {
@@ -348,7 +368,7 @@
   border-radius: 8px;
   background: #f8f9fb;
   color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font-mono);
   font-size: 13px;
   font-style: italic;
   line-height: 18px;
@@ -359,7 +379,7 @@
 .sourceLink {
   display: inline-flex;
   width: fit-content;
-  height: 20px;
+  height: 17px;
   align-items: center;
   gap: 4px;
   padding: 0;
@@ -392,7 +412,8 @@
 .topic {
   display: flex;
   width: 100%;
-  min-height: 48px;
+  height: 56px;
+  min-height: 56px;
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
@@ -401,7 +422,7 @@
   border-radius: 8px;
   background: var(--fm-bg-soft);
   color: #333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   text-align: left;
   box-shadow: none;
 }
@@ -433,6 +454,7 @@
 
 .topic small {
   color: var(--fm-muted);
+  font-family: var(--fm-font-mono);
   font-size: 11px;
   line-height: 13px;
 }
@@ -455,7 +477,7 @@
   width: 600px;
   min-height: 260px;
   box-sizing: border-box;
-  padding: 43px 31px 20px;
+  padding: 0;
   border: 1px solid rgba(199, 150, 84, 0.34);
   border-radius: 18px;
   background: var(--fm-bg-soft);
@@ -486,45 +508,56 @@
   border-radius: 12px;
   background: #fff8e5;
   color: var(--fm-orange);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 16px;
 }
 
 .stateCard h2 {
+  position: absolute;
+  top: 43px;
+  left: 31px;
   margin: 0;
   color: var(--fm-orange);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 27px;
 }
 
 .stateCard p {
-  margin: 23px 0 0;
+  position: absolute;
+  top: 93px;
+  left: 31px;
+  margin: 0;
   color: var(--fm-muted);
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 15px;
   line-height: 18px;
 }
 
 .stateDetail {
+  position: absolute;
+  top: 149px;
+  left: 31px;
   display: block;
-  margin-top: 36px;
   color: #333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font-mono);
   font-size: 13px;
   line-height: 17px;
 }
 
 .stateAction {
+  position: absolute;
+  top: 204px;
+  left: 31px;
   display: block;
-  height: 20px;
-  margin-top: 27px;
+  height: 18px;
+  margin: 0;
   padding: 0;
   color: #333;
-  font-family: Inter, var(--fm-font);
+  font-family: var(--fm-font);
   font-size: 15px;
   font-weight: 400;
   line-height: 18px;
@@ -543,7 +576,7 @@
 }
 
 .state-empty .stateAction {
-  margin-top: 36px;
+  top: 149px;
 }
 
 .state-search-failed .stateCard {
@@ -561,6 +594,10 @@
 
 .state-search-failed .stateCard h2 {
   color: #d67676;
+}
+
+.state-source-unavailable .stateDetail {
+  font-size: 14px;
 }
 
 @media (max-width: 1120px) {
@@ -596,6 +633,11 @@
     white-space: normal;
   }
 
+  .resultCard {
+    height: auto;
+    min-height: 157px;
+  }
+
   .resultFooter {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -618,6 +660,10 @@
     overflow: visible;
   }
 
+  .detailsPanel::before {
+    display: none;
+  }
+
   .stateOverlay {
     left: 220px;
   }
@@ -625,6 +671,12 @@
   .stateCard,
   .state-empty .stateCard {
     width: min(600px, calc(100% - 40px));
+  }
+}
+
+@media (max-width: 680px) {
+  .stateOverlay {
+    left: 0;
   }
 }
 

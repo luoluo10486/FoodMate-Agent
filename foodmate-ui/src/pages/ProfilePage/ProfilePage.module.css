@@ -3,9 +3,9 @@
   min-height: 0;
   height: 100%;
   overflow: auto;
-  background: #fcfcfc;
-  color: #333;
-  font-family: Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-ui);
   scrollbar-width: thin;
   scrollbar-color: #e2e7ee transparent;
 }
@@ -1021,7 +1021,7 @@
 .sessionInfo span,
 .sessionInfo small {
   overflow: hidden;
-  color: #6b7280;
+  color: var(--fm-color-text-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1517,6 +1517,14 @@
     height: auto;
     min-height: auto;
     padding: 46px 16px 20px;
+  }
+
+  .sessionInfo span,
+  .sessionInfo small {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .activityCard {

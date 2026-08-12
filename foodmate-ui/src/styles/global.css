@@ -20,9 +20,22 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --color-success: var(--fm-color-success);
+  --color-success-strong: var(--fm-color-success-strong);
+  --color-success-surface: var(--fm-color-success-surface);
+  --color-warning: var(--fm-color-warning);
+  --color-warning-surface: var(--fm-color-warning-surface);
+  --color-info: var(--fm-color-info);
+  --color-info-surface: var(--fm-color-info-surface);
+  --color-danger: var(--fm-color-danger);
+  --color-danger-strong: var(--fm-color-danger-strong);
+  --color-danger-surface: var(--fm-color-danger-surface);
+  --color-danger-border: var(--fm-color-danger-border);
+  --color-purple: var(--fm-color-purple);
+  --color-purple-surface: var(--fm-color-purple-surface);
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-container);
 }
 
 * {
@@ -42,7 +55,7 @@ body,
 body {
   background: var(--fm-bg);
   color: var(--fm-ink);
-  font-family: var(--fm-font);
+  font-family: var(--font-ui);
 }
 
 a {
@@ -60,7 +73,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid rgba(166, 217, 151, 0.85);
+  outline: 2px solid var(--fm-color-focus);
   outline-offset: 2px;
 }
 
