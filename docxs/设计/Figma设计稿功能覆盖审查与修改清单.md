@@ -779,4 +779,14 @@
 - [x] 已验证搜索、主题筛选、引用切换、打开原始来源、来源重试、空态清除筛选、检索失败重试和“就此提问”；浏览器控制台无 warning/error。
 - [x] 自动化全量测试为 `16` 个测试文件、`60/60`；`npm run typecheck`、`npm run build` 和本次变更文件 Prettier 检查均通过。
 - [ ] 本节只关闭该页面的代码迁移和本地浏览器视觉验收；真实文档导入、RAG 检索、ACL 过滤、引用详情接口、生产字体加载、iconfont 实体资源登记和生产浏览器兼容性仍需独立验收。
-- [ ] 下一张按计划继续迁移个人中心页面；shadcn 基础设施的统一迁移、Token 映射收口和 Figma Prototype 交付状态继续单独管理。
+- [x] 个人中心页面已完成代码迁移；共享 shadcn 基础设施的圆角、阴影和字体入口已完成本轮 Token 收口，Figma Prototype 交付状态和 iconfont 实体资源仍单独管理。
+
+## 32. 2026-08-12 共享 shadcn primitives Token 收口
+
+本节只记录 Figma Foundations 到共享 UI primitives 的映射，不改变各业务页面的视觉验收结论。映射依据为已核实的 `FoodMate Radius`（`8/12/999`）和 Figma Foundations 阴影契约。
+
+- [x] `Alert`、`Card`、`Dialog`、`Sheet`、`DropdownMenu`、`SelectContent` 已映射容器圆角 `--radius-container`；`Button`、`Input`、`Textarea`、`Tabs`、菜单项、关闭按钮、`Tooltip` 和 `Skeleton` 已映射控件圆角 `--radius-control`。
+- [x] `Badge`、`Progress` 已映射胶囊圆角 `--radius-pill`；Card、按钮和浮层阴影已映射 `--elevation-raised`/`--elevation-overlay`。
+- [x] 新增共享基础组件 Token 契约测试，验证控件、容器和胶囊类名；定向 ESLint/Prettier、typecheck、build 和 `git diff --check` 通过。
+- [x] 最新前端全量测试为 `16` 个测试文件、`61/61`；浏览器 smoke 已确认个人中心四路由可切换且无控制台 error。
+- [ ] 页面级硬编码色值和生产环境字体加载仍需随各页面逐项对照；iconfont 实体字体包、字形类名、来源和授权仍为 `BLOCKED`。

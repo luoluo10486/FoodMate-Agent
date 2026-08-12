@@ -39,7 +39,13 @@ export function NoticeHost() {
 
   return (
     <div className="pointer-events-none fixed right-4 top-4 z-[100] w-[min(24rem,calc(100vw-2rem))]" aria-live="polite">
-      <div className={cn('rounded-lg border px-4 py-3 text-sm shadow-lg', toneClasses[notice.tone])} role="status">
+      <div
+        className={cn(
+          'rounded-[var(--radius-container)] border px-4 py-3 text-sm shadow-[var(--elevation-overlay)]',
+          toneClasses[notice.tone],
+        )}
+        role="status"
+      >
         {notice.message}
       </div>
     </div>

@@ -48,6 +48,20 @@ describe('FoodMate UI primitives', () => {
     expect(screen.getByRole('button', { name: '更多操作' })).toHaveClass('hover:bg-accent', 'size-10');
   });
 
+  it('uses the Figma radius tokens across shared primitives', () => {
+    render(
+      <div>
+        <Button>控件</Button>
+        <Badge>胶囊</Badge>
+        <Alert>容器</Alert>
+      </div>,
+    );
+
+    expect(screen.getByRole('button', { name: '控件' })).toHaveClass('rounded-[var(--radius-control)]');
+    expect(screen.getByText('胶囊')).toHaveClass('rounded-[var(--radius-pill)]');
+    expect(screen.getByRole('alert')).toHaveClass('rounded-[var(--radius-container)]');
+  });
+
   it('exposes accessible input and textarea controls', () => {
     render(
       <div>

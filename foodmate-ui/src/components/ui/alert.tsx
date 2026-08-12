@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-const alertVariants = cva('relative w-full rounded-lg border p-4 text-sm', {
+const alertVariants = cva('relative w-full rounded-[var(--radius-container)] border p-4 text-sm', {
   variants: {
     variant: {
       default: 'border-border bg-card text-card-foreground',
