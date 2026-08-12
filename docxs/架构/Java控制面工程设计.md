@@ -1,5 +1,7 @@
 # FoodMate Java 业务控制面工程骨架与跨语言边界设计
 
+> M1-5 当前实现口径（2026-08-12）：Java application 编排手工记录和 Agent 提案共享的业务用例；infra 负责 `food_logs`、`food_log_items`、营养目录和 `approval_requests` 持久化；api 只做 HTTP 参数转换。当前仅实现本地优先边界，生产部署与备份恢复不属于本轮。
+
 版本：v1.2
 维护基线：2026-07-25
 对应总设计：[系统设计与技术方案](./系统设计与技术方案.md)
@@ -470,6 +472,8 @@ Java 工具执行面至少公开：
 - `ToolResult`
 
 所有注册工具统一由 Java 执行，Java 是工具契约、启停、授权、幂等和审计状态源。Python 只能提交 `proposed_tool_call`。Java 从已认证会话派生用户和 scope，校验工具版本、输入 schema、确认状态、幂等键和 deadline 后执行。`knowledge_search` 由 Java 强制 ACL 后返回候选结果，Python 可以继续重排和组装引用；`food_log_writer` 等写工具必须通过 Application/Domain 事务。
+
+M1-5 的手工保存不需要 Agent confirmation，但仍必须经过同一 application 用例；Agent/自然语言提案必须校验 `approval_requests` 的用户、资源、操作、参数摘要和有效期，不能把非空 `confirmation_ref` 当作确认事实。
 
 ### 4.4 SQL Planning 与 SQL Access
 

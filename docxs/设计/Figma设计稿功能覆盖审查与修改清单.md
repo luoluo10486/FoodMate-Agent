@@ -802,3 +802,38 @@
 - [x] 新增共享基础组件 Token 契约测试，验证控件、容器和胶囊类名；定向 ESLint/Prettier、typecheck、build 和 `git diff --check` 通过。
 - [x] 最新前端全量测试为 `16` 个测试文件、`61/61`；浏览器 smoke 已确认个人中心四路由可切换且无控制台 error。
 - [ ] 页面级硬编码色值和生产环境字体加载仍需随各页面逐项对照；iconfont 实体字体包、字形类名、来源和授权仍为 `BLOCKED`。
+
+## 34. 2026-08-12 Figma 全量验收、字体包与实体资源登记状态
+
+本节为当前 Figma 文件和前端交付状态的最新事实记录，覆盖前文阶段性记录中的临时结论。文件 URL 对应 file key `MX18RZCfAmgprNzxItkHUH`。
+
+- [x] 全文件页面结构已由 Plugin API 重新回读：`🎨 :: Design`（105 个顶层画板）、`01 Foundations`、`02 Components - User`、`03 Components - Admin`、`⚡ :: Assets`、`💐 :: Cover`、`🗄 :: Archive` 均存在；其中 User 页面有 24 个 Component Set，Admin 页面有 14 个 Component Set，Assets 页面有 6 个基础 Component Set。`01 Foundations` 本身是契约画布，不包含 Component Set。
+- [x] `🎨 :: Design` 全量结构验收：19,985 个节点、7,102 个文本节点、105 个顶层画板；顶层空内容问题 `0`，零尺寸可见文本 `0`，最终根画板边界外可见文本 `0`。本轮修复了 8 个长英文 Agent 回复的气泡内换行，以及 1366x768 特殊视口底部两个侧栏项的可见性。
+- [x] `🎨 :: Design` 全量 Prototype 验收：1,940 条 reaction，所有带目标 reaction 的目标节点有效数为 `0` 个。此项表示 Figma 文件内的交互连线已通过目标完整性检查，不代表前端运行时的后端请求全部完成。
+- [x] Figma 截图接口对 105 张顶层画板请求全部成功（105/105），并对工作台、Agent 对话、饮食记录、摄入分析、餐食规划、个人中心、管理端和状态画板进行高清抽查。该结果是 Figma 文件自身的截图/结构验收，不是前端页面与 Figma PNG 的自动像素 diff。
+- [x] 设计系统变量与样式已核对：`FoodMate Prototype State` 2 个、`FoodMate Primitives` 16 个、`FoodMate Color` 16 个、`FoodMate Spacing` 9 个、`FoodMate Radius` 3 个；本地样式 8 个（6 个文字样式、2 个效果样式）。
+- [x] 全文件字体统计为 `Noto Sans SC` Black/Regular/Bold/Medium、`Space Mono` Bold/Italic/Regular、`Montserrat` Black；Montserrat Black 为 13 个可见品牌字标节点，位于登录/注册/找回密码/重置密码/令牌状态画板。
+- [x] 前端已登记并加载与上述 Figma 字体对应的生产包：Noto Sans SC、Space Mono、Montserrat 均使用 `@fontsource` 锁定版本；构建产物已经确认包含真实 `.woff2` 文件。
+- [ ] 前端运行页面与 105 张 Figma 画板的自动化逐页像素差异报告仍未完成。当前已完成 Figma 全量截图、结构、边界、字体和 Prototype 验收，以及前端多视口浏览器 smoke/关键几何检查；二者不能混写为全量 pixel diff 已完成。
+- [ ] `Iconfont Resource Registry` 节点 `1065:2` 当前状态仍为 `BLOCKED`。登记文本要求来源/项目 URL、许可证和使用范围、字形类名、Unicode、字重、默认尺寸、语义名、对比度和无障碍标签；仓库与 Figma 当前均没有实体字体文件、iconfont.css 映射、来源或授权记录。因此不创建虚构字形、类名或 codepoint，标准命令图标继续使用 Lucide，缺失领域图标使用可追溯的许可 SVG 兜底。
+- [x] 已按已有后端契约接入个人中心记忆页的 `/api/memories` 列表、确认、编辑和删除；这只关闭记忆管理这一条真实接口边界，不代表饮食分析、餐食规划、RAG、导出任务或管理授权的后端闭环已完成。
+
+## 35. 2026-08-12 M1-5 业务页面与后端实施边界
+
+- [x] 已将饮食记录、摄入分析和餐食规划页面纳入 M1-5 实施顺序的前端状态展示范围；页面的 Default、Loading、Empty、Error、待确认和待估算状态属于交互契约。
+- [x] 已明确页面不能反推后端完成：真实数据闭环仍需落地 `food_logs`、`food_log_items`、`nutrition_foods`、`nutrition_unit_conversions` 和 `approval_requests`，并完成确定性营养计算、分析聚合、计划保存和写确认。
+- [x] 已明确本地优先边界：Figma 验收和前端浏览器 smoke 不代表 staging/production、Kubernetes、生产监控、数据库备份恢复或发布回滚已建立。
+- [ ] M1-5 后端联调尚未开始；后续按“手工饮食记录 -> 营养目录/确定性计算 -> 分析 -> 餐食计划/购物清单 -> Agent Proposal/Confirm”的顺序接入，禁止用 mock 数据验收真实业务闭环。
+
+## 36. 2026-08-12 生产字体、前端像素差异和 iconfont 实体登记复核
+
+- [x] 已回读当前 Figma 文件：`🎨 :: Design` 105 张顶层画板、19,985 个节点、1,940 条 reaction、无效目标 0、截图请求 105/105 成功。
+- [x] 已回读真实设计系统页面：`01 Foundations` 5 组 Variables；`02 Components - User` 24 个 Component Set；`03 Components - Admin` 14 个 Component Set；`🎨 :: Design` 页面自身无 Component Set。
+- [x] 已建立 [Figma前端像素级验收报告](../功能实现说明/Figma前端像素级验收报告.md)，将 Figma 文件内部验收和前端代码映射验收分开记录。
+- [x] 当前前端自动化 diff 覆盖 14 个页面/状态，结果全部为 `DIFF_REVIEW`；登录页 `647:214` 已在 `1440x900` 视口按真实 Figma 几何校准，最新差异比例 `99.19%`，仍不关闭为 PASS。
+- [ ] Design 页剩余 91 张画板尚未映射到独立前端路由/状态截图，统一标记为 `UNMAPPED`；Figma 内部截图成功不等于前端逐页像素验收完成。
+- [x] 文字生产字体已登记并加载：Noto Sans SC、Space Mono、Montserrat 均由 `@fontsource` 提供并进入构建链。
+- [x] 已建立 [iconfont实体资源登记](./iconfont实体资源登记.md)，字段完整覆盖字体包、CSS 映射、来源、许可证、glyph、Unicode、Figma 映射和无障碍标签。
+- [ ] iconfont 实体资源仍为 `BLOCKED`：当前仓库和 Figma 没有真实字体文件、CSS 映射、来源 URL、许可证和字形映射；继续使用 Lucide 命令图标，不创建虚假字体包。
+- [x] 已有后端接口继续按真实模式接入认证、个人资料、记忆、会话/消息、AgentRun SSE、取消、预算追加、checkpoint 恢复，以及 Admin 概览、工具状态和资源恢复。
+- [ ] 饮食记录、摄入分析、餐食规划尚无对应后端 Controller，前端继续保持 mock/空态边界；不得伪造后端成功闭环。

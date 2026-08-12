@@ -52,6 +52,7 @@ import {
 } from '@/services/accountService';
 import type { AuthSession, Profile, ProfileUpdateRequest } from '@/services/accountService';
 import type { AuthUser } from '@/mock/auth';
+import { confirmMemory, deleteMemory, loadMemories, updateMemory, type MemoryRecord } from '@/services/memoryService';
 import styles from './ProfilePage.module.css';
 
 type ProfileTab = 'basic' | 'memories' | 'security' | 'privacy';
@@ -73,12 +74,51 @@ type ProfileForm = {
 
 type Memory = {
   id: number;
-  category: '偏好' | '限制' | '膳食模式';
+  category: string;
+  scope?: string;
   source: string;
   relativeTime: string;
   content: string;
   status: 'confirmed' | 'pending';
 };
+
+const memoryTypeLabels: Record<string, string> = {
+  preference: '偏好',
+  constraint: '限制',
+  routine: '膳食模式',
+  plan: '计划',
+  meal_plan: '计划',
+  recipe_plan: '计划',
+  weekly_recipe: '计划',
+  allergy: '过敏原',
+  goal: '目标',
+  unit: '单位',
+  meal_type: '常用餐型',
+  temporary: '临时记忆',
+  session_context: '会话上下文',
+};
+
+function memoryTypeLabel(type: string): string {
+  return memoryTypeLabels[type] ?? (type || '未分类');
+}
+
+function memoryTone(category: string): 'red' | 'blue' | 'neutral' {
+  if (category === '限制' || category === '过敏原') return 'red';
+  if (category === '膳食模式' || category === '计划') return 'blue';
+  return 'neutral';
+}
+
+function memoryRelativeTime(value?: string): string {
+  if (!value) return '未知时间';
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return value;
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  if (minutes < 1) return '刚刚更新';
+  if (minutes < 60) return `${minutes} 分钟前更新`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)} 小时前更新`;
+  if (minutes < 2880) return '昨日更新';
+  return `${Math.floor(minutes / 1440)} 天前更新`;
+}
 
 type ExportRow = {
   id: string;
@@ -811,9 +851,7 @@ function MemoryRow({
       <div className={styles.memoryAccent} />
       <div className={styles.memoryContent}>
         <div className={styles.memoryMeta}>
-          <StatusChip tone={memory.category === '限制' ? 'red' : memory.category === '膳食模式' ? 'blue' : 'neutral'}>
-            {memory.category}
-          </StatusChip>
+          <StatusChip tone={memoryTone(memory.category)}>{memory.category}</StatusChip>
           <span>{memory.source}</span>
         </div>
         <p className={styles.memoryQuote}>"{memory.content}"</p>
@@ -1393,6 +1431,163 @@ function PrivacyTab() {
   );
 }
 
+function RealMemoriesTab() {
+  const navigate = useNavigate();
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<Memory>();
+  const [editing, setEditing] = useState<Memory>();
+  const [editValue, setEditValue] = useState('');
+
+  const refresh = () => {
+    setLoading(true);
+    return loadMemories()
+      .then((items) => setMemories(items.map(toMemory)))
+      .catch((error) => notice(error instanceof Error ? error.message : 'Memory load failed.', 'error'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  const runMutation = async (action: () => Promise<unknown>, success: string) => {
+    try {
+      await action();
+      await refresh();
+      notice(success, 'success');
+    } catch (error) {
+      notice(error instanceof Error ? error.message : 'Memory operation failed.', 'error');
+    }
+  };
+
+  return (
+    <div className={styles.memoryPage}>
+      <Card className={styles.memoryIntro}>
+        <h1>记忆系统</h1>
+        <p>FoodMate 会将你在 Agent 对话中明确确认的偏好、限制和饮食模式保存为长期记忆。</p>
+      </Card>
+      <div className={styles.memoryToolbar}>
+        <strong>实时数据</strong>
+        <Button variant="outline" size="sm" type="button" onClick={() => void refresh()} disabled={loading}>
+          <RefreshCw aria-hidden="true" /> 刷新
+        </Button>
+      </div>
+      {loading ? <Card className={styles.memoryEmpty}>正在加载记忆...</Card> : null}
+      {!loading && memories.length ? (
+        <div className={styles.memoryList}>
+          {memories.map((memory) => (
+            <MemoryRow
+              key={memory.id}
+              memory={memory}
+              onConfirm={() => void runMutation(() => confirmMemory(memory.id), '记忆已确认。')}
+              onEdit={() => {
+                setEditing(memory);
+                setEditValue(memory.content);
+              }}
+              onDelete={() => setDeleting(memory)}
+              onSource={() => navigate('/chat')}
+            />
+          ))}
+        </div>
+      ) : null}
+      {!loading && !memories.length ? (
+        <Card className={styles.memoryEmpty}>
+          <div className={styles.emptyEyebrow}>MEMORY / EMPTY</div>
+          <h2>暂无长期记忆</h2>
+          <p>在 Agent 对话中确认一条偏好后，它会显示在这里。</p>
+          <Button className={styles.saveButton} type="button" onClick={() => navigate('/chat')}>
+            前往对话
+          </Button>
+        </Card>
+      ) : null}
+      <Card className={styles.memoryGuidance}>
+        <h2>长期记忆管理</h2>
+        <p>列表、确认、编辑和删除均使用现有的 /api/memories 接口；操作失败时会保留当前页面数据。</p>
+      </Card>
+      <Dialog open={Boolean(deleting)} onOpenChange={(open) => !open && setDeleting(undefined)}>
+        <DialogContent className={styles.dialogContent}>
+          <DialogHeader>
+            <DialogTitle>删除这条记忆？</DialogTitle>
+            <DialogDescription>这只会删除长期记忆，不会删除来源会话。</DialogDescription>
+          </DialogHeader>
+          <p className={styles.dialogQuote}>{deleting?.content}</p>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setDeleting(undefined)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              type="button"
+              onClick={() => {
+                if (!deleting) return;
+                void runMutation(() => deleteMemory(deleting.id), '记忆已删除。');
+                setDeleting(undefined);
+              }}
+            >
+              删除记忆
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(undefined)}>
+        <DialogContent className={styles.dialogContent}>
+          <DialogHeader>
+            <DialogTitle>编辑记忆</DialogTitle>
+            <DialogDescription>保存后会通过已登录的记忆接口更新长期记忆。</DialogDescription>
+          </DialogHeader>
+          <Textarea
+            className={styles.dialogTextarea}
+            value={editValue}
+            onChange={(event) => setEditValue(event.target.value)}
+          />
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setEditing(undefined)}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!editing || !editValue.trim()) return;
+                void runMutation(() => updateMemory(editing.id, editValue.trim(), editing.scope), '记忆已更新。');
+                setEditing(undefined);
+              }}
+            >
+              保存记忆
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function toMemory(item: MemoryRecord): Memory {
+  const memoryType = item.memory_type ?? item.memoryType ?? '';
+  const rawValue = item.memory_value ?? item.memoryValue ?? '';
+  const memoryId = item.memory_id ?? item.memoryId;
+  const confirmationStatus = item.confirmation_status ?? item.confirmationStatus;
+  const updatedAt = item.updated_at ?? item.updatedAt;
+  let content = rawValue;
+  try {
+    const value = JSON.parse(content) as unknown;
+    if (typeof value === 'string') content = value;
+    else if (value && typeof value === 'object' && 'value' in value)
+      content = String((value as { value: unknown }).value);
+  } catch {
+    // Keep legacy plain-text memory values readable.
+  }
+  return {
+    id: memoryId ?? 0,
+    category: memoryTypeLabel(memoryType),
+    scope: item.scope,
+    source: item.source || 'Agent 对话',
+    relativeTime: memoryRelativeTime(updatedAt),
+    content,
+    status: confirmationStatus === 'confirmed' ? 'confirmed' : 'pending',
+  };
+}
+
 export function ProfilePage() {
   const authUser = getAuthUser();
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
@@ -1402,7 +1597,7 @@ export function ProfilePage() {
     <WorkspaceLayout activeModule="profile">
       <div className={cn(styles.page, 'fm-enter')}>
         {activeTab === 'basic' ? <BasicTab authUser={authUser} realMode={realMode} /> : null}
-        {activeTab === 'memories' ? <MemoriesTab /> : null}
+        {activeTab === 'memories' ? realMode ? <RealMemoriesTab /> : <MemoriesTab /> : null}
         {activeTab === 'security' ? <SecurityTab /> : null}
         {activeTab === 'privacy' ? <PrivacyTab /> : null}
       </div>

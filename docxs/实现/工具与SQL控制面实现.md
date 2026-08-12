@@ -1,5 +1,7 @@
 # FoodMate 工具与 SQL 控制面实现蓝图
 
+> M1-5 更新（2026-08-12）：写工具确认规则已确定但尚未实现。`food_log_writer` 必须复用手工饮食记录的 Java application 用例；确认事实使用 `approval_requests`，确认、业务写入、ToolResult 和 `operation_audits` 同一事务提交。本文是实现蓝图，不代表完整业务工具链已完成。
+
 版本：v1.0 目标实现蓝图
 
 维护基线：2026-07-11
@@ -131,6 +133,8 @@ ToolResult 的结果摘要字段集固定为 `schema_version/run_id/dispatch_id/
 只有 registry 同时声明 `retryable=true` 和 `idempotent=true` 的工具，才允许在相同 invocation/idempotency key、摘要和 deadline 内重试。客户端或 Adapter 不得为重试生成新逻辑 invocation。
 
 ## 6. 业务事务与 Adapter
+
+饮食记录 Adapter 只负责调用 application 定义的写入用例，不自行拼接 SQL 或复制一套 Agent 专用逻辑。该用例必须完成 `food_logs` 主表、`food_log_items` 明细、营养目录匹配、`pending` 状态、幂等键、`revision` 和审计事务。
 
 写工具如 `food_log_writer` 必须调用 `foodmate-application`/Domain 用例，在单一业务事务内完成业务表更新、ToolCall 结果和操作审计。Adapter 不直接依赖 API，不绕过 Repository 权限规则。
 

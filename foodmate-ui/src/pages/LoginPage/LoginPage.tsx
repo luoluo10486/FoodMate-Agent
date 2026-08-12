@@ -1,7 +1,7 @@
+import { Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BrandLogo } from '../../components/brand/BrandLogo';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { notify } from '../../lib/notice';
@@ -32,6 +32,18 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function LoginBrand() {
+  return (
+    <div className={styles.loginBrand} data-node-id="647:234">
+      <span className={styles.logoPlaceholder} aria-hidden="true" data-node-id="660:212" />
+      <span className={styles.wordmark} data-node-id="647:236">
+        <span>Food</span>
+        <span>Mate</span>
+      </span>
+    </div>
+  );
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const defaults = getLoginDefaults();
@@ -45,6 +57,7 @@ export function LoginPage() {
   });
   const [loginValues, setLoginValues] = useState<LoginValues>(defaults);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,10 +103,11 @@ export function LoginPage() {
     }
   };
 
-  const title = mode === 'login' ? '登录 FoodMate' : mode === 'register' ? '注册账号' : '找回密码';
+  const title = mode === 'login' ? '欢迎回来' : mode === 'register' ? '注册账号' : '找回密码';
 
   return (
     <main className={styles.page}>
+      <div className={styles.mintDiagonal} aria-hidden="true" />
       <section className={styles.card} aria-label={title}>
         {mode !== 'login' ? (
           <Button className={styles.backButton} variant="ghost" type="button" onClick={() => setMode('login')}>
@@ -101,34 +115,60 @@ export function LoginPage() {
           </Button>
         ) : null}
         <div className={styles.brand}>
-          <BrandLogo size="small" showTagline={false} />
-          <p>{title}</p>
+          <LoginBrand />
+          <div className={styles.welcome}>
+            <p>{title}</p>
+            {mode === 'login' ? <span>让我们开始今天的营养管理</span> : null}
+          </div>
         </div>
 
         {mode === 'login' ? (
           <form className={styles.form} onSubmit={handleLogin}>
-            <Field label="用户名或邮箱">
-              <Input
-                name="username"
-                autoComplete="username"
-                placeholder="请输入用户名或邮箱"
-                value={loginValues.username}
-                required
-                onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
-              />
-            </Field>
-            <Field label="密码">
-              <Input
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="请输入密码"
-                value={loginValues.password}
-                required
-                onChange={(event) => setLoginValues((current) => ({ ...current, password: event.target.value }))}
-              />
-            </Field>
-            <Button className={styles.primaryAction} type="submit" disabled={submitting}>
+            <div className={styles.loginFields}>
+              <Field label="">
+                <Input
+                  className={styles.figmaInput}
+                  name="username"
+                  autoComplete="username"
+                  placeholder="邮箱地址"
+                  aria-label="邮箱地址"
+                  leadingIcon={<UserRound aria-hidden="true" />}
+                  value={loginValues.username}
+                  required
+                  onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
+                />
+              </Field>
+              <Field label="">
+                <Input
+                  className={styles.figmaInput}
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="密码"
+                  aria-label="密码"
+                  leadingIcon={<LockKeyhole aria-hidden="true" />}
+                  trailingAction={
+                    <button
+                      className={styles.passwordToggle}
+                      type="button"
+                      aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                      onClick={() => setShowPassword((value) => !value)}
+                    >
+                      {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                    </button>
+                  }
+                  value={loginValues.password}
+                  required
+                  onChange={(event) => setLoginValues((current) => ({ ...current, password: event.target.value }))}
+                />
+              </Field>
+              <div className={styles.options}>
+                <Button className={styles.forgotButton} variant="ghost" type="button" onClick={() => setMode('forgot')}>
+                  忘记密码？
+                </Button>
+              </div>
+            </div>
+            <Button className={styles.primaryAction} type="submit" disabled={submitting} data-node-id="647:251">
               {submitting ? '登录中...' : '登录'}
             </Button>
           </form>
@@ -207,21 +247,29 @@ export function LoginPage() {
           </form>
         ) : null}
 
-        <div className={styles.actions}>
-          {mode === 'login' ? (
-            <>
-              <Button variant="outline" type="button" onClick={() => setMode('register')}>
-                注册账号
+        {mode === 'login' ? (
+          <div className={styles.actions}>
+            <div className={styles.divider} aria-hidden="true">
+              <span>或者</span>
+            </div>
+            <div className={styles.signupRow}>
+              <span className={styles.signupPrompt}>没有账号？</span>
+              <Button
+                className={styles.signupButton}
+                variant="outline"
+                type="button"
+                onClick={() => setMode('register')}
+              >
+                注册
               </Button>
-              <Button variant="outline" type="button" onClick={() => setMode('forgot')}>
-                忘记密码
-              </Button>
-            </>
-          ) : null}
-        </div>
-        <span className={styles.note}>
-          {import.meta.env.VITE_AGENT_MODE === 'real' ? '当前连接真实服务' : '当前为前端 mock 流程'}
-        </span>
+            </div>
+          </div>
+        ) : null}
+        {mode !== 'login' ? (
+          <span className={styles.note}>
+            {import.meta.env.VITE_AGENT_MODE === 'real' ? '当前连接真实服务' : '当前为前端 mock 流程'}
+          </span>
+        ) : null}
       </section>
     </main>
   );
