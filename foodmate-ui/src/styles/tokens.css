@@ -44,6 +44,14 @@
   --fm-color-surface-warning: #fff6e2;
   --fm-color-surface-danger: #fff5f5;
   --fm-color-info-strong: #80e0e6;
+  --fm-color-surface-hover: #fafafa;
+  --fm-color-surface-hover-strong: #edf1ef;
+  --fm-color-focus-ring: rgba(166, 217, 151, 0.35);
+  --fm-color-control-hover: #ffefd0;
+  --fm-color-avatar-surface: #f1e4e8;
+  --fm-color-avatar-ink: #b97984;
+  --fm-color-error-surface: #fff7f5;
+  --fm-color-error-border: #f3b4aa;
 
   /* Figma spacing, radius and elevation foundations. */
   --space-1: 4px;

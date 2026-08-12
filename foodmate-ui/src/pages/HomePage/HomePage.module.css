@@ -198,7 +198,7 @@
   gap: 12px;
   padding: 16px;
   border: 1px solid var(--fm-border);
-  border-radius: 14px;
+  border-radius: var(--radius-container);
   background: var(--fm-surface);
 }
 
@@ -282,7 +282,7 @@
   min-height: 306px;
   padding: 22px 24px;
   border: 1px solid var(--fm-border);
-  border-radius: 16px;
+  border-radius: var(--radius-container);
   background: var(--fm-surface);
 }
 
@@ -312,7 +312,7 @@
   padding: 0 16px;
   border: 0;
   border-radius: 12px;
-  background: #f4f6f5;
+  background: var(--fm-bg-soft);
   color: var(--fm-ink);
   text-align: left;
 }
@@ -322,7 +322,7 @@
   cursor: pointer;
 }
 .sessionCard:hover {
-  background: #eef1ef;
+  background: var(--fm-color-surface-hover-strong);
 }
 .sessionCard > span:nth-child(2),
 .pendingCard > span {
@@ -402,8 +402,8 @@
   margin-top: 52px;
   padding: 14px 20px;
   border: 1px solid #dce9d9;
-  border-radius: 12px;
-  background: #ffffff;
+  border-radius: var(--radius-container);
+  background: var(--fm-surface);
 }
 
 .statusPanel h2 {

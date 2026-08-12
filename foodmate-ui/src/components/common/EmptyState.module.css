@@ -4,7 +4,7 @@
   place-items: center;
   padding: 18px;
   border: 1px dashed var(--fm-border);
-  border-radius: 16px;
+  border-radius: var(--radius-container);
   color: var(--fm-muted);
   text-align: center;
 }
@@ -20,6 +20,6 @@
 }
 
 .error {
-  border-color: #f3b4aa;
-  background: #fff7f5;
+  border-color: var(--fm-color-error-border);
+  background: var(--fm-color-error-surface);
 }

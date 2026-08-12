@@ -3,8 +3,8 @@
   min-height: calc(100dvh - 68px);
   height: 100%;
   overflow: auto;
-  background: #fcfcfc;
-  color: #333333;
+  background: var(--fm-bg);
+  color: var(--fm-ink);
   scrollbar-width: none;
 }
 
@@ -35,17 +35,17 @@
   width: 34px;
   height: 34px;
   padding: 0;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 50%;
-  background: #ffffff;
-  color: #333333;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
   box-shadow: none;
 }
 
 .dateButton:hover,
 .dateButton:focus-visible {
-  background: #f4f6f5;
-  color: #333333;
+  background: var(--fm-bg-soft);
+  color: var(--fm-ink);
 }
 
 .dateButton svg {
@@ -56,10 +56,10 @@
 .dateLabel {
   height: 37px;
   padding: 0 16px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 999px;
-  background: #ffffff;
-  color: #333333;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 14px;
   font-weight: 700;
@@ -68,8 +68,8 @@
 
 .dateLabel:hover,
 .dateLabel:focus-visible {
-  background: #f4f6f5;
-  color: #333333;
+  background: var(--fm-bg-soft);
+  color: var(--fm-ink);
 }
 
 .viewSwitch {
@@ -78,9 +78,9 @@
   height: 40px;
   gap: 4px;
   padding: 4px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--fm-surface);
 }
 
 .viewSwitch button {
@@ -90,7 +90,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 500;
@@ -99,7 +99,7 @@
 }
 
 .viewSwitch button:hover {
-  color: #333333;
+  color: var(--fm-ink);
 }
 
 .viewSwitch .viewActive {
@@ -122,9 +122,9 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--fm-surface);
 }
 
 .metricCopy {
@@ -137,7 +137,7 @@
 }
 
 .metricCopy > span {
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 12px;
   font-weight: 700;
@@ -151,7 +151,7 @@
 }
 
 .metricCopy strong {
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font-mono);
   font-size: 24px;
   font-weight: 700;
@@ -159,7 +159,7 @@
 }
 
 .metricCopy small {
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font-mono);
   font-size: 13px;
   line-height: 19px;
@@ -191,14 +191,14 @@
   position: absolute;
   inset: 11px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--fm-surface);
   content: '';
 }
 
 .progressRing span {
   position: relative;
   z-index: 1;
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -234,9 +234,9 @@
   display: grid;
   gap: 12px;
   padding: 19.2px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--fm-surface);
 }
 
 .mealHeader,
@@ -266,7 +266,7 @@
 
 .mealHeading h2 {
   margin: 0;
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 18px;
   font-weight: 700;
@@ -277,8 +277,8 @@
 .mealHeading > span {
   padding: 4px 8px;
   border-radius: 6px;
-  background: #f4f6f5;
-  color: #6b7280;
+  background: var(--fm-bg-soft);
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 12px;
   line-height: 14px;
@@ -312,7 +312,7 @@
   min-height: 44px;
   padding: 12px;
   border-radius: 12px;
-  background: #f4f6f5;
+  background: var(--fm-bg-soft);
 }
 
 .foodName {
@@ -322,7 +322,7 @@
 
 .foodName strong {
   overflow: hidden;
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 14px;
   font-weight: 700;
@@ -390,7 +390,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #6b7280;
+  color: var(--fm-muted);
   cursor: pointer;
 }
 

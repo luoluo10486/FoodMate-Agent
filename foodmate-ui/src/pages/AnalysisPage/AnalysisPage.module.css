@@ -1,8 +1,8 @@
 .page {
   min-height: calc(100dvh - 68px);
   overflow: auto;
-  background: #fcfcfc;
-  color: #333333;
+  background: var(--fm-bg);
+  color: var(--fm-ink);
   scrollbar-width: none;
 }
 
@@ -33,9 +33,9 @@
   gap: 4px;
   padding: 4px;
   overflow-x: auto;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 100px;
-  background: #ffffff;
+  background: var(--fm-surface);
   scrollbar-width: none;
 }
 
@@ -50,7 +50,7 @@
   border: 0;
   border-radius: 100px;
   background: transparent;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 500;
@@ -60,7 +60,7 @@
 }
 
 .filters button:hover {
-  color: #333333;
+  color: var(--fm-ink);
 }
 
 .filters .rangeActive {
@@ -84,10 +84,10 @@
 .exportButton {
   height: 40px;
   padding: 10px 16px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 12px;
-  background: #ffffff;
-  color: #333333;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 14px;
   font-weight: 700;
@@ -95,8 +95,8 @@
 }
 
 .exportButton:hover {
-  background: #ffffff;
-  color: #333333;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
 }
 
 .metrics {
@@ -112,13 +112,13 @@
   height: 107px;
   gap: 12px;
   padding: 20px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--fm-surface);
 }
 
 .metricCard > span {
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 12px;
   font-weight: 700;
@@ -127,7 +127,7 @@
 }
 
 .metricCard strong {
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font-mono);
   font-size: 28px;
   font-weight: 700;
@@ -161,9 +161,9 @@
   display: grid;
   gap: 16px;
   padding: 24px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--fm-surface);
 }
 
 .chartCard {
@@ -177,7 +177,7 @@
 .chartCard h2,
 .insightCard h2 {
   margin: 0;
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 16px;
   font-weight: 700;
@@ -189,7 +189,7 @@
   height: 220px;
   min-height: 220px;
   border-radius: 12px;
-  background: #f4f6f5;
+  background: var(--fm-bg-soft);
 }
 
 .legend {
@@ -201,7 +201,7 @@
   gap: 40px;
   align-items: flex-start;
   padding-top: 20px;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 12px;
   line-height: 14px;
@@ -268,7 +268,7 @@
   align-items: center;
   gap: 12px;
   margin: 0;
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 14px;
   line-height: 17px;

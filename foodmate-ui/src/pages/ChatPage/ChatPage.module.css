@@ -5,7 +5,7 @@
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: #fcfcfc;
+  background: var(--fm-bg);
 }
 
 .workspace,
@@ -37,7 +37,7 @@
 
 .systemMessage {
   margin: 0;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-size: 13px;
 }
 
@@ -81,7 +81,7 @@
 
 .messageBubble {
   min-width: 0;
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 14px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -109,7 +109,7 @@
   gap: 12px;
   padding: 16px;
   border-radius: 16px 16px 16px 0;
-  background: #f4f6f5;
+  background: var(--fm-bg-soft);
 }
 
 .assistantBody {
@@ -131,8 +131,8 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #a6d997;
-  color: #ffffff;
+  background: var(--fm-green);
+  color: var(--destructive-foreground);
   font-size: 18px;
   font-weight: 900;
 }
@@ -142,7 +142,7 @@
   height: 36px;
   border-radius: 18px;
   overflow: hidden;
-  background: #f1e4e8;
+  background: var(--fm-color-avatar-surface);
 }
 
 .userAvatar img {
@@ -155,7 +155,7 @@
   display: flex;
   height: 13px;
   align-items: center;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-size: 11px;
   line-height: 13px;
 }
@@ -168,7 +168,7 @@
   min-height: 18px;
   padding-left: 12px;
   border-left: 3px solid #ecccff;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font-mono);
   font-size: 12px;
   font-style: italic;
@@ -182,14 +182,14 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  border: 1px solid #f4f6f5;
-  border-radius: 12px;
-  background: #ffffff;
+  border: 1px solid var(--fm-border);
+  border-radius: var(--radius-container);
+  background: var(--fm-surface);
 }
 
 .inlineConfirmation h3 {
   margin: 0;
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 13px;
   font-weight: 700;
   line-height: 16px;
@@ -200,7 +200,7 @@
   height: 16px;
   align-items: center;
   gap: 8px;
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 13px;
   line-height: 16px;
   cursor: pointer;
@@ -214,7 +214,7 @@
   width: 12px;
   height: 12px;
   margin: 0;
-  accent-color: #c79654;
+  accent-color: var(--fm-orange);
 }
 
 .inlineConfirmationActions {
@@ -229,7 +229,7 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -237,8 +237,8 @@
 
 .inlineConfirmationActions button:first-child {
   padding: 0 16px;
-  background: #a6d997;
-  color: #333333;
+  background: var(--fm-green);
+  color: var(--fm-ink);
 }
 
 .inlineConfirmationActions button:first-child:hover {
@@ -301,12 +301,12 @@
   flex-direction: column;
   padding: 20px;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--fm-surface);
 }
 
 .traceTitle {
   flex: 0 0 auto;
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 16px;
   font-weight: 700;
   line-height: 19px;
@@ -329,15 +329,15 @@
   border: 0;
   border-radius: 100px;
   background: transparent;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .traceTabs button:hover {
-  background: #f4f6f5;
-  color: #333333;
+  background: var(--fm-bg-soft);
+  color: var(--fm-ink);
 }
 
 .traceTabs .traceTabActive {
@@ -360,7 +360,7 @@
 .runId {
   display: block;
   margin: 0;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -381,14 +381,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px;
-  border-radius: 12px;
-  background: #f4f6f5;
+  border-radius: var(--radius-container);
+  background: var(--fm-bg-soft);
 }
 
 .traceStep strong {
   min-width: 0;
   overflow: hidden;
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 13px;
   font-weight: 700;
   line-height: 19px;
@@ -416,7 +416,7 @@
 
 .traceEmpty {
   padding-top: 16px;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-size: 12px;
 }
 
@@ -430,7 +430,7 @@
 .traceJson {
   min-width: 0;
   margin: 20px 0 0;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font-mono);
   font-size: 10px;
   line-height: 1.55;

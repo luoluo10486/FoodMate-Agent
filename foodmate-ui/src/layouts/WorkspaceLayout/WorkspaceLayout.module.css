@@ -51,13 +51,13 @@
 }
 
 .windowRed {
-  background: #ff7177;
+  background: var(--fm-color-danger);
 }
 .windowYellow {
   background: #ffd98b;
 }
 .windowGreen {
-  background: #a6d997;
+  background: var(--fm-color-success);
 }
 
 .sidebarBrand {
@@ -81,7 +81,7 @@
   gap: 10px;
   padding: 0 14px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-container);
   background: var(--fm-orange-soft);
   color: var(--fm-orange);
   font-size: 14px;
@@ -91,7 +91,7 @@
 
 .newButton:hover,
 .newButton:focus-visible {
-  background: #ffefd0;
+  background: var(--fm-color-control-hover);
   color: var(--fm-orange);
 }
 
@@ -125,7 +125,7 @@
 .search:focus-visible,
 .workspaceSearch input:focus-visible {
   border: 0;
-  box-shadow: 0 0 0 2px rgba(166, 217, 151, 0.35);
+  box-shadow: 0 0 0 2px var(--fm-color-focus-ring);
 }
 
 .searchIcon {
@@ -156,7 +156,7 @@
 }
 
 .clearSearch:hover {
-  background: #e9eeeb;
+  background: var(--fm-color-surface-hover-strong);
   color: var(--fm-ink);
 }
 .clearSearch svg {
@@ -191,7 +191,7 @@
   gap: 12px;
   padding: 0 12px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--fm-ink);
   font-size: 14px;
@@ -202,12 +202,12 @@
 
 .sideLink:hover,
 .sideButton:hover {
-  background: #fafafa;
+  background: var(--fm-color-surface-hover);
   color: var(--fm-ink);
 }
 
 .sideLink.active {
-  background: rgba(199, 150, 84, 0.08);
+  background: var(--fm-color-warning-surface);
   color: var(--fm-orange);
 }
 .sideLink svg,
@@ -250,7 +250,7 @@
 
 .collapseButton:hover {
   color: var(--fm-ink);
-  background: #edf1ef;
+  background: var(--fm-color-surface-hover-strong);
 }
 .collapseButton svg {
   width: 16px;
@@ -304,8 +304,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  background: #f1e4e8;
-  color: #b97984;
+  background: var(--fm-color-avatar-surface);
+  color: var(--fm-color-avatar-ink);
   font-weight: 900;
 }
 
@@ -377,12 +377,12 @@
 
 .topNavLink:hover {
   color: var(--fm-ink);
-  background: #fafafa;
+  background: var(--fm-color-surface-hover);
 }
 .topNavLink.active,
 .topNavActive {
   color: var(--fm-orange);
-  background: rgba(255, 246, 226, 0.42);
+  background: var(--fm-color-warning-surface);
 }
 
 .moduleLabel {
@@ -441,7 +441,7 @@
 }
 .iconButton:hover {
   color: var(--fm-ink);
-  background: #edf1ef;
+  background: var(--fm-color-surface-hover-strong);
 }
 .iconButton svg {
   width: 18px;
@@ -471,7 +471,7 @@
   padding: 5px 10px;
   border: 1px solid var(--fm-border);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--fm-surface);
   color: var(--fm-muted);
   font-size: 11px;
   box-shadow: var(--fm-shadow-soft);

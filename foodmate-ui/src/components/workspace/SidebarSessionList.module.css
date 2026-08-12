@@ -14,7 +14,7 @@
   align-items: center;
   gap: 12px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   color: var(--fm-ink);
   font-size: 14px;
   font-weight: 700;
@@ -22,7 +22,7 @@
 
 .sectionTitle:hover {
   color: var(--fm-ink);
-  background: #fafafa;
+  background: var(--fm-color-surface-hover);
 }
 .sectionTitle svg {
   width: 17px;
@@ -54,7 +54,7 @@
 
 .item:hover,
 .active {
-  background: rgba(255, 246, 226, 0.2);
+  background: var(--fm-color-warning-surface);
 }
 
 .itemLink {
@@ -118,7 +118,7 @@
   height: 24px;
   place-items: center;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--fm-ink);
   cursor: pointer;
@@ -145,7 +145,7 @@
   flex: 0 0 auto;
   place-items: center;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--fm-muted);
   cursor: pointer;
@@ -158,7 +158,7 @@
 }
 .moreButton:hover {
   color: var(--fm-ink);
-  background: #eef1ef;
+  background: var(--fm-color-surface-hover-strong);
 }
 .moreButton svg {
   width: 15px;

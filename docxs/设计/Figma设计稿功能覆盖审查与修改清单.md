@@ -781,7 +781,19 @@
 - [ ] 本节只关闭该页面的代码迁移和本地浏览器视觉验收；真实文档导入、RAG 检索、ACL 过滤、引用详情接口、生产字体加载、iconfont 实体资源登记和生产浏览器兼容性仍需独立验收。
 - [x] 个人中心页面已完成代码迁移；共享 shadcn 基础设施的圆角、阴影和字体入口已完成本轮 Token 收口，Figma Prototype 交付状态和 iconfont 实体资源仍单独管理。
 
-## 32. 2026-08-12 共享 shadcn primitives Token 收口
+## 32. 2026-08-12 页面级样式 Token 收口
+
+本节记录从 Figma Foundations 到前端页面 CSS 的本轮剩余收口。视觉值以 Figma 已确认的基础 Token 为来源；页面专属图表、渐变、状态和审计色不因共享 Token 迁移而被覆盖。
+
+- [x] 共享布局和领域组件已完成基础背景、边框、文字、焦点环、错误状态和圆角映射：`WorkspaceLayout`、`Composer`、`SidebarSessionList`、`AgentStatusStrip`、`ToolTraceItem`、`TaskCard`、`EmptyState`、`MetricCard`。
+- [x] 用户页面公共基础值已完成迁移：`HomePage`、`ChatPage`、`DietRecordsPage`、`AnalysisPage`、`PlanningPage`、`KnowledgePage`；页面专属营养环、图表、渐变和状态色继续独立保留。
+- [x] 登录页和管理端壳层已完成基础 Token 收口；管理端权限矩阵、危险操作、审计状态、表格字段和管理专属颜色继续按语义维护。
+- [x] `tokens.css` 新增 hover surface、focus ring、control hover、avatar 和 error surface/border Token；共享状态条的信息色引用已修正为 `--fm-color-info`。
+- [x] 实际验证：16 个测试文件、61/61；`npm run typecheck`、`npm run build`、改动范围 Prettier 和 `git diff --check` 通过。
+- [x] 本地浏览器已访问用户与管理端主要路由，稳定渲染后无页面级横向溢出；控制台未发现本地前端 error。
+- [ ] 后端闭环、真实数据联调、生产字体包、Figma 全量逐页像素级验收和 iconfont 实体资源登记不在本轮；iconfont 继续为 `BLOCKED`，标准命令图标继续使用 Lucide。
+
+## 33. 2026-08-12 共享 shadcn primitives Token 收口
 
 本节只记录 Figma Foundations 到共享 UI primitives 的映射，不改变各业务页面的视觉验收结论。映射依据为已核实的 `FoodMate Radius`（`8/12/999`）和 Figma Foundations 阴影契约。
 

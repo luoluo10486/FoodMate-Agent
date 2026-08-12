@@ -3,8 +3,8 @@
   min-height: 112px;
   overflow: hidden;
   border: 1px solid var(--fm-border);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
+  border-radius: var(--radius-container);
+  background: var(--fm-surface);
   cursor: pointer;
   transition:
     transform 180ms ease,
@@ -32,7 +32,7 @@
   bottom: -34px;
   width: 104px;
   height: 104px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   content: '';
   opacity: 0.18;
   pointer-events: none;
@@ -61,8 +61,8 @@
 }
 
 .error {
-  border-color: #f3b4aa;
-  background: #fff7f5;
+  border-color: var(--fm-color-error-border);
+  background: var(--fm-color-error-surface);
 }
 
 .card p {

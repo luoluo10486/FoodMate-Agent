@@ -1,7 +1,7 @@
 .card {
   border: 1px solid var(--fm-border);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.82);
+  border-radius: var(--radius-container);
+  background: var(--fm-surface);
 }
 
 .card span {
@@ -41,8 +41,8 @@
 }
 
 .error {
-  border-color: #f3b4aa;
-  background: #fff7f5;
+  border-color: var(--fm-color-error-border);
+  background: var(--fm-color-error-surface);
 }
 
 .error strong {

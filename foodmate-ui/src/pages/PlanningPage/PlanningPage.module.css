@@ -5,8 +5,8 @@
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: #fcfcfc;
-  color: #333333;
+  background: var(--fm-bg);
+  color: var(--fm-ink);
 }
 
 .statePage {
@@ -14,8 +14,8 @@
   min-height: 0;
   height: 100%;
   overflow: auto;
-  background: #fcfcfc;
-  color: #333333;
+  background: var(--fm-bg);
+  color: var(--fm-ink);
   scrollbar-width: none;
 }
 
@@ -45,8 +45,8 @@
 
 .skeleton {
   display: block;
-  background: #f4f6f5;
-  border-radius: 8px;
+  background: var(--fm-bg-soft);
+  border-radius: var(--radius-control);
 }
 
 .loadingBanner {
@@ -56,9 +56,9 @@
   justify-content: space-between;
   gap: 20px;
   padding: 24px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--fm-surface);
 }
 
 .loadingSummary {
@@ -147,9 +147,9 @@
   justify-content: center;
   gap: 6px;
   padding: 12px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--fm-surface);
 }
 
 .loadingMealName {
@@ -170,8 +170,8 @@
   gap: 24px;
   padding: 24px;
   overflow: auto;
-  border-left: 1px solid #f4f6f5;
-  background: #ffffff;
+  border-left: 1px solid var(--fm-border);
+  background: var(--fm-surface);
   scrollbar-width: none;
 }
 
@@ -198,7 +198,7 @@
 .loadingDivider {
   width: 100%;
   height: 1px;
-  background: #f4f6f5;
+  background: var(--fm-border);
 }
 
 .loadingShoppingTitle {
@@ -237,9 +237,9 @@
   flex-direction: column;
   gap: 16px;
   padding: 32px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--fm-surface);
   text-align: center;
 }
 
@@ -250,7 +250,7 @@
   place-items: center;
   border-radius: 50%;
   background: rgba(166, 217, 151, 0.18);
-  color: #89b27c;
+  color: var(--fm-green-dark);
 }
 
 .feedbackIcon svg {
@@ -266,7 +266,7 @@
 
 .feedbackCard h1 {
   margin: 0;
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 20px;
   font-weight: 800;
@@ -276,7 +276,7 @@
 .feedbackCard p {
   max-width: 420px;
   margin: 0;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 13px;
   line-height: 1.6;
@@ -285,8 +285,8 @@
 .errorCode {
   padding: 4px 8px;
   border-radius: 6px;
-  background: #f4f6f5;
-  color: #6b7280;
+  background: var(--fm-bg-soft);
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 11px;
   line-height: 1.2;
@@ -306,8 +306,8 @@
 }
 
 .feedbackPrimary {
-  background: #a6d997;
-  color: #333333;
+  background: var(--fm-green);
+  color: var(--fm-ink);
 }
 
 .feedbackPrimary:hover,
@@ -317,21 +317,21 @@
 }
 
 .feedbackSecondary {
-  border-color: #f4f6f5;
-  background: #ffffff;
-  color: #333333;
+  border-color: var(--fm-border);
+  background: var(--fm-surface);
+  color: var(--fm-ink);
 }
 
 .feedbackSecondary:hover,
 .feedbackSecondary:focus-visible {
-  border-color: #a6d997;
-  background: #ffffff;
-  color: #333333;
+  border-color: var(--fm-green);
+  background: var(--fm-surface);
+  color: var(--fm-ink);
 }
 
 .feedbackHint {
   margin: 20px 0 0;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 12px;
   line-height: 1.4;
@@ -367,9 +367,9 @@
   justify-content: space-between;
   gap: 20px;
   padding: 24px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 20px;
-  background: linear-gradient(90deg, rgba(155, 138, 251, 0.13), #ffffff);
+  background: linear-gradient(90deg, rgba(155, 138, 251, 0.13), var(--fm-surface));
 }
 
 .planSummary {
@@ -387,7 +387,7 @@
 }
 
 .planSummary h1 {
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 20px;
   font-weight: 800;
@@ -420,8 +420,8 @@
 }
 
 .durationTag {
-  background: #f4f6f5;
-  color: #6b7280;
+  background: var(--fm-bg-soft);
+  color: var(--fm-muted);
 }
 
 .bannerActions {
@@ -454,16 +454,16 @@
 }
 
 .saveButton {
-  border-color: #f4f6f5;
-  background: #ffffff;
-  color: #333333;
+  border-color: var(--fm-border);
+  background: var(--fm-surface);
+  color: var(--fm-ink);
 }
 
 .saveButton:hover,
 .saveButton:focus-visible {
   border-color: #c79654;
-  background: #ffffff;
-  color: #333333;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
 }
 
 .scheduleSection {
@@ -474,7 +474,7 @@
 }
 
 .scheduleSection h2 {
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 16px;
   font-weight: 700;
@@ -509,10 +509,10 @@
   align-items: flex-start;
   justify-content: center;
   padding: 12px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 10px;
-  background: #ffffff;
-  color: #333333;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
@@ -536,7 +536,7 @@
   min-width: 0;
   align-items: flex-start;
   padding-top: 29px;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
@@ -560,7 +560,7 @@
 
 .mealCard {
   border: 1px solid rgba(51, 51, 51, 0);
-  background: #ffffff;
+  background: var(--fm-surface);
   overflow: hidden;
 }
 
@@ -569,7 +569,7 @@
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 13px;
   font-weight: 700;
   line-height: 16px;
@@ -591,9 +591,9 @@
 
 .emptyMeal {
   align-items: center;
-  border: 1px dashed #f4f6f5;
+  border: 1px dashed var(--fm-border);
   background: transparent;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-size: 12px;
   font-weight: 600;
   line-height: 14px;
@@ -608,7 +608,7 @@
 
 .notice {
   margin: -8px 0 0;
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 12px;
   line-height: 1.4;
@@ -624,7 +624,7 @@
   padding: 24px;
   overflow: auto;
   border-left: 0;
-  background: #ffffff;
+  background: var(--fm-surface);
   scrollbar-width: none;
 }
 
@@ -641,7 +641,7 @@
 }
 
 .planSidebar h2 {
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 15px;
   font-weight: 700;
@@ -663,8 +663,8 @@
   gap: 8px;
   padding: 12px;
   border-radius: 10px;
-  background: #f4f6f5;
-  color: #333333;
+  background: var(--fm-bg-soft);
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 12px;
   font-weight: 700;
@@ -713,7 +713,7 @@
   right: 0;
   left: 0;
   height: 1px;
-  background: #f4f6f5;
+  background: var(--fm-border);
   content: '';
 }
 
@@ -724,7 +724,7 @@
 }
 
 .shoppingGroup h3 {
-  color: #6b7280;
+  color: var(--fm-muted);
   font-family: var(--fm-font);
   font-size: 12px;
   font-weight: 700;
@@ -741,7 +741,7 @@
   min-width: 0;
   align-items: center;
   gap: 8px;
-  color: #333333;
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 13px;
   line-height: 16px;
@@ -754,9 +754,9 @@
   flex: 0 0 auto;
   margin: 0;
   appearance: none;
-  border: 1px solid #f4f6f5;
+  border: 1px solid var(--fm-border);
   border-radius: 3px;
-  background: #ffffff;
+  background: var(--fm-surface);
   cursor: pointer;
 }
 

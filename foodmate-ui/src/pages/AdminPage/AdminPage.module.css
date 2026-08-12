@@ -2,9 +2,9 @@
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   min-height: 100dvh;
-  background: #fcfcfc;
-  color: #333333;
-  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  background: var(--fm-bg);
+  color: var(--fm-ink);
+  font-family: var(--font-ui);
 }
 
 .adminSidebar {
@@ -14,8 +14,8 @@
   min-height: 100dvh;
   padding: 24px;
   overflow: hidden;
-  border-right: 1px solid #f4f6f5;
-  background: #ffffff;
+  border-right: 1px solid var(--fm-border);
+  background: var(--fm-surface);
 }
 
 .brandBlock {
@@ -53,8 +53,8 @@
 }
 
 .adminLogoCopy strong {
-  color: #333333;
-  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  color: var(--fm-ink);
+  font-family: var(--font-ui);
   font-size: 18px;
   font-weight: 900;
   line-height: 22px;
@@ -96,7 +96,7 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 14px;
   font-weight: 500;
   line-height: 17px;
@@ -117,7 +117,7 @@
   flex: 0 0 auto;
   width: 18px;
   height: 18px;
-  color: #333333;
+  color: var(--fm-ink);
   stroke-width: 1.8;
 }
 
@@ -154,8 +154,8 @@
   min-height: 40px;
   padding: 12px;
   border-radius: 12px;
-  background: #fff6e2;
-  color: #c79654;
+  background: var(--fm-orange-soft);
+  color: var(--fm-orange);
   font-size: 12px;
   font-weight: 700;
   line-height: 16px;
@@ -166,12 +166,12 @@
   height: 8px;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: #c79654;
+  background: var(--fm-orange);
 }
 
 .workspaceLink {
   padding: 0;
-  color: #5da9b2;
+  color: var(--fm-color-info);
   font-size: 13px;
   font-weight: 700;
   line-height: 16px;
@@ -187,7 +187,7 @@
   align-items: center;
   gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f4f6f5;
+  border-top: 1px solid var(--fm-border);
 }
 
 .userAvatar {
@@ -199,7 +199,7 @@
   overflow: hidden;
   border-radius: 50%;
   background: #e9f1ed;
-  color: #5da9b2;
+  color: var(--fm-color-info);
   font-size: 14px;
   font-weight: 700;
 }
@@ -242,8 +242,8 @@
   min-width: 0;
   height: 64px;
   padding: 16px 32px;
-  border-bottom: 1px solid #f4f6f5;
-  background: #ffffff;
+  border-bottom: 1px solid var(--fm-border);
+  background: var(--fm-surface);
 }
 
 .topbarTitle,
@@ -258,7 +258,7 @@
 }
 
 .topbarTitle strong {
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 20px;
   font-weight: 900;
   line-height: 24px;
@@ -299,10 +299,10 @@
 .topbarRefresh {
   height: 32px !important;
   padding: 8px 16px !important;
-  border: 1px solid #f4f6f5 !important;
+  border: 1px solid var(--fm-border) !important;
   border-radius: 8px !important;
-  background: #ffffff !important;
-  color: #333333 !important;
+  background: var(--fm-surface) !important;
+  color: var(--fm-ink) !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   line-height: 16px !important;
@@ -310,7 +310,7 @@
 }
 
 .topbarRefresh:hover {
-  background: #f4f6f5 !important;
+  background: var(--fm-bg-soft) !important;
 }
 
 .page {

@@ -289,7 +289,7 @@
   border: 1px solid rgba(217, 213, 200, 0.86);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--fm-shadow-soft);
+  box-shadow: var(--elevation-raised);
 }
 
 .brand {

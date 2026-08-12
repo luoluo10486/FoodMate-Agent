@@ -5,8 +5,8 @@
   align-items: center;
   gap: 12px;
   padding: 0 24px;
-  border-bottom: 1px solid #f4f6f5;
-  background: #ffffff;
+  border-bottom: 1px solid var(--fm-border);
+  background: var(--fm-surface);
 }
 
 .label {
@@ -48,15 +48,15 @@
 }
 .purple {
   background: rgba(236, 204, 255, 0.08);
-  color: #b58cc4;
+  color: var(--fm-purple);
 }
 .blue {
   background: rgba(128, 224, 230, 0.08);
-  color: #5da9b2;
+  color: var(--fm-color-info);
 }
 .orange {
   background: rgba(255, 246, 226, 0.08);
-  color: #c79654;
+  color: var(--fm-orange);
 }
 .green {
   background: var(--fm-green-soft);
@@ -64,7 +64,7 @@
 }
 .gray {
   background: rgba(107, 114, 128, 0.08);
-  color: #6b7280;
+  color: var(--fm-muted);
 }
 
 @media (max-width: 720px) {

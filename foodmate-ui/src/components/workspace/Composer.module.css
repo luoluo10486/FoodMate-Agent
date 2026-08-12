@@ -5,8 +5,8 @@
   height: 112px;
   align-items: flex-start;
   padding: 24px;
-  border-top: 1px solid #f4f6f5;
-  background: #ffffff;
+  border-top: 1px solid var(--fm-border);
+  background: var(--fm-surface);
 }
 
 .inputRow {
@@ -17,8 +17,8 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  border-radius: 12px;
-  background: #f4f6f5;
+  border-radius: var(--radius-container);
+  background: var(--fm-bg-soft);
 }
 
 .input {
@@ -28,7 +28,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #333333;
+  color: var(--fm-ink);
   font-size: 14px;
   line-height: normal;
   box-shadow: none;
@@ -41,25 +41,25 @@
 }
 
 .input::placeholder {
-  color: #6b7280;
+  color: var(--fm-muted);
 }
 
 .iconButton {
   width: 32px;
   height: 32px;
-  border-radius: 16px;
-  background: #fff6e2;
-  color: #c79654;
+  border-radius: var(--radius-pill);
+  background: var(--fm-orange-soft);
+  color: var(--fm-orange);
 }
 
 .iconButton:hover {
-  background: #ffefd0;
-  color: #c79654;
+  background: var(--fm-color-control-hover);
+  color: var(--fm-orange);
 }
 
 .iconButton[data-state='running'] {
-  background: #e56d70;
-  color: #ffffff;
+  background: var(--fm-danger);
+  color: var(--destructive-foreground);
 }
 
 .iconButton svg {
