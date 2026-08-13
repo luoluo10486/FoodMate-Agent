@@ -1,0 +1,278 @@
+package com.foodmate.application.food;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.food.port.out.ApprovalRequestRepository;
+import com.foodmate.application.food.service.ApprovalService;
+import com.foodmate.application.food.service.MealPlanService;
+import com.foodmate.application.food.service.impl.ApprovalServiceImpl;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
+import com.foodmate.shared.id.IdGenerator;
+import com.foodmate.shared.trace.TraceContext;
+import com.foodmate.shared.trace.TraceContextHolder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.util.HexFormat;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
+
+class ApprovalServiceImplTest {
+    private static final Instant FUTURE = Instant.now().plusSeconds(3600);
+    private static final Instant PAST = Instant.parse("2026-08-12T11:00:00Z");
+    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+
+    @AfterEach
+    void clearTrace() {
+        TraceContextHolder.clear();
+    }
+
+    @Test
+    void proposalIsCreatedAndIdempotentReplayReturnsOriginalRequest() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        MealPlanService plans = org.mockito.Mockito.mock(MealPlanService.class);
+        AtomicReference<ApprovalRequestRepository.ApprovalWrite> write = new AtomicReference<>();
+        ApprovalRequestRepository.ApprovalSnapshot[] stored =
+                new ApprovalRequestRepository.ApprovalSnapshot[1];
+        when(repository.findByIdempotency(7L, "proposal-1")).thenReturn(null, stored[0]);
+        org.mockito.Mockito.doAnswer(
+                        invocation -> {
+                            write.set(invocation.getArgument(0));
+                            return 1;
+                        })
+                .when(repository)
+                .insert(any());
+        when(repository.findOwned(7L, 100L))
+                .thenAnswer(
+                        invocation -> {
+                            ApprovalRequestRepository.ApprovalWrite value = write.get();
+                            stored[0] = snapshot(value, "pending", FUTURE);
+                            return stored[0];
+                        });
+        ApprovalService service = service(repository, plans, ids(100L, 101L));
+        ObjectNode parameters = parameters("validated");
+
+        ApprovalService.ProposalView first = service.propose(7L, command(parameters));
+        when(repository.findByIdempotency(7L, "proposal-1")).thenReturn(stored[0]);
+        ApprovalService.ProposalView replay = service.propose(7L, command(parameters));
+
+        assertEquals(first, replay);
+        verify(repository).insert(any());
+        verify(repository, org.mockito.Mockito.times(1)).insertAudit(any());
+    }
+
+    @Test
+    void proposalRejectsChangedParametersForExistingIdempotencyKey() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        when(repository.findByIdempotency(7L, "same-key"))
+                .thenReturn(
+                        snapshot(
+                                new ApprovalRequestRepository.ApprovalWrite(
+                                        100L,
+                                        7L,
+                                        null,
+                                        null,
+                                        "meal_plan",
+                                        55L,
+                                        "save_plan",
+                                        "different",
+                                        "req_test",
+                                        "trace_test",
+                                        "same-key",
+                                        FUTURE),
+                                "pending",
+                                FUTURE));
+        ApprovalService service =
+                service(repository, org.mockito.Mockito.mock(MealPlanService.class), ids(100L));
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () -> service.propose(7L, command("same-key", parameters("other"))));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        verify(repository, never()).insert(any());
+        verify(repository, never()).insertAudit(any());
+    }
+
+    @Test
+    void confirmMovesPendingProposalToConfirmedAndAuditsIt() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        ObjectNode parameters = parameters("validated");
+        ApprovalRequestRepository.ApprovalSnapshot pending =
+                snapshotFor(parameters, "pending", FUTURE);
+        ApprovalRequestRepository.ApprovalSnapshot confirmed =
+                snapshotFor(parameters, "confirmed", FUTURE);
+        when(repository.findOwned(7L, 100L)).thenReturn(pending, confirmed);
+        when(repository.markConfirmed(eq(7L), eq(100L), any())).thenReturn(1);
+        ApprovalService service =
+                service(repository, org.mockito.Mockito.mock(MealPlanService.class), ids(101L));
+
+        ApprovalService.ProposalView result = service.confirm(7L, 100L, parameters);
+
+        assertEquals("confirmed", result.status());
+        verify(repository).markConfirmed(eq(7L), eq(100L), any());
+        verify(repository).insertAudit(any());
+    }
+
+    @Test
+    void expiredProposalCannotBeConfirmed() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        ObjectNode parameters = parameters("validated");
+        when(repository.findOwned(7L, 100L)).thenReturn(snapshotFor(parameters, "pending", PAST));
+        ApprovalService service =
+                service(repository, org.mockito.Mockito.mock(MealPlanService.class), ids(101L));
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.confirm(7L, 100L, parameters));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        verify(repository).markExpired(eq(7L), eq(100L), any());
+        verify(repository, never()).markConfirmed(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void executeClaimsConfirmedProposalBeforeSavingAndReplayDoesNotSaveAgain() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        MealPlanService plans = org.mockito.Mockito.mock(MealPlanService.class);
+        ObjectNode parameters = parameters("validated");
+        ApprovalRequestRepository.ApprovalSnapshot confirmed =
+                snapshotFor(parameters, "confirmed", FUTURE);
+        ApprovalRequestRepository.ApprovalSnapshot executed =
+                snapshotFor(parameters, "executed", FUTURE);
+        when(repository.findOwned(7L, 100L)).thenReturn(confirmed, executed);
+        when(repository.markExecuted(eq(7L), eq(100L), any())).thenReturn(1);
+        ApprovalService service = service(repository, plans, ids(101L, 102L));
+
+        ApprovalService.ExecuteView first = service.execute(7L, 100L, parameters);
+        ApprovalService.ExecuteView replay = service.execute(7L, 100L, parameters);
+
+        assertEquals("executed", first.status());
+        assertEquals(first, replay);
+        InOrder order = org.mockito.Mockito.inOrder(repository, plans);
+        order.verify(repository).markExecuted(eq(7L), eq(100L), any());
+        order.verify(plans).save(7L, 55L);
+        verify(plans).save(7L, 55L);
+        verify(repository).insertAudit(any());
+    }
+
+    @Test
+    void executeRejectsChangedParametersAndDoesNotSave() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        MealPlanService plans = org.mockito.Mockito.mock(MealPlanService.class);
+        ObjectNode original = parameters("validated");
+        when(repository.findOwned(7L, 100L)).thenReturn(snapshotFor(original, "confirmed", FUTURE));
+        ApprovalService service = service(repository, plans, ids(101L));
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () -> service.execute(7L, 100L, parameters("changed")));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        verify(plans, never()).save(any(Long.class), any(Long.class));
+        verify(repository, never()).markExecuted(any(Long.class), any(Long.class), any());
+    }
+
+    private ApprovalService service(
+            ApprovalRequestRepository repository, MealPlanService plans, IdGenerator ids) {
+        TraceContextHolder.set(TraceContext.of("req_test", "trace_test"));
+        return new ApprovalServiceImpl(repository, plans, ids, mapper);
+    }
+
+    private ApprovalService.ProposalCommand command(ObjectNode parameters) {
+        return command("proposal-1", parameters);
+    }
+
+    private ApprovalService.ProposalCommand command(String idempotencyKey, ObjectNode parameters) {
+        return new ApprovalService.ProposalCommand(
+                null, null, "save_plan", "meal_plan", 55L, parameters, idempotencyKey, 600L);
+    }
+
+    private ObjectNode parameters(String status) {
+        return JsonNodeFactory.instance.objectNode().put("status", status);
+    }
+
+    private ApprovalRequestRepository.ApprovalSnapshot snapshotFor(
+            ObjectNode parameters, String status, Instant expiresAt) {
+        return snapshot(
+                new ApprovalRequestRepository.ApprovalWrite(
+                        100L,
+                        7L,
+                        null,
+                        null,
+                        "meal_plan",
+                        55L,
+                        "save_plan",
+                        digest("save_plan", "meal_plan", 55L, parameters),
+                        "req_test",
+                        "trace_test",
+                        "proposal-1",
+                        expiresAt),
+                status,
+                expiresAt);
+    }
+
+    private ApprovalRequestRepository.ApprovalSnapshot snapshot(
+            ApprovalRequestRepository.ApprovalWrite write, String status, Instant expiresAt) {
+        return new ApprovalRequestRepository.ApprovalSnapshot(
+                write.approvalRequestId(),
+                write.userId(),
+                write.sessionId(),
+                write.agentRunId(),
+                write.resourceType(),
+                write.resourceId(),
+                write.operation(),
+                write.parametersDigest(),
+                status,
+                write.requestId(),
+                write.traceId(),
+                write.idempotencyKey(),
+                expiresAt,
+                "confirmed".equals(status) || "executed".equals(status) ? FUTURE : null,
+                "executed".equals(status) ? FUTURE : null);
+    }
+
+    private String digest(Object... values) {
+        try {
+            return HexFormat.of()
+                    .formatHex(
+                            MessageDigest.getInstance("SHA-256")
+                                    .digest(
+                                            mapper.writeValueAsString(
+                                                            java.util.Arrays.asList(values))
+                                                    .getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    private IdGenerator ids(long... values) {
+        return new IdGenerator() {
+            private int index;
+
+            @Override
+            public long nextId() {
+                return values[Math.min(index++, values.length - 1)];
+            }
+        };
+    }
+}

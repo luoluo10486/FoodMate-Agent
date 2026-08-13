@@ -1,6 +1,6 @@
 # FoodMate Java 业务控制面工程骨架与跨语言边界设计
 
-> M1-5 当前实现口径（2026-08-12）：Java application 编排手工记录和 Agent 提案共享的业务用例；infra 负责 `food_logs`、`food_log_items`、营养目录和 `approval_requests` 持久化；api 只做 HTTP 参数转换。当前仅实现本地优先边界，生产部署与备份恢复不属于本轮。
+> M1-5 当前实现口径（2026-08-13）：Java application 已编排手工记录、分析、计划基础流程和 `meal_plan.save_plan` Agent 提案共享的业务用例；infra 负责 `food_logs`、`food_log_items`、营养目录和 `approval_requests` 持久化；api 只做 HTTP 参数转换。当前仅实现本地优先第一切片，营养目录无 seed，编辑、完整 Tool Gateway、生产部署与备份恢复不属于本轮。
 
 版本：v1.2
 维护基线：2026-07-25

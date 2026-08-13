@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Copy, Search } from 'lucide-react';
+import { Copy, Lock, Search } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input as ShadcnInput } from '@/components/ui/input';
 import {
@@ -221,9 +221,10 @@ function ToolRegistrySection({
             <Button
               className={styles.registryActionButton}
               size="small"
-              disabled={operationStatus === 'submitting'}
+              disabled={operationStatus === 'submitting' || operationStatus === 'no-permission'}
               onClick={() => onAction(createToolAction(record))}
             >
+              {operationStatus === 'no-permission' ? <Lock aria-hidden="true" /> : null}
               {record.status === 'active' ? '停用工具' : '启用工具'}
             </Button>
           ) : (

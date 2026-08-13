@@ -228,8 +228,8 @@
 }
 
 .adminMain {
-  display: grid;
-  grid-template-rows: 64px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 100dvh;
 }
@@ -240,8 +240,9 @@
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
+  flex: 0 0 64px;
   height: 64px;
-  padding: 16px 32px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--fm-border);
   background: var(--fm-surface);
 }
@@ -345,76 +346,40 @@
 
 .operationBanner {
   display: flex !important;
-  min-height: 40px;
+  width: 100%;
+  min-height: 48px;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px !important;
-  border-radius: 8px !important;
+  gap: 12px;
+  padding: 12px 32px !important;
+  border-width: 0 0 1px !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
 }
 
 .operationBanner > svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
 }
 
-.operationBanner > div {
+.operationBanner > span {
   min-width: 0;
-}
-
-.operationBanner :global(h5) {
-  margin: 0 0 2px;
+  color: #d67676;
   font-size: 13px;
-  line-height: 17px;
-}
-
-.operationBanner :global([data-slot='alert-description']) {
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.operationBanner > div > div {
-  color: #6b7280;
-  font-size: 12px;
+  font-weight: 700;
   line-height: 16px;
 }
 
 .operationPermissionBanner {
-  border-color: rgba(199, 150, 84, 0.28) !important;
-  background: #fff6e2 !important;
-  color: #c79654 !important;
-}
-
-.operationPermissionBanner :global([data-slot='alert-description']) {
-  color: #6b7280;
-}
-
-.operationPermissionBanner > div > div {
-  color: #6b7280;
+  border-color: rgba(255, 117, 118, 0.25) !important;
+  background: #ffecef !important;
+  color: #d67676 !important;
 }
 
 .operationSuccessBanner {
-  border-color: rgba(137, 178, 124, 0.35) !important;
-  background: rgba(166, 217, 151, 0.08) !important;
-  color: #89b27c !important;
-}
-
-.operationSuccessBanner :global([data-slot='alert-description']) {
-  color: #6b7280;
-}
-
-.operationSuccessBanner > div > div {
-  color: #6b7280;
-}
-
-.operationBannerDismiss {
-  height: 28px !important;
-  min-height: 28px !important;
-  margin-left: auto;
-  padding: 6px 10px !important;
-  color: #6b7280 !important;
-  font-size: 12px !important;
+  border-color: rgba(255, 117, 118, 0.25) !important;
+  background: #ffecef !important;
+  color: #d67676 !important;
 }
 
 .operationDialogCard {
@@ -584,7 +549,7 @@
 
 .operationProgressTrack {
   width: 100%;
-  height: 8px;
+  height: 4px;
   overflow: hidden;
   border-radius: 999px;
   background: #f4f6f5;
@@ -592,26 +557,24 @@
 
 .operationProgressValue {
   display: block;
-  width: 64%;
+  width: 58%;
   height: 100%;
   border-radius: inherit;
-  background: #5da9b2;
-  animation: operation-progress 1.8s ease-in-out infinite;
+  background: #ff7576;
 }
 
 .operationProgressLabel {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   color: #6b7280;
   font-size: 12px !important;
   line-height: 16px !important;
 }
 
-.operationProgressLabel svg {
-  width: 14px;
-  height: 14px;
-  color: #5da9b2;
+.operationSubmittingButton {
+  border-color: #ff7576 !important;
+  background: #ff7576 !important;
+  color: #ffffff !important;
+  opacity: 0.6 !important;
+  box-shadow: none !important;
 }
 
 .operationDebugBox {
@@ -2563,6 +2526,590 @@
   color: #6b7280;
   text-align: center;
 }
+
+/* Figma 801:215 - Admin User Detail. Keep this surface independent from the legacy admin table styles. */
+.usersPage {
+  gap: 0;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.usersLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 692px) minmax(0, 420px);
+  gap: 20px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.usersListColumn,
+.usersDetailColumn {
+  min-width: 0;
+  min-height: 0;
+}
+
+.usersListColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.usersFilters {
+  display: grid;
+  grid-template-columns: 187px 107px 107px 191px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  height: 32px;
+}
+
+.usersSearch,
+.usersSelect,
+.usersDateFilter {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 32px;
+  border-radius: 8px;
+  background: #f4f6f5;
+}
+
+.usersSearch {
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.usersSearch svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: #6b7280;
+  stroke-width: 2;
+}
+
+.usersSearch input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #333333;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.usersSearch input::placeholder {
+  color: #6b7280;
+  opacity: 1;
+}
+
+.usersSelect,
+.usersDateFilter {
+  position: relative;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #f4f6f5;
+  background: #ffffff;
+}
+
+.usersSelect select {
+  width: 100%;
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #333333;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.usersSelect > svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  color: #333333;
+  pointer-events: none;
+}
+
+.usersDateFilter {
+  justify-content: space-between;
+  color: #333333;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.usersDateFilter span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usersDateFilter svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  color: #6b7280;
+}
+
+.usersResetFilter {
+  justify-self: end;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #c79654;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.usersTable {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 24px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.usersTableHeader,
+.usersTableRow {
+  display: grid;
+  grid-template-columns: 122px 90px 90px 102px 102px 122px 64px;
+  width: 100%;
+}
+
+.usersTableHeader {
+  height: 38px;
+  align-items: center;
+  background: #f4f6f5;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+}
+
+.usersTableHeader > span {
+  padding-left: 12px;
+}
+
+.usersTableRow {
+  height: 60px;
+  align-items: center;
+  border-bottom: 1px solid #f4f6f5;
+  background: #ffffff;
+  color: #333333;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.usersTableRow:hover,
+.usersTableRowSelected {
+  background: rgba(255, 117, 118, 0.035);
+}
+
+.usersTableRowMuted {
+  background: #f4f6f5;
+}
+
+.usersTableRow > * {
+  min-width: 0;
+  padding-left: 14px;
+}
+
+.usersTableRow > strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userIdCell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.userIdCell code {
+  overflow: hidden;
+  color: #333333;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userIdCell button,
+.userRowMenu button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.userIdCell button svg {
+  width: 12px;
+  height: 12px;
+}
+
+.userEmailCell {
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.userTagCell {
+  display: flex;
+  align-items: center;
+}
+
+.userStatusTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 13px;
+  white-space: nowrap;
+}
+
+.userRoleadmin {
+  background: rgba(236, 204, 255, 0.08);
+  color: #b58cc4;
+}
+
+.userRoleoperator {
+  background: rgba(255, 246, 226, 0.8);
+  color: #c79654;
+}
+
+.userRoleuser,
+.userStatusdisabled {
+  background: #f4f6f5;
+  color: #6b7280;
+}
+
+.userStatusactive {
+  background: rgba(166, 217, 151, 0.12);
+  color: #89b27c;
+}
+
+.userStatuslocked {
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
+}
+
+.activeSessionsCell {
+  color: #333333;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.userRowMenu {
+  display: flex;
+  justify-content: center;
+  padding-left: 0 !important;
+}
+
+.userRowMenu button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.userActionMenu {
+  min-width: 148px;
+}
+
+.usersTableEmpty {
+  display: grid;
+  height: 60px;
+  place-items: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.usersPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 38px;
+  margin-top: 24px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.usersPagination > div {
+  display: flex;
+  gap: 8px;
+}
+
+.usersPagination button {
+  height: 26px;
+  padding: 6px 12px;
+  border: 1px solid #f4f6f5;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 14px;
+  cursor: pointer;
+}
+
+.usersPagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.usersPagination .usersPageActive {
+  border-color: #fff6e2;
+  background: #fff6e2;
+  color: #ffffff;
+}
+
+.usersDetailColumn {
+  height: 100%;
+}
+
+.userDetailCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 20px;
+  overflow: hidden;
+  border-radius: 16px !important;
+  border: 1px solid #f4f6f5;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.userDetailTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 22px;
+  color: #333333;
+}
+
+.userDetailTitle strong {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 22px;
+}
+
+.userDetailTitle button {
+  display: grid;
+  width: 20px;
+  height: 22px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.userDetailTitle button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.userDetailIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 56px;
+  margin-top: 20px;
+}
+
+.userDetailAvatar {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #f1e4e8;
+  color: #b97984;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.userDetailAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.userDetailName {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.userDetailName strong {
+  overflow: hidden;
+  color: #333333;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userDetailName span {
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userDetailTabsRoot {
+  width: 100%;
+  min-width: 0;
+  margin-top: 20px;
+}
+
+.userDetailTabsList {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  height: 35px;
+  gap: 8px;
+  overflow-x: hidden;
+  border-bottom: 1px solid #f4f6f5;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-width: none;
+}
+
+.userDetailTabsList button {
+  height: 34px;
+  padding: 8px 12px;
+  border-radius: 0;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.userDetailTabsList button[data-state='active'] {
+  background: transparent;
+  color: #c79654;
+  box-shadow: inset 0 -2px #fff6e2;
+  font-weight: 700;
+}
+
+.userDetailPanel {
+  width: 100%;
+  min-width: 0;
+  margin-top: 20px;
+}
+
+.userDetailPanel .detailSectionHeading {
+  display: none;
+}
+
+.userDetailActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 20px;
+  padding-top: 20px;
+}
+
+.userDetailActions button {
+  width: 100%;
+  height: 40px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+  box-shadow: none;
+}
+
+.userCredentialButton {
+  border: 1px solid #f4f6f5 !important;
+}
+
+.userRevokeButton {
+  border: 1px solid #ff7576 !important;
+  color: #d67676 !important;
+}
+
+.userDetailAnnotation {
+  position: absolute;
+  top: 454px;
+  left: 19px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 380px;
+  height: 220px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid #e3ebe5;
+  border-radius: 12px;
+  background: #fcfcfa;
+  color: #59665e;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.userDetailAnnotation p {
+  margin: 0;
+}
+
+.userDetailAnnotation p:first-child {
+  color: #292e2b;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.userDetailAnnotationWarning {
+  color: #ad5745;
+}
+
+.userDetailAnnotationMuted {
+  color: #858c85;
+}
 .emptyState svg {
   width: 24px;
   height: 24px;
@@ -2576,133 +3123,6 @@
 .detailEmptyState span {
   font-size: 12px;
   line-height: 18px;
-}
-.userDetailCard {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-  padding: 20px;
-}
-.userDetailHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-.userDetailIdentity {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.userDetailAvatar {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(255, 117, 118, 0.08);
-  color: #d67676;
-  font-size: 16px;
-  font-weight: 900;
-}
-.userDetailName {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-.userDetailName strong {
-  overflow-wrap: anywhere;
-  color: #333333;
-  font-size: 16px;
-  line-height: 21px;
-}
-.userDetailName span {
-  overflow-wrap: anywhere;
-  color: #6b7280;
-  font-size: 12px;
-  line-height: 16px;
-}
-.userDetailBadges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-.userDetailMeta {
-  display: grid;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #f4f6f5;
-  color: #6b7280;
-  font-family: 'Space Mono', Consolas, monospace;
-  font-size: 11px;
-  line-height: 16px;
-}
-.userDetailMeta span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.userDetailMeta svg {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  color: #5da9b2;
-}
-.userDetailTabsRoot {
-  min-width: 0;
-}
-.userDetailTabsList {
-  display: flex;
-  width: 100%;
-  height: auto;
-  justify-content: flex-start;
-  gap: 4px;
-  overflow-x: auto;
-  border-bottom: 1px solid #f4f6f5;
-  border-radius: 0;
-  background: transparent;
-  scrollbar-width: none;
-}
-.userDetailTabsList::-webkit-scrollbar {
-  display: none;
-}
-.userDetailTabsList button {
-  min-height: 34px;
-  padding: 8px 10px;
-  border-radius: 6px 6px 0 0;
-  color: #6b7280;
-  font-size: 12px;
-  font-weight: 700;
-}
-.userDetailTabsList button[data-state='active'] {
-  background: rgba(255, 117, 118, 0.08);
-  color: #d67676;
-  box-shadow: inset 0 -2px #ff7576;
-}
-.userDetailPanel {
-  min-width: 0;
-  margin-top: 14px;
-}
-.detailSectionHeading {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-  color: #333333;
-  font-size: 13px;
-  line-height: 18px;
-}
-.detailSectionHeading svg {
-  width: 15px;
-  height: 15px;
-  color: #5da9b2;
 }
 .detailEmptyState {
   min-height: 112px;

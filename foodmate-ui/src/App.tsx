@@ -17,8 +17,17 @@ const KnowledgePage = lazy(() =>
   import('./pages/KnowledgePage/KnowledgePage').then((module) => ({ default: module.KnowledgePage })),
 );
 const LoginPage = lazy(() => import('./pages/LoginPage/LoginPage').then((module) => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() =>
+  import('./pages/RegisterPage/RegisterPage').then((module) => ({ default: module.RegisterPage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import('./pages/ForgotPasswordPage/ForgotPasswordPage').then((module) => ({ default: module.ForgotPasswordPage })),
+);
 const ResetPasswordPage = lazy(() =>
   import('./pages/ResetPasswordPage/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })),
+);
+const TokenStatusPage = lazy(() =>
+  import('./pages/TokenStatusPage/TokenStatusPage').then((module) => ({ default: module.TokenStatusPage })),
 );
 const ProfilePage = lazy(() =>
   import('./pages/ProfilePage/ProfilePage').then((module) => ({ default: module.ProfilePage })),
@@ -40,7 +49,10 @@ export function App() {
         <Route path="/planning" element={<PlanningPage />} />
         <Route path="/knowledge" element={<KnowledgePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/token-status" element={<TokenStatusPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/memories" element={<ProfilePage />} />
         <Route path="/profile/security" element={<ProfilePage />} />

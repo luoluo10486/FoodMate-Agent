@@ -65,7 +65,7 @@ describe('Admin tool registry', () => {
 
     expect(screen.getByRole('dialog', { name: '确认停用工具' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '确认停用' }));
-    expect(screen.getByRole('dialog', { name: '正在提交操作' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: '确认停用工具' })).toBeInTheDocument();
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('操作成功'), { timeout: 1200 });
     expect(screen.getByRole('alert')).toHaveTextContent('nutrition_lookup');

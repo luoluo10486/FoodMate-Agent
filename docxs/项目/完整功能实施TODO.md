@@ -4,7 +4,7 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## 当前复核状态（2026-08-12）
+## 当前复核状态（2026-08-13）
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
 
@@ -16,8 +16,9 @@
 - [x] Python deterministic Runtime、Eval Gate、Proposal/Result 回注和 Java Tool Gateway 的本地真实跨进程链路已通过；生产 RAG 和完整业务 Tool 仍不属于本轮已完成范围。
 - [ ] 生产级长压、多实例吞吐、P95/P99、进程级 Redis/RocketMQ/PostgreSQL 故障恢复仍待执行。
 - [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
-- [ ] M1-5 尚未进入代码改造：已完成饮食记录、营养目录、分析、计划、确认、幂等和本地验证决策；实施口径见 [M1-5 核心饮食业务与写确认实施方案](./M1-5核心饮食业务与写确认实施方案.md)。
-- [ ] 当前没有历史 FoodMate 业务数据，允许直接修改 `food_logs` 基线结构；尚未执行新的 SQL。
+- [x] M1-5 第一切片已完成本地代码和真实 HTTP E2E：饮食记录创建/查询/删除/恢复，today/7d/30d 分析，计划校验/保存/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。
+- [x] 本地 PostgreSQL 已存在 V13/V14 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。当前 `nutrition_foods`/`nutrition_unit_conversions` 为 0 条，不代表营养目录已完成。
+- [ ] M1-5 仍有编辑接口、真实营养目录 seed、完整 `food_log_writer` Tool Gateway、拒绝/失败和更多确认操作待实现。
 
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
 
@@ -30,7 +31,7 @@
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
 | M1-4 | 本地闭环完成，生产收尾中 | 已具备受控模型适配、LangGraph 白名单图、独立 Eval/预算、Redis 准入、摘要 CAS、记忆候选、MQ Transport、Proposal/Result、浏览器 SSE 和跨进程恢复；生产长压、真实云稳定性、价格/账单审计和生产 Eval 治理仍未完成。 |
-| M1-5 | 决策已完成，代码待实现 | 先完成手工饮食记录真实闭环，再接营养分析、餐食计划/购物清单和 Agent 写确认；当前不把前端视觉页面当作业务完成。 |
+| M1-5 | 第一切片已完成，整体未完成 | 饮食记录基础读写、分析、计划基础流程和 `meal_plan.save_plan` 写确认已验证；真实营养目录、编辑、完整 Tool Gateway、更多确认状态和扩展 E2E 仍待完成。 |
 | M1-6 | 范围已收窄，代码待实现 | 当前只做本地 Actuator、基础 metrics、日志关联、双 JVM 压测和进程重启恢复；生产监控、部署、备份恢复和发布回滚后置。 |
 
 ## 2. 已确认的产品边界
@@ -189,12 +190,12 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 
 ### M1-5 核心饮食业务与工具确认
 
-- [ ] 先按实施方案直接调整 `food_logs`，新增 `food_log_items`、`nutrition_foods`、`nutrition_unit_conversions`、`approval_requests`；删除旧 `items_json/nutrition_json`，SQL 仍待人工执行。
-- [ ] 实现饮食记录创建、查询、聚合、编辑、删除、恢复与幂等键；编辑、删除、恢复使用 `revision`。
-- [ ] 实现基础营养分析报告，明确统计口径、无数据空态和非医疗免责声明。
-- [ ] 实现餐食计划校验、保存、查询、修改、删除、恢复和购物清单生成。
-- [ ] 建立写操作确认卡片、确认/拒绝/超时语义、审计记录和可重放结果。
-- [ ] 提供 `food_log_writer`、计划生成等最小 Java 工具，并由策略层校验用户、参数、风险和幂等。
+- [x] V13/V14 结构已落地并经本地只读校验确认：`food_logs`、`food_log_items`、`nutrition_foods`、`nutrition_unit_conversions`、`approval_requests`，以及 `operation_audits` 幂等字段和索引。
+- [x] 实现饮食记录创建、查询、删除、恢复与幂等键；删除/恢复使用 `revision`。编辑接口仍待实现。
+- [x] 实现 today/7d/30d 营养分析、覆盖率、不完整提示和非医疗免责声明；真实匹配目录数据仍待导入。
+- [x] 实现餐食计划创建、校验、保存和购物清单生成；查询/删除/恢复/修改接口仍待补齐。
+- [x] 实现 `meal_plan.save_plan` 的 Proposal -> Confirm -> Execute、过期/参数摘要校验、CAS 执行和审计重放。
+- [ ] 完整写确认状态机（拒绝、失败、superseded）及 `food_log_writer`/其他写操作 Tool Gateway 仍待实现。
 
 实施顺序：手工录入 -> 营养目录和确定性计算 -> 日报分析 -> 计划和购物清单 -> Agent Proposal/Confirm 复用同一 Java 写入用例。
 
@@ -202,7 +203,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 
 ### M1-6 审计、可观测性与核心部署
 
-- [ ] 记录认证、写工具调用、模型调用摘要、AgentRun、错误和管理员操作审计；M1-5 写入复用 `operation_audits`。
+- [ ] 完成 M1-6 范围内的统一审计覆盖；当前 M1-5 已写入 `operation_audits`，并验证 approval propose/confirm/execute 各 1 条成功审计。
 - [ ] 保留 Java Actuator liveness/readiness，增加本地可访问基础 metrics 和 request/trace/run 关联日志。
 - [ ] 本地运行两个 Java JVM，共享 PostgreSQL、Redis、RocketMQ，完成 P50/P95/P99、吞吐、错误率、积压和重复执行统计。
 - [ ] 完成 Java、Python、PostgreSQL、Redis、RocketMQ 重启及 Outbox/Inbox 重试、幂等和 SSE 恢复验证。

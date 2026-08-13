@@ -1,14 +1,22 @@
-import { Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  Info,
+  Leaf,
+  LoaderCircle,
+  LockKeyhole,
+  UserRound,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { notify } from '../../lib/notice';
-import { getLoginDefaults, login, register, requestPasswordReset } from '../../services/authService';
+import { getLoginDefaults, login } from '../../services/authService';
 import styles from './LoginPage.module.css';
-
-type AuthMode = 'login' | 'register' | 'forgot';
 
 type LoginValues = {
   username: string;
@@ -16,12 +24,24 @@ type LoginValues = {
   rememberMe: boolean;
 };
 
-type RegisterValues = {
-  username: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-};
+type LoginState =
+  | 'default'
+  | 'submitting'
+  | 'field-error'
+  | 'credential-error'
+  | 'account-locked'
+  | 'account-disabled'
+  | 'service-unavailable';
+
+const loginStates = new Set<LoginState>([
+  'default',
+  'submitting',
+  'field-error',
+  'credential-error',
+  'account-locked',
+  'account-disabled',
+  'service-unavailable',
+]);
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -32,10 +52,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function LoginBrand() {
+function LoginBrand({ state }: { state: LoginState }) {
   return (
     <div className={styles.loginBrand} data-node-id="647:234">
-      <span className={styles.logoPlaceholder} aria-hidden="true" data-node-id="660:212" />
+      {state === 'default' ? (
+        <span className={styles.logoPlaceholder} aria-hidden="true" data-node-id="660:212" />
+      ) : (
+        <span className={styles.loginMark} aria-hidden="true">
+          <Leaf />
+        </span>
+      )}
       <span className={styles.wordmark} data-node-id="647:236">
         <span>Food</span>
         <span>Mate</span>
@@ -46,21 +72,18 @@ function LoginBrand() {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const defaults = getLoginDefaults();
-  const [mode, setMode] = useState<AuthMode>('login');
+  const requestedState = searchParams.get('state') as LoginState | null;
+  const state = requestedState && loginStates.has(requestedState) ? requestedState : 'default';
   const [submitting, setSubmitting] = useState(false);
-  const [registerValues, setRegisterValues] = useState<RegisterValues>({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
+  const visualState: LoginState = state === 'default' && submitting ? 'submitting' : state;
   const [loginValues, setLoginValues] = useState<LoginValues>(defaults);
-  const [forgotEmail, setForgotEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (state !== 'default') return;
     setSubmitting(true);
     try {
       await login(loginValues);
@@ -72,204 +95,179 @@ export function LoginPage() {
     }
   };
 
-  const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (registerValues.password !== registerValues.confirmPassword) {
-      notify('两次密码不一致', 'error');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await register(registerValues);
-      navigate('/');
-    } catch (error) {
-      notify(error instanceof Error ? error.message : '注册失败', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleForgot = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSubmitting(true);
-    try {
-      await requestPasswordReset(forgotEmail);
-      notify('重置邮件已发送，请检查邮箱。', 'success');
-      setMode('login');
-    } catch (error) {
-      notify(error instanceof Error ? error.message : '密码重置请求失败', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const title = mode === 'login' ? '欢迎回来' : mode === 'register' ? '注册账号' : '找回密码';
-
   return (
-    <main className={styles.page}>
-      <div className={styles.mintDiagonal} aria-hidden="true" />
-      <section className={styles.card} aria-label={title}>
-        {mode !== 'login' ? (
-          <Button className={styles.backButton} variant="ghost" type="button" onClick={() => setMode('login')}>
-            返回登录
-          </Button>
-        ) : null}
+    <main className={`${styles.authPage} ${styles['authPage-login']}`}>
+      <div className={styles.authDiagonal} aria-hidden="true" />
+      <section className={styles.authCard} aria-label="欢迎回来">
         <div className={styles.brand}>
-          <LoginBrand />
+          <LoginBrand state={visualState} />
           <div className={styles.welcome}>
-            <p>{title}</p>
-            {mode === 'login' ? <span>让我们开始今天的营养管理</span> : null}
+            <p>欢迎回来</p>
+            <span>
+              {visualState === 'submitting'
+                ? '正在安全连接，请稍候'
+                : visualState === 'field-error'
+                  ? '请检查您填写的信息'
+                  : visualState === 'account-locked'
+                    ? '您的账号安全受到保护'
+                    : visualState === 'account-disabled'
+                      ? '账号状态发生变更'
+                      : visualState === 'service-unavailable'
+                        ? '服务器正在进行系统优化'
+                        : '让我们开始今天的营养管理'}
+            </span>
           </div>
         </div>
 
-        {mode === 'login' ? (
-          <form className={styles.form} onSubmit={handleLogin}>
-            <div className={styles.loginFields}>
-              <Field label="">
-                <Input
-                  className={styles.figmaInput}
-                  name="username"
-                  autoComplete="username"
-                  placeholder="邮箱地址"
-                  aria-label="邮箱地址"
-                  leadingIcon={<UserRound aria-hidden="true" />}
-                  value={loginValues.username}
-                  required
-                  onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
-                />
-              </Field>
-              <Field label="">
-                <Input
-                  className={styles.figmaInput}
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="密码"
-                  aria-label="密码"
-                  leadingIcon={<LockKeyhole aria-hidden="true" />}
-                  trailingAction={
-                    <button
-                      className={styles.passwordToggle}
-                      type="button"
-                      aria-label={showPassword ? '隐藏密码' : '显示密码'}
-                      onClick={() => setShowPassword((value) => !value)}
-                    >
-                      {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-                    </button>
-                  }
-                  value={loginValues.password}
-                  required
-                  onChange={(event) => setLoginValues((current) => ({ ...current, password: event.target.value }))}
-                />
-              </Field>
-              <div className={styles.options}>
-                <Button className={styles.forgotButton} variant="ghost" type="button" onClick={() => setMode('forgot')}>
-                  忘记密码？
-                </Button>
+        <form className={styles.form} onSubmit={handleLogin}>
+          {state === 'credential-error' ? (
+            <div className={`${styles.loginAlert} ${styles.loginAlertError}`} role="alert">
+              <AlertCircle aria-hidden="true" />
+              <strong>邮箱或密码错误，请重试</strong>
+            </div>
+          ) : null}
+          {state === 'account-locked' ? (
+            <div className={`${styles.loginAlert} ${styles.loginAlertWarning}`} role="alert">
+              <AlertTriangle aria-hidden="true" />
+              <div>
+                <strong>账号已锁定</strong>
+                <span>由于多次登录失败，你的账号已被暂时锁定。请 30 分钟后重试或联系客服。</span>
               </div>
             </div>
-            <Button className={styles.primaryAction} type="submit" disabled={submitting} data-node-id="647:251">
-              {submitting ? '登录中...' : '登录'}
-            </Button>
-          </form>
-        ) : null}
-
-        {mode === 'register' ? (
-          <form className={styles.form} onSubmit={handleRegister}>
-            <Field label="用户名">
+          ) : null}
+          {state === 'account-disabled' ? (
+            <div className={`${styles.loginAlert} ${styles.loginAlertError}`} role="alert">
+              <AlertCircle aria-hidden="true" />
+              <div>
+                <strong>账号已禁用</strong>
+                <span>你的账号已被管理员禁用。如有疑问，请联系客服支持。</span>
+                <button type="button" onClick={() => undefined}>
+                  联系客服
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {state === 'service-unavailable' ? (
+            <div className={`${styles.loginAlert} ${styles.loginAlertInfo}`} role="alert">
+              <Info aria-hidden="true" />
+              <div>
+                <strong>服务暂时不可用</strong>
+                <span>系统维护中，请稍后再试。</span>
+                <button type="button" onClick={() => window.location.reload()}>
+                  刷新页面
+                </button>
+              </div>
+            </div>
+          ) : null}
+          <div className={styles.loginFields}>
+            <Field label="">
               <Input
+                className={`${styles.figmaInput} ${state === 'field-error' ? styles.figmaInputError : ''}`}
                 name="username"
                 autoComplete="username"
-                placeholder="请输入用户名"
-                value={registerValues.username}
-                required
-                onChange={(event) => setRegisterValues((current) => ({ ...current, username: event.target.value }))}
-              />
-            </Field>
-            <Field label="邮箱">
-              <Input
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="请输入邮箱"
-                value={registerValues.email}
-                required
-                onChange={(event) => setRegisterValues((current) => ({ ...current, email: event.target.value }))}
-              />
-            </Field>
-            <Field label="密码">
-              <Input
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="请输入密码"
-                minLength={8}
-                value={registerValues.password}
-                required
-                onChange={(event) => setRegisterValues((current) => ({ ...current, password: event.target.value }))}
-              />
-            </Field>
-            <Field label="确认密码">
-              <Input
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                placeholder="请再次输入密码"
-                value={registerValues.confirmPassword}
-                required
-                onChange={(event) =>
-                  setRegisterValues((current) => ({ ...current, confirmPassword: event.target.value }))
+                placeholder={
+                  state === 'field-error'
+                    ? 'invalid-email'
+                    : state === 'credential-error'
+                      ? 'wrong@foodmate.com'
+                      : state === 'account-locked'
+                        ? 'locked@foodmate.com'
+                        : state === 'account-disabled'
+                          ? 'disabled@foodmate.com'
+                          : '邮箱地址'
                 }
-              />
-            </Field>
-            <Button className={styles.primaryAction} type="submit" disabled={submitting}>
-              {submitting ? '注册中...' : '注册'}
-            </Button>
-          </form>
-        ) : null}
-
-        {mode === 'forgot' ? (
-          <form className={styles.form} onSubmit={handleForgot}>
-            <Field label="邮箱">
-              <Input
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="请输入注册邮箱"
-                value={forgotEmail}
+                aria-label="邮箱地址"
+                leadingIcon={<UserRound aria-hidden="true" />}
+                value={loginValues.username}
                 required
-                onChange={(event) => setForgotEmail(event.target.value)}
+                onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
               />
+              {state === 'field-error' ? <span className={styles.loginFieldError}>请输入有效的邮箱地址</span> : null}
             </Field>
-            <Button className={styles.primaryAction} type="submit" disabled={submitting}>
-              {submitting ? '发送中...' : '发送重置邮件'}
-            </Button>
-          </form>
-        ) : null}
-
-        {mode === 'login' ? (
-          <div className={styles.actions}>
-            <div className={styles.divider} aria-hidden="true">
-              <span>或者</span>
-            </div>
-            <div className={styles.signupRow}>
-              <span className={styles.signupPrompt}>没有账号？</span>
+            <Field label="">
+              <Input
+                className={`${styles.figmaInput} ${state === 'field-error' ? styles.figmaInputError : ''}`}
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder={
+                  state === 'field-error'
+                    ? '密码'
+                    : state === 'credential-error' || state === 'account-locked' || state === 'account-disabled'
+                      ? '••••••••'
+                      : '密码'
+                }
+                aria-label="密码"
+                leadingIcon={<LockKeyhole aria-hidden="true" />}
+                trailingAction={
+                  <button
+                    className={styles.passwordToggle}
+                    type="button"
+                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                    onClick={() => setShowPassword((value) => !value)}
+                  >
+                    {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                  </button>
+                }
+                value={loginValues.password}
+                required
+                onChange={(event) => setLoginValues((current) => ({ ...current, password: event.target.value }))}
+              />
+              {state === 'field-error' ? <span className={styles.loginFieldError}>密码不能为空</span> : null}
+            </Field>
+            <div className={styles.options}>
               <Button
-                className={styles.signupButton}
-                variant="outline"
+                className={styles.forgotButton}
+                variant="ghost"
                 type="button"
-                onClick={() => setMode('register')}
+                onClick={() => navigate('/forgot-password')}
               >
-                注册
+                忘记密码？
               </Button>
             </div>
           </div>
-        ) : null}
-        {mode !== 'login' ? (
-          <span className={styles.note}>
-            {import.meta.env.VITE_AGENT_MODE === 'real' ? '当前连接真实服务' : '当前为前端 mock 流程'}
-          </span>
-        ) : null}
+          <Button
+            className={`${styles.primaryAction} ${['submitting', 'account-locked', 'account-disabled', 'service-unavailable'].includes(visualState) ? styles.primaryActionDisabled : ''}`}
+            type="submit"
+            disabled={
+              submitting ||
+              ['submitting', 'account-locked', 'account-disabled', 'service-unavailable'].includes(visualState)
+            }
+            data-node-id="647:251"
+          >
+            {visualState === 'submitting' ? (
+              <>
+                <LoaderCircle className={styles.loginSpinner} aria-hidden="true" />
+                登录中...
+              </>
+            ) : visualState === 'account-locked' ? (
+              '登录已禁用'
+            ) : visualState === 'account-disabled' ? (
+              '账号不可用'
+            ) : visualState === 'service-unavailable' ? (
+              '系统维护中'
+            ) : (
+              '登录'
+            )}
+          </Button>
+        </form>
+
+        <div className={styles.actions}>
+          <div className={styles.divider} aria-hidden="true">
+            <span>或者</span>
+          </div>
+          <div className={styles.signupRow}>
+            <span className={styles.signupPrompt}>没有账号？</span>
+            <Button
+              className={styles.signupButton}
+              variant="outline"
+              type="button"
+              onClick={() => navigate('/register')}
+            >
+              注册
+            </Button>
+          </div>
+        </div>
       </section>
     </main>
   );

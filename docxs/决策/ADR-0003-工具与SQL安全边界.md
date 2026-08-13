@@ -25,7 +25,7 @@ Python Runtime 只能发送 ToolProposal 或 SqlProposal，不能直接调用业
 
 Java 已实现本地 Proposal consumer、只读 SQL Guard、结果脱敏/审计、幂等 Inbox 和 Result producer；Python 只生成 Proposal 并处理拒绝、超时、重放和失败结果。完整业务 Tool Registry、写工具确认链路、生产 SQL 场景和更广泛的攻击回归仍未完成。
 
-M1-5 进一步确定：`food_log_writer` 的确认事实使用 `approval_requests`，手工保存和 Agent 提案复用同一 Java application 写入用例；确认、业务写入、ToolResult 和 `operation_audits` 必须在同一事务完成。该链路当前仍待实现。
+M1-5 进一步确定：`food_log_writer` 的确认事实使用 `approval_requests`，手工保存和 Agent 提案复用同一 Java application 写入用例；确认、业务写入、ToolResult 和 `operation_audits` 必须在同一事务完成。当前已实现 `meal_plan.save_plan` 的 Proposal -> Confirm -> Execute 第一切片并验证审计重放；完整 `food_log_writer`、拒绝/失败等状态和更广泛工具调用仍待实现。
 
 ## 约束
 

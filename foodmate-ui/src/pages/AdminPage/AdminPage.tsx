@@ -21,7 +21,7 @@ import type { AdminActionPayload, AdminOperationError, AdminOperationState, Admi
 const defaultOperationError: AdminOperationError = {
   code: 'REGISTRY_TIMEOUT_504',
   requestId: 'req-foodmate-9082ac918',
-  message: '管理服务未能在规定时间内完成请求，请检查服务状态后重试。',
+  message: '无法停用工具：服务端超时 (GATEWAY_TIMEOUT)',
 };
 
 function appendOperationAudit(
@@ -135,11 +135,11 @@ export function AdminPage() {
       const fallback =
         targetType === 'tool'
           ? defaultOperationError
-          : {
-              code: 'ADMIN_OPERATION_FAILED',
-              requestId: 'req_admin_operation_failed',
-              message: '管理操作未完成，请检查服务状态后重试。',
-            };
+              : {
+                code: 'ADMIN_OPERATION_FAILED',
+                requestId: 'req_admin_operation_failed',
+                message: '操作未完成，请检查服务状态后重试。',
+              };
       const failedCode = typeof candidate.code === 'string' ? candidate.code : fallback.code;
       const failedRequestId =
         typeof candidate.requestId === 'string'
@@ -233,6 +233,15 @@ export function AdminPage() {
         </div>
       </aside>
       <main className={styles.adminMain}>
+        <AdminOperationStatus
+          status={operationStatus}
+          action={pendingAction}
+          error={operationError}
+          onConfirm={() => void executePendingAction()}
+          onCancel={dismissOperation}
+          onRetry={() => void executePendingAction()}
+          onDismiss={dismissOperation}
+        />
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
             <strong>
@@ -242,11 +251,13 @@ export function AdminPage() {
                   ? '工具注册表'
                   : isDeletedRoute
                     ? '删除资源管理'
-                    : sectionKey === 'audit'
-                      ? '操作审计'
-                      : '管理控制台'}
+                    : sectionKey === 'users'
+                      ? '用户管理'
+                      : sectionKey === 'audit'
+                        ? '操作审计'
+                        : '管理控制台'}
             </strong>
-            {sectionKey === 'overview' || isRegistryRoute ? (
+            {sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
               <span className={styles.envBadge}>生产环境</span>
             ) : isDeletedRoute ? (
               <span className={styles.securityBadge}>审计存档区</span>
@@ -258,9 +269,11 @@ export function AdminPage() {
                 ? '服务节点：healthy-cluster-0'
                 : isDeletedRoute
                   ? '存档保留时长：90天安全窗口'
-                  : sectionKey === 'audit'
-                    ? '审计记录只读'
-                    : '数据刷新：刚刚'}
+                  : sectionKey === 'users'
+                    ? '刷新时间：刚刚'
+                    : sectionKey === 'audit'
+                      ? '审计记录只读'
+                      : '数据刷新：刚刚'}
             </span>
             <Button
               className={styles.topbarRefresh}
@@ -270,28 +283,21 @@ export function AdminPage() {
                 ? '更新状态'
                 : isDeletedRoute
                   ? '合规性审计'
-                  : sectionKey === 'audit'
-                    ? '刷新审计'
-                    : '刷新数据'}
+                  : sectionKey === 'users'
+                    ? '刷新'
+                    : sectionKey === 'audit'
+                      ? '刷新审计'
+                      : '刷新数据'}
             </Button>
           </div>
         </header>
-        <div className={`${styles.page} fm-enter`}>
+        <div className={`${styles.page} ${sectionKey === 'users' ? styles.usersPage : ''} fm-enter`}>
           {notice ? (
             <div className={styles.notice} role="status">
               {notice}
             </div>
           ) : null}
-          <AdminOperationStatus
-            status={operationStatus}
-            action={pendingAction}
-            error={operationError}
-            onConfirm={() => void executePendingAction()}
-            onCancel={dismissOperation}
-            onRetry={() => void executePendingAction()}
-            onDismiss={dismissOperation}
-          />
-          {sectionKey === 'overview' || isRegistryRoute || isDeletedRoute ? null : (
+          {sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute || isDeletedRoute ? null : (
             <AdminHeader sectionKey={sectionKey} />
           )}
           {renderSection(sectionKey, requestAdminAction, refreshNonce, operationStatus)}

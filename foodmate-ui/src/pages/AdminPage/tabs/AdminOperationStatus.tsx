@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertTriangle, CheckCircle2, Info, LoaderCircle, RefreshCw, XCircle } from 'lucide-react';
+import { AlertTriangle, Info, LoaderCircle, RefreshCw, XCircle } from 'lucide-react';
 import styles from '../AdminPage.module.css';
 import type { AdminActionPayload, AdminOperationError, AdminOperationState } from './types';
 
@@ -52,28 +52,20 @@ export function AdminOperationStatus({
   if (status === 'no-permission') {
     return (
       <Alert className={`${styles.operationBanner} ${styles.operationPermissionBanner}`}>
-        <AlertTriangle aria-hidden="true" />
-        <div>
-          <AlertTitle>无权限执行该操作</AlertTitle>
-          <AlertDescription>当前账号为 operator，只读权限不能执行管理写操作。</AlertDescription>
-        </div>
+        <Info aria-hidden="true" />
+        <span>当前角色为 Operator，无写操作权限</span>
       </Alert>
     );
   }
 
   if (status === 'success') {
+    const resultVerb = action?.action === '停用工具' ? '停用' : '启用';
     return (
       <Alert className={`${styles.operationBanner} ${styles.operationSuccessBanner}`}>
-        <CheckCircle2 aria-hidden="true" />
-        <div>
-          <AlertTitle>操作成功</AlertTitle>
-          <AlertDescription>
-            {action?.targetLabel} 已{action?.action.replace('工具', '') ?? '完成'}，审计记录已写入。
-          </AlertDescription>
-        </div>
-        <Button className={styles.operationBannerDismiss} variant="ghost" size="sm" onClick={onDismiss}>
-          关闭
-        </Button>
+        <Info aria-hidden="true" />
+        <span>
+          操作成功：工具 {action?.targetLabel} 已成功{resultVerb}
+        </span>
       </Alert>
     );
   }
@@ -127,10 +119,10 @@ export function AdminOperationStatus({
           aria-describedby="operation-submitting-description"
         >
           <DialogHeader className={styles.operationDialogHeader}>
-            <span className={`${styles.operationIconWrapper} ${styles.operationInfoIcon}`}>
-              <LoaderCircle className={styles.operationSpinner} aria-hidden="true" />
+            <span className={`${styles.operationIconWrapper} ${styles.operationWarningIcon}`}>
+              <AlertTriangle aria-hidden="true" />
             </span>
-            <DialogTitle>正在提交操作</DialogTitle>
+            <DialogTitle>确认{action?.action}</DialogTitle>
           </DialogHeader>
           <DialogDescription asChild id="operation-submitting-description" className={styles.operationDialogBody}>
             <div>
@@ -140,11 +132,18 @@ export function AdminOperationStatus({
               <div className={styles.operationProgressTrack} aria-label="操作提交进度">
                 <span className={styles.operationProgressValue} />
               </div>
-              <p className={styles.operationProgressLabel}>
-                <Info aria-hidden="true" /> 正在写入操作审计记录
-              </p>
+              <p className={styles.operationProgressLabel}>正在通知关联的服务集群同步状态...</p>
             </div>
           </DialogDescription>
+          <DialogFooter className={styles.operationDialogActions}>
+            <Button variant="outline" disabled>
+              取消
+            </Button>
+            <Button className={styles.operationSubmittingButton} disabled>
+              <LoaderCircle className={styles.operationSpinner} aria-hidden="true" />
+              提交中...
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     );
@@ -165,7 +164,10 @@ export function AdminOperationStatus({
         </DialogHeader>
         <DialogDescription asChild id="operation-failed-description" className={styles.operationDialogBody}>
           <div>
-            <p>{error?.message ?? '管理操作未完成，请检查服务状态后重试。'}</p>
+            <p>{error?.message ?? '操作未完成，请检查服务状态后重试。'}</p>
+            <p className={styles.operationDialogMuted}>
+              请求发送后，healthy-cluster-0 节点未能及时返回响应。当前配置未改变，请稍后重试。
+            </p>
             <div className={styles.operationDebugBox}>
               <span>ERROR_CODE: {error?.code ?? 'REGISTRY_TIMEOUT_504'}</span>
               <span>REQUEST_ID: {error?.requestId ?? 'req-foodmate-9082ac918'}</span>

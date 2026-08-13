@@ -51,8 +51,9 @@ describe('AdminOperationStatus', () => {
         onDismiss={noop}
       />,
     );
-    expect(screen.getByRole('dialog', { name: '正在提交操作' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: '确认停用工具' })).toBeInTheDocument();
     expect(screen.getByLabelText('操作提交进度')).toBeInTheDocument();
+    expect(screen.getByText('正在通知关联的服务集群同步状态...')).toBeInTheDocument();
 
     rerender(
       <AdminOperationStatus
@@ -78,7 +79,7 @@ describe('AdminOperationStatus', () => {
     const user = userEvent.setup();
     const { rerender } = renderStatus('no-permission');
 
-    expect(screen.getByRole('alert')).toHaveTextContent('operator');
+    expect(screen.getByRole('alert')).toHaveTextContent('Operator');
     rerender(
       <AdminOperationStatus
         status="success"
@@ -90,7 +91,6 @@ describe('AdminOperationStatus', () => {
       />,
     );
     expect(screen.getByRole('alert')).toHaveTextContent('操作成功');
-    await user.click(screen.getByRole('button', { name: '关闭' }));
-    expect(noop).toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('操作成功：工具 nutrition_lookup 已成功停用');
   });
 });

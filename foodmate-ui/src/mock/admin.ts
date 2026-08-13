@@ -213,6 +213,14 @@ export const adminUserRows = [
 
 export const adminUserSessionRows = [
   {
+    key: 'figma-session-1',
+    userId: 'usr_098a1',
+    device: 'Chrome / Windows',
+    ip: '10.0.8.12',
+    expiresAt: '2026-07-04 15:40',
+    status: 'active',
+  },
+  {
     key: 'session-1',
     userId: 'user_10001',
     device: 'Chrome / Windows',
@@ -239,6 +247,15 @@ export const adminUserSessionRows = [
 ];
 
 export const adminUserBusinessSessionRows = [
+  {
+    key: 'figma-business-session-1',
+    userId: 'usr_098a1',
+    sessionId: 'session_keto_418',
+    type: 'meal_plan',
+    title: 'Keto meal planning',
+    status: 'active',
+    lastActivityAt: 'Today, 10:18 AM',
+  },
   {
     key: 'business-session-1',
     userId: 'user_10001',
@@ -269,6 +286,15 @@ export const adminUserBusinessSessionRows = [
 ];
 
 export const adminUserOperationHistoryRows = [
+  {
+    key: 'figma-user-history-1',
+    userId: 'usr_098a1',
+    action: 'LOGIN',
+    actor: 'usr_098a1',
+    result: 'success',
+    requestId: 'req_login_098a1',
+    createdAt: 'Today, 10:24 AM',
+  },
   {
     key: 'user-history-1',
     userId: 'user_10001',
