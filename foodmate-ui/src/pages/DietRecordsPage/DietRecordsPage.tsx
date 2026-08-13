@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AlertTriangle, ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -83,6 +83,14 @@ const metrics = [
   { label: '脂肪目标', value: '44', unit: '/ 70 g', percentage: 62, tone: 'red' },
 ] as const;
 
+const emptyMetrics = metrics.map((metric) => ({ ...metric, value: '0', percentage: 0 }));
+
+type RecordsState = 'default' | 'loading' | 'empty' | 'error';
+
+function getRecordsState(value: string | null): RecordsState {
+  return value === 'loading' || value === 'empty' || value === 'error' ? value : 'default';
+}
+
 function formatDateLabel(date: Date) {
   const isInitialDate = date.getTime() === initialDate.getTime();
   return isInitialDate ? '今天，3月14日' : `${date.getMonth() + 1}月${date.getDate()}日`;
@@ -105,6 +113,8 @@ function ProgressRing({ percentage, tone }: { percentage: number; tone: (typeof 
 
 export function DietRecordsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const recordsState = getRecordsState(searchParams.get('state'));
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [view, setView] = useState<'day' | 'week'>('day');
   const [meals, setMeals] = useState<MealSection[]>(initialMeals);
@@ -161,6 +171,13 @@ export function DietRecordsPage() {
     setNotice(`${foodNameToRemove} 已从当前记录移除。`);
   };
 
+  const reloadRecords = () => {
+    setSearchParams({ view: 'records' });
+    setNotice('正在重新加载饮食记录。');
+  };
+
+  const recordMetrics = recordsState === 'empty' ? emptyMetrics : metrics;
+
   return (
     <WorkspaceLayout activeModule="records">
       <div className={`${styles.page} fm-enter`}>
@@ -211,96 +228,159 @@ export function DietRecordsPage() {
             </div>
           </header>
 
-          <section className={styles.metrics} aria-label="营养指标">
-            {metrics.map((metric) => (
-              <article className={styles.metricCard} key={metric.label}>
-                <div className={styles.metricCopy}>
-                  <span>{metric.label}</span>
-                  <div>
-                    <strong>{metric.value}</strong>
-                    <small>{metric.unit}</small>
+          {recordsState === 'loading' ? (
+            <section className={styles.loadingContent} aria-label="饮食记录加载中" aria-busy="true">
+              <div className={styles.loadingMetrics}>
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div className={styles.loadingMetric} key={index}>
+                    <span />
+                    <strong />
+                    <i />
                   </div>
+                ))}
+              </div>
+              <div className={styles.loadingMeal}>
+                <div className={styles.loadingMealHeader}>
+                  <span />
+                  <i />
                 </div>
-                <ProgressRing percentage={metric.percentage} tone={metric.tone} />
-              </article>
-            ))}
-          </section>
-
-          <section className={styles.meals} aria-label="餐次记录">
-            {meals.map((meal) => (
-              <article className={styles.mealCard} key={meal.id}>
-                <header className={styles.mealHeader}>
-                  <div className={styles.mealHeading}>
-                    <h2>
-                      {meal.icon} {meal.title}
-                    </h2>
-                    <span>{meal.time}</span>
-                  </div>
-                  <button className={styles.addFoodButton} type="button" onClick={() => openFoodDialog(meal.id)}>
-                    + 添加食物
-                  </button>
-                </header>
-                <div className={styles.foodList}>
-                  {meal.items.map((item) => (
-                    <div className={styles.foodRow} key={item.id}>
-                      <div className={styles.foodName}>
-                        <strong>{item.name}</strong>
-                        <span className={item.status === 'confirmed' ? styles.confirmed : styles.pending}>
-                          {item.status === 'confirmed' ? '已确认' : '待确认'}
-                        </span>
-                      </div>
-                      <div className={styles.foodMeta}>
-                        <div className={styles.macroTags} aria-label="营养素">
-                          <span className={styles.carb}>{item.carbs}</span>
-                          <span className={styles.protein}>{item.protein}</span>
-                          <span className={styles.fat}>{item.fat}</span>
-                        </div>
-                        <button
-                          className={styles.removeButton}
-                          type="button"
-                          aria-label={`删除${item.name}`}
-                          title={`删除${item.name}`}
-                          onClick={() => removeFood(meal.id, item.id, item.name)}
-                        >
-                          <Trash2 aria-hidden="true" />
-                        </button>
+                <strong />
+              </div>
+              <div className={styles.loadingMeal}>
+                <div className={styles.loadingMealHeader}>
+                  <span />
+                  <i />
+                </div>
+                <strong />
+                <strong />
+              </div>
+            </section>
+          ) : recordsState === 'error' ? (
+            <section className={styles.statePanel} aria-label="饮食记录加载失败" role="alert">
+              <div className={`${styles.stateIcon} ${styles.stateIconError}`}>
+                <AlertTriangle aria-hidden="true" />
+              </div>
+              <div className={styles.stateCopy}>
+                <h2>饮食记录加载失败</h2>
+                <p>请检查网络连接后重试</p>
+              </div>
+              <Button className={styles.stateAction} onClick={reloadRecords}>
+                <RefreshCw aria-hidden="true" />
+                重新加载
+              </Button>
+            </section>
+          ) : (
+            <>
+              <section className={styles.metrics} aria-label="营养指标">
+                {recordMetrics.map((metric) => (
+                  <article className={styles.metricCard} key={metric.label}>
+                    <div className={styles.metricCopy}>
+                      <span>{metric.label}</span>
+                      <div>
+                        <strong>{metric.value}</strong>
+                        <small>{metric.unit}</small>
                       </div>
                     </div>
+                    <ProgressRing percentage={metric.percentage} tone={metric.tone} />
+                  </article>
+                ))}
+              </section>
+
+              {recordsState === 'empty' ? (
+                <section className={styles.statePanel} aria-label="今天还没有饮食记录">
+                  <div className={`${styles.stateIcon} ${styles.stateIconEmpty}`}>
+                    <Utensils aria-hidden="true" />
+                  </div>
+                  <div className={styles.stateCopy}>
+                    <h2>今天还没有饮食记录</h2>
+                    <p>点击下方按钮记录你的第一餐</p>
+                  </div>
+                  <Button className={styles.stateAction} onClick={() => openFoodDialog('breakfast')}>
+                    <Plus aria-hidden="true" />
+                    记录一餐
+                  </Button>
+                </section>
+              ) : (
+                <section className={styles.meals} aria-label="餐次记录">
+                  {meals.map((meal) => (
+                    <article className={styles.mealCard} key={meal.id}>
+                      <header className={styles.mealHeader}>
+                        <div className={styles.mealHeading}>
+                          <h2>
+                            {meal.icon} {meal.title}
+                          </h2>
+                          <span>{meal.time}</span>
+                        </div>
+                        <button className={styles.addFoodButton} type="button" onClick={() => openFoodDialog(meal.id)}>
+                          + 添加食物
+                        </button>
+                      </header>
+                      <div className={styles.foodList}>
+                        {meal.items.map((item) => (
+                          <div className={styles.foodRow} key={item.id}>
+                            <div className={styles.foodName}>
+                              <strong>{item.name}</strong>
+                              <span className={item.status === 'confirmed' ? styles.confirmed : styles.pending}>
+                                {item.status === 'confirmed' ? '已确认' : '待确认'}
+                              </span>
+                            </div>
+                            <div className={styles.foodMeta}>
+                              <div className={styles.macroTags} aria-label="营养素">
+                                <span className={styles.carb}>{item.carbs}</span>
+                                <span className={styles.protein}>{item.protein}</span>
+                                <span className={styles.fat}>{item.fat}</span>
+                              </div>
+                              <button
+                                className={styles.removeButton}
+                                type="button"
+                                aria-label={`删除${item.name}`}
+                                title={`删除${item.name}`}
+                                onClick={() => removeFood(meal.id, item.id, item.name)}
+                              >
+                                <Trash2 aria-hidden="true" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
                   ))}
-                </div>
-              </article>
-            ))}
-          </section>
+                </section>
+              )}
+            </>
+          )}
         </section>
 
-        <section className={styles.entryDetail} aria-label="记录详情">
-          <h2>记录详情 · 待确认记录可在这里补充后保存</h2>
-          <p>蓝莓燕麦粥 · 早餐 · 08:30 · 估算值</p>
-          <p>份量 350 | 单位 g | 热量 420 kcal | 蛋白质 18 g | 来源 USDA | 估算状态 待确认</p>
-          <div className={styles.entryActions}>
-            <button type="button" onClick={() => setNotice('已打开自然语言记录入口。')}>
-              记录一餐（自然语言）
-            </button>
-            <button type="button" onClick={() => openFoodDialog('breakfast')}>
-              编辑记录
-            </button>
-            <button type="button" onClick={() => setNotice('已复制到明天的记录草稿。')}>
-              复制到明天
-            </button>
-            <button type="button" onClick={() => navigate('/analysis')}>
-              分析当天
-            </button>
-            <button type="button" onClick={() => setNotice('待确认记录已标记为可软删除状态。')}>
-              软删除
-            </button>
-          </div>
-          <p className={styles.entryNote}>保存失败时保留草稿；已删除记录进入可恢复状态，不改变当天统计历史。</p>
-          {notice ? (
-            <p className={styles.notice} role="status" aria-live="polite">
-              {notice}
-            </p>
-          ) : null}
-        </section>
+        {recordsState === 'default' ? (
+          <section className={styles.entryDetail} aria-label="记录详情">
+            <h2>记录详情 · 待确认记录可在这里补充后保存</h2>
+            <p>蓝莓燕麦粥 · 早餐 · 08:30 · 估算值</p>
+            <p>份量 350 | 单位 g | 热量 420 kcal | 蛋白质 18 g | 来源 USDA | 估算状态 待确认</p>
+            <div className={styles.entryActions}>
+              <button type="button" onClick={() => setNotice('已打开自然语言记录入口。')}>
+                记录一餐（自然语言）
+              </button>
+              <button type="button" onClick={() => openFoodDialog('breakfast')}>
+                编辑记录
+              </button>
+              <button type="button" onClick={() => setNotice('已复制到明天的记录草稿。')}>
+                复制到明天
+              </button>
+              <button type="button" onClick={() => navigate('/analysis')}>
+                分析当天
+              </button>
+              <button type="button" onClick={() => setNotice('待确认记录已标记为可软删除状态。')}>
+                软删除
+              </button>
+            </div>
+            <p className={styles.entryNote}>保存失败时保留草稿；已删除记录进入可恢复状态，不改变当天统计历史。</p>
+            {notice ? (
+              <p className={styles.notice} role="status" aria-live="polite">
+                {notice}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
       </div>
 
       <Dialog open={Boolean(dialogMealId)} onOpenChange={(open) => !open && closeFoodDialog()}>

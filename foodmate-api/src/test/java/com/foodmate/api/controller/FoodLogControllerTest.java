@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -60,6 +61,28 @@ class FoodLogControllerTest {
                 .andExpect(jsonPath("$.data.items[0].nutrition_status", is("pending")));
 
         verify(foods).create(eq(7L), any(FoodLogService.CreateCommand.class));
+    }
+
+    @Test
+    void updatesFoodLogWithRevisionAndIdempotencyKey() throws Exception {
+        when(accounts.requireSessionUser("session-1")).thenReturn(user(7L));
+        when(foods.update(eq(7L), eq(100L), eq(1L), any(FoodLogService.UpdateCommand.class)))
+                .thenReturn(view());
+
+        mvc.perform(
+                        patch("/api/food-logs/100")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "session-1"))
+                                .param("revision", "1")
+                                .header("Idempotency-Key", "update-1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"meal_time\":\"2026-08-12T12:00:00Z\",\"meal_type\":\"lunch\",\"notes\":\"updated\",\"items\":[{\"raw_name\":\"rice\",\"amount\":100,\"unit\":\"g\"}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revision", is(1)));
+
+        verify(foods).update(eq(7L), eq(100L), eq(1L), any(FoodLogService.UpdateCommand.class));
     }
 
     private UserAccountService.UserRecord user(long id) {

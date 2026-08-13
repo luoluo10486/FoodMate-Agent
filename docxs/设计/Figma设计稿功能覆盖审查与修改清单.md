@@ -821,9 +821,9 @@
 ## 35. 2026-08-13 M1-5 业务页面与后端实施边界
 
 - [x] 已将饮食记录、摄入分析和餐食规划页面纳入 M1-5 实施顺序的前端状态展示范围；页面的 Default、Loading、Empty、Error、待确认和待估算状态属于交互契约。
-- [x] 已明确页面不能反推后端完成：上述表和第一切片已落地，但营养目录当前没有 seed 数据；编辑、完整 Tool Gateway 和更多确认状态仍需完成确定性业务验收。
+- [x] 已明确页面不能反推后端完成：上述表和第一切片已落地，饮食记录编辑已完成确定性 PostgreSQL HTTP 回归，但营养目录当前没有 seed 数据；完整 Tool Gateway 和更多确认状态仍需完成业务验收。
 - [x] 已明确本地优先边界：Figma 验收和前端浏览器 smoke 不代表 staging/production、Kubernetes、生产监控、数据库备份恢复或发布回滚已建立。
-- [x] M1-5 第一切片已完成本地后端联调；当前真实路径覆盖“手工饮食记录 -> 无目录时 pending -> 分析 -> 餐食计划/购物清单 -> `meal_plan.save_plan` Proposal/Confirm/Execute”。后续补真实目录匹配、编辑和完整 Tool Gateway，禁止用 mock 数据替代真实业务验收。
+- [x] M1-5 第一切片已完成本地后端联调；当前真实路径覆盖“手工饮食记录创建/编辑 -> 无目录时 pending -> 分析 -> 餐食计划/购物清单 -> `meal_plan.save_plan` Proposal/Confirm/Execute”。后续补真实目录匹配、完整 Tool Gateway 和更多确认状态，禁止用 mock 数据替代真实业务验收。
 
 ## 36. 2026-08-12 生产字体、前端像素差异和 iconfont 实体登记复核
 
@@ -838,7 +838,15 @@
 - [x] 已有后端接口继续按真实模式接入认证、个人资料、记忆、会话/消息、AgentRun SSE、取消、预算追加、checkpoint 恢复，以及 Admin 概览、工具状态和资源恢复。
 - [ ] 饮食记录、摄入分析、餐食规划已有本地 `@Profile("local")` Controller，但前端真实页面接入仍未完成；mock/空态不得伪造完整后端成功闭环。
 
-## 37. 2026-08-13 Figma 认证状态画板代码迁移
+## 37. 2026-08-13 Figma 餐食规划状态画板代码迁移与验收
+
+- [x] 已按 Figma `692:2256`、`692:2446`、`692:2542` 核对餐食规划 Loading、Empty、Error 画板，并分别对应 `/planning?state=loading|empty|error`。
+- [x] Loading 骨架、Empty 空态创建入口、Error 错误码/重试/返回工作台入口已在当前 `PlanningPage` 中具备；浏览器 `1440×1024` 检查无页面级横向溢出。
+- [x] Empty 创建按钮已实际进入 Agent 创建路径；Error 重新加载已实际恢复默认 `/planning`，不是静态文案检查。
+- [x] 三态 Figma/浏览器截图已登记到 `foodmate-ui/.qa/figma-pixel-acceptance/`；自动 diff 为 Loading `26.74% / RMSE 13.19`、Empty `16.98% / RMSE 16.88`、Error `17.81% / RMSE 16.50`，三项均为 `DIFF_REVIEW`。
+- [ ] 本节不代表真实计划生成、计划读取、冲突解决、购物清单持久化、后端任务闭环或 iconfont 实体资源登记完成；iconfont 仍为 `BLOCKED`。
+
+## 38. 2026-08-13 Figma 认证状态画板代码迁移
 
 本轮继续按已核实的 Figma 节点进行认证页面重构，颜色、字体、斜切背景、字段尺寸、按钮状态和异常文案均以设计稿为唯一视觉来源。
 
@@ -850,3 +858,21 @@
 - [ ] 新增页面与状态的 Figma 对照结果继续记为 `DIFF_REVIEW`，不得以人工截图接近替代像素结论；自动 diff 证据和截图路径见《Figma前端像素级验收报告》。
 - [ ] iconfont 实体包、CSS 映射、来源和许可证仍缺失，认证页的标准命令图标继续使用 Lucide；不创建虚构 glyph 或 Unicode 映射。
 - [ ] shadcn/ui 基础 Button/Input 已复用，但这只关闭认证页面代码边界；剩余用户业务页和管理端逐页迁移仍按 Figma 节点继续，不能宣称全量重构完成。
+
+## 39. 2026-08-13 Figma 餐食规划流程状态验收
+
+本轮补齐餐食规划流程的七个 Figma 状态映射。所有视觉值仍以对应 Figma 节点为唯一来源，状态 query 只用于前端验收 fixture。
+
+| 状态 | Figma 节点 | 前端入口 | 差异比例 | RMSE | 结果 |
+|---|---|---|---:|---:|---|
+| 向导步骤 1 | `692:2801` | `/planning?state=wizard-step1` | 40.49% | 21.93 | `DIFF_REVIEW` |
+| 向导步骤 2 | `692:2934` | `/planning?state=wizard-step2` | 42.86% | 22.56 | `DIFF_REVIEW` |
+| 向导步骤 3 | `692:3078` | `/planning?state=wizard-step3` | 43.15% | 23.92 | `DIFF_REVIEW` |
+| 冲突解决 | `692:3375` | `/planning?state=conflict` | 37.28% | 25.12 | `DIFF_REVIEW` |
+| 购物清单 | `692:3569` | `/planning?state=shopping-list` | 24.35% | 17.23 | `DIFF_REVIEW` |
+| 生成中 | `692:3746` | `/planning?state=generating` | 13.69% | 16.84 | `DIFF_REVIEW` |
+| 计划列表 | `692:2662` | `/planning?state=list` | 43.22% | 19.78 | `DIFF_REVIEW` |
+
+- [x] 浏览器实际确认向导 1→2→3、开始/取消生成、冲突方案应用、购物清单初始数量和导出反馈；七个状态在 `1440×1024` 下均无页面级横向溢出。
+- [x] Figma PNG、浏览器截图和 RGBA 归一化截图已登记到 `foodmate-ui/.qa/figma-pixel-acceptance/`。
+- [ ] 所有 diff 继续保留 `DIFF_REVIEW`，不以人工接近或 Figma 内部 Prototype 有效替代像素级 PASS；真实计划生成、冲突、购物清单持久化、任务接口和 iconfont 实体资源仍未关闭。

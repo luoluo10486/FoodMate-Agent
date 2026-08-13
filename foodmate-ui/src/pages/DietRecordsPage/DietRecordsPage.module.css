@@ -230,6 +230,183 @@
   gap: 20px;
 }
 
+.loadingContent {
+  display: grid;
+  gap: 20px;
+}
+
+.loadingMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.loadingMetric,
+.loadingMeal {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  background: var(--fm-surface);
+}
+
+.loadingMetric {
+  position: relative;
+  height: 80px;
+  padding: 16px;
+}
+
+.loadingMetric span,
+.loadingMetric strong,
+.loadingMetric i,
+.loadingMealHeader span,
+.loadingMealHeader i,
+.loadingMeal > strong {
+  display: block;
+  border-radius: 4px;
+  background: #f1f3f2;
+}
+
+.loadingMetric span {
+  width: 80px;
+  height: 12px;
+}
+
+.loadingMetric strong {
+  width: 120px;
+  height: 24px;
+}
+
+.loadingMetric i {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.loadingMeal {
+  min-height: 118px;
+  padding: 20px;
+}
+
+.loadingMeal:nth-child(3) {
+  min-height: 170px;
+}
+
+.loadingMealHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loadingMealHeader span {
+  width: 100px;
+  height: 20px;
+}
+
+.loadingMealHeader i {
+  width: 80px;
+  height: 16px;
+}
+
+.loadingMeal > strong {
+  width: 100%;
+  height: 40px;
+}
+
+.statePanel {
+  display: grid;
+  min-height: 344px;
+  align-content: center;
+  justify-items: center;
+  gap: 24px;
+  padding: 80px 40px;
+  border: 1px solid var(--fm-border);
+  border-radius: 24px;
+  background: var(--fm-surface);
+  text-align: center;
+}
+
+.stateIcon {
+  display: grid;
+  width: 80px;
+  height: 80px;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.stateIcon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.stateIconEmpty {
+  background: #fff6e2;
+  color: #c79654;
+}
+
+.stateIconError {
+  background: rgba(255, 117, 118, 0.08);
+  color: #ff7576;
+}
+
+.stateCopy {
+  display: grid;
+  gap: 8px;
+}
+
+.stateCopy h2,
+.stateCopy p {
+  margin: 0;
+}
+
+.stateCopy h2 {
+  color: var(--fm-ink);
+  font-family: var(--fm-font);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.stateCopy p {
+  color: var(--fm-muted);
+  font-family: var(--fm-font);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.stateAction {
+  height: 42px;
+  padding: 0 24px;
+  border-radius: 12px;
+  background: #c79654;
+  color: #ffffff;
+  font-family: var(--fm-font);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.stateAction:hover,
+.stateAction:focus-visible {
+  background: #b58447;
+}
+
+.stateAction svg {
+  width: 16px;
+  height: 16px;
+}
+
+.statePanel[role='alert'] .stateAction {
+  background: #333333;
+}
+
+.statePanel[role='alert'] .stateAction:hover,
+.statePanel[role='alert'] .stateAction:focus-visible {
+  background: #4b4b4b;
+}
+
 .mealCard {
   display: grid;
   gap: 12px;
@@ -461,7 +638,8 @@
 }
 
 @media (max-width: 1100px) {
-  .metrics {
+  .metrics,
+  .loadingMetrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -493,7 +671,8 @@
     flex: 1;
   }
 
-  .metrics {
+  .metrics,
+  .loadingMetrics {
     grid-template-columns: 1fr;
     gap: 10px;
   }
@@ -548,5 +727,10 @@
     min-height: 220px;
     margin: 0 16px;
     padding: 16px;
+  }
+
+  .statePanel {
+    min-height: 300px;
+    padding: 56px 20px;
   }
 }

@@ -53,6 +53,14 @@ public interface FoodLogMapper {
             "INSERT INTO food_logs(food_log_id,user_id,session_id,agent_run_id,meal_time,meal_type,notes,source,idempotency_key,revision,created_by,updated_by) VALUES (#{foodLogId},#{userId},#{sessionId},#{agentRunId},#{mealTime},#{mealType},#{notes},#{source},#{idempotencyKey},#{revision},#{userId},#{userId})")
     int insertFoodLog(FoodLogWrite write);
 
+    @Update(
+            "UPDATE food_logs SET meal_time=#{mealTime},meal_type=#{mealType},notes=#{notes},updated_at=CURRENT_TIMESTAMP,updated_by=#{userId},revision=revision+1 WHERE food_log_id=#{foodLogId} AND user_id=#{userId} AND revision=#{expectedRevision} AND is_deleted=FALSE")
+    int updateFoodLog(UpdateFoodLogWrite write);
+
+    @Update(
+            "UPDATE food_log_items SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,deleted_by=#{userId},updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE food_log_id=#{foodLogId} AND is_deleted=FALSE")
+    int softDeleteItems(@Param("userId") long userId, @Param("foodLogId") long foodLogId);
+
     @Insert(
             "INSERT INTO food_log_items(food_log_item_id,food_log_id,item_order,raw_name,nutrition_food_id,amount,unit,normalized_amount,normalized_unit,conversion_id,calories_kcal,protein_g,fat_g,carbs_g,nutrition_status,nutrition_source,nutrition_version,created_by,updated_by) VALUES (#{foodLogItemId},#{foodLogId},#{itemOrder},#{rawName},#{nutritionFoodId},#{amount},#{unit},#{normalizedAmount},#{normalizedUnit},#{conversionId},#{caloriesKcal},#{proteinG},#{fatG},#{carbsG},#{nutritionStatus},#{nutritionSource},#{nutritionVersion},#{userId},#{userId})")
     void insertItem(FoodLogItemWrite item);

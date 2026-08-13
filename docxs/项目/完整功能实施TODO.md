@@ -14,11 +14,13 @@
 - [x] Proposal Inbox claim lease：超过 5 分钟的 `claimed` 记录可回收，避免旧失败消息造成消费者饥饿。
 - [x] 浏览器真实登录、会话、消息、RocketMQ command/event、Java PostgreSQL Inbox、最终 SSE E2E 已通过；恢复入口也已完成一次 Python 重启后的跨进程验证。
 - [x] Python deterministic Runtime、Eval Gate、Proposal/Result 回注和 Java Tool Gateway 的本地真实跨进程链路已通过；生产 RAG 和完整业务 Tool 仍不属于本轮已完成范围。
-- [ ] 生产级长压、多实例吞吐、P95/P99、进程级 Redis/RocketMQ/PostgreSQL 故障恢复仍待执行。
+- [x] 本地双 JVM 子项已复验：`script/local/m1-6-dual-jvm.ps1` 启动 `18080/18081` 两个独立 Java JVM，共享 PostgreSQL 完成认证会话读取；最近一次 160/160 成功、错误率 0%、吞吐 51.538 req/s、P50/P95/P99 为 17.107/57.937/94.523 ms，并完成 Java 重启后的 PostgreSQL 回读。
+- [x] 本地依赖恢复子项已验证：Python readiness HTTP 200，Redis checkpoint、Redis、RocketMQ event/proposal producer、command/result consumer 均 ready；Redis AOF 探针在容器重启后保留，RocketMQ NameServer/Broker/Proxy 重启后 healthy 且 Topic/group 初始化成功。
+- [ ] 生产级长压、多实例 Agent 业务吞吐、队列积压/重复执行、PostgreSQL 进程重启，以及 Outbox/Inbox ACK 丢失、租约接管和 SSE 故障恢复仍待执行。
 - [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
 - [x] M1-5 第一切片已完成本地代码和真实 HTTP E2E：饮食记录创建/查询/删除/恢复，today/7d/30d 分析，计划校验/保存/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。
 - [x] 本地 PostgreSQL 已存在 V13/V14 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。当前 `nutrition_foods`/`nutrition_unit_conversions` 为 0 条，不代表营养目录已完成。
-- [ ] M1-5 仍有编辑接口、真实营养目录 seed、完整 `food_log_writer` Tool Gateway、拒绝/失败和更多确认操作待实现。
+- [ ] M1-5 仍有真实营养目录 seed、完整 `food_log_writer` Tool Gateway、拒绝/失败和更多确认操作待实现；饮食记录编辑代码和真实 PostgreSQL HTTP 回归已完成。
 
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
 
@@ -31,8 +33,8 @@
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
 | M1-4 | 本地闭环完成，生产收尾中 | 已具备受控模型适配、LangGraph 白名单图、独立 Eval/预算、Redis 准入、摘要 CAS、记忆候选、MQ Transport、Proposal/Result、浏览器 SSE 和跨进程恢复；生产长压、真实云稳定性、价格/账单审计和生产 Eval 治理仍未完成。 |
-| M1-5 | 第一切片已完成，整体未完成 | 饮食记录基础读写、分析、计划基础流程和 `meal_plan.save_plan` 写确认已验证；真实营养目录、编辑、完整 Tool Gateway、更多确认状态和扩展 E2E 仍待完成。 |
-| M1-6 | 范围已收窄，代码待实现 | 当前只做本地 Actuator、基础 metrics、日志关联、双 JVM 压测和进程重启恢复；生产监控、部署、备份恢复和发布回滚后置。 |
+| M1-5 | 第一切片已完成，整体未完成 | 饮食记录创建/查询/编辑/删除/恢复、分析、计划基础流程和 `meal_plan.save_plan` 写确认已验证；真实营养目录、完整 Tool Gateway、更多确认状态和扩展 E2E 仍待完成。 |
+| M1-6 | 本地子项已验证，整体未完成 | Actuator/metrics、双 JVM 有界 PostgreSQL 读取、Java 重启回读、Python readiness、Redis AOF 探针和 RocketMQ 重启恢复已验证；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵、队列统计和生产治理仍后置。 |
 
 ## 2. 已确认的产品边界
 
@@ -191,7 +193,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 ### M1-5 核心饮食业务与工具确认
 
 - [x] V13/V14 结构已落地并经本地只读校验确认：`food_logs`、`food_log_items`、`nutrition_foods`、`nutrition_unit_conversions`、`approval_requests`，以及 `operation_audits` 幂等字段和索引。
-- [x] 实现饮食记录创建、查询、删除、恢复与幂等键；删除/恢复使用 `revision`。编辑接口仍待实现。
+- [x] 实现饮食记录创建、查询、编辑、删除、恢复与幂等键；编辑/删除/恢复使用 `revision`，编辑采用整条内容替换并重新生成明细营养快照。
 - [x] 实现 today/7d/30d 营养分析、覆盖率、不完整提示和非医疗免责声明；真实匹配目录数据仍待导入。
 - [x] 实现餐食计划创建、校验、保存和购物清单生成；查询/删除/恢复/修改接口仍待补齐。
 - [x] 实现 `meal_plan.save_plan` 的 Proposal -> Confirm -> Execute、过期/参数摘要校验、CAS 执行和审计重放。
@@ -204,8 +206,9 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 ### M1-6 审计、可观测性与核心部署
 
 - [ ] 完成 M1-6 范围内的统一审计覆盖；当前 M1-5 已写入 `operation_audits`，并验证 approval propose/confirm/execute 各 1 条成功审计。
-- [ ] 保留 Java Actuator liveness/readiness，增加本地可访问基础 metrics 和 request/trace/run 关联日志。
-- [ ] 本地运行两个 Java JVM，共享 PostgreSQL、Redis、RocketMQ，完成 P50/P95/P99、吞吐、错误率、积压和重复执行统计。
+- [x] 保留 Java Actuator liveness/readiness，增加本地可访问基础 metrics，并补充 local 配置回归测试。
+- [x] 本地运行两个独立 Java JVM，共享 PostgreSQL，完成有界认证会话读取的 P50/P95/P99、吞吐和错误率统计；结果不外推生产容量。
+- [ ] 扩展到共享 Redis/RocketMQ、Agent 业务流量、队列积压和重复执行统计。
 - [ ] 完成 Java、Python、PostgreSQL、Redis、RocketMQ 重启及 Outbox/Inbox 重试、幂等和 SSE 恢复验证。
 
 后置范围：staging/production、Kubernetes、云部署、完整生产监控、数据库备份恢复、灾备切换和发布回滚流程。
@@ -325,7 +328,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 
 ### 仍未完成，不得提前勾选
 
-- [ ] Python 进程重启后的真实 checkpoint 恢复 E2E：代码入口和 Java Inbox 对账已完成，仍需在 Docker 中制造 Runtime 中断、重启 Python、调用恢复入口并验证新 attempt 重新经 RocketMQ 完成。
+- [x] Python Runtime 进程重启后的本地依赖恢复：重启后 readiness HTTP 200，Redis checkpoint 后端和 RocketMQ producer/consumer 全部 ready；本轮未制造带未完成业务 Run 的中断，因此不替代完整 checkpoint 业务恢复 E2E。
 - [ ] 生产级长压、P95/P99 容量结论、队列防饥饿和多实例业务流量验证；本地单机 Redis/单 Broker 基线不能替代生产结论。
 - [ ] 正式 SiliconFlow 价格表核准和账单抽样对账；代码已支持 `price_version`、成本记录和价格缺失 fail-closed，但未把任何价格表视为正式审计结论。
 - [ ] RAG 生产检索、完整 Tool/SQL 业务场景和真实云 Composer + Eval 长时间稳定性重复验证。

@@ -187,6 +187,81 @@ class FoodLogServiceImplTest {
     }
 
     @Test
+    void updateReplacesItemsAndIncrementsRevisionWithNutritionSnapshot() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findIdempotency(7L, "update-1")).thenReturn(null);
+        when(repository.findOwned(7L, 100L, false))
+                .thenReturn(snapshot(false, 1), snapshot(false, 2));
+        when(repository.reserveAudit(any())).thenReturn(1);
+        when(repository.updateFoodLog(any())).thenReturn(1);
+        when(repository.softDeleteItems(7L, 100L)).thenReturn(1);
+        when(repository.findNutritionFood("rice"))
+                .thenReturn(
+                        new FoodLogRepository.NutritionFoodLookup(
+                                900L,
+                                "rice",
+                                "g",
+                                new BigDecimal("130.0000"),
+                                new BigDecimal("2.7000"),
+                                new BigDecimal("0.3000"),
+                                new BigDecimal("28.2000"),
+                                "test-reviewed-source",
+                                "test-v1"));
+
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L));
+        FoodLogService.FoodLogView result =
+                service.update(
+                        7L,
+                        100L,
+                        1L,
+                        new FoodLogService.UpdateCommand(
+                                MEAL_TIME,
+                                MealType.LUNCH,
+                                "updated",
+                                "update-1",
+                                List.of(
+                                        new FoodLogService.ItemCommand(
+                                                "rice", new BigDecimal("100"), "g"))));
+
+        assertEquals(2L, result.revision());
+        verify(repository).updateFoodLog(any());
+        verify(repository).softDeleteItems(7L, 100L);
+        verify(repository).insertItem(any());
+        verify(repository).completeAudit(eq(7L), eq("update-1"), any());
+    }
+
+    @Test
+    void updateRejectsConcurrentRevisionBeforeReplacingItems() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findIdempotency(7L, "update-2")).thenReturn(null);
+        when(repository.findOwned(7L, 100L, false)).thenReturn(snapshot(false, 2));
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L));
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () ->
+                                service.update(
+                                        7L,
+                                        100L,
+                                        1L,
+                                        new FoodLogService.UpdateCommand(
+                                                MEAL_TIME,
+                                                MealType.LUNCH,
+                                                null,
+                                                "update-2",
+                                                List.of(
+                                                        new FoodLogService.ItemCommand(
+                                                                "rice",
+                                                                new BigDecimal("100"),
+                                                                "g")))));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        verify(repository, never()).updateFoodLog(any());
+        verify(repository, never()).softDeleteItems(any(Long.class), any(Long.class));
+    }
+
+    @Test
     void doesNotDeleteWhenConcurrentRequestIsStillPending() {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         when(repository.findIdempotency(7L, "delete-1"))

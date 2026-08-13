@@ -1,15 +1,15 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-12
+更新时间：2026-08-13
 
 ## 1. 结论
 
 本报告记录两类不同验收结果：
 
 1. Figma 文件内部结构、组件系统、Prototype 和画板截图回读已完成。
-2. 前端代码与 Figma 画板的自动化像素差异目前只覆盖 30 个已建立映射的页面/状态，30 个结果均为 `DIFF_REVIEW`，不能标记为像素级通过。
+2. 前端代码与 Figma 画板的自动化像素差异目前只覆盖 40 个已建立映射的页面/状态，40 个结果均为 `DIFF_REVIEW`，不能标记为像素级通过。
 
-因此当前不能宣称“Figma 105 张画板已全部完成前端像素级验收”。已经完成的是可复核的 Figma 全量结构验收和 30 个映射页面的差异证据收集。
+因此当前不能宣称“Figma 105 张画板已全部完成前端像素级验收”。已经完成的是可复核的 Figma 全量结构验收和 40 个映射页面/状态的差异证据收集。
 
 ## 2. Figma 文件内部验收
 
@@ -74,7 +74,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 ## 5. 未映射画板
 
-Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证补充共 30 个页面/状态具备独立前端截图映射，剩余 75 张画板记录为 `UNMAPPED`，包括但不限于：
+Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证和餐食规划状态补充共 40 个页面/状态具备独立前端截图映射，剩余 65 张画板记录为 `UNMAPPED`，包括但不限于：
 
 - 登录、注册、找回密码及其它账户状态画板。
 - 饮食记录、摄入分析、餐食规划的编辑、删除、失败、空态、确认和任务状态画板。
@@ -95,13 +95,47 @@ Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证补充�
 
 ## 7. 后续验收门槛
 
-1. 为剩余 75 张画板建立明确的路由、查询参数或状态 fixture 映射。
+1. 为剩余 65 张画板建立明确的路由、查询参数或状态 fixture 映射。
 2. 使用同一视口、同一 DPR、同一字体加载完成条件重新采集截图。
 3. 对每个映射页分别进行几何、文字、颜色、状态和像素差异复核。
 4. 只有在证据和人工复核都满足时，才将单页从 `DIFF_REVIEW` 改为 `PASS`。
 5. iconfont 资源登记必须在收到真实包、CSS、来源和许可证后单独关闭，不能用 Lucide 或虚构字体替代。
 
-## 8. Knowledge 状态补充验收
+## 8. 餐食规划状态补充验收
+
+本轮补充餐食规划 Loading、Empty、Error 三种前端状态的独立映射。Figma 来源节点均为完整 `1440×1024` 画板；浏览器入口复用 `/planning?state=`，只用于复现设计状态，不代表真实计划数据或任务闭环已经完成。
+
+| 状态 | Figma 节点 | 前端入口 | Figma 证据 | 浏览器证据 | 结果 |
+|---|---|---|---|---|---|
+| Loading | `692:2256` | `/planning?state=loading` | `meal-planning-loading-figma.png` | `meal-planning-loading-browser-stable.png` / `meal-planning-loading-browser-stable-rgba.png` | `DIFF_REVIEW` |
+| Empty | `692:2446` | `/planning?state=empty` | `meal-planning-empty-figma.png` | `meal-planning-empty-browser-stable.png` / `meal-planning-empty-browser-stable-rgba.png` | `DIFF_REVIEW` |
+| Error | `692:2542` | `/planning?state=error` | `meal-planning-error-figma.png` | `meal-planning-error-browser-stable.png` / `meal-planning-error-browser-stable-rgba.png` | `DIFF_REVIEW` |
+
+| 状态 | 尺寸 | 差异比例 | RMSE | 结论 |
+|---|---:|---:|---:|---|
+| Loading | 1440×1024 | 26.74% | 13.19 | `DIFF_REVIEW` |
+| Empty | 1440×1024 | 16.98% | 16.88 | `DIFF_REVIEW` |
+| Error | 1440×1024 | 17.81% | 16.50 | `DIFF_REVIEW` |
+
+三个状态均确认 `document.body.scrollWidth === window.innerWidth`。Empty 的“创建首个规划方案”已实际进入 `/chat?prompt=请为我创建本周餐食规划`；Error 的“重新加载”已实际恢复 `/planning` 默认态。这些是前端状态交互证据，不等价于真实计划数据、生成任务或后端错误闭环。
+
+## 9. 餐食规划流程状态补充验收
+
+本轮继续补齐已存在前端入口的餐食规划流程状态。所有画板与浏览器截图均为 `1440×1024`；`-rgba.png` 是浏览器 JPEG 证据的 RGBA 归一化副本，供 `png-diff.mjs` 使用。
+
+| 状态 | Figma 节点 | 前端入口 | Figma 证据 | 浏览器证据 | 差异比例 | RMSE | 结果 |
+|---|---|---|---|---|---:|---:|---|
+| 向导步骤 1 | `692:2801` | `/planning?state=wizard-step1` | `meal-plan-wizard-step1-figma.png` | `meal-plan-wizard-step1-browser-stable-rgba.png` | 40.49% | 21.93 | `DIFF_REVIEW` |
+| 向导步骤 2 | `692:2934` | `/planning?state=wizard-step2` | `meal-plan-wizard-step2-figma.png` | `meal-plan-wizard-step2-browser-stable-rgba.png` | 42.86% | 22.56 | `DIFF_REVIEW` |
+| 向导步骤 3 | `692:3078` | `/planning?state=wizard-step3` | `meal-plan-wizard-step3-figma.png` | `meal-plan-wizard-step3-browser-stable-rgba.png` | 43.15% | 23.92 | `DIFF_REVIEW` |
+| 冲突解决 | `692:3375` | `/planning?state=conflict` | `meal-plan-conflict-figma.png` | `meal-plan-conflict-browser-stable-rgba.png` | 37.28% | 25.12 | `DIFF_REVIEW` |
+| 购物清单 | `692:3569` | `/planning?state=shopping-list` | `meal-plan-shopping-list-figma.png` | `meal-plan-shopping-list-browser-stable-rgba.png` | 24.35% | 17.23 | `DIFF_REVIEW` |
+| 生成中 | `692:3746` | `/planning?state=generating` | `meal-plan-generating-figma.png` | `meal-plan-generating-browser-stable-rgba.png` | 13.69% | 16.84 | `DIFF_REVIEW` |
+| 计划列表 | `692:2662` | `/planning?state=list` | `meal-plan-list-figma.png` | `meal-plan-list-browser-stable-rgba.png` | 43.22% | 19.78 | `DIFF_REVIEW` |
+
+浏览器 smoke 已实际确认：向导步骤推进和取消生成、冲突方案应用、购物清单初始采购数量及导出反馈均可操作；七个入口均无页面级横向溢出。流程 fixture 只复现前端设计状态，不代表真实餐食生成、冲突解决、购物清单持久化或异步任务后端闭环完成。
+
+## 10. Knowledge 状态补充验收
 
 本轮补充了 Knowledge 默认态、检索失败和来源不可用三种前端状态的独立浏览器证据。Figma 结构依据为 `795:838`、`795:968`、`795:1145`、`795:1151` 和 `795:1328`；状态卡在完整画板中的绝对位置均为 `x=550,y=300`、`600×260`，空态仍使用已有 `560×220` 画板。
 
@@ -115,7 +149,7 @@ Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证补充�
 
 本轮只补齐前端状态映射和像素差异证据，不代表真实 RAG 检索、文档导入、ACL 过滤、引用详情接口或 iconfont 实体资源已经完成。
 
-## 9. Admin User Detail 补充验收
+## 11. Admin User Detail 补充验收
 
 本轮完成 Figma `801:215` 到 `/admin/users` 的独立前端映射。Figma 画板关键几何为：侧栏 `260px`、顶栏 `64px`、左侧用户列表 `x=284,y=88,w=692,h=912`、右侧详情 `x=996,y=88,w=420,h=912`；列表为 4 行 `60px`，详情卡内边距 `20px`，详情说明卡位于卡内 `x=19,y=454,w=380,h=220`。
 
@@ -130,7 +164,7 @@ Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证补充�
 
 本轮浏览器验证还确认了 CSS 几何与 Figma 一致；浏览器 DPR 为 `1.25`，因此 diff 使用 RGBA 归一化副本，不把截图编码或 DPR 差异误报为页面结论。`重置凭证` 当前只有明确的未接入提示，不执行伪造请求。
 
-## 10. Admin Operation Status 补充验收
+## 12. Admin Operation Status 补充验收
 
 本轮完成 Figma 工具注册表五个操作状态节点到 `/admin/tools?tab=registry` 的代码映射：
 
@@ -146,7 +180,7 @@ Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证补充�
 
 本轮状态截图是浏览器行为证据，不等价于五个节点的自动化像素 PASS。Figma 五个状态与浏览器截图仍需在相同 DPR、字体加载完成条件下独立运行 `png-diff.mjs` 后，才能更新为单状态 `PASS` 或 `DIFF_REVIEW`。
 
-## 11. 认证页面与异常状态代码迁移
+## 13. 认证页面与异常状态代码迁移
 
 本轮按 Figma 实际节点补齐认证页面代码和状态入口，视觉来源仍为 Figma，不使用旧前端样式反推。
 

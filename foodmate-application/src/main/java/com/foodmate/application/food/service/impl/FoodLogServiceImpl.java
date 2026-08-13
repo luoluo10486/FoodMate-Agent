@@ -96,6 +96,60 @@ public class FoodLogServiceImpl implements FoodLogService {
         return result;
     }
 
+    @Transactional
+    @Override
+    public FoodLogView update(long userId, long foodLogId, long revision, UpdateCommand command) {
+        validateUpdate(command);
+        String key = requireIdempotencyKey(command.idempotencyKey());
+        String digest = digest(command, foodLogId, revision);
+        FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+        if (previous != null) return replayOrConflict(userId, key, digest);
+
+        FoodLogRepository.FoodLogSnapshot current = requireSnapshot(userId, foodLogId, false);
+        requireRevision(current, revision);
+        if (store.reserveAudit(audit(userId, key, digest, "food_log.update", foodLogId, null)) != 1)
+            return replayOrConflict(userId, key, digest);
+        if (store.updateFoodLog(
+                        new FoodLogRepository.UpdateFoodLogWrite(
+                                userId,
+                                foodLogId,
+                                revision,
+                                command.mealTime(),
+                                command.mealType().code(),
+                                command.notes()))
+                != 1) {
+            throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
+        }
+        store.softDeleteItems(userId, foodLogId);
+        for (int i = 0; i < command.items().size(); i++) {
+            ItemCommand item = command.items().get(i);
+            FoodLogRepository.FoodLogItemWrite nutrition = nutrition(item, foodLogId, i, userId);
+            store.insertItem(
+                    new FoodLogRepository.FoodLogItemWrite(
+                            ids.nextId(),
+                            nutrition.foodLogId(),
+                            nutrition.itemOrder(),
+                            nutrition.rawName(),
+                            nutrition.amount(),
+                            nutrition.unit(),
+                            nutrition.userId(),
+                            nutrition.nutritionFoodId(),
+                            nutrition.normalizedAmount(),
+                            nutrition.normalizedUnit(),
+                            nutrition.conversionId(),
+                            nutrition.caloriesKcal(),
+                            nutrition.proteinG(),
+                            nutrition.fatG(),
+                            nutrition.carbsG(),
+                            nutrition.nutritionStatus(),
+                            nutrition.nutritionSource(),
+                            nutrition.nutritionVersion()));
+        }
+        FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
+        store.completeAudit(userId, key, json(result));
+        return result;
+    }
+
     @Override
     public List<FoodLogView> list(long userId, Instant from, Instant to) {
         if (from == null || to == null || !from.isBefore(to))
@@ -155,6 +209,29 @@ public class FoodLogServiceImpl implements FoodLogService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "来源会话不存在");
         if (command.agentRunId() != null && !store.agentRunOwned(userId, command.agentRunId()))
             throw new BusinessException(ErrorCode.NOT_FOUND, "来源 AgentRun 不存在");
+        for (ItemCommand item : command.items()) {
+            if (item == null
+                    || item.rawName() == null
+                    || item.rawName().isBlank()
+                    || item.rawName().length() > 255
+                    || item.amount() == null
+                    || item.amount().signum() <= 0
+                    || item.amount().scale() > 3
+                    || item.unit() == null
+                    || item.unit().isBlank()
+                    || item.unit().length() > 32) {
+                throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "食材明细无效");
+            }
+        }
+    }
+
+    private void validateUpdate(UpdateCommand command) {
+        if (command == null || command.mealTime() == null || command.mealType() == null)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "用餐时间和餐别不能为空");
+        if (command.items().isEmpty() || command.items().size() > MAX_ITEMS)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "食材明细数量无效");
+        if (command.notes() != null && command.notes().length() > 4000)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "备注过长");
         for (ItemCommand item : command.items()) {
             if (item == null
                     || item.rawName() == null
@@ -305,6 +382,17 @@ public class FoodLogServiceImpl implements FoodLogService {
                 "create",
                 command.sessionId(),
                 command.agentRunId(),
+                command.mealTime(),
+                command.mealType().code(),
+                command.notes(),
+                command.items());
+    }
+
+    private String digest(UpdateCommand command, long foodLogId, long revision) {
+        return digest(
+                "update",
+                foodLogId,
+                revision,
                 command.mealTime(),
                 command.mealType().code(),
                 command.notes(),

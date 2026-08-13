@@ -19,6 +19,10 @@ public interface FoodLogRepository {
 
     int insertFoodLog(FoodLogWrite write);
 
+    int updateFoodLog(UpdateFoodLogWrite write);
+
+    int softDeleteItems(long userId, long foodLogId);
+
     void insertItem(FoodLogItemWrite item);
 
     List<FoodLogSnapshot> findVisible(long userId, Instant from, Instant to);
@@ -44,6 +48,14 @@ public interface FoodLogRepository {
             String source,
             String idempotencyKey,
             long revision) {}
+
+    record UpdateFoodLogWrite(
+            long userId,
+            long foodLogId,
+            long expectedRevision,
+            Instant mealTime,
+            String mealType,
+            String notes) {}
 
     record FoodLogItemWrite(
             long foodLogItemId,

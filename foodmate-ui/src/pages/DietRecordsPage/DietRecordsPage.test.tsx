@@ -4,9 +4,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { DietRecordsPage } from './DietRecordsPage';
 
-function renderPage() {
+function renderPage(entry = '/analysis?view=records') {
   return render(
-    <MemoryRouter initialEntries={['/analysis?view=records']}>
+    <MemoryRouter initialEntries={[entry]}>
       <DietRecordsPage />
     </MemoryRouter>,
   );
@@ -35,5 +35,34 @@ describe('DietRecordsPage', () => {
 
     expect(screen.getByText('香蕉')).toBeInTheDocument();
     expect(screen.getByText(/等待营养估算。/)).toBeInTheDocument();
+  });
+
+  it.each([
+    ['loading', '饮食记录加载中'],
+    ['empty', '今天还没有饮食记录'],
+    ['error', '饮食记录加载失败'],
+  ])('renders the Figma %s state', (state, label) => {
+    renderPage(`/analysis?view=records&state=${state}`);
+
+    expect(screen.getByLabelText(label)).toBeInTheDocument();
+  });
+
+  it('opens the first-meal dialog from the empty state', async () => {
+    const user = userEvent.setup();
+    renderPage('/analysis?view=records&state=empty');
+
+    await user.click(screen.getByRole('button', { name: '记录一餐' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('添加到 Breakfast，营养值将在确认后估算。')).toBeInTheDocument();
+  });
+
+  it('returns to the default view from the error state', async () => {
+    const user = userEvent.setup();
+    renderPage('/analysis?view=records&state=error');
+
+    await user.click(screen.getByRole('button', { name: '重新加载' }));
+
+    expect(screen.getByRole('heading', { name: '记录详情 · 待确认记录可在这里补充后保存' })).toBeInTheDocument();
   });
 });

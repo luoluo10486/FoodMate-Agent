@@ -9,6 +9,9 @@ import java.util.List;
 public interface FoodLogService {
     FoodLogView create(long userId, CreateCommand command);
 
+    /** Replaces the editable content of an existing food log using optimistic concurrency. */
+    FoodLogView update(long userId, long foodLogId, long revision, UpdateCommand command);
+
     List<FoodLogView> list(long userId, Instant from, Instant to);
 
     void delete(long userId, long foodLogId, long revision, String idempotencyKey);
@@ -24,6 +27,17 @@ public interface FoodLogService {
             String idempotencyKey,
             List<ItemCommand> items) {
         public CreateCommand {
+            items = items == null ? List.of() : List.copyOf(items);
+        }
+    }
+
+    record UpdateCommand(
+            Instant mealTime,
+            MealType mealType,
+            String notes,
+            String idempotencyKey,
+            List<ItemCommand> items) {
+        public UpdateCommand {
             items = items == null ? List.of() : List.copyOf(items);
         }
     }

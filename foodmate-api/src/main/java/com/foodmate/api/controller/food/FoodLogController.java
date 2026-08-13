@@ -2,6 +2,7 @@ package com.foodmate.api.controller.food;
 
 import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
 import com.foodmate.api.request.food.FoodLogCreateRequest;
+import com.foodmate.api.request.food.FoodLogUpdateRequest;
 import com.foodmate.api.response.food.FoodLogResponse;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.food.service.FoodLogService;
@@ -14,6 +15,7 @@ import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -60,6 +62,28 @@ public class FoodLogController extends AuthenticatedControllerSupport {
     public ApiResponse<List<FoodLogResponse>> list(
             HttpServletRequest request, @RequestParam Instant from, @RequestParam Instant to) {
         return ok(foods.list(user(request).userId(), from, to).stream().map(this::map).toList());
+    }
+
+    @PatchMapping("/{foodLogId}")
+    public ApiResponse<FoodLogResponse> update(
+            HttpServletRequest request,
+            @PathVariable long foodLogId,
+            @RequestParam long revision,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody FoodLogUpdateRequest body) {
+        FoodLogService.UpdateCommand command =
+                new FoodLogService.UpdateCommand(
+                        body.mealTime(),
+                        body.mealType(),
+                        body.notes(),
+                        idempotencyKey,
+                        body.items().stream()
+                                .map(
+                                        item ->
+                                                new FoodLogService.ItemCommand(
+                                                        item.rawName(), item.amount(), item.unit()))
+                                .toList());
+        return ok(map(foods.update(user(request).userId(), foodLogId, revision, command)));
     }
 
     @DeleteMapping("/{foodLogId}")

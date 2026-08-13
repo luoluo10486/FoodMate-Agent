@@ -4,14 +4,14 @@
 
 > 模板提示：后续 AI 阅读本文档时，必须按功能点拆分为独立小节；只记录已实现和已验证的事实，不得把真实模型、RAG、工具调用或饮食业务写入提前写成已完成。
 
-> M1-5 当前状态（2026-08-13）：第一切片已接入本地真实 Java/SQL/API：饮食记录基础读写、today/7d/30d 分析、计划校验/保存/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。营养目录表当前为空，编辑、完整 Tool Gateway、更多确认状态和 M1-6 本地门禁仍未完成；前端页面视觉验收不等于完整 M1-5 完成。
+> 当前状态（2026-08-13）：M1-5 第一切片已接入本地真实 Java/SQL/API：饮食记录创建/查询/编辑/删除/恢复、today/7d/30d 分析、计划校验/保存/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。营养目录表当前为空，真实 matched seed、完整 Tool Gateway 和更多确认状态仍未完成。M1-6 已完成 Actuator/metrics 配置回归、双 JVM 有界读取与 Java 重启回读，并完成 Python Runtime readiness、Redis AOF 探针恢复和 RocketMQ 重启/Topic 初始化复验；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵、生产容量和恢复指标仍未完成。前端页面视觉验收不等于完整 M1-5 完成。
 
 ## 1. 当前结论
 
 - M1-2 已完成真实认证、会话、消息持久化和前端真实 API 接入。
 - M1-3 已完成 Java -> Python 确定性 stub -> Java -> SSE 的最小真实闭环。
-- M1-4 已完成 RocketMQ/Redis 基础传输、模型适配、预算、LangGraph 白名单图、Eval Gate、Proposal/Result 回注、结构化摘要和恢复入口；本地真实浏览器闭环与 Python 重启后的跨进程 checkpoint 恢复已验证。生产级容量、价格审计、真实云长时间稳定性和生产 Eval 治理仍未完成。
-- M1-5 第一切片已完成上述基础 Java/SQL/API 实现；真实营养目录 seed、编辑和完整写工具确认仍属于剩余工作。
+- M1-4 已完成 RocketMQ/Redis 基础传输、模型适配、预算、LangGraph 白名单图、Eval Gate、Proposal/Result 回注、结构化摘要和恢复入口；本地真实浏览器闭环与 Java 恢复入口已验证，Runtime 进程重启后的 readiness 和 Redis checkpoint 后端可用性也已复验。生产级容量、完整进程故障恢复指标、价格审计、真实云长时间稳定性和生产 Eval 治理仍未完成。
+- M1-5 第一切片已完成上述基础 Java/SQL/API 实现；真实营养目录 seed、完整写工具确认和更多确认状态仍属于剩余工作。
 
 ## 2. 已完成主链路
 
@@ -50,6 +50,7 @@ Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入
 
 - 历史 M1-3 验证曾记录 Python pytest、Java 全模块测试和前端 typecheck 通过；具体旧计数只对应当时提交，不作为当前测试总数。
 - M1-4 基础设施阶段另有 RocketMQ 真实往返、Redis/PostgreSQL 状态、continuation `superseded` 和 MQ transport E2E 记录；依赖当前是否在线必须现场检查。
+- 本轮实际通过：`M14RocketMqTransportE2ETest` 1/1、`M14ProposalResultE2ETest` 2/2、`M14RuntimeCheckpointRecoveryE2ETest` 1/1、`M14ContinuationE2ETest` 3/3、`M14DlqReconciliationE2ETest` 3/3；Python Runtime pytest 为 `56 passed, 1 skipped`。这些测试覆盖 MQ envelope、Proposal/Result Inbox 幂等、Java checkpoint 对账、新 attempt、continuation 和 DLQ 裁决，不等同于生产级故障恢复或容量验收。
 
 ## 4. 当前架构边界
 
@@ -74,8 +75,8 @@ Java RocketMQ consumer 校验事件身份、摘要、顺序和状态，再写入
 
 ### 5.2 后续阶段
 
-- 饮食记录、营养分析、餐食计划基础流程和 `meal_plan.save_plan` 写确认第一切片已完成；真实营养目录、编辑、完整 Java 工具控制面和更多确认状态属于 M1-5 剩余工作。
-- M1-6 当前只做本地审计关联、Actuator、基础 metrics、双 JVM 压测和 Java/Python/PostgreSQL/Redis/RocketMQ 重启恢复；生产监控、部署、备份恢复和发布回滚后置。
+- 饮食记录、营养分析、餐食计划基础流程、饮食记录编辑和 `meal_plan.save_plan` 写确认第一切片已完成；真实营养目录、完整 Java 工具控制面和更多确认状态属于 M1-5 剩余工作。
+- M1-6 当前已完成本地 Actuator/metrics 配置回归、双 JVM 有界认证会话读取基线和 Java 重启后的 PostgreSQL 回读；共享 Redis/RocketMQ 的 Runtime readiness、Redis AOF 探针恢复、RocketMQ 组件重启恢复和 Topic 初始化已复验。Agent 业务流量、队列积压/重复执行统计、PostgreSQL 进程重启、完整 Outbox/Inbox/SSE 故障恢复仍未完成。生产监控、部署、备份恢复和发布回滚后置。
 - RAG、知识库、SQL Guard 和运营治理属于 M2。
 
 ## 6. 2026-08-01 收尾复核

@@ -48,6 +48,16 @@ public class FoodLogRepositoryAdapter implements FoodLogRepository {
     }
 
     @Override
+    public int updateFoodLog(UpdateFoodLogWrite write) {
+        return mapper.updateFoodLog(write);
+    }
+
+    @Override
+    public int softDeleteItems(long userId, long foodLogId) {
+        return mapper.softDeleteItems(userId, foodLogId);
+    }
+
+    @Override
     public void insertItem(FoodLogItemWrite item) {
         mapper.insertItem(item);
     }

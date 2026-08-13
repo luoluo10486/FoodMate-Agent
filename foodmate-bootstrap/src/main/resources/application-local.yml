@@ -7,6 +7,19 @@ spring:
   flyway:
     enabled: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name:foodmate}
+
 foodmate:
   security:
     # 本地 HTTP 开发不能发送 Secure Cookie；生产 profile 继续默认开启 Secure。

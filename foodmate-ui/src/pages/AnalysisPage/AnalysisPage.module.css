@@ -24,6 +24,11 @@
   gap: 16px;
 }
 
+.stateFilterRow .filters,
+.stateFilterRow .exportButton {
+  opacity: 0.6;
+}
+
 .filters {
   display: flex;
   width: 384px;
@@ -61,6 +66,11 @@
 
 .filters button:hover {
   color: var(--fm-ink);
+}
+
+.filters button:disabled,
+.exportButton:disabled {
+  cursor: not-allowed;
 }
 
 .filters .rangeActive {
@@ -135,6 +145,47 @@
   white-space: nowrap;
 }
 
+.metricSkeleton,
+.metricDetailSkeleton {
+  display: block;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  background: linear-gradient(13deg, #eaeaea 25%, #f5f5f5 50%, #eaeaea 75%);
+}
+
+.metricSkeleton {
+  height: 32px;
+}
+
+.metricDetailSkeleton {
+  height: 16px;
+  border-radius: 4px;
+}
+
+.metricSkeletonWide {
+  width: 140px;
+}
+
+.metricSkeletonMedium {
+  width: 100px;
+}
+
+.metricSkeletonNarrow {
+  width: 120px;
+}
+
+.metricDetailWide {
+  width: 80px;
+}
+
+.metricDetailMedium {
+  width: 60px;
+}
+
+.metricDetailNarrow {
+  width: 90px;
+}
+
 .metricValueRow {
   display: flex;
   min-width: 0;
@@ -190,6 +241,22 @@
   min-height: 220px;
   border-radius: 12px;
   background: var(--fm-bg-soft);
+}
+
+.loadingChartArea {
+  display: flex;
+  height: 220px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--fm-bg-soft);
+}
+
+.loadingChartSkeleton {
+  width: 100%;
+  height: 160px;
+  border-radius: 12px;
+  background: linear-gradient(9deg, #eaeaea 25%, #f5f5f5 50%, #eaeaea 75%);
 }
 
 .legend {
@@ -255,6 +322,175 @@
 
 .insightCard {
   min-height: 219px;
+}
+
+.loadingInsightList {
+  display: grid;
+  width: 100%;
+  gap: 16px;
+}
+
+.loadingInsightRow {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+}
+
+.loadingInsightDot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #ecccff;
+}
+
+.loadingInsightSkeleton {
+  width: 100%;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(1deg, #eaeaea 25%, #f5f5f5 50%, #eaeaea 75%);
+}
+
+.loadingInsightRow:last-child .loadingInsightSkeleton {
+  width: 300px;
+}
+
+.loadingInsightActions {
+  display: flex;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.loadingActionPrimary,
+.loadingActionSecondary {
+  height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(20deg, #eaeaea 25%, #f5f5f5 50%, #eaeaea 75%);
+}
+
+.loadingActionPrimary {
+  width: 100px;
+}
+
+.loadingActionSecondary {
+  width: 140px;
+}
+
+.emptyChartCard,
+.errorCard {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  padding: 24px;
+  border: 1px solid var(--fm-border);
+  border-radius: 20px;
+  background: var(--fm-surface);
+}
+
+.emptyChartCard h2 {
+  margin: 0;
+  color: var(--fm-ink);
+  font-family: var(--fm-font);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 19px;
+}
+
+.emptyChartArea {
+  display: grid;
+  min-height: 320px;
+  gap: 20px;
+  align-content: center;
+  justify-items: center;
+  padding: 60px;
+  border-radius: 12px;
+  background: var(--fm-bg-soft);
+  text-align: center;
+}
+
+.emptyStateIcon,
+.errorStateIcon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+}
+
+.emptyStateIcon {
+  color: var(--fm-muted);
+  background: var(--fm-bg-soft);
+}
+
+.emptyStateIcon svg,
+.errorStateIcon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.stateCopy {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+}
+
+.stateCopy h3,
+.stateCopy p {
+  margin: 0;
+}
+
+.stateCopy h3 {
+  color: var(--fm-ink);
+  font-family: var(--fm-font);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.stateCopy p {
+  color: var(--fm-muted);
+  font-family: var(--fm-font);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.recordButton {
+  height: 40px;
+  padding: 10px 24px;
+  border-radius: 12px;
+  background: var(--fm-green);
+  color: var(--fm-ink);
+  font-family: var(--fm-font);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.recordButton:hover {
+  background: var(--fm-green);
+  color: var(--fm-ink);
+}
+
+.errorCard {
+  min-height: 450px;
+  align-content: center;
+  justify-items: center;
+  padding: 120px 24px;
+}
+
+.errorStateIcon {
+  color: #d67676;
+  background: #ffe9e9;
+}
+
+.reloadButton {
+  height: 44px;
+  padding: 12px 32px;
+  border-radius: 12px;
+  color: var(--fm-ink);
+  font-family: var(--fm-font);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .insights {
