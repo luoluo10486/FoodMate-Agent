@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { CalendarDays, ChartColumn, Check, LoaderCircle, MessageCircle, Minus, Search } from 'lucide-react';
 import type { AgentRunView, AgentDisplayStatus } from '../../types/agent';
 import type { Message } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
@@ -65,7 +66,7 @@ function MessageBubble({ message, children }: { message: ChatMessage; children?:
             <div className={styles.messageBubble}>{message.content}</div>
             <span className={styles.srOnly}>你</span>
             <span className={styles.userAvatar} aria-hidden="true">
-              <img src="/assets/figma/agent-chat/user-avatar-message.png" alt="" />
+              <img src="/assets/figma/knowledge/user-avatar.png" alt="" />
             </span>
           </div>
           <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
@@ -94,18 +95,10 @@ function TraceRail({ run }: { run: AgentRunView }) {
       <div className={styles.traceTitle}>运行轨迹</div>
       <span className={styles.srOnly}>工具与引用</span>
       <div className={styles.traceTabs} role="tablist" aria-label="运行轨迹视图">
-        <button
-          className={tab === 'steps' ? styles.traceTabActive : ''}
-          type="button"
-          onClick={() => setTab('steps')}
-        >
+        <button className={tab === 'steps' ? styles.traceTabActive : ''} type="button" onClick={() => setTab('steps')}>
           步骤
         </button>
-        <button
-          className={tab === 'json' ? styles.traceTabActive : ''}
-          type="button"
-          onClick={() => setTab('json')}
-        >
+        <button className={tab === 'json' ? styles.traceTabActive : ''} type="button" onClick={() => setTab('json')}>
           原始 JSON
         </button>
       </div>
@@ -116,7 +109,7 @@ function TraceRail({ run }: { run: AgentRunView }) {
             <div className={styles.traceList}>
               {run.toolCalls.map((tool) => (
                 <div
-                  className={`${styles.traceStep} ${tool.status === 'running' ? styles.traceStepActive : ''}`}
+                  className={`${styles.traceStep} ${tool.status === 'running' ? styles.traceStepActive : ''} ${tool.status === 'pending' ? styles.traceStepPending : ''}`}
                   key={tool.id}
                 >
                   <strong>{tool.displayName || tool.name}</strong>
@@ -177,6 +170,7 @@ type ChatSurfaceProps = {
   onSend: () => void;
   onStop: () => void;
   placeholder: string;
+  showTrace?: boolean;
 };
 
 function ChatSurface({
@@ -190,9 +184,14 @@ function ChatSurface({
   onSend,
   onStop,
   placeholder,
+  showTrace = true,
 }: ChatSurfaceProps) {
   return (
-    <WorkspaceLayout activeModule="chat" rightRail={<TraceRail run={run} />}>
+    <WorkspaceLayout
+      activeModule="chat"
+      avatarSrc="/assets/figma/knowledge/user-avatar.png"
+      rightRail={showTrace ? <TraceRail run={run} /> : undefined}
+    >
       <div className={styles.page}>
         <section className={styles.workspace}>
           <div className={styles.center}>
@@ -221,7 +220,250 @@ function ChatSurface({
 }
 
 export function ChatPage() {
+  const [searchParams] = useSearchParams();
+  if (searchParams.get('state') === 'empty') return <EmptyChatPage />;
+  if (searchParams.get('state') === 'planning') return <PlanningStatePage />;
+  if (searchParams.get('state') === 'tool-executing') return <ToolExecutingStatePage />;
   return import.meta.env.VITE_AGENT_MODE === 'real' ? <RealChatPage /> : <MockChatPage />;
+}
+
+const emptyPrompts = [
+  {
+    title: '分析我今天的饮食',
+    description: '计算卡路里及三大营养素比例',
+    prompt: '分析我今天的饮食，计算卡路里及三大营养素比例',
+    icon: ChartColumn,
+  },
+  {
+    title: '制定本周餐食计划',
+    description: '根据我的减脂目标个性化定制',
+    prompt: '根据我的减脂目标制定本周餐食计划',
+    icon: CalendarDays,
+  },
+  {
+    title: '查询食物营养成分',
+    description: '快速查询牛油果/奇亚籽等营养价值',
+    prompt: '查询牛油果和奇亚籽的营养成分',
+    icon: Search,
+  },
+] as const;
+
+function EmptyChatPage() {
+  const navigate = useNavigate();
+  const [input, setInput] = useState('');
+
+  const send = () => {
+    const prompt = input.trim();
+    if (!prompt) return;
+    navigate(`/chat?prompt=${encodeURIComponent(prompt)}`);
+  };
+
+  return (
+    <WorkspaceLayout activeModule="home" avatarSrc="/assets/figma/knowledge/user-avatar.png">
+      <div className={styles.emptyPage}>
+        <section className={styles.emptyBody} aria-labelledby="empty-chat-title">
+          <div className={styles.emptyIntro}>
+            <div className={styles.emptyIcon} aria-hidden="true">
+              <MessageCircle />
+            </div>
+            <h1 id="empty-chat-title">开始新的对话</h1>
+            <p>
+              你可以询问任何关于营养、饮食和健康的问题。FoodMate 饮食管家已接入 Fustat-v2
+              营养大模型，将为你提供专业支持。
+            </p>
+          </div>
+          <div className={styles.emptyPrompts} aria-label="推荐问题">
+            {emptyPrompts.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  className={styles.emptyPrompt}
+                  key={item.title}
+                  type="button"
+                  onClick={() => setInput(item.prompt)}
+                >
+                  <span className={styles.emptyPromptIcon} aria-hidden="true">
+                    <Icon />
+                  </span>
+                  <span className={styles.emptyPromptCopy}>
+                    <strong>{item.title}</strong>
+                    <span>{item.description}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+        <Composer
+          value={input}
+          placeholder="输入消息或添加自定义指令..."
+          toolsUsed={0}
+          toolsTotal={6}
+          agentsUsed={0}
+          agentsTotal={1}
+          onChange={setInput}
+          onSend={send}
+          onStop={() => undefined}
+        />
+      </div>
+    </WorkspaceLayout>
+  );
+}
+
+function PlanningStatePage() {
+  const planningRun: AgentRunView = {
+    id: 'run_planning_fixture',
+    status: 'planning',
+    intent: 'analysis',
+    toolsUsed: 0,
+    toolsTotal: 6,
+    agentsUsed: 0,
+    agentsTotal: 1,
+    toolCalls: [],
+    citations: [],
+  };
+
+  return (
+    <ChatSurface
+      run={planningRun}
+      messagesRef={useRef<HTMLDivElement>(null)}
+      input=""
+      running
+      disabled
+      onChange={() => undefined}
+      onSend={() => undefined}
+      onStop={() => undefined}
+      placeholder="正在规划任务流程，请稍候..."
+      showTrace={false}
+    >
+      <article className={styles.planningUserMessage}>
+        <div className={styles.planningUserLine}>
+          <div className={styles.planningUserBubble}>帮我分析这周的蛋白质摄入情况</div>
+          <span className={styles.planningUserAvatar} aria-hidden="true">
+            <img src="/assets/figma/knowledge/user-avatar.png" alt="" />
+          </span>
+        </div>
+        <div className={styles.planningMessageMeta}>Anddy · 12:45 PM</div>
+      </article>
+      <article className={styles.planningAssistantMessage}>
+        <span className={styles.planningAgentAvatar} aria-hidden="true" />
+        <div className={styles.planningAssistantBody}>
+          <div className={styles.planningBubble}>
+            <div className={styles.planningTitle}>
+              <LoaderCircle aria-hidden="true" />
+              <strong>Planning...</strong>
+            </div>
+            <div className={styles.planningSteps}>
+              <span className={styles.planningStepDone}>✓ 理解用户意图</span>
+              <strong className={styles.planningStepActive}>● 制定分析方案...</strong>
+              <span className={styles.planningStepPending}>○ 获取这周饮食数据</span>
+              <span className={styles.planningStepPending}>○ 汇总并生成评估图表</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </ChatSurface>
+  );
+}
+
+const executingToolSteps = [
+  { label: '向量索引检索 - 12ms ✓', status: 'success' as const, icon: Check },
+  { label: '数据库调用 - running...', status: 'running' as const, icon: LoaderCircle },
+  { label: '营养计算 - pending', status: 'pending' as const, icon: Minus },
+];
+
+function ToolExecutingStatePage() {
+  const executingRun: AgentRunView = {
+    id: 'fst_trace_9821aa',
+    status: 'executing_tools',
+    intent: 'analysis',
+    toolsUsed: 1,
+    toolsTotal: 3,
+    agentsUsed: 0,
+    agentsTotal: 1,
+    toolCalls: [
+      {
+        id: 'intent-parse',
+        name: 'intent_parse',
+        displayName: '意图解析',
+        status: 'success',
+        latencyMs: 8,
+        summary: '已完成意图解析',
+      },
+      {
+        id: 'vector-search',
+        name: 'vector_search',
+        displayName: '向量检索: 蛋白质推荐',
+        status: 'success',
+        latencyMs: 12,
+        summary: '正在读取蛋白质推荐索引',
+      },
+      {
+        id: 'meal-log-query',
+        name: 'meal_log_query',
+        displayName: '数据库调用: 饮食日志表',
+        status: 'running',
+        summary: '正在读取饮食日志表',
+      },
+      {
+        id: 'result-compose',
+        name: 'result_compose',
+        displayName: '结果合成',
+        status: 'pending',
+        summary: '等待前置工具完成',
+      },
+    ],
+    citations: [],
+  };
+
+  return (
+    <ChatSurface
+      run={executingRun}
+      messagesRef={useRef<HTMLDivElement>(null)}
+      input=""
+      running
+      disabled
+      onChange={() => undefined}
+      onSend={() => undefined}
+      onStop={() => undefined}
+      placeholder="正在运行数据计算工具..."
+    >
+      <article className={styles.executingUserMessage}>
+        <div className={styles.executingUserLine}>
+          <div className={styles.executingUserBubble}>帮我分析这周的蛋白质摄入情况</div>
+          <span className={styles.executingUserAvatar} aria-hidden="true">
+            <img src="/assets/figma/knowledge/user-avatar.png" alt="" />
+          </span>
+        </div>
+        <div className={styles.executingMessageMeta}>Anddy · 12:45 PM</div>
+      </article>
+      <article className={styles.executingAssistantMessage}>
+        <span className={styles.executingAgentAvatar} aria-hidden="true" />
+        <div className={styles.executingAssistantBody}>
+          <div className={styles.executingBubble}>
+            <div className={styles.executingTitle}>
+              <LoaderCircle aria-hidden="true" />
+              <strong>Executing Tools...</strong>
+            </div>
+            <div className={styles.executingToolSteps}>
+              {executingToolSteps.map((step) => {
+                const Icon = step.icon;
+                return (
+                  <div
+                    className={`${styles.executingToolStep} ${styles[`executingToolStep${step.status}`]}`}
+                    key={step.label}
+                  >
+                    <Icon aria-hidden="true" />
+                    <span>{step.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </article>
+    </ChatSurface>
+  );
 }
 
 function RealChatPage() {

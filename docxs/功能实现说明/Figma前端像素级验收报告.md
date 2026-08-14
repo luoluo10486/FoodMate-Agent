@@ -205,3 +205,71 @@ Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证和餐�
 浏览器行为检查确认：字段错误和凭证错误保留可用登录按钮；提交中、账号锁定、账号禁用和服务不可用禁用登录按钮；Token 三态均能进入找回密码或返回登录。移动注册页的四个输入控件完整位于 390x844 视口内。
 
 本节不代表认证服务的所有异常一定能由 mock 状态触发，也不代表真实后端错误码已全部联调。真实 /api/auth/* 调用仍由 authService.ts 保持；mock 状态 query 只用于设计验收和前端状态复现。
+
+## 40. 2026-08-14 Figma Agent 空态迁移与验收
+
+本轮完成 Figma `agent-empty` 画板到独立前端状态的首轮迁移。视觉来源为 Figma 节点 `687:219`，不从旧前端反推颜色、字体、尺寸、间距或状态。
+
+| 项目 | 结果 |
+|---|---|
+| Figma 节点/画板 | `687:219` / `1440×1024` |
+| 前端入口 | `/chat?state=empty` |
+| 空态结构 | 无 Trace 右栏；居中引导、三张推荐问题卡、底部 Composer |
+| 桌面几何 | 推荐卡区域约 `720×123`，卡片间距 `16px`；Composer 位于 `y=912`，高度 `112px` |
+| Figma 证据 | `chat-agent-empty-figma.png` |
+| 浏览器证据 | `chat-agent-empty-browser-1440x1024.png`、`chat-agent-empty-browser-390x844.png` |
+| RGBA 证据 | `chat-agent-empty-browser-1440x1024-rgba.png`、`chat-agent-empty-browser-390x844-rgba.png` |
+| 自动 diff | 差异比例 `15.7739%`，RMSE `14.7325`，`DIFF_REVIEW` |
+
+- [x] 桌面 `1440×1024` 实测 `document.body.scrollWidth === 1440`；标题、说明、推荐卡和 Composer 无页面级裁切或横向溢出。
+- [x] 移动 `390×844` 实测页面宽度与视口一致；三张推荐卡改为单列，Composer 完整位于视口底部。为修复移动端 Composer 被百分比高度裁切的问题，空态页在移动断点使用 `calc(100dvh - 96px)` 的明确内容区高度。
+- [x] 点击推荐卡会将真实推荐文案写入 Composer；点击发送后 URL 进入 `/chat?prompt=...`，不伪造后端 Agent 完成结果。
+- [x] `ChatPage` 定向测试 `2/2`、`npm run typecheck` 和本次触及文件的 Prettier 检查通过；`git diff --check` 通过。
+- [ ] 全量 `npm run format:check` 仍被工作区原有的 8 个未涉及文件阻断：`ClarificationCard.tsx`、`EmptyState.tsx`、`TaskCard.tsx`、`Composer.tsx`、`AdminPage.tsx`、`agentRunService.ts`、`sessionService.ts`、`agent.ts`；本轮未扩大范围改动这些文件。
+- [ ] 本轮不关闭 iconfont 实体资源登记；当前仍缺少真实字体包、CSS 映射、来源 URL 和许可证，标准命令图标继续使用 Lucide。shadcn/Radix 基础设施迁移仍作为后续逐页重构的既定前置约束。
+
+## 41. 2026-08-14 Figma Agent Planning 状态迁移与验收
+
+本轮完成 Figma `agent-planning` 画板到 `/chat?state=planning` 的独立状态迁移。视觉来源为 Figma 节点 `687:342`，不从普通对话旧样式反推。
+
+| 项目 | 结果 |
+|---|---|
+| Figma 节点/画板 | `687:342` / `1440×1024` |
+| 前端入口 | `/chat?state=planning` |
+| 状态差异 | 隐藏 Trace 右栏；显示 Planning 状态条、用户消息、四行规划步骤卡和红色停止按钮 |
+| 核心几何 | 主区 `1180px`；状态条 `45px`；Composer `y=912/h=112`；规划卡约 `x=340/y=237/w=161/h=162` |
+| Figma 证据 | `chat-agent-planning-figma.png` |
+| 浏览器证据 | `chat-agent-planning-browser-1440x1024.jpg`、`chat-agent-planning-browser-390x844.jpg` |
+| RGBA 证据 | `chat-agent-planning-browser-1440x1024-rgba.png`、`chat-agent-planning-browser-390x844-rgba.png` |
+| 自动 diff | 差异比例 `14.9956%`，RMSE `14.0682`，`DIFF_REVIEW` |
+
+- [x] 桌面 `1440×1024` 实测页面宽度与 Figma 画板一致，无页面级横向溢出；状态条、用户消息、规划卡和 Composer 均可见。
+- [x] 移动 `390×844` 实测 `document.body.scrollWidth === 390`；规划卡自然保留四行内容，Composer 完整可见，停止按钮可用。
+- [x] Planning 状态的输入框按设计禁用，停止按钮保留可用状态；本地 query fixture 只复现前端状态，不声明真实 AgentRun 后端完成。
+- [x] `ChatPage` 定向测试 `3/3`、`npm run typecheck`、本次触及文件 Prettier 和 `git diff --check` 通过。
+- [ ] diff 仍为 `DIFF_REVIEW`，WorkspaceLayout 头像、账号文案等共享壳层差异不能被本状态单独关闭；iconfont 实体资源继续为 `BLOCKED`。
+
+## 42. 2026-08-14 Figma Agent Tool Executing 状态迁移与验收
+
+本轮完成 Figma `agent-tool-executing` 画板到独立前端状态的迁移。视觉来源为 Figma 节点 `687:475`，实现严格读取节点颜色、字体、尺寸、间距和状态语义，不从旧前端反推。
+
+| 项目 | 结果 |
+|---|---|
+| Figma 节点/画板 | `687:475` / `1440×1024` |
+| 前端入口 | `/chat?state=tool-executing` |
+| 主结构 | `260px` 侧栏、`860px` 对话区、`320px` Trace rail；保留完整共享工作站壳层 |
+| 状态条 | `Planning ✓`、`Retrieving ✓`、`Executing ●`、`Composing ○` |
+| 工具卡 | 完成、运行中、待处理三行；运行中橙色边框与加载图标，待处理降低强调度 |
+| Composer | `y=912`、`h=112`；输入禁用，停止按钮保持可用 |
+| Figma 证据 | `chat-agent-tool-executing-figma.png` |
+| 浏览器证据 | `chat-agent-tool-executing-browser-1440x1024.jpg`、`chat-agent-tool-executing-browser-390x844.jpg` |
+| RGBA 证据 | `chat-agent-tool-executing-browser-1440x1024-rgba.png`、`chat-agent-tool-executing-browser-390x844-rgba.png` |
+| 自动 diff | 差异比例 `50.5259%`，RMSE `23.1703`，`DIFF_REVIEW` |
+
+- [x] 桌面几何已实际核对：主区 `x=260,w=860`，Trace body `y=107`，首个 Trace 卡 `y=135`，工具气泡 `181×250`，用户气泡 `228×49`，Composer `y=912/h=112`。
+- [x] 移动 `390×844` 实测 `document.body.scrollWidth === 390`；Trace rail 按窄屏规则隐藏，工具卡和停止按钮没有页面级横向溢出。
+- [x] Trace 状态真实渲染 `fst_trace_9821aa`、意图解析、向量检索、数据库调用和结果合成；query fixture 只用于设计验收，不代表真实 AgentRun/SSE 后端闭环。
+- [x] `ChatPage` 定向测试 `4/4`、`npm run typecheck`、本次触及文件 Prettier 和 `git diff --check` 通过。
+- [ ] diff 仍为 `DIFF_REVIEW`；当前账户文案、字体光栅化和 Figma/前端头像位图差异未被伪装成 PASS。
+- [ ] iconfont 实体资源仍为 `BLOCKED`；标准命令图标继续使用 Lucide，未写入虚构字体包、类名或 Unicode。
+- [ ] 下一步继续按顺序迁移 `agent-awaiting-clarification`、`agent-write-confirmation`、`agent-budget-limit`，再处理失败、降级、取消和 SSE 重连状态。

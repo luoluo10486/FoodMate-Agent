@@ -67,6 +67,11 @@
   color: var(--fm-muted);
 }
 
+.completed {
+  background: rgba(166, 217, 151, 0.08);
+  color: var(--fm-green-dark);
+}
+
 @media (max-width: 720px) {
   .strip {
     gap: 8px;

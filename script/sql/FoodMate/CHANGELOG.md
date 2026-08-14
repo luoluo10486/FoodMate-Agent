@@ -1,10 +1,18 @@
 # FoodMate 数据库变更说明
 
+## 2026-08-14 M1-5 营养目录与写入回归
+
+- 人工执行 `seed/V1__nutrition_usda_seed.sql`，导入 5 条已核验的 USDA FoodData Central `SR Legacy` 食材：米饭、鸡胸肉、鸡蛋、三文鱼和苹果；重复执行返回 `INSERT 0 0`。
+- `validation/V1__nutrition_usda_seed_validation.sql` 通过：5 条 seed 均为 `approved`，营养基准单位均为 `g`，未创建未经核实的家庭单位换算。
+- 当前本地 `FoodMate` 数据量：`food_logs=8`、`food_log_items=11`、`nutrition_foods=5`、`nutrition_unit_conversions=0`、`approval_requests=6`、`runtime_tool_proposal_inbox=69`；其中已匹配明细 7 条、`pending` 明细 4 条。
+- 新增并通过 `M15FoodLogWriterHttpE2ETest` 和 `M15FoodLogWriterProposalResultE2ETest`：真实 PostgreSQL 下分别验证 Service JWT HTTP 入口、RocketMQ Proposal/Result、确认绑定、营养匹配、资源 ID 回填和重放不重复创建。
+- 详细命令、校验结果和范围见 [`EXECUTION_RECORD.md`](./EXECUTION_RECORD.md)。
+
 ## 2026-08-13 M1-5 第一切片复核
 
 - V13/V14 未在本轮重复执行；当前本地 `FoodMate` 数据库已存在对应结构。
 - 只读校验确认 `food_logs`、`food_log_items`、`nutrition_foods`、`nutrition_unit_conversions`、`approval_requests` 及 V14 幂等字段/索引存在，`food_logs` 旧 JSON 字段已移除。
-- 当前数据量：`food_logs=1`、`food_log_items=1`、`nutrition_foods=0`、`nutrition_unit_conversions=0`、`approval_requests=1`。营养目录 seed 尚未导入。
+- 截至本条历史记录，当时数据量为 `food_logs=1`、`food_log_items=1`、`nutrition_foods=0`、`nutrition_unit_conversions=0`、`approval_requests=1`；营养目录 seed 尚未导入。当前状态见上方 2026-08-14 记录。
 - 审批审计已验证 `approval.propose`、`approval.confirm`、`approval.execute` 各 1 条成功记录。
 - 详细复核记录见 [`EXECUTION_RECORD.md`](./EXECUTION_RECORD.md)。
 

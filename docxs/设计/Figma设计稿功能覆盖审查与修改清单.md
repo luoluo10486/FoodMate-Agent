@@ -821,14 +821,14 @@
 ## 35. 2026-08-13 M1-5 业务页面与后端实施边界
 
 - [x] 已将饮食记录、摄入分析和餐食规划页面纳入 M1-5 实施顺序的前端状态展示范围；页面的 Default、Loading、Empty、Error、待确认和待估算状态属于交互契约。
-- [x] 已明确页面不能反推后端完成：上述表和第一切片已落地，饮食记录编辑已完成确定性 PostgreSQL HTTP 回归，但营养目录当前没有 seed 数据；完整 Tool Gateway 和更多确认状态仍需完成业务验收。
+- [x] 已明确页面不能反推后端完成：上述表和第一切片已落地，饮食记录编辑、5 条营养 seed 的 matched/pending 分支和 writer HTTP/MQ 回归已完成确定性验证；完整 Tool Gateway 和更多确认状态仍需完成业务验收。
 - [x] 已明确本地优先边界：Figma 验收和前端浏览器 smoke 不代表 staging/production、Kubernetes、生产监控、数据库备份恢复或发布回滚已建立。
 - [x] M1-5 第一切片已完成本地后端联调；当前真实路径覆盖“手工饮食记录创建/编辑 -> 无目录时 pending -> 分析 -> 餐食计划/购物清单 -> `meal_plan.save_plan` Proposal/Confirm/Execute”。后续补真实目录匹配、完整 Tool Gateway 和更多确认状态，禁止用 mock 数据替代真实业务验收。
 
 ## 35.1 2026-08-14 M1-5 writer 第一切片边界
 
 - [x] `food_log_writer` 的 `food_log.create` 已完成本地 application/Tool Gateway/Runtime Proposal 第一切片，覆盖确认绑定、AgentRun/用户归属、参数摘要、幂等键、复用 Java 饮食记录写入用例、`food_log_id` 回填和重放保护。
-- [x] 已明确该切片不等于真实业务 E2E：真实 PostgreSQL HTTP、RocketMQ Proposal/Result writer 回归、拒绝/失败/superseded 完整状态和 update/delete/restore 写工具仍未完成。
+- [x] 已明确该切片不等于完整业务 E2E：真实 PostgreSQL HTTP、RocketMQ Proposal/Result writer 回归已通过，但拒绝/失败/superseded 完整状态和 update/delete/restore 写工具仍未完成。
 - [x] 前端页面、Figma 画板或 mock 状态不得将上述未完成项标记为 M1-5 整体完成。
 
 ## 36. 2026-08-12 生产字体、前端像素差异和 iconfont 实体登记复核
@@ -882,3 +882,32 @@
 - [x] 浏览器实际确认向导 1→2→3、开始/取消生成、冲突方案应用、购物清单初始数量和导出反馈；七个状态在 `1440×1024` 下均无页面级横向溢出。
 - [x] Figma PNG、浏览器截图和 RGBA 归一化截图已登记到 `foodmate-ui/.qa/figma-pixel-acceptance/`。
 - [ ] 所有 diff 继续保留 `DIFF_REVIEW`，不以人工接近或 Figma 内部 Prototype 有效替代像素级 PASS；真实计划生成、冲突、购物清单持久化、任务接口和 iconfont 实体资源仍未关闭。
+
+## 40. 2026-08-14 Agent 空态画板代码迁移
+
+本轮继续按 Figma 画板顺序迁移 Agent 状态，先处理 `agent-empty`，不参考旧前端反推视觉。
+
+- [x] Figma 节点 `687:219` 已对应独立前端入口 `/chat?state=empty`；画板尺寸 `1440×1024`，主区不包含 Trace 右栏。
+- [x] 空态结构已覆盖居中引导、推荐问题三卡和底部 Composer；桌面关键值为约 `560px` 引导区、`720×123px` 推荐区域、`16px` 卡片间距和 `112px` Composer。
+- [x] Figma PNG、桌面/移动浏览器截图和 RGBA 归一化截图已登记到 `foodmate-ui/.qa/figma-pixel-acceptance/`；自动 diff `15.7739% / RMSE 14.7325`，结果保持 `DIFF_REVIEW`。
+- [x] `1440×1024` 与 `390×844` 浏览器检查无页面级横向溢出；移动端推荐卡单列，Composer 完整可见。移动端固定内容区高度修正已限制在 `ChatPage` 空态样式，不改变其他页面布局。
+- [x] 推荐卡填充 Composer、发送后进入 `/chat?prompt=...` 的行为已实际验证；该路径只证明前端交互，不代表后端 AgentRun 已闭环。
+- [ ] Design 页剩余画板仍按 `UNMAPPED` 或已有 `DIFF_REVIEW` 记录处理；本轮不将一个 Agent 空态视为 105 张画板全量完成。
+- [ ] iconfont 实体资源仍为 `BLOCKED`；标准命令图标继续使用 Lucide。shadcn/Radix 基础设施保持为后续逐页重构的实现底座，不替代 Figma 颜色、字体、样式和像素验收。
+
+## 41. 2026-08-14 Agent Planning 状态覆盖记录
+
+- [x] Figma `agent-planning` 节点 `687:342` 已有独立前端入口 `/chat?state=planning`；覆盖 Planning 状态条、用户消息、规划步骤卡和运行中 Composer。
+- [x] 代码侧已确认隐藏 Trace 右栏、`45px` 状态条、`1180px` 主区和 `y=912/h=112` Composer；移动 `390×844` 无横向溢出。
+- [x] 浏览器和 Figma 证据已登记，diff `14.9956% / RMSE 14.0682`，结论为 `DIFF_REVIEW`。
+- [ ] 该项只关闭前端状态映射，不关闭真实计划生成、AgentRun/SSE、后端任务或 iconfont 实体资源登记。
+
+## 42. 2026-08-14 Agent Tool Executing 状态覆盖记录
+
+- [x] Figma 节点 `687:475` 已有独立前端入口 `/chat?state=tool-executing`；覆盖完整工作站壳层、执行状态条、工具卡、Trace rail 和 Composer 运行中状态。
+- [x] 结构与关键值已按 Figma 核实：侧栏 `260px`、对话区 `860px`、Trace `320px`、工具气泡 `181×250`、用户气泡 `228×49`、Composer `y=912/h=112`。
+- [x] Trace tabs/body 已校准到 Figma：body `y=107`，首个 Trace 卡 `y=135`；Trace 展示 `fst_trace_9821aa`、意图解析、向量检索、数据库调用和结果合成。
+- [x] 桌面 `1440×1024` 与移动 `390×844` 浏览器证据已登记；移动端 `document.body.scrollWidth === 390`，Trace 按窄屏规则隐藏。
+- [x] `ChatPage` 定向测试 `4/4`、typecheck、Prettier 和 `git diff --check` 通过。
+- [ ] 自动 diff `50.5259% / RMSE 23.1703`，保持 `DIFF_REVIEW`；Figma 内部 Prototype 完整性不能替代前端像素验收。
+- [ ] iconfont 实体资源继续 `BLOCKED`；本状态不代表工具后端、SSE 或运行时数据闭环完成。下一步为 `agent-awaiting-clarification`。

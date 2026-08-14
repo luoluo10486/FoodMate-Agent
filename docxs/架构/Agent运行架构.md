@@ -11,7 +11,7 @@
 - 当前已实现本地 deterministic Composer、独立 Eval、预算动作、Redis checkpoint、RocketMQ Event/Proposal/Result、Tool Result 回注、Java 恢复入口和浏览器 SSE；RAG、完整业务 Tool、生产级长压、多实例业务流量和真实云长稳仍未完成。
 - 当前没有实际审核人员。高风险 request_review 不进入 waiting_review，而是安全降级、提示医生或注册营养师并记录原因。Human Approval 仍作为未来具备审核人员后的目标架构能力保留。
 - 当前代码默认使用 deterministic:local；云模型、真实价格和 Judge 必须显式配置，生产价格审计和人工校准尚未完成。
-- M1-5 第一切片已进入代码并通过本地验证：手工饮食记录创建/查询/编辑/删除/恢复、营养分析、餐食计划完整资源生命周期和 `meal_plan.save_plan` 写确认统一由 Java application 用例编排；`food_log_writer` 的 `food_log.create` 已完成本地 Proposal/Confirm/Execute 第一切片，但尚未完成真实 PostgreSQL HTTP/RocketMQ writer 回归。计划生命周期已完成 PostgreSQL HTTP 回归，营养目录和确认事实落 PostgreSQL，但目录当前为空，完整 Agent 写工具仍待实现。详细表结构以 [M1-5 实施方案](../项目/M1-5核心饮食业务与写确认实施方案.md) 为准。
+- M1-5 第一切片已进入代码并通过本地验证：手工饮食记录创建/查询/编辑/删除/恢复、首批目录 matched/pending 营养分析、餐食计划完整资源生命周期和 `meal_plan.save_plan` 写确认统一由 Java application 用例编排；`food_log_writer` 的 `food_log.create` 已完成本地 Proposal/Confirm/Execute 第一切片，并通过真实 PostgreSQL HTTP/RocketMQ writer 回归。计划生命周期已完成 PostgreSQL HTTP 回归，营养目录和确认事实落 PostgreSQL，当前有 5 条 approved seed，完整 Agent 写工具仍待实现。详细表结构以 [M1-5 实施方案](../项目/M1-5核心饮食业务与写确认实施方案.md) 为准。
 - M1-5 的 Agent 写操作必须经过 Proposal/Confirm 和幂等、`revision`、审计校验；当前 `meal_plan.save_plan` 和 `food_log_writer` `food_log.create` 已实现本地切片，拒绝/失败/superseded 和更多 update/delete/restore 写操作仍待补齐。手工页面保存可以直接提交，但仍复用同一 Java application 用例。模型不得直接估算并写入营养数值。
 - 当前运行和验证优先级是本地：M1-6 已完成本地 Actuator、基础 metrics、双 Java JVM、Runtime readiness、Redis AOF 探针恢复和 RocketMQ 重启恢复子项；PostgreSQL 进程重启、完整业务故障矩阵、生产压测和恢复指标仍待执行。staging/production、Kubernetes、完整生产监控、数据库备份恢复、云模型长期稳定性和账单审计均后置。
 

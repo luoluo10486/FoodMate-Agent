@@ -37,7 +37,7 @@ export function AgentStatusStrip({ status }: AgentStatusStripProps) {
           const active = currentIndex === index && !completed;
           return (
             <span
-              className={`${styles.step} ${styles[step.tone]} ${active ? styles.active : ''}`}
+              className={`${styles.step} ${styles[step.tone]} ${completed ? styles.completed : ''} ${active ? styles.active : ''}`}
               key={step.key}
               role="listitem"
             >

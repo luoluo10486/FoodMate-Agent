@@ -6,7 +6,7 @@
  * 审计风险：seededRef 不会随 seedKey 变化重置，
  * 导致第二个会话的 seed 无法触发。
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { describe, it, expect } from 'vitest';
@@ -80,5 +80,64 @@ describe('ChatPage 会话隔离', () => {
 
     // 验证 ChatPage 仍在渲染（没有崩溃）
     expect(screen.getByText('工具与引用')).toBeInTheDocument();
+  });
+});
+
+describe('ChatPage Figma 空态', () => {
+  it('renders the empty conversation state and places a recommended prompt into the composer', () => {
+    render(
+      <MemoryRouter initialEntries={['/chat?state=empty']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: '开始新的对话' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /分析我今天的饮食/ })).toBeInTheDocument();
+    expect(screen.queryByText('运行轨迹')).not.toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText('输入消息或添加自定义指令...');
+    fireEvent.click(screen.getByRole('button', { name: /制定本周餐食计划/ }));
+    expect(input).toHaveValue('根据我的减脂目标制定本周餐食计划');
+  });
+});
+
+describe('ChatPage Figma Planning 状态', () => {
+  it('renders the planning steps without the trace rail and disables the composer', () => {
+    render(
+      <MemoryRouter initialEntries={['/chat?state=planning']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Planning...')).toBeInTheDocument();
+    expect(screen.getByText(/制定分析方案/)).toBeInTheDocument();
+    expect(screen.queryByText('运行轨迹')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '停止生成' })).toBeEnabled();
+    expect(screen.getByPlaceholderText('正在规划任务流程，请稍候...')).toBeDisabled();
+  });
+});
+
+describe('ChatPage Figma Tool Executing 状态', () => {
+  it('renders the executing tool card, running trace and disabled composer', () => {
+    render(
+      <MemoryRouter initialEntries={['/chat?state=tool-executing']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Executing Tools...')).toBeInTheDocument();
+    expect(screen.getByText('向量索引检索 - 12ms ✓')).toBeInTheDocument();
+    expect(screen.getByText('数据库调用 - running...')).toBeInTheDocument();
+    expect(screen.getByText('营养计算 - pending')).toBeInTheDocument();
+    expect(screen.getByText('RUN ID: fst_trace_9821aa')).toBeInTheDocument();
+    expect(screen.getByText('数据库调用: 饮食日志表')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('正在运行数据计算工具...')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '停止生成' })).toBeEnabled();
   });
 });
