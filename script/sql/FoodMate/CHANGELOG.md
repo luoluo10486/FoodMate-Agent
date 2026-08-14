@@ -29,7 +29,7 @@
 
 变更编号、影响表、锁与停机要求、备份位置、执行窗口、校验结果和回滚结论必须在 `EXECUTION_RECORD.md` 中登记。已执行版本禁止修改原文件。
 
-## V13__m1_5_food_log_nutrition_approval.sql（待人工执行）
+## V13__m1_5_food_log_nutrition_approval.sql（本地结构已执行，当前仅复核）
 
 - 调整 `food_logs` 为餐次主表：新增 `agent_run_id`、`idempotency_key`、`revision`，删除旧 `items_json`/`nutrition_json`。
 - 新增 `food_log_items`、`nutrition_foods`、`nutrition_unit_conversions`、`approval_requests`，并建立外键、精度约束、状态约束、软删除字段和幂等索引。
@@ -38,9 +38,18 @@
 - 校验：`validation/V13__m1_5_food_log_nutrition_approval_validation.sql`。
 - 回滚：`rollback/R13__m1_5_food_log_nutrition_approval.sql`；仅限 V13 新表均为空的开发数据库。
 
-## V14__m1_5_operation_idempotency.sql（待人工执行）
+## V14__m1_5_operation_idempotency.sql（本地结构已执行，当前仅复核）
 
 - 为 `operation_audits` 增加 `idempotency_key`、`parameters_digest`。
 - 增加操作者 + 幂等键唯一索引，统一覆盖饮食记录创建、删除和恢复。
 - 校验：`validation/V14__m1_5_operation_idempotency_validation.sql`。
 - 回滚：`rollback/R14__m1_5_operation_idempotency.sql`。
+
+## V15__m1_5_meal_plan_lifecycle.sql（本地已执行并校验）
+
+- 为 `meal_plans` 增加 `idempotency_key`、`revision`、版本约束和生命周期索引。
+- 支持计划修改、状态变更、软删除和恢复；修改后由应用软删除旧购物清单。
+- 当前本地库保留既有餐食计划和购物清单，V15 校验确认字段/索引存在且 `revision` 均合法。
+- 校验：`validation/V15__m1_5_meal_plan_lifecycle_validation.sql`。
+- 回滚：`rollback/R15__m1_5_meal_plan_lifecycle.sql`；仅限已评审的开发数据库。
+- 详细执行和 HTTP 回归记录见 [`EXECUTION_RECORD.md`](./EXECUTION_RECORD.md)。

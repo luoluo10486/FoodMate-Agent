@@ -21,19 +21,60 @@ public class MealPlanRepositoryAdapter implements MealPlanRepository {
     }
 
     @Override
+    public IdempotencyRecord findIdempotency(long userId, String idempotencyKey) {
+        return mapper.findIdempotency(userId, idempotencyKey);
+    }
+
+    @Override
     public int insertPlan(PlanWrite plan) {
         return mapper.insertPlan(plan);
     }
 
     @Override
     public int updatePlanStatus(
+            long userId,
+            long mealPlanId,
+            long expectedRevision,
+            String status,
+            String validationJson) {
+        return mapper.updatePlanStatus(
+                userId, mealPlanId, expectedRevision, status, validationJson);
+    }
+
+    @Override
+    public int updatePlanStatus(
             long userId, long mealPlanId, String status, String validationJson) {
-        return mapper.updatePlanStatus(userId, mealPlanId, status, validationJson);
+        return mapper.updatePlanStatusLegacy(userId, mealPlanId, status, validationJson);
+    }
+
+    @Override
+    public int updatePlan(UpdatePlanWrite plan) {
+        return mapper.updatePlan(plan);
+    }
+
+    @Override
+    public PlanSnapshot findOwnedPlan(long userId, long mealPlanId, boolean includeDeleted) {
+        return mapper.findOwnedPlan(userId, mealPlanId, includeDeleted);
     }
 
     @Override
     public PlanSnapshot findOwnedPlan(long userId, long mealPlanId) {
-        return mapper.findOwnedPlan(userId, mealPlanId);
+        return mapper.findOwnedPlan(userId, mealPlanId, false);
+    }
+
+    @Override
+    public int softDelete(long userId, long mealPlanId, long revision) {
+        return mapper.softDelete(userId, mealPlanId, revision);
+    }
+
+    @Override
+    public int restore(long userId, long mealPlanId, long revision) {
+        return mapper.restore(userId, mealPlanId, revision);
+    }
+
+    @Override
+    public int softDeleteShoppingList(long userId, long mealPlanId) {
+        return mapper.softDeleteShoppingList(userId, mealPlanId);
     }
 
     @Override
@@ -44,5 +85,15 @@ public class MealPlanRepositoryAdapter implements MealPlanRepository {
     @Override
     public ShoppingListSnapshot findOwnedShoppingList(long userId, long mealPlanId) {
         return mapper.findOwnedShoppingList(userId, mealPlanId);
+    }
+
+    @Override
+    public int reserveAudit(AuditWrite audit) {
+        return mapper.reserveAudit(audit);
+    }
+
+    @Override
+    public int completeAudit(long operatorId, String idempotencyKey, String responseJson) {
+        return mapper.completeAudit(operatorId, idempotencyKey, responseJson);
     }
 }

@@ -16,6 +16,8 @@ public interface ApprovalRequestRepository {
 
     int markExecuted(long userId, long approvalRequestId, Instant now);
 
+    int updateExecutedResource(long userId, long approvalRequestId, long resourceId, Instant now);
+
     int insertAudit(AuditWrite audit);
 
     record ApprovalWrite(

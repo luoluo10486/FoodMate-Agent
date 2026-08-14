@@ -19,7 +19,23 @@ public interface ToolGatewayService {
             String runId,
             String proposalType,
             String schemaVersion,
-            ProposalPayload payload) {}
+            String toolName,
+            String confirmationRef,
+            JsonNode input,
+            ProposalPayload payload) {
+        public ProposalCommand(
+                String proposalId,
+                String runId,
+                String proposalType,
+                String schemaVersion,
+                ProposalPayload payload) {
+            this(proposalId, runId, proposalType, schemaVersion, null, null, null, payload);
+        }
+    }
 
-    record ProposalPayload(String statement, String invocationId) {}
+    record ProposalPayload(String statement, String invocationId, String idempotencyKey) {
+        public ProposalPayload(String statement, String invocationId) {
+            this(statement, invocationId, null);
+        }
+    }
 }

@@ -7,9 +7,19 @@ import java.time.Instant;
 public interface ApprovalService {
     ProposalView propose(long userId, ProposalCommand command);
 
+    String parametersDigest(
+            String operation, String resourceType, Long resourceId, JsonNode parameters);
+
     ProposalView confirm(long userId, long approvalRequestId, JsonNode parameters);
 
     ExecuteView execute(long userId, long approvalRequestId, JsonNode parameters);
+
+    ExecuteView executeForAgent(
+            long userId,
+            long agentRunId,
+            long approvalRequestId,
+            String idempotencyKey,
+            JsonNode parameters);
 
     record ProposalCommand(
             Long sessionId,

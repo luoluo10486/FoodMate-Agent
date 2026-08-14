@@ -1,6 +1,6 @@
 # FoodMate 工具与 SQL 控制面实现蓝图
 
-> M1-5 更新（2026-08-13）：`meal_plan.save_plan` 的 Proposal -> Confirm -> Execute 第一切片已实现，确认事实使用 `approval_requests`，CAS 执行和 `operation_audits` 审计已验证。`food_log_writer` 完整 Tool Gateway、拒绝/失败/superseded 和更广泛工具调用仍待实现。本文仍是控制面蓝图，不代表完整业务工具链已完成。
+> M1-5 更新（2026-08-14）：`meal_plan.save_plan` 的 Proposal -> Confirm -> Execute 第一切片已实现；`food_log_writer` 的 `food_log.create` 也已完成本地第一切片，确认事实使用 `approval_requests`，CAS/幂等执行和 `operation_audits` 审计已验证。writer 尚未完成真实 PostgreSQL HTTP/RocketMQ 回归；完整 Tool Gateway、拒绝/失败/superseded 和更广泛工具调用仍待实现。本文仍是控制面蓝图，不代表完整业务工具链已完成。
 
 版本：v1.0 目标实现蓝图
 

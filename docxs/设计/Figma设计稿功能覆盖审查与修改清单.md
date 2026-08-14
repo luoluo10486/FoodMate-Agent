@@ -825,6 +825,12 @@
 - [x] 已明确本地优先边界：Figma 验收和前端浏览器 smoke 不代表 staging/production、Kubernetes、生产监控、数据库备份恢复或发布回滚已建立。
 - [x] M1-5 第一切片已完成本地后端联调；当前真实路径覆盖“手工饮食记录创建/编辑 -> 无目录时 pending -> 分析 -> 餐食计划/购物清单 -> `meal_plan.save_plan` Proposal/Confirm/Execute”。后续补真实目录匹配、完整 Tool Gateway 和更多确认状态，禁止用 mock 数据替代真实业务验收。
 
+## 35.1 2026-08-14 M1-5 writer 第一切片边界
+
+- [x] `food_log_writer` 的 `food_log.create` 已完成本地 application/Tool Gateway/Runtime Proposal 第一切片，覆盖确认绑定、AgentRun/用户归属、参数摘要、幂等键、复用 Java 饮食记录写入用例、`food_log_id` 回填和重放保护。
+- [x] 已明确该切片不等于真实业务 E2E：真实 PostgreSQL HTTP、RocketMQ Proposal/Result writer 回归、拒绝/失败/superseded 完整状态和 update/delete/restore 写工具仍未完成。
+- [x] 前端页面、Figma 画板或 mock 状态不得将上述未完成项标记为 M1-5 整体完成。
+
 ## 36. 2026-08-12 生产字体、前端像素差异和 iconfont 实体登记复核
 
 - [x] 已回读当前 Figma 文件：`🎨 :: Design` 105 张顶层画板、19,985 个节点、1,940 条 reaction、无效目标 0、截图请求 105/105 成功。

@@ -225,6 +225,7 @@ class RocketMqProposalPublisher:
                 str(payload.get("proposal_type", "")), str(payload.get("schema_version", "")),
                 dict(payload.get("payload") or {}), bool(payload.get("requires_confirmation", True)),
                 str(payload.get("request_hash", "")),
+                payload.get("tool_name"), payload.get("confirmation_ref"), payload.get("input"),
             )
             validate_proposal(required)
             payload = required.as_dict()

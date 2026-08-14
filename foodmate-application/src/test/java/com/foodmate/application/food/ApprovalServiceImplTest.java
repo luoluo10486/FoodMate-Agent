@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.food.port.out.ApprovalRequestRepository;
 import com.foodmate.application.food.service.ApprovalService;
+import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.application.food.service.MealPlanService;
 import com.foodmate.application.food.service.impl.ApprovalServiceImpl;
 import com.foodmate.shared.error.BusinessException;
@@ -168,8 +169,8 @@ class ApprovalServiceImplTest {
         assertEquals(first, replay);
         InOrder order = org.mockito.Mockito.inOrder(repository, plans);
         order.verify(repository).markExecuted(eq(7L), eq(100L), any());
-        order.verify(plans).save(7L, 55L);
-        verify(plans).save(7L, 55L);
+        order.verify(plans).save(eq(7L), eq(55L), org.mockito.ArgumentMatchers.startsWith("plan_"));
+        verify(plans).save(eq(7L), eq(55L), org.mockito.ArgumentMatchers.startsWith("plan_"));
         verify(repository).insertAudit(any());
     }
 
@@ -190,6 +191,165 @@ class ApprovalServiceImplTest {
         assertEquals(ErrorCode.CONFLICT, exception.errorCode());
         verify(plans, never()).save(any(Long.class), any(Long.class));
         verify(repository, never()).markExecuted(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void executeRejectsUnconfirmedProposalAndDoesNotSave() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        MealPlanService plans = org.mockito.Mockito.mock(MealPlanService.class);
+        ObjectNode parameters = parameters("validated");
+        when(repository.findOwned(7L, 100L)).thenReturn(snapshotFor(parameters, "pending", FUTURE));
+        ApprovalService service = service(repository, plans, ids(101L));
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.execute(7L, 100L, parameters));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        assertEquals(
+                "TOOL_CONFIRMATION_REQUIRED", exception.details().path("tool_error_code").asText());
+        verify(plans, never()).save(any(Long.class), any(Long.class), any());
+        verify(repository, never()).markExecuted(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void agentExecutionRejectsMismatchedIdempotencyKey() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        FoodLogService foods = org.mockito.Mockito.mock(FoodLogService.class);
+        ObjectNode parameters =
+                JsonNodeFactory.instance
+                        .objectNode()
+                        .put("meal_time", "2026-08-13T04:00:00Z")
+                        .put("meal_type", "lunch");
+        parameters
+                .putArray("items")
+                .addObject()
+                .put("name", "rice")
+                .put("amount", 100)
+                .put("unit", "g");
+        ApprovalRequestRepository.ApprovalSnapshot confirmed =
+                snapshot(
+                        new ApprovalRequestRepository.ApprovalWrite(
+                                100L,
+                                7L,
+                                8L,
+                                42L,
+                                "food_log",
+                                null,
+                                "create",
+                                digest("create", "food_log", null, parameters),
+                                "req_test",
+                                "trace_test",
+                                "food-key",
+                                FUTURE),
+                        "confirmed",
+                        FUTURE);
+        when(repository.findOwned(7L, 100L)).thenReturn(confirmed);
+        ApprovalService service =
+                new ApprovalServiceImpl(
+                        repository,
+                        org.mockito.Mockito.mock(MealPlanService.class),
+                        foods,
+                        ids(101L),
+                        mapper);
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () -> service.executeForAgent(7L, 42L, 100L, "different-key", parameters));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        assertEquals(
+                "TOOL_IDEMPOTENCY_CONFLICT", exception.details().path("tool_error_code").asText());
+        verify(foods, never()).create(any(Long.class), any());
+        verify(repository, never()).markExecuted(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void foodLogApprovalBindsCreatedResourceForReplay() {
+        ApprovalRequestRepository repository =
+                org.mockito.Mockito.mock(ApprovalRequestRepository.class);
+        FoodLogService foods = org.mockito.Mockito.mock(FoodLogService.class);
+        ApprovalService service =
+                new ApprovalServiceImpl(
+                        repository,
+                        org.mockito.Mockito.mock(MealPlanService.class),
+                        foods,
+                        ids(101L, 102L),
+                        mapper);
+        ObjectNode parameters =
+                JsonNodeFactory.instance
+                        .objectNode()
+                        .put("meal_time", "2026-08-13T04:00:00Z")
+                        .put("meal_type", "lunch");
+        parameters
+                .putArray("items")
+                .addObject()
+                .put("name", "rice")
+                .put("amount", 100)
+                .put("unit", "g");
+        ApprovalRequestRepository.ApprovalSnapshot confirmed =
+                snapshot(
+                        new ApprovalRequestRepository.ApprovalWrite(
+                                100L,
+                                7L,
+                                8L,
+                                42L,
+                                "food_log",
+                                null,
+                                "create",
+                                service.parametersDigest("create", "food_log", null, parameters),
+                                "req_test",
+                                "trace_test",
+                                "food-key",
+                                FUTURE),
+                        "confirmed",
+                        FUTURE);
+        ApprovalRequestRepository.ApprovalSnapshot executed =
+                new ApprovalRequestRepository.ApprovalSnapshot(
+                        100L,
+                        7L,
+                        8L,
+                        42L,
+                        "food_log",
+                        501L,
+                        "create",
+                        confirmed.parametersDigest(),
+                        "executed",
+                        "req_test",
+                        "trace_test",
+                        "food-key",
+                        FUTURE,
+                        FUTURE,
+                        FUTURE);
+        when(repository.findOwned(7L, 100L)).thenReturn(confirmed, executed);
+        when(repository.markExecuted(eq(7L), eq(100L), any())).thenReturn(1);
+        when(repository.updateExecutedResource(eq(7L), eq(100L), eq(501L), any())).thenReturn(1);
+        when(foods.create(eq(7L), any()))
+                .thenReturn(
+                        new FoodLogService.FoodLogView(
+                                501L,
+                                8L,
+                                42L,
+                                Instant.parse("2026-08-13T04:00:00Z"),
+                                com.foodmate.shared.food.enums.MealType.LUNCH,
+                                null,
+                                "agent",
+                                1,
+                                false,
+                                FUTURE,
+                                FUTURE,
+                                java.util.List.of()));
+        ApprovalService.ExecuteView first =
+                service.executeForAgent(7L, 42L, 100L, "food-key", parameters);
+        ApprovalService.ExecuteView replay =
+                service.executeForAgent(7L, 42L, 100L, "food-key", parameters);
+
+        assertEquals(501L, first.resourceId());
+        assertEquals(first, replay);
+        verify(foods).create(eq(7L), any());
+        verify(repository).updateExecutedResource(eq(7L), eq(100L), eq(501L), any());
     }
 
     private ApprovalService service(

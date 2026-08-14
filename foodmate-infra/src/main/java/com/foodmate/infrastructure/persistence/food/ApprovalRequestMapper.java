@@ -46,6 +46,14 @@ public interface ApprovalRequestMapper {
             @Param("approvalRequestId") long approvalRequestId,
             @Param("now") Instant now);
 
+    @Update(
+            "UPDATE approval_requests SET resource_id=#{resourceId},updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE approval_request_id=#{approvalRequestId} AND user_id=#{userId} AND status='executed' AND is_deleted=FALSE")
+    int updateExecutedResource(
+            @Param("userId") long userId,
+            @Param("approvalRequestId") long approvalRequestId,
+            @Param("resourceId") long resourceId,
+            @Param("now") Instant now);
+
     @Insert(
             "INSERT INTO operation_audits(operation_audit_id,operator_id,request_id,trace_id,target_type,target_id,action,result,request_json,response_json,parameters_digest,idempotency_key,created_by,updated_by) VALUES (#{operationAuditId},#{userId},#{requestId},#{traceId},#{targetType},#{targetId},#{action},'success','{}'::jsonb,CAST(#{responseJson} AS jsonb),#{parametersDigest},#{idempotencyKey},#{userId},#{userId}) ON CONFLICT (operator_id,idempotency_key) WHERE operator_id IS NOT NULL AND idempotency_key IS NOT NULL AND is_deleted=FALSE DO NOTHING")
     int insertAudit(AuditWrite audit);

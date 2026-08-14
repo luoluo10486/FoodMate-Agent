@@ -61,7 +61,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                                 command.mealTime(),
                                 command.mealType().code(),
                                 command.notes(),
-                                "manual",
+                                command.source(),
                                 key,
                                 1))
                 != 1) {

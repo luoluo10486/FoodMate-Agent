@@ -12,6 +12,10 @@ public interface ToolGatewayMapper {
             "SELECT EXISTS(SELECT 1 FROM agent_runs WHERE agent_run_id=#{runId} AND is_deleted=FALSE)")
     boolean runExists(long runId);
 
+    @Select(
+            "SELECT s.user_id AS userId,r.session_id AS sessionId FROM agent_runs r JOIN sessions s ON s.session_id=r.session_id AND s.is_deleted=FALSE WHERE r.agent_run_id=#{runId} AND r.is_deleted=FALSE")
+    RunContext runContext(long runId);
+
     @Insert(
             "INSERT INTO sql_query_audits(sql_audit_id,agent_run_id,sql_text,status,row_count,reject_reason,latency_ms,trace_id,created_by,updated_by) VALUES (#{id},#{runId},#{statement},#{status},#{rows},#{reason},#{latencyMs},#{traceId},0,0)")
     void audit(Audit audit);

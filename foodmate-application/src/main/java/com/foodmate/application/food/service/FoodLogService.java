@@ -25,8 +25,21 @@ public interface FoodLogService {
             MealType mealType,
             String notes,
             String idempotencyKey,
+            String source,
             List<ItemCommand> items) {
+        public CreateCommand(
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                MealType mealType,
+                String notes,
+                String idempotencyKey,
+                List<ItemCommand> items) {
+            this(sessionId, agentRunId, mealTime, mealType, notes, idempotencyKey, "manual", items);
+        }
+
         public CreateCommand {
+            source = source == null || source.isBlank() ? "manual" : source;
             items = items == null ? List.of() : List.copyOf(items);
         }
     }

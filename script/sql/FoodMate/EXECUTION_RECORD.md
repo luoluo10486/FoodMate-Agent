@@ -63,3 +63,21 @@
 | 校验脚本 | `validation/V14__m1_5_operation_idempotency_validation.sql` |
 | 校验结果 | 通过：V14 validation 查询确认 `idempotency_key`、`parameters_digest` 和对应索引存在；审批审计 `approval.propose/confirm/execute` 各 1 条成功记录 |
 | 回滚结论 | 未执行；未运行回滚 SQL，也未修改数据 |
+
+## V15 M1-5 餐食计划生命周期（本轮已执行并校验）
+
+| 字段 | 内容 |
+|---|---|
+| 数据库 | `FoodMate` |
+| 环境 | local，运行中的 Docker PostgreSQL 16 容器 `foodmate-postgres` |
+| 脚本版本 | `V15__m1_5_meal_plan_lifecycle.sql` |
+| 执行人 | 当前 Codex 会话；未补写未单独记录的具体执行时间 |
+| 前置确认 | 保留现有餐食计划数据后执行，未删除既有计划或购物清单 |
+| 备份 | 当前开发阶段按用户决策暂不做数据库备份；正式生产流程后置 |
+| 执行命令/客户端版本 | `docker exec foodmate-postgres psql`，PostgreSQL 16.14 |
+| 执行结果 | 成功：新增 `meal_plans.idempotency_key`、`meal_plans.revision`、版本约束和两个索引；现有计划与购物清单保留 |
+| 校验脚本 | `validation/V15__m1_5_meal_plan_lifecycle_validation.sql` |
+| 校验结果 | 通过：字段、索引存在，`invalid_meal_plan_revisions=0` |
+| 回滚结论 | 未执行；未运行回滚 SQL |
+
+本轮另完成本地 Java HTTP 回归：创建幂等重放、计划查询/修改、stale `revision` 返回 409、校验/保存、购物清单聚合、修改后清单失效、软删除隐藏和恢复均通过。测试账号、计划和清单已在回归结束后清理。

@@ -105,6 +105,44 @@ class MealPlanServiceImplTest {
         verify(repository).insertShoppingList(any());
     }
 
+    @Test
+    void updateRequiresRevisionAndInvalidatesExistingShoppingList() {
+        MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
+        when(repository.findIdempotency(7L, "plan-update-1")).thenReturn(null);
+        when(repository.findOwnedPlan(7L, 100L, false))
+                .thenReturn(plan("saved", 2, false))
+                .thenReturn(plan("draft", 3, false));
+        when(repository.reserveAudit(any())).thenReturn(1);
+        when(repository.updatePlan(any())).thenReturn(1);
+        when(repository.softDeleteShoppingList(7L, 100L)).thenReturn(1);
+        MealPlanService service = new MealPlanServiceImpl(repository, ids(300L), mapper);
+
+        MealPlanService.PlanView result =
+                service.update(7L, 100L, 2L, updateCommand("plan-update-1"));
+
+        assertEquals("draft", result.status());
+        verify(repository).updatePlan(any(MealPlanRepository.UpdatePlanWrite.class));
+        verify(repository).softDeleteShoppingList(7L, 100L);
+        verify(repository).completeAudit(eq(7L), eq("plan-update-1"), any());
+    }
+
+    @Test
+    void deleteRejectsStaleRevisionBeforeWriting() {
+        MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
+        when(repository.findIdempotency(7L, "plan-delete-1")).thenReturn(null);
+        when(repository.findOwnedPlan(7L, 100L, false)).thenReturn(plan("saved", 3, false));
+        MealPlanService service = new MealPlanServiceImpl(repository, ids(300L), mapper);
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () -> service.delete(7L, 100L, 2L, "plan-delete-1"));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        verify(repository, never()).reserveAudit(any());
+        verify(repository, never()).softDelete(any(Long.class), any(Long.class), any(Long.class));
+    }
+
     private MealPlanService.CreateCommand command(ArrayNode daysPlan) {
         return commandWithPlan(List.of(), List.of(), daysPlan);
     }
@@ -124,7 +162,25 @@ class MealPlanServiceImplTest {
                 daysPlan);
     }
 
+    private MealPlanService.UpdateCommand updateCommand(String idempotencyKey) {
+        return new MealPlanService.UpdateCommand(
+                "更新计划",
+                2,
+                1,
+                new BigDecimal("300.00"),
+                2000,
+                100,
+                List.of(),
+                List.of(),
+                validDaysPlan(),
+                idempotencyKey);
+    }
+
     private MealPlanRepository.PlanSnapshot plan(String status) {
+        return plan(status, 1, false);
+    }
+
+    private MealPlanRepository.PlanSnapshot plan(String status, long revision, boolean deleted) {
         try {
             return new MealPlanRepository.PlanSnapshot(
                     100L,
@@ -139,6 +195,9 @@ class MealPlanServiceImplTest {
                     mapper.writeValueAsString(validDaysPlan()),
                     "{\"valid\":true,\"errors\":[],\"warnings\":[]}",
                     status,
+                    null,
+                    revision,
+                    deleted,
                     NOW,
                     NOW);
         } catch (Exception exception) {

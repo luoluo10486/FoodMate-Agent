@@ -31,6 +31,11 @@ public class ToolGatewayPortAdapter implements ToolGatewayPort {
     }
 
     @Override
+    public RunContext runContext(long runId) {
+        return mapper.runContext(runId);
+    }
+
+    @Override
     public List<JsonNode> executeRead(String statement) {
         return jdbcTemplate.query(
                 statement,

@@ -47,6 +47,12 @@ public class ApprovalRequestRepositoryAdapter implements ApprovalRequestReposito
     }
 
     @Override
+    public int updateExecutedResource(
+            long userId, long approvalRequestId, long resourceId, Instant now) {
+        return mapper.updateExecutedResource(userId, approvalRequestId, resourceId, now);
+    }
+
+    @Override
     public int insertAudit(AuditWrite audit) {
         return mapper.insertAudit(audit);
     }

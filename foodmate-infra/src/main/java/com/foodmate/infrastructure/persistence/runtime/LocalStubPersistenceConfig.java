@@ -359,6 +359,10 @@ public class LocalStubPersistenceConfig {
                 return false;
             }
 
+            public RunContext runContext(long runId) {
+                return null;
+            }
+
             public List<JsonNode> executeRead(String statement) {
                 return List.of();
             }

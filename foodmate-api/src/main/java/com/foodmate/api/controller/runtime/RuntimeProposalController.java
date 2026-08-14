@@ -48,10 +48,15 @@ public class RuntimeProposalController {
                                 body.runId(),
                                 body.proposalType(),
                                 body.schemaVersion(),
+                                body.toolName(),
+                                body.confirmationRef(),
+                                body.input(),
                                 payload == null
                                         ? null
                                         : new ToolGatewayService.ProposalPayload(
-                                                payload.statement(), payload.invocationId()))),
+                                                payload.statement(),
+                                                payload.invocationId(),
+                                                payload.idempotencyKey()))),
                 TraceContextHolder.currentOrNew());
     }
 

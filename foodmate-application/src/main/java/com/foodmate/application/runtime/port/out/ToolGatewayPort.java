@@ -6,6 +6,8 @@ import java.util.List;
 public interface ToolGatewayPort {
     boolean runExists(long runId);
 
+    RunContext runContext(long runId);
+
     List<JsonNode> executeRead(String statement);
 
     void audit(Audit audit);
@@ -19,4 +21,6 @@ public interface ToolGatewayPort {
             String reason,
             long latencyMs,
             String traceId) {}
+
+    record RunContext(long userId, long sessionId) {}
 }

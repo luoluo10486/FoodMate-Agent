@@ -4,13 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.application.runtime.service.impl.ToolGatewayServiceImpl;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class ToolGatewayServiceTest {
     private final ToolGatewayPort store = mock(ToolGatewayPort.class);
@@ -63,6 +68,174 @@ class ToolGatewayServiceTest {
         assertEquals("succeeded", result.status());
         assertEquals(1, result.rows().size());
         verify(store).audit(any(ToolGatewayPort.Audit.class));
+    }
+
+    @Test
+    void writerRequiresConfirmationAndDoesNotWriteWithoutIt() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        ToolGatewayService service =
+                new ToolGatewayServiceImpl(
+                        store,
+                        () -> 99L,
+                        approvals,
+                        new com.fasterxml.jackson.databind.ObjectMapper());
+        var input = JsonNodeFactory.instance.objectNode().put("meal_time", "2026-08-13T04:00:00Z");
+        input.put("meal_type", "lunch");
+        input.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
+        var result =
+                service.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-writer",
+                                "42",
+                                "tool",
+                                "v1",
+                                "food_log_writer",
+                                null,
+                                input,
+                                new ToolGatewayService.ProposalPayload(
+                                        "", "inv-writer", "key-writer")));
+        assertEquals("confirmation_required", result.status());
+        assertEquals("TOOL_CONFIRMATION_REQUIRED", result.errorCode());
+        verifyNoInteractions(approvals);
+    }
+
+    @Test
+    void writerRejectsNonToolProposalType() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        ToolGatewayService service =
+                new ToolGatewayServiceImpl(
+                        store,
+                        () -> 99L,
+                        approvals,
+                        new com.fasterxml.jackson.databind.ObjectMapper());
+
+        var result =
+                service.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-writer",
+                                "42",
+                                "sql_read",
+                                "v1",
+                                "food_log_writer",
+                                "100",
+                                writerInput(),
+                                new ToolGatewayService.ProposalPayload(
+                                        "", "inv-writer", "key-writer")));
+
+        assertEquals("rejected", result.status());
+        assertEquals("PROPOSAL_NOT_ALLOWED", result.errorCode());
+        verifyNoInteractions(approvals);
+    }
+
+    @Test
+    void writerExecutesThroughApprovalAndReturnsSavedRow() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.executeForAgent(eq(7L), eq(42L), eq(100L), eq("key-writer"), any()))
+                .thenReturn(new ApprovalService.ExecuteView(100L, "create", "executed", 501L));
+        ToolGatewayService service =
+                new ToolGatewayServiceImpl(
+                        store,
+                        () -> 99L,
+                        approvals,
+                        new com.fasterxml.jackson.databind.ObjectMapper());
+        var input = JsonNodeFactory.instance.objectNode().put("meal_time", "2026-08-13T04:00:00Z");
+        input.put("meal_type", "lunch");
+        input.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
+        var result =
+                service.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-writer",
+                                "42",
+                                "tool",
+                                "v1",
+                                "food_log_writer",
+                                "100",
+                                input,
+                                new ToolGatewayService.ProposalPayload(
+                                        "", "inv-writer", "key-writer")));
+        assertEquals("success", result.status());
+        assertEquals("501", result.rows().getFirst().path("food_log_id").asText());
+        verify(approvals).executeForAgent(eq(7L), eq(42L), eq(100L), eq("key-writer"), any());
+    }
+
+    @Test
+    void writerMapsUnconfirmedApprovalToConfirmationRequired() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.executeForAgent(eq(7L), eq(42L), eq(100L), eq("key-writer"), any()))
+                .thenThrow(
+                        new BusinessException(
+                                ErrorCode.CONFLICT,
+                                "写操作尚未确认",
+                                JsonNodeFactory.instance
+                                        .objectNode()
+                                        .put("tool_error_code", "TOOL_CONFIRMATION_REQUIRED")));
+        ToolGatewayService service =
+                new ToolGatewayServiceImpl(
+                        store,
+                        () -> 99L,
+                        approvals,
+                        new com.fasterxml.jackson.databind.ObjectMapper());
+
+        var result =
+                service.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-writer",
+                                "42",
+                                "tool",
+                                "v1",
+                                "food_log_writer",
+                                "100",
+                                writerInput(),
+                                new ToolGatewayService.ProposalPayload(
+                                        "", "inv-writer", "key-writer")));
+
+        assertEquals("confirmation_required", result.status());
+        assertEquals("TOOL_CONFIRMATION_REQUIRED", result.errorCode());
+    }
+
+    @Test
+    void writerMapsIdempotencyConflictToFailed() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.executeForAgent(eq(7L), eq(42L), eq(100L), eq("key-writer"), any()))
+                .thenThrow(
+                        new BusinessException(
+                                ErrorCode.CONFLICT,
+                                "工具幂等键与确认事实不一致",
+                                JsonNodeFactory.instance
+                                        .objectNode()
+                                        .put("tool_error_code", "TOOL_IDEMPOTENCY_CONFLICT")));
+        ToolGatewayService service =
+                new ToolGatewayServiceImpl(
+                        store,
+                        () -> 99L,
+                        approvals,
+                        new com.fasterxml.jackson.databind.ObjectMapper());
+
+        var result =
+                service.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-writer",
+                                "42",
+                                "tool",
+                                "v1",
+                                "food_log_writer",
+                                "100",
+                                writerInput(),
+                                new ToolGatewayService.ProposalPayload(
+                                        "", "inv-writer", "key-writer")));
+
+        assertEquals("failed", result.status());
+        assertEquals("TOOL_IDEMPOTENCY_CONFLICT", result.errorCode());
+    }
+
+    private static JsonNode writerInput() {
+        var input = JsonNodeFactory.instance.objectNode().put("meal_time", "2026-08-13T04:00:00Z");
+        input.put("meal_type", "lunch");
+        input.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
+        return input;
     }
 
     private static ToolGatewayService.ProposalCommand proposal(String sql) {

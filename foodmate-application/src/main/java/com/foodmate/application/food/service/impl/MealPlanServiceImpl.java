@@ -11,11 +11,17 @@ import com.foodmate.application.food.service.MealPlanService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+import com.foodmate.shared.trace.TraceContext;
+import com.foodmate.shared.trace.TraceContextHolder;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -28,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Profile("local")
 public class MealPlanServiceImpl implements MealPlanService {
     private static final Set<String> REQUIRED_MEALS = Set.of("breakfast", "lunch", "dinner");
+    private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 128;
     private final MealPlanRepository store;
     private final IdGenerator ids;
     private final ObjectMapper mapper;
@@ -42,50 +49,192 @@ public class MealPlanServiceImpl implements MealPlanService {
     @Transactional
     public PlanView create(long userId, CreateCommand command) {
         validateInput(userId, command);
+        String key = optionalIdempotencyKey(command.idempotencyKey());
+        String digest = digest("create", command);
         long id = ids.nextId();
+        if (key != null) {
+            MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) return replayOrConflict(userId, key, digest);
+            reserveAudit(userId, key, digest, "meal_plan.create", id, null);
+        }
         JsonNode constraints = constraints(command);
         JsonNode validation = validation(command);
-        store.insertPlan(
-                new MealPlanRepository.PlanWrite(
-                        id,
-                        userId,
-                        command.sessionId(),
-                        command.planName(),
-                        command.days(),
-                        command.budget(),
-                        json(constraints),
-                        json(command.daysPlan()),
-                        json(validation),
-                        "draft"));
-        return view(requirePlan(userId, id));
+        if (store.insertPlan(
+                        new MealPlanRepository.PlanWrite(
+                                id,
+                                userId,
+                                command.sessionId(),
+                                command.planName(),
+                                command.days(),
+                                command.budget(),
+                                json(constraints),
+                                json(command.daysPlan()),
+                                json(validation),
+                                "draft",
+                                key,
+                                1))
+                != 1) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划写入失败");
+        }
+        PlanView result =
+                view(key == null ? requirePlan(userId, id) : requirePlan(userId, id, false));
+        if (key != null) store.completeAudit(userId, key, json(result));
+        return result;
+    }
+
+    @Override
+    public PlanView get(long userId, long mealPlanId) {
+        return view(requirePlan(userId, mealPlanId, false));
+    }
+
+    @Override
+    @Transactional
+    public PlanView update(long userId, long mealPlanId, long revision, UpdateCommand command) {
+        validateUpdate(command);
+        String key = requireIdempotencyKey(command.idempotencyKey());
+        String digest = digest("update", mealPlanId, revision, command);
+        MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+        if (previous != null) return replayOrConflict(userId, key, digest);
+        MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, false);
+        requireRevision(current, revision);
+        reserveAudit(userId, key, digest, "meal_plan.update", mealPlanId, null);
+        JsonNode constraints = constraints(command);
+        JsonNode validation = validation(command);
+        if (store.updatePlan(
+                        new MealPlanRepository.UpdatePlanWrite(
+                                userId,
+                                mealPlanId,
+                                revision,
+                                command.planName(),
+                                command.days(),
+                                command.budget(),
+                                json(constraints),
+                                json(command.daysPlan()),
+                                json(validation)))
+                != 1) {
+            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
+        }
+        store.softDeleteShoppingList(userId, mealPlanId);
+        PlanView result = view(requirePlan(userId, mealPlanId, false));
+        store.completeAudit(userId, key, json(result));
+        return result;
     }
 
     @Override
     @Transactional
     public PlanView validate(long userId, long mealPlanId) {
-        MealPlanRepository.PlanSnapshot plan = requirePlan(userId, mealPlanId);
+        return validateInternal(userId, mealPlanId, null, null, true);
+    }
+
+    @Override
+    @Transactional
+    public PlanView validate(long userId, long mealPlanId, String idempotencyKey) {
+        return validateInternal(
+                userId, mealPlanId, null, requireIdempotencyKey(idempotencyKey), false);
+    }
+
+    @Override
+    @Transactional
+    public PlanView validate(long userId, long mealPlanId, long revision, String idempotencyKey) {
+        return validateInternal(
+                userId, mealPlanId, revision, requireIdempotencyKey(idempotencyKey), false);
+    }
+
+    private PlanView validateInternal(
+            long userId,
+            long mealPlanId,
+            Long expectedRevision,
+            String idempotencyKey,
+            boolean legacyRepositoryPath) {
+        MealPlanRepository.PlanSnapshot plan =
+                legacyRepositoryPath
+                        ? requirePlan(userId, mealPlanId)
+                        : requirePlan(userId, mealPlanId, false);
+        long revision = expectedRevision == null ? plan.revision() : expectedRevision;
+        if (expectedRevision != null) requireRevision(plan, expectedRevision);
+        String digest = digest("validate", mealPlanId, revision);
+        if (idempotencyKey != null) {
+            MealPlanRepository.IdempotencyRecord previous =
+                    store.findIdempotency(userId, idempotencyKey);
+            if (previous != null) return replayOrConflict(userId, idempotencyKey, digest);
+            reserveAudit(userId, idempotencyKey, digest, "meal_plan.validate", mealPlanId, null);
+        }
         if (!"draft".equals(plan.status()) && !"validated".equals(plan.status()))
             throw new BusinessException(ErrorCode.CONFLICT, "只有 draft 或 validated 计划可以校验");
         CreateCommand command = command(plan);
         JsonNode validation = validation(command);
         String status = validation.get("valid").asBoolean() ? "validated" : "draft";
-        if (store.updatePlanStatus(userId, mealPlanId, status, json(validation)) != 1)
-            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
-        return view(requirePlan(userId, mealPlanId));
+        int updated =
+                legacyRepositoryPath
+                        ? store.updatePlanStatus(userId, mealPlanId, status, json(validation))
+                        : store.updatePlanStatus(
+                                userId, mealPlanId, revision, status, json(validation));
+        if (updated != 1) throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
+        PlanView result =
+                view(
+                        legacyRepositoryPath
+                                ? requirePlan(userId, mealPlanId)
+                                : requirePlan(userId, mealPlanId, false));
+        if (idempotencyKey != null) store.completeAudit(userId, idempotencyKey, json(result));
+        return result;
     }
 
     @Override
     @Transactional
     public PlanView save(long userId, long mealPlanId) {
-        MealPlanRepository.PlanSnapshot plan = requirePlan(userId, mealPlanId);
+        return saveInternal(userId, mealPlanId, null, null, true);
+    }
+
+    @Override
+    @Transactional
+    public PlanView save(long userId, long mealPlanId, String idempotencyKey) {
+        return saveInternal(userId, mealPlanId, null, requireIdempotencyKey(idempotencyKey), false);
+    }
+
+    @Override
+    @Transactional
+    public PlanView save(long userId, long mealPlanId, long revision, String idempotencyKey) {
+        return saveInternal(
+                userId, mealPlanId, revision, requireIdempotencyKey(idempotencyKey), false);
+    }
+
+    private PlanView saveInternal(
+            long userId,
+            long mealPlanId,
+            Long expectedRevision,
+            String idempotencyKey,
+            boolean legacyRepositoryPath) {
+        MealPlanRepository.PlanSnapshot plan =
+                legacyRepositoryPath
+                        ? requirePlan(userId, mealPlanId)
+                        : requirePlan(userId, mealPlanId, false);
+        long revision = expectedRevision == null ? plan.revision() : expectedRevision;
+        if (expectedRevision != null) requireRevision(plan, expectedRevision);
+        String digest = digest("save", mealPlanId, revision);
+        if (idempotencyKey != null) {
+            MealPlanRepository.IdempotencyRecord previous =
+                    store.findIdempotency(userId, idempotencyKey);
+            if (previous != null) return replayOrConflict(userId, idempotencyKey, digest);
+            reserveAudit(userId, idempotencyKey, digest, "meal_plan.save", mealPlanId, null);
+        }
         if (!"validated".equals(plan.status()))
             throw new BusinessException(ErrorCode.CONFLICT, "只有 validated 计划可以保存");
         JsonNode validation = read(plan.validationJson());
         if (!validation.path("valid").asBoolean(false))
             throw new BusinessException(ErrorCode.CONFLICT, "餐食计划校验未通过");
-        if (store.updatePlanStatus(userId, mealPlanId, "saved", plan.validationJson()) != 1)
-            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
-        return view(requirePlan(userId, mealPlanId));
+        int updated =
+                legacyRepositoryPath
+                        ? store.updatePlanStatus(userId, mealPlanId, "saved", plan.validationJson())
+                        : store.updatePlanStatus(
+                                userId, mealPlanId, revision, "saved", plan.validationJson());
+        if (updated != 1) throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
+        PlanView result =
+                view(
+                        legacyRepositoryPath
+                                ? requirePlan(userId, mealPlanId)
+                                : requirePlan(userId, mealPlanId, false));
+        if (idempotencyKey != null) store.completeAudit(userId, idempotencyKey, json(result));
+        return result;
     }
 
     @Override
@@ -105,43 +254,163 @@ public class MealPlanServiceImpl implements MealPlanService {
         return shoppingView(store.findOwnedShoppingList(userId, mealPlanId));
     }
 
+    @Override
+    @Transactional
+    public void delete(long userId, long mealPlanId, long revision, String idempotencyKey) {
+        String key = requireIdempotencyKey(idempotencyKey);
+        String digest = digest("delete", mealPlanId, revision);
+        MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+        if (previous != null) {
+            replayVoidOrConflict(previous, digest);
+            return;
+        }
+        MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, false);
+        requireRevision(current, revision);
+        reserveAudit(userId, key, digest, "meal_plan.delete", mealPlanId, null);
+        if (store.softDelete(userId, mealPlanId, revision) != 1)
+            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
+        store.softDeleteShoppingList(userId, mealPlanId);
+        store.completeAudit(userId, key, "{}");
+    }
+
+    @Override
+    @Transactional
+    public PlanView restore(long userId, long mealPlanId, long revision, String idempotencyKey) {
+        String key = requireIdempotencyKey(idempotencyKey);
+        String digest = digest("restore", mealPlanId, revision);
+        MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+        if (previous != null) return replayOrConflict(userId, key, digest);
+        MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, true);
+        if (!current.deleted()) throw new BusinessException(ErrorCode.NOT_FOUND, "餐食计划不存在");
+        requireRevision(current, revision);
+        reserveAudit(userId, key, digest, "meal_plan.restore", mealPlanId, null);
+        if (store.restore(userId, mealPlanId, revision) != 1)
+            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
+        PlanView result = view(requirePlan(userId, mealPlanId, false));
+        store.completeAudit(userId, key, json(result));
+        return result;
+    }
+
     private void validateInput(long userId, CreateCommand command) {
         if (command == null) throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "计划参数不能为空");
-        if (command.sessionId() != null && !store.sessionOwned(userId, command.sessionId()))
+        validateValues(
+                userId,
+                command.sessionId(),
+                command.planName(),
+                command.people(),
+                command.days(),
+                command.budget(),
+                command.calorieTarget(),
+                command.proteinTarget(),
+                command.allergens(),
+                command.dislikes());
+        optionalIdempotencyKey(command.idempotencyKey());
+    }
+
+    private void validateUpdate(UpdateCommand command) {
+        if (command == null) throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "计划参数不能为空");
+        validateValues(
+                0L,
+                null,
+                command.planName(),
+                command.people(),
+                command.days(),
+                command.budget(),
+                command.calorieTarget(),
+                command.proteinTarget(),
+                command.allergens(),
+                command.dislikes());
+        requireIdempotencyKey(command.idempotencyKey());
+    }
+
+    private void validateValues(
+            long userId,
+            Long sessionId,
+            String planName,
+            int people,
+            int days,
+            BigDecimal budget,
+            Integer calorieTarget,
+            Integer proteinTarget,
+            List<String> allergens,
+            List<String> dislikes) {
+        if (sessionId != null && userId > 0 && !store.sessionOwned(userId, sessionId))
             throw new BusinessException(ErrorCode.NOT_FOUND, "来源会话不存在");
-        if (command.people() < 1 || command.people() > 20)
+        if (people < 1 || people > 20)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "人数必须在 1 到 20 之间");
-        if (command.days() < 1 || command.days() > 7)
+        if (days < 1 || days > 7)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "计划天数必须在 1 到 7 天之间");
-        if (command.planName() != null && command.planName().length() > 128)
+        if (planName != null && planName.length() > 128)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "计划名称过长");
-        if (command.budget() != null
-                && (command.budget().signum() < 0 || command.budget().scale() > 2))
+        if (budget != null && (budget.signum() < 0 || budget.scale() > 2))
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "预算无效");
-        if (command.calorieTarget() != null && command.calorieTarget() < 0)
+        if (calorieTarget != null && calorieTarget < 0)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "热量目标无效");
-        if (command.proteinTarget() != null && command.proteinTarget() < 0)
+        if (proteinTarget != null && proteinTarget < 0)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "蛋白质目标无效");
+        validateStrings(allergens, "过敏原");
+        validateStrings(dislikes, "忌口");
+    }
+
+    private void validateStrings(List<String> values, String label) {
+        if (values == null) return;
+        for (String value : values)
+            if (value == null || value.isBlank() || value.length() > 128)
+                throw new BusinessException(ErrorCode.INVALID_ARGUMENT, label + "无效");
     }
 
     private JsonNode constraints(CreateCommand command) {
+        return constraints(
+                command.people(),
+                command.calorieTarget(),
+                command.proteinTarget(),
+                command.allergens(),
+                command.dislikes());
+    }
+
+    private JsonNode constraints(UpdateCommand command) {
+        return constraints(
+                command.people(),
+                command.calorieTarget(),
+                command.proteinTarget(),
+                command.allergens(),
+                command.dislikes());
+    }
+
+    private JsonNode constraints(
+            int people,
+            Integer calorieTarget,
+            Integer proteinTarget,
+            List<String> allergens,
+            List<String> dislikes) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
-        node.put("people", command.people());
-        if (command.calorieTarget() != null) node.put("calorie_target", command.calorieTarget());
-        if (command.proteinTarget() != null) node.put("protein_target", command.proteinTarget());
-        node.set("allergens", mapper.valueToTree(command.allergens()));
-        node.set("dislikes", mapper.valueToTree(command.dislikes()));
+        node.put("people", people);
+        if (calorieTarget != null) node.put("calorie_target", calorieTarget);
+        if (proteinTarget != null) node.put("protein_target", proteinTarget);
+        node.set("allergens", mapper.valueToTree(allergens));
+        node.set("dislikes", mapper.valueToTree(dislikes));
         return node;
     }
 
     private JsonNode validation(CreateCommand command) {
+        return validation(
+                command.days(), command.daysPlan(), command.allergens(), command.dislikes());
+    }
+
+    private JsonNode validation(UpdateCommand command) {
+        return validation(
+                command.days(), command.daysPlan(), command.allergens(), command.dislikes());
+    }
+
+    private JsonNode validation(
+            int days, JsonNode daysPlan, List<String> allergens, List<String> dislikes) {
         ArrayNode errors = JsonNodeFactory.instance.arrayNode();
         ArrayNode warnings = JsonNodeFactory.instance.arrayNode();
-        if (!command.daysPlan().isArray() || command.daysPlan().size() != command.days())
+        if (!daysPlan.isArray() || daysPlan.size() != days)
             errors.add("days_plan 必须包含与 days 相同数量的天");
         else {
-            for (int index = 0; index < command.daysPlan().size(); index++) {
-                JsonNode day = command.daysPlan().get(index);
+            for (int index = 0; index < daysPlan.size(); index++) {
+                JsonNode day = daysPlan.get(index);
                 if (!day.isObject()) {
                     errors.add("第 " + (index + 1) + " 天必须是对象");
                     continue;
@@ -155,10 +424,10 @@ public class MealPlanServiceImpl implements MealPlanService {
                 }
                 if (meals.size() < REQUIRED_MEALS.size()) continue;
                 String serialized = day.toString().toLowerCase(Locale.ROOT);
-                for (String forbidden : command.allergens())
+                for (String forbidden : allergens)
                     if (serialized.contains(forbidden.toLowerCase(Locale.ROOT)))
                         errors.add("第 " + (index + 1) + " 天包含过敏原: " + forbidden);
-                for (String disliked : command.dislikes())
+                for (String disliked : dislikes)
                     if (serialized.contains(disliked.toLowerCase(Locale.ROOT)))
                         warnings.add("第 " + (index + 1) + " 天包含忌口: " + disliked);
             }
@@ -166,7 +435,10 @@ public class MealPlanServiceImpl implements MealPlanService {
         ObjectNode result = JsonNodeFactory.instance.objectNode();
         result.put("valid", errors.isEmpty());
         result.set("errors", errors);
+        result.set("issues", errors.deepCopy());
         result.set("warnings", warnings);
+        result.set("nutrition_summary", JsonNodeFactory.instance.objectNode());
+        result.set("budget_summary", JsonNodeFactory.instance.objectNode());
         result.put("checked_at", Instant.now().toString());
         return result;
     }
@@ -235,6 +507,8 @@ public class MealPlanServiceImpl implements MealPlanService {
                 read(plan.planJson()),
                 read(plan.validationJson()),
                 plan.status(),
+                plan.revision(),
+                plan.deleted(),
                 plan.createdAt(),
                 plan.updatedAt());
     }
@@ -256,12 +530,124 @@ public class MealPlanServiceImpl implements MealPlanService {
         return value;
     }
 
-    private JsonNode read(String value) {
-        try {
-            return mapper.readTree(value == null ? "{}" : value);
-        } catch (JsonProcessingException exception) {
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划 JSON 无效");
+    private MealPlanRepository.PlanSnapshot requirePlan(
+            long userId, long mealPlanId, boolean includeDeleted) {
+        MealPlanRepository.PlanSnapshot value =
+                store.findOwnedPlan(userId, mealPlanId, includeDeleted);
+        if (value == null) throw new BusinessException(ErrorCode.NOT_FOUND, "餐食计划不存在");
+        return value;
+    }
+
+    private String optionalIdempotencyKey(String value) {
+        if (value == null || value.isBlank()) return null;
+        return requireIdempotencyKey(value);
+    }
+
+    private String requireIdempotencyKey(String value) {
+        if (value == null || value.isBlank() || value.length() > MAX_IDEMPOTENCY_KEY_LENGTH)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "Idempotency-Key 无效");
+        return value;
+    }
+
+    private void requireRevision(MealPlanRepository.PlanSnapshot plan, long revision) {
+        if (plan.revision() != revision)
+            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
+    }
+
+    private void reserveAudit(
+            long userId,
+            String key,
+            String digest,
+            String action,
+            long mealPlanId,
+            PlanView response) {
+        TraceContext trace = TraceContextHolder.currentOrNew();
+        if (store.reserveAudit(
+                        new MealPlanRepository.AuditWrite(
+                                ids.nextId(),
+                                userId,
+                                trace.requestId(),
+                                trace.traceId(),
+                                "meal_plan",
+                                Long.toString(mealPlanId),
+                                action,
+                                digest,
+                                key,
+                                response == null ? "{}" : json(response)))
+                != 1) {
+            throw new BusinessException(ErrorCode.CONFLICT, "幂等请求已被其他请求占用");
         }
+    }
+
+    private static void requireSameDigest(
+            MealPlanRepository.IdempotencyRecord previous, String digest) {
+        if (!digest.equals(previous.parametersDigest()))
+            throw new BusinessException(ErrorCode.CONFLICT, "幂等键对应的请求参数已变化");
+    }
+
+    private PlanView replayOrConflict(long userId, String key, String digest) {
+        MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+        if (previous == null) throw new BusinessException(ErrorCode.CONFLICT, "幂等请求正在处理中");
+        requireSameDigest(previous, digest);
+        if (!"success".equals(previous.result()))
+            throw new BusinessException(ErrorCode.CONFLICT, "幂等请求正在处理中");
+        return parseResponse(previous.responseJson());
+    }
+
+    private void replayVoidOrConflict(
+            MealPlanRepository.IdempotencyRecord previous, String digest) {
+        requireSameDigest(previous, digest);
+        if (!"success".equals(previous.result()))
+            throw new BusinessException(ErrorCode.CONFLICT, "幂等请求正在处理中");
+    }
+
+    private String digest(Object... values) {
+        try {
+            return HexFormat.of()
+                    .formatHex(
+                            MessageDigest.getInstance("SHA-256")
+                                    .digest(
+                                            mapper.writeValueAsString(
+                                                            java.util.Arrays.asList(values))
+                                                    .getBytes(StandardCharsets.UTF_8)));
+        } catch (JsonProcessingException | NoSuchAlgorithmException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "计划参数摘要计算失败");
+        }
+    }
+
+    private String digest(String action, CreateCommand command) {
+        return digest(
+                action,
+                command.sessionId(),
+                command.planName(),
+                command.people(),
+                command.days(),
+                command.budget(),
+                command.calorieTarget(),
+                command.proteinTarget(),
+                command.allergens(),
+                command.dislikes(),
+                command.daysPlan());
+    }
+
+    private String digest(String action, long mealPlanId, long revision, UpdateCommand command) {
+        return digest(
+                action,
+                mealPlanId,
+                revision,
+                command.planName(),
+                command.people(),
+                command.days(),
+                command.budget(),
+                command.calorieTarget(),
+                command.proteinTarget(),
+                command.allergens(),
+                command.dislikes(),
+                command.daysPlan());
+    }
+
+    private String digest(String action, long mealPlanId, long revision) {
+        return digest(new Object[] {action, mealPlanId, revision});
     }
 
     private String json(Object value) {
@@ -269,6 +655,22 @@ public class MealPlanServiceImpl implements MealPlanService {
             return mapper.writeValueAsString(value);
         } catch (JsonProcessingException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划 JSON 序列化失败");
+        }
+    }
+
+    private PlanView parseResponse(String responseJson) {
+        try {
+            return mapper.readValue(responseJson, PlanView.class);
+        } catch (JsonProcessingException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "已保存的计划结果无效");
+        }
+    }
+
+    private JsonNode read(String value) {
+        try {
+            return mapper.readTree(value == null ? "{}" : value);
+        } catch (JsonProcessingException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划 JSON 无效");
         }
     }
 

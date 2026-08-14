@@ -27,6 +27,9 @@ class Proposal:
     payload: dict[str, Any]
     requires_confirmation: bool = True
     request_hash: str = ""
+    tool_name: str | None = None
+    confirmation_ref: str | None = None
+    input: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         body = {
@@ -37,6 +40,12 @@ class Proposal:
             "payload": self.payload,
             "requires_confirmation": self.requires_confirmation,
         }
+        if self.tool_name is not None:
+            body["tool_name"] = self.tool_name
+        if self.confirmation_ref is not None:
+            body["confirmation_ref"] = self.confirmation_ref
+        if self.input is not None:
+            body["input"] = self.input
         body["request_hash"] = self.request_hash or _request_hash(body)
         return body
 
@@ -57,6 +66,15 @@ def validate_proposal(proposal: Proposal) -> None:
             raise ValueError("SQL_PROPOSAL_TOO_LARGE")
         if not statement.startswith("select") or any(token in statement for token in ("insert ", "update ", "delete ", "drop ", "alter ", ";")):
             raise ValueError("SQL_PROPOSAL_NOT_READ_ONLY")
+    if proposal.proposal_type == "tool":
+        if proposal.tool_name != "food_log_writer":
+            raise ValueError("TOOL_NAME_NOT_ALLOWED")
+        if not proposal.confirmation_ref:
+            raise ValueError("TOOL_CONFIRMATION_REF_REQUIRED")
+        if not isinstance(proposal.input, dict) or not proposal.input.get("items"):
+            raise ValueError("TOOL_INPUT_INVALID")
+        if not proposal.payload.get("idempotency_key"):
+            raise ValueError("TOOL_IDEMPOTENCY_KEY_REQUIRED")
     if proposal.request_hash:
         canonical = {
             "proposal_id": proposal.proposal_id,
@@ -66,5 +84,11 @@ def validate_proposal(proposal: Proposal) -> None:
             "payload": proposal.payload,
             "requires_confirmation": proposal.requires_confirmation,
         }
+        if proposal.tool_name is not None:
+            canonical["tool_name"] = proposal.tool_name
+        if proposal.confirmation_ref is not None:
+            canonical["confirmation_ref"] = proposal.confirmation_ref
+        if proposal.input is not None:
+            canonical["input"] = proposal.input
         if proposal.request_hash != _request_hash(canonical):
             raise ValueError("PROPOSAL_REQUEST_HASH_INVALID")

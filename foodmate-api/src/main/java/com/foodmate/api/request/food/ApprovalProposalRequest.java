@@ -14,7 +14,7 @@ public record ApprovalProposalRequest(
         Long agentRunId,
         @NotBlank String operation,
         @NotBlank String resourceType,
-        @NotNull Long resourceId,
+        Long resourceId,
         @NotNull JsonNode parameters,
         @NotBlank String idempotencyKey,
         @Min(60) @Max(3600) long expiresInSeconds) {}

@@ -54,4 +54,37 @@ class FlywayV14MigrationScriptTest {
         assertTrue(rollback.contains("DROP COLUMN IF EXISTS idempotency_key"));
         assertTrue(rollback.contains("DROP COLUMN IF EXISTS parameters_digest"));
     }
+
+    @Test
+    void mealPlanLifecycleMigrationAddsRevisionAndRollback() throws IOException {
+        Path migration =
+                Path.of(
+                        "..",
+                        "script",
+                        "sql",
+                        "FoodMate",
+                        "migration",
+                        "V15__m1_5_meal_plan_lifecycle.sql");
+        Path validation =
+                Path.of(
+                        "..",
+                        "script",
+                        "sql",
+                        "FoodMate",
+                        "validation",
+                        "V15__m1_5_meal_plan_lifecycle_validation.sql");
+        Path rollback =
+                Path.of(
+                        "..",
+                        "script",
+                        "sql",
+                        "FoodMate",
+                        "rollback",
+                        "R15__m1_5_meal_plan_lifecycle.sql");
+
+        assertTrue(Files.readString(migration).contains("revision BIGINT NOT NULL DEFAULT 1"));
+        assertTrue(Files.readString(migration).contains("uk_meal_plans_user_idempotency"));
+        assertTrue(Files.readString(validation).contains("invalid_meal_plan_revisions"));
+        assertTrue(Files.readString(rollback).contains("DROP COLUMN IF EXISTS revision"));
+    }
 }

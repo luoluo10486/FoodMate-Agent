@@ -59,11 +59,15 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                                         proposal.runId(),
                                         proposal.proposalType(),
                                         proposal.schemaVersion(),
+                                        proposal.toolName(),
+                                        proposal.confirmationRef(),
+                                        proposal.input(),
                                         proposal.payload() == null
                                                 ? null
                                                 : new ToolGatewayService.ProposalPayload(
                                                         proposal.payload().statement(),
-                                                        proposal.payload().invocationId())));
+                                                        proposal.payload().invocationId(),
+                                                        proposal.payload().idempotencyKey())));
                 inbox.complete(proposalId, mapper.writeValueAsString(result));
             }
             String payload =

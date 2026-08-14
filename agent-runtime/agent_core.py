@@ -409,8 +409,29 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
 
 
 def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> list[dict[str, Any]]:
-    """只将 Java 授权的只读请求包装成 Proposal；Python 不自行拼接业务 SQL。"""
-    request = (command.get("authorized_context") or {}).get("sql_read_request") or {}
+    """只包装 Java 授权的工具请求；Python 不自行确认或拼接业务写入。"""
+    authorized = command.get("authorized_context") or {}
+    writer = authorized.get("food_log_writer_request") or {}
+    if isinstance(writer, dict) and writer and route.intent == "record":
+        invocation_id = str(writer.get("invocation_id") or "")
+        proposal = Proposal(
+            proposal_id="prop_" + invocation_id,
+            run_id=str(command["run_id"]),
+            proposal_type="tool",
+            schema_version="v1",
+            payload={"invocation_id": invocation_id, "idempotency_key": writer.get("idempotency_key")},
+            requires_confirmation=True,
+            tool_name="food_log_writer",
+            confirmation_ref=str(writer.get("confirmation_ref") or ""),
+            input=writer.get("input"),
+        ).as_dict()
+        validate_proposal(Proposal(
+            proposal["proposal_id"], proposal["run_id"], proposal["proposal_type"], proposal["schema_version"],
+            proposal["payload"], proposal["requires_confirmation"], proposal["request_hash"],
+            proposal.get("tool_name"), proposal.get("confirmation_ref"), proposal.get("input"),
+        ))
+        return [proposal]
+    request = authorized.get("sql_read_request") or {}
     if not isinstance(request, dict) or not request.get("statement") or route.intent not in {"record", "analysis"}:
         return []
     if (command.get("authorized_context") or {}).get("tool_results"):
