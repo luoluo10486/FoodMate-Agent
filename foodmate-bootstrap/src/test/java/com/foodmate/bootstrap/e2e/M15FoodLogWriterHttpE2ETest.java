@@ -4,18 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.foodmate.application.account.service.UserAccountService;
-import com.foodmate.application.food.service.ApprovalService;
-import com.foodmate.application.runtime.service.AgentRunCommandService;
 import com.foodmate.shared.security.ServiceJwt;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,12 +21,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/** M1-5：food_log_writer 内部 Proposal HTTP 入口的真实 PostgreSQL 回归。 */
+/** M1-5: real PostgreSQL HTTP regression for the food_log_writer Tool Gateway. */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
@@ -41,15 +35,10 @@ import org.springframework.test.context.DynamicPropertySource;
         })
 @ActiveProfiles("local")
 @EnabledIfSystemProperty(named = "foodmate.local-http-e2e", matches = "true")
-class M15FoodLogWriterHttpE2ETest {
+class M15FoodLogWriterHttpE2ETest extends M15FoodLogWriterE2ETestSupport {
     private static final KeyPair KEY_PAIR = generateKeyPair();
-    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
-    @Autowired UserAccountService accounts;
-    @Autowired AgentRunCommandService runs;
-    @Autowired ApprovalService approvals;
     @Autowired TestRestTemplate http;
-    @Autowired JdbcTemplate jdbc;
     @LocalServerPort int port;
 
     @DynamicPropertySource
@@ -69,60 +58,107 @@ class M15FoodLogWriterHttpE2ETest {
 
     @Test
     void httpWriterProposalUsesServiceJwtAndDoesNotDuplicateOnReplay() throws Exception {
-        String suffix = UUID.randomUUID().toString().replace("-", "");
-        String username = "m15http_" + suffix.substring(0, 16);
-        long userId =
-                accounts.register(username, username + "@example.com", "password123", "M1-5 HTTP")
-                        .userId();
-        long sessionId = accounts.createSession(userId, "m1-5 http", "agent").sessionId();
-        long runId =
-                runs.createUserMessageRun(userId, sessionId, "记录 HTTP 午餐", "trace-m15-http")
-                        .agentRunId();
+        Fixture fixture = fixture("http-create");
+        var input = createInput("M1-5 HTTP writer E2E");
+        String approvalKey = "m15-http-create-" + fixture.suffix();
+        var proposal = propose(fixture, "create", null, input, approvalKey, true);
+        WriterRequest request = writerRequest(fixture, proposal, input, approvalKey, "http-create");
 
-        ObjectNode input = mapper.createObjectNode();
-        input.put("meal_time", Instant.now().toString());
-        input.put("meal_type", "lunch");
-        input.put("notes", "M1-5 HTTP writer E2E");
-        input.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
+        List<TransportResult> results = submit(request, 2);
 
-        String approvalKey = "m15-http-" + suffix;
-        ApprovalService.ProposalView proposal =
-                approvals.propose(
-                        userId,
-                        new ApprovalService.ProposalCommand(
-                                sessionId,
-                                runId,
-                                "create",
-                                "food_log",
-                                null,
-                                input,
-                                approvalKey,
-                                300));
-        approvals.confirm(userId, proposal.approvalRequestId(), input);
+        assertResult(results.getFirst(), "success", null);
+        assertSameResult(results.getFirst(), results.get(1));
+        String foodLogId = results.getFirst().rows().get(0).path("food_log_id").asText();
+        assertTrue(!foodLogId.isBlank());
+        assertEquals(
+                1,
+                count(
+                        "SELECT COUNT(*) FROM food_logs WHERE food_log_id=?",
+                        Long.parseLong(foodLogId)));
+        assertEquals(
+                1, count("SELECT COUNT(*) FROM food_logs WHERE agent_run_id=?", fixture.runId()));
+        assertEquals(
+                1,
+                count(
+                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001",
+                        Long.parseLong(foodLogId)));
+    }
 
-        String proposalId = "m15-http-proposal-" + suffix;
+    @Test
+    void httpRejectedProposalDoesNotWrite() throws Exception {
+        runRejected(this::submit);
+    }
+
+    @Test
+    void httpFailedProposalRollsBackAndWritesFailureAudit() throws Exception {
+        runFailed(this::submit);
+    }
+
+    @Test
+    void httpSupersededProposalCannotExecute() throws Exception {
+        runSuperseded(this::submit);
+    }
+
+    @Test
+    void httpWriterUpdatesFoodLog() throws Exception {
+        runUpdate(this::submit);
+    }
+
+    @Test
+    void httpWriterDeletesFoodLog() throws Exception {
+        runDelete(this::submit);
+    }
+
+    @Test
+    void httpWriterRestoresFoodLog() throws Exception {
+        runRestore(this::submit);
+    }
+
+    @Test
+    void httpWriterRejectsStaleRevision() throws Exception {
+        runRevisionConflict(this::submit);
+    }
+
+    @Test
+    void httpSuccessfulProposalReplayIsIdempotent() throws Exception {
+        runIdempotentReplay(this::submit);
+    }
+
+    @Test
+    void httpWriterUsesReviewedFoodPortionConversion() throws Exception {
+        runUnitConversion(this::submit);
+    }
+
+    @Test
+    void httpWriterKeepsUnsupportedFoodPortionPending() throws Exception {
+        runUnitConversionPending(this::submit);
+    }
+
+    private List<TransportResult> submit(WriterRequest request, int deliveries) {
         Map<String, Object> body =
                 Map.of(
                         "schema_version",
                         "v1",
                         "proposal_id",
-                        proposalId,
+                        request.proposalId(),
                         "run_id",
-                        Long.toString(runId),
+                        Long.toString(request.runId()),
                         "proposal_type",
                         "tool",
+                        "requires_confirmation",
+                        true,
                         "tool_name",
                         "food_log_writer",
                         "confirmation_ref",
-                        Long.toString(proposal.approvalRequestId()),
+                        Long.toString(request.approvalRequestId()),
                         "input",
-                        input,
+                        request.input(),
                         "payload",
                         Map.of(
                                 "invocation_id",
-                                "m15-http-invocation-" + suffix,
+                                request.invocationId(),
                                 "idempotency_key",
-                                approvalKey));
+                                request.idempotencyKey()));
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(
                 ServiceJwt.sign(
@@ -134,31 +170,15 @@ class M15FoodLogWriterHttpE2ETest {
                         600));
         headers.set("X-Contract-Version", "v1");
 
-        JsonNode first = post(body, headers);
-        JsonNode replay = post(body, headers);
-
-        assertEquals("success", first.path("data").path("status").asText());
-        assertEquals("success", replay.path("data").path("status").asText());
-        String foodLogId = first.path("data").path("rows").get(0).path("food_log_id").asText();
-        assertTrue(!foodLogId.isBlank());
-        assertEquals(
-                1,
-                jdbc.queryForObject(
-                        "SELECT COUNT(*) FROM food_logs WHERE food_log_id=?",
-                        Integer.class,
-                        Long.parseLong(foodLogId)));
-        assertEquals(
-                1,
-                jdbc.queryForObject(
-                        "SELECT COUNT(*) FROM food_logs WHERE agent_run_id=?",
-                        Integer.class,
-                        runId));
-        assertEquals(
-                1,
-                jdbc.queryForObject(
-                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001",
-                        Integer.class,
-                        Long.parseLong(foodLogId)));
+        List<TransportResult> results = new ArrayList<>();
+        for (int i = 0; i < deliveries; i++) {
+            JsonNode response = post(body, headers);
+            JsonNode data = response.path("data");
+            results.add(
+                    new TransportResult(
+                            data.path("status").asText(), errorCode(data), data.path("rows")));
+        }
+        return results;
     }
 
     private JsonNode post(Map<String, Object> body, HttpHeaders headers) {
@@ -170,6 +190,13 @@ class M15FoodLogWriterHttpE2ETest {
                         JsonNode.class);
         assertEquals(200, response.getStatusCode().value());
         return response.getBody();
+    }
+
+    private static String errorCode(JsonNode data) {
+        JsonNode snakeCase = data.get("error_code");
+        if (snakeCase != null && !snakeCase.isNull()) return snakeCase.asText();
+        JsonNode camelCase = data.get("errorCode");
+        return camelCase == null || camelCase.isNull() ? null : camelCase.asText();
     }
 
     private static String privateKey() {

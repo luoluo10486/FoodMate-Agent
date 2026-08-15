@@ -510,3 +510,123 @@
     margin: 1px 0 0;
   }
 }
+
+.homeStatePanel {
+  position: fixed;
+  inset: 68px 0 0 260px;
+  z-index: 20;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 32px;
+  overflow: auto;
+  background: var(--background);
+  color: var(--foreground);
+  text-align: center;
+}
+
+.homeStatePanel h2,
+.homeStatePanel p {
+  margin: 0;
+}
+
+.homeStatePanel h2 {
+  font-size: 24px;
+}
+
+.homeStatePanel p {
+  color: var(--muted-foreground);
+}
+
+.homeStateIcon {
+  display: grid;
+  width: 112px;
+  height: 112px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff1c9;
+  color: var(--fm-orange);
+}
+
+.homeStateIcon svg {
+  width: 48px;
+  height: 48px;
+  stroke-width: 1.5;
+}
+
+.homeStateError {
+  border: 1px solid var(--fm-color-danger);
+  border-radius: 24px;
+  inset: 300px 32px 32px 292px;
+}
+
+.homeStateError .homeStateIcon {
+  background: #fff0ed;
+  color: var(--fm-color-danger);
+}
+
+.homeStateError .homeStateIcon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.homeStateSkeletonChips,
+.homeStateMetricSkeletons,
+.homeStateGridSkeletons {
+  display: grid;
+  width: min(100%, 1080px);
+  gap: 16px;
+}
+
+.homeStateSkeletonChips {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-top: 28px;
+}
+
+.homeStateSkeletonChips span {
+  height: 36px;
+  border-radius: 999px;
+  background: #eeeeef;
+}
+
+.homeStateMetricSkeletons {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.homeStateMetricSkeletons span {
+  height: 88px;
+  border: 1px solid var(--fm-border);
+  border-radius: 18px;
+  background: linear-gradient(90deg, #f1f1f1, #fafafa, #f1f1f1);
+}
+
+.homeStateGridSkeletons {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 16px;
+}
+
+.homeStateGridSkeletons span {
+  height: 280px;
+  border: 1px solid var(--fm-border);
+  border-radius: 18px;
+  background: linear-gradient(90deg, #f7f7f7, #fcfcfc, #f7f7f7);
+}
+
+@media (max-width: 760px) {
+  .homeStatePanel {
+    inset: 0;
+    padding: 24px 16px;
+  }
+
+  .homeStateError {
+    inset: 160px 16px 16px;
+  }
+
+  .homeStateSkeletonChips,
+  .homeStateMetricSkeletons,
+  .homeStateGridSkeletons {
+    grid-template-columns: 1fr 1fr;
+  }
+}

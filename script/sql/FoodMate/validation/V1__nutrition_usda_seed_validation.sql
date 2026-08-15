@@ -40,6 +40,7 @@ FROM nutrition_foods
 WHERE nutrition_food_id BETWEEN 510001 AND 510005
 ORDER BY nutrition_food_id;
 
-SELECT COUNT(*) AS unexpected_seed_unit_conversions
+SELECT COUNT(*) AS seed_unit_conversion_rows
 FROM nutrition_unit_conversions
-WHERE nutrition_food_id BETWEEN 510001 AND 510005;
+WHERE nutrition_food_id BETWEEN 510001 AND 510005
+  AND is_deleted = FALSE;

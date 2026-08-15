@@ -1,4 +1,9 @@
+import type { AgentStreamConnection, AgentStreamConnectionState } from '../types/agent';
+
 export type AgentRunEvent = {
+  event_id?: string;
+  sse_event_id?: string;
+  event_type?: string;
   status?: string;
   text?: string;
   answer?: string;
@@ -12,6 +17,20 @@ export type AgentRunEvent = {
   result_type?: string;
   requires_confirmation?: boolean;
   budget_actions?: { requires_confirmation?: boolean };
+  confirmation_ref?: string;
+  retryable?: boolean;
+};
+
+export type AgentStreamHandle = {
+  close: () => void;
+  getConnection: () => AgentStreamConnection;
+};
+
+export type AgentStreamOptions = {
+  maxAttempts?: number;
+  reconnectDelayMs?: number;
+  onStateChange?: (connection: AgentStreamConnection) => void;
+  onError?: (connection: AgentStreamConnection) => void;
 };
 
 const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
@@ -19,31 +38,103 @@ const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL a
 export function openAgentRunStream(
   runId: string,
   onEvent: (eventType: string, payload: AgentRunEvent, eventId: string) => void,
-  onError: () => void,
-): EventSource {
-  // SSE 由服务端持久化 outbox 驱动；前端只负责监听、去重和转发事件。
-  const source = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream`, { withCredentials: true });
-  let terminal = false;
-  const eventTypes = ['run.accepted', 'run.routed', 'run.checkpoint_saved', 'run.clarification_requested', 'run.answer_stream', 'run.completed', 'run.failed', 'run.cancelled', 'run.superseded'];
+  options: AgentStreamOptions = {},
+): AgentStreamHandle {
+  const maxAttempts = Math.max(1, options.maxAttempts ?? 5);
+  const reconnectDelayMs = Math.max(0, options.reconnectDelayMs ?? 500);
+  const eventTypes = [
+    'run.event',
+    'run.accepted',
+    'run.routed',
+    'run.checkpoint_saved',
+    'run.clarification_requested',
+    'run.answer_stream',
+    'run.completed',
+    'run.failed',
+    'run.cancelled',
+    'run.superseded',
+  ];
   const seen = new Set<string>();
-  for (const eventType of eventTypes) {
-    source.addEventListener(eventType, (event) => {
-      const message = event as MessageEvent<string>;
-      // 浏览器重连可能重新收到旧事件，使用稳定的 SSE ID 避免重复追加回答文本。
-      if (message.lastEventId && seen.has(message.lastEventId)) return;
-      if (message.lastEventId) seen.add(message.lastEventId);
-      try {
-        onEvent(eventType, JSON.parse(message.data) as AgentRunEvent, message.lastEventId);
+  let source: EventSource | undefined;
+  let reconnectTimer: number | undefined;
+  let terminal = false;
+  let closed = false;
+  let connection: AgentStreamConnection = { state: 'connecting', attempt: 1, maxAttempts };
+
+  const publishState = (state: AgentStreamConnectionState, patch: Partial<AgentStreamConnection> = {}) => {
+    connection = { ...connection, ...patch, state };
+    options.onStateChange?.(connection);
+  };
+
+  const closeSource = () => {
+    source?.close();
+    source = undefined;
+  };
+
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    terminal = true;
+    if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
+    closeSource();
+    publishState('closed');
+  };
+
+  const connect = () => {
+    if (closed || terminal) return;
+    const lastEventId = connection.lastEventId;
+    const suffix = lastEventId ? `?lastEventId=${encodeURIComponent(lastEventId)}` : '';
+    publishState(connection.attempt === 1 ? 'connecting' : 'reconnecting');
+    const nextSource = new EventSource(
+      `${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream${suffix}`,
+      { withCredentials: true },
+    );
+    source = nextSource;
+    nextSource.onopen = () => publishState('connected');
+    for (const registeredType of eventTypes) {
+      nextSource.addEventListener(registeredType, (event) => {
+        const message = event as MessageEvent<string>;
+        let payload: AgentRunEvent;
+        try {
+          payload = JSON.parse(message.data) as AgentRunEvent;
+        } catch {
+          options.onError?.(connection);
+          return;
+        }
+        const eventId = message.lastEventId || payload.sse_event_id || payload.event_id || '';
+        if (eventId && seen.has(eventId)) return;
+        if (eventId) seen.add(eventId);
+        if (eventId && eventId !== connection.lastEventId) connection = { ...connection, lastEventId: eventId };
+        const eventType = payload.event_type || registeredType;
+        onEvent(eventType, payload, eventId);
         if (['run.completed', 'run.failed', 'run.cancelled', 'run.superseded'].includes(eventType)) {
           terminal = true;
-          source.close();
+          closeSource();
+          publishState('closed');
         }
+      });
+    }
+    nextSource.onerror = () => {
+      if (closed || terminal) return;
+      closeSource();
+      if (connection.attempt >= maxAttempts) {
+        publishState('exhausted');
+        options.onError?.(connection);
+        return;
       }
-      catch { onError(); }
-    });
-  }
-  source.onerror = () => { if (!terminal) onError(); };
-  return source;
+      const attempt = connection.attempt + 1;
+      publishState('reconnecting', { attempt });
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = undefined;
+        connect();
+      }, reconnectDelayMs);
+      options.onError?.(connection);
+    };
+  };
+
+  publishState('connecting');
+  connect();
+  return { close, getConnection: () => connection };
 }
 
 export async function cancelAgentRun(runId: string): Promise<void> {
@@ -80,5 +171,37 @@ export async function recoverAgentRun(runId: string): Promise<{ run_id: string; 
   });
   const body = await response.json() as { success: boolean; data?: { run_id: string; dispatch_id: string; attempt: number; status: string }; error?: { message?: string } };
   if (!response.ok || !body.success || !body.data) throw new Error(body.error?.message ?? '运行恢复失败，请稍后重试。');
+  return body.data;
+}
+
+export async function confirmAgentWrite(
+  approvalRequestId: string | number,
+  parameters: Record<string, unknown> = {},
+): Promise<unknown> {
+  const csrf = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='))?.split('=').slice(1).join('=');
+  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/confirm`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+    body: JSON.stringify(parameters),
+  });
+  const body = await response.json() as { success?: boolean; data?: unknown; error?: { message?: string } };
+  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '写入确认失败，请稍后重试。');
+  return body.data;
+}
+
+export async function rejectAgentWrite(
+  approvalRequestId: string | number,
+  parameters: Record<string, unknown> = {},
+): Promise<unknown> {
+  const csrf = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='))?.split('=').slice(1).join('=');
+  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/reject`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+    body: JSON.stringify(parameters),
+  });
+  const body = await response.json() as { success?: boolean; data?: unknown; error?: { message?: string } };
+  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '取消写入失败，请稍后重试。');
   return body.data;
 }

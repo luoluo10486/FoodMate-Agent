@@ -11,6 +11,15 @@ export type AgentDisplayStatus =
   | 'cancelled'
   | 'superseded';
 
+export type AgentStreamConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'closed' | 'exhausted';
+
+export type AgentStreamConnection = {
+  state: AgentStreamConnectionState;
+  attempt: number;
+  maxAttempts: number;
+  lastEventId?: string;
+};
+
 export type ToolCallStatus = 'pending' | 'running' | 'success' | 'failed' | 'timeout' | 'cancelled';
 
 export type ToolCall = {
@@ -43,4 +52,5 @@ export type AgentRunView = {
   agentsTotal: number;
   toolCalls: ToolCall[];
   citations: Citation[];
+  connection?: AgentStreamConnection;
 };

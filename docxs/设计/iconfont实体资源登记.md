@@ -52,3 +52,9 @@
 - 不阻塞生产字体包：Noto Sans SC、Space Mono、Montserrat 已通过 `@fontsource` 作为文字字体接入。
 - 不阻塞 shadcn/Radix 组件和 Lucide 命令图标使用。
 - 阻塞 FoodMate 领域 iconfont 的最终实体登记、类名冻结、Figma 字形映射和生产接入。
+## 2026-08-15 验收复核
+
+- 状态继续保持 `BLOCKED`。
+- 已核对仓库和 Figma 验收证据目录，仍未收到 `.woff2/.woff/.ttf/.otf` 实体包、`iconfont.css` 映射、来源 URL、SHA-256、SPDX/原始许可证和 glyph-Figma 映射。
+- 本轮没有创建虚构 `@font-face`、class、Unicode codepoint 或 React wrapper；标准命令图标继续使用 Lucide，缺失领域图标继续使用可追溯的 SVG fallback。
+- 关闭阻塞前仍需完成浅色/深色背景、字体加载失败、SVG/Lucide fallback、无障碍标签和生产构建产物检查。

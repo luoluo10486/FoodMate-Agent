@@ -19,6 +19,22 @@ class NutritionSeedScriptTest {
                     "FoodMate",
                     "validation",
                     "V1__nutrition_usda_seed_validation.sql");
+    private static final Path PORTION_SEED =
+            Path.of(
+                    "..",
+                    "script",
+                    "sql",
+                    "FoodMate",
+                    "seed",
+                    "V2__nutrition_usda_portion_seed.sql");
+    private static final Path PORTION_VALIDATION =
+            Path.of(
+                    "..",
+                    "script",
+                    "sql",
+                    "FoodMate",
+                    "validation",
+                    "V2__nutrition_usda_portion_seed_validation.sql");
 
     @Test
     void seedContainsOnlyReviewedUsdaRowsWithTraceableFdcIds() throws IOException {
@@ -37,7 +53,7 @@ class NutritionSeedScriptTest {
     }
 
     @Test
-    void seedUsesGramBasisAndDoesNotInventHouseholdConversions() throws IOException {
+    void seedUsesGramBasisAndLeavesHouseholdConversionsToSeparateEvidenceSeed() throws IOException {
         String sql = Files.readString(SEED);
 
         assertTrue(sql.contains("Every value below is the USDA value per 100 g"));
@@ -52,7 +68,32 @@ class NutritionSeedScriptTest {
 
         assertTrue(sql.contains("nutrition_seed_rows"));
         assertTrue(sql.contains("invalid_nutrition_seed_rows"));
-        assertTrue(sql.contains("unexpected_seed_unit_conversions"));
+        assertTrue(sql.contains("seed_unit_conversion_rows"));
+        assertTrue(sql.contains("review_status <> 'approved'"));
+    }
+
+    @Test
+    void portionSeedContainsOnlyTraceableUsdaFoodPortionsRules() throws IOException {
+        String sql = Files.readString(PORTION_SEED);
+
+        assertTrue(sql.contains("USDA FoodData Central API foodPortions"));
+        assertTrue(sql.contains("FDC-168880 portion-1"));
+        assertTrue(sql.contains("FDC-171477 portion-1"));
+        assertTrue(sql.contains("FDC-173424 portion-3"));
+        assertTrue(sql.contains("FDC-171998 portion-1 (3 oz=85 g)"));
+        assertTrue(sql.contains("FDC-171689 portion-3"));
+        assertTrue(sql.contains("520001"));
+        assertTrue(sql.contains("520005"));
+        assertTrue(sql.contains("ON CONFLICT (conversion_id) DO UPDATE"));
+    }
+
+    @Test
+    void portionValidationChecksApprovedRulesAndSourceVersions() throws IOException {
+        String sql = Files.readString(PORTION_VALIDATION);
+
+        assertTrue(sql.contains("nutrition_unit_conversion_seed_rows"));
+        assertTrue(sql.contains("invalid_nutrition_unit_conversion_seed_rows"));
+        assertTrue(sql.contains("foodPortions"));
         assertTrue(sql.contains("review_status <> 'approved'"));
     }
 }

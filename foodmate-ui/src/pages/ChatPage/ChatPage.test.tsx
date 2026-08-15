@@ -162,3 +162,62 @@ describe('ChatPage Figma Awaiting Clarification 状态', () => {
     expect(screen.getByPlaceholderText('输入你的详细食物或份量，例如：150克野生三文鱼...')).toBeEnabled();
   });
 });
+
+describe('ChatPage Agent remaining states', () => {
+  const renderState = (state: string) => {
+    render(
+      <MemoryRouter initialEntries={[`/chat?state=${state}`]}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  };
+
+  it('renders write confirmation details and records confirm/cancel actions', () => {
+    renderState('write-confirmation');
+    expect(screen.getByRole('heading', { name: '确认写入以下记录' })).toBeInTheDocument();
+    expect(screen.getByText('目标对象: 饮食记录')).toBeInTheDocument();
+    expect(screen.getByText('来源: USDA FoodData Central')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认写入' }));
+    expect(screen.getByRole('status')).toHaveTextContent('fixture 已记录确认动作');
+  });
+
+  it('renders budget limit choices and keeps the current Run action explicit', () => {
+    renderState('budget-limit');
+    expect(screen.getByRole('heading', { name: '已达到预算上限' })).toBeInTheDocument();
+    expect(screen.getByText('Token 用量 (100%)')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '追加 20,000 tokens' }));
+    expect(screen.getByRole('status')).toHaveTextContent('当前 Run');
+  });
+
+  it('renders only the retryable tool failure actions', () => {
+    renderState('tool-failed-retryable');
+    expect(screen.getByText('数据库查询超时 (错误码: TOOL_TIMEOUT_001)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '跳过此步骤' }));
+    expect(screen.getByRole('status')).toHaveTextContent('后续结果会明确标注数据范围受限');
+  });
+
+  it('keeps degraded answers bounded and leaves the follow-up composer enabled', () => {
+    renderState('safety-degraded');
+    expect(screen.getByRole('heading', { name: '安全降级' })).toBeInTheDocument();
+    expect(screen.getByText(/未结合您的个人高血压排除条件/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeEnabled();
+  });
+
+  it('distinguishes user cancellation from a system failure', () => {
+    renderState('user-cancelled');
+    expect(screen.getByText(/用户已取消此次运行/)).toBeInTheDocument();
+    expect(screen.queryByText(/运行失败/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重新开始提问' }));
+    expect(screen.getByRole('status')).toHaveTextContent('新的 Run');
+  });
+
+  it('renders the bounded SSE reconnect notice while preserving the composer state', () => {
+    renderState('sse-reconnecting');
+    expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
+    expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();
+  });
+});

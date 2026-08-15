@@ -1,0 +1,1822 @@
+{
+  "source": {
+    "fileKey": "MX18RZCfAmgprNzxItkHUH",
+    "page": "🎨 :: Design",
+    "topLevelArtboards": 105,
+    "metadataNode": "0:1",
+    "capturedAt": "2026-08-15",
+    "figmaMcp": "get_metadata"
+  },
+  "acceptanceRules": {
+    "dpr": 1,
+    "animation": "disabled for capture",
+    "dynamicTime": "fixed",
+    "passRequires": [
+      "automated diff",
+      "geometry check",
+      "text check",
+      "manual visual review"
+    ],
+    "statusSemantics": {
+      "SIZE_MISMATCH": "Viewport dimensions differ",
+      "UNMAPPED": "Route or evidence is missing",
+      "DIFF_REVIEW": "Dimensions match but review is open",
+      "PASS": "Not used until all evidence is complete"
+    }
+  },
+  "summary": {
+    "total": 105,
+    "pass": 0,
+    "diffReview": 105,
+    "unmapped": 0,
+    "sizeMismatch": 0,
+    "automatedDiffInputs": 105
+  },
+  "items": [
+    {
+      "figmaNodeId": "640:256",
+      "artboardName": "workspace-home-v2",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/",
+      "queryState": "view=records",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/workspace-home-v2.png",
+      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-v2-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-v2",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "640:428",
+      "artboardName": "agent-chat-v2",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": null,
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-v2-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "640:588",
+      "artboardName": "diet-records-v2",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/analysis",
+      "queryState": "state=v2",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/diet-records-v2.png",
+      "browserPng": ".qa/figma-pixel-acceptance/diet-records-v2-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-v2",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "640:773",
+      "artboardName": "intake-analysis-v2",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/analysis",
+      "queryState": "state=v2",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/intake-analysis-v2.png",
+      "browserPng": ".qa/figma-pixel-acceptance/intake-analysis-v2-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "640:901",
+      "artboardName": "meal-planning-v2",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=v2",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-planning-v2.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-v2-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-v2",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "647:214",
+      "artboardName": "login-v2",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/login",
+      "queryState": "state=v2",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/login-v2.png",
+      "browserPng": ".qa/figma-pixel-acceptance/login-v2-browser-1440x900-converted.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-v2",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:216",
+      "artboardName": "register-page",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/register",
+      "queryState": null,
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/register-page.png",
+      "browserPng": ".qa/figma-pixel-acceptance/register-page-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#register-page",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:275",
+      "artboardName": "forgot-password-page",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/forgot-password",
+      "queryState": null,
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/forgot-password-page.png",
+      "browserPng": ".qa/figma-pixel-acceptance/forgot-password-page-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#forgot-password-page",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:307",
+      "artboardName": "reset-password-page",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/reset-password",
+      "queryState": null,
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/reset-password-page.png",
+      "browserPng": ".qa/figma-pixel-acceptance/reset-password-page-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#reset-password-page",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:408",
+      "artboardName": "login-submitting",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/login",
+      "queryState": "state=submitting",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/login-submitting.png",
+      "browserPng": ".qa/figma-pixel-acceptance/login-submitting-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-submitting",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:445",
+      "artboardName": "login-field-error",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/login",
+      "queryState": "state=field-error",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/login-field-error.png",
+      "browserPng": ".qa/figma-pixel-acceptance/login-field-error-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-field-error",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:483",
+      "artboardName": "login-credential-error",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/login",
+      "queryState": "state=credential-error",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/login-credential-error.png",
+      "browserPng": ".qa/figma-pixel-acceptance/login-credential-error-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-credential-error",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:524",
+      "artboardName": "login-account-locked",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/login",
+      "queryState": "state=account-locked",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/login-account-locked.png",
+      "browserPng": ".qa/figma-pixel-acceptance/login-account-locked-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-account-locked",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:564",
+      "artboardName": "login-account-disabled",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/login",
+      "queryState": "state=account-disabled",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/login-account-disabled.png",
+      "browserPng": ".qa/figma-pixel-acceptance/login-account-disabled-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-account-disabled",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:606",
+      "artboardName": "login-service-unavailable",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/login",
+      "queryState": "state=service-unavailable",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/login-service-unavailable.png",
+      "browserPng": ".qa/figma-pixel-acceptance/login-service-unavailable-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-service-unavailable",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:738",
+      "artboardName": "token-invalid",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/token-status",
+      "queryState": "state=invalid",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/token-invalid.png",
+      "browserPng": ".qa/figma-pixel-acceptance/token-invalid-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-invalid",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:757",
+      "artboardName": "token-expired",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/token-status",
+      "queryState": "state=expired",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/token-expired.png",
+      "browserPng": ".qa/figma-pixel-acceptance/token-expired-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-expired",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "680:776",
+      "artboardName": "token-used",
+      "artboardSize": {
+        "width": 1440,
+        "height": 900
+      },
+      "frontendRoute": "/token-status",
+      "queryState": "state=used",
+      "browserViewport": "1440x900",
+      "figmaPng": "docxs/设计/figma-png/token-used.png",
+      "browserPng": ".qa/figma-pixel-acceptance/token-used-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-used",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:219",
+      "artboardName": "agent-empty",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=empty",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-empty.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-empty-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-empty",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:342",
+      "artboardName": "agent-planning",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=planning",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-planning.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-planning-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-planning",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:475",
+      "artboardName": "agent-tool-executing",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=tool-executing",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-tool-executing.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-tool-executing-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-executing",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:642",
+      "artboardName": "agent-awaiting-clarification",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=awaiting-clarification",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-awaiting-clarification.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-awaiting-clarification-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-awaiting-clarification",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:773",
+      "artboardName": "agent-write-confirmation",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=write-confirmation",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-write-confirmation.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-write-confirmation-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-write-confirmation",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:918",
+      "artboardName": "agent-budget-limit",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=budget-limit",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-budget-limit-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:1306",
+      "artboardName": "agent-completed-with-citations",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=completed-with-citations",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-completed-with-citations.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-completed-with-citations-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-completed-with-citations",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:1439",
+      "artboardName": "agent-tool-failed-retryable",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=tool-failed-retryable",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-tool-failed-retryable.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-tool-failed-retryable-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:1563",
+      "artboardName": "agent-safety-degraded",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=safety-degraded",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-safety-degraded-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:1684",
+      "artboardName": "agent-user-cancelled",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=user-cancelled",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-user-cancelled-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "687:1803",
+      "artboardName": "agent-sse-reconnecting",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=sse-reconnecting",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
+      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-sse-reconnecting-browser-1440x1024.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "689:217",
+      "artboardName": "agent-chat-redesign-default",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=redesign-default",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-redesign-default.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-redesign-default-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-redesign-default",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "689:385",
+      "artboardName": "agent-chat-nav-loading",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=nav-loading",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-nav-loading.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-nav-loading-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-nav-loading",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "689:530",
+      "artboardName": "agent-chat-nav-hover-preview",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=nav-hover-preview",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-nav-hover-preview.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-nav-hover-preview-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-nav-hover-preview",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "689:690",
+      "artboardName": "agent-chat-pagination",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=pagination",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-pagination.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-pagination-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-pagination",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:1049",
+      "artboardName": "workspace-home-loading",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/",
+      "queryState": "view=records&state=loading",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/workspace-home-loading.png",
+      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-loading-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-loading",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:1208",
+      "artboardName": "workspace-home-empty",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/",
+      "queryState": "view=records&state=empty",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/workspace-home-empty.png",
+      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-empty-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-empty",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:1313",
+      "artboardName": "workspace-home-error",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/",
+      "queryState": "view=records&state=error",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/workspace-home-error.png",
+      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-error-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-error",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:1427",
+      "artboardName": "diet-records-loading",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/analysis",
+      "queryState": "state=loading",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/diet-records-loading.png",
+      "browserPng": ".qa/figma-pixel-acceptance/diet-records-loading-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-loading",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:1556",
+      "artboardName": "diet-records-empty",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/analysis",
+      "queryState": "state=empty",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/diet-records-empty.png",
+      "browserPng": ".qa/figma-pixel-acceptance/diet-records-empty-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-empty",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:1685",
+      "artboardName": "diet-records-error",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/analysis",
+      "queryState": "state=error",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/diet-records-error.png",
+      "browserPng": ".qa/figma-pixel-acceptance/diet-records-error-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-error",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:2256",
+      "artboardName": "meal-planning-loading",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=loading",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-planning-loading.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-loading-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-loading",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:2446",
+      "artboardName": "meal-planning-empty",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=empty",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-planning-empty.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-empty-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-empty",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:2542",
+      "artboardName": "meal-planning-error",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=error",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-planning-error.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-error-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-error",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:1901",
+      "artboardName": "intake-analysis-loading",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/analysis",
+      "queryState": "state=loading",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/intake-analysis-loading.png",
+      "browserPng": ".qa/figma-pixel-acceptance/intake-analysis-loading-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-loading",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:2026",
+      "artboardName": "intake-analysis-empty",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/analysis",
+      "queryState": "state=empty",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/intake-analysis-empty.png",
+      "browserPng": ".qa/figma-pixel-acceptance/intake-analysis-empty-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-empty",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:2139",
+      "artboardName": "intake-analysis-error",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/analysis",
+      "queryState": "state=error",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/intake-analysis-error.png",
+      "browserPng": ".qa/figma-pixel-acceptance/intake-analysis-error-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-error",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:2662",
+      "artboardName": "meal-plan-list",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=list",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-plan-list.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-list-browser-stable-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:2801",
+      "artboardName": "meal-plan-wizard-step1",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=wizard-step1",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step1.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-wizard-step1-browser-stable-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step1",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:2934",
+      "artboardName": "meal-plan-wizard-step2",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=wizard-step2",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step2.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-wizard-step2-browser-stable-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step2",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:3078",
+      "artboardName": "meal-plan-wizard-step3",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=wizard-step3",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step3.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-wizard-step3-browser-stable-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step3",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:3375",
+      "artboardName": "meal-plan-conflict",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=conflict",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-plan-conflict.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-conflict-browser-stable-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-conflict",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:3569",
+      "artboardName": "meal-plan-shopping-list",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=shopping-list",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-plan-shopping-list.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-shopping-list-browser-stable-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-shopping-list",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:3746",
+      "artboardName": "meal-plan-generating",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/planning",
+      "queryState": "state=generating",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/meal-plan-generating.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-generating-browser-stable-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-generating",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:3847",
+      "artboardName": "admin-tool-registry",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=tool-registry",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-tool-registry.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-tool-registry-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-tool-registry",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:4104",
+      "artboardName": "admin-deleted-resources",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=deleted-resources",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-deleted-resources.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-deleted-resources-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-deleted-resources",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:4319",
+      "artboardName": "admin-op-no-permission",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=op-no-permission",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-op-no-permission.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-op-no-permission-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-no-permission",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:4539",
+      "artboardName": "admin-op-confirm",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=op-confirm",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-op-confirm.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-op-confirm-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-confirm",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:4766",
+      "artboardName": "admin-op-submitting",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=op-submitting",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-op-submitting.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-op-submitting-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-submitting",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:4995",
+      "artboardName": "admin-op-success",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=op-success",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-op-success.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-op-success-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-success",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "692:5207",
+      "artboardName": "admin-op-failed",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=op-failed",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-op-failed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-op-failed-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-failed",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "740:212",
+      "artboardName": "agent-chat-history-page-2",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=history-page-2",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-2.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-history-page-2-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-2",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "740:426",
+      "artboardName": "agent-chat-history-page-3",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=history-page-3",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-3.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-history-page-3-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-3",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "742:212",
+      "artboardName": "agent-chat-search-results",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=search-results",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-search-results.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-search-results-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-search-results",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "782:212",
+      "artboardName": "admin-knowledge-uploading",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=knowledge-uploading",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-knowledge-uploading.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-uploading-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-uploading",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "782:366",
+      "artboardName": "admin-knowledge-indexing",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=knowledge-indexing",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-knowledge-indexing.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-indexing-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-indexing",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "782:520",
+      "artboardName": "admin-knowledge-upload-failed",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=knowledge-upload-failed",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-knowledge-upload-failed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-upload-failed-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-failed",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "792:212",
+      "artboardName": "profile-basic-avatar-uploading",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=basic-avatar-uploading",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-basic-avatar-uploading.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-basic-avatar-uploading-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-avatar-uploading",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "794:212",
+      "artboardName": "profile-basic-avatar-failed",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=basic-avatar-failed",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-basic-avatar-failed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-basic-avatar-failed-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-avatar-failed",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "794:380",
+      "artboardName": "profile-basic-unsaved-leave-confirmation",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=basic-unsaved-leave-confirmation",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-basic-unsaved-leave-confirmation.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-basic-unsaved-leave-confirmation-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-unsaved-leave-confirmation",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "794:548",
+      "artboardName": "profile-security-password-submitting",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=security-password-submitting",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-security-password-submitting.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-security-password-submitting-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-submitting",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "794:693",
+      "artboardName": "profile-security-password-success",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=security-password-success",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-security-password-success.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-security-password-success-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-success",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "794:838",
+      "artboardName": "profile-security-password-failed",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=security-password-failed",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-security-password-failed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-security-password-failed-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-failed",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "794:984",
+      "artboardName": "profile-privacy-export-queued",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=privacy-export-queued",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-privacy-export-queued.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-export-queued-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-queued",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "794:1127",
+      "artboardName": "profile-privacy-export-running",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=privacy-export-running",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-privacy-export-running.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-export-running-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-running",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "795:212",
+      "artboardName": "profile-privacy-export-expired",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=privacy-export-expired",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-privacy-export-expired.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-export-expired-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-expired",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "795:356",
+      "artboardName": "profile-privacy-deletion-submitting",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=privacy-deletion-submitting",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-submitting.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-deletion-submitting-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-submitting",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "795:499",
+      "artboardName": "profile-privacy-deletion-success",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=privacy-deletion-success",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-success.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-deletion-success-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-success",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "795:642",
+      "artboardName": "profile-privacy-deletion-failed",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=privacy-deletion-failed",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-failed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-deletion-failed-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-failed",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "795:786",
+      "artboardName": "user-knowledge-empty",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/knowledge",
+      "queryState": "state=empty",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/user-knowledge-empty.png",
+      "browserPng": ".qa/figma-pixel-acceptance/user-knowledge-empty-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-empty",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "795:968",
+      "artboardName": "user-knowledge-search-failed",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/knowledge",
+      "queryState": "state=search-failed",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/user-knowledge-search-failed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/user-knowledge-search-failed-browser-full-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-search-failed",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "795:1151",
+      "artboardName": "user-knowledge-source-unavailable",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/knowledge",
+      "queryState": "state=source-unavailable",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/user-knowledge-source-unavailable.png",
+      "browserPng": ".qa/figma-pixel-acceptance/user-knowledge-source-unavailable-browser-full-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-source-unavailable",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "797:212",
+      "artboardName": "admin-run-detail",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=run-detail",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-run-detail.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-run-detail-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-run-detail",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "797:359",
+      "artboardName": "admin-tool-calls",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=tool-calls",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-tool-calls.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-tool-calls-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-tool-calls",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "797:490",
+      "artboardName": "admin-sql-audit",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=sql-audit",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-sql-audit.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-sql-audit-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-sql-audit",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "797:621",
+      "artboardName": "admin-trace",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=trace",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-trace.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-trace-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-trace",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "801:215",
+      "artboardName": "admin-user-detail",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=user-detail",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-user-detail.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-user-detail-browser-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-user-detail",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:212",
+      "artboardName": "agent-chat-session-actions",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=session-actions",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-session-actions.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-session-actions-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-session-actions",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:438",
+      "artboardName": "agent-chat-renamed",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=renamed",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-renamed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-renamed-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-renamed",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:662",
+      "artboardName": "agent-chat-archived",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=archived",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-archived.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-archived-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-archived",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:887",
+      "artboardName": "agent-chat-trash",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=trash",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-trash.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-trash-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-trash",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:1119",
+      "artboardName": "profile-basic",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=basic",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-basic.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-basic-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:1281",
+      "artboardName": "profile-memories",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=memories",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-memories.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-memories-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:1445",
+      "artboardName": "profile-security",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=security",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-security.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-security-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:1585",
+      "artboardName": "profile-privacy",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=privacy",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-privacy.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "806:1737",
+      "artboardName": "admin-knowledge-upload-success",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=knowledge-upload-success",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-knowledge-upload-success.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-upload-success-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-success",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "995:977",
+      "artboardName": "admin-overview",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=overview",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-overview.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-overview-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "995:1238",
+      "artboardName": "admin-model-usage",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin/usage",
+      "queryState": null,
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-model-usage.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-model-usage-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-model-usage",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "995:1499",
+      "artboardName": "admin-operation-audit",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "view=audit",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-operation-audit.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-operation-audit-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-operation-audit",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "997:2",
+      "artboardName": "admin-knowledge-format-error",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=knowledge-format-error",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-knowledge-format-error.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-format-error-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-format-error",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "997:160",
+      "artboardName": "admin-knowledge-size-error",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/admin",
+      "queryState": "state=knowledge-size-error",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/admin-knowledge-size-error.png",
+      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-size-error-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-size-error",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "1013:2",
+      "artboardName": "profile-memories-empty",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=memories-empty",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-memories-empty.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-memories-empty-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories-empty",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "1013:235",
+      "artboardName": "profile-security-logout-confirm",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=security-logout-confirm",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-security-logout-confirm.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-security-logout-confirm-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-logout-confirm",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "1013:465",
+      "artboardName": "profile-privacy-delete-confirm",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/profile",
+      "queryState": "state=privacy-delete-confirm",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/profile-privacy-delete-confirm.png",
+      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-delete-confirm-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-delete-confirm",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "1013:653",
+      "artboardName": "agent-chat-running-stop",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/chat",
+      "queryState": "state=running-stop",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-running-stop.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-running-stop-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-running-stop",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "1015:4",
+      "artboardName": "workspace-home-input-states",
+      "artboardSize": {
+        "width": 1440,
+        "height": 1024
+      },
+      "frontendRoute": "/",
+      "queryState": "state=input-states",
+      "browserViewport": "1440x1024",
+      "figmaPng": "docxs/设计/figma-png/workspace-home-input-states.png",
+      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-input-states-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-input-states",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    },
+    {
+      "figmaNodeId": "1029:3",
+      "artboardName": "agent-chat-viewport-1366x768",
+      "artboardSize": {
+        "width": 1366,
+        "height": 768
+      },
+      "frontendRoute": "/chat",
+      "queryState": null,
+      "browserViewport": "1366x768",
+      "figmaPng": "docxs/设计/figma-png/agent-chat-viewport-1366x768.png",
+      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-viewport-1366x768-browser.png",
+      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-viewport-1366x768",
+      "status": "DIFF_REVIEW",
+      "manualReviewConclusion": "PENDING",
+      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+    }
+  ]
+}

@@ -32,6 +32,7 @@ export type AuthUser = {
   status: 'active' | 'disabled' | 'locked';
   email: string;
   avatarUrl?: string;
+  gender?: string;
   lastLoginAt: string;
   profile: UserNutritionProfile;
   permissions: AuthPermission[];
@@ -58,6 +59,7 @@ export const mockAuthUser: AuthUser = {
   status: 'active',
   email: 'liang@example.com',
   avatarUrl: '',
+  gender: '男',
   lastLoginAt: '2026-06-25 15:40',
   profile: {
     heightCm: 175,

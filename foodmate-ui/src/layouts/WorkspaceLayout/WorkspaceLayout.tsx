@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DEFAULT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
 import { SidebarSessionList, type SessionAction } from '../../components/workspace/SidebarSessionList';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { ROUTES, buildChatPath } from '../../constants/routes';
@@ -74,7 +75,7 @@ export function WorkspaceLayout({
   moduleLabel,
   rightRail,
   rightRailWidth,
-  avatarSrc = '/assets/figma/agent-chat/user-avatar.png',
+  avatarSrc,
   sidebarAvatarSrc,
   topAvatarSrc,
   displayNameOverride,
@@ -101,8 +102,9 @@ export function WorkspaceLayout({
   const currentAuth = authScenarios.find((item) => item.status === authStatus) ?? authScenarios[0];
   const isAuthenticated = authStatus === 'authenticated';
   const canAccessAdmin = isAuthenticated && ['admin', 'operator', 'superadmin'].includes(authUser.role);
-  const sidebarAvatar = sidebarAvatarSrc ?? avatarSrc;
-  const topAvatar = topAvatarSrc ?? avatarSrc;
+  const defaultAvatar = resolveAvatarUrl(avatarSrc ?? authUser.avatarUrl, authUser.gender) ?? DEFAULT_AVATARS.male;
+  const sidebarAvatar = sidebarAvatarSrc ?? defaultAvatar;
+  const topAvatar = topAvatarSrc ?? defaultAvatar;
   const displayName = displayNameOverride ?? (isAuthenticated ? authUser.displayName : '登录');
   const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
 

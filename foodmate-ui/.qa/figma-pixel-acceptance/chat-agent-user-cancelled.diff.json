@@ -1,0 +1,13 @@
+{
+  "status": "DIFF_REVIEW",
+  "comparison": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 281484,
+  "differentRatio": 0.1908935546875,
+  "meanAbsoluteError": 2.4853832668728297,
+  "rmse": 15.017753103952899,
+  "maxChannelDelta": 235,
+  "manualReview": "PENDING: automated diff completed; visual geometry and typography review remains open"
+}

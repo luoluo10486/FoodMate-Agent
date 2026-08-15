@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { WorkspaceLayout } from '@/layouts/WorkspaceLayout/WorkspaceLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { getDefaultAvatarForGender } from '@/lib/avatar';
 import { getAuthUser, logout } from '@/services/authService';
 import {
   changePassword,
@@ -184,6 +185,92 @@ function getTab(pathname: string): ProfileTab {
   if (pathname.endsWith('/security')) return 'security';
   if (pathname.endsWith('/data')) return 'privacy';
   return 'basic';
+}
+
+type ProfileFixtureState =
+  | 'basic-avatar-uploading'
+  | 'basic-avatar-failed'
+  | 'basic-unsaved-leave-confirmation'
+  | 'security-password-submitting'
+  | 'security-password-success'
+  | 'security-password-failed'
+  | 'privacy-export-queued'
+  | 'privacy-export-running'
+  | 'privacy-export-expired'
+  | 'privacy-deletion-submitting'
+  | 'privacy-deletion-success'
+  | 'privacy-deletion-failed'
+  | 'memories-empty'
+  | 'security-logout-confirm'
+  | 'privacy-delete-confirm';
+
+function getProfileFixtureState(value: string | null): ProfileFixtureState | undefined {
+  const states: ProfileFixtureState[] = [
+    'basic-avatar-uploading', 'basic-avatar-failed', 'basic-unsaved-leave-confirmation',
+    'security-password-submitting', 'security-password-success', 'security-password-failed',
+    'privacy-export-queued', 'privacy-export-running', 'privacy-export-expired',
+    'privacy-deletion-submitting', 'privacy-deletion-success', 'privacy-deletion-failed',
+    'memories-empty', 'security-logout-confirm', 'privacy-delete-confirm',
+  ];
+  return value && states.includes(value as ProfileFixtureState) ? value as ProfileFixtureState : undefined;
+}
+
+function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureState; onDismiss: () => void }) {
+  if (state === 'memories-empty') {
+    return (
+      <div className={styles.fixturePanel}>
+        <div className={styles.fixturePanelCard}>
+          <span>MEMORY / EMPTY</span>
+          <h2>暂无长期记忆</h2>
+          <p>当你在 Agent 会话中确认一条偏好后，它会出现在这里。临时偏好不会自动保存。</p>
+          <Button type="button" onClick={onDismiss}>去会话确认</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const isError = state.includes('failed');
+  const isSuccess = state.includes('success');
+  const title = state === 'basic-avatar-uploading' ? '正在上传头像'
+    : state === 'basic-avatar-failed' ? '头像上传失败'
+      : state === 'basic-unsaved-leave-confirmation' ? '放弃未保存的修改？'
+        : state === 'security-password-submitting' ? '正在更新密码'
+          : state === 'security-password-success' ? '密码已更新'
+            : state === 'security-password-failed' ? '密码更新失败'
+              : state === 'privacy-export-queued' ? '数据导出已排队'
+                : state === 'privacy-export-running' ? '正在生成数据导出'
+                  : state === 'privacy-export-expired' ? '导出文件已过期'
+                    : state === 'privacy-deletion-submitting' ? '正在注销账号'
+                      : state === 'privacy-deletion-success' ? '账号已注销'
+                        : state === 'privacy-deletion-failed' ? '账号注销失败'
+                          : state === 'security-logout-confirm' ? '退出其他设备？' : '确认注销 FoodMate 账号';
+  const detail = state === 'basic-avatar-uploading' ? '正在校验格式并上传，请保持当前页面打开。上传进度 68% · JPG · 2.4 MB'
+    : state === 'basic-avatar-failed' ? '头像上传失败，请使用 JPG、PNG 或 WEBP，且文件不超过 2MB。'
+      : state === 'basic-unsaved-leave-confirmation' ? '头像、饮食偏好等资料有未保存内容。离开后这些修改将丢失。'
+        : state === 'security-password-submitting' ? '正在校验当前密码并撤销旧会话，请不要重复提交。'
+          : state === 'security-password-success' ? '新密码已生效，其他设备的会话已按安全策略处理。完成 · request_id: req_pwd_42ac'
+            : state === 'security-password-failed' ? '当前密码不正确或服务暂不可用，请重新填写。错误码：PASSWORD_UPDATE_FAILED · request_id: req_pwd_8d10'
+              : state === 'privacy-export-queued' ? '任务已创建，后台整理完成后提供一次性下载。状态：queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01'
+                : state === 'privacy-export-running' ? '正在脱敏并打包数据，完成后会显示一次性下载入口。状态：running · 已处理 68% · export_id: exp_20260731_01'
+                  : state === 'privacy-export-expired' ? '下载链接已过期，请重新创建导出任务。状态：expired · export_id: exp_20260729_18'
+                    : state === 'privacy-deletion-submitting' ? '正在禁用账号并撤销会话，后台清理已排队。提交中 · request_id: req_delete_91ba'
+                      : state === 'privacy-deletion-success' ? '账号已禁用，全部会话已撤销，后台清理任务已创建。完成 · request_id: req_delete_91ba'
+                        : state === 'privacy-deletion-failed' ? '清理任务失败，账号状态保持不变，请重新创建。错误码：ACCOUNT_DELETION_FAILED · request_id: req_delete_b721'
+                          : state === 'security-logout-confirm' ? '这将退出当前设备以外的 2 个活跃会话。当前设备会保留登录状态。' : '确认后账号会立即禁用，全部登录会话将被撤销，并开始后台清理个人资料、饮食记录、记忆和知识库数据。';
+  const progress = state === 'basic-avatar-uploading' || state === 'privacy-deletion-submitting' || state === 'security-password-submitting' || state === 'privacy-export-running';
+  return (
+    <div className={`${styles.fixtureOverlay} ${isSuccess ? styles.fixtureOverlaySuccess : ''}`} role="presentation">
+      <section className={`${styles.fixtureModal} ${isError ? styles.fixtureModalError : ''}`} role="alert" aria-live="polite">
+        <h2>{title}</h2>
+        <p>{detail}</p>
+        {progress ? <span className={styles.fixtureProgress}><i /></span> : null}
+        {state === 'privacy-delete-confirm' || state === 'security-logout-confirm' || state === 'basic-unsaved-leave-confirmation' ? (
+          <div className={styles.fixtureModalActions}><Button variant="outline" onClick={onDismiss}>取消</Button><Button variant={state === 'privacy-delete-confirm' ? 'destructive' : 'default'} onClick={onDismiss}>{state === 'basic-unsaved-leave-confirmation' ? '放弃并离开' : '确认继续'}</Button></div>
+        ) : null}
+        {state === 'security-password-failed' || state === 'privacy-deletion-failed' || state === 'privacy-export-expired' ? <Button type="button" onClick={onDismiss}>重新创建</Button> : null}
+      </section>
+    </div>
+  );
 }
 
 function profileFromUser(user: AuthUser): ProfileForm {
@@ -413,6 +500,8 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
 
   if (loading) return <div className={styles.loadingPanel}>正在加载个人资料...</div>;
 
+  const avatarSource = avatarPreview || getDefaultAvatarForGender(profileForm.gender);
+
   return (
     <div className={styles.basicLayout}>
       <div className={styles.basicLeft}>
@@ -420,8 +509,8 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
           <p className={styles.overline}>头像与账号概览</p>
           <div className={styles.avatarShell}>
             <div className={styles.avatarRing}>
-              {avatarPreview ? (
-                <img className={styles.avatarImage} src={avatarPreview} alt="个人头像" />
+              {avatarSource ? (
+                <img className={styles.avatarImage} src={avatarSource} alt="个人头像" />
               ) : (
                 <span>{authUser.displayName.slice(0, 1)}</span>
               )}
@@ -1592,9 +1681,15 @@ export function ProfilePage() {
   const authUser = getAuthUser();
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const location = useLocation();
-  const activeTab = getTab(location.pathname);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fixtureState = getProfileFixtureState(searchParams.get('state'));
+  const activeTab = fixtureState?.startsWith('security') ? 'security' : fixtureState?.startsWith('privacy') ? 'privacy' : fixtureState === 'memories-empty' ? 'memories' : getTab(location.pathname);
   return (
-    <WorkspaceLayout activeModule="profile">
+    <WorkspaceLayout
+      activeModule="profile"
+      pageOverlay={fixtureState ? <ProfileFixtureOverlay state={fixtureState} onDismiss={() => navigate('/profile')} /> : null}
+    >
       <div className={cn(styles.page, 'fm-enter')}>
         {activeTab === 'basic' ? <BasicTab authUser={authUser} realMode={realMode} /> : null}
         {activeTab === 'memories' ? realMode ? <RealMemoriesTab /> : <MemoriesTab /> : null}

@@ -1,7 +1,24 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { CalendarDays, ChartColumn, Check, LoaderCircle, MessageCircle, Minus, Search } from 'lucide-react';
-import type { AgentRunView, AgentDisplayStatus } from '../../types/agent';
+import {
+  AlertTriangle,
+  CalendarDays,
+  ChartColumn,
+  Check,
+  CheckCircle2,
+  CircleSlash,
+  LoaderCircle,
+  MessageCircle,
+  Minus,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  XCircle,
+} from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection } from '../../types/agent';
 import type { Message } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
@@ -11,13 +28,17 @@ import { ResultCard } from '../../components/agent/ResultCard';
 import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
 import { ErrorState } from '../../components/common/ErrorState';
+import { DEFAULT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
+import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
 import { createSession, loadSessionMessages, sendUserMessage, type RealMessage } from '../../services/sessionService';
 import {
   cancelAgentRun,
+  confirmAgentWrite,
   extendAgentRunBudget,
   openAgentRunStream,
+  rejectAgentWrite,
   recoverAgentRun,
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
@@ -58,6 +79,7 @@ function formatMessageTime(value: string) {
 
 function MessageBubble({ message, children }: { message: ChatMessage; children?: ReactNode }) {
   const isUser = message.role === 'user';
+  const userAvatar = resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
   return (
     <article className={`${styles.message} ${isUser ? styles.user : styles.assistant}`}>
       {isUser ? (
@@ -66,7 +88,7 @@ function MessageBubble({ message, children }: { message: ChatMessage; children?:
             <div className={styles.messageBubble}>{message.content}</div>
             <span className={styles.srOnly}>你</span>
             <span className={styles.userAvatar} aria-hidden="true">
-              <img src="/assets/figma/knowledge/user-avatar.png" alt="" />
+              <img src={userAvatar} alt="" />
             </span>
           </div>
           <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
@@ -192,7 +214,7 @@ function ChatSurface({
   onStop,
   placeholder,
   showTrace = true,
-  avatarSrc = '/assets/figma/knowledge/user-avatar.png',
+  avatarSrc,
   sidebarAvatarSrc,
   topAvatarSrc,
   displayNameOverride,
@@ -241,10 +263,18 @@ function ChatSurface({
 
 export function ChatPage() {
   const [searchParams] = useSearchParams();
+  const auxiliaryState = getChatAuxState(searchParams.get('state'));
+  if (auxiliaryState) return <ChatAuxStatePage state={auxiliaryState} />;
   if (searchParams.get('state') === 'empty') return <EmptyChatPage />;
   if (searchParams.get('state') === 'planning') return <PlanningStatePage />;
   if (searchParams.get('state') === 'tool-executing') return <ToolExecutingStatePage />;
   if (searchParams.get('state') === 'awaiting-clarification') return <AwaitingClarificationStatePage />;
+  if (searchParams.get('state') === 'write-confirmation') return <AgentStatePage state="write-confirmation" />;
+  if (searchParams.get('state') === 'budget-limit') return <AgentStatePage state="budget-limit" />;
+  if (searchParams.get('state') === 'tool-failed-retryable') return <AgentStatePage state="tool-failed-retryable" />;
+  if (searchParams.get('state') === 'safety-degraded') return <AgentStatePage state="safety-degraded" />;
+  if (searchParams.get('state') === 'user-cancelled') return <AgentStatePage state="user-cancelled" />;
+  if (searchParams.get('state') === 'sse-reconnecting') return <AgentStatePage state="sse-reconnecting" />;
   return import.meta.env.VITE_AGENT_MODE === 'real' ? <RealChatPage /> : <MockChatPage />;
 }
 
@@ -280,7 +310,7 @@ function EmptyChatPage() {
   };
 
   return (
-    <WorkspaceLayout activeModule="home" avatarSrc="/assets/figma/knowledge/user-avatar.png">
+    <WorkspaceLayout activeModule="home">
       <div className={styles.emptyPage}>
         <section className={styles.emptyBody} aria-labelledby="empty-chat-title">
           <div className={styles.emptyIntro}>
@@ -332,6 +362,7 @@ function EmptyChatPage() {
 }
 
 function PlanningStatePage() {
+  const userAvatar = resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
   const planningRun: AgentRunView = {
     id: 'run_planning_fixture',
     status: 'planning',
@@ -361,7 +392,7 @@ function PlanningStatePage() {
         <div className={styles.planningUserLine}>
           <div className={styles.planningUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.planningUserAvatar} aria-hidden="true">
-            <img src="/assets/figma/knowledge/user-avatar.png" alt="" />
+            <img src={userAvatar} alt="" />
           </span>
         </div>
         <div className={styles.planningMessageMeta}>Anddy · 12:45 PM</div>
@@ -394,6 +425,7 @@ const executingToolSteps = [
 ];
 
 function ToolExecutingStatePage() {
+  const userAvatar = resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
   const executingRun: AgentRunView = {
     id: 'fst_trace_9821aa',
     status: 'executing_tools',
@@ -453,7 +485,7 @@ function ToolExecutingStatePage() {
         <div className={styles.executingUserLine}>
           <div className={styles.executingUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.executingUserAvatar} aria-hidden="true">
-            <img src="/assets/figma/knowledge/user-avatar.png" alt="" />
+            <img src={userAvatar} alt="" />
           </span>
         </div>
         <div className={styles.executingMessageMeta}>Anddy · 12:45 PM</div>
@@ -544,6 +576,320 @@ function AwaitingClarificationStatePage() {
   );
 }
 
+type AgentFixtureState =
+  | 'write-confirmation'
+  | 'budget-limit'
+  | 'tool-failed-retryable'
+  | 'safety-degraded'
+  | 'user-cancelled'
+  | 'sse-reconnecting';
+
+type ChatAuxState =
+  | 'completed-with-citations'
+  | 'redesign-default'
+  | 'nav-loading'
+  | 'nav-hover-preview'
+  | 'pagination'
+  | 'history-page-2'
+  | 'history-page-3'
+  | 'search-results'
+  | 'session-actions'
+  | 'renamed'
+  | 'archived'
+  | 'trash'
+  | 'running-stop';
+
+function getChatAuxState(value: string | null): ChatAuxState | undefined {
+  const states: ChatAuxState[] = [
+    'completed-with-citations', 'redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination',
+    'history-page-2', 'history-page-3', 'search-results', 'session-actions', 'renamed', 'archived', 'trash', 'running-stop',
+  ];
+  return value && states.includes(value as ChatAuxState) ? value as ChatAuxState : undefined;
+}
+
+type FixtureAction = 'idle' | 'pending' | 'confirmed' | 'cancelled' | 'continued' | 'ended' | 'retried' | 'skipped' | 'restarted' | 'error';
+
+function fixtureRun(state: AgentFixtureState): AgentRunView {
+  const status: AgentRunView['status'] =
+    state === 'tool-failed-retryable' ? 'failed' : state === 'safety-degraded' ? 'completed' : state === 'user-cancelled' ? 'cancelled' : state === 'sse-reconnecting' ? 'executing_tools' : 'composing';
+  return {
+    id: `fixture_${state}`,
+    status,
+    intent: state === 'write-confirmation' ? 'record' : state === 'budget-limit' ? 'analysis' : 'planning',
+    toolsUsed: state === 'sse-reconnecting' ? 2 : state === 'tool-failed-retryable' ? 2 : 6,
+    toolsTotal: 6,
+    agentsUsed: 1,
+    agentsTotal: 1,
+    toolCalls: [],
+    citations: [],
+  };
+}
+
+function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState('');
+  const [notice, setNotice] = useState('');
+  const isRunning = state === 'running-stop';
+  const run = fixtureRun(isRunning ? 'sse-reconnecting' : 'tool-failed-retryable');
+  const labels: Record<ChatAuxState, string> = {
+    'completed-with-citations': '分析已完成，以下内容包含可追溯引用。',
+    'redesign-default': '我分析了野生三文鱼和熟藜麦的标准营养值。',
+    'nav-loading': '正在载入会话与运行轨迹…',
+    'nav-hover-preview': '会话预览：本周蛋白质补充方案',
+    pagination: '当前显示会话列表第 1 / 3 页',
+    'history-page-2': '会话历史第 2 页',
+    'history-page-3': '会话历史第 3 页',
+    'search-results': '会话搜索结果：蛋白质补充方案',
+    'session-actions': '会话管理：可重命名、归档或移入回收站',
+    renamed: '会话名称已更新：每周饮食微调',
+    archived: '会话已归档，可从归档列表恢复',
+    trash: '会话已移入回收站，30 天内可恢复',
+    'running-stop': '正在执行早餐营养分析，可随时停止当前 Run',
+  };
+  return (
+    <ChatSurface
+      run={run}
+      messagesRef={messagesRef}
+      input={input}
+      running={isRunning}
+      disabled={false}
+      onChange={setInput}
+      onSend={() => setNotice('已保留输入内容，等待当前会话继续处理。')}
+      onStop={() => setNotice('已请求停止当前 Run；已接收文本会保留。')}
+      placeholder={isRunning ? '运行中，可停止…' : '追问或添加自定义指令…'}
+      designChat
+      displayNameOverride="Anddy"
+      profileIdOverride="1234567"
+      showKnowledgeTopNav={false}
+    >
+      <article className={styles.fixtureUserMessage}>
+        <div className={styles.fixtureUserBubble}>帮我分析这周的饮食与蛋白质摄入情况</div>
+        <span className={styles.fixtureMessageMeta}>Anddy · 12:45 PM</span>
+      </article>
+      <article className={styles.fixtureAuxMessage}>
+        <strong>{labels[state]}</strong>
+        {state === 'completed-with-citations' ? <span>来源：USDA FoodData Central Ref #451992 · PubMed Central</span> : null}
+        {state === 'session-actions' ? <div className={styles.fixtureActions}><Button onClick={() => setNotice('已打开会话重命名入口。')}>重命名会话</Button><Button variant="outline" onClick={() => setNotice('已归档会话。')}>归档会话</Button><Button variant="ghost" onClick={() => setNotice('已移入回收站。')}>移入回收站</Button></div> : null}
+        {state === 'running-stop' ? <Button variant="outline" onClick={() => setNotice('已请求停止当前 Run。')}><CircleSlash aria-hidden="true" />停止</Button> : null}
+      </article>
+      {notice ? <p className={styles.fixtureActionMessage} role="status">{notice}</p> : null}
+    </ChatSurface>
+  );
+}
+
+function AgentStatePage({ state }: { state: AgentFixtureState }) {
+  const [searchParams] = useSearchParams();
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const [action, setAction] = useState<FixtureAction>('idle');
+  const [actionMessage, setActionMessage] = useState('');
+  const [input, setInput] = useState('');
+  const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
+  const approvalId = searchParams.get('approval_id');
+  const runId = searchParams.get('run_id');
+  const run = fixtureRun(state);
+
+  const report = (nextAction: FixtureAction, message: string) => {
+    setAction(nextAction);
+    setActionMessage(message);
+  };
+
+  const confirmWrite = async () => {
+    if (!realMode) {
+      report('confirmed', 'fixture 已记录确认动作，真实写入仍需后端审批事件。');
+      return;
+    }
+    if (!approvalId) {
+      report('error', '真实模式缺少 approval_id，未执行任何写入。');
+      return;
+    }
+    report('pending', '确认请求已提交，等待后端执行事件。');
+    try {
+      await confirmAgentWrite(approvalId, { source: 'figma-write-confirmation' });
+      report('pending', '确认请求已提交，等待后端执行事件。');
+    } catch (reason) {
+      report('error', reason instanceof Error ? reason.message : '写入确认失败，请稍后重试。');
+    }
+  };
+
+  const cancelWrite = async () => {
+    if (!realMode) {
+      report('cancelled', '已取消写入，本次对话不会修改饮食记录。');
+      return;
+    }
+    if (!approvalId) {
+      report('error', '真实模式缺少 approval_id，未执行取消请求。');
+      return;
+    }
+    report('pending', '取消请求已提交，等待后端确认。');
+    try {
+      await rejectAgentWrite(approvalId, { source: 'figma-write-confirmation' });
+      report('pending', '取消请求已提交，等待后端确认。');
+    } catch (reason) {
+      report('error', reason instanceof Error ? reason.message : '取消写入失败，请稍后重试。');
+    }
+  };
+
+  const extendBudget = async () => {
+    if (!realMode) {
+      report('continued', 'fixture 已记录追加预算动作，当前 Run 不会被伪造为新会话。');
+      return;
+    }
+    if (!runId) {
+      report('error', '真实模式缺少 run_id，未执行预算追加。');
+      return;
+    }
+    report('pending', '预算追加请求已提交，等待当前 Run 的后续事件。');
+    try {
+      await extendAgentRunBudget(runId, 20000, '0.15');
+      report('pending', '预算追加请求已提交，等待当前 Run 的后续事件。');
+    } catch (reason) {
+      report('error', reason instanceof Error ? reason.message : '预算追加失败，请稍后重试。');
+    }
+  };
+
+  const retryFailedTool = async () => {
+    if (!realMode) {
+      report('retried', 'fixture 已记录重试动作，等待新的工具事件。');
+      return;
+    }
+    if (!runId) {
+      report('error', '真实模式缺少 run_id，未执行重试。');
+      return;
+    }
+    report('pending', '重试请求需要后端运行恢复事件，当前页面不会伪造成功。');
+    try {
+      await recoverAgentRun(runId);
+      report('pending', '重试请求已提交，等待新的工具事件。');
+    } catch (reason) {
+      report('error', reason instanceof Error ? reason.message : '重试请求失败，请稍后重试。');
+    }
+  };
+
+  const content = (() => {
+    if (state === 'write-confirmation') {
+      return (
+        <div className={styles.fixtureCardWrap}>
+          <Card className={styles.fixtureCard}>
+            <div className={styles.fixtureCardHeader}>
+              <h2>确认写入以下记录</h2>
+              <span>目标对象: 饮食记录</span>
+            </div>
+            <dl className={styles.fixtureDetails}>
+              <div><dt>分类</dt><dd>2024年3月14日 午餐</dd></div>
+              <div><dt>食物</dt><dd>三文鱼寿司 x6</dd></div>
+              <div><dt>热量</dt><dd>约 620 千卡</dd></div>
+              <div><dt>蛋白质</dt><dd>38g</dd></div>
+            </dl>
+            <div className={styles.fixtureMeta}><span>来源: USDA FoodData Central</span><span>假设: 按标准份量估算</span></div>
+            <div className={styles.fixtureActions}>
+              <Button disabled={action === 'pending'} onClick={() => void confirmWrite()}><CheckCircle2 aria-hidden="true" />确认写入</Button>
+              <Button disabled={action === 'pending'} variant="ghost" onClick={() => void cancelWrite()}><XCircle aria-hidden="true" />取消</Button>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+    if (state === 'budget-limit') {
+      return (
+        <div className={styles.fixtureCardWrap}>
+          <Card className={styles.fixtureCard}>
+            <Alert variant="warning" className={styles.fixtureAlert}>
+              <AlertTriangle aria-hidden="true" />
+              <AlertTitle>已达到预算上限</AlertTitle>
+              <AlertDescription>本次会话已使用 50,000 tokens（单次会话预算上限）。为了保证资源分配合理及避免异常资费产生，你可以：</AlertDescription>
+            </Alert>
+            <div className={styles.fixtureChoiceList}><span>● 追加预算继续当前会话</span><span>● 开始新会话 (之前的分析进度将会重置)</span></div>
+            <div className={styles.fixtureBudgetRow}><span>Token 用量 (100%)</span><strong>预计费用: $0.15</strong></div>
+            <div className={styles.fixtureActions}>
+              <Button disabled={action === 'pending'} onClick={() => void extendBudget()}>追加 20,000 tokens</Button>
+              <Button disabled={action === 'pending'} variant="ghost" onClick={() => report('ended', '已结束当前会话。')}>结束会话</Button>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+    if (state === 'tool-failed-retryable') {
+      return (
+        <div className={styles.fixtureCardWrap}>
+          <Card className={styles.fixtureCard}>
+            <div className={styles.fixtureStatusTitle}><AlertTriangle aria-hidden="true" /><h2>工具执行失败</h2></div>
+            <strong className={styles.fixtureErrorTitle}>数据库查询超时 (错误码: TOOL_TIMEOUT_001)</strong>
+            <p className={styles.fixtureParagraph}>向量索引检索服务暂时不可用。FoodMate 代理在尝试读取外部知识库时失去连接。</p>
+            <div className={styles.fixtureActions}>
+              <Button disabled={action === 'pending'} onClick={() => void retryFailedTool()}><RefreshCw aria-hidden="true" />重试</Button>
+              <Button disabled={action === 'pending'} variant="outline" onClick={() => report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。')}>跳过此步骤</Button>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+    if (state === 'safety-degraded') {
+      return (
+        <div className={styles.fixtureCardWrap}>
+          <Card className={styles.fixtureCard}>
+            <div className={styles.fixtureStatusTitle}><ShieldAlert aria-hidden="true" /><h2>安全降级</h2></div>
+            <Alert variant="warning" className={styles.fixtureAlert}>
+              <ShieldAlert aria-hidden="true" />
+              <AlertTitle>安全降级提示</AlertTitle>
+              <AlertDescription>由于部分工具不可用，以下回答基于有限数据生成，可能不够完整。建议稍后重试以获取完整分析。</AlertDescription>
+            </Alert>
+            <p className={styles.fixtureParagraph}>由于无法连接到本地营养配方数据库，以下为您推荐基础低钠食谱：</p>
+            <p className={styles.fixtureParagraph}>1. 清蒸鳕鱼配西兰花（预计钠含量：120mg）<br />2. 香草烤鸡胸肉配糙米饭（预计钠含量：150mg）</p>
+            <p className={styles.fixtureWarning}>注意：由于当前未结合您的个人高血压排除条件，请谨慎添加额外酱料。</p>
+          </Card>
+        </div>
+      );
+    }
+    if (state === 'user-cancelled') {
+      return (
+        <div className={styles.fixtureCancelledWrap}>
+          <p className={styles.fixtureAssistantText}>正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...</p>
+          <div className={styles.fixtureCancelledNotice}><CircleSlash aria-hidden="true" /><span>用户已取消此次运行 · 2:16 PM</span></div>
+          <p className={styles.fixtureCenteredText}>你可以重新提问或开始新的对话</p>
+          <Button variant="outline" onClick={() => report('restarted', '已准备重新开始；真实运行需要由后端创建新的 Run。')}><RefreshCw aria-hidden="true" />重新开始提问</Button>
+        </div>
+      );
+    }
+    return (
+      <div className={styles.fixtureReconnectWrap}>
+        <p className={styles.fixtureAssistantText}>正在查询水果数据库，提取符合低生糖指数（GI &lt; 55）的食材列表...</p>
+        <div className={styles.fixtureReconnectNotice}><LoaderCircle aria-hidden="true" /><div><strong>连接已中断，正在重新连接...</strong><span>第 2 次重连尝试 (最多 5 次)</span></div></div>
+        <p className={styles.fixtureCenteredText}>如果持续失败，请刷新页面</p>
+      </div>
+    );
+  })();
+
+  return (
+    <ChatSurface
+      run={run}
+      messagesRef={messagesRef}
+      input={input}
+      running={state === 'sse-reconnecting'}
+      disabled={state === 'budget-limit' || state === 'sse-reconnecting'}
+      onChange={setInput}
+      onSend={() => {
+        if (state === 'safety-degraded' && input.trim()) setActionMessage('已保留追问入口；真实模式下将由当前 Run 继续处理。');
+      }}
+      onStop={() => setActionMessage('取消状态会保留已接收文本，真实取消请求需要绑定具体 run_id。')}
+      placeholder={state === 'write-confirmation' ? '请确认上述饮食数据是否正确...' : state === 'budget-limit' ? '追加预算以继续当前会话...' : state === 'sse-reconnecting' ? '等待重新连接...' : '追问或添加自定义指令...'}
+      showTrace={false}
+      designChat
+      displayNameOverride="Anddy"
+      profileIdOverride="1234567"
+      showKnowledgeTopNav={false}
+    >
+      <article className={styles.fixtureUserMessage}>
+        <div className={styles.fixtureUserBubble}>
+          {state === 'write-confirmation' ? '把刚才吃的三文鱼寿司记录到午餐里吧' : state === 'budget-limit' ? '帮我导出2023整年每个月的膳食结构趋势报告' : state === 'tool-failed-retryable' ? '查询我今天晚餐的热量' : state === 'safety-degraded' ? '推荐一份低钠晚餐食谱' : state === 'user-cancelled' ? '生成下周的减脂餐食规划' : '推荐低GI的水果'}
+        </div>
+        <span className={styles.fixtureMessageMeta}>Anddy · {state === 'user-cancelled' ? '02:15 PM' : '12:45 PM'}</span>
+      </article>
+      {content}
+      {actionMessage ? <p className={styles.fixtureActionMessage} role="status">{actionMessage}</p> : null}
+    </ChatSurface>
+  );
+}
+
 function RealChatPage() {
   const { session_id: sessionId } = useParams();
   const navigate = useNavigate();
@@ -558,7 +904,9 @@ function RealChatPage() {
   const [error, setError] = useState<string>();
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
+  const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
   const messagesRef = useRef<HTMLDivElement>(null);
+  const streamRef = useRef<{ close: () => void }>();
 
   useEffect(() => {
     let cancelled = false;
@@ -567,6 +915,7 @@ function RealChatPage() {
     setAssistantText('');
     setBudgetConfirmation(false);
     setCheckpointAvailable(false);
+    setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
     if (!sessionId) {
       setLoading(false);
       return;
@@ -641,9 +990,20 @@ function RealChatPage() {
         }
         setRunStatus(payload.status ?? eventType.replace('run.', ''));
       },
-      () => setError('运行事件连接中断，浏览器将自动重连。'),
+      {
+        maxAttempts: 5,
+        onStateChange: setConnection,
+        onError: (nextConnection) => {
+          if (nextConnection.state === 'exhausted') setError('运行事件连接重试已达上限，请刷新页面后重试。');
+          else setError(undefined);
+        },
+      },
     );
-    return () => stream.close();
+    streamRef.current = stream;
+    return () => {
+      stream.close();
+      streamRef.current = undefined;
+    };
   }, [activeRunId]);
 
   const send = async () => {
@@ -671,7 +1031,7 @@ function RealChatPage() {
   };
 
   const realRun: AgentRunView = {
-    id: activeRunId ?? '等待运行',
+      id: activeRunId ?? '等待运行',
     status: displayRunStatus(runStatus === 'idle' ? 'completed' : runStatus),
     intent: 'planning',
     toolsUsed: 0,
@@ -679,7 +1039,8 @@ function RealChatPage() {
     agentsUsed: 0,
     agentsTotal: 1,
     toolCalls: [],
-    citations: [],
+      citations: [],
+      connection,
   };
 
   const mappedMessages: ChatMessage[] = messages.map((message) => ({
@@ -702,6 +1063,7 @@ function RealChatPage() {
       onChange={setInput}
       onSend={() => void send()}
       onStop={() => {
+        streamRef.current?.close();
         if (activeRunId) void cancelAgentRun(activeRunId);
       }}
       placeholder="追问或添加自定义指令..."
@@ -711,6 +1073,24 @@ function RealChatPage() {
         <p className={styles.systemMessage}>暂无消息，发送第一条内容开始会话。</p>
       ) : null}
       {error ? <ErrorState message={error} /> : null}
+      {connection.state === 'reconnecting' ? (
+        <div className={styles.connectionNotice} role="status" aria-live="polite">
+          <LoaderCircle aria-hidden="true" />
+          <div>
+            <strong>连接已中断，正在重新连接...</strong>
+            <span>第 {connection.attempt} 次重连尝试 (最多 {connection.maxAttempts} 次)</span>
+          </div>
+        </div>
+      ) : null}
+      {connection.state === 'exhausted' ? (
+        <div className={`${styles.connectionNotice} ${styles.connectionNoticeError}`} role="alert">
+          <XCircle aria-hidden="true" />
+          <div>
+            <strong>连接重试已耗尽</strong>
+            <span>如果持续失败，请刷新页面</span>
+          </div>
+        </div>
+      ) : null}
       {mappedMessages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}

@@ -1,15 +1,15 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-13
+更新时间：2026-08-15
 
 ## 1. 结论
 
 本报告记录两类不同验收结果：
 
 1. Figma 文件内部结构、组件系统、Prototype 和画板截图回读已完成。
-2. 前端代码与 Figma 画板的自动化像素差异目前只覆盖 40 个已建立映射的页面/状态，40 个结果均为 `DIFF_REVIEW`，不能标记为像素级通过。
+2. 前端代码与 Figma 画板的自动化像素差异已覆盖 105 个已建立映射的页面/状态，105 个结果均为 `DIFF_REVIEW`，不能标记为像素级通过。
 
-因此当前不能宣称“Figma 105 张画板已全部完成前端像素级验收”。已经完成的是可复核的 Figma 全量结构验收和 40 个映射页面/状态的差异证据收集。
+因此当前不能宣称“Figma 105 张画板已全部完成前端像素级验收”。已经完成的是可复核的 Figma 全量结构验收、105 个画板的路由/状态映射和差异证据收集；全量几何、文字与人工视觉复核仍未关闭。
 
 ## 2. Figma 文件内部验收
 
@@ -45,7 +45,7 @@
 
 ## 4. 已映射页面结果
 
-以下结果来自 2026-08-12 及 2026-08-13 重新运行的 `png-diff.mjs`。当前认证页截图为 `1440×900`；其他历史页面按各自 Figma 目标尺寸记录。
+以下为代表性页面结果；105 项完整字段、路由、query 状态、视口、PNG 路径和 diff 锚点以 [`figma-105-mapping.json`](../../foodmate-ui/.qa/figma-pixel-acceptance/figma-105-mapping.json) 为准。结果来自 2026-08-15 运行的 `generate-figma-105-diff.mjs`，认证页使用 `1440×900`，其它画板按各自 Figma 目标尺寸记录。
 
 | 页面/状态 | Figma 节点 | 尺寸 | 差异比例 | RMSE | 结论 |
 |---|---|---:|---:|---:|---|
@@ -72,18 +72,11 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 证据目录：[`.qa/figma-pixel-acceptance`](../../foodmate-ui/.qa/figma-pixel-acceptance)
 
-## 5. 未映射画板
+## 5. 全量画板映射
 
-Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证和餐食规划状态补充共 40 个页面/状态具备独立前端截图映射，剩余 65 张画板记录为 `UNMAPPED`，包括但不限于：
+Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-- 登录、注册、找回密码及其它账户状态画板。
-- 饮食记录、摄入分析、餐食规划的编辑、删除、失败、空态、确认和任务状态画板。
-- 知识库批量上传与索引状态画板，以及其它尚未建立前端 fixture 的知识库状态。
-- 个人中心更多确认层、设备、导出和注销状态画板。
-- Admin 用户详情的详情态已映射；操作确认、操作审计、Run、Tool Call、SQL Audit、Trace 等其它独立状态画板仍未映射。
-- User/Admin Component Gallery 和 Foundations 页面。
-
-这些画板已经完成 Figma 内部截图或结构检查，但没有对应的前端独立路由/状态截图，因此不能进行程序化像素 diff。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。`manualReviewConclusion` 当前仍为 `PENDING`，因此不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 
@@ -95,11 +88,10 @@ Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证和餐�
 
 ## 7. 后续验收门槛
 
-1. 为剩余 65 张画板建立明确的路由、查询参数或状态 fixture 映射。
-2. 使用同一视口、同一 DPR、同一字体加载完成条件重新采集截图。
-3. 对每个映射页分别进行几何、文字、颜色、状态和像素差异复核。
-4. 只有在证据和人工复核都满足时，才将单页从 `DIFF_REVIEW` 改为 `PASS`。
-5. iconfont 资源登记必须在收到真实包、CSS、来源和许可证后单独关闭，不能用 Lucide 或虚构字体替代。
+1. 对 105 个已映射画板逐项完成几何、文字、颜色、状态和像素差异复核。
+2. 使用同一视口、同一 DPR、同一字体加载完成条件补采或修正存在差异的浏览器截图。
+3. 只有在自动 diff、几何检查、文字检查和人工复核都满足时，才将单页从 `DIFF_REVIEW` 改为 `PASS`。
+4. iconfont 资源登记必须在收到真实包、CSS、来源和许可证后单独关闭，不能用 Lucide 或虚构字体替代。
 
 ## 8. 餐食规划状态补充验收
 
@@ -297,3 +289,23 @@ Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证和餐�
 - [x] 桌面和移动浏览器截图、RGBA 归一化截图与 Figma 参考图已保存到 `foodmate-ui/.qa/figma-pixel-acceptance/`。
 - [ ] 自动 diff 仍为 `DIFF_REVIEW`；不能以人工接近替代像素级 PASS。
 - [ ] iconfont 实体包、CSS 映射、来源 URL、许可证和 glyph 登记仍为 `BLOCKED`；标准命令图标继续使用 Lucide。
+## 45. 2026-08-15 全量映射与 PNG 证据复核
+
+本轮按实时 Figma 文件 `MX18RZCfAmgprNzxItkHUH` 的 `🎨 :: Design` 页面重新核对 105 个顶层画板，并补齐此前缺失的 11 张原始 Figma PNG。验收清单和自动汇总分别位于：
+
+- `foodmate-ui/.qa/figma-pixel-acceptance/figma-105-mapping.json`
+- `foodmate-ui/.qa/figma-pixel-acceptance/figma-105-diff-results.json`
+- `foodmate-ui/scripts/generate-figma-105-diff.mjs`
+
+本轮汇总结果：
+
+| 状态 | 数量 | 说明 |
+|---|---:|---|
+| `DIFF_REVIEW` | 105 | Figma 与浏览器 PNG 尺寸一致，已运行 `scripts/png-diff.mjs`，仍需几何、文字和人工视觉复核 |
+| `UNMAPPED` | 0 | 105 张画板均已有可验证的浏览器 fixture/路由证据 |
+| `SIZE_MISMATCH` | 0 | 本轮没有把尺寸不一致伪装成像素通过 |
+| `PASS` | 0 | 未满足自动 diff、几何、文字和人工复核四项条件 |
+
+此前由 JPEG 字节误命名为 `.png` 导致的 `DIFF_ERROR` 已从当前 105 条输入中排除：汇总脚本会校验 PNG 文件头，并优先选择同尺寸的 RGBA 证据。当前清单引用的 105 个 Figma PNG 与 105 个浏览器 PNG 均已通过文件头和尺寸校验。新增 Agent 六个状态均已建立 `/chat?state=...` fixture、浏览器 PNG 和 diff 记录，但结果继续保持 `DIFF_REVIEW`。
+
+本轮已关闭 `UNMAPPED` 映射缺口，但没有关闭任何 `PASS`。部分 Admin 操作弹窗、Profile 异步操作、历史会话交互和 Workspace 输入状态均使用独立 query fixture，不能与默认页面截图混淆。iconfont 实体资源仍为 `BLOCKED`；后端真实 Agent/SSE 闭环也不作为本轮 fixture 完成标准。

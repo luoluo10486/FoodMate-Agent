@@ -31,7 +31,7 @@
 
 执行失败时，保留完整错误、已执行语句范围和恢复动作；不得覆盖原记录。
 
-## V1 营养目录 seed（2026-08-14 已执行并校验）
+## V1 营养目录 seed（2026-08-14 已执行并校验，历史快照）
 
 | 字段 | 内容 |
 |---|---|
@@ -43,18 +43,35 @@
 | 执行结果 | 成功导入 5 条 `approved` 食材；重复执行返回 `INSERT 0 0`，未重复创建 |
 | 校验脚本 | `validation/V1__nutrition_usda_seed_validation.sql` |
 | 校验结果 | 通过：非法 seed 行数为 0，5 条均为每 100g 基准；`nutrition_unit_conversions=0`，未推断家庭单位换算 |
-| 当前数据量 | `food_logs=8`、`food_log_items=11`、`nutrition_foods=5`、`nutrition_unit_conversions=0`、`approval_requests=6`、`runtime_tool_proposal_inbox=69`；food log 已匹配 7 条、`pending` 4 条 |
+| 当时数据量 | `food_logs=8`、`food_log_items=11`、`nutrition_foods=5`、`nutrition_unit_conversions=0`、`approval_requests=6`、`runtime_tool_proposal_inbox=69`；food log 已匹配 7 条、`pending` 4 条 |
 | 备份/回滚 | 当前开发阶段按用户决策暂不做数据库备份；seed 使用 `ON CONFLICT DO NOTHING`，未执行回滚 |
 
-## M1-5 food_log_writer 跨进程回归（2026-08-14）
+## M1-5 food_log_writer 第一切片跨进程回归（历史记录，2026-08-14）
 
 | 项目 | 结果 |
 |---|---|
 | `M15FoodLogWriterHttpE2ETest` | 通过：真实随机端口 HTTP、Ed25519 Service JWT、PostgreSQL 写入、匹配营养目录和 HTTP 重放不重复创建 |
 | `M15FoodLogWriterProposalResultE2ETest` | 通过：真实 RocketMQ Proposal/Result、确认绑定、PostgreSQL 写入、资源 ID 回填和 Proposal 重放不重复创建 |
-| 范围边界 | 只验证 `food_log.create` 第一切片；拒绝、失败、`superseded` 和其他写操作确认状态仍未完成 |
+| 当日范围边界 | 截至该次执行只验证 `food_log.create` 第一切片；拒绝、失败、`superseded` 和其他写操作的完整跨进程验收见下方 2026-08-15 记录 |
 
-## M1-5 写确认扩展实现复核（2026-08-15）
+## V2 营养单位换算 seed（本地当前复核，2026-08-15）
+
+| 字段 | 内容 |
+|---|---|
+| 数据库 | `FoodMate` |
+| 环境 | local，运行中的 Docker PostgreSQL 16 容器 `foodmate-postgres` |
+| 脚本版本 | `seed/V2__nutrition_usda_portion_seed.sql` |
+| 执行方式 | 历史人工 `psql` 执行；本轮只读复核，Java 启动不会自动执行 seed |
+| 来源 | USDA FoodData Central `foodPortions`，规则保留 FDC ID 和 portion 序号 |
+| 执行结果 | 当前库存在 5 条未删除 `approved` 规则：米饭、鸡胸肉、熟鸡蛋、三文鱼、苹果 |
+| 校验脚本 | `validation/V2__nutrition_usda_portion_seed_validation.sql` |
+| 校验结果 | 通过：5 条规则的目标单位均为 `g`，倍率和来源版本均符合校验；三文鱼 `3 oz=85 g` 已归一化为 `28.3333 g/oz` |
+| 当前只读数据量 | `nutrition_foods=5`、`nutrition_unit_conversions=5`、`food_logs=95`、`food_log_items=128`、`approval_requests=114`、`runtime_tool_proposal_inbox=98`、`operation_audits=569` |
+| 备份/回滚 | 当前开发阶段按用户决策暂不做数据库备份；seed 使用幂等 upsert，未执行回滚 |
+
+> 历史执行人和精确执行时间未记录，本条不补写；上面的数据库数量是本轮只读复核快照。
+
+## M1-5 写确认扩展与跨进程回归（2026-08-15）
 
 | 项目 | 结果 |
 |---|---|
@@ -62,8 +79,11 @@
 | `food_log_writer` | 已支持 `create`、`update`、`delete`、`restore`，update/delete/restore 强制使用资源归属和 `revision` |
 | Tool Gateway | 已校验 `proposal_type=tool` 与 `tool_name=food_log_writer`，并映射 confirmation_required、rejected、failed、superseded |
 | Java 定向测试 | `ApprovalServiceImplTest` 和 `ToolGatewayServiceTest` 已覆盖新增分支；本轮通过临时本地 JUnit Launcher 实际执行合计 26 条 |
-| 跨进程证据边界 | 本轮新增状态和 update/delete/restore 尚未完成真实 HTTP/MQ 回归；上方 2026-08-14 的 HTTP/MQ 证据只覆盖 `food_log.create` |
-| 完整 Maven 验证 | `mvnw.cmd verify` 已成功完成：6 个 Reactor 模块构建成功；Surefire 共执行 198 条测试，0 失败，28 条因 Docker/真实环境条件跳过；Spotless 全部通过 |
+| HTTP 跨进程回归 | `M15FoodLogWriterHttpE2ETest` 通过 11/11：create 基线、rejected、failed 回滚与失败审计、superseded、update、delete、restore、revision 冲突、成功 Proposal 幂等重放、foodPortions 换算 matched 和无规则 pending |
+| RocketMQ 跨进程回归 | `M15FoodLogWriterProposalResultE2ETest` 通过 11/11：同上场景；真实 Proposal/Result consumer 验证 Inbox `completed`、结果重放一致和单一完成事实 |
+| 数据库与审计断言 | 覆盖资源归属、营养明细快照、换算 `conversion_id`/标准份量、revision 递增/不递增、软删除可见性、审批终态、`approval.failed`、`food_log.*` 业务幂等审计和无额外写入 |
+| 数据隔离与范围 | 每个用例使用随机用户、Session、AgentRun、Proposal 和幂等键；未新增表、未执行迁移、未删除既有本地数据、未执行数据库备份 |
+| 完整 Maven 验证 | 2026-08-15 最近一次 `mvnw.cmd verify` 已成功完成：6 个 Reactor 模块构建成功；Surefire 执行 221 条测试，0 失败、0 错误，48 条因 Docker/真实环境条件跳过；Spotless 全部通过 |
 
 ## V13 M1-5 饮食记录与营养目录（本轮已复核，未重复执行）
 
@@ -79,7 +99,7 @@
 | 执行命令/客户端版本 | `docker exec foodmate-postgres psql`，PostgreSQL 16.14 |
 | 执行结果 | 未重复执行；本轮只读校验确认五张表、字段、约束、索引存在 |
 | 校验脚本 | `validation/V13__m1_5_food_log_nutrition_approval_validation.sql` |
-| 校验结果 | 通过：V13 validation 查询确认表/字段/约束/索引存在，旧 `items_json`/`nutrition_json` 不存在；当前 `nutrition_foods=5`、`nutrition_unit_conversions=0`。seed 另由上方 V1 记录覆盖 |
+| 校验结果 | 通过：V13 validation 查询确认表/字段/约束/索引存在，旧 `items_json`/`nutrition_json` 不存在；本轮当前只读复核为 `nutrition_foods=5`、`nutrition_unit_conversions=5`。seed 由上方 V1/V2 记录覆盖 |
 | 回滚结论 | 未执行；未运行回滚 SQL，也未修改数据 |
 
 执行 V13 前必须确认当前本地数据库无历史 FoodMate 业务数据；如果 `food_logs` 非空，保留脚本异常并先进行数据评审，不能直接绕过前置条件。

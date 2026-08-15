@@ -7,7 +7,7 @@
 
 > 本文是设计需求，不代表所有功能已经由后端实现。页面和功能按“当前可接入”“已有前端占位”“目标态待建设”明确标注，禁止在设计评审时把目标态误报为已完成。
 
-> M1-5 状态（2026-08-14）：后端第一切片已接入本地真实 API：饮食记录创建/查询/编辑/删除/恢复、today/7d/30d 分析、5 条营养 seed 的 matched/pending 分支、餐食计划完整资源生命周期和 `meal_plan.save_plan` 写确认；`food_log_writer` 的 `food_log.create` 已有本地第一切片定向测试，并通过真实 PostgreSQL HTTP/RocketMQ writer 回归。计划生命周期已完成真实 PostgreSQL HTTP 回归。完整 Tool Gateway 和更多确认状态仍待完成。饮食记录页、分析页和规划页的设计/前端代码仍不能当作完整 M1-5 业务闭环证据；字段和状态以 [M1-5核心饮食业务与写确认实施方案](../项目/M1-5核心饮食业务与写确认实施方案.md) 为准。
+> M1-5 状态（2026-08-15）：后端已接入本地真实 API：饮食记录创建/查询/编辑/删除/恢复、today/7d/30d 分析、5 条营养食材 seed 和 5 条官方 foodPortions 换算规则的 matched/pending 分支、餐食计划完整资源生命周期和 `meal_plan.save_plan` 写确认；`food_log_writer` 的 create/update/delete/restore、rejected/failed/superseded、revision 冲突和幂等重放已通过真实 PostgreSQL HTTP/RocketMQ 各 11/11 跨进程回归。计划生命周期已完成真实 PostgreSQL HTTP 回归。更广泛业务 Tool/SQL 仍待完成。饮食记录页、分析页和规划页的设计/前端代码仍不能当作完整 M1-5 业务闭环证据；字段和状态以 [M1-5核心饮食业务与写确认实施方案](../项目/M1-5核心饮食业务与写确认实施方案.md) 为准。
 
 ---
 
@@ -83,7 +83,7 @@ FoodMate 帮助用户通过自然语言或结构化入口完成以下任务：
 - 管理端概览数据、用户列表、用户状态修改、强制下线。
 - 管理端知识文档上传/状态修改、工具状态修改、软删除资源恢复。
 
-上述真实接口清单不包含已在本地 `@Profile("local")` 接入的 M1-5 第一切片；完整前端真实接入、营养目录数据和完整 Tool Gateway 仍按“后端需补齐”处理，饮食记录编辑代码及真实 PostgreSQL HTTP 回归已完成。
+上述真实接口清单不包含已在本地 `@Profile("local")` 接入的 M1-5 核心路径；营养目录数据和更广泛业务 Tool/SQL 仍按“后端需补齐”处理，饮食记录编辑代码、`food_log_writer` 四类写操作及真实 PostgreSQL HTTP/RocketMQ 回归已完成。
 
 ### 3.2 当前前端已有，但主要为 mock 或占位
 

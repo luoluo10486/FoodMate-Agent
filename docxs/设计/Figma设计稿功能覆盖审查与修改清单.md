@@ -821,14 +821,14 @@
 ## 35. 2026-08-13 M1-5 业务页面与后端实施边界
 
 - [x] 已将饮食记录、摄入分析和餐食规划页面纳入 M1-5 实施顺序的前端状态展示范围；页面的 Default、Loading、Empty、Error、待确认和待估算状态属于交互契约。
-- [x] 已明确页面不能反推后端完成：上述表和第一切片已落地，饮食记录编辑、5 条营养 seed 的 matched/pending 分支和 writer HTTP/MQ 回归已完成确定性验证；完整 Tool Gateway 和更多确认状态仍需完成业务验收。
+- [x] 已明确页面不能反推后端完成：上述表和核心路径已落地，饮食记录编辑、5 条营养食材 seed 与 5 条官方 foodPortions 换算规则的 matched/pending 分支，以及 writer 的 rejected/failed/superseded、update/delete/restore HTTP/MQ 回归已完成确定性验证；更广泛业务 Tool/SQL 仍需后续验收。
 - [x] 已明确本地优先边界：Figma 验收和前端浏览器 smoke 不代表 staging/production、Kubernetes、生产监控、数据库备份恢复或发布回滚已建立。
-- [x] M1-5 第一切片已完成本地后端联调；当前真实路径覆盖“手工饮食记录创建/编辑 -> 无目录时 pending -> 分析 -> 餐食计划/购物清单 -> `meal_plan.save_plan` Proposal/Confirm/Execute”。后续补真实目录匹配、完整 Tool Gateway 和更多确认状态，禁止用 mock 数据替代真实业务验收。
+- [x] M1-5 核心路径已完成本地后端联调；当前真实路径覆盖“手工饮食记录创建/编辑 -> 官方 foodPortions 换算或无证据时 pending -> 分析 -> 餐食计划/购物清单 -> `meal_plan.save_plan` Proposal/Confirm/Execute”，并覆盖 `food_log_writer` 的拒绝、失败、superseded、update/delete/restore、revision 冲突和幂等重放。后续扩展更广的官方目录和业务 Tool/SQL，禁止用 mock 数据替代真实业务验收。
 
-## 35.1 2026-08-14 M1-5 writer 第一切片边界
+## 35.1 2026-08-15 M1-5 writer 跨进程回归边界
 
-- [x] `food_log_writer` 的 `food_log.create` 已完成本地 application/Tool Gateway/Runtime Proposal 第一切片，覆盖确认绑定、AgentRun/用户归属、参数摘要、幂等键、复用 Java 饮食记录写入用例、`food_log_id` 回填和重放保护。
-- [x] 已明确该切片不等于完整业务 E2E：真实 PostgreSQL HTTP、RocketMQ Proposal/Result writer 回归已通过，但拒绝/失败/superseded 完整状态和 update/delete/restore 写工具仍未完成。
+- [x] `food_log_writer` 的 create/update/delete/restore 已完成本地 application/Tool Gateway/Runtime Proposal，覆盖确认绑定、AgentRun/用户归属、参数摘要、幂等键、revision、复用 Java 饮食记录写入用例、`food_log_id` 回填和重放保护。
+- [x] 已明确该切片不等于完整业务 E2E：真实 PostgreSQL HTTP、RocketMQ Proposal/Result writer 回归已通过，覆盖拒绝/失败/superseded 完整状态和 update/delete/restore 写工具；更广泛业务 Tool/SQL 仍未完成。
 - [x] 前端页面、Figma 画板或 mock 状态不得将上述未完成项标记为 M1-5 整体完成。
 
 ## 36. 2026-08-12 生产字体、前端像素差异和 iconfont 实体登记复核

@@ -1091,3 +1091,371 @@
     min-height: 142px;
   }
 }
+
+.fixtureUserMessage {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.fixtureUserBubble {
+  max-width: min(560px, calc(100% - 48px));
+  padding: 16px;
+  border-radius: 16px 16px 0;
+  background: #fff6e2;
+  color: #333;
+  font-size: 14px;
+  line-height: 17px;
+  text-align: left;
+}
+
+.fixtureMessageMeta {
+  padding-right: 48px;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 13px;
+}
+
+.fixtureCardWrap {
+  width: min(560px, calc(100% - 48px));
+  margin-left: 48px;
+}
+
+.fixtureCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-color: #e9eee9;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgb(51 51 51 / 4%);
+}
+
+.fixtureCard h2,
+.fixtureStatusTitle h2 {
+  margin: 0;
+  color: #333;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.fixtureCardHeader,
+.fixtureStatusTitle,
+.fixtureBudgetRow,
+.fixtureActions,
+.fixtureMeta {
+  display: flex;
+  align-items: center;
+}
+
+.fixtureCardHeader,
+.fixtureBudgetRow {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fixtureCardHeader span,
+.fixtureBudgetRow span,
+.fixtureBudgetRow strong,
+.fixtureMeta {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.fixtureDetails {
+  display: grid;
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid #eef1ef;
+  border-radius: 10px;
+}
+
+.fixtureDetails div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px 0;
+  border-bottom: 1px solid #eef1ef;
+}
+
+.fixtureDetails div:last-child {
+  border-bottom: 0;
+}
+
+.fixtureDetails dt,
+.fixtureDetails dd {
+  margin: 0;
+  color: #333;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.fixtureDetails dd {
+  font-weight: 600;
+  text-align: right;
+}
+
+.fixtureMeta {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.fixtureActions {
+  gap: 12px;
+}
+
+.fixtureActions button {
+  min-height: 32px;
+  font-size: 12px;
+}
+
+.fixtureStatusTitle {
+  gap: 8px;
+}
+
+.fixtureStatusTitle svg {
+  width: 18px;
+  height: 18px;
+  color: #c79654;
+}
+
+.fixtureErrorTitle {
+  color: #a95a55;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.fixtureParagraph,
+.fixtureWarning {
+  margin: 0;
+  color: #4d5751;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.fixtureWarning {
+  color: #a95a55;
+}
+
+.fixtureAlert {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 4px 8px;
+  padding: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff6e2;
+  color: #876e45;
+}
+
+.fixtureAlert > svg {
+  grid-row: span 2;
+  width: 16px;
+  height: 16px;
+}
+
+.fixtureAlert h5 {
+  margin: 0;
+  color: #876e45;
+  font-size: 13px;
+}
+
+.fixtureAlert div {
+  color: #876e45;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.fixtureChoiceList {
+  display: grid;
+  gap: 8px;
+  color: #876e45;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.fixtureBudgetRow {
+  padding-top: 4px;
+  border-top: 1px solid #eef1ef;
+}
+
+.fixtureBudgetRow strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.fixtureCancelledWrap,
+.fixtureReconnectWrap {
+  display: flex;
+  width: min(560px, calc(100% - 48px));
+  margin-left: 48px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.fixtureAssistantText {
+  margin: 0;
+  padding: 16px;
+  border-radius: 14px 14px 14px 0;
+  background: #f4f6f5;
+  color: #333;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.fixtureCancelledNotice,
+.fixtureReconnectNotice {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #f4f6f5;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.fixtureCancelledNotice svg,
+.fixtureReconnectNotice svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.fixtureCancelledNotice svg {
+  color: #a95a55;
+}
+
+.fixtureReconnectNotice {
+  background: #fff6e2;
+  color: #876e45;
+}
+
+.fixtureReconnectNotice svg {
+  color: #c79654;
+  animation: executing-spin 1.4s linear infinite;
+}
+
+.fixtureReconnectNotice div {
+  display: grid;
+  gap: 4px;
+}
+
+.fixtureReconnectNotice strong {
+  color: #876e45;
+  font-size: 13px;
+}
+
+.fixtureCenteredText {
+  width: 100%;
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+  text-align: center;
+}
+
+.fixtureCancelledWrap > button {
+  align-self: center;
+}
+
+.fixtureActionMessage {
+  width: min(560px, calc(100% - 48px));
+  margin: 0 0 0 48px;
+  color: #876e45;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.connectionNotice {
+  display: flex;
+  width: min(560px, calc(100% - 48px));
+  margin-left: 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #fff6e2;
+  color: #876e45;
+}
+
+.connectionNotice > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  animation: executing-spin 1.4s linear infinite;
+}
+
+.connectionNotice div {
+  display: grid;
+  gap: 4px;
+}
+
+.connectionNotice strong,
+.connectionNotice span {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.connectionNoticeError {
+  background: #fff1f0;
+  color: #a95a55;
+}
+
+.connectionNoticeError > svg {
+  color: #a95a55;
+  animation: none;
+}
+
+@media (max-width: 720px) {
+  .fixtureCardWrap,
+  .fixtureCancelledWrap,
+  .fixtureReconnectWrap,
+  .fixtureActionMessage,
+  .connectionNotice {
+    width: calc(100% - 48px);
+  }
+
+  .fixtureCardHeader,
+  .fixtureBudgetRow,
+  .fixtureMeta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fixtureDetails div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .fixtureDetails dd {
+    text-align: left;
+  }
+}
+.fixtureAuxMessage {
+  display: grid;
+  width: min(720px, calc(100% - 48px));
+  gap: 12px;
+  margin-left: 48px;
+  padding: 18px 20px;
+  border: 1px solid #e5e9e6;
+  border-radius: 14px;
+  background: #fff;
+  color: #333;
+  line-height: 1.6;
+}
+
+.fixtureAuxMessage span {
+  color: #667085;
+  font-size: 12px;
+}

@@ -187,6 +187,59 @@ class FoodLogServiceImplTest {
     }
 
     @Test
+    void appliesReviewedFoodPortionConversionBeforeCalculatingNutrition() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findNutritionFood("rice"))
+                .thenReturn(
+                        new FoodLogRepository.NutritionFoodLookup(
+                                900L,
+                                "rice",
+                                "g",
+                                new BigDecimal("130.0000"),
+                                new BigDecimal("2.7000"),
+                                new BigDecimal("0.3000"),
+                                new BigDecimal("28.2000"),
+                                "USDA FoodData Central API",
+                                "SR Legacy 2019-04-01 FDC-168880"));
+        when(repository.findUnitConversion(900L, "cup", "g"))
+                .thenReturn(
+                        new FoodLogRepository.UnitConversionLookup(
+                                520001L,
+                                new BigDecimal("186.0000"),
+                                "g",
+                                "USDA FoodData Central API foodPortions",
+                                "SR Legacy 2019-04-01 FDC-168880 portion-1"));
+        when(repository.insertFoodLog(any())).thenReturn(1);
+        when(repository.reserveAudit(any())).thenReturn(1);
+        when(repository.findOwned(7L, 100L, false)).thenReturn(snapshotWithEmptyItems());
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L));
+
+        service.create(
+                7L,
+                new FoodLogService.CreateCommand(
+                        null,
+                        null,
+                        MEAL_TIME,
+                        MealType.LUNCH,
+                        null,
+                        "nutrition-portion-1",
+                        List.of(new FoodLogService.ItemCommand("rice", new BigDecimal("1"), "杯"))));
+
+        var item = org.mockito.ArgumentCaptor.forClass(FoodLogRepository.FoodLogItemWrite.class);
+        verify(repository).insertItem(item.capture());
+        assertEquals("matched", item.getValue().nutritionStatus());
+        assertEquals(520001L, item.getValue().conversionId());
+        assertEquals(new BigDecimal("186.000"), item.getValue().normalizedAmount());
+        assertEquals("g", item.getValue().normalizedUnit());
+        assertEquals(new BigDecimal("241.8000"), item.getValue().caloriesKcal());
+        assertEquals(
+                "USDA FoodData Central API;USDA FoodData Central API foodPortions",
+                item.getValue().nutritionSource());
+        assertEquals(
+                "SR Legacy 2019-04-01 FDC-168880 portion-1", item.getValue().nutritionVersion());
+    }
+
+    @Test
     void updateReplacesItemsAndIncrementsRevisionWithNutritionSnapshot() {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         when(repository.findIdempotency(7L, "update-1")).thenReturn(null);

@@ -285,7 +285,9 @@ public class FoodLogServiceImpl implements FoodLogService {
             normalizedUnit = conversion.targetUnit();
             conversionId = conversion.conversionId();
             nutritionSource = food.sourceName() + ";" + conversion.sourceName();
-            nutritionVersion = food.sourceVersion() + ";" + conversion.sourceVersion();
+            // The conversion version is more specific and includes the same food FDC ID plus
+            // the reviewed portion sequence; keep it as the bounded 64-char snapshot version.
+            nutritionVersion = conversion.sourceVersion();
         }
         BigDecimal factor = normalizedAmount.divide(new BigDecimal("100"), 8, RoundingMode.HALF_UP);
         return new FoodLogRepository.FoodLogItemWrite(
@@ -333,6 +335,11 @@ public class FoodLogServiceImpl implements FoodLogService {
         return switch (value.trim().toLowerCase(Locale.ROOT)) {
             case "克", "g" -> "g";
             case "毫升", "ml" -> "ml";
+            case "杯" -> "cup";
+            case "大号", "大个" -> "large";
+            case "中号", "中等" -> "medium";
+            case "盎司" -> "oz";
+            case "汤匙", "大匙" -> "tbsp";
             default -> value.trim().toLowerCase(Locale.ROOT);
         };
     }

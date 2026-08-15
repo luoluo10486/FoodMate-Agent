@@ -1,3 +1,4 @@
+import { AlertTriangle, CheckCircle2, FileWarning, LoaderCircle, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button, Card, IconLeft, Tag } from './tabs/AdminPrimitives';
@@ -23,6 +24,75 @@ const defaultOperationError: AdminOperationError = {
   requestId: 'req-foodmate-9082ac918',
   message: '无法停用工具：服务端超时 (GATEWAY_TIMEOUT)',
 };
+
+type AdminFixtureState =
+  | 'op-no-permission'
+  | 'op-confirm'
+  | 'op-submitting'
+  | 'op-success'
+  | 'op-failed'
+  | 'knowledge-uploading'
+  | 'knowledge-indexing'
+  | 'knowledge-upload-failed'
+  | 'knowledge-upload-success'
+  | 'knowledge-format-error'
+  | 'knowledge-size-error'
+  | 'run-detail'
+  | 'tool-calls'
+  | 'sql-audit'
+  | 'trace';
+
+function getAdminFixtureState(value: string | null): AdminFixtureState | undefined {
+  const states: AdminFixtureState[] = [
+    'op-no-permission', 'op-confirm', 'op-submitting', 'op-success', 'op-failed',
+    'knowledge-uploading', 'knowledge-indexing', 'knowledge-upload-failed', 'knowledge-upload-success',
+    'knowledge-format-error', 'knowledge-size-error', 'run-detail', 'tool-calls', 'sql-audit', 'trace',
+  ];
+  return value && states.includes(value as AdminFixtureState) ? value as AdminFixtureState : undefined;
+}
+
+function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; onDismiss: () => void }) {
+  const isOperation = state.startsWith('op-');
+  const isDetail = state === 'run-detail' || state === 'tool-calls' || state === 'sql-audit' || state === 'trace';
+  if (state === 'op-no-permission') {
+    return <div className={`${styles.fixtureBanner} ${styles.fixtureBannerError}`} role="alert"><ShieldAlert aria-hidden="true" />当前角色为 Operator，无写操作权限</div>;
+  }
+  if (state === 'op-success') {
+    return <div className={`${styles.fixtureBanner} ${styles.fixtureBannerSuccess}`} role="status"><CheckCircle2 aria-hidden="true" />操作成功：工具 nutrition_lookup 已成功停用</div>;
+  }
+  if (isDetail) {
+    const title = state === 'run-detail' || state === 'trace' ? 'Agent 运行控制台' : '工具调用与 SQL 审计';
+    return (
+      <div className={styles.fixtureSurface}>
+        <div className={styles.fixtureSurfaceHeader}><h2>{title}</h2><Button size="mini" onClick={onDismiss}>关闭状态</Button></div>
+        <div className={styles.fixtureSurfaceToolbar}><span>Run ID: run_98218a</span><span>失败 · RAG_RETRIEVE</span><span>12.4s · $0.045 · 12 calls</span></div>
+        <div className={styles.fixtureSurfaceCard}>
+          <h3>{state === 'tool-calls' || state === 'sql-audit' ? 'Arguments &amp; System Schema (call_829c)' : '执行事件追踪：run_98218a'}</h3>
+          <pre>{JSON.stringify({ query: 'avocado sourdough toast', filters: { usda_ndb_id: '1103982', strict_keto_validation: true }, caller_context_mask: 'SENSITIVE_USER_CREDENTIALS_MASKED_***' }, null, 2)}</pre>
+        </div>
+      </div>
+    );
+  }
+
+  const knowledgeError = state === 'knowledge-format-error' || state === 'knowledge-size-error' || state === 'knowledge-upload-failed';
+  const errorTitle = state === 'knowledge-format-error' ? '文件格式校验失败' : state === 'knowledge-size-error' ? '文件大小超过限制' : '知识库上传失败';
+  const operationTitle = state === 'op-confirm' ? '确认停用工具' : state === 'op-submitting' ? '正在提交操作' : state === 'op-failed' ? '操作失败' : '';
+  const title = isOperation ? operationTitle : errorTitle;
+  const Icon = isOperation ? (state === 'op-failed' ? XCircle : AlertTriangle) : (knowledgeError ? FileWarning : LoaderCircle);
+  const progress = state === 'op-submitting' ? '正在通知关联的服务集群同步状态...' : state === 'knowledge-uploading' ? '上传中 · 64% · 可离开页面，完成后自动开始索引' : state === 'knowledge-indexing' ? '索引中 · 72% · 正在生成向量索引' : state === 'knowledge-upload-success' ? '批量任务已提交 · 3 个文件正在后台处理' : '';
+  return (
+    <div className={styles.fixtureOverlay} role="presentation">
+      <section className={`${styles.fixtureModal} ${knowledgeError ? styles.fixtureModalError : ''}`} role="alert" aria-live="polite">
+        <div className={styles.fixtureModalTitle}><span><Icon aria-hidden="true" /></span><h2>{title}</h2></div>
+        {isOperation ? <p>您正在尝试停用工具 <strong>nutrition_lookup</strong>。停用后，所有关联的 Agent 运行将无法在调用流中激活此工具。</p> : null}
+        {knowledgeError ? <><p><strong>{state === 'knowledge-format-error' ? '2 个文件不支持 · meal_photo.webp' : state === 'knowledge-size-error' ? '1 个文件超出 50MB · nutrition_archive.pdf' : '上传任务未完成 · 请检查文件并重试'}</strong></p><p>仅支持 PDF / CSV / XLSX / TXT；错误不会影响已完成的索引。</p><code>错误码: {state === 'knowledge-format-error' ? 'KB_UPLOAD_FORMAT_INVALID' : 'KB_UPLOAD_SIZE_LIMIT'} · request_id: req_kb_20260731_0042</code></> : null}
+        {progress ? <><p className={styles.fixtureProgressText}>{progress}</p><span className={styles.fixtureProgress}><i style={{ width: state === 'knowledge-upload-success' ? '100%' : '64%' }} /></span></> : null}
+        {state === 'op-failed' ? <code>ERROR_CODE: REGISTRY_TIMEOUT_504{`\n`}REQUEST_ID: req-foodmate-9082ac918</code> : null}
+        {state === 'op-confirm' || state === 'op-failed' || knowledgeError ? <div className={styles.fixtureModalActions}><Button variant="outline" onClick={onDismiss}>取消</Button><Button variant={state === 'op-failed' || knowledgeError ? 'destructive' : 'default'} onClick={onDismiss}><RefreshCw aria-hidden="true" />{state === 'op-failed' ? '重新尝试' : knowledgeError ? '移除并重试' : '确认停用'}</Button></div> : null}
+      </section>
+    </div>
+  );
+}
 
 function appendOperationAudit(
   authUser: ReturnType<typeof getAuthUser>,
@@ -82,8 +152,9 @@ function renderSection(
 export function AdminPage() {
   const authUser = getAuthUser();
   const { pathname, search } = useLocation();
-  const sectionKey = getSectionKey(pathname, search) as AdminSectionKey;
-  const isRegistryRoute = pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry';
+  const requestedFixture = getAdminFixtureState(new URLSearchParams(search).get('state'));
+  const sectionKey = (requestedFixture?.startsWith('op-') ? 'tools' : requestedFixture?.startsWith('knowledge-') ? 'knowledge' : getSectionKey(pathname, search)) as AdminSectionKey;
+  const isRegistryRoute = (requestedFixture?.startsWith('op-') ?? false) || (pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry');
   const isDeletedRoute = pathname.endsWith('/deleted');
   const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
   const [operationStatus, setOperationStatus] = useState<AdminOperationState>('idle');
@@ -242,6 +313,7 @@ export function AdminPage() {
           onRetry={() => void executePendingAction()}
           onDismiss={dismissOperation}
         />
+        {requestedFixture ? <AdminFixtureOverlay state={requestedFixture} onDismiss={() => window.history.replaceState({}, '', '/admin')} /> : null}
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
             <strong>

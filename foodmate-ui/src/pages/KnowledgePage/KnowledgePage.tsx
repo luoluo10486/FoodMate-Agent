@@ -137,7 +137,6 @@ export function KnowledgePage() {
   return (
     <WorkspaceLayout
       activeModule="knowledge"
-      avatarSrc="/assets/figma/knowledge/user-avatar.png"
       pageOverlay={
         knowledgeState !== 'default' ? (
           <KnowledgeStateCard

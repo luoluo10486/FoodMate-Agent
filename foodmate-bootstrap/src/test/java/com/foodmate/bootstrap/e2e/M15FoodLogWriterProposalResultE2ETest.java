@@ -5,18 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.foodmate.application.account.service.UserAccountService;
-import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
-import com.foodmate.application.runtime.service.AgentRunCommandService;
 import com.foodmate.infrastructure.messaging.rocketmq.RocketMqConsumerContainer;
 import com.foodmate.infrastructure.messaging.rocketmq.RocketMqSettings;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-/** M1-5：food_log_writer 的真实 PostgreSQL + RocketMQ Proposal/Result 回归。 */
+/** M1-5: real PostgreSQL and RocketMQ regression for the food_log_writer gateway. */
 @SpringBootTest(
         properties = {
             "foodmate.runtime.transport=rocketmq",
@@ -38,63 +33,106 @@ import org.springframework.test.context.ActiveProfiles;
         })
 @ActiveProfiles("local")
 @EnabledIfSystemProperty(named = "foodmate.local-mq-e2e", matches = "true")
-class M15FoodLogWriterProposalResultE2ETest {
-    @Autowired UserAccountService accounts;
-    @Autowired AgentRunCommandService runs;
-    @Autowired ApprovalService approvals;
+class M15FoodLogWriterProposalResultE2ETest extends M15FoodLogWriterE2ETestSupport {
     @Autowired DefaultMQProducer producer;
     @Autowired RocketMqSettings settings;
     @Autowired JdbcTemplate jdbc;
 
-    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
-
     @Test
     void writerProposalCreatesMatchedFoodLogAndReplayDoesNotDuplicate() throws Exception {
-        String suffix = UUID.randomUUID().toString().replace("-", "");
-        String username = "m15writer_" + suffix.substring(0, 16);
-        long userId =
-                accounts.register(username, username + "@example.com", "password123", "M1-5 Writer")
-                        .userId();
-        long sessionId = accounts.createSession(userId, "m1-5 writer", "agent").sessionId();
-        long runId =
-                runs.createUserMessageRun(userId, sessionId, "记录午餐", "trace-m15-writer")
-                        .agentRunId();
+        Fixture fixture = fixture("mq-create");
+        var input = createInput("M1-5 RocketMQ writer E2E");
+        String approvalKey = "m15-mq-create-" + fixture.suffix();
+        var proposal = propose(fixture, "create", null, input, approvalKey, true);
+        WriterRequest request = writerRequest(fixture, proposal, input, approvalKey, "mq-create");
 
-        ObjectNode input = mapper.createObjectNode();
-        input.put("meal_time", Instant.now().toString());
-        input.put("meal_type", "lunch");
-        input.put("notes", "M1-5 RocketMQ writer E2E");
-        input.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
+        List<TransportResult> results = submit(request, 2);
 
-        String approvalKey = "m15-writer-" + suffix;
-        ApprovalService.ProposalView proposal =
-                approvals.propose(
-                        userId,
-                        new ApprovalService.ProposalCommand(
-                                sessionId,
-                                runId,
-                                "create",
-                                "food_log",
-                                null,
-                                input,
-                                approvalKey,
-                                300));
-        approvals.confirm(userId, proposal.approvalRequestId(), input);
+        assertResult(results.getFirst(), "success", null);
+        assertSameResult(results.getFirst(), results.get(1));
+        String foodLogId = results.getFirst().rows().get(0).path("food_log_id").asText();
+        assertNotNull(foodLogId);
+        assertTrue(!foodLogId.isBlank());
+        assertEquals(
+                1,
+                count(
+                        "SELECT COUNT(*) FROM food_logs WHERE food_log_id=?",
+                        Long.parseLong(foodLogId)));
+        assertEquals(
+                1,
+                count(
+                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001",
+                        Long.parseLong(foodLogId)));
+        assertEquals(
+                1,
+                count(
+                        "SELECT COUNT(*) FROM approval_requests WHERE approval_request_id=? AND status='executed' AND resource_id=?",
+                        proposal.approvalRequestId(),
+                        Long.parseLong(foodLogId)));
+    }
 
-        String proposalId = "m15-writer-proposal-" + suffix;
-        String requestHash = "sha256:m15-writer-" + suffix;
-        String invocationId = "m15-writer-invocation-" + suffix;
+    @Test
+    void mqRejectedProposalDoesNotWrite() throws Exception {
+        runRejected(this::submit);
+    }
+
+    @Test
+    void mqFailedProposalRollsBackAndWritesFailureAudit() throws Exception {
+        runFailed(this::submit);
+    }
+
+    @Test
+    void mqSupersededProposalCannotExecute() throws Exception {
+        runSuperseded(this::submit);
+    }
+
+    @Test
+    void mqWriterUpdatesFoodLog() throws Exception {
+        runUpdate(this::submit);
+    }
+
+    @Test
+    void mqWriterDeletesFoodLog() throws Exception {
+        runDelete(this::submit);
+    }
+
+    @Test
+    void mqWriterRestoresFoodLog() throws Exception {
+        runRestore(this::submit);
+    }
+
+    @Test
+    void mqWriterRejectsStaleRevision() throws Exception {
+        runRevisionConflict(this::submit);
+    }
+
+    @Test
+    void mqSuccessfulProposalReplayIsIdempotent() throws Exception {
+        runIdempotentReplay(this::submit);
+    }
+
+    @Test
+    void mqWriterUsesReviewedFoodPortionConversion() throws Exception {
+        runUnitConversion(this::submit);
+    }
+
+    @Test
+    void mqWriterKeepsUnsupportedFoodPortionPending() throws Exception {
+        runUnitConversionPending(this::submit);
+    }
+
+    private List<TransportResult> submit(WriterRequest request, int deliveries) throws Exception {
         String body =
                 mapper.writeValueAsString(
                         Map.of(
                                 "schema_version",
                                 "v1",
                                 "proposal_id",
-                                proposalId,
+                                request.proposalId(),
                                 "request_hash",
-                                requestHash,
+                                request.requestHash(),
                                 "run_id",
-                                Long.toString(runId),
+                                Long.toString(request.runId()),
                                 "proposal_type",
                                 "tool",
                                 "requires_confirmation",
@@ -102,33 +140,29 @@ class M15FoodLogWriterProposalResultE2ETest {
                                 "tool_name",
                                 "food_log_writer",
                                 "confirmation_ref",
-                                Long.toString(proposal.approvalRequestId()),
+                                Long.toString(request.approvalRequestId()),
                                 "input",
-                                input,
+                                request.input(),
                                 "payload",
                                 Map.of(
                                         "invocation_id",
-                                        invocationId,
+                                        request.invocationId(),
                                         "idempotency_key",
-                                        approvalKey)));
-
-        CountDownLatch firstResultReceived = new CountDownLatch(1);
-        CountDownLatch resultsReceived = new CountDownLatch(2);
-        CopyOnWriteArrayList<String> resultBodies = new CopyOnWriteArrayList<>();
+                                        request.idempotencyKey())));
+        CountDownLatch resultsReceived = new CountDownLatch(deliveries);
+        CopyOnWriteArrayList<JsonNode> resultNodes = new CopyOnWriteArrayList<>();
         RocketMqConsumerContainer resultConsumer =
                 RocketMqConsumerContainer.concurrent(
                         settings.nameServer(),
-                        // Compose pre-creates this Python result group; the test filters by
-                        // proposal_id.
                         "foodmate-python-agent-result-v1",
                         settings.resultTopic(),
                         1,
                         (result, context) -> {
                             try {
                                 JsonNode node = mapper.readTree(result);
-                                if (proposalId.equals(node.path("proposal_id").asText())) {
-                                    resultBodies.add(result);
-                                    firstResultReceived.countDown();
+                                if (request.proposalId()
+                                        .equals(node.path("proposal_id").asText())) {
+                                    resultNodes.add(node);
                                     resultsReceived.countDown();
                                 }
                             } catch (Exception exception) {
@@ -139,64 +173,59 @@ class M15FoodLogWriterProposalResultE2ETest {
         resultConsumer.start();
         try {
             Thread.sleep(2500);
-            publishProposal(runId, proposalId, requestHash, body);
+            for (int i = 0; i < deliveries; i++) publishProposal(request, body);
             assertTrue(
-                    firstResultReceived.await(30, TimeUnit.SECONDS),
-                    "第一次 Proposal Result 必须在 30 秒内返回");
-            publishProposal(runId, proposalId, requestHash, body);
-            assertTrue(
-                    resultsReceived.await(30, TimeUnit.SECONDS), "重放 Proposal Result 必须在 30 秒内返回");
-
-            JsonNode firstResult = mapper.readTree(resultBodies.getFirst());
-            assertEquals("success", firstResult.path("status").asText());
-            String foodLogId = firstResult.path("rows").get(0).path("food_log_id").asText();
-            assertNotNull(foodLogId);
-            assertTrue(!foodLogId.isBlank());
-
+                    resultsReceived.await(30, TimeUnit.SECONDS),
+                    "all Proposal Results must arrive within 30 seconds");
+            awaitInboxCompleted(request.proposalId());
             assertEquals(
                     1,
-                    jdbc.queryForObject(
-                            "SELECT COUNT(*) FROM food_logs WHERE food_log_id=?",
-                            Integer.class,
-                            Long.parseLong(foodLogId)));
-            assertEquals(
-                    1,
-                    jdbc.queryForObject(
-                            "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001",
-                            Integer.class,
-                            Long.parseLong(foodLogId)));
-            assertEquals(
-                    1,
-                    jdbc.queryForObject(
-                            "SELECT COUNT(*) FROM approval_requests WHERE approval_request_id=? AND status='executed' AND resource_id=?",
-                            Integer.class,
-                            proposal.approvalRequestId(),
-                            Long.parseLong(foodLogId)));
-            assertEquals(
-                    1,
-                    jdbc.queryForObject(
+                    count(
                             "SELECT COUNT(*) FROM runtime_tool_proposal_inbox WHERE proposal_id=? AND status='completed'",
-                            Integer.class,
-                            proposalId));
-            assertEquals(
-                    1,
-                    jdbc.queryForObject(
-                            "SELECT COUNT(*) FROM food_logs WHERE agent_run_id=?",
-                            Integer.class,
-                            runId));
+                            request.proposalId()));
+            List<TransportResult> results = new ArrayList<>();
+            for (JsonNode node : resultNodes) {
+                results.add(
+                        new TransportResult(
+                                node.path("status").asText(), errorCode(node), node.path("rows")));
+            }
+            return results;
         } finally {
             resultConsumer.close();
         }
     }
 
-    private void publishProposal(long runId, String proposalId, String requestHash, String body)
-            throws Exception {
+    private void publishProposal(WriterRequest request, String body) throws Exception {
         Message message =
                 new Message(settings.proposalTopic(), body.getBytes(StandardCharsets.UTF_8));
-        message.setKeys(Long.toString(runId));
+        message.setKeys(Long.toString(request.runId()));
         message.putUserProperty("foodmate_message_type", "ToolProposal");
-        message.putUserProperty("foodmate_proposal_id", proposalId);
-        message.putUserProperty("foodmate_request_hash", requestHash);
+        message.putUserProperty("foodmate_proposal_id", request.proposalId());
+        message.putUserProperty("foodmate_request_hash", request.requestHash());
         assertNotNull(producer.send(message));
+    }
+
+    private void awaitInboxCompleted(String proposalId) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (System.nanoTime() < deadline) {
+            String status =
+                    jdbc.query(
+                            "SELECT status FROM runtime_tool_proposal_inbox WHERE proposal_id=?",
+                            resultSet -> resultSet.next() ? resultSet.getString(1) : null,
+                            proposalId);
+            if ("completed".equals(status)) return;
+            Thread.sleep(100);
+        }
+        assertEquals(
+                "completed",
+                jdbc.query(
+                        "SELECT status FROM runtime_tool_proposal_inbox WHERE proposal_id=?",
+                        resultSet -> resultSet.next() ? resultSet.getString(1) : null,
+                        proposalId));
+    }
+
+    private static String errorCode(JsonNode result) {
+        JsonNode value = result.get("error_code");
+        return value == null || value.isNull() || value.asText().isBlank() ? null : value.asText();
     }
 }

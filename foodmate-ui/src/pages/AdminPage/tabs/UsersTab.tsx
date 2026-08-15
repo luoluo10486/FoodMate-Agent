@@ -39,6 +39,7 @@ import {
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import { loadAdminUsers, revokeAdminUserSessions, updateAdminUserStatus } from '../../../services/adminService';
+import { resolveAvatarUrl } from '../../../lib/avatar';
 
 const isMockMode = import.meta.env.VITE_AGENT_MODE !== 'real';
 
@@ -501,6 +502,7 @@ function UserDetailCard({
     ? adminUserOperationHistoryRows.filter((item) => item.userId === user.userId)
     : [];
   const initials = user.displayName.slice(0, 1) || user.username.slice(0, 1).toUpperCase();
+  const avatarSource = resolveAvatarUrl(user.avatarUrl, user.gender);
   const isFigmaDetail = user.userId === 'usr_098a1';
 
   return (
@@ -521,7 +523,7 @@ function UserDetailCard({
       </div>
       <div className={styles.userDetailIdentity}>
         <div className={styles.userDetailAvatar} aria-hidden="true">
-          {user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : initials}
+          {avatarSource ? <img src={avatarSource} alt="" /> : initials}
         </div>
         <div className={styles.userDetailName}>
           <strong>{user.displayName}</strong>
