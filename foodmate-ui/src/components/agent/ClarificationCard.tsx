@@ -19,6 +19,8 @@ type ClarificationCardProps = {
   title?: string;
   fields?: ClarificationField[];
   options?: string[];
+  presentation?: 'default' | 'figma-compact';
+  question?: string;
   state?: UiComponentState;
   errorText?: string;
   onSelect?: (value: string) => void;
@@ -30,6 +32,8 @@ export function ClarificationCard({
   title = '为了让计划更可执行，我还需要 3 个信息',
   fields = [],
   options = ['预算 300 元以内', '不吃猪肉', '目标高蛋白'],
+  presentation = 'default',
+  question = '你的午餐具体包含哪些食物？',
   state = 'normal',
   errorText = '追问选项加载失败，请直接在输入框补充。',
   onSelect,
@@ -46,6 +50,7 @@ export function ClarificationCard({
   const [values, setValues] = useState(defaultValues);
   const fieldsKey = fields.map((field) => field.key).join(',');
   const [prevFieldsKey, setPrevFieldsKey] = useState(fieldsKey);
+  const [selectedOption, setSelectedOption] = useState(options[0]);
 
   if (fieldsKey !== prevFieldsKey) {
     setPrevFieldsKey(fieldsKey);
@@ -65,11 +70,48 @@ export function ClarificationCard({
     );
   }
 
+  if (presentation === 'figma-compact') {
+    return (
+      <Card aria-label={title} className={`${styles.card} ${styles.figmaCard}`}>
+        <h3>{title}</h3>
+        <div className={styles.figmaQuestion}>
+          <strong>{question}</strong>
+          <div className={styles.figmaOptions}>
+            {options.map((option) => {
+              const selected = selectedOption === option;
+              return (
+                <Button
+                  aria-pressed={selected}
+                  className={styles.figmaOption}
+                  key={option}
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setSelectedOption(option);
+                    onSelect?.(option);
+                  }}
+                >
+                  <span
+                    className={`${styles.figmaRadio} ${selected ? styles.figmaRadioSelected : ''}`}
+                    aria-hidden="true"
+                  />
+                  <span>{option}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   const disabled = state === 'disabled' || state === 'error';
 
   return (
     <Card className={`${styles.card} ${styles[state]}`}>
-      <Badge variant={state === 'error' ? 'destructive' : 'warning'}>{state === 'error' ? '追问失败' : '需要补充'}</Badge>
+      <Badge variant={state === 'error' ? 'destructive' : 'warning'}>
+        {state === 'error' ? '追问失败' : '需要补充'}
+      </Badge>
       <h3>{state === 'error' ? errorText : title}</h3>
       {fields.length ? (
         <div className={styles.form}>

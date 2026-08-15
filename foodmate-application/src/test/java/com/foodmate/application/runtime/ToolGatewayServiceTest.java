@@ -60,6 +60,26 @@ class ToolGatewayServiceTest {
     }
 
     @Test
+    void rejectsUnknownSqlToolNameBeforeDatabaseExecution() {
+        var result =
+                gateway.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-1",
+                                "42",
+                                "sql_read",
+                                "v1",
+                                "unknown_tool",
+                                null,
+                                null,
+                                new ToolGatewayService.ProposalPayload(
+                                        "SELECT 1", "invocation-1")));
+
+        assertEquals("rejected", result.status());
+        assertEquals("TOOL_NAME_NOT_ALLOWED", result.errorCode());
+        verifyNoInteractions(store);
+    }
+
+    @Test
     void executesReadAndAuditsIt() {
         when(store.runExists(42L)).thenReturn(true);
         when(store.executeRead("SELECT 1"))
@@ -229,6 +249,64 @@ class ToolGatewayServiceTest {
 
         assertEquals("failed", result.status());
         assertEquals("TOOL_IDEMPOTENCY_CONFLICT", result.errorCode());
+    }
+
+    @Test
+    void writerPreservesRejectedAndSupersededConfirmationStates() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.executeForAgent(eq(7L), eq(42L), eq(100L), eq("key-writer"), any()))
+                .thenThrow(toolConflict("TOOL_CONFIRMATION_REJECTED"));
+        ToolGatewayService service = writerService(approvals);
+
+        var rejected = service.execute(writerProposal("100"));
+
+        assertEquals("rejected", rejected.status());
+        assertEquals("TOOL_CONFIRMATION_REJECTED", rejected.errorCode());
+
+        when(approvals.executeForAgent(eq(7L), eq(42L), eq(100L), eq("key-writer"), any()))
+                .thenThrow(toolConflict("TOOL_CONFIRMATION_SUPERSEDED"));
+        var superseded = service.execute(writerProposal("100"));
+
+        assertEquals("superseded", superseded.status());
+        assertEquals("TOOL_CONFIRMATION_SUPERSEDED", superseded.errorCode());
+    }
+
+    @Test
+    void writerMapsExpiredConfirmationToConfirmationRequired() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.executeForAgent(eq(7L), eq(42L), eq(100L), eq("key-writer"), any()))
+                .thenThrow(toolConflict("TOOL_CONFIRMATION_EXPIRED"));
+
+        var result = writerService(approvals).execute(writerProposal("100"));
+
+        assertEquals("confirmation_required", result.status());
+        assertEquals("TOOL_CONFIRMATION_EXPIRED", result.errorCode());
+    }
+
+    private ToolGatewayService writerService(ApprovalService approvals) {
+        return new ToolGatewayServiceImpl(
+                store, () -> 99L, approvals, new com.fasterxml.jackson.databind.ObjectMapper());
+    }
+
+    private ToolGatewayService.ProposalCommand writerProposal(String confirmationRef) {
+        return new ToolGatewayService.ProposalCommand(
+                "proposal-writer",
+                "42",
+                "tool",
+                "v1",
+                "food_log_writer",
+                confirmationRef,
+                writerInput(),
+                new ToolGatewayService.ProposalPayload("", "inv-writer", "key-writer"));
+    }
+
+    private BusinessException toolConflict(String code) {
+        return new BusinessException(
+                ErrorCode.CONFLICT,
+                code,
+                JsonNodeFactory.instance.objectNode().put("tool_error_code", code));
     }
 
     private static JsonNode writerInput() {

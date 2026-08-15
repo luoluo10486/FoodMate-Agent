@@ -71,7 +71,11 @@ def validate_proposal(proposal: Proposal) -> None:
             raise ValueError("TOOL_NAME_NOT_ALLOWED")
         if not proposal.confirmation_ref:
             raise ValueError("TOOL_CONFIRMATION_REF_REQUIRED")
-        if not isinstance(proposal.input, dict) or not proposal.input.get("items"):
+        if not isinstance(proposal.input, dict):
+            raise ValueError("TOOL_INPUT_INVALID")
+        has_items = isinstance(proposal.input.get("items"), list) and bool(proposal.input.get("items"))
+        has_revision = isinstance(proposal.input.get("revision"), int) and proposal.input.get("revision") > 0
+        if not has_items and not has_revision:
             raise ValueError("TOOL_INPUT_INVALID")
         if not proposal.payload.get("idempotency_key"):
             raise ValueError("TOOL_IDEMPOTENCY_KEY_REQUIRED")

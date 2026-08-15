@@ -54,6 +54,17 @@
 | `M15FoodLogWriterProposalResultE2ETest` | 通过：真实 RocketMQ Proposal/Result、确认绑定、PostgreSQL 写入、资源 ID 回填和 Proposal 重放不重复创建 |
 | 范围边界 | 只验证 `food_log.create` 第一切片；拒绝、失败、`superseded` 和其他写操作确认状态仍未完成 |
 
+## M1-5 写确认扩展实现复核（2026-08-15）
+
+| 项目 | 结果 |
+|---|---|
+| Java application | 已实现 `reject`、`failed`、`superseded` 状态；失败时业务执行事务回滚，独立事务写入 `failed` 状态和失败审计 |
+| `food_log_writer` | 已支持 `create`、`update`、`delete`、`restore`，update/delete/restore 强制使用资源归属和 `revision` |
+| Tool Gateway | 已校验 `proposal_type=tool` 与 `tool_name=food_log_writer`，并映射 confirmation_required、rejected、failed、superseded |
+| Java 定向测试 | `ApprovalServiceImplTest` 和 `ToolGatewayServiceTest` 已覆盖新增分支；本轮通过临时本地 JUnit Launcher 实际执行合计 26 条 |
+| 跨进程证据边界 | 本轮新增状态和 update/delete/restore 尚未完成真实 HTTP/MQ 回归；上方 2026-08-14 的 HTTP/MQ 证据只覆盖 `food_log.create` |
+| 完整 Maven 验证 | `mvnw.cmd verify` 已成功完成：6 个 Reactor 模块构建成功；Surefire 共执行 198 条测试，0 失败，28 条因 Docker/真实环境条件跳过；Spotless 全部通过 |
+
 ## V13 M1-5 饮食记录与营养目录（本轮已复核，未重复执行）
 
 | 字段 | 内容 |

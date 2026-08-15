@@ -273,3 +273,27 @@ Figma Design 页共有 105 张顶层画板。本轮仅有上表及认证和餐�
 - [ ] diff 仍为 `DIFF_REVIEW`；当前账户文案、字体光栅化和 Figma/前端头像位图差异未被伪装成 PASS。
 - [ ] iconfont 实体资源仍为 `BLOCKED`；标准命令图标继续使用 Lucide，未写入虚构字体包、类名或 Unicode。
 - [ ] 下一步继续按顺序迁移 `agent-awaiting-clarification`、`agent-write-confirmation`、`agent-budget-limit`，再处理失败、降级、取消和 SSE 重连状态。
+
+## 43. 2026-08-15 Agent Awaiting Clarification 状态迁移与验收
+
+本轮完成 Figma `agent-awaiting-clarification` 状态到独立前端 fixture 的迁移。唯一视觉来源为 Figma 文件 `MX18RZCfAmgprNzxItkHUH` 的节点 `687:642`，画板尺寸为 `1440×1024`；前端入口为 `/chat?state=awaiting-clarification`。该 query 只复现可重复的前端视觉和交互状态，不代表真实 AgentRun、SSE、澄清提交或后端任务闭环。
+
+| 验收项 | 实测结果 |
+|---|---|
+| 桌面视口 | `1440×1024`，`document.body.scrollWidth === 1440` |
+| 桌面澄清卡 | `x=340,y=237,w=222,h=193` |
+| 桌面 Composer | `x=260,y=912,w=1180,h=112`，保持可输入 |
+| 移动视口 | `390×844`，`document.body.scrollWidth === 390`，侧栏隐藏 |
+| 移动澄清卡 | `x=64,y=251.8,w=222,h=193` |
+| 移动 Composer | `x=0,y=732.8,w=375.2,h=112` |
+| 共享布局状态 | 顶部“工作台”和侧栏“Agent 对话”均显示 Figma 选中态；fixture 覆盖 `Anddy / 1234567` |
+| 资源 | 已登记 sidebar、topbar、message 三个 Figma 头像资源；路径位于 `foodmate-ui/public/assets/figma/agent-chat/awaiting-clarification/` |
+| 定向测试 | `ChatPage.test.tsx`：`5/5` 通过；`npm run typecheck` 通过 |
+| 桌面自动 diff | `differentRatio=0.1600301`，`meanAbsoluteError=1.9716`，`RMSE=13.5626`，结论 `DIFF_REVIEW` |
+| 移动自动 diff | 当前只有 `1440×1024` Figma 参考图，移动截图实际为 `390×843` PNG；与桌面参考图尺寸不同，结论 `SIZE_MISMATCH`，不输出像素通过结论 |
+
+- [x] 澄清卡选项支持选中态和回调；Composer 在 awaiting 状态保持可输入。
+- [x] 共享布局在视觉 fixture 存在 override 时优先使用 override，不被当前认证用户状态覆盖。
+- [x] 桌面和移动浏览器截图、RGBA 归一化截图与 Figma 参考图已保存到 `foodmate-ui/.qa/figma-pixel-acceptance/`。
+- [ ] 自动 diff 仍为 `DIFF_REVIEW`；不能以人工接近替代像素级 PASS。
+- [ ] iconfont 实体包、CSS 映射、来源 URL、许可证和 glyph 登记仍为 `BLOCKED`；标准命令图标继续使用 Lucide。

@@ -33,10 +33,34 @@ public interface ApprovalRequestMapper {
             @Param("now") Instant now);
 
     @Update(
-            "UPDATE approval_requests SET status='expired',updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE approval_request_id=#{approvalRequestId} AND user_id=#{userId} AND status='pending' AND is_deleted=FALSE")
+            "UPDATE approval_requests SET status='expired',updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE approval_request_id=#{approvalRequestId} AND user_id=#{userId} AND status IN ('pending','confirmed') AND is_deleted=FALSE")
     int markExpired(
             @Param("userId") long userId,
             @Param("approvalRequestId") long approvalRequestId,
+            @Param("now") Instant now);
+
+    @Update(
+            "UPDATE approval_requests SET status='rejected',updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE approval_request_id=#{approvalRequestId} AND user_id=#{userId} AND status='pending' AND expires_at>#{now} AND is_deleted=FALSE")
+    int markRejected(
+            @Param("userId") long userId,
+            @Param("approvalRequestId") long approvalRequestId,
+            @Param("now") Instant now);
+
+    @Update(
+            "UPDATE approval_requests SET status='failed',updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE approval_request_id=#{approvalRequestId} AND user_id=#{userId} AND status IN ('confirmed','executed') AND is_deleted=FALSE")
+    int markFailed(
+            @Param("userId") long userId,
+            @Param("approvalRequestId") long approvalRequestId,
+            @Param("now") Instant now);
+
+    @Update(
+            "UPDATE approval_requests SET status='superseded',updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE user_id=#{userId} AND resource_type=#{resourceType} AND resource_id=#{resourceId} AND operation=#{operation} AND approval_request_id<>#{exceptApprovalRequestId} AND status IN ('pending','confirmed') AND expires_at>#{now} AND is_deleted=FALSE")
+    int markSupersededForResource(
+            @Param("userId") long userId,
+            @Param("resourceType") String resourceType,
+            @Param("resourceId") long resourceId,
+            @Param("operation") String operation,
+            @Param("exceptApprovalRequestId") long exceptApprovalRequestId,
             @Param("now") Instant now);
 
     @Update(

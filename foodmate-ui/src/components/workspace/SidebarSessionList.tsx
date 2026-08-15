@@ -18,7 +18,7 @@ type SidebarSessionListProps = {
 export function SidebarSessionList({ sessions, onAction }: SidebarSessionListProps) {
   return (
     <section className={styles.section}>
-      <NavLink className={styles.sectionTitle} to="/chat">
+      <NavLink className={({ isActive }) => `${styles.sectionTitle} ${isActive ? styles.active : ''}`} to="/chat">
         <MessageCircle aria-hidden="true" />
         <span>Agent 对话</span>
       </NavLink>

@@ -12,6 +12,8 @@ public interface ApprovalService {
 
     ProposalView confirm(long userId, long approvalRequestId, JsonNode parameters);
 
+    ProposalView reject(long userId, long approvalRequestId, JsonNode parameters);
+
     ExecuteView execute(long userId, long approvalRequestId, JsonNode parameters);
 
     ExecuteView executeForAgent(

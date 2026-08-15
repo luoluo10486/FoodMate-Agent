@@ -171,6 +171,13 @@ type ChatSurfaceProps = {
   onStop: () => void;
   placeholder: string;
   showTrace?: boolean;
+  avatarSrc?: string;
+  sidebarAvatarSrc?: string;
+  topAvatarSrc?: string;
+  displayNameOverride?: string;
+  profileIdOverride?: string;
+  showKnowledgeTopNav?: boolean;
+  designChat?: boolean;
 };
 
 function ChatSurface({
@@ -185,12 +192,25 @@ function ChatSurface({
   onStop,
   placeholder,
   showTrace = true,
+  avatarSrc = '/assets/figma/knowledge/user-avatar.png',
+  sidebarAvatarSrc,
+  topAvatarSrc,
+  displayNameOverride,
+  profileIdOverride,
+  showKnowledgeTopNav,
+  designChat,
 }: ChatSurfaceProps) {
   return (
     <WorkspaceLayout
       activeModule="chat"
-      avatarSrc="/assets/figma/knowledge/user-avatar.png"
+      avatarSrc={avatarSrc}
+      designChat={designChat}
+      displayNameOverride={displayNameOverride}
+      profileIdOverride={profileIdOverride}
       rightRail={showTrace ? <TraceRail run={run} /> : undefined}
+      showKnowledgeTopNav={showKnowledgeTopNav}
+      sidebarAvatarSrc={sidebarAvatarSrc}
+      topAvatarSrc={topAvatarSrc}
     >
       <div className={styles.page}>
         <section className={styles.workspace}>
@@ -224,6 +244,7 @@ export function ChatPage() {
   if (searchParams.get('state') === 'empty') return <EmptyChatPage />;
   if (searchParams.get('state') === 'planning') return <PlanningStatePage />;
   if (searchParams.get('state') === 'tool-executing') return <ToolExecutingStatePage />;
+  if (searchParams.get('state') === 'awaiting-clarification') return <AwaitingClarificationStatePage />;
   return import.meta.env.VITE_AGENT_MODE === 'real' ? <RealChatPage /> : <MockChatPage />;
 }
 
@@ -460,6 +481,63 @@ function ToolExecutingStatePage() {
               })}
             </div>
           </div>
+        </div>
+      </article>
+    </ChatSurface>
+  );
+}
+
+function AwaitingClarificationStatePage() {
+  const awaitingMessageAvatarSrc = '/assets/figma/agent-chat/awaiting-clarification/message-avatar.png';
+  const awaitingRun: AgentRunView = {
+    id: 'run_awaiting_clarification_fixture',
+    status: 'planning',
+    intent: 'record',
+    toolsUsed: 0,
+    toolsTotal: 2,
+    agentsUsed: 0,
+    agentsTotal: 1,
+    toolCalls: [],
+    citations: [],
+  };
+
+  return (
+    <ChatSurface
+      run={awaitingRun}
+      messagesRef={useRef<HTMLDivElement>(null)}
+      input=""
+      running={false}
+      avatarSrc={awaitingMessageAvatarSrc}
+      designChat
+      displayNameOverride="Anddy"
+      profileIdOverride="1234567"
+      sidebarAvatarSrc="/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png"
+      topAvatarSrc="/assets/figma/agent-chat/awaiting-clarification/topbar-avatar.png"
+      onChange={() => undefined}
+      onSend={() => undefined}
+      onStop={() => undefined}
+      placeholder="输入你的详细食物或份量，例如：150克野生三文鱼..."
+      showKnowledgeTopNav={false}
+      showTrace={false}
+    >
+      <article className={styles.awaitingUserMessage}>
+        <div className={styles.awaitingUserLine}>
+          <div className={styles.awaitingUserBubble}>记录一下我的午餐</div>
+          <span className={styles.awaitingUserAvatar} aria-hidden="true">
+            <img src={awaitingMessageAvatarSrc} alt="" />
+          </span>
+        </div>
+        <div className={styles.awaitingMessageMeta}>Anddy · 12:45 PM</div>
+      </article>
+      <article className={styles.awaitingAssistantMessage}>
+        <span className={styles.awaitingAgentAvatar} aria-hidden="true" />
+        <div className={styles.awaitingAssistantBody}>
+          <ClarificationCard
+            options={['补充食物和份量', '上传照片识别']}
+            presentation="figma-compact"
+            question="你的午餐具体包含哪些食物？"
+            title="需要确认以下信息："
+          />
         </div>
       </article>
     </ChatSurface>

@@ -14,6 +14,18 @@ public interface ApprovalRequestRepository {
 
     int markExpired(long userId, long approvalRequestId, Instant now);
 
+    int markRejected(long userId, long approvalRequestId, Instant now);
+
+    int markFailed(long userId, long approvalRequestId, Instant now);
+
+    int markSupersededForResource(
+            long userId,
+            String resourceType,
+            long resourceId,
+            String operation,
+            long exceptApprovalRequestId,
+            Instant now);
+
     int markExecuted(long userId, long approvalRequestId, Instant now);
 
     int updateExecutedResource(long userId, long approvalRequestId, long resourceId, Instant now);

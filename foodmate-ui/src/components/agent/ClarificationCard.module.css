@@ -51,3 +51,92 @@
   border-color: #f3b4aa;
   background: #fff7f5;
 }
+
+.figmaCard {
+  display: flex;
+  width: 222px;
+  height: 193px;
+  flex-direction: column;
+  gap: 16px;
+  padding: 19px 19px 20px 16px;
+  border: 1px solid #c79654;
+  border-left-width: 4px;
+  border-radius: 16px 16px 16px 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.figmaCard h3 {
+  margin: 0;
+  color: #c79654;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.figmaQuestion {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.figmaQuestion strong {
+  color: #333;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 17px;
+  white-space: nowrap;
+}
+
+.figmaOptions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.figmaOption {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #f4f6f5;
+  border-radius: 8px;
+  background: #f4f6f5;
+  color: #333;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+  text-align: left;
+  box-shadow: none;
+}
+
+.figmaOption:hover,
+.figmaOption:focus-visible,
+.figmaOption[aria-pressed='true'] {
+  background: #f4f6f5;
+  color: #333;
+}
+
+.figmaOption:focus-visible {
+  outline: 2px solid rgba(199, 150, 84, 0.35);
+  outline-offset: 1px;
+}
+
+.figmaRadio {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 1.5px solid #6b7280;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.figmaRadioSelected {
+  border-color: #c79654;
+}

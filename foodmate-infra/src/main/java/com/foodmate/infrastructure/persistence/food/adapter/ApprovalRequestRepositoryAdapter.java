@@ -42,6 +42,28 @@ public class ApprovalRequestRepositoryAdapter implements ApprovalRequestReposito
     }
 
     @Override
+    public int markRejected(long userId, long approvalRequestId, Instant now) {
+        return mapper.markRejected(userId, approvalRequestId, now);
+    }
+
+    @Override
+    public int markFailed(long userId, long approvalRequestId, Instant now) {
+        return mapper.markFailed(userId, approvalRequestId, now);
+    }
+
+    @Override
+    public int markSupersededForResource(
+            long userId,
+            String resourceType,
+            long resourceId,
+            String operation,
+            long exceptApprovalRequestId,
+            Instant now) {
+        return mapper.markSupersededForResource(
+                userId, resourceType, resourceId, operation, exceptApprovalRequestId, now);
+    }
+
+    @Override
     public int markExecuted(long userId, long approvalRequestId, Instant now) {
         return mapper.markExecuted(userId, approvalRequestId, now);
     }

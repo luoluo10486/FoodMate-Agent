@@ -59,6 +59,12 @@ type WorkspaceLayoutProps = {
   rightRail?: React.ReactNode;
   rightRailWidth?: 320 | 340;
   avatarSrc?: string;
+  sidebarAvatarSrc?: string;
+  topAvatarSrc?: string;
+  displayNameOverride?: string;
+  profileIdOverride?: string;
+  showKnowledgeTopNav?: boolean;
+  designChat?: boolean;
   pageOverlay?: React.ReactNode;
 };
 
@@ -69,6 +75,12 @@ export function WorkspaceLayout({
   rightRail,
   rightRailWidth,
   avatarSrc = '/assets/figma/agent-chat/user-avatar.png',
+  sidebarAvatarSrc,
+  topAvatarSrc,
+  displayNameOverride,
+  profileIdOverride,
+  showKnowledgeTopNav = true,
+  designChat = false,
   pageOverlay,
 }: WorkspaceLayoutProps) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
@@ -89,6 +101,10 @@ export function WorkspaceLayout({
   const currentAuth = authScenarios.find((item) => item.status === authStatus) ?? authScenarios[0];
   const isAuthenticated = authStatus === 'authenticated';
   const canAccessAdmin = isAuthenticated && ['admin', 'operator', 'superadmin'].includes(authUser.role);
+  const sidebarAvatar = sidebarAvatarSrc ?? avatarSrc;
+  const topAvatar = topAvatarSrc ?? avatarSrc;
+  const displayName = displayNameOverride ?? (isAuthenticated ? authUser.displayName : '登录');
+  const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
 
   useEffect(() => {
     if (!realMode) return;
@@ -187,7 +203,7 @@ export function WorkspaceLayout({
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''}`}
+        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''}`}
       >
         <aside className={styles.sidebar}>
           <div className={styles.windowControls} aria-hidden="true">
@@ -276,11 +292,17 @@ export function WorkspaceLayout({
             </div>
             <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
               <div className={styles.avatar}>
-                <img src={avatarSrc} alt="" />
+                <img src={sidebarAvatar} alt="" />
               </div>
               <div>
-                <strong>{isAuthenticated ? `${authUser.displayName} 的工作区` : '未登录'}</strong>
-                <span>ID: {isAuthenticated ? authUser.id : currentAuth.code}</span>
+                <strong>
+                  {displayNameOverride
+                    ? `${displayNameOverride} 的工作区`
+                    : isAuthenticated
+                      ? `${authUser.displayName} 的工作区`
+                      : '未登录'}
+                </strong>
+                <span>ID: {profileId}</span>
               </div>
             </Link>
           </div>
@@ -306,7 +328,7 @@ export function WorkspaceLayout({
                 </>
               ) : (
                 <>
-                  <NavLink className={topLink(activeModule === 'home')} to={ROUTES.HOME} end>
+                  <NavLink className={topLink(activeModule === 'home' || designChat)} to={ROUTES.HOME} end>
                     工作台
                   </NavLink>
                   <NavLink className={topLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
@@ -318,9 +340,11 @@ export function WorkspaceLayout({
                   <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
                     餐食规划
                   </NavLink>
-                  <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
-                    知识库
-                  </NavLink>
+                  {showKnowledgeTopNav ? (
+                    <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
+                      知识库
+                    </NavLink>
+                  ) : null}
                   {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
                 </>
               )}
@@ -347,9 +371,9 @@ export function WorkspaceLayout({
                 <DropdownMenuTrigger asChild>
                   <button className={styles.userButton} type="button">
                     <span className={styles.topAvatar}>
-                      <img src={avatarSrc} alt="" />
+                      <img src={topAvatar} alt="" />
                     </span>
-                    <span>{isAuthenticated ? authUser.displayName : '登录'}</span>
+                    <span>{displayName}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -146,6 +147,20 @@ class ApprovalServiceImplTest {
         assertEquals(ErrorCode.CONFLICT, exception.errorCode());
         verify(repository).markExpired(eq(7L), eq(100L), any());
         verify(repository, never()).markConfirmed(any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void confirmedProposalCannotBeReconfirmedAfterExpiry() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        ObjectNode parameters = parameters("validated");
+        when(repository.findOwned(7L, 100L)).thenReturn(snapshotFor(parameters, "confirmed", PAST));
+        ApprovalService service = service(repository, mock(MealPlanService.class), ids(101L));
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.confirm(7L, 100L, parameters));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        verify(repository).markExpired(eq(7L), eq(100L), any());
     }
 
     @Test
@@ -350,6 +365,183 @@ class ApprovalServiceImplTest {
         assertEquals(first, replay);
         verify(foods).create(eq(7L), any());
         verify(repository).updateExecutedResource(eq(7L), eq(100L), eq(501L), any());
+    }
+
+    @Test
+    void rejectPersistsRejectedStateAndReplayIsStable() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        ObjectNode parameters = parameters("validated");
+        when(repository.findOwned(7L, 100L))
+                .thenReturn(snapshotFor(parameters, "pending", FUTURE))
+                .thenReturn(snapshotFor(parameters, "rejected", FUTURE));
+        when(repository.markRejected(eq(7L), eq(100L), any())).thenReturn(1);
+
+        ApprovalService service = service(repository, mock(MealPlanService.class), ids(101L));
+        ApprovalService.ProposalView first = service.reject(7L, 100L, parameters);
+        ApprovalService.ProposalView replay = service.reject(7L, 100L, parameters);
+
+        assertEquals("rejected", first.status());
+        assertEquals(first, replay);
+        verify(repository).markRejected(eq(7L), eq(100L), any());
+        verify(repository).insertAudit(any());
+    }
+
+    @Test
+    void newResourceProposalSupersedesOlderActiveProposal() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        ObjectNode parameters = foodUpdateParameters(3L);
+        when(repository.findByIdempotency(7L, "update-key")).thenReturn(null);
+        when(repository.insert(any())).thenReturn(1);
+        when(repository.findOwned(7L, 100L))
+                .thenReturn(
+                        snapshot(
+                                new ApprovalRequestRepository.ApprovalWrite(
+                                        100L,
+                                        7L,
+                                        null,
+                                        null,
+                                        "food_log",
+                                        501L,
+                                        "update",
+                                        digest("update", "food_log", 501L, parameters),
+                                        "req_test",
+                                        "trace_test",
+                                        "update-key",
+                                        FUTURE),
+                                "pending",
+                                FUTURE));
+
+        ApprovalService service = service(repository, mock(MealPlanService.class), ids(100L, 101L));
+        ApprovalService.ProposalView result =
+                service.propose(
+                        7L,
+                        new ApprovalService.ProposalCommand(
+                                null,
+                                null,
+                                "update",
+                                "food_log",
+                                501L,
+                                parameters,
+                                "update-key",
+                                600));
+
+        assertEquals("pending", result.status());
+        verify(repository)
+                .markSupersededForResource(
+                        eq(7L), eq("food_log"), eq(501L), eq("update"), eq(100L), any());
+    }
+
+    @Test
+    void failedFoodLogExecutionPersistsFailedApprovalState() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        FoodLogService foods = mock(FoodLogService.class);
+        ObjectNode parameters = foodInput();
+        ApprovalService service =
+                new ApprovalServiceImpl(
+                        repository, mock(MealPlanService.class), foods, ids(101L, 102L), mapper);
+        String digest = service.parametersDigest("create", "food_log", null, parameters);
+        ApprovalRequestRepository.ApprovalSnapshot confirmed =
+                snapshot(
+                        new ApprovalRequestRepository.ApprovalWrite(
+                                100L,
+                                7L,
+                                8L,
+                                42L,
+                                "food_log",
+                                null,
+                                "create",
+                                digest,
+                                "req_test",
+                                "trace_test",
+                                "food-key",
+                                FUTURE),
+                        "confirmed",
+                        FUTURE);
+        when(repository.findOwned(7L, 100L)).thenReturn(confirmed, confirmed);
+        when(repository.markExecuted(eq(7L), eq(100L), any())).thenReturn(1);
+        when(repository.markFailed(eq(7L), eq(100L), any())).thenReturn(1);
+        when(foods.create(eq(7L), any()))
+                .thenThrow(new BusinessException(ErrorCode.TOOL_FAILED, "food log write failed"));
+
+        assertThrows(
+                BusinessException.class,
+                () -> service.executeForAgent(7L, 42L, 100L, "food-key", parameters));
+
+        verify(repository).markFailed(eq(7L), eq(100L), any());
+        verify(repository).insertAudit(any());
+        verify(repository, never())
+                .updateExecutedResource(any(Long.class), any(Long.class), any(Long.class), any());
+    }
+
+    @Test
+    void foodLogWriterExecutesUpdateDeleteAndRestoreThroughSameApprovalEntryPoint() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        FoodLogService foods = mock(FoodLogService.class);
+        ApprovalService service =
+                new ApprovalServiceImpl(
+                        repository,
+                        mock(MealPlanService.class),
+                        foods,
+                        ids(101L, 102L, 103L),
+                        mapper);
+
+        ObjectNode update = foodUpdateParameters(3L);
+        executeFoodOperation(repository, service, foods, "update", update, 501L, "update-key");
+        verify(foods).update(eq(7L), eq(501L), eq(3L), any());
+
+        ObjectNode delete = JsonNodeFactory.instance.objectNode().put("revision", 4L);
+        executeFoodOperation(repository, service, foods, "delete", delete, 501L, "delete-key");
+        verify(foods).delete(eq(7L), eq(501L), eq(4L), any());
+
+        ObjectNode restore = JsonNodeFactory.instance.objectNode().put("revision", 5L);
+        executeFoodOperation(repository, service, foods, "restore", restore, 501L, "restore-key");
+        verify(foods).restore(eq(7L), eq(501L), eq(5L), any());
+    }
+
+    private void executeFoodOperation(
+            ApprovalRequestRepository repository,
+            ApprovalService service,
+            FoodLogService foods,
+            String operation,
+            ObjectNode parameters,
+            long resourceId,
+            String key) {
+        String digest = service.parametersDigest(operation, "food_log", resourceId, parameters);
+        ApprovalRequestRepository.ApprovalSnapshot confirmed =
+                snapshot(
+                        new ApprovalRequestRepository.ApprovalWrite(
+                                resourceId,
+                                7L,
+                                null,
+                                42L,
+                                "food_log",
+                                resourceId,
+                                operation,
+                                digest,
+                                "req_test",
+                                "trace_test",
+                                key,
+                                FUTURE),
+                        "confirmed",
+                        FUTURE);
+        when(repository.findOwned(7L, resourceId)).thenReturn(confirmed);
+        when(repository.markExecuted(eq(7L), eq(resourceId), any())).thenReturn(1);
+        service.executeForAgent(7L, 42L, resourceId, key, parameters);
+    }
+
+    private ObjectNode foodInput() {
+        ObjectNode value =
+                JsonNodeFactory.instance
+                        .objectNode()
+                        .put("meal_time", "2026-08-13T04:00:00Z")
+                        .put("meal_type", "lunch");
+        value.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
+        return value;
+    }
+
+    private ObjectNode foodUpdateParameters(long revision) {
+        ObjectNode value = foodInput().put("revision", revision);
+        return value;
     }
 
     private ApprovalService service(

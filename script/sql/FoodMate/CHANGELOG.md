@@ -1,5 +1,12 @@
 # FoodMate 数据库变更说明
 
+## 2026-08-15 M1-5 写确认状态与 Tool Gateway 扩展
+
+- Java 写确认服务已支持 `rejected`、`failed`、`superseded` 状态；同一用户、资源和操作的新 Proposal 会取代旧的 `pending`/`confirmed` 确认。
+- `food_log_writer` 已支持 `create`、`update`、`delete`、`restore`，统一复用 `FoodLogService` 的归属、revision、营养匹配、幂等和审计逻辑。
+- Tool Gateway 已校验 `proposal_type`/`tool_name`，并映射确认未完成、过期、拒绝、失败和 superseded 结果。
+- 本轮没有新增数据库迁移；V13 的审批状态约束已包含上述状态。新增 Java 定向测试此前通过，新的 HTTP/MQ 跨进程回归尚未执行。
+
 ## 2026-08-14 M1-5 营养目录与写入回归
 
 - 人工执行 `seed/V1__nutrition_usda_seed.sql`，导入 5 条已核验的 USDA FoodData Central `SR Legacy` 食材：米饭、鸡胸肉、鸡蛋、三文鱼和苹果；重复执行返回 `INSERT 0 0`。

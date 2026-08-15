@@ -12,6 +12,7 @@ import com.foodmate.shared.id.IdGenerator;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /** Java Tool Gateway：Python 只提交 Proposal，Java 负责权限、SQL Guard、执行和审计。 */
@@ -32,7 +33,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         this(store, ids, (ApprovalService) null, new ObjectMapper().findAndRegisterModules());
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public ToolGatewayServiceImpl(
             ToolGatewayPort store,
             IdGenerator ids,
@@ -69,8 +70,14 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 || runId.length() > MAX_ID_LENGTH
                 || invocationId.length() > MAX_ID_LENGTH)
             return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
-        if ("food_log_writer".equals(proposal.toolName()))
-            if (!"tool".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
+        if ("food_log_writer".equals(proposal.toolName()) && !"tool".equals(type))
+            return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
+        if ("tool".equals(type) && !"food_log_writer".equals(proposal.toolName()))
+            return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+        if ("sql_read".equals(type)
+                && proposal.toolName() != null
+                && !"database_query".equals(proposal.toolName()))
+            return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
         if ("food_log_writer".equals(proposal.toolName()))
             return executeFoodLog(proposal, proposalId, runId, invocationId);
         if (!"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
@@ -104,15 +111,22 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         if (context == null) return reject(proposalId, "RUN_NOT_FOUND");
         long started = System.nanoTime();
         try {
-            long foodLogId =
-                    approvals
-                            .executeForAgent(
-                                    context.userId(),
-                                    numericRunId,
-                                    approvalId,
-                                    idempotencyKey,
-                                    proposal.input())
-                            .resourceId();
+            ApprovalService.ExecuteView execution =
+                    approvals.executeForAgent(
+                            context.userId(),
+                            numericRunId,
+                            approvalId,
+                            idempotencyKey,
+                            proposal.input());
+            if (!"executed".equals(execution.status()))
+                return result(
+                        proposalId,
+                        runId,
+                        invocationId,
+                        execution.status(),
+                        "TOOL_EXECUTION_FAILED",
+                        null);
+            long foodLogId = execution.resourceId();
             ObjectNode row = mapper.createObjectNode();
             row.put("food_log_id", Long.toString(foodLogId));
             row.put("status", "saved");
@@ -132,8 +146,18 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             String toolErrorCode = exception.details().path("tool_error_code").asText(null);
             String status;
             String errorCode;
-            if ("TOOL_CONFIRMATION_REQUIRED".equals(toolErrorCode)) {
+            if ("TOOL_CONFIRMATION_REQUIRED".equals(toolErrorCode)
+                    || "TOOL_CONFIRMATION_EXPIRED".equals(toolErrorCode)) {
                 status = "confirmation_required";
+                errorCode = toolErrorCode;
+            } else if ("TOOL_CONFIRMATION_REJECTED".equals(toolErrorCode)) {
+                status = "rejected";
+                errorCode = toolErrorCode;
+            } else if ("TOOL_CONFIRMATION_SUPERSEDED".equals(toolErrorCode)) {
+                status = "superseded";
+                errorCode = toolErrorCode;
+            } else if ("TOOL_EXECUTION_FAILED".equals(toolErrorCode)) {
+                status = "failed";
                 errorCode = toolErrorCode;
             } else if ("TOOL_IDEMPOTENCY_CONFLICT".equals(toolErrorCode)) {
                 status = "failed";

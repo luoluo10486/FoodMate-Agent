@@ -911,3 +911,15 @@
 - [x] `ChatPage` 定向测试 `4/4`、typecheck、Prettier 和 `git diff --check` 通过。
 - [ ] 自动 diff `50.5259% / RMSE 23.1703`，保持 `DIFF_REVIEW`；Figma 内部 Prototype 完整性不能替代前端像素验收。
 - [ ] iconfont 实体资源继续 `BLOCKED`；本状态不代表工具后端、SSE 或运行时数据闭环完成。下一步为 `agent-awaiting-clarification`。
+
+## 43. 2026-08-15 Agent Awaiting Clarification 状态覆盖记录
+
+- [x] Figma `687:642` 已对应独立前端入口 `/chat?state=awaiting-clarification`；画板为 `1440×1024`，状态内容包含用户消息、Planning 状态条、澄清卡和可输入 Composer。
+- [x] 澄清卡按 Figma 视觉实现为 `222×193`，选项尺寸为 `182×40`；选项状态使用真实按钮交互和 `aria-pressed`，不是静态文本。
+- [x] 共享布局按 Figma 修正导航选中态：顶部“工作台”和侧栏“Agent 对话”均可见选中背景；fixture 账号显示 `Anddy / 1234567`。
+- [x] 桌面 `1440×1024` 和移动 `390×844` 已实际浏览器验收，无页面级横向溢出；移动端侧栏按响应式规则隐藏。
+- [x] 证据已登记到 `foodmate-ui/.qa/figma-pixel-acceptance/`，包含 Figma 参考图、桌面/移动原始截图和 RGBA 归一化截图。
+- [x] 自动 diff 如实记录：桌面 `0.1600301 / RMSE 13.5626 / DIFF_REVIEW`；移动因缺少同尺寸 Figma 参考图记录 `SIZE_MISMATCH`，不得写成 PASS。
+- [x] 本轮定向测试 `5/5` 通过，`npm run typecheck` 通过。
+- [ ] 该状态只关闭前端视觉 fixture 覆盖，不关闭真实 AgentRun、SSE、澄清提交、后端任务闭环或后端数据契约。
+- [ ] iconfont 实体资源登记仍为 `BLOCKED`，等待真实包、CSS 映射、来源 URL、授权范围、许可证和 glyph 清单；标准图标继续使用 Lucide。

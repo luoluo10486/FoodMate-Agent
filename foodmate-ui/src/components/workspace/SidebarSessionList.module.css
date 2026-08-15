@@ -24,6 +24,13 @@
   color: var(--fm-ink);
   background: var(--fm-color-surface-hover);
 }
+.sectionTitle.active {
+  color: var(--fm-orange);
+  background: var(--fm-color-warning-surface);
+}
+.sectionTitle.active svg {
+  color: var(--fm-orange);
+}
 .sectionTitle svg {
   width: 17px;
   height: 17px;

@@ -141,3 +141,24 @@ describe('ChatPage Figma Tool Executing 状态', () => {
     expect(screen.getByRole('button', { name: '停止生成' })).toBeEnabled();
   });
 });
+
+describe('ChatPage Figma Awaiting Clarification 状态', () => {
+  it('renders the clarification card with the planning status and enabled composer', () => {
+    render(
+      <MemoryRouter initialEntries={['/chat?state=awaiting-clarification']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('记录一下我的午餐')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '需要确认以下信息：' })).toBeInTheDocument();
+    expect(screen.getByText('你的午餐具体包含哪些食物？')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '补充食物和份量' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '上传照片识别' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByLabelText('Agent 运行状态')).toHaveTextContent('Planning');
+    expect(screen.queryByText('运行轨迹')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('输入你的详细食物或份量，例如：150克野生三文鱼...')).toBeEnabled();
+  });
+});

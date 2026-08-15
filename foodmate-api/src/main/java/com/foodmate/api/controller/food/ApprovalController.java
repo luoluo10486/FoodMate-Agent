@@ -55,6 +55,14 @@ public class ApprovalController extends AuthenticatedControllerSupport {
         return ok(map(approvals.confirm(user(request).userId(), approvalRequestId, parameters)));
     }
 
+    @PostMapping("/{approvalRequestId}/reject")
+    public ApiResponse<ApprovalProposalResponse> reject(
+            HttpServletRequest request,
+            @PathVariable long approvalRequestId,
+            @RequestBody com.fasterxml.jackson.databind.JsonNode parameters) {
+        return ok(map(approvals.reject(user(request).userId(), approvalRequestId, parameters)));
+    }
+
     @PostMapping("/{approvalRequestId}/execute")
     public ApiResponse<ApprovalExecuteResponse> execute(
             HttpServletRequest request,

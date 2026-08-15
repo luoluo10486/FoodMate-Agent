@@ -504,6 +504,21 @@
   font-family: var(--fm-font);
 }
 
+@media (min-width: 821px) {
+  .designChat .nav {
+    gap: 16px;
+  }
+
+  .designChat .topNavLink {
+    height: 33px;
+    padding-inline: 16px;
+  }
+
+  .designChat .userActions {
+    gap: 16px;
+  }
+}
+
 @media (max-width: 1100px) {
   .withRail {
     grid-template-columns: 260px minmax(0, 1fr);
