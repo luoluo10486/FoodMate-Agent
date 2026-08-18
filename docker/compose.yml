@@ -183,15 +183,69 @@ services:
       TOPIC_AGENT_EVENT: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_EVENT:-foodmate-agent-event-v1}
       TOPIC_AGENT_PROPOSAL: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_PROPOSAL:-foodmate-agent-proposal-v1}
       TOPIC_AGENT_RESULT: ${FOODMATE_ROCKETMQ_TOPIC_AGENT_RESULT:-foodmate-agent-result-v1}
+      TOPIC_KNOWLEDGE_INDEX: ${FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX:-foodmate-knowledge-index-v1}
+      TOPIC_KNOWLEDGE_INDEX_RESULT: ${FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX_RESULT:-foodmate-knowledge-index-result-v1}
+      TOPIC_KNOWLEDGE_VISIBILITY: ${FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_VISIBILITY:-foodmate-knowledge-visibility-v1}
       # 本地单 Python Runtime 使用单队列；扩展消费者实例时再提高该值。
       TOPIC_QUEUE_COUNT: ${FOODMATE_ROCKETMQ_TOPIC_QUEUE_COUNT:-1}
       GROUP_JAVA_AGENT_EVENT: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_AGENT_EVENT:-foodmate-java-agent-event-v1}
       GROUP_JAVA_AGENT_PROPOSAL: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_AGENT_PROPOSAL:-foodmate-java-agent-proposal-v1}
       GROUP_PYTHON_AGENT_COMMAND: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_COMMAND:-foodmate-python-agent-command-v1}
       GROUP_PYTHON_AGENT_RESULT: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_RESULT:-foodmate-python-agent-result-v1}
+      GROUP_PYTHON_KNOWLEDGE_INDEX: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_INDEX:-foodmate-python-knowledge-index-v1}
+      GROUP_JAVA_KNOWLEDGE_INDEX_RESULT: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_KNOWLEDGE_INDEX_RESULT:-foodmate-java-knowledge-index-result-v1}
+      GROUP_PYTHON_KNOWLEDGE_VISIBILITY: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_VISIBILITY:-foodmate-python-knowledge-visibility-v1}
       TZ: ${TZ:-Asia/Shanghai}
     volumes:
       - ./rocketmq/init-topics.sh:/foodmate/init-topics.sh:ro
+
+  # M2-1 real local RAG backend. Stub mode does not require these services.
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.18
+    container_name: foodmate-milvus-etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    volumes: [foodmate-milvus-etcd:/etcd]
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [foodmate]
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    container_name: foodmate-milvus-minio
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MILVUS_MINIO_ROOT_USER:-milvus}
+      MINIO_ROOT_PASSWORD: ${MILVUS_MINIO_ROOT_PASSWORD:-milvus-minio-change-me}
+    volumes: [foodmate-milvus-minio:/data]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [foodmate]
+
+  milvus:
+    image: milvusdb/milvus:v2.5.5
+    container_name: foodmate-milvus
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+    depends_on:
+      milvus-etcd: { condition: service_healthy }
+      milvus-minio: { condition: service_healthy }
+    ports: ["${MILVUS_PORT:-19530}:19530"]
+    volumes: [foodmate-milvus-data:/var/lib/milvus]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9091/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    networks: [foodmate]
 
 volumes:
   foodmate-postgres-data:
@@ -201,6 +255,9 @@ volumes:
   foodmate-rocketmq-namesrv-logs:
   foodmate-rocketmq-broker-store:
   foodmate-rocketmq-broker-logs:
+  foodmate-milvus-etcd:
+  foodmate-milvus-minio:
+  foodmate-milvus-data:
 
 networks:
   foodmate:

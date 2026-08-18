@@ -12,6 +12,31 @@ public interface KnowledgeRepository {
 
     void insertAudit(Audit audit);
 
+    void insertImportJob(ImportJob job);
+
+    void insertImportItem(ImportItem item);
+
+    void insertIndexOutbox(long outboxId, long itemId, String payload);
+
+    record ImportJob(
+            long jobId,
+            long operatorId,
+            String idempotencyKey,
+            String mode,
+            String sourceType,
+            String sourceName,
+            String sourceVersion,
+            String licenseNotice,
+            String traceId) {}
+
+    record ImportItem(
+            long itemId,
+            long jobId,
+            long documentId,
+            String filename,
+            String contentType,
+            long size) {}
+
     record Audit(
             long id,
             long operatorId,

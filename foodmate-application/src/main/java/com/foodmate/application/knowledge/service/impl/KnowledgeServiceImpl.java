@@ -6,6 +6,9 @@ import com.foodmate.application.knowledge.service.KnowledgeService;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         this.bucket = bucket;
     }
 
+    @Transactional
     public long upload(
             long operatorId,
             String filename,
@@ -61,6 +65,73 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         }
     }
 
+    @Override
+    @Transactional
+    public long uploadBatch(long operatorId, ImportBatch batch, String traceId) {
+        requireAvailable();
+        validateBatch(batch);
+        long jobId = ids.nextId();
+        String mode =
+                System.getenv().getOrDefault("FOODMATE_RAG_MODE", "stub").toLowerCase(Locale.ROOT);
+        if (!mode.equals("stub") && !mode.equals("local"))
+            throw new IllegalArgumentException("invalid RAG mode");
+        store.insertImportJob(
+                new KnowledgeRepository.ImportJob(
+                        jobId,
+                        operatorId,
+                        batch.idempotencyKey(),
+                        mode,
+                        batch.sourceType(),
+                        batch.sourceName(),
+                        batch.sourceVersion(),
+                        batch.licenseNotice(),
+                        traceId));
+        List<String> uploadedKeys = new ArrayList<>();
+        try {
+            storage.ensureBucket(bucket);
+            for (ImportFile file : batch.files()) {
+                long documentId = ids.nextId();
+                long itemId = ids.nextId();
+                String filename = safeFilename(file.filename());
+                String key = "knowledge/public/" + documentId + "/" + filename;
+                storage.put(bucket, key, file.input(), file.size(), file.contentType());
+                uploadedKeys.add(key);
+                store.insertDocument(documentId, filename, key, operatorId);
+                store.insertImportItem(
+                        new KnowledgeRepository.ImportItem(
+                                itemId,
+                                jobId,
+                                documentId,
+                                filename,
+                                file.contentType(),
+                                file.size()));
+                store.insertIndexOutbox(
+                        ids.nextId(),
+                        itemId,
+                        "{\"job_id\":"
+                                + jobId
+                                + ",\"item_id\":"
+                                + itemId
+                                + ",\"document_id\":"
+                                + documentId
+                                + ",\"version\":\"1\",\"mode\":\""
+                                + mode
+                                + "\"}");
+            }
+            audit(operatorId, traceId, "knowledge.import_batch.create", Long.toString(jobId));
+            return jobId;
+        } catch (Exception exception) {
+            for (String key : uploadedKeys) {
+                try {
+                    storage.delete(bucket, key);
+                } catch (Exception ignored) {
+                    // Prefix reconciliation can remove an object when storage is temporarily down.
+                }
+            }
+            throw new IllegalStateException("knowledge import batch failed", exception);
+        }
+    }
+
     @Transactional
     public void updateStatus(
             long documentId, KnowledgeDocumentStatus status, long operatorId, String traceId) {
@@ -85,5 +156,44 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private void requireAvailable() {
         if (store == null || storage == null || ids == null)
             throw new IllegalStateException("knowledge dependencies unavailable");
+    }
+
+    private void validateBatch(ImportBatch batch) {
+        if (batch == null
+                || blank(batch.idempotencyKey())
+                || blank(batch.sourceType())
+                || blank(batch.sourceName())
+                || blank(batch.sourceVersion())
+                || blank(batch.licenseNotice())
+                || batch.files() == null
+                || batch.files().isEmpty()
+                || batch.files().size() > 20)
+            throw new IllegalArgumentException("invalid knowledge import batch");
+        for (ImportFile file : batch.files()) {
+            if (file == null
+                    || file.input() == null
+                    || file.size() <= 0
+                    || file.size() > 20 * 1024 * 1024)
+                throw new IllegalArgumentException("invalid knowledge import file");
+            String name = safeFilename(file.filename()).toLowerCase(Locale.ROOT);
+            if (!(name.endsWith(".pdf")
+                    || name.endsWith(".docx")
+                    || name.endsWith(".md")
+                    || name.endsWith(".txt")))
+                throw new IllegalArgumentException("unsupported knowledge document type");
+        }
+    }
+
+    private String safeFilename(String filename) {
+        if (blank(filename)
+                || filename.contains("/")
+                || filename.contains("\\")
+                || filename.contains(".."))
+            throw new IllegalArgumentException("invalid knowledge filename");
+        return filename.replaceAll("[^A-Za-z0-9._-]", "_");
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 }

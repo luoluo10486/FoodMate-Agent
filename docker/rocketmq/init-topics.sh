@@ -60,7 +60,10 @@ for topic in \
     "${TOPIC_AGENT_COMMAND:-foodmate-agent-command-v1}" \
     "${TOPIC_AGENT_EVENT:-foodmate-agent-event-v1}" \
     "${TOPIC_AGENT_PROPOSAL:-foodmate-agent-proposal-v1}" \
-    "${TOPIC_AGENT_RESULT:-foodmate-agent-result-v1}"; do
+    "${TOPIC_AGENT_RESULT:-foodmate-agent-result-v1}" \
+    "${TOPIC_KNOWLEDGE_INDEX:-foodmate-knowledge-index-v1}" \
+    "${TOPIC_KNOWLEDGE_INDEX_RESULT:-foodmate-knowledge-index-result-v1}" \
+    "${TOPIC_KNOWLEDGE_VISIBILITY:-foodmate-knowledge-visibility-v1}"; do
     echo "[foodmate] 创建 Topic ${topic}"
     # 本地只有一个 Python Runtime 实例；固定单队列，避免 Python 5.x PushConsumer
     # 单实例只领取一个分配队列时，Producer 把消息随机写到未领取队列。
@@ -84,6 +87,9 @@ for group in \
     "${GROUP_JAVA_AGENT_PROPOSAL:-foodmate-java-agent-proposal-v1}" \
     "${GROUP_PYTHON_AGENT_COMMAND:-foodmate-python-agent-command-v1}" \
     "${GROUP_PYTHON_AGENT_RESULT:-foodmate-python-agent-result-v1}" \
+    "${GROUP_PYTHON_KNOWLEDGE_INDEX:-foodmate-python-knowledge-index-v1}" \
+    "${GROUP_JAVA_KNOWLEDGE_INDEX_RESULT:-foodmate-java-knowledge-index-result-v1}" \
+    "${GROUP_PYTHON_KNOWLEDGE_VISIBILITY:-foodmate-python-knowledge-visibility-v1}" \
     "${GROUP_SELFTEST:-foodmate-selftest-v1}"; do
     echo "[foodmate] 创建 consumer group ${group}"
     # RocketMQ 5.x 只有在消费者真正订阅后才建 %RETRY% Topic，因此不能用 topicList 回读；

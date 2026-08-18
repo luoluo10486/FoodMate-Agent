@@ -221,8 +221,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-v2",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: plan-grid semantics exist, but toolbar, navigation, card geometry, typography, and content density differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -245,9 +245,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Plan-grid semantics exist, but toolbar, navigation, card geometry, typography, and content density differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -912,8 +913,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-executing-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-executing",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: execution flow and trace structure align, but avatar and icon rendering differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -936,9 +937,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Tool execution steps, trace cards, and stop composer state align with the Figma reference. Avatar and icon treatment differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -955,8 +957,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-awaiting-clarification",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: state hierarchy aligns, but option labels are abbreviated relative to the Figma guidance copy.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -979,9 +981,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Clarification state layout aligns, but the option labels omit the detailed Figma guidance copy and avatar treatment differs; retain DIFF_REVIEW."
       }
     },
     {
@@ -998,8 +1001,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-write-confirmation",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: the confirmation data and actions exist, but the card geometry and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1022,9 +1025,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Confirmation fields, source, assumptions, and actions are present. Card geometry, border, and action styling differ from Figma; retain DIFF_REVIEW."
       }
     },
     {
@@ -1041,8 +1045,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: budget facts and actions exist, but the card geometry and status color treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1065,9 +1069,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Budget amount, utilization, projected cost, and continuation actions are present. Card geometry and status styling differ from Figma; retain DIFF_REVIEW."
       }
     },
     {
@@ -1084,8 +1089,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-completed-with-citations-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-completed-with-citations",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: completed-state content is present, but the Figma metrics and citation-card composition is not reproduced.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1108,9 +1113,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "The browser fixture has a completed response, but it does not reproduce the Figma protein metrics and citation-card composition; retain DIFF_REVIEW."
       }
     },
     {
@@ -1127,8 +1133,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: retry and skip actions are present, but alert-panel geometry and color treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1151,9 +1157,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Retryable failure text and actions are present. Alert-panel geometry, color, and avatar treatment differ from Figma; retain DIFF_REVIEW."
       }
     },
     {
@@ -1170,8 +1177,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: safety wording is present, but warning-card hierarchy and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1194,9 +1201,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Safety degradation and bounded-result text are present. Warning-card hierarchy, typography, and avatar treatment differ from Figma; retain DIFF_REVIEW."
       }
     },
     {
@@ -1213,8 +1221,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: cancellation is distinguished from failure, but post-cancel action layout differs.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1237,9 +1245,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Cancellation preserves partial content and is not represented as failure. The restart action and surrounding layout differ from Figma; retain DIFF_REVIEW."
       }
     },
     {
@@ -1256,8 +1265,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: reconnect count and refresh guidance are present, but notice geometry and placement differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1280,9 +1289,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Reconnect attempt count, retained text, and refresh guidance are present. Reconnect notice width, placement, and avatar treatment differ from Figma; retain DIFF_REVIEW."
       }
     },
     {
@@ -1299,8 +1309,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-redesign-default-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-redesign-default",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1323,9 +1333,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Navigation default state is present, but browser output omits the Figma trace steps and confirmation card composition; avatar, typography, color density, and content geometry differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1342,8 +1353,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-nav-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-nav-loading",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1366,9 +1377,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Loading copy is present, but the Figma trace-step cards and full assistant confirmation composition are absent; spacing, avatar treatment, colors, and typography differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1385,8 +1397,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-nav-hover-preview-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-nav-hover-preview",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1409,9 +1421,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Hover-preview copy is present, but the Figma trace cards and assistant confirmation composition are not reproduced; preview panel geometry, visual hierarchy, avatars, colors, and text styling differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1428,8 +1441,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-pagination-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-pagination",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1452,9 +1465,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Pagination copy is present, but the reference trace steps and confirmation-card details are not reproduced; browser layout, avatar treatment, typography, colors, and navigation-control geometry differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1729,8 +1743,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-loading",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: loading semantics exist, but skeleton geometry, navigation content, and side-panel treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1753,9 +1767,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Loading semantics exist, but skeleton geometry, navigation content, and side-panel treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1772,8 +1787,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-empty",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: empty-plan semantics exist, but empty-card placement, iconography, typography, and navigation density differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1796,9 +1811,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Empty-plan semantics exist, but empty-card placement, iconography, typography, and navigation density differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1815,8 +1831,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-error",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: load-error semantics and retry action exist, but card geometry, typography, navigation density, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1839,9 +1855,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Load-error semantics and retry action exist, but card geometry, typography, navigation density, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2288,8 +2305,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-registry-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-tool-registry",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2312,9 +2329,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Tool registry is substantially represented, but browser identity/avatar, sidebar icon treatment, table columns/actions, text rendering, density, and spacing differ from Figma. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2331,8 +2349,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-deleted-resources",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2355,9 +2373,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Deleted-resources page is substantially represented, but browser uses different identity/avatar, table row geometry, truncation, typography, icons, and visual density. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2374,8 +2393,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-no-permission-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-no-permission",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2398,9 +2417,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "No-permission banner is present, but browser renders a materially different tool registry with filter/detail split layout instead of the Figma table, locked actions, and pagination. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2417,8 +2437,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-confirm-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-confirm",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2441,9 +2461,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "A confirmation modal is present, but browser differs in the underlying registry layout, modal dimensions, copy, warning detail, button color/placement, and sidebar identity. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2460,8 +2481,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-submitting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-submitting",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2484,9 +2505,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Submitting state is represented by a modal and progress indicator, but the browser uses a different underlying tool table/detail layout and differs in modal copy, progress treatment, dimensions, and identity. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2503,8 +2525,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-success-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-success",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2527,9 +2549,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Success notification is present, but the browser renders a different tool registry/detail split rather than the Figma table, and differs in identity, sidebar, status rows, spacing, and content density. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2546,8 +2569,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-failed",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2570,9 +2593,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Failure modal includes the error code and retry action, but browser differs in underlying page structure, modal dimensions, copy, button treatment, and detail panel. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2589,8 +2613,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-2",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2613,9 +2637,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "History page 2 is represented by the browser fixture, but its compact summary card replaces the Figma conversation, source treatment, confirmation controls, and Trace steps; avatar, typography, colors, and geometry differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2632,8 +2657,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-3-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-3",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2656,9 +2681,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "History page 3 is represented by the browser fixture, but its compact summary card omits the Figma assistant response, source, confirmation controls, and Trace steps; avatar, typography, colors, and geometry differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2675,8 +2701,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-search-results-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-search-results",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2699,9 +2725,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Search query and result summary are represented, but the browser fixture omits the Figma response composition, source row, confirmation controls, and Trace steps; search-state styling, avatar, colors, and geometry differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2718,8 +2745,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-uploading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-uploading",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2742,9 +2769,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Upload progress overlay is present, but the browser uses a different knowledge-base page, modal title/state, document data, progress copy, and underlying layout. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2761,8 +2789,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-indexing-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-indexing",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2785,9 +2813,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Indexing progress overlay is present, but browser uses a different knowledge page, backdrop, modal title/state, progress color, document data, and information hierarchy. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2804,8 +2833,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-failed",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2828,9 +2857,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Upload failure overlay is present, but browser differs in failure scope, error code, modal dimensions, copy, action buttons, document table, and side detail panel. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2847,8 +2877,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-avatar-uploading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-avatar-uploading",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2871,9 +2901,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Avatar upload progress modal is present, but browser differs in profile identity, avatar asset, surrounding basic-profile layout, modal dimensions, text hierarchy, and progress treatment. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2890,8 +2921,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-avatar-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-avatar-failed",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2914,9 +2945,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Avatar upload failure modal is present, but browser differs in allowed-format/size rule, error detail, action availability, modal geometry, profile identity, and underlying layout. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2933,8 +2965,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-unsaved-leave-confirmation",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2957,9 +2989,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Unsaved-change confirmation is present, but browser changes action wording/order, omits the Figma full-page composition, and differs in dialog geometry, profile data, avatar, and lower preference section. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2976,8 +3009,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-submitting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-submitting",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3000,9 +3033,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Password update state is present, but browser uses a different profile identity, security-page composition, modal geometry, progress bar, supporting copy, and device/activity detail. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3019,8 +3053,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-success-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-success",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: password-success dialog semantics exist, but the profile identity, base page composition, dialog geometry, progress treatment, and supporting detail differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3043,9 +3077,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Password-success dialog semantics exist, but the profile identity, base page composition, dialog geometry, progress treatment, and supporting detail differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3062,8 +3097,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-failed",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: password-failure dialog semantics exist, but the profile identity, base page composition, dialog geometry, error treatment, and device/activity detail differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3086,9 +3121,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Password-failure dialog semantics exist, but the profile identity, base page composition, dialog geometry, error treatment, and device/activity detail differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3105,8 +3141,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-queued-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-queued",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: export-queued dialog semantics exist, but the privacy-page composition, content density, dialog boundary, color, and layout differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3129,9 +3165,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Export-queued dialog semantics exist, but the privacy-page composition, content density, dialog boundary, color, and layout differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3148,8 +3185,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-running",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: export-running progress semantics exist, but the privacy-page composition, content density, progress presentation, dialog boundary, color, and layout differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3172,9 +3209,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Export-running progress semantics exist, but the privacy-page composition, content density, progress presentation, dialog boundary, color, and layout differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3191,8 +3229,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-expired",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: export-expired semantics exist, but the dialog geometry, content density, page composition, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3215,9 +3253,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Export-expired semantics exist, but the dialog geometry, content density, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3234,8 +3273,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-submitting",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: account-deletion submission semantics exist, but the dialog geometry, progress treatment, page composition, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3258,9 +3297,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Account-deletion submission semantics exist, but the dialog geometry, progress treatment, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3277,8 +3317,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-success-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-success",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: account-deletion success semantics exist, but the dialog geometry, supporting detail, page composition, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3301,9 +3341,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Account-deletion success semantics exist, but the dialog geometry, supporting detail, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3320,8 +3361,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-failed",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: account-deletion failure semantics exist, but the dialog geometry, error treatment, page composition, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3344,9 +3385,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Account-deletion failure semantics exist, but the dialog geometry, error treatment, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3492,8 +3534,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-run-detail",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3516,9 +3558,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Run detail is represented, but browser replaces the Figma run table, filters, failure card sequence, and refresh/download controls with a compact header and JSON panel. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3535,8 +3578,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-tool-calls",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3559,9 +3602,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Tool-call payload code is represented, but browser omits the Figma audit tabs, filters, call summary table, risk/status fields, and source note. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3578,8 +3622,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-sql-audit",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3602,9 +3646,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Browser represents only the payload code panel and omits Figma SQL-audit tabs, filters, call table, risk/status fields, and source note. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3621,8 +3666,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-trace",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3645,9 +3690,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Browser represents the run identifier and JSON payload, but omits Figma trace filters, run table, four-event timeline cards, refresh control, and log-download action. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3664,8 +3710,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-user-detail",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3688,9 +3734,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "User table and detail panel are present, but browser differs in panel width, tab set, selected-row treatment, typography, identity/avatar, spacing, and pagination placement. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3707,8 +3754,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-session-actions-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-session-actions",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3731,9 +3778,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Session actions are exposed in the browser as an inline summary, while Figma uses a larger management dialog with different placement, spacing, action treatment, and underlying conversation/Trace composition. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3750,8 +3798,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-renamed",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3774,9 +3822,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Rename outcome is represented by an inline browser summary, but Figma uses a centered dimmed dialog with a different title, confirmation copy, action placement, and background composition. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3793,8 +3842,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-archived-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-archived",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3817,9 +3866,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Archive outcome is represented by an inline browser summary, but Figma uses a dimmed recovery dialog with session metadata and action placement not reproduced in the browser. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3836,8 +3886,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-trash-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-trash",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3860,9 +3910,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Trash outcome copy is represented, but Figma uses a red-bordered dimmed recovery dialog with retention details and distinct geometry; browser has only an inline summary. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3879,8 +3930,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: basic-profile form exists, but identity assets, field set, information density, page geometry, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3903,9 +3954,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Basic-profile form exists, but identity assets, field set, information density, page geometry, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3922,8 +3974,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-memories-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: memory content exists, but selected tab, card composition, information density, copy, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3946,9 +3998,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Memory content exists, but selected tab, card composition, information density, copy, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3965,8 +4018,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: security content exists, but selected tab, device/session detail, page geometry, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3989,9 +4042,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Security content exists, but selected tab, device/session detail, page geometry, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4008,8 +4062,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: privacy export and deletion controls exist, but selected tab, content density, page geometry, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4032,9 +4086,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Privacy export and deletion controls exist, but selected tab, content density, page geometry, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4051,8 +4106,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-success-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-success",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4075,9 +4130,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Browser presents a generic dimmed upload-progress modal, whereas Figma shows the completed knowledge document table, upload drop zone, insight panel, and status rows. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4094,8 +4150,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4118,9 +4174,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Admin overview content is substantially present, but table/card dimensions, typography, icon treatment, sidebar identity, and lower summary-card composition differ from Figma. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4180,8 +4237,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-operation-audit-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-operation-audit",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4204,9 +4261,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Audit semantics are present, but browser uses a different page heading, filter set, table columns, row data, summary cards, and pagination geometry than Figma. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4223,8 +4281,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-format-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-format-error",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4247,9 +4305,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Format-error modal is present, but browser differs in underlying knowledge page, modal styling, error detail placement, button treatment, and background geometry. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4266,8 +4325,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-size-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-size-error",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4290,9 +4349,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Size-limit modal is present, but browser differs in underlying knowledge page, modal dimensions, copy, error metadata, action label, and surrounding detail layout. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4309,8 +4369,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-memories-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories-empty",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: empty-memory semantics exist, but the Figma tab context, card geometry, supporting text, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4333,9 +4393,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Empty-memory semantics exist, but the Figma tab context, card geometry, supporting text, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4352,8 +4413,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-logout-confirm-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-logout-confirm",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: logout confirmation semantics exist, but the dialog copy, geometry, device context, page composition, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4376,9 +4437,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Logout confirmation semantics exist, but the dialog copy, geometry, device context, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4395,8 +4457,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-delete-confirm-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-delete-confirm",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: account-deletion confirmation semantics exist, but the confirmation input, dialog copy, geometry, page composition, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4419,9 +4481,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Account-deletion confirmation semantics exist, but the confirmation input, dialog copy, geometry, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4438,8 +4501,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-running-stop-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-running-stop",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4462,9 +4525,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "The browser exposes a stop control for the running session, but Figma includes the complete assistant response, Trace cards, message-action panel, and a different composer/status layout. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4524,8 +4588,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-viewport-1366x768-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-viewport-1366x768",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1366x768",
@@ -4548,9 +4612,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "The 1366x768 browser screenshot has correct viewport evidence, but differs from Figma in user identity, avatar, assistant language/content, message-actions panel, Trace layout, and overall vertical composition. Retain DIFF_REVIEW."
       }
     }
   ],
@@ -4571,7 +4636,7 @@
       "geometryPass": 105,
       "textPass": 105,
       "textReview": 0,
-      "manualPending": 101,
+      "manualPending": 35,
       "errors": 0
     }
   }

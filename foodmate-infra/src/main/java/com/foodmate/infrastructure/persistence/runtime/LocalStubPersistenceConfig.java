@@ -300,6 +300,12 @@ public class LocalStubPersistenceConfig {
             }
 
             public void insertAudit(Audit audit) {}
+
+            public void insertImportJob(ImportJob job) {}
+
+            public void insertImportItem(ImportItem item) {}
+
+            public void insertIndexOutbox(long outboxId, long itemId, String payload) {}
         };
     }
 

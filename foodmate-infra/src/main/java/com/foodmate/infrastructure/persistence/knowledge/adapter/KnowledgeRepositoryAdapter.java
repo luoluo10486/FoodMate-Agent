@@ -53,4 +53,34 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                                 null));
         if (inserted != 1) throw new IllegalStateException("operation audit was not persisted");
     }
+
+    @Override
+    public void insertImportJob(ImportJob job) {
+        mapper.insertImportJob(
+                job.jobId(),
+                job.operatorId(),
+                job.idempotencyKey(),
+                job.mode(),
+                job.sourceType(),
+                job.sourceName(),
+                job.sourceVersion(),
+                job.licenseNotice(),
+                job.traceId());
+    }
+
+    @Override
+    public void insertImportItem(ImportItem item) {
+        mapper.insertImportItem(
+                item.itemId(),
+                item.jobId(),
+                item.documentId(),
+                item.filename(),
+                item.contentType(),
+                item.size());
+    }
+
+    @Override
+    public void insertIndexOutbox(long outboxId, long itemId, String payload) {
+        mapper.insertIndexOutbox(outboxId, itemId, payload);
+    }
 }

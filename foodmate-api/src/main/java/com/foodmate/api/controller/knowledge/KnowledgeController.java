@@ -4,6 +4,7 @@ import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
 import com.foodmate.api.request.knowledge.KnowledgeStatusRequest;
 import com.foodmate.api.response.account.StatusUpdateResponse;
 import com.foodmate.api.response.knowledge.DocumentUploadResponse;
+import com.foodmate.api.response.knowledge.KnowledgeUploadBatchResponse;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.knowledge.service.KnowledgeService;
 import com.foodmate.shared.account.enums.UserRole;
@@ -12,6 +13,7 @@ import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import java.util.List;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,6 +63,53 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
         knowledge.updateStatus(
                 id, body.status(), operator.userId(), TraceContextHolder.currentOrNew().traceId());
         return ok(new StatusUpdateResponse(true, body.status().code()));
+    }
+
+    @PostMapping(value = "/knowledge-documents/upload-batches", consumes = "multipart/form-data")
+    public ApiResponse<KnowledgeUploadBatchResponse> uploadBatch(
+            @RequestPart("files") List<MultipartFile> files,
+            @RequestPart("source_type") String sourceType,
+            @RequestPart("source_name") String sourceName,
+            @RequestPart("source_version") String sourceVersion,
+            @RequestPart("license_notice") String licenseNotice,
+            @RequestPart("idempotency_key") String idempotencyKey,
+            HttpServletRequest request)
+            throws IOException {
+        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        if (files == null || files.isEmpty() || files.size() > 20)
+            throw new IllegalArgumentException("invalid knowledge import batch");
+        List<KnowledgeService.ImportFile> imports =
+                files.stream()
+                        .map(
+                                file -> {
+                                    try {
+                                        return new KnowledgeService.ImportFile(
+                                                file.getOriginalFilename() == null
+                                                        ? "document"
+                                                        : file.getOriginalFilename(),
+                                                file.getContentType() == null
+                                                        ? "application/octet-stream"
+                                                        : file.getContentType(),
+                                                file.getSize(),
+                                                file.getInputStream());
+                                    } catch (IOException exception) {
+                                        throw new IllegalArgumentException(
+                                                "unable to read uploaded document", exception);
+                                    }
+                                })
+                        .toList();
+        long batchId =
+                knowledge.uploadBatch(
+                        operator.userId(),
+                        new KnowledgeService.ImportBatch(
+                                idempotencyKey,
+                                sourceType,
+                                sourceName,
+                                sourceVersion,
+                                licenseNotice,
+                                imports),
+                        TraceContextHolder.currentOrNew().traceId());
+        return ok(new KnowledgeUploadBatchResponse(batchId, "uploaded"));
     }
 
     private <T> ApiResponse<T> ok(T value) {
