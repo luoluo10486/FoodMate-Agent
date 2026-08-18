@@ -3,6 +3,7 @@ package com.foodmate.application.food.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.ApprovalRequestRepository;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.food.service.FoodLogService;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -45,6 +47,7 @@ public class ApprovalServiceImpl implements ApprovalService {
     private final ObjectMapper mapper;
     private final TransactionTemplate executionTransactions;
     private final TransactionTemplate failureTransactions;
+    private final OperationAuditService auditService;
 
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
@@ -60,7 +63,7 @@ public class ApprovalServiceImpl implements ApprovalService {
             FoodLogService foods,
             IdGenerator ids,
             ObjectMapper mapper) {
-        this(store, plans, foods, ids, mapper, null);
+        this(store, plans, foods, ids, mapper, null, null);
     }
 
     @Autowired
@@ -71,6 +74,17 @@ public class ApprovalServiceImpl implements ApprovalService {
             IdGenerator ids,
             ObjectMapper mapper,
             PlatformTransactionManager transactionManager) {
+        this(store, plans, foods, ids, mapper, transactionManager, null);
+    }
+
+    public ApprovalServiceImpl(
+            ApprovalRequestRepository store,
+            MealPlanService plans,
+            FoodLogService foods,
+            IdGenerator ids,
+            ObjectMapper mapper,
+            PlatformTransactionManager transactionManager,
+            org.springframework.beans.factory.ObjectProvider<OperationAuditService> auditProvider) {
         this.store = store;
         this.plans = plans;
         this.foods = foods;
@@ -78,6 +92,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         this.mapper = mapper.copy().findAndRegisterModules();
         this.executionTransactions = transactionTemplate(transactionManager);
         this.failureTransactions = failureTransactionTemplate(transactionManager);
+        this.auditService = auditProvider == null ? null : auditProvider.getIfAvailable();
     }
 
     private static TransactionTemplate transactionTemplate(PlatformTransactionManager manager) {
@@ -101,6 +116,29 @@ public class ApprovalServiceImpl implements ApprovalService {
     @Override
     @Transactional
     public ProposalView propose(long userId, ProposalCommand command) {
+        try {
+            return proposeInternal(userId, command);
+        } catch (RuntimeException exception) {
+            if (auditService != null)
+                auditService.recordFailure(
+                        userId,
+                        command == null || command.resourceType() == null
+                                ? "approval_request"
+                                : command.resourceType(),
+                        command == null || command.resourceId() == null
+                                ? null
+                                : Long.toString(command.resourceId()),
+                        "approval.propose",
+                        "rejected",
+                        errorCode(exception),
+                        null,
+                        command == null ? null : command.idempotencyKey() + ":propose",
+                        Map.of("exception_type", exception.getClass().getSimpleName()));
+            throw exception;
+        }
+    }
+
+    private ProposalView proposeInternal(long userId, ProposalCommand command) {
         validateProposal(command);
         String digest =
                 digest(
@@ -138,6 +176,14 @@ public class ApprovalServiceImpl implements ApprovalService {
             return view(raced);
         }
         if (write.resourceId() != null) {
+            List<ApprovalRequestRepository.ApprovalSnapshot> superseded =
+                    store.findSupersedableForResource(
+                            userId,
+                            write.resourceType(),
+                            write.resourceId(),
+                            write.operation(),
+                            write.approvalRequestId(),
+                            Instant.now());
             store.markSupersededForResource(
                     userId,
                     write.resourceType(),
@@ -145,6 +191,15 @@ public class ApprovalServiceImpl implements ApprovalService {
                     write.operation(),
                     write.approvalRequestId(),
                     Instant.now());
+            if (superseded != null)
+                for (ApprovalRequestRepository.ApprovalSnapshot old : superseded)
+                    audit(
+                            old.approvalRequestId(),
+                            userId,
+                            trace(old),
+                            "approval.superseded",
+                            old.parametersDigest(),
+                            old.idempotencyKey() + ":superseded");
         }
         audit(
                 write.approvalRequestId(),
@@ -489,6 +544,13 @@ public class ApprovalServiceImpl implements ApprovalService {
                         digest,
                         key,
                         "{}"));
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        if (exception instanceof BusinessException business) return business.errorCode().code();
+        if (exception instanceof com.foodmate.shared.runtime.RuntimeException runtime)
+            return runtime.code();
+        return "APPROVAL_PROPOSAL_FAILED";
     }
 
     private String businessSaveKey(String approvalKey) {

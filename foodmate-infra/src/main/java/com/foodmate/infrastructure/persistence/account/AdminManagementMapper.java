@@ -1,10 +1,8 @@
 package com.foodmate.infrastructure.persistence.account;
 
 import com.foodmate.application.account.port.out.AdminManagementRepository.*;
-import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
@@ -33,11 +31,4 @@ public interface AdminManagementMapper {
             @Param("resourceType") String resourceType,
             @Param("resourceId") long resourceId,
             @Param("operatorId") long operatorId);
-
-    @Select("SELECT COALESCE(MAX(operation_audit_id),0)+1 FROM operation_audits")
-    long nextAuditId();
-
-    @Insert(
-            "INSERT INTO operation_audits(operation_audit_id,operator_id,trace_id,target_type,target_id,action,result,created_by,updated_by) VALUES (#{id},#{operatorId},#{traceId},#{targetType},#{targetId},#{action},'success',#{operatorId},#{operatorId})")
-    void insertAudit(Audit audit);
 }

@@ -1,6 +1,7 @@
 package com.foodmate.application.food.port.out;
 
 import java.time.Instant;
+import java.util.List;
 
 /** 写操作确认事实和审计持久化端口。 */
 public interface ApprovalRequestRepository {
@@ -19,6 +20,14 @@ public interface ApprovalRequestRepository {
     int markFailed(long userId, long approvalRequestId, Instant now);
 
     int markSupersededForResource(
+            long userId,
+            String resourceType,
+            long resourceId,
+            String operation,
+            long exceptApprovalRequestId,
+            Instant now);
+
+    List<ApprovalSnapshot> findSupersedableForResource(
             long userId,
             String resourceType,
             long resourceId,

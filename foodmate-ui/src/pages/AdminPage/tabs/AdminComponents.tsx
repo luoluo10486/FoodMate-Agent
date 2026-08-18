@@ -1,6 +1,11 @@
 /** Admin-specific composed components built on the shared shadcn primitives. */
-import { Button, Card, Input, Table, Tag, IconLeft } from './AdminPrimitives';
 import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ROUTES } from '../../../constants/routes';
 import {
@@ -29,7 +34,7 @@ export function AdminHeader({ sectionKey }: { sectionKey: string }) {
         <h1>{meta.title}</h1>
         <p>{meta.description}</p>
       </div>
-      <Tag color="blue">{meta.tag}</Tag>
+      <Badge variant="outline">{meta.tag}</Badge>
     </section>
   );
 }
@@ -60,7 +65,9 @@ export function AdminFilters({ placeholder = 'trace_id / user_id' }: { placehold
         </SelectContent>
       </Select>
       <Input className={styles.filterInput} placeholder={placeholder} aria-label={placeholder} />
-      <Button onClick={() => emitNotice('筛选为 mock 操作')}>查询</Button>
+      <Button variant="outline" onClick={() => emitNotice('筛选为 mock 操作')}>
+        查询
+      </Button>
     </section>
   );
 }
@@ -68,11 +75,14 @@ export function AdminFilters({ placeholder = 'trace_id / user_id' }: { placehold
 export function AdminOnlyNotice({ title }: { title: string }) {
   return (
     <Card className={styles.noAccessCard}>
-      <Tag color="red">ADMIN_ONLY</Tag>
+      <Badge variant="destructive">ADMIN_ONLY</Badge>
       <h1>{title}</h1>
       <p>该页面包含用户敏感信息或恢复类高风险能力，按后端接口契约仅 admin 可访问。</p>
       <Link to={ROUTES.ADMIN}>
-        <Button icon={<IconLeft />}>返回概览</Button>
+        <Button variant="outline">
+          <ArrowLeft aria-hidden="true" />
+          返回概览
+        </Button>
       </Link>
     </Card>
   );
@@ -103,9 +113,9 @@ export function OperationAuditCard() {
     <Card className={styles.wideCard}>
       <div className={styles.cardHead}>
         <strong>管理操作审计</strong>
-        <Tag color="blue">operator_id / target_type / request_id / trace_id</Tag>
+        <Badge variant="outline">operator_id / target_type / request_id / trace_id</Badge>
       </div>
-      <Table columns={operationAuditColumns} data={adminOperationAuditRows} pagination={{ pageSize: 4 }} size="small" />
+      <DataTable columns={operationAuditColumns} data={adminOperationAuditRows} />
     </Card>
   );
 }
@@ -116,6 +126,7 @@ export function AdminActionsCard({ onAction }: { onAction: (payload: AdminAction
       <strong>管理操作</strong>
       <div className={styles.actionGrid}>
         <Button
+          variant="outline"
           disabled={!canManage}
           onClick={() =>
             onAction({
@@ -133,6 +144,7 @@ export function AdminActionsCard({ onAction }: { onAction: (payload: AdminAction
           禁用用户
         </Button>
         <Button
+          variant="outline"
           disabled={!canManage}
           onClick={() =>
             onAction({
@@ -152,6 +164,7 @@ export function AdminActionsCard({ onAction }: { onAction: (payload: AdminAction
           重置会话
         </Button>
         <Button
+          variant="outline"
           disabled={!canManage}
           onClick={() =>
             onAction({
@@ -169,6 +182,7 @@ export function AdminActionsCard({ onAction }: { onAction: (payload: AdminAction
           工具启停
         </Button>
         <Button
+          variant="outline"
           disabled={!canManage}
           onClick={() =>
             onAction({

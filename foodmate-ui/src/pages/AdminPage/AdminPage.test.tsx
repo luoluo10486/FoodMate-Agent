@@ -74,4 +74,17 @@ describe('AdminPage overview', () => {
     expect(screen.getByRole('link', { name: '概览' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: '操作审计' })).toHaveAttribute('aria-current', 'page');
   });
+
+  it('maps admin visual fixture query states to their real sections', () => {
+    const { unmount } = renderAdmin('/admin?state=tool-registry');
+    expect(screen.getByText('已注册工具')).toBeInTheDocument();
+
+    unmount();
+    renderAdmin('/admin?state=deleted-resources');
+    expect(screen.getByText('存档数据保护规范与合规通告')).toBeInTheDocument();
+
+    unmount();
+    renderAdmin('/admin?state=user-detail');
+    expect(screen.getByText('用户详情')).toBeInTheDocument();
+  });
 });

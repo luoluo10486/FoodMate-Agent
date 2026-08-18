@@ -67,3 +67,65 @@ class EvalMetrics:
             return None
         index = max(0, min(len(values) - 1, int((len(values) * quantile) + 0.999999) - 1))
         return values[index]
+
+
+class RuntimeMetrics:
+    """Bounded operational counters for local Agent traffic and recovery drills."""
+
+    def __init__(self, max_latency_samples: int = 10_000):
+        self._lock = threading.Lock()
+        self._max_latency_samples = max_latency_samples
+        self._operations: dict[str, dict[str, int]] = {}
+        self._latencies: dict[str, list[int]] = {}
+        self._queues: dict[str, int] = {}
+
+    def record(
+        self, operation: str, result: str, reason: str = "none", latency_ms: int | None = None
+    ) -> None:
+        operation = self._tag(operation)
+        result = self._tag(result)
+        reason = self._tag(reason)
+        with self._lock:
+            bucket = self._operations.setdefault(operation, {"total": 0})
+            bucket["total"] += 1
+            bucket[f"result:{result}"] = bucket.get(f"result:{result}", 0) + 1
+            bucket[f"reason:{reason}"] = bucket.get(f"reason:{reason}", 0) + 1
+            if latency_ms is not None:
+                values = self._latencies.setdefault(operation, [])
+                values.append(max(0, int(latency_ms)))
+                if len(values) > self._max_latency_samples:
+                    del values[: len(values) - self._max_latency_samples]
+
+    def queue_depth(self, name: str, value: int) -> None:
+        with self._lock:
+            self._queues[self._tag(name)] = max(0, int(value))
+
+    def snapshot(self) -> dict[str, object]:
+        with self._lock:
+            operations = {name: dict(values) for name, values in self._operations.items()}
+            latencies = {name: sorted(values) for name, values in self._latencies.items()}
+            queues = dict(self._queues)
+        return {
+            "operations": {
+                name: {
+                    **values,
+                    "p50_latency_ms": self._percentile(latencies.get(name, []), 0.50),
+                    "p95_latency_ms": self._percentile(latencies.get(name, []), 0.95),
+                    "p99_latency_ms": self._percentile(latencies.get(name, []), 0.99),
+                }
+                for name, values in operations.items()
+            },
+            "queues": queues,
+        }
+
+    @staticmethod
+    def _tag(value: str) -> str:
+        normalized = str(value or "unknown").strip().lower().replace(" ", "_")
+        return normalized[:64] or "unknown"
+
+    @staticmethod
+    def _percentile(values: list[int], quantile: float) -> int | None:
+        if not values:
+            return None
+        index = max(0, min(len(values) - 1, int((len(values) * quantile) + 0.999999) - 1))
+        return values[index]

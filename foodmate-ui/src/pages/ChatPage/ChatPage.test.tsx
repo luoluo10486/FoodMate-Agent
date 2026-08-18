@@ -103,6 +103,21 @@ describe('ChatPage Figma 空态', () => {
   });
 });
 
+describe('ChatPage Figma 默认状态', () => {
+  it('uses the Figma identity fixture without changing the default mock session', () => {
+    render(
+      <MemoryRouter initialEntries={['/chat?state=figma-v2']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Anddy')).toBeInTheDocument();
+    expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
+  });
+});
+
 describe('ChatPage Figma Planning 状态', () => {
   it('renders the planning steps without the trace rail and disables the composer', () => {
     render(

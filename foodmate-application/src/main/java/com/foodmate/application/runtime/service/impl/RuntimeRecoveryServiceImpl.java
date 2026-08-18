@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository;
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.CheckpointFact;
@@ -21,9 +22,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,21 +43,52 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
                     .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
     private final int queuePriority;
+    private final OperationAuditService audit;
 
     public RuntimeRecoveryServiceImpl(
             ObjectProvider<RuntimeRecoveryRepository> store,
             IdGenerator ids,
             AgentAdmissionService admission,
+            int queuePriority) {
+        this(store, ids, admission, null, queuePriority);
+    }
+
+    @Autowired
+    public RuntimeRecoveryServiceImpl(
+            ObjectProvider<RuntimeRecoveryRepository> store,
+            IdGenerator ids,
+            AgentAdmissionService admission,
+            ObjectProvider<OperationAuditService> audit,
             @Value("${FOODMATE_AGENT_RECOVERY_QUEUE_PRIORITY:10}") int queuePriority) {
         this.store = store.getIfAvailable();
         this.ids = ids;
         this.admission = admission;
         this.queuePriority = queuePriority;
+        this.audit = audit == null ? null : audit.getIfAvailable();
     }
 
     @Transactional
     @Override
     public RecoveryResult recover(RecoveryCommand command) {
+        try {
+            return recoverInternal(command);
+        } catch (RuntimeException exception) {
+            if (audit != null && command != null)
+                audit.recordFailure(
+                        command.userId(),
+                        "agent_run",
+                        Long.toString(command.runId()),
+                        "agent_run.checkpoint.recover",
+                        "failed",
+                        runtimeErrorCode(exception),
+                        command.checkpointDigest(),
+                        null,
+                        Map.of("exception_type", exception.getClass().getSimpleName()));
+            throw exception;
+        }
+    }
+
+    private RecoveryResult recoverInternal(RecoveryCommand command) {
         if (store == null) throw error("RUNTIME_UNAVAILABLE", "database is not configured");
         RecoveryRequest request =
                 new RecoveryRequest(
@@ -133,16 +167,32 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
                 epoch,
                 payload,
                 requestHash);
-        AgentAdmissionService.Admission result =
+        AgentAdmissionService.Admission admissionResult =
                 admission.admit(
                         Long.toString(request.runId()),
                         request.userId(),
                         run.sessionId(),
                         queuePriority);
-        if (result.state() == AgentAdmissionService.State.QUEUED)
+        if (admissionResult.state() == AgentAdmissionService.State.QUEUED)
             store.markOutboxQueued(request.runId(), dispatchId, queuePriority);
         store.markRunQueued(request.runId(), dispatchRowId);
-        return new RecoveryResult(Long.toString(request.runId()), dispatchId, attempt, "queued");
+        RecoveryResult result =
+                new RecoveryResult(Long.toString(request.runId()), dispatchId, attempt, "queued");
+        if (audit != null)
+            audit.record(
+                    request.userId(),
+                    "agent_run",
+                    Long.toString(request.runId()),
+                    "agent_run.checkpoint.recover",
+                    "success",
+                    null,
+                    request.checkpointDigest(),
+                    null,
+                    Map.of(
+                            "checkpoint_version", request.checkpointVersion(),
+                            "completed_invocation_count", effectiveInvocationIds.size(),
+                            "attempt", attempt));
+        return result;
     }
 
     /**
@@ -285,6 +335,12 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
 
     private static com.foodmate.shared.runtime.RuntimeException error(String code, String message) {
         return new com.foodmate.shared.runtime.RuntimeException(code, message);
+    }
+
+    private static String runtimeErrorCode(RuntimeException exception) {
+        if (exception instanceof com.foodmate.shared.runtime.RuntimeException runtime)
+            return runtime.code();
+        return "RUNTIME_RECOVERY_FAILED";
     }
 
     private static String hex(byte[] bytes) {

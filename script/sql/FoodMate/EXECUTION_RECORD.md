@@ -135,3 +135,14 @@
 | 回滚结论 | 未执行；未运行回滚 SQL |
 
 本轮另完成本地 Java HTTP 回归：创建幂等重放、计划查询/修改、stale `revision` 返回 409、校验/保存、购物清单聚合、修改后清单失效、软删除隐藏和恢复均通过。测试账号、计划和清单已在回归结束后清理。
+
+## M1-6 统一审计与指标代码验证（2026-08-18）
+
+| 字段 | 内容 |
+|---|---|
+| 环境 | 当前 Codex Windows 工作区；Docker Desktop 未运行，因此未执行真实 PostgreSQL/Redis/RocketMQ 流量或故障注入 |
+| 实现 | 新增统一 `OperationAuditPort` PostgreSQL 适配器、失败独立事务审计、脱敏安全摘要、低基数 Java Micrometer 与 Python readiness RuntimeMetrics；饮食/餐食计划审计回放只保留资源摘要 |
+| Java 定向验证 | `.\mvnw.cmd --% -pl foodmate-infra,foodmate-application -am -Dtest=OperationAuditServiceTest,FoodLogServiceImplTest,MealPlanServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`：18 tests，0 failure/error |
+| Python 定向验证 | 先前本轮已执行 `.\agent-runtime\.venv\Scripts\python.exe -m pytest agent-runtime\tests\test_eval_metrics.py agent-runtime\tests\test_mq_runtime.py agent-runtime\tests\test_runtime_server.py -q`：40 passed，1 warning |
+| 流量/故障入口 | 已新增 `script/local/m1-6-traffic-recovery.ps1`；默认仅 readiness/Compose 预检，`-EnableFaultInjection` 才重启 Redis。当前未运行，未产生吞吐、延迟、队列或恢复时间数据 |
+| 结论 | 审计与观测代码测试通过；共享 Redis/RocketMQ Agent 业务流量、PostgreSQL/Java/Python/RocketMQ 重启、ACK 丢失、重复投递与 SSE 恢复仍未执行，M1-6 整体保持未完成 |

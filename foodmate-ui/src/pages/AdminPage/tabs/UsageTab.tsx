@@ -1,5 +1,7 @@
-import { Card, Table, Tag } from './AdminPrimitives';
 import { useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, MiniStat } from './AdminComponents';
 import { adminModelUsageRows, modelUsageColumns } from './AdminShared';
@@ -21,12 +23,12 @@ export function UsageSection() {
         <MiniStat label="Fallback" value="3" hint="供应商切换" tone="danger" />
       </section>
       <AdminFilters placeholder="provider / model / scene" />
-      <Card className={styles.wideCard} bordered={false}>
+      <Card className={styles.wideCard}>
         <div className={styles.cardHead}>
           <strong>模型调用明细</strong>
-          <Tag color="blue">成本和延迟治理</Tag>
+          <Badge variant="outline">成本和延迟治理</Badge>
         </div>
-        <Table columns={modelUsageColumns} data={rows} pagination={{ pageSize: 5, total: rows.length }} size="small" />
+        <DataTable columns={modelUsageColumns} data={rows} />
       </Card>
     </>
   );

@@ -18,6 +18,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection } from '../../types/agent';
 import type { Message } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
@@ -116,16 +117,12 @@ function TraceRail({ run }: { run: AgentRunView }) {
     <aside className={styles.tracePanel} aria-label="运行轨迹">
       <div className={styles.traceTitle}>运行轨迹</div>
       <span className={styles.srOnly}>工具与引用</span>
-      <div className={styles.traceTabs} role="tablist" aria-label="运行轨迹视图">
-        <button className={tab === 'steps' ? styles.traceTabActive : ''} type="button" onClick={() => setTab('steps')}>
-          步骤
-        </button>
-        <button className={tab === 'json' ? styles.traceTabActive : ''} type="button" onClick={() => setTab('json')}>
-          原始 JSON
-        </button>
-      </div>
-      {tab === 'steps' ? (
-        <div className={styles.traceBody}>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as 'steps' | 'json')}>
+        <TabsList className={styles.traceTabs} aria-label="运行轨迹视图">
+          <TabsTrigger value="steps">步骤</TabsTrigger>
+          <TabsTrigger value="json">原始 JSON</TabsTrigger>
+        </TabsList>
+        <TabsContent className={styles.traceBody} value="steps">
           <span className={styles.runId}>RUN ID: {run.id}</span>
           {run.toolCalls.length ? (
             <div className={styles.traceList}>
@@ -149,10 +146,11 @@ function TraceRail({ run }: { run: AgentRunView }) {
               ))}
             </div>
           ) : null}
-        </div>
-      ) : (
-        <pre className={styles.traceJson}>{JSON.stringify(run, null, 2)}</pre>
-      )}
+        </TabsContent>
+        <TabsContent className={styles.traceBody} value="json">
+          <pre className={styles.traceJson}>{JSON.stringify(run, null, 2)}</pre>
+        </TabsContent>
+      </Tabs>
     </aside>
   );
 }
@@ -170,12 +168,12 @@ function InlineConfirmationCard({ onConfirm, onCancel }: { onConfirm: () => void
         <span>否，仅作为对话参考</span>
       </label>
       <div className={styles.inlineConfirmationActions}>
-        <button type="button" onClick={onConfirm}>
+        <Button type="button" onClick={onConfirm}>
           提交并继续
-        </button>
-        <button type="button" onClick={onCancel}>
+        </Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>
           取消
-        </button>
+        </Button>
       </div>
     </section>
   );
@@ -1146,6 +1144,7 @@ function MockChatPage() {
   const params = useParams();
   const sessionId = params.session_id;
   const [searchParams] = useSearchParams();
+  const isFigmaFixture = searchParams.get('state') === 'figma-v2';
   const agent = useAgentReplay(sessionId, searchParams.get('prompt'));
   const messagesRef = useRef<HTMLDivElement>(null);
 
@@ -1159,6 +1158,10 @@ function MockChatPage() {
       messagesRef={messagesRef}
       input={agent.input}
       running={agent.running}
+      designChat={isFigmaFixture}
+      displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
+      profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+      showKnowledgeTopNav={!isFigmaFixture}
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}

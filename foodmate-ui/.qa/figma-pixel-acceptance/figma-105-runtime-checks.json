@@ -1,0 +1,2438 @@
+{
+  "generatedAt": "2026-08-18",
+  "tool": "Codex Browser runtime DOM inspection (recaptured evidence)",
+  "rules": {
+    "viewport": "mapping.browserViewport",
+    "dpr": 1,
+    "bodyHorizontalOverflow": "scrollWidth <= innerWidth",
+    "textOverflowTolerancePx": 3,
+    "manualReviewRequired": true
+  },
+  "summary": {
+    "total": 105,
+    "viewportPass": 105,
+    "dprPass": 105,
+    "geometryPass": 105,
+    "textPass": 105,
+    "textReview": 0,
+    "manualPending": 101,
+    "errors": 0
+  },
+  "items": {
+    "meal-planning-empty": {
+      "artboardName": "meal-planning-empty",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=empty",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-budget-limit": {
+      "artboardName": "agent-budget-limit",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=budget-limit",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-op-no-permission": {
+      "artboardName": "admin-op-no-permission",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=op-no-permission",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "login-v2": {
+      "artboardName": "login-v2",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/login?state=v2",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "meal-plan-conflict": {
+      "artboardName": "meal-plan-conflict",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=conflict",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "meal-plan-wizard-step2": {
+      "artboardName": "meal-plan-wizard-step2",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=wizard-step2",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-knowledge-format-error": {
+      "artboardName": "admin-knowledge-format-error",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=knowledge-format-error",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "intake-analysis-v2": {
+      "artboardName": "intake-analysis-v2",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/analysis?state=v2",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-tool-failed-retryable": {
+      "artboardName": "agent-tool-failed-retryable",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=tool-failed-retryable",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-security-password-success": {
+      "artboardName": "profile-security-password-success",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=security-password-success",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-trash": {
+      "artboardName": "agent-chat-trash",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=trash",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-nav-loading": {
+      "artboardName": "agent-chat-nav-loading",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=nav-loading",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-knowledge-upload-failed": {
+      "artboardName": "admin-knowledge-upload-failed",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=knowledge-upload-failed",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "login-credential-error": {
+      "artboardName": "login-credential-error",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/login?state=credential-error",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "diet-records-loading": {
+      "artboardName": "diet-records-loading",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/analysis?state=loading",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "user-knowledge-search-failed": {
+      "artboardName": "user-knowledge-search-failed",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/knowledge?state=search-failed",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "token-used": {
+      "artboardName": "token-used",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/token-status?state=used",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "meal-planning-loading": {
+      "artboardName": "meal-planning-loading",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=loading",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "intake-analysis-error": {
+      "artboardName": "intake-analysis-error",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/analysis?state=error",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-privacy-export-queued": {
+      "artboardName": "profile-privacy-export-queued",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=privacy-export-queued",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "workspace-home-error": {
+      "artboardName": "workspace-home-error",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/?view=records&state=error",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-deleted-resources": {
+      "artboardName": "admin-deleted-resources",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=deleted-resources",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-privacy-export-running": {
+      "artboardName": "profile-privacy-export-running",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=privacy-export-running",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "user-knowledge-source-unavailable": {
+      "artboardName": "user-knowledge-source-unavailable",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/knowledge?state=source-unavailable",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-security-logout-confirm": {
+      "artboardName": "profile-security-logout-confirm",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=security-logout-confirm",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "workspace-home-input-states": {
+      "artboardName": "workspace-home-input-states",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/?state=input-states",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-basic-unsaved-leave-confirmation": {
+      "artboardName": "profile-basic-unsaved-leave-confirmation",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=basic-unsaved-leave-confirmation",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "meal-planning-error": {
+      "artboardName": "meal-planning-error",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=error",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "workspace-home-empty": {
+      "artboardName": "workspace-home-empty",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/?view=records&state=empty",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-running-stop": {
+      "artboardName": "agent-chat-running-stop",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=running-stop",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-privacy": {
+      "artboardName": "profile-privacy",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=privacy",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-archived": {
+      "artboardName": "agent-chat-archived",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=archived",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-safety-degraded": {
+      "artboardName": "agent-safety-degraded",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=safety-degraded",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-op-submitting": {
+      "artboardName": "admin-op-submitting",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=op-submitting",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-redesign-default": {
+      "artboardName": "agent-chat-redesign-default",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=redesign-default",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "meal-plan-shopping-list": {
+      "artboardName": "meal-plan-shopping-list",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=shopping-list",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-basic-avatar-uploading": {
+      "artboardName": "profile-basic-avatar-uploading",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=basic-avatar-uploading",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "login-account-locked": {
+      "artboardName": "login-account-locked",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/login?state=account-locked",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "profile-memories-empty": {
+      "artboardName": "profile-memories-empty",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=memories-empty",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-knowledge-size-error": {
+      "artboardName": "admin-knowledge-size-error",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=knowledge-size-error",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-model-usage": {
+      "artboardName": "admin-model-usage",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin/usage",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "register-page": {
+      "artboardName": "register-page",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/register",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "agent-chat-pagination": {
+      "artboardName": "agent-chat-pagination",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=pagination",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-v2": {
+      "artboardName": "agent-chat-v2",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=figma-v2",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-security-password-submitting": {
+      "artboardName": "profile-security-password-submitting",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=security-password-submitting",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-privacy-deletion-submitting": {
+      "artboardName": "profile-privacy-deletion-submitting",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=privacy-deletion-submitting",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-history-page-3": {
+      "artboardName": "agent-chat-history-page-3",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=history-page-3",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-empty": {
+      "artboardName": "agent-empty",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=empty",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-completed-with-citations": {
+      "artboardName": "agent-completed-with-citations",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=completed-with-citations",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-tool-registry": {
+      "artboardName": "admin-tool-registry",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=tool-registry",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "login-submitting": {
+      "artboardName": "login-submitting",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/login?state=submitting",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "profile-privacy-deletion-failed": {
+      "artboardName": "profile-privacy-deletion-failed",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=privacy-deletion-failed",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-security": {
+      "artboardName": "profile-security",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=security",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "login-field-error": {
+      "artboardName": "login-field-error",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/login?state=field-error",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "profile-security-password-failed": {
+      "artboardName": "profile-security-password-failed",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=security-password-failed",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "token-invalid": {
+      "artboardName": "token-invalid",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/token-status?state=invalid",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "agent-awaiting-clarification": {
+      "artboardName": "agent-awaiting-clarification",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=awaiting-clarification",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-tool-calls": {
+      "artboardName": "admin-tool-calls",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=tool-calls",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "workspace-home-loading": {
+      "artboardName": "workspace-home-loading",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/?view=records&state=loading",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-operation-audit": {
+      "artboardName": "admin-operation-audit",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?view=audit",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "diet-records-v2": {
+      "artboardName": "diet-records-v2",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/analysis?view=records&state=v2",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-viewport-1366x768": {
+      "artboardName": "agent-chat-viewport-1366x768",
+      "body": {
+        "clientHeight": 768,
+        "clientWidth": 1366,
+        "scrollHeight": 768,
+        "scrollWidth": 1366
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 768,
+        "width": 1366.4000244140625,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat",
+      "viewport": {
+        "height": 768,
+        "width": 1366
+      }
+    },
+    "diet-records-empty": {
+      "artboardName": "diet-records-empty",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/analysis?state=empty",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "login-service-unavailable": {
+      "artboardName": "login-service-unavailable",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/login?state=service-unavailable",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "admin-op-success": {
+      "artboardName": "admin-op-success",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=op-success",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "intake-analysis-empty": {
+      "artboardName": "intake-analysis-empty",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/analysis?state=empty",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-op-confirm": {
+      "artboardName": "admin-op-confirm",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=op-confirm",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-knowledge-uploading": {
+      "artboardName": "admin-knowledge-uploading",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=knowledge-uploading",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-basic": {
+      "artboardName": "profile-basic",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=basic",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-knowledge-upload-success": {
+      "artboardName": "admin-knowledge-upload-success",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=knowledge-upload-success",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-user-detail": {
+      "artboardName": "admin-user-detail",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=user-detail",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-trace": {
+      "artboardName": "admin-trace",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=trace",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-nav-hover-preview": {
+      "artboardName": "agent-chat-nav-hover-preview",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=nav-hover-preview",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "reset-password-page": {
+      "artboardName": "reset-password-page",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/reset-password",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "intake-analysis-loading": {
+      "artboardName": "intake-analysis-loading",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/analysis?state=loading",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "workspace-home-v2": {
+      "artboardName": "workspace-home-v2",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/?state=figma-v2",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-privacy-export-expired": {
+      "artboardName": "profile-privacy-export-expired",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=privacy-export-expired",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-privacy-deletion-success": {
+      "artboardName": "profile-privacy-deletion-success",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=privacy-deletion-success",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "user-knowledge-empty": {
+      "artboardName": "user-knowledge-empty",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/knowledge?state=empty",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-history-page-2": {
+      "artboardName": "agent-chat-history-page-2",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=history-page-2",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "meal-planning-v2": {
+      "artboardName": "meal-planning-v2",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=v2",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "meal-plan-list": {
+      "artboardName": "meal-plan-list",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=list",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "meal-plan-wizard-step1": {
+      "artboardName": "meal-plan-wizard-step1",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=wizard-step1",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-planning": {
+      "artboardName": "agent-planning",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=planning",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-run-detail": {
+      "artboardName": "admin-run-detail",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=run-detail",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-renamed": {
+      "artboardName": "agent-chat-renamed",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=renamed",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-sse-reconnecting": {
+      "artboardName": "agent-sse-reconnecting",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=sse-reconnecting",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-user-cancelled": {
+      "artboardName": "agent-user-cancelled",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=user-cancelled",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-overview": {
+      "artboardName": "admin-overview",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=overview",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "meal-plan-wizard-step3": {
+      "artboardName": "meal-plan-wizard-step3",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=wizard-step3",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-basic-avatar-failed": {
+      "artboardName": "profile-basic-avatar-failed",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=basic-avatar-failed",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-privacy-delete-confirm": {
+      "artboardName": "profile-privacy-delete-confirm",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=privacy-delete-confirm",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "login-account-disabled": {
+      "artboardName": "login-account-disabled",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/login?state=account-disabled",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "admin-knowledge-indexing": {
+      "artboardName": "admin-knowledge-indexing",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=knowledge-indexing",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-tool-executing": {
+      "artboardName": "agent-tool-executing",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=tool-executing",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "profile-memories": {
+      "artboardName": "profile-memories",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/profile?state=memories",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "token-expired": {
+      "artboardName": "token-expired",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/token-status?state=expired",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    "agent-chat-session-actions": {
+      "artboardName": "agent-chat-session-actions",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=session-actions",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-write-confirmation": {
+      "artboardName": "agent-write-confirmation",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=write-confirmation",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "meal-plan-generating": {
+      "artboardName": "meal-plan-generating",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/planning?state=generating",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-op-failed": {
+      "artboardName": "admin-op-failed",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=op-failed",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "diet-records-error": {
+      "artboardName": "diet-records-error",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/analysis?state=error",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "admin-sql-audit": {
+      "artboardName": "admin-sql-audit",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/admin?state=sql-audit",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-chat-search-results": {
+      "artboardName": "agent-chat-search-results",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=search-results",
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "forgot-password-page": {
+      "artboardName": "forgot-password-page",
+      "body": {
+        "clientHeight": 900,
+        "clientWidth": 1440,
+        "scrollHeight": 900,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 900,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/forgot-password",
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    }
+  }
+}

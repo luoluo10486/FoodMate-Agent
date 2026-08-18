@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.account.port.out.PersonalDataRepository;
 import com.foodmate.application.account.service.PersonalDataService;
 import com.foodmate.application.common.port.out.ObjectStoragePort;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import java.io.ByteArrayInputStream;
@@ -11,6 +12,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
@@ -28,11 +30,13 @@ public class PersonalDataServiceImpl implements PersonalDataService {
     private final String bucket;
     private final com.foodmate.shared.id.IdGenerator ids;
     private final ObjectMapper mapper;
+    private final OperationAuditService audit;
 
     public PersonalDataServiceImpl(
             ObjectProvider<PersonalDataRepository> store,
             ObjectProvider<ObjectStoragePort> storage,
             ObjectProvider<com.foodmate.shared.id.IdGenerator> ids,
+            ObjectProvider<OperationAuditService> audit,
             ObjectMapper mapper,
             @org.springframework.beans.factory.annotation.Value(
                             "${foodmate.storage.bucket:foodmate-private}")
@@ -40,10 +44,12 @@ public class PersonalDataServiceImpl implements PersonalDataService {
         this.store = store.getIfAvailable();
         this.storage = storage.getIfAvailable();
         this.ids = ids.getIfAvailable();
+        this.audit = audit.getIfAvailable();
         this.mapper = mapper;
         this.bucket = bucket;
     }
 
+    @Transactional
     public Avatar uploadAvatar(
             long userId, String filename, String contentType, long size, InputStream input) {
         if (store == null || storage == null)
@@ -61,12 +67,26 @@ public class PersonalDataServiceImpl implements PersonalDataService {
             long id = ids.nextId();
             store.insertAvatar(id, userId, key, contentType, size);
             store.clearAvatar(userId);
+            record(
+                    userId,
+                    "avatar",
+                    Long.toString(id),
+                    "account.avatar.upload",
+                    "success",
+                    null,
+                    Map.of(
+                            "size_bytes",
+                            size,
+                            "mime_type",
+                            contentType == null ? "" : contentType));
             return new Avatar(id, key, contentType, size);
         } catch (Exception e) {
+            failure(userId, "avatar", null, "account.avatar.upload", e);
             throw new IllegalStateException("avatar upload failed", e);
         }
     }
 
+    @Transactional
     public void deleteAvatar(long userId) {
         if (store == null) throw new IllegalStateException("avatar storage unavailable");
         List<String> keys = store.activeAvatarKeys(userId);
@@ -78,15 +98,33 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                 }
         store.deleteAvatars(userId);
         store.clearAvatar(userId);
+        record(
+                userId,
+                "avatar",
+                Long.toString(userId),
+                "account.avatar.delete",
+                "success",
+                null,
+                Map.of());
     }
 
+    @Transactional
     public long requestExport(long userId) {
         if (store == null) throw new IllegalStateException("export unavailable");
         long id = ids.nextId();
         store.insertExportJob(id, userId);
+        record(
+                userId,
+                "export_job",
+                Long.toString(id),
+                "account.data_export.request",
+                "success",
+                null,
+                Map.of());
         return id;
     }
 
+    @Transactional
     public long requestDeletion(long userId) {
         if (store == null) throw new IllegalStateException("account deletion unavailable");
         if (store.activeDeletionJobs(userId) > 0)
@@ -95,6 +133,14 @@ public class PersonalDataServiceImpl implements PersonalDataService {
         store.insertDeletionJob(id, userId);
         store.disableUser(userId);
         store.revokeSessions(userId);
+        record(
+                userId,
+                "user",
+                Long.toString(userId),
+                "account.deletion.request",
+                "success",
+                null,
+                Map.of());
         return id;
     }
 
@@ -115,6 +161,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
         return job;
     }
 
+    @Transactional
     public String consumeExport(long userId, long jobId) {
         if (store == null || storage == null) throw new IllegalStateException("export unavailable");
         int updated = store.consumeExport(userId, jobId);
@@ -123,10 +170,48 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                     ErrorCode.CONFLICT, "export is unavailable, expired, or already consumed");
         String key = store.exportObjectKey(jobId);
         try {
-            return storage.presignedGet(bucket, key, Duration.ofMinutes(10));
+            String url = storage.presignedGet(bucket, key, Duration.ofMinutes(10));
+            record(
+                    userId,
+                    "export_job",
+                    Long.toString(jobId),
+                    "account.data_export.consume",
+                    "success",
+                    null,
+                    Map.of());
+            return url;
         } catch (Exception e) {
+            failure(userId, "export_job", Long.toString(jobId), "account.data_export.consume", e);
             throw new IllegalStateException("download link unavailable", e);
         }
+    }
+
+    private void record(
+            long userId,
+            String targetType,
+            String targetId,
+            String action,
+            String result,
+            String errorCode,
+            Map<String, ?> metadata) {
+        if (audit != null)
+            audit.record(
+                    userId, targetType, targetId, action, result, errorCode, null, null, metadata);
+    }
+
+    private void failure(
+            long userId, String targetType, String targetId, String action, Exception exception) {
+        if (audit != null)
+            audit.recordFailure(
+                    userId,
+                    targetType,
+                    targetId,
+                    action,
+                    "failed",
+                    "PERSONAL_DATA_OPERATION_FAILED",
+                    null,
+                    null,
+                    Map.of("exception_type", exception.getClass().getSimpleName()));
     }
 
     @org.springframework.scheduling.annotation.Scheduled(

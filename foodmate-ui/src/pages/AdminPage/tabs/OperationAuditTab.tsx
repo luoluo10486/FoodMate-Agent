@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Eye, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input as ShadcnInput } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button, Card, Table, Tag, type TableColumnProps } from './AdminPrimitives';
 import { AdminOnlyNotice } from './AdminComponents';
 import { adminOperationAuditRows, canViewAudit, statusTag } from './AdminShared';
 import { loadAdminDashboard } from '../../../services/adminService';
@@ -123,9 +126,9 @@ function AuditDetail({ row, onClose }: { row: AuditRecord; onClose: () => void }
           </DialogDescription>
         </DialogHeader>
         <div className={styles.auditDetailStatus}>
-          <Tag color={row.result === 'success' ? 'green' : row.result === 'failed' ? 'red' : 'orange'}>
+          <Badge variant={row.result === 'success' ? 'default' : row.result === 'failed' ? 'destructive' : 'warning'}>
             {row.result}
-          </Tag>
+          </Badge>
           <code>{row.requestId}</code>
         </div>
         <dl className={styles.auditDetailGrid}>
@@ -278,7 +281,8 @@ export function OperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: num
     {
       title: '详情',
       render: (_, row) => (
-        <Button size="small" icon={<Eye aria-hidden="true" />} onClick={() => setSelectedRow(row)}>
+        <Button variant="outline" size="sm" onClick={() => setSelectedRow(row)}>
+          <Eye aria-hidden="true" />
           查看详情
         </Button>
       ),
@@ -347,22 +351,20 @@ export function OperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: num
         </label>
       </section>
 
-      <Card className={styles.auditTableCard} bordered={false}>
+      <Card className={styles.auditTableCard}>
         <div className={styles.auditTableHeader}>
           <div>
             <strong>操作审计记录</strong>
             <p>记录只读展示，包含请求摘要、前后状态和链路标识。</p>
           </div>
-          <Tag color="blue">仅 admin / superadmin</Tag>
+          <Badge variant="outline">仅 admin / superadmin</Badge>
         </div>
         {visibleRows.length ? (
-          <Table
+          <DataTable
             className={styles.auditTableScroll}
             tableClassName={styles.auditTable}
             columns={columns}
             data={visibleRows}
-            pagination={false}
-            size="small"
           />
         ) : (
           <div className={styles.auditEmptyState} role="status">
@@ -380,14 +382,20 @@ export function OperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: num
           显示第 {rangeStart} 到 {rangeEnd} 条，共 {filteredRows.length} 条结果
         </span>
         <div className={styles.auditPageButtons}>
-          <Button size="small" disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safePage <= 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
             上一页
           </Button>
           <span aria-label={`第 ${safePage} 页，共 ${pageCount} 页`}>
             {safePage} / {pageCount}
           </span>
           <Button
-            size="small"
+            variant="outline"
+            size="sm"
             disabled={safePage >= pageCount}
             onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
           >

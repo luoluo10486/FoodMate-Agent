@@ -942,8 +942,27 @@
 
 .overviewFilterLabel {
   color: #6b7280;
+  display: inline;
+  flex: 0 0 auto;
   font-weight: 400;
+  overflow: visible;
   white-space: nowrap;
+}
+
+.overviewFilter > :global(span:nth-child(2)) {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: visible;
+}
+
+.overviewFilter > :global(span) {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
 }
 
 .overviewFilter :global([data-radix-select-icon]) {
@@ -1105,6 +1124,10 @@
 
 .overviewTable :global(tbody tr:hover) {
   background: #ffffff;
+}
+
+.overviewTable :global(thead tr) {
+  border-bottom: 0;
 }
 
 .overviewTable :global(th:nth-child(1)),
@@ -1396,21 +1419,40 @@
 }
 
 .registryFilterStatus {
-  width: 96px;
+  width: 116px;
 }
 
 .registryFilterRisk {
-  width: 124px;
+  width: 142px;
 }
 
 .registryFilterScope {
-  width: 124px;
+  width: 142px;
 }
 
 .registryFilterLabel {
   color: #6b7280;
+  display: inline;
+  flex: 0 0 auto;
   font-weight: 400;
+  overflow: visible;
   white-space: nowrap;
+}
+
+.registryFilter > :global(span:nth-child(2)) {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: visible;
+}
+
+.registryFilter > :global(span) {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
 }
 
 .registryFilter :global([data-radix-select-icon]) {
@@ -1573,6 +1615,10 @@
 
 .registryTable :global(tbody tr:hover) {
   background: #ffffff;
+}
+
+.registryTable :global(thead tr) {
+  border-bottom: 0;
 }
 
 .registryTable :global(th:nth-child(1)),
@@ -1850,8 +1896,27 @@
 
 .deletedFilterLabel {
   color: #6b7280;
+  display: inline;
+  flex: 0 0 auto;
   font-weight: 400;
+  overflow: visible;
   white-space: nowrap;
+}
+
+.deletedFilter > :global(span:nth-child(2)) {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: visible;
+}
+
+.deletedFilter > :global(span) {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
 }
 
 .deletedFilter :global([data-radix-select-icon]) {
@@ -2143,9 +2208,10 @@
 
 .deletedSummary {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .deletedMonoCell {
@@ -2347,7 +2413,7 @@
 .metric strong {
   color: #333333;
   font-size: 28px;
-  line-height: 1;
+  line-height: 34px;
 }
 
 .green strong {
@@ -2379,6 +2445,16 @@
 }
 .filterControl {
   width: 128px;
+}
+
+.filterControl > :global(span) {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
 }
 .filterInput {
   width: 190px;
@@ -2725,12 +2801,14 @@
 }
 
 .usersTableRow > strong {
-  overflow: hidden;
+  display: block;
+  overflow: visible;
   font-size: 13px;
   font-weight: 700;
   line-height: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .userIdCell {
@@ -2979,13 +3057,16 @@
 }
 
 .userDetailName strong {
-  overflow: hidden;
+  display: block;
+  width: 100%;
+  overflow: visible;
   color: #333333;
   font-size: 16px;
   font-weight: 900;
   line-height: 19px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .userDetailName span {
@@ -3235,6 +3316,16 @@
 
 .runFilterControl {
   width: 100%;
+}
+
+.runFilterControl > :global(span) {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
 }
 
 .runFilters > button {

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.conversation.service.SessionSummaryService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.command.AgentRunBudgetDefaults;
@@ -19,8 +20,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
     private final AgentAdmissionService admission;
     private final SessionSummaryService summaries;
     private final ObjectMapper mapper;
+    private final OperationAuditService audit;
 
     public AgentRunCommandServiceImpl(
             ObjectProvider<AgentRunCommandRepository> store,
@@ -42,12 +46,25 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             AgentRunBudgetDefaults budgetDefaults,
             AgentAdmissionService admission,
             SessionSummaryService summaries) {
+        this(store, ids, accounts, budgetDefaults, admission, summaries, null);
+    }
+
+    @Autowired
+    public AgentRunCommandServiceImpl(
+            ObjectProvider<AgentRunCommandRepository> store,
+            IdGenerator ids,
+            UserAccountService accounts,
+            AgentRunBudgetDefaults budgetDefaults,
+            AgentAdmissionService admission,
+            SessionSummaryService summaries,
+            ObjectProvider<OperationAuditService> auditProvider) {
         this.store = store.getIfAvailable();
         this.ids = ids;
         this.accounts = accounts;
         this.budgetDefaults = budgetDefaults;
         this.admission = admission;
         this.summaries = summaries;
+        this.audit = auditProvider == null ? null : auditProvider.getIfAvailable();
         this.mapper =
                 new ObjectMapper()
                         .findAndRegisterModules()
@@ -75,13 +92,28 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             long userId, long sessionId, String content, String traceId) {
         long runId = ids.nextId();
         String runIdText = Long.toString(runId);
-        if (store == null)
-            return new RunCreation(
-                    accounts.addMessage(
-                            userId, sessionId, MessageRole.USER.code(), content, null, runId),
+        if (store == null) {
+            RunCreation result =
+                    new RunCreation(
+                            accounts.addMessage(
+                                    userId,
+                                    sessionId,
+                                    MessageRole.USER.code(),
+                                    content,
+                                    null,
+                                    runId),
+                            runIdText,
+                            null,
+                            "persisted");
+            record(
+                    userId,
+                    "agent_run",
                     runIdText,
-                    null,
-                    "persisted");
+                    "agent_run.create",
+                    "success",
+                    Map.of("session_id", sessionId));
+            return result;
+        }
         // waiting_user 的旧 Run 由本次补充消息接续：新 Run 记 parent，旧 Run 迁移为 superseded 终态。
         accounts.listMessages(userId, sessionId, 1, 1);
         Long parentRunId = store.waitingRun(sessionId);
@@ -96,7 +128,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
 
         store.bindMessage(runId, message.messageId());
         if (parentRunId != null) {
-            supersedeParentRun(parentRunId, runId);
+            supersedeParentRun(parentRunId, runId, userId);
         }
         insertInitialBudgetSnapshot(runId);
 
@@ -223,14 +255,23 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             store.queueOutbox(runId, dispatchId, queuePriority);
         }
         store.activateDispatch(runId, dispatchRowId);
-        return new RunCreation(
-                message,
+        RunCreation result =
+                new RunCreation(
+                        message,
+                        runIdText,
+                        dispatchId,
+                        admissionResult.state().name().toLowerCase(java.util.Locale.ROOT));
+        record(
+                userId,
+                "agent_run",
                 runIdText,
-                dispatchId,
-                admissionResult.state().name().toLowerCase(java.util.Locale.ROOT));
+                "agent_run.create",
+                "success",
+                Map.of("session_id", sessionId, "dispatch_status", result.status()));
+        return result;
     }
 
-    private void supersedeParentRun(long parentRunId, long continuationRunId) {
+    private void supersedeParentRun(long parentRunId, long continuationRunId, long userId) {
         // 旧 Run 迁移到 superseded 终态；迟到事件因 dispatch 不再 active 而被拒绝。
         int updated = store.supersede(parentRunId, continuationRunId);
         if (updated == 0) {
@@ -249,6 +290,24 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                 parentRunId + ":superseded:" + continuationRunId,
                 json(new V1RunSupersededEvent(Long.toString(continuationRunId))));
         store.updateSseSequence(parentRunId, streamSeq);
+        record(
+                userId,
+                "agent_run",
+                Long.toString(parentRunId),
+                "agent_run.superseded",
+                "success",
+                Map.of("continuation_run_id", continuationRunId));
+    }
+
+    private void record(
+            long userId,
+            String targetType,
+            String targetId,
+            String action,
+            String result,
+            Map<String, ?> metadata) {
+        if (audit != null)
+            audit.record(userId, targetType, targetId, action, result, null, null, null, metadata);
     }
 
     private void insertInitialBudgetSnapshot(long runId) {

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.common.service.AgentOperationMetrics;
 import com.foodmate.application.conversation.service.MemoryCandidateService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository;
@@ -29,6 +30,7 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
     private final IdGenerator ids;
     private final AgentAdmissionService admission;
     private final MemoryCandidateService memories;
+    private final AgentOperationMetrics metrics;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     private final Map<String, List<V1RunEvent>> memoryEvents = new HashMap<>();
     private final Map<String, Long> memorySequence = new HashMap<>();
@@ -45,23 +47,39 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         this(storeProvider, ids, admissionProvider, null);
     }
 
-    @Autowired
     public V1RuntimeEventServiceImpl(
             ObjectProvider<RuntimeEventRepository> storeProvider,
             IdGenerator ids,
             ObjectProvider<AgentAdmissionService> admissionProvider,
             ObjectProvider<MemoryCandidateService> memoryProvider) {
+        this(storeProvider, ids, admissionProvider, memoryProvider, null);
+    }
+
+    @Autowired
+    public V1RuntimeEventServiceImpl(
+            ObjectProvider<RuntimeEventRepository> storeProvider,
+            IdGenerator ids,
+            ObjectProvider<AgentAdmissionService> admissionProvider,
+            ObjectProvider<MemoryCandidateService> memoryProvider,
+            ObjectProvider<AgentOperationMetrics> metricsProvider) {
         this.store = storeProvider.getIfAvailable();
         this.ids = ids;
         this.admission = admissionProvider == null ? null : admissionProvider.getIfAvailable();
         this.memories = memoryProvider == null ? null : memoryProvider.getIfAvailable();
+        this.metrics = metricsProvider == null ? null : metricsProvider.getIfAvailable();
     }
 
     @Transactional
     @Override
     public synchronized EventResult accept(V1RunEvent event) {
         // 先做幂等、dispatch fencing 和连续 event_seq 校验，合法事件才允许推进状态。
-        if (store == null) return acceptMemory(event);
+        if (store == null) {
+            EventResult result = acceptMemory(event);
+            if (metrics != null)
+                metrics.count(
+                        "local", "event", result.duplicate() ? "duplicate" : "success", "memory");
+            return result;
+        }
         long runId = parseRunId(event.runId());
         if (!store.runExists(runId)) {
             throw new com.foodmate.shared.runtime.RuntimeException(
@@ -72,7 +90,10 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
             if (!known.equals(event.requestHash()))
                 throw new com.foodmate.shared.runtime.RuntimeException(
                         "RUNTIME_EVENT_IDEMPOTENCY_CONFLICT", "event hash conflict");
-            return new EventResult(event.runId(), event.eventId(), true, statusFor(event));
+            EventResult result =
+                    new EventResult(event.runId(), event.eventId(), true, statusFor(event));
+            if (metrics != null) metrics.count("rocketmq", "event", "duplicate", "inbox");
+            return result;
         }
         DispatchRow dispatch = store.dispatch(runId, event.dispatchId());
         if (dispatch == null
@@ -144,7 +165,9 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
                     throw coordinationFailure;
             }
         }
-        return new EventResult(event.runId(), event.eventId(), false, status);
+        EventResult eventResult = new EventResult(event.runId(), event.eventId(), false, status);
+        if (metrics != null) metrics.count("rocketmq", "event", "success", status);
+        return eventResult;
     }
 
     @Override
@@ -178,30 +201,39 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
 
     @Override
     public synchronized List<SseRecord> sseEvents(String runId, long afterSequence) {
-        if (store == null)
-            return memoryEvents.getOrDefault(runId, List.of()).stream()
-                    .filter(event -> event.eventSeq() > afterSequence)
-                    .map(
-                            event ->
-                                    new SseRecord(
-                                            event.eventSeq(),
-                                            "sse_memory_" + event.eventId(),
-                                            event.eventType(),
-                                            event.payload(),
-                                            event.eventType().equals("run.completed")
-                                                    || event.eventType().equals("run.failed")
-                                                    || event.eventType().equals("run.cancelled")))
-                    .toList();
-        return store.sseEvents(parseRunId(runId), afterSequence).stream()
-                .map(
-                        row ->
-                                new SseRecord(
-                                        row.seq(),
-                                        row.id(),
-                                        row.type(),
-                                        readPayload(row.payload()),
-                                        terminalType(row.type())))
-                .toList();
+        if (store == null) {
+            List<SseRecord> replay =
+                    memoryEvents.getOrDefault(runId, List.of()).stream()
+                            .filter(event -> event.eventSeq() > afterSequence)
+                            .map(
+                                    event ->
+                                            new SseRecord(
+                                                    event.eventSeq(),
+                                                    "sse_memory_" + event.eventId(),
+                                                    event.eventType(),
+                                                    event.payload(),
+                                                    event.eventType().equals("run.completed")
+                                                            || event.eventType()
+                                                                    .equals("run.failed")
+                                                            || event.eventType()
+                                                                    .equals("run.cancelled")))
+                            .toList();
+            if (metrics != null) metrics.count("local", "sse_replay", "success", "last_event_id");
+            return replay;
+        }
+        List<SseRecord> replay =
+                store.sseEvents(parseRunId(runId), afterSequence).stream()
+                        .map(
+                                row ->
+                                        new SseRecord(
+                                                row.seq(),
+                                                row.id(),
+                                                row.type(),
+                                                readPayload(row.payload()),
+                                                terminalType(row.type())))
+                        .toList();
+        if (metrics != null) metrics.count("rocketmq", "sse_replay", "success", "last_event_id");
+        return replay;
     }
 
     @Override

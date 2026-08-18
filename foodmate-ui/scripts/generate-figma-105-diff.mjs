@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 
 const scriptDirectory = dirname(new URL(import.meta.url).pathname.replace(/^\/(\w):/, '$1:'));
 const uiRoot = resolve(scriptDirectory, '..');
@@ -22,7 +22,7 @@ function pngSize(filePath) {
 }
 
 function relativeEvidencePath(filePath) {
-  return `.qa/figma-pixel-acceptance/${basename(filePath)}`;
+  return relative(uiRoot, filePath).replaceAll('\\', '/');
 }
 
 function resolveFigmaPath(item) {
@@ -36,20 +36,20 @@ function resolveFigmaPath(item) {
 
 function browserCandidates(item) {
   const candidates = [];
-  const conventionalBases = [item.artboardName, `chat-${item.artboardName}`];
-  for (const base of conventionalBases) {
-    candidates.push(join(evidenceRoot, `${base}-browser.png`));
-    candidates.push(join(evidenceRoot, `${base}-browser-1440x1024.png`));
-    candidates.push(join(evidenceRoot, `${base}-browser-1440x1024-rgba.png`));
-  }
   if (item.browserPng) {
-    const original = resolve(evidenceRoot, basename(item.browserPng));
+    const original = resolve(uiRoot, item.browserPng);
     candidates.push(original);
     if (original.endsWith('.png')) {
       candidates.push(original.replace(/\.png$/, '-rgba.png'));
       candidates.push(original.replace(/\.png$/, '-full-rgba.png'));
       candidates.push(original.replace(/\.png$/, '-stable-rgba.png'));
     }
+  }
+  const conventionalBases = [item.artboardName, `chat-${item.artboardName}`];
+  for (const base of conventionalBases) {
+    candidates.push(join(evidenceRoot, `${base}-browser.png`));
+    candidates.push(join(evidenceRoot, `${base}-browser-1440x1024.png`));
+    candidates.push(join(evidenceRoot, `${base}-browser-1440x1024-rgba.png`));
   }
   const base = item.browserPng ? basename(item.browserPng).replace(/\.png$/, '') : '';
   if (base) {
@@ -94,15 +94,15 @@ for (const item of mapping.items) {
       sizeMismatch += 1;
       results[key] = diff;
       item.status = 'SIZE_MISMATCH';
-      item.manualReviewConclusion = 'PENDING';
       item.evidenceNote = 'Figma and browser evidence dimensions differ';
     } else {
       compared += 1;
       diffReview += 1;
       results[key] = diff;
       item.status = 'DIFF_REVIEW';
-      item.manualReviewConclusion = 'PENDING';
-      item.evidenceNote = 'Automated diff exists; geometry, text and manual visual review remain open';
+      item.evidenceNote = item.manualReview?.status === 'PENDING'
+        ? 'Automated diff exists; manual visual review remains open'
+        : 'Automated diff exists; see manual visual review conclusion';
     }
     item.figmaPng = figmaPath.startsWith(repositoryRoot)
       ? figmaPath.slice(repositoryRoot.length + 1).replaceAll('\\', '/')
@@ -134,10 +134,10 @@ mapping.summary = {
 };
 mapping.source.capturedAt = new Date().toISOString().slice(0, 10);
 
-writeFileSync(mappingPath, `${JSON.stringify(mapping, null, 2)}\n`);
+writeFileSync(mappingPath, `${JSON.stringify(mapping, null, 2)}${String.fromCharCode(10)}`);
 writeFileSync(
   resultsPath,
-  `${JSON.stringify({ generatedAt: mapping.source.capturedAt, tool: 'scripts/png-diff.mjs', results }, null, 2)}\n`,
+  `${JSON.stringify({ generatedAt: mapping.source.capturedAt, tool: 'scripts/png-diff.mjs', results }, null, 2)}${String.fromCharCode(10)}`,
 );
 
 console.log(JSON.stringify(mapping.summary));

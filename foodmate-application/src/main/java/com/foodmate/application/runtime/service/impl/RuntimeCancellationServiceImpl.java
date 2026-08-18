@@ -1,5 +1,6 @@
 package com.foodmate.application.runtime.service.impl;
 
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.runtime.port.out.CancellationRepository;
 import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.application.runtime.service.RuntimeCancellationService;
@@ -9,6 +10,7 @@ import com.foodmate.shared.runtime.V1CancelCommand;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,21 +23,43 @@ public class RuntimeCancellationServiceImpl implements RuntimeCancellationServic
     private final IdGenerator ids;
     private final RuntimeClientPort client;
     private final V1RuntimeEventService events;
+    private final OperationAuditService audit;
 
     public RuntimeCancellationServiceImpl(
             CancellationRepository store,
             IdGenerator ids,
             ObjectProvider<RuntimeClientPort> clientProvider,
-            V1RuntimeEventService events) {
+            V1RuntimeEventService events,
+            ObjectProvider<OperationAuditService> auditProvider) {
         this.store = store;
         this.ids = ids;
         this.client = clientProvider.getIfAvailable();
         this.events = events;
+        this.audit = auditProvider.getIfAvailable();
     }
 
     @Transactional
     @Override
     public CancelResult request(long userId, String runId, String reason) {
+        try {
+            return requestInternal(userId, runId, reason);
+        } catch (RuntimeException exception) {
+            if (audit != null)
+                audit.recordFailure(
+                        userId,
+                        "agent_run",
+                        runId,
+                        "agent_run.cancel",
+                        "failed",
+                        runtimeErrorCode(exception),
+                        null,
+                        null,
+                        Map.of("exception_type", exception.getClass().getSimpleName()));
+            throw exception;
+        }
+    }
+
+    private CancelResult requestInternal(long userId, String runId, String reason) {
         // 取消、状态检查和 cancellation_epoch 提升必须先完成用户归属校验。
         events.requireRunOwner(runId, userId);
         long numeric = parse(runId);
@@ -45,7 +69,7 @@ public class RuntimeCancellationServiceImpl implements RuntimeCancellationServic
                     "RUNTIME_STATE_CONFLICT", "active dispatch not found");
         String status = active.runStatus();
         if (status.equals("completed") || status.equals("failed") || status.equals("cancelled"))
-            return new CancelResult(runId, status, true);
+            return audited(userId, new CancelResult(runId, status, true), true);
         String cancelId = "can_" + UUID.randomUUID().toString().replace("-", "");
         String dispatchId = active.dispatchId();
         int attempt = active.attempt();
@@ -68,7 +92,28 @@ public class RuntimeCancellationServiceImpl implements RuntimeCancellationServic
                 new CancellationRepository.NewCancellation(
                         ids.nextId(), numeric, cancelId, dispatchId, hash, reason, requestedAt));
         store.incrementCancellationEpoch(numeric);
-        return new CancelResult(runId, "requested", false);
+        return audited(userId, new CancelResult(runId, "requested", false), false);
+    }
+
+    private CancelResult audited(long userId, CancelResult result, boolean terminal) {
+        if (audit != null)
+            audit.record(
+                    userId,
+                    "agent_run",
+                    result.runId(),
+                    "agent_run.cancel",
+                    "success",
+                    null,
+                    null,
+                    null,
+                    Map.of("status", result.status(), "terminal", terminal));
+        return result;
+    }
+
+    private static String runtimeErrorCode(RuntimeException exception) {
+        if (exception instanceof com.foodmate.shared.runtime.RuntimeException runtime)
+            return runtime.code();
+        return "RUNTIME_CANCEL_FAILED";
     }
 
     @Scheduled(fixedDelayString = "${foodmate.runtime.cancel-poll-ms:500}")

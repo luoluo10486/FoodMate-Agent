@@ -1,6 +1,7 @@
 package com.foodmate.application.food;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -71,6 +72,26 @@ class FoodLogServiceImplTest {
         assertEquals(first, replay);
         verify(repository).insertFoodLog(any());
         verify(repository).insertItem(any());
+    }
+
+    @Test
+    void auditCompletionStoresOnlyFoodLogSummary() throws Exception {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.reserveAudit(any())).thenReturn(1);
+        when(repository.insertFoodLog(any())).thenReturn(1);
+        when(repository.findOwned(7L, 100L, false)).thenReturn(snapshot(false, 1));
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L));
+
+        service.create(7L, command("audit-summary"));
+
+        var response = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(repository).completeAudit(eq(7L), eq("audit-summary"), response.capture());
+        var summary = mapper.readTree(response.getValue());
+        assertEquals(100L, summary.path("resource_id").asLong());
+        assertEquals(1L, summary.path("revision").asLong());
+        assertEquals("active", summary.path("status").asText());
+        assertFalse(response.getValue().contains("at home"));
+        assertFalse(response.getValue().contains("rice"));
     }
 
     @Test

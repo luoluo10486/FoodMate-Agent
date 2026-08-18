@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Copy, Lock, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input as ShadcnInput } from '@/components/ui/input';
 import {
@@ -11,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button, Card, Table, Tag, type TableColumnProps } from './AdminPrimitives';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, OperationAuditCard } from './AdminComponents';
 import {
@@ -219,8 +222,9 @@ function ToolRegistrySection({
         <>
           {showOperationActions ? (
             <Button
+              variant="outline"
               className={styles.registryActionButton}
-              size="small"
+              size="sm"
               disabled={operationStatus === 'submitting' || operationStatus === 'no-permission'}
               onClick={() => onAction(createToolAction(record))}
             >
@@ -228,7 +232,12 @@ function ToolRegistrySection({
               {record.status === 'active' ? '停用工具' : '启用工具'}
             </Button>
           ) : (
-            <Button className={styles.registryActionButton} size="small" onClick={() => setSelectedTool(record)}>
+            <Button
+              variant="outline"
+              className={styles.registryActionButton}
+              size="sm"
+              onClick={() => setSelectedTool(record)}
+            >
               配置详情
             </Button>
           )}
@@ -317,14 +326,12 @@ function ToolRegistrySection({
         ))}
       </section>
 
-      <Card className={styles.registryTableCard} bordered={false}>
-        <Table
+      <Card className={styles.registryTableCard}>
+        <DataTable
           className={styles.registryTableScroll}
           tableClassName={styles.registryTable}
           columns={registryColumns}
           data={visibleResults}
-          pagination={false}
-          size="small"
         />
       </Card>
 
@@ -334,6 +341,7 @@ function ToolRegistrySection({
         </span>
         <div className={styles.registryPageButtons}>
           <Button
+            variant="outline"
             className={styles.registryPageButton}
             disabled={page === 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
@@ -342,6 +350,7 @@ function ToolRegistrySection({
           </Button>
           {[1, 2, 3, 4].map((value) => (
             <Button
+              variant="outline"
               className={`${styles.registryPageButton} ${page === value ? styles.registryPageActive : ''}`}
               key={value}
               onClick={() => setPage(value)}
@@ -350,6 +359,7 @@ function ToolRegistrySection({
             </Button>
           ))}
           <Button
+            variant="outline"
             className={styles.registryPageButton}
             disabled={page === 4}
             onClick={() => setPage((current) => Math.min(4, current + 1))}
@@ -386,6 +396,7 @@ function ToolRegistrySection({
           <DialogFooter>
             {selectedTool ? (
               <Button
+                variant="outline"
                 className={styles.registryActionButton}
                 disabled={operationStatus === 'submitting'}
                 onClick={() => {
@@ -397,7 +408,9 @@ function ToolRegistrySection({
                 {selectedTool.status === 'active' ? '停用工具' : '启用工具'}
               </Button>
             ) : null}
-            <Button onClick={() => setSelectedTool(undefined)}>关闭</Button>
+            <Button variant="outline" onClick={() => setSelectedTool(undefined)}>
+              关闭
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -415,7 +428,7 @@ export function ToolsSection({
   refreshNonce?: number;
 }) {
   const [searchParams] = useSearchParams();
-  return searchParams.get('tab') === 'registry' ? (
+  return searchParams.get('tab') === 'registry' || searchParams.get('state') === 'tool-registry' ? (
     <ToolRegistrySection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />
   ) : (
     <ToolCallsSection onAction={onAction} refreshNonce={refreshNonce} />
@@ -452,11 +465,12 @@ function ToolCallsSection({
       title: '操作',
       render: (_, record) => (
         <div className={styles.rowActions}>
-          <Button size="mini" onClick={() => setSelectedTool(record)}>
+          <Button variant="outline" size="sm" onClick={() => setSelectedTool(record)}>
             详情
           </Button>
           <Button
-            size="mini"
+            variant="outline"
+            size="sm"
             disabled={!canManage}
             onClick={() =>
               onAction({
@@ -484,12 +498,12 @@ function ToolCallsSection({
     <>
       <AdminFilters placeholder="toolName / risk / scope" />
       <section className={styles.sectionLayout}>
-        <Card className={styles.wideCard} bordered={false}>
+        <Card className={styles.wideCard}>
           <div className={styles.cardHead}>
             <strong>工具注册表</strong>
-            <Tag color="red">高风险工具仅 admin 可停用</Tag>
+            <Badge variant="destructive">高风险工具仅 admin 可停用</Badge>
           </div>
-          <Table columns={toolColumns} data={tools} pagination={{ pageSize: 6, total: tools.length }} size="small" />
+          <DataTable columns={toolColumns} data={tools} />
         </Card>
         <aside className={styles.side}>
           {selectedTool ? <ToolDetailCard tool={selectedTool} /> : null}
@@ -502,7 +516,7 @@ function ToolCallsSection({
 
 function ToolDetailCard({ tool }: { tool: ToolRow }) {
   return (
-    <Card className={styles.card} bordered={false}>
+    <Card className={styles.card}>
       <div className={styles.cardHead}>
         <strong>工具详情</strong>
         {riskTag(tool.risk)}

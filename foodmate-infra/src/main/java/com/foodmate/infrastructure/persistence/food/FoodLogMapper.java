@@ -45,10 +45,6 @@ public interface FoodLogMapper {
             @Param("sourceUnit") String sourceUnit,
             @Param("targetUnit") String targetUnit);
 
-    @Select(
-            "SELECT parameters_digest AS parametersDigest, result, response_json::text AS responseJson FROM operation_audits WHERE operator_id=#{userId} AND idempotency_key=#{idempotencyKey} AND is_deleted=FALSE")
-    IdempotencyRecord findIdempotency(long userId, String idempotencyKey);
-
     @Insert(
             "INSERT INTO food_logs(food_log_id,user_id,session_id,agent_run_id,meal_time,meal_type,notes,source,idempotency_key,revision,created_by,updated_by) VALUES (#{foodLogId},#{userId},#{sessionId},#{agentRunId},#{mealTime},#{mealType},#{notes},#{source},#{idempotencyKey},#{revision},#{userId},#{userId})")
     int insertFoodLog(FoodLogWrite write);
@@ -88,15 +84,4 @@ public interface FoodLogMapper {
     @Update(
             "UPDATE food_logs SET is_deleted=FALSE,deleted_at=NULL,deleted_by=NULL,updated_at=CURRENT_TIMESTAMP,updated_by=#{userId},revision=revision+1 WHERE food_log_id=#{foodLogId} AND user_id=#{userId} AND revision=#{revision} AND is_deleted=TRUE")
     int restore(long userId, long foodLogId, long revision);
-
-    @Insert(
-            "INSERT INTO operation_audits(operation_audit_id,operator_id,request_id,trace_id,target_type,target_id,action,result,request_json,response_json,parameters_digest,idempotency_key,created_by,updated_by) VALUES (#{operationAuditId},#{operatorId},#{requestId},#{traceId},#{targetType},#{targetId},#{action},'pending','{}'::jsonb,CAST(#{responseJson} AS jsonb),#{parametersDigest},#{idempotencyKey},#{operatorId},#{operatorId}) ON CONFLICT (operator_id,idempotency_key) WHERE operator_id IS NOT NULL AND idempotency_key IS NOT NULL AND is_deleted=FALSE DO NOTHING")
-    int reserveAudit(AuditWrite audit);
-
-    @Update(
-            "UPDATE operation_audits SET result='success',response_json=CAST(#{responseJson} AS jsonb),updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE operator_id=#{operatorId} AND idempotency_key=#{idempotencyKey} AND is_deleted=FALSE AND result='pending'")
-    int completeAudit(long operatorId, String idempotencyKey, String responseJson);
-
-    @Select("SELECT COALESCE(MAX(operation_audit_id),0)+1 FROM operation_audits")
-    long nextAuditId();
 }

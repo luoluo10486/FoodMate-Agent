@@ -210,7 +210,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 
 ### M1-6 审计、可观测性与核心部署
 
-- [ ] 完成 M1-6 范围内的统一审计覆盖；当前 M1-5 已写入 `operation_audits`，并验证 approval propose/confirm/execute 各 1 条成功审计。
+- [x] 完成 M1-6 范围内统一审计代码覆盖：通过 `OperationAuditPort` 单适配器覆盖账户、记忆、个人数据、预算/取消/恢复、审批和核心饮食写操作；审计摘要脱敏且失败关闭。真实 PostgreSQL 全量覆盖计数仍随流量/故障矩阵记录。
 - [x] 保留 Java Actuator liveness/readiness，增加本地可访问基础 metrics，并补充 local 配置回归测试。
 - [x] 本地运行两个独立 Java JVM，共享 PostgreSQL，完成有界认证会话读取的 P50/P95/P99、吞吐和错误率统计；结果不外推生产容量。
 - [ ] 扩展到共享 Redis/RocketMQ、Agent 业务流量、队列积压和重复执行统计。

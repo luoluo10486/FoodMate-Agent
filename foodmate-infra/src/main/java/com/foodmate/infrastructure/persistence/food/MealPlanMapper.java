@@ -14,11 +14,6 @@ public interface MealPlanMapper {
             "SELECT EXISTS(SELECT 1 FROM sessions WHERE session_id=#{sessionId} AND user_id=#{userId} AND is_deleted=FALSE)")
     boolean sessionOwned(@Param("userId") long userId, @Param("sessionId") long sessionId);
 
-    @Select(
-            "SELECT parameters_digest AS parametersDigest,result,response_json::text AS responseJson FROM operation_audits WHERE operator_id=#{userId} AND idempotency_key=#{idempotencyKey} AND is_deleted=FALSE")
-    IdempotencyRecord findIdempotency(
-            @Param("userId") long userId, @Param("idempotencyKey") String idempotencyKey);
-
     @Insert(
             "INSERT INTO meal_plans(meal_plan_id,user_id,session_id,plan_name,days,budget,constraints_json,plan_json,validation_json,status,idempotency_key,revision,created_by,updated_by) VALUES (#{mealPlanId},#{userId},#{sessionId},#{planName},#{days},#{budget},CAST(#{constraintsJson} AS jsonb),CAST(#{planJson} AS jsonb),CAST(#{validationJson} AS jsonb),#{status},#{idempotencyKey},#{revision},#{userId},#{userId})")
     int insertPlan(PlanWrite plan);
@@ -77,15 +72,4 @@ public interface MealPlanMapper {
             "SELECT shopping_list_id AS shoppingListId,meal_plan_id AS mealPlanId,user_id AS userId,items_json::text AS itemsJson,status,created_at AS createdAt,updated_at AS updatedAt FROM shopping_lists WHERE meal_plan_id=#{mealPlanId} AND user_id=#{userId} AND is_deleted=FALSE ORDER BY created_at DESC LIMIT 1")
     ShoppingListSnapshot findOwnedShoppingList(
             @Param("userId") long userId, @Param("mealPlanId") long mealPlanId);
-
-    @Insert(
-            "INSERT INTO operation_audits(operation_audit_id,operator_id,request_id,trace_id,target_type,target_id,action,result,request_json,response_json,parameters_digest,idempotency_key,created_by,updated_by) VALUES (#{operationAuditId},#{operatorId},#{requestId},#{traceId},#{targetType},#{targetId},#{action},'pending','{}'::jsonb,CAST(#{responseJson} AS jsonb),#{parametersDigest},#{idempotencyKey},#{operatorId},#{operatorId}) ON CONFLICT (operator_id,idempotency_key) WHERE operator_id IS NOT NULL AND idempotency_key IS NOT NULL AND is_deleted=FALSE DO NOTHING")
-    int reserveAudit(AuditWrite audit);
-
-    @Update(
-            "UPDATE operation_audits SET result='success',response_json=CAST(#{responseJson} AS jsonb),updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE operator_id=#{operatorId} AND idempotency_key=#{idempotencyKey} AND is_deleted=FALSE AND result='pending'")
-    int completeAudit(
-            @Param("operatorId") long operatorId,
-            @Param("idempotencyKey") String idempotencyKey,
-            @Param("responseJson") String responseJson);
 }

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Copy, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input as ShadcnInput } from '@/components/ui/input';
 import {
@@ -10,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button, Card, Table, type TableColumnProps } from './AdminPrimitives';
 import styles from '../AdminPage.module.css';
 import { AdminOnlyNotice } from './AdminComponents';
 import { type DeletedRow, adminDeletedRows, canRestoreResources } from './AdminShared';
@@ -227,13 +229,18 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
       title: '操作',
       render: (_, record) => (
         <div className={styles.deletedActions}>
-          <Button className={styles.deletedDetailButton} size="small" onClick={() => setSelectedRow(record)}>
+          <Button
+            variant="outline"
+            className={styles.deletedDetailButton}
+            size="sm"
+            onClick={() => setSelectedRow(record)}
+          >
             查看详情
           </Button>
           <Button
+            variant="destructive"
             className={styles.deletedRestoreButton}
-            size="small"
-            color="red"
+            size="sm"
             disabled={!record.restorable || !canRestoreResources}
             onClick={() =>
               onAction({
@@ -313,14 +320,12 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
         </p>
       </section>
 
-      <Card className={styles.deletedTableCard} bordered={false}>
-        <Table
+      <Card className={styles.deletedTableCard}>
+        <DataTable
           className={styles.deletedTableScroll}
           tableClassName={styles.deletedTable}
           columns={deletedColumns}
           data={visibleRows}
-          pagination={false}
-          size="small"
         />
       </Card>
 
@@ -330,6 +335,7 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
         </span>
         <div className={styles.deletedPageButtons}>
           <Button
+            variant="outline"
             className={styles.deletedPageButton}
             disabled={page === 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
@@ -338,6 +344,7 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
           </Button>
           {Array.from({ length: pageCount }, (_, index) => index + 1).map((value) => (
             <Button
+              variant="outline"
               className={`${styles.deletedPageButton} ${page === value ? styles.deletedPageActive : ''}`}
               key={value}
               onClick={() => setPage(value)}
@@ -346,6 +353,7 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
             </Button>
           ))}
           <Button
+            variant="outline"
             className={styles.deletedPageButton}
             disabled={page === pageCount}
             onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
@@ -380,7 +388,9 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
             </div>
           ) : null}
           <DialogFooter>
-            <Button onClick={() => setSelectedRow(undefined)}>关闭</Button>
+            <Button variant="outline" onClick={() => setSelectedRow(undefined)}>
+              关闭
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

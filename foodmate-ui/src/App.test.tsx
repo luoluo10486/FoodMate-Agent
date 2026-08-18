@@ -61,4 +61,15 @@ describe('HomePage 独立渲染', () => {
     expect(screen.getByText('分析摄入')).toBeInTheDocument();
     expect(screen.getByText('创建计划')).toBeInTheDocument();
   });
+
+  it('figma-v2 fixture 固定使用设计稿身份，不覆盖默认用户', () => {
+    render(
+      <MemoryRouter initialEntries={['/?state=figma-v2']}>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('👋 早上好，Anddy！')).toBeInTheDocument();
+    expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
+  });
 });

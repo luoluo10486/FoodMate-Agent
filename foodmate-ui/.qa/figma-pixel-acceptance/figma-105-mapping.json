@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-08-15",
+    "capturedAt": "2026-08-18",
     "figmaMcp": "get_metadata"
   },
   "acceptanceRules": {
@@ -41,14 +41,41 @@
         "height": 1024
       },
       "frontendRoute": "/",
-      "queryState": "view=records",
+      "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/workspace-home-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-v2-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-browser-converted.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-v2",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "manualReviewConclusion": "MINOR_RENDERING_DIFF_CONFIRMED",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "MINOR_RENDERING_DIFF_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Refreshed Figma and browser captures have matching viewport and page structure. Visible differences remain in icon rendering, avatar treatment, and browser JPEG-to-PNG text edges; retain DIFF_REVIEW."
+      }
     },
     {
       "figmaNodeId": "640:428",
@@ -58,14 +85,41 @@
         "height": 1024
       },
       "frontendRoute": "/chat",
-      "queryState": null,
+      "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-v2-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-browser-converted.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "The refreshed browser fixture matches the Figma layout and content hierarchy. Avatar assets and browser JPEG-to-PNG capture edges remain visibly different; retain DIFF_REVIEW."
+      }
     },
     {
       "figmaNodeId": "640:588",
@@ -75,14 +129,40 @@
         "height": 1024
       },
       "frontendRoute": "/analysis",
-      "queryState": "state=v2",
+      "queryState": "view=records&state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/diet-records-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-v2-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "640:773",
@@ -95,11 +175,37 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/intake-analysis-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/intake-analysis-v2-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "640:901",
@@ -112,11 +218,37 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-planning-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-v2-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "647:214",
@@ -129,11 +261,38 @@
       "queryState": "state=v2",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/login-v2-browser-1440x900-converted.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-v2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-v2",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "manualReviewConclusion": "MINOR_RENDERING_DIFF_CONFIRMED",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "MINOR_RENDERING_DIFF_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Layout, fields and diagonal background align visually with Figma 647:214; raw per-pixel difference remains inflated by JPEG-to-PNG recoding."
+      }
     },
     {
       "figmaNodeId": "680:216",
@@ -146,11 +305,37 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/register-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/register-page-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#register-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:275",
@@ -163,11 +348,37 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/forgot-password-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/forgot-password-page-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/forgot-password-page-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#forgot-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:307",
@@ -180,11 +391,37 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/reset-password-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/reset-password-page-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#reset-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:408",
@@ -197,11 +434,37 @@
       "queryState": "state=submitting",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/login-submitting-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-submitting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-submitting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:445",
@@ -214,11 +477,37 @@
       "queryState": "state=field-error",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-field-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/login-field-error-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-field-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-field-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:483",
@@ -231,11 +520,37 @@
       "queryState": "state=credential-error",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-credential-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/login-credential-error-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-credential-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-credential-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:524",
@@ -248,11 +563,37 @@
       "queryState": "state=account-locked",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-account-locked.png",
-      "browserPng": ".qa/figma-pixel-acceptance/login-account-locked-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-account-locked-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-account-locked",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:564",
@@ -265,11 +606,37 @@
       "queryState": "state=account-disabled",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-account-disabled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/login-account-disabled-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-account-disabled-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-account-disabled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:606",
@@ -282,11 +649,37 @@
       "queryState": "state=service-unavailable",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-service-unavailable.png",
-      "browserPng": ".qa/figma-pixel-acceptance/login-service-unavailable-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-service-unavailable-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-service-unavailable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:738",
@@ -299,11 +692,37 @@
       "queryState": "state=invalid",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/token-invalid.png",
-      "browserPng": ".qa/figma-pixel-acceptance/token-invalid-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-invalid-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-invalid",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:757",
@@ -316,11 +735,37 @@
       "queryState": "state=expired",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/token-expired.png",
-      "browserPng": ".qa/figma-pixel-acceptance/token-expired-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-expired-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-expired",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "680:776",
@@ -333,11 +778,37 @@
       "queryState": "state=used",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/token-used.png",
-      "browserPng": ".qa/figma-pixel-acceptance/token-used-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-used-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-used",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x900",
+        "actualViewport": "1440x900",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 900,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:219",
@@ -350,11 +821,38 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-empty-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-empty",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: the empty-state composition and content align, but avatar and icon rendering differ.",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "The empty-state hierarchy, prompt cards, and composer align with the Figma reference. Avatar and icon treatment differ; retain DIFF_REVIEW."
+      }
     },
     {
       "figmaNodeId": "687:342",
@@ -367,11 +865,38 @@
       "queryState": "state=planning",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-planning.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-planning-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-planning-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-planning",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: Planning layout and stop state align, but avatar and icon rendering differ.",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "The Planning timeline, message structure, and stop composer state align with the Figma reference. Avatar and icon treatment differ; retain DIFF_REVIEW."
+      }
     },
     {
       "figmaNodeId": "687:475",
@@ -384,11 +909,37 @@
       "queryState": "state=tool-executing",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-tool-executing.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-tool-executing-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-executing-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-executing",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:642",
@@ -401,11 +952,37 @@
       "queryState": "state=awaiting-clarification",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-awaiting-clarification.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-awaiting-clarification-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-awaiting-clarification",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:773",
@@ -418,11 +995,37 @@
       "queryState": "state=write-confirmation",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-write-confirmation.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-write-confirmation-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-write-confirmation",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:918",
@@ -435,11 +1038,37 @@
       "queryState": "state=budget-limit",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-budget-limit-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:1306",
@@ -452,11 +1081,37 @@
       "queryState": "state=completed-with-citations",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-completed-with-citations.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-completed-with-citations-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-completed-with-citations-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-completed-with-citations",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:1439",
@@ -469,11 +1124,37 @@
       "queryState": "state=tool-failed-retryable",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-tool-failed-retryable.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-tool-failed-retryable-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:1563",
@@ -486,11 +1167,37 @@
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-safety-degraded-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:1684",
@@ -503,11 +1210,37 @@
       "queryState": "state=user-cancelled",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-user-cancelled-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "687:1803",
@@ -520,11 +1253,37 @@
       "queryState": "state=sse-reconnecting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/chat-agent-sse-reconnecting-browser-1440x1024.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "689:217",
@@ -537,11 +1296,37 @@
       "queryState": "state=redesign-default",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-redesign-default.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-redesign-default-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-redesign-default-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-redesign-default",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "689:385",
@@ -554,11 +1339,37 @@
       "queryState": "state=nav-loading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-nav-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-nav-loading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-nav-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-nav-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "689:530",
@@ -571,11 +1382,37 @@
       "queryState": "state=nav-hover-preview",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-nav-hover-preview.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-nav-hover-preview-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-nav-hover-preview-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-nav-hover-preview",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "689:690",
@@ -588,11 +1425,37 @@
       "queryState": "state=pagination",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-pagination.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-pagination-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-pagination-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-pagination",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:1049",
@@ -605,11 +1468,37 @@
       "queryState": "view=records&state=loading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/workspace-home-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-loading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:1208",
@@ -622,11 +1511,37 @@
       "queryState": "view=records&state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/workspace-home-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-empty-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:1313",
@@ -639,11 +1554,37 @@
       "queryState": "view=records&state=error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/workspace-home-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:1427",
@@ -656,11 +1597,37 @@
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/diet-records-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-loading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:1556",
@@ -673,11 +1640,37 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/diet-records-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-empty-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:1685",
@@ -690,11 +1683,37 @@
       "queryState": "state=error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/diet-records-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:2256",
@@ -707,11 +1726,37 @@
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-planning-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-loading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:2446",
@@ -724,11 +1769,37 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-planning-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-empty-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:2542",
@@ -741,11 +1812,37 @@
       "queryState": "state=error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-planning-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:1901",
@@ -758,11 +1855,37 @@
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/intake-analysis-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/intake-analysis-loading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:2026",
@@ -775,11 +1898,37 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/intake-analysis-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/intake-analysis-empty-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:2139",
@@ -792,11 +1941,37 @@
       "queryState": "state=error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/intake-analysis-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/intake-analysis-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:2662",
@@ -809,11 +1984,37 @@
       "queryState": "state=list",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-list.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-list-browser-stable-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:2801",
@@ -826,11 +2027,37 @@
       "queryState": "state=wizard-step1",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step1.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-wizard-step1-browser-stable-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step1-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step1",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:2934",
@@ -843,11 +2070,37 @@
       "queryState": "state=wizard-step2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-wizard-step2-browser-stable-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:3078",
@@ -860,11 +2113,37 @@
       "queryState": "state=wizard-step3",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step3.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-wizard-step3-browser-stable-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step3-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step3",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:3375",
@@ -877,11 +2156,37 @@
       "queryState": "state=conflict",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-conflict.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-conflict-browser-stable-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-conflict-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-conflict",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:3569",
@@ -894,11 +2199,37 @@
       "queryState": "state=shopping-list",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-shopping-list.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-shopping-list-browser-stable-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-shopping-list-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-shopping-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:3746",
@@ -911,11 +2242,37 @@
       "queryState": "state=generating",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-generating.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-generating-browser-stable-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-generating-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-generating",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:3847",
@@ -928,11 +2285,37 @@
       "queryState": "state=tool-registry",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-tool-registry.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-tool-registry-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-registry-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-tool-registry",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:4104",
@@ -945,11 +2328,37 @@
       "queryState": "state=deleted-resources",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-deleted-resources.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-deleted-resources-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-deleted-resources",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:4319",
@@ -962,11 +2371,37 @@
       "queryState": "state=op-no-permission",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-op-no-permission.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-op-no-permission-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-no-permission-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-no-permission",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:4539",
@@ -979,11 +2414,37 @@
       "queryState": "state=op-confirm",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-op-confirm.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-op-confirm-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-confirm-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-confirm",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:4766",
@@ -996,11 +2457,37 @@
       "queryState": "state=op-submitting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-op-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-op-submitting-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-submitting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-submitting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:4995",
@@ -1013,11 +2500,37 @@
       "queryState": "state=op-success",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-op-success.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-op-success-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-success-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-success",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "692:5207",
@@ -1030,11 +2543,37 @@
       "queryState": "state=op-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-op-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-op-failed-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-op-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-op-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "740:212",
@@ -1047,11 +2586,37 @@
       "queryState": "state=history-page-2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-history-page-2-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "740:426",
@@ -1064,11 +2629,37 @@
       "queryState": "state=history-page-3",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-3.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-history-page-3-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-3-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-3",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "742:212",
@@ -1081,11 +2672,37 @@
       "queryState": "state=search-results",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-search-results.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-search-results-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-search-results-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-search-results",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "782:212",
@@ -1098,11 +2715,37 @@
       "queryState": "state=knowledge-uploading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-uploading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-uploading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-uploading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-uploading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "782:366",
@@ -1115,11 +2758,37 @@
       "queryState": "state=knowledge-indexing",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-indexing.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-indexing-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-indexing-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-indexing",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "782:520",
@@ -1132,11 +2801,37 @@
       "queryState": "state=knowledge-upload-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-upload-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-upload-failed-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "792:212",
@@ -1149,11 +2844,37 @@
       "queryState": "state=basic-avatar-uploading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic-avatar-uploading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-basic-avatar-uploading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-avatar-uploading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-avatar-uploading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "794:212",
@@ -1166,11 +2887,37 @@
       "queryState": "state=basic-avatar-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic-avatar-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-basic-avatar-failed-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-avatar-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-avatar-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "794:380",
@@ -1183,11 +2930,37 @@
       "queryState": "state=basic-unsaved-leave-confirmation",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic-unsaved-leave-confirmation.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-basic-unsaved-leave-confirmation-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-unsaved-leave-confirmation",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "794:548",
@@ -1200,11 +2973,37 @@
       "queryState": "state=security-password-submitting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security-password-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-security-password-submitting-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-submitting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-submitting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "794:693",
@@ -1217,11 +3016,37 @@
       "queryState": "state=security-password-success",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security-password-success.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-security-password-success-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-success-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-success",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "794:838",
@@ -1234,11 +3059,37 @@
       "queryState": "state=security-password-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security-password-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-security-password-failed-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "794:984",
@@ -1251,11 +3102,37 @@
       "queryState": "state=privacy-export-queued",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-queued.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-export-queued-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-queued-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-queued",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "794:1127",
@@ -1268,11 +3145,37 @@
       "queryState": "state=privacy-export-running",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-running.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-export-running-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-running",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "795:212",
@@ -1285,11 +3188,37 @@
       "queryState": "state=privacy-export-expired",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-expired.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-export-expired-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-expired",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "795:356",
@@ -1302,11 +3231,37 @@
       "queryState": "state=privacy-deletion-submitting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-deletion-submitting-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-submitting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "795:499",
@@ -1319,11 +3274,37 @@
       "queryState": "state=privacy-deletion-success",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-success.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-deletion-success-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-success-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-success",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "795:642",
@@ -1336,11 +3317,37 @@
       "queryState": "state=privacy-deletion-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-deletion-failed-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "795:786",
@@ -1353,11 +3360,37 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/user-knowledge-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/user-knowledge-empty-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "795:968",
@@ -1370,11 +3403,37 @@
       "queryState": "state=search-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/user-knowledge-search-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/user-knowledge-search-failed-browser-full-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-search-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-search-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "795:1151",
@@ -1387,11 +3446,37 @@
       "queryState": "state=source-unavailable",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/user-knowledge-source-unavailable.png",
-      "browserPng": ".qa/figma-pixel-acceptance/user-knowledge-source-unavailable-browser-full-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-source-unavailable-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-source-unavailable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "797:212",
@@ -1404,11 +3489,37 @@
       "queryState": "state=run-detail",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-run-detail.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-run-detail-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-run-detail",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "797:359",
@@ -1421,11 +3532,37 @@
       "queryState": "state=tool-calls",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-tool-calls.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-tool-calls-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-tool-calls",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "797:490",
@@ -1438,11 +3575,37 @@
       "queryState": "state=sql-audit",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-sql-audit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-sql-audit-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-sql-audit",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "797:621",
@@ -1455,11 +3618,37 @@
       "queryState": "state=trace",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-trace.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-trace-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-trace",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "801:215",
@@ -1472,11 +3661,37 @@
       "queryState": "state=user-detail",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-user-detail.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-user-detail-browser-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-user-detail",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:212",
@@ -1489,11 +3704,37 @@
       "queryState": "state=session-actions",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-session-actions.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-session-actions-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-session-actions-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-session-actions",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:438",
@@ -1506,11 +3747,37 @@
       "queryState": "state=renamed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-renamed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-renamed-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-renamed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:662",
@@ -1523,11 +3790,37 @@
       "queryState": "state=archived",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-archived.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-archived-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-archived-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-archived",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:887",
@@ -1540,11 +3833,37 @@
       "queryState": "state=trash",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-trash.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-trash-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-trash-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-trash",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:1119",
@@ -1557,11 +3876,37 @@
       "queryState": "state=basic",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-basic-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:1281",
@@ -1574,11 +3919,37 @@
       "queryState": "state=memories",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-memories.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-memories-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-memories-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:1445",
@@ -1591,11 +3962,37 @@
       "queryState": "state=security",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-security-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:1585",
@@ -1608,11 +4005,37 @@
       "queryState": "state=privacy",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "806:1737",
@@ -1625,11 +4048,37 @@
       "queryState": "state=knowledge-upload-success",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-upload-success.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-upload-success-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-success-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-success",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "995:977",
@@ -1642,11 +4091,37 @@
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-overview.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-overview-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "995:1238",
@@ -1659,11 +4134,37 @@
       "queryState": null,
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-model-usage.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-model-usage-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-model-usage-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-model-usage",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "995:1499",
@@ -1676,11 +4177,37 @@
       "queryState": "view=audit",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-operation-audit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-operation-audit-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-operation-audit-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-operation-audit",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "997:2",
@@ -1693,11 +4220,37 @@
       "queryState": "state=knowledge-format-error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-format-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-format-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-format-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-format-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "997:160",
@@ -1710,11 +4263,37 @@
       "queryState": "state=knowledge-size-error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-size-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-knowledge-size-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-size-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-size-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "1013:2",
@@ -1727,11 +4306,37 @@
       "queryState": "state=memories-empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-memories-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-memories-empty-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-memories-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "1013:235",
@@ -1744,11 +4349,37 @@
       "queryState": "state=security-logout-confirm",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security-logout-confirm.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-security-logout-confirm-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-logout-confirm-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-logout-confirm",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "1013:465",
@@ -1761,11 +4392,37 @@
       "queryState": "state=privacy-delete-confirm",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-delete-confirm.png",
-      "browserPng": ".qa/figma-pixel-acceptance/profile-privacy-delete-confirm-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-delete-confirm-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-delete-confirm",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "1013:653",
@@ -1778,11 +4435,37 @@
       "queryState": "state=running-stop",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-running-stop.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-running-stop-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-running-stop-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-running-stop",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "1015:4",
@@ -1795,11 +4478,37 @@
       "queryState": "state=input-states",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/workspace-home-input-states.png",
-      "browserPng": ".qa/figma-pixel-acceptance/workspace-home-input-states-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-input-states-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-input-states",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1440x1024",
+        "actualViewport": "1440x1024",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 1024,
+          "width": 1440,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     },
     {
       "figmaNodeId": "1029:3",
@@ -1812,11 +4521,58 @@
       "queryState": null,
       "browserViewport": "1366x768",
       "figmaPng": "docxs/设计/figma-png/agent-chat-viewport-1366x768.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-viewport-1366x768-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-viewport-1366x768-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-viewport-1366x768",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; geometry, text and manual visual review remain open"
+      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "geometryCheck": {
+        "status": "PASS",
+        "expectedViewport": "1366x768",
+        "actualViewport": "1366x768",
+        "expectedDpr": 1,
+        "actualDpr": 1.0000000149011612,
+        "viewportPass": true,
+        "dprPass": true,
+        "bodyOverflow": false,
+        "root": {
+          "height": 768,
+          "width": 1366.4000244140625,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "textCheck": {
+        "status": "PASS",
+        "overflowCount": 0,
+        "overflow": []
+      },
+      "manualReview": {
+        "status": "PENDING",
+        "reviewer": null,
+        "reviewedAt": null
+      }
     }
-  ]
+  ],
+  "runtimeChecks": {
+    "generatedAt": "2026-08-18",
+    "tool": "Codex Browser runtime DOM inspection (recaptured evidence)",
+    "rules": {
+      "viewport": "mapping.browserViewport",
+      "dpr": 1,
+      "bodyHorizontalOverflow": "scrollWidth <= innerWidth",
+      "textOverflowTolerancePx": 3,
+      "manualReviewRequired": true
+    },
+    "summary": {
+      "total": 105,
+      "viewportPass": 105,
+      "dprPass": 105,
+      "geometryPass": 105,
+      "textPass": 105,
+      "textReview": 0,
+      "manualPending": 101,
+      "errors": 0
+    }
+  }
 }

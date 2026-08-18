@@ -876,7 +876,7 @@
 .conflictMeal {
   display: grid;
   min-width: 0;
-  min-height: 74px;
+  min-height: 88px;
   align-content: center;
   gap: 6px;
   padding: 12px;
@@ -886,13 +886,15 @@
 }
 
 .conflictMeal b {
+  display: block;
   min-width: 0;
-  overflow: hidden;
+  min-height: 15px;
+  overflow: visible;
   color: #333333;
-  font-size: 13px;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 15px;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .conflictMeal span {

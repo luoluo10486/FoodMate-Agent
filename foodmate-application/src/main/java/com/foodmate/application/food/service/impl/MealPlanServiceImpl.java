@@ -78,7 +78,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         }
         PlanView result =
                 view(key == null ? requirePlan(userId, id) : requirePlan(userId, id, false));
-        if (key != null) store.completeAudit(userId, key, json(result));
+        if (key != null) store.completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -116,7 +116,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         }
         store.softDeleteShoppingList(userId, mealPlanId);
         PlanView result = view(requirePlan(userId, mealPlanId, false));
-        store.completeAudit(userId, key, json(result));
+        store.completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -175,7 +175,8 @@ public class MealPlanServiceImpl implements MealPlanService {
                         legacyRepositoryPath
                                 ? requirePlan(userId, mealPlanId)
                                 : requirePlan(userId, mealPlanId, false));
-        if (idempotencyKey != null) store.completeAudit(userId, idempotencyKey, json(result));
+        if (idempotencyKey != null)
+            store.completeAudit(userId, idempotencyKey, auditSummary(result));
         return result;
     }
 
@@ -233,7 +234,8 @@ public class MealPlanServiceImpl implements MealPlanService {
                         legacyRepositoryPath
                                 ? requirePlan(userId, mealPlanId)
                                 : requirePlan(userId, mealPlanId, false));
-        if (idempotencyKey != null) store.completeAudit(userId, idempotencyKey, json(result));
+        if (idempotencyKey != null)
+            store.completeAudit(userId, idempotencyKey, auditSummary(result));
         return result;
     }
 
@@ -287,7 +289,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         if (store.restore(userId, mealPlanId, revision) != 1)
             throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
         PlanView result = view(requirePlan(userId, mealPlanId, false));
-        store.completeAudit(userId, key, json(result));
+        store.completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -591,7 +593,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         requireSameDigest(previous, digest);
         if (!"success".equals(previous.result()))
             throw new BusinessException(ErrorCode.CONFLICT, "幂等请求正在处理中");
-        return parseResponse(previous.responseJson());
+        return replayResponse(userId, previous.responseJson());
     }
 
     private void replayVoidOrConflict(
@@ -658,9 +660,26 @@ public class MealPlanServiceImpl implements MealPlanService {
         }
     }
 
-    private PlanView parseResponse(String responseJson) {
+    private String auditSummary(PlanView view) {
         try {
-            return mapper.readValue(responseJson, PlanView.class);
+            return mapper.writeValueAsString(
+                    java.util.Map.of(
+                            "resource_id", view.mealPlanId(),
+                            "revision", view.revision(),
+                            "status", view.status()));
+        } catch (JsonProcessingException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划审计摘要无效");
+        }
+    }
+
+    private PlanView replayResponse(long userId, String responseJson) {
+        try {
+            JsonNode summary = mapper.readTree(responseJson);
+            long mealPlanId = summary.path("resource_id").asLong(0);
+            if (mealPlanId > 0) return view(requirePlan(userId, mealPlanId, true));
+            // Compatibility with pre-M1-6 idempotency records. New records retain only this
+            // summary.
+            return mapper.treeToValue(summary, PlanView.class);
         } catch (JsonProcessingException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "已保存的计划结果无效");
         }

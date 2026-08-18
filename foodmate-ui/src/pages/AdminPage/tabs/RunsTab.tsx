@@ -11,11 +11,14 @@ import {
   Timer,
   Workflow,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
 import { Input as ShadcnInput } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button, Card, Table, Tag, type TableColumnProps } from './AdminPrimitives';
 import styles from '../AdminPage.module.css';
 import { MiniStat } from './AdminComponents';
 import {
@@ -177,7 +180,9 @@ function RunDetailSheet({
             <SheetDescription>展示当前记录的权威字段与可追踪关联，不补写后端未返回的事实。</SheetDescription>
           </div>
           {selection ? (
-            <Tag color={selectionStatus(selection) === 'failed' ? 'red' : 'blue'}>{selectionStatus(selection)}</Tag>
+            <Badge variant={selectionStatus(selection) === 'failed' ? 'destructive' : 'outline'}>
+              {selectionStatus(selection)}
+            </Badge>
           ) : null}
         </SheetHeader>
 
@@ -509,7 +514,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, row) => (
-        <Button size="small" onClick={() => setSelection({ type: 'run', row })}>
+        <Button variant="outline" size="sm" onClick={() => setSelection({ type: 'run', row })}>
           查看详情
         </Button>
       ),
@@ -527,7 +532,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, row) => (
-        <Button size="small" onClick={() => setSelection({ type: 'tool', row })}>
+        <Button variant="outline" size="sm" onClick={() => setSelection({ type: 'tool', row })}>
           查看详情
         </Button>
       ),
@@ -545,7 +550,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, row) => (
-        <Button size="small" onClick={() => setSelection({ type: 'sql', row })}>
+        <Button variant="outline" size="sm" onClick={() => setSelection({ type: 'sql', row })}>
           查看详情
         </Button>
       ),
@@ -563,7 +568,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, row) => (
-        <Button size="small" onClick={() => setSelection({ type: 'trace', row })}>
+        <Button variant="outline" size="sm" onClick={() => setSelection({ type: 'trace', row })}>
           查看详情
         </Button>
       ),
@@ -643,13 +648,13 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
         </Button>
       </section>
 
-      <Card className={styles.wideCard} bordered={false}>
+      <Card className={styles.wideCard}>
         <div className={styles.cardHead}>
           <div>
             <strong>运行治理</strong>
             <p className={styles.runTableDescription}>通过 Run ID、Session ID、Tool Call 和 Trace ID 追踪一次执行。</p>
           </div>
-          <Tag color="blue">{activeRows.length} 条记录</Tag>
+          <Badge variant="outline">{activeRows.length} 条记录</Badge>
         </div>
         <Tabs value={activeTab} onValueChange={changeTab}>
           <TabsList aria-label="运行治理视图" className={styles.runTabsList}>
@@ -660,7 +665,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
           </TabsList>
           <TabsContent value="agent-runs">
             {filteredRuns.length ? (
-              <Table className={styles.runTable} columns={runColumns} data={filteredRuns} size="small" />
+              <DataTable className={styles.runTable} columns={runColumns} data={filteredRuns} />
             ) : (
               <DataPlaceholder
                 filtered={Boolean(query || errorFilter || statusFilter !== 'all' || resultFilter !== 'all')}
@@ -670,21 +675,21 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
           </TabsContent>
           <TabsContent value="tool-calls">
             {filteredToolCalls.length ? (
-              <Table className={styles.runTable} columns={toolColumns} data={filteredToolCalls} size="small" />
+              <DataTable className={styles.runTable} columns={toolColumns} data={filteredToolCalls} />
             ) : (
               <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="tool-calls" />
             )}
           </TabsContent>
           <TabsContent value="sql-audits">
             {filteredSqlAudits.length ? (
-              <Table className={styles.runTable} columns={sqlColumns} data={filteredSqlAudits} size="small" />
+              <DataTable className={styles.runTable} columns={sqlColumns} data={filteredSqlAudits} />
             ) : (
               <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="sql-audits" />
             )}
           </TabsContent>
           <TabsContent value="traces">
             {filteredTraces.length ? (
-              <Table className={styles.runTable} columns={traceColumns} data={filteredTraces} size="small" />
+              <DataTable className={styles.runTable} columns={traceColumns} data={filteredTraces} />
             ) : (
               <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="traces" />
             )}

@@ -14,6 +14,10 @@ import {
   Utensils,
   X,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button, Card, Table, Tag, type TableColumnProps } from './AdminPrimitives';
 import styles from '../AdminPage.module.css';
 import { AdminOnlyNotice } from './AdminComponents';
 import {
@@ -311,7 +314,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
           </button>
         </div>
 
-        {loadError ? <Tag color="red">{loadError}</Tag> : null}
+        {loadError ? <Badge variant="destructive">{loadError}</Badge> : null}
         {!canManage ? (
           <div className={styles.readOnlyNotice} role="status">
             <ShieldCheck aria-hidden="true" />
@@ -363,7 +366,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
         {selectedUser ? (
           <UserDetailCard user={selectedUser} onAction={onAction} onRevoke={() => revokeSessions(selectedUser)} />
         ) : (
-          <Card className={styles.userDetailCard} bordered={false}>
+          <Card className={styles.userDetailCard}>
             <div className={styles.emptyState}>
               <CircleUserRound aria-hidden="true" />
               <strong>暂无用户详情</strong>
@@ -506,7 +509,7 @@ function UserDetailCard({
   const isFigmaDetail = user.userId === 'usr_098a1';
 
   return (
-    <Card className={styles.userDetailCard} bordered={false}>
+    <Card className={styles.userDetailCard}>
       <div className={styles.userDetailTitle}>
         <strong>用户详情</strong>
         <button
@@ -569,24 +572,25 @@ function UserDetailCard({
         <TabsContent value="login-sessions" className={styles.userDetailPanel}>
           <DetailSectionHeading icon={<Monitor aria-hidden="true" />} title="登录会话" />
           <DetailTableState isMockMode={isMockMode} hasData={sessions.length > 0}>
-            <Table columns={sessionColumns} data={sessions} pagination={false} size="mini" />
+            <DataTable columns={sessionColumns} data={sessions} />
           </DetailTableState>
         </TabsContent>
         <TabsContent value="history" className={styles.userDetailPanel}>
           <DetailSectionHeading icon={<History aria-hidden="true" />} title="操作历史" />
           <DetailTableState isMockMode={isMockMode} hasData={operationHistory.length > 0}>
-            <Table columns={operationHistoryColumns} data={operationHistory} pagination={false} size="mini" />
+            <DataTable columns={operationHistoryColumns} data={operationHistory} />
           </DetailTableState>
         </TabsContent>
         <TabsContent value="business-sessions" className={styles.userDetailPanel}>
           <DetailSectionHeading icon={<Utensils aria-hidden="true" />} title="业务会话" />
           <DetailTableState isMockMode={isMockMode} hasData={businessSessions.length > 0}>
-            <Table columns={businessSessionColumns} data={businessSessions} pagination={false} size="mini" />
+            <DataTable columns={businessSessionColumns} data={businessSessions} />
           </DetailTableState>
         </TabsContent>
       </Tabs>
       <div className={styles.userDetailActions}>
         <Button
+          variant="outline"
           className={styles.userCredentialButton}
           onClick={() =>
             window.dispatchEvent(
@@ -598,7 +602,7 @@ function UserDetailCard({
         >
           重置凭证
         </Button>
-        <Button className={styles.userRevokeButton} disabled={!canManage} onClick={onRevoke}>
+        <Button variant="outline" className={styles.userRevokeButton} disabled={!canManage} onClick={onRevoke}>
           撤销所有会话
         </Button>
       </div>

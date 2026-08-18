@@ -71,6 +71,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const homeState = getHomeState(searchParams.get('state'));
+  const isFigmaFixture = searchParams.get('state') === 'figma-v2';
   const [prompt, setPrompt] = useState('');
   const [confirmedItems, setConfirmedItems] = useState<string[]>([]);
   const [attachmentName, setAttachmentName] = useState('');
@@ -121,6 +122,10 @@ export function HomePage() {
   return (
     <WorkspaceLayout
       activeModule="home"
+      displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
+      profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined}
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
       pageOverlay={
         homeState === 'loading' || homeState === 'empty' || homeState === 'error' ? (
           <HomeStatePanel state={homeState} onRetry={() => navigate('/')} />
@@ -130,7 +135,7 @@ export function HomePage() {
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.intro}>
           <div>
-            <h1>👋 早上好，{currentUser.displayName}！</h1>
+            <h1>👋 早上好，{isFigmaFixture ? 'Anddy' : currentUser.displayName}！</h1>
             <p>今天是 2024年3月14日 星期二</p>
           </div>
           <span className={styles.environment}>生产环境</span>

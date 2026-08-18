@@ -1,19 +1,18 @@
 import type { ReactNode } from 'react';
 import {
-  IconBook,
-  IconAudit,
-  IconDashboard,
-  IconHistory,
-  IconSql,
-  IconStorage,
-  IconThunderbolt,
-  IconToolRegistry,
-  IconTool,
-  IconTrace,
-  IconUserGroup,
-  TableColumnProps,
-  Tag,
-} from './AdminPrimitives';
+  Archive,
+  BookOpen,
+  CircleGauge,
+  CirclePlay,
+  Database,
+  GitBranch,
+  PackageCheck,
+  ShieldCheck,
+  UsersRound,
+  Wrench,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import type { TableColumnProps } from '@/components/ui/data-table';
 import {
   adminAuditRows,
   adminDeletedRows,
@@ -102,17 +101,17 @@ export type OperationAuditRow = (typeof adminOperationAuditRows)[number];
 
 export const adminNavItems: Array<{ key: string; path: string; label: string; icon: ReactNode; adminOnly?: boolean }> =
   [
-    { key: 'overview', path: '/admin', label: '概览', icon: <IconDashboard /> },
-    { key: 'users', path: '/admin/users', label: '用户管理', icon: <IconUserGroup /> },
-    { key: 'runs', path: '/admin/runs', label: 'Agent 运行', icon: <IconThunderbolt /> },
-    { key: 'tools', path: '/admin/tools', label: '工具调用', icon: <IconTool /> },
-    { key: 'sql', path: '/admin/runs?tab=sql', label: 'SQL 审计', icon: <IconSql /> },
-    { key: 'trace', path: '/admin/runs?tab=trace', label: 'Trace', icon: <IconTrace /> },
-    { key: 'usage', path: '/admin/usage', label: '模型用量', icon: <IconStorage /> },
-    { key: 'knowledge', path: '/admin/knowledge', label: '知识库管理', icon: <IconBook /> },
-    { key: 'registry', path: '/admin/tools?tab=registry', label: '工具注册表', icon: <IconToolRegistry /> },
-    { key: 'deleted', path: '/admin/deleted', label: '软删除资源', icon: <IconHistory />, adminOnly: true },
-    { key: 'audit', path: '/admin?view=audit', label: '操作审计', icon: <IconAudit />, adminOnly: true },
+    { key: 'overview', path: '/admin', label: '概览', icon: <CircleGauge /> },
+    { key: 'users', path: '/admin/users', label: '用户管理', icon: <UsersRound /> },
+    { key: 'runs', path: '/admin/runs', label: 'Agent 运行', icon: <CirclePlay /> },
+    { key: 'tools', path: '/admin/tools', label: '工具调用', icon: <Wrench /> },
+    { key: 'sql', path: '/admin/runs?tab=sql', label: 'SQL 审计', icon: <Database /> },
+    { key: 'trace', path: '/admin/runs?tab=trace', label: 'Trace', icon: <GitBranch /> },
+    { key: 'usage', path: '/admin/usage', label: '模型用量', icon: <Database /> },
+    { key: 'knowledge', path: '/admin/knowledge', label: '知识库管理', icon: <BookOpen /> },
+    { key: 'registry', path: '/admin/tools?tab=registry', label: '工具注册表', icon: <PackageCheck /> },
+    { key: 'deleted', path: '/admin/deleted', label: '软删除资源', icon: <Archive />, adminOnly: true },
+    { key: 'audit', path: '/admin?view=audit', label: '操作审计', icon: <ShieldCheck />, adminOnly: true },
   ];
 
 export function isAdminNavItemActive(path: string, pathname: string, search: string) {
@@ -147,26 +146,30 @@ export const sectionMeta: Record<string, { title: string; description: string; t
   },
 };
 
-export function statusTag(status: string) {
+export function statusTag(value: unknown) {
+  const status = String(value ?? '-');
   const color =
     status === 'active' || status === 'success' || status === 'completed' || status === 'indexed'
-      ? 'green'
+      ? 'default'
       : status === 'failed' || status === 'disabled' || status === 'locked'
-        ? 'red'
-        : 'orange';
-  return <Tag color={color}>{status}</Tag>;
+        ? 'destructive'
+        : 'warning';
+  return <Badge variant={color}>{status}</Badge>;
 }
 
 export function roleTag(role: string) {
   return (
-    <Tag color={role === 'admin' || role === 'superadmin' ? 'blue' : role === 'operator' ? 'orange' : 'gray'}>
+    <Badge
+      variant={role === 'admin' || role === 'superadmin' ? 'outline' : role === 'operator' ? 'warning' : 'secondary'}
+    >
       {role}
-    </Tag>
+    </Badge>
   );
 }
 
-export function riskTag(risk: string) {
-  return <Tag color={risk === 'high' ? 'red' : risk === 'medium' ? 'orange' : 'green'}>{risk}</Tag>;
+export function riskTag(value: unknown) {
+  const risk = String(value ?? '-');
+  return <Badge variant={risk === 'high' ? 'destructive' : risk === 'medium' ? 'warning' : 'default'}>{risk}</Badge>;
 }
 
 export const auditColumns: TableColumnProps<AuditRow>[] = [

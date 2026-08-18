@@ -249,9 +249,10 @@ class RocketMqProposalPublisher:
 
 
 class _CommandListener(MessageListener):
-    def __init__(self, inbox: RedisCommandInbox, execute: Callable[[dict], None]):
+    def __init__(self, inbox: RedisCommandInbox, execute: Callable[[dict], None], metrics=None):
         self.inbox = inbox
         self.execute = execute
+        self.metrics = metrics
 
     def consume(self, message):
         try:
@@ -261,19 +262,28 @@ class _CommandListener(MessageListener):
             result = self.inbox.claim(dispatch_id, request_hash, command)
             if result == "claimed":
                 self.execute(command)
+                if self.metrics:
+                    self.metrics("dispatch", "claimed", "redis_inbox")
+            elif self.metrics:
+                self.metrics("dispatch", "duplicate", "redis_inbox")
             return ConsumeResult.SUCCESS
         except ValueError:
             # Contract/idempotency conflicts are deterministic and must not retry forever.
+            if self.metrics:
+                self.metrics("dispatch", "rejected", "contract")
             return ConsumeResult.SUCCESS
         except Exception:
             # Redis or execution failures leave the message unacknowledged for RocketMQ retry/DLQ.
+            if self.metrics:
+                self.metrics("dispatch", "retry", "consumer_error")
             return ConsumeResult.FAILURE
 
 
 class _ResultListener(MessageListener):
-    def __init__(self, inbox: RedisResultInbox, on_result: Callable[[dict], None]):
+    def __init__(self, inbox: RedisResultInbox, on_result: Callable[[dict], None], metrics=None):
         self.inbox = inbox
         self.on_result = on_result
+        self.metrics = metrics
 
     def consume(self, message):
         try:
@@ -282,10 +292,18 @@ class _ResultListener(MessageListener):
             request_hash = result["request_hash"]
             if self.inbox.claim(proposal_id, request_hash, result) == "claimed":
                 self.on_result(result)
+                if self.metrics:
+                    self.metrics("result", "claimed", "redis_inbox")
+            elif self.metrics:
+                self.metrics("result", "duplicate", "redis_inbox")
             return ConsumeResult.SUCCESS
         except ValueError:
+            if self.metrics:
+                self.metrics("result", "rejected", "contract")
             return ConsumeResult.SUCCESS
         except Exception:
+            if self.metrics:
+                self.metrics("result", "retry", "consumer_error")
             return ConsumeResult.FAILURE
 
 
@@ -313,7 +331,7 @@ class RedisEventOutbox:
 class RocketMqRuntime:
     """Own the Python command consumer and event producer lifecycle."""
 
-    def __init__(self, execute: Callable[[dict], None], inbox=None, publisher=None, proposal_publisher=None, on_result=None, result_inbox=None):
+    def __init__(self, execute: Callable[[dict], None], inbox=None, publisher=None, proposal_publisher=None, on_result=None, result_inbox=None, metrics=None):
         endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
         config = ClientConfiguration(endpoint, Credentials())
         self.publisher = publisher or RocketMqEventPublisher()
@@ -323,14 +341,14 @@ class RocketMqRuntime:
         self.consumer = PushConsumer(
             config,
             os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_COMMAND", "foodmate-python-agent-command-v1"),
-            _CommandListener(self.inbox, execute),
+            _CommandListener(self.inbox, execute, metrics),
             subscription={self.topic: FilterExpression("*")},
             consumption_thread_count=int(os.getenv("FOODMATE_AGENT_WORKER_CONCURRENCY", "1")),
         )
         self.result_consumer = PushConsumer(
             config,
             os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_RESULT", "foodmate-python-agent-result-v1"),
-            _ResultListener(result_inbox or RedisResultInbox(), on_result or (lambda _result: None)),
+            _ResultListener(result_inbox or RedisResultInbox(), on_result or (lambda _result: None), metrics),
             subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_RESULT", "foodmate-agent-result-v1"): FilterExpression("*")},
             consumption_thread_count=1,
         )

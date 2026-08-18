@@ -237,7 +237,11 @@ export function KnowledgePage() {
             <span>{selected.details.documentId}</span>
             <p>{selected.details.access}</p>
           </Card>
-          <blockquote className={styles.quote}>&quot;{selected.details.quote}&quot;</blockquote>
+          <blockquote aria-label={`引用原文：${selected.details.quote}`} className={styles.quote}>
+            &quot;
+            {selected.details.quote.length > 28 ? `${selected.details.quote.slice(0, 28)}...` : selected.details.quote}
+            &quot;
+          </blockquote>
           <Button
             className={styles.sourceLink}
             onClick={() => updateState('source-unavailable')}

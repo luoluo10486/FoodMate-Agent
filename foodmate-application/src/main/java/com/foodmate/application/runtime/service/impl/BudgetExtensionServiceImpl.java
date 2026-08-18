@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.BudgetExtensionRepository;
 import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.*;
@@ -14,6 +15,7 @@ import com.foodmate.shared.runtime.enums.RunStatus;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +31,7 @@ public class BudgetExtensionServiceImpl implements BudgetExtensionService {
     private final BigDecimal maxCost;
     private final int ttlSeconds;
     private final AgentAdmissionService admission;
+    private final OperationAuditService audit;
     private final ObjectMapper mapper =
             new ObjectMapper()
                     .findAndRegisterModules()
@@ -39,6 +42,7 @@ public class BudgetExtensionServiceImpl implements BudgetExtensionService {
             ObjectProvider<BudgetExtensionRepository> store,
             IdGenerator ids,
             AgentAdmissionService admission,
+            ObjectProvider<OperationAuditService> audit,
             @Value("${FOODMATE_AGENT_MAX_TOKEN_EXTENSION_PER_CONFIRMATION:30000}") int maxTokens,
             @Value("${FOODMATE_AGENT_MAX_COST_EXTENSION_CNY_PER_CONFIRMATION:1.00}")
                     BigDecimal maxCost,
@@ -46,6 +50,7 @@ public class BudgetExtensionServiceImpl implements BudgetExtensionService {
         this.store = store.getIfAvailable();
         this.ids = ids;
         this.admission = admission;
+        this.audit = audit.getIfAvailable();
         this.maxTokens = maxTokens;
         this.maxCost = maxCost;
         this.ttlSeconds = ttlSeconds;
@@ -54,6 +59,31 @@ public class BudgetExtensionServiceImpl implements BudgetExtensionService {
     @Transactional
     @Override
     public ExtensionResult confirm(
+            long userId,
+            long runId,
+            int additionalTokens,
+            BigDecimal additionalCost,
+            String confirmationDigest) {
+        try {
+            return confirmInternal(
+                    userId, runId, additionalTokens, additionalCost, confirmationDigest);
+        } catch (RuntimeException exception) {
+            if (audit != null)
+                audit.recordFailure(
+                        userId,
+                        "agent_run",
+                        Long.toString(runId),
+                        "agent_run.budget.confirm",
+                        "failed",
+                        runtimeErrorCode(exception),
+                        confirmationDigest,
+                        confirmationDigest == null ? null : confirmationDigest + ":failed",
+                        Map.of("exception_type", exception.getClass().getSimpleName()));
+            throw exception;
+        }
+    }
+
+    private ExtensionResult confirmInternal(
             long userId,
             long runId,
             int additionalTokens,
@@ -171,8 +201,27 @@ public class BudgetExtensionServiceImpl implements BudgetExtensionService {
             store.markOutboxQueued(runId, dispatchId, 20);
         }
         store.markRunQueued(runId, dispatchRowId);
-        return new ExtensionResult(
-                Long.toString(runId), dispatchId, old.attempt() + 1, revision, "queued");
+        ExtensionResult result =
+                new ExtensionResult(
+                        Long.toString(runId), dispatchId, old.attempt() + 1, revision, "queued");
+        if (audit != null)
+            audit.record(
+                    userId,
+                    "agent_run",
+                    Long.toString(runId),
+                    "agent_run.budget.confirm",
+                    "success",
+                    null,
+                    confirmationDigest,
+                    confirmationDigest + ":confirm",
+                    Map.of("additional_tokens", additionalTokens));
+        return result;
+    }
+
+    private static String runtimeErrorCode(RuntimeException exception) {
+        if (exception instanceof com.foodmate.shared.runtime.RuntimeException runtime)
+            return runtime.code();
+        return "RUNTIME_BUDGET_CONFIRM_FAILED";
     }
 
     private String nextPayload(

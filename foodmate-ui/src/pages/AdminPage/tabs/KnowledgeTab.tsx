@@ -1,5 +1,16 @@
-import { Button, Card, Input, Message, Modal, Table, type TableColumnProps } from './AdminPrimitives';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, OperationAuditCard } from './AdminComponents';
 import { type KnowledgeRow, adminKnowledgeRows, canManage, statusTag } from './AdminShared';
@@ -24,6 +35,22 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
         .catch(() => setDocuments([]));
   }, []);
 
+  const notify = (message: string, tone: 'warning' | 'success') => {
+    window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone } }));
+  };
+
+  const submitUpload = async () => {
+    if (import.meta.env.VITE_AGENT_MODE === 'real') {
+      if (!uploadFile) {
+        notify('请选择文件', 'warning');
+        return;
+      }
+      await uploadKnowledgeDocument(uploadFile);
+    }
+    setUploadVisible(false);
+    notify('文档上传已提交', 'success');
+  };
+
   const knowledgeColumns: TableColumnProps<KnowledgeRow>[] = [
     { title: '文档 ID', dataIndex: 'documentId' },
     { title: '文档', dataIndex: 'title' },
@@ -36,11 +63,12 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
       title: '操作',
       render: (_, record) => (
         <div className={styles.rowActions}>
-          <Button size="mini" onClick={() => setSelectedDoc(record)}>
+          <Button variant="outline" size="sm" onClick={() => setSelectedDoc(record)}>
             详情
           </Button>
           <Button
-            size="mini"
+            variant="outline"
+            size="sm"
             disabled={!canManage}
             onClick={() =>
               onAction({
@@ -69,57 +97,46 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
     <>
       <AdminFilters placeholder="documentId / title / owner" />
       <section className={styles.sectionLayout}>
-        <Card className={styles.wideCard} bordered={false}>
+        <Card className={styles.wideCard}>
           <div className={styles.cardHead}>
             <strong>知识库文档</strong>
-            <Button type="primary" disabled={!canManage} onClick={() => setUploadVisible(true)}>
+            <Button disabled={!canManage} onClick={() => setUploadVisible(true)}>
               上传文档
             </Button>
           </div>
-          <Table
-            columns={knowledgeColumns}
-            data={documents}
-            pagination={{ pageSize: 5, total: documents.length }}
-            size="small"
-          />
+          <DataTable columns={knowledgeColumns} data={documents} />
         </Card>
         <aside className={styles.side}>
           {selectedDoc ? <KnowledgeDetailCard document={selectedDoc} /> : null}
           <OperationAuditCard />
         </aside>
       </section>
-      <Modal
-        title="上传知识库文档"
-        visible={uploadVisible}
-        okText="提交 mock 上传"
-        cancelText="取消"
-        onCancel={() => setUploadVisible(false)}
-        onOk={async () => {
-          if (import.meta.env.VITE_AGENT_MODE === 'real') {
-            if (!uploadFile) {
-              Message.warning('请选择文件');
-              return;
-            }
-            await uploadKnowledgeDocument(uploadFile);
-          }
-          setUploadVisible(false);
-          Message.success('文档上传已提交');
-        }}
-      >
-        <div className={styles.uploadMock}>
-          <strong>选择文件</strong>
-          <span>支持 PDF / Markdown / Excel，真实接入后限制大小、类型并记录上传人。</span>
-          <input type="file" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} />
-          <Input.TextArea placeholder="索引备注 / 标签" />
-        </div>
-      </Modal>
+      <Dialog open={uploadVisible} onOpenChange={setUploadVisible}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>上传知识库文档</DialogTitle>
+            <DialogDescription>支持 PDF / Markdown / Excel，真实接入后限制大小、类型并记录上传人。</DialogDescription>
+          </DialogHeader>
+          <div className={styles.uploadMock}>
+            <strong>选择文件</strong>
+            <input type="file" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} />
+            <Textarea placeholder="索引备注 / 标签" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadVisible(false)}>
+              取消
+            </Button>
+            <Button onClick={() => void submitUpload()}>提交 mock 上传</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
 function KnowledgeDetailCard({ document }: { document: KnowledgeRow }) {
   return (
-    <Card className={styles.card} bordered={false}>
+    <Card className={styles.card}>
       <div className={styles.cardHead}>
         <strong>文档详情</strong>
         {statusTag(document.status)}

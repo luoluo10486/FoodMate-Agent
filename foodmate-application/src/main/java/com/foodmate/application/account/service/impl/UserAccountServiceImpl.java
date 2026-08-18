@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.foodmate.application.account.port.out.UserAccountRepository;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.account.service.UserAccountService.*;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.shared.account.enums.UserRole;
 import com.foodmate.shared.account.enums.UserStatus;
 import com.foodmate.shared.conversation.enums.MessageRole;
@@ -29,7 +30,9 @@ import java.util.Optional;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /** P1-1 账户、会话和消息用例。生产持久化通过端口访问，local-stub 显式使用内存。 */
 @Service
@@ -39,6 +42,7 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     private final UserAccountRepository store;
     private final IdGenerator ids;
+    private final OperationAuditService audit;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SecureRandom random = new SecureRandom();
     private final Map<Long, UserRecord> users = new HashMap<>();
@@ -50,10 +54,20 @@ public class UserAccountServiceImpl implements UserAccountService {
     public UserAccountServiceImpl(
             ObjectProvider<UserAccountRepository> storeProvider,
             ObjectProvider<IdGenerator> idProvider) {
-        this.store = storeProvider.getIfAvailable();
-        this.ids = Objects.requireNonNull(idProvider.getIfAvailable(), "IdGenerator is required");
+        this(storeProvider, idProvider, null);
     }
 
+    @Autowired
+    public UserAccountServiceImpl(
+            ObjectProvider<UserAccountRepository> storeProvider,
+            ObjectProvider<IdGenerator> idProvider,
+            ObjectProvider<OperationAuditService> auditProvider) {
+        this.store = storeProvider.getIfAvailable();
+        this.ids = Objects.requireNonNull(idProvider.getIfAvailable(), "IdGenerator is required");
+        this.audit = auditProvider == null ? null : auditProvider.getIfAvailable();
+    }
+
+    @Transactional
     public synchronized AuthResult register(
             String username, String email, String password, String nickname) {
         return register(username, email, password, nickname, SessionMetadata.EMPTY);
@@ -76,7 +90,9 @@ public class UserAccountServiceImpl implements UserAccountService {
             store.insertUser(
                     userId, "U" + userId, username, email, hashPassword(password), nickname);
             store.insertProfile(ids.nextId(), userId, nickname);
-            return issueSession(userId, username, UserRole.USER.code(), metadata);
+            AuthResult result = issueSession(userId, username, UserRole.USER.code(), metadata);
+            audit(userId, "user", Long.toString(userId), "user.register");
+            return result;
         }
         if (users.values().stream()
                 .anyMatch(
@@ -101,7 +117,9 @@ public class UserAccountServiceImpl implements UserAccountService {
                 new ProfileRecord(
                         userId, nickname, null, null, null, null, null, null, null, null, "[]",
                         "[]", "{}"));
-        return issueSession(userId, username, UserRole.USER.code(), metadata);
+        AuthResult result = issueSession(userId, username, UserRole.USER.code(), metadata);
+        audit(userId, "user", Long.toString(userId), "user.register");
+        return result;
     }
 
     public synchronized AuthResult login(String usernameOrEmail, String password) {
@@ -127,6 +145,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         if (sessionToken != null && !sessionToken.isBlank()) revokeSession(sha256(sessionToken));
     }
 
+    @Transactional
     public synchronized void changePassword(
             long userId, String currentPassword, String newPassword) {
         validatePassword(newPassword);
@@ -157,6 +176,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                                             Instant.now())
                                     : value);
         }
+        audit(userId, "user", Long.toString(userId), "user.password.change");
     }
 
     public synchronized void requireCurrentPassword(long userId, String currentPassword) {
@@ -198,10 +218,13 @@ public class UserAccountServiceImpl implements UserAccountService {
         return store.adminUsers();
     }
 
+    @Transactional
     public synchronized void revokeAuthSession(long userId, long authSessionId) {
         if (store != null) store.revoke(userId, authSessionId);
+        audit(userId, "user_session", Long.toString(authSessionId), "user.session.revoke");
     }
 
+    @Transactional
     public synchronized void revokeAllAuthSessions(long userId) {
         if (store != null) store.revokeAll(userId);
         else
@@ -215,6 +238,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                                             value.expiresAt(),
                                             Instant.now())
                                     : value);
+        audit(userId, "user_session", Long.toString(userId), "user.sessions.revoke_all");
     }
 
     public synchronized String createPasswordResetToken(String email) {
@@ -282,18 +306,23 @@ public class UserAccountServiceImpl implements UserAccountService {
         return store.profile(userId);
     }
 
+    @Transactional
     public synchronized ProfileRecord updateProfile(long userId, ProfileUpdate update) {
         if (store == null) {
             ProfileRecord current = profiles.getOrDefault(userId, profile(userId));
             ProfileRecord next = current.with(update);
             profiles.put(userId, next);
+            audit(userId, "profile", Long.toString(userId), "profile.update");
             return next;
         }
         store.ensureProfile(ids.nextId(), userId);
         store.updateProfile(userId, update);
-        return profile(userId);
+        ProfileRecord result = profile(userId);
+        audit(userId, "profile", Long.toString(userId), "profile.update");
+        return result;
     }
 
+    @Transactional
     public synchronized SessionRecord createSession(long userId, String title, String mode) {
         String actualMode = mode == null || mode.isBlank() ? SessionMode.AGENT.code() : mode;
         if (!List.of(SessionMode.AGENT.code(), SessionMode.CHAT.code()).contains(actualMode))
@@ -310,6 +339,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                 new SessionRecord(
                         id, userId, actualTitle, actualMode, SessionStatus.ACTIVE.code(), null);
         if (store == null) sessions.put(id, record);
+        audit(userId, "session", Long.toString(id), "session.create");
         return record;
     }
 
@@ -370,6 +400,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         return new PageResult<>(all, all.size(), safePage, safeSize);
     }
 
+    @Transactional
     public synchronized void renameSession(long userId, long sessionId, String title) {
         requireText(title, "title");
         String actual = title.trim();
@@ -378,23 +409,29 @@ public class UserAccountServiceImpl implements UserAccountService {
         requireSession(userId, sessionId);
         if (store != null) store.renameSession(userId, sessionId, actual);
         sessions.computeIfPresent(sessionId, (key, value) -> value.withTitle(actual));
+        audit(userId, "session", Long.toString(sessionId), "session.rename");
     }
 
+    @Transactional
     public synchronized void setSessionStatus(long userId, long sessionId, String status) {
         if (!List.of(SessionStatus.ACTIVE.code(), SessionStatus.ARCHIVED.code()).contains(status))
             throw new IllegalArgumentException("invalid session status");
         requireSession(userId, sessionId);
         if (store != null) store.setSessionStatus(userId, sessionId, status);
         sessions.computeIfPresent(sessionId, (key, value) -> value.withStatus(status));
+        audit(userId, "session", Long.toString(sessionId), "session.status.update");
     }
 
+    @Transactional
     public synchronized void deleteSession(long userId, long sessionId) {
         requireSession(userId, sessionId);
         if (store != null) store.deleteSession(userId, sessionId);
         sessions.computeIfPresent(
                 sessionId, (key, value) -> value.withStatus(SessionStatus.DELETED.code()));
+        audit(userId, "session", Long.toString(sessionId), "session.delete");
     }
 
+    @Transactional
     public synchronized void restoreSession(long userId, long sessionId) {
         if (store != null) {
             int changed = store.restoreSession(userId, sessionId);
@@ -407,6 +444,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                 throw notFound("session not found or restore period expired");
             sessions.put(sessionId, session.withStatus(SessionStatus.ACTIVE.code()));
         }
+        audit(userId, "session", Long.toString(sessionId), "session.restore");
     }
 
     public synchronized List<MessageRecord> listMessages(long userId, long sessionId) {
@@ -433,6 +471,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     /** 更正用户消息后由上层失效会话摘要，避免旧摘要继续代表已删除内容。 */
+    @Transactional
     public synchronized MessageRecord updateMessage(
             long userId, long sessionId, long messageId, String content) {
         requireSession(userId, sessionId);
@@ -444,6 +483,7 @@ public class UserAccountServiceImpl implements UserAccountService {
             if (changed != 1) throw notFound("message not found");
             MessageRecord updated = store.message(messageId);
             if (updated == null) throw notFound("message not found");
+            audit(userId, "message", Long.toString(messageId), "message.update");
             return updated;
         }
         List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
@@ -462,6 +502,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                                 current.sequenceNo(),
                                 current.createdAt());
                 records.set(i, updated);
+                audit(userId, "message", Long.toString(messageId), "message.update");
                 return updated;
             }
         }
@@ -469,11 +510,13 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     /** 逻辑删除用户消息；sequence_no 不复用，保证历史事件和摘要来源仍可审计。 */
+    @Transactional
     public synchronized void deleteMessage(long userId, long sessionId, long messageId) {
         requireSession(userId, sessionId);
         if (store != null) {
             int changed = store.deleteMessage(userId, sessionId, messageId);
             if (changed != 1) throw notFound("message not found");
+            audit(userId, "message", Long.toString(messageId), "message.delete");
             return;
         }
         List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
@@ -483,6 +526,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                                 item.messageId() == messageId
                                         && MessageRole.USER.code().equals(item.role()));
         if (!removed) throw notFound("message not found");
+        audit(userId, "message", Long.toString(messageId), "message.delete");
     }
 
     public synchronized List<SearchResult> searchSessions(
@@ -506,6 +550,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         setSessionStatus(userId, sessionId, SessionStatus.ARCHIVED.code());
     }
 
+    @Transactional
     public synchronized MessageRecord addMessage(
             long userId, long sessionId, String role, String content, Object structuredPayload) {
         return addMessage(userId, sessionId, role, content, structuredPayload, null);
@@ -548,7 +593,14 @@ public class UserAccountServiceImpl implements UserAccountService {
                         Instant.now());
         if (store == null)
             messages.computeIfAbsent(sessionId, ignored -> new ArrayList<>()).add(record);
+        audit(userId, "message", Long.toString(messageId), "message.create");
         return record;
+    }
+
+    private void audit(long userId, String targetType, String targetId, String action) {
+        if (audit != null)
+            audit.record(
+                    userId, targetType, targetId, action, "success", null, null, null, Map.of());
     }
 
     private int nextSequence(long sessionId) {

@@ -1,5 +1,6 @@
 package com.foodmate.infrastructure.persistence.food.adapter;
 
+import com.foodmate.application.common.port.out.OperationAuditPort;
 import com.foodmate.application.food.port.out.MealPlanRepository;
 import com.foodmate.infrastructure.persistence.food.MealPlanMapper;
 import org.springframework.context.annotation.Profile;
@@ -10,9 +11,11 @@ import org.springframework.stereotype.Repository;
 @Profile("local")
 public class MealPlanRepositoryAdapter implements MealPlanRepository {
     private final MealPlanMapper mapper;
+    private final OperationAuditPort audit;
 
-    public MealPlanRepositoryAdapter(MealPlanMapper mapper) {
+    public MealPlanRepositoryAdapter(MealPlanMapper mapper, OperationAuditPort audit) {
         this.mapper = mapper;
+        this.audit = audit;
     }
 
     @Override
@@ -22,7 +25,11 @@ public class MealPlanRepositoryAdapter implements MealPlanRepository {
 
     @Override
     public IdempotencyRecord findIdempotency(long userId, String idempotencyKey) {
-        return mapper.findIdempotency(userId, idempotencyKey);
+        OperationAuditPort.IdempotencyRecord record = audit.findIdempotency(userId, idempotencyKey);
+        return record == null
+                ? null
+                : new IdempotencyRecord(
+                        record.parametersDigest(), record.result(), record.responseJson());
     }
 
     @Override
@@ -89,11 +96,25 @@ public class MealPlanRepositoryAdapter implements MealPlanRepository {
 
     @Override
     public int reserveAudit(AuditWrite audit) {
-        return mapper.reserveAudit(audit);
+        return this.audit.reserve(
+                new OperationAuditPort.AuditRecord(
+                        audit.operationAuditId(),
+                        audit.operatorId(),
+                        audit.requestId(),
+                        audit.traceId(),
+                        audit.targetType(),
+                        audit.targetId(),
+                        audit.action(),
+                        "pending",
+                        null,
+                        "{}",
+                        audit.responseJson(),
+                        audit.parametersDigest(),
+                        audit.idempotencyKey()));
     }
 
     @Override
     public int completeAudit(long operatorId, String idempotencyKey, String responseJson) {
-        return mapper.completeAudit(operatorId, idempotencyKey, responseJson);
+        return audit.complete(operatorId, idempotencyKey, responseJson);
     }
 }

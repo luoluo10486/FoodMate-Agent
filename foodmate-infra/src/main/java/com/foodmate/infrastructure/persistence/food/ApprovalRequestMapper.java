@@ -63,6 +63,16 @@ public interface ApprovalRequestMapper {
             @Param("exceptApprovalRequestId") long exceptApprovalRequestId,
             @Param("now") Instant now);
 
+    @Select(
+            "SELECT approval_request_id AS approvalRequestId,user_id AS userId,session_id AS sessionId,agent_run_id AS agentRunId,resource_type AS resourceType,resource_id AS resourceId,operation,parameters_digest AS parametersDigest,status,request_id AS requestId,trace_id AS traceId,idempotency_key AS idempotencyKey,expires_at AS expiresAt,confirmed_at AS confirmedAt,executed_at AS executedAt FROM approval_requests WHERE user_id=#{userId} AND resource_type=#{resourceType} AND resource_id=#{resourceId} AND operation=#{operation} AND approval_request_id<>#{exceptApprovalRequestId} AND status IN ('pending','confirmed') AND expires_at>#{now} AND is_deleted=FALSE ORDER BY approval_request_id")
+    java.util.List<ApprovalSnapshot> findSupersedableForResource(
+            @Param("userId") long userId,
+            @Param("resourceType") String resourceType,
+            @Param("resourceId") long resourceId,
+            @Param("operation") String operation,
+            @Param("exceptApprovalRequestId") long exceptApprovalRequestId,
+            @Param("now") Instant now);
+
     @Update(
             "UPDATE approval_requests SET status='executed',executed_at=#{now},updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE approval_request_id=#{approvalRequestId} AND user_id=#{userId} AND status='confirmed' AND is_deleted=FALSE")
     int markExecuted(
@@ -77,8 +87,4 @@ public interface ApprovalRequestMapper {
             @Param("approvalRequestId") long approvalRequestId,
             @Param("resourceId") long resourceId,
             @Param("now") Instant now);
-
-    @Insert(
-            "INSERT INTO operation_audits(operation_audit_id,operator_id,request_id,trace_id,target_type,target_id,action,result,request_json,response_json,parameters_digest,idempotency_key,created_by,updated_by) VALUES (#{operationAuditId},#{userId},#{requestId},#{traceId},#{targetType},#{targetId},#{action},'success','{}'::jsonb,CAST(#{responseJson} AS jsonb),#{parametersDigest},#{idempotencyKey},#{userId},#{userId}) ON CONFLICT (operator_id,idempotency_key) WHERE operator_id IS NOT NULL AND idempotency_key IS NOT NULL AND is_deleted=FALSE DO NOTHING")
-    int insertAudit(AuditWrite audit);
 }

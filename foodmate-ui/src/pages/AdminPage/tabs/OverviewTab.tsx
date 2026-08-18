@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Copy, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input as ShadcnInput } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROUTES } from '../../../constants/routes';
 import { loadAdminDashboard, type AdminRunRow } from '../../../services/adminService';
 import { adminOverviewMetrics, adminOverviewRows } from './AdminShared';
-import { Button, Card, Table, type TableColumnProps } from './AdminPrimitives';
 import styles from '../AdminPage.module.css';
 
 type OverviewMetric = {
@@ -97,78 +99,6 @@ function OverviewFilterSelect({
 function copyRunId(runId: string) {
   if (navigator.clipboard) void navigator.clipboard.writeText(runId);
 }
-
-const overviewColumns: TableColumnProps<OverviewRow>[] = [
-  {
-    title: '运行 ID',
-    dataIndex: 'runId',
-    render: (value) => {
-      const runId = String(value);
-      return (
-        <span className={styles.overviewRunIdCell}>
-          <strong>{runId}</strong>
-          <button
-            className={styles.copyButton}
-            type="button"
-            aria-label={`复制 ${runId}`}
-            onClick={() => copyRunId(runId)}
-            title={`复制 ${runId}`}
-          >
-            <Copy aria-hidden="true" />
-          </button>
-        </span>
-      );
-    },
-  },
-  {
-    title: '用户',
-    dataIndex: 'user',
-    render: (value) => <span className={styles.overviewMonoMuted}>{String(value)}</span>,
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    render: (value) => <OverviewPill value={String(value)} tone={statusTone(String(value))} />,
-  },
-  {
-    title: '阶段',
-    dataIndex: 'stage',
-    render: (value) => <OverviewPill value={String(value)} tone={stageTone(String(value))} />,
-  },
-  {
-    title: '耗时',
-    dataIndex: 'duration',
-    render: (value) => <span className={styles.overviewMono}>{String(value)}</span>,
-  },
-  {
-    title: '成本',
-    dataIndex: 'cost',
-    render: (value) => <span className={styles.overviewCellMuted}>{String(value)}</span>,
-  },
-  {
-    title: '工具数',
-    dataIndex: 'toolCount',
-    render: (value) => <span className={styles.overviewMono}>{String(value)}</span>,
-  },
-  {
-    title: '结果',
-    dataIndex: 'result',
-    render: (value) => <span className={styles.overviewCellMuted}>{String(value)}</span>,
-  },
-  {
-    title: '错误码',
-    dataIndex: 'errorCode',
-    render: (value) => <span className={styles.overviewErrorCode}>{String(value)}</span>,
-  },
-  {
-    title: '操作',
-    render: (_, record) => (
-      <Link className={styles.overviewActionButton} to={`${ROUTES.ADMIN}/runs?run=${encodeURIComponent(record.runId)}`}>
-        查看详情
-      </Link>
-    ),
-  },
-];
 
 export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refreshNonce?: number }) {
   const [metrics, setMetrics] = useState<OverviewMetric[]>(overviewMetrics);
@@ -271,15 +201,72 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
         ))}
       </section>
 
-      <Card className={styles.overviewTableCard} bordered={false}>
-        <Table
-          className={styles.overviewTableScroll}
-          tableClassName={styles.overviewTable}
-          columns={overviewColumns}
-          data={filteredRows.slice(0, 6)}
-          pagination={false}
-          size="small"
-        />
+      <Card className={styles.overviewTableCard}>
+        <div className={styles.overviewTableScroll}>
+          <Table className={styles.overviewTable}>
+            <TableHeader>
+              <TableRow>
+                {['运行 ID', '用户', '状态', '阶段', '耗时', '成本', '工具数', '结果', '错误码', '操作'].map(
+                  (title) => (
+                    <TableHead key={title}>{title}</TableHead>
+                  ),
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRows.slice(0, 6).map((row) => (
+                <TableRow key={row.key}>
+                  <TableCell>
+                    <span className={styles.overviewRunIdCell}>
+                      <strong>{row.runId}</strong>
+                      <button
+                        className={styles.copyButton}
+                        type="button"
+                        aria-label={`复制 ${row.runId}`}
+                        onClick={() => copyRunId(row.runId)}
+                        title={`复制 ${row.runId}`}
+                      >
+                        <Copy aria-hidden="true" />
+                      </button>
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={styles.overviewMonoMuted}>{row.user}</span>
+                  </TableCell>
+                  <TableCell>
+                    <OverviewPill value={row.status} tone={statusTone(row.status)} />
+                  </TableCell>
+                  <TableCell>
+                    <OverviewPill value={row.stage} tone={stageTone(row.stage)} />
+                  </TableCell>
+                  <TableCell>
+                    <span className={styles.overviewMono}>{row.duration}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={styles.overviewCellMuted}>{row.cost}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={styles.overviewMono}>{row.toolCount}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={styles.overviewCellMuted}>{row.result}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={styles.overviewErrorCode}>{row.errorCode}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      className={styles.overviewActionButton}
+                      to={`${ROUTES.ADMIN}/runs?run=${encodeURIComponent(row.runId)}`}
+                    >
+                      查看详情
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
 
       <section className={styles.overviewPagination} aria-label="运行结果分页">
@@ -313,7 +300,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
         </div>
       </section>
 
-      <Card className={styles.overviewAnalytics} bordered={false}>
+      <Card className={styles.overviewAnalytics}>
         <article>
           <h2>运行趋势</h2>
           <p>近 24h 1,284 次 · 成功率 91.4%</p>

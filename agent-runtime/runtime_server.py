@@ -17,7 +17,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 load_project_env()
 
 from agent_core import DeterministicPlanner, DeterministicRouter, InMemoryCheckpoint, run_deterministic, split_answer
-from eval.metrics import EvalMetrics
+from eval.metrics import EvalMetrics, RuntimeMetrics
 from model_provider import ModelProviderError
 from recovery_protocol import checkpoint_digest, validate_recovery_command
 
@@ -36,6 +36,7 @@ _proposal_publisher = None
 _result_waiters: dict[str, dict] = {}
 _result_condition = threading.Condition(_lock)
 _eval_metrics = EvalMetrics()
+_runtime_metrics = RuntimeMetrics()
 _runtime_started_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 _mq_runtime = None
 def _new_checkpoint():
@@ -139,6 +140,8 @@ def _readiness() -> tuple[int, dict[str, object]]:
             if not ready:
                 problems.append(name)
 
+    _runtime_metrics.queue_depth("active_dispatches", len(_dispatches))
+    _runtime_metrics.queue_depth("result_waiters", len(_result_waiters))
     payload: dict[str, object] = {
         "status": "UP" if not problems else "DOWN",
         "contract_version": CONTRACT_VERSION,
@@ -146,6 +149,7 @@ def _readiness() -> tuple[int, dict[str, object]]:
         "started_at": _runtime_started_at,
         "dependencies": dependencies,
         "eval": _eval_metrics.snapshot(),
+        "runtime": _runtime_metrics.snapshot(),
     }
     if problems:
         payload["code"] = "RUNTIME_COORDINATION_UNAVAILABLE"
@@ -262,6 +266,7 @@ def emit(command, event_id, sequence, event_type, payload=None):
     }).encode("utf-8")
     if _event_publisher is not None:
         _event_publisher.publish(json.loads(body.decode("utf-8")))
+        _runtime_metrics.record("event", "success", "rocketmq")
         return
     request = urllib.request.Request(
         JAVA_CALLBACK_URL.rstrip("/") + "/foodmate/internal/v1/agent-events",
@@ -271,6 +276,7 @@ def emit(command, event_id, sequence, event_type, payload=None):
     )
     with urllib.request.urlopen(request, timeout=10):
         pass
+    _runtime_metrics.record("event", "success", "http")
 
 
 def _on_result(result: dict):
@@ -281,6 +287,7 @@ def _on_result(result: dict):
     with _result_condition:
         _result_waiters[proposal_id] = result
         _result_condition.notify_all()
+    _runtime_metrics.record("result", str(result.get("status", "success")), "received")
 
 
 def _await_result(proposal_id: str, timeout_seconds: float) -> dict:
@@ -500,6 +507,7 @@ def execute(command):
             "proposals": execution.proposals,
         })
         _record_execution_eval(execution, int((time.monotonic() - started) * 1000))
+        _runtime_metrics.record("dispatch", "success", "completed", int((time.monotonic() - started) * 1000))
     except ModelProviderError as error:
         # 模型失败也必须回到 Java 状态机，不能由 Runtime 静默吞掉。
         for index, attempt in enumerate(error.attempts, start=1):
@@ -507,8 +515,10 @@ def execute(command):
             next_sequence += 1
         _record_provider_failure(error, int((time.monotonic() - started) * 1000))
         emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": error.code, "retryable": error.retryable})
+        _runtime_metrics.record("dispatch", "failed", error.code, int((time.monotonic() - started) * 1000))
     except TimeoutError as error:
         emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": str(error), "retryable": True})
+        _runtime_metrics.record("dispatch", "failed", "timeout", int((time.monotonic() - started) * 1000))
     except urllib.error.URLError:
         # 超时和重试由 Java 控制面负责，Runtime 不直接写业务状态。
         return
@@ -518,6 +528,7 @@ def execute(command):
         traceback.print_exc()
         try:
             emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": "RUNTIME_EXECUTION_FAILED", "retryable": False})
+            _runtime_metrics.record("dispatch", "failed", "execution_error", int((time.monotonic() - started) * 1000))
         except Exception:
             traceback.print_exc()
 
@@ -562,9 +573,11 @@ class Handler(BaseHTTPRequestHandler):
                     self._json(409, {"code": "RUNTIME_DISPATCH_IDEMPOTENCY_CONFLICT"})
                     return
                 self._json(202, {"accepted": True, "duplicate": True, "dispatch_id": command["dispatch_id"]})
+                _runtime_metrics.record("dispatch", "duplicate", "http")
                 return
             _dispatches[command["dispatch_id"]] = command
         threading.Thread(target=execute, args=(command,), daemon=True).start()
+        _runtime_metrics.record("dispatch", "accepted", "http")
         self._json(202, {"accepted": True, "duplicate": False, "dispatch_id": command["dispatch_id"]})
 
     def _cancel(self, command, path_run_id):
@@ -607,7 +620,13 @@ if __name__ == "__main__":
         from mq_runtime import RocketMqEventPublisher, RocketMqProposalPublisher, RocketMqRuntime
         _event_publisher = RocketMqEventPublisher()
         _proposal_publisher = RocketMqProposalPublisher()
-        _mq_runtime = RocketMqRuntime(execute, publisher=_event_publisher, proposal_publisher=_proposal_publisher, on_result=_on_result)
+        _mq_runtime = RocketMqRuntime(
+            execute,
+            publisher=_event_publisher,
+            proposal_publisher=_proposal_publisher,
+            on_result=_on_result,
+            metrics=_runtime_metrics.record,
+        )
         _mq_runtime.start()
         _notify_java_runtime_recovered()
         mq_runtime = _mq_runtime

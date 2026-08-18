@@ -1,8 +1,10 @@
 package com.foodmate.infrastructure.persistence.food.adapter;
 
+import com.foodmate.application.common.port.out.OperationAuditPort;
 import com.foodmate.application.food.port.out.ApprovalRequestRepository;
 import com.foodmate.infrastructure.persistence.food.ApprovalRequestMapper;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
@@ -11,9 +13,12 @@ import org.springframework.stereotype.Repository;
 @Profile("local")
 public class ApprovalRequestRepositoryAdapter implements ApprovalRequestRepository {
     private final ApprovalRequestMapper mapper;
+    private final OperationAuditPort audit;
 
-    public ApprovalRequestRepositoryAdapter(ApprovalRequestMapper mapper) {
+    public ApprovalRequestRepositoryAdapter(
+            ApprovalRequestMapper mapper, OperationAuditPort audit) {
         this.mapper = mapper;
+        this.audit = audit;
     }
 
     @Override
@@ -64,6 +69,18 @@ public class ApprovalRequestRepositoryAdapter implements ApprovalRequestReposito
     }
 
     @Override
+    public List<ApprovalSnapshot> findSupersedableForResource(
+            long userId,
+            String resourceType,
+            long resourceId,
+            String operation,
+            long exceptApprovalRequestId,
+            Instant now) {
+        return mapper.findSupersedableForResource(
+                userId, resourceType, resourceId, operation, exceptApprovalRequestId, now);
+    }
+
+    @Override
     public int markExecuted(long userId, long approvalRequestId, Instant now) {
         return mapper.markExecuted(userId, approvalRequestId, now);
     }
@@ -76,6 +93,20 @@ public class ApprovalRequestRepositoryAdapter implements ApprovalRequestReposito
 
     @Override
     public int insertAudit(AuditWrite audit) {
-        return mapper.insertAudit(audit);
+        return this.audit.insert(
+                new OperationAuditPort.AuditRecord(
+                        audit.operationAuditId(),
+                        audit.userId(),
+                        audit.requestId(),
+                        audit.traceId(),
+                        audit.targetType(),
+                        audit.targetId(),
+                        audit.action(),
+                        "success",
+                        null,
+                        "{}",
+                        audit.responseJson(),
+                        audit.parametersDigest(),
+                        audit.idempotencyKey()));
     }
 }

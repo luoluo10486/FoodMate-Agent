@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parents[1]))
-from eval.metrics import EvalMetrics
+from eval.metrics import EvalMetrics, RuntimeMetrics
 
 
 class EvalMetricsTests(unittest.TestCase):
@@ -21,6 +21,20 @@ class EvalMetricsTests(unittest.TestCase):
         self.assertAlmostEqual(1 / 4, snapshot["schema_invalid_rate"])
         self.assertEqual(40, snapshot["p95_latency_ms"])
         self.assertEqual(40, snapshot["p99_latency_ms"])
+
+    def test_runtime_metrics_are_low_cardinality_aggregates(self):
+        metrics = RuntimeMetrics()
+        metrics.record("dispatch", "success", "completed", 10)
+        metrics.record("dispatch", "duplicate", "redis_inbox", 20)
+        metrics.queue_depth("active_dispatches", 3)
+
+        snapshot = metrics.snapshot()
+        dispatch = snapshot["operations"]["dispatch"]
+        self.assertEqual(2, dispatch["total"])
+        self.assertEqual(1, dispatch["result:success"])
+        self.assertEqual(1, dispatch["result:duplicate"])
+        self.assertEqual(20, dispatch["p99_latency_ms"])
+        self.assertEqual(3, snapshot["queues"]["active_dispatches"])
 
 
 if __name__ == "__main__":

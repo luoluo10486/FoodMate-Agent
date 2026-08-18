@@ -1,6 +1,7 @@
 package com.foodmate.application.runtime.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.common.service.AgentOperationMetrics;
 import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler;
@@ -12,6 +13,8 @@ import com.foodmate.shared.runtime.V1ToolProposal;
 import com.foodmate.shared.runtime.V1ToolResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,7 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
     private final MessagePublisherPort publisher;
     private final String resultTopic;
     private final InboxRepository inbox;
+    private final AgentOperationMetrics metrics;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     public RuntimeProposalMessageProcessor(
@@ -34,10 +38,22 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
             InboxRepository inbox,
             @Value("${foodmate.runtime.rocketmq.result-topic:foodmate-agent-result-v1}")
                     String resultTopic) {
+        this(gateway, publisher, inbox, resultTopic, null);
+    }
+
+    @Autowired
+    public RuntimeProposalMessageProcessor(
+            ToolGatewayService gateway,
+            MessagePublisherPort publisher,
+            InboxRepository inbox,
+            @Value("${foodmate.runtime.rocketmq.result-topic:foodmate-agent-result-v1}")
+                    String resultTopic,
+            ObjectProvider<AgentOperationMetrics> metricsProvider) {
         this.gateway = gateway;
         this.publisher = publisher;
         this.inbox = inbox;
         this.resultTopic = resultTopic;
+        this.metrics = metricsProvider == null ? null : metricsProvider.getIfAvailable();
     }
 
     @Override
@@ -51,6 +67,7 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
             String existing = claimOrExisting(proposalId, requestHash, body);
             if (existing != null) {
                 result = mapper.readValue(existing, ToolGatewayService.ProposalResult.class);
+                if (metrics != null) metrics.count("rocketmq", "proposal", "duplicate", "inbox");
             } else {
                 result =
                         gateway.execute(
@@ -69,6 +86,12 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                                                         proposal.payload().invocationId(),
                                                         proposal.payload().idempotencyKey())));
                 inbox.complete(proposalId, mapper.writeValueAsString(result));
+                if (metrics != null)
+                    metrics.count(
+                            "rocketmq",
+                            "proposal",
+                            result.status() == null ? "success" : result.status(),
+                            result.errorCode() == null ? "completed" : result.errorCode());
             }
             String payload =
                     mapper.writeValueAsString(
@@ -113,6 +136,7 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
         } catch (IllegalArgumentException exception) {
             return MqConsumeDecision.REJECT;
         } catch (Exception exception) {
+            if (metrics != null) metrics.count("rocketmq", "result", "failed", "consumer_error");
             log.warn(
                     "Proposal processing failed, will retry: proposal_id={}, error_type={}, message={}",
                     safeId(body),

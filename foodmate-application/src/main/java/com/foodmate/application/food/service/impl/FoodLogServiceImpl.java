@@ -92,7 +92,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                             nutrition.nutritionVersion()));
         }
         FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, json(result));
+        store.completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -146,7 +146,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                             nutrition.nutritionVersion()));
         }
         FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, json(result));
+        store.completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -194,7 +194,7 @@ public class FoodLogServiceImpl implements FoodLogService {
         if (store.restore(userId, foodLogId, revision) != 1)
             throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
         FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, json(result));
+        store.completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -362,7 +362,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                 action,
                 digest,
                 key,
-                response == null ? "{}" : json(response));
+                response == null ? "{}" : auditSummary(response));
     }
 
     private FoodLogRepository.FoodLogSnapshot requireSnapshot(
@@ -421,7 +421,7 @@ public class FoodLogServiceImpl implements FoodLogService {
         requireSameDigest(previous, digest);
         if (!"success".equals(previous.result()))
             throw new BusinessException(ErrorCode.CONFLICT, "幂等请求正在处理中");
-        return parseResponse(previous.responseJson());
+        return replayResponse(userId, previous.responseJson());
     }
 
     private void replayVoidOrConflict(FoodLogRepository.IdempotencyRecord previous, String digest) {
@@ -440,17 +440,26 @@ public class FoodLogServiceImpl implements FoodLogService {
                 "success".equals(previous.result()) ? "幂等请求已完成，请重放原请求" : "幂等请求正在处理中");
     }
 
-    private String json(FoodLogView view) {
+    private String auditSummary(FoodLogView view) {
         try {
-            return mapper.writeValueAsString(view);
+            return mapper.writeValueAsString(
+                    java.util.Map.of(
+                            "resource_id", view.foodLogId(),
+                            "revision", view.revision(),
+                            "status", view.deleted() ? "deleted" : "active"));
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("cannot serialize food log result", exception);
+            throw new IllegalStateException("cannot serialize food log audit summary", exception);
         }
     }
 
-    private FoodLogView parseResponse(String responseJson) {
+    private FoodLogView replayResponse(long userId, String responseJson) {
         try {
-            return mapper.readValue(responseJson, FoodLogView.class);
+            com.fasterxml.jackson.databind.JsonNode summary = mapper.readTree(responseJson);
+            long foodLogId = summary.path("resource_id").asLong(0);
+            if (foodLogId > 0) return view(requireSnapshot(userId, foodLogId, false));
+            // Compatibility with pre-M1-6 idempotency records. New records never retain
+            // notes/items.
+            return mapper.treeToValue(summary, FoodLogView.class);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("stored food log result is invalid", exception);
         }
