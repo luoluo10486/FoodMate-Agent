@@ -2,16 +2,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  AuthBackButton,
-  AuthBrand,
-  AuthCard,
-  AuthDivider,
-  AuthField,
-  AuthShell,
-  AuthSubmit,
-  PasswordField,
-} from '../Auth/AuthVisual';
+import { AuthBrand, AuthCard, AuthDivider, AuthField, AuthShell, AuthSubmit, PasswordField } from '../Auth/AuthVisual';
 import { Button } from '../../components/ui/button';
 import { notify } from '../../lib/notice';
 import { register } from '../../services/authService';
@@ -124,7 +115,6 @@ export function RegisterPage() {
             </Button>
           </div>
         </form>
-        <AuthBackButton onClick={() => navigate('/login')} />
       </AuthCard>
     </AuthShell>
   );

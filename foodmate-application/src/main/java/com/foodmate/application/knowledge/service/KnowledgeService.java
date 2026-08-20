@@ -23,6 +23,8 @@ public interface KnowledgeService {
      */
     long uploadBatch(long operatorId, ImportBatch batch, String traceId);
 
+    void changeVisibility(long documentId, String visibility, long operatorId, String traceId);
+
     record ImportBatch(
             String idempotencyKey,
             String sourceType,

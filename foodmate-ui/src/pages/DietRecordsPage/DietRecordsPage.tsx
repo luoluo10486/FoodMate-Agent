@@ -115,6 +115,7 @@ export function DietRecordsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const recordsState = getRecordsState(searchParams.get('state'));
+  const isFigmaFixture = searchParams.get('state') === 'v2';
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [view, setView] = useState<'day' | 'week'>('day');
   const [meals, setMeals] = useState<MealSection[]>(initialMeals);
@@ -179,7 +180,11 @@ export function DietRecordsPage() {
   const recordMetrics = recordsState === 'empty' ? emptyMetrics : metrics;
 
   return (
-    <WorkspaceLayout activeModule="records">
+    <WorkspaceLayout
+      activeModule="records"
+      displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
+      profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+    >
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.recordsBody} aria-label="饮食记录">
           <header className={styles.dateToolbar}>

@@ -162,6 +162,7 @@ export function AnalysisPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const analysisState = getAnalysisState(searchParams.get('state'));
+  const isFigmaFixture = searchParams.get('state') === 'v2';
   const [range, setRange] = useState<RangeKey>('7d');
   const [notice, setNotice] = useState('');
   const data = rangeData[range];
@@ -176,7 +177,11 @@ export function AnalysisPage() {
   };
 
   return (
-    <WorkspaceLayout activeModule="analysis">
+    <WorkspaceLayout
+      activeModule="analysis"
+      displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
+      profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+    >
       <div className={styles.page}>
         <section className={styles.analysisBody} aria-label="摄入分析">
           <header className={`${styles.filterRow} ${analysisState === 'loading' ? styles.stateFilterRow : ''}`}>

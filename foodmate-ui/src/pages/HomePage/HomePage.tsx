@@ -43,14 +43,31 @@ function getHomeState(value: string | null): HomeState {
   return value === 'loading' || value === 'empty' || value === 'error' || value === 'input-states' ? value : 'default';
 }
 
-function HomeStatePanel({ state, onRetry }: { state: Exclude<HomeState, 'default' | 'input-states'>; onRetry: () => void }) {
+function HomeStatePanel({
+  state,
+  onRetry,
+}: {
+  state: Exclude<HomeState, 'default' | 'input-states'>;
+  onRetry: () => void;
+}) {
   if (state === 'loading') {
     return (
       <section className={styles.homeStatePanel} aria-busy="true" aria-label="工作台正在加载">
         <h2>工作台正在加载</h2>
-        <div className={styles.homeStateSkeletonChips}>{[1, 2, 3, 4, 5].map((item) => <span key={item} />)}</div>
-        <div className={styles.homeStateMetricSkeletons}>{[1, 2, 3, 4].map((item) => <span key={item} />)}</div>
-        <div className={styles.homeStateGridSkeletons}><span /><span /></div>
+        <div className={styles.homeStateSkeletonChips}>
+          {[1, 2, 3, 4, 5].map((item) => (
+            <span key={item} />
+          ))}
+        </div>
+        <div className={styles.homeStateMetricSkeletons}>
+          {[1, 2, 3, 4].map((item) => (
+            <span key={item} />
+          ))}
+        </div>
+        <div className={styles.homeStateGridSkeletons}>
+          <span />
+          <span />
+        </div>
       </section>
     );
   }
@@ -58,11 +75,18 @@ function HomeStatePanel({ state, onRetry }: { state: Exclude<HomeState, 'default
   const isError = state === 'error';
   const Icon = isError ? CircleAlert : Leaf;
   return (
-    <section className={`${styles.homeStatePanel} ${isError ? styles.homeStateError : styles.homeStateEmpty}`} role={isError ? 'alert' : undefined}>
-      <span className={styles.homeStateIcon}><Icon aria-hidden="true" /></span>
+    <section
+      className={`${styles.homeStatePanel} ${isError ? styles.homeStateError : styles.homeStateEmpty}`}
+      role={isError ? 'alert' : undefined}
+    >
+      <span className={styles.homeStateIcon}>
+        <Icon aria-hidden="true" />
+      </span>
       <h2>{isError ? '数据加载失败' : '还没有任何数据'}</h2>
       <p>{isError ? '无法获取您的营养摘要和任务数据' : '开始你的第一次对话来记录饮食吧'}</p>
-      <Button type="button" onClick={onRetry}>{isError ? '重新加载' : '开始使用'}</Button>
+      <Button type="button" onClick={onRetry}>
+        {isError ? '重新加载' : '开始使用'}
+      </Button>
     </section>
   );
 }
@@ -124,7 +148,9 @@ export function HomePage() {
       activeModule="home"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined}
+      sidebarAvatarSrc={
+        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
+      }
       topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
       pageOverlay={
         homeState === 'loading' || homeState === 'empty' || homeState === 'error' ? (

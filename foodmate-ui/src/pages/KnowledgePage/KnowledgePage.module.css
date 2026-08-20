@@ -483,48 +483,19 @@
   min-height: 260px;
   box-sizing: border-box;
   padding: 0;
-  border: 1px solid rgba(199, 150, 84, 0.34);
+  border: 1px solid var(--fm-border);
   border-radius: 18px;
   background: var(--fm-bg-soft);
-  box-shadow: 0 8px 22px rgba(26, 33, 46, 0.12);
+  box-shadow: none;
   transform: translateX(-50%);
-}
-
-.stateCard::before {
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  left: -1px;
-  width: 6px;
-  border-radius: 4px;
-  background: rgba(199, 150, 84, 0.9);
-  content: '';
-}
-
-.stateStatus {
-  position: absolute;
-  top: 7px;
-  left: 31px;
-  display: inline-flex;
-  width: 174px;
-  height: 24px;
-  align-items: center;
-  padding: 0 8px;
-  border-radius: 12px;
-  background: #fff8e5;
-  color: var(--fm-orange);
-  font-family: var(--fm-font);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
 }
 
 .stateCard h2 {
   position: absolute;
-  top: 43px;
+  top: 31px;
   left: 31px;
   margin: 0;
-  color: var(--fm-orange);
+  color: var(--fm-ink);
   font-family: var(--fm-font);
   font-size: 22px;
   font-weight: 700;
@@ -533,7 +504,7 @@
 
 .stateCard p {
   position: absolute;
-  top: 93px;
+  top: 82px;
   left: 31px;
   margin: 0;
   color: var(--fm-muted);
@@ -544,7 +515,7 @@
 
 .stateDetail {
   position: absolute;
-  top: 149px;
+  top: 144px;
   left: 31px;
   display: block;
   color: #333;
@@ -555,7 +526,7 @@
 
 .stateAction {
   position: absolute;
-  top: 204px;
+  top: 202px;
   left: 31px;
   display: block;
   height: 18px;
@@ -581,24 +552,11 @@
 }
 
 .state-empty .stateAction {
-  top: 149px;
+  top: 148px;
 }
 
 .state-search-failed .stateCard {
-  border-color: rgba(214, 118, 118, 0.34);
-}
-
-.state-search-failed .stateCard::before {
-  background: rgba(214, 118, 118, 0.9);
-}
-
-.state-search-failed .stateStatus {
-  background: #ffedeb;
-  color: #d67676;
-}
-
-.state-search-failed .stateCard h2 {
-  color: #d67676;
+  border-color: #efc5c2;
 }
 
 .state-source-unavailable .stateDetail {

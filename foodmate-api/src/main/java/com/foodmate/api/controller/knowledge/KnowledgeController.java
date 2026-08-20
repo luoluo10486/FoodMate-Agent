@@ -112,6 +112,27 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
         return ok(new KnowledgeUploadBatchResponse(batchId, "uploaded"));
     }
 
+    @PostMapping("/knowledge-documents/{id}/publish")
+    public ApiResponse<StatusUpdateResponse> publish(@PathVariable long id, HttpServletRequest request) {
+        return visibility(id, "published", request);
+    }
+
+    @PostMapping("/knowledge-documents/{id}/disable")
+    public ApiResponse<StatusUpdateResponse> disable(@PathVariable long id, HttpServletRequest request) {
+        return visibility(id, "disabled", request);
+    }
+
+    @PostMapping("/knowledge-documents/{id}/restore")
+    public ApiResponse<StatusUpdateResponse> restore(@PathVariable long id, HttpServletRequest request) {
+        return visibility(id, "draft", request);
+    }
+
+    private ApiResponse<StatusUpdateResponse> visibility(long id, String value, HttpServletRequest request) {
+        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        knowledge.changeVisibility(id, value, operator.userId(), TraceContextHolder.currentOrNew().traceId());
+        return ok(new StatusUpdateResponse(true, value));
+    }
+
     private <T> ApiResponse<T> ok(T value) {
         return ApiResponse.success(value, TraceContextHolder.currentOrNew());
     }

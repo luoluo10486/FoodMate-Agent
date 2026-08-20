@@ -142,6 +142,17 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         audit(operatorId, traceId, "knowledge.status.update", Long.toString(documentId));
     }
 
+    @Override
+    @Transactional
+    public void changeVisibility(long documentId, String visibility, long operatorId, String traceId) {
+        requireAvailable();
+        if (!("published".equals(visibility) || "disabled".equals(visibility) || "deleted".equals(visibility) || "draft".equals(visibility)))
+            throw new IllegalArgumentException("invalid knowledge visibility");
+        if (store.updateVisibility(documentId, visibility, operatorId) != 1)
+            throw new IllegalArgumentException("knowledge document is not eligible for visibility change");
+        audit(operatorId, traceId, "knowledge.visibility." + visibility, Long.toString(documentId));
+    }
+
     private void audit(long operatorId, String traceId, String action, String documentId) {
         store.insertAudit(
                 new KnowledgeRepository.Audit(

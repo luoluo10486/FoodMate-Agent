@@ -428,7 +428,10 @@ export function ToolsSection({
   refreshNonce?: number;
 }) {
   const [searchParams] = useSearchParams();
-  return searchParams.get('tab') === 'registry' || searchParams.get('state') === 'tool-registry' ? (
+  const fixtureState = searchParams.get('state');
+  return searchParams.get('tab') === 'registry' ||
+    fixtureState === 'tool-registry' ||
+    fixtureState?.startsWith('op-') ? (
     <ToolRegistrySection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />
   ) : (
     <ToolCallsSection onAction={onAction} refreshNonce={refreshNonce} />

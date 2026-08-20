@@ -8,10 +8,13 @@ dependencies = [
     "redis==6.4.0",
     "rocketmq-python-client==5.1.1",
     "langgraph==0.6.11",
+    "minio==7.2.18",
+    "pymilvus==2.5.5",
+    "pypdf==5.9.0",
 ]
 
 [tool.setuptools]
-py-modules = ["runtime_server", "runtime_env", "mq_runtime", "agent_core", "model_provider", "proposal_protocol", "knowledge_rag"]
+py-modules = ["runtime_server", "runtime_env", "mq_runtime", "agent_core", "model_provider", "proposal_protocol", "knowledge_rag", "knowledge_worker"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

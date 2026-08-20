@@ -64,6 +64,7 @@ type WorkspaceLayoutProps = {
   topAvatarSrc?: string;
   displayNameOverride?: string;
   profileIdOverride?: string;
+  profileActiveTab?: 'basic' | 'memories' | 'security' | 'privacy';
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
   pageOverlay?: React.ReactNode;
@@ -80,6 +81,7 @@ export function WorkspaceLayout({
   topAvatarSrc,
   displayNameOverride,
   profileIdOverride,
+  profileActiveTab,
   showKnowledgeTopNav = true,
   designChat = false,
   pageOverlay,
@@ -314,20 +316,41 @@ export function WorkspaceLayout({
             <BrandLogo size="compact" />
             <nav className={styles.nav} aria-label={activeModule === 'profile' ? '个人中心导航' : '主导航'}>
               {activeModule === 'profile' ? (
-                <>
-                  <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE} end>
-                    基本资料
-                  </NavLink>
-                  <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_MEMORIES}>
-                    记忆与偏好
-                  </NavLink>
-                  <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_SECURITY}>
-                    安全与设备
-                  </NavLink>
-                  <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_DATA}>
-                    数据与隐私
-                  </NavLink>
-                </>
+                profileActiveTab ? (
+                  [
+                    { key: 'basic', label: '基本资料', to: ROUTES.PROFILE },
+                    { key: 'memories', label: '记忆与偏好', to: ROUTES.PROFILE_MEMORIES },
+                    { key: 'security', label: '安全与设备', to: ROUTES.PROFILE_SECURITY },
+                    { key: 'privacy', label: '数据与隐私', to: ROUTES.PROFILE_DATA },
+                  ].map((item) => {
+                    const isActive = profileActiveTab === item.key;
+                    return (
+                      <Link
+                        aria-current={isActive ? 'page' : undefined}
+                        className={topLink(isActive)}
+                        key={item.key}
+                        to={item.to}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <>
+                    <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE} end>
+                      基本资料
+                    </NavLink>
+                    <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_MEMORIES}>
+                      记忆与偏好
+                    </NavLink>
+                    <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_SECURITY}>
+                      安全与设备
+                    </NavLink>
+                    <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_DATA}>
+                      数据与隐私
+                    </NavLink>
+                  </>
+                )
               ) : (
                 <>
                   <NavLink className={topLink(activeModule === 'home' || designChat)} to={ROUTES.HOME} end>

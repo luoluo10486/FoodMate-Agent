@@ -34,7 +34,11 @@ export function EmptyState({
     <section className={`${styles.empty} ${styles[state]}`}>
       <strong>{state === 'error' ? '状态加载失败' : title}</strong>
       <span>{state === 'error' ? '请稍后重试，或从左侧新建一个会话。' : description}</span>
-      <Button disabled={state === 'disabled'} variant={state === 'error' ? 'destructive' : 'default'} onClick={onAction}>
+      <Button
+        disabled={state === 'disabled'}
+        variant={state === 'error' ? 'destructive' : 'default'}
+        onClick={onAction}
+      >
         {state === 'error' ? '重试' : actionLabel}
       </Button>
     </section>

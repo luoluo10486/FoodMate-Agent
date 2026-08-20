@@ -12,9 +12,10 @@ type TaskCardProps = {
 };
 
 export function TaskCard({ task, state = 'normal', errorText = '任务模板暂不可用' }: TaskCardProps) {
-  const target = import.meta.env.VITE_AGENT_MODE === 'real'
-    ? `/chat?prompt=${encodeURIComponent(task.prompt)}`
-    : `/chat/${task.id}?prompt=${encodeURIComponent(task.prompt)}`;
+  const target =
+    import.meta.env.VITE_AGENT_MODE === 'real'
+      ? `/chat?prompt=${encodeURIComponent(task.prompt)}`
+      : `/chat/${task.id}?prompt=${encodeURIComponent(task.prompt)}`;
   const isInteractive = state === 'normal';
 
   if (state === 'loading') {
@@ -31,7 +32,9 @@ export function TaskCard({ task, state = 'normal', errorText = '任务模板暂�
 
   return (
     <Card className={`${styles.card} ${styles[task.accent]} ${styles[state]}`}>
-      {isInteractive ? <Link className={styles.linkOverlay} to={target} aria-label={`开始任务：${task.prompt}`} /> : null}
+      {isInteractive ? (
+        <Link className={styles.linkOverlay} to={target} aria-label={`开始任务：${task.prompt}`} />
+      ) : null}
       <Badge className={styles.tag} variant={state === 'error' ? 'destructive' : 'secondary'}>
         {task.title}
       </Badge>

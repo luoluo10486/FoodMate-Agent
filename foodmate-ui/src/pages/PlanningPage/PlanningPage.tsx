@@ -337,6 +337,7 @@ export function PlanningPage() {
   const [searchParams] = useSearchParams();
   const requestedView = searchParams.get('state');
   const view: PlanningView = isPlanningView(requestedView) ? requestedView : 'default';
+  const isFigmaFixture = requestedView === 'v2';
 
   const navigatePlanningView = (nextView: MealPlanningFlowView | 'default') => {
     navigate(nextView === 'default' ? '/planning' : `/planning?state=${nextView}`);
@@ -366,6 +367,8 @@ export function PlanningPage() {
       activeModule="planning"
       rightRail={view === 'default' ? <PlanSidebar /> : undefined}
       rightRailWidth={view === 'default' ? 340 : undefined}
+      displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
+      profileIdOverride={isFigmaFixture ? '1234567' : undefined}
     >
       {content}
     </WorkspaceLayout>

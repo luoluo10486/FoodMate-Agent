@@ -83,4 +83,9 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     public void insertIndexOutbox(long outboxId, long itemId, String payload) {
         mapper.insertIndexOutbox(outboxId, itemId, payload);
     }
+
+    @Override
+    public int updateVisibility(long documentId, String visibility, long operatorId) {
+        return mapper.updateVisibility(documentId, visibility, operatorId);
+    }
 }

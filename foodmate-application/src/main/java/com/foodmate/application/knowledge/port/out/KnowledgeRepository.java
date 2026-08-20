@@ -18,6 +18,8 @@ public interface KnowledgeRepository {
 
     void insertIndexOutbox(long outboxId, long itemId, String payload);
 
+    int updateVisibility(long documentId, String visibility, long operatorId);
+
     record ImportJob(
             long jobId,
             long operatorId,

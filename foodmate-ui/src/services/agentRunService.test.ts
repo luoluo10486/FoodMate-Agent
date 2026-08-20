@@ -93,4 +93,24 @@ describe('openAgentRunStream', () => {
     expect(states).toContain('reconnecting');
     expect(states.at(-1)).toBe('exhausted');
   });
+
+  it('publishes a single initial connecting state and closes without scheduling a reconnect', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const states: string[] = [];
+    const stream = openAgentRunStream('42', () => undefined, {
+      reconnectDelayMs: 5,
+      onStateChange: (connection) => states.push(`${connection.state}:${connection.attempt}`),
+    });
+
+    expect(states).toEqual(['connecting:1']);
+    const source = FakeEventSource.instances[0];
+    stream.close();
+    source.fail();
+    vi.advanceTimersByTime(10);
+
+    expect(source.closed).toBe(true);
+    expect(FakeEventSource.instances).toHaveLength(1);
+    expect(states.at(-1)).toBe('closed:1');
+  });
 });

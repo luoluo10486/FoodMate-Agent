@@ -14,6 +14,9 @@ import os
 import re
 import urllib.error
 import urllib.request
+import io
+import zipfile
+import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
@@ -247,3 +250,87 @@ def safe_object_key(key: str) -> str:
     if path.is_absolute() or ".." in path.parts or not key.startswith("knowledge/"):
         raise RagError("RAG_OBJECT_KEY_DENIED", "object key is outside knowledge namespace")
     return str(path)
+
+
+def parse_document(filename: str, content: bytes) -> str:
+    """Extract text without interpreting document macros, external links, or scripts."""
+    suffix = PurePosixPath(filename).suffix.lower()
+    if not content:
+        raise RagError("RAG_EMPTY_DOCUMENT", "document is empty")
+    if suffix in {".md", ".txt"}:
+        try:
+            return content.decode("utf-8").strip()
+        except UnicodeDecodeError as error:
+            raise RagError("RAG_TEXT_ENCODING_INVALID", "text document must be UTF-8") from error
+    if suffix == ".pdf":
+        if not content.startswith(b"%PDF-"):
+            raise RagError("RAG_FILE_SIGNATURE_INVALID", "PDF signature is invalid")
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content), strict=True)
+            return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+        except ImportError as error:
+            raise RagError("RAG_PDF_PARSER_UNAVAILABLE", "pypdf is not installed") from error
+        except Exception as error:
+            raise RagError("RAG_PDF_PARSE_FAILED", "PDF could not be parsed safely") from error
+    if suffix == ".docx":
+        if not content.startswith(b"PK\x03\x04"):
+            raise RagError("RAG_FILE_SIGNATURE_INVALID", "DOCX signature is invalid")
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as archive:
+                names = set(archive.namelist())
+                if "word/document.xml" not in names or any(name.endswith("vbaProject.bin") for name in names):
+                    raise RagError("RAG_DOCX_UNSAFE", "DOCX macro or document body is invalid")
+                root = ElementTree.fromstring(archive.read("word/document.xml"))
+                return "\n".join("".join(node.itertext()).strip() for node in root.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p") if "".join(node.itertext()).strip()).strip()
+        except RagError:
+            raise
+        except (OSError, zipfile.BadZipFile, ElementTree.ParseError) as error:
+            raise RagError("RAG_DOCX_PARSE_FAILED", "DOCX could not be parsed safely") from error
+    raise RagError("RAG_DOCUMENT_TYPE_UNSUPPORTED", "unsupported knowledge document type")
+
+
+class MilvusIndex:
+    """The local-mode vector backend; stub mode never instantiates this class."""
+
+    def __init__(self, settings: RagSettings):
+        if settings.mode != "local":
+            raise RagError("RAG_MODE_INVALID", "Milvus is only available in local mode")
+        try:
+            from pymilvus import MilvusClient
+            self.client = MilvusClient(uri=settings.milvus_uri)
+        except ImportError as error:
+            raise RagError("RAG_MILVUS_UNAVAILABLE", "pymilvus is not installed") from error
+        except Exception as error:
+            raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus is unavailable") from error
+        self.collection = settings.milvus_collection
+        self._ensure_collection()
+
+    def _ensure_collection(self) -> None:
+        try:
+            if not self.client.has_collection(self.collection):
+                self.client.create_collection(self.collection, dimension=1536, primary_field_name="embedding_id", id_type="string", vector_field_name="vector", metric_type="COSINE", auto_id=False)
+        except Exception as error:
+            raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus collection is unavailable") from error
+
+    def upsert(self, title: str, chunks: Iterable[KnowledgeChunk], vectors: list[list[float]]) -> None:
+        rows = []
+        for chunk, vector in zip(chunks, vectors, strict=True):
+            rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted})
+        try:
+            self.client.upsert(collection_name=self.collection, data=rows)
+        except Exception as error:
+            raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus upsert failed") from error
+
+    def update_visibility(self, document_id: str, visibility: str, deleted: bool) -> None:
+        if visibility not in {"published", "draft", "disabled", "deleted"}:
+            raise RagError("RAG_VISIBILITY_INVALID", "visibility is invalid")
+        try:
+            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{document_id}"', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed"])
+            for row in rows:
+                row["visibility"] = visibility
+                row["deleted"] = deleted
+            if rows:
+                self.client.upsert(collection_name=self.collection, data=rows)
+        except Exception as error:
+            raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus visibility update failed") from error

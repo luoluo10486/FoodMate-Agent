@@ -56,7 +56,7 @@ export function Composer({
             }
           }}
         />
-          <Button
+        <Button
           aria-label={running ? '停止生成' : '发送消息'}
           className={styles.iconButton}
           disabled={!running && disabled}

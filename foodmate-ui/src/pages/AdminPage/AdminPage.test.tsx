@@ -86,5 +86,10 @@ describe('AdminPage overview', () => {
     unmount();
     renderAdmin('/admin?state=user-detail');
     expect(screen.getByText('用户详情')).toBeInTheDocument();
+
+    unmount();
+    renderAdmin('/admin?state=op-confirm');
+    expect(screen.getByText('已注册工具')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: '确认停用工具' })).toBeInTheDocument();
   });
 });

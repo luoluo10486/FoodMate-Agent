@@ -51,4 +51,7 @@ public interface KnowledgeMapper {
             @Param("outboxId") long outboxId,
             @Param("itemId") long itemId,
             @Param("payload") String payload);
+
+    @Update("UPDATE knowledge_documents SET visibility=#{visibility},is_deleted=(#{visibility}='deleted'),updated_by=#{operatorId},updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND (#{visibility}<>'published' OR (status='indexed' AND is_deleted=FALSE AND current_version=TRUE))")
+    int updateVisibility(@Param("documentId") long documentId, @Param("visibility") String visibility, @Param("operatorId") long operatorId);
 }

@@ -1590,7 +1590,9 @@
   background: rgb(29 35 42 / 34%);
 }
 
-.fixtureOverlaySuccess { background: rgb(29 35 42 / 8%); }
+.fixtureOverlaySuccess {
+  background: rgb(29 35 42 / 8%);
+}
 
 .fixtureModal {
   width: min(580px, 100%);
@@ -1602,17 +1604,56 @@
   box-shadow: 0 20px 48px rgb(31 41 55 / 18%);
 }
 
-.fixtureModal h2 { margin: 0; color: #1f2937; font-size: 24px; font-weight: 500; }
-.fixtureModal p { margin: 24px 0 0; color: #667085; line-height: 1.7; }
-.fixtureModalError { border-color: #ef8b86; }
-.fixtureModalError h2 { color: #dc3e3e; }
-.fixtureOverlaySuccess .fixtureModal { border-color: #75c897; }
-.fixtureOverlaySuccess .fixtureModal h2 { color: #159447; }
-.fixtureModalActions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; }
-.fixtureModalActions svg { width: 15px; height: 15px; }
-.fixtureProgress { display: block; height: 8px; margin-top: 24px; overflow: hidden; border-radius: 999px; background: #e7ebf0; }
-.fixtureProgress i { display: block; width: 68%; height: 100%; background: #4caf59; }
-.fixtureModal > button { margin-top: 28px; }
+.fixtureModal h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 24px;
+  font-weight: 500;
+}
+.fixtureModal p {
+  margin: 24px 0 0;
+  color: #667085;
+  line-height: 1.7;
+}
+.fixtureModalError {
+  border-color: #ef8b86;
+}
+.fixtureModalError h2 {
+  color: #dc3e3e;
+}
+.fixtureOverlaySuccess .fixtureModal {
+  border-color: #75c897;
+}
+.fixtureOverlaySuccess .fixtureModal h2 {
+  color: #159447;
+}
+.fixtureModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+}
+.fixtureModalActions svg {
+  width: 15px;
+  height: 15px;
+}
+.fixtureProgress {
+  display: block;
+  height: 8px;
+  margin-top: 24px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7ebf0;
+}
+.fixtureProgress i {
+  display: block;
+  width: 68%;
+  height: 100%;
+  background: #4caf59;
+}
+.fixtureModal > button {
+  margin-top: 28px;
+}
 
 .fixturePanel {
   position: fixed;
@@ -1631,12 +1672,29 @@
   background: #fbfffb;
 }
 
-.fixturePanelCard > span { color: #4ca968; font-size: 12px; letter-spacing: 0.04em; }
-.fixturePanelCard h2 { margin: 20px 0 0; font-size: 24px; }
-.fixturePanelCard p { color: #667085; line-height: 1.7; }
+.fixturePanelCard > span {
+  color: #4ca968;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.fixturePanelCard h2 {
+  margin: 20px 0 0;
+  font-size: 24px;
+}
+.fixturePanelCard p {
+  color: #667085;
+  line-height: 1.7;
+}
 
 @media (max-width: 760px) {
-  .fixtureOverlay { padding: 16px; }
-  .fixtureModal { padding: 24px; }
-  .fixturePanel { inset: 0; padding: 16px; }
+  .fixtureOverlay {
+    padding: 16px;
+  }
+  .fixtureModal {
+    padding: 24px;
+  }
+  .fixturePanel {
+    inset: 0;
+    padding: 16px;
+  }
 }

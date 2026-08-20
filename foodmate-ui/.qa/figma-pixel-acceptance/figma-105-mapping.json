@@ -135,8 +135,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-v2",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: diet-record semantics exist, but metric cards, meal-list composition, typography, avatar, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -159,9 +159,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Diet-record semantics exist, but metric cards, meal-list composition, typography, avatar, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -178,8 +179,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: intake-analysis semantics exist, but chart rendering, text density, card geometry, typography, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -202,9 +203,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Intake-analysis semantics exist, but chart rendering, text density, card geometry, typography, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -309,8 +311,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#register-page",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: registration semantics exist, but typography, sizing, spacing, password-rule treatment, footer link, and shadows differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -333,9 +335,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Registration page differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -352,8 +355,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/forgot-password-page-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#forgot-password-page",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: password-reset email semantics exist, but the two-column layout, content placement, heading and button sizing, and shadows differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -376,9 +379,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Forgot-password page differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -395,8 +399,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#reset-password-page",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: reset-password form semantics exist, but typography, form sizing, password-strength treatment, spacing, and shadows differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -419,9 +423,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Reset-password page differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -438,8 +443,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-submitting-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-submitting",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: submitting state exists, but background, input geometry, loading control, typography, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -462,9 +467,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Submitting state exists, but background, input geometry, loading control, typography, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -481,8 +487,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-field-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-field-error",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: field-error state exists, but validation copy placement, input geometry, button treatment, background, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -505,9 +511,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Field-error state exists, but validation copy placement, input geometry, button treatment, background, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -524,8 +531,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-credential-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-credential-error",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: credential-error state exists, but alert placement, input values, button geometry, background, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -548,9 +555,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Credential-error state exists, but alert placement, input values, button geometry, background, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -567,8 +575,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-account-locked-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-account-locked",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: account-locked state exists, but warning panel geometry, disabled control, background, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -591,9 +599,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Account-locked state exists, but warning panel geometry, disabled control, background, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -610,8 +619,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-account-disabled-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-account-disabled",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: account-disabled state exists, but alert geometry, disabled control, background, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -634,9 +643,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Account-disabled state exists, but alert geometry, disabled control, background, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -653,8 +663,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-service-unavailable-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-service-unavailable",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: service-unavailable state exists, but alert geometry, disabled control, background, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -677,9 +687,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Service-unavailable state exists, but alert geometry, disabled control, background, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -696,8 +707,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-invalid-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-invalid",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: invalid-link semantics and resend action exist, but iconography, text position, button sizing, geometry, and visual treatment differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -720,9 +731,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Invalid-token page differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -739,8 +751,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-expired-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-expired",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: expired-link semantics and resend action exist, but branding, icon and content sizing, vertical placement, button geometry, and spacing differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -763,9 +775,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Expired-token page differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -782,8 +795,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-used-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-used",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: used-link semantics, resend action, and support action exist, but branding, icon and content sizing, vertical placement, button geometry, and spacing differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -806,9 +819,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Used-token page differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1485,8 +1499,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-loading",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: loading semantics exist, but sidebar content, top navigation, heading placement, skeleton hierarchy, card geometry, and whitespace differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1509,9 +1523,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Workspace loading state differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1528,8 +1543,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-empty",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: empty-state semantics and primary action exist, but the surrounding container, empty-state scale, palette, typography, and layout differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1552,9 +1567,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Workspace empty state differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1571,8 +1587,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-error",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: error semantics and retry action exist, but the content container, illustration, title treatment, button geometry, sidebar, and overall layout differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1595,9 +1611,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Workspace error state differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1614,8 +1631,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-loading",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: loading semantics exist, but skeleton card geometry, navigation detail, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1638,9 +1655,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Loading semantics exist, but skeleton card geometry, navigation detail, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1657,8 +1675,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-empty",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: empty-record semantics exist, but empty-state geometry, iconography, typography, navigation density, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1681,9 +1699,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Empty-record semantics exist, but empty-state geometry, iconography, typography, navigation density, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1700,8 +1719,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-error",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: diet-record error semantics and retry action exist, but container geometry, iconography, navigation context, and button treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1724,9 +1743,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Diet-record error semantics and retry action exist, but container geometry, iconography, navigation context, and button treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1875,8 +1895,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-loading",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: intake-analysis loading semantics exist, but skeleton structure, chart container geometry, navigation context, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1899,9 +1919,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Intake-analysis loading semantics exist, but skeleton structure, chart container geometry, navigation context, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1918,8 +1939,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-empty",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: insufficient-data semantics exist, but chart empty-state geometry, iconography, copy density, navigation context, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1942,9 +1963,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Insufficient-data semantics exist, but chart empty-state geometry, iconography, copy density, navigation context, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1961,8 +1983,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-error",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: intake-analysis error semantics and retry action exist, but container geometry, iconography, navigation context, and button treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1985,9 +2007,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Intake-analysis error semantics and retry action exist, but container geometry, iconography, navigation context, and button treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2004,8 +2027,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: plan-list semantics exist, but card count, details, lower guidance content, density, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2028,9 +2051,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Plan-list semantics exist, but card count, details, lower guidance content, density, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2047,8 +2071,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step1-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step1",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: wizard step-one semantics exist, but supporting validation panel, form geometry, typography, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2071,9 +2095,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Wizard step-one semantics exist, but supporting validation panel, form geometry, typography, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2090,8 +2115,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step2-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step2",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: wizard step-two semantics exist, but option set, supporting summary, form geometry, typography, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2114,9 +2139,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Wizard step-two semantics exist, but option set, supporting summary, form geometry, typography, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2133,8 +2159,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step3-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step3",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: wizard review-and-generate semantics exist, but supporting preflight panel, summary geometry, typography, and spacing differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2157,9 +2183,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Wizard review-and-generate semantics exist, but supporting preflight panel, summary geometry, typography, and spacing differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2176,8 +2203,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-conflict-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-conflict",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: conflict semantics exist, but warning hierarchy, plan grid, selection controls, card geometry, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2200,9 +2227,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Conflict semantics exist, but warning hierarchy, plan grid, selection controls, card geometry, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2219,8 +2247,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-shopping-list-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-shopping-list",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: shopping-list semantics exist, but controls, card spacing, content density, bottom actions, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2243,9 +2271,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Shopping-list semantics exist, but controls, card spacing, content density, bottom actions, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -2262,8 +2291,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-generating-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-generating",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: generation progress and cancellation exist, but loader geometry, typography, placement, navigation density, and visual treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2286,9 +2315,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-18",
+        "conclusion": "Generation progress and cancellation exist, but loader geometry, typography, placement, navigation density, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3405,8 +3435,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-empty",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: no-results semantics exist, but empty-state badge, modal geometry, background density, and action treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3429,9 +3459,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "No-results semantics exist, but empty-state badge, modal geometry, background density, and action treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3448,8 +3479,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-search-failed-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-search-failed",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: search-failure semantics and retry action exist, but error badge, modal geometry, background density, and action treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3472,9 +3503,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Search-failure semantics and retry action exist, but error badge, modal geometry, background density, and action treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3491,8 +3523,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-source-unavailable-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-source-unavailable",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: source-unavailable semantics and retry action exist, but partial-access badge, modal geometry, background density, and action treatment differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3515,9 +3547,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Source-unavailable semantics and retry action exist, but partial-access badge, modal geometry, background density, and action treatment differ. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4194,8 +4227,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-model-usage-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-model-usage",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: input-state semantics exist, but the bottom state panel, information hierarchy, controls, typography, sidebar, and visual spacing differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4218,9 +4251,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Workspace input states differ visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4545,8 +4579,8 @@
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-input-states-browser.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-input-states",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "PENDING",
-      "evidenceNote": "Automated diff exists; manual visual review remains open",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "evidenceNote": "Manual visual review completed: model-usage semantics exist, but page heading hierarchy, metric cards, filter controls, table columns, lower information panels, and spacing differ from the Figma reference.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4569,9 +4603,10 @@
         "overflow": []
       },
       "manualReview": {
-        "status": "PENDING",
-        "reviewer": null,
-        "reviewedAt": null
+        "status": "VISUAL_DIFFERENCES_CONFIRMED",
+        "reviewer": "Codex",
+        "reviewedAt": "2026-08-19",
+        "conclusion": "Admin model-usage page differs visually from the Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -4636,7 +4671,7 @@
       "geometryPass": 105,
       "textPass": 105,
       "textReview": 0,
-      "manualPending": 35,
+      "manualPending": 0,
       "errors": 0
     }
   }

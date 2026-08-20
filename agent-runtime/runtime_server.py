@@ -616,6 +616,7 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     transport = os.getenv("FOODMATE_AGENT_TRANSPORT", "http").lower()
     mq_runtime = None
+    knowledge_consumer = None
     if transport == "rocketmq":
         from mq_runtime import RocketMqEventPublisher, RocketMqProposalPublisher, RocketMqRuntime
         _event_publisher = RocketMqEventPublisher()
@@ -628,6 +629,9 @@ if __name__ == "__main__":
             metrics=_runtime_metrics.record,
         )
         _mq_runtime.start()
+        if os.getenv("FOODMATE_KNOWLEDGE_INDEX_WORKER_ENABLED", "false").lower() == "true":
+            from knowledge_worker import start_rocketmq_worker
+            knowledge_consumer = start_rocketmq_worker()
         _notify_java_runtime_recovered()
         mq_runtime = _mq_runtime
     try:
@@ -635,3 +639,5 @@ if __name__ == "__main__":
     finally:
         if mq_runtime is not None:
             mq_runtime.close()
+        if knowledge_consumer is not None:
+            knowledge_consumer.shutdown()

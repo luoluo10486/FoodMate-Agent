@@ -125,16 +125,16 @@
 
 .figmaInput {
   height: 52px !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.6) !important;
+  border: 1.5px solid var(--fm-auth-control-border) !important;
   border-radius: 14px !important;
-  background: rgba(255, 255, 255, 0.65) !important;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 10%) !important;
-  color: #2a3439 !important;
+  background: var(--fm-auth-control) !important;
+  box-shadow: var(--fm-auth-control-shadow) !important;
+  color: var(--fm-auth-ink) !important;
   font-size: 14px !important;
 }
 
 .figmaInput::placeholder {
-  color: #9daab5;
+  color: var(--fm-auth-placeholder);
   opacity: 1;
 }
 
@@ -296,17 +296,17 @@
   width: 100%;
   height: 52px;
   margin-top: 0;
-  border: 1.5px solid rgb(72 199 142 / 50%);
+  border: 1.5px solid var(--fm-auth-action-border);
   border-radius: 16px;
-  background: rgb(72 199 142 / 70%);
-  box-shadow: 0 6px 16px rgb(72 199 142 / 25%);
+  background: var(--fm-auth-action);
+  box-shadow: var(--fm-auth-action-shadow);
   color: rgb(255 255 255 / 94%);
   font-size: 16px;
   font-weight: 700;
 }
 
 .primaryAction:hover {
-  background: rgb(72 199 142 / 82%);
+  background: rgba(72, 199, 142, 0.82);
 }
 
 .actions {
@@ -403,17 +403,18 @@
   min-height: 100dvh;
   place-items: center;
   overflow: auto;
-  background: #ffd6e0;
-  color: #2a3439;
+  background: var(--fm-auth-pink);
+  color: var(--fm-auth-ink);
   isolation: isolate;
 }
 
 .tokenCard {
   display: flex;
-  width: min(380px, calc(100vw - 32px));
+  width: min(460px, calc(100vw - 32px));
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 32px;
+  padding: 40px;
   text-align: center;
 }
 
@@ -450,18 +451,18 @@
 }
 
 .tokenIcon-invalid {
-  background: #d4e6c9;
-  color: #ff5053;
+  background: rgb(255 117 118 / 10%);
+  color: var(--fm-color-danger);
 }
 
 .tokenIcon-expired {
-  background: #e1efc8;
+  background: rgb(255 218 147 / 10%);
   color: #ffae00;
 }
 
 .tokenIcon-used {
-  background: #c1ebe2;
-  color: #4a9fff;
+  background: rgb(128 224 230 / 10%);
+  color: var(--fm-color-info-strong);
 }
 
 .tokenCard h1 {
@@ -483,19 +484,36 @@
   display: flex;
   width: 100%;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   align-items: stretch;
 }
 
 .tokenSupport {
   width: 100%;
   height: 52px;
-  border: 1.5px solid #64748b;
-  border-radius: 14px;
+  border: 1.5px solid #8a94a0;
+  border-radius: 16px;
   background: transparent;
   color: #2a3439;
   font-size: 15px;
   font-weight: 700;
+}
+
+.tokenCard .authPrimary {
+  height: 52px;
+  border-color: rgb(166 217 151 / 50%);
+  border-radius: 16px;
+  background: var(--fm-color-success);
+  box-shadow: 0 6px 8px rgb(72 199 142 / 20%);
+}
+
+.tokenCard .authPrimary:hover,
+.tokenCard .authPrimary:focus-visible {
+  background: var(--fm-color-success);
+}
+
+.tokenCard .authBackLink {
+  padding-top: 8px;
 }
 
 .tokenDecorIcon {
@@ -506,7 +524,7 @@
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: #c5f0d6;
+  background: var(--fm-auth-mint);
   clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 

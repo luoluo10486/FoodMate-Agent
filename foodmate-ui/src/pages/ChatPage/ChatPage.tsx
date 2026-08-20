@@ -599,17 +599,46 @@ type ChatAuxState =
 
 function getChatAuxState(value: string | null): ChatAuxState | undefined {
   const states: ChatAuxState[] = [
-    'completed-with-citations', 'redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination',
-    'history-page-2', 'history-page-3', 'search-results', 'session-actions', 'renamed', 'archived', 'trash', 'running-stop',
+    'completed-with-citations',
+    'redesign-default',
+    'nav-loading',
+    'nav-hover-preview',
+    'pagination',
+    'history-page-2',
+    'history-page-3',
+    'search-results',
+    'session-actions',
+    'renamed',
+    'archived',
+    'trash',
+    'running-stop',
   ];
-  return value && states.includes(value as ChatAuxState) ? value as ChatAuxState : undefined;
+  return value && states.includes(value as ChatAuxState) ? (value as ChatAuxState) : undefined;
 }
 
-type FixtureAction = 'idle' | 'pending' | 'confirmed' | 'cancelled' | 'continued' | 'ended' | 'retried' | 'skipped' | 'restarted' | 'error';
+type FixtureAction =
+  | 'idle'
+  | 'pending'
+  | 'confirmed'
+  | 'cancelled'
+  | 'continued'
+  | 'ended'
+  | 'retried'
+  | 'skipped'
+  | 'restarted'
+  | 'error';
 
 function fixtureRun(state: AgentFixtureState): AgentRunView {
   const status: AgentRunView['status'] =
-    state === 'tool-failed-retryable' ? 'failed' : state === 'safety-degraded' ? 'completed' : state === 'user-cancelled' ? 'cancelled' : state === 'sse-reconnecting' ? 'executing_tools' : 'composing';
+    state === 'tool-failed-retryable'
+      ? 'failed'
+      : state === 'safety-degraded'
+        ? 'completed'
+        : state === 'user-cancelled'
+          ? 'cancelled'
+          : state === 'sse-reconnecting'
+            ? 'executing_tools'
+            : 'composing';
   return {
     id: `fixture_${state}`,
     status,
@@ -666,11 +695,32 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       </article>
       <article className={styles.fixtureAuxMessage}>
         <strong>{labels[state]}</strong>
-        {state === 'completed-with-citations' ? <span>来源：USDA FoodData Central Ref #451992 · PubMed Central</span> : null}
-        {state === 'session-actions' ? <div className={styles.fixtureActions}><Button onClick={() => setNotice('已打开会话重命名入口。')}>重命名会话</Button><Button variant="outline" onClick={() => setNotice('已归档会话。')}>归档会话</Button><Button variant="ghost" onClick={() => setNotice('已移入回收站。')}>移入回收站</Button></div> : null}
-        {state === 'running-stop' ? <Button variant="outline" onClick={() => setNotice('已请求停止当前 Run。')}><CircleSlash aria-hidden="true" />停止</Button> : null}
+        {state === 'completed-with-citations' ? (
+          <span>来源：USDA FoodData Central Ref #451992 · PubMed Central</span>
+        ) : null}
+        {state === 'session-actions' ? (
+          <div className={styles.fixtureActions}>
+            <Button onClick={() => setNotice('已打开会话重命名入口。')}>重命名会话</Button>
+            <Button variant="outline" onClick={() => setNotice('已归档会话。')}>
+              归档会话
+            </Button>
+            <Button variant="ghost" onClick={() => setNotice('已移入回收站。')}>
+              移入回收站
+            </Button>
+          </div>
+        ) : null}
+        {state === 'running-stop' ? (
+          <Button variant="outline" onClick={() => setNotice('已请求停止当前 Run。')}>
+            <CircleSlash aria-hidden="true" />
+            停止
+          </Button>
+        ) : null}
       </article>
-      {notice ? <p className={styles.fixtureActionMessage} role="status">{notice}</p> : null}
+      {notice ? (
+        <p className={styles.fixtureActionMessage} role="status">
+          {notice}
+        </p>
+      ) : null}
     </ChatSurface>
   );
 }
@@ -745,6 +795,24 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
   };
 
+  const endBudgetSession = async () => {
+    if (!realMode) {
+      report('ended', '已结束当前会话。');
+      return;
+    }
+    if (!runId) {
+      report('error', '真实模式缺少 run_id，未执行取消请求。');
+      return;
+    }
+    report('pending', '结束请求已提交，等待当前 Run 的取消事件。');
+    try {
+      await cancelAgentRun(runId);
+      report('pending', '结束请求已提交，等待当前 Run 的取消事件。');
+    } catch (reason) {
+      report('error', reason instanceof Error ? reason.message : '结束会话失败，请稍后重试。');
+    }
+  };
+
   const retryFailedTool = async () => {
     if (!realMode) {
       report('retried', 'fixture 已记录重试动作，等待新的工具事件。');
@@ -773,15 +841,36 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               <span>目标对象: 饮食记录</span>
             </div>
             <dl className={styles.fixtureDetails}>
-              <div><dt>分类</dt><dd>2024年3月14日 午餐</dd></div>
-              <div><dt>食物</dt><dd>三文鱼寿司 x6</dd></div>
-              <div><dt>热量</dt><dd>约 620 千卡</dd></div>
-              <div><dt>蛋白质</dt><dd>38g</dd></div>
+              <div>
+                <dt>分类</dt>
+                <dd>2024年3月14日 午餐</dd>
+              </div>
+              <div>
+                <dt>食物</dt>
+                <dd>三文鱼寿司 x6</dd>
+              </div>
+              <div>
+                <dt>热量</dt>
+                <dd>约 620 千卡</dd>
+              </div>
+              <div>
+                <dt>蛋白质</dt>
+                <dd>38g</dd>
+              </div>
             </dl>
-            <div className={styles.fixtureMeta}><span>来源: USDA FoodData Central</span><span>假设: 按标准份量估算</span></div>
+            <div className={styles.fixtureMeta}>
+              <span>来源: USDA FoodData Central</span>
+              <span>假设: 按标准份量估算</span>
+            </div>
             <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void confirmWrite()}><CheckCircle2 aria-hidden="true" />确认写入</Button>
-              <Button disabled={action === 'pending'} variant="ghost" onClick={() => void cancelWrite()}><XCircle aria-hidden="true" />取消</Button>
+              <Button disabled={action === 'pending'} onClick={() => void confirmWrite()}>
+                <CheckCircle2 aria-hidden="true" />
+                确认写入
+              </Button>
+              <Button disabled={action === 'pending'} variant="ghost" onClick={() => void cancelWrite()}>
+                <XCircle aria-hidden="true" />
+                取消
+              </Button>
             </div>
           </Card>
         </div>
@@ -794,13 +883,25 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
             <Alert variant="warning" className={styles.fixtureAlert}>
               <AlertTriangle aria-hidden="true" />
               <AlertTitle>已达到预算上限</AlertTitle>
-              <AlertDescription>本次会话已使用 50,000 tokens（单次会话预算上限）。为了保证资源分配合理及避免异常资费产生，你可以：</AlertDescription>
+              <AlertDescription>
+                本次会话已使用 50,000 tokens（单次会话预算上限）。为了保证资源分配合理及避免异常资费产生，你可以：
+              </AlertDescription>
             </Alert>
-            <div className={styles.fixtureChoiceList}><span>● 追加预算继续当前会话</span><span>● 开始新会话 (之前的分析进度将会重置)</span></div>
-            <div className={styles.fixtureBudgetRow}><span>Token 用量 (100%)</span><strong>预计费用: $0.15</strong></div>
+            <div className={styles.fixtureChoiceList}>
+              <span>● 追加预算继续当前会话</span>
+              <span>● 结束当前会话</span>
+            </div>
+            <div className={styles.fixtureBudgetRow}>
+              <span>Token 用量 (100%)</span>
+              <strong>预计费用: $0.15</strong>
+            </div>
             <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void extendBudget()}>追加 20,000 tokens</Button>
-              <Button disabled={action === 'pending'} variant="ghost" onClick={() => report('ended', '已结束当前会话。')}>结束会话</Button>
+              <Button disabled={action === 'pending'} onClick={() => void extendBudget()}>
+                追加 20,000 tokens
+              </Button>
+              <Button disabled={action === 'pending'} variant="ghost" onClick={() => void endBudgetSession()}>
+                结束会话
+              </Button>
             </div>
           </Card>
         </div>
@@ -810,12 +911,26 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       return (
         <div className={styles.fixtureCardWrap}>
           <Card className={styles.fixtureCard}>
-            <div className={styles.fixtureStatusTitle}><AlertTriangle aria-hidden="true" /><h2>工具执行失败</h2></div>
+            <div className={styles.fixtureStatusTitle}>
+              <AlertTriangle aria-hidden="true" />
+              <h2>工具执行失败</h2>
+            </div>
             <strong className={styles.fixtureErrorTitle}>数据库查询超时 (错误码: TOOL_TIMEOUT_001)</strong>
-            <p className={styles.fixtureParagraph}>向量索引检索服务暂时不可用。FoodMate 代理在尝试读取外部知识库时失去连接。</p>
+            <p className={styles.fixtureParagraph}>
+              向量索引检索服务暂时不可用。FoodMate 代理在尝试读取外部知识库时失去连接。
+            </p>
             <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void retryFailedTool()}><RefreshCw aria-hidden="true" />重试</Button>
-              <Button disabled={action === 'pending'} variant="outline" onClick={() => report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。')}>跳过此步骤</Button>
+              <Button disabled={action === 'pending'} onClick={() => void retryFailedTool()}>
+                <RefreshCw aria-hidden="true" />
+                重试
+              </Button>
+              <Button
+                disabled={action === 'pending'}
+                variant="outline"
+                onClick={() => report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。')}
+              >
+                跳过此步骤
+              </Button>
             </div>
           </Card>
         </div>
@@ -825,14 +940,23 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       return (
         <div className={styles.fixtureCardWrap}>
           <Card className={styles.fixtureCard}>
-            <div className={styles.fixtureStatusTitle}><ShieldAlert aria-hidden="true" /><h2>安全降级</h2></div>
+            <div className={styles.fixtureStatusTitle}>
+              <ShieldAlert aria-hidden="true" />
+              <h2>安全降级</h2>
+            </div>
             <Alert variant="warning" className={styles.fixtureAlert}>
               <ShieldAlert aria-hidden="true" />
               <AlertTitle>安全降级提示</AlertTitle>
-              <AlertDescription>由于部分工具不可用，以下回答基于有限数据生成，可能不够完整。建议稍后重试以获取完整分析。</AlertDescription>
+              <AlertDescription>
+                由于部分工具不可用，以下回答基于有限数据生成，可能不够完整。建议稍后重试以获取完整分析。
+              </AlertDescription>
             </Alert>
             <p className={styles.fixtureParagraph}>由于无法连接到本地营养配方数据库，以下为您推荐基础低钠食谱：</p>
-            <p className={styles.fixtureParagraph}>1. 清蒸鳕鱼配西兰花（预计钠含量：120mg）<br />2. 香草烤鸡胸肉配糙米饭（预计钠含量：150mg）</p>
+            <p className={styles.fixtureParagraph}>
+              1. 清蒸鳕鱼配西兰花（预计钠含量：120mg）
+              <br />
+              2. 香草烤鸡胸肉配糙米饭（预计钠含量：150mg）
+            </p>
             <p className={styles.fixtureWarning}>注意：由于当前未结合您的个人高血压排除条件，请谨慎添加额外酱料。</p>
           </Card>
         </div>
@@ -841,17 +965,34 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     if (state === 'user-cancelled') {
       return (
         <div className={styles.fixtureCancelledWrap}>
-          <p className={styles.fixtureAssistantText}>正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...</p>
-          <div className={styles.fixtureCancelledNotice}><CircleSlash aria-hidden="true" /><span>用户已取消此次运行 · 2:16 PM</span></div>
+          <p className={styles.fixtureAssistantText}>
+            正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...
+          </p>
+          <div className={styles.fixtureCancelledNotice}>
+            <CircleSlash aria-hidden="true" />
+            <span>用户已取消此次运行 · 2:16 PM</span>
+          </div>
           <p className={styles.fixtureCenteredText}>你可以重新提问或开始新的对话</p>
-          <Button variant="outline" onClick={() => report('restarted', '已准备重新开始；真实运行需要由后端创建新的 Run。')}><RefreshCw aria-hidden="true" />重新开始提问</Button>
+          <Button
+            variant="outline"
+            onClick={() => report('restarted', '已准备重新开始；真实运行需要由后端创建新的 Run。')}
+          >
+            <RefreshCw aria-hidden="true" />
+            重新开始提问
+          </Button>
         </div>
       );
     }
     return (
       <div className={styles.fixtureReconnectWrap}>
         <p className={styles.fixtureAssistantText}>正在查询水果数据库，提取符合低生糖指数（GI &lt; 55）的食材列表...</p>
-        <div className={styles.fixtureReconnectNotice}><LoaderCircle aria-hidden="true" /><div><strong>连接已中断，正在重新连接...</strong><span>第 2 次重连尝试 (最多 5 次)</span></div></div>
+        <div className={styles.fixtureReconnectNotice}>
+          <LoaderCircle aria-hidden="true" />
+          <div>
+            <strong>连接已中断，正在重新连接...</strong>
+            <span>第 2 次重连尝试 (最多 5 次)</span>
+          </div>
+        </div>
         <p className={styles.fixtureCenteredText}>如果持续失败，请刷新页面</p>
       </div>
     );
@@ -866,10 +1007,19 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       disabled={state === 'budget-limit' || state === 'sse-reconnecting'}
       onChange={setInput}
       onSend={() => {
-        if (state === 'safety-degraded' && input.trim()) setActionMessage('已保留追问入口；真实模式下将由当前 Run 继续处理。');
+        if (state === 'safety-degraded' && input.trim())
+          setActionMessage('已保留追问入口；真实模式下将由当前 Run 继续处理。');
       }}
       onStop={() => setActionMessage('取消状态会保留已接收文本，真实取消请求需要绑定具体 run_id。')}
-      placeholder={state === 'write-confirmation' ? '请确认上述饮食数据是否正确...' : state === 'budget-limit' ? '追加预算以继续当前会话...' : state === 'sse-reconnecting' ? '等待重新连接...' : '追问或添加自定义指令...'}
+      placeholder={
+        state === 'write-confirmation'
+          ? '请确认上述饮食数据是否正确...'
+          : state === 'budget-limit'
+            ? '追加预算以继续当前会话...'
+            : state === 'sse-reconnecting'
+              ? '等待重新连接...'
+              : '追问或添加自定义指令...'
+      }
       showTrace={false}
       designChat
       displayNameOverride="Anddy"
@@ -878,12 +1028,28 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     >
       <article className={styles.fixtureUserMessage}>
         <div className={styles.fixtureUserBubble}>
-          {state === 'write-confirmation' ? '把刚才吃的三文鱼寿司记录到午餐里吧' : state === 'budget-limit' ? '帮我导出2023整年每个月的膳食结构趋势报告' : state === 'tool-failed-retryable' ? '查询我今天晚餐的热量' : state === 'safety-degraded' ? '推荐一份低钠晚餐食谱' : state === 'user-cancelled' ? '生成下周的减脂餐食规划' : '推荐低GI的水果'}
+          {state === 'write-confirmation'
+            ? '把刚才吃的三文鱼寿司记录到午餐里吧'
+            : state === 'budget-limit'
+              ? '帮我导出2023整年每个月的膳食结构趋势报告'
+              : state === 'tool-failed-retryable'
+                ? '查询我今天晚餐的热量'
+                : state === 'safety-degraded'
+                  ? '推荐一份低钠晚餐食谱'
+                  : state === 'user-cancelled'
+                    ? '生成下周的减脂餐食规划'
+                    : '推荐低GI的水果'}
         </div>
-        <span className={styles.fixtureMessageMeta}>Anddy · {state === 'user-cancelled' ? '02:15 PM' : '12:45 PM'}</span>
+        <span className={styles.fixtureMessageMeta}>
+          Anddy · {state === 'user-cancelled' ? '02:15 PM' : '12:45 PM'}
+        </span>
       </article>
       {content}
-      {actionMessage ? <p className={styles.fixtureActionMessage} role="status">{actionMessage}</p> : null}
+      {actionMessage ? (
+        <p className={styles.fixtureActionMessage} role="status">
+          {actionMessage}
+        </p>
+      ) : null}
     </ChatSurface>
   );
 }
@@ -1029,7 +1195,7 @@ function RealChatPage() {
   };
 
   const realRun: AgentRunView = {
-      id: activeRunId ?? '等待运行',
+    id: activeRunId ?? '等待运行',
     status: displayRunStatus(runStatus === 'idle' ? 'completed' : runStatus),
     intent: 'planning',
     toolsUsed: 0,
@@ -1037,8 +1203,8 @@ function RealChatPage() {
     agentsUsed: 0,
     agentsTotal: 1,
     toolCalls: [],
-      citations: [],
-      connection,
+    citations: [],
+    connection,
   };
 
   const mappedMessages: ChatMessage[] = messages.map((message) => ({
@@ -1076,7 +1242,9 @@ function RealChatPage() {
           <LoaderCircle aria-hidden="true" />
           <div>
             <strong>连接已中断，正在重新连接...</strong>
-            <span>第 {connection.attempt} 次重连尝试 (最多 {connection.maxAttempts} 次)</span>
+            <span>
+              第 {connection.attempt} 次重连尝试 (最多 {connection.maxAttempts} 次)
+            </span>
           </div>
         </div>
       ) : null}

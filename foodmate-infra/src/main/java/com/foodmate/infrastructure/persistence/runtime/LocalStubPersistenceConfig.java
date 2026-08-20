@@ -306,6 +306,8 @@ public class LocalStubPersistenceConfig {
             public void insertImportItem(ImportItem item) {}
 
             public void insertIndexOutbox(long outboxId, long itemId, String payload) {}
+
+            public int updateVisibility(long documentId, String visibility, long operatorId) { return 0; }
         };
     }
 

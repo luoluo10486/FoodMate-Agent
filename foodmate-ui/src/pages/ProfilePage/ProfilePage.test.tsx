@@ -24,6 +24,24 @@ function renderPage(initialEntry: string) {
 }
 
 describe('ProfilePage', () => {
+  it.each([
+    ['basic', '饮食与身体目标'],
+    ['memories', '记忆系统'],
+    ['security', '修改账号密码'],
+    ['privacy', '导出个人工作区数据'],
+  ])('maps the Figma %s fixture to its page', (state, heading) => {
+    renderPage(`/profile?state=${state}`);
+
+    expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
+  });
+
+  it('keeps the Figma fixture navigation semantics aligned with the rendered profile tab', () => {
+    renderPage('/profile?state=security');
+
+    expect(screen.getByRole('link', { name: '安全与设备' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: '基本资料' })).not.toHaveAttribute('aria-current');
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

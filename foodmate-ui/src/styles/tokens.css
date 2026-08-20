@@ -53,6 +53,19 @@
   --fm-color-error-surface: #fff7f5;
   --fm-color-error-border: #f3b4aa;
 
+  /* Figma auth surfaces (647:214 and its state variants). */
+  --fm-auth-pink: #ffd6e0;
+  --fm-auth-mint: #c5f0d6;
+  --fm-auth-ink: #2a3439;
+  --fm-auth-copy: #4a5568;
+  --fm-auth-placeholder: #9daab5;
+  --fm-auth-action: rgba(72, 199, 142, 0.7);
+  --fm-auth-action-border: rgba(72, 199, 142, 0.5);
+  --fm-auth-control: rgba(255, 255, 255, 0.65);
+  --fm-auth-control-border: rgba(255, 255, 255, 0.6);
+  --fm-auth-control-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --fm-auth-action-shadow: 0 6px 16px rgba(72, 199, 142, 0.25);
+
   /* Figma spacing, radius and elevation foundations. */
   --space-1: 4px;
   --space-2: 8px;

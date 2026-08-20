@@ -280,20 +280,17 @@ export function KnowledgePage() {
 function KnowledgeStateCard({ state, onAction }: { state: Exclude<KnowledgeState, 'default'>; onAction: () => void }) {
   const content = {
     empty: {
-      label: 'EMPTY · NO MATCHES',
       title: '没有找到相关内容',
       body: '换一个关键词，或清除主题与来源筛选后重试。',
       action: '清除筛选',
     },
     'search-failed': {
-      label: 'ERROR · RETRY AVAILABLE',
       title: '检索失败',
       body: '知识库服务暂时不可用，当前没有返回结果。请稍后重试。',
       detail: '错误码: KB_SEARCH_UNAVAILABLE · request_id: req_kb_73e2',
       action: '重新检索',
     },
     'source-unavailable': {
-      label: 'PARTIAL ACCESS',
       title: '来源暂时不可访问',
       body: '当前结果仍可查看匹配片段，但原始来源暂时无法打开。',
       detail: '来源状态: unavailable · 已保留引用与文档 ID',
@@ -304,7 +301,6 @@ function KnowledgeStateCard({ state, onAction }: { state: Exclude<KnowledgeState
   return (
     <div className={`${styles.stateOverlay} ${styles[`state-${state}`]}`} role="presentation">
       <section aria-live="polite" className={styles.stateCard} role="alert">
-        <span className={styles.stateStatus}>{content.label}</span>
         <h2>{content.title}</h2>
         <p>{content.body}</p>
         {content.detail ? <span className={styles.stateDetail}>{content.detail}</span> : null}

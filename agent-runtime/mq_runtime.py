@@ -248,6 +248,29 @@ class RocketMqProposalPublisher:
         self.producer.shutdown()
 
 
+class RocketMqKnowledgeResultPublisher:
+    """Publishes only index facts; source bytes and credentials never enter RocketMQ."""
+    def __init__(self, producer=None, topic=None):
+        self.topic = topic or os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX_RESULT", "foodmate-knowledge-index-result-v1")
+        self.producer = producer or self._new_producer()
+
+    def _new_producer(self):
+        producer = Producer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), topics=[self.topic])
+        _startup_client_with_timeout(producer, "knowledge-result-producer", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
+        return producer
+
+    def publish(self, result: dict):
+        message = Message()
+        message.topic = self.topic
+        message.body = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        message.keys = str(result["item_id"])
+        message.add_property("foodmate_message_type", "KnowledgeIndexResult")
+        return self.producer.send(message)
+
+    def close(self):
+        self.producer.shutdown()
+
+
 class _CommandListener(MessageListener):
     def __init__(self, inbox: RedisCommandInbox, execute: Callable[[dict], None], metrics=None):
         self.inbox = inbox

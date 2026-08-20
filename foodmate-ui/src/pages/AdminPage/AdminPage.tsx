@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, FileWarning, LoaderCircle, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,15 @@ const defaultOperationError: AdminOperationError = {
   message: '无法停用工具：服务端超时 (GATEWAY_TIMEOUT)',
 };
 
+const figmaOperationAction: AdminActionPayload = {
+  action: '停用工具',
+  targetLabel: 'nutrition_lookup',
+  targetType: 'tool',
+  targetId: 'nutrition_lookup',
+};
+
 type AdminFixtureState =
+  | 'overview'
   | 'tool-registry'
   | 'deleted-resources'
   | 'user-detail'
@@ -50,6 +58,7 @@ type AdminFixtureState =
 
 function getAdminFixtureState(value: string | null): AdminFixtureState | undefined {
   const states: AdminFixtureState[] = [
+    'overview',
     'tool-registry',
     'deleted-resources',
     'user-detail',
@@ -73,7 +82,8 @@ function getAdminFixtureState(value: string | null): AdminFixtureState | undefin
 }
 
 function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; onDismiss: () => void }) {
-  if (state === 'tool-registry' || state === 'deleted-resources' || state === 'user-detail') return null;
+  if (state === 'overview' || state === 'tool-registry' || state === 'deleted-resources' || state === 'user-detail')
+    return null;
   const isOperation = state.startsWith('op-');
   const isDetail = state === 'run-detail' || state === 'tool-calls' || state === 'sql-audit' || state === 'trace';
   if (state === 'op-no-permission') {
@@ -135,8 +145,16 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
     state === 'knowledge-format-error'
       ? '文件格式校验失败'
       : state === 'knowledge-size-error'
-        ? '文件大小超过限制'
-        : '知识库上传失败';
+      ? '文件大小超过限制'
+      : '知识库上传失败';
+  const knowledgeProgressTitle =
+    state === 'knowledge-uploading'
+      ? '批量任务已提交'
+      : state === 'knowledge-indexing'
+        ? '正在建立索引'
+        : state === 'knowledge-upload-success'
+          ? '批量任务已提交'
+          : '';
   const operationTitle =
     state === 'op-confirm'
       ? '确认停用工具'
@@ -145,7 +163,7 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
         : state === 'op-failed'
           ? '操作失败'
           : '';
-  const title = isOperation ? operationTitle : errorTitle;
+  const title = isOperation ? operationTitle : knowledgeError ? errorTitle : knowledgeProgressTitle;
   const Icon = isOperation
     ? state === 'op-failed'
       ? XCircle
@@ -285,6 +303,7 @@ function renderSection(
 export function AdminPage() {
   const authUser = getAuthUser();
   const { pathname, search } = useLocation();
+  const navigate = useNavigate();
   const requestedFixture = getAdminFixtureState(new URLSearchParams(search).get('state'));
   const sectionKey = (
     requestedFixture?.startsWith('op-')
@@ -309,6 +328,18 @@ export function AdminPage() {
   const [operationError, setOperationError] = useState<AdminOperationError>();
   const [notice, setNotice] = useState('');
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const fixtureUser = requestedFixture
+    ? { displayName: 'Anddy', id: '1234567' }
+    : { displayName: authUser.displayName, id: authUser.id };
+  const fixtureOperationStatus: AdminOperationState | undefined = requestedFixture?.startsWith('op-')
+    ? requestedFixture.replace('op-', '') === 'no-permission'
+      ? 'no-permission'
+      : (requestedFixture.replace('op-', '') as AdminOperationState)
+    : undefined;
+  const activeOperationStatus = fixtureOperationStatus ?? operationStatus;
+  const activeOperationAction = fixtureOperationStatus ? figmaOperationAction : pendingAction;
+  const activeOperationError = fixtureOperationStatus === 'failed' ? defaultOperationError : operationError;
+  const dismissFixture = () => navigate('/admin?state=tool-registry', { replace: true });
 
   useEffect(() => {
     const handleNotice = (event: Event) => {
@@ -446,29 +477,28 @@ export function AdminPage() {
             返回 Agent 工作区
           </Link>
           <div className={styles.userSection}>
-            <div className={styles.userAvatar}>{authUser.displayName.slice(0, 1)}</div>
+            <div className={styles.userAvatar}>
+              <img alt="" src="/assets/avatars/default-male.svg" />
+            </div>
             <div className={styles.userMetadata}>
-              <strong>{authUser.displayName}</strong>
-              <small>ID: {authUser.id}</small>
+              <strong>{fixtureUser.displayName}&apos;s Lab</strong>
+              <small>ID: {fixtureUser.id}</small>
             </div>
           </div>
         </div>
       </aside>
       <main className={styles.adminMain}>
         <AdminOperationStatus
-          status={operationStatus}
-          action={pendingAction}
-          error={operationError}
-          onConfirm={() => void executePendingAction()}
-          onCancel={dismissOperation}
-          onRetry={() => void executePendingAction()}
-          onDismiss={dismissOperation}
+          status={activeOperationStatus}
+          action={activeOperationAction}
+          error={activeOperationError}
+          onConfirm={fixtureOperationStatus ? dismissFixture : () => void executePendingAction()}
+          onCancel={fixtureOperationStatus ? dismissFixture : dismissOperation}
+          onRetry={fixtureOperationStatus ? dismissFixture : () => void executePendingAction()}
+          onDismiss={fixtureOperationStatus ? dismissFixture : dismissOperation}
         />
-        {requestedFixture ? (
-          <AdminFixtureOverlay
-            state={requestedFixture}
-            onDismiss={() => window.history.replaceState({}, '', '/admin')}
-          />
+        {requestedFixture && !requestedFixture.startsWith('op-') ? (
+          <AdminFixtureOverlay state={requestedFixture} onDismiss={() => navigate('/admin', { replace: true })} />
         ) : null}
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
@@ -481,9 +511,11 @@ export function AdminPage() {
                     ? '删除资源管理'
                     : sectionKey === 'users'
                       ? '用户管理'
-                      : sectionKey === 'audit'
-                        ? '操作审计'
-                        : '管理控制台'}
+                      : sectionKey === 'knowledge'
+                        ? '知识库管理'
+                        : sectionKey === 'audit'
+                          ? '操作审计'
+                          : '管理控制台'}
             </strong>
             {sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
               <span className={styles.envBadge}>生产环境</span>
@@ -526,10 +558,10 @@ export function AdminPage() {
               {notice}
             </div>
           ) : null}
-          {sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute || isDeletedRoute ? null : (
+          {sectionKey === 'overview' || sectionKey === 'users' || sectionKey === 'knowledge' || isRegistryRoute || isDeletedRoute ? null : (
             <AdminHeader sectionKey={sectionKey} />
           )}
-          {renderSection(sectionKey, requestAdminAction, refreshNonce, operationStatus)}
+          {renderSection(sectionKey, requestAdminAction, refreshNonce, activeOperationStatus)}
         </div>
       </main>
     </div>

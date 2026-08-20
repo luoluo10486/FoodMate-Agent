@@ -10,7 +10,10 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useRef } from 'react';
 import type { FormEvent } from 'react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -56,13 +59,13 @@ function LoginBrand({ state }: { state: LoginState }) {
   return (
     <div className={styles.loginBrand} data-node-id="647:234">
       {state === 'default' ? (
-        <span className={styles.logoPlaceholder} aria-hidden="true" data-node-id="660:212" />
+        <span className={styles.logoPlaceholder} aria-hidden="true" data-login-motion="logo" data-node-id="660:212" />
       ) : (
-        <span className={styles.loginMark} aria-hidden="true">
+        <span className={styles.loginMark} aria-hidden="true" data-login-motion="logo">
           <Leaf />
         </span>
       )}
-      <span className={styles.wordmark} data-node-id="647:236">
+      <span className={styles.wordmark} data-login-motion="wordmark" data-node-id="647:236">
         <span>Food</span>
         <span>Mate</span>
       </span>
@@ -72,6 +75,7 @@ function LoginBrand({ state }: { state: LoginState }) {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const pageRef = useRef<HTMLElement>(null);
   const [searchParams] = useSearchParams();
   const defaults = getLoginDefaults();
   const requestedState = searchParams.get('state') as LoginState | null;
@@ -80,6 +84,36 @@ export function LoginPage() {
   const visualState: LoginState = state === 'default' && submitting ? 'submitting' : state;
   const [loginValues, setLoginValues] = useState<LoginValues>(defaults);
   const [showPassword, setShowPassword] = useState(false);
+
+  useGSAP(
+    () => {
+      const page = pageRef.current;
+      if (!page || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      // Preserve the Figma entrance timing, then leave the login form interactive and stable.
+      const timeline = gsap.timeline();
+      timeline
+        .set('[data-login-motion="diagonal"]', { x: -1800, y: -1000 })
+        .set('[data-login-motion="logo"]', { rotate: 0, scale: 12, x: 90, y: 207 })
+        .set('[data-login-motion="wordmark"]', { autoAlpha: 0, y: 8 })
+        .set('[data-login-motion="welcome"]', { autoAlpha: 0, y: 15 })
+        .set('[data-login-motion="fields"]', { autoAlpha: 0, y: 15 })
+        .set('[data-login-motion="submit"]', { autoAlpha: 0, y: 12 })
+        .set('[data-login-motion="divider"]', { autoAlpha: 0 })
+        .set('[data-login-motion="signup"]', { autoAlpha: 0, y: 8 })
+        .to('[data-login-motion="logo"]', { rotate: 360, duration: 1.5, ease: 'none' }, 0)
+        .to('[data-login-motion="logo"]', { scale: 1, x: 0, y: 0, duration: 0.8, ease: 'power3.out' }, 2)
+        .to('[data-login-motion="wordmark"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 2.8)
+        .to('[data-login-motion="welcome"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 3.2)
+        .to('[data-login-motion="fields"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 3.4)
+        .to('[data-login-motion="submit"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 3.6)
+        .to('[data-login-motion="divider"]', { autoAlpha: 1, duration: 0.3, ease: 'power3.out' }, 3.8)
+        .to('[data-login-motion="signup"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 3.9)
+        .to('[data-login-motion="diagonal"]', { x: 0, y: 0, duration: 0.4, ease: 'elastic.out(1, 0.45)' }, 2.3)
+        .to({}, { duration: 0.2 });
+    },
+    { scope: pageRef },
+  );
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -96,12 +130,12 @@ export function LoginPage() {
   };
 
   return (
-    <main className={`${styles.authPage} ${styles['authPage-login']}`}>
-      <div className={styles.authDiagonal} aria-hidden="true" />
+    <main className={`${styles.authPage} ${styles['authPage-login']}`} ref={pageRef}>
+      <div className={styles.authDiagonal} aria-hidden="true" data-login-motion="diagonal" />
       <section className={styles.authCard} aria-label="欢迎回来">
         <div className={styles.brand}>
           <LoginBrand state={visualState} />
-          <div className={styles.welcome}>
+          <div className={styles.welcome} data-login-motion="welcome">
             <p>欢迎回来</p>
             <span>
               {visualState === 'submitting'
@@ -159,7 +193,7 @@ export function LoginPage() {
               </div>
             </div>
           ) : null}
-          <div className={styles.loginFields}>
+          <div className={styles.loginFields} data-login-motion="fields">
             <Field label="">
               <Input
                 className={`${styles.figmaInput} ${state === 'field-error' ? styles.figmaInputError : ''}`}
@@ -234,6 +268,7 @@ export function LoginPage() {
               ['submitting', 'account-locked', 'account-disabled', 'service-unavailable'].includes(visualState)
             }
             data-node-id="647:251"
+            data-login-motion="submit"
           >
             {visualState === 'submitting' ? (
               <>
@@ -253,10 +288,10 @@ export function LoginPage() {
         </form>
 
         <div className={styles.actions}>
-          <div className={styles.divider} aria-hidden="true">
+          <div className={styles.divider} aria-hidden="true" data-login-motion="divider">
             <span>或者</span>
           </div>
-          <div className={styles.signupRow}>
+          <div className={styles.signupRow} data-login-motion="signup">
             <span className={styles.signupPrompt}>没有账号？</span>
             <Button
               className={styles.signupButton}
