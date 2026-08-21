@@ -13,9 +13,10 @@ type SessionAction = 'rename' | 'archive' | 'unarchive' | 'delete';
 type SidebarSessionListProps = {
   sessions: SessionSummary[];
   onAction?: (action: SessionAction, session: SessionSummary) => void;
+  currentPage?: number;
 };
 
-export function SidebarSessionList({ sessions, onAction }: SidebarSessionListProps) {
+export function SidebarSessionList({ sessions, onAction, currentPage = 1 }: SidebarSessionListProps) {
   return (
     <section className={styles.section}>
       <NavLink className={({ isActive }) => `${styles.sectionTitle} ${isActive ? styles.active : ''}`} to="/chat">
@@ -68,7 +69,7 @@ export function SidebarSessionList({ sessions, onAction }: SidebarSessionListPro
         <button aria-label="上一页" disabled type="button">
           <ChevronLeft aria-hidden="true" />
         </button>
-        <span>1 / 3</span>
+        <span>{currentPage} / 3</span>
         <button aria-label="下一页" type="button">
           <ChevronRight aria-hidden="true" />
         </button>

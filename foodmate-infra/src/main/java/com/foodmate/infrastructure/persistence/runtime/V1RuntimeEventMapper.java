@@ -124,4 +124,8 @@ public interface V1RuntimeEventMapper {
     @Update(
             "UPDATE sessions SET last_message_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE session_id=#{sessionId}")
     void touchSession(long sessionId);
+
+    @Select(
+            "SELECT EXISTS(SELECT 1 FROM knowledge_documents WHERE document_id=#{documentId} AND tenant_id=0 AND visibility='published' AND status='indexed' AND current_version=TRUE AND is_deleted=FALSE AND version=#{version})")
+    boolean publicCitationVisible(long documentId, String version);
 }

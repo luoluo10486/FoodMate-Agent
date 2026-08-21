@@ -21,6 +21,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection } from '../../types/agent';
 import type { Message } from '../../types/session';
+import type { SessionSummary } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { AgentStatusStrip } from '../../components/agent/AgentStatusStrip';
@@ -50,6 +51,7 @@ type ChatMessage = {
   content: string;
   time: string;
   source?: string;
+  wide?: boolean;
 };
 
 function displayRunStatus(status: string): AgentDisplayStatus {
@@ -97,7 +99,7 @@ function MessageBubble({ message, children }: { message: ChatMessage; children?:
       ) : (
         <>
           <span className={styles.agentAvatar} aria-hidden="true" />
-          <div className={styles.assistantBody}>
+          <div className={`${styles.assistantBody} ${message.wide ? styles.assistantBodyWide : ''}`}>
             <div className={styles.messageBubble}>
               <p className={styles.messageText}>{message.content}</p>
               {message.source ? <div className={styles.source}>{message.source}</div> : null}
@@ -198,6 +200,12 @@ type ChatSurfaceProps = {
   profileIdOverride?: string;
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
+  pageOverlay?: ReactNode;
+  sidebarFixture?: {
+    sessions: SessionSummary[];
+    currentPage: number;
+    searchValue?: string;
+  };
 };
 
 function ChatSurface({
@@ -219,6 +227,8 @@ function ChatSurface({
   profileIdOverride,
   showKnowledgeTopNav,
   designChat,
+  pageOverlay,
+  sidebarFixture,
 }: ChatSurfaceProps) {
   return (
     <WorkspaceLayout
@@ -227,7 +237,9 @@ function ChatSurface({
       designChat={designChat}
       displayNameOverride={displayNameOverride}
       profileIdOverride={profileIdOverride}
+      pageOverlay={pageOverlay}
       rightRail={showTrace ? <TraceRail run={run} /> : undefined}
+      sidebarFixture={sidebarFixture}
       showKnowledgeTopNav={showKnowledgeTopNav}
       sidebarAvatarSrc={sidebarAvatarSrc}
       topAvatarSrc={topAvatarSrc}
@@ -652,12 +664,165 @@ function fixtureRun(state: AgentFixtureState): AgentRunView {
   };
 }
 
+type HistoryFixture = {
+  prompt: string;
+  response: string;
+  source: string;
+  run: AgentRunView;
+  sidebar: {
+    sessions: SessionSummary[];
+    currentPage: number;
+    searchValue?: string;
+  };
+};
+
+function historyFixture(state: Extract<ChatAuxState, 'history-page-2' | 'history-page-3' | 'search-results'>): HistoryFixture {
+  const isSearch = state === 'search-results';
+  const isPageThree = state === 'history-page-3';
+  const baseSessions: SessionSummary[] = [
+    { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true, status: 'completed' },
+    { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', status: 'completed' },
+    { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', status: 'completed' },
+    { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', status: 'completed' },
+    { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', status: 'completed' },
+    { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', status: 'completed' },
+    { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', status: 'completed' },
+    { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', status: 'completed' },
+  ];
+  const searchSessions: SessionSummary[] = [
+    { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: true, status: 'completed' },
+    { id: 'high-protein-breakfast', title: '高蛋白早餐建议', subtitle: '12:45', status: 'completed' },
+    ...baseSessions.slice(6),
+  ];
+  return {
+    prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
+    response: 'I have analyzed the typical values for wild salmon (150g) and cooked quinoa (100g). Together, they provide approximately 38g of high-quality protein.',
+    source: 'Source: USDA FoodData Central Ref #451992',
+    run: {
+      id: 'fst_trace_88192a',
+      status: 'completed',
+      intent: 'analysis',
+      toolsUsed: 4,
+      toolsTotal: 4,
+      agentsUsed: 1,
+      agentsTotal: 1,
+      citations: [],
+      toolCalls: [
+        { id: 'query-expansion', name: 'query_expansion', displayName: '查询扩展', status: 'success', latencyMs: 12, summary: '已完成查询扩展' },
+        { id: 'vector-search', name: 'vector_search', displayName: '向量索引检索', status: 'success', latencyMs: 184, summary: '已命中知识库向量索引' },
+        { id: 'usda-lookup', name: 'usda_lookup', displayName: 'USDA 数据库调用', status: 'success', latencyMs: 92, summary: '已返回标准营养值' },
+        { id: 'response-compose', name: 'response_compose', displayName: '响应合成', status: 'success', latencyMs: 45, summary: '已生成可追溯回答' },
+      ],
+    },
+    sidebar: {
+      sessions: isSearch ? searchSessions : baseSessions,
+      currentPage: isSearch ? 1 : isPageThree ? 3 : 2,
+      searchValue: isSearch ? '高蛋白' : undefined,
+    },
+  };
+}
+
+function navigationFixture(): HistoryFixture {
+  const fixture = historyFixture('history-page-2');
+  return {
+    ...fixture,
+    prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
+    response: '我已为您分析了野生三文鱼（150克）和熟藜麦（100克）的标准营养价值。它们一共可提供大约 38 克的优质蛋白质。',
+    source: '来源: USDA FoodData Central Ref #451992',
+    run: {
+      ...fixture.run,
+      toolCalls: [
+        { id: 'query-expansion', name: 'query_expansion', displayName: '查询扩展 (Query Expansion)', status: 'success', latencyMs: 12, summary: '已完成查询扩展' },
+        { id: 'vector-search', name: 'vector_search', displayName: '向量索引检索 (RAG Search)', status: 'success', latencyMs: 184, summary: '已命中知识库向量索引' },
+        { id: 'usda-lookup', name: 'usda_lookup', displayName: 'USDA 数据库调用 (API Call)', status: 'success', latencyMs: 92, summary: '已返回标准营养值' },
+        { id: 'response-compose', name: 'response_compose', displayName: '响应合成 (Response Generation)', status: 'success', latencyMs: 45, summary: '已生成可追溯回答' },
+      ],
+    },
+  };
+}
+
+type SessionOverlayState = Extract<ChatAuxState, 'session-actions' | 'renamed' | 'archived' | 'trash'>;
+
+function SessionStateOverlay({ state, onAction }: { state: SessionOverlayState; onAction: (message: string) => void }) {
+  if (state === 'session-actions') {
+    return (
+      <Card className={styles.sessionActionsOverlay} role="dialog" aria-label="会话管理">
+        <h2>会话管理</h2>
+        <p>选择一个会话后可重命名、归档，或移入回收站</p>
+        <div className={styles.sessionActionsOverlayActions}>
+          <Button size="sm" variant="ghost" onClick={() => onAction('已打开会话重命名入口。')}>
+            重命名会话
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onAction('会话已归档，可从归档列表恢复。')}>
+            归档会话
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onAction('会话已移入回收站，保留期内可恢复。')}>
+            移入回收站
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  const content = {
+    renamed: {
+      title: '会话已重命名',
+      description: '“每周饮食微调”已更新为“本周饮食分析”。',
+      detail: undefined,
+      action: '返回会话列表',
+    },
+    archived: {
+      title: '已归档会话',
+      description: '本页显示已归档的会话，可恢复到 Agent 对话列表。',
+      detail: '每周饮食微调 · 归档于今天 12:45',
+      action: '恢复会话',
+    },
+    trash: {
+      title: '会话回收站',
+      description: '删除的会话将在保留期内可恢复，不提供永久删除入口。',
+      detail: '运动前零食建议 · 移入回收站于今天 12:45',
+      action: '恢复会话',
+    },
+  }[state];
+  return (
+    <div className={styles.sessionResultBackdrop}>
+      <Card
+        className={`${styles.sessionResultOverlay} ${state === 'renamed' ? styles.sessionRenamedOverlay : ''} ${state === 'trash' ? styles.sessionTrashOverlay : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={content.title}
+      >
+        <h2>{content.title}</h2>
+        <p>{content.description}</p>
+        {content.detail ? <strong>{content.detail}</strong> : null}
+        <Button size="sm" variant="ghost" onClick={() => onAction(`${content.action}操作已记录。`)}>
+          {content.action}
+        </Button>
+      </Card>
+    </div>
+  );
+}
+
 function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
   const messagesRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('');
   const [notice, setNotice] = useState('');
   const isRunning = state === 'running-stop';
-  const run = fixtureRun(isRunning ? 'sse-reconnecting' : 'tool-failed-retryable');
+  const isHistoryState = state === 'history-page-2' || state === 'history-page-3' || state === 'search-results';
+  const isSessionOverlayState = state === 'session-actions' || state === 'renamed' || state === 'archived' || state === 'trash';
+  const isNavigationState = state === 'redesign-default' || state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
+  const history = isHistoryState
+    ? historyFixture(state)
+    : isSessionOverlayState
+      ? historyFixture('search-results')
+      : isNavigationState
+        ? navigationFixture()
+        : isRunning
+          ? historyFixture('history-page-2')
+        : undefined;
+  const run = isRunning
+    ? { ...(history?.run ?? fixtureRun('sse-reconnecting')), status: 'executing_tools' as const }
+    : history?.run ?? fixtureRun('tool-failed-retryable');
   const labels: Record<ChatAuxState, string> = {
     'completed-with-citations': '分析已完成，以下内容包含可追溯引用。',
     'redesign-default': '我分析了野生三文鱼和熟藜麦的标准营养值。',
@@ -688,34 +853,51 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
+      pageOverlay={
+        isSessionOverlayState ? <SessionStateOverlay state={state} onAction={setNotice} /> : undefined
+      }
+      sidebarFixture={history?.sidebar}
     >
-      <article className={styles.fixtureUserMessage}>
-        <div className={styles.fixtureUserBubble}>帮我分析这周的饮食与蛋白质摄入情况</div>
-        <span className={styles.fixtureMessageMeta}>Anddy · 12:45 PM</span>
-      </article>
-      <article className={styles.fixtureAuxMessage}>
-        <strong>{labels[state]}</strong>
-        {state === 'completed-with-citations' ? (
-          <span>来源：USDA FoodData Central Ref #451992 · PubMed Central</span>
-        ) : null}
-        {state === 'session-actions' ? (
-          <div className={styles.fixtureActions}>
-            <Button onClick={() => setNotice('已打开会话重命名入口。')}>重命名会话</Button>
-            <Button variant="outline" onClick={() => setNotice('已归档会话。')}>
-              归档会话
-            </Button>
-            <Button variant="ghost" onClick={() => setNotice('已移入回收站。')}>
-              移入回收站
-            </Button>
-          </div>
-        ) : null}
-        {state === 'running-stop' ? (
-          <Button variant="outline" onClick={() => setNotice('已请求停止当前 Run。')}>
-            <CircleSlash aria-hidden="true" />
-            停止
-          </Button>
-        ) : null}
-      </article>
+      {history ? (
+        <>
+          <MessageBubble message={{ id: `${state}-user`, role: 'user', content: history.prompt, time: '12:45', wide: isNavigationState }} />
+          <MessageBubble
+            message={{ id: `${state}-assistant`, role: 'assistant', content: history.response, source: history.source, time: '12:46', wide: isNavigationState }}
+          >
+            <InlineConfirmationCard
+              onConfirm={() => setNotice('fixture 已记录写入确认；未调用任何后端写入接口。')}
+              onCancel={() => setNotice('已保留本次分析，仅作为对话参考。')}
+            />
+          </MessageBubble>
+          {isRunning ? (
+            <section className={styles.messageActions} aria-label="消息操作">
+              <h2>消息操作</h2>
+              <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
+              <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
+              <p className={styles.actionGreen}>工具失败时显示重试；运行中发送按钮切换为停止；写入确认 / 预算追加仍需确认后继续。</p>
+            </section>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <article className={styles.fixtureUserMessage}>
+            <div className={styles.fixtureUserBubble}>帮我分析这周的饮食与蛋白质摄入情况</div>
+            <span className={styles.fixtureMessageMeta}>Anddy · 12:45 PM</span>
+          </article>
+          <article className={styles.fixtureAuxMessage}>
+            <strong>{labels[state]}</strong>
+            {state === 'completed-with-citations' ? (
+              <span>来源：USDA FoodData Central Ref #451992 · PubMed Central</span>
+            ) : null}
+            {state === 'running-stop' ? (
+              <Button variant="outline" onClick={() => setNotice('已请求停止当前 Run。')}>
+                <CircleSlash aria-hidden="true" />
+                停止
+              </Button>
+            ) : null}
+          </article>
+        </>
+      )}
       {notice ? (
         <p className={styles.fixtureActionMessage} role="status">
           {notice}
@@ -1063,6 +1245,7 @@ function RealChatPage() {
   const [loading, setLoading] = useState(Boolean(sessionId));
   const [sending, setSending] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string>();
+  const [citations, setCitations] = useState<AgentRunView['citations']>([]);
   const [runStatus, setRunStatus] = useState('idle');
   const [assistantText, setAssistantText] = useState('');
   const [error, setError] = useState<string>();
@@ -1121,6 +1304,14 @@ function RealChatPage() {
           setRunStatus('completed');
           setCheckpointAvailable(false);
           setAssistantText((current) => payload.answer ?? current);
+          setCitations(
+            (payload.citations ?? []).map((citation) => ({
+              id: citation.citation_id,
+              title: citation.title,
+              snippet: citation.snippet,
+              source: [citation.version, citation.section_path].filter(Boolean).join(' · '),
+            })),
+          );
           setBudgetConfirmation(
             payload.result_type === 'safety_degraded' &&
               (payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true),
@@ -1185,6 +1376,7 @@ function RealChatPage() {
       const saved = await sendUserMessage(target, content);
       setMessages((current) => [...current, saved].sort((a, b) => a.sequence_no - b.sequence_no));
       if (saved.agent_run_id) setActiveRunId(String(saved.agent_run_id));
+      setCitations([]);
       setInput('');
     } catch (reason) {
       if (reason instanceof ApiError && reason.code === 'FORBIDDEN') setError(reason.message);
@@ -1203,7 +1395,7 @@ function RealChatPage() {
     agentsUsed: 0,
     agentsTotal: 1,
     toolCalls: [],
-    citations: [],
+    citations,
     connection,
   };
 

@@ -534,6 +534,47 @@ export async function uploadKnowledgeDocument(file: File) {
   return body.data;
 }
 
+export type KnowledgeUploadBatch = {
+  sourceType: string;
+  sourceName: string;
+  sourceVersion: string;
+  licenseNotice: string;
+  idempotencyKey: string;
+  files: File[];
+};
+
+export type KnowledgeBatchDetail = {
+  batch: {
+    job: { job_id: string; status: string; total_items: number; indexed_items: number; failed_items: number };
+    items: Array<{ item_id: string; document_id: string; filename: string; upload_status: string; index_status: string; attempts: number; error_code?: string }>;
+  };
+};
+
+export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise<{ batch_id: string }> {
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+  const csrf = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='))?.split('=')[1];
+  const form = new FormData();
+  batch.files.forEach((file) => form.append('files', file));
+  form.append('source_type', batch.sourceType);
+  form.append('source_name', batch.sourceName);
+  form.append('source_version', batch.sourceVersion);
+  form.append('license_notice', batch.licenseNotice);
+  form.append('idempotency_key', batch.idempotencyKey);
+  const response = await fetch(`${baseUrl}/api/admin/knowledge-documents/upload-batches`, {
+    method: 'POST', credentials: 'include', headers: csrf ? { 'X-CSRF-Token': csrf } : {}, body: form,
+  });
+  const body = (await response.json()) as { success: boolean; data?: { batch_id: string }; error?: { message?: string } };
+  if (!response.ok || !body.success || !body.data) throw new Error(body.error?.message ?? '知识库批次上传失败');
+  return body.data;
+}
+
+export const loadKnowledgeBatch = (batchId: string) =>
+  apiRequest<KnowledgeBatchDetail>(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}`);
+export const retryKnowledgeItem = (batchId: string, itemId: string) =>
+  adminWrite(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/retry`, 'POST');
+export const changeKnowledgeVisibility = (documentId: string, visibility: 'published' | 'disabled' | 'draft' | 'deleted') =>
+  adminWrite(`/api/admin/knowledge-documents/${encodeURIComponent(documentId)}/${visibility === 'draft' ? 'restore' : visibility}`, 'POST');
+
 export {
   adminAuditRows,
   adminDeletedRows,

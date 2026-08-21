@@ -19,6 +19,14 @@ export type AgentRunEvent = {
   budget_actions?: { requires_confirmation?: boolean };
   confirmation_ref?: string;
   retryable?: boolean;
+  citations?: Array<{
+    citation_id: string;
+    document_id: string;
+    title: string;
+    version: string;
+    section_path?: string;
+    snippet: string;
+  }>;
 };
 
 export type AgentStreamHandle = {

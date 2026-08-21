@@ -97,6 +97,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 storage.put(bucket, key, file.input(), file.size(), file.contentType());
                 uploadedKeys.add(key);
                 store.insertDocument(documentId, filename, key, operatorId);
+                store.updateDocumentSource(
+                        documentId,
+                        batch.sourceType(),
+                        batch.sourceName(),
+                        batch.sourceVersion(),
+                        batch.licenseNotice(),
+                        operatorId);
                 store.insertImportItem(
                         new KnowledgeRepository.ImportItem(
                                 itemId,
@@ -144,13 +151,55 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
     @Override
     @Transactional
-    public void changeVisibility(long documentId, String visibility, long operatorId, String traceId) {
+    public void changeVisibility(
+            long documentId, String visibility, long operatorId, String traceId) {
         requireAvailable();
-        if (!("published".equals(visibility) || "disabled".equals(visibility) || "deleted".equals(visibility) || "draft".equals(visibility)))
+        if (!("published".equals(visibility)
+                || "disabled".equals(visibility)
+                || "deleted".equals(visibility)
+                || "draft".equals(visibility)))
             throw new IllegalArgumentException("invalid knowledge visibility");
         if (store.updateVisibility(documentId, visibility, operatorId) != 1)
-            throw new IllegalArgumentException("knowledge document is not eligible for visibility change");
+            throw new IllegalArgumentException(
+                    "knowledge document is not eligible for visibility change");
+        store.insertVisibilityOutbox(
+                ids.nextId(),
+                documentId,
+                "{\"document_id\":"
+                        + documentId
+                        + ",\"visibility\":\""
+                        + visibility
+                        + "\",\"tenant_id\":0,\"scope\":\"public_published\"}");
         audit(operatorId, traceId, "knowledge.visibility." + visibility, Long.toString(documentId));
+    }
+
+    @Override
+    public BatchDetail batch(long batchId) {
+        requireAvailable();
+        var job = store.job(batchId);
+        if (job == null) throw new IllegalArgumentException("knowledge import batch not found");
+        return new BatchDetail(job, store.jobItems(batchId));
+    }
+
+    @Override
+    public java.util.List<KnowledgeService.BatchEvent> batchEvents(
+            long batchId, long afterEventId) {
+        batch(batchId);
+        return store.jobEvents(batchId, Math.max(0, afterEventId)).stream()
+                .map(
+                        event ->
+                                new KnowledgeService.BatchEvent(
+                                        event.eventId(), event.eventType(), event.payload()))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void retryItem(long batchId, long itemId, long operatorId, String traceId) {
+        batch(batchId);
+        if (store.retryItem(itemId, operatorId, ids.nextId(), "{}") != 1)
+            throw new IllegalArgumentException("knowledge import item is not retryable");
+        audit(operatorId, traceId, "knowledge.import_item.retry", Long.toString(itemId));
     }
 
     private void audit(long operatorId, String traceId, String action, String documentId) {

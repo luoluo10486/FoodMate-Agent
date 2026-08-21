@@ -207,6 +207,52 @@ class StubIndex:
         return citations
 
 
+class RedisStubIndex:
+    """Shared deterministic public index. Redis is the stub mode's durable search backend."""
+
+    def __init__(self, client=None, prefix: str | None = None):
+        import redis
+        self.client = client or redis.Redis.from_url(os.getenv("FOODMATE_REDIS_URL", "redis://:foodmate-redis-change-me@localhost:6380"), decode_responses=True)
+        self.prefix = prefix or os.getenv("FOODMATE_RAG_STUB_REDIS_PREFIX", "foodmate:rag:stub")
+
+    def upsert(self, title: str, chunks: Iterable[KnowledgeChunk]) -> None:
+        for chunk in chunks:
+            payload = {"title": title, "document_id": chunk.document_id, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": "draft", "indexed": True, "deleted": False}
+            self.client.hset(f"{self.prefix}:chunks", chunk.embedding_id, json.dumps(payload, ensure_ascii=False))
+
+    def update_visibility(self, document_id: str, visibility: str) -> None:
+        values = self.client.hgetall(f"{self.prefix}:chunks")
+        pipeline = self.client.pipeline()
+        for chunk_id, raw in values.items():
+            value = json.loads(raw)
+            if str(value.get("document_id")) == str(document_id):
+                value["visibility"] = visibility
+                value["deleted"] = visibility == "deleted"
+                pipeline.hset(f"{self.prefix}:chunks", chunk_id, json.dumps(value, ensure_ascii=False))
+        pipeline.execute()
+
+    def search(self, query: str, scope: str = PUBLIC_SCOPE) -> list[Citation]:
+        if scope != PUBLIC_SCOPE:
+            raise RagError("RAG_SCOPE_DENIED", "only public_published scope is supported")
+        terms = set(_tokens(query))
+        ranked = []
+        for chunk_id, raw in self.client.hgetall(f"{self.prefix}:chunks").items():
+            value = json.loads(raw)
+            if value.get("tenant_id") != 0 or value.get("scope") != PUBLIC_SCOPE or value.get("visibility") != "published" or not value.get("indexed") or value.get("deleted"):
+                continue
+            score = len(terms.intersection(_tokens(value.get("text", ""))))
+            if score: ranked.append((score, chunk_id, value))
+        ranked.sort(key=lambda row: (-row[0], row[1]))
+        result, per_document = [], {}
+        for _, chunk_id, value in ranked[:12]:
+            document_id = str(value["document_id"])
+            if per_document.get(document_id, 0) >= 2: continue
+            per_document[document_id] = per_document.get(document_id, 0) + 1
+            result.append(Citation(document_id, str(value["title"]), str(value["version"]), str(value.get("section_path", "")), chunk_id, _snippet(str(value["text"]))))
+            if len(result) == 4: break
+        return result
+
+
 def _tokens(value: str) -> list[str]:
     return [token.lower() for token in _WORD.findall(value)]
 
@@ -304,16 +350,37 @@ class MilvusIndex:
         except Exception as error:
             raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus is unavailable") from error
         self.collection = settings.milvus_collection
-        self._ensure_collection()
 
-    def _ensure_collection(self) -> None:
+    def _ensure_collection(self, dimension: int) -> None:
         try:
             if not self.client.has_collection(self.collection):
-                self.client.create_collection(self.collection, dimension=1536, primary_field_name="embedding_id", id_type="string", vector_field_name="vector", metric_type="COSINE", auto_id=False)
+                self.client.create_collection(
+                    self.collection,
+                    dimension=dimension,
+                    primary_field_name="embedding_id",
+                    id_type="string",
+                    vector_field_name="vector",
+                    metric_type="COSINE",
+                    auto_id=False,
+                    enable_dynamic_field=True,
+                )
+                return
+            description = self.client.describe_collection(self.collection)
+            fields = description.get("fields") or description.get("schema", {}).get("fields", [])
+            vector = next((field for field in fields if field.get("name") == "vector"), None)
+            actual = (vector or {}).get("params", {}).get("dim") or (vector or {}).get("params", {}).get("dimension")
+            if actual is not None and int(actual) != dimension:
+                raise RagError("RAG_MILVUS_DIMENSION_MISMATCH", "Milvus vector dimension does not match embedding model")
+        except RagError:
+            raise
         except Exception as error:
             raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus collection is unavailable") from error
 
     def upsert(self, title: str, chunks: Iterable[KnowledgeChunk], vectors: list[list[float]]) -> None:
+        chunks = list(chunks)
+        if not vectors or len(chunks) != len(vectors) or any(len(vector) != len(vectors[0]) for vector in vectors):
+            raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "embedding dimensions are inconsistent")
+        self._ensure_collection(len(vectors[0]))
         rows = []
         for chunk, vector in zip(chunks, vectors, strict=True):
             rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted})
@@ -326,7 +393,9 @@ class MilvusIndex:
         if visibility not in {"published", "draft", "disabled", "deleted"}:
             raise RagError("RAG_VISIBILITY_INVALID", "visibility is invalid")
         try:
-            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{document_id}"', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed"])
+            if not self.client.has_collection(self.collection):
+                return
+            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{document_id}"', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted"])
             for row in rows:
                 row["visibility"] = visibility
                 row["deleted"] = deleted
@@ -334,3 +403,32 @@ class MilvusIndex:
                 self.client.upsert(collection_name=self.collection, data=rows)
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus visibility update failed") from error
+
+    def search(self, query: str, embedder: OpenAICompatibleEmbedder, scope: str = PUBLIC_SCOPE) -> list[Citation]:
+        if scope != PUBLIC_SCOPE:
+            raise RagError("RAG_SCOPE_DENIED", "only public_published scope is supported")
+        vectors = embedder.embed([query])
+        self._ensure_collection(len(vectors[0]))
+        try:
+            hits = self.client.search(
+                collection_name=self.collection,
+                data=vectors,
+                anns_field="vector",
+                filter='tenant_id == 0 and scope == "public_published" and visibility == "published" and indexed == true and deleted == false',
+                limit=12,
+                output_fields=["document_id", "title", "version", "section_path", "text"],
+            )[0]
+        except Exception as error:
+            raise RagError("RAG_MILVUS_SEARCH_FAILED", "Milvus search failed") from error
+        result: list[Citation] = []
+        per_document: dict[str, int] = {}
+        for hit in hits:
+            entity = hit.get("entity", hit)
+            document_id = str(entity.get("document_id"))
+            if not document_id or per_document.get(document_id, 0) >= 2:
+                continue
+            per_document[document_id] = per_document.get(document_id, 0) + 1
+            result.append(Citation(document_id, str(entity.get("title", "Knowledge")), str(entity.get("version", "1")), str(entity.get("section_path", "")), str(hit.get("id", entity.get("embedding_id", ""))), _snippet(str(entity.get("text", "")))))
+            if len(result) == 4:
+                break
+        return result

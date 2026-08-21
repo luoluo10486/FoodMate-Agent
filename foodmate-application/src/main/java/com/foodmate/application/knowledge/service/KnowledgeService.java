@@ -25,6 +25,12 @@ public interface KnowledgeService {
 
     void changeVisibility(long documentId, String visibility, long operatorId, String traceId);
 
+    BatchDetail batch(long batchId);
+
+    java.util.List<BatchEvent> batchEvents(long batchId, long afterEventId);
+
+    void retryItem(long batchId, long itemId, long operatorId, String traceId);
+
     record ImportBatch(
             String idempotencyKey,
             String sourceType,
@@ -34,4 +40,11 @@ public interface KnowledgeService {
             List<ImportFile> files) {}
 
     record ImportFile(String filename, String contentType, long size, InputStream input) {}
+
+    record BatchDetail(
+            com.foodmate.application.knowledge.port.out.KnowledgeRepository.JobView job,
+            java.util.List<com.foodmate.application.knowledge.port.out.KnowledgeRepository.ItemView>
+                    items) {}
+
+    record BatchEvent(long eventId, String eventType, String payload) {}
 }

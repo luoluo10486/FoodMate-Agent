@@ -1,6 +1,7 @@
 package com.foodmate.bootstrap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.knowledge.messaging.KnowledgeIndexResultMessageProcessor;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.application.runtime.processor.RuntimeEventMessageProcessor;
@@ -132,5 +133,18 @@ public class RuntimeRocketMqConfiguration {
                 settings.proposalTopic(),
                 settings.consumerMaxRetries(),
                 processor);
+    }
+
+    @Bean(initMethod = "start", destroyMethod = "close")
+    RocketMqConsumerContainer knowledgeIndexResultConsumer(
+            RocketMqSettings settings,
+            KnowledgeIndexResultMessageProcessor processor,
+            @Value("${foodmate.knowledge.rocketmq.result-topic:foodmate-knowledge-index-result-v1}")
+                    String topic,
+            @Value(
+                            "${foodmate.knowledge.rocketmq.java-result-consumer-group:foodmate-java-knowledge-index-result-v1}")
+                    String group) {
+        return RocketMqConsumerContainer.concurrent(
+                settings.nameServer(), group, topic, settings.consumerMaxRetries(), processor);
     }
 }

@@ -176,6 +176,7 @@ class ContextBuilder:
         summary = authorized.get("session_summary")
         memories = tuple(authorized.get("long_term_memories") or ())
         tool_results = tuple(authorized.get("tool_results") or ())
+        citations = tuple(authorized.get("citations") or ())
         # 先保留最新消息，再从最旧的原始消息开始裁剪；当前输入在最后，不会被裁掉。
         while len(messages) > 1 and self._estimate_tokens(tuple(messages), summary, memories, tool_results) > self.max_context_tokens:
             messages.pop(0)
@@ -188,7 +189,7 @@ class ContextBuilder:
             "citation_id": tuple(str(item["citation_id"]) for item in authorized.get("citations") or () if item.get("citation_id") is not None),
             "invocation_id": tuple(str(item["invocation_id"]) for item in tool_results if item.get("invocation_id") is not None),
         }
-        return Context(messages, summary, memories, unresolved, sources, self._estimate_tokens(messages, summary, memories, tool_results), tool_results)
+        return Context(messages, summary, memories, unresolved, sources, self._estimate_tokens(messages, summary, memories, tool_results) + len(json.dumps(citations, ensure_ascii=False)), tool_results)
 
 
 class DeterministicRouter:
@@ -337,7 +338,8 @@ class DeterministicComposer:
         tool_note = ""
         if context.tool_results:
             tool_note = f"已回注 {len(context.tool_results)} 个 Java 工具结果。"
-        return f"{prefix}已完成{route.intent}请求的受控分析，已读取当前会话中的 {recent} 条有效消息。{tool_note}"
+        evidence_note = f"已检索到 {len(context.sources['citation_id'])} 条公共知识库证据。" if context.sources["citation_id"] else ""
+        return f"{prefix}已完成{route.intent}请求的受控分析，已读取当前会话中的 {recent} 条有效消息。{tool_note}{evidence_note}"
 
 
 def budget_mode(usage: Usage, budget: BudgetSnapshot) -> str:

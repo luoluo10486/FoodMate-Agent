@@ -46,7 +46,8 @@ class V1RunCommandTest {
                                                 "{\"value\":\"low-salt\"}",
                                                 new BigDecimal("0.90"),
                                                 "user")),
-                                new V1RunCommand.SqlReadRequest("SELECT 1", "invocation-1", false)),
+                                new V1RunCommand.SqlReadRequest("SELECT 1", "invocation-1", false),
+                                "public_published"),
                         new V1RunCommand.RuntimeOptions(
                                 "prompt-v1",
                                 30,

@@ -36,6 +36,7 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DEFAULT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
 import { SidebarSessionList, type SessionAction } from '../../components/workspace/SidebarSessionList';
+import type { SessionSummary } from '../../types/session';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { ROUTES, buildChatPath } from '../../constants/routes';
 import {
@@ -67,6 +68,11 @@ type WorkspaceLayoutProps = {
   profileActiveTab?: 'basic' | 'memories' | 'security' | 'privacy';
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
+  sidebarFixture?: {
+    sessions: SessionSummary[];
+    searchValue?: string;
+    currentPage?: number;
+  };
   pageOverlay?: React.ReactNode;
 };
 
@@ -84,6 +90,7 @@ export function WorkspaceLayout({
   profileActiveTab,
   showKnowledgeTopNav = true,
   designChat = false,
+  sidebarFixture,
   pageOverlay,
 }: WorkspaceLayoutProps) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
@@ -109,6 +116,8 @@ export function WorkspaceLayout({
   const topAvatar = topAvatarSrc ?? defaultAvatar;
   const displayName = displayNameOverride ?? (isAuthenticated ? authUser.displayName : '登录');
   const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
+  const displayedSessions = sidebarFixture?.sessions ?? sessions;
+  const displayedSessionQuery = sidebarFixture?.searchValue ?? sessionQuery;
 
   useEffect(() => {
     if (!realMode) return;
@@ -133,12 +142,13 @@ export function WorkspaceLayout({
   }, [authReady, realMode, isAuthenticated, location.pathname, location.search, navigate]);
 
   useEffect(() => {
+    if (sidebarFixture) return;
     if (authReady && isAuthenticated) {
       loadSessions()
         .then(setSessions)
         .catch(() => undefined);
     }
-  }, [authReady, isAuthenticated]);
+  }, [authReady, isAuthenticated, sidebarFixture]);
 
   useEffect(() => {
     if (!realMode || !sessionQuery.trim()) return;
@@ -227,10 +237,10 @@ export function WorkspaceLayout({
             <Input
               className={styles.search}
               placeholder="搜索会话..."
-              value={sessionQuery}
+              value={displayedSessionQuery}
               onChange={(event) => setSessionQuery(event.target.value)}
             />
-            {sessionQuery ? (
+            {displayedSessionQuery ? (
               <button
                 className={styles.clearSearch}
                 type="button"
@@ -248,7 +258,11 @@ export function WorkspaceLayout({
                 <span>工作台</span>
               </NavLink>
             </nav>
-            <SidebarSessionList sessions={sessions} onAction={handleSessionAction} />
+            <SidebarSessionList
+              currentPage={sidebarFixture?.currentPage}
+              sessions={displayedSessions}
+              onAction={sidebarFixture ? undefined : handleSessionAction}
+            />
             {realMode ? (
               <Button className={styles.deletedButton} variant="ghost" onClick={() => void openDeletedSessions()}>
                 查看已删除会话

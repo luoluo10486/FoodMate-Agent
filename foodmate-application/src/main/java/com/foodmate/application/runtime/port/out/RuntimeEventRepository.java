@@ -76,6 +76,8 @@ public interface RuntimeEventRepository {
 
     void touchSession(long sessionId);
 
+    boolean publicCitationVisible(long documentId, String version);
+
     record DispatchRow(long id, long lastEventSeq, String state, int attempt) {}
 
     record EventRow(

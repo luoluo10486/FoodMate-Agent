@@ -191,7 +191,8 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                         recentMessages,
                         sessionSummary,
                         longTermMemories,
-                        sqlReadRequest);
+                        sqlReadRequest,
+                        "public_published");
         V1RunCommand.BudgetSnapshot budgetSnapshot =
                 new V1RunCommand.BudgetSnapshot(
                         budgetDefaults.maxTotalTokens(),

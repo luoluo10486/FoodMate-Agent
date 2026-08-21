@@ -288,6 +288,14 @@ public class LocalStubPersistenceConfig {
             public void insertDocument(
                     long documentId, String title, String storageKey, long operatorId) {}
 
+            public void updateDocumentSource(
+                    long documentId,
+                    String sourceType,
+                    String sourceName,
+                    String sourceVersion,
+                    String licenseNotice,
+                    long operatorId) {}
+
             public int updateStatus(
                     long documentId,
                     com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus status,
@@ -307,7 +315,54 @@ public class LocalStubPersistenceConfig {
 
             public void insertIndexOutbox(long outboxId, long itemId, String payload) {}
 
-            public int updateVisibility(long documentId, String visibility, long operatorId) { return 0; }
+            public int updateVisibility(long documentId, String visibility, long operatorId) {
+                return 0;
+            }
+
+            public void insertVisibilityOutbox(long outboxId, long documentId, String payload) {}
+
+            public java.util.List<KnowledgeRepository.OutboxRow> pendingIndexOutbox(int limit) {
+                return java.util.List.of();
+            }
+
+            public java.util.List<KnowledgeRepository.OutboxRow> pendingVisibilityOutbox(
+                    int limit) {
+                return java.util.List.of();
+            }
+
+            public int leaseIndexOutbox(long id, String owner) {
+                return 0;
+            }
+
+            public int leaseVisibilityOutbox(long id, String owner) {
+                return 0;
+            }
+
+            public void markIndexOutboxPublished(long id) {}
+
+            public void markVisibilityOutboxPublished(long id) {}
+
+            public void retryIndexOutbox(long id, String error) {}
+
+            public void retryVisibilityOutbox(long id, String error) {}
+
+            public void applyIndexResult(KnowledgeRepository.IndexResult result, String hash) {}
+
+            public KnowledgeRepository.JobView job(long id) {
+                return null;
+            }
+
+            public java.util.List<KnowledgeRepository.ItemView> jobItems(long id) {
+                return java.util.List.of();
+            }
+
+            public java.util.List<KnowledgeRepository.JobEvent> jobEvents(long id, long after) {
+                return java.util.List.of();
+            }
+
+            public int retryItem(long itemId, long operatorId, long outboxId, String payload) {
+                return 0;
+            }
         };
     }
 

@@ -12,6 +12,16 @@ import { useEffect, useState } from 'react';
 import { describe, it, expect } from 'vitest';
 import { ChatPage } from './ChatPage';
 
+function renderChatState(state: string) {
+  render(
+    <MemoryRouter initialEntries={[`/chat?state=${state}`]}>
+      <Routes>
+        <Route path="/chat/:session_id?" element={<ChatPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 /**
  * 路由切换控制器：先挂载 /chat/session-a，
  * 等 seed 触发后导航到 /chat/session-b，验证第二个 seed 是否触发。
@@ -234,5 +244,71 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();
+  });
+});
+
+describe('ChatPage Figma history fixtures', () => {
+  it.each([
+    ['history-page-2', '2 / 3', ''],
+    ['history-page-3', '3 / 3', ''],
+    ['search-results', '1 / 3', '高蛋白'],
+  ])('renders %s with the Figma conversation, trace, and sidebar state', (state, page, searchValue) => {
+    render(
+      <MemoryRouter initialEntries={[`/chat?state=${state}`]}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '是否将此记录到你的周二饮食日志？' })).toBeInTheDocument();
+    expect(screen.getByText('RUN ID: fst_trace_88192a')).toBeInTheDocument();
+    expect(screen.getByText('向量索引检索')).toBeInTheDocument();
+    expect(screen.getByText(page)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索会话...')).toHaveValue(searchValue);
+  });
+});
+
+describe('ChatPage Figma session operation fixtures', () => {
+  it('renders the session management panel over the complete conversation', () => {
+    renderChatState('session-actions');
+
+    expect(screen.getByRole('dialog', { name: '会话管理' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重命名会话' })).toBeInTheDocument();
+    expect(screen.getByText('RUN ID: fst_trace_88192a')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['renamed', '会话已重命名', '返回会话列表'],
+    ['archived', '已归档会话', '恢复会话'],
+    ['trash', '会话回收站', '恢复会话'],
+  ])('renders %s as a modal result over the Figma conversation', (state, title, action) => {
+    renderChatState(state);
+
+    expect(screen.getByRole('dialog', { name: title })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: action })).toBeInTheDocument();
+    expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
+  });
+});
+
+describe('ChatPage Figma navigation fixtures', () => {
+  it.each(['redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination'])('%s keeps the complete Figma conversation and trace', (state) => {
+    renderChatState(state);
+
+    expect(screen.getByText(/我已为您分析了野生三文鱼/)).toBeInTheDocument();
+    expect(screen.getByText('查询扩展 (Query Expansion)')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '是否将此记录到你的周二饮食日志？' })).toBeInTheDocument();
+  });
+});
+
+describe('ChatPage Figma running-stop fixture', () => {
+  it('keeps the received conversation and trace visible while exposing the stop action', () => {
+    renderChatState('running-stop');
+
+    expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText('响应合成')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '停止生成' })).toBeEnabled();
+    expect(screen.getByText('消息操作')).toBeInTheDocument();
   });
 });

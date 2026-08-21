@@ -20,6 +20,7 @@ from agent_core import DeterministicPlanner, DeterministicRouter, InMemoryCheckp
 from eval.metrics import EvalMetrics, RuntimeMetrics
 from model_provider import ModelProviderError
 from recovery_protocol import checkpoint_digest, validate_recovery_command
+from knowledge_rag import MilvusIndex, OpenAICompatibleEmbedder, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex
 
 JAVA_CALLBACK_URL = os.getenv("JAVA_CALLBACK_URL", "http://localhost:8080")
 CONTRACT_VERSION = os.getenv("FOODMATE_CONTRACT_VERSION", "v1")
@@ -397,6 +398,7 @@ def execute(command):
         # Java requires contiguous event_seq. Publish the route fact before
         # recovery, tools, and model calls so failures cannot create a gap.
         emit(command, prefix + "-routed", 2, "run.routed", _route_payload(command))
+        command = _attach_public_citations(command)
         recovered = validate_recovery_command(command, _checkpoint)
         if recovered is not None:
             authorized = dict(command.get("authorized_context") or {})
@@ -505,6 +507,7 @@ def execute(command):
             "workflow": execution.workflow,
             "usage": execution.usage.__dict__, "memory_candidates": execution.memory_candidates,
             "proposals": execution.proposals,
+            "citations": (command.get("authorized_context") or {}).get("citations", []),
         })
         _record_execution_eval(execution, int((time.monotonic() - started) * 1000))
         _runtime_metrics.record("dispatch", "success", "completed", int((time.monotonic() - started) * 1000))
@@ -531,6 +534,27 @@ def execute(command):
             _runtime_metrics.record("dispatch", "failed", "execution_error", int((time.monotonic() - started) * 1000))
         except Exception:
             traceback.print_exc()
+
+
+def _attach_public_citations(command: dict) -> dict:
+    """The fixed Java-authorized scope cannot be widened by a client or model."""
+    authorized = dict(command.get("authorized_context") or {})
+    if authorized.get("knowledge_scope") != PUBLIC_SCOPE:
+        authorized["citations"] = []
+    else:
+        try:
+            settings = RagSettings.from_environment()
+            query = str((command.get("message") or {}).get("content", ""))
+            citations = (
+                RedisStubIndex().search(query, PUBLIC_SCOPE)
+                if settings.mode == "stub"
+                else MilvusIndex(settings).search(query, OpenAICompatibleEmbedder(settings), PUBLIC_SCOPE)
+            )
+            authorized["citations"] = [{"citation_id": item.chunk_id, "document_id": item.document_id, "title": item.title, "version": item.version, "section_path": item.section_path, "snippet": item.snippet} for item in citations]
+        except (RagError, RuntimeError):
+            authorized["citations"] = []
+    copy = dict(command); copy["authorized_context"] = authorized
+    return copy
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -640,4 +664,5 @@ if __name__ == "__main__":
         if mq_runtime is not None:
             mq_runtime.close()
         if knowledge_consumer is not None:
-            knowledge_consumer.shutdown()
+            for consumer in knowledge_consumer:
+                consumer.shutdown()

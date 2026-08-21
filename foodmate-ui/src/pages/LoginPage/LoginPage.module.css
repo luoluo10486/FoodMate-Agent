@@ -532,6 +532,17 @@
   background: #dfeedb;
 }
 
+.authPage-register .authPrimary {
+  border-color: #a6d997;
+  background: #a6d997;
+}
+
+.authPage-register .authPrimary:hover,
+.authPage-register .authPrimary:focus-visible {
+  border-color: #a6d997;
+  background: #a6d997;
+}
+
 .authCard {
   display: flex;
   width: 460px;
@@ -624,6 +635,16 @@
   line-height: 1.4;
 }
 
+.authPage-forgot .authHeading h1,
+.authPage-reset .authHeading h1 {
+  color: #2a3439;
+}
+
+.authPage-forgot .authHeading p,
+.authPage-reset .authHeading p {
+  color: #4a5568;
+}
+
 .authForm {
   display: flex;
   width: 100%;
@@ -645,6 +666,11 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 1.2;
+}
+
+.authPage-forgot .authFieldLabel,
+.authPage-reset .authFieldLabel {
+  color: #9daab5;
 }
 
 .authInput {

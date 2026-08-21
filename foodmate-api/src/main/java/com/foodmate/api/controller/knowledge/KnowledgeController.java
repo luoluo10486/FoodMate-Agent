@@ -4,6 +4,7 @@ import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
 import com.foodmate.api.request.knowledge.KnowledgeStatusRequest;
 import com.foodmate.api.response.account.StatusUpdateResponse;
 import com.foodmate.api.response.knowledge.DocumentUploadResponse;
+import com.foodmate.api.response.knowledge.KnowledgeUploadBatchDetailResponse;
 import com.foodmate.api.response.knowledge.KnowledgeUploadBatchResponse;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.knowledge.service.KnowledgeService;
@@ -14,6 +15,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -113,24 +119,100 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
     }
 
     @PostMapping("/knowledge-documents/{id}/publish")
-    public ApiResponse<StatusUpdateResponse> publish(@PathVariable long id, HttpServletRequest request) {
+    public ApiResponse<StatusUpdateResponse> publish(
+            @PathVariable long id, HttpServletRequest request) {
         return visibility(id, "published", request);
     }
 
     @PostMapping("/knowledge-documents/{id}/disable")
-    public ApiResponse<StatusUpdateResponse> disable(@PathVariable long id, HttpServletRequest request) {
+    public ApiResponse<StatusUpdateResponse> disable(
+            @PathVariable long id, HttpServletRequest request) {
         return visibility(id, "disabled", request);
     }
 
     @PostMapping("/knowledge-documents/{id}/restore")
-    public ApiResponse<StatusUpdateResponse> restore(@PathVariable long id, HttpServletRequest request) {
+    public ApiResponse<StatusUpdateResponse> restore(
+            @PathVariable long id, HttpServletRequest request) {
         return visibility(id, "draft", request);
     }
 
-    private ApiResponse<StatusUpdateResponse> visibility(long id, String value, HttpServletRequest request) {
+    @PostMapping("/knowledge-documents/{id}/delete")
+    public ApiResponse<StatusUpdateResponse> delete(
+            @PathVariable long id, HttpServletRequest request) {
+        return visibility(id, "deleted", request);
+    }
+
+    private ApiResponse<StatusUpdateResponse> visibility(
+            long id, String value, HttpServletRequest request) {
         var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
-        knowledge.changeVisibility(id, value, operator.userId(), TraceContextHolder.currentOrNew().traceId());
+        knowledge.changeVisibility(
+                id, value, operator.userId(), TraceContextHolder.currentOrNew().traceId());
         return ok(new StatusUpdateResponse(true, value));
+    }
+
+    @GetMapping("/knowledge-upload-batches/{batchId}")
+    public ApiResponse<KnowledgeUploadBatchDetailResponse> batch(
+            @PathVariable long batchId, HttpServletRequest request) {
+        requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        return ok(new KnowledgeUploadBatchDetailResponse(knowledge.batch(batchId)));
+    }
+
+    @PostMapping("/knowledge-upload-batches/{batchId}/documents/{itemId}/retry")
+    public ApiResponse<StatusUpdateResponse> retry(
+            @PathVariable long batchId, @PathVariable long itemId, HttpServletRequest request) {
+        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        knowledge.retryItem(
+                batchId, itemId, operator.userId(), TraceContextHolder.currentOrNew().traceId());
+        return ok(new StatusUpdateResponse(true, "pending"));
+    }
+
+    @GetMapping(
+            value = "/knowledge-upload-batches/{batchId}/events",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter events(
+            @PathVariable long batchId,
+            @org.springframework.web.bind.annotation.RequestParam(
+                            value = "lastEventId",
+                            required = false)
+                    Long lastEventId,
+            HttpServletRequest request) {
+        requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        SseEmitter emitter = new SseEmitter(120_000L);
+        var executor = Executors.newSingleThreadScheduledExecutor();
+        String headerCursor = request.getHeader("Last-Event-ID");
+        long initialCursor = lastEventId == null ? parseEventId(headerCursor) : lastEventId;
+        final long[] cursor = {Math.max(0, initialCursor)};
+        executor.scheduleWithFixedDelay(
+                () -> {
+                    try {
+                        for (var event : knowledge.batchEvents(batchId, cursor[0])) {
+                            emitter.send(
+                                    SseEmitter.event()
+                                            .id(Long.toString(event.eventId()))
+                                            .name(event.eventType())
+                                            .data(event.payload()));
+                            cursor[0] = event.eventId();
+                        }
+                    } catch (Exception error) {
+                        emitter.completeWithError(error);
+                        executor.shutdown();
+                    }
+                },
+                0,
+                300,
+                TimeUnit.MILLISECONDS);
+        emitter.onCompletion(executor::shutdown);
+        emitter.onTimeout(executor::shutdown);
+        return emitter;
+    }
+
+    private long parseEventId(String value) {
+        if (value == null || value.isBlank()) return 0;
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 
     private <T> ApiResponse<T> ok(T value) {

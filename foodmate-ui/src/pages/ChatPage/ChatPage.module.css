@@ -634,6 +634,10 @@
   gap: 6px;
 }
 
+.assistantBodyWide {
+  width: min(764px, calc(100% - 48px));
+}
+
 .agentAvatar,
 .userAvatar {
   display: grid;
@@ -1458,4 +1462,106 @@
 .fixtureAuxMessage span {
   color: #667085;
   font-size: 12px;
+}
+
+.sessionActionsOverlay {
+  position: fixed;
+  z-index: 20;
+  top: 90px;
+  left: 50%;
+  display: grid;
+  width: min(760px, calc(100vw - 320px));
+  min-height: 174px;
+  gap: 12px;
+  padding: 20px 24px;
+  border: 1px solid #dbe1df;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: none;
+  transform: translateX(-33.333%);
+}
+
+.sessionActionsOverlay h2,
+.sessionResultOverlay h2 {
+  margin: 0;
+  color: #1f2933;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.sessionActionsOverlay p,
+.sessionResultOverlay p,
+.sessionResultOverlay strong {
+  margin: 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.sessionActionsOverlayActions {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  margin-top: 12px;
+}
+
+.sessionActionsOverlayActions button,
+.sessionResultOverlay > button {
+  height: 32px;
+  padding: 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sessionResultBackdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding-top: 290px;
+  background: rgb(255 255 255 / 80%);
+}
+
+.sessionResultOverlay {
+  display: grid;
+  width: min(620px, calc(100vw - 80px));
+  min-height: 260px;
+  align-content: start;
+  gap: 24px;
+  padding: 28px 32px;
+  border: 1px solid #64c885;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: none;
+  transform: translateX(130px);
+}
+
+.sessionResultOverlay strong {
+  font-weight: 500;
+}
+
+.sessionRenamedOverlay {
+  width: min(560px, calc(100vw - 80px));
+  min-height: 220px;
+}
+
+.sessionTrashOverlay {
+  border-color: #ff6b61;
+}
+
+@media (max-width: 1100px) {
+  .sessionActionsOverlay {
+    left: 50%;
+    width: min(760px, calc(100vw - 48px));
+    transform: translateX(-50%);
+  }
+
+  .sessionResultOverlay {
+    transform: none;
+  }
 }

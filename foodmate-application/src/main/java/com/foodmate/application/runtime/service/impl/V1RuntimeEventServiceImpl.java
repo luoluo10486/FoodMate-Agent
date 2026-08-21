@@ -115,11 +115,12 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         }
         String status = statusFor(event);
         boolean changesRunStatus = !"unchanged".equals(status);
-        String payload = json(event.payload());
+        JsonNode projectedPayload = visibleCitations(event.payload());
+        String payload = json(projectedPayload);
         store.insertEvent(ids.nextId(), runId, event, payload);
         if ("run.model_usage".equals(event.eventType())) persistModelUsage(runId, event);
         store.updateDispatch(runId, event.dispatchId(), event.eventSeq(), status);
-        String result = json(event.payload());
+        String result = json(projectedPayload);
         if (changesRunStatus) {
             // 终态后不允许任何状态回退；superseded 等 Java 侧终态同样受保护。
             store.updateRun(runId, status, result);
@@ -396,6 +397,27 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
 
     private static String string(JsonNode value) {
         return value == null || value.isNull() || value.isMissingNode() ? null : value.asText();
+    }
+
+    private JsonNode visibleCitations(JsonNode payload) {
+        if (store == null || !payload.isObject() || !payload.has("citations")) return payload;
+        ObjectNode copy = ((ObjectNode) payload).deepCopy();
+        var allowed = mapper.createArrayNode();
+        JsonNode citations = payload.path("citations");
+        if (citations.isArray()) {
+            for (JsonNode citation : citations) {
+                try {
+                    long documentId = Long.parseLong(citation.path("document_id").asText());
+                    String version = citation.path("version").asText();
+                    if (!version.isBlank() && store.publicCitationVisible(documentId, version))
+                        allowed.add(citation);
+                } catch (NumberFormatException ignored) {
+                    // Invalid citations are not allowed into persisted SSE projections.
+                }
+            }
+        }
+        copy.set("citations", allowed);
+        return copy;
     }
 
     private static Integer number(JsonNode value) {
