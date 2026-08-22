@@ -42,6 +42,14 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('link', { name: '基本资料' })).not.toHaveAttribute('aria-current');
   });
 
+  it('renders the Figma profile shell fixture', () => {
+    renderPage('/profile?state=basic');
+
+    expect(screen.getByText('Anddy')).toBeInTheDocument();
+    expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
+    expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

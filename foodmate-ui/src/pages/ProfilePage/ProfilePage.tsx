@@ -53,6 +53,7 @@ import {
 } from '@/services/accountService';
 import type { AuthSession, Profile, ProfileUpdateRequest } from '@/services/accountService';
 import type { AuthUser } from '@/mock/auth';
+import type { SessionSummary } from '@/types/session';
 import { confirmMemory, deleteMemory, loadMemories, updateMemory, type MemoryRecord } from '@/services/memoryService';
 import styles from './ProfilePage.module.css';
 
@@ -236,6 +237,18 @@ type ProfileFixtureState =
   | 'privacy-delete-confirm';
 
 type ProfileBaseFigmaState = 'basic' | 'memories' | 'security' | 'privacy';
+
+const figmaSidebarSessions: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
+];
 
 function getProfileBaseFigmaState(value: string | null): ProfileBaseFigmaState | undefined {
   return value === 'basic' || value === 'memories' || value === 'security' || value === 'privacy' ? value : undefined;
@@ -1830,6 +1843,11 @@ export function ProfilePage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       profileActiveTab={baseFigmaState}
+      sidebarAvatarSrc={
+        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
+      }
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       pageOverlay={
         fixtureState ? <ProfileFixtureOverlay state={fixtureState} onDismiss={() => navigate('/profile')} /> : null
       }
