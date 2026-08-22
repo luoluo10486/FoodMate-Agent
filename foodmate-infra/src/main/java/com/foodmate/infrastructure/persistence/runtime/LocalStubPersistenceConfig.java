@@ -323,6 +323,10 @@ public class LocalStubPersistenceConfig {
                 return 0;
             }
 
+            public KnowledgeRepository.DocumentView document(long documentId) {
+                return null;
+            }
+
             public void insertVisibilityOutbox(long outboxId, long documentId, String payload) {}
 
             public java.util.List<KnowledgeRepository.OutboxRow> pendingIndexOutbox(int limit) {

@@ -168,6 +168,8 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 || "deleted".equals(visibility)
                 || "draft".equals(visibility)))
             throw new IllegalArgumentException("invalid knowledge visibility");
+        KnowledgeRepository.DocumentView document = store.document(documentId);
+        if (document == null) throw new IllegalArgumentException("knowledge document not found");
         if (store.updateVisibility(documentId, visibility, operatorId) != 1)
             throw new IllegalArgumentException(
                     "knowledge document is not eligible for visibility change");
@@ -178,7 +180,11 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                         + documentId
                         + ",\"visibility\":\""
                         + visibility
-                        + "\",\"tenant_id\":0,\"scope\":\"public_published\"}");
+                        + "\",\"tenant_id\":0,\"scope\":\"public_published\",\"version\":\""
+                        + jsonString(document.version())
+                        + "\",\"current_version\":"
+                        + document.currentVersion()
+                        + "}");
         audit(operatorId, traceId, "knowledge.visibility." + visibility, Long.toString(documentId));
     }
 

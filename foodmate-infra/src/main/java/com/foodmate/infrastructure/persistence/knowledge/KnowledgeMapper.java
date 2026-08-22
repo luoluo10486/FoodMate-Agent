@@ -77,6 +77,10 @@ public interface KnowledgeMapper {
             @Param("visibility") String visibility,
             @Param("operatorId") long operatorId);
 
+    @Select(
+            "SELECT document_id AS documentId,version,current_version AS currentVersion FROM knowledge_documents WHERE document_id=#{documentId}")
+    KnowledgeRepository.DocumentView document(@Param("documentId") long documentId);
+
     @Insert(
             "INSERT INTO knowledge_visibility_outbox(outbox_id,document_id,topic,payload_json) VALUES(#{outboxId},#{documentId},'foodmate-knowledge-visibility-v1',CAST(#{payload} AS jsonb))")
     void insertVisibilityOutbox(

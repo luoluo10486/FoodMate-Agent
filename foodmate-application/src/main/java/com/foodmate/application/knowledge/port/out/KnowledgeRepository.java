@@ -30,6 +30,8 @@ public interface KnowledgeRepository {
 
     int updateVisibility(long documentId, String visibility, long operatorId);
 
+    DocumentView document(long documentId);
+
     void insertVisibilityOutbox(long outboxId, long documentId, String payload);
 
     java.util.List<OutboxRow> pendingIndexOutbox(int limit);
@@ -63,6 +65,8 @@ public interface KnowledgeRepository {
     int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload);
 
     record OutboxRow(long outboxId, long itemOrDocumentId, String topic, String payload) {}
+
+    record DocumentView(long documentId, String version, boolean currentVersion) {}
 
     record IndexResult(
             long itemId,

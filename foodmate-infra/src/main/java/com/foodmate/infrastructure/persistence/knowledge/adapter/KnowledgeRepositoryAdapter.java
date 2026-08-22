@@ -107,6 +107,11 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     }
 
     @Override
+    public DocumentView document(long documentId) {
+        return mapper.document(documentId);
+    }
+
+    @Override
     public void insertVisibilityOutbox(long outboxId, long documentId, String payload) {
         mapper.insertVisibilityOutbox(outboxId, documentId, payload);
     }

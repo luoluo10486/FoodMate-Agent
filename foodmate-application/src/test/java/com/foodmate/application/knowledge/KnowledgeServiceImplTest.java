@@ -1,6 +1,7 @@
 package com.foodmate.application.knowledge;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -19,6 +20,7 @@ import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 
 class KnowledgeServiceImplTest {
@@ -177,6 +179,27 @@ class KnowledgeServiceImplTest {
         verify(repository).updateStatus(42L, KnowledgeDocumentStatus.INDEXED, 7L);
         verify(repository, org.mockito.Mockito.never())
                 .insertAudit(any(KnowledgeRepository.Audit.class));
+    }
+
+    @Test
+    void visibilityOutboxCarriesAuthoritativeDocumentVersionState() {
+        KnowledgeRepository repository = mock(KnowledgeRepository.class);
+        ObjectStoragePort storage = mock(ObjectStoragePort.class);
+        IdGenerator ids = mock(IdGenerator.class);
+        when(repository.document(42L)).thenReturn(new KnowledgeRepository.DocumentView(42L, "v-old", false));
+        when(repository.updateVisibility(42L, "disabled", 7L)).thenReturn(1);
+        when(ids.nextId()).thenReturn(99L);
+        KnowledgeServiceImpl service =
+                new KnowledgeServiceImpl(
+                        provider(repository), provider(storage), provider(ids), "foodmate-private");
+
+        service.changeVisibility(42L, "disabled", 7L, "trace-1");
+
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(repository).insertVisibilityOutbox(eq(99L), eq(42L), payload.capture());
+        assertFalse(payload.getValue().contains("\"current_version\":true"));
+        org.junit.jupiter.api.Assertions.assertTrue(payload.getValue().contains("\"version\":\"v-old\""));
+        org.junit.jupiter.api.Assertions.assertTrue(payload.getValue().contains("\"current_version\":false"));
     }
 
     private static <T> ObjectProvider<T> provider(T value) {
