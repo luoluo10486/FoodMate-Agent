@@ -462,6 +462,22 @@ export type AdminQuerySqlAudit = {
   created_at: string | null;
 };
 
+export type AdminQueryDlq = {
+  dlq_id: number | null;
+  consumer_group: string;
+  source_topic: string;
+  message_id: string;
+  run_id: string | null;
+  dispatch_id: string | null;
+  event_id: string | null;
+  attempt: number | null;
+  reconsume_times: number | null;
+  error_code: string;
+  reconciliation_state: string;
+  first_seen_at: string | null;
+  reconciled_at: string | null;
+};
+
 export type AdminQueryParams = {
   page?: number;
   size?: number;

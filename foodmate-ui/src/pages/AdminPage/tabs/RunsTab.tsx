@@ -33,6 +33,7 @@ import {
   loadAdminQuery,
   type AdminRunRow,
   type AdminQueryRun,
+  type AdminQueryDlq,
   type AdminQuerySqlAudit,
   type AdminQueryToolCall,
   type AdminSqlAuditRow,
@@ -40,14 +41,32 @@ import {
   type AdminTraceRow,
 } from '../../../services/adminService';
 
+type AdminDlqRow = {
+  key: string;
+  dlqId: string;
+  consumerGroup: string;
+  sourceTopic: string;
+  messageId: string;
+  runId: string;
+  dispatchId: string;
+  eventId: string;
+  attempt: number;
+  reconsumeTimes: number;
+  errorCode: string;
+  reconciliationState: string;
+  firstSeenAt: string;
+  reconciledAt: string;
+};
+
 type DashboardState = {
   runs: AdminRunRow[];
   toolCalls: AdminToolCallRow[];
   sqlAudits: AdminSqlAuditRow[];
   traces: AdminTraceRow[];
+  dlq: AdminDlqRow[];
 };
 
-type GovernanceTab = 'agent-runs' | 'tool-calls' | 'sql-audits' | 'traces';
+type GovernanceTab = 'agent-runs' | 'tool-calls' | 'sql-audits' | 'traces' | 'dlq';
 
 type DetailSelection =
   | { type: 'run'; row: AdminRunRow }
@@ -57,19 +76,21 @@ type DetailSelection =
 
 const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
 
-const emptyDashboard: DashboardState = { runs: [], toolCalls: [], sqlAudits: [], traces: [] };
+const emptyDashboard: DashboardState = { runs: [], toolCalls: [], sqlAudits: [], traces: [], dlq: [] };
 
 const mockDashboard: DashboardState = {
   runs: adminAuditRows,
   toolCalls: adminToolCallRows,
   sqlAudits: adminSqlAuditRows,
   traces: adminTraceRows,
+  dlq: [],
 };
 
 function tabFromSearch(params: URLSearchParams): GovernanceTab {
   if (params.get('tab') === 'sql') return 'sql-audits';
   if (params.get('tab') === 'trace') return 'traces';
   if (params.get('tab') === 'tool') return 'tool-calls';
+  if (params.get('tab') === 'dlq') return 'dlq';
   return 'agent-runs';
 }
 
@@ -156,6 +177,25 @@ function querySqlAuditRow(row: AdminQuerySqlAudit, index: number): AdminSqlAudit
     queryHash: row.query_hash || '-',
     errorCode: row.error_code || '-',
     createdAt: row.created_at || '-',
+  };
+}
+
+function queryDlqRow(row: AdminQueryDlq, index: number): AdminDlqRow {
+  return {
+    key: `dlq-${row.dlq_id ?? index}`,
+    dlqId: textValue(row.dlq_id),
+    consumerGroup: row.consumer_group || '-',
+    sourceTopic: row.source_topic || '-',
+    messageId: row.message_id || '-',
+    runId: row.run_id || '-',
+    dispatchId: row.dispatch_id || '-',
+    eventId: row.event_id || '-',
+    attempt: row.attempt ?? 0,
+    reconsumeTimes: row.reconsume_times ?? 0,
+    errorCode: row.error_code || '-',
+    reconciliationState: row.reconciliation_state || '-',
+    firstSeenAt: row.first_seen_at || '-',
+    reconciledAt: row.reconciled_at || '-',
   };
 }
 
@@ -468,14 +508,16 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
       loadAdminQuery<AdminQueryRun>('runs'),
       loadAdminQuery<AdminQueryToolCall>('tool-calls'),
       loadAdminQuery<AdminQuerySqlAudit>('sql-audits'),
+      loadAdminQuery<AdminQueryDlq>('dlq'),
     ])
-      .then(([runs, toolCalls, sqlAudits]) => {
+      .then(([runs, toolCalls, sqlAudits, dlq]) => {
         if (mounted)
           setDashboard({
             runs: runs.items.map(queryRunRow),
             toolCalls: toolCalls.items.map(queryToolCallRow),
             sqlAudits: sqlAudits.items.map(querySqlAuditRow),
             traces: [],
+            dlq: dlq.items.map(queryDlqRow),
           });
       })
       .catch((error) => {
@@ -557,15 +599,39 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     [dashboard.traces, normalizedQuery, normalizedError, statusFilter],
   );
 
+  const filteredDlq = useMemo(
+    () =>
+      dashboard.dlq.filter((row) =>
+        matchesCommon(
+          [
+            row.dlqId,
+            row.consumerGroup,
+            row.sourceTopic,
+            row.messageId,
+            row.runId,
+            row.dispatchId,
+            row.eventId,
+          ],
+          row.reconciliationState,
+          row.errorCode,
+          normalizedQuery,
+          statusFilter,
+          normalizedError,
+        ),
+      ),
+    [dashboard.dlq, normalizedQuery, normalizedError, statusFilter],
+  );
+
   const failureCount = dashboard.runs.filter((row) => row.status === 'failed').length;
   const failureRate = dashboard.runs.length ? `${((failureCount / dashboard.runs.length) * 100).toFixed(1)}%` : '-';
   const changeTab = (value: string) => {
-    if (!['agent-runs', 'tool-calls', 'sql-audits', 'traces'].includes(value)) return;
+    if (!['agent-runs', 'tool-calls', 'sql-audits', 'traces', 'dlq'].includes(value)) return;
     const tab = value as GovernanceTab;
     const next = new URLSearchParams(searchParams);
     if (tab === 'sql-audits') next.set('tab', 'sql');
     else if (tab === 'traces') next.set('tab', 'trace');
     else if (tab === 'tool-calls') next.set('tab', 'tool');
+    else if (tab === 'dlq') next.set('tab', 'dlq');
     else next.delete('tab');
     setSearchParams(next, { replace: true });
   };
@@ -575,6 +641,10 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     setResultFilter('all');
     setErrorFilter('');
   };
+  const statusOptions =
+    activeTab === 'dlq'
+      ? ['pending', 'needs_attention', 'resolved_duplicate', 'resolved_terminal', 'resolved_replayed']
+      : ['completed', 'failed', 'running', 'waiting_user', 'cancelled'];
 
   const runColumns: TableColumnProps<AdminRunRow>[] = [
     { title: 'Run ID', dataIndex: 'runId' },
@@ -650,6 +720,21 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
       ),
     },
   ];
+  const dlqColumns: TableColumnProps<AdminDlqRow>[] = [
+    { title: 'DLQ ID', dataIndex: 'dlqId' },
+    { title: '消息 ID', dataIndex: 'messageId' },
+    { title: '来源 Topic', dataIndex: 'sourceTopic' },
+    { title: 'Run ID', dataIndex: 'runId' },
+    { title: 'Dispatch ID', dataIndex: 'dispatchId' },
+    { title: '错误码', dataIndex: 'errorCode' },
+    { title: '重试次数', dataIndex: 'reconsumeTimes' },
+    {
+      title: '对账状态',
+      dataIndex: 'reconciliationState',
+      render: (_, row) => statusTag(row.reconciliationState),
+    },
+    { title: '首次发现', dataIndex: 'firstSeenAt' },
+  ];
 
   const activeRows =
     activeTab === 'agent-runs'
@@ -658,7 +743,9 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
         ? filteredToolCalls
         : activeTab === 'sql-audits'
           ? filteredSqlAudits
-          : filteredTraces;
+          : activeTab === 'traces'
+            ? filteredTraces
+            : filteredDlq;
 
   return (
     <>
@@ -689,11 +776,11 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部状态</SelectItem>
-              <SelectItem value="completed">completed</SelectItem>
-              <SelectItem value="failed">failed</SelectItem>
-              <SelectItem value="running">running</SelectItem>
-              <SelectItem value="waiting_user">waiting_user</SelectItem>
-              <SelectItem value="cancelled">cancelled</SelectItem>
+              {statusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </label>
@@ -738,6 +825,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             <TabsTrigger value="tool-calls">ToolCall</TabsTrigger>
             <TabsTrigger value="sql-audits">SQLAudit</TabsTrigger>
             <TabsTrigger value="traces">Trace</TabsTrigger>
+            <TabsTrigger value="dlq">DLQ</TabsTrigger>
           </TabsList>
           <TabsContent value="agent-runs">
             {filteredRuns.length ? (
@@ -777,6 +865,17 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
               <DataTable className={styles.runTable} columns={traceColumns} data={filteredTraces} />
             ) : (
               <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="traces" />
+            )}
+          </TabsContent>
+          <TabsContent value="dlq">
+            {filteredDlq.length ? (
+              <DataTable className={styles.runTable} columns={dlqColumns} data={filteredDlq} />
+            ) : (
+              <DataPlaceholder
+                filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
+                tab="dlq"
+                error={loadError}
+              />
             )}
           </TabsContent>
         </Tabs>
