@@ -97,4 +97,15 @@ describe('AdminPage overview', () => {
     expect(document.querySelector('nav a[aria-current="page"]')).toHaveAttribute('href', '/admin/tools?tab=registry');
     view.unmount();
   });
+
+  it('renders the Figma run detail fixture with a table and execution steps', () => {
+    renderAdmin('/admin?state=run-detail');
+
+    expect(screen.getByText('Agent 运行控制台')).toBeInTheDocument();
+    expect(screen.getAllByText('run_98218a')).toHaveLength(2);
+    expect(screen.getByRole('region', { name: '执行事件追踪' })).toBeInTheDocument();
+    expect(screen.getByText('1. 分发')).toBeInTheDocument();
+    expect(screen.getByText('4. 失败')).toBeInTheDocument();
+    expect(screen.queryByText(/caller_context_mask/)).not.toBeInTheDocument();
+  });
 });

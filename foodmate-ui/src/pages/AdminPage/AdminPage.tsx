@@ -117,7 +117,93 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
     );
   }
   if (isDetail) {
-    const title = state === 'run-detail' || state === 'trace' ? 'Agent 运行控制台' : '工具调用与 SQL 审计';
+    if (state === 'run-detail') {
+      return (
+        <section className={`${styles.fixtureSurface} ${styles.fixtureSurfaceInline}`} aria-label="Run 详情 fixture">
+          <div className={styles.runFixtureToolbar} aria-label="Run 筛选">
+            <span className={styles.runFixtureId}>Run ID: run_...</span>
+            <span className={styles.runFixtureSearch}>搜索用户...</span>
+            <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusFailed}`}>Failed ×</span>
+            <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusSuccess}`}>Success ✓</span>
+            <span className={styles.runFixtureDegraded}>
+              仅降级
+              <i aria-hidden="true" />
+            </span>
+          </div>
+          <section className={styles.runFixtureTable} aria-label="Run 记录">
+            <div className={styles.runFixtureTableHeader} role="row">
+              <span>运行 ID</span>
+              <span>用户</span>
+              <span>上下文</span>
+              <span>状态</span>
+              <span>阶段</span>
+              <span>耗时</span>
+              <span>成本</span>
+              <span>工具数</span>
+            </div>
+            <div className={styles.runFixtureTableRow} role="row">
+              <strong>run_98218a</strong>
+              <strong>anddy_lab</strong>
+              <span>Keto Meal Plan Formulation for target 1800kcal</span>
+              <b className={styles.runFixtureFailure}>失败</b>
+              <span>RAG_RETRIEVE</span>
+              <span>12.4s</span>
+              <span>$0.045</span>
+              <span>12 calls</span>
+            </div>
+          </section>
+          <section className={styles.runFixtureTrace} aria-label="执行事件追踪">
+            <div className={styles.runFixtureTraceHeader}>
+              <h2>
+                执行事件追踪： <code>run_98218a</code>
+              </h2>
+              <button
+                type="button"
+                className={styles.runFixtureDownload}
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent('foodmate:admin-notice', { detail: { message: '完整日志下载已加入队列。' } }),
+                  )
+                }
+              >
+                下载完整日志
+              </button>
+            </div>
+            <div className={styles.runFixtureSteps}>
+              <article>
+                <header>
+                  <strong>1. 分发</strong>
+                  <code>0.2s</code>
+                </header>
+                <p>Agent queued and initialized on gpt-4-turbo</p>
+              </article>
+              <article>
+                <header>
+                  <strong>2. RAG 查询</strong>
+                  <code>3.1s</code>
+                </header>
+                <p>Semantic query to Vector DB. Index hit: 94%</p>
+              </article>
+              <article>
+                <header>
+                  <strong>3. 降级</strong>
+                  <code>8.5s</code>
+                </header>
+                <p>USDA API 延迟阈值超限警告</p>
+              </article>
+              <article>
+                <header>
+                  <strong>4. 失败</strong>
+                  <code>0.6s</code>
+                </header>
+                <p>进程中止：上下文Token溢出限制</p>
+              </article>
+            </div>
+          </section>
+        </section>
+      );
+    }
+    const title = state === 'trace' ? 'Agent 运行控制台' : '工具调用与 SQL 审计';
     return (
       <div className={styles.fixtureSurface}>
         <div className={styles.fixtureSurfaceHeader}>
@@ -159,8 +245,8 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
     state === 'knowledge-format-error'
       ? '文件格式校验失败'
       : state === 'knowledge-size-error'
-      ? '文件大小超过限制'
-      : '知识库上传失败';
+        ? '文件大小超过限制'
+        : '知识库上传失败';
   const knowledgeProgressTitle =
     state === 'knowledge-uploading'
       ? '批量任务已提交'
@@ -338,6 +424,11 @@ export function AdminPage() {
     requestedFixture === 'tool-registry' ||
     (pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry');
   const isDeletedRoute = pathname.endsWith('/deleted') || requestedFixture === 'deleted-resources';
+  const isDetailFixture =
+    requestedFixture === 'run-detail' ||
+    requestedFixture === 'tool-calls' ||
+    requestedFixture === 'sql-audit' ||
+    requestedFixture === 'trace';
   const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
   const [operationStatus, setOperationStatus] = useState<AdminOperationState>('idle');
   const [operationError, setOperationError] = useState<AdminOperationError>();
@@ -463,7 +554,9 @@ export function AdminPage() {
         </div>
         <nav className={styles.adminNav} aria-label="管理后台导航">
           {adminNavItems.map((item) => {
-            const isActive = fixtureNavKey ? item.key === fixtureNavKey : isAdminNavItemActive(item.path, pathname, search);
+            const isActive = fixtureNavKey
+              ? item.key === fixtureNavKey
+              : isAdminNavItemActive(item.path, pathname, search);
             const isLocked = Boolean(item.adminOnly && !canManage);
             return (
               <Link
@@ -512,27 +605,29 @@ export function AdminPage() {
           onRetry={fixtureOperationStatus ? dismissFixture : () => void executePendingAction()}
           onDismiss={fixtureOperationStatus ? dismissFixture : dismissOperation}
         />
-        {requestedFixture && !requestedFixture.startsWith('op-') ? (
+        {requestedFixture && !requestedFixture.startsWith('op-') && !isDetailFixture ? (
           <AdminFixtureOverlay state={requestedFixture} onDismiss={() => navigate('/admin', { replace: true })} />
         ) : null}
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
             <strong>
-              {sectionKey === 'overview'
-                ? '管理概览'
-                : isRegistryRoute
-                  ? '工具注册表'
-                  : isDeletedRoute
-                    ? '删除资源管理'
-                    : sectionKey === 'users'
-                      ? '用户管理'
-                      : sectionKey === 'knowledge'
-                        ? '知识库管理'
-                        : sectionKey === 'audit'
-                          ? '操作审计'
-                          : '管理控制台'}
+              {isDetailFixture
+                ? 'Agent 运行控制台'
+                : sectionKey === 'overview'
+                  ? '管理概览'
+                  : isRegistryRoute
+                    ? '工具注册表'
+                    : isDeletedRoute
+                      ? '删除资源管理'
+                      : sectionKey === 'users'
+                        ? '用户管理'
+                        : sectionKey === 'knowledge'
+                          ? '知识库管理'
+                          : sectionKey === 'audit'
+                            ? '操作审计'
+                            : '管理控制台'}
             </strong>
-            {sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
+            {isDetailFixture || sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
               <span className={styles.envBadge}>生产环境</span>
             ) : isDeletedRoute ? (
               <span className={styles.securityBadge}>审计存档区</span>
@@ -540,43 +635,57 @@ export function AdminPage() {
           </div>
           <div className={styles.topbarActions}>
             <span className={styles.refreshStatus}>
-              {isRegistryRoute
-                ? '服务节点：healthy-cluster-0'
-                : isDeletedRoute
-                  ? '存档保留时长：90天安全窗口'
-                  : sectionKey === 'users'
-                    ? '刷新时间：刚刚'
-                    : sectionKey === 'audit'
-                      ? '审计记录只读'
-                      : '数据刷新：刚刚'}
+              {isDetailFixture
+                ? '刷新时间：刚刚'
+                : isRegistryRoute
+                  ? '服务节点：healthy-cluster-0'
+                  : isDeletedRoute
+                    ? '存档保留时长：90天安全窗口'
+                    : sectionKey === 'users'
+                      ? '刷新时间：刚刚'
+                      : sectionKey === 'audit'
+                        ? '审计记录只读'
+                        : '数据刷新：刚刚'}
             </span>
             <Button
               variant="outline"
               className={styles.topbarRefresh}
               onClick={isDeletedRoute ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。') : handleRefresh}
             >
-              {isRegistryRoute
-                ? '更新状态'
-                : isDeletedRoute
-                  ? '合规性审计'
-                  : sectionKey === 'users'
-                    ? '刷新'
-                    : sectionKey === 'audit'
-                      ? '刷新审计'
-                      : '刷新数据'}
+              {isDetailFixture
+                ? '刷新'
+                : isRegistryRoute
+                  ? '更新状态'
+                  : isDeletedRoute
+                    ? '合规性审计'
+                    : sectionKey === 'users'
+                      ? '刷新'
+                      : sectionKey === 'audit'
+                        ? '刷新审计'
+                        : '刷新数据'}
             </Button>
           </div>
         </header>
-        <div className={`${styles.page} ${sectionKey === 'users' ? styles.usersPage : ''} fm-enter`}>
+        <div
+          className={`${styles.page} ${sectionKey === 'users' ? styles.usersPage : ''} ${isDetailFixture ? styles.fixtureDetailPage : ''} fm-enter`}
+        >
           {notice ? (
             <div className={styles.notice} role="status">
               {notice}
             </div>
           ) : null}
-          {sectionKey === 'overview' || sectionKey === 'users' || sectionKey === 'knowledge' || isRegistryRoute || isDeletedRoute ? null : (
+          {sectionKey === 'overview' ||
+          sectionKey === 'users' ||
+          sectionKey === 'knowledge' ||
+          isRegistryRoute ||
+          isDeletedRoute ? null : (
             <AdminHeader sectionKey={sectionKey} />
           )}
-          {renderSection(sectionKey, requestAdminAction, refreshNonce, activeOperationStatus)}
+          {isDetailFixture ? (
+            <AdminFixtureOverlay state={requestedFixture} onDismiss={() => navigate('/admin', { replace: true })} />
+          ) : (
+            renderSection(sectionKey, requestAdminAction, refreshNonce, activeOperationStatus)
+          )}
         </div>
       </main>
     </div>
