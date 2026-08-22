@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+  Java 21 executable subset of the Alibaba handbook gate.
+  The repository's full handbook review remains manual; this file only contains
+  rules that are deterministic and compatible with records and sealed types.
+  Existing long JSON/SQL literals remain a manual review item because splitting
+  them mechanically would change the SQL and message contracts.
+-->
+<module name="Checker">
+  <property name="charset" value="UTF-8"/>
+  <module name="FileTabCharacter"/>
+  <module name="NewlineAtEndOfFile"/>
+  <module name="RegexpSingleline">
+    <property name="format" value="System\.(out|err)\.print|printStackTrace"/>
+    <property name="maximum" value="0"/>
+    <property name="message" value="Use structured logging instead of direct console output."/>
+  </module>
+</module>
