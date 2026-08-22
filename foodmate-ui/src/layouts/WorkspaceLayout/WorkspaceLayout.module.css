@@ -12,6 +12,40 @@
   padding-top: 52px;
 }
 
+.figmaFixture .primarySideNav {
+  margin-bottom: 4px;
+}
+
+.figmaFixture .primarySideNav .sideLink,
+.figmaFixture .secondarySideNav .sideLink,
+.figmaFixture .secondarySideNav .sideButton,
+.figmaFixture :global(.sidebar-session-section-title) {
+  min-height: 42px;
+}
+
+.figmaFixture :global(.sidebar-session-section) {
+  display: block;
+}
+
+.figmaFixture :global(.sidebar-session-section-title) {
+  margin-bottom: 4px;
+}
+
+.figmaFixture :global(.sidebar-session-list-item) {
+  min-height: 32px;
+  height: 32px;
+}
+
+.figmaFixture :global(.sidebar-session-list) {
+  height: 285px;
+  box-sizing: border-box;
+}
+
+.figmaFixture :global(.sidebar-session-pagination) {
+  height: 22px;
+  margin-top: 4px;
+}
+
 .withRail {
   grid-template-columns: 260px minmax(0, 1fr) 320px;
 }
