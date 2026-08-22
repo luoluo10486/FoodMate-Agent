@@ -255,10 +255,10 @@
   line-height: 17px;
 }
 
-.planningTitle svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2;
+.planningLoader {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 .planningSteps {

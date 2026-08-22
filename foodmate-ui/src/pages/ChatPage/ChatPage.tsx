@@ -378,6 +378,7 @@ function EmptyChatPage() {
 
 function PlanningStatePage() {
   const planningAvatarSrc = '/assets/figma/planning/meal-plan-list-topbar-avatar.png';
+  const planningLoaderSrc = '/assets/figma/agent-chat/planning-loader.svg';
   const planningSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const planningRun: AgentRunView = {
     id: 'run_planning_fixture',
@@ -426,7 +427,7 @@ function PlanningStatePage() {
         <div className={styles.planningAssistantBody}>
           <div className={styles.planningBubble}>
             <div className={styles.planningTitle}>
-              <LoaderCircle aria-hidden="true" />
+              <img className={styles.planningLoader} src={planningLoaderSrc} alt="" />
               <strong>Planning...</strong>
             </div>
             <div className={styles.planningSteps}>
