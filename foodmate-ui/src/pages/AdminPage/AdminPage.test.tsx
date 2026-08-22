@@ -126,4 +126,19 @@ describe('AdminPage overview', () => {
     await user.type(search, 'does-not-exist');
     expect(screen.getByRole('status', { name: '' })).toHaveTextContent('没有匹配的工具调用');
   });
+
+  it('renders the Figma SQL audit fixture with redaction guidance', async () => {
+    const user = userEvent.setup();
+    renderAdmin('/admin?state=sql-audit');
+
+    expect(screen.getByText('工具调用与 SQL 审计')).toBeInTheDocument();
+    expect(screen.getByText('SQL Audit · 筛选与详情')).toBeInTheDocument();
+    expect(screen.getByText(/数据库凭据、令牌和敏感参数统一脱敏/)).toBeInTheDocument();
+    expect(
+      document.querySelector('nav[aria-label="治理详情视图"] a[href="/admin?state=sql-audit"]'),
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: '搜索 SQL 运行 ID' }), 'not-found');
+    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('没有匹配的 SQL 审计记录');
+  });
 });

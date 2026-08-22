@@ -4686,6 +4686,11 @@
   color: #858c85 !important;
   font-size: 12px !important;
 }
+
+.governanceNoteDanger {
+  color: #b85454 !important;
+  font-size: 12px !important;
+}
 .fixtureSurfaceHeader,
 .fixtureSurfaceToolbar {
   display: flex;
@@ -4736,5 +4741,43 @@
   .fixtureSurfaceToolbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 720px) {
+  .fixtureDetailPage {
+    overflow: visible;
+  }
+
+  .governanceSurface {
+    gap: 16px;
+  }
+
+  .governanceTabs {
+    height: auto;
+    flex-wrap: wrap;
+  }
+
+  .governanceFilters {
+    height: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .governanceTable {
+    overflow-x: auto;
+  }
+
+  .governanceTableHeader,
+  .governanceTableRow {
+    min-width: 760px;
+  }
+
+  .governancePayloadHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .governanceNotes {
+    min-height: auto;
   }
 }
