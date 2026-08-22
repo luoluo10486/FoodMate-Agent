@@ -135,6 +135,7 @@ type AdminDeletedResponse = {
   owner: string;
   deleted_by?: string;
   deleted_at: string | null;
+  revision?: number;
   restorable?: boolean;
   reason: string;
 };
@@ -266,6 +267,7 @@ export type AdminDeletedRow = {
   deletedAt: string;
   restorable: boolean;
   reason: string;
+  revision?: number;
 };
 export type AdminOperationAuditRow = {
   key: string;
@@ -393,6 +395,7 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       deletedAt: text(row.deleted_at),
       restorable: row.restorable ?? true,
       reason: row.reason,
+      revision: row.revision ?? 1,
     })),
     operation_audits: data.operation_audits.map((row, index) => ({
       key: `operation-${row.request_id || index}`,
@@ -417,6 +420,49 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
 export async function loadAdminDashboard(): Promise<AdminDashboard> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
   return normalizeDashboard(await apiRequest<AdminDashboardResponse>('/api/admin/dashboard'));
+}
+
+type AdminOperationalQueryResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+};
+
+type AdminDeletedQueryItem = {
+  resource_type: string;
+  resource_id: number | null;
+  owner_ref: string;
+  deleted_at: string | null;
+  reason: string;
+  revision?: number;
+};
+
+export async function loadAdminDeletedResources(): Promise<AdminDeletedRow[]> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  const data = await apiRequest<AdminOperationalQueryResponse<AdminDeletedQueryItem>>(
+    '/api/admin/queries/deleted?size=100',
+  );
+  return data.items.map((row, index) => ({
+    key: `deleted-${row.resource_id ?? index}`,
+    resourceType: row.resource_type,
+    resourceId: text(row.resource_id),
+    summary: row.reason || '-',
+    owner: row.owner_ref || '-',
+    deletedBy: '-',
+    deletedAt: text(row.deleted_at),
+    restorable: true,
+    reason: row.reason || '-',
+    revision: row.revision ?? 1,
+  }));
+}
+
+export async function loadAdminOperationAudits(): Promise<AdminOperationAuditResponse[]> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  const data = await apiRequest<AdminOperationalQueryResponse<AdminOperationAuditResponse>>(
+    '/api/admin/queries/operation-audits?size=100',
+  );
+  return data.items;
 }
 
 export type AdminUserRow = {
@@ -520,8 +566,16 @@ export async function updateAdminToolStatus(name: string, status: string, revisi
 }
 export const updateKnowledgeStatus = (id: string, status: string) =>
   adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status });
-export const restoreAdminResource = (type: string, id: string) =>
-  adminWrite(`/api/admin/resources/${encodeURIComponent(type)}/${encodeURIComponent(id)}/restore`, 'POST');
+export async function restoreAdminResource(type: string, id: string, revision = 1) {
+  const action = 'admin.resource.restore';
+  const digest = await confirmationDigest(action, type, id, revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    `/api/admin/resources/${encodeURIComponent(type)}/${encodeURIComponent(id)}/restore`,
+    'POST',
+    { revision, confirmed: true, confirmationDigest: digest },
+    'admin-resource-restore',
+  );
+}
 
 export async function uploadKnowledgeDocument(file: File) {
   const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
@@ -765,7 +819,7 @@ async function confirmationDigest(action: string, target: string, value: string,
 
 async function modelGovernanceWrite<T>(
   path: string,
-  method: 'PATCH' | 'PUT',
+  method: 'POST' | 'PATCH' | 'PUT',
   payload: object,
   idempotencyPrefix: string,
 ) {

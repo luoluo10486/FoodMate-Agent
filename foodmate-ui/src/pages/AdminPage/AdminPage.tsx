@@ -637,7 +637,7 @@ function renderSection(
     case 'knowledge':
       return <KnowledgeSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'deleted':
-      return <DeletedSection onAction={onAction} />;
+      return <DeletedSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'audit':
       return <OperationAuditSection refreshNonce={refreshNonce} />;
     default:

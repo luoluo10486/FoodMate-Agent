@@ -17,7 +17,7 @@ import styles from '../AdminPage.module.css';
 import { AdminOnlyNotice } from './AdminComponents';
 import { type DeletedRow, adminDeletedRows, canRestoreResources } from './AdminShared';
 import type { AdminActionPayload } from './types';
-import { loadAdminDashboard, restoreAdminResource } from '../../../services/adminService';
+import { loadAdminDeletedResources, restoreAdminResource } from '../../../services/adminService';
 
 const deletedTotal = 19;
 const pageSize = 4;
@@ -126,7 +126,13 @@ function restorablePill(restorable: boolean) {
   );
 }
 
-export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
+export function DeletedSection({
+  onAction,
+  refreshNonce = 0,
+}: {
+  onAction: (payload: AdminActionPayload) => void;
+  refreshNonce?: number;
+}) {
   const [rows, setRows] = useState<DeletedRow[]>(
     import.meta.env.VITE_AGENT_MODE === 'real' ? [] : (adminDeletedRows as DeletedRow[]),
   );
@@ -136,13 +142,20 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<DeletedRow>();
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
-    loadAdminDashboard()
-      .then((dashboard) => setRows(dashboard.deleted))
-      .catch(() => setRows([]));
-  }, []);
+    loadAdminDeletedResources()
+      .then((items) => {
+        setLoadError('');
+        setRows(items);
+      })
+      .catch((error) => {
+        setRows([]);
+        setLoadError(error instanceof Error ? error.message : '软删除资源加载失败');
+      });
+  }, [refreshNonce]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -251,7 +264,7 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
                 targetType: record.resourceType,
                 targetId: record.resourceId,
                 execute: async () => {
-                  await restoreAdminResource(record.resourceType, record.resourceId);
+                  await restoreAdminResource(record.resourceType, record.resourceId, record.revision ?? 1);
                 },
                 onApply: () => setRows((current) => current.filter((item) => item.key !== record.key)),
               })
@@ -268,6 +281,11 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
 
   return (
     <>
+      {loadError ? (
+        <div className={styles.auditError} role="alert">
+          {loadError}
+        </div>
+      ) : null}
       <section className={styles.deletedFilters} aria-label="删除资源筛选">
         <div className={styles.deletedFilterGroup}>
           <DeletedFilterSelect

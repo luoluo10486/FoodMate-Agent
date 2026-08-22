@@ -63,7 +63,10 @@ export function AdminOperationStatus({
       <Alert className={`${styles.operationBanner} ${styles.operationSuccessBanner}`}>
         <Info aria-hidden="true" />
         <span>
-          操作成功：{action?.action} {action?.targetLabel} 已完成
+          操作成功：
+          {action?.action === '停用工具'
+            ? `工具 ${action.targetLabel} 已成功停用`
+            : `${action?.action} ${action?.targetLabel} 已完成`}
         </span>
       </Alert>
     );
