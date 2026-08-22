@@ -47,8 +47,7 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                             && (errorCode == null || errorCode.isBlank())))
                 return MqConsumeDecision.REJECT;
             BigDecimal costAmount = new BigDecimal(node.path("cost_amount").asText("0"));
-            if (costAmount.signum() < 0)
-                return MqConsumeDecision.REJECT;
+            if (costAmount.signum() < 0) return MqConsumeDecision.REJECT;
             service.accept(
                     new KnowledgeRepository.IndexResult(
                             itemId,

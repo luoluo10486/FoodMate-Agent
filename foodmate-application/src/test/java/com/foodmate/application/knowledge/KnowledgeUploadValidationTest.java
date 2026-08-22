@@ -92,8 +92,7 @@ class KnowledgeUploadValidationTest {
 
         assertEquals("KNOWLEDGE_SOURCE_UNAUTHORIZED", exception.getMessage());
         verify(ids, org.mockito.Mockito.never()).nextId();
-        verify(storage, org.mockito.Mockito.never())
-                .put(any(), any(), any(), anyLong(), any());
+        verify(storage, org.mockito.Mockito.never()).put(any(), any(), any(), anyLong(), any());
         verify(repository, org.mockito.Mockito.never())
                 .insertImportJob(any(KnowledgeRepository.ImportJob.class));
         verify(repository, org.mockito.Mockito.never())

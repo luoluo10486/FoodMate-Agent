@@ -82,7 +82,8 @@ class KnowledgeOutboxPublisherTest {
         verify(publisher).publish(request.capture());
         org.junit.jupiter.api.Assertions.assertEquals("visibility", request.getValue().topic());
         org.junit.jupiter.api.Assertions.assertEquals(
-                "KnowledgeVisibility", request.getValue().properties().get("foodmate_message_type"));
+                "KnowledgeVisibility",
+                request.getValue().properties().get("foodmate_message_type"));
         verify(service).publishedVisibility(32L, owner.getValue());
     }
 }
