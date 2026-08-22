@@ -29,13 +29,27 @@ describe('DietRecordsPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getAllByRole('button', { name: '+ 添加食物' })[0]);
+    const addFoodButton = screen.getAllByRole('button', { name: '+ 添加食物' })[0];
+    expect(addFoodButton).toHaveClass('inline-flex');
+    await user.click(addFoodButton);
     const input = screen.getByPlaceholderText('例如：煮鸡蛋 2 个');
     await user.type(input, '香蕉');
     await user.click(screen.getByRole('button', { name: /^添加$/ }));
 
     expect(screen.getByText('香蕉')).toBeInTheDocument();
     expect(screen.getByText(/等待营养估算。/)).toBeInTheDocument();
+  });
+
+  it('removes a food item through the shared icon button', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const removeButton = screen.getByRole('button', { name: '删除蓝莓燕麦粥' });
+    expect(removeButton).toHaveClass('inline-flex');
+    await user.click(removeButton);
+
+    expect(screen.queryByText('蓝莓燕麦粥')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('蓝莓燕麦粥 已从当前记录移除。');
   });
 
   it.each([

@@ -464,9 +464,13 @@
 
 .addFoodButton,
 .entryActions button {
+  height: auto;
+  min-height: 0;
+  min-width: 0;
   line-height: 17px;
   padding: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
   color: #c79654;
   font-family: var(--fm-font);
@@ -563,9 +567,12 @@
   display: grid;
   width: 16px;
   height: 16px;
+  min-width: 16px;
+  min-height: 16px;
   place-items: center;
   padding: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--fm-muted);
   cursor: pointer;

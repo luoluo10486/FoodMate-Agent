@@ -318,9 +318,14 @@ export function DietRecordsPage() {
                           </h2>
                           <span>{meal.time}</span>
                         </div>
-                        <button className={styles.addFoodButton} type="button" onClick={() => openFoodDialog(meal.id)}>
+                        <Button
+                          className={styles.addFoodButton}
+                          variant="ghost"
+                          type="button"
+                          onClick={() => openFoodDialog(meal.id)}
+                        >
                           + 添加食物
-                        </button>
+                        </Button>
                       </header>
                       <div className={styles.foodList}>
                         {meal.items.map((item) => (
@@ -337,15 +342,17 @@ export function DietRecordsPage() {
                                 <span className={styles.protein}>{item.protein}</span>
                                 <span className={styles.fat}>{item.fat}</span>
                               </div>
-                              <button
+                              <Button
                                 className={styles.removeButton}
+                                variant="ghost"
+                                size="icon"
                                 type="button"
                                 aria-label={`删除${item.name}`}
                                 title={`删除${item.name}`}
                                 onClick={() => removeFood(meal.id, item.id, item.name)}
                               >
                                 <Trash2 aria-hidden="true" />
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         ))}
