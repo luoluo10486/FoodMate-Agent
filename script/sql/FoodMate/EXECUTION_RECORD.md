@@ -489,3 +489,12 @@
 | 场景 | Python -> Java 的不可解析 RunEvent 没有可信 `run_id`；协议错误审计成功后 REJECT，审计存储失败改为 RETRY，避免 ACK 后静默丢失审计事实。 |
 | Java 定向验证 | `mvnw.cmd -pl foodmate-application -am test -Dtest=RuntimeEventMessageProcessorTest -Dsurefire.failIfNoSpecifiedTests=false`：`7/7` 通过；Spotless apply 通过。 |
 | 边界 | 只修改协议错误审计失败分类；业务事件、数据库重试、DLQ 和用户可见状态未改变。 |
+
+## D4 最终 Java 门禁数字复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 复核命令 | `mvnw.cmd verify` |
+| 最终 Java 结果 | BUILD SUCCESS；Shared `12/12`、Application `157/157`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）；Spotless、编译和 Spring Boot repackage 均通过。 |
+| 数字更正 | D2 的 Application `156/156` 是当时记录值；以本次最终复核的 `157/157` 为准，未改写历史执行记录。 |
+| 结论 | 当前业务代码 Java 门禁保持通过；性能压测、组件重启、ACK/重复投递故障注入、SSE Last-Event-ID 专项和生产范围仍按用户决定暂缓。 |
