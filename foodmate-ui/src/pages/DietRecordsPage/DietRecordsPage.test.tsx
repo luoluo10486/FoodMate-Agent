@@ -63,6 +63,16 @@ describe('DietRecordsPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('已复制到明天的记录草稿。');
   });
 
+  it('renders the Figma record action bar and opens the meal dialog', async () => {
+    const user = userEvent.setup();
+    renderPage('/analysis?view=records&state=v2');
+
+    await user.click(screen.getByRole('button', { name: '记录一餐' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('添加到 Breakfast，营养值将在确认后估算。')).toBeInTheDocument();
+  });
+
   it.each([
     ['loading', '饮食记录加载中'],
     ['empty', '今天还没有饮食记录'],

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import type { SessionSummary } from '../../types/session';
 import styles from './DietRecordsPage.module.css';
 
 type FoodItem = {
@@ -85,6 +86,17 @@ const metrics = [
 
 const emptyMetrics = metrics.map((metric) => ({ ...metric, value: '0', percentage: 0 }));
 
+const figmaSidebarSessions: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
+  { id: 'protein-plan', title: '蛋白质补充方案', subtitle: '12:45', active: false },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
+  { id: 'low-carb-plan', title: '低碳水饮食建议', subtitle: '12:45', active: false },
+];
+
 type RecordsState = 'default' | 'loading' | 'empty' | 'error';
 
 function getRecordsState(value: string | null): RecordsState {
@@ -115,7 +127,7 @@ export function DietRecordsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const recordsState = getRecordsState(searchParams.get('state'));
-  const isFigmaFixture = searchParams.get('state') === 'v2';
+  const isFigmaFixture = searchParams.get('state') === 'v2' || recordsState !== 'default';
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [view, setView] = useState<'day' | 'week'>('day');
   const [meals, setMeals] = useState<MealSection[]>(initialMeals);
@@ -184,6 +196,12 @@ export function DietRecordsPage() {
       activeModule="records"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+      sidebarAvatarSrc={
+        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
+      }
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      showKnowledgeTopNav={!isFigmaFixture}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.recordsBody} aria-label="饮食记录">
@@ -213,8 +231,8 @@ export function DietRecordsPage() {
             </div>
             <div className={styles.viewSwitch} role="tablist" aria-label="记录视图">
               <Button
-                variant="ghost"
                 className={view === 'day' ? styles.viewActive : ''}
+                variant="ghost"
                 type="button"
                 role="tab"
                 aria-selected={view === 'day'}
@@ -224,8 +242,8 @@ export function DietRecordsPage() {
               </Button>
               <Button
                 className={view === 'week' ? styles.viewActive : ''}
-                type="button"
                 variant="ghost"
+                type="button"
                 role="tab"
                 aria-selected={view === 'week'}
                 onClick={() => setView('week')}
@@ -364,6 +382,22 @@ export function DietRecordsPage() {
             </>
           )}
         </section>
+
+        {recordsState === 'default' ? (
+          <section className={styles.recordsActions} aria-label="饮食记录操作">
+            <Button className={styles.logMealButton} type="button" onClick={() => openFoodDialog('breakfast')}>
+              记录一餐
+            </Button>
+            <Button
+              className={styles.analyzeDayButton}
+              variant="outline"
+              type="button"
+              onClick={() => navigate('/analysis')}
+            >
+              分析这一天
+            </Button>
+          </section>
+        ) : null}
 
         {recordsState === 'default' ? (
           <section className={styles.entryDetail} aria-label="记录详情">
