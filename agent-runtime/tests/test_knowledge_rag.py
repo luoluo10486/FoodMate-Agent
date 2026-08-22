@@ -80,3 +80,13 @@ class StubIndexTests(TestCase):
         writer.add_blank_page(width=72, height=72)
         writer.write(output)
         self.assertEqual("", parse_document("blank.pdf", output.getvalue()))
+
+    def test_text_parser_rejects_basic_personal_identifiers(self):
+        for value in (
+            b"Contact alice@example.com for the guide.",
+            "联系电话 13812345678。".encode(),
+            "身份证 11010519491231002X。".encode(),
+        ):
+            with self.assertRaisesRegex(RagError, "personal identifier") as raised:
+                parse_document("notes.txt", value)
+            self.assertEqual("RAG_PII_DETECTED", raised.exception.code)

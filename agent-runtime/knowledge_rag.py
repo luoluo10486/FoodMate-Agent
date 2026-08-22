@@ -31,6 +31,12 @@ class RagError(RuntimeError):
 
 PUBLIC_SCOPE = "public_published"
 _WORD = re.compile(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]+")
+_EMAIL = re.compile(r"(?i)(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z0-9.-])")
+_MOBILE = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
+_CHINA_ID = re.compile(
+    r"(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])"
+    r"(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)"
+)
 
 
 @dataclass(frozen=True)
@@ -307,7 +313,7 @@ def parse_document(filename: str, content: bytes) -> str:
         raise RagError("RAG_EMPTY_DOCUMENT", "document is empty")
     if suffix in {".md", ".txt"}:
         try:
-            return content.decode("utf-8").strip()
+            return _reject_personal_data(content.decode("utf-8").strip())
         except UnicodeDecodeError as error:
             raise RagError("RAG_TEXT_ENCODING_INVALID", "text document must be UTF-8") from error
     if suffix == ".pdf":
@@ -318,7 +324,9 @@ def parse_document(filename: str, content: bytes) -> str:
             reader = PdfReader(io.BytesIO(content), strict=True)
             if _pdf_has_unsafe_actions(reader):
                 raise RagError("RAG_PDF_UNSAFE", "PDF contains an executable or external action")
-            return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+            return _reject_personal_data(
+                "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+            )
         except ImportError as error:
             raise RagError("RAG_PDF_PARSER_UNAVAILABLE", "pypdf is not installed") from error
         except RagError:
@@ -349,12 +357,27 @@ def parse_document(filename: str, content: bytes) -> str:
                         ):
                             raise RagError("RAG_DOCX_EXTERNAL_LINK", "DOCX contains an external relationship")
                 root = ElementTree.fromstring(archive.read("word/document.xml"))
-                return "\n".join("".join(node.itertext()).strip() for node in root.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p") if "".join(node.itertext()).strip()).strip()
+                return _reject_personal_data(
+                    "\n".join(
+                        "".join(node.itertext()).strip()
+                        for node in root.findall(
+                            ".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p"
+                        )
+                        if "".join(node.itertext()).strip()
+                    ).strip()
+                )
         except RagError:
             raise
         except (OSError, zipfile.BadZipFile, ElementTree.ParseError) as error:
             raise RagError("RAG_DOCX_PARSE_FAILED", "DOCX could not be parsed safely") from error
     raise RagError("RAG_DOCUMENT_TYPE_UNSUPPORTED", "unsupported knowledge document type")
+
+
+def _reject_personal_data(text: str) -> str:
+    """Keep basic personal identifiers out of the public knowledge index."""
+    if _EMAIL.search(text) or _MOBILE.search(text) or _CHINA_ID.search(text):
+        raise RagError("RAG_PII_DETECTED", "document contains a personal identifier")
+    return text
 
 
 def _pdf_has_unsafe_actions(reader) -> bool:
