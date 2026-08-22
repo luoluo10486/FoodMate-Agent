@@ -195,10 +195,17 @@
   white-space: nowrap;
 }
 
-.planStatusactive,
-.planListMeta span {
+.planStatusactive {
   background: rgba(223, 238, 219, 0.1);
   color: #89b27c;
+}
+
+.planListMeta span {
+  background: rgba(255, 246, 226, 0.1);
+  color: #c79654;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: normal;
 }
 
 .planStatusdraft {
@@ -272,6 +279,7 @@
 .lifecycleNote {
   display: grid;
   align-self: flex-start;
+  align-content: start;
   box-sizing: border-box;
   gap: 8px;
   margin-top: auto;
