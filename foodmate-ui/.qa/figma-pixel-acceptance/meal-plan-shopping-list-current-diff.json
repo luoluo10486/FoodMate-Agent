@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-08-22",
+  "tool": "scripts/png-diff.mjs",
+  "capture": {
+    "viewport": "1440x1024",
+    "dpr": 1.0000000149011612,
+    "fonts": "loaded",
+    "textOverflow": 0,
+    "layoutOverflow": 0
+  },
+  "results": {
+    "meal-plan-shopping-list": {
+      "status": "COMPARED",
+      "width": 1440,
+      "height": 1024,
+      "pixelCount": 1474560,
+      "differentPixels": 441394,
+      "differentRatio": 0.29933946397569444,
+      "meanAbsoluteError": 4.281812201605903,
+      "rmse": 20.325763423106554,
+      "maxChannelDelta": 255
+    }
+  }
+}

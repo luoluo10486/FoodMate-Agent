@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-08-22",
+  "tool": "scripts/png-diff.mjs",
+  "capture": { "viewport": "1440x1024", "dpr": 1.0000000149011612, "fonts": "loaded", "textOverflow": 0, "layoutOverflow": 0 },
+  "results": {
+    "meal-plan-wizard-step2": {
+      "status": "COMPARED", "width": 1440, "height": 1024, "pixelCount": 1474560,
+      "differentPixels": 605652, "differentRatio": 0.41073404947916664,
+      "meanAbsoluteError": 5.738296678331163, "rmse": 25.02768576385523, "maxChannelDelta": 248
+    }
+  }
+}

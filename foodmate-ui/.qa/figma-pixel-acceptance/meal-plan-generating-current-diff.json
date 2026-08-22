@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-08-22",
+  "tool": "scripts/png-diff.mjs",
+  "capture": {
+    "viewport": "1440x1024",
+    "dpr": 1.0000000149011612,
+    "fonts": "loaded",
+    "textOverflow": 0,
+    "layoutOverflow": 0
+  },
+  "results": {
+    "meal-plan-generating": {
+      "status": "COMPARED",
+      "width": 1440,
+      "height": 1024,
+      "pixelCount": 1474560,
+      "differentPixels": 209370,
+      "differentRatio": 0.14198811848958334,
+      "meanAbsoluteError": 3.0063373141818577,
+      "rmse": 18.22239174234164,
+      "maxChannelDelta": 255
+    }
+  }
+}
