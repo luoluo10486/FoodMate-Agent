@@ -201,3 +201,17 @@
 | 业务边界 | 本轮只完成用户计划列表/详情读取和页面 real 接入；规划创建向导写入、重新生成、购物清单真实查询仍未接入 |
 | 未执行范围 | 知识库上传 -> 索引 -> 发布 -> AgentRun -> SSE 真实跨运行时闭环、Milvus/Redis/RocketMQ 联调、SQL Agent 真实数据库联调、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证 |
 | 结论 | 餐食规划读取主路径具备代码和业务测试证据；M2-1 整体仍不标记完成，真实依赖、跨运行时和性能/故障验证继续后置 |
+
+## M2-1 用户餐食规划 real 前端切片（2026-08-22）
+
+| 项目 | 结果 |
+|---|---|
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；未启动 Docker、staging/production，不执行数据库迁移、清库、备份恢复或付费模型调用 |
+| 分支 | `codex/m2-functional-completion` |
+| 功能提交 | `3db1001` 计划列表 API；`bff8bec` 真实列表/详情；`be75aba` 已保存计划购物清单；`97af296` 真实创建向导；`132cd40` 空计划用户进入真实创建向导 |
+| 业务行为 | real 模式读取 `/api/meal-plans`；创建向导通过带 `Idempotency-Key` 的 `POST /api/meal-plans` 创建确定性本地餐表；详情展示服务端 `days_plan`/约束；saved 计划读取 `/api/meal-plans/{id}/shopping-list` |
+| 前端验证 | `npm.cmd test`：33 个测试文件、165/165 通过；`npm.cmd run typecheck` 通过；`npm.cmd run build` 通过 |
+| 测试重点 | 覆盖服务端计划展示、创建向导提交、空计划进入向导、购物清单读取；fixture 模式既有交互保持通过 |
+| 业务边界 | 创建使用确定性本地餐表，不调用云模型；重新生成仍需通过 AgentRun；本轮未执行真实 Java HTTP 服务、Docker 依赖或知识库跨运行时索引/引用闭环 |
+| 数据与迁移 | 未执行迁移、truncate、备份恢复或既有本地数据清理 |
+| 结论 | 餐食规划用户 real 前端主路径具备业务测试证据；M2-1 知识库整体状态不变，真实依赖闭环与性能/故障验证继续后置 |
