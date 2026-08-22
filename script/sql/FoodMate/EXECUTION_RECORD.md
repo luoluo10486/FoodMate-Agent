@@ -173,3 +173,18 @@
 | Python 结果 | 21/21 通过；覆盖解析/分块、stub/local 检索与 SQL Planner 契约 |
 | 环境边界 | 本轮未启动 Docker Milvus/PostgreSQL/RocketMQ，未调用付费 embedding/API Key，未执行跨进程数据库查询或知识引用 SSE 回归 |
 | 结论 | M2-1/M2-2 核心代码和业务定向测试通过；真实本地依赖联调仍未完成，性能、重启、ACK、重复投递和生产验证继续暂缓 |
+
+## M2-1/M2-2/D1 业务门禁复核（2026-08-22）
+
+| 项目 | 结果 |
+|---|---|
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；未启动 Docker、staging/production，不执行数据库迁移、清库、备份恢复或付费模型调用 |
+| 分支与提交 | `codex/m2-functional-completion`；知识索引闭环格式修复 `b02e8b2`，其前置索引结果重试/检索/可见性提交为 `70b5fc9`、`ed32411`、`58c3d57` |
+| Java 知识业务测试 | `mvnw.cmd --% -pl foodmate-application -am test -Dtest=KnowledgeIndexResultMessageProcessorTest,KnowledgeOutboxPublisherTest,KnowledgeUploadValidationTest,KnowledgeServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false`：15/15 通过 |
+| Java 全量业务测试 | `mvnw.cmd verify` 已完成 Shared 12/12、Application 125/125，0 failure/error；随后在 Application Spotless 阶段因用户未提交的 `OperationAuditService.java` import 顺序失败，未进入后续模块 |
+| Python 业务测试 | `agent-runtime\.venv\Scripts\python.exe -m pytest`：92 passed、1 skipped、2 warnings；跳过项为真实云集成 |
+| 前端业务门禁 | `npm.cmd run typecheck` 通过；`npm.cmd run build` 通过 |
+| 已验证范围 | Java 索引结果校验/重试边界/Outbox、Python PDF/DOCX/Markdown/TXT 解析与 stub/local RAG、Redis 索引逻辑、可见性版本隔离、工具/SQL 业务契约和管理端核心查询/权限切片 |
+| 未执行范围 | 真实 PostgreSQL/Redis/RocketMQ/Milvus 联调、上传 -> 索引 -> 发布 -> AgentRun -> SSE、SQL Agent 真实数据库联调、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证 |
+| 数据与迁移 | 本轮未执行迁移、truncate、备份恢复或既有本地数据清理 |
+| 结论 | M2-1/M2-2 核心代码与业务测试完成，M2-3 核心管理切片已有证据；真实依赖闭环和性能/故障/生产验证保持后置，不更新为整体完成 |
