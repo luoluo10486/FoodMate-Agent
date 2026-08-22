@@ -106,6 +106,38 @@ class DataRetentionServiceImplTest {
     }
 
     @Test
+    void adminCanPlaceHoldBeforeResourceIsSoftDeleted() {
+        when(store.resource("knowledge_document", 42L))
+                .thenReturn(
+                        new DataRetentionRepository.ResourceSnapshot(
+                                "knowledge_document",
+                                42L,
+                                false,
+                                null,
+                                2L,
+                                "knowledge/public/42/guide.md",
+                                "v1"));
+        when(store.insertHold(any())).thenReturn(1);
+
+        DataRetentionService.HoldResult result =
+                service.placeHold(
+                        new DataRetentionService.HoldCommand(
+                                7L,
+                                UserRole.ADMIN,
+                                "trace",
+                                "hold-42",
+                                "knowledge_document",
+                                42L,
+                                "legal_case",
+                                true,
+                                DataRetentionService.holdConfirmationDigest(
+                                        "knowledge_document", 42L, "legal_case")));
+
+        assertEquals("active", result.status());
+        verify(store).insertHold(any());
+    }
+
+    @Test
     void onlySuperadminCanApproveAndApprovalCreatesThreeIdempotentTasks() {
         when(store.purgeRequest(901L))
                 .thenReturn(

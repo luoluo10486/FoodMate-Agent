@@ -229,7 +229,7 @@ public class DataRetentionServiceImpl implements DataRetentionService {
         try {
             validateHoldCommand(command, resourceType, reasonCode);
             requireAdmin(command.operatorRole());
-            requireResource(resourceType, command.resourceId());
+            requireExistingResource(resourceType, command.resourceId());
             IdempotencyRecord previous =
                     audit.findIdempotency(command.operatorId(), command.idempotencyKey());
             if (previous != null) return replayHold(previous, digest);
@@ -386,6 +386,13 @@ public class DataRetentionServiceImpl implements DataRetentionService {
         if (resource == null) throw new BusinessException(ErrorCode.NOT_FOUND, "资源不存在");
         if (!resource.deleted() || resource.deletedAt() == null)
             throw new BusinessException(ErrorCode.RETENTION_NOT_ELIGIBLE);
+        return resource;
+    }
+
+    private ResourceSnapshot requireExistingResource(String resourceType, long resourceId) {
+        if (resourceId <= 0) throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "资源 ID 无效");
+        ResourceSnapshot resource = store.resource(resourceType, resourceId);
+        if (resource == null) throw new BusinessException(ErrorCode.NOT_FOUND, "资源不存在");
         return resource;
     }
 
