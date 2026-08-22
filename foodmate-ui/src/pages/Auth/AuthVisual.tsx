@@ -123,14 +123,16 @@ export function PasswordField({
         placeholder={placeholder}
         leadingIcon={<LockKeyhole aria-hidden="true" />}
         trailingAction={
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             className={styles.authPasswordToggle}
             type="button"
             aria-label={show ? `隐藏${label}` : `显示${label}`}
             onClick={onToggle}
           >
             {show ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-          </button>
+          </Button>
         }
         value={value}
         required

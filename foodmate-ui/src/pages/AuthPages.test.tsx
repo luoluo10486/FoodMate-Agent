@@ -59,6 +59,20 @@ describe('authentication pages', () => {
     expect(screen.getByText('包含数字')).toHaveClass(/passwordRuleValid/);
   });
 
+  it('uses the shared shadcn icon button for password visibility', async () => {
+    const user = userEvent.setup();
+    renderAuth('/register');
+
+    const password = screen.getByLabelText('密码');
+    const toggle = screen.getByRole('button', { name: /^显示密码$/ });
+    expect(toggle).toBeInTheDocument();
+    expect(password).toHaveAttribute('type', 'password');
+
+    await user.click(toggle);
+    expect(password).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: /^隐藏密码$/ })).toBeInTheDocument();
+  });
+
   it('keeps the forgot-password success card visible beside the form', async () => {
     const user = userEvent.setup();
     renderAuth('/forgot-password');
