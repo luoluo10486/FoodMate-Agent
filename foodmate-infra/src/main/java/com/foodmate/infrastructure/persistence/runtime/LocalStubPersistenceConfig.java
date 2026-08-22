@@ -12,6 +12,8 @@ import com.foodmate.application.runtime.port.out.DeadLetterRepository;
 import com.foodmate.application.runtime.port.out.InboxRepository;
 import com.foodmate.application.runtime.port.out.OutboxRepository;
 import com.foodmate.application.runtime.port.out.ProtocolAuditRepository;
+import com.foodmate.application.runtime.port.out.SqlSchemaCatalogRepository;
+import com.foodmate.application.runtime.port.out.SqlSchemaCatalogRepository.CatalogField;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository.ToolDefinition;
@@ -479,6 +481,66 @@ public class LocalStubPersistenceConfig {
                         .orElse(null);
             }
         };
+    }
+
+    @Bean
+    SqlSchemaCatalogRepository localSqlSchemaCatalogRepository() {
+        return datasourceId ->
+                datasourceId == 1L
+                        ? List.of(
+                                catalog(datasourceId, "food_logs", "food_log_id", "bigint"),
+                                catalog(datasourceId, "food_logs", "user_id", "bigint"),
+                                catalog(datasourceId, "food_logs", "meal_time", "timestamptz"),
+                                catalog(datasourceId, "food_logs", "meal_type", "varchar"),
+                                catalog(datasourceId, "meal_plans", "meal_plan_id", "bigint"),
+                                catalog(datasourceId, "meal_plans", "user_id", "bigint"),
+                                catalog(datasourceId, "meal_plans", "status", "varchar"),
+                                catalog(datasourceId, "meal_plans", "updated_at", "timestamptz"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "nutrition_food_id",
+                                        "bigint"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "standard_name",
+                                        "varchar"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "calories_kcal_per_100",
+                                        "numeric"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "protein_g_per_100",
+                                        "numeric"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "fat_g_per_100",
+                                        "numeric"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "carbs_g_per_100",
+                                        "numeric"))
+                        : List.of();
+    }
+
+    private static CatalogField catalog(
+            long datasourceId, String tableName, String fieldName, String dataType) {
+        return new CatalogField(
+                datasourceId,
+                "local-stub-v1",
+                "public",
+                tableName,
+                fieldName,
+                null,
+                dataType,
+                false,
+                null);
     }
 
     private static IllegalStateException unavailable() {
