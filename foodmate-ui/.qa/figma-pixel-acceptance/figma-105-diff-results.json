@@ -282,11 +282,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 387165,
-      "differentRatio": 0.2625630696614583,
-      "meanAbsoluteError": 4.041588338216146,
-      "rmse": 18.693180981068263,
-      "maxChannelDelta": 253
+      "differentPixels": 319638,
+      "differentRatio": 0.21676839192708333,
+      "meanAbsoluteError": 3.004195827907986,
+      "rmse": 15.91679774791274,
+      "maxChannelDelta": 245
     },
     "agent-safety-degraded": {
       "status": "COMPARED",

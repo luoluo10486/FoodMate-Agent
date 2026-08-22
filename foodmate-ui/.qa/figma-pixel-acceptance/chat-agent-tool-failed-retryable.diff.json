@@ -4,10 +4,10 @@
   "width": 1440,
   "height": 1024,
   "pixelCount": 1474560,
-  "differentPixels": 328294,
-  "differentRatio": 0.22263861762152778,
-  "meanAbsoluteError": 3.170729573567708,
-  "rmse": 16.47345330003616,
+  "differentPixels": 319638,
+  "differentRatio": 0.21676839192708333,
+  "meanAbsoluteError": 3.004195827907986,
+  "rmse": 15.91679774791274,
   "maxChannelDelta": 245,
-  "manualReview": "PENDING: automated diff completed; visual geometry and typography review remains open"
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: current Figma and browser captures contain retryable failure text, error code, retry, and skip actions; alert-panel geometry, color, avatar treatment, and font/icon rasterization differ"
 }

@@ -516,3 +516,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
 - [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=373778`、差异比例 `25.3484%`、`MAE=3.7123`、`RMSE=18.7204`、最大通道差异 `240`；机器结果锚点为 `figma-105-diff-results.json#agent-budget-limit`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；卡片几何、状态色、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+
+## 65. 2026-08-23 Agent Tool Failed Retryable 当前画板证据复核
+
+- [x] `687:1439` `/chat?state=tool-failed-retryable` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-tool-failed-retryable-current.png`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-current.png`。
+- [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；工具超时、外部知识库不可用、错误码 `TOOL_TIMEOUT_001`、重试和跳过动作均存在。
+- [x] 重试动作在 fixture 中只记录等待新工具事件；真实模式继续调用既有运行恢复接口，不把前端动作伪造成成功结果；跳过动作明确记录后续结果数据范围受限。
+- [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=319638`、差异比例 `21.6768%`、`MAE=3.0042`、`RMSE=15.9168`、最大通道差异 `245`；机器结果锚点为 `figma-105-diff-results.json#agent-tool-failed-retryable`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；告警卡几何、颜色、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
