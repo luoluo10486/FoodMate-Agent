@@ -241,14 +241,16 @@ export function WorkspaceLayout({
               onChange={(event) => setSessionQuery(event.target.value)}
             />
             {displayedSessionQuery ? (
-              <button
+              <Button
                 className={styles.clearSearch}
+                variant="ghost"
+                size="icon"
                 type="button"
                 aria-label="清除会话搜索"
                 onClick={() => setSessionQuery('')}
               >
                 <X aria-hidden="true" />
-              </button>
+              </Button>
             ) : null}
           </div>
           <div className={styles.sessionTools}>
@@ -286,24 +288,26 @@ export function WorkspaceLayout({
               <BookOpen aria-hidden="true" />
               <span>知识库</span>
             </NavLink>
-            <button
+            <Button
               className={styles.sideButton}
+              variant="ghost"
               type="button"
               onClick={() => announce('设置入口将在设置页面完成后启用。')}
             >
               <Settings aria-hidden="true" />
               <span>设置</span>
-            </button>
+            </Button>
           </nav>
           <div className={styles.accountDock}>
-            <button
+            <Button
               className={styles.collapseButton}
+              variant="ghost"
               type="button"
               onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
             >
               <MoreHorizontal aria-hidden="true" />
               <span>收起导航</span>
-            </button>
+            </Button>
             <div className={styles.statusPill}>
               <span />
               <span>就绪 (Fustat-v2)</span>
@@ -395,25 +399,27 @@ export function WorkspaceLayout({
               </div>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
+                  <Button
                     className={styles.iconButton}
+                    variant="ghost"
+                    size="icon"
                     type="button"
                     aria-label="通知"
                     onClick={() => announce('暂无新的工作区通知。')}
                   >
                     <Bell aria-hidden="true" />
-                  </button>
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>通知</TooltipContent>
               </Tooltip>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className={styles.userButton} type="button">
+                  <Button className={styles.userButton} variant="ghost" type="button">
                     <span className={styles.topAvatar}>
                       <img src={topAvatar} alt="" />
                     </span>
                     <span>{displayName}</span>
-                  </button>
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
