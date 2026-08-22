@@ -2214,10 +2214,9 @@
 
 .deletedSummary {
   display: block;
-  overflow: visible;
-  overflow-wrap: anywhere;
-  text-overflow: clip;
-  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deletedMonoCell {
