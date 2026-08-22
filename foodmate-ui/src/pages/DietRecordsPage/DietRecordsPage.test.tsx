@@ -52,6 +52,17 @@ describe('DietRecordsPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('蓝莓燕麦粥 已从当前记录移除。');
   });
 
+  it('keeps record detail actions as shared buttons', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const copyButton = screen.getByRole('button', { name: '复制到明天' });
+    expect(copyButton).toHaveClass('inline-flex');
+    await user.click(copyButton);
+
+    expect(screen.getByRole('status')).toHaveTextContent('已复制到明天的记录草稿。');
+  });
+
   it.each([
     ['loading', '饮食记录加载中'],
     ['empty', '今天还没有饮食记录'],

@@ -371,21 +371,21 @@ export function DietRecordsPage() {
             <p>蓝莓燕麦粥 · 早餐 · 08:30 · 估算值</p>
             <p>份量 350 | 单位 g | 热量 420 kcal | 蛋白质 18 g | 来源 USDA | 估算状态 待确认</p>
             <div className={styles.entryActions}>
-              <button type="button" onClick={() => setNotice('已打开自然语言记录入口。')}>
+              <Button variant="ghost" type="button" onClick={() => setNotice('已打开自然语言记录入口。')}>
                 记录一餐（自然语言）
-              </button>
-              <button type="button" onClick={() => openFoodDialog('breakfast')}>
+              </Button>
+              <Button variant="ghost" type="button" onClick={() => openFoodDialog('breakfast')}>
                 编辑记录
-              </button>
-              <button type="button" onClick={() => setNotice('已复制到明天的记录草稿。')}>
+              </Button>
+              <Button variant="ghost" type="button" onClick={() => setNotice('已复制到明天的记录草稿。')}>
                 复制到明天
-              </button>
-              <button type="button" onClick={() => navigate('/analysis')}>
+              </Button>
+              <Button variant="ghost" type="button" onClick={() => navigate('/analysis')}>
                 分析当天
-              </button>
-              <button type="button" onClick={() => setNotice('待确认记录已标记为可软删除状态。')}>
+              </Button>
+              <Button variant="ghost" type="button" onClick={() => setNotice('待确认记录已标记为可软删除状态。')}>
                 软删除
-              </button>
+              </Button>
             </div>
             <p className={styles.entryNote}>保存失败时保留草稿；已删除记录进入可恢复状态，不改变当天统计历史。</p>
             {notice ? (
