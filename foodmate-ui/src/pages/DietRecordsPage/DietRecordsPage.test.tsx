@@ -18,6 +18,7 @@ describe('DietRecordsPage', () => {
     renderPage();
 
     const weekTab = screen.getByRole('tab', { name: '周视图' });
+    expect(weekTab).toHaveClass('inline-flex');
     await user.click(weekTab);
 
     expect(weekTab).toHaveAttribute('aria-selected', 'true');

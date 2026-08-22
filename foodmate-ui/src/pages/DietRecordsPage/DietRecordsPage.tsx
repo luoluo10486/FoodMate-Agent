@@ -212,7 +212,8 @@ export function DietRecordsPage() {
               </Button>
             </div>
             <div className={styles.viewSwitch} role="tablist" aria-label="记录视图">
-              <button
+              <Button
+                variant="ghost"
                 className={view === 'day' ? styles.viewActive : ''}
                 type="button"
                 role="tab"
@@ -220,16 +221,17 @@ export function DietRecordsPage() {
                 onClick={() => setView('day')}
               >
                 日视图
-              </button>
-              <button
+              </Button>
+              <Button
                 className={view === 'week' ? styles.viewActive : ''}
                 type="button"
+                variant="ghost"
                 role="tab"
                 aria-selected={view === 'week'}
                 onClick={() => setView('week')}
               >
                 周视图
-              </button>
+              </Button>
             </div>
           </header>
 
