@@ -13,6 +13,9 @@ import com.foodmate.application.runtime.port.out.InboxRepository;
 import com.foodmate.application.runtime.port.out.OutboxRepository;
 import com.foodmate.application.runtime.port.out.ProtocolAuditRepository;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
+import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
+import com.foodmate.application.runtime.port.out.ToolRegistryRepository.ToolDefinition;
+import com.foodmate.application.runtime.service.ToolRegistryCatalog;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
@@ -447,6 +450,34 @@ public class LocalStubPersistenceConfig {
             }
 
             public void audit(Audit audit) {}
+        };
+    }
+
+    @Bean
+    ToolRegistryRepository localToolRegistryRepository() {
+        return new ToolRegistryRepository() {
+            private final List<ToolDefinition> definitions = ToolRegistryCatalog.defaults();
+
+            @Override
+            public List<ToolDefinition> findAll() {
+                return definitions;
+            }
+
+            @Override
+            public ToolDefinition findCurrent(String name) {
+                return definitions.stream()
+                        .filter(item -> item.name().equals(name))
+                        .findFirst()
+                        .orElse(null);
+            }
+
+            @Override
+            public ToolDefinition findVersion(String name, String version) {
+                return definitions.stream()
+                        .filter(item -> item.name().equals(name) && item.version().equals(version))
+                        .findFirst()
+                        .orElse(null);
+            }
         };
     }
 
