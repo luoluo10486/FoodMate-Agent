@@ -534,3 +534,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
 - [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=377335`、差异比例 `25.5897%`、`MAE=3.3499`、`RMSE=16.7858`、最大通道差异 `249`；机器结果锚点为 `figma-105-diff-results.json#agent-safety-degraded`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；告警层级、卡片几何、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+
+## 67. 2026-08-23 Agent User Cancelled 当前画板证据复核
+
+- [x] `687:1684` `/chat?state=user-cancelled` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-user-cancelled-current.png`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser-current.png`。
+- [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；已接收部分文本、用户取消原因和重新开始入口均存在。
+- [x] 运行时检查确认页面没有“运行失败”文案；重新开始动作显示“已准备重新开始；真实运行需要由后端创建新的 Run。”，未伪造新的运行结果。
+- [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=272934`、差异比例 `18.5095%`、`MAE=2.3318`、`RMSE=14.4348`、最大通道差异 `235`；机器结果锚点为 `figma-105-diff-results.json#agent-user-cancelled`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；取消后操作布局、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。

@@ -1231,12 +1231,12 @@
       "frontendRoute": "/chat",
       "queryState": "state=user-cancelled",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-user-cancelled-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: cancellation is distinguished from failure, but post-cancel action layout differs.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; partial text, cancellation reason, non-failure status, and restart action exist, but post-cancel action layout differs. PNG diff is 18.5095% / MAE 2.3318 / RMSE 14.4348; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1261,8 +1261,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Cancellation preserves partial content and is not represented as failure. The restart action and surrounding layout differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures preserve partial content, distinguish user cancellation from failure, and expose restart. Post-cancel action layout, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
       }
     },
     {

@@ -304,11 +304,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 340380,
-      "differentRatio": 0.2308349609375,
-      "meanAbsoluteError": 3.081534152560764,
-      "rmse": 16.299941390334567,
-      "maxChannelDelta": 245
+      "differentPixels": 272934,
+      "differentRatio": 0.18509521484375,
+      "meanAbsoluteError": 2.3317916870117186,
+      "rmse": 14.434767356859172,
+      "maxChannelDelta": 235
     },
     "agent-sse-reconnecting": {
       "status": "COMPARED",
