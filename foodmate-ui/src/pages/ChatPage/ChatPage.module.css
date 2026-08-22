@@ -626,6 +626,11 @@
   background: var(--fm-bg-soft);
 }
 
+.assistant .messageText {
+  font-family: var(--fm-font-mono);
+  line-height: 1.5;
+}
+
 .assistantBody {
   display: flex;
   width: min(560px, calc(100% - 48px));
@@ -727,7 +732,7 @@
 }
 
 .inlineConfirmationOption + .inlineConfirmationOption {
-  margin-top: -4px;
+  margin-top: 8px;
 }
 
 .inlineConfirmationOption > [data-slot='radio-group-item'] {
@@ -860,7 +865,7 @@
 .traceTabs {
   display: flex;
   width: 100%;
-  height: 28px;
+  height: 26px;
   flex: 0 0 auto;
   gap: 8px;
   margin-top: 20px;
@@ -868,7 +873,7 @@
 
 .traceTabs button {
   min-width: 0;
-  height: 28px;
+  height: 26px;
   flex: 1 1 0;
   padding: 0 12px;
   border: 0;
@@ -922,7 +927,7 @@
 .traceStep {
   display: flex;
   width: 100%;
-  height: 40px;
+  height: 43px;
   align-items: center;
   justify-content: space-between;
   padding: 12px;

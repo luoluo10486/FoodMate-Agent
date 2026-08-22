@@ -611,6 +611,32 @@
 }
 
 @media (min-width: 1400px) {
+  .designChat.withRail .topbar {
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .designChat.withRail .topbar > :first-child {
+    flex: 0 0 136px;
+  }
+
+  .designChat.withRail .nav {
+    flex: 0 0 auto;
+    gap: 16px;
+    margin-left: 24px;
+  }
+
+  .designChat.withRail .topNavLink {
+    flex: 0 0 auto;
+    padding-inline: 16px;
+  }
+
+  .designChat.withRail .userActions {
+    flex: 0 0 auto;
+    gap: 16px;
+    margin-left: 0;
+  }
+
   .withWideRail .topbar {
     gap: 0;
   }

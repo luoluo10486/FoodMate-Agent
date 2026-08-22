@@ -251,7 +251,7 @@ function ChatSurface({
       <div className={styles.page}>
         <section className={styles.workspace}>
           <div className={styles.center}>
-            <AgentStatusStrip status={run.status} />
+            <AgentStatusStrip status={run.status} preserveTones={designChat} />
             <div className={styles.messages} ref={messagesRef}>
               {children}
             </div>
@@ -708,7 +708,7 @@ function historyFixture(
     source: 'Source: USDA FoodData Central Ref #451992',
     run: {
       id: 'fst_trace_88192a',
-      status: 'completed',
+      status: 'executing_tools',
       intent: 'analysis',
       toolsUsed: 4,
       toolsTotal: 4,
@@ -1001,7 +1001,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       onChange={setInput}
       onSend={() => setNotice('已保留输入内容，等待当前会话继续处理。')}
       onStop={() => setNotice('已请求停止当前 Run；已接收文本会保留。')}
-      placeholder={isRunning ? '运行中，可停止…' : '追问或添加自定义指令…'}
+      placeholder={isRunning ? '运行中，可停止…' : '追问或添加自定义指令...'}
       designChat
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
