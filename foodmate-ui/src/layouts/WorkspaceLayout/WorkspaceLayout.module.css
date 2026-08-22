@@ -25,6 +25,7 @@
 
 .figmaFixture :global(.sidebar-session-section) {
   display: block;
+  flex: 0 0 auto;
 }
 
 .figmaFixture :global(.sidebar-session-section-title) {

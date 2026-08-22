@@ -206,6 +206,14 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByRole('heading', { name: '确认写入以下记录' })).toBeInTheDocument();
     expect(screen.getByText('目标对象: 饮食记录')).toBeInTheDocument();
     expect(screen.getByText('来源: USDA FoodData Central')).toBeInTheDocument();
+    expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/agent-chat/write-confirmation/topbar-avatar.png"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/agent-chat/write-confirmation/message-avatar.png"]'),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '确认写入' }));
     expect(screen.getByRole('status')).toHaveTextContent('fixture 已记录确认动作');
   });

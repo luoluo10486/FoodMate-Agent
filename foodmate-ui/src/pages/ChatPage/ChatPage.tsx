@@ -1147,6 +1147,19 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const approvalId = searchParams.get('approval_id');
   const runId = searchParams.get('run_id');
   const run = fixtureRun(state);
+  const isWriteConfirmation = state === 'write-confirmation';
+  const fixtureSidebar = isWriteConfirmation
+    ? { ...historyFixture('history-page-2').sidebar, currentPage: 1 }
+    : undefined;
+  const fixtureSidebarAvatarSrc = isWriteConfirmation
+    ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png'
+    : undefined;
+  const fixtureTopAvatarSrc = isWriteConfirmation
+    ? '/assets/figma/agent-chat/write-confirmation/topbar-avatar.png'
+    : undefined;
+  const fixtureMessageAvatarSrc = isWriteConfirmation
+    ? '/assets/figma/agent-chat/write-confirmation/message-avatar.png'
+    : undefined;
 
   const report = (nextAction: FixtureAction, message: string) => {
     setAction(nextAction);
@@ -1437,20 +1450,30 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
+      sidebarAvatarSrc={fixtureSidebarAvatarSrc}
+      topAvatarSrc={fixtureTopAvatarSrc}
+      sidebarFixture={fixtureSidebar}
     >
       <article className={styles.fixtureUserMessage}>
-        <div className={styles.fixtureUserBubble}>
-          {state === 'write-confirmation'
-            ? '把刚才吃的三文鱼寿司记录到午餐里吧'
-            : state === 'budget-limit'
-              ? '帮我导出2023整年每个月的膳食结构趋势报告'
-              : state === 'tool-failed-retryable'
-                ? '查询我今天晚餐的热量'
-                : state === 'safety-degraded'
-                  ? '推荐一份低钠晚餐食谱'
-                  : state === 'user-cancelled'
-                    ? '生成下周的减脂餐食规划'
-                    : '推荐低GI的水果'}
+        <div className={styles.fixtureUserLine}>
+          <div className={styles.fixtureUserBubble}>
+            {state === 'write-confirmation'
+              ? '把刚才吃的三文鱼寿司记录到午餐里吧'
+              : state === 'budget-limit'
+                ? '帮我导出2023整年每个月的膳食结构趋势报告'
+                : state === 'tool-failed-retryable'
+                  ? '查询我今天晚餐的热量'
+                  : state === 'safety-degraded'
+                    ? '推荐一份低钠晚餐食谱'
+                    : state === 'user-cancelled'
+                      ? '生成下周的减脂餐食规划'
+                      : '推荐低GI的水果'}
+          </div>
+          {fixtureMessageAvatarSrc ? (
+            <span className={styles.fixtureUserAvatar} aria-hidden="true">
+              <img src={fixtureMessageAvatarSrc} alt="" />
+            </span>
+          ) : null}
         </div>
         <span className={styles.fixtureMessageMeta}>
           Anddy · {state === 'user-cancelled' ? '02:15 PM' : '12:45 PM'}
