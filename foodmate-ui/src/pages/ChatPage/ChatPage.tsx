@@ -4,12 +4,10 @@ import {
   AlertTriangle,
   CalendarDays,
   ChartColumn,
-  Check,
   CheckCircle2,
   CircleSlash,
   LoaderCircle,
   MessageCircle,
-  Minus,
   RefreshCw,
   Search,
   ShieldAlert,
@@ -444,9 +442,21 @@ function PlanningStatePage() {
 }
 
 const executingToolSteps = [
-  { label: '向量索引检索 - 12ms ✓', status: 'success' as const, icon: Check },
-  { label: '数据库调用 - running...', status: 'running' as const, icon: LoaderCircle },
-  { label: '营养计算 - pending', status: 'pending' as const, icon: Minus },
+  {
+    label: '向量索引检索 - 12ms ✓',
+    status: 'success' as const,
+    iconSrc: '/assets/figma/agent-chat/tool-executing-check.svg',
+  },
+  {
+    label: '数据库调用 - running...',
+    status: 'running' as const,
+    iconSrc: '/assets/figma/agent-chat/tool-executing-loader-running.svg',
+  },
+  {
+    label: '营养计算 - pending',
+    status: 'pending' as const,
+    iconSrc: '/assets/figma/agent-chat/tool-executing-minus.svg',
+  },
 ];
 
 function ToolExecutingStatePage() {
@@ -529,18 +539,17 @@ function ToolExecutingStatePage() {
         <div className={styles.executingAssistantBody}>
           <div className={styles.executingBubble}>
             <div className={styles.executingTitle}>
-              <LoaderCircle aria-hidden="true" />
+              <img className={styles.executingLoader} src="/assets/figma/agent-chat/tool-executing-loader.svg" alt="" />
               <strong>Executing Tools...</strong>
             </div>
             <div className={styles.executingToolSteps}>
               {executingToolSteps.map((step) => {
-                const Icon = step.icon;
                 return (
                   <div
                     className={`${styles.executingToolStep} ${styles[`executingToolStep${step.status}`]}`}
                     key={step.label}
                   >
-                    <Icon aria-hidden="true" />
+                    <img className={styles.executingToolIcon} src={step.iconSrc} alt="" />
                     <span>{step.label}</span>
                   </div>
                 );

@@ -386,11 +386,10 @@
   white-space: nowrap;
 }
 
-.executingTitle svg {
-  width: 18px;
-  height: 18px;
+.executingLoader {
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
-  stroke-width: 2;
 }
 
 .executingToolSteps {
@@ -415,11 +414,10 @@
   line-height: 16px;
 }
 
-.executingToolStep svg {
-  width: 14px;
-  height: 14px;
+.executingToolIcon {
+  width: 12px;
+  height: 12px;
   flex: 0 0 auto;
-  stroke-width: 2;
 }
 
 .executingToolStep span {
@@ -441,23 +439,9 @@
   color: #c79654;
 }
 
-.executingToolSteps .executingToolSteprunning svg {
-  animation: executing-spin 1.4s linear infinite;
-}
-
 .executingToolSteps .executingToolSteppending {
   color: #9ca3af;
   opacity: 0.58;
-}
-
-.executingToolSteps .executingToolSteppending svg {
-  color: #9ca3af;
-}
-
-@keyframes executing-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .awaitingUserMessage {
