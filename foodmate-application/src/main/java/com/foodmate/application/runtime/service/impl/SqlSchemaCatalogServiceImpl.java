@@ -24,7 +24,7 @@ public class SqlSchemaCatalogServiceImpl implements SqlSchemaCatalogService {
     private static final Map<String, Scope> APPROVED_TABLES =
             Map.of(
                     "food_logs", Scope.USER,
-                    "food_log_items", Scope.USER,
+                    "food_log_items", Scope.USER_VIA_FOOD_LOG,
                     "meal_plans", Scope.USER,
                     "shopping_lists", Scope.USER,
                     "nutrition_foods", Scope.PUBLIC,
@@ -109,6 +109,10 @@ public class SqlSchemaCatalogServiceImpl implements SqlSchemaCatalogService {
                             "protein_g_per_100",
                             "fat_g_per_100",
                             "carbs_g_per_100",
+                            "calories_kcal",
+                            "protein_g",
+                            "fat_g",
+                            "carbs_g",
                             "amount",
                             "quantity" ->
                             true;

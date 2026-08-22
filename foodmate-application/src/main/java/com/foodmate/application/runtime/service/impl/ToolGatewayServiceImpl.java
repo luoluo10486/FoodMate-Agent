@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.service.SqlQueryGuard;
+import com.foodmate.application.runtime.service.SqlQueryPlanValidator;
 import com.foodmate.application.runtime.service.SqlSchemaCatalogService;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.application.runtime.service.ToolPolicy;
@@ -133,6 +134,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                             null);
             }
             if ("tool".equals(type)
+                    && !"database_query".equals(tool.name())
                     && !"food_log_writer".equals(tool.name())
                     && !"meal_plan.save_plan".equals(tool.name()))
                 return reject(proposalId, "TOOL_EXECUTOR_UNAVAILABLE");
@@ -140,7 +142,9 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         if (registry == null) {
             if ("food_log_writer".equals(proposal.toolName()) && !"tool".equals(type))
                 return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
-            if ("tool".equals(type) && !"food_log_writer".equals(proposal.toolName()))
+            if ("tool".equals(type)
+                    && !"database_query".equals(proposal.toolName())
+                    && !"food_log_writer".equals(proposal.toolName()))
                 return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
             if ("sql_read".equals(type)
                     && proposal.toolName() != null
@@ -153,6 +157,11 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         if ("meal_plan.save_plan".equals(proposal.toolName()))
             return executeApprovalWrite(
                     proposal, proposalId, runId, invocationId, "meal_plan.save_plan");
+        if ("tool".equals(type) && "database_query".equals(proposal.toolName())) {
+            String planError = SqlQueryPlanValidator.validate(proposal.input(), statement);
+            if (planError != null) return reject(proposalId, planError);
+            return executeValidated(proposalId, runId, statement, invocationId);
+        }
         if (!"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
         return executeValidated(proposalId, runId, statement, invocationId);
     }
@@ -210,9 +219,10 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     Long.toString(resourceId));
             row.put("status", "saved");
             List<JsonNode> rows = List.of(row);
+            long sqlAuditId = ids.nextId();
             store.audit(
                     new ToolGatewayPort.Audit(
-                            ids.nextId(),
+                            sqlAuditId,
                             numericRunId,
                             toolName,
                             "executed",
@@ -300,6 +310,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             return reject(proposalId, "RUN_NOT_FOUND");
         }
         long started = System.nanoTime();
+        long sqlAuditId = ids.nextId();
         List<JsonNode> rows;
         try {
             rows =
@@ -310,7 +321,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             if (rows.size() > 500) rows = rows.subList(0, 500);
             store.audit(
                     new ToolGatewayPort.Audit(
-                            ids.nextId(),
+                            sqlAuditId,
                             numericRunId,
                             guarded == null ? statement : guarded.statement(),
                             "executed",
@@ -318,11 +329,12 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                             null,
                             (System.nanoTime() - started) / 1_000_000,
                             "proposal:" + proposalId));
-            return new ProposalResult(proposalId, runId, "succeeded", null, rows);
+            return new ProposalResult(
+                    proposalId, runId, "succeeded", null, rows, Long.toString(sqlAuditId));
         } catch (RuntimeException error) {
             store.audit(
                     new ToolGatewayPort.Audit(
-                            ids.nextId(),
+                            sqlAuditId,
                             numericRunId,
                             statement,
                             "rejected",
@@ -331,7 +343,12 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                             (System.nanoTime() - started) / 1_000_000,
                             "proposal:" + proposalId));
             return new ProposalResult(
-                    proposalId, runId, "failed", "SQL_EXECUTION_FAILED", List.of());
+                    proposalId,
+                    runId,
+                    "failed",
+                    "SQL_EXECUTION_FAILED",
+                    List.of(),
+                    Long.toString(sqlAuditId));
         }
     }
 

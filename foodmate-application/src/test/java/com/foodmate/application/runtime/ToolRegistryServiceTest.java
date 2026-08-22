@@ -37,7 +37,8 @@ class ToolRegistryServiceTest {
                 tools.stream().map(ToolRegistryService.ToolView::name).toList());
         assertEquals("required", tools.get(4).permissions().path("approval").asText());
         assertEquals(10000, tools.get(6).timeoutMs());
-        assertEquals(7, tools.stream().filter(tool -> "v1".equals(tool.version())).count());
+        assertEquals(6, tools.stream().filter(tool -> "v1".equals(tool.version())).count());
+        assertEquals("v2", tools.get(3).version());
     }
 
     @Test

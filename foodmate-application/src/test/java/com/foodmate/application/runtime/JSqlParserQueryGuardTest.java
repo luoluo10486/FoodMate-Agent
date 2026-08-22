@@ -126,6 +126,36 @@ class JSqlParserQueryGuardTest {
         }
     }
 
+    @Test
+    void inheritsUserScopeThroughTheFoodLogParentJoin() {
+        SqlQueryGuard.GuardedQuery query =
+                guard.guard(
+                        "SELECT SUM(i.protein_g) AS protein_g FROM food_logs f JOIN food_log_items i ON i.food_log_id = f.food_log_id WHERE f.meal_time >= CURRENT_TIMESTAMP - INTERVAL '7 days' GROUP BY f.meal_time ORDER BY f.meal_time DESC LIMIT 500",
+                        catalogWithFoodLogItems(),
+                        42L);
+
+        assertEquals(List.of(42L), query.parameters());
+        org.junit.jupiter.api.Assertions.assertTrue(query.statement().contains("f.user_id = ?"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                query.statement().contains("i.is_deleted = false"));
+    }
+
+    @Test
+    void rejectsFoodLogItemsWithoutTheApprovedParentJoin() {
+        for (String sql :
+                List.of(
+                        "SELECT i.protein_g FROM food_log_items i LIMIT 500",
+                        "SELECT i.protein_g FROM food_logs f JOIN food_log_items i ON i.raw_name = f.meal_type LIMIT 500")) {
+            assertEquals(
+                    "SQL_SCHEMA_DENIED",
+                    assertThrows(
+                                    BusinessException.class,
+                                    () -> guard.guard(sql, catalogWithFoodLogItems(), 42L))
+                            .errorCode()
+                            .code());
+        }
+    }
+
     private static CatalogView catalog() {
         return new CatalogView(
                 1L,
@@ -146,6 +176,23 @@ class JSqlParserQueryGuardTest {
                                 "nutrition_foods",
                                 Scope.PUBLIC,
                                 List.of(field("standard_name"), field("is_deleted")))));
+    }
+
+    private static CatalogView catalogWithFoodLogItems() {
+        CatalogView base = catalog();
+        return new CatalogView(
+                base.datasourceId(),
+                base.version(),
+                List.of(
+                        base.tables().getFirst(),
+                        new TableView(
+                                "public",
+                                "food_log_items",
+                                Scope.USER_VIA_FOOD_LOG,
+                                List.of(
+                                        field("food_log_id"),
+                                        field("protein_g"),
+                                        field("is_deleted")))));
     }
 
     private static FieldView field(String name) {

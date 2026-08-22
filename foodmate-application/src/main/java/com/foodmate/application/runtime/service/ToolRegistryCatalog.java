@@ -66,8 +66,9 @@ public final class ToolRegistryCatalog {
                         5000,
                         false,
                         true,
-                        "{\"intent\":{\"type\":\"string\"},\"from\":{\"type\":\"string\"},\"to\":{\"type\":\"string\"},\"metrics\":{\"type\":\"array\"},\"dimensions\":{\"type\":\"array\"},\"filters\":{\"type\":\"object\"}}",
-                        "{\"rows\":{\"type\":\"array\"}}"),
+                        "{\"intent\":{\"type\":\"string\"},\"time_range\":{\"type\":\"object\"},\"metrics\":{\"type\":\"array\"},\"dimensions\":{\"type\":\"array\"},\"filters\":{\"type\":\"object\"},\"candidate_sql\":{\"type\":\"string\",\"maxLength\":8192},\"planner_mode\":{\"type\":\"string\"},\"planner_version\":{\"type\":\"string\"}}",
+                        "{\"rows\":{\"type\":\"array\"},\"sql_audit_id\":{\"type\":\"string\"}}",
+                        "v2"),
                 definition(
                         720005L,
                         "food_log_writer",
@@ -126,6 +127,38 @@ public final class ToolRegistryCatalog {
             boolean idempotent,
             String inputSchema,
             String outputSchema) {
+        return definition(
+                toolId,
+                name,
+                displayName,
+                description,
+                category,
+                riskLevel,
+                availabilityScope,
+                approval,
+                timeoutMs,
+                retryable,
+                idempotent,
+                inputSchema,
+                outputSchema,
+                "v1");
+    }
+
+    private static ToolDefinition definition(
+            long toolId,
+            String name,
+            String displayName,
+            String description,
+            String category,
+            String riskLevel,
+            String availabilityScope,
+            String approval,
+            int timeoutMs,
+            boolean retryable,
+            boolean idempotent,
+            String inputSchema,
+            String outputSchema,
+            String version) {
         String permissions =
                 "{\"roles\":[\"user\",\"operator\",\"admin\",\"superadmin\"],\"approval\":\""
                         + approval
@@ -141,8 +174,8 @@ public final class ToolRegistryCatalog {
                 riskLevel,
                 availabilityScope,
                 "active",
-                "v1",
-                "v1",
+                version,
+                version,
                 "{\"type\":\"object\",\"properties\":"
                         + inputSchema
                         + ",\"additionalProperties\":false}",

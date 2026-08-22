@@ -1,5 +1,6 @@
 package com.foodmate.application.runtime.service;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
@@ -12,7 +13,17 @@ public interface ToolGatewayService {
             String runId,
             String status,
             String errorCode,
-            List<JsonNode> rows) {}
+            List<JsonNode> rows,
+            @JsonProperty("sql_audit_id") String sqlAuditId) {
+        public ProposalResult(
+                String proposalId,
+                String runId,
+                String status,
+                String errorCode,
+                List<JsonNode> rows) {
+            this(proposalId, runId, status, errorCode, rows, null);
+        }
+    }
 
     record ProposalCommand(
             String proposalId,

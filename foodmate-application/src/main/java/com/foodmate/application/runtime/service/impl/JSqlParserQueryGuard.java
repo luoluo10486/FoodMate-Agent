@@ -211,6 +211,10 @@ public class JSqlParserQueryGuard implements SqlQueryGuard {
                                         new Column(new Table(qualifier), "user_id"),
                                         new JdbcParameter()));
                 parameters.add(trustedUserId);
+            } else if (table.scope() == Scope.USER_VIA_FOOD_LOG) {
+                if (!index.hasField(table, "food_log_id")
+                        || !hasFoodLogParentJoin(plain, source, sourceTables, index))
+                    throw new BusinessException(ErrorCode.SQL_SCHEMA_DENIED);
             } else if (table.scope() == Scope.TENANT) {
                 if (!index.hasField(table, "tenant_id"))
                     throw new BusinessException(ErrorCode.SQL_SCHEMA_DENIED);
@@ -231,6 +235,69 @@ public class JSqlParserQueryGuard implements SqlQueryGuard {
         else if (plain.getLimit().getRowCount() == null
                 || !isBoundedLimit(plain.getLimit().getRowCount()))
             throw new BusinessException(ErrorCode.SQL_GUARD_DENIED);
+    }
+
+    private static boolean hasFoodLogParentJoin(
+            PlainSelect plain, Table child, List<Table> sourceTables, CatalogIndex index) {
+        Table parent =
+                sourceTables.stream()
+                        .filter(table -> "food_logs".equals(normalize(table.getUnquotedName())))
+                        .findFirst()
+                        .orElse(null);
+        if (parent == null || index.findTable(parent) == null) return false;
+        if (plain.getJoins() == null) return false;
+        String childQualifier = qualifier(child);
+        String parentQualifier = qualifier(parent);
+        for (Join join : plain.getJoins()) {
+            if (join.getOnExpression() == null) continue;
+            if (containsFoodLogKeyEquality(join.getOnExpression(), childQualifier, parentQualifier))
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean containsFoodLogKeyEquality(
+            Expression expression, String childQualifier, String parentQualifier) {
+        if (expression == null) return false;
+        final boolean[] matched = {false};
+        expression.accept(
+                new net.sf.jsqlparser.expression.ExpressionVisitorAdapter<Void>() {
+                    @Override
+                    public <S> Void visit(EqualsTo equalsTo, S context) {
+                        if ((matchesColumn(
+                                                equalsTo.getLeftExpression(),
+                                                childQualifier,
+                                                "food_log_id")
+                                        && matchesColumn(
+                                                equalsTo.getRightExpression(),
+                                                parentQualifier,
+                                                "food_log_id"))
+                                || (matchesColumn(
+                                                equalsTo.getRightExpression(),
+                                                childQualifier,
+                                                "food_log_id")
+                                        && matchesColumn(
+                                                equalsTo.getLeftExpression(),
+                                                parentQualifier,
+                                                "food_log_id"))) matched[0] = true;
+                        return super.visit(equalsTo, context);
+                    }
+                },
+                null);
+        return matched[0];
+    }
+
+    private static boolean matchesColumn(Expression expression, String qualifier, String name) {
+        if (!(expression instanceof Column column)) return false;
+        String columnQualifier =
+                column.getTable() == null ? null : normalize(column.getTable().getName());
+        return name.equals(normalize(column.getUnquotedColumnName()))
+                && qualifier.equals(columnQualifier);
+    }
+
+    private static String qualifier(Table table) {
+        return normalize(
+                table.getAlias() == null ? table.getUnquotedName() : table.getAlias().getName());
     }
 
     private static boolean isBoundedLimit(Expression expression) {

@@ -21,6 +21,7 @@ public interface SqlSchemaCatalogService {
 
     enum Scope {
         USER,
+        USER_VIA_FOOD_LOG,
         TENANT,
         PUBLIC
     }
