@@ -14,6 +14,7 @@ import {
   Search,
   ShieldAlert,
   XCircle,
+  X,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -807,24 +808,52 @@ function navigationFixture(): HistoryFixture {
 
 type SessionOverlayState = Extract<ChatAuxState, 'session-actions' | 'renamed' | 'archived' | 'trash'>;
 
-function SessionStateOverlay({ state, onAction }: { state: SessionOverlayState; onAction: (message: string) => void }) {
+function SessionStateOverlay({
+  state,
+  onAction,
+  onClose,
+}: {
+  state: SessionOverlayState;
+  onAction: (message: string) => void;
+  onClose: () => void;
+}) {
   if (state === 'session-actions') {
     return (
-      <Card className={styles.sessionActionsOverlay} role="dialog" aria-label="会话管理">
-        <h2>会话管理</h2>
-        <p>选择一个会话后可重命名、归档，或移入回收站</p>
-        <div className={styles.sessionActionsOverlayActions}>
-          <Button size="sm" variant="ghost" onClick={() => onAction('已打开会话重命名入口。')}>
-            重命名会话
+      <div className={styles.sessionActionsBackdrop}>
+        <Card className={styles.sessionActionsOverlay} role="dialog" aria-label="会话管理">
+          <span className={styles.sessionActionsOverlayStatus}>操作</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={styles.sessionActionsOverlayClose}
+            aria-label="关闭会话管理"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => onAction('会话已归档，可从归档列表恢复。')}>
-            归档会话
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onAction('会话已移入回收站，保留期内可恢复。')}>
-            移入回收站
-          </Button>
-        </div>
-      </Card>
+          <h2>会话管理</h2>
+          <p>选择一个会话后可重命名、归档，或移入回收站</p>
+          <section className={styles.sessionActionsSelected} aria-label="当前会话">
+            <span className={styles.sessionActionsRunningDot} aria-hidden="true" />
+            <div>
+              <strong>每周饮食微调</strong>
+              <span>进行中 · 今天 12:45 更新</span>
+            </div>
+            <span className={styles.sessionActionsRunningStatus}>RUNNING</span>
+          </section>
+          <div className={styles.sessionActionsOverlayActions}>
+            <Button size="sm" variant="ghost" onClick={() => onAction('已打开会话重命名入口。')}>
+              重命名会话
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onAction('会话已归档，可从归档列表恢复。')}>
+              归档会话
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onAction('会话已移入回收站，保留期内可恢复。')}>
+              移入回收站
+            </Button>
+          </div>
+        </Card>
+      </div>
     );
   }
 
@@ -871,6 +900,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
   const messagesRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('');
   const [notice, setNotice] = useState('');
+  const [sessionOverlayVisible, setSessionOverlayVisible] = useState(true);
   const isRunning = state === 'running-stop';
   const isHistoryState = state === 'history-page-2' || state === 'history-page-3' || state === 'search-results';
   const isSessionOverlayState =
@@ -919,7 +949,18 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
-      pageOverlay={isSessionOverlayState ? <SessionStateOverlay state={state} onAction={setNotice} /> : undefined}
+      pageOverlay={
+        isSessionOverlayState && sessionOverlayVisible ? (
+          <SessionStateOverlay
+            state={state}
+            onAction={setNotice}
+            onClose={() => {
+              setSessionOverlayVisible(false);
+              setNotice('已关闭会话管理面板。');
+            }}
+          />
+        ) : undefined
+      }
       sidebarFixture={history?.sidebar}
     >
       {history ? (

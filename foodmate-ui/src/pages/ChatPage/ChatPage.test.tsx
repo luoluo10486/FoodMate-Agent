@@ -291,7 +291,14 @@ describe('ChatPage Figma session operation fixtures', () => {
 
     expect(screen.getByRole('dialog', { name: '会话管理' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重命名会话' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '当前会话' })).toHaveTextContent('RUNNING');
+    expect(screen.getByText('操作')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭会话管理' })).toBeInTheDocument();
     expect(screen.getByText('RUN ID: fst_trace_88192a')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭会话管理' }));
+    expect(screen.queryByRole('dialog', { name: '会话管理' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('已关闭会话管理面板。');
   });
 
   it.each([

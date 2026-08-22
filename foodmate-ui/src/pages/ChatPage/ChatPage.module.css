@@ -1491,24 +1491,38 @@
   font-size: 12px;
 }
 
-.sessionActionsOverlay {
+.sessionActionsBackdrop {
   position: fixed;
   z-index: 20;
-  top: 90px;
-  left: 50%;
-  display: grid;
-  width: min(760px, calc(100vw - 320px));
-  min-height: 174px;
-  gap: 12px;
-  padding: 20px 24px;
-  border: 1px solid #dbe1df;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: none;
-  transform: translateX(-33.333%);
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 10%);
 }
 
-.sessionActionsOverlay h2,
+.sessionActionsOverlay {
+  position: absolute;
+  top: 90px;
+  left: 210px;
+  width: 760px;
+  height: 316px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(244 246 245 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+}
+
+.sessionActionsOverlay h2 {
+  position: absolute;
+  top: 27px;
+  left: 23px;
+  margin: 0;
+  color: #1f2933;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
 .sessionResultOverlay h2 {
   margin: 0;
   color: #1f2933;
@@ -1517,7 +1531,18 @@
   line-height: 28px;
 }
 
-.sessionActionsOverlay p,
+.sessionActionsOverlay > p {
+  position: absolute;
+  top: 61px;
+  left: 23px;
+  width: 520px;
+  margin: 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
 .sessionResultOverlay p,
 .sessionResultOverlay strong {
   margin: 0;
@@ -1529,12 +1554,133 @@
 
 .sessionActionsOverlayActions {
   display: flex;
+  position: absolute;
+  top: 207px;
+  left: 23px;
   align-items: center;
-  gap: 48px;
-  margin-top: 12px;
+  gap: 16px;
 }
 
-.sessionActionsOverlayActions button,
+.sessionActionsOverlayActions button {
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sessionActionsOverlayActions button:nth-child(1) {
+  width: 144px;
+  border: 1px solid #a6d997;
+  background: #dfeedb;
+  color: #89b27c;
+}
+
+.sessionActionsOverlayActions button:nth-child(2) {
+  width: 144px;
+  border: 1px solid #d6dde6;
+  background: #f7f8fa;
+  color: #6b7280;
+}
+
+.sessionActionsOverlayActions button:nth-child(3) {
+  width: 160px;
+  border: 1px solid #ff7576;
+  background: #ffeeec;
+  color: #d67676;
+}
+
+.sessionActionsOverlayStatus {
+  position: absolute;
+  top: 15px;
+  right: 53px;
+  display: grid;
+  width: 64px;
+  height: 24px;
+  place-items: center;
+  border-radius: 12px;
+  background: #edeff1;
+  color: rgb(51 51 51 / 95%);
+  font-size: 11px;
+  line-height: 24px;
+}
+
+.sessionActionsOverlayClose {
+  position: absolute;
+  top: 13px;
+  right: 17px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(244 246 245 / 24%);
+  border-radius: 14px;
+  background: #edeff1;
+  color: rgb(51 51 51 / 90%);
+}
+
+.sessionActionsOverlayClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sessionActionsSelected {
+  position: absolute;
+  top: 101px;
+  left: 23px;
+  display: flex;
+  width: 712px;
+  height: 72px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 17px;
+  border: 1px solid #e2e7ee;
+  border-radius: 14px;
+  background: #f7fafc;
+}
+
+.sessionActionsRunningDot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #a6d997;
+}
+
+.sessionActionsSelected > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sessionActionsSelected strong {
+  color: #333;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.sessionActionsSelected div span {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sessionActionsRunningStatus {
+  display: grid;
+  width: 88px;
+  height: 24px;
+  margin-left: auto;
+  place-items: center;
+  border-radius: 12px;
+  background: #dfeedb;
+  color: #89b27c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .sessionResultOverlay > button {
   height: 32px;
   padding: 0;
