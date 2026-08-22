@@ -53,7 +53,7 @@ docker compose --env-file .env -f docker/compose.yml up -d rocketmq-broker
 docker compose --env-file .env -f docker/compose.yml up rocketmq-init
 ```
 
-`rocketmq-init` 是一次性容器，创建 4 个 Agent Topic 与 5 个 consumer group 后退出；可重复执行。它共享 Broker 的网络命名空间，因此 `mqadmin` 的 `127.0.0.1:10911` 与 Broker 注册到 NameServer 的地址一致。
+`rocketmq-init` 是一次性容器，创建 9 个业务 Topic 与 11 个 consumer group 后退出；可重复执行。它共享 Broker 的网络命名空间，因此 `mqadmin` 的 `127.0.0.1:10911` 与 Broker 注册到 NameServer 的地址一致。9 个业务 Topic 包含 4 个 Agent Topic、2 个知识索引 Topic、1 个可见性 Topic 和 2 个清理 Topic；清理 Topic 分别是 `foodmate-knowledge-purge-v1` 与 `foodmate-knowledge-purge-result-v1`。
 
 Broker 关闭了 `autoCreateTopicEnable` 与 `autoCreateSubscriptionGroup`，所以**消费组也必须预先创建**——用未登记的消费组订阅会静默收不到消息。其中 `foodmate-selftest-v1` 专供自动化测试，避免测试挪动 Java/Python 正式消费组的位点。
 

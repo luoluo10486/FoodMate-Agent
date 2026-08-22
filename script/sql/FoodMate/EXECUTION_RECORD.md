@@ -333,3 +333,21 @@
 | 安全/数据边界 | `hard_delete_enabled=false` 默认关闭；active legal hold 在任务领取 SQL 中原子阻断；未执行迁移、truncate、对象/向量实际删除、数据库硬删除或现有数据清理 |
 | 未执行范围 | 未做真实 RocketMQ 发布/消费、对象存储和 Milvus 联调、性能压测、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证；这些按当前决策暂缓 |
 | 结论 | 保留治理和清理任务业务代码及定向测试证据成立；真实依赖执行、实际删除和 M3 整体完成状态保持后置 |
+
+## M3/M2-1 本地依赖与 deterministic RAG 业务核验（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 01:39-01:48 (Asia/Shanghai) |
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；Docker Desktop 28.5.1；16 CPU；约 7.4 GiB Docker 内存；Java 21；Python 使用 `agent-runtime\.venv`；未配置真实 embedding API Key、未调用云模型 |
+| Docker 启动 | `docker compose --env-file .env -f docker/compose.yml up -d postgres redis minio`；随后分组启动 RocketMQ 和 Milvus 依赖 |
+| Docker readiness | PostgreSQL、Redis、MinIO、RocketMQ NameServer、Broker、Proxy、Milvus、Milvus etcd 和 Milvus MinIO 均 healthy；未执行 `down -v`，命名卷保留 |
+| RocketMQ 初始化 | `rocketmq-init` 退出码 0；日志确认创建 `foodmate-knowledge-purge-v1`、`foodmate-knowledge-purge-result-v1` 以及 `foodmate-python-knowledge-purge-v1`、`foodmate-java-knowledge-purge-result-v1`；其余 Agent/Knowledge Topic/group 也完成初始化 |
+| Compose 校验 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；`init-topics.sh` shell 语法校验通过 |
+| Python 业务回归 | `agent-runtime\.venv\Scripts\python.exe -m pytest -q`：107 passed、1 skipped、1 warning；跳过项为显式真实云集成 |
+| Milvus 业务核验 | 使用随机隔离集合和 `local + deterministic`：实际向量写入、`published` metadata 更新、`public_published` ACL 检索和引用返回通过；随后删除本轮集合，不删除既有集合或命名卷 |
+| Java 业务回归 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am test -Dtest=KnowledgeServiceImplTest,KnowledgeOutboxPublisherTest,KnowledgeIndexResultMessageProcessorTest,KnowledgeSearchServiceImplTest,DataRetentionTaskPublisherTest,DataRetentionResultMessageProcessorTest,DataRetentionDeliveryServiceImplTest,DataRetentionServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false`：29/29 通过 |
+| Java 格式 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am spotless:check`：通过 |
+| 数据边界 | PostgreSQL 仅做只读 schema 检查；未执行 Flyway/手工迁移、truncate、备份恢复、对象/向量实际保留清理或消息故障注入 |
+| 未完成范围 | Java/Python 应用未纳入 Compose，未完成管理员上传 -> Java Outbox -> RocketMQ -> Python Worker -> Java 回写 -> 发布 -> AgentRun/SSE 的真实跨运行时闭环；吞吐、性能、重启、ACK 丢失、重复投递和 Last-Event-ID 故障验证按当前决策暂缓 |
+| 结论 | 本轮证明本地依赖 readiness、RocketMQ 清理契约、Python 业务回归、Milvus deterministic 适配和 Java 保留/知识定向业务测试通过；不将 M2-1/M3 整体标记为完成 |
