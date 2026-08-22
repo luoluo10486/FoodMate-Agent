@@ -176,7 +176,7 @@
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 18px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 22px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -195,8 +195,9 @@
 }
 
 .planStatus {
+  height: 21px;
   font-weight: 700;
-  line-height: normal;
+  line-height: 13px;
 }
 
 .planStatusactive {
@@ -205,11 +206,12 @@
 }
 
 .planListMeta span {
+  height: 22px;
   background: rgba(255, 246, 226, 0.1);
   color: #c79654;
   font-size: 12px;
   font-weight: 700;
-  line-height: normal;
+  line-height: 14px;
 }
 
 .planStatusdraft {
@@ -233,16 +235,17 @@
 
 .planDate {
   font-size: 13px;
-  line-height: 17px;
+  line-height: 16px;
 }
 
 .planListMeta small {
-  line-height: normal;
+  line-height: 14px;
 }
 
 .planListCard p {
   margin: 0;
   font-size: 14px;
+  line-height: 17px;
 }
 
 .planListMeta {
