@@ -474,3 +474,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 使用 Figma 节点返回的真实 SVG 资产；标准按钮继续使用 shadcn `Button`。
 - [ ] 三态仍不能标记 `PASS`：自动 diff 仍存在差异，完整 105 画板人工视觉复核也未关闭。
 - [ ] iconfont 实体资源继续为 `BLOCKED`，本轮没有创建字体包、CSS/Unicode 映射或伪造许可证信息。
+
+## 60. 2026-08-23 Intake Analysis 当前版本验收证据更新
+
+- [x] 重新核对实时 Figma 节点 `640:773` 与 `/analysis?state=v2`；本轮 Figma 参考图改用当前文件导出的 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png`，不再使用缺少会话列表和数据质量面板的旧基线。
+- [x] 浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-current.png`；视口 `1440×1024`、DPR `1.0000000149011612`、字体状态 `loaded`、页面无横向或纵向溢出、文字越界 `0`。
+- [x] 当前版本几何复核记录：侧栏品牌区 `y=52`、新建任务 `y=104`、搜索框 `y=161`、工作台 `y=217`、Agent 对话 `y=259`；账户停靠区折叠条 `y=866,h=28`、状态条 `y=910,h=38`、用户资料 `y=964,h=36`；Figma fixture 顶栏品牌宽 `136px`、导航起点 `x=444`、导航间距 `16px`、搜索框高 `32px`、用户区宽 `84px`。
+- [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；仅保留用于 Figma 垂直布局对齐的空白占位，未修改 Figma 设计稿；其它圆形业务控件未按窗口装饰点处理。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=396008`、差异比例 `26.8560%`、`MAE=3.2500`、`RMSE=17.4654`、最大通道差异 `234`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；图标处理、字体光栅化和主体视觉处理仍有可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。

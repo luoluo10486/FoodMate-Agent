@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-08-18",
+    "capturedAt": "2026-08-23",
     "figmaMcp": "get_metadata"
   },
   "acceptanceRules": {
@@ -175,12 +175,12 @@
       "frontendRoute": "/analysis",
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/intake-analysis-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: intake-analysis semantics exist, but chart rendering, text density, card geometry, typography, and visual treatment differ.",
+      "evidenceNote": "Manual visual review completed: current Figma reference includes the session list and data-quality panel; the frontend shell geometry was rechecked, but icon treatment, font rasterization, and the main content visual treatment still differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -205,8 +205,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Intake-analysis semantics exist, but chart rendering, text density, card geometry, typography, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "侧栏窗口占位、账户停靠区和 Figma fixture 顶栏已完成当前版本几何复核；图标、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
       }
     },
     {
