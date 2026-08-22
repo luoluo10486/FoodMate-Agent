@@ -65,7 +65,11 @@ function HomeStatePanel({
 }) {
   if (state === 'loading') {
     return (
-      <section className={`${styles.homeStatePanel} ${styles.homeStateLoading}`} aria-busy="true" aria-label="工作台正在加载">
+      <section
+        className={`${styles.homeStatePanel} ${styles.homeStateLoading}`}
+        aria-busy="true"
+        aria-label="工作台正在加载"
+      >
         <div className={styles.loadingHeading}>
           <div>
             <h2>工作台正在加载</h2>
@@ -94,7 +98,10 @@ function HomeStatePanel({
   const isError = state === 'error';
   const Icon = isError ? CircleAlert : Leaf;
   return (
-    <section className={`${styles.homeStatePanel} ${isError ? styles.homeStateError : styles.homeStateEmpty}`} role={isError ? 'alert' : undefined}>
+    <section
+      className={`${styles.homeStatePanel} ${isError ? styles.homeStateError : styles.homeStateEmpty}`}
+      role={isError ? 'alert' : undefined}
+    >
       <div className={styles.homeStateCenteredContent}>
         <span className={styles.homeStateIcon}>
           <Icon aria-hidden="true" />
@@ -238,99 +245,104 @@ export function HomePage() {
         ) : (
           <>
             <section className={styles.quickActions} aria-label="快速操作">
-          {quickActions.map(({ icon: Icon, label, prompt: actionPrompt, tone }) => (
-            <Button
-              className={`${styles.quickButton} ${styles[`quick${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
-              key={label}
-              variant="outline"
-              onClick={() => setPrompt(actionPrompt)}
-            >
-              <Icon aria-hidden="true" />
-              <span>{label}</span>
-            </Button>
-          ))}
-            </section>
-
-        <section className={styles.metrics} aria-label="今日营养指标">
-          {metricCards.map((metric) => (
-            <article className={styles.metricCard} key={metric.label}>
-              <div>
-                <span className={styles.metricLabel}>{metric.label}</span>
-                <strong>
-                  {metric.value}
-                  <small>{metric.unit}</small>
-                </strong>
-              </div>
-              <span
-                className={`${styles.progress} ${styles[`progress${metric.tone[0].toUpperCase()}${metric.tone.slice(1)}`]}`}
-              >
-                <span>{metric.progress}%</span>
-              </span>
-            </article>
-          ))}
-        </section>
-
-        <section className={styles.dashboardGrid}>
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>活跃会话</h2>
-            </div>
-            <div className={styles.sessionCards}>
-              {sessions.map((session, index) => (
+              {quickActions.map(({ icon: Icon, label, prompt: actionPrompt, tone }) => (
                 <Button
-                  className={styles.sessionCard}
-                  variant="ghost"
-                  key={session.id}
-                  type="button"
-                  onClick={() => navigate(`/chat/${session.id}`)}
+                  className={`${styles.quickButton} ${styles[`quick${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
+                  key={label}
+                  variant="outline"
+                  onClick={() => setPrompt(actionPrompt)}
                 >
-                  <span className={`${styles.sessionDot} ${styles[`dot${index}`]}`} aria-hidden="true" />
-                  <span>
-                    <strong>{session.title}</strong>
-                    <small>{session.subtitle}</small>
-                  </span>
-                  <ArrowRight aria-hidden="true" />
+                  <Icon aria-hidden="true" />
+                  <span>{label}</span>
                 </Button>
               ))}
-            </div>
-          </article>
+            </section>
 
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>待确认队列</h2>
-            </div>
-            <div className={styles.pendingCards}>
-              {pendingItems.map((item) => {
-                const confirmed = confirmedItems.includes(item.id);
-                return (
-                  <div className={`${styles.pendingCard} ${confirmed ? styles.pendingConfirmed : ''}`} key={item.id}>
-                    <span>
-                      <strong>{item.title}</strong>
-                      <small>{confirmed ? '已提交确认' : item.detail}</small>
-                    </span>
-                    <Button
-                      className={styles.confirmButton}
-                      size="sm"
-                      onClick={() => confirmItem(item.id, item.prompt)}
-                    >
-                      {confirmed ? <Check aria-hidden="true" /> : null}
-                      {confirmed ? '已确认' : '确认'}
-                    </Button>
+            <section className={styles.metrics} aria-label="今日营养指标">
+              {metricCards.map((metric) => (
+                <article className={styles.metricCard} key={metric.label}>
+                  <div>
+                    <span className={styles.metricLabel}>{metric.label}</span>
+                    <strong>
+                      {metric.value}
+                      <small>{metric.unit}</small>
+                    </strong>
                   </div>
-                );
-              })}
-            </div>
-          </article>
-        </section>
+                  <span
+                    className={`${styles.progress} ${styles[`progress${metric.tone[0].toUpperCase()}${metric.tone.slice(1)}`]}`}
+                  >
+                    <span>{metric.progress}%</span>
+                  </span>
+                </article>
+              ))}
+            </section>
+
+            <section className={styles.dashboardGrid}>
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <h2>活跃会话</h2>
+                </div>
+                <div className={styles.sessionCards}>
+                  {sessions.map((session, index) => (
+                    <Button
+                      className={styles.sessionCard}
+                      variant="ghost"
+                      key={session.id}
+                      type="button"
+                      onClick={() => navigate(`/chat/${session.id}`)}
+                    >
+                      <span className={`${styles.sessionDot} ${styles[`dot${index}`]}`} aria-hidden="true" />
+                      <span>
+                        <strong>{session.title}</strong>
+                        <small>{session.subtitle}</small>
+                      </span>
+                      <ArrowRight aria-hidden="true" />
+                    </Button>
+                  ))}
+                </div>
+              </article>
+
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <h2>待确认队列</h2>
+                </div>
+                <div className={styles.pendingCards}>
+                  {pendingItems.map((item) => {
+                    const confirmed = confirmedItems.includes(item.id);
+                    return (
+                      <div
+                        className={`${styles.pendingCard} ${confirmed ? styles.pendingConfirmed : ''}`}
+                        key={item.id}
+                      >
+                        <span>
+                          <strong>{item.title}</strong>
+                          <small>{confirmed ? '已提交确认' : item.detail}</small>
+                        </span>
+                        <Button
+                          className={styles.confirmButton}
+                          size="sm"
+                          onClick={() => confirmItem(item.id, item.prompt)}
+                        >
+                          {confirmed ? <Check aria-hidden="true" /> : null}
+                          {confirmed ? '已确认' : '确认'}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+            </section>
 
             <section className={styles.statusPanel} aria-labelledby="status-title">
-          <h2 id="status-title">任务入口与状态</h2>
-          <p>输入器：空输入时发送禁用 · 有内容时启用 · Agent 运行中切换为停止 · 附件解析中显示进度</p>
-          <p>高频任务点击后带入输入器；继续任务打开原会话；查看全部进入会话列表。</p>
-          <p className={styles.statusGreen}>
-            Tools / Agents 面板可展开查看健康状态；待处理事项提醒写入确认、预算通知、记忆确认和失败任务。
-          </p>
-          <p className={styles.statusMuted}>摘要局部失败支持重试，不替换已有成功数据；空态不展示虚构营养或任务数据。</p>
+              <h2 id="status-title">任务入口与状态</h2>
+              <p>输入器：空输入时发送禁用 · 有内容时启用 · Agent 运行中切换为停止 · 附件解析中显示进度</p>
+              <p>高频任务点击后带入输入器；继续任务打开原会话；查看全部进入会话列表。</p>
+              <p className={styles.statusGreen}>
+                Tools / Agents 面板可展开查看健康状态；待处理事项提醒写入确认、预算通知、记忆确认和失败任务。
+              </p>
+              <p className={styles.statusMuted}>
+                摘要局部失败支持重试，不替换已有成功数据；空态不展示虚构营养或任务数据。
+              </p>
             </section>
           </>
         )}

@@ -308,13 +308,16 @@ describe('ChatPage Figma session operation fixtures', () => {
 });
 
 describe('ChatPage Figma navigation fixtures', () => {
-  it.each(['redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination'])('%s keeps the complete Figma conversation and trace', (state) => {
-    renderChatState(state);
+  it.each(['redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination'])(
+    '%s keeps the complete Figma conversation and trace',
+    (state) => {
+      renderChatState(state);
 
-    expect(screen.getByText(/我已为您分析了野生三文鱼/)).toBeInTheDocument();
-    expect(screen.getByText('查询扩展 (Query Expansion)')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '是否将此记录到你的周二饮食日志？' })).toBeInTheDocument();
-  });
+      expect(screen.getByText(/我已为您分析了野生三文鱼/)).toBeInTheDocument();
+      expect(screen.getByText('查询扩展 (Query Expansion)')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: '是否将此记录到你的周二饮食日志？' })).toBeInTheDocument();
+    },
+  );
 });
 
 describe('ChatPage Figma running-stop fixture', () => {

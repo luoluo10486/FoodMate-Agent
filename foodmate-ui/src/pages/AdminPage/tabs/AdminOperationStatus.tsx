@@ -169,9 +169,7 @@ export function AdminOperationStatus({
             <p>
               <strong>{error?.message ?? '操作未完成，请检查服务状态后重试。'}</strong>
             </p>
-            <p className={styles.operationDialogMuted}>
-              服务端未确认本次变更，当前配置未改变。请检查错误码后重试。
-            </p>
+            <p className={styles.operationDialogMuted}>服务端未确认本次变更，当前配置未改变。请检查错误码后重试。</p>
             <div className={styles.operationDebugBox}>
               <span>ERROR_CODE: {error?.code ?? 'REGISTRY_TIMEOUT_504'}</span>
               <span>REQUEST_ID: {error?.requestId ?? 'req-foodmate-9082ac918'}</span>

@@ -39,6 +39,8 @@ describe('HomePage session cards', () => {
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
-    expect(within(screen.getByRole('navigation', { name: '主导航' })).queryByRole('link', { name: '知识库' })).toBeNull();
+    expect(
+      within(screen.getByRole('navigation', { name: '主导航' })).queryByRole('link', { name: '知识库' }),
+    ).toBeNull();
   });
 });

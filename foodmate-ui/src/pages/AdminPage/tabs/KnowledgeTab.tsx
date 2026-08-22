@@ -206,11 +206,7 @@ export function KnowledgeSection({
               ),
         );
         setSelectedDoc((current) =>
-          visibility === 'deleted'
-            ? undefined
-            : current
-              ? { ...current, visibility }
-              : current,
+          visibility === 'deleted' ? undefined : current ? { ...current, visibility } : current,
         );
         setLocalRefreshNonce((current) => current + 1);
       },

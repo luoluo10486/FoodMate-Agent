@@ -162,11 +162,7 @@ function InlineConfirmationCard({ onConfirm, onCancel }: { onConfirm: () => void
   return (
     <section className={styles.inlineConfirmation} aria-label="饮食记录确认">
       <h3>是否将此记录到你的周二饮食日志？</h3>
-      <RadioGroup
-        aria-label="饮食记录目标"
-        className={styles.inlineConfirmationOptions}
-        defaultValue="add-to-lunch"
-      >
+      <RadioGroup aria-label="饮食记录目标" className={styles.inlineConfirmationOptions} defaultValue="add-to-lunch">
         <div className={styles.inlineConfirmationOption}>
           <RadioGroupItem aria-label="是，添加到今天的午餐" id="meal-log-add-to-lunch" value="add-to-lunch" />
           <label htmlFor="meal-log-add-to-lunch">是，添加到今天的午餐</label>
@@ -684,7 +680,9 @@ type HistoryFixture = {
   };
 };
 
-function historyFixture(state: Extract<ChatAuxState, 'history-page-2' | 'history-page-3' | 'search-results'>): HistoryFixture {
+function historyFixture(
+  state: Extract<ChatAuxState, 'history-page-2' | 'history-page-3' | 'search-results'>,
+): HistoryFixture {
   const isSearch = state === 'search-results';
   const isPageThree = state === 'history-page-3';
   const baseSessions: SessionSummary[] = [
@@ -704,7 +702,8 @@ function historyFixture(state: Extract<ChatAuxState, 'history-page-2' | 'history
   ];
   return {
     prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
-    response: 'I have analyzed the typical values for wild salmon (150g) and cooked quinoa (100g). Together, they provide approximately 38g of high-quality protein.',
+    response:
+      'I have analyzed the typical values for wild salmon (150g) and cooked quinoa (100g). Together, they provide approximately 38g of high-quality protein.',
     source: 'Source: USDA FoodData Central Ref #451992',
     run: {
       id: 'fst_trace_88192a',
@@ -716,10 +715,38 @@ function historyFixture(state: Extract<ChatAuxState, 'history-page-2' | 'history
       agentsTotal: 1,
       citations: [],
       toolCalls: [
-        { id: 'query-expansion', name: 'query_expansion', displayName: '查询扩展', status: 'success', latencyMs: 12, summary: '已完成查询扩展' },
-        { id: 'vector-search', name: 'vector_search', displayName: '向量索引检索', status: 'success', latencyMs: 184, summary: '已命中知识库向量索引' },
-        { id: 'usda-lookup', name: 'usda_lookup', displayName: 'USDA 数据库调用', status: 'success', latencyMs: 92, summary: '已返回标准营养值' },
-        { id: 'response-compose', name: 'response_compose', displayName: '响应合成', status: 'success', latencyMs: 45, summary: '已生成可追溯回答' },
+        {
+          id: 'query-expansion',
+          name: 'query_expansion',
+          displayName: '查询扩展',
+          status: 'success',
+          latencyMs: 12,
+          summary: '已完成查询扩展',
+        },
+        {
+          id: 'vector-search',
+          name: 'vector_search',
+          displayName: '向量索引检索',
+          status: 'success',
+          latencyMs: 184,
+          summary: '已命中知识库向量索引',
+        },
+        {
+          id: 'usda-lookup',
+          name: 'usda_lookup',
+          displayName: 'USDA 数据库调用',
+          status: 'success',
+          latencyMs: 92,
+          summary: '已返回标准营养值',
+        },
+        {
+          id: 'response-compose',
+          name: 'response_compose',
+          displayName: '响应合成',
+          status: 'success',
+          latencyMs: 45,
+          summary: '已生成可追溯回答',
+        },
       ],
     },
     sidebar: {
@@ -735,15 +762,44 @@ function navigationFixture(): HistoryFixture {
   return {
     ...fixture,
     prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
-    response: '我已为您分析了野生三文鱼（150克）和熟藜麦（100克）的标准营养价值。它们一共可提供大约 38 克的优质蛋白质。',
+    response:
+      '我已为您分析了野生三文鱼（150克）和熟藜麦（100克）的标准营养价值。它们一共可提供大约 38 克的优质蛋白质。',
     source: '来源: USDA FoodData Central Ref #451992',
     run: {
       ...fixture.run,
       toolCalls: [
-        { id: 'query-expansion', name: 'query_expansion', displayName: '查询扩展 (Query Expansion)', status: 'success', latencyMs: 12, summary: '已完成查询扩展' },
-        { id: 'vector-search', name: 'vector_search', displayName: '向量索引检索 (RAG Search)', status: 'success', latencyMs: 184, summary: '已命中知识库向量索引' },
-        { id: 'usda-lookup', name: 'usda_lookup', displayName: 'USDA 数据库调用 (API Call)', status: 'success', latencyMs: 92, summary: '已返回标准营养值' },
-        { id: 'response-compose', name: 'response_compose', displayName: '响应合成 (Response Generation)', status: 'success', latencyMs: 45, summary: '已生成可追溯回答' },
+        {
+          id: 'query-expansion',
+          name: 'query_expansion',
+          displayName: '查询扩展 (Query Expansion)',
+          status: 'success',
+          latencyMs: 12,
+          summary: '已完成查询扩展',
+        },
+        {
+          id: 'vector-search',
+          name: 'vector_search',
+          displayName: '向量索引检索 (RAG Search)',
+          status: 'success',
+          latencyMs: 184,
+          summary: '已命中知识库向量索引',
+        },
+        {
+          id: 'usda-lookup',
+          name: 'usda_lookup',
+          displayName: 'USDA 数据库调用 (API Call)',
+          status: 'success',
+          latencyMs: 92,
+          summary: '已返回标准营养值',
+        },
+        {
+          id: 'response-compose',
+          name: 'response_compose',
+          displayName: '响应合成 (Response Generation)',
+          status: 'success',
+          latencyMs: 45,
+          summary: '已生成可追溯回答',
+        },
       ],
     },
   };
@@ -817,8 +873,10 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
   const [notice, setNotice] = useState('');
   const isRunning = state === 'running-stop';
   const isHistoryState = state === 'history-page-2' || state === 'history-page-3' || state === 'search-results';
-  const isSessionOverlayState = state === 'session-actions' || state === 'renamed' || state === 'archived' || state === 'trash';
-  const isNavigationState = state === 'redesign-default' || state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
+  const isSessionOverlayState =
+    state === 'session-actions' || state === 'renamed' || state === 'archived' || state === 'trash';
+  const isNavigationState =
+    state === 'redesign-default' || state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
   const history = isHistoryState
     ? historyFixture(state)
     : isSessionOverlayState
@@ -827,10 +885,10 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
         ? navigationFixture()
         : isRunning
           ? historyFixture('history-page-2')
-        : undefined;
+          : undefined;
   const run = isRunning
     ? { ...(history?.run ?? fixtureRun('sse-reconnecting')), status: 'executing_tools' as const }
-    : history?.run ?? fixtureRun('tool-failed-retryable');
+    : (history?.run ?? fixtureRun('tool-failed-retryable'));
   const labels: Record<ChatAuxState, string> = {
     'completed-with-citations': '分析已完成，以下内容包含可追溯引用。',
     'redesign-default': '我分析了野生三文鱼和熟藜麦的标准营养值。',
@@ -861,16 +919,29 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
-      pageOverlay={
-        isSessionOverlayState ? <SessionStateOverlay state={state} onAction={setNotice} /> : undefined
-      }
+      pageOverlay={isSessionOverlayState ? <SessionStateOverlay state={state} onAction={setNotice} /> : undefined}
       sidebarFixture={history?.sidebar}
     >
       {history ? (
         <>
-          <MessageBubble message={{ id: `${state}-user`, role: 'user', content: history.prompt, time: '12:45', wide: isNavigationState }} />
           <MessageBubble
-            message={{ id: `${state}-assistant`, role: 'assistant', content: history.response, source: history.source, time: '12:46', wide: isNavigationState }}
+            message={{
+              id: `${state}-user`,
+              role: 'user',
+              content: history.prompt,
+              time: '12:45',
+              wide: isNavigationState,
+            }}
+          />
+          <MessageBubble
+            message={{
+              id: `${state}-assistant`,
+              role: 'assistant',
+              content: history.response,
+              source: history.source,
+              time: '12:46',
+              wide: isNavigationState,
+            }}
           >
             <InlineConfirmationCard
               onConfirm={() => setNotice('fixture 已记录写入确认；未调用任何后端写入接口。')}
@@ -882,7 +953,9 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               <h2>消息操作</h2>
               <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
               <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
-              <p className={styles.actionGreen}>工具失败时显示重试；运行中发送按钮切换为停止；写入确认 / 预算追加仍需确认后继续。</p>
+              <p className={styles.actionGreen}>
+                工具失败时显示重试；运行中发送按钮切换为停止；写入确认 / 预算追加仍需确认后继续。
+              </p>
             </section>
           ) : null}
         </>
