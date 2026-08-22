@@ -188,3 +188,16 @@
 | 未执行范围 | 真实 PostgreSQL/Redis/RocketMQ/Milvus 联调、上传 -> 索引 -> 发布 -> AgentRun -> SSE、SQL Agent 真实数据库联调、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证 |
 | 数据与迁移 | 本轮未执行迁移、truncate、备份恢复或既有本地数据清理 |
 | 结论 | M2-1/M2-2 核心代码与业务测试完成，M2-3 核心管理切片已有证据；真实依赖闭环和性能/故障/生产验证保持后置，不更新为整体完成 |
+
+## M2-1 用户真实检索与餐食规划前端切片（2026-08-22）
+
+| 项目 | 结果 |
+|---|---|
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；未启动 Docker、staging/production，不执行数据库迁移、清库、备份恢复或付费模型调用 |
+| 后端提交 | `3db1001 feat(计划): 增加用户计划列表查询`；新增 `GET /api/meal-plans`，按当前用户返回计划及软删除状态，application/infra/API 定向测试通过 |
+| 前端提交 | `bff8bec feat(计划): 接入真实餐食规划页面`；real 模式读取 `/api/meal-plans`，列表按服务端状态筛选，详情使用服务端 `days_plan`/约束；fixture 模式保持不变 |
+| 前端测试 | `npm test`：33 个测试文件、163 项通过；`npm run typecheck` 通过；`npm run build` 通过；目标文件 Prettier 检查通过 |
+| Java 定向测试 | 计划 application/API 测试共 11 项通过：`MealPlanServiceImplTest` 7/7、`MealPlanControllerTest` 4/4 |
+| 业务边界 | 本轮只完成用户计划列表/详情读取和页面 real 接入；规划创建向导写入、重新生成、购物清单真实查询仍未接入 |
+| 未执行范围 | 知识库上传 -> 索引 -> 发布 -> AgentRun -> SSE 真实跨运行时闭环、Milvus/Redis/RocketMQ 联调、SQL Agent 真实数据库联调、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证 |
+| 结论 | 餐食规划读取主路径具备代码和业务测试证据；M2-1 整体仍不标记完成，真实依赖、跨运行时和性能/故障验证继续后置 |
