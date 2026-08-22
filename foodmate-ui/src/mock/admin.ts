@@ -691,6 +691,7 @@ export const adminDeletedRows = [
     deletedAt: '2024-03-14 10:24',
     restorable: true,
     reason: '存档保留',
+    revision: 1,
   },
   {
     key: 'del-2',
@@ -702,6 +703,7 @@ export const adminDeletedRows = [
     deletedAt: '2024-03-13 04:12',
     restorable: true,
     reason: '存档保留',
+    revision: 1,
   },
   {
     key: 'del-3',
@@ -713,6 +715,7 @@ export const adminDeletedRows = [
     deletedAt: '2024-03-12 18:30',
     restorable: false,
     reason: '已超过恢复条件',
+    revision: 1,
   },
   {
     key: 'del-4',
@@ -724,6 +727,7 @@ export const adminDeletedRows = [
     deletedAt: '2024-03-10 22:15',
     restorable: true,
     reason: '存档保留',
+    revision: 1,
   },
 ];
 

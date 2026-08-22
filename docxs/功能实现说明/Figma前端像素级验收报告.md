@@ -9,7 +9,7 @@
 1. Figma 文件内部结构、组件系统、Prototype 和画板截图回读已完成。
 2. 前端代码与 Figma 画板的自动化像素差异已覆盖 105 个已建立映射的页面/状态，105 个结果均为 `DIFF_REVIEW`，不能标记为像素级通过。
 
-因此当前不能宣称“Figma 105 张画板已全部完成前端像素级验收”。已经完成的是可复核的 Figma 全量结构验收、105 个画板的路由/状态映射、差异证据收集，以及运行时几何、可见文字、DPR 检查；人工视觉复核仍未关闭。
+因此当前不能宣称“Figma 105 张画板已全部像素级通过”。已经完成的是可复核的 Figma 全量结构验收、105 个画板的路由/状态映射、差异证据收集，以及运行时几何、可见文字、DPR 和 105/105 人工视觉复核登记；由于仍存在可见差异，结果继续保留为 `DIFF_REVIEW`。
 
 ## 2. Figma 文件内部验收
 
@@ -76,7 +76,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。运行时检查文件 [`figma-105-runtime-checks.json`](../../foodmate-ui/.qa/figma-pixel-acceptance/figma-105-runtime-checks.json) 已实际记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105` 与字体加载完成；`manualReview.status` 仍为 `PENDING (105/105)`，因此不能将 `DIFF_REVIEW` 改为 `PASS`。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。运行时检查文件 [`figma-105-runtime-checks.json`](../../foodmate-ui/.qa/figma-pixel-acceptance/figma-105-runtime-checks.json) 已实际记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105` 与字体加载完成；映射文件已记录 `manualPending=0` 且 105/105 人工结论均为差异复核结果，因此不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 

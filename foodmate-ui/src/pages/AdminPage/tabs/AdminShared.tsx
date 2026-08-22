@@ -32,7 +32,7 @@ import {
   adminUserOperationHistoryRows,
   adminUserSessionRows,
 } from '../../../services/adminService';
-import type { AdminToolRegistryRow, AdminToolRow } from '../../../services/adminService';
+import type { AdminDeletedRow, AdminToolRegistryRow, AdminToolRow } from '../../../services/adminService';
 import { getAuthStatus, getAuthUser, type AuthStatus } from '../../../services/authService';
 
 const authStatus = getAuthStatus();
@@ -96,7 +96,7 @@ export type ToolRow = AdminToolRow;
 export type ToolRegistryRow = AdminToolRegistryRow;
 export type ModelUsageRow = (typeof adminModelUsageRows)[number];
 export type KnowledgeRow = (typeof adminKnowledgeRows)[number];
-export type DeletedRow = (typeof adminDeletedRows)[number];
+export type DeletedRow = AdminDeletedRow;
 export type OperationAuditRow = (typeof adminOperationAuditRows)[number];
 
 export const adminNavItems: Array<{ key: string; path: string; label: string; icon: ReactNode; adminOnly?: boolean }> =
