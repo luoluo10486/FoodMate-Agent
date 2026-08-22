@@ -175,9 +175,9 @@ export function LoginPage() {
               <div>
                 <strong>账号已禁用</strong>
                 <span>你的账号已被管理员禁用。如有疑问，请联系客服支持。</span>
-                <button type="button" onClick={() => undefined}>
+                <Button className={styles.loginAlertAction} variant="ghost" type="button" onClick={() => undefined}>
                   联系客服
-                </button>
+                </Button>
               </div>
             </div>
           ) : null}
@@ -187,9 +187,14 @@ export function LoginPage() {
               <div>
                 <strong>服务暂时不可用</strong>
                 <span>系统维护中，请稍后再试。</span>
-                <button type="button" onClick={() => window.location.reload()}>
+                <Button
+                  className={styles.loginAlertAction}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => window.location.reload()}
+                >
                   刷新页面
-                </button>
+                </Button>
               </div>
             </div>
           ) : null}
@@ -234,14 +239,16 @@ export function LoginPage() {
                 aria-label="密码"
                 leadingIcon={<LockKeyhole aria-hidden="true" />}
                 trailingAction={
-                  <button
+                  <Button
                     className={styles.passwordToggle}
+                    variant="ghost"
+                    size="icon"
                     type="button"
                     aria-label={showPassword ? '隐藏密码' : '显示密码'}
                     onClick={() => setShowPassword((value) => !value)}
                   >
                     {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-                  </button>
+                  </Button>
                 }
                 value={loginValues.password}
                 required

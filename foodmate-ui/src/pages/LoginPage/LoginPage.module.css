@@ -189,12 +189,17 @@
   margin-top: 2px;
 }
 
-.loginAlert button {
+.loginAlertAction {
+  display: block !important;
+  width: fit-content;
+  height: auto !important;
+  min-height: 0;
   padding: 0;
   border: 0;
+  border-radius: 0 !important;
   background: transparent;
   color: inherit;
-  cursor: pointer;
+  box-shadow: none !important;
   font: inherit;
   font-weight: 700;
   text-decoration: underline;
@@ -251,6 +256,7 @@
   display: grid;
   width: 24px;
   height: 24px;
+  min-width: 24px;
   padding: 3px;
   place-items: center;
   border: 0;
