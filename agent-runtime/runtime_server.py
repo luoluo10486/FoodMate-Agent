@@ -751,7 +751,8 @@ if __name__ == "__main__":
         _notify_java_runtime_recovered()
         mq_runtime = _mq_runtime
     try:
-        ThreadingHTTPServer(("127.0.0.1", int(os.getenv("PORT", "9000"))), Handler).serve_forever()
+        bind_host = os.getenv("FOODMATE_BIND_HOST", "127.0.0.1")
+        ThreadingHTTPServer((bind_host, int(os.getenv("PORT", "9000"))), Handler).serve_forever()
     finally:
         if mq_runtime is not None:
             mq_runtime.close()

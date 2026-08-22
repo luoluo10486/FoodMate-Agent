@@ -29,6 +29,24 @@ docker compose --env-file .env -f docker/compose.yml down
 
 配置模板见 `.env.example`。真实 `.env` 只保存在本机并被 Git 忽略。
 
+## 应用容器
+
+构建并启动 Java 控制面和 Python Agent Runtime：
+
+```powershell
+docker compose --env-file .env -f docker/compose.yml up -d --build foodmate agent-runtime
+docker compose --env-file .env -f docker/compose.yml ps foodmate agent-runtime
+```
+
+Java 容器使用 `local` profile，Python 容器默认使用 Redis-backed `stub` 索引；两者都只使用 deterministic 本地逻辑，不调用付费模型或 embedding 服务。应用容器不会自动执行 `script/sql/FoodMate` 迁移，迁移必须按版本人工执行并记录。
+
+容器内 readiness：
+
+```powershell
+Invoke-WebRequest http://localhost:8080/actuator/health/readiness
+Invoke-WebRequest http://localhost:9000/foodmate/internal/health/ready
+```
+
 ## M2-1 RAG
 
 默认 `FOODMATE_RAG_MODE=stub`，只使用 Redis 隔离前缀保存确定性关键词索引，不连接 Milvus，也不读取 embedding API Key。

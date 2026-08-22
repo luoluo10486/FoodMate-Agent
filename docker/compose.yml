@@ -253,6 +253,101 @@ services:
       start_period: 20s
     networks: [foodmate]
 
+  # Java 控制面容器。默认 local profile 只使用本地 deterministic/stub 配置，
+  # 不由镜像携带数据库迁移或任何外部服务凭据。
+  foodmate:
+    build:
+      context: ..
+      dockerfile: docker/java.Dockerfile
+    container_name: ${FOODMATE_APP_CONTAINER_NAME:-foodmate}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rocketmq-init:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-FoodMate}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-foodmate-redis-change-me}@redis:6379
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_BUCKET: ${MINIO_BUCKET:-foodmate-private}
+      FOODMATE_COOKIE_SECURE: "false"
+      FOODMATE_AGENT_TRANSPORT: rocketmq
+      FOODMATE_AGENT_ADMISSION_ENABLED: "true"
+      FOODMATE_ROCKETMQ_NAMESRV_ADDR: foodmate-rocketmq-namesrv:9876
+      FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX: ${FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX:-foodmate-knowledge-index-v1}
+      FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX_RESULT: ${FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX_RESULT:-foodmate-knowledge-index-result-v1}
+      FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_VISIBILITY: ${FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_VISIBILITY:-foodmate-knowledge-visibility-v1}
+      FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_KNOWLEDGE_INDEX_RESULT: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_KNOWLEDGE_INDEX_RESULT:-foodmate-java-knowledge-index-result-v1}
+      FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_KNOWLEDGE_PURGE_RESULT: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_JAVA_KNOWLEDGE_PURGE_RESULT:-foodmate-java-knowledge-purge-result-v1}
+      RUNTIME_SERVICE_JWT_ENABLED: "false"
+      FOODMATE_RAG_MODE: ${FOODMATE_RAG_MODE:-stub}
+    ports:
+      - "${FOODMATE_APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness | grep -q 'UP'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    networks: [foodmate]
+
+  # Python Agent Runtime 与知识索引 Worker。它不连接 PostgreSQL，Java 仍是业务权威。
+  agent-runtime:
+    build:
+      context: ..
+      dockerfile: docker/python.Dockerfile
+    container_name: ${FOODMATE_AGENT_CONTAINER_NAME:-foodmate-agent-runtime}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      rocketmq-proxy:
+        condition: service_healthy
+      foodmate:
+        condition: service_healthy
+    environment:
+      PORT: "9000"
+      FOODMATE_BIND_HOST: 0.0.0.0
+      JAVA_CALLBACK_URL: http://foodmate:8080
+      FOODMATE_CONTRACT_VERSION: v1
+      FOODMATE_SERVICE_JWT_ENABLED: "false"
+      FOODMATE_AGENT_TRANSPORT: rocketmq
+      FOODMATE_AGENT_CHECKPOINT_BACKEND: redis
+      FOODMATE_AGENT_CHECKPOINT_ENCRYPTION_ENABLED: "false"
+      FOODMATE_REDIS_URL: redis://:${REDIS_PASSWORD:-foodmate-redis-change-me}@redis:6379
+      FOODMATE_ROCKETMQ_PROXY_ADDR: foodmate-rocketmq-proxy:8081
+      FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_INDEX: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_INDEX:-foodmate-python-knowledge-index-v1}
+      FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_VISIBILITY: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_VISIBILITY:-foodmate-python-knowledge-visibility-v1}
+      FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_PURGE: ${FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_PURGE:-foodmate-python-knowledge-purge-v1}
+      FOODMATE_KNOWLEDGE_INDEX_WORKER_ENABLED: "true"
+      FOODMATE_RAG_MODE: ${FOODMATE_RAG_MODE:-stub}
+      FOODMATE_RAG_EMBEDDING_PROVIDER: ${FOODMATE_RAG_EMBEDDING_PROVIDER:-deterministic}
+      FOODMATE_RAG_EMBEDDING_MODEL: ${FOODMATE_RAG_EMBEDDING_MODEL:-deterministic-local-v1}
+      FOODMATE_RAG_STUB_REDIS_PREFIX: ${FOODMATE_RAG_STUB_REDIS_PREFIX:-foodmate:rag:stub}
+      FOODMATE_KNOWLEDGE_MINIO_ENDPOINT: minio:9000
+      FOODMATE_KNOWLEDGE_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      FOODMATE_KNOWLEDGE_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      FOODMATE_KNOWLEDGE_MINIO_BUCKET: ${MINIO_BUCKET:-foodmate-private}
+    ports:
+      - "${FOODMATE_AGENT_PORT:-9000}:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/foodmate/internal/health/live', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks: [foodmate]
+
 volumes:
   foodmate-postgres-data:
   foodmate-redis-data:
