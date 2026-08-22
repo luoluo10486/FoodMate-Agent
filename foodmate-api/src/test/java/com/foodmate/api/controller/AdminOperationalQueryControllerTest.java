@@ -92,6 +92,47 @@ class AdminOperationalQueryControllerTest {
                 .andExpect(jsonPath("$.error.code", is("FORBIDDEN")));
     }
 
+    @Test
+    void operatorCanReadDlqSummaryWithoutPayload() throws Exception {
+        when(accounts.requireSessionUser("operator-session")).thenReturn(user("operator"));
+        doReturn(
+                        new AdminOperationalQueryService.Page<AdminOperationalQueryService.Dlq>(
+                                List.of(
+                                        new AdminOperationalQueryService.Dlq(
+                                                21L,
+                                                "foodmate-java-agent-event-v1",
+                                                "foodmate-agent-event-v1",
+                                                "mq-21",
+                                                "42",
+                                                "dispatch-42",
+                                                "event-42",
+                                                2,
+                                                8,
+                                                "RUNTIME_MESSAGE_DEAD_LETTERED",
+                                                "needs_attention",
+                                                null,
+                                                null)),
+                                1,
+                                1,
+                                20))
+                .when(queries)
+                .query(eq("dlq"), any(AdminOperationalQueryService.Request.class));
+
+        mvc.perform(
+                        get("/api/admin/queries/dlq")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "operator-session")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.resource", is("dlq")))
+                .andExpect(jsonPath("$.data.items[0].message_id", is("mq-21")))
+                .andExpect(jsonPath("$.data.items[0].reconciliation_state", is("needs_attention")))
+                .andExpect(jsonPath("$.data.items[0].raw_payload_json").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].last_error").doesNotExist());
+
+        verify(queries).query(eq("dlq"), any(AdminOperationalQueryService.Request.class));
+    }
+
     private UserAccountService.UserRecord user(String role) {
         return new UserAccountService.UserRecord(
                 2L, role, role + "@example.com", "hash", role, role, "active");

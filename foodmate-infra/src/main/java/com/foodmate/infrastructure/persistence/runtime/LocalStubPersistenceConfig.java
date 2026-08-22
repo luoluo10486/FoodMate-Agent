@@ -523,6 +523,14 @@ public class LocalStubPersistenceConfig {
             public long countOperationAudits(Query query) {
                 return 0;
             }
+
+            public List<DlqRow> dlq(Query query) {
+                return List.of();
+            }
+
+            public long countDlq(Query query) {
+                return 0;
+            }
         };
     }
 

@@ -20,7 +20,8 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                     "usage",
                     "knowledge",
                     "deleted",
-                    "operation-audits");
+                    "operation-audits",
+                    "dlq");
 
     private final AdminOperationalQueryRepository store;
 
@@ -77,6 +78,7 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                             store.countOperationAudits(query),
                             safeRequest,
                             this::operationAudit);
+            case "dlq" -> page(store.dlq(query), store.countDlq(query), safeRequest, this::dlq);
             default -> throw new IllegalArgumentException("unsupported admin query resource");
         };
     }
@@ -116,6 +118,7 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
             case "knowledge" -> Set.of("updated_at", "title", "status");
             case "deleted" -> Set.of("deleted_at", "resource_type");
             case "operation-audits" -> Set.of("created_at", "result", "action");
+            case "dlq" -> Set.of("first_seen_at", "reconciled_at", "reconsume_times", "state");
             default -> Set.of();
         };
     }
@@ -217,5 +220,22 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                 row.requestId(),
                 row.traceId(),
                 row.createdAt());
+    }
+
+    private Dlq dlq(AdminOperationalQueryRepository.DlqRow row) {
+        return new Dlq(
+                row.dlqId(),
+                row.consumerGroup(),
+                row.sourceTopic(),
+                row.messageId(),
+                row.runId(),
+                row.dispatchId(),
+                row.eventId(),
+                row.attempt(),
+                row.reconsumeTimes(),
+                row.errorCode(),
+                row.reconciliationState(),
+                row.firstSeenAt(),
+                row.reconciledAt());
     }
 }
