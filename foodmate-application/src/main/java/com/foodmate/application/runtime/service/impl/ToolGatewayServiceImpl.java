@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
+import com.foodmate.application.runtime.service.SqlQueryGuard;
+import com.foodmate.application.runtime.service.SqlSchemaCatalogService;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.application.runtime.service.ToolPolicy;
 import com.foodmate.application.runtime.service.ToolRegistryService;
@@ -12,7 +14,6 @@ import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
 import java.util.List;
-import java.util.regex.Pattern;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,18 +23,23 @@ import org.springframework.stereotype.Service;
 public class ToolGatewayServiceImpl implements ToolGatewayService {
     private static final int MAX_ID_LENGTH = 128;
     private static final int MAX_SQL_LENGTH = 8_192;
-    private static final Pattern READ_ONLY = Pattern.compile("(?is)^\\s*select\\b.*");
-    private static final Pattern FORBIDDEN =
-            Pattern.compile(
-                    "(?is)(;|\\binsert\\b|\\bupdate\\b|\\bdelete\\b|\\bdrop\\b|\\balter\\b|\\btruncate\\b|\\bgrant\\b|\\brevoke\\b)");
     private final ToolGatewayPort store;
     private final IdGenerator ids;
     private final ApprovalService approvals;
     private final ObjectMapper mapper;
     private final ToolRegistryService registry;
+    private final SqlQueryGuard sqlGuard;
+    private final SqlSchemaCatalogService catalogService;
 
     public ToolGatewayServiceImpl(ToolGatewayPort store, IdGenerator ids) {
-        this(store, ids, (ApprovalService) null, new ObjectMapper().findAndRegisterModules(), null);
+        this(
+                store,
+                ids,
+                (ApprovalService) null,
+                new ObjectMapper().findAndRegisterModules(),
+                null,
+                null,
+                null);
     }
 
     @Autowired
@@ -42,8 +48,10 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             IdGenerator ids,
             ObjectProvider<ApprovalService> approvals,
             ObjectMapper mapper,
-            ToolRegistryService registry) {
-        this(store, ids, approvals.getIfAvailable(), mapper, registry);
+            ToolRegistryService registry,
+            SqlQueryGuard sqlGuard,
+            SqlSchemaCatalogService catalogService) {
+        this(store, ids, approvals.getIfAvailable(), mapper, registry, sqlGuard, catalogService);
     }
 
     public ToolGatewayServiceImpl(
@@ -51,7 +59,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             IdGenerator ids,
             ApprovalService approvals,
             ObjectMapper mapper) {
-        this(store, ids, approvals, mapper, null);
+        this(store, ids, approvals, mapper, null, null, null);
     }
 
     public ToolGatewayServiceImpl(
@@ -60,11 +68,24 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             ApprovalService approvals,
             ObjectMapper mapper,
             ToolRegistryService registry) {
+        this(store, ids, approvals, mapper, registry, null, null);
+    }
+
+    public ToolGatewayServiceImpl(
+            ToolGatewayPort store,
+            IdGenerator ids,
+            ApprovalService approvals,
+            ObjectMapper mapper,
+            ToolRegistryService registry,
+            SqlQueryGuard sqlGuard,
+            SqlSchemaCatalogService catalogService) {
         this.store = store;
         this.ids = ids;
         this.approvals = approvals;
         this.mapper = mapper.copy().findAndRegisterModules();
         this.registry = registry;
+        this.sqlGuard = sqlGuard;
+        this.catalogService = catalogService;
     }
 
     @Override
@@ -250,10 +271,10 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
     /** 执行最小 sql_read Proposal；无数据库时明确返回不可用，不回退到进程内伪造数据。 */
     private ProposalResult executeValidated(
             String proposalId, String runId, String statement, String invocationId) {
-        if (statement == null
-                || statement.length() > MAX_SQL_LENGTH
-                || !READ_ONLY.matcher(statement).matches()
-                || FORBIDDEN.matcher(statement).find())
+        if (statement == null || statement.length() > MAX_SQL_LENGTH)
+            return reject(proposalId, "SQL_PROPOSAL_NOT_READ_ONLY");
+        if (sqlGuard == null
+                && !statement.trim().toLowerCase(java.util.Locale.ROOT).startsWith("select"))
             return reject(proposalId, "SQL_PROPOSAL_NOT_READ_ONLY");
         long numericRunId;
         try {
@@ -261,19 +282,37 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         } catch (NumberFormatException exception) {
             return reject(proposalId, "RUN_ID_INVALID");
         }
-        if (!store.runExists(numericRunId)) {
+        ToolGatewayPort.RunContext context = null;
+        SqlQueryGuard.GuardedQuery guarded = null;
+        if (sqlGuard != null && catalogService != null) {
+            context = store.runContext(numericRunId);
+            if (context == null) return reject(proposalId, "RUN_NOT_FOUND");
+            try {
+                guarded =
+                        sqlGuard.guard(
+                                statement,
+                                catalogService.current(context.datasourceId()),
+                                context.userId());
+            } catch (BusinessException exception) {
+                return reject(proposalId, exception.errorCode().code());
+            }
+        } else if (!store.runExists(numericRunId)) {
             return reject(proposalId, "RUN_NOT_FOUND");
         }
         long started = System.nanoTime();
         List<JsonNode> rows;
         try {
-            rows = store.executeRead(statement);
+            rows =
+                    guarded == null
+                            ? store.executeRead(statement)
+                            : store.executeRead(
+                                    guarded.statement(), guarded.parameters(), guarded.timeoutMs());
             if (rows.size() > 500) rows = rows.subList(0, 500);
             store.audit(
                     new ToolGatewayPort.Audit(
                             ids.nextId(),
                             numericRunId,
-                            statement,
+                            guarded == null ? statement : guarded.statement(),
                             "executed",
                             rows.size(),
                             null,

@@ -13,7 +13,7 @@ public interface ToolGatewayMapper {
     boolean runExists(long runId);
 
     @Select(
-            "SELECT s.user_id AS userId,r.session_id AS sessionId FROM agent_runs r JOIN sessions s ON s.session_id=r.session_id AND s.is_deleted=FALSE WHERE r.agent_run_id=#{runId} AND r.is_deleted=FALSE")
+            "SELECT s.user_id AS userId,r.session_id AS sessionId,COALESCE((SELECT MIN(datasource_id) FROM data_sources WHERE status='active' AND readonly=TRUE AND is_deleted=FALSE),0) AS datasourceId FROM agent_runs r JOIN sessions s ON s.session_id=r.session_id AND s.is_deleted=FALSE WHERE r.agent_run_id=#{runId} AND r.is_deleted=FALSE")
     RunContext runContext(long runId);
 
     @Insert(

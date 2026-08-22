@@ -53,11 +53,11 @@ public class SqlSchemaCatalogServiceImpl implements SqlSchemaCatalogService {
                         .orElseThrow(
                                 () -> new BusinessException(ErrorCode.SQL_CATALOG_UNAVAILABLE));
         if (rows.stream()
-                        .filter(row -> row != null)
-                        .anyMatch(
-                                row ->
-                                        row.datasourceId() != datasourceId
-                                                || !version.equals(row.catalogVersion())))
+                .filter(row -> row != null)
+                .anyMatch(
+                        row ->
+                                row.datasourceId() != datasourceId
+                                        || !version.equals(row.catalogVersion())))
             throw new BusinessException(ErrorCode.SQL_CATALOG_UNAVAILABLE);
         Map<String, List<CatalogField>> grouped = new LinkedHashMap<>();
         for (CatalogField row : rows) {

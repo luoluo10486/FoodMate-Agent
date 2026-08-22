@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.infrastructure.persistence.runtime.ToolGatewayMapper;
+import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +38,20 @@ public class ToolGatewayPortAdapter implements ToolGatewayPort {
 
     @Override
     public List<JsonNode> executeRead(String statement) {
+        return executeRead(statement, List.of(), 5_000);
+    }
+
+    @Override
+    public List<JsonNode> executeRead(String statement, List<Object> parameters, int timeoutMs) {
         return jdbcTemplate.query(
-                statement,
+                connection -> {
+                    PreparedStatement prepared = connection.prepareStatement(statement);
+                    prepared.setQueryTimeout(Math.max(1, (timeoutMs + 999) / 1000));
+                    prepared.setMaxRows(500);
+                    for (int index = 0; index < parameters.size(); index++)
+                        prepared.setObject(index + 1, parameters.get(index));
+                    return prepared;
+                },
                 resultSet -> {
                     ResultSetMetaData metadata = resultSet.getMetaData();
                     List<JsonNode> rows = new ArrayList<>();

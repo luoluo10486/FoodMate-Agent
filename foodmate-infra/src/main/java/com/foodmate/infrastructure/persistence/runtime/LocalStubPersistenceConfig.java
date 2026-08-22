@@ -492,10 +492,30 @@ public class LocalStubPersistenceConfig {
                                 catalog(datasourceId, "food_logs", "user_id", "bigint"),
                                 catalog(datasourceId, "food_logs", "meal_time", "timestamptz"),
                                 catalog(datasourceId, "food_logs", "meal_type", "varchar"),
+                                catalog(datasourceId, "food_logs", "is_deleted", "bool"),
+                                catalog(
+                                        datasourceId,
+                                        "food_log_items",
+                                        "food_log_item_id",
+                                        "bigint"),
+                                catalog(datasourceId, "food_log_items", "food_log_id", "bigint"),
+                                catalog(datasourceId, "food_log_items", "raw_name", "varchar"),
+                                catalog(datasourceId, "food_log_items", "amount", "numeric"),
+                                catalog(datasourceId, "food_log_items", "is_deleted", "bool"),
                                 catalog(datasourceId, "meal_plans", "meal_plan_id", "bigint"),
                                 catalog(datasourceId, "meal_plans", "user_id", "bigint"),
                                 catalog(datasourceId, "meal_plans", "status", "varchar"),
                                 catalog(datasourceId, "meal_plans", "updated_at", "timestamptz"),
+                                catalog(datasourceId, "meal_plans", "is_deleted", "bool"),
+                                catalog(
+                                        datasourceId,
+                                        "shopping_lists",
+                                        "shopping_list_id",
+                                        "bigint"),
+                                catalog(datasourceId, "shopping_lists", "meal_plan_id", "bigint"),
+                                catalog(datasourceId, "shopping_lists", "user_id", "bigint"),
+                                catalog(datasourceId, "shopping_lists", "status", "varchar"),
+                                catalog(datasourceId, "shopping_lists", "is_deleted", "bool"),
                                 catalog(
                                         datasourceId,
                                         "nutrition_foods",
@@ -525,7 +545,21 @@ public class LocalStubPersistenceConfig {
                                         datasourceId,
                                         "nutrition_foods",
                                         "carbs_g_per_100",
-                                        "numeric"))
+                                        "numeric"),
+                                catalog(datasourceId, "nutrition_foods", "is_deleted", "bool"),
+                                catalog(
+                                        datasourceId,
+                                        "knowledge_documents",
+                                        "document_id",
+                                        "bigint"),
+                                catalog(datasourceId, "knowledge_documents", "tenant_id", "bigint"),
+                                catalog(datasourceId, "knowledge_documents", "status", "varchar"),
+                                catalog(
+                                        datasourceId,
+                                        "knowledge_documents",
+                                        "visibility",
+                                        "varchar"),
+                                catalog(datasourceId, "knowledge_documents", "is_deleted", "bool"))
                         : List.of();
     }
 
