@@ -264,7 +264,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `ChatPage` 定向测试 `4/4`、`npm run typecheck`、本次触及文件 Prettier 和 `git diff --check` 通过。
 - [ ] diff 仍为 `DIFF_REVIEW`；当前账户文案、字体光栅化和 Figma/前端头像位图差异未被伪装成 PASS。
 - [ ] iconfont 实体资源仍为 `BLOCKED`；标准命令图标继续使用 Lucide，未写入虚构字体包、类名或 Unicode。
-- [ ] 下一步继续按顺序迁移 `agent-awaiting-clarification`、`agent-write-confirmation`、`agent-budget-limit`，再处理失败、降级、取消和 SSE 重连状态。
+- [ ] `agent-awaiting-clarification` 已完成当前版本证据复核；下一步按顺序复核 `agent-write-confirmation`、`agent-budget-limit`，再处理失败、降级、取消和 SSE 重连状态。
 
 ## 43. 2026-08-15 Agent Awaiting Clarification 状态迁移与验收
 
@@ -491,3 +491,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点检查结果为 `0`，因此没有对应代码需要删除；首页活跃会话中的 `sessionDot` 属于业务状态指示器，不属于窗口装饰点，保留不变；Figma 设计稿未修改。
 - [x] 当前 PNG diff：差异比例 `23.8253%`、`MAE=3.0472`、`RMSE=16.8015`、最大通道差异 `234`；机器结果锚点为 `figma-105-diff-results.json#meal-planning-v2`。
 - [ ] 本页继续保持 `DIFF_REVIEW`；计划工具栏、导航、餐卡几何、字体和内容密度仍存在视觉差异，不能标记 `PASS`。
+
+## 62. 2026-08-23 Agent Clarification 当前版本验收证据更新
+
+- [x] `687:642` `/chat?state=awaiting-clarification` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-awaiting-clarification-current.png`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser-current-rgba.png`。
+- [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出；澄清选项文案与实时 Figma 完全一致：`补充食物和份量`、`上传照片识别`。
+- [x] 前端左上角红、黄、绿窗口装饰点检查结果为 `0`；当前实现保留 Figma 所需的顶部空白布局占位，不包含窗口装饰点；Figma 设计稿未修改。
+- [x] 当前 PNG diff：差异比例 `15.4844%`、`MAE=1.8229`、`RMSE=12.9095`、最大通道差异 `251`；机器结果锚点为 `figma-105-diff-results.json#agent-awaiting-clarification`。
+- [ ] 本页继续保持 `DIFF_REVIEW`；剩余差异主要来自头像处理及字体/图标光栅化，不能标记 `PASS`。

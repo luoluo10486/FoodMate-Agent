@@ -967,12 +967,12 @@
       "frontendRoute": "/chat",
       "queryState": "state=awaiting-clarification",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-awaiting-clarification.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-awaiting-clarification-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-awaiting-clarification",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: state hierarchy aligns, but option labels are abbreviated relative to the Figma guidance copy.",
+      "evidenceNote": "Current Figma and browser evidence reviewed; visual differences remain in avatar treatment and rendering.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -997,8 +997,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Clarification state layout aligns, but the option labels omit the detailed Figma guidance copy and avatar treatment differs; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures match the clarification hierarchy and option labels. Avatar treatment and remaining font/icon rasterization differences are visible; retain DIFF_REVIEW."
       }
     },
     {
