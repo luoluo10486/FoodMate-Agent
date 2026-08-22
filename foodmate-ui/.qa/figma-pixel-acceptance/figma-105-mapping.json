@@ -1187,12 +1187,12 @@
       "frontendRoute": "/chat",
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-safety-degraded-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: safety wording is present, but warning-card hierarchy and visual treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; safety warning, limited-data scope, personal-condition limitation, and follow-up entry exist, but warning-card hierarchy and visual treatment differ. PNG diff is 25.5897% / MAE 3.3499 / RMSE 16.7858; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1217,8 +1217,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Safety degradation and bounded-result text are present. Warning-card hierarchy, typography, and avatar treatment differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures contain the safety warning, bounded data scope, personal-condition limitation, and follow-up entry. Warning hierarchy, card geometry, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
       }
     },
     {

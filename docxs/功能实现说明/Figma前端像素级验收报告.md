@@ -525,3 +525,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
 - [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=319638`、差异比例 `21.6768%`、`MAE=3.0042`、`RMSE=15.9168`、最大通道差异 `245`；机器结果锚点为 `figma-105-diff-results.json#agent-tool-failed-retryable`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；告警卡几何、颜色、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+
+## 66. 2026-08-23 Agent Safety Degraded 当前画板证据复核
+
+- [x] `687:1563` `/chat?state=safety-degraded` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-safety-degraded-current.png`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current.png`。
+- [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；安全降级警告、有限数据说明、个人高血压条件未完整应用提示和追问入口均存在。
+- [x] 追问输入保持可用；页面明确说明结果基于有限数据，未把降级结果包装成完整分析或完整引用。
+- [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=377335`、差异比例 `25.5897%`、`MAE=3.3499`、`RMSE=16.7858`、最大通道差异 `249`；机器结果锚点为 `figma-105-diff-results.json#agent-safety-degraded`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；告警层级、卡片几何、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。

@@ -4,10 +4,10 @@
   "width": 1440,
   "height": 1024,
   "pixelCount": 1474560,
-  "differentPixels": 385948,
-  "differentRatio": 0.2617377387152778,
-  "meanAbsoluteError": 3.51128913031684,
-  "rmse": 17.311282152781764,
+  "differentPixels": 377335,
+  "differentRatio": 0.2558966742621528,
+  "meanAbsoluteError": 3.349892849392361,
+  "rmse": 16.785769483584392,
   "maxChannelDelta": 249,
-  "manualReview": "PENDING: automated diff completed; visual geometry and typography review remains open"
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: current Figma and browser captures contain safety warning, bounded data scope, personal-condition limitation, and follow-up entry; warning hierarchy, card geometry, avatar treatment, and font/icon rasterization differ"
 }
