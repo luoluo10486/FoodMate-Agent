@@ -59,12 +59,12 @@
 - PostgreSQL FoodMate 已执行基线及 V2-V6 追加迁移；账号、会话、消息、continuation、预算基础结构与 MQ 运行时表均已用于真实联调。
 - Java 已实现账号、认证会话、会话、消息、AgentRun、dispatch outbox、事件 inbox、取消和 SSE。
 - Python agent-runtime 已实现 V1 Service JWT、RocketMQ command/event/proposal/result、Redis Inbox/Outbox、固定 Workflow、模型适配、Eval Gate、预算、checkpoint 和确定性默认 provider；M1-3 HTTP 回调仅保留兼容和契约测试用途。
-- 前端真实模式已接入认证、会话、消息、AgentRun SSE 和取消；知识库检索、管理端批次上传/进度/重试、聊天引用、饮食记录、营养分析、餐食规划和主要运营页面已有 real 业务路径。知识库跨运行时真实闭环、SQL Agent 真实数据库联调和生产强化仍未完成。
+- 前端真实模式已接入认证、会话、消息、AgentRun SSE 和取消；知识库检索、管理端批次上传/进度/重试、聊天引用、饮食记录、营养分析、餐食规划和主要运营页面已有 real 业务路径。M2-1 deterministic 知识库跨运行时业务闭环和 M2-2 SQL Agent 真实本地数据库联调已完成；生产强化仍未完成。
 
 当前不能宣称完成的部分：
 
 - Python Runtime 的 Router、Planner、Tool Proposal、Result 回注、Eval 和恢复闭环已具备本地实现与验证；生产 RAG、完整业务 Tool/SQL 场景、云模型长时间稳定性和生产级治理仍未形成完整闭环。
-- 业务知识库的 Java/Python 核心索引、stub/local 检索、可见性和前端引用已实现并通过业务测试；真实 Docker 跨运行时上传/索引/发布/引用、统一生产可观测性、账单审计和发布流程仍未形成完整闭环。
+- 业务知识库的 Java/Python 核心索引、stub/local 检索、可见性和前端引用已实现并通过业务测试；deterministic 本地依赖下的上传/索引/发布/引用闭环已验证。真实云 embedding、统一生产可观测性、账单审计和发布流程仍未形成生产闭环。
 
 ## 4. 里程碑与发布门槛
 
@@ -228,7 +228,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] 完成 stub/local 向量与关键词检索、metadata 权限过滤、引用返回、索引失败手动重试和下线可见性同步的核心实现与业务测试。
 - [x] 将 RAG 引用展示接入前端，支持 run.completed 安全引用和可展开引用块；无命中时不编造引用。
 - [x] 完成文档格式、基础恶意文件/来源/PII/索引成本策略的代码门禁与稳定错误码。
-- [ ] 完成真实 Docker Java -> RocketMQ -> Python -> Redis/Milvus -> Java 的上传、索引、发布、检索和 SSE 引用联调；该项按当前决策后置，不作为本轮业务门禁。
+- [x] 完成 deterministic 本地依赖下 Java -> RocketMQ -> Python -> Redis/Milvus -> Java 的上传、索引、发布、检索和 SSE 引用联调；Docker 应用镜像启动、真实云 embedding、性能与故障矩阵按当前决策后置，不作为本轮业务门禁。
 
 风险：未授权文档泄露、过时引用、索引任务堆积和存储成本。控制方式：权限元数据、版本化、队列监控、配额和数据保留策略。
 
@@ -238,7 +238,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] 完成 Proposal -> Policy -> Confirm -> Execute -> Audit 的 Java 受控执行链路。
 - [x] 实现只读 SQL Guard：AST 解析、单语句、只读、schema/字段白名单、敏感字段遮蔽、用户过滤、行数与超时限制。
 - [x] 实现 SQL 审计、结果脱敏、错误分类、攻击样例和越权回归测试。
-- [ ] 完成真实 Java/Python/PostgreSQL SQL Agent 跨运行时联调；当前只要求业务代码和契约测试通过，真实依赖联调后置。
+- [x] 完成 deterministic Java/Python/PostgreSQL/RocketMQ SQL Agent 跨运行时业务联调；`time_parser -> database_query -> Composer` 多轮 Run、SQL 审计、空数据语义和事件连续性已验证。真实云模型稳定性和性能/故障门禁后置。
 
 边界：Python 只能提议，不能访问数据源账号或绕过 Java Policy；SQL Agent 不允许任何写操作。
 
@@ -254,7 +254,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [ ] 完成接口、SSE、模型调用、数据库和队列的生产压测与容量基线（本地双 JVM 基线属于 M1-6，生产压测后置）。
 - [ ] 完成依赖漏洞扫描、密钥轮换、权限审计、渗透测试和安全事件预案。
 - [ ] 后置：完成数据库备份恢复、跨环境迁移、灾难恢复和发布回滚演练；当前明确不做数据库备份。
-- [ ] 完成数据保留/硬删除任务、失败重试、死信处理和定期审计。
+- [x] 完成数据保留策略、legal hold、审批、对象/向量清理任务、失败重试、DLQ 安全摘要/人工重放契约和实时审计快照代码及业务测试；数据库硬删除默认关闭，实际删除与生产演练后置。
 - [ ] 完成浏览器兼容性、可访问性、移动 Web 适配和性能优化。
 
 ## 9. 跨阶段质量门禁

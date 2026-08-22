@@ -440,3 +440,27 @@
 | 失败记录 | 修复前 4 个 Run 因跨 Run Proposal ID 冲突或重复 checkpoint ID 卡在工具等待并最终失败；另有 2 个 Run 受本地旧 RocketMQ consumer group 位点干扰；均已纳入本轮清理，不修改既有业务数据 |
 | 未执行范围 | 吞吐/延迟/积压压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、SSE `Last-Event-ID` 故障恢复、真实云模型/Embedding、Docker 应用镜像和生产环境继续暂缓 |
 | 结论 | M2-2 结构化分析的真实业务主路径已补齐多轮工具、SQL 审计、事件连续性和 AgentRun 终态证据；本轮不据此扩大性能或故障恢复范围 |
+
+## M3 受控数据库清理执行收尾（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 05:00-05:30（Asia/Shanghai） |
+| 功能提交 | `c866460 feat(retention): 完成受控数据库清理执行` |
+| 代码范围 | 增加受控数据库清理 Port/Adapter；知识文档子表按依赖顺序删除，限定 `is_deleted=TRUE`；对象存储和向量索引任务完成后才允许数据库任务领取；修复清理请求收敛到 `completed` 的 SQL。 |
+| 安全边界 | `hard_delete_enabled=false` 默认关闭；本轮未执行迁移、truncate、宽泛删除、真实硬删除或备份恢复；未触碰现有本地业务数据。 |
+| Java 验证 | Retention Application 定向测试 `13/13`；Retention Infrastructure/V25 定向测试 `5/5`；受影响模块 Spotless 通过。 |
+| 结论 | 受控清理业务代码、状态收敛和依赖顺序具备测试证据；真实硬删除和生产删除演练继续后置。 |
+
+## D1 全量业务门禁复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Java 命令 | `.\mvnw.cmd clean verify` |
+| Java 结果 | BUILD SUCCESS；Shared `12/12`、Application `155/155`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）；Spotless 和 Spring Boot repackage 通过。 |
+| Python 命令 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q` |
+| Python 结果 | `113 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用付费模型或 embedding。 |
+| 前端结果 | 36 个测试文件、`170 passed`；`npm.cmd run typecheck` 通过。 |
+| 失败记录 | 同日首次 Maven 运行因本轮宿主 Java `18080` 进程占用 Bootstrap JAR，repackage 无法重命名；停止已确认的联调进程后重跑成功，未修改业务代码。 |
+| 未执行范围 | 性能压测、Docker 应用镜像启动、真实云服务、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障矩阵、数据库备份恢复和生产环境验证继续暂缓。 |
+| 结论 | 当前代码与业务测试门禁通过；本地功能版可继续收尾，不将后置性能/故障/生产项标记为完成。 |

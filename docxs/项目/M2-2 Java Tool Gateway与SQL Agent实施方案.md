@@ -1,19 +1,29 @@
 # M2-2 Java Tool Gateway 与 SQL Agent 实施方案
 
-更新时间：2026-08-22
-状态：核心代码与定向业务测试已实现，等待本地真实数据库/运行时联调收尾
+更新时间：2026-08-23
+状态：核心代码、业务测试和本地真实数据库/运行时联调已完成；性能与故障门禁后置
 上位计划：[M2剩余功能执行计划.md](M2剩余功能执行计划.md)
 
-## 当前实现状态（2026-08-22）
+## 当前实现状态（2026-08-23）
 
 | 范围 | 状态 | 证据边界 |
 |---|---|---|
 | Tool Registry/Policy | 已实现 | 七个工具的注册目录、版本解析、风险/确认策略和统一入口已接入 |
 | Schema Catalog/SQL Guard | 已实现 | 授权 Catalog、JSqlParser AST 只读校验、用户范围、字段/表白名单和执行边界已有 Java 定向测试 |
 | 双模式 Planner | 已实现 | Python deterministic stub 与 OpenAI-compatible structured planner 共用 QueryPlan/Proposal 契约，配置失败不回退 |
-| 分析 AgentRun | 核心实现已接入 | time_parser -> database_query -> Composer 的结构化结果和空数据语义已有 Runtime 测试 |
+| 分析 AgentRun | 本地业务闭环已验证 | 在本地 PostgreSQL/RocketMQ 和宿主 Java/Python 上完成 `time_parser -> database_query -> Composer` 多轮 AgentRun；SQL 审计、事件序列和终态已断言 |
 
-当前未宣称 M2-2 完成：真实 PostgreSQL 数据上的 database_query、Java/Python/RocketMQ 跨运行时分析回归和完整前端业务验收仍需单独执行；不包含性能压测或故障矩阵。
+当前 M2-2 的业务范围已完成。本地联调使用 deterministic Planner/Composer 和随机隔离测试数据，验证了真实 PostgreSQL 数据查询、Java/Python/RocketMQ 跨运行时回写、SQL 审计、空数据语义和多轮事件连续性；不包含真实云模型稳定性、性能压测或故障矩阵。
+
+## 2026-08-23 业务收尾证据
+
+- 宿主 Java `18080` -> RocketMQ -> Python `19000` -> Java 结果回写完成一次真实本地分析 Run。
+- `time_parser` 与 `database_query` Proposal 均为 `succeeded`，产生 2 条 `sql_query_audits`，状态均为 `executed`，覆盖有数据和空数据分支。
+- Run 事件序列 `1..14` 连续，最终 `status=completed`、`result_type=normal`；跨 Run Proposal 和多轮 checkpoint 事件 ID 不冲突。
+- Python 全量 `pytest`：`113 passed、1 skipped、1 warning`；全量 Java `clean verify`：Shared `12/12`、Application `155/155`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）。
+- 测试用户、Session、Run、消息、SQL/运行时/统一审计、Outbox/Inbox 和 Redis checkpoint 已按随机命名空间精确清理。
+
+吞吐、队列积压、组件重启、ACK 丢失、重复投递、SSE `Last-Event-ID` 故障恢复、真实云模型和生产环境不属于本阶段业务门禁。
 
 ## 1. 目标
 
