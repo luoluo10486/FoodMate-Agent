@@ -713,26 +713,53 @@
   line-height: 16px;
 }
 
-.inlineConfirmation label {
+.inlineConfirmationOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.inlineConfirmationOption {
   display: flex;
   height: 16px;
   align-items: center;
   gap: 8px;
+}
+
+.inlineConfirmationOption + .inlineConfirmationOption {
+  margin-top: -4px;
+}
+
+.inlineConfirmationOption > [data-slot='radio-group-item'] {
+  display: grid;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--fm-border);
+  border-radius: 50%;
+  background: var(--fm-surface);
+  color: var(--fm-orange);
+  cursor: pointer;
+}
+
+.inlineConfirmationOption > [data-slot='radio-group-item'][data-state='checked'] {
+  border-color: var(--fm-orange);
+}
+
+.inlineConfirmationOption > [data-slot='radio-group-item'] svg {
+  width: 5px;
+  height: 5px;
+  color: var(--fm-orange);
+  fill: var(--fm-orange);
+}
+
+.inlineConfirmationOption > label {
+  min-width: 0;
   color: var(--fm-ink);
   font-size: 13px;
   line-height: 16px;
   cursor: pointer;
-}
-
-.inlineConfirmation label + label {
-  margin-top: -4px;
-}
-
-.inlineConfirmation input {
-  width: 12px;
-  height: 12px;
-  margin: 0;
-  accent-color: var(--fm-orange);
 }
 
 .inlineConfirmationActions {

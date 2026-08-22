@@ -270,6 +270,19 @@ describe('ChatPage Figma history fixtures', () => {
     expect(screen.getByText(page)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('搜索会话...')).toHaveValue(searchValue);
   });
+
+  it('uses the shadcn radio group for the meal log target', () => {
+    renderChatState('history-page-2');
+
+    const addToLunch = screen.getByRole('radio', { name: '是，添加到今天的午餐' });
+    const referenceOnly = screen.getByRole('radio', { name: '否，仅作为对话参考' });
+    expect(addToLunch).toBeChecked();
+    expect(referenceOnly).not.toBeChecked();
+
+    fireEvent.click(referenceOnly);
+    expect(referenceOnly).toBeChecked();
+    expect(addToLunch).not.toBeChecked();
+  });
 });
 
 describe('ChatPage Figma session operation fixtures', () => {

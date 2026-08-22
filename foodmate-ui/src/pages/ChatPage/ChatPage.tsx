@@ -18,6 +18,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection } from '../../types/agent';
 import type { Message } from '../../types/session';
@@ -161,14 +162,20 @@ function InlineConfirmationCard({ onConfirm, onCancel }: { onConfirm: () => void
   return (
     <section className={styles.inlineConfirmation} aria-label="饮食记录确认">
       <h3>是否将此记录到你的周二饮食日志？</h3>
-      <label>
-        <input defaultChecked name="meal-log-target" type="radio" />
-        <span>是，添加到今天的午餐</span>
-      </label>
-      <label>
-        <input name="meal-log-target" type="radio" />
-        <span>否，仅作为对话参考</span>
-      </label>
+      <RadioGroup
+        aria-label="饮食记录目标"
+        className={styles.inlineConfirmationOptions}
+        defaultValue="add-to-lunch"
+      >
+        <div className={styles.inlineConfirmationOption}>
+          <RadioGroupItem aria-label="是，添加到今天的午餐" id="meal-log-add-to-lunch" value="add-to-lunch" />
+          <label htmlFor="meal-log-add-to-lunch">是，添加到今天的午餐</label>
+        </div>
+        <div className={styles.inlineConfirmationOption}>
+          <RadioGroupItem aria-label="否，仅作为对话参考" id="meal-log-reference-only" value="reference-only" />
+          <label htmlFor="meal-log-reference-only">否，仅作为对话参考</label>
+        </div>
+      </RadioGroup>
       <div className={styles.inlineConfirmationActions}>
         <Button type="button" onClick={onConfirm}>
           提交并继续
