@@ -658,6 +658,24 @@
   gap: 14px;
 }
 
+.authPage-register .authForm {
+  display: contents;
+}
+
+.registerFields {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.registerActions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .authField {
   display: flex;
   width: 100%;

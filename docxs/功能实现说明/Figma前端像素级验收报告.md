@@ -324,3 +324,21 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - `MealPlanningFlow.tsx` 定向 Prettier 已通过；全量 `format:check` 仍受其他未提交文件阻塞，未把该阻塞写成当前页面运行失败。
 
 本次不更新 105 条 diff 状态：仍为 `DIFF_REVIEW=105`、`PASS=0`，人工视觉复核仍未完成；iconfont 资源继续为 `BLOCKED`。
+
+## 47. 2026-08-22 注册页布局层级收敛
+
+本轮重新读取 Figma 节点 `680:216`，并在 `1440×900`、DPR 1、字体加载完成条件下重新采集 `/register`。改动范围仅限注册页结构：将 Figma 中独立的四字段组 `680:227`、密码规则组 `680:250` 和底部操作组 `680:263` 从平铺表单间距改为对应的嵌套层级，保留 `form` 语义、真实注册接口和 shadcn `Input`/`Button` 控件。
+
+| 验收项 | 当前证据 |
+|---|---|
+| 卡片几何 | `x=490,y=34.4,w=460,h=831.2`；内容宽 `380px` |
+| 输入几何 | 四个输入 `y=235.2/320.8/406.4/492px`，均为 `380×50px` |
+| Figma 参考 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png` |
+| 浏览器 RGBA | `foodmate-ui/.qa/figma-pixel-acceptance/register-page-browser-current-rgba.png` |
+| PNG diff | `differentRatio=54.06998%`、`meanAbsoluteError=0.80904`、`RMSE=5.52169`，保持 `DIFF_REVIEW` |
+| 行为回归 | `AuthPages.test.tsx`：`13/13`；`npm run typecheck` 通过；触及文件 Prettier 通过 |
+
+- [x] 注册页的卡片、字段、密码规则和操作区已按 Figma 层级分组，按钮与页脚不再受字段组平铺间距影响。
+- [x] 注册页保留空值交互状态，用户输入后密码规则按真实值更新；Figma 静态参考图中的示例值和全绿规则因此继续作为状态差异记录。
+- [ ] 该画板仍不能标记 `PASS`：当前浏览器交互态与 Figma 示例填充态不同，且完整人工视觉复核尚未关闭；不得用本轮几何通过替代像素验收。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮未添加虚构字体包、Unicode 或 CSS 映射。
