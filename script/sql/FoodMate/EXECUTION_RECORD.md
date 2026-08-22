@@ -514,3 +514,12 @@
 | 清理 | 精确删除本轮 operator `349684404412485632`、5 个批次/条目/文档、3 个 AgentRun、Session、消息、Outbox/Inbox/SSE/统一审计事实；MinIO 5 个测试对象确认不存在；Redis 隔离 chunks、5 条 Worker 完成事实和 3 个 checkpoint 删除；PostgreSQL 复核 user/jobs/docs/runs/sessions 均为 `0` |
 | 未执行范围 | Docker Java/Python 应用镜像构建与启动、真实 embedding/云模型、吞吐/延迟/积压压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、SSE `Last-Event-ID` 故障恢复、备份恢复和生产环境继续暂缓 |
 | 结论 | M2-1 deterministic 公共知识库的上传 -> Java Outbox -> RocketMQ -> Python Worker -> Java 状态回写 -> 发布 -> 用户检索 -> AgentRun 引用 -> 下线/恢复业务闭环具备本轮真实证据；不据此扩大后置测试或生产完成范围 |
+
+## D5 业务门禁复跑（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Java | `./mvnw.cmd verify`（Windows 等价命令 `mvnw.cmd verify`）BUILD SUCCESS；Shared `12/12`、Application `157/157`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）；Spotless、编译、Spring Boot repackage 和 ArchUnit 通过 |
+| Python | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`113 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用付费模型或真实 embedding |
+| 工作区与运行态 | 本轮临时 Java/Python 进程已停止；Docker 依赖仍 healthy；`git diff --check` 通过；用户已有 UI/Figma/`tmp` 改动未暂存 |
+| 结论 | M2-1 deterministic 业务实现和当前 Java/Python 业务门禁通过；性能、重启、ACK/重复投递、真实服务和生产范围继续后置 |
