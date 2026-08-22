@@ -675,10 +675,7 @@ function PlanListView({
           <h1>餐食规划</h1>
           <p>生成并管理您的个性化膳食计划</p>
         </div>
-        <FlowButton onClick={() => onNavigate('wizard-step1')}>
-          <Plus aria-hidden="true" />
-          新建膳食计划
-        </FlowButton>
+        <FlowButton onClick={() => onNavigate('wizard-step1')}>+ 新建膳食计划</FlowButton>
       </header>
       <div className={styles.listTabs} role="tablist" aria-label="计划状态">
         {[

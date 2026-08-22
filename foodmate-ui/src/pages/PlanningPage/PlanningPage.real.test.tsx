@@ -110,7 +110,7 @@ describe('PlanningPage real mode', () => {
     vi.mocked(createMealPlan).mockResolvedValue({ ...plan, meal_plan_id: '702', plan_name: '新建服务端计划' });
     renderPage('/planning?state=list');
 
-    await user.click(await screen.findByRole('button', { name: '新建膳食计划' }));
+    await user.click(await screen.findByRole('button', { name: '+ 新建膳食计划' }));
     await user.click(screen.getByRole('button', { name: '下一步: 膳食约束' }));
     await user.click(screen.getByRole('button', { name: '下一步: 确认并生成' }));
     await user.click(screen.getByRole('button', { name: '创建并保存计划' }));

@@ -2028,15 +2028,15 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: default fixture now renders all three Figma plan cards, uses the Figma-sourced planning topbar avatar with circular clipping, aligns the lifecycle panel to the Figma x/y/size geometry, uses the Figma-specified 16px action gap and 36px action buttons, and applies the Noto Sans SC panel typography plus Figma status-badge text styles; latest capture produced 27.9746% pixel difference, while card details, density, and visual treatment still differ, so retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture after changing the header action to the Figma single text node '+ 新建膳食计划': the fixture still renders all three Figma plan cards, uses the Figma-sourced planning topbar avatar with circular clipping, aligns the lifecycle panel to the Figma x/y/size geometry, uses the Figma-specified 16px action gap and 36px action buttons, and applies the Noto Sans SC panel typography plus Figma status-badge text styles. The latest capture produced 27.9293% pixel difference; the in-app browser reported DPR 1.25, so the required DPR 1 gate remains open and the result stays DIFF_REVIEW.",
       "geometryCheck": {
-        "status": "PASS",
+        "status": "REVIEW",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -2054,7 +2054,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-23",
-        "conclusion": "The current browser capture shows all three plan cards and uses the Figma-sourced topbar avatar, matching the current list composition more closely. Card geometry, details, density, and remaining typography/icon rasterization differences remain; retain DIFF_REVIEW."
+        "conclusion": "The current browser capture shows all three plan cards and the Figma single-text '+ 新建膳食计划' action. Card geometry, details, density, and remaining typography/icon rasterization differences remain; the in-app browser DPR was 1.25 rather than the required 1, so retain DIFF_REVIEW."
       }
     },
     {
