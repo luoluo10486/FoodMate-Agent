@@ -3,9 +3,13 @@ package com.foodmate.api.controller.runtime;
 import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.service.RuntimeGatewayService;
+import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.shared.runtime.RunEvent;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.springframework.beans.factory.ObjectProvider;
@@ -21,11 +25,15 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class RunStreamController {
     private final RuntimeGatewayService service;
     private final UserAccountService accounts;
+    private final V1RuntimeEventService v1Events;
 
     public RunStreamController(
-            RuntimeGatewayService service, ObjectProvider<UserAccountService> accountProvider) {
+            RuntimeGatewayService service,
+            ObjectProvider<UserAccountService> accountProvider,
+            ObjectProvider<V1RuntimeEventService> eventProvider) {
         this.service = service;
         this.accounts = accountProvider.getIfAvailable();
+        this.v1Events = eventProvider.getIfAvailable();
     }
 
     @GetMapping(
@@ -36,6 +44,7 @@ public class RunStreamController {
             @RequestHeader(value = "Last-Event-ID", required = false) String headerLastEventId,
             @RequestParam(value = "lastEventId", required = false) String queryLastEventId,
             HttpServletRequest request) {
+        if (isV1Run(runId)) return streamV1(runId, headerLastEventId, queryLastEventId, request);
         if (accounts != null)
             service.requireRunOwner(
                     runId, new AuthenticatedControllerSupport(accounts) {}.user(request).userId());
@@ -65,6 +74,72 @@ public class RunStreamController {
         emitter.onTimeout(() -> service.unsubscribe(runId, listener));
         service.subscribe(runId, afterSequence, listener);
         return emitter;
+    }
+
+    private SseEmitter streamV1(
+            String runId,
+            String headerLastEventId,
+            String queryLastEventId,
+            HttpServletRequest request) {
+        var current = new AuthenticatedControllerSupport(accounts) {}.user(request);
+        v1Events.requireRunOwner(runId, current.userId());
+        String cursor = headerLastEventId != null ? headerLastEventId : queryLastEventId;
+        long after = v1Events.cursorFor(runId, cursor);
+        SseEmitter emitter = new SseEmitter(120_000L);
+        AtomicBoolean closed = new AtomicBoolean();
+        var executor =
+                Executors.newSingleThreadScheduledExecutor(
+                        runnable -> {
+                            Thread thread = new Thread(runnable, "foodmate-sse-" + runId);
+                            thread.setDaemon(true);
+                            return thread;
+                        });
+        final long[] currentSequence = {after};
+        var task =
+                executor.scheduleWithFixedDelay(
+                        () -> {
+                            if (closed.get()) return;
+                            try {
+                                for (var event : v1Events.sseEvents(runId, currentSequence[0])) {
+                                    emitter.send(
+                                            SseEmitter.event()
+                                                    .id(event.sseEventId())
+                                                    .name(event.eventType())
+                                                    .data(event.payload()));
+                                    currentSequence[0] = event.streamSeq();
+                                    if (event.terminal()) {
+                                        closed.set(true);
+                                        emitter.complete();
+                                        executor.shutdown();
+                                        return;
+                                    }
+                                }
+                            } catch (IOException | RuntimeException exception) {
+                                closed.set(true);
+                                emitter.completeWithError(exception);
+                                executor.shutdown();
+                            }
+                        },
+                        0,
+                        200,
+                        TimeUnit.MILLISECONDS);
+        emitter.onCompletion(
+                () -> {
+                    closed.set(true);
+                    task.cancel(false);
+                    executor.shutdown();
+                });
+        emitter.onTimeout(
+                () -> {
+                    closed.set(true);
+                    task.cancel(false);
+                    executor.shutdown();
+                });
+        return emitter;
+    }
+
+    private boolean isV1Run(String runId) {
+        return v1Events != null && runId.matches("\\d+") && v1Events.exists(runId);
     }
 
     private static long parseSequence(String value) {
