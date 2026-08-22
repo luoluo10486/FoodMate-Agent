@@ -464,3 +464,19 @@
 | 失败记录 | 同日首次 Maven 运行因本轮宿主 Java `18080` 进程占用 Bootstrap JAR，repackage 无法重命名；停止已确认的联调进程后重跑成功，未修改业务代码。 |
 | 未执行范围 | 性能压测、Docker 应用镜像启动、真实云服务、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障矩阵、数据库备份恢复和生产环境验证继续暂缓。 |
 | 结论 | 当前代码与业务测试门禁通过；本地功能版可继续收尾，不将后置性能/故障/生产项标记为完成。 |
+
+## D2 代码规范、失败补偿与业务门禁复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 代码规范命令 | `\.\mvnw.cmd -Palibaba-code-style verify -DskipTests` |
+| 代码规范结果 | BUILD SUCCESS；Checkstyle 9.3 Java 21 可执行子集 0 violations，Spotless 通过。旧 P3C/PMD 规则因不能解析 Java 21 record 已移除，不把解析错误当作通过；手册完整条款继续人工审查。 |
+| Java 业务门禁 | `\.\mvnw.cmd clean verify` BUILD SUCCESS；Shared `12/12`、Application `156/156`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`113 passed、1 skipped、2 warnings`；跳过项为显式真实云集成，未调用付费模型或真实 embedding。 |
+| 前端业务门禁 | `npm.cmd run typecheck`、`npm.cmd test -- --run`、`npm.cmd run build` 均通过；36 个测试文件、170 个测试通过。 |
+| Compose 校验 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过。 |
+| 业务修复 | 单文件知识上传在对象写入后 PostgreSQL 失败会精确删除新对象；批次补偿删除失败保留为 suppressed exception；新增回归测试，KnowledgeServiceImplTest `7/7`。 |
+| 文档与迁移 | 新增 `script/sql/FoodMate/README.md`，补齐 V23-V25 的人工执行、validation、rollback、seed 和台账边界；未执行迁移、truncate、回滚或备份恢复。 |
+| Git 提交 | `4caa4d2`、`d945784`、`55a16ca`、`73f1f89`；用户既有 UI/Figma/ChatPage 改动未暂存。 |
+| 未执行范围 | Docker 应用镜像构建、真实模型/embedding、吞吐/延迟压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障注入、SSE Last-Event-ID 故障矩阵、备份恢复和生产环境继续暂缓。 |
+| 结论 | 当前业务代码、Java 21 规范子集、Python、前端和 Compose 配置门禁均通过；不能据此宣称后置性能、故障恢复或生产范围完成。 |
