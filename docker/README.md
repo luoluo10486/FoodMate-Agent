@@ -62,7 +62,21 @@ Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配
 docker compose --env-file .env -f docker/compose.yml up -d milvus
 ```
 
-无需真实模型或付费 embedding 服务。集合维度以首次生成的实际向量为准，已有集合维度不一致时会失败关闭。
+无需真实模型或付费 embedding 服务。Compose 网络内的 Runtime 使用
+`http://milvus:19530`；宿主机启动的 Java/Python 进程则使用
+`http://localhost:19530`。集合维度以首次生成的实际向量为准，已有集合维度不一致时会失败关闭。
+
+Compose 还会把 local 模式所需的预算、价格版本和确定性向量维度传入
+`agent-runtime`。默认仍是 `stub`，因此不启动 Milvus 也不会连接它；切换到
+`local` 时必须显式启动 Milvus，并保持 collection 名称与隔离环境一致：
+
+```powershell
+$env:FOODMATE_RAG_MODE = "local"
+$env:FOODMATE_RAG_EMBEDDING_PROVIDER = "deterministic"
+$env:FOODMATE_RAG_MILVUS_URI = "http://milvus:19530"
+$env:FOODMATE_RAG_MILVUS_COLLECTION = "foodmate_knowledge_chunks_local"
+docker compose --env-file .env -f docker/compose.yml up -d milvus foodmate agent-runtime
+```
 
 切换真实 OpenAI-compatible embedding 时，将 provider 改为 `openai-compatible`，并显式配置 endpoint、API Key、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。当前只提供基础设施容器，Python/Java 应用仍按各自开发命令启动；Compose 不自动执行数据库迁移。
 
