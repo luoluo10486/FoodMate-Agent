@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input as ShadcnInput } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROUTES } from '../../../constants/routes';
-import { loadAdminDashboard, type AdminRunRow } from '../../../services/adminService';
+import { loadAdminDashboard, loadAdminQuery, type AdminQueryRun } from '../../../services/adminService';
 import { adminOverviewMetrics, adminOverviewRows } from './AdminShared';
 import styles from '../AdminPage.module.css';
 
@@ -33,18 +33,18 @@ type OverviewRow = {
 const overviewMetrics: OverviewMetric[] = adminOverviewMetrics;
 const overviewRows: OverviewRow[] = adminOverviewRows;
 
-function apiRowsToOverviewRows(rows: AdminRunRow[]): OverviewRow[] {
-  return rows.map((row) => ({
-    key: row.key,
-    runId: row.runId.startsWith('run_') ? row.runId : `run_${row.runId}`,
-    user: row.user,
-    status: row.status,
-    stage: row.intent.toUpperCase(),
-    duration: `${(row.durationMs / 1000).toFixed(1)}s`,
-    cost: row.intent.toUpperCase(),
-    toolCount: String(row.toolCalls ?? 0),
-    result: row.status,
-    errorCode: row.status === 'failed' ? 'RUN_FAILED' : '-',
+function queryRowsToOverviewRows(rows: AdminQueryRun[]): OverviewRow[] {
+  return rows.map((row, index) => ({
+    key: `run-${row.agent_run_id ?? index}`,
+    runId: row.agent_run_id == null ? '-' : `run_${row.agent_run_id}`,
+    user: row.actor_ref || '-',
+    status: row.status || '-',
+    stage: row.intent || '-',
+    duration: row.duration_ms == null ? '-' : `${(Number(row.duration_ms) / 1000).toFixed(1)}s`,
+    cost: '-',
+    toolCount: '-',
+    result: row.status || '-',
+    errorCode: '-',
   }));
 }
 
@@ -101,25 +101,46 @@ function copyRunId(runId: string) {
 }
 
 export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refreshNonce?: number }) {
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [metrics, setMetrics] = useState<OverviewMetric[]>(overviewMetrics);
   const [rows, setRows] = useState<OverviewRow[]>(overviewRows);
   const [resultFilter, setResultFilter] = useState('all');
   const [degradedFilter, setDegradedFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(overviewRows.length);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
-    loadAdminDashboard()
-      .then((dashboard) => {
+    if (!isRealMode) return;
+    let active = true;
+    setLoadError('');
+    Promise.all([
+      loadAdminDashboard(),
+      loadAdminQuery<AdminQueryRun>('runs', {
+        page,
+        size: 6,
+        query: query.trim() || undefined,
+        status: resultFilter === 'all' ? undefined : resultFilter,
+      }),
+    ])
+      .then(([dashboard, runPage]) => {
+        if (!active) return;
         setMetrics(dashboard.overview_metrics.slice(0, 3));
-        setRows(apiRowsToOverviewRows(dashboard.runs));
+        setRows(queryRowsToOverviewRows(runPage.items));
+        setTotal(runPage.total);
       })
-      .catch(() => {
+      .catch((error) => {
+        if (!active) return;
         setMetrics([]);
         setRows([]);
+        setTotal(0);
+        setLoadError(error instanceof Error ? error.message : '管理概览数据加载失败');
       });
-  }, [refreshNonce]);
+    return () => {
+      active = false;
+    };
+  }, [isRealMode, page, query, refreshNonce, resultFilter]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -131,6 +152,9 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
       return matchesResult && matchesDegraded && matchesQuery;
     });
   }, [degradedFilter, query, resultFilter, rows]);
+
+  const pageSize = 6;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <>
@@ -214,7 +238,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRows.slice(0, 6).map((row) => (
+              {filteredRows.map((row) => (
                 <TableRow key={row.key}>
                   <TableCell>
                     <span className={styles.overviewRunIdCell}>
@@ -269,11 +293,17 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
             </TableBody>
           </Table>
         </div>
+        {!filteredRows.length ? (
+          <div className={styles.runEmptyState} role="status">
+            <strong>{loadError ? '真实接口加载失败' : '暂无概览记录'}</strong>
+            <span>{loadError || '当前筛选条件没有可展示的运行记录。'}</span>
+          </div>
+        ) : null}
       </Card>
 
       <section className={styles.overviewPagination} aria-label="运行结果分页">
         <span>
-          显示第 {(page - 1) * 6 + 1} 到 {Math.min(page * 6, 12480)} 条，共 12,480 条结果
+          {total ? `显示第 ${(page - 1) * pageSize + 1} 到 ${Math.min(page * pageSize, total)} 条，共 ${total} 条结果` : '暂无结果'}
         </span>
         <div className={styles.overviewPageButtons}>
           <Button
@@ -283,10 +313,11 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
           >
             上一页
           </Button>
-          {[1, 2, 3, 4].map((value) => (
+          {(isRealMode ? [page] : [1, 2, 3, 4]).map((value) => (
             <Button
               className={`${styles.overviewPageButton} ${page === value ? styles.overviewPageActive : ''}`}
               key={value}
+              disabled={isRealMode}
               onClick={() => setPage(value)}
             >
               {value}
@@ -294,32 +325,41 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
           ))}
           <Button
             className={styles.overviewPageButton}
-            disabled={page === 4}
-            onClick={() => setPage((current) => Math.min(4, current + 1))}
+            disabled={page >= totalPages}
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
           >
             下一页
           </Button>
         </div>
       </section>
 
-      <Card className={styles.overviewAnalytics}>
-        <article>
-          <h2>运行趋势</h2>
-          <p>近 24h 1,284 次 · 成功率 91.4%</p>
-          <p>P50 4.2s · P95 18.6s · P99 42.1s</p>
-          <p>模型 Token 16.1M · 平均耗时 8.4s</p>
-        </article>
-        <article>
-          <h2>失败原因分布</h2>
-          <p>模型限制 42% · 工具超时 31%</p>
-          <p>策略拒绝 18% · 其他 9%</p>
-        </article>
-        <article>
-          <h2>健康与审计</h2>
-          <p>工具 24 个 · 3 个高风险 · 知识库索引 92%</p>
-          <p>最近管理操作 4 条待复核 · 取消率 2.1%</p>
-        </article>
-      </Card>
+      {isRealMode ? (
+        <Card className={styles.overviewAnalytics}>
+          <div className={styles.runEmptyState} role="status">
+            <strong>趋势与健康指标暂无真实数据</strong>
+            <span>当前后端仅提供运行分页与基础概览指标，未返回分位延迟、失败分布或健康聚合。</span>
+          </div>
+        </Card>
+      ) : (
+        <Card className={styles.overviewAnalytics}>
+          <article>
+            <h2>运行趋势</h2>
+            <p>近 24h 1,284 次 · 成功率 91.4%</p>
+            <p>P50 4.2s · P95 18.6s · P99 42.1s</p>
+            <p>模型 Token 16.1M · 平均耗时 8.4s</p>
+          </article>
+          <article>
+            <h2>失败原因分布</h2>
+            <p>模型限制 42% · 工具超时 31%</p>
+            <p>策略拒绝 18% · 其他 9%</p>
+          </article>
+          <article>
+            <h2>健康与审计</h2>
+            <p>工具 24 个 · 3 个高风险 · 知识库索引 92%</p>
+            <p>最近管理操作 4 条待复核 · 取消率 2.1%</p>
+          </article>
+        </Card>
+      )}
     </>
   );
 }
