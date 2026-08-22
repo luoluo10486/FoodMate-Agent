@@ -3563,12 +3563,12 @@
       "frontendRoute": "/admin",
       "queryState": "state=run-detail",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/admin-run-detail.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-run-detail",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-figma-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture after adding the Figma Run 详情字段 panel: 1440x1024, no overflow, automatic diff 0.2936638726 / RMSE 17.8805453; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3593,8 +3593,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Run detail is represented, but browser replaces the Figma run table, filters, failure card sequence, and refresh/download controls with a compact header and JSON panel. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "Run table, filters, execution timeline, download control, and the Figma Run 详情字段 panel are represented. Shell typography, sidebar identity, spacing, and remaining visual differences are still present; retain DIFF_REVIEW."
       }
     },
     {

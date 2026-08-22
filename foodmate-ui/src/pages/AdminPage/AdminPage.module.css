@@ -4620,6 +4620,49 @@
   text-overflow: ellipsis;
 }
 
+.runFixtureDetailFields {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  min-height: 300px;
+  margin-top: 24px;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  border: 1px solid #e3ebe5;
+  border-radius: 14px;
+  background: #fcfcfa;
+}
+
+.runFixtureDetailFields h2,
+.runFixtureDetailFields p {
+  margin: 0;
+}
+
+.runFixtureDetailFields h2 {
+  color: #292e2b;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.runFixtureDetailFields p {
+  color: #525e57;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.runFixtureDetailSupport {
+  color: #458052 !important;
+  font-size: 12px !important;
+}
+
+.runFixtureDetailNotice {
+  color: #858c85 !important;
+  font-size: 12px !important;
+}
+
 .governanceSurface {
   display: flex;
   flex-direction: column;

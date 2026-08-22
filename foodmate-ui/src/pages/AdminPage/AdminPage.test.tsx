@@ -108,6 +108,9 @@ describe('AdminPage overview', () => {
     expect(screen.getByRole('region', { name: '执行事件追踪' })).toBeInTheDocument();
     expect(screen.getByText('1. 分发')).toBeInTheDocument();
     expect(screen.getByText('4. 失败')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Run 详情字段' })).toBeInTheDocument();
+    expect(screen.getByText(/父 Run：run_9812a0/)).toBeInTheDocument();
+    expect(screen.getByText(/request_id req_7c2e/)).toBeInTheDocument();
     expect(screen.queryByText(/caller_context_mask/)).not.toBeInTheDocument();
   });
 
@@ -153,6 +156,7 @@ describe('AdminPage overview', () => {
     expect(screen.getByText(/request_id req_7c2e/)).toBeInTheDocument();
     expect(screen.getByText('3. 降级')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '下载完整日志' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Run 详情字段' })).not.toBeInTheDocument();
     expect(document.querySelector('.fixtureSurfaceCard')).toBeNull();
   });
 });

@@ -404,6 +404,21 @@ function AgentTimelineFixture({ trace }: { trace: boolean }) {
           </article>
         </div>
       </section>
+      {!trace ? (
+        <section className={styles.runFixtureDetailFields} aria-label="Run 详情字段">
+          <h2>Run 详情字段</h2>
+          <p>父 Run：run_9812a0 · 接续 Run：— · 开始时间：10:24:12 · 终止原因：上游 Token 超限</p>
+          <p>事件诊断：缺口 0 · 重复 0 · 乱序 0 · 当前阶段：RAG_RETRIEVE · 结果类型：failed / degraded</p>
+          <p>用量：输入 2,840 tokens · 输出 612 tokens · 成本 $0.045 · revision r17 · 追加记录 0</p>
+          <p className={styles.runFixtureDetailSupport}>
+            request_id req_7c2e · trace_id tr_88192a · dispatch_id dsp_55aa · 支持复制 ID / 查看会话 / 查看 Tool Calls /
+            查看 Trace
+          </p>
+          <p className={styles.runFixtureDetailNotice}>
+            输入 / 输出均已脱敏；不展示隐藏推理、数据库凭据或未授权敏感参数。
+          </p>
+        </section>
+      ) : null}
       {trace ? (
         <aside className={`${styles.governanceNotes} ${styles.traceNotes}`} aria-label="Trace 聚合与筛选">
           <h2>Trace 聚合与筛选</h2>
