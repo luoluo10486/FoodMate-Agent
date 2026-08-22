@@ -351,3 +351,15 @@
 | 数据边界 | PostgreSQL 仅做只读 schema 检查；未执行 Flyway/手工迁移、truncate、备份恢复、对象/向量实际保留清理或消息故障注入 |
 | 未完成范围 | Java/Python 应用未纳入 Compose，未完成管理员上传 -> Java Outbox -> RocketMQ -> Python Worker -> Java 回写 -> 发布 -> AgentRun/SSE 的真实跨运行时闭环；吞吐、性能、重启、ACK 丢失、重复投递和 Last-Event-ID 故障验证按当前决策暂缓 |
 | 结论 | 本轮证明本地依赖 readiness、RocketMQ 清理契约、Python 业务回归、Milvus deterministic 适配和 Java 保留/知识定向业务测试通过；不将 M2-1/M3 整体标记为完成 |
+
+## RocketMQ 业务 E2E 前置核验（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 01:52 (Asia/Shanghai) |
+| 命令 | `mvnw.cmd -pl foodmate-bootstrap -am -Dfoodmate.local-mq-e2e=true -Dtest=M14RocketMqTransportE2ETest,M14ProposalResultE2ETest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| RocketMQ Outbox 主链路 | `M14RocketMqTransportE2ETest`：1/1 通过；Java Outbox 消息真实到达 Broker 自测消费组，Envelope、request_hash、dispatch_id、消息属性和 published 状态断言通过 |
+| Proposal/Result 链路 | `M14ProposalResultE2ETest`：0/2 通过；不是性能或消息传输结论，测试上下文受到数据库前置缺失影响 |
+| 真实阻塞证据 | 当前 FoodMate PostgreSQL 未执行 V17/V18/V23/V24/V25 手工 SQL；应用启动后的定时任务查询 `knowledge_index_outbox`、`admin_export_jobs`、`runtime_dlq_replay_outbox` 等不存在表，Tool Registry/SQL Agent 所需业务数据也不完整 |
+| 数据边界 | 测试使用随机账号/Run；本轮未执行迁移、truncate、删除、备份恢复或其他故障注入 |
+| 处理结论 | 保留 `M14RocketMqTransportE2ETest` 真实通过证据；Proposal/Result 只记录为 schema 前置阻塞，不修改生产代码绕过，也不把该 E2E 记为通过 |
