@@ -141,7 +141,7 @@
             <version>${checkstyle.version}</version>
             <configuration>
               <configLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/alibaba-java21.xml</configLocation>
-              <includeTestSourceDirectory>false</includeTestSourceDirectory>
+              <includeTestSourceDirectory>true</includeTestSourceDirectory>
               <failOnViolation>true</failOnViolation>
               <consoleOutput>true</consoleOutput>
               <cacheFile>${project.build.directory}/checkstyle-cachefile</cacheFile>

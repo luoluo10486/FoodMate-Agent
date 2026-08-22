@@ -15,7 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -181,7 +181,15 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
             HttpServletRequest request) {
         requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
         SseEmitter emitter = new SseEmitter(120_000L);
-        var executor = Executors.newSingleThreadScheduledExecutor();
+        var executor =
+                new ScheduledThreadPoolExecutor(
+                        1,
+                        runnable -> {
+                            Thread thread =
+                                    new Thread(runnable, "foodmate-knowledge-sse-" + batchId);
+                            thread.setDaemon(true);
+                            return thread;
+                        });
         String headerCursor = request.getHeader("Last-Event-ID");
         long initialCursor = lastEventId == null ? parseEventId(headerCursor) : lastEventId;
         final long[] cursor = {Math.max(0, initialCursor)};

@@ -4,8 +4,8 @@
     "https://checkstyle.org/dtds/configuration_1_3.dtd">
 <!--
   Java 21 executable subset of the Alibaba handbook gate.
-  The repository's full handbook review remains manual; this file only contains
-  rules that are deterministic and compatible with records and sealed types.
+  The repository's full handbook review remains manual; this file contains
+  deterministic rules that are compatible with records and sealed types.
   Existing long JSON/SQL literals remain a manual review item because splitting
   them mechanically would change the SQL and message contracts.
 -->
@@ -17,5 +17,10 @@
     <property name="format" value="System\.(out|err)\.print|printStackTrace"/>
     <property name="maximum" value="0"/>
     <property name="message" value="Use structured logging instead of direct console output."/>
+  </module>
+  <module name="RegexpSingleline">
+    <property name="format" value="\bExecutors\."/>
+    <property name="maximum" value="0"/>
+    <property name="message" value="Configure an explicit executor instead of using Executors factory methods."/>
   </module>
 </module>

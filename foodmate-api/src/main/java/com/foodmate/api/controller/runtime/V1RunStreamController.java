@@ -6,7 +6,7 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.http.MediaType;
@@ -42,7 +42,8 @@ public class V1RunStreamController extends AuthenticatedControllerSupport {
         SseEmitter emitter = new SseEmitter(120_000L);
         AtomicBoolean closed = new AtomicBoolean();
         var executor =
-                Executors.newSingleThreadScheduledExecutor(
+                new ScheduledThreadPoolExecutor(
+                        1,
                         runnable -> {
                             Thread thread = new Thread(runnable, "foodmate-sse-" + runId);
                             thread.setDaemon(true);

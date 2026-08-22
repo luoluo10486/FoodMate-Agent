@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.springframework.beans.factory.ObjectProvider;
@@ -42,7 +42,7 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     private final Map<String, RunContext> runContexts = new HashMap<>();
     private final Map<String, AgentStatus> agentStatuses = new HashMap<>();
     private final ScheduledExecutorService timeoutExecutor =
-            Executors.newScheduledThreadPool(
+            new ScheduledThreadPoolExecutor(
                     1,
                     runnable -> {
                         Thread thread = new Thread(runnable, "foodmate-runtime-timeout");
