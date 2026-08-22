@@ -162,3 +162,14 @@
 | Java 验证 | `AdminUserControllerRbacTest`、`AdminManagementControllerTest` 共 4/4 通过；API/application 编译通过 |
 | 失败记录 | 首次从 `foodmate-ui` 子目录执行仓库根路径 `git add`，路径不匹配且未提交；随后从仓库根目录按文件范围正确提交，未改变其他工作区文件 |
 | 结论 | M2-3 管理后台核心业务切片已完成；M2-1 知识库真实跨运行时闭环、M2-2 Tool Gateway/SQL Agent、全量 `verify`/Docker 联调和生产强化仍未完成 |
+
+## M2-1/M2-2 核心业务定向验证（2026-08-22）
+
+| 项目 | 结果 |
+|---|---|
+| Java 命令 | `mvnw.cmd -pl foodmate-application -am -Dtest=KnowledgeServiceImplTest,KnowledgeOutboxPublisherTest,KnowledgeIndexResultMessageProcessorTest,ToolRegistryServiceTest,ToolPolicyGatewayServiceTest,ToolGatewayServiceTest,ToolGatewayAstGuardTest,SqlSchemaCatalogServiceTest,SqlQueryPlanValidatorTest,JSqlParserQueryGuardTest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| Java 结果 | 51/51 通过，0 failure/error；覆盖知识状态/Outbox/结果处理、工具 Registry/Policy、SQL Catalog/AST Guard 和计划校验 |
+| Python 命令 | `agent-runtime/.venv/Scripts/python.exe -m pytest tests/test_knowledge_rag.py tests/test_knowledge_worker.py tests/test_sql_planner.py -q`（工作目录 `agent-runtime`） |
+| Python 结果 | 21/21 通过；覆盖解析/分块、stub/local 检索与 SQL Planner 契约 |
+| 环境边界 | 本轮未启动 Docker Milvus/PostgreSQL/RocketMQ，未调用付费 embedding/API Key，未执行跨进程数据库查询或知识引用 SSE 回归 |
+| 结论 | M2-1/M2-2 核心代码和业务定向测试通过；真实本地依赖联调仍未完成，性能、重启、ACK、重复投递和生产验证继续暂缓 |

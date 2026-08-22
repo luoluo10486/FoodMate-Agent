@@ -1,8 +1,19 @@
 # M2-2 Java Tool Gateway 与 SQL Agent 实施方案
 
 更新时间：2026-08-22
-状态：计划已确认，等待实施
+状态：核心代码与定向业务测试已实现，等待本地真实数据库/运行时联调收尾
 上位计划：[M2剩余功能执行计划.md](M2剩余功能执行计划.md)
+
+## 当前实现状态（2026-08-22）
+
+| 范围 | 状态 | 证据边界 |
+|---|---|---|
+| Tool Registry/Policy | 已实现 | 七个工具的注册目录、版本解析、风险/确认策略和统一入口已接入 |
+| Schema Catalog/SQL Guard | 已实现 | 授权 Catalog、JSqlParser AST 只读校验、用户范围、字段/表白名单和执行边界已有 Java 定向测试 |
+| 双模式 Planner | 已实现 | Python deterministic stub 与 OpenAI-compatible structured planner 共用 QueryPlan/Proposal 契约，配置失败不回退 |
+| 分析 AgentRun | 核心实现已接入 | time_parser -> database_query -> Composer 的结构化结果和空数据语义已有 Runtime 测试 |
+
+当前未宣称 M2-2 完成：真实 PostgreSQL 数据上的 database_query、Java/Python/RocketMQ 跨运行时分析回归和完整前端业务验收仍需单独执行；不包含性能压测或故障矩阵。
 
 ## 1. 目标
 
