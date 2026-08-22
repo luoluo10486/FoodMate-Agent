@@ -64,6 +64,30 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: '登录中...' })).toHaveClass('primaryActionDisabled');
   });
 
+  it('uses the Figma field-error assets and error contract', () => {
+    renderAuth('/login?state=field-error');
+
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-field-error-leaf.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-field-error-user.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-field-error-lock.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-field-error-eye.svg"]'),
+    ).toBeInTheDocument();
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-login-field-error-line.svg"]')).toHaveLength(
+      2,
+    );
+    expect(screen.getByLabelText('邮箱地址')).toHaveAttribute('placeholder', 'invalid-email');
+    expect(screen.getByLabelText('密码')).toHaveAttribute('placeholder', '密码');
+    expect(screen.getByText('请输入有效的邮箱地址')).toBeInTheDocument();
+    expect(screen.getByText('密码不能为空')).toBeInTheDocument();
+  });
+
   it('routes login recovery and registration actions to independent Figma pages', async () => {
     const user = userEvent.setup();
     renderAuth('/login');

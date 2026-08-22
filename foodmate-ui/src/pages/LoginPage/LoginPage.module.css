@@ -329,6 +329,110 @@
   background: rgba(51, 51, 51, 0.03);
 }
 
+.authPage.authPageLoginFieldError .authCard {
+  display: flex;
+  width: 460px;
+  height: auto;
+  gap: 24px;
+  padding: 40px;
+  transform: none;
+}
+
+.authPage.authPageLoginFieldError .brand {
+  height: auto;
+  gap: 20px;
+}
+
+.authPage.authPageLoginFieldError .loginBrand {
+  margin-bottom: 0;
+}
+
+.authPage.authPageLoginFieldError .welcome {
+  gap: 6px;
+}
+
+.authPage.authPageLoginFieldError .welcome p {
+  font-size: 28px;
+  line-height: normal;
+}
+
+.authPage.authPageLoginFieldError .welcome span {
+  color: #5a6672;
+  line-height: normal;
+}
+
+.authPage.authPageLoginFieldError .form {
+  height: auto;
+}
+
+.authPage.authPageLoginFieldError .loginFields {
+  height: auto;
+  padding-bottom: 0;
+}
+
+.authPage.authPageLoginFieldError .field {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.authPage.authPageLoginFieldError .figmaInput {
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+.authPage.authPageLoginFieldError .figmaInputError {
+  border-color: #f97066 !important;
+  color: #e53e3e !important;
+}
+
+.authPage.authPageLoginFieldError .figmaInputError::placeholder {
+  color: #e53e3e;
+}
+
+.authPage.authPageLoginFieldError .loginFieldError {
+  margin-top: 0;
+  color: #e53e3e;
+  font-size: 12px;
+  line-height: normal;
+}
+
+.authPage.authPageLoginFieldError .primaryAction {
+  border-color: #48c78e;
+  background: #48c78e;
+  box-shadow: 0 6px 8px rgba(46, 125, 50, 0.25);
+  color: #ffffff;
+}
+
+.authPage.authPageLoginFieldError .primaryAction:hover {
+  background: #48c78e;
+}
+
+.authPage.authPageLoginFieldError .actions {
+  display: flex;
+  height: auto;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.authPage.authPageLoginFieldError .divider {
+  height: auto;
+  padding: 12px 0;
+  font-size: 13px;
+}
+
+.authPage.authPageLoginFieldError .signupRow {
+  min-height: 0;
+}
+
+.authPage.authPageLoginFieldError .signupButton {
+  height: auto;
+  padding: 10px 24px;
+  border: 1px solid rgba(51, 51, 51, 0.12);
+  border-radius: 22px;
+  background: rgba(51, 51, 51, 0.03);
+}
+
 .primaryActionDisabled {
   border-color: #c5d0dd !important;
   background: #c5d0dd !important;

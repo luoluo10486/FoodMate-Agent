@@ -27,14 +27,14 @@ type LoginState =
   | 'service-unavailable';
 
 function loginAsset(state: LoginState, name: 'user' | 'lock' | 'eye' | 'line') {
-  const suffix = state === 'submitting' ? '-submitting' : '';
+  const suffix = state === 'submitting' ? '-submitting' : state === 'field-error' ? '-field-error' : '';
   return `/assets/figma/auth/foodmate-login${suffix}-${name}.svg`;
 }
 
 function loginLeafAsset(state: LoginState) {
-  return state === 'submitting'
-    ? '/assets/figma/auth/foodmate-login-submitting-leaf.svg'
-    : '/assets/figma/auth/foodmate-leaf.svg';
+  if (state === 'submitting') return '/assets/figma/auth/foodmate-login-submitting-leaf.svg';
+  if (state === 'field-error') return '/assets/figma/auth/foodmate-login-field-error-leaf.svg';
+  return '/assets/figma/auth/foodmate-leaf.svg';
 }
 
 const loginStates = new Set<LoginState>([
@@ -134,7 +134,7 @@ export function LoginPage() {
 
   return (
     <main
-      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : ''}`}
+      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : state === 'field-error' ? styles.authPageLoginFieldError : ''}`}
       ref={pageRef}
     >
       <div className={styles.authDiagonal} aria-hidden="true" data-login-motion="diagonal" />
