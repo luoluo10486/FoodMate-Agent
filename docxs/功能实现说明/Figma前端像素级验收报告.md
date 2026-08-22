@@ -517,6 +517,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 排版调整后差异指标相较头像资源版本有所下降，但仍存在卡片几何、内容密度、字体和图标光栅化差异。
 - [ ] 该画板继续保持 `DIFF_REVIEW`，不能因局部指标改善标记为像素级 `PASS`；iconfont 实体资源继续为 `BLOCKED`。
 
+## 55. 2026-08-23 餐食规划列表顶部头像圆形裁切复核
+
+- [x] 修正 WorkspaceLayout 顶部头像容器的裁切边界：头像保持 `32×32`、`border-radius: 50%`，并增加 `overflow: hidden`；侧栏头像和业务状态圆点未改变。
+- [x] 在 `1440×1024`、DPR `1.0000000149011612`、字体 `loaded` 的浏览器环境重新采集截图；Figma 设计稿未修改。
+- [x] 浏览器实测顶部头像资源加载成功，容器 `overflow=hidden`，前端左上角红、黄、绿窗口装饰点数量仍为 `0`。
+- [x] 最新 PNG diff：`differentPixels=411026`、差异比例 `27.8745%`、`MAE=3.8013`、`RMSE=18.9252`、最大通道差异 `235`；机器结果锚点为 `figma-105-diff-results.json#meal-plan-list`。
+- [ ] 该画板继续保持 `DIFF_REVIEW`；本项只完成头像边界修正，不代表整页像素级通过、全量 shadcn 迁移或 iconfont 解阻塞。
+
 ## 60. 2026-08-23 Intake Analysis 当前版本验收证据更新
 
 - [x] 重新核对实时 Figma 节点 `640:773` 与 `/analysis?state=v2`；本轮 Figma 参考图改用当前文件导出的 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png`，不再使用缺少会话列表和数据质量面板的旧基线。
