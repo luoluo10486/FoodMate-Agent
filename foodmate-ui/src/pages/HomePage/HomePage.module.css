@@ -314,6 +314,7 @@
   border-radius: 12px;
   background: var(--fm-bg-soft);
   color: var(--fm-ink);
+  font: inherit;
   text-align: left;
 }
 

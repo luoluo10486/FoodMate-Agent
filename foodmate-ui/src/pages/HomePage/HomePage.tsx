@@ -256,7 +256,8 @@ export function HomePage() {
             </div>
             <div className={styles.sessionCards}>
               {sessions.map((session, index) => (
-                <button
+                <Button
+                  variant="ghost"
                   className={styles.sessionCard}
                   key={session.id}
                   type="button"
@@ -268,7 +269,7 @@ export function HomePage() {
                     <small>{session.subtitle}</small>
                   </span>
                   <ArrowRight aria-hidden="true" />
-                </button>
+                </Button>
               ))}
             </div>
           </article>
