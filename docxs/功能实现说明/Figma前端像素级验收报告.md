@@ -76,7 +76,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。运行时检查文件 [`figma-105-runtime-checks.json`](../../foodmate-ui/.qa/figma-pixel-acceptance/figma-105-runtime-checks.json) 已实际记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105` 与字体加载完成；映射文件已记录 `manualPending=0` 且 105/105 人工结论均为差异复核结果，因此不能将 `DIFF_REVIEW` 改为 `PASS`。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；2026-08-22 Chat 历史页当前版本复核因 in-app 浏览器实际 DPR 为 `1.25`，更新后的运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=102/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 
@@ -301,12 +301,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 | 状态 | 数量 | 说明 |
 |---|---:|---|
-| `DIFF_REVIEW` | 105 | Figma 与浏览器 PNG 尺寸一致，已运行 `scripts/png-diff.mjs`；几何、可见文字与 DPR 已通过，仍需人工视觉复核 |
+| `DIFF_REVIEW` | 105 | Figma 与浏览器 PNG 尺寸一致，已运行 `scripts/png-diff.mjs`；仍有视觉差异，且当前 Chat 历史页复核的 DPR1 门禁未关闭 |
 | `UNMAPPED` | 0 | 105 张画板均已有可验证的浏览器 fixture/路由证据 |
 | `SIZE_MISMATCH` | 0 | 本轮没有把尺寸不一致伪装成像素通过 |
 | `PASS` | 0 | 未满足自动 diff、几何、文字和人工复核四项条件 |
 
-此前由 JPEG 字节误命名为 `.png` 导致的 `DIFF_ERROR` 已从当前 105 条输入中排除：汇总脚本会校验 PNG 文件头，并优先选择同尺寸的 RGBA 证据。当前清单引用的 105 个 Figma PNG 与 105 个浏览器 PNG 均已通过文件头和尺寸校验。运行时检查确认 `viewportPass`、`dprPass`、`geometryPass` 和 `textPass` 均为 `105/105`，字体状态均为 `loaded`；人工视觉复核仍为 `0/105`。新增 Agent 六个状态均已建立 `/chat?state=...` fixture、浏览器 PNG 和 diff 记录，但结果继续保持 `DIFF_REVIEW`。
+此前由 JPEG 字节误命名为 `.png` 导致的 `DIFF_ERROR` 已从当前 105 条输入中排除：汇总脚本会校验 PNG 文件头，并优先选择同尺寸的 RGBA 证据。当前清单引用的 105 个 Figma PNG 与 105 个浏览器 PNG 均已通过文件头和尺寸校验。历史基线运行时检查的 `viewportPass`、`geometryPass` 和 `textPass` 为 `105/105`，当前更新后的 `dprPass=102/105`，字体状态均为 `loaded`；人工视觉复核仍为 `0/105`。新增 Agent 六个状态均已建立 `/chat?state=...` fixture、浏览器 PNG 和 diff 记录，但结果继续保持 `DIFF_REVIEW`。
 
 本轮已关闭 `UNMAPPED` 映射缺口，但没有关闭任何 `PASS`。部分 Admin 操作弹窗、Profile 异步操作、历史会话交互和 Workspace 输入状态均使用独立 query fixture，不能与默认页面截图混淆。iconfont 实体资源仍为 `BLOCKED`；后端真实 Agent/SSE 闭环也不作为本轮 fixture 完成标准。
 
@@ -341,6 +341,23 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 当前画板已完成自动 diff、几何检查、文字检查和人工视觉复核登记；结果仍为 `DIFF_REVIEW`，没有把面板几何通过写成像素 `PASS`。
 - [ ] 底层 Workspace 壳层、字体渲染、图标、遮罩合成和对话/Trace 内容仍与 Figma 存在差异；后续继续逐页修正。
 - [ ] iconfont 实体资源登记继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
+
+## 59. 2026-08-22 Chat 历史分页当前版本证据更新
+
+本轮重新读取实时 Figma 节点 `740:212`、`740:426`、`742:212`，并按当前前端代码重新采集三个 Chat 历史状态。前端保留用户要求的约束：只移除实现页面左上角的红、黄、绿三色窗口装饰点，Figma 画板不做修改；Figma 节点中的 `Space Mono` 助手正文、确认卡和 Trace 结构已按上下文保留。
+
+| 状态 | Figma 节点 | 浏览器 PNG | PNG diff | 结论 |
+|---|---|---|---|---|
+| 历史第 2 页 | `740:212` | `agent-chat-history-page-2-browser-current.png` | `35.11997% / MAE 4.80656 / RMSE 21.57858` | `DIFF_REVIEW` |
+| 历史第 3 页 | `740:426` | `agent-chat-history-page-3-browser-current.png` | `35.12099% / MAE 4.80661 / RMSE 21.57857` | `DIFF_REVIEW` |
+| 搜索结果 | `742:212` | `agent-chat-search-results-browser-current.png` | `34.61378% / MAE 4.66959 / RMSE 21.26354` | `DIFF_REVIEW` |
+
+三页均为 `1440×1024`，字体状态为 `loaded`，根节点无横向或纵向溢出，前端窗口装饰点数量为 `0`。当前 in-app 浏览器实际报告 `devicePixelRatio=1.25`，不满足计划要求的 DPR 1，因此本轮没有将几何检查写成 DPR 通过，也没有将任何页面标记为 `PASS`。本机 Chrome 的隔离 DPR1 截图尝试受当前执行策略拦截，未伪造替代证据。
+
+- [x] 三个状态的当前前端 PNG、自动 diff 和映射字段已更新到 `foodmate-ui/.qa/figma-pixel-acceptance/`。
+- [x] 旧人工结论中“缺少助手响应、来源、确认控件和 Trace”的描述已修正；当前 fixture 已包含这些结构。
+- [ ] DPR1 浏览器截图仍待可验证的浏览器环境；三个状态继续保持 `DIFF_REVIEW`。
+- [ ] iconfont 实体包、CSS 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
 
 ## 53. 2026-08-22 Agent Chat 归档结果卡复核
 

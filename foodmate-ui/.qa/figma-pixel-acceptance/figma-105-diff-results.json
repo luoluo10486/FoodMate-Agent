@@ -656,10 +656,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 498576,
-      "differentRatio": 0.33811848958333335,
-      "meanAbsoluteError": 4.045933871799045,
-      "rmse": 19.960951111140446,
+      "differentPixels": 517865,
+      "differentRatio": 0.3511996799045139,
+      "meanAbsoluteError": 4.806561957465278,
+      "rmse": 21.578578343694492,
       "maxChannelDelta": 255
     },
     "agent-chat-history-page-3": {
@@ -667,10 +667,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 498576,
-      "differentRatio": 0.33811848958333335,
-      "meanAbsoluteError": 4.046050008138021,
-      "rmse": 19.96110389077747,
+      "differentPixels": 517880,
+      "differentRatio": 0.3512098524305556,
+      "meanAbsoluteError": 4.806605190700955,
+      "rmse": 21.5785748669879,
       "maxChannelDelta": 255
     },
     "agent-chat-search-results": {
@@ -678,10 +678,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 498564,
-      "differentRatio": 0.3381103515625,
-      "meanAbsoluteError": 4.099737209743924,
-      "rmse": 20.162105025471913,
+      "differentPixels": 510401,
+      "differentRatio": 0.34613783094618056,
+      "meanAbsoluteError": 4.669591946072049,
+      "rmse": 21.26354154866078,
       "maxChannelDelta": 255
     },
     "admin-knowledge-uploading": {

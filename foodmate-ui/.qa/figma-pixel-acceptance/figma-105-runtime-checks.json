@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 105,
+    "dprPass": 102,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -1085,7 +1085,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1844,7 +1845,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -2396,7 +2398,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,

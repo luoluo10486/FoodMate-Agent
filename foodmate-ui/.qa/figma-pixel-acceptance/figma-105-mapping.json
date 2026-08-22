@@ -2640,19 +2640,19 @@
       "queryState": "state=history-page-2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-2-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-2-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, body has no overflow, and PNG diff is complete. In-app browser reported DPR 1.25, so the planned DPR 1 gate remains open; visual differences remain.",
       "geometryCheck": {
-        "status": "PASS",
+        "status": "REVIEW",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -2669,8 +2669,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "History page 2 is represented by the browser fixture, but its compact summary card replaces the Figma conversation, source treatment, confirmation controls, and Trace steps; avatar, typography, colors, and geometry differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "The current fixture includes the Figma conversation, source treatment, confirmation controls, and Trace steps. The frontend intentionally omits the three window-control dots and uses the registered default avatar policy; visible rendering differences remain. The capture is retained as DIFF_REVIEW because its browser DPR was 1.25 rather than the required 1."
       }
     },
     {
@@ -2684,19 +2684,19 @@
       "queryState": "state=history-page-3",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-3.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-3-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-3-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-3",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, body has no overflow, and PNG diff is complete. In-app browser reported DPR 1.25, so the planned DPR 1 gate remains open; visual differences remain.",
       "geometryCheck": {
-        "status": "PASS",
+        "status": "REVIEW",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -2713,8 +2713,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "History page 3 is represented by the browser fixture, but its compact summary card omits the Figma assistant response, source, confirmation controls, and Trace steps; avatar, typography, colors, and geometry differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "The current fixture includes the Figma assistant response, source treatment, confirmation controls, and Trace steps. The frontend intentionally omits the three window-control dots and uses the registered default avatar policy; visible rendering differences remain. The capture is retained as DIFF_REVIEW because its browser DPR was 1.25 rather than the required 1."
       }
     },
     {
@@ -2728,19 +2728,19 @@
       "queryState": "state=search-results",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-search-results.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-search-results-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-search-results-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-search-results",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, body has no overflow, and PNG diff is complete. In-app browser reported DPR 1.25, so the planned DPR 1 gate remains open; visual differences remain.",
       "geometryCheck": {
-        "status": "PASS",
+        "status": "REVIEW",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -2757,8 +2757,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Search query and result summary are represented, but the browser fixture omits the Figma response composition, source row, confirmation controls, and Trace steps; search-state styling, avatar, colors, and geometry differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "The current fixture includes the search query/result state, Figma response composition, source treatment, confirmation controls, and Trace steps. The frontend intentionally omits the three window-control dots and uses the registered default avatar policy; visible rendering differences remain. The capture is retained as DIFF_REVIEW because its browser DPR was 1.25 rather than the required 1."
       }
     },
     {
