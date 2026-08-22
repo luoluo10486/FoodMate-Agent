@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import type { SessionSummary } from '../../types/session';
 import { MealPlanningFlow, type MealPlanningFlowView } from './MealPlanningFlow';
 import styles from './PlanningPage.module.css';
 
@@ -26,6 +27,18 @@ const days: Array<{ key: DayKey; label: string }> = [
   { key: '15', label: '周三 15' },
   { key: '16', label: '周四 16' },
   { key: '17', label: '周五 17' },
+];
+
+const figmaSidebarSessions: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
 ];
 
 const mealRows: MealRow[] = [
@@ -164,7 +177,7 @@ function PlanningFeedbackView({ kind, onPrimary, onSecondary }: PlanningFeedback
       className={`${styles.statePage} ${styles.feedbackPage}`}
       aria-label={isError ? '餐食规划加载失败' : '暂无周餐食规划'}
     >
-      <section className={styles.feedbackCard}>
+      <section className={`${styles.feedbackCard} ${isError ? styles.feedbackCardError : styles.feedbackCardEmpty}`}>
         <div className={`${styles.feedbackIcon} ${isError ? styles.feedbackIconError : ''}`} aria-hidden="true">
           {isError ? <CircleAlert /> : <Utensils />}
         </div>
@@ -237,8 +250,8 @@ function DefaultPlanningView() {
           <div className={styles.dayButtons} role="tablist" aria-label="每周日程日期">
             {days.map((day) => (
               <Button
-                variant="ghost"
                 className={`${styles.dayButton} ${activeDay === day.key ? styles.dayButtonActive : ''}`}
+                variant="ghost"
                 key={day.key}
                 type="button"
                 role="tab"
@@ -264,8 +277,8 @@ function DefaultPlanningView() {
                   </article>
                 ) : (
                   <Button
-                    variant="ghost"
                     className={styles.emptyMeal}
+                    variant="ghost"
                     key={`${row.label}-${index}`}
                     type="button"
                     onClick={() => announce(`已打开${row.label}的计划入口。`)}
@@ -341,7 +354,7 @@ export function PlanningPage() {
   const [searchParams] = useSearchParams();
   const requestedView = searchParams.get('state');
   const view: PlanningView = isPlanningView(requestedView) ? requestedView : 'default';
-  const isFigmaFixture = requestedView === 'v2';
+  const isFigmaFixture = requestedView === 'v2' || view !== 'default';
 
   const navigatePlanningView = (nextView: MealPlanningFlowView | 'default') => {
     navigate(nextView === 'default' ? '/planning' : `/planning?state=${nextView}`);
@@ -373,6 +386,12 @@ export function PlanningPage() {
       rightRailWidth={view === 'default' ? 340 : undefined}
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+      sidebarAvatarSrc={
+        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
+      }
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      showKnowledgeTopNav={!isFigmaFixture}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       {content}
     </WorkspaceLayout>

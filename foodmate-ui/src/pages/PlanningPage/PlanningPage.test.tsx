@@ -43,6 +43,22 @@ describe('PlanningPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('计划已保存');
   });
 
+  it('renders the nine-session Figma sidebar fixture', () => {
+    renderPage('/planning?state=v2');
+
+    [
+      '每周饮食微调',
+      '运动前零食建议',
+      '过敏原排除规则',
+      '蛋白质补充方案',
+      '睡前加餐建议',
+      '早餐碳水搭配',
+      '晚餐蛋白质补充',
+      '低碳水饮食建议',
+      '早餐奶昔配方',
+    ].forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
+  });
+
   it('renders loading, empty, and error states with their recovery paths', async () => {
     const user = userEvent.setup();
     const { unmount } = renderPage('/planning?state=loading');
