@@ -295,7 +295,7 @@
   border-radius: 16px;
   background: #fcfcfa;
   color: #5e6963;
-  font-family: Inter, 'Noto Sans SC', sans-serif;
+  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   width: 100%;
   height: 222px;
 }
@@ -308,12 +308,12 @@
 .lifecycleNote h2 {
   color: #292e2b;
   font-size: 16px;
-  line-height: 1.35;
+  line-height: 22px;
 }
 
 .lifecycleNote p {
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 18px;
 }
 
 .lifecycleNote .noteGreen {
@@ -323,6 +323,7 @@
 .lifecycleNote .noteMuted {
   color: #858c85;
   font-size: 12px;
+  line-height: 18px;
 }
 
 .wizardPage {

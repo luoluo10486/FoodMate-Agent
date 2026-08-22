@@ -393,3 +393,21 @@
 | Redis 清理 | 删除本轮 6 个 stub chunk hash 条目、索引完成事实和 4 个 Agent checkpoint key；未删除日期级预算统计或其他隔离空间 |
 | Git 边界 | 当前分支 `codex/m2-remaining-business`；本轮提交 `44130fe`、`1b423a5`、`2680b46`；既有 UI/QA 改动保留未提交 |
 | 未执行范围 | Docker Java/Python 应用镜像因 Docker Hub 网络阻塞未完成真实构建/启动；性能压测、组件重启、ACK 丢失、重复投递故障矩阵、SSE Last-Event-ID 专项验证、真实云模型/Embedding 和生产环境范围继续暂缓 |
+
+## M2-1 deterministic 跨运行时业务闭环补充（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 03:02-03:24 (Asia/Shanghai) |
+| 分支 | `codex/m2-remaining-business`；功能提交 `d2eac6e`、`e3f6b3f`、`de60de2`；用户既有 UI/QA 和 `tmp/` 改动未暂存 |
+| 环境 | Windows；Java 21 宿主进程 `18080`；Python 使用 `agent-runtime\\.venv` 宿主进程 `19000`；Docker PostgreSQL、Redis、RocketMQ NameServer/Broker/Proxy、MinIO 均已就绪；Python 使用 Redis checkpoint、RocketMQ 和知识 Worker |
+| 上传入口 | 首次使用非法 `source_type=external_import` 被拒绝为 `KNOWLEDGE_SOURCE_UNAUTHORIZED`；合法 `admin_upload` PDF 请求先暴露宿主 multipart 默认 1 MiB 限制，补齐 20 MiB 单文件/420 MiB 请求上限后上传成功 |
+| 索引失败与重试 | PDF 首次因宿主 Worker 未注入 MinIO 凭据收敛为 `RAG_OBJECT_UNAVAILABLE`，Java 自动重试至 3 次；管理员重试后该 PDF 被安全解析器拒绝为 `RAG_PDF_UNSAFE` 并再次收敛。新增空分块失败关闭，避免空索引回报成功 |
+| 成功索引链路 | 随机 Markdown 批次 `349632053559431168`：Java Outbox -> RocketMQ -> Python MinIO 读取 -> Redis stub index -> `foodmate-knowledge-index-result-v1` -> Java 权威回写，批次 `completed`、条目 `indexed`、attempt `1`；发布后 visibility Outbox 已发布，Redis metadata 为 `published/indexed/current_version` |
+| 中文检索 | 修复中文二字片段检索；普通用户查询“低盐饮食 钠含量”返回 1 条安全引用，包含标题、版本、章节、chunk ID 和片段，不含对象键/地址 |
+| AgentRun | deterministic 运行 `349633092236873728` 真实完成；SSE 事件序号 `1..6` 连续，Composer `provider_code=deterministic`、Eval `DETERMINISTIC_RULES_PASSED`、`run.completed` 返回 1 条 citations，成本为 `0` |
+| 可见性业务 | 同一文档下线后普通用户检索 0 条；恢复只回到 `draft`，检索仍为 0；删除后 PostgreSQL 为 `indexed|deleted|true`，删除 visibility Outbox 已发布 |
+| 清理 | 精确清理本轮 2 个随机用户、2 个 Session、2 个 AgentRun、4 条消息、3 个批次/条目/文档及其 Outbox/Inbox/SSE/审计事实；MinIO 删除 3 个本轮对象；Redis 删除隔离 chunks 和 2 个 Worker 完成事实；SQL 复核 users/jobs/docs/runs/sessions 均为 0；未删除日期预算键、既有数据、命名卷或既有 Milvus 集合 |
+| 重要纠正 | 第一条 AgentRun 因启动命令错误继承 `.env` 云模型路由，实际产生了 1 次云 Composer 和 1 次云 Judge 请求；该结果不计入 deterministic 证据。随后已重启 Python 并显式锁定全部模型 tier 为 `deterministic:local`，后续有效 AgentRun 未调用云模型。 |
+| 未执行范围 | Docker Java/Python 应用镜像因 Docker Hub 网络阻塞未完成构建/启动；真实 embedding API、吞吐/延迟/积压压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递和 SSE `Last-Event-ID` 专项验证继续暂缓 |
+| 结论 | M2-1 deterministic 本地业务闭环的真实上传、索引、发布、检索、AgentRun 引用、下线/恢复业务证据成立；生产强化和用户明确暂缓的测试不计入完成门槛 |

@@ -502,10 +502,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 384990,
-      "differentRatio": 0.2610880533854167,
-      "meanAbsoluteError": 3.8936969333224827,
-      "rmse": 19.407002584157258,
+      "differentPixels": 384960,
+      "differentRatio": 0.2610677083333333,
+      "meanAbsoluteError": 3.895343695746528,
+      "rmse": 19.407342036630308,
       "maxChannelDelta": 234
     },
     "meal-plan-wizard-step1": {
