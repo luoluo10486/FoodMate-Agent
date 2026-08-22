@@ -450,7 +450,8 @@ const executingToolSteps = [
 ];
 
 function ToolExecutingStatePage() {
-  const userAvatar = resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
+  const executingAvatarSrc = '/assets/figma/planning/meal-plan-list-topbar-avatar.png';
+  const executingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const executingRun: AgentRunView = {
     id: 'fst_trace_9821aa',
     status: 'executing_tools',
@@ -505,12 +506,20 @@ function ToolExecutingStatePage() {
       onSend={() => undefined}
       onStop={() => undefined}
       placeholder="正在运行数据计算工具..."
+      avatarSrc={executingAvatarSrc}
+      sidebarAvatarSrc={executingAvatarSrc}
+      topAvatarSrc={executingAvatarSrc}
+      displayNameOverride="Anddy"
+      profileIdOverride="1234567"
+      showKnowledgeTopNav={false}
+      designChat
+      sidebarFixture={executingSidebar}
     >
       <article className={styles.executingUserMessage}>
         <div className={styles.executingUserLine}>
           <div className={styles.executingUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.executingUserAvatar} aria-hidden="true">
-            <img src={userAvatar} alt="" />
+            <img src={executingAvatarSrc} alt="" />
           </span>
         </div>
         <div className={styles.executingMessageMeta}>Anddy · 12:45 PM</div>
