@@ -317,7 +317,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - Planning `/planning?state=wizard-step2` 浏览器复核确认：步骤导航控件为 `32px`，过敏源 Chip 和添加入口为 `26px`；修正前 shadcn 默认高度曾将 Chip 撑到 `40px`，已通过页面 CSS 显式覆盖并重新截图确认。
 - Profile `/profile?state=basic` 浏览器复核确认：资料操作按钮和过敏原标签均保持设计 CSS 尺寸，过敏原标签为 `32px`；未发现页面级横向溢出。
 - 业务页面源码扫描结果：原生 `<button>` 数量 `0`，`AdminPrimitives` 直接依赖数量 `0`；这项结果只证明控件实现边界，不证明页面与 Figma 已像素一致。
-- Planning/Profile 定向测试合计 `16/16`，全量测试 `25` 个测试文件、`134/134`，`npm run typecheck` 与 `npm run build` 通过。
+- Planning 冲突解决页 `/planning?state=conflict` 已实测两个 `radiogroup`、4 个可访问 radio、默认选中态和切换态；菜系选择 `/planning?state=wizard-step2` 已实测 shadcn Select 的三个 option 和受控值更新。
+- Chat 历史写入确认卡 `/chat?state=history-page-2` 已实测两个可访问 radio，默认“添加到今天的午餐”，点击后可切换到“仅作为对话参考”。
+- 当前页面级原生 `<button>`、`<select>`、`type="radio"`、`type="checkbox"` 均为 `0`；仅保留 3 个文件上传输入，属于浏览器文件选择 API 的必要入口；`AdminPrimitives` 直接依赖仍为 `0`。
+- Planning 定向测试 `7/7`、Chat 定向测试 `25/25`，全量测试 `25` 个测试文件、`136/136`；`npm run typecheck`、`npm run build` 与 `git diff --check` 均通过。
 - `MealPlanningFlow.tsx` 定向 Prettier 已通过；全量 `format:check` 仍受其他未提交文件阻塞，未把该阻塞写成当前页面运行失败。
 
 本次不更新 105 条 diff 状态：仍为 `DIFF_REVIEW=105`、`PASS=0`，人工视觉复核仍未完成；iconfont 资源继续为 `BLOCKED`。
