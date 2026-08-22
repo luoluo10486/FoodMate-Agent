@@ -273,6 +273,22 @@
 | 未执行范围 | 真实 embedding API、Java -> RocketMQ -> Python 跨运行时上传闭环、性能压测、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证继续暂缓 |
 | 结论 | local deterministic + Milvus 业务适配和 Docker 依赖路径具备本地证据；真实 provider 仍需显式配置后单独验证，M2-1 整体不据此标记完成 |
 
+## M3 可审计人工 DLQ 重放 Outbox（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 00:43-00:47 (Asia/Shanghai) |
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；Java 21；未启动 Java、PostgreSQL、Redis、RocketMQ；未执行迁移、清库、备份恢复或消息重放 |
+| 功能提交 | `1cad651 feat(dlq): 增加可审计的人工重放 Outbox` |
+| 数据变更 | 新增 `V24__m3_dlq_replay.sql`、validation、rollback；增加 `raw_payload_text` 和 `runtime_dlq_replay_outbox`；本轮未运行迁移 |
+| API | `POST /api/admin/dlq/{dlqId}/replay`；仅 superadmin，必须确认摘要和幂等键；响应不返回 payload |
+| Relay | 仅 `foodmate.runtime.transport=rocketmq` 时发布；保留原消息身份属性，记录新的 Broker message ID；发布确认后才收敛原 DLQ |
+| 安全边界 | 原始 payload 只保存在受限 replay Outbox；不进入审计 metadata、管理查询 DTO 或 API 响应；Topic/Group 必须匹配配置 |
+| Java 验证 | `mvnw.cmd -pl foodmate-application,foodmate-api,foodmate-infra -am test -Dtest=RuntimeDlqReplayServiceImplTest,RuntimeDlqReplayPublisherTest,AdminDlqReplayControllerTest,FlywayV24MigrationScriptTest -Dsurefire.failIfNoSpecifiedTests=false`：10/10 通过 |
+| 格式验证 | `mvnw.cmd -pl foodmate-application,foodmate-api,foodmate-infra -am spotless:check`：通过 |
+| 未执行范围 | 未连接 RocketMQ 实际发布/消费，未执行重试耗尽、真实重放后的业务副作用对账、性能压测、组件重启、ACK/重复投递和 SSE 故障验证 |
+| 结论 | 人工重放 Outbox 的权限、确认、幂等、失败关闭、发布属性和迁移契约具备代码及业务测试证据；不计为真实消息重放完成 |
+
 ## M3 前置：DLQ 安全摘要运营可见性（2026-08-23）
 
 | 项目 | 结果 |
