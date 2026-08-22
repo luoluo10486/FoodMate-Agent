@@ -223,7 +223,9 @@
 
 .planningBubble {
   display: flex;
-  width: fit-content;
+  width: 165px;
+  height: 160px;
+  box-sizing: border-box;
   max-width: 100%;
   flex-direction: column;
   gap: 16px;
@@ -231,6 +233,17 @@
   border: 1px solid #f4f6f5;
   border-radius: 16px 16px 16px 0;
   background: #fff;
+}
+
+.designChatPage :global(button[data-state='running']) {
+  background: #ff7576;
+}
+
+.designChatPage :global(button[data-state='running'] svg) {
+  width: 10px;
+  height: 10px;
+  fill: currentColor;
+  stroke-width: 0;
 }
 
 .planningTitle {
