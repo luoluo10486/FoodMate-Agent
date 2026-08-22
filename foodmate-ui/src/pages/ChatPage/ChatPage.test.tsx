@@ -342,7 +342,17 @@ describe('ChatPage Figma session operation fixtures', () => {
 });
 
 describe('ChatPage Figma navigation fixtures', () => {
-  it.each(['redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination'])(
+  it('renders the default redesign fixture with the Figma source copy and first history page', () => {
+    renderChatState('redesign-default');
+
+    expect(screen.getByText(/I have analyzed the typical values/)).toBeInTheDocument();
+    expect(screen.getByText('查询扩展')).toBeInTheDocument();
+    expect(screen.queryByText('查询扩展 (Query Expansion)')).not.toBeInTheDocument();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '消息操作' })).toBeInTheDocument();
+  });
+
+  it.each(['nav-loading', 'nav-hover-preview', 'pagination'])(
     '%s keeps the complete Figma conversation and trace',
     (state) => {
       renderChatState(state);

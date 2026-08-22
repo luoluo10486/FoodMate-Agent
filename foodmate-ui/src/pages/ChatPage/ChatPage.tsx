@@ -806,6 +806,17 @@ function navigationFixture(): HistoryFixture {
   };
 }
 
+function redesignDefaultFixture(): HistoryFixture {
+  const fixture = historyFixture('history-page-2');
+  return {
+    ...fixture,
+    sidebar: {
+      ...fixture.sidebar,
+      currentPage: 1,
+    },
+  };
+}
+
 type SessionOverlayState = Extract<ChatAuxState, 'session-actions' | 'renamed' | 'archived' | 'trash'>;
 
 function SessionStateOverlay({
@@ -962,17 +973,19 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
   const isHistoryState = state === 'history-page-2' || state === 'history-page-3' || state === 'search-results';
   const isSessionOverlayState =
     state === 'session-actions' || state === 'renamed' || state === 'archived' || state === 'trash';
-  const isNavigationState =
-    state === 'redesign-default' || state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
+  const isRedesignDefault = state === 'redesign-default';
+  const isNavigationState = state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
   const history = isHistoryState
     ? historyFixture(state)
     : isSessionOverlayState
       ? historyFixture('search-results')
-      : isNavigationState
-        ? navigationFixture()
-        : isRunning
-          ? historyFixture('history-page-2')
-          : undefined;
+      : isRedesignDefault
+        ? redesignDefaultFixture()
+        : isNavigationState
+          ? navigationFixture()
+          : isRunning
+            ? historyFixture('history-page-2')
+            : undefined;
   const run = isRunning
     ? { ...(history?.run ?? fixtureRun('sse-reconnecting')), status: 'executing_tools' as const }
     : (history?.run ?? fixtureRun('tool-failed-retryable'));
@@ -1054,7 +1067,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               onCancel={() => setNotice('已保留本次分析，仅作为对话参考。')}
             />
           </MessageBubble>
-          {isRunning ? (
+          {isRunning || isRedesignDefault ? (
             <section className={styles.messageActions} aria-label="消息操作">
               <h2>消息操作</h2>
               <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
