@@ -2610,7 +2610,9 @@
 
 /* Figma 801:215 - Admin User Detail. Keep this surface independent from the legacy admin table styles. */
 .usersPage {
+  flex: 1 1 auto;
   gap: 0;
+  min-height: 0;
   padding: 24px;
   overflow: hidden;
 }
@@ -3160,42 +3162,6 @@
   color: #d67676 !important;
 }
 
-.userDetailAnnotation {
-  position: absolute;
-  top: 454px;
-  left: 19px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 380px;
-  height: 220px;
-  padding: 14px;
-  overflow: hidden;
-  border: 1px solid #e3ebe5;
-  border-radius: 12px;
-  background: #fcfcfa;
-  color: #59665e;
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.userDetailAnnotation p {
-  margin: 0;
-}
-
-.userDetailAnnotation p:first-child {
-  color: #292e2b;
-  font-size: 15px;
-  line-height: 20px;
-}
-
-.userDetailAnnotationWarning {
-  color: #ad5745;
-}
-
-.userDetailAnnotationMuted {
-  color: #858c85;
-}
 .emptyState svg {
   width: 24px;
   height: 24px;

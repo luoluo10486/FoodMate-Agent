@@ -506,7 +506,6 @@ function UserDetailCard({
     : [];
   const initials = user.displayName.slice(0, 1) || user.username.slice(0, 1).toUpperCase();
   const avatarSource = resolveAvatarUrl(user.avatarUrl, user.gender);
-  const isFigmaDetail = user.userId === 'usr_098a1';
 
   return (
     <Card className={styles.userDetailCard}>
@@ -606,17 +605,6 @@ function UserDetailCard({
           撤销所有会话
         </Button>
       </div>
-      {isFigmaDetail ? (
-        <div className={styles.userDetailAnnotation} aria-label="用户详情设计说明">
-          <p>用户详情 Tab</p>
-          <p>资料 · 饮食画像 · 登录会话 · 业务会话 · 操作历史</p>
-          <p>资料字段：注册时间 · 最近登录 · 账号状态 · 角色 · 活跃会话数</p>
-          <p className={styles.userDetailAnnotationWarning}>
-            禁用 / 锁定前显示影响：撤销会话、停止新运行、保留审计记录；admin 需二次确认。
-          </p>
-          <p className={styles.userDetailAnnotationMuted}>operator：只读；无启用、禁用、锁定和撤销全部会话权限。</p>
-        </div>
-      ) : null}
     </Card>
   );
 }
