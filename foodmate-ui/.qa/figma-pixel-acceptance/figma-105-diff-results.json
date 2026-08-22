@@ -964,10 +964,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 955935,
-      "differentRatio": 0.648284912109375,
-      "meanAbsoluteError": 3.9480360243055554,
-      "rmse": 17.846185653145504,
+      "differentPixels": 561992,
+      "differentRatio": 0.3811252170138889,
+      "meanAbsoluteError": 3.8829532199435763,
+      "rmse": 17.122038187408666,
       "maxChannelDelta": 255
     },
     "agent-chat-trash": {

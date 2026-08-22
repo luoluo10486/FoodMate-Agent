@@ -342,6 +342,23 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [ ] 底层 Workspace 壳层、字体渲染、图标、遮罩合成和对话/Trace 内容仍与 Figma 存在差异；后续继续逐页修正。
 - [ ] iconfont 实体资源登记继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
 
+## 53. 2026-08-22 Agent Chat 归档结果卡复核
+
+本轮重新读取 Figma 节点 `806:662`，并对 `/chat?state=archived` 完成同尺寸截图和交互复核。设计卡片为 `x=540,y=286,w=620,h=276`，浏览器已对齐 `ARCHIVED` 状态、归档会话条、保留说明、恢复按钮和关闭按钮；恢复与关闭均保留独立状态提示。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点 | `806:662`，画板 `1440×1024` |
+| 浏览器截图 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-archived-browser-current.png` |
+| diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-archived-current-diff.json` |
+| PNG diff | `differentRatio=38.11252%`、`MAE=3.88295`、`RMSE=17.12204`、`maxChannelDelta=255`，保持 `DIFF_REVIEW` |
+| 几何与运行时 | `1440×1024`、DPR `1`、卡片 `620×276`、归档条 `556×56`、根节点无滚动溢出 |
+| 行为回归 | Chat 定向测试 `25/25`；恢复/关闭动作已在浏览器验证；`npm run typecheck` 与目标文件 Prettier 通过 |
+
+- [x] 当前画板已完成自动 diff、几何检查、文字检查和人工视觉复核登记；结果仍为 `DIFF_REVIEW`，没有把归档卡几何通过写成像素 `PASS`。
+- [ ] 底层 Workspace 壳层、字体渲染、图标、遮罩合成和对话/Trace 内容仍与 Figma 存在差异；后续继续逐页修正。
+- [ ] iconfont 实体资源登记继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
+
 ## 52. 2026-08-22 Agent Chat 会话重命名结果卡复核
 
 本轮重新读取 Figma 节点 `806:438`，并对 `/chat?state=renamed` 完成同尺寸截图和交互复核。设计卡片为 `x=540,y=300,w=620,h=244`，浏览器已对齐 `SAVED` 状态、同步说明、关闭按钮和 `148×44` 返回按钮；关闭结果后不会继续保留遮罩。

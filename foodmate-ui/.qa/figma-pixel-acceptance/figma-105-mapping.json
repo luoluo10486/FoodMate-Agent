@@ -3872,11 +3872,11 @@
       "queryState": "state=archived",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-archived.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-archived-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-archived",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-archived-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-archived-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture after aligning the archived-session recovery card, ARCHIVED status, item surface, retention note, restore button and close interaction with Figma node 806:662: 1440x1024, DPR 1, no page overflow, automatic diff 0.3811252170 / RMSE 17.1220382; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3901,8 +3901,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Archive outcome is represented by an inline browser summary, but Figma uses a dimmed recovery dialog with session metadata and action placement not reproduced in the browser. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "Current browser contains the Figma-sized archived-session card, ARCHIVED status, session metadata surface, retention note, restore action and close interaction. Underlying Workspace shell, font rendering, icon treatment, overlay compositing and conversation/Trace content still differ from Figma; retain DIFF_REVIEW."
       }
     },
     {
