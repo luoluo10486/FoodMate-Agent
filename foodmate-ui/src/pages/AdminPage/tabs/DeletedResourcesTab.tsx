@@ -179,7 +179,9 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
         return (
           <span className={styles.deletedIdCell}>
             <strong>{resourceId}</strong>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               className={styles.deletedCopyButton}
               type="button"
               aria-label={`复制 ${resourceId}`}
@@ -187,7 +189,7 @@ export function DeletedSection({ onAction }: { onAction: (payload: AdminActionPa
               title={`复制 ${resourceId}`}
             >
               <Copy aria-hidden="true" />
-            </button>
+            </Button>
           </span>
         );
       },
