@@ -888,13 +888,39 @@ function SessionStateOverlay({
     );
   }
 
+  if (state === 'archived') {
+    return (
+      <div className={styles.sessionArchivedBackdrop}>
+        <Card className={styles.sessionArchivedCard} role="dialog" aria-modal="true" aria-label="已归档会话">
+          <span className={styles.sessionArchivedAccent} aria-hidden="true" />
+          <span className={styles.sessionArchivedStatus}>ARCHIVED</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={styles.sessionArchivedClose}
+            aria-label="关闭归档结果"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
+          </Button>
+          <h2>已归档会话</h2>
+          <p>本页显示已归档的会话，可恢复到 Agent 对话列表。</p>
+          <div className={styles.sessionArchivedItem}>每周饮食微调 · 归档于今天 12:45</div>
+          <span className={styles.sessionArchivedSync}>保留会话内容，恢复后回到 Agent 对话列表</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={styles.sessionArchivedRestore}
+            onClick={() => onAction('已恢复会话，可从 Agent 对话列表继续查看。')}
+          >
+            恢复会话
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   const content = {
-    archived: {
-      title: '已归档会话',
-      description: '本页显示已归档的会话，可恢复到 Agent 对话列表。',
-      detail: '每周饮食微调 · 归档于今天 12:45',
-      action: '恢复会话',
-    },
     trash: {
       title: '会话回收站',
       description: '删除的会话将在保留期内可恢复，不提供永久删除入口。',
@@ -981,7 +1007,15 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
             onAction={setNotice}
             onClose={() => {
               setSessionOverlayVisible(false);
-              setNotice(state === 'session-actions' ? '已关闭会话管理面板。' : '已关闭重命名结果。');
+              setNotice(
+                state === 'session-actions'
+                  ? '已关闭会话管理面板。'
+                  : state === 'renamed'
+                    ? '已关闭重命名结果。'
+                    : state === 'archived'
+                      ? '已关闭归档结果。'
+                      : '已关闭回收站结果。',
+              );
             }}
           />
         ) : undefined

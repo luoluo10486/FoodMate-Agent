@@ -1834,6 +1834,140 @@
   line-height: 20px;
 }
 
+.sessionArchivedBackdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.sessionArchivedCard {
+  position: absolute;
+  top: 286px;
+  left: 280px;
+  width: 620px;
+  height: 276px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(199 150 84 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+}
+
+.sessionArchivedAccent {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 276px;
+  border-radius: 3px;
+  background: rgb(199 150 84 / 90%);
+}
+
+.sessionArchivedCard h2 {
+  position: absolute;
+  top: 47px;
+  left: 31px;
+  margin: 0;
+  color: #c79654;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.sessionArchivedCard > p {
+  position: absolute;
+  top: 85px;
+  left: 31px;
+  width: 520px;
+  margin: 0;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.sessionArchivedStatus {
+  position: absolute;
+  top: 15px;
+  right: 33px;
+  display: grid;
+  width: 144px;
+  height: 24px;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff8e5;
+  color: #c79654;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.sessionArchivedClose {
+  position: absolute;
+  top: 13px;
+  right: 16px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(199 150 84 / 24%);
+  border-radius: 14px;
+  background: #fff6e2;
+  color: rgb(199 150 84 / 90%);
+}
+
+.sessionArchivedClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sessionArchivedItem {
+  position: absolute;
+  top: 121px;
+  left: 31px;
+  display: flex;
+  width: 556px;
+  height: 56px;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid #c79654;
+  border-radius: 12px;
+  background: #fff9eb;
+  color: #333;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.sessionArchivedSync {
+  position: absolute;
+  top: 187px;
+  left: 31px;
+  width: 520px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sessionArchivedRestore {
+  position: absolute;
+  top: 213px;
+  left: 31px;
+  width: 108px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #89b27c;
+  border-radius: 12px;
+  background: #a6d997;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
 .sessionTrashOverlay {
   border-color: #ff6b61;
 }
@@ -1850,6 +1984,11 @@
   }
 
   .sessionRenamedCard {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .sessionArchivedCard {
     left: 50%;
     transform: translateX(-50%);
   }

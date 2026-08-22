@@ -320,6 +320,15 @@ describe('ChatPage Figma session operation fixtures', () => {
       expect(screen.queryByRole('dialog', { name: '会话已重命名' })).not.toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('已关闭重命名结果。');
     }
+    if (state === 'archived') {
+      expect(screen.getByText('ARCHIVED')).toBeInTheDocument();
+      expect(screen.getByText('保留会话内容，恢复后回到 Agent 对话列表')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '关闭归档结果' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: '关闭归档结果' }));
+      expect(screen.queryByRole('dialog', { name: '已归档会话' })).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('已关闭归档结果。');
+    }
   });
 });
 
