@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { MealPlan } from '../../services/planningService';
 import styles from './MealPlanningFlow.module.css';
 
 export type MealPlanningFlowView =
@@ -49,6 +50,46 @@ const plans = [
     updated: '最后修改: 2周前',
   },
 ] as const;
+
+type PlanCard = {
+  id: string;
+  name: string;
+  status: string;
+  statusTone: 'active' | 'draft' | 'archived';
+  dates: string;
+  calories: string;
+  protein: string;
+  budget: string;
+  level: string;
+  updated: string;
+};
+
+function realPlanCard(plan: MealPlan): PlanCard {
+  const archived = plan.deleted;
+  const statusTone = archived ? 'archived' : plan.status === 'draft' ? 'draft' : 'active';
+  const status = archived ? '已归档' : statusTone === 'draft' ? '草稿' : '进行中';
+  const calorieTarget = plan.constraints.calorie_target;
+  const proteinTarget = plan.constraints.protein_target;
+  const budget = plan.budget == null ? '未设置' : `${plan.budget}`;
+  const updated = new Date(plan.updated_at).toLocaleString('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return {
+    id: plan.meal_plan_id,
+    name: plan.plan_name?.trim() || `未命名 ${plan.meal_plan_id}`,
+    status,
+    statusTone,
+    dates: `${plan.days} 天计划`,
+    calories: calorieTarget == null ? '每日目标: 未设置' : `每日目标: ${calorieTarget.toLocaleString()} kcal`,
+    protein: proteinTarget == null ? '蛋白质: 未设置' : `蛋白质: ${proteinTarget}g`,
+    budget: `预算: ¥${budget}/天`,
+    level: '服务端计划',
+    updated: `最后修改: ${updated}`,
+  };
+}
 
 const shoppingCategories = [
   {
@@ -410,9 +451,20 @@ function WizardStepThree({ onNavigate }: { onNavigate: NavigateToView }) {
   );
 }
 
-function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
+function PlanListView({
+  onNavigate,
+  realPlans,
+  onOpenPlan,
+}: {
+  onNavigate: NavigateToView;
+  realPlans?: MealPlan[];
+  onOpenPlan?: (mealPlanId: string) => void;
+}) {
   const [tab, setTab] = useState<'active' | 'draft' | 'archived'>('active');
-  const visiblePlans = plans.filter((plan) => plan.statusTone === tab);
+  const planCards: PlanCard[] = realPlans
+    ? realPlans.map(realPlanCard)
+    : plans.map((plan) => ({ ...plan, id: plan.name }));
+  const visiblePlans = planCards.filter((plan) => plan.statusTone === tab);
 
   return (
     <div className={`${styles.flowPage} ${styles.listPage}`}>
@@ -447,7 +499,7 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
       </div>
       <div className={styles.planList}>
         {visiblePlans.map((plan) => (
-          <article className={styles.planListCard} key={plan.name}>
+          <article className={styles.planListCard} key={plan.id}>
             <div className={styles.planListMain}>
               <div className={styles.planListTitleRow}>
                 <h2>{plan.name}</h2>
@@ -463,7 +515,10 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
               </div>
             </div>
             <div className={styles.planListActions}>
-              <FlowButton variant="outline" onClick={() => onNavigate('default')}>
+              <FlowButton
+                variant="outline"
+                onClick={() => (onOpenPlan && realPlans ? onOpenPlan(plan.id) : onNavigate('default'))}
+              >
                 进入计划
               </FlowButton>
               <Button
@@ -772,8 +827,18 @@ function GeneratingView({ onNavigate }: { onNavigate: NavigateToView }) {
   );
 }
 
-export function MealPlanningFlow({ view, onNavigate }: { view: MealPlanningFlowView; onNavigate: NavigateToView }) {
-  if (view === 'list') return <PlanListView onNavigate={onNavigate} />;
+export function MealPlanningFlow({
+  view,
+  onNavigate,
+  realPlans,
+  onOpenPlan,
+}: {
+  view: MealPlanningFlowView;
+  onNavigate: NavigateToView;
+  realPlans?: MealPlan[];
+  onOpenPlan?: (mealPlanId: string) => void;
+}) {
+  if (view === 'list') return <PlanListView onNavigate={onNavigate} realPlans={realPlans} onOpenPlan={onOpenPlan} />;
   if (view === 'wizard-step1') return <WizardStepOne onNavigate={onNavigate} />;
   if (view === 'wizard-step2') return <WizardStepTwo onNavigate={onNavigate} />;
   if (view === 'wizard-step3') return <WizardStepThree onNavigate={onNavigate} />;
