@@ -1,6 +1,7 @@
 import { Check, ChevronDown, CircleAlert, Download, MoreHorizontal, Plus, Printer, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import styles from './MealPlanningFlow.module.css';
 
@@ -257,11 +258,14 @@ function WizardStepOne({ onNavigate }: { onNavigate: NavigateToView }) {
 
 function CheckChip({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
-    <label className={`${styles.checkChip} ${checked ? styles.checkChipActive : ''}`}>
-      <input type="checkbox" checked={checked} onChange={onChange} />
-      <span className={styles.checkboxMark}>{checked ? <Check aria-hidden="true" /> : null}</span>
+    <Checkbox
+      aria-label={label}
+      checked={checked}
+      className={`${styles.checkChip} ${checked ? styles.checkChipActive : ''}`}
+      onCheckedChange={onChange}
+    >
       <span>{label}</span>
-    </label>
+    </Checkbox>
   );
 }
 
@@ -640,10 +644,14 @@ function ShoppingListView() {
         ))}
       </div>
       <footer className={styles.shoppingToolbar}>
-        <label className={styles.selectAll}>
-          <input type="checkbox" checked={allChecked} onChange={toggleAll} />
-          <span className={styles.checkboxMark}>{allChecked ? <Check aria-hidden="true" /> : null}</span>全选所有项目
-        </label>
+        <Checkbox
+          aria-label="全选所有项目"
+          checked={allChecked}
+          className={styles.selectAll}
+          onCheckedChange={toggleAll}
+        >
+          <span>全选所有项目</span>
+        </Checkbox>
         <div className={styles.toolbarActions}>
           <FlowButton className={styles.orangeButton} onClick={() => setNotice('已添加自定义项目入口。')}>
             <Plus aria-hidden="true" />
@@ -678,9 +686,12 @@ function ShoppingRow({
   onChange: () => void;
 }) {
   return (
-    <label className={styles.shoppingRow}>
-      <input type="checkbox" checked={checked} onChange={onChange} />
-      <span className={styles.checkboxMark}>{checked ? <Check aria-hidden="true" /> : null}</span>
+    <Checkbox
+      aria-label={`${item.name} (${item.detail})`}
+      checked={checked}
+      className={styles.shoppingRow}
+      onCheckedChange={onChange}
+    >
       <span className={styles.shoppingCopy}>
         <strong>{item.name}</strong>
         <small>{item.detail}</small>
@@ -688,7 +699,7 @@ function ShoppingRow({
       <em className={`${styles.itemStatus} ${item.tone === 'owned' ? styles.itemOwned : styles.itemPending}`}>
         {item.status}
       </em>
-    </label>
+    </Checkbox>
   );
 }
 

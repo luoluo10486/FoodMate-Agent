@@ -2,6 +2,7 @@ import { CircleAlert, Plus, RotateCcw, Utensils } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { MealPlanningFlow, type MealPlanningFlowView } from './MealPlanningFlow';
 import styles from './PlanningPage.module.css';
@@ -317,14 +318,15 @@ function PlanSidebar() {
             <h3>{group.label}</h3>
             <div className={styles.shoppingItems}>
               {group.items.map((item) => (
-                <label className={styles.shoppingItem} key={item}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(checkedItems[item])}
-                    onChange={() => toggleShoppingItem(item)}
-                  />
+                <Checkbox
+                  aria-label={item}
+                  checked={Boolean(checkedItems[item])}
+                  className={styles.shoppingItem}
+                  key={item}
+                  onCheckedChange={() => toggleShoppingItem(item)}
+                >
                   <span>{item}</span>
-                </label>
+                </Checkbox>
               ))}
             </div>
           </div>
