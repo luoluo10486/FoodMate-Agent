@@ -5,6 +5,8 @@ import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ROUTES } from '../../constants/routes';
 import { adminOperationAuditRows } from '../../services/adminService';
 import { getAuthUser } from '../../services/authService';
@@ -93,6 +95,117 @@ function getFixtureNavKey(state: AdminFixtureState | undefined): string | undefi
   if (state === 'trace') return 'trace';
   if (state === 'overview') return 'overview';
   return undefined;
+}
+
+const toolCallsPayload = `{
+  "query": "avocado sourdough toast",
+  "filters": {
+    "usda_ndb_id": "1103982",
+    "strict_keto_validation": true
+  },
+  "caller_context_mask": "SENSITIVE_USER_CREDENTIALS_MASKED_***"
+}`;
+
+function ToolCallsFixture() {
+  const [search, setSearch] = useState('');
+  const hasMatch =
+    !search.trim() ||
+    ['call_829c', 'run_98218a', 'usda_food_api.query_ingredients'].some((value) =>
+      value.toLowerCase().includes(search.trim().toLowerCase()),
+    );
+
+  return (
+    <section className={styles.governanceSurface} aria-label="工具调用详情 fixture">
+      <nav className={styles.governanceTabs} aria-label="治理详情视图">
+        <Button asChild size="sm" className={`${styles.governanceTab} ${styles.governanceTabActive}`}>
+          <Link to="/admin?state=tool-calls">工具调用</Link>
+        </Button>
+        <Button asChild size="sm" variant="outline" className={styles.governanceTab}>
+          <Link to="/admin?state=sql-audit">SQL 审计</Link>
+        </Button>
+        <Button asChild size="sm" variant="outline" className={styles.governanceTab}>
+          <Link to="/admin?state=trace">追踪视图</Link>
+        </Button>
+      </nav>
+
+      <div className={styles.governanceFilters} aria-label="工具调用筛选">
+        <span className={styles.governanceStaticFilter}>tool_name: query_usda</span>
+        <Select defaultValue="high">
+          <SelectTrigger className={styles.governanceRiskFilter} aria-label="风险筛选">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="high">风险：高</SelectItem>
+            <SelectItem value="medium">风险：中</SelectItem>
+            <SelectItem value="low">风险：低</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          aria-label="搜索运行 ID"
+          className={styles.governanceSearch}
+          placeholder="搜索运行ID..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </div>
+
+      <section className={styles.governanceTable} aria-label="工具调用记录">
+        <div className={styles.governanceTableHeader} role="row">
+          <span>调用 ID</span>
+          <span>运行 ID</span>
+          <span>工具组件</span>
+          <span>版本</span>
+          <span>状态</span>
+          <span>耗时</span>
+          <span>风险</span>
+        </div>
+        {hasMatch ? (
+          <div className={styles.governanceTableRow} role="row">
+            <strong>call_829c</strong>
+            <code>run_98218a</code>
+            <strong>usda_food_api.query_ingredients</strong>
+            <span>v2.1</span>
+            <span className={styles.governanceFailure}>失败</span>
+            <span>8.5s</span>
+            <span className={styles.governanceRiskMedium}>中</span>
+          </div>
+        ) : (
+          <p className={styles.governanceEmpty} role="status">
+            没有匹配的工具调用
+          </p>
+        )}
+      </section>
+
+      <section className={styles.governancePayloadCard} aria-label="Arguments & System Schema">
+        <div className={styles.governancePayloadHeader}>
+          <h2>Arguments &amp; System Schema (call_829c)</h2>
+          <span className={styles.governancePolicy}>策略：通过</span>
+        </div>
+        <div className={styles.governancePayload}>
+          <div className={styles.governancePayloadMeta}>
+            <strong>payload_arguments.json</strong>
+            <code>只读</code>
+          </div>
+          <pre>{toolCallsPayload}</pre>
+        </div>
+        <p className={styles.governanceFootnote}>
+          * Sensitive fields masked automatically by Foodmate PII filter gateway.
+        </p>
+      </section>
+
+      <aside className={styles.governanceNotes} aria-label="Tool Calls 筛选与详情">
+        <h2>Tool Calls · 筛选与详情</h2>
+        <p>筛选：时间范围 · 状态 · 工具名 · 风险等级 · 仅看失败 · 重试次数</p>
+        <p>详情字段：call_id · run_id · 创建时间 · 完成时间 · 耗时 · 状态 · 重试次数 · 错误码</p>
+        <p className={styles.governanceNoteSuccess}>
+          输入 / 输出：结构化摘要 + 脱敏 payload；敏感字段仅显示 [MASKED]，支持复制 call_id 与查看所属 Run。
+        </p>
+        <p className={styles.governanceNoteMuted}>
+          工具策略校验：权限范围、超时、重试策略、风险等级和 SQL Guard 结果均可追踪。
+        </p>
+      </aside>
+    </section>
+  );
 }
 
 function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; onDismiss: () => void }) {
@@ -203,6 +316,7 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
         </section>
       );
     }
+    if (state === 'tool-calls') return <ToolCallsFixture />;
     const title = state === 'trace' ? 'Agent 运行控制台' : '工具调用与 SQL 审计';
     return (
       <div className={styles.fixtureSurface}>
@@ -218,11 +332,7 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
           <span>12.4s · $0.045 · 12 calls</span>
         </div>
         <div className={styles.fixtureSurfaceCard}>
-          <h3>
-            {state === 'tool-calls' || state === 'sql-audit'
-              ? 'Arguments &amp; System Schema (call_829c)'
-              : '执行事件追踪：run_98218a'}
-          </h3>
+          <h3>{state === 'sql-audit' ? 'Arguments &amp; System Schema (call_829c)' : '执行事件追踪：run_98218a'}</h3>
           <pre>
             {JSON.stringify(
               {
@@ -429,6 +539,8 @@ export function AdminPage() {
     requestedFixture === 'tool-calls' ||
     requestedFixture === 'sql-audit' ||
     requestedFixture === 'trace';
+  const detailTitle =
+    requestedFixture === 'tool-calls' || requestedFixture === 'sql-audit' ? '工具调用与 SQL 审计' : 'Agent 运行控制台';
   const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
   const [operationStatus, setOperationStatus] = useState<AdminOperationState>('idle');
   const [operationError, setOperationError] = useState<AdminOperationError>();
@@ -612,7 +724,7 @@ export function AdminPage() {
           <div className={styles.topbarTitle}>
             <strong>
               {isDetailFixture
-                ? 'Agent 运行控制台'
+                ? detailTitle
                 : sectionKey === 'overview'
                   ? '管理概览'
                   : isRegistryRoute

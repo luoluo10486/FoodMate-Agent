@@ -108,4 +108,22 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('4. 失败')).toBeInTheDocument();
     expect(screen.queryByText(/caller_context_mask/)).not.toBeInTheDocument();
   });
+
+  it('renders the Figma tool call fixture with filters and masked payload details', async () => {
+    const user = userEvent.setup();
+    renderAdmin('/admin?state=tool-calls');
+
+    expect(screen.getByText('工具调用与 SQL 审计')).toBeInTheDocument();
+    expect(document.querySelector('nav[aria-label="治理详情视图"] a')).toHaveAttribute(
+      'href',
+      '/admin?state=tool-calls',
+    );
+    expect(screen.getByText('Arguments & System Schema (call_829c)')).toBeInTheDocument();
+    expect(screen.getByText('策略：通过')).toBeInTheDocument();
+    expect(document.body.textContent).toContain('SENSITIVE_USER_CREDENTIALS_MASKED');
+
+    const search = screen.getByRole('textbox', { name: '搜索运行 ID' });
+    await user.type(search, 'does-not-exist');
+    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('没有匹配的工具调用');
+  });
 });
