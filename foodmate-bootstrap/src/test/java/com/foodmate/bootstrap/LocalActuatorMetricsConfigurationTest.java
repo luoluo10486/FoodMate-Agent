@@ -28,4 +28,18 @@ class LocalActuatorMetricsConfigurationTest {
                 .as("local metrics application tag")
                 .isEqualTo("${spring.application.name:foodmate}");
     }
+
+    @Test
+    void uploadContainerLimitMatchesKnowledgeBatchContract() throws IOException {
+        List<PropertySource<?>> sources =
+                new YamlPropertySourceLoader()
+                        .load("application", new ClassPathResource("application.yml"));
+
+        assertThat(sources).isNotEmpty();
+        PropertySource<?> properties = sources.get(0);
+        assertThat(properties.getProperty("spring.servlet.multipart.max-file-size"))
+                .isEqualTo("${FOODMATE_UPLOAD_MAX_FILE_SIZE:20MB}");
+        assertThat(properties.getProperty("spring.servlet.multipart.max-request-size"))
+                .isEqualTo("${FOODMATE_UPLOAD_MAX_REQUEST_SIZE:420MB}");
+    }
 }
