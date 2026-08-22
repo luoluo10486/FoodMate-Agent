@@ -519,6 +519,43 @@ export async function loadAdminOperationAudits(): Promise<AdminOperationAuditRes
   return data.items;
 }
 
+export type AdminExportStatus = {
+  export_job_id: number;
+  resource: string;
+  status: string;
+  expires_at: string | null;
+  completed_at: string | null;
+  download_consumed_at: string | null;
+  failure_code: string | null;
+};
+
+export async function requestAdminExport(
+  resource: string,
+  filters: { query?: string; status?: string; visibility?: string; sort?: string; direction?: 'asc' | 'desc' } = {},
+  fields?: string[],
+) {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  return apiRequest<{ export_job_id: number }>('/api/admin/exports', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': randomIdempotencyKey(`admin-export-${resource}`) },
+    body: JSON.stringify({
+      resource,
+      ...filters,
+      fields,
+    }),
+  });
+}
+
+export async function loadAdminExportStatus(jobId: number) {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  return apiRequest<AdminExportStatus>(`/api/admin/exports/${jobId}`);
+}
+
+export async function downloadAdminExport(jobId: number) {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  return apiRequest<{ download_url: string }>(`/api/admin/exports/${jobId}/download`, { method: 'POST' });
+}
+
 export type AdminUserRow = {
   key: string;
   userId: string;
