@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import styles from './MealPlanningFlow.module.css';
 
 export type MealPlanningFlowView =
@@ -488,8 +489,13 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
   );
 }
 
+type ConflictChoice = 'protein-relax' | 'replace';
+
 function ConflictView({ onNavigate }: { onNavigate: NavigateToView }) {
-  const [choice, setChoice] = useState<'protein-relax' | 'replace'>('protein-relax');
+  const [choice, setChoice] = useState<ConflictChoice>('protein-relax');
+  const updateChoice = (value: string) => {
+    if (value === 'protein-relax' || value === 'replace') setChoice(value);
+  };
   return (
     <div className={`${styles.flowPage} ${styles.conflictPage} ${styles.interPage}`}>
       <div className={styles.conflictAlert}>
@@ -550,14 +556,29 @@ function ConflictView({ onNavigate }: { onNavigate: NavigateToView }) {
               <span>高危</span>
             </div>
             <p>周二晚餐“超重蛋白酸面包”含蛋白质过多，使单日蛋白质达到 152g，超出设定限额上限（110g）。</p>
-            <label className={styles.radioOption}>
-              <input type="radio" checked={choice === 'protein-relax'} onChange={() => setChoice('protein-relax')} />
-              <span>放宽约束（调整为允许150g）</span>
-            </label>
-            <label className={styles.radioOption}>
-              <input type="radio" checked={choice === 'replace'} onChange={() => setChoice('replace')} />
-              <span>替换菜品（智能推荐低蛋白早餐）</span>
-            </label>
+            <RadioGroup
+              aria-label="蛋白质贡献冲突解决方案"
+              className={styles.radioGroup}
+              value={choice}
+              onValueChange={updateChoice}
+            >
+              <div className={styles.radioOption}>
+                <RadioGroupItem
+                  aria-label="放宽约束（调整为允许150g）"
+                  id="conflict-protein-relax"
+                  value="protein-relax"
+                />
+                <label htmlFor="conflict-protein-relax">放宽约束（调整为允许150g）</label>
+              </div>
+              <div className={styles.radioOption}>
+                <RadioGroupItem
+                  aria-label="替换菜品（智能推荐低蛋白早餐）"
+                  id="conflict-protein-replace"
+                  value="replace"
+                />
+                <label htmlFor="conflict-protein-replace">替换菜品（智能推荐低蛋白早餐）</label>
+              </div>
+            </RadioGroup>
           </div>
           <div className={styles.resolutionCard}>
             <div className={styles.resolutionTitle}>
@@ -565,14 +586,29 @@ function ConflictView({ onNavigate }: { onNavigate: NavigateToView }) {
               <span className={styles.mediumRisk}>中等</span>
             </div>
             <p>“三文鱼”在一周里两次相同餐中使用了 4 次，超出了健康和多样性的要求。</p>
-            <label className={styles.radioOption}>
-              <input type="radio" checked={choice === 'replace'} onChange={() => setChoice('replace')} />
-              <span>一键替换（将周四午餐替换为烤鸡蛋）</span>
-            </label>
-            <label className={styles.radioOption}>
-              <input type="radio" checked={choice === 'protein-relax'} onChange={() => setChoice('protein-relax')} />
-              <span>忽略冲突（保留三文鱼套餐）</span>
-            </label>
+            <RadioGroup
+              aria-label="主食材复用冲突解决方案"
+              className={styles.radioGroup}
+              value={choice}
+              onValueChange={updateChoice}
+            >
+              <div className={styles.radioOption}>
+                <RadioGroupItem
+                  aria-label="一键替换（将周四午餐替换为烤鸡蛋）"
+                  id="conflict-ingredient-replace"
+                  value="replace"
+                />
+                <label htmlFor="conflict-ingredient-replace">一键替换（将周四午餐替换为烤鸡蛋）</label>
+              </div>
+              <div className={styles.radioOption}>
+                <RadioGroupItem
+                  aria-label="忽略冲突（保留三文鱼套餐）"
+                  id="conflict-ingredient-relax"
+                  value="protein-relax"
+                />
+                <label htmlFor="conflict-ingredient-relax">忽略冲突（保留三文鱼套餐）</label>
+              </div>
+            </RadioGroup>
           </div>
           <FlowButton className={styles.applyConflict} onClick={() => onNavigate('default')}>
             应用修改并重新计划

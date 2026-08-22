@@ -1020,23 +1020,40 @@
   color: #59665e;
   font-size: 11px;
   line-height: 1.35;
-  cursor: pointer;
 }
 
-.radioOption::before {
+.radioGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.radioOption > [data-slot='radio-group-item'] {
+  display: grid;
   width: 9px;
   height: 9px;
   flex: 0 0 auto;
+  padding: 0;
   border: 2px solid #f4f6f5;
   border-radius: 50%;
   background: #ffffff;
-  content: '';
+  color: #ffda93;
+  cursor: pointer;
 }
 
-.radioOption:has(input:checked)::before {
+.radioOption > [data-slot='radio-group-item'][data-state='checked'] {
   border-color: #ffda93;
-  background: #ffda93;
-  box-shadow: inset 0 0 0 2px #ffffff;
+}
+
+.radioOption > [data-slot='radio-group-item'] svg {
+  width: 5px;
+  height: 5px;
+  color: #ffda93;
+  fill: #ffda93;
+}
+
+.radioOption > label {
+  min-width: 0;
+  cursor: pointer;
 }
 
 .applyConflict {
