@@ -507,3 +507,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；当前实现没有对应窗口装饰点，Figma 设计稿未修改。
 - [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=379283`、差异比例 `25.7218%`、`MAE=2.9444`、`RMSE=16.2155`、最大通道差异 `237`；机器结果锚点为 `figma-105-diff-results.json#agent-write-confirmation`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；卡片几何、边框、操作样式、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+
+## 64. 2026-08-23 Agent Budget Limit 当前画板证据复核
+
+- [x] `687:918` `/chat?state=budget-limit` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-current.png`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-current.png`。
+- [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；`50,000 tokens`、`100%`、预计费用、追加预算和结束会话均存在。
+- [x] 点击“追加 20,000 tokens”后的状态为“fixture 已记录追加预算动作，当前 Run 不会被伪造为新会话。”；真实模式继续使用既有预算追加接口，结束动作继续使用既有取消接口。
+- [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=373778`、差异比例 `25.3484%`、`MAE=3.7123`、`RMSE=18.7204`、最大通道差异 `240`；机器结果锚点为 `figma-105-diff-results.json#agent-budget-limit`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；卡片几何、状态色、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。

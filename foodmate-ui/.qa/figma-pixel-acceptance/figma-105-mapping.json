@@ -1055,12 +1055,12 @@
       "frontendRoute": "/chat",
       "queryState": "state=budget-limit",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: budget facts and actions exist, but the card geometry and status color treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; budget facts and continuation actions exist, but the card geometry and status color treatment differ. PNG diff is 25.3484% / MAE 3.7123 / RMSE 18.7204; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1085,8 +1085,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Budget amount, utilization, projected cost, and continuation actions are present. Card geometry and status styling differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures contain the budget amount, utilization, projected cost, and continuation actions. Card geometry, status styling, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
       }
     },
     {
