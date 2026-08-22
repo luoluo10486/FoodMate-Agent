@@ -303,7 +303,9 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
 
       <section className={styles.overviewPagination} aria-label="运行结果分页">
         <span>
-          {total ? `显示第 ${(page - 1) * pageSize + 1} 到 ${Math.min(page * pageSize, total)} 条，共 ${total} 条结果` : '暂无结果'}
+          {total
+            ? `显示第 ${(page - 1) * pageSize + 1} 到 ${Math.min(page * pageSize, total)} 条，共 ${total} 条结果`
+            : '暂无结果'}
         </span>
         <div className={styles.overviewPageButtons}>
           <Button

@@ -598,12 +598,7 @@ export async function loadAdminUsers(): Promise<AdminUserRow[]> {
   }));
 }
 
-async function adminWrite<T>(
-  path: string,
-  method: string,
-  payload?: object,
-  idempotencyPrefix?: string,
-): Promise<T> {
+async function adminWrite<T>(path: string, method: string, payload?: object, idempotencyPrefix?: string): Promise<T> {
   return apiRequest<T>(path, {
     method,
     headers: idempotencyPrefix ? { 'Idempotency-Key': randomIdempotencyKey(idempotencyPrefix) } : undefined,

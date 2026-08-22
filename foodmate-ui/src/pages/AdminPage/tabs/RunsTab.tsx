@@ -424,16 +424,22 @@ function RunDetailSheet({
 }
 
 function DataPlaceholder({ filtered, tab, error }: { filtered: boolean; tab: GovernanceTab; error?: string }) {
-  const title = error ? '真实接口加载失败' : filtered ? '未找到匹配记录' : isRealMode ? '真实接口暂未返回数据' : '暂无治理记录';
+  const title = error
+    ? '真实接口加载失败'
+    : filtered
+      ? '未找到匹配记录'
+      : isRealMode
+        ? '真实接口暂未返回数据'
+        : '暂无治理记录';
   const description = filtered
     ? '请调整关键词、状态或错误码筛选条件。'
     : error
       ? error
-    : isRealMode
-      ? tab === 'traces'
-        ? '当前管理仪表盘契约尚未接入 Trace 明细，页面不会伪造链路数据。'
-        : '当前接口没有返回该类记录。'
-      : 'mock 数据集中没有可展示的记录。';
+      : isRealMode
+        ? tab === 'traces'
+          ? '当前管理仪表盘契约尚未接入 Trace 明细，页面不会伪造链路数据。'
+          : '当前接口没有返回该类记录。'
+        : 'mock 数据集中没有可展示的记录。';
   return (
     <div className={styles.runEmptyState} role="status">
       <AlertTriangle aria-hidden="true" />
@@ -748,14 +754,22 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             {filteredToolCalls.length ? (
               <DataTable className={styles.runTable} columns={toolColumns} data={filteredToolCalls} />
             ) : (
-              <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="tool-calls" error={loadError} />
+              <DataPlaceholder
+                filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
+                tab="tool-calls"
+                error={loadError}
+              />
             )}
           </TabsContent>
           <TabsContent value="sql-audits">
             {filteredSqlAudits.length ? (
               <DataTable className={styles.runTable} columns={sqlColumns} data={filteredSqlAudits} />
             ) : (
-              <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="sql-audits" error={loadError} />
+              <DataPlaceholder
+                filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
+                tab="sql-audits"
+                error={loadError}
+              />
             )}
           </TabsContent>
           <TabsContent value="traces">
