@@ -543,3 +543,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
 - [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=272934`、差异比例 `18.5095%`、`MAE=2.3318`、`RMSE=14.4348`、最大通道差异 `235`；机器结果锚点为 `figma-105-diff-results.json#agent-user-cancelled`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；取消后操作布局、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+
+## 68. 2026-08-23 Agent SSE Reconnecting 当前画板证据复核
+
+- [x] `687:1803` `/chat?state=sse-reconnecting` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-sse-reconnecting-current.png`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-browser-current.png`。
+- [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；“第 2 次重连尝试 (最多 5 次)”和刷新提示均存在。
+- [x] Composer 在重连期间保持禁用，已显示的查询文本保留；真实 SSE 使用 `Last-Event-ID` 和 `sse_event_id` 去重，终态完成/失败/取消/取代后关闭连接，达到上限进入稳定错误状态。
+- [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=400092`、差异比例 `27.1330%`、`MAE=2.9698`、`RMSE=14.6906`、最大通道差异 `234`；机器结果锚点为 `figma-105-diff-results.json#agent-sse-reconnecting`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；重连提示宽度、位置、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
