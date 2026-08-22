@@ -247,6 +247,21 @@ class StubIndexTests(TestCase):
         self.assertEqual("Nutrition guide", citations[0].title)
         self.assertFalse(hasattr(citations[0], "storage_key"))
 
+    def test_stub_search_matches_chinese_phrases_without_spaces(self):
+        index = StubIndex()
+        index.upsert(
+            "Public guide",
+            chunk_markdown(
+                "# 饮食指南\n低盐饮食应查看每份食物的钠含量。",
+                "cn-1",
+                "v1",
+            ),
+        )
+
+        citations = index.search("低盐饮食 钠含量")
+
+        self.assertEqual(["cn-1"], [item.document_id for item in citations])
+
     def test_object_key_cannot_escape_knowledge_namespace(self):
         self.assertEqual("knowledge/1/a.txt", safe_object_key("knowledge/1/a.txt"))
         with self.assertRaisesRegex(RagError, "outside"):

@@ -330,7 +330,15 @@ class RedisStubIndex:
 
 
 def _tokens(value: str) -> list[str]:
-    return [token.lower() for token in _WORD.findall(value)]
+    tokens: list[str] = []
+    for token in _WORD.findall(value):
+        if token and all("\u4e00" <= char <= "\u9fff" for char in token):
+            # Chinese text has no spaces; overlapping bigrams keep short user
+            # queries searchable without introducing a language model dependency.
+            tokens.extend(token[index : index + 2] for index in range(len(token) - 1))
+        else:
+            tokens.append(token.lower())
+    return tokens
 
 
 def _snippet(value: str, limit: int = 240) -> str:
