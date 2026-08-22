@@ -488,6 +488,7 @@ export type AdminUserRow = {
   lockedUntil: string;
   lastLoginAt: string;
   createdAt: string;
+  revision?: number;
 };
 
 type AdminUserResponse = {
@@ -497,6 +498,7 @@ type AdminUserResponse = {
   email: string;
   role: string;
   status: string;
+  revision?: number;
   phone?: string;
   gender?: string;
   height_cm?: number;
@@ -540,20 +542,42 @@ export async function loadAdminUsers(): Promise<AdminUserRow[]> {
     lockedUntil: user.locked_until ?? '-',
     lastLoginAt: user.last_login_at ?? '-',
     createdAt: user.created_at ?? '-',
+    revision: user.revision ?? 1,
   }));
 }
 
-async function adminWrite<T>(path: string, method: string, payload?: object): Promise<T> {
+async function adminWrite<T>(
+  path: string,
+  method: string,
+  payload?: object,
+  idempotencyPrefix?: string,
+): Promise<T> {
   return apiRequest<T>(path, {
     method,
+    headers: idempotencyPrefix ? { 'Idempotency-Key': randomIdempotencyKey(idempotencyPrefix) } : undefined,
     body: payload === undefined ? undefined : JSON.stringify(payload),
   });
 }
 
-export const updateAdminUserStatus = (id: string, status: string) =>
-  adminWrite(`/api/admin/users/${encodeURIComponent(id)}/status`, 'PATCH', { status });
-export const revokeAdminUserSessions = (id: string) =>
-  adminWrite(`/api/admin/users/${encodeURIComponent(id)}/sessions/revoke-all`, 'POST');
+export async function updateAdminUserStatus(id: string, status: string, revision = 1) {
+  const digest = await confirmationDigest('admin.user.status.update', id, status, revision);
+  return adminWrite(
+    `/api/admin/users/${encodeURIComponent(id)}/status`,
+    'PATCH',
+    { status, revision, confirmed: true, confirmationDigest: digest },
+    'admin-user-status',
+  );
+}
+
+export async function revokeAdminUserSessions(id: string, revision = 1) {
+  const digest = await confirmationDigest('admin.user.sessions.revoke_all', id, '', revision);
+  return adminWrite(
+    `/api/admin/users/${encodeURIComponent(id)}/sessions/revoke-all`,
+    'POST',
+    { revision, confirmed: true, confirmationDigest: digest },
+    'admin-user-sessions',
+  );
+}
 export async function updateAdminToolStatus(name: string, status: string, revision = 1) {
   const action = 'admin.tool.status.update';
   const digest = await confirmationDigest(action, name, status, revision);

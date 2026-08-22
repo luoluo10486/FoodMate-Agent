@@ -51,6 +51,7 @@ type AdminUserView = UserRow & {
   activeSessions?: number;
   customModel?: string;
   registeredLabel?: string;
+  revision?: number;
 };
 
 // This fixture mirrors Figma node 801:215. Real mode continues to use the API response unchanged.
@@ -229,7 +230,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
       targetType: 'user',
       targetId: record.userId,
       execute: async () => {
-        await updateAdminUserStatus(record.userId, status);
+        await updateAdminUserStatus(record.userId, status, record.revision ?? 1);
       },
       onApply: () => {
         setUsers((current) =>
@@ -250,7 +251,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
       targetType: 'user_session',
       targetId: record.userId,
       execute: async () => {
-        await revokeAdminUserSessions(record.userId);
+        await revokeAdminUserSessions(record.userId, record.revision ?? 1);
       },
       onApply: () => {
         adminUserSessionRows

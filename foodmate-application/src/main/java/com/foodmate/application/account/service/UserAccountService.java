@@ -116,7 +116,8 @@ public interface UserAccountService {
             String email,
             String nickname,
             String role,
-            String status) {}
+            String status,
+            long revision) {}
 
     record UserRecord(
             long userId,

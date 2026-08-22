@@ -213,7 +213,8 @@ public class UserAccountServiceImpl implements UserAccountService {
                                             emailReference(u.email()),
                                             u.nickname(),
                                             u.role(),
-                                            u.status()))
+                                            u.status(),
+                                            1))
                     .toList();
         return store.adminUsers();
     }
