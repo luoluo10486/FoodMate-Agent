@@ -417,6 +417,7 @@
 .tokenCard {
   display: flex;
   width: min(460px, calc(100vw - 32px));
+  box-sizing: border-box;
   flex-direction: column;
   align-items: center;
   gap: 32px;
@@ -428,18 +429,42 @@
   gap: 0;
 }
 
+.authPage-token .authBrand {
+  gap: 10px;
+}
+
 .tokenCard .authHeading {
   display: none;
 }
 
 .authPage-token .authMark {
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: #2e7d32;
+  box-shadow: none;
 }
 
-.authPage-token .authMark svg {
-  width: 20px;
-  height: 20px;
+.authPage-token .authMark img {
+  width: 18px;
+  height: 18px;
+}
+
+.authPage-token .authWordmark {
+  font-size: 20px;
+  line-height: normal;
+}
+
+.authPage-token .authDiagonal {
+  background: #dfeedb;
+}
+
+.tokenContent {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
 }
 
 .tokenIcon {
@@ -454,6 +479,11 @@
   width: 30px;
   height: 30px;
   stroke-width: 1.7;
+}
+
+.tokenIcon img {
+  width: 32px;
+  height: 32px;
 }
 
 .tokenIcon-invalid {
@@ -471,19 +501,29 @@
   color: var(--fm-color-info-strong);
 }
 
-.tokenCard h1 {
+.tokenMessage {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+}
+
+.tokenMessage h1 {
   margin: 0;
   color: #2a3439;
   font-size: 24px;
-  line-height: 1.2;
+  font-weight: 700;
+  line-height: 29px;
 }
 
-.tokenCard > p {
+.tokenMessage p {
   width: 100%;
   margin: 0;
   color: #6b7280;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 22px;
 }
 
 .tokenActions {
@@ -501,7 +541,7 @@
   border-radius: 16px;
   background: transparent;
   color: #2a3439;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -518,12 +558,19 @@
   background: var(--fm-color-success);
 }
 
-.tokenCard .authBackLink {
+.tokenBackRow {
+  display: flex;
+  width: 100%;
+  height: 25px;
+  box-sizing: border-box;
+  justify-content: center;
   padding-top: 8px;
 }
 
-.tokenDecorIcon {
-  display: none;
+.tokenCard .authBackLink {
+  height: 17px;
+  min-height: 17px;
+  line-height: 17px;
 }
 
 .authDiagonal {

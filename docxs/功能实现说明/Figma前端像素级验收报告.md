@@ -381,3 +381,28 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端保持空值密码输入和 token 缺失保护；真实模式仍调用既有 `confirmPasswordReset`，不伪造成功响应。
 - [ ] 该画板仍不能标记 `PASS`：Figma 静态示例值与交互页面 placeholder 状态不同，自动 diff 和完整人工复核门槛尚未关闭。
 - [ ] iconfont 实体资源继续为 `BLOCKED`，本轮未添加虚构字体包、Unicode 或 CSS 映射。
+
+## 50. 2026-08-22 Token 状态页结构与资产对齐
+
+本轮重新读取 Figma 节点 `680:738`、`680:757`、`680:776`，并按各自的 `error-card`、状态内容组和操作组重构 `/token-status?state=invalid|expired|used`。Figma 返回的真实 SVG 已登记到 `foodmate-ui/public/assets/figma/auth/`：品牌 fork-knife、错误三角、过期时钟和已使用信息图标。未创建虚构 iconfont glyph。
+
+| 状态 | Figma 卡片 | 浏览器卡片 | 操作结构 | PNG diff |
+|---|---|---|---|---|
+| 无效 `680:738` | `x=490,y=242,w=460,h=416` | `x=490,y=242,w=460,h=416` | 重新发送 `380×52`；返回登录行 `380×25` | `differentRatio=99.99877%`，`MAE=14.14673`，`RMSE=25.36159`，`DIFF_REVIEW` |
+| 过期 `680:757` | `x=490,y=242,w=460,h=416` | `x=490,y=242,w=460,h=416` | 重新发送 `380×52`；返回登录行 `380×25` | `differentRatio=99.99877%`，`MAE=14.18704`，`RMSE=25.47945`，`DIFF_REVIEW` |
+| 已使用 `680:776` | `x=490,y=197,w=460,h=506` | `x=490,y=197,w=460,h=506` | 重新发送/联系客服均 `380×52`；返回登录行 `380×25` | `differentRatio=99.99414%`，`MAE=14.27139`，`RMSE=25.74397`，`DIFF_REVIEW` |
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点 | `680:738`、`680:757`、`680:776`；卡片内层均为 `380px` |
+| 浏览器桌面 | `1440×900`、DPR `1.0000000149011612`、字体状态 `loaded`、三态 `scrollWidth=clientWidth=1440` |
+| 浏览器移动 | `390×844`；三态 `scrollWidth=clientWidth=390`，所有图标均完成加载 |
+| Figma PNG | `docxs/设计/figma-png/token-invalid.png`、`token-expired.png`、`token-used.png` |
+| 浏览器 PNG | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-invalid-browser.png`、`token-expired-browser.png`、`token-used-browser.png` |
+| diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/figma-105-diff-results.json#token-invalid|token-expired|token-used` |
+| 行为回归 | `TokenStatusPage.test.tsx` 与 `AuthPages.test.tsx`：`16/16`；`npm run typecheck`、目标文件 Prettier 和 `git diff --check` 通过 |
+
+- [x] 品牌、状态内容、操作组已按 Figma 层级拆分；三态真实导航行为保持不变。
+- [x] 使用 Figma 节点返回的真实 SVG 资产；标准按钮继续使用 shadcn `Button`。
+- [ ] 三态仍不能标记 `PASS`：自动 diff 仍存在差异，完整 105 画板人工视觉复核也未关闭。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮没有创建字体包、CSS/Unicode 映射或伪造许可证信息。
