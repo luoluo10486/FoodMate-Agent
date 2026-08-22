@@ -3739,12 +3739,12 @@
       "frontendRoute": "/admin",
       "queryState": "state=user-detail",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/admin-user-detail.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-user-detail",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-figma-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture after adding the Figma 用户详情 Tab guidance panel: 1440x1024, guidance panel 378.4x220 at approximately (1016.8,542.8), no page overflow, automatic diff 0.2238898383 / RMSE 17.4507444; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3770,7 +3770,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-18",
-        "conclusion": "User table and detail panel are present, but browser differs in panel width, tab set, selected-row treatment, typography, identity/avatar, spacing, and pagination placement. Retain DIFF_REVIEW."
+        "conclusion": "Current browser contains the user table, detail panel, five tabs including 业务会话, high-risk action controls and the Figma 用户详情 Tab guidance panel. Shell identity, panel width, selected-row treatment, typography, avatar, spacing and pagination placement still differ; retain DIFF_REVIEW."
       }
     },
     {

@@ -931,11 +931,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 524772,
-      "differentRatio": 0.3558837890625,
-      "meanAbsoluteError": 3.5855372111002604,
-      "rmse": 18.56367305726741,
-      "maxChannelDelta": 237
+      "differentPixels": 330139,
+      "differentRatio": 0.22388983832465278,
+      "meanAbsoluteError": 3.266695488823785,
+      "rmse": 17.450744436198008,
+      "maxChannelDelta": 230
     },
     "agent-chat-session-actions": {
       "status": "COMPARED",
