@@ -1,4 +1,4 @@
-import { AlertCircle, EyeOff, Info } from 'lucide-react';
+import { EyeOff, Info } from 'lucide-react';
 import { useState } from 'react';
 import { useRef } from 'react';
 import type { FormEvent } from 'react';
@@ -36,7 +36,9 @@ function loginAsset(state: LoginState, name: 'user' | 'lock' | 'eye' | 'line') {
           ? '-credential-error'
           : state === 'account-locked'
             ? '-account-locked'
-            : '';
+            : state === 'account-disabled'
+              ? '-account-disabled'
+              : '';
   return `/assets/figma/auth/foodmate-login${suffix}-${name}.svg`;
 }
 
@@ -45,12 +47,14 @@ function loginLeafAsset(state: LoginState) {
   if (state === 'field-error') return '/assets/figma/auth/foodmate-login-field-error-leaf.svg';
   if (state === 'credential-error') return '/assets/figma/auth/foodmate-login-credential-error-leaf.svg';
   if (state === 'account-locked') return '/assets/figma/auth/foodmate-login-account-locked-leaf.svg';
+  if (state === 'account-disabled') return '/assets/figma/auth/foodmate-login-account-disabled-leaf.svg';
   return '/assets/figma/auth/foodmate-leaf.svg';
 }
 
 function loginAlertAsset(state: LoginState) {
   if (state === 'credential-error') return '/assets/figma/auth/foodmate-login-credential-error-alert.svg';
   if (state === 'account-locked') return '/assets/figma/auth/foodmate-login-account-locked-alert.svg';
+  if (state === 'account-disabled') return '/assets/figma/auth/foodmate-login-account-disabled-alert.svg';
   return undefined;
 }
 
@@ -104,6 +108,7 @@ export function LoginPage() {
     if (state === 'submitting') return { ...defaults, username: 'alex@foodmate.com', password: 'password' };
     if (state === 'credential-error') return { ...defaults, username: 'wrong@foodmate.com', password: 'password' };
     if (state === 'account-locked') return { ...defaults, username: 'locked@foodmate.com', password: 'password' };
+    if (state === 'account-disabled') return { ...defaults, username: 'disabled@foodmate.com', password: 'password' };
     return defaults;
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -154,7 +159,7 @@ export function LoginPage() {
 
   return (
     <main
-      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : state === 'field-error' ? styles.authPageLoginFieldError : state === 'credential-error' ? styles.authPageLoginCredentialError : state === 'account-locked' ? styles.authPageLoginAccountLocked : ''}`}
+      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : state === 'field-error' ? styles.authPageLoginFieldError : state === 'credential-error' ? styles.authPageLoginCredentialError : state === 'account-locked' ? styles.authPageLoginAccountLocked : state === 'account-disabled' ? styles.authPageLoginAccountDisabled : ''}`}
       ref={pageRef}
     >
       <div className={styles.authDiagonal} aria-hidden="true" data-login-motion="diagonal" />
@@ -197,7 +202,7 @@ export function LoginPage() {
           ) : null}
           {state === 'account-disabled' ? (
             <div className={`${styles.loginAlert} ${styles.loginAlertError}`} role="alert">
-              <AlertCircle aria-hidden="true" />
+              <img src={loginAlertAsset(state)} alt="" aria-hidden="true" />
               <div>
                 <strong>账号已禁用</strong>
                 <span>你的账号已被管理员禁用。如有疑问，请联系客服支持。</span>

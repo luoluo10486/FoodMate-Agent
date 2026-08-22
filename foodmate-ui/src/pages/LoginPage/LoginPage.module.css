@@ -648,6 +648,131 @@
   background: rgba(51, 51, 51, 0.03);
 }
 
+.authPage.authPageLoginAccountDisabled .authCard {
+  display: flex;
+  width: 460px;
+  height: auto;
+  gap: 24px;
+  padding: 40px;
+  transform: none;
+}
+
+.authPage.authPageLoginAccountDisabled .brand {
+  height: auto;
+  gap: 20px;
+}
+
+.authPage.authPageLoginAccountDisabled .loginBrand {
+  margin-bottom: 0;
+}
+
+.authPage.authPageLoginAccountDisabled .welcome {
+  gap: 6px;
+}
+
+.authPage.authPageLoginAccountDisabled .welcome p {
+  font-size: 28px;
+  line-height: normal;
+}
+
+.authPage.authPageLoginAccountDisabled .welcome span {
+  color: #5a6672;
+  line-height: normal;
+}
+
+.authPage.authPageLoginAccountDisabled .form {
+  height: auto;
+  gap: 24px;
+}
+
+.authPage.authPageLoginAccountDisabled .loginAlert {
+  min-height: 0;
+  padding: 16px;
+  border-color: #f97066;
+  border-radius: 12px;
+  background: #fff5f5;
+  color: #e53e3e;
+  font-size: 14px;
+  line-height: normal;
+}
+
+.authPage.authPageLoginAccountDisabled .loginAlert > img {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.authPage.authPageLoginAccountDisabled .loginAlert span {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.authPage.authPageLoginAccountDisabled .loginAlertAction {
+  height: auto !important;
+  min-height: 0;
+  margin-top: 4px;
+  padding: 0;
+  color: #e53e3e;
+  font-size: 12px;
+  line-height: normal;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.authPage.authPageLoginAccountDisabled .loginFields {
+  height: auto;
+  padding-bottom: 0;
+}
+
+.authPage.authPageLoginAccountDisabled .field {
+  opacity: 0.7;
+}
+
+.authPage.authPageLoginAccountDisabled .options {
+  display: none;
+}
+
+.authPage.authPageLoginAccountDisabled .figmaInput {
+  border-color: #f4f6f5 !important;
+  background: rgba(237, 242, 247, 0.65) !important;
+}
+
+.authPage.authPageLoginAccountDisabled .primaryActionDisabled {
+  border-color: #cbd5e0 !important;
+  background: #cbd5e0 !important;
+  box-shadow: none;
+  color: #718096 !important;
+  opacity: 1 !important;
+}
+
+.authPage.authPageLoginAccountDisabled .actions {
+  display: flex;
+  height: auto;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.authPage.authPageLoginAccountDisabled .divider {
+  height: auto;
+  padding: 12px 0;
+  font-size: 13px;
+}
+
+.authPage.authPageLoginAccountDisabled .signupRow {
+  min-height: 0;
+}
+
+.authPage.authPageLoginAccountDisabled .signupButton {
+  height: auto;
+  padding: 10px 24px;
+  border: 1px solid rgba(51, 51, 51, 0.12);
+  border-radius: 22px;
+  background: rgba(51, 51, 51, 0.03);
+}
+
 .primaryActionDisabled {
   border-color: #c5d0dd !important;
   background: #c5d0dd !important;

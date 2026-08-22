@@ -144,6 +144,36 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: '登录已禁用' })).toHaveProperty('disabled', true);
   });
 
+  it('uses the Figma account-disabled error banner, support action and example values', () => {
+    renderAuth('/login?state=account-disabled');
+
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-disabled-leaf.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-disabled-alert.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-disabled-user.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-disabled-lock.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-disabled-eye.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('img[src="/assets/figma/auth/foodmate-login-account-disabled-line.svg"]'),
+    ).toHaveLength(2);
+    expect(screen.getByLabelText('邮箱地址')).toHaveValue('disabled@foodmate.com');
+    expect(screen.getByLabelText('密码')).toHaveValue('password');
+    expect(screen.getByRole('alert')).toHaveTextContent('账号已禁用');
+    expect(screen.getByRole('alert')).toHaveTextContent('你的账号已被管理员禁用');
+    expect(screen.getByRole('button', { name: '联系客服' })).toHaveClass('loginAlertAction');
+    expect(screen.queryByRole('button', { name: '登录' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '账号不可用' })).toHaveProperty('disabled', true);
+  });
+
   it('routes login recovery and registration actions to independent Figma pages', async () => {
     const user = userEvent.setup();
     renderAuth('/login');
