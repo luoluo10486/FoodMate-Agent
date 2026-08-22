@@ -1,6 +1,9 @@
 package com.foodmate.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 import com.foodmate.application.runtime.messaging.MessageProperties;
@@ -37,17 +40,19 @@ class RuntimeEventMessageProcessorTest {
 
     /** 让 accept() 抛出指定错误码的事件服务替身。 */
     private static RuntimeEventMessageProcessor processorFailingWith(String code) {
-        V1RuntimeEventService events =
-                new V1RuntimeEventServiceImpl(nullProvider(), () -> 1L) {
-                    @Override
-                    public synchronized EventResult accept(V1RunEvent event) {
-                        if (code == null)
-                            return new EventResult(event.runId(), event.eventId(), false, "queued");
-                        throw new com.foodmate.shared.runtime.RuntimeException(code, "test");
-                    }
-                };
         return new RuntimeEventMessageProcessor(
-                events, mock(ProtocolAuditRepository.class), () -> 1L);
+                eventsFor(code), mock(ProtocolAuditRepository.class), () -> 1L);
+    }
+
+    private static V1RuntimeEventService eventsFor(String code) {
+        return new V1RuntimeEventServiceImpl(nullProvider(), () -> 1L) {
+            @Override
+            public synchronized EventResult accept(V1RunEvent event) {
+                if (code == null)
+                    return new EventResult(event.runId(), event.eventId(), false, "queued");
+                throw new com.foodmate.shared.runtime.RuntimeException(code, "test");
+            }
+        };
     }
 
     @Test
@@ -106,6 +111,19 @@ class RuntimeEventMessageProcessorTest {
         // 还没有可信 run_id，属于 PreRunProtocolError：不能附着到某个 Run，也不该重试。
         assertEquals(
                 MqConsumeDecision.REJECT, processorFailingWith(null).handle("{not json", CONTEXT));
+    }
+
+    @Test
+    void unparsableBodyRetriesWhenProtocolAuditCannotBeWritten() {
+        ProtocolAuditRepository audit = mock(ProtocolAuditRepository.class);
+        doThrow(new IllegalStateException("database unavailable"))
+                .when(audit)
+                .insert(anyLong(), anyString(), anyString(), anyString(), anyString());
+
+        assertEquals(
+                MqConsumeDecision.RETRY,
+                new RuntimeEventMessageProcessor(eventsFor(null), audit, () -> 1L)
+                        .handle("{not json", CONTEXT));
     }
 
     private static ObjectProvider<RuntimeEventRepository> nullProvider() {
