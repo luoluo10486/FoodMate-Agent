@@ -7,6 +7,7 @@ import com.foodmate.application.account.port.out.AdminOperationalQueryRepository
 import com.foodmate.application.conversation.port.out.ConversationSummaryRepository;
 import com.foodmate.application.conversation.port.out.MemoryRepository;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
+import com.foodmate.application.retention.port.out.DataRetentionRepository;
 import com.foodmate.application.runtime.port.out.AdmissionReconciliationRepository;
 import com.foodmate.application.runtime.port.out.CancellationRepository;
 import com.foodmate.application.runtime.port.out.DeadLetterRepository;
@@ -424,6 +425,59 @@ public class LocalStubPersistenceConfig {
             public int retryItem(
                     long itemId, long jobId, long operatorId, long outboxId, String payload) {
                 return 0;
+            }
+        };
+    }
+
+    @Bean
+    DataRetentionRepository localDataRetentionRepository() {
+        return new DataRetentionRepository() {
+            public Policy policy(String resourceType) {
+                return null;
+            }
+
+            public ResourceSnapshot resource(String resourceType, long resourceId) {
+                return null;
+            }
+
+            public PurgeRequest purgeRequest(long requestId) {
+                return null;
+            }
+
+            public PurgeRequest purgeRequestByIdempotency(long operatorId, String idempotencyKey) {
+                return null;
+            }
+
+            public PurgeRequest activePurgeRequest(String resourceType, long resourceId) {
+                return null;
+            }
+
+            public int insertPurgeRequest(NewPurgeRequest request) {
+                throw unavailable();
+            }
+
+            public int approvePurge(long requestId, long approverId, java.time.Instant approvedAt) {
+                throw unavailable();
+            }
+
+            public int insertPurgeTask(PurgeTask task) {
+                throw unavailable();
+            }
+
+            public int insertHold(NewHold hold) {
+                throw unavailable();
+            }
+
+            public Hold activeHold(String resourceType, long resourceId) {
+                return null;
+            }
+
+            public Hold hold(long holdId) {
+                return null;
+            }
+
+            public int releaseHold(long holdId, long operatorId, java.time.Instant releasedAt) {
+                throw unavailable();
             }
         };
     }
