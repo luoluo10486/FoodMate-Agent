@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.service.ToolGatewayService;
+import com.foodmate.application.runtime.service.ToolPolicy;
+import com.foodmate.application.runtime.service.ToolRegistryService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
@@ -28,9 +30,10 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
     private final IdGenerator ids;
     private final ApprovalService approvals;
     private final ObjectMapper mapper;
+    private final ToolRegistryService registry;
 
     public ToolGatewayServiceImpl(ToolGatewayPort store, IdGenerator ids) {
-        this(store, ids, (ApprovalService) null, new ObjectMapper().findAndRegisterModules());
+        this(store, ids, (ApprovalService) null, new ObjectMapper().findAndRegisterModules(), null);
     }
 
     @Autowired
@@ -38,8 +41,9 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             ToolGatewayPort store,
             IdGenerator ids,
             ObjectProvider<ApprovalService> approvals,
-            ObjectMapper mapper) {
-        this(store, ids, approvals.getIfAvailable(), mapper);
+            ObjectMapper mapper,
+            ToolRegistryService registry) {
+        this(store, ids, approvals.getIfAvailable(), mapper, registry);
     }
 
     public ToolGatewayServiceImpl(
@@ -47,10 +51,20 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             IdGenerator ids,
             ApprovalService approvals,
             ObjectMapper mapper) {
+        this(store, ids, approvals, mapper, null);
+    }
+
+    public ToolGatewayServiceImpl(
+            ToolGatewayPort store,
+            IdGenerator ids,
+            ApprovalService approvals,
+            ObjectMapper mapper,
+            ToolRegistryService registry) {
         this.store = store;
         this.ids = ids;
         this.approvals = approvals;
         this.mapper = mapper.copy().findAndRegisterModules();
+        this.registry = registry;
     }
 
     @Override
@@ -70,22 +84,64 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 || runId.length() > MAX_ID_LENGTH
                 || invocationId.length() > MAX_ID_LENGTH)
             return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
-        if ("food_log_writer".equals(proposal.toolName()) && !"tool".equals(type))
-            return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
-        if ("tool".equals(type) && !"food_log_writer".equals(proposal.toolName()))
-            return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
-        if ("sql_read".equals(type)
-                && proposal.toolName() != null
-                && !"database_query".equals(proposal.toolName()))
-            return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+        if (registry != null) {
+            ToolRegistryService.ToolView tool;
+            String toolName =
+                    "sql_read".equals(type) ? "database_query" : text(proposal.toolName());
+            try {
+                // schema_version is the wire protocol version; registry versioning is independent.
+                tool = registry.resolve(toolName, null);
+            } catch (BusinessException exception) {
+                return reject(proposalId, exception.errorCode().code());
+            }
+            if ("sql_read".equals(type) && !"database_query".equals(tool.name()))
+                return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+            if ("tool".equals(type)) {
+                String schemaError = ToolPolicy.validateInput(tool, proposal.input());
+                if (schemaError != null) return reject(proposalId, schemaError);
+                if (ToolPolicy.requiresConfirmation(tool)
+                        && (text(proposal.confirmationRef()) == null
+                                || payload == null
+                                || text(payload.idempotencyKey()) == null))
+                    return result(
+                            proposalId,
+                            runId,
+                            invocationId,
+                            "confirmation_required",
+                            "TOOL_CONFIRMATION_REQUIRED",
+                            null);
+            }
+            if ("tool".equals(type)
+                    && !"food_log_writer".equals(tool.name())
+                    && !"meal_plan.save_plan".equals(tool.name()))
+                return reject(proposalId, "TOOL_EXECUTOR_UNAVAILABLE");
+        }
+        if (registry == null) {
+            if ("food_log_writer".equals(proposal.toolName()) && !"tool".equals(type))
+                return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
+            if ("tool".equals(type) && !"food_log_writer".equals(proposal.toolName()))
+                return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+            if ("sql_read".equals(type)
+                    && proposal.toolName() != null
+                    && !"database_query".equals(proposal.toolName()))
+                return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+        }
         if ("food_log_writer".equals(proposal.toolName()))
-            return executeFoodLog(proposal, proposalId, runId, invocationId);
+            return executeApprovalWrite(
+                    proposal, proposalId, runId, invocationId, "food_log_writer");
+        if ("meal_plan.save_plan".equals(proposal.toolName()))
+            return executeApprovalWrite(
+                    proposal, proposalId, runId, invocationId, "meal_plan.save_plan");
         if (!"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
         return executeValidated(proposalId, runId, statement, invocationId);
     }
 
-    private ProposalResult executeFoodLog(
-            ProposalCommand proposal, String proposalId, String runId, String invocationId) {
+    private ProposalResult executeApprovalWrite(
+            ProposalCommand proposal,
+            String proposalId,
+            String runId,
+            String invocationId,
+            String toolName) {
         if (approvals == null || proposal.input() == null)
             return reject(proposalId, "TOOL_NOT_CONFIGURED");
         String confirmationRef = text(proposal.confirmationRef());
@@ -126,16 +182,18 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                         execution.status(),
                         "TOOL_EXECUTION_FAILED",
                         null);
-            long foodLogId = execution.resourceId();
+            long resourceId = execution.resourceId();
             ObjectNode row = mapper.createObjectNode();
-            row.put("food_log_id", Long.toString(foodLogId));
+            row.put(
+                    "meal_plan.save_plan".equals(toolName) ? "meal_plan_id" : "food_log_id",
+                    Long.toString(resourceId));
             row.put("status", "saved");
             List<JsonNode> rows = List.of(row);
             store.audit(
                     new ToolGatewayPort.Audit(
                             ids.nextId(),
                             numericRunId,
-                            "food_log_writer",
+                            toolName,
                             "executed",
                             1,
                             null,

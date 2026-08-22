@@ -80,7 +80,7 @@ public final class ToolRegistryCatalog {
                         10000,
                         false,
                         true,
-                        "{\"operation\":{\"type\":\"string\",\"enum\":[\"create\",\"update\",\"delete\",\"restore\"]},\"parameters\":{\"type\":\"object\"}}",
+                        "{\"meal_time\":{\"type\":\"string\"},\"meal_type\":{\"type\":\"string\"},\"notes\":{\"type\":\"string\",\"maxLength\":2000},\"items\":{\"type\":\"array\",\"maxItems\":50},\"revision\":{\"type\":\"integer\",\"minimum\":1}}",
                         "{\"status\":{\"type\":\"string\"},\"resourceId\":{\"type\":\"string\"}}"),
                 definition(
                         720006L,
