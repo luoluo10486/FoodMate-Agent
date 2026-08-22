@@ -241,3 +241,19 @@
 | 前端结果 | 本轮最终 `npm.cmd test` 为 35 个测试文件、167/167 通过；`npm.cmd run typecheck` 和 `npm.cmd run build` 通过 |
 | 未执行范围 | Docker、Milvus、真实 PostgreSQL/Redis/RocketMQ 跨运行时闭环、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递和 SSE Last-Event-ID 故障验证 |
 | 结论 | M2 核心业务代码和业务门禁通过；真实依赖联调、性能和故障恢复不作为当前完成证据，保持后置 |
+
+## M2-3 受控脱敏运营导出与 Java 格式基线（2026-08-22）
+
+| 项目 | 结果 |
+|---|---|
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；未执行数据库迁移、清库、备份恢复或真实模型/Embedding 调用 |
+| 分支与提交 | `codex/m2-remaining-business`；`78302d5 style(java): 统一后台模块 Java 格式`；`3d2959b feat(admin): 增加受控脱敏运营导出` |
+| 后端范围 | 新增 V23 管理导出任务表、application 导出白名单/角色/幂等/任务处理、私有对象存储下载和统一审计；最大 100 条，仅输出安全运营摘要 |
+| API 范围 | `POST /api/admin/exports`、`GET /api/admin/exports/{id}`、`POST /api/admin/exports/{id}/download`；admin 禁止 users/deleted 资源，superadmin 才可导出全安全资源 |
+| 前端范围 | 操作审计 real 页面增加当前结果导出、任务状态查询和一次性 JSON 下载；fixture 模式不调用真实导出接口 |
+| Java 业务验证 | `mvnw.cmd -pl foodmate-api -am -Dtest=AdminExportServiceTest,AdminExportControllerTest -Dsurefire.failIfNoSpecifiedTests=false test`：7/7 通过 |
+| Java 编译/格式 | API、application、infra 编译通过；受影响模块 Spotless 通过；同时修复后台基线 11 个 Java 文件格式 |
+| 前端验证 | `npm.cmd run typecheck` 通过；`npm.cmd run build` 通过 |
+| SQL 状态 | 已新增 `V23__m2_3_admin_export_jobs.sql`、validation 和 rollback 前置检查；本轮未执行迁移，未改变本地数据 |
+| 环境边界 | 未启动 Docker/Milvus；未执行真实对象存储下载、跨运行时索引、性能压测、组件重启或故障注入 |
+| 结论 | 管理端脱敏运营导出业务代码和定向门禁通过；M2 总体和真实依赖闭环状态不变 |
