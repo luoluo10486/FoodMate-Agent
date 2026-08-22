@@ -22,6 +22,8 @@ public interface KnowledgeRepository {
 
     void insertImportJob(ImportJob job);
 
+    ImportJob findImportJob(long operatorId, String idempotencyKey);
+
     void insertImportItem(ImportItem item);
 
     void insertIndexOutbox(long outboxId, long itemId, String payload);
@@ -38,13 +40,13 @@ public interface KnowledgeRepository {
 
     int leaseVisibilityOutbox(long outboxId, String owner);
 
-    void markIndexOutboxPublished(long outboxId);
+    void markIndexOutboxPublished(long outboxId, String owner);
 
-    void markVisibilityOutboxPublished(long outboxId);
+    void markVisibilityOutboxPublished(long outboxId, String owner);
 
-    void retryIndexOutbox(long outboxId, String error);
+    void retryIndexOutbox(long outboxId, String owner, String error);
 
-    void retryVisibilityOutbox(long outboxId, String error);
+    void retryVisibilityOutbox(long outboxId, String owner, String error);
 
     void applyIndexResult(IndexResult result, String payloadHash);
 
@@ -54,7 +56,7 @@ public interface KnowledgeRepository {
 
     java.util.List<JobEvent> jobEvents(long jobId, long afterEventId);
 
-    int retryItem(long itemId, long operatorId, long outboxId, String payload);
+    int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload);
 
     record OutboxRow(long outboxId, long itemOrDocumentId, String topic, String payload) {}
 
@@ -65,7 +67,10 @@ public interface KnowledgeRepository {
             String status,
             int chunkCount,
             String errorCode,
-            int attempt) {}
+            int attempt,
+            long tokenCount,
+            java.math.BigDecimal costAmount,
+            String modelVersion) {}
 
     record JobView(long jobId, String status, int totalItems, int indexedItems, int failedItems) {}
 

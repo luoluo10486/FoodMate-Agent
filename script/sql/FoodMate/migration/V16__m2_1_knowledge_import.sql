@@ -2,6 +2,7 @@
 -- Manual execution only. Existing knowledge documents remain private drafts until explicitly published.
 
 ALTER TABLE knowledge_documents
+    ALTER COLUMN version TYPE VARCHAR(128),
     ADD COLUMN IF NOT EXISTS source_name VARCHAR(255),
     ADD COLUMN IF NOT EXISTS source_version VARCHAR(128),
     ADD COLUMN IF NOT EXISTS license_notice VARCHAR(1024),
@@ -10,6 +11,7 @@ ALTER TABLE knowledge_documents
     ADD COLUMN IF NOT EXISTS indexed_at TIMESTAMPTZ;
 
 ALTER TABLE knowledge_chunks
+    ALTER COLUMN version TYPE VARCHAR(128),
     ADD COLUMN IF NOT EXISTS document_version VARCHAR(128) NOT NULL DEFAULT '1',
     ADD COLUMN IF NOT EXISTS acl_metadata JSONB NOT NULL DEFAULT '{"tenant_id":0,"scope":"public"}'::jsonb;
 

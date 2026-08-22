@@ -70,6 +70,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     public long uploadBatch(long operatorId, ImportBatch batch, String traceId) {
         requireAvailable();
         validateBatch(batch);
+        KnowledgeRepository.ImportJob existing =
+                store.findImportJob(operatorId, batch.idempotencyKey());
+        if (existing != null) {
+            if (!sameBatch(existing, batch))
+                throw new IllegalArgumentException("knowledge import idempotency key conflict");
+            return existing.jobId();
+        }
         long jobId = ids.nextId();
         String mode =
                 System.getenv().getOrDefault("FOODMATE_RAG_MODE", "stub").toLowerCase(Locale.ROOT);
@@ -121,7 +128,9 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                                 + itemId
                                 + ",\"document_id\":"
                                 + documentId
-                                + ",\"version\":\"1\",\"mode\":\""
+                                + ",\"version\":\""
+                                + jsonString(batch.sourceVersion())
+                                + "\",\"mode\":\""
                                 + mode
                                 + "\"}");
             }
@@ -197,7 +206,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Transactional
     public void retryItem(long batchId, long itemId, long operatorId, String traceId) {
         batch(batchId);
-        if (store.retryItem(itemId, operatorId, ids.nextId(), "{}") != 1)
+        if (store.retryItem(itemId, batchId, operatorId, ids.nextId(), "{}") != 1)
             throw new IllegalArgumentException("knowledge import item is not retryable");
         audit(operatorId, traceId, "knowledge.import_item.retry", Long.toString(itemId));
     }
@@ -251,6 +260,17 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 || filename.contains(".."))
             throw new IllegalArgumentException("invalid knowledge filename");
         return filename.replaceAll("[^A-Za-z0-9._-]", "_");
+    }
+
+    private boolean sameBatch(KnowledgeRepository.ImportJob existing, ImportBatch requested) {
+        return existing.sourceType().equals(requested.sourceType())
+                && existing.sourceName().equals(requested.sourceName())
+                && existing.sourceVersion().equals(requested.sourceVersion())
+                && existing.licenseNotice().equals(requested.licenseNotice());
+    }
+
+    private String jsonString(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private boolean blank(String value) {

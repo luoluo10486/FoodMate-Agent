@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.foodmate.application.common.port.out.ObjectStoragePort;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
+import com.foodmate.application.knowledge.service.KnowledgeService;
 import com.foodmate.application.knowledge.service.impl.KnowledgeServiceImpl;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
@@ -21,6 +22,92 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 class KnowledgeServiceImplTest {
+    @Test
+    void sameBatchIdempotencyKeyReturnsExistingJobWithoutUploadingAgain() {
+        KnowledgeRepository repository = mock(KnowledgeRepository.class);
+        ObjectStoragePort storage = mock(ObjectStoragePort.class);
+        IdGenerator ids = mock(IdGenerator.class);
+        when(repository.findImportJob(7L, "idem-1"))
+                .thenReturn(
+                        new KnowledgeRepository.ImportJob(
+                                99L,
+                                7L,
+                                "idem-1",
+                                "stub",
+                                "policy",
+                                "nutrition",
+                                "2026-08",
+                                "internal",
+                                "trace-old"));
+        KnowledgeServiceImpl service =
+                new KnowledgeServiceImpl(
+                        provider(repository), provider(storage), provider(ids), "foodmate-private");
+
+        long result =
+                service.uploadBatch(
+                        7L,
+                        new KnowledgeService.ImportBatch(
+                                "idem-1",
+                                "policy",
+                                "nutrition",
+                                "2026-08",
+                                "internal",
+                                java.util.List.of(
+                                        new KnowledgeService.ImportFile(
+                                                "guide.md",
+                                                "text/markdown",
+                                                4L,
+                                                new ByteArrayInputStream("text".getBytes())))),
+                        "trace-new");
+
+        assertEquals(99L, result);
+        verify(repository).findImportJob(7L, "idem-1");
+        verifyNoInteractions(storage, ids);
+    }
+
+    @Test
+    void reusedIdempotencyKeyWithDifferentSourceIsRejected() {
+        KnowledgeRepository repository = mock(KnowledgeRepository.class);
+        ObjectStoragePort storage = mock(ObjectStoragePort.class);
+        IdGenerator ids = mock(IdGenerator.class);
+        when(repository.findImportJob(7L, "idem-1"))
+                .thenReturn(
+                        new KnowledgeRepository.ImportJob(
+                                99L,
+                                7L,
+                                "idem-1",
+                                "stub",
+                                "policy",
+                                "nutrition",
+                                "2026-07",
+                                "internal",
+                                "trace-old"));
+        KnowledgeServiceImpl service =
+                new KnowledgeServiceImpl(
+                        provider(repository), provider(storage), provider(ids), "foodmate-private");
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        service.uploadBatch(
+                                7L,
+                                new KnowledgeService.ImportBatch(
+                                        "idem-1",
+                                        "policy",
+                                        "nutrition",
+                                        "2026-08",
+                                        "internal",
+                                        java.util.List.of(
+                                                new KnowledgeService.ImportFile(
+                                                        "guide.md",
+                                                        "text/markdown",
+                                                        4L,
+                                                        new ByteArrayInputStream(
+                                                                "text".getBytes())))),
+                                "trace-new"));
+        verifyNoInteractions(storage, ids);
+    }
+
     @Test
     void uploadStoresObjectBeforePersistingDocument() {
         KnowledgeRepository repository = mock(KnowledgeRepository.class);

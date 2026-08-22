@@ -81,6 +81,11 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     }
 
     @Override
+    public ImportJob findImportJob(long operatorId, String idempotencyKey) {
+        return mapper.findImportJob(operatorId, idempotencyKey);
+    }
+
+    @Override
     public void insertImportItem(ImportItem item) {
         mapper.insertImportItem(
                 item.itemId(),
@@ -127,41 +132,79 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     }
 
     @Override
-    public void markIndexOutboxPublished(long id) {
-        mapper.markIndexOutboxPublished(id);
+    public void markIndexOutboxPublished(long id, String owner) {
+        mapper.markIndexOutboxPublished(id, owner);
     }
 
     @Override
-    public void markVisibilityOutboxPublished(long id) {
-        mapper.markVisibilityOutboxPublished(id);
+    public void markVisibilityOutboxPublished(long id, String owner) {
+        mapper.markVisibilityOutboxPublished(id, owner);
     }
 
     @Override
-    public void retryIndexOutbox(long id, String error) {
-        mapper.retryIndexOutbox(id, error);
+    public void retryIndexOutbox(long id, String owner, String error) {
+        mapper.retryIndexOutbox(id, owner, error);
     }
 
     @Override
-    public void retryVisibilityOutbox(long id, String error) {
-        mapper.retryVisibilityOutbox(id, error);
+    public void retryVisibilityOutbox(long id, String owner, String error) {
+        mapper.retryVisibilityOutbox(id, owner, error);
     }
 
     @Override
     public void applyIndexResult(IndexResult result, String hash) {
+        if (result.attempt() < 1 || result.attempt() > 3) {
+            throw new IllegalArgumentException("knowledge result attempt is outside 1..3");
+        }
+        if (mapper.resultMatchesItem(result.itemId(), result.documentId(), result.version()) != 1) {
+            throw new IllegalArgumentException("knowledge result does not match document version");
+        }
+        String previous =
+                mapper.resultPayloadHash(result.itemId(), result.version(), result.attempt());
+        if (previous != null) {
+            if (!previous.equals(hash)) {
+                throw new IllegalStateException("knowledge result payload hash conflict");
+            }
+            return;
+        }
         if (mapper.insertResultInbox(result.itemId(), result.version(), result.attempt(), hash)
-                == 0) return;
+                == 0) {
+            String concurrent =
+                    mapper.resultPayloadHash(result.itemId(), result.version(), result.attempt());
+            if (!hash.equals(concurrent))
+                throw new IllegalStateException("knowledge result payload hash conflict");
+            return;
+        }
+        boolean changed;
         if ("indexed".equals(result.status())) {
-            mapper.markItemIndexed(
-                    result.itemId(), result.documentId(), result.attempt(), result.chunkCount());
-            mapper.markDocumentIndexed(result.documentId());
+            changed =
+                    mapper.markItemIndexed(
+                                    result.itemId(),
+                                    result.documentId(),
+                                    result.attempt(),
+                                    result.chunkCount(),
+                                    result.version(),
+                                    result.tokenCount(),
+                                    result.costAmount(),
+                                    result.modelVersion())
+                            == 1;
+            if (changed) mapper.markDocumentIndexed(result.documentId(), result.version());
         } else {
             int attempt = Math.max(1, result.attempt());
-            mapper.markItemFailed(
-                    result.itemId(), result.documentId(), result.errorCode(), attempt);
-            if (attempt < 3)
+            changed =
+                    mapper.markItemFailed(
+                                    result.itemId(),
+                                    result.documentId(),
+                                    result.errorCode(),
+                                    result.errorCode(),
+                                    attempt,
+                                    result.version())
+                            == 1;
+            if (changed && attempt < 3)
                 mapper.requeueIndexOutbox(
                         result.itemId(), attempt + 1, 1 << (attempt - 1), result.errorCode());
         }
+        if (!changed) return;
         mapper.refreshJob(result.itemId());
         mapper.insertJobEvent(
                 ids.nextId(),
@@ -192,8 +235,8 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     }
 
     @Override
-    public int retryItem(long itemId, long operatorId, long outboxId, String payload) {
-        int changed = mapper.resetItem(itemId);
+    public int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload) {
+        int changed = mapper.resetItem(itemId, jobId);
         if (changed == 1) {
             mapper.deleteResultInbox(itemId);
             mapper.requeueIndexOutbox(itemId, 1, 0, null);

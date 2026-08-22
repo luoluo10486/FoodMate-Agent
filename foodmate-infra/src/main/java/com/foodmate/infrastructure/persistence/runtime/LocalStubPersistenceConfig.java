@@ -311,6 +311,10 @@ public class LocalStubPersistenceConfig {
 
             public void insertImportJob(ImportJob job) {}
 
+            public ImportJob findImportJob(long operatorId, String idempotencyKey) {
+                return null;
+            }
+
             public void insertImportItem(ImportItem item) {}
 
             public void insertIndexOutbox(long outboxId, long itemId, String payload) {}
@@ -338,13 +342,13 @@ public class LocalStubPersistenceConfig {
                 return 0;
             }
 
-            public void markIndexOutboxPublished(long id) {}
+            public void markIndexOutboxPublished(long id, String owner) {}
 
-            public void markVisibilityOutboxPublished(long id) {}
+            public void markVisibilityOutboxPublished(long id, String owner) {}
 
-            public void retryIndexOutbox(long id, String error) {}
+            public void retryIndexOutbox(long id, String owner, String error) {}
 
-            public void retryVisibilityOutbox(long id, String error) {}
+            public void retryVisibilityOutbox(long id, String owner, String error) {}
 
             public void applyIndexResult(KnowledgeRepository.IndexResult result, String hash) {}
 
@@ -360,7 +364,8 @@ public class LocalStubPersistenceConfig {
                 return java.util.List.of();
             }
 
-            public int retryItem(long itemId, long operatorId, long outboxId, String payload) {
+            public int retryItem(
+                    long itemId, long jobId, long operatorId, long outboxId, String payload) {
                 return 0;
             }
         };

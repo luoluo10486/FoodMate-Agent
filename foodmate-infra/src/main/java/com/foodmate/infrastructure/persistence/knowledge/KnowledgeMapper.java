@@ -48,6 +48,11 @@ public interface KnowledgeMapper {
             @Param("licenseNotice") String licenseNotice,
             @Param("traceId") String traceId);
 
+    @Select(
+            "SELECT job_id AS jobId,operator_id AS operatorId,idempotency_key AS idempotencyKey,requested_mode AS mode,source_type AS sourceType,source_name AS sourceName,source_version AS sourceVersion,license_notice AS licenseNotice,trace_id AS traceId FROM knowledge_import_jobs WHERE operator_id=#{operatorId} AND idempotency_key=#{idempotencyKey}")
+    KnowledgeRepository.ImportJob findImportJob(
+            @Param("operatorId") long operatorId, @Param("idempotencyKey") String idempotencyKey);
+
     @Insert(
             "INSERT INTO knowledge_import_items(item_id,job_id,document_id,filename,content_type,file_size,upload_status,index_status) VALUES(#{itemId},#{jobId},#{documentId},#{filename},#{contentType},#{size},'uploaded','pending')")
     void insertImportItem(
@@ -66,7 +71,7 @@ public interface KnowledgeMapper {
             @Param("payload") String payload);
 
     @Update(
-            "UPDATE knowledge_documents SET visibility=#{visibility},is_deleted=(#{visibility}='deleted'),updated_by=#{operatorId},updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND (#{visibility}<>'published' OR (status='indexed' AND is_deleted=FALSE AND current_version=TRUE))")
+            "UPDATE knowledge_documents SET visibility=#{visibility},is_deleted=(#{visibility}='deleted'),deleted_at=CASE WHEN #{visibility}='deleted' THEN CURRENT_TIMESTAMP ELSE NULL END,deleted_by=CASE WHEN #{visibility}='deleted' THEN #{operatorId} ELSE NULL END,updated_by=#{operatorId},updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND (#{visibility}<>'published' OR (status='indexed' AND is_deleted=FALSE AND current_version=TRUE))")
     int updateVisibility(
             @Param("documentId") long documentId,
             @Param("visibility") String visibility,
@@ -80,11 +85,11 @@ public interface KnowledgeMapper {
             @Param("payload") String payload);
 
     @Select(
-            "SELECT outbox_id AS outboxId,item_id AS itemOrDocumentId,topic,payload_json::text AS payload FROM knowledge_index_outbox WHERE status='pending' AND available_at<=CURRENT_TIMESTAMP ORDER BY outbox_id LIMIT #{limit}")
+            "SELECT outbox_id AS outboxId,item_id AS itemOrDocumentId,topic,payload_json::text AS payload FROM knowledge_index_outbox WHERE status='pending' AND available_at<=CURRENT_TIMESTAMP AND (lease_until IS NULL OR lease_until<CURRENT_TIMESTAMP) ORDER BY outbox_id LIMIT #{limit}")
     List<KnowledgeRepository.OutboxRow> pendingIndexOutbox(int limit);
 
     @Select(
-            "SELECT outbox_id AS outboxId,document_id AS itemOrDocumentId,topic,payload_json::text AS payload FROM knowledge_visibility_outbox WHERE status='pending' AND available_at<=CURRENT_TIMESTAMP ORDER BY outbox_id LIMIT #{limit}")
+            "SELECT outbox_id AS outboxId,document_id AS itemOrDocumentId,topic,payload_json::text AS payload FROM knowledge_visibility_outbox WHERE status='pending' AND available_at<=CURRENT_TIMESTAMP AND (lease_until IS NULL OR lease_until<CURRENT_TIMESTAMP) ORDER BY outbox_id LIMIT #{limit}")
     List<KnowledgeRepository.OutboxRow> pendingVisibilityOutbox(int limit);
 
     @Update(
@@ -96,20 +101,27 @@ public interface KnowledgeMapper {
     int leaseVisibilityOutbox(@Param("outboxId") long outboxId, @Param("owner") String owner);
 
     @Update(
-            "UPDATE knowledge_index_outbox SET status='published',owner_token=NULL,lease_until=NULL,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId}")
-    void markIndexOutboxPublished(long outboxId);
+            "UPDATE knowledge_index_outbox SET status='published',owner_token=NULL,lease_until=NULL,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId} AND status='pending' AND owner_token=#{owner}")
+    void markIndexOutboxPublished(@Param("outboxId") long outboxId, @Param("owner") String owner);
 
     @Update(
-            "UPDATE knowledge_visibility_outbox SET status='published',owner_token=NULL,lease_until=NULL,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId}")
-    void markVisibilityOutboxPublished(long outboxId);
+            "UPDATE knowledge_visibility_outbox SET status='published',owner_token=NULL,lease_until=NULL,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId} AND status='pending' AND owner_token=#{owner}")
+    void markVisibilityOutboxPublished(
+            @Param("outboxId") long outboxId, @Param("owner") String owner);
 
     @Update(
-            "UPDATE knowledge_index_outbox SET owner_token=NULL,lease_until=NULL,last_error=#{error},available_at=CURRENT_TIMESTAMP+INTERVAL '2 seconds',updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId}")
-    void retryIndexOutbox(@Param("outboxId") long outboxId, @Param("error") String error);
+            "UPDATE knowledge_index_outbox SET status='pending',owner_token=NULL,lease_until=NULL,last_error=#{error},available_at=CURRENT_TIMESTAMP+INTERVAL '2 seconds',updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId} AND status='pending' AND owner_token=#{owner}")
+    void retryIndexOutbox(
+            @Param("outboxId") long outboxId,
+            @Param("owner") String owner,
+            @Param("error") String error);
 
     @Update(
-            "UPDATE knowledge_visibility_outbox SET owner_token=NULL,lease_until=NULL,last_error=#{error},available_at=CURRENT_TIMESTAMP+INTERVAL '2 seconds',updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId}")
-    void retryVisibilityOutbox(@Param("outboxId") long outboxId, @Param("error") String error);
+            "UPDATE knowledge_visibility_outbox SET status='pending',owner_token=NULL,lease_until=NULL,last_error=#{error},available_at=CURRENT_TIMESTAMP+INTERVAL '2 seconds',updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId} AND status='pending' AND owner_token=#{owner}")
+    void retryVisibilityOutbox(
+            @Param("outboxId") long outboxId,
+            @Param("owner") String owner,
+            @Param("error") String error);
 
     @Insert(
             "INSERT INTO knowledge_index_result_inbox(item_id,document_version,attempt_count,payload_hash) VALUES(#{itemId},#{version},#{attempt},#{payloadHash}) ON CONFLICT (item_id,document_version,attempt_count) DO NOTHING")
@@ -119,25 +131,46 @@ public interface KnowledgeMapper {
             @Param("attempt") int attempt,
             @Param("payloadHash") String payloadHash);
 
+    @Select(
+            "SELECT payload_hash FROM knowledge_index_result_inbox WHERE item_id=#{itemId} AND document_version=#{version} AND attempt_count=#{attempt}")
+    String resultPayloadHash(
+            @Param("itemId") long itemId,
+            @Param("version") String version,
+            @Param("attempt") int attempt);
+
+    @Select(
+            "SELECT COUNT(*) FROM knowledge_import_items i JOIN knowledge_documents d ON d.document_id=i.document_id WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.version=#{version}")
+    int resultMatchesItem(
+            @Param("itemId") long itemId,
+            @Param("documentId") long documentId,
+            @Param("version") String version);
+
     @Update(
-            "UPDATE knowledge_import_items SET index_status='indexed',attempt_count=GREATEST(attempt_count,#{attempt}),chunk_count=#{chunkCount},indexed_at=CURRENT_TIMESTAMP,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND document_id=#{documentId} AND index_status<>'indexed'")
+            "UPDATE knowledge_import_items i SET index_status='indexed',attempt_count=GREATEST(i.attempt_count,#{attempt}),chunk_count=#{chunkCount},indexed_at=CURRENT_TIMESTAMP,error_code=NULL,error_summary=NULL,token_count=#{tokenCount},cost_amount=#{costAmount},model_version=#{modelVersion},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
     int markItemIndexed(
             @Param("itemId") long itemId,
             @Param("documentId") long documentId,
             @Param("attempt") int attempt,
-            @Param("chunkCount") int chunkCount);
+            @Param("chunkCount") int chunkCount,
+            @Param("version") String version,
+            @Param("tokenCount") long tokenCount,
+            @Param("costAmount") java.math.BigDecimal costAmount,
+            @Param("modelVersion") String modelVersion);
 
     @Update(
-            "UPDATE knowledge_documents SET status='indexed',indexed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND is_deleted=FALSE")
-    void markDocumentIndexed(long documentId);
+            "UPDATE knowledge_documents SET status='indexed',indexed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND version=#{version} AND is_deleted=FALSE")
+    void markDocumentIndexed(
+            @Param("documentId") long documentId, @Param("version") String version);
 
     @Update(
-            "UPDATE knowledge_import_items SET index_status=CASE WHEN #{attempt}>=3 THEN 'index_failed' ELSE 'pending' END,attempt_count=GREATEST(attempt_count,LEAST(3,#{attempt})),error_code=#{errorCode},error_summary=#{errorCode},updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND document_id=#{documentId} AND index_status<>'indexed'")
-    void markItemFailed(
+            "UPDATE knowledge_import_items i SET index_status=CASE WHEN #{attempt}>=3 THEN 'index_failed' ELSE 'pending' END,attempt_count=GREATEST(i.attempt_count,LEAST(3,#{attempt})),error_code=#{errorCode},error_summary=#{errorSummary},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
+    int markItemFailed(
             @Param("itemId") long itemId,
             @Param("documentId") long documentId,
             @Param("errorCode") String errorCode,
-            @Param("attempt") int attempt);
+            @Param("errorSummary") String errorSummary,
+            @Param("attempt") int attempt,
+            @Param("version") String version);
 
     @Update(
             "UPDATE knowledge_index_outbox SET status='pending',attempt_count=0,available_at=CURRENT_TIMESTAMP + (#{delaySeconds} * INTERVAL '1 second'),owner_token=NULL,lease_until=NULL,last_error=#{errorCode},payload_json=jsonb_set(payload_json,'{attempt}',to_jsonb(#{attempt}::int),true),updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1'")
@@ -148,7 +181,7 @@ public interface KnowledgeMapper {
             @Param("errorCode") String errorCode);
 
     @Update(
-            "UPDATE knowledge_import_jobs j SET status=CASE WHEN EXISTS(SELECT 1 FROM knowledge_import_items i WHERE i.job_id=j.job_id AND i.index_status IN ('pending','parsing','parsed','indexing')) THEN 'indexing' WHEN NOT EXISTS(SELECT 1 FROM knowledge_import_items i WHERE i.job_id=j.job_id AND i.index_status='indexed') THEN 'failed' WHEN EXISTS(SELECT 1 FROM knowledge_import_items i WHERE i.job_id=j.job_id AND i.index_status='index_failed') THEN 'partial_failed' ELSE 'completed' END,updated_at=CURRENT_TIMESTAMP,completed_at=CASE WHEN NOT EXISTS(SELECT 1 FROM knowledge_import_items i WHERE i.job_id=j.job_id AND i.index_status IN ('pending','parsing','parsed','indexing')) THEN CURRENT_TIMESTAMP ELSE NULL END WHERE j.job_id=(SELECT job_id FROM knowledge_import_items WHERE item_id=#{itemId})")
+            "UPDATE knowledge_import_jobs j SET status=CASE WHEN EXISTS(SELECT 1 FROM knowledge_import_items i WHERE i.job_id=j.job_id AND i.index_status IN ('pending','parsing','parsed','indexing')) THEN 'indexing' WHEN NOT EXISTS(SELECT 1 FROM knowledge_import_items i WHERE i.job_id=j.job_id AND i.index_status='indexed') THEN 'failed' WHEN EXISTS(SELECT 1 FROM knowledge_import_items i WHERE i.job_id=j.job_id AND i.index_status='index_failed') THEN 'partial_failed' ELSE 'completed' END,token_count=(SELECT COALESCE(SUM(i.token_count),0) FROM knowledge_import_items i WHERE i.job_id=j.job_id),cost_amount=(SELECT COALESCE(SUM(i.cost_amount),0) FROM knowledge_import_items i WHERE i.job_id=j.job_id),updated_at=CURRENT_TIMESTAMP,completed_at=CASE WHEN NOT EXISTS(SELECT 1 FROM knowledge_import_items i WHERE i.job_id=j.job_id AND i.index_status IN ('pending','parsing','parsed','indexing')) THEN COALESCE(j.completed_at,CURRENT_TIMESTAMP) ELSE NULL END WHERE j.job_id=(SELECT job_id FROM knowledge_import_items WHERE item_id=#{itemId})")
     void refreshJob(long itemId);
 
     @Insert(
@@ -173,8 +206,8 @@ public interface KnowledgeMapper {
             @Param("jobId") long jobId, @Param("afterEventId") long afterEventId);
 
     @Update(
-            "UPDATE knowledge_import_items SET index_status='pending',attempt_count=0,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND index_status='index_failed'")
-    int resetItem(long itemId);
+            "UPDATE knowledge_import_items SET index_status='pending',attempt_count=0,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND job_id=#{jobId} AND index_status='index_failed'")
+    int resetItem(@Param("itemId") long itemId, @Param("jobId") long jobId);
 
     @org.apache.ibatis.annotations.Delete(
             "DELETE FROM knowledge_index_result_inbox WHERE item_id=#{itemId}")

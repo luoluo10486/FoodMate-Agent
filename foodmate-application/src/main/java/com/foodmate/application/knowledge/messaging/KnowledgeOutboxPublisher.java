@@ -53,15 +53,15 @@ public class KnowledgeOutboxPublisher {
                                                 index
                                                         ? "KnowledgeIndex"
                                                         : "KnowledgeVisibility"))));
-                if (index) service.publishedIndex(row.outboxId());
-                else service.publishedVisibility(row.outboxId());
+                if (index) service.publishedIndex(row.outboxId(), owner);
+                else service.publishedVisibility(row.outboxId(), owner);
             } catch (RuntimeException error) {
                 String message =
                         error.getMessage() == null
                                 ? error.getClass().getSimpleName()
                                 : error.getMessage();
-                if (index) service.retryIndex(row.outboxId(), message);
-                else service.retryVisibility(row.outboxId(), message);
+                if (index) service.retryIndex(row.outboxId(), owner, message);
+                else service.retryVisibility(row.outboxId(), owner, message);
             }
         }
     }
