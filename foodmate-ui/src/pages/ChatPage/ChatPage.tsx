@@ -564,6 +564,7 @@ function ToolExecutingStatePage() {
 
 function AwaitingClarificationStatePage() {
   const awaitingMessageAvatarSrc = '/assets/figma/agent-chat/awaiting-clarification/message-avatar.png';
+  const awaitingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const awaitingRun: AgentRunView = {
     id: 'run_awaiting_clarification_fixture',
     status: 'planning',
@@ -594,6 +595,7 @@ function AwaitingClarificationStatePage() {
       placeholder="输入你的详细食物或份量，例如：150克野生三文鱼..."
       showKnowledgeTopNav={false}
       showTrace={false}
+      sidebarFixture={awaitingSidebar}
     >
       <article className={styles.awaitingUserMessage}>
         <div className={styles.awaitingUserLine}>
