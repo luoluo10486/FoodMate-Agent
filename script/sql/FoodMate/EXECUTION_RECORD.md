@@ -285,3 +285,17 @@
 | 前端验证 | `npm.cmd run typecheck` 通过；`npm.cmd run test -- --run src/pages/AdminPage/tabs/RunsTab.test.tsx src/pages/AdminPage/tabs/RunsTab.real.test.tsx`：4/4 通过；`npm.cmd run build` 通过；全量 `format:check` 仍受仓库既有 77 个未格式化文件阻塞，未执行整库格式化 |
 | 未执行范围 | 人工重放、Run 终态改写、死信删除、真实 RocketMQ 对账、性能/故障矩阵和生产验证 |
 | 结论 | 仅完成 DLQ 安全摘要的运营可见性；不将其计为人工重放、完整死信处理或 M3 完成证据 |
+
+## M3 前置：运营审计只读报告（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间（本地） | 2026-08-23T00:24:36+08:00 |
+| 环境 | Windows 本地工作区；未启动 Java、PostgreSQL、Redis、RocketMQ；未执行迁移、truncate、备份恢复或消息重放 |
+| 功能提交 | `850ba8f feat(audit): 增加运营审计只读报告` |
+| API | `GET /api/admin/audit-reports/current`；只读返回审计、Outbox、知识索引、DLQ 的聚合计数、最早时间和稳定原因码 |
+| 安全校验 | infra Mapper 契约测试确认查询不包含 `request_json`、`response_json`、`raw_payload_json` 或 `last_error`；普通用户 API 鉴权返回 `FORBIDDEN` |
+| Java 验证 | application 3/3、API 2/2、infra 1/1；受影响模块编译通过；Spotless 检查通过 |
+| 失败/阻塞 | 首次并行 Maven 定向测试因未使用 `-am` 和 `target` 并发产生既有依赖编译/测试选择错误；改为串行 reactor 命令后通过，未修改业务代码 |
+| 数据影响 | 仅新增代码和测试，未连接目标数据库、未写入或清理本地业务数据 |
+| 结论 | 报告第一切片的代码/业务测试证据成立；实时数据库结果、历史归档和生产告警仍未验证 |
