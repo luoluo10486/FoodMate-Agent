@@ -441,7 +441,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #2e7d32;
+  background: #a6d997;
   box-shadow: none;
 }
 
@@ -512,7 +512,7 @@
 
 .tokenMessage h1 {
   margin: 0;
-  color: #2a3439;
+  color: #333333;
   font-size: 24px;
   font-weight: 700;
   line-height: 29px;
@@ -521,9 +521,9 @@
 .tokenMessage p {
   width: 100%;
   margin: 0;
-  color: #6b7280;
+  color: #5a6672;
   font-size: 14px;
-  line-height: 22px;
+  line-height: 1.6;
 }
 
 .tokenActions {
@@ -540,7 +540,7 @@
   border: 1.5px solid #8a94a0;
   border-radius: 16px;
   background: transparent;
-  color: #2a3439;
+  color: #333333;
   font-size: 16px;
   font-weight: 700;
 }

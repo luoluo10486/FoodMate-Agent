@@ -17,5 +17,20 @@ describe('TokenStatusPage', () => {
 
     expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重新发送重置邮件' })).toBeInTheDocument();
+    expect(
+      document.querySelector(
+        `img[src="/assets/figma/auth/token-${state === 'invalid' ? 'alert-triangle' : state === 'expired' ? 'clock' : 'info'}.svg"]`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the support action only for the used-token state', () => {
+    render(
+      <MemoryRouter initialEntries={['/token-status?state=used']}>
+        <TokenStatusPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: '联系客服' })).toBeInTheDocument();
   });
 });
