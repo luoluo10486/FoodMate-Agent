@@ -19,7 +19,6 @@ import com.foodmate.shared.account.enums.UserStatus;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.runtime.enums.ToolStatus;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

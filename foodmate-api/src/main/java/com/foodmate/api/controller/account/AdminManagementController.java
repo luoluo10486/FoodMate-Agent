@@ -13,10 +13,8 @@ import com.foodmate.shared.account.enums.UserRole;
 import com.foodmate.shared.admin.enums.RestorableResourceType;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;

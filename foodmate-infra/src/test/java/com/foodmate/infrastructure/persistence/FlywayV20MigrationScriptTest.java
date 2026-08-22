@@ -2,11 +2,10 @@ package com.foodmate.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.Test;
 
 /** 校验 M2-3 管理写操作的 revision migration、校验和回滚文件齐全。 */
 class FlywayV20MigrationScriptTest {

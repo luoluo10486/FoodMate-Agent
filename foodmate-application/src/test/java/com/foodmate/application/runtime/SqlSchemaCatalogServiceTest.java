@@ -46,12 +46,33 @@ class SqlSchemaCatalogServiceTest {
 
     @Test
     void failsClosedWhenRepositoryMixesDatasourceOrCatalogVersion() {
-        var service = new SqlSchemaCatalogServiceImpl(repository(
-                row("food_logs", "meal_time", false),
-                new CatalogField(2L, "catalog-v1", "public", "food_logs", "user_id", null, "bigint", false, null),
-                new CatalogField(1L, "catalog-v2", "public", "food_logs", "meal_type", null, "varchar", false, null)));
+        var service =
+                new SqlSchemaCatalogServiceImpl(
+                        repository(
+                                row("food_logs", "meal_time", false),
+                                new CatalogField(
+                                        2L,
+                                        "catalog-v1",
+                                        "public",
+                                        "food_logs",
+                                        "user_id",
+                                        null,
+                                        "bigint",
+                                        false,
+                                        null),
+                                new CatalogField(
+                                        1L,
+                                        "catalog-v2",
+                                        "public",
+                                        "food_logs",
+                                        "meal_type",
+                                        null,
+                                        "varchar",
+                                        false,
+                                        null)));
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> service.current(1L));
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.current(1L));
 
         assertEquals("SQL_CATALOG_UNAVAILABLE", exception.errorCode().code());
     }

@@ -329,6 +329,15 @@ describe('ChatPage Figma session operation fixtures', () => {
       expect(screen.queryByRole('dialog', { name: '已归档会话' })).not.toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('已关闭归档结果。');
     }
+    if (state === 'trash') {
+      expect(screen.getByText('RECOVERABLE')).toBeInTheDocument();
+      expect(screen.getByText('回收站仅支持恢复，不提供永久删除')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '关闭回收站结果' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: '关闭回收站结果' }));
+      expect(screen.queryByRole('dialog', { name: '会话回收站' })).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('已关闭回收站结果。');
+    }
   });
 });
 

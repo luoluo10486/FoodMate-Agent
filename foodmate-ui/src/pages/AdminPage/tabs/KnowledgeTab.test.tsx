@@ -18,13 +18,11 @@ describe('KnowledgeSection', () => {
     const user = userEvent.setup();
     render(<KnowledgeSection onAction={vi.fn()} />);
 
-    const file = new File(['nutrition'], 'nutrient_reference.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
+    const file = new File(['nutrition'], 'nutrient_reference.pdf', { type: 'application/pdf' });
     await user.upload(screen.getByLabelText('选择知识库文件'), file);
 
     expect(screen.getByRole('dialog', { name: '上传知识库文档' })).toBeInTheDocument();
-    expect(screen.getByText('nutrient_reference.xlsx')).toBeInTheDocument();
+    expect(screen.getByText('已选择 1 个文件')).toBeInTheDocument();
   });
 
   it('sends selected document state changes through the shared action flow', async () => {

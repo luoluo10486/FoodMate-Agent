@@ -5,7 +5,9 @@ import java.time.Instant;
 
 /** Model governance read port used to freeze a route, price and budget snapshot per run. */
 public interface ModelGovernanceRepository {
-    /** Returns the active route and its versioned policy bindings, or {@code null} if none exists. */
+    /**
+     * Returns the active route and its versioned policy bindings, or {@code null} if none exists.
+     */
     ModelGovernanceSnapshot resolve(String scene, String modelType);
 
     record ModelGovernanceSnapshot(

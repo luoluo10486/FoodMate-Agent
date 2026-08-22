@@ -365,7 +365,8 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             audit.record(userId, targetType, targetId, action, result, null, null, null, metadata);
     }
 
-    private void insertInitialBudgetSnapshot(long runId, ModelGovernanceSnapshot governanceSnapshot) {
+    private void insertInitialBudgetSnapshot(
+            long runId, ModelGovernanceSnapshot governanceSnapshot) {
         int maxTotalTokens =
                 governanceSnapshot == null
                         ? budgetDefaults.maxTotalTokens()

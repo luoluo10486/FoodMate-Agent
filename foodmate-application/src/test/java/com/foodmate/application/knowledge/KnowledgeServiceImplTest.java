@@ -186,7 +186,8 @@ class KnowledgeServiceImplTest {
         KnowledgeRepository repository = mock(KnowledgeRepository.class);
         ObjectStoragePort storage = mock(ObjectStoragePort.class);
         IdGenerator ids = mock(IdGenerator.class);
-        when(repository.document(42L)).thenReturn(new KnowledgeRepository.DocumentView(42L, "v-old", false));
+        when(repository.document(42L))
+                .thenReturn(new KnowledgeRepository.DocumentView(42L, "v-old", false));
         when(repository.updateVisibility(42L, "disabled", 7L)).thenReturn(1);
         when(ids.nextId()).thenReturn(99L);
         KnowledgeServiceImpl service =
@@ -198,8 +199,10 @@ class KnowledgeServiceImplTest {
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
         verify(repository).insertVisibilityOutbox(eq(99L), eq(42L), payload.capture());
         assertFalse(payload.getValue().contains("\"current_version\":true"));
-        org.junit.jupiter.api.Assertions.assertTrue(payload.getValue().contains("\"version\":\"v-old\""));
-        org.junit.jupiter.api.Assertions.assertTrue(payload.getValue().contains("\"current_version\":false"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                payload.getValue().contains("\"version\":\"v-old\""));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                payload.getValue().contains("\"current_version\":false"));
     }
 
     private static <T> ObjectProvider<T> provider(T value) {

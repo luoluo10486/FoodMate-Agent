@@ -45,7 +45,10 @@ public class ModelGovernanceService {
         this.routeVersion = required(routeVersion, "route version");
         this.priceVersion = required(priceVersion, "price version");
         this.budgetPolicyVersion = required(budgetPolicyVersion, "budget policy version");
-        if (maxTotalTokens <= 0 || maxModelCalls <= 0 || maxStepRetries < 0 || modelTimeoutMs <= 0) {
+        if (maxTotalTokens <= 0
+                || maxModelCalls <= 0
+                || maxStepRetries < 0
+                || modelTimeoutMs <= 0) {
             throw new IllegalStateException("model governance numeric settings are invalid");
         }
         if (maxCostCny == null || maxCostCny.signum() < 0) {

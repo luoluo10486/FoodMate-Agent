@@ -15,12 +15,12 @@ import com.foodmate.api.controller.account.AdminOperationalQueryController;
 import com.foodmate.api.filter.TraceContextFilter;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
 import com.foodmate.application.account.service.UserAccountService;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import java.util.List;
 
 class AdminOperationalQueryControllerTest {
     private UserAccountService accounts;

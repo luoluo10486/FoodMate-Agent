@@ -100,10 +100,7 @@ class V1RunCommandTest {
                                         .decimalValue()));
         assertEquals(
                 "stub-price-v1",
-                root.path("runtime_options")
-                        .path("model_snapshot")
-                        .path("price_version")
-                        .asText());
+                root.path("runtime_options").path("model_snapshot").path("price_version").asText());
         assertTrue(root.path("recovery_context").isMissingNode());
 
         V1RunCommand restored = mapper.readValue(json, V1RunCommand.class);

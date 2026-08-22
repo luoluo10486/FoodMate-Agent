@@ -920,31 +920,37 @@ function SessionStateOverlay({
     );
   }
 
-  const content = {
-    trash: {
-      title: '会话回收站',
-      description: '删除的会话将在保留期内可恢复，不提供永久删除入口。',
-      detail: '运动前零食建议 · 移入回收站于今天 12:45',
-      action: '恢复会话',
-    },
-  }[state];
-  return (
-    <div className={styles.sessionResultBackdrop}>
-      <Card
-        className={`${styles.sessionResultOverlay} ${state === 'trash' ? styles.sessionTrashOverlay : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={content.title}
-      >
-        <h2>{content.title}</h2>
-        <p>{content.description}</p>
-        {content.detail ? <strong>{content.detail}</strong> : null}
-        <Button size="sm" variant="ghost" onClick={() => onAction(`${content.action}操作已记录。`)}>
-          {content.action}
-        </Button>
-      </Card>
-    </div>
-  );
+  if (state === 'trash') {
+    return (
+      <div className={styles.sessionTrashBackdrop}>
+        <Card className={styles.sessionTrashCard} role="dialog" aria-modal="true" aria-label="会话回收站">
+          <span className={styles.sessionTrashAccent} aria-hidden="true" />
+          <span className={styles.sessionTrashStatus}>RECOVERABLE</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={styles.sessionTrashClose}
+            aria-label="关闭回收站结果"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
+          </Button>
+          <h2>会话回收站</h2>
+          <p>删除的会话将在保留期内可恢复，不提供永久删除入口。</p>
+          <div className={styles.sessionTrashItem}>运动前零食建议 · 移入回收站于今天 12:45</div>
+          <span className={styles.sessionTrashSync}>回收站仅支持恢复，不提供永久删除</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={styles.sessionTrashRestore}
+            onClick={() => onAction('已恢复回收站会话，可从 Agent 对话列表继续查看。')}
+          >
+            恢复会话
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 }
 
 function ChatAuxStatePage({ state }: { state: ChatAuxState }) {

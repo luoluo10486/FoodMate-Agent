@@ -58,8 +58,8 @@ class ModelGovernanceServiceTest {
                         1,
                         5000,
                         java.time.Instant.parse("2026-08-01T00:00:00Z"));
-        ObjectProvider<com.foodmate.application.runtime.port.out.ModelGovernanceRepository> provider =
-                new FixedProvider(governed);
+        ObjectProvider<com.foodmate.application.runtime.port.out.ModelGovernanceRepository>
+                provider = new FixedProvider(governed);
         ModelGovernanceService service =
                 new ModelGovernanceService(
                         provider,
@@ -82,7 +82,8 @@ class ModelGovernanceServiceTest {
     }
 
     private static final class FixedProvider
-            implements ObjectProvider<com.foodmate.application.runtime.port.out.ModelGovernanceRepository> {
+            implements ObjectProvider<
+                    com.foodmate.application.runtime.port.out.ModelGovernanceRepository> {
         private final ModelGovernanceSnapshot snapshot;
 
         private FixedProvider(ModelGovernanceSnapshot snapshot) {
@@ -96,7 +97,8 @@ class ModelGovernanceServiceTest {
         }
 
         @Override
-        public com.foodmate.application.runtime.port.out.ModelGovernanceRepository getIfAvailable() {
+        public com.foodmate.application.runtime.port.out.ModelGovernanceRepository
+                getIfAvailable() {
             return (scene, modelType) -> snapshot;
         }
 

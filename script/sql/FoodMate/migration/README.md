@@ -32,3 +32,5 @@
 `V20__m2_3_admin_management_contract.sql`：为管理员状态写入、工具启停和软删除恢复增加 `revision` 乐观并发版本；管理写接口同时要求 `Idempotency-Key`，高风险工具和恢复操作要求确认摘要。该脚本仅人工执行，不由 Java 启动自动迁移；配套校验为 `validation/V20__m2_3_admin_management_contract_validation.sql`，回滚为 `rollback/R20__m2_3_admin_management_contract.sql`。
 
 `V21__m1_model_governance_contract.sql`：增加供应商/模型目录、价格版本和预算策略，并为路由和模型用量事实补齐路由、价格与预算版本快照。治理表不保存 API Key、Secret 或可逆凭据；当前运行时没有匹配的数据库路由时仍使用显式配置的 deterministic/stub 默认快照。该脚本仅人工执行，不清理已有路由或用量；配套校验为 `validation/V21__m1_model_governance_contract_validation.sql`，回滚为 `rollback/R21__m1_model_governance_contract.sql`。
+
+`V22__m1_model_provider_revision.sql`：为供应商启停补齐乐观并发版本，已有供应商从 revision 1 开始。配套校验为 `validation/V22__m1_model_provider_revision_validation.sql`，回滚为 `rollback/R22__m1_model_provider_revision.sql`。

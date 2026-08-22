@@ -37,8 +37,7 @@ class FlywayV21MigrationScriptTest {
                                         "V21__m1_model_governance_contract_validation.sql")));
         String rollback =
                 Files.readString(
-                        ROOT.resolve(
-                                Path.of("rollback", "R21__m1_model_governance_contract.sql")));
+                        ROOT.resolve(Path.of("rollback", "R21__m1_model_governance_contract.sql")));
         assertTrue(validation.contains("invalid_rows"));
         assertTrue(rollback.contains("DROP TABLE IF EXISTS model_budget_policies"));
         assertTrue(rollback.contains("DROP COLUMN IF EXISTS route_version"));

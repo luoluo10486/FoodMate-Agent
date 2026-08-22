@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from model_provider import ModelProviderError, ModelResponse
+from model_provider import ModelResponse
 from sql_planner import (
     DeterministicSqlPlanner,
     OpenAICompatibleSqlPlanner,
