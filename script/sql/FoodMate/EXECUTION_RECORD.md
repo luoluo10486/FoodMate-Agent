@@ -272,3 +272,16 @@
 | 数据处理 | 测试集合为本轮专用命名空间，验证后删除该集合；未删除任何既有业务集合或命名卷；容器已停止但卷保留 |
 | 未执行范围 | 真实 embedding API、Java -> RocketMQ -> Python 跨运行时上传闭环、性能压测、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证继续暂缓 |
 | 结论 | local deterministic + Milvus 业务适配和 Docker 依赖路径具备本地证据；真实 provider 仍需显式配置后单独验证，M2-1 整体不据此标记完成 |
+
+## M3 前置：DLQ 安全摘要运营可见性（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；未启动 Java、PostgreSQL、Redis、RocketMQ，不执行迁移、清库、备份恢复或消息重放 |
+| 分支与提交 | `codex/m2-remaining-business`；`9d4cea9 feat(admin): 增加死信摘要查询`；`f76fbcf feat(admin-ui): 接入死信摘要治理视图` |
+| 后端范围 | 管理查询资源 `GET /api/admin/queries/dlq`；支持关键词、对账状态、排序和分页；复用既有 `runtime_message_dlq` 表，不新增迁移 |
+| 安全范围 | DTO/SQL/API/UI 只返回消息身份、来源、关联标识、attempt/reconsume 次数、稳定错误码、对账状态和时间；不返回 `raw_payload_json`、`last_error` |
+| Java 验证 | `mvnw.cmd -pl foodmate-application,foodmate-api -am test -Dtest=AdminOperationalQueryServiceImplTest,AdminOperationalQueryControllerTest -Dsurefire.failIfNoSpecifiedTests=false`：应用 4/4、API 3/3 通过；infra `FlywayV6MigrationScriptTest` 3/3 通过；受影响模块 Spotless 通过 |
+| 前端验证 | `npm.cmd run typecheck` 通过；`npm.cmd run test -- --run src/pages/AdminPage/tabs/RunsTab.test.tsx src/pages/AdminPage/tabs/RunsTab.real.test.tsx`：4/4 通过；`npm.cmd run build` 通过；全量 `format:check` 仍受仓库既有 77 个未格式化文件阻塞，未执行整库格式化 |
+| 未执行范围 | 人工重放、Run 终态改写、死信删除、真实 RocketMQ 对账、性能/故障矩阵和生产验证 |
+| 结论 | 仅完成 DLQ 安全摘要的运营可见性；不将其计为人工重放、完整死信处理或 M3 完成证据 |
