@@ -537,6 +537,7 @@
   align-items: flex-start;
   padding-top: 29px;
   color: var(--fm-muted);
+  font: inherit;
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
@@ -594,6 +595,7 @@
   align-items: center;
   border: 1px dashed var(--fm-border);
   background: transparent;
+  font: inherit;
   color: var(--fm-muted);
   font-size: 12px;
   font-weight: 600;

@@ -26,8 +26,14 @@ describe('PlanningPage', () => {
     renderPage();
 
     const Wednesday = screen.getByRole('tab', { name: '周三 15' });
+    expect(Wednesday).toHaveClass('inline-flex');
     await user.click(Wednesday);
     expect(Wednesday).toHaveAttribute('aria-selected', 'true');
+
+    const emptyMeal = screen.getAllByRole('button', { name: '+ 计划' })[0];
+    expect(emptyMeal).toHaveClass('inline-flex');
+    await user.click(emptyMeal);
+    expect(screen.getByRole('status')).toHaveTextContent('已打开早餐的计划入口');
 
     const salmon = screen.getByRole('checkbox', { name: '野生三文鱼 (450g)' });
     await user.click(salmon);

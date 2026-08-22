@@ -235,7 +235,8 @@ function DefaultPlanningView() {
           <div className={styles.scheduleSpacer} aria-hidden="true" />
           <div className={styles.dayButtons} role="tablist" aria-label="每周日程日期">
             {days.map((day) => (
-              <button
+              <Button
+                variant="ghost"
                 className={`${styles.dayButton} ${activeDay === day.key ? styles.dayButtonActive : ''}`}
                 key={day.key}
                 type="button"
@@ -247,7 +248,7 @@ function DefaultPlanningView() {
                 }}
               >
                 {day.label}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -261,14 +262,15 @@ function DefaultPlanningView() {
                     <span>{meal.kcal}</span>
                   </article>
                 ) : (
-                  <button
+                  <Button
+                    variant="ghost"
                     className={styles.emptyMeal}
                     key={`${row.label}-${index}`}
                     type="button"
                     onClick={() => announce(`已打开${row.label}的计划入口。`)}
                   >
                     + 计划
-                  </button>
+                  </Button>
                 ),
               )}
             </div>
