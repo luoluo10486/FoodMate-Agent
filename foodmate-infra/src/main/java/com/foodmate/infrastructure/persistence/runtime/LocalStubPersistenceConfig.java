@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.foodmate.application.account.port.out.AdminAuditReportRepository;
 import com.foodmate.application.account.port.out.AdminDashboardRepository;
 import com.foodmate.application.account.port.out.AdminManagementRepository;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
@@ -277,6 +278,39 @@ public class LocalStubPersistenceConfig {
 
             public int complete(String proposalId, String resultJson) {
                 return 1;
+            }
+        };
+    }
+
+    @Bean
+    AdminAuditReportRepository localAdminAuditReportRepository() {
+        return new AdminAuditReportRepository() {
+            public OperationAuditSummary operationAudits() {
+                return new OperationAuditSummary(0, 0, null);
+            }
+
+            public OutboxSummary runtimeDispatchOutbox(java.time.Instant staleBefore) {
+                return new OutboxSummary(0, 0, null);
+            }
+
+            public OutboxSummary knowledgeIndexOutbox(java.time.Instant staleBefore) {
+                return new OutboxSummary(0, 0, null);
+            }
+
+            public OutboxSummary knowledgeVisibilityOutbox(java.time.Instant staleBefore) {
+                return new OutboxSummary(0, 0, null);
+            }
+
+            public OutboxSummary agentRunSseOutbox(java.time.Instant staleBefore) {
+                return new OutboxSummary(0, 0, null);
+            }
+
+            public KnowledgeImportSummary knowledgeImports() {
+                return new KnowledgeImportSummary(0, 0, null);
+            }
+
+            public DlqSummary dlq() {
+                return new DlqSummary(0, 0, null);
             }
         };
     }
