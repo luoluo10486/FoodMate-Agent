@@ -36,11 +36,6 @@
   border-right: 1px solid var(--fm-border);
 }
 
-.sidebarWindowSpacer {
-  flex: 0 0 12px;
-  height: 12px;
-}
-
 .sidebarBrand {
   display: flex;
   flex-direction: column;
