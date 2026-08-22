@@ -76,20 +76,25 @@ describe('AdminPage overview', () => {
   });
 
   it('maps admin visual fixture query states to their real sections', () => {
-    const { unmount } = renderAdmin('/admin?state=tool-registry');
+    let view = renderAdmin('/admin?state=tool-registry');
     expect(screen.getByText('已注册工具')).toBeInTheDocument();
+    expect(document.querySelector('nav a[aria-current="page"]')).toHaveAttribute('href', '/admin/tools?tab=registry');
 
-    unmount();
-    renderAdmin('/admin?state=deleted-resources');
+    view.unmount();
+    view = renderAdmin('/admin?state=deleted-resources');
     expect(screen.getByText('存档数据保护规范与合规通告')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '软删除资源' })).toHaveAttribute('aria-current', 'page');
 
-    unmount();
-    renderAdmin('/admin?state=user-detail');
+    view.unmount();
+    view = renderAdmin('/admin?state=user-detail');
     expect(screen.getByText('用户详情')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '用户管理' })).toHaveAttribute('aria-current', 'page');
 
-    unmount();
-    renderAdmin('/admin?state=op-confirm');
+    view.unmount();
+    view = renderAdmin('/admin?state=op-confirm');
     expect(screen.getByText('已注册工具')).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: '确认停用工具' })).toBeInTheDocument();
+    expect(document.querySelector('nav a[aria-current="page"]')).toHaveAttribute('href', '/admin/tools?tab=registry');
+    view.unmount();
   });
 });

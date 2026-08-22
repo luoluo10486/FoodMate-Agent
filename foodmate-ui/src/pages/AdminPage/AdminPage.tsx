@@ -81,6 +81,20 @@ function getAdminFixtureState(value: string | null): AdminFixtureState | undefin
   return value && states.includes(value as AdminFixtureState) ? (value as AdminFixtureState) : undefined;
 }
 
+function getFixtureNavKey(state: AdminFixtureState | undefined): string | undefined {
+  if (!state) return undefined;
+  if (state === 'tool-registry' || state.startsWith('op-')) return 'registry';
+  if (state === 'deleted-resources') return 'deleted';
+  if (state === 'user-detail') return 'users';
+  if (state.startsWith('knowledge-')) return 'knowledge';
+  if (state === 'run-detail') return 'runs';
+  if (state === 'tool-calls') return 'tools';
+  if (state === 'sql-audit') return 'sql';
+  if (state === 'trace') return 'trace';
+  if (state === 'overview') return 'overview';
+  return undefined;
+}
+
 function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; onDismiss: () => void }) {
   if (state === 'overview' || state === 'tool-registry' || state === 'deleted-resources' || state === 'user-detail')
     return null;
@@ -305,6 +319,7 @@ export function AdminPage() {
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const requestedFixture = getAdminFixtureState(new URLSearchParams(search).get('state'));
+  const fixtureNavKey = getFixtureNavKey(requestedFixture);
   const sectionKey = (
     requestedFixture?.startsWith('op-')
       ? 'tools'
@@ -448,7 +463,7 @@ export function AdminPage() {
         </div>
         <nav className={styles.adminNav} aria-label="管理后台导航">
           {adminNavItems.map((item) => {
-            const isActive = isAdminNavItemActive(item.path, pathname, search);
+            const isActive = fixtureNavKey ? item.key === fixtureNavKey : isAdminNavItemActive(item.path, pathname, search);
             const isLocked = Boolean(item.adminOnly && !canManage);
             return (
               <Link
