@@ -59,6 +59,28 @@ class KnowledgeIndexResultMessageProcessorTest {
         verifyNoInteractions(delivery);
     }
 
+    @Test
+    void invalidUsageSummaryIsRejectedBeforePersistence() {
+        String negativeTokens =
+                "{\"item_id\":11,\"document_id\":12,\"version\":\"v1\","
+                        + "\"status\":\"indexed\",\"chunk_count\":1,\"attempt\":1,"
+                        + "\"token_count\":-1,\"model_version\":\"stub-v1\"}";
+        String missingModel =
+                "{\"item_id\":11,\"document_id\":12,\"version\":\"v1\","
+                        + "\"status\":\"indexed\",\"chunk_count\":1,\"attempt\":1,"
+                        + "\"token_count\":1}";
+        String negativeCost =
+                "{\"item_id\":11,\"document_id\":12,\"version\":\"v1\","
+                        + "\"status\":\"indexed\",\"chunk_count\":1,\"attempt\":1,"
+                        + "\"token_count\":1,\"cost_amount\":\"-0.01\","
+                        + "\"model_version\":\"stub-v1\"}";
+
+        assertEquals(MqConsumeDecision.REJECT, processor.handle(negativeTokens, context()));
+        assertEquals(MqConsumeDecision.REJECT, processor.handle(missingModel, context()));
+        assertEquals(MqConsumeDecision.REJECT, processor.handle(negativeCost, context()));
+        verifyNoInteractions(delivery);
+    }
+
     private static MqMessageContext context() {
         return new MqMessageContext(
                 "knowledge-result", "message-1", "11", 0, MessageProperties.empty());

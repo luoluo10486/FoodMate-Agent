@@ -30,7 +30,9 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
             String version = node.path("version").asText("").trim();
             int attempt = node.path("attempt").asInt(0);
             int chunkCount = node.path("chunk_count").asInt(0);
+            long tokenCount = node.path("token_count").asLong(0);
             String errorCode = node.path("error_code").asText(null);
+            String modelVersion = node.path("model_version").asText(null);
             if (!("indexed".equals(status) || "index_failed".equals(status))
                     || itemId <= 0
                     || documentId <= 0
@@ -38,10 +40,15 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                     || attempt < 1
                     || attempt > 3
                     || chunkCount < 0
+                    || tokenCount < 0
+                    || ("indexed".equals(status)
+                            && (modelVersion == null || modelVersion.isBlank()))
                     || ("index_failed".equals(status)
                             && (errorCode == null || errorCode.isBlank())))
                 return MqConsumeDecision.REJECT;
             BigDecimal costAmount = new BigDecimal(node.path("cost_amount").asText("0"));
+            if (costAmount.signum() < 0)
+                return MqConsumeDecision.REJECT;
             service.accept(
                     new KnowledgeRepository.IndexResult(
                             itemId,
@@ -51,9 +58,9 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                             chunkCount,
                             errorCode,
                             attempt,
-                            node.path("token_count").asLong(0),
+                            tokenCount,
                             costAmount,
-                            node.path("model_version").asText(null)),
+                            modelVersion),
                     hash(body));
             return MqConsumeDecision.ACK;
         } catch (com.fasterxml.jackson.core.JsonProcessingException

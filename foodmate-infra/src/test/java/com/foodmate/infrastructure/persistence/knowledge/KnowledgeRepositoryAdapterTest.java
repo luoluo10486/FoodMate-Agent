@@ -113,4 +113,43 @@ class KnowledgeRepositoryAdapterTest {
         verify(mapper)
                 .insertJobEvent(eq(902L), eq(77L), eq(11L), eq("knowledge.batch.progress"), any());
     }
+
+    @Test
+    void failedIndexRetriesTwiceThenStopsAtThirdAttempt() {
+        when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
+        when(mapper.resultPayloadHash(eq(11L), eq("v1"), anyInt())).thenReturn(null);
+        when(mapper.jobIdForItem(11L)).thenReturn(77L);
+        when(mapper.job(77L))
+                .thenReturn(new KnowledgeRepository.JobView(77L, "indexing", 1, 0, 0));
+        when(ids.nextId()).thenReturn(901L, 902L, 903L, 904L, 905L, 906L);
+        when(mapper.insertResultInbox(anyLong(), any(), anyInt(), any())).thenReturn(1);
+        when(mapper.markItemFailed(11L, 12L, "RAG_PARSE_FAILED", "RAG_PARSE_FAILED", 1, "v1"))
+                .thenReturn(1);
+        when(mapper.markItemFailed(11L, 12L, "RAG_PARSE_FAILED", "RAG_PARSE_FAILED", 2, "v1"))
+                .thenReturn(1);
+        when(mapper.markItemFailed(11L, 12L, "RAG_PARSE_FAILED", "RAG_PARSE_FAILED", 3, "v1"))
+                .thenReturn(1);
+        when(mapper.requeueIndexOutbox(11L, 2, 1, "RAG_PARSE_FAILED")).thenReturn(1);
+        when(mapper.requeueIndexOutbox(11L, 3, 2, "RAG_PARSE_FAILED")).thenReturn(1);
+
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            adapter.applyIndexResult(
+                    new KnowledgeRepository.IndexResult(
+                            11L,
+                            12L,
+                            "v1",
+                            "index_failed",
+                            0,
+                            "RAG_PARSE_FAILED",
+                            attempt,
+                            0L,
+                            BigDecimal.ZERO,
+                            "stub-v1"),
+                    "sha256:attempt-" + attempt);
+        }
+
+        verify(mapper).requeueIndexOutbox(11L, 2, 1, "RAG_PARSE_FAILED");
+        verify(mapper).requeueIndexOutbox(11L, 3, 2, "RAG_PARSE_FAILED");
+        verify(mapper, never()).requeueIndexOutbox(11L, 4, 0, "RAG_PARSE_FAILED");
+    }
 }
