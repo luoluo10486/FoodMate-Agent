@@ -429,6 +429,58 @@ type AdminOperationalQueryResponse<T> = {
   size: number;
 };
 
+export type AdminQueryRun = {
+  agent_run_id: number | null;
+  session_id: number | null;
+  intent: string;
+  status: string;
+  trace_id: string;
+  duration_ms: number | string | null;
+  actor_ref: string;
+};
+
+export type AdminQueryToolCall = {
+  tool_call_id: number | null;
+  agent_run_id: number | null;
+  tool_name: string;
+  status: string;
+  latency_ms: number | null;
+  trace_id: string;
+};
+
+export type AdminQuerySqlAudit = {
+  sql_audit_id: number | null;
+  actor: number | null;
+  query_hash: string;
+  result: string;
+  trace_id: string;
+  latency_ms: number | null;
+  row_count: number | null;
+  error_code: string;
+  created_at: string | null;
+};
+
+export type AdminQueryParams = {
+  page?: number;
+  size?: number;
+  query?: string;
+  status?: string;
+  sort?: string;
+  direction?: 'asc' | 'desc';
+};
+
+export async function loadAdminQuery<T>(resource: string, params: AdminQueryParams = {}) {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  const search = new URLSearchParams();
+  search.set('page', String(params.page ?? 1));
+  search.set('size', String(params.size ?? 100));
+  if (params.query) search.set('query', params.query);
+  if (params.status && params.status !== 'all') search.set('status', params.status);
+  if (params.sort) search.set('sort', params.sort);
+  if (params.direction) search.set('direction', params.direction);
+  return apiRequest<AdminOperationalQueryResponse<T>>(`/api/admin/queries/${resource}?${search.toString()}`);
+}
+
 type AdminDeletedQueryItem = {
   resource_type: string;
   resource_id: number | null;
