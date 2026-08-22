@@ -107,6 +107,7 @@ type AdminToolResponse = {
   scope: string;
   owner: string;
   last_called_at: string;
+  revision?: number;
 };
 type AdminUsageResponse = {
   provider: string;
@@ -223,6 +224,7 @@ export type AdminToolRow = {
   owner: string;
   schema: string;
   lastCalledAt: string;
+  revision?: number;
   timeoutMs?: string;
   retryPolicy?: string;
   failedRate?: string;
@@ -358,6 +360,7 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       owner: row.owner,
       schema: '-',
       lastCalledAt: row.last_called_at || '-',
+      revision: row.revision ?? 1,
     })),
     usage: data.usage.map((row, index) => ({
       key: `usage-${row.provider}-${row.model}-${index}`,
@@ -505,8 +508,16 @@ export const updateAdminUserStatus = (id: string, status: string) =>
   adminWrite(`/api/admin/users/${encodeURIComponent(id)}/status`, 'PATCH', { status });
 export const revokeAdminUserSessions = (id: string) =>
   adminWrite(`/api/admin/users/${encodeURIComponent(id)}/sessions/revoke-all`, 'POST');
-export const updateAdminToolStatus = (name: string, status: string) =>
-  adminWrite(`/api/admin/tools/${encodeURIComponent(name)}/status`, 'PATCH', { status });
+export async function updateAdminToolStatus(name: string, status: string, revision = 1) {
+  const action = 'admin.tool.status.update';
+  const digest = await confirmationDigest(action, name, status, revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    `/api/admin/tools/${encodeURIComponent(name)}/status`,
+    'PATCH',
+    { status, revision, confirmed: true, confirmationDigest: digest },
+    'admin-tool-status',
+  );
+}
 export const updateKnowledgeStatus = (id: string, status: string) =>
   adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status });
 export const restoreAdminResource = (type: string, id: string) =>

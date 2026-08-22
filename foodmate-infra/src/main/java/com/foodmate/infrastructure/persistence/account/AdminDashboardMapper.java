@@ -30,7 +30,7 @@ public interface AdminDashboardMapper {
     List<SqlAuditRow> sqlAudits();
 
     @Select(
-            "SELECT name,COALESCE(current_version,'-') AS version,risk_level AS risk,status,availability_scope AS scope,category AS owner,COALESCE(updated_at::text,'-') AS last_called_at FROM tool_registries WHERE is_deleted=FALSE ORDER BY name")
+            "SELECT name,COALESCE(current_version,'-') AS version,risk_level AS risk,status,availability_scope AS scope,category AS owner,COALESCE(updated_at::text,'-') AS last_called_at,revision FROM tool_registries WHERE is_deleted=FALSE ORDER BY name")
     List<ToolRow> tools();
 
     @Select(

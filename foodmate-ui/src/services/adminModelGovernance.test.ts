@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadModelGovernance, updateModelProviderStatus } from './adminService';
+import { loadModelGovernance, updateAdminToolStatus, updateModelProviderStatus } from './adminService';
 
 const provider = {
   provider_id: 11,
@@ -63,5 +63,20 @@ describe('admin model governance API', () => {
     expect(body).toMatchObject({ status: 'disabled', revision: 3, confirmed: true });
     expect(body.confirmationDigest).toMatch(/^[0-9a-f]{64}$/);
     expect(new Headers(init.headers).get('Idempotency-Key')).toMatch(/^model-provider-status-/);
+  });
+
+  it('uses the dashboard tool revision for the real tool status contract', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: true, data: { updated: true, status: 'disabled', revision: 8 } }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await updateAdminToolStatus('food_log_writer', 'disabled', 7);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.method).toBe('PATCH');
+    expect(JSON.parse(String(init.body))).toMatchObject({ revision: 7, confirmed: true, status: 'disabled' });
+    expect(new Headers(init.headers).get('Idempotency-Key')).toMatch(/^admin-tool-status-/);
   });
 });

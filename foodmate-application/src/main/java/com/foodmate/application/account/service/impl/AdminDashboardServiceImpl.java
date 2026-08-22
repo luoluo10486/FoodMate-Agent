@@ -69,7 +69,8 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 row.status(),
                 row.scope(),
                 row.owner(),
-                row.lastCalledAt());
+                row.lastCalledAt(),
+                row.revision());
     }
 
     private static Usage usage(AdminDashboardRepository.UsageRow row) {

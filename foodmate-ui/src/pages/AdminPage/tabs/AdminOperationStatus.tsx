@@ -59,12 +59,11 @@ export function AdminOperationStatus({
   }
 
   if (status === 'success') {
-    const resultVerb = action?.action === '停用工具' ? '停用' : '启用';
     return (
       <Alert className={`${styles.operationBanner} ${styles.operationSuccessBanner}`}>
         <Info aria-hidden="true" />
         <span>
-          操作成功：工具 {action?.targetLabel} 已成功{resultVerb}
+          操作成功：{action?.action} {action?.targetLabel} 已完成
         </span>
       </Alert>
     );
@@ -168,7 +167,7 @@ export function AdminOperationStatus({
               <strong>{error?.message ?? '操作未完成，请检查服务状态后重试。'}</strong>
             </p>
             <p className={styles.operationDialogMuted}>
-              请求发送后，healthy-cluster-0 节点未能及时返回响应。当前配置未改变，请稍后重试。
+              服务端未确认本次变更，当前配置未改变。请检查错误码后重试。
             </p>
             <div className={styles.operationDebugBox}>
               <span>ERROR_CODE: {error?.code ?? 'REGISTRY_TIMEOUT_504'}</span>

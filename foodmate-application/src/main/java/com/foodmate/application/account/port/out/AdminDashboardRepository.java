@@ -56,7 +56,8 @@ public interface AdminDashboardRepository {
             String status,
             String scope,
             String owner,
-            String lastCalledAt) {}
+            String lastCalledAt,
+            long revision) {}
 
     record UsageRow(
             String provider,

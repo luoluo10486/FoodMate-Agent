@@ -47,7 +47,8 @@ public interface AdminDashboardService {
             String status,
             String scope,
             String owner,
-            String lastCalledAt) {}
+            String lastCalledAt,
+            long revision) {}
 
     record Usage(
             String provider,

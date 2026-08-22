@@ -72,7 +72,8 @@ public record AdminDashboardResponse(
                                                 item.status(),
                                                 item.scope(),
                                                 item.owner(),
-                                                item.lastCalledAt()))
+                                                item.lastCalledAt(),
+                                                item.revision()))
                         .toList(),
                 value.usage().stream()
                         .map(
@@ -159,7 +160,8 @@ public record AdminDashboardResponse(
             String status,
             String scope,
             String owner,
-            String lastCalledAt) {}
+            String lastCalledAt,
+            long revision) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Usage(
