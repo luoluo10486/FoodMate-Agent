@@ -1,14 +1,4 @@
-import {
-  Check,
-  ChevronDown,
-  CircleAlert,
-  Download,
-  MoreHorizontal,
-  Plus,
-  Printer,
-  Sparkles,
-  X,
-} from 'lucide-react';
+import { Check, ChevronDown, CircleAlert, Download, MoreHorizontal, Plus, Printer, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
