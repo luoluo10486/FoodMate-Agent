@@ -236,7 +236,7 @@
 
 .planListActions {
   flex: 0 0 auto;
-  gap: 12px;
+  gap: 16px;
 }
 
 .planListActions .flowButton {
