@@ -1,11 +1,12 @@
 import { ArrowRight, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { searchKnowledge, type KnowledgeCitation } from '../../services/knowledgeService';
 import type { SessionSummary } from '../../types/session';
 import styles from './KnowledgePage.module.css';
 
@@ -26,6 +27,26 @@ type KnowledgeResult = {
     quote: string;
   };
 };
+
+function toKnowledgeResult(citation: KnowledgeCitation): KnowledgeResult {
+  const version = citation.version || '未标注版本';
+  const sectionPath = citation.section_path || '未标注章节';
+  return {
+    title: citation.title,
+    match: citation.citation_id,
+    snippet: citation.snippet,
+    source: `版本 ${version}`,
+    updated: `章节 ${sectionPath}`,
+    sourceTone: 'blue',
+    topic: 'nutrition',
+    details: {
+      sourceName: citation.title,
+      documentId: `DOC ID: ${citation.document_id}`,
+      access: `版本 ${version} · 章节 ${sectionPath} · 引用 ID ${citation.citation_id}`,
+      quote: citation.snippet,
+    },
+  };
+}
 
 const knowledgeResults: KnowledgeResult[] = [
   {
@@ -103,13 +124,30 @@ function getKnowledgeState(value: string | null): KnowledgeState {
 export function KnowledgePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [selectedResultTitle, setSelectedResultTitle] = useState(knowledgeResults[0].title);
   const [activeFilter, setActiveFilter] = useState('全部主题');
+  const [remoteResults, setRemoteResults] = useState<KnowledgeResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string>();
+  const [hasSearched, setHasSearched] = useState(false);
+  const initialQuery = useRef(searchParams.get('q') ?? '');
   const knowledgeState = getKnowledgeState(searchParams.get('state'));
+  const displayedState: KnowledgeState = isRealMode
+    ? searchError
+      ? 'search-failed'
+      : hasSearched && !searchLoading && remoteResults.length === 0
+        ? 'empty'
+        : 'default'
+    : knowledgeState;
 
-  const selected = knowledgeResults.find((item) => item.title === selectedResultTitle) ?? knowledgeResults[0];
-  const isFigmaFixture = knowledgeState !== 'default';
+  const sourceResults = isRealMode ? remoteResults : knowledgeResults;
+  const selected =
+    sourceResults.find((item) => item.title === selectedResultTitle) ??
+    sourceResults[0] ??
+    (!isRealMode ? knowledgeResults[0] : undefined);
+  const isFigmaFixture = !isRealMode && knowledgeState !== 'default';
 
   const visibleResults = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -118,23 +156,64 @@ export function KnowledgePage() {
       return true;
     };
 
-    if (!normalizedQuery) return knowledgeResults.filter(filterMatches);
-    return knowledgeResults.filter(
+    if (!normalizedQuery || isRealMode) return sourceResults.filter(filterMatches);
+    return sourceResults.filter(
       (item) =>
         filterMatches(item) && `${item.title} ${item.snippet} ${item.source}`.toLowerCase().includes(normalizedQuery),
     );
-  }, [activeFilter, query]);
+  }, [activeFilter, isRealMode, query, sourceResults]);
 
-  const updateState = (state: KnowledgeState) => {
-    const next = new URLSearchParams(searchParams);
-    if (state === 'default') next.delete('state');
-    else next.set('state', state);
-    if (query.trim()) next.set('q', query.trim());
-    else next.delete('q');
-    setSearchParams(next);
-  };
+  const updateState = useCallback(
+    (state: KnowledgeState) => {
+      const next = new URLSearchParams(searchParams);
+      if (state === 'default') next.delete('state');
+      else next.set('state', state);
+      if (query.trim()) next.set('q', query.trim());
+      else next.delete('q');
+      setSearchParams(next);
+    },
+    [query, searchParams, setSearchParams],
+  );
+
+  const executeRemoteSearch = useCallback(
+    async (value: string) => {
+      const normalizedQuery = value.trim();
+      setSearchError(undefined);
+      setHasSearched(Boolean(normalizedQuery));
+      if (!normalizedQuery) {
+        setRemoteResults([]);
+        updateState('default');
+        return;
+      }
+      setSearchLoading(true);
+      try {
+        const citations = await searchKnowledge(normalizedQuery);
+        const results = citations.map(toKnowledgeResult);
+        setRemoteResults(results);
+        setSelectedResultTitle(results[0]?.title ?? '');
+        updateState('default');
+      } catch (cause) {
+        setRemoteResults([]);
+        setSelectedResultTitle('');
+        setSearchError(cause instanceof Error ? cause.message : '知识库检索失败，请稍后重试');
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    [updateState],
+  );
+
+  useEffect(() => {
+    if (!isRealMode || !initialQuery.current.trim()) return;
+    initialQuery.current = '';
+    void executeRemoteSearch(query);
+  }, [executeRemoteSearch, isRealMode, query]);
 
   const handleSearch = () => {
+    if (isRealMode) {
+      void executeRemoteSearch(query);
+      return;
+    }
     if (!query.trim() || visibleResults.length === 0) {
       updateState('empty');
       return;
@@ -145,6 +224,9 @@ export function KnowledgePage() {
   const clearFilters = () => {
     setQuery('');
     setActiveFilter('全部主题');
+    setRemoteResults([]);
+    setSearchError(undefined);
+    setHasSearched(false);
     setSearchParams(new URLSearchParams());
   };
 
@@ -159,10 +241,17 @@ export function KnowledgePage() {
       topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       pageOverlay={
-        knowledgeState !== 'default' ? (
+        displayedState !== 'default' ? (
           <KnowledgeStateCard
-            state={knowledgeState}
-            onAction={knowledgeState === 'empty' ? clearFilters : () => updateState('default')}
+            state={displayedState}
+            detail={isRealMode ? searchError : undefined}
+            onAction={
+              displayedState === 'empty'
+                ? clearFilters
+                : isRealMode
+                  ? () => void executeRemoteSearch(query)
+                  : () => updateState('default')
+            }
           />
         ) : null
       }
@@ -203,9 +292,13 @@ export function KnowledgePage() {
             </div>
           </header>
 
-          <div className={styles.resultCount}>显示 {visibleResults.length === 0 ? 0 : 24} 条结果</div>
+          <div className={styles.resultCount}>
+            {searchLoading
+              ? '正在检索知识库...'
+              : `显示 ${isRealMode ? visibleResults.length : visibleResults.length === 0 ? 0 : 24} 条结果`}
+          </div>
 
-          <section className={styles.resultList} aria-label="知识库结果列表">
+          <section aria-busy={searchLoading} className={styles.resultList} aria-label="知识库结果列表">
             {visibleResults.map((item) => (
               <Card
                 aria-labelledby={`knowledge-result-${item.title}`}
@@ -251,54 +344,76 @@ export function KnowledgePage() {
           </section>
         </main>
 
-        <aside className={styles.detailsPanel} aria-label={`当前引用详情：${selected.title}`}>
+        <aside className={styles.detailsPanel} aria-label={`当前引用详情${selected ? `：${selected.title}` : ''}`}>
           <h2>当前引用详情</h2>
-          <Card className={styles.sourceCard}>
-            <strong>{selected.details.sourceName}</strong>
-            <span>{selected.details.documentId}</span>
-            <p>{selected.details.access}</p>
-          </Card>
-          <blockquote aria-label={`引用原文：${selected.details.quote}`} className={styles.quote}>
-            &quot;
-            {selected.details.quote.length > 28 ? `${selected.details.quote.slice(0, 28)}...` : selected.details.quote}
-            &quot;
-          </blockquote>
-          <Button
-            className={styles.sourceLink}
-            onClick={() => updateState('source-unavailable')}
-            type="button"
-            variant="link"
-          >
-            打开原始来源 <ArrowRight aria-hidden="true" />
-          </Button>
-          <div className={styles.divider} />
-          <h3>推荐主题</h3>
-          <div className={styles.topicList}>
-            {topics.map((topic) => (
-              <Button
-                className={styles.topic}
-                key={topic.title}
-                onClick={() => setQuery(topic.title)}
-                type="button"
-                variant="ghost"
-              >
-                <span className={styles.topicIcon} aria-hidden="true">
-                  {topic.icon}
-                </span>
-                <span>
-                  <strong>{topic.title}</strong>
-                  <small>{topic.count}</small>
-                </span>
-              </Button>
-            ))}
-          </div>
+          {selected ? (
+            <>
+              <Card className={styles.sourceCard}>
+                <strong>{selected.details.sourceName}</strong>
+                <span>{selected.details.documentId}</span>
+                <p>{selected.details.access}</p>
+              </Card>
+              <blockquote aria-label={`引用原文：${selected.details.quote}`} className={styles.quote}>
+                &quot;
+                {selected.details.quote.length > 28
+                  ? `${selected.details.quote.slice(0, 28)}...`
+                  : selected.details.quote}
+                &quot;
+              </blockquote>
+              {!isRealMode ? (
+                <Button
+                  className={styles.sourceLink}
+                  onClick={() => updateState('source-unavailable')}
+                  type="button"
+                  variant="link"
+                >
+                  打开原始来源 <ArrowRight aria-hidden="true" />
+                </Button>
+              ) : null}
+            </>
+          ) : (
+            <p className={styles.snippet}>提交关键词后，选择一条引用查看版本、章节和安全片段。</p>
+          )}
+          {!isRealMode ? (
+            <>
+              <div className={styles.divider} />
+              <h3>推荐主题</h3>
+              <div className={styles.topicList}>
+                {topics.map((topic) => (
+                  <Button
+                    className={styles.topic}
+                    key={topic.title}
+                    onClick={() => setQuery(topic.title)}
+                    type="button"
+                    variant="ghost"
+                  >
+                    <span className={styles.topicIcon} aria-hidden="true">
+                      {topic.icon}
+                    </span>
+                    <span>
+                      <strong>{topic.title}</strong>
+                      <small>{topic.count}</small>
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            </>
+          ) : null}
         </aside>
       </div>
     </WorkspaceLayout>
   );
 }
 
-function KnowledgeStateCard({ state, onAction }: { state: Exclude<KnowledgeState, 'default'>; onAction: () => void }) {
+function KnowledgeStateCard({
+  state,
+  detail,
+  onAction,
+}: {
+  state: Exclude<KnowledgeState, 'default'>;
+  detail?: string;
+  onAction: () => void;
+}) {
   const content = {
     empty: {
       status: 'EMPTY · NO MATCHES',
@@ -328,7 +443,7 @@ function KnowledgeStateCard({ state, onAction }: { state: Exclude<KnowledgeState
         <span className={styles.stateStatus}>{content.status}</span>
         <h2>{content.title}</h2>
         <p>{content.body}</p>
-        {content.detail ? <span className={styles.stateDetail}>{content.detail}</span> : null}
+        {detail || content.detail ? <span className={styles.stateDetail}>{detail ?? content.detail}</span> : null}
         <Button className={styles.stateAction} onClick={onAction} type="button" variant="link">
           {content.action}
         </Button>
