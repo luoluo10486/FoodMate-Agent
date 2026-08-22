@@ -24,9 +24,10 @@ const statusIndex: Record<AgentDisplayStatus, number> = {
 
 type AgentStatusStripProps = {
   status: AgentDisplayStatus;
+  preserveTones?: boolean;
 };
 
-export function AgentStatusStrip({ status }: AgentStatusStripProps) {
+export function AgentStatusStrip({ status, preserveTones = false }: AgentStatusStripProps) {
   const currentIndex = statusIndex[status];
   return (
     <section className={styles.strip} aria-label="Agent 运行状态">
@@ -37,7 +38,7 @@ export function AgentStatusStrip({ status }: AgentStatusStripProps) {
           const active = currentIndex === index && !completed;
           return (
             <span
-              className={`${styles.step} ${styles[step.tone]} ${completed ? styles.completed : ''} ${active ? styles.active : ''}`}
+              className={`${styles.step} ${styles[step.tone]} ${completed && !preserveTones ? styles.completed : ''} ${active ? styles.active : ''}`}
               key={step.key}
               role="listitem"
             >
