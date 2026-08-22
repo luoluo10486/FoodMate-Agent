@@ -210,7 +210,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                                     new AdminUserView(
                                             u.userId(),
                                             u.username(),
-                                            u.email(),
+                                            emailReference(u.email()),
                                             u.nickname(),
                                             u.role(),
                                             u.status()))
@@ -601,6 +601,10 @@ public class UserAccountServiceImpl implements UserAccountService {
         if (audit != null)
             audit.record(
                     userId, targetType, targetId, action, "success", null, null, null, Map.of());
+    }
+
+    private String emailReference(String email) {
+        return email == null || email.isBlank() ? null : "email-" + sha256(email).substring(0, 16);
     }
 
     private int nextSequence(long sessionId) {

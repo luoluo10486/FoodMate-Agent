@@ -3,6 +3,7 @@ package com.foodmate.infrastructure.persistence.runtime;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.foodmate.application.account.port.out.AdminDashboardRepository;
 import com.foodmate.application.account.port.out.AdminManagementRepository;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
 import com.foodmate.application.conversation.port.out.ConversationSummaryRepository;
 import com.foodmate.application.conversation.port.out.MemoryRepository;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
@@ -432,6 +433,83 @@ public class LocalStubPersistenceConfig {
 
             public List<OperationAuditRow> operationAudits() {
                 return List.of();
+            }
+        };
+    }
+
+    @Bean
+    AdminOperationalQueryRepository localAdminOperationalQueryRepository() {
+        return new AdminOperationalQueryRepository() {
+            public List<UserRow> users(Query query) {
+                return List.of();
+            }
+
+            public long countUsers(Query query) {
+                return 0;
+            }
+
+            public List<RunRow> runs(Query query) {
+                return List.of();
+            }
+
+            public long countRuns(Query query) {
+                return 0;
+            }
+
+            public List<ToolCallRow> toolCalls(Query query) {
+                return List.of();
+            }
+
+            public long countToolCalls(Query query) {
+                return 0;
+            }
+
+            public List<SqlAuditRow> sqlAudits(Query query) {
+                return List.of();
+            }
+
+            public long countSqlAudits(Query query) {
+                return 0;
+            }
+
+            public List<ToolRow> tools(Query query) {
+                return List.of();
+            }
+
+            public long countTools(Query query) {
+                return 0;
+            }
+
+            public List<UsageRow> usage(Query query) {
+                return List.of();
+            }
+
+            public long countUsage(Query query) {
+                return 0;
+            }
+
+            public List<KnowledgeRow> knowledge(Query query) {
+                return List.of();
+            }
+
+            public long countKnowledge(Query query) {
+                return 0;
+            }
+
+            public List<DeletedRow> deleted(Query query) {
+                return List.of();
+            }
+
+            public long countDeleted(Query query) {
+                return 0;
+            }
+
+            public List<OperationAuditRow> operationAudits(Query query) {
+                return List.of();
+            }
+
+            public long countOperationAudits(Query query) {
+                return 0;
             }
         };
     }
