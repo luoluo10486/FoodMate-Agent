@@ -153,7 +153,8 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
     ports:
       - "${ROCKETMQ_PROXY_GRPC_PORT:-8081}:8081"
-      - "${ROCKETMQ_PROXY_REMOTING_PORT:-8080}:8080"
+      # 8080 预留给 FoodMate Java HTTP；Proxy remoting 默认使用独立宿主端口。
+      - "${ROCKETMQ_PROXY_REMOTING_PORT:-18008}:8080"
     volumes:
       - ./rocketmq/rmq-proxy.json:/home/rocketmq/conf/rmq-proxy.json:ro
     healthcheck:
