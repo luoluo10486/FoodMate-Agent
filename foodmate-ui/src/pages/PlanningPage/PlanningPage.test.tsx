@@ -91,6 +91,25 @@ describe('PlanningPage', () => {
     expect(screen.getByRole('heading', { name: '步骤 3: 确认规则并运行规划' })).toBeInTheDocument();
   });
 
+  it('uses shadcn actions for allergy chips and plan card menus', async () => {
+    const user = userEvent.setup();
+    renderPage('/planning?state=wizard-step2');
+
+    const peanut = screen.getByRole('button', { name: /花生/ });
+    expect(peanut).toHaveClass('inline-flex');
+    await user.click(peanut);
+    expect(screen.queryByRole('button', { name: /花生/ })).not.toBeInTheDocument();
+
+    const addAllergy = screen.getByRole('button', { name: '+ 添加过敏源' });
+    expect(addAllergy).toHaveClass('inline-flex');
+    await user.click(addAllergy);
+    expect(screen.getByRole('button', { name: /坚果/ })).toBeInTheDocument();
+
+    renderPage('/planning?state=list');
+    const planMenu = screen.getByRole('button', { name: '夏日减脂轻食计划更多操作' });
+    expect(planMenu).toHaveClass('inline-flex');
+  });
+
   it('applies a selected conflict resolution and updates the shopping progress count', async () => {
     const user = userEvent.setup();
     renderPage('/planning?state=conflict');

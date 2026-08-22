@@ -306,22 +306,24 @@ function WizardStepTwo({ onNavigate }: { onNavigate: NavigateToView }) {
           <span className={styles.blockLabel}>食物过敏源过滤</span>
           <div className={styles.allergyRow}>
             {allergies.map((item) => (
-              <button
+              <Button
                 className={styles.allergyChip}
                 key={item}
+                variant="ghost"
                 type="button"
                 onClick={() => setAllergies((current) => current.filter((value) => value !== item))}
               >
                 {item} <X aria-hidden="true" />
-              </button>
+              </Button>
             ))}
-            <button
+            <Button
               className={styles.addAllergy}
+              variant="ghost"
               type="button"
               onClick={() => setAllergies((current) => [...current, '坚果'])}
             >
               + 添加过敏源
-            </button>
+            </Button>
           </div>
         </div>
         <div className={styles.formGrid}>
@@ -464,9 +466,15 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
               <FlowButton variant="outline" onClick={() => onNavigate('default')}>
                 进入计划
               </FlowButton>
-              <button className={styles.iconAction} type="button" aria-label={`${plan.name}更多操作`}>
+              <Button
+                className={styles.iconAction}
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label={`${plan.name}更多操作`}
+              >
                 <MoreHorizontal aria-hidden="true" />
-              </button>
+              </Button>
             </div>
           </article>
         ))}
