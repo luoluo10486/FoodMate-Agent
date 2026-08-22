@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import type { SessionSummary } from '../../types/session';
 import styles from './KnowledgePage.module.css';
 
 type KnowledgeState = 'default' | 'empty' | 'search-failed' | 'source-unavailable';
@@ -83,6 +84,18 @@ const topics = [
 
 const filterOptions = ['全部主题', '营养素', '仅引用', '近90天'];
 
+const figmaSidebarSessions: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
+];
+
 function getKnowledgeState(value: string | null): KnowledgeState {
   return value === 'empty' || value === 'search-failed' || value === 'source-unavailable' ? value : 'default';
 }
@@ -96,6 +109,7 @@ export function KnowledgePage() {
   const knowledgeState = getKnowledgeState(searchParams.get('state'));
 
   const selected = knowledgeResults.find((item) => item.title === selectedResultTitle) ?? knowledgeResults[0];
+  const isFigmaFixture = knowledgeState !== 'default';
 
   const visibleResults = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -137,6 +151,13 @@ export function KnowledgePage() {
   return (
     <WorkspaceLayout
       activeModule="knowledge"
+      displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
+      profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+      sidebarAvatarSrc={
+        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
+      }
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       pageOverlay={
         knowledgeState !== 'default' ? (
           <KnowledgeStateCard
@@ -280,17 +301,20 @@ export function KnowledgePage() {
 function KnowledgeStateCard({ state, onAction }: { state: Exclude<KnowledgeState, 'default'>; onAction: () => void }) {
   const content = {
     empty: {
+      status: 'EMPTY · NO MATCHES',
       title: '没有找到相关内容',
       body: '换一个关键词，或清除主题与来源筛选后重试。',
       action: '清除筛选',
     },
     'search-failed': {
+      status: 'ERROR · SEARCH UNAVAILABLE',
       title: '检索失败',
       body: '知识库服务暂时不可用，当前没有返回结果。请稍后重试。',
       detail: '错误码: KB_SEARCH_UNAVAILABLE · request_id: req_kb_73e2',
       action: '重新检索',
     },
     'source-unavailable': {
+      status: 'PARTIAL · SOURCE UNAVAILABLE',
       title: '来源暂时不可访问',
       body: '当前结果仍可查看匹配片段，但原始来源暂时无法打开。',
       detail: '来源状态: unavailable · 已保留引用与文档 ID',
@@ -301,6 +325,7 @@ function KnowledgeStateCard({ state, onAction }: { state: Exclude<KnowledgeState
   return (
     <div className={`${styles.stateOverlay} ${styles[`state-${state}`]}`} role="presentation">
       <section aria-live="polite" className={styles.stateCard} role="alert">
+        <span className={styles.stateStatus}>{content.status}</span>
         <h2>{content.title}</h2>
         <p>{content.body}</p>
         {content.detail ? <span className={styles.stateDetail}>{content.detail}</span> : null}
