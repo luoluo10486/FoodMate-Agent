@@ -1,6 +1,8 @@
+from io import BytesIO
 from unittest import TestCase
+import zipfile
 
-from knowledge_rag import (OpenAICompatibleEmbedder, RagError, RagSettings, StubIndex, chunk_markdown, safe_object_key)
+from knowledge_rag import (KnowledgeChunk, OpenAICompatibleEmbedder, RagError, RagSettings, StubIndex, chunk_markdown, parse_document, safe_object_key)
 
 
 class RagSettingsTests(TestCase):
@@ -37,3 +39,44 @@ class StubIndexTests(TestCase):
         self.assertEqual("knowledge/1/a.txt", safe_object_key("knowledge/1/a.txt"))
         with self.assertRaisesRegex(RagError, "outside"):
             safe_object_key("knowledge/../secret")
+
+    def test_stub_excludes_non_current_public_chunks(self):
+        index = StubIndex()
+        index.upsert(
+            "Nutrition guide",
+            [
+                KnowledgeChunk("old", "1", "v1", 0, "", "protein", current_version=False),
+                KnowledgeChunk("current", "1", "v2", 0, "", "protein"),
+            ],
+        )
+        citations = index.search("protein")
+        self.assertEqual(["current"], [item.chunk_id for item in citations])
+
+    def test_docx_parser_extracts_text_without_executing_relationships(self):
+        content = BytesIO()
+        with zipfile.ZipFile(content, "w") as archive:
+            archive.writestr(
+                "word/document.xml",
+                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Protein guide</w:t></w:r></w:p></w:body></w:document>',
+            )
+        self.assertEqual("Protein guide", parse_document("guide.docx", content.getvalue()))
+
+    def test_docx_external_relationship_is_rejected(self):
+        content = BytesIO()
+        with zipfile.ZipFile(content, "w") as archive:
+            archive.writestr("word/document.xml", "<document />")
+            archive.writestr(
+                "word/_rels/document.xml.rels",
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship TargetMode="External" Target="https://example.invalid" /></Relationships>',
+            )
+        with self.assertRaisesRegex(RagError, "external"):
+            parse_document("unsafe.docx", content.getvalue())
+
+    def test_pdf_parser_reads_a_real_pdf_container(self):
+        from pypdf import PdfWriter
+
+        output = BytesIO()
+        writer = PdfWriter()
+        writer.add_blank_page(width=72, height=72)
+        writer.write(output)
+        self.assertEqual("", parse_document("blank.pdf", output.getvalue()))
