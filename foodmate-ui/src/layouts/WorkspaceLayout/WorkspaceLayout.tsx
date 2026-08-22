@@ -220,11 +220,6 @@ export function WorkspaceLayout({
         className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''}`}
       >
         <aside className={styles.sidebar}>
-          <div className={styles.windowControls} aria-hidden="true">
-            <span className={styles.windowRed} />
-            <span className={styles.windowYellow} />
-            <span className={styles.windowGreen} />
-          </div>
           <div className={styles.sidebarBrand}>
             <BrandLogo showTagline />
           </div>

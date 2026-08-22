@@ -36,30 +36,6 @@
   border-right: 1px solid var(--fm-border);
 }
 
-.windowControls {
-  display: flex;
-  gap: 6px;
-  width: 52px;
-  height: 12px;
-  align-items: center;
-}
-
-.windowControls span {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.windowRed {
-  background: var(--fm-color-danger);
-}
-.windowYellow {
-  background: #ffd98b;
-}
-.windowGreen {
-  background: var(--fm-color-success);
-}
-
 .sidebarBrand {
   display: flex;
   flex-direction: column;
