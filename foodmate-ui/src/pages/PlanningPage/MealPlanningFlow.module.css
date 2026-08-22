@@ -195,6 +195,11 @@
   white-space: nowrap;
 }
 
+.planStatus {
+  font-weight: 700;
+  line-height: normal;
+}
+
 .planStatusactive {
   background: rgba(223, 238, 219, 0.1);
   color: #89b27c;

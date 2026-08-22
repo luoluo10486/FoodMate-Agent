@@ -2028,7 +2028,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: default fixture now renders all three Figma plan cards, uses the Figma-sourced planning topbar avatar with circular clipping, aligns the lifecycle panel to the Figma x/y/size geometry, uses the Figma-specified 16px action gap and 36px action buttons, and applies the Noto Sans SC panel typography plus orange 12px metadata labels; latest capture produced 26.1068% pixel difference, while card details, density, and visual treatment still differ, so retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: default fixture now renders all three Figma plan cards, uses the Figma-sourced planning topbar avatar with circular clipping, aligns the lifecycle panel to the Figma x/y/size geometry, uses the Figma-specified 16px action gap and 36px action buttons, and applies the Noto Sans SC panel typography plus Figma status-badge text styles; latest capture produced 27.9746% pixel difference, while card details, density, and visual treatment still differ, so retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
