@@ -32,6 +32,11 @@ public interface KnowledgeRepository {
 
     DocumentView document(long documentId);
 
+    /** Rechecks the authoritative PostgreSQL visibility and version gate. */
+    default boolean isPublicPublished(long documentId, String version) {
+        return false;
+    }
+
     void insertVisibilityOutbox(long outboxId, long documentId, String payload);
 
     java.util.List<OutboxRow> pendingIndexOutbox(int limit);

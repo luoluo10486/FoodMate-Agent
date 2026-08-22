@@ -112,6 +112,11 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     }
 
     @Override
+    public boolean isPublicPublished(long documentId, String version) {
+        return mapper.isPublicPublished(documentId, version) == 1;
+    }
+
+    @Override
     public void insertVisibilityOutbox(long outboxId, long documentId, String payload) {
         mapper.insertVisibilityOutbox(outboxId, documentId, payload);
     }

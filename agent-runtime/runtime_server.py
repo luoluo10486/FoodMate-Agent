@@ -584,18 +584,38 @@ def _attach_public_citations(command: dict) -> dict:
         authorized["citations"] = []
     else:
         try:
-            settings = RagSettings.from_environment()
             query = str((command.get("message") or {}).get("content", ""))
-            citations = (
-                RedisStubIndex().search(query, PUBLIC_SCOPE)
-                if settings.mode == "stub"
-                else MilvusIndex(settings).search(query, OpenAICompatibleEmbedder(settings), PUBLIC_SCOPE)
-            )
-            authorized["citations"] = [{"citation_id": item.chunk_id, "document_id": item.document_id, "title": item.title, "version": item.version, "section_path": item.section_path, "snippet": item.snippet} for item in citations]
+            authorized["citations"] = _citation_payload(_search_public_knowledge(query))
         except (RagError, RuntimeError):
             authorized["citations"] = []
     copy = dict(command); copy["authorized_context"] = authorized
     return copy
+
+
+def _search_public_knowledge(query: str):
+    """Search only the Java-authorized public scope in the configured backend."""
+    settings = RagSettings.from_environment()
+    return (
+        RedisStubIndex().search(query, PUBLIC_SCOPE)
+        if settings.mode == "stub"
+        else MilvusIndex(settings).search(
+            query, OpenAICompatibleEmbedder(settings), PUBLIC_SCOPE
+        )
+    )
+
+
+def _citation_payload(citations) -> list[dict[str, str]]:
+    return [
+        {
+            "citation_id": item.chunk_id,
+            "document_id": item.document_id,
+            "title": item.title,
+            "version": item.version,
+            "section_path": item.section_path,
+            "snippet": item.snippet,
+        }
+        for item in citations
+    ]
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -612,7 +632,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         is_dispatch = self.path == "/foodmate/internal/v1/runs"
         is_cancel = self.path.startswith("/foodmate/internal/v1/runs/") and self.path.endswith("/cancel")
-        if not is_dispatch and not is_cancel:
+        is_knowledge_search = self.path == "/foodmate/internal/v1/knowledge/search"
+        if not is_dispatch and not is_cancel and not is_knowledge_search:
             self.send_error(404)
             return
         if not self._authenticated() or self.headers.get("X-Contract-Version", CONTRACT_VERSION) != CONTRACT_VERSION:
@@ -622,10 +643,34 @@ class Handler(BaseHTTPRequestHandler):
             command = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
             if is_dispatch:
                 self._dispatch(command)
+            elif is_knowledge_search:
+                self._knowledge_search(command)
             else:
                 self._cancel(command, self.path.split("/")[-2])
         except (KeyError, ValueError, json.JSONDecodeError):
             self._json(400, {"code": "RUNTIME_CONTRACT_INVALID"})
+
+    def _knowledge_search(self, command):
+        if not isinstance(command, dict):
+            self._json(400, {"code": "RUNTIME_CONTRACT_INVALID"})
+            return
+        if command.get("knowledge_scope") != PUBLIC_SCOPE:
+            self._json(403, {"code": "RAG_SCOPE_DENIED"})
+            return
+        query = command.get("query")
+        if not isinstance(query, str) or not query.strip() or len(query) > 2000:
+            self._json(400, {"code": "RAG_QUERY_INVALID"})
+            return
+        try:
+            citations = _search_public_knowledge(query.strip())
+        except RagError as error:
+            status = 403 if error.code == "RAG_SCOPE_DENIED" else 503
+            self._json(status, {"code": error.code})
+            return
+        self._json(
+            200,
+            {"knowledge_scope": PUBLIC_SCOPE, "citations": _citation_payload(citations)},
+        )
 
     def _dispatch(self, command):
         for required in ("run_id", "dispatch_id", "deadline_at", "attempt"):
@@ -663,7 +708,13 @@ class Handler(BaseHTTPRequestHandler):
         authorization = self.headers.get("Authorization", "")
         if not authorization.startswith("Bearer "):
             return False
-        required_scope = "runtime:dispatch" if self.path.endswith("/runs") else "runtime:cancel"
+        required_scope = (
+            "runtime:dispatch"
+            if self.path.endswith("/runs")
+            else "runtime:knowledge-search"
+            if self.path == "/foodmate/internal/v1/knowledge/search"
+            else "runtime:cancel"
+        )
         return _verify(authorization[7:], "foodmate-control-plane", "foodmate-agent-runtime", required_scope)
 
     def _json(self, status, value):

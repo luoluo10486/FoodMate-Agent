@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 sys.path.append(str(Path(__file__).parents[1]))
 import runtime_server
 from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoint, Plan, Reflector, RouteDecision, StepValidator, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
+from knowledge_rag import Citation, PUBLIC_SCOPE
 from proposal_protocol import Proposal, validate_proposal
 from recovery_protocol import checkpoint_digest, validate_recovery_command
 from langgraph_adapter import build_graph
@@ -70,6 +71,35 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertEqual("UP", payload["status"])
         self.assertEqual("disabled", payload["dependencies"]["redis"]["status"])
+
+    def test_knowledge_search_endpoint_returns_safe_public_citations(self):
+        handler = runtime_server.Handler.__new__(runtime_server.Handler)
+        responses = []
+        handler._json = lambda status, payload: responses.append((status, payload))
+        citation = Citation("42", "Nutrition guide", "v1", "Protein", "emb-1", "safe snippet")
+        with patch.object(runtime_server, "_search_public_knowledge", return_value=[citation]):
+            handler._knowledge_search({"knowledge_scope": PUBLIC_SCOPE, "query": "protein"})
+
+        self.assertEqual(200, responses[0][0])
+        self.assertEqual(PUBLIC_SCOPE, responses[0][1]["knowledge_scope"])
+        self.assertEqual(
+            {
+                "citation_id": "emb-1",
+                "document_id": "42",
+                "title": "Nutrition guide",
+                "version": "v1",
+                "section_path": "Protein",
+                "snippet": "safe snippet",
+            },
+            responses[0][1]["citations"][0],
+        )
+
+    def test_knowledge_search_endpoint_cannot_widen_scope(self):
+        handler = runtime_server.Handler.__new__(runtime_server.Handler)
+        responses = []
+        handler._json = lambda status, payload: responses.append((status, payload))
+        handler._knowledge_search({"knowledge_scope": "private", "query": "protein"})
+        self.assertEqual((403, {"code": "RAG_SCOPE_DENIED"}), responses[0])
 
     def test_missing_parameter_enters_waiting_user_without_answer_body(self):
         events = []

@@ -81,6 +81,10 @@ public interface KnowledgeMapper {
             "SELECT document_id AS documentId,version,current_version AS currentVersion FROM knowledge_documents WHERE document_id=#{documentId}")
     KnowledgeRepository.DocumentView document(@Param("documentId") long documentId);
 
+    @Select(
+            "SELECT COUNT(*) FROM knowledge_documents WHERE document_id=#{documentId} AND version=#{version} AND tenant_id=0 AND visibility='published' AND status='indexed' AND current_version=TRUE AND is_deleted=FALSE")
+    int isPublicPublished(@Param("documentId") long documentId, @Param("version") String version);
+
     @Insert(
             "INSERT INTO knowledge_visibility_outbox(outbox_id,document_id,topic,payload_json) VALUES(#{outboxId},#{documentId},'foodmate-knowledge-visibility-v1',CAST(#{payload} AS jsonb))")
     void insertVisibilityOutbox(
