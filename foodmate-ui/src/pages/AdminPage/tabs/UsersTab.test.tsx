@@ -53,4 +53,25 @@ describe('Admin user details', () => {
     await user.click(screen.getByRole('menuitem', { name: '锁定用户' }));
     expect(screen.getByRole('dialog', { name: '确认锁定用户' })).toBeInTheDocument();
   });
+
+  it('uses shadcn filter controls and restores the complete list on reset', async () => {
+    const user = userEvent.setup();
+    renderUsers();
+
+    const search = await screen.findByRole('textbox', { name: '搜索用户名、ID或邮箱' });
+    expect(screen.getByRole('combobox', { name: '角色筛选' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '状态筛选' })).toBeInTheDocument();
+
+    await user.type(search, 'sarah');
+    expect(screen.getByRole('row', { name: /usr_112b9/ })).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /usr_098a1/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('combobox', { name: '角色筛选' }));
+    await user.click(screen.getByRole('option', { name: '角色：操作员' }));
+    expect(screen.getByRole('row', { name: /usr_112b9/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '重置筛选' }));
+    expect(search).toHaveValue('');
+    expect(screen.getByRole('row', { name: /usr_889d4/ })).toBeInTheDocument();
+  });
 });

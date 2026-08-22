@@ -2673,13 +2673,20 @@
 .usersSearch input {
   width: 100%;
   min-width: 0;
+  height: 16px !important;
   padding: 0;
   border: 0;
   outline: 0;
   background: transparent;
+  box-shadow: none;
   color: #333333;
   font-size: 13px;
   line-height: 16px;
+}
+
+.usersSearchInput {
+  height: 16px !important;
+  min-height: 0;
 }
 
 .usersSearch input::placeholder {
@@ -2691,6 +2698,7 @@
 .usersDateFilter {
   position: relative;
   gap: 6px;
+  height: 32px !important;
   padding: 8px 12px;
   border: 1px solid #f4f6f5;
   background: #ffffff;
@@ -3877,6 +3885,59 @@
   .page {
     padding: 20px 16px;
     overflow: visible;
+  }
+  .usersPage {
+    height: auto;
+    padding: 16px;
+    overflow: visible;
+  }
+  .usersLayout {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    gap: 16px;
+  }
+  .usersFilters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    height: auto;
+    gap: 8px;
+  }
+  .usersSearch {
+    grid-column: 1 / -1;
+  }
+  .usersDateFilter {
+    width: 100%;
+  }
+  .usersResetFilter {
+    justify-self: end;
+  }
+  .usersTable {
+    margin-top: 16px;
+    overflow-x: auto;
+  }
+  .usersTableHeader,
+  .usersTableRow {
+    min-width: 692px;
+  }
+  .usersPagination {
+    height: auto;
+    min-height: 38px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .usersPagination > div {
+    flex-wrap: wrap;
+  }
+  .usersDetailColumn {
+    height: auto;
+  }
+  .userDetailCard {
+    height: auto;
+    min-height: 520px;
+  }
+  .userDetailTabsList {
+    overflow-x: auto;
   }
   .overviewFilters {
     height: auto;
