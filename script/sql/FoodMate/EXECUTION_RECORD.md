@@ -315,3 +315,21 @@
 | 失败/阻塞 | 首次并行 Maven 定向测试因未使用 `-am` 和 `target` 并发产生既有依赖编译/测试选择错误；改为串行 reactor 命令后通过，未修改业务代码 |
 | 数据影响 | 仅新增代码和测试，未连接目标数据库、未写入或清理本地业务数据 |
 | 结论 | 报告第一切片的代码/业务测试证据成立；实时数据库结果、历史归档和生产告警仍未验证 |
+
+## M3 数据保留治理与外部清理任务（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 01:19-01:29 (Asia/Shanghai) |
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；Java 21；使用 `agent-runtime\.venv`；未启动 Java、PostgreSQL、Redis、RocketMQ、对象存储或 Milvus |
+| 功能提交 | `68bba07`/`67c3b18` 保留策略、冻结和审批；`1939f92` Python 清理 Worker；`f98d8c8` Java 清理 Relay、结果消费者和 active hold 原子领取 |
+| Java 代码范围 | `DataRetentionTaskPublisher` 对象存储受限删除和向量 Topic 投递；`DataRetentionResultMessageProcessor` 消费 `foodmate-knowledge-purge-result-v1`；任务成功/失败/重试和申请状态回写；数据库任务明确保持 pending |
+| Python 代码范围 | stub/Redis/Milvus 按 `document_id + version` 删除；`task_id + mode` 完成事实；重复清理不重复产生副作用；index、visibility、purge 三个 Worker consumer 独立发布通道 |
+| Python 命令 | 在 `agent-runtime` 执行 `\.venv\Scripts\python.exe -m pytest -q` |
+| Python 结果 | `107 passed、1 skipped、1 warning`；跳过项为真实云集成，未调用付费模型或 embedding |
+| Java 命令 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am test -Dtest=DataRetentionTaskPublisherTest,DataRetentionResultMessageProcessorTest,DataRetentionDeliveryServiceImplTest,DataRetentionServiceImplTest,FlywayV25MigrationScriptTest -Dsurefire.failIfNoSpecifiedTests=false` |
+| Java 结果 | application 保留测试 `15/15`、infra V25 migration 结构测试 `2/2` 通过；编译通过 |
+| 格式验证 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am spotless:check` 通过 |
+| 安全/数据边界 | `hard_delete_enabled=false` 默认关闭；active legal hold 在任务领取 SQL 中原子阻断；未执行迁移、truncate、对象/向量实际删除、数据库硬删除或现有数据清理 |
+| 未执行范围 | 未做真实 RocketMQ 发布/消费、对象存储和 Milvus 联调、性能压测、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证；这些按当前决策暂缓 |
+| 结论 | 保留治理和清理任务业务代码及定向测试证据成立；真实依赖执行、实际删除和 M3 整体完成状态保持后置 |
