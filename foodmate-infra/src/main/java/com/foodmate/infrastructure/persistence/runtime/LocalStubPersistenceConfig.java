@@ -176,6 +176,34 @@ public class LocalStubPersistenceConfig {
             public int resolve(long dlqId, String state, String note) {
                 throw unavailable();
             }
+
+            public ReplayCandidate findReplayCandidate(long dlqId) {
+                return null;
+            }
+
+            public ReplayOutbox findActiveReplay(long dlqId) {
+                return null;
+            }
+
+            public int insertReplay(ReplayRequest request) {
+                throw unavailable();
+            }
+
+            public List<ReplayOutbox> findPendingReplay(int limit) {
+                return List.of();
+            }
+
+            public int leaseReplay(long replayId, String owner) {
+                throw unavailable();
+            }
+
+            public int markReplayPublished(long replayId, String owner, String messageId) {
+                throw unavailable();
+            }
+
+            public void retryReplay(long replayId, String owner, String error) {
+                throw unavailable();
+            }
         };
     }
 

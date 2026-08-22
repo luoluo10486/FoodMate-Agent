@@ -46,12 +46,22 @@ public class RuntimeDlqServiceImpl implements RuntimeDlqService {
     public MqConsumeDecision handle(String body, MqMessageContext context) {
         var properties = context.properties();
         try {
+            String sourceTopic =
+                    firstNonBlank(
+                            properties.get("REAL_TOPIC"),
+                            properties.get("PROPERTY_REAL_TOPIC"),
+                            context.topic());
+            String originalMessageId =
+                    firstNonBlank(
+                            properties.get("ORIGIN_MESSAGE_ID"),
+                            properties.get("PROPERTY_ORIGIN_MESSAGE_ID"),
+                            context.messageId());
             store.insert(
                     new DeadLetterRepository.DlqMessage(
                             ids.nextId(),
                             consumerGroup,
-                            context.topic(),
-                            context.messageId(),
+                            sourceTopic,
+                            originalMessageId,
                             context.messageKey(),
                             properties.get("foodmate_run_id"),
                             properties.get("foodmate_dispatch_id"),
@@ -62,7 +72,8 @@ public class RuntimeDlqServiceImpl implements RuntimeDlqService {
                             context.reconsumeTimes(),
                             "RUNTIME_MESSAGE_DEAD_LETTERED",
                             properties.get("foodmate_last_error"),
-                            envelope(body)));
+                            envelope(body),
+                            body));
         } catch (Exception exception) {
             // 归档失败也不重投：DLQ 消息重投只会让同一条消息反复占用消费位。
             // 消息仍留在 Broker 的 DLQ Topic 中，可由人工 mqadmin 排查。
@@ -156,5 +167,10 @@ public class RuntimeDlqServiceImpl implements RuntimeDlqService {
         } catch (NumberFormatException exception) {
             return null;
         }
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) if (value != null && !value.isBlank()) return value;
+        return "unknown";
     }
 }

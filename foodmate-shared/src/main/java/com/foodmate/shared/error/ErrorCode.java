@@ -36,7 +36,10 @@ public enum ErrorCode {
     MODEL_FAILED("MODEL_FAILED", "模型调用失败", 500),
     COORDINATION_UNAVAILABLE("COORDINATION_UNAVAILABLE", "系统暂时异常，请稍后重试", 503),
     RUNTIME_CAPACITY_EXCEEDED("RUNTIME_CAPACITY_EXCEEDED", "当前任务较多，请稍后重试", 429),
-    RUNTIME_QUEUE_TIMEOUT("RUNTIME_QUEUE_TIMEOUT", "任务排队超时，请稍后重试", 504);
+    RUNTIME_QUEUE_TIMEOUT("RUNTIME_QUEUE_TIMEOUT", "任务排队超时，请稍后重试", 504),
+    DLQ_REPLAY_NOT_ELIGIBLE("DLQ_REPLAY_NOT_ELIGIBLE", "该死信当前不可重放", 409),
+    DLQ_REPLAY_FACT_INCOMPLETE("DLQ_REPLAY_FACT_INCOMPLETE", "死信缺少安全重放事实", 409),
+    DLQ_REPLAY_ACTIVE("DLQ_REPLAY_ACTIVE", "该死信已有重放任务", 409);
 
     private final String code;
     private final String defaultMessage;
