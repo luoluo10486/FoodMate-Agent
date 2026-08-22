@@ -19,13 +19,11 @@ import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository.ToolDefinition;
 import com.foodmate.application.runtime.service.ToolRegistryCatalog;
-
+import java.math.BigDecimal;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 /** 本地无数据 stub 的显式持久化适配器。 */
 @Configuration

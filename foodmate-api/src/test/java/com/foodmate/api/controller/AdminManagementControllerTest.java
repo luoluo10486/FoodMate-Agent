@@ -14,7 +14,6 @@ import com.foodmate.application.account.service.AdminManagementService;
 import com.foodmate.application.account.service.AdminManagementService.AdminWriteCommand;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.account.enums.UserStatus;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

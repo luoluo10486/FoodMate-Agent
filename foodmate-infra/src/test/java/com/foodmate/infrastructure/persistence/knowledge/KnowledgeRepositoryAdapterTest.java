@@ -119,8 +119,7 @@ class KnowledgeRepositoryAdapterTest {
         when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
         when(mapper.resultPayloadHash(eq(11L), eq("v1"), anyInt())).thenReturn(null);
         when(mapper.jobIdForItem(11L)).thenReturn(77L);
-        when(mapper.job(77L))
-                .thenReturn(new KnowledgeRepository.JobView(77L, "indexing", 1, 0, 0));
+        when(mapper.job(77L)).thenReturn(new KnowledgeRepository.JobView(77L, "indexing", 1, 0, 0));
         when(ids.nextId()).thenReturn(901L, 902L, 903L, 904L, 905L, 906L);
         when(mapper.insertResultInbox(anyLong(), any(), anyInt(), any())).thenReturn(1);
         when(mapper.markItemFailed(11L, 12L, "RAG_PARSE_FAILED", "RAG_PARSE_FAILED", 1, "v1"))

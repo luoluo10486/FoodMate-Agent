@@ -19,7 +19,9 @@ class FlywayV16V17KnowledgeMigrationScriptTest {
         String validation =
                 Files.readString(
                         ROOT.resolve(
-                                Path.of("validation", "V16__m2_1_knowledge_import_validation.sql")));
+                                Path.of(
+                                        "validation",
+                                        "V16__m2_1_knowledge_import_validation.sql")));
 
         assertTrue(migration.contains("chk_knowledge_import_jobs_idempotency"));
         assertTrue(migration.contains("chk_knowledge_index_outbox_topic"));
@@ -36,7 +38,9 @@ class FlywayV16V17KnowledgeMigrationScriptTest {
         String validation =
                 Files.readString(
                         ROOT.resolve(
-                                Path.of("validation", "V17__m2_1_knowledge_delivery_validation.sql")));
+                                Path.of(
+                                        "validation",
+                                        "V17__m2_1_knowledge_delivery_validation.sql")));
         String rollback =
                 Files.readString(
                         ROOT.resolve(Path.of("rollback", "R17__m2_1_knowledge_delivery.sql")));
@@ -46,9 +50,7 @@ class FlywayV16V17KnowledgeMigrationScriptTest {
                         "attempt_count INT NOT NULL CHECK (attempt_count BETWEEN 1 AND 3)"));
         assertTrue(migration.contains("chk_knowledge_visibility_outbox_topic"));
         assertTrue(validation.contains("invalid_result_attempts"));
-        assertTrue(
-                validation.contains(
-                        "uk_knowledge_documents_current_source_document_version"));
+        assertTrue(validation.contains("uk_knowledge_documents_current_source_document_version"));
         assertTrue(
                 rollback.contains(
                         "DROP INDEX IF EXISTS uk_knowledge_documents_current_source_document_version"));

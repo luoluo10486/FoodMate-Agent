@@ -5,16 +5,14 @@ import com.foodmate.application.common.port.out.OperationAuditPort.AuditRecord;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHolder;
-
+import java.util.Map;
+import java.util.Objects;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import java.util.Map;
-import java.util.Objects;
 
 /** 业务层统一构造审计事实；原始业务内容不会进入审计 JSON。 */
 @Service

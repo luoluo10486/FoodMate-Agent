@@ -6,9 +6,7 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.account.enums.UserRole;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
-
 import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
