@@ -109,6 +109,10 @@ describe('authentication pages', () => {
     const user = userEvent.setup();
     renderAuth('/login');
 
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-user.svg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-lock.svg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-eye.svg"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-login-line.svg"]')).toHaveLength(2);
     const password = screen.getByLabelText('密码');
     const toggle = screen.getByRole('button', { name: /^显示密码$/ });
     expect(toggle).toHaveClass('inline-flex');
@@ -117,6 +121,7 @@ describe('authentication pages', () => {
     await user.click(toggle);
     expect(password).toHaveAttribute('type', 'text');
     expect(screen.getByLabelText('隐藏密码')).toHaveClass('inline-flex');
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-eye.svg"]')).not.toBeInTheDocument();
   });
 
   it('keeps account support and service recovery actions available as shadcn buttons', () => {

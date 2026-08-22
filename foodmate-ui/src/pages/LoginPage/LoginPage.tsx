@@ -1,14 +1,4 @@
-import {
-  AlertCircle,
-  AlertTriangle,
-  Eye,
-  EyeOff,
-  Info,
-  Leaf,
-  LoaderCircle,
-  LockKeyhole,
-  UserRound,
-} from 'lucide-react';
+import { AlertCircle, AlertTriangle, Eye, EyeOff, Info, Leaf, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useRef } from 'react';
 import type { FormEvent } from 'react';
@@ -216,7 +206,7 @@ export function LoginPage() {
                           : '邮箱地址'
                 }
                 aria-label="邮箱地址"
-                leadingIcon={<UserRound aria-hidden="true" />}
+                leadingIcon={<img src="/assets/figma/auth/foodmate-login-user.svg" alt="" />}
                 value={loginValues.username}
                 required
                 onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
@@ -237,7 +227,7 @@ export function LoginPage() {
                       : '密码'
                 }
                 aria-label="密码"
-                leadingIcon={<LockKeyhole aria-hidden="true" />}
+                leadingIcon={<img src="/assets/figma/auth/foodmate-login-lock.svg" alt="" />}
                 trailingAction={
                   <Button
                     className={styles.passwordToggle}
@@ -247,7 +237,11 @@ export function LoginPage() {
                     aria-label={showPassword ? '隐藏密码' : '显示密码'}
                     onClick={() => setShowPassword((value) => !value)}
                   >
-                    {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                    {showPassword ? (
+                      <EyeOff aria-hidden="true" />
+                    ) : (
+                      <img src="/assets/figma/auth/foodmate-login-eye.svg" alt="" />
+                    )}
                   </Button>
                 }
                 value={loginValues.password}
@@ -296,7 +290,9 @@ export function LoginPage() {
 
         <div className={styles.actions}>
           <div className={styles.divider} aria-hidden="true" data-login-motion="divider">
+            <img src="/assets/figma/auth/foodmate-login-line.svg" alt="" />
             <span>或者</span>
+            <img src="/assets/figma/auth/foodmate-login-line.svg" alt="" />
           </div>
           <div className={styles.signupRow} data-login-motion="signup">
             <span className={styles.signupPrompt}>没有账号？</span>

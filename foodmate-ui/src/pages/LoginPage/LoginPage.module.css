@@ -275,6 +275,11 @@
   height: 18px;
 }
 
+.passwordToggle img {
+  width: 18px;
+  height: 18px;
+}
+
 .options {
   display: flex;
   align-items: center;
@@ -325,18 +330,20 @@
 .divider {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   height: 56px;
   color: #6f7e89;
   font-size: 14px;
 }
 
-.divider::before,
-.divider::after {
+.divider span {
+  white-space: nowrap;
+}
+
+.divider img {
+  width: 175px;
   height: 1px;
   flex: 1;
-  content: '';
-  background: rgb(90 102 114 / 20%);
 }
 
 .signupRow {
