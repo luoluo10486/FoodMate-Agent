@@ -258,8 +258,9 @@
 }
 
 .planListActions .flowButton {
-  height: 36px;
-  min-height: 36px;
+  width: 80px;
+  height: 32px;
+  min-height: 32px;
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 13px;
