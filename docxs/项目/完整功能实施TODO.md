@@ -4,7 +4,7 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## 当前复核状态（2026-08-15）
+## 当前复核状态（2026-08-23）
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
 
@@ -23,6 +23,9 @@
 - [x] 本地 PostgreSQL 已存在 V13/V14/V15 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。营养 seed V1 已人工导入 5 条 approved USDA 数据，seed V2 已人工导入 5 条 approved USDA foodPortions 规则并通过校验；未覆盖的单位仍不推断。
 - [x] M1-5 Java 写确认扩展已实现：`food_log_writer` 支持 create/update/delete/restore，确认状态支持 rejected/failed/superseded，Tool Gateway 校验工具名/type 并映射结果状态；Java 定向测试覆盖拒绝、失败回滚记录、supersede 和三种资源写操作。
 - [x] 完成 M1-5 写确认扩展的真实 HTTP/MQ 跨进程回归：HTTP 与 RocketMQ 各 11 个用例通过，覆盖 rejected、failed 回滚与失败审计、superseded、update/delete/restore、revision 冲突、成功 Proposal 幂等重放，以及官方 foodPortions 换算 matched/pending 和数据库快照断言；每个用例使用随机用户、Session、AgentRun、Proposal 和幂等键隔离。
+- [x] M2-1/M2-2/M2-3 业务范围已完成：公共知识库 deterministic 上传/索引/发布/检索/引用、只读 SQL Agent 多轮闭环、管理后台真实查询/写操作/模型治理和受控脱敏导出均已有代码与业务测试证据；真实云服务、性能和故障验证不属于当前完成门槛。
+- [x] M3 业务治理代码切片已完成：运营审计快照、DLQ 安全摘要/人工重放契约、保留策略、legal hold、审批、对象/向量清理、失败补偿和受控数据库清理已具备定向业务测试；`hard_delete_enabled=false` 默认关闭。
+- [ ] M3 真实依赖清理、数据库不可逆硬删除、生产压测、漏洞扫描、密钥轮换、渗透测试、备份恢复、发布回滚和生产告警仍未执行；不得用本地单元测试替代这些证据。
 
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
 

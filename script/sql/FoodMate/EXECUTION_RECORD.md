@@ -523,3 +523,16 @@
 | Python | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`113 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用付费模型或真实 embedding |
 | 工作区与运行态 | 本轮临时 Java/Python 进程已停止；Docker 依赖仍 healthy；`git diff --check` 通过；用户已有 UI/Figma/`tmp` 改动未暂存 |
 | 结论 | M2-1 deterministic 业务实现和当前 Java/Python 业务门禁通过；性能、重启、ACK/重复投递、真实服务和生产范围继续后置 |
+
+## D6 文档与功能版范围收尾（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23（文档收尾轮次） |
+| 分支 | `codex/m2-remaining-business` |
+| 变更范围 | 对齐 `路线图.md`、`完整功能实施TODO.md`、`M2剩余功能执行计划.md`、`测试策略.md`、`本地开发指南.md` 和 `配置指南.md`；未修改业务代码、数据库或用户已有 UI/QA 改动 |
+| 业务测试复核 | `mvnw.cmd -pl foodmate-application,foodmate-infra,foodmate-api -am test -Dtest=DataRetentionServiceImplTest,DataRetentionDeliveryServiceImplTest,DataRetentionTaskPublisherTest,DataRetentionResultMessageProcessorTest,DataRetentionDatabasePurgeAdapterTest,AdminRetentionControllerTest -Dsurefire.failIfNoSpecifiedTests=false`：21/21 通过 |
+| 当前完成口径 | M2-1/M2-2/M2-3 业务功能和核心业务测试完成；M3 运营审计、DLQ 重放契约、保留治理、对象/向量清理和受控数据库清理代码切片完成 |
+| 明确后置 | M1-6 Agent 业务压测、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障恢复；真实云服务、Docker 应用镜像、生产部署、备份恢复、发布回滚、真实依赖清理和不可逆数据库硬删除 |
+| 安全边界 | `hard_delete_enabled=false` 默认关闭；本轮未执行迁移、truncate、真实对象/向量/数据库删除或备份恢复 |
+| 文档结论 | D1 文档状态和业务完成边界已与代码、定向测试和既有执行证据对齐；不将后置范围标记为完成 |
