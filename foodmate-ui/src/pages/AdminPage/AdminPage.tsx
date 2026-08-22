@@ -316,6 +316,110 @@ function SqlAuditFixture() {
   );
 }
 
+function AgentTimelineFixture({ trace }: { trace: boolean }) {
+  return (
+    <section
+      className={`${styles.fixtureSurface} ${styles.fixtureSurfaceInline}`}
+      aria-label={trace ? 'Trace 详情 fixture' : 'Run 详情 fixture'}
+    >
+      <div className={styles.runFixtureToolbar} aria-label="Run 筛选">
+        <span className={styles.runFixtureId}>Run ID: run_...</span>
+        <span className={styles.runFixtureSearch}>搜索用户...</span>
+        <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusFailed}`}>Failed ×</span>
+        <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusSuccess}`}>Success ✓</span>
+        <span className={styles.runFixtureDegraded}>
+          仅降级
+          <i aria-hidden="true" />
+        </span>
+      </div>
+      <section className={styles.runFixtureTable} aria-label="Run 记录">
+        <div className={styles.runFixtureTableHeader} role="row">
+          <span>运行 ID</span>
+          <span>用户</span>
+          <span>上下文</span>
+          <span>状态</span>
+          <span>阶段</span>
+          <span>耗时</span>
+          <span>成本</span>
+          <span>工具数</span>
+        </div>
+        <div className={styles.runFixtureTableRow} role="row">
+          <strong>run_98218a</strong>
+          <strong>anddy_lab</strong>
+          <span>Keto Meal Plan Formulation for target 1800kcal</span>
+          <b className={styles.runFixtureFailure}>失败</b>
+          <span>RAG_RETRIEVE</span>
+          <span>12.4s</span>
+          <span>$0.045</span>
+          <span>12 calls</span>
+        </div>
+      </section>
+      <section className={styles.runFixtureTrace} aria-label="执行事件追踪">
+        <div className={styles.runFixtureTraceHeader}>
+          <h2>
+            执行事件追踪： <code>run_98218a</code>
+          </h2>
+          <button
+            type="button"
+            className={styles.runFixtureDownload}
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent('foodmate:admin-notice', { detail: { message: '完整日志下载已加入队列。' } }),
+              )
+            }
+          >
+            下载完整日志
+          </button>
+        </div>
+        <div className={styles.runFixtureSteps}>
+          <article>
+            <header>
+              <strong>1. 分发</strong>
+              <code>0.2s</code>
+            </header>
+            <p>Agent queued and initialized on gpt-4-turbo</p>
+          </article>
+          <article>
+            <header>
+              <strong>2. RAG 查询</strong>
+              <code>3.1s</code>
+            </header>
+            <p>Semantic query to Vector DB. Index hit: 94%</p>
+          </article>
+          <article>
+            <header>
+              <strong>3. 降级</strong>
+              <code>8.5s</code>
+            </header>
+            <p>USDA API 延迟阈值超限警告</p>
+          </article>
+          <article>
+            <header>
+              <strong>4. 失败</strong>
+              <code>0.6s</code>
+            </header>
+            <p>进程中止：上下文Token溢出限制</p>
+          </article>
+        </div>
+      </section>
+      {trace ? (
+        <aside className={`${styles.governanceNotes} ${styles.traceNotes}`} aria-label="Trace 聚合与筛选">
+          <h2>Trace 聚合与筛选</h2>
+          <p>按 trace_id 聚合：请求 · Run · Tool Calls · 模型调用 · 管理操作</p>
+          <p>筛选：时间范围 · 仅看失败 · 状态 · 节点类型；支持展开节点与复制 trace_id</p>
+          <p className={styles.governanceNoteSuccess}>
+            时间线字段：开始 / 完成时间 · 阶段 · 状态 · 耗时 · 父子关系 · 事件顺序缺口 / 重复 / 乱序
+          </p>
+          <p className={styles.governanceNoteSuccess}>
+            request_id req_7c2e · trace_id tr_88192a · dispatch_id dsp_55aa · 复制后可回到 Run 或 SQL Audit
+          </p>
+          <p className={styles.governanceNoteMuted}>敏感字段只显示脱敏摘要，不展示数据库凭据和隐藏推理。</p>
+        </aside>
+      ) : null}
+    </section>
+  );
+}
+
 function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; onDismiss: () => void }) {
   if (state === 'overview' || state === 'tool-registry' || state === 'deleted-resources' || state === 'user-detail')
     return null;
@@ -339,94 +443,12 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
   }
   if (isDetail) {
     if (state === 'run-detail') {
-      return (
-        <section className={`${styles.fixtureSurface} ${styles.fixtureSurfaceInline}`} aria-label="Run 详情 fixture">
-          <div className={styles.runFixtureToolbar} aria-label="Run 筛选">
-            <span className={styles.runFixtureId}>Run ID: run_...</span>
-            <span className={styles.runFixtureSearch}>搜索用户...</span>
-            <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusFailed}`}>Failed ×</span>
-            <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusSuccess}`}>Success ✓</span>
-            <span className={styles.runFixtureDegraded}>
-              仅降级
-              <i aria-hidden="true" />
-            </span>
-          </div>
-          <section className={styles.runFixtureTable} aria-label="Run 记录">
-            <div className={styles.runFixtureTableHeader} role="row">
-              <span>运行 ID</span>
-              <span>用户</span>
-              <span>上下文</span>
-              <span>状态</span>
-              <span>阶段</span>
-              <span>耗时</span>
-              <span>成本</span>
-              <span>工具数</span>
-            </div>
-            <div className={styles.runFixtureTableRow} role="row">
-              <strong>run_98218a</strong>
-              <strong>anddy_lab</strong>
-              <span>Keto Meal Plan Formulation for target 1800kcal</span>
-              <b className={styles.runFixtureFailure}>失败</b>
-              <span>RAG_RETRIEVE</span>
-              <span>12.4s</span>
-              <span>$0.045</span>
-              <span>12 calls</span>
-            </div>
-          </section>
-          <section className={styles.runFixtureTrace} aria-label="执行事件追踪">
-            <div className={styles.runFixtureTraceHeader}>
-              <h2>
-                执行事件追踪： <code>run_98218a</code>
-              </h2>
-              <button
-                type="button"
-                className={styles.runFixtureDownload}
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent('foodmate:admin-notice', { detail: { message: '完整日志下载已加入队列。' } }),
-                  )
-                }
-              >
-                下载完整日志
-              </button>
-            </div>
-            <div className={styles.runFixtureSteps}>
-              <article>
-                <header>
-                  <strong>1. 分发</strong>
-                  <code>0.2s</code>
-                </header>
-                <p>Agent queued and initialized on gpt-4-turbo</p>
-              </article>
-              <article>
-                <header>
-                  <strong>2. RAG 查询</strong>
-                  <code>3.1s</code>
-                </header>
-                <p>Semantic query to Vector DB. Index hit: 94%</p>
-              </article>
-              <article>
-                <header>
-                  <strong>3. 降级</strong>
-                  <code>8.5s</code>
-                </header>
-                <p>USDA API 延迟阈值超限警告</p>
-              </article>
-              <article>
-                <header>
-                  <strong>4. 失败</strong>
-                  <code>0.6s</code>
-                </header>
-                <p>进程中止：上下文Token溢出限制</p>
-              </article>
-            </div>
-          </section>
-        </section>
-      );
+      return <AgentTimelineFixture trace={false} />;
     }
     if (state === 'tool-calls') return <ToolCallsFixture />;
     if (state === 'sql-audit') return <SqlAuditFixture />;
-    const title = state === 'trace' ? 'Agent 运行控制台' : '工具调用与 SQL 审计';
+    if (state === 'trace') return <AgentTimelineFixture trace />;
+    const title = '工具调用与 SQL 审计';
     return (
       <div className={styles.fixtureSurface}>
         <div className={styles.fixtureSurfaceHeader}>

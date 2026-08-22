@@ -141,4 +141,15 @@ describe('AdminPage overview', () => {
     await user.type(screen.getByRole('textbox', { name: '搜索 SQL 运行 ID' }), 'not-found');
     expect(screen.getByRole('status', { name: '' })).toHaveTextContent('没有匹配的 SQL 审计记录');
   });
+
+  it('renders the Figma trace fixture with timeline and trace aggregation guidance', () => {
+    renderAdmin('/admin?state=trace');
+
+    expect(screen.getByText('Agent 运行控制台')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '执行事件追踪' })).toBeInTheDocument();
+    expect(screen.getByText('Trace 聚合与筛选')).toBeInTheDocument();
+    expect(screen.getByText(/request_id req_7c2e/)).toBeInTheDocument();
+    expect(screen.getByText('3. 降级')).toBeInTheDocument();
+    expect(document.querySelector('.fixtureSurfaceCard')).toBeNull();
+  });
 });

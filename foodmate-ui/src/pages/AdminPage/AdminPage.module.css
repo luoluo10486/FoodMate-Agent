@@ -4691,6 +4691,10 @@
   color: #b85454 !important;
   font-size: 12px !important;
 }
+
+.traceNotes {
+  min-height: 300px;
+}
 .fixtureSurfaceHeader,
 .fixtureSurfaceToolbar {
   display: flex;
