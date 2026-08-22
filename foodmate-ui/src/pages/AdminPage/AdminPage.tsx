@@ -359,7 +359,8 @@ function AgentTimelineFixture({ trace }: { trace: boolean }) {
           <h2>
             执行事件追踪： <code>run_98218a</code>
           </h2>
-          <button
+          <Button
+            variant="ghost"
             type="button"
             className={styles.runFixtureDownload}
             onClick={() =>
@@ -369,7 +370,7 @@ function AgentTimelineFixture({ trace }: { trace: boolean }) {
             }
           >
             下载完整日志
-          </button>
+          </Button>
         </div>
         <div className={styles.runFixtureSteps}>
           <article>

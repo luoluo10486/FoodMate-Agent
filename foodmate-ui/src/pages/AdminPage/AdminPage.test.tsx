@@ -151,6 +151,7 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('Trace 聚合与筛选')).toBeInTheDocument();
     expect(screen.getByText(/request_id req_7c2e/)).toBeInTheDocument();
     expect(screen.getByText('3. 降级')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下载完整日志' })).toBeInTheDocument();
     expect(document.querySelector('.fixtureSurfaceCard')).toBeNull();
   });
 });
