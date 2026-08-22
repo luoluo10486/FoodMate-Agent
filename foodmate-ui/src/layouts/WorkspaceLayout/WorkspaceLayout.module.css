@@ -212,7 +212,7 @@
 .accountDock {
   display: grid;
   flex: 0 0 auto;
-  gap: 10px;
+  gap: 16px;
   margin-top: auto;
 }
 
@@ -233,6 +233,8 @@
 }
 
 .collapseButton {
+  height: 28px;
+  min-height: 28px;
   font-weight: 400;
 }
 
@@ -246,6 +248,8 @@
 }
 
 .statusPill {
+  height: 38px;
+  min-height: 38px;
   color: var(--fm-green-dark);
   font-weight: 700;
 }
@@ -261,7 +265,7 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 0;
   color: inherit;
 }
 
