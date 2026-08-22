@@ -229,3 +229,15 @@
 | 业务边界 | 本轮验证的是前端 API 契约与状态行为；未执行真实 Java/Python/RocketMQ/Milvus 上传 -> 索引 -> 发布 -> AgentRun 闭环，性能、重启、ACK 和重复投递测试继续暂缓 |
 | 数据与迁移 | 未执行迁移、truncate、备份恢复或既有本地数据清理 |
 | 结论 | K4 管理端批次和聊天引用前端主路径已有业务测试证据；M2-1 整体仍不更新为真实跨运行时完成 |
+
+## M2 业务门禁最终复核（2026-08-22）
+
+| 项目 | 结果 |
+|---|---|
+| Python 命令 | `agent-runtime\.venv\Scripts\python.exe -m pytest -q` |
+| Python 结果 | 92 passed、1 skipped、2 warnings；跳过项为真实云集成，未调用付费模型或真实 embedding |
+| Java 命令 | `mvnw.cmd -pl foodmate-application -am test -Dtest=KnowledgeIndexResultMessageProcessorTest,KnowledgeOutboxPublisherTest,KnowledgeUploadValidationTest,KnowledgeServiceImplTest,ToolRegistryServiceTest,ToolPolicyGatewayServiceTest,ToolGatewayServiceTest,ToolGatewayAstGuardTest,SqlSchemaCatalogServiceTest,SqlQueryPlanValidatorTest,JSqlParserQueryGuardTest -Dsurefire.failIfNoSpecifiedTests=false` |
+| Java 结果 | 56/56 通过，0 failure/error/skipped；覆盖知识索引结果/Outbox/上传校验、Tool Registry/Policy/Gateway、SQL Catalog/AST Guard/计划校验 |
+| 前端结果 | 本轮最终 `npm.cmd test` 为 35 个测试文件、167/167 通过；`npm.cmd run typecheck` 和 `npm.cmd run build` 通过 |
+| 未执行范围 | Docker、Milvus、真实 PostgreSQL/Redis/RocketMQ 跨运行时闭环、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递和 SSE Last-Event-ID 故障验证 |
+| 结论 | M2 核心业务代码和业务门禁通过；真实依赖联调、性能和故障恢复不作为当前完成证据，保持后置 |
