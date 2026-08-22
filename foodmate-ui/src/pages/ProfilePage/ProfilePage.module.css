@@ -1073,6 +1073,9 @@
 .textLink,
 .textLinkOrange {
   display: inline-flex;
+  height: auto;
+  min-height: 0;
+  min-width: 0;
   align-items: center;
   gap: 5px;
   padding: 0;

@@ -97,6 +97,7 @@ describe('ProfilePage', () => {
     const user = userEvent.setup();
     renderPage('/profile/security');
 
+    expect(screen.getByRole('button', { name: /查看登录历史/ })).toHaveClass('inline-flex');
     await user.click(screen.getByRole('button', { name: '退出其他设备' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '退出其他设备？' })).toBeInTheDocument();
@@ -116,6 +117,7 @@ describe('ProfilePage', () => {
     expect(screen.getByText('今天')).toBeInTheDocument();
     expect(screen.getAllByText('排队中').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: '创建数据导出' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /下载归档/ })).toHaveClass('inline-flex');
 
     await user.click(screen.getByRole('button', { name: '申请注销账号' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();

@@ -1273,9 +1273,9 @@ function SecurityTab() {
             <h2>最近安全活动</h2>
             <p>查看最近的登录、密码和设备状态变化</p>
           </div>
-          <button type="button" className={styles.textLink}>
+          <Button type="button" className={styles.textLink} variant="ghost">
             查看登录历史 &gt;
-          </button>
+          </Button>
         </div>
         <div className={styles.activityList}>
           <ActivityRow dot="green" title="密码更新" detail="今天 09:42 · 当前设备" status="已完成" />
@@ -1524,20 +1524,35 @@ function PrivacyTab() {
               <span>{row.size}</span>
               <span>
                 {row.status === 'completed' ? (
-                  <button className={styles.textLink} type="button" onClick={() => void downloadExport(row)}>
+                  <Button
+                    className={styles.textLink}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => void downloadExport(row)}
+                  >
                     <Download aria-hidden="true" />
                     下载归档
-                  </button>
+                  </Button>
                 ) : row.status === 'expired' ? (
-                  <button className={styles.textLinkOrange} type="button" onClick={() => void createExport()}>
+                  <Button
+                    className={styles.textLinkOrange}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => void createExport()}
+                  >
                     <RefreshCw aria-hidden="true" />
                     重新创建
-                  </button>
+                  </Button>
                 ) : row.status === 'failed' ? (
-                  <button className={styles.textLinkOrange} type="button" onClick={() => void createExport()}>
+                  <Button
+                    className={styles.textLinkOrange}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => void createExport()}
+                  >
                     <RefreshCw aria-hidden="true" />
                     重新创建
-                  </button>
+                  </Button>
                 ) : (
                   <span className={styles.mutedText}>处理中</span>
                 )}
