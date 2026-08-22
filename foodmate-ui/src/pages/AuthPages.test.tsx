@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ForgotPasswordPage } from './ForgotPasswordPage/ForgotPasswordPage';
 import { LoginPage } from './LoginPage/LoginPage';
 import { RegisterPage } from './RegisterPage/RegisterPage';
@@ -57,6 +57,30 @@ describe('authentication pages', () => {
     expect(screen.getByText('至少 8 个字符')).toHaveClass(/passwordRuleValid/);
     expect(screen.getByText('包含大写字母')).toHaveClass(/passwordRuleValid/);
     expect(screen.getByText('包含数字')).toHaveClass(/passwordRuleValid/);
+  });
+
+  it('starts the mock registration fixture with the Figma example values', () => {
+    renderAuth('/register');
+
+    expect(screen.getByLabelText('用户名')).toHaveValue('麦克斯');
+    expect(screen.getByLabelText('邮箱地址')).toHaveValue('max@foodmate.com');
+    expect(screen.getByLabelText('密码')).toHaveValue('Foodmate123');
+    expect(screen.getByLabelText('确认密码')).toHaveValue('Foodmate123');
+    expect(screen.getByText('至少 8 个字符')).toHaveClass(/passwordRuleValid/);
+  });
+
+  it('does not prefill the registration form in real mode', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    try {
+      renderAuth('/register');
+
+      expect(screen.getByLabelText('用户名')).toHaveValue('');
+      expect(screen.getByLabelText('邮箱地址')).toHaveValue('');
+      expect(screen.getByLabelText('密码')).toHaveValue('');
+      expect(screen.getByLabelText('确认密码')).toHaveValue('');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('uses the shared shadcn icon button for password visibility', async () => {
