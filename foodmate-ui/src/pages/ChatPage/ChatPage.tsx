@@ -248,7 +248,7 @@ function ChatSurface({
       sidebarAvatarSrc={sidebarAvatarSrc}
       topAvatarSrc={topAvatarSrc}
     >
-      <div className={styles.page}>
+      <div className={`${styles.page} ${designChat ? styles.designChatPage : ''}`}>
         <section className={styles.workspace}>
           <div className={styles.center}>
             <AgentStatusStrip status={run.status} preserveTones={designChat} />

@@ -606,6 +606,10 @@
   white-space: pre-wrap;
 }
 
+.designChatPage .assistant .messageText {
+  font-family: var(--fm-font);
+}
+
 .user .messageBubble {
   width: min(452px, calc(100% - 48px));
   height: 49px;
