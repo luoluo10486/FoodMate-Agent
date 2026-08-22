@@ -167,7 +167,9 @@ function ToolRegistrySection({
         return (
           <span className={styles.registryNameCell}>
             <strong>{name}</strong>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               className={styles.registryCopyButton}
               type="button"
               aria-label={`复制 ${name}`}
@@ -175,7 +177,7 @@ function ToolRegistrySection({
               title={`复制 ${name}`}
             >
               <Copy aria-hidden="true" />
-            </button>
+            </Button>
           </span>
         );
       },
