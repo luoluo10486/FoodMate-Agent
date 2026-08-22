@@ -166,6 +166,7 @@ const figmaProfileUser: AuthUser = {
   id: '1234567',
   username: 'anddy_operator_9',
   displayName: 'Anddy',
+  avatarUrl: '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
   role: 'operator',
   status: 'active',
   email: 'anddy@foodmate.io',
