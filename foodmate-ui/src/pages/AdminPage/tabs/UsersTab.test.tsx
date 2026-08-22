@@ -23,6 +23,8 @@ describe('Admin user details', () => {
     expect(screen.getAllByRole('tab')).toHaveLength(5);
     expect(screen.getByRole('tab', { name: '资料' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('KetoMealFormer_v4')).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: '用户详情 Tab' })).toBeInTheDocument();
+    expect(screen.getByText(/禁用 \/ 锁定前显示影响：撤销会话/)).toBeInTheDocument();
   });
 
   it('switches between dietary, business session and operation history tabs', async () => {

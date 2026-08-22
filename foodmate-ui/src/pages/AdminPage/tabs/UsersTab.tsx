@@ -625,6 +625,15 @@ function UserDetailCard({
           撤销所有会话
         </Button>
       </div>
+      <aside className={styles.userDetailGuidance} aria-label="用户详情 Tab">
+        <h2>用户详情 Tab</h2>
+        <p>资料 · 饮食画像 · 登录会话 · 业务会话 · 操作历史</p>
+        <p>资料字段：注册时间 · 最近登录 · 账号状态 · 角色 · 活跃会话数</p>
+        <p className={styles.userDetailGuidanceDanger}>
+          禁用 / 锁定前显示影响：撤销会话、停止新运行、保留审计记录；admin 需二次确认。
+        </p>
+        <p className={styles.userDetailGuidanceMuted}>operator：只读；无启用、禁用、锁定和撤销全部会话权限。</p>
+      </aside>
     </Card>
   );
 }
