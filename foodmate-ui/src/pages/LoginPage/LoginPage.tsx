@@ -26,6 +26,17 @@ type LoginState =
   | 'account-disabled'
   | 'service-unavailable';
 
+function loginAsset(state: LoginState, name: 'user' | 'lock' | 'eye' | 'line') {
+  const suffix = state === 'submitting' ? '-submitting' : '';
+  return `/assets/figma/auth/foodmate-login${suffix}-${name}.svg`;
+}
+
+function loginLeafAsset(state: LoginState) {
+  return state === 'submitting'
+    ? '/assets/figma/auth/foodmate-login-submitting-leaf.svg'
+    : '/assets/figma/auth/foodmate-leaf.svg';
+}
+
 const loginStates = new Set<LoginState>([
   'default',
   'submitting',
@@ -52,7 +63,7 @@ function LoginBrand({ state }: { state: LoginState }) {
         <span className={styles.logoPlaceholder} aria-hidden="true" data-login-motion="logo" data-node-id="660:212" />
       ) : (
         <span className={styles.loginMark} aria-hidden="true" data-login-motion="logo">
-          <img src="/assets/figma/auth/foodmate-leaf.svg" alt="" />
+          <img src={loginLeafAsset(state)} alt="" />
         </span>
       )}
       <span className={styles.wordmark} data-login-motion="wordmark" data-node-id="647:236">
@@ -211,7 +222,7 @@ export function LoginPage() {
                           : '邮箱地址'
                 }
                 aria-label="邮箱地址"
-                leadingIcon={<img src="/assets/figma/auth/foodmate-login-user.svg" alt="" />}
+                leadingIcon={<img src={loginAsset(visualState, 'user')} alt="" />}
                 value={loginValues.username}
                 required
                 onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
@@ -232,7 +243,7 @@ export function LoginPage() {
                       : '密码'
                 }
                 aria-label="密码"
-                leadingIcon={<img src="/assets/figma/auth/foodmate-login-lock.svg" alt="" />}
+                leadingIcon={<img src={loginAsset(visualState, 'lock')} alt="" />}
                 trailingAction={
                   <Button
                     className={styles.passwordToggle}
@@ -242,11 +253,7 @@ export function LoginPage() {
                     aria-label={showPassword ? '隐藏密码' : '显示密码'}
                     onClick={() => setShowPassword((value) => !value)}
                   >
-                    {showPassword ? (
-                      <EyeOff aria-hidden="true" />
-                    ) : (
-                      <img src="/assets/figma/auth/foodmate-login-eye.svg" alt="" />
-                    )}
+                    {showPassword ? <EyeOff aria-hidden="true" /> : <img src={loginAsset(visualState, 'eye')} alt="" />}
                   </Button>
                 }
                 value={loginValues.password}
@@ -300,9 +307,9 @@ export function LoginPage() {
 
         <div className={styles.actions}>
           <div className={styles.divider} aria-hidden="true" data-login-motion="divider">
-            <img src="/assets/figma/auth/foodmate-login-line.svg" alt="" />
+            <img src={loginAsset(visualState, 'line')} alt="" />
             <span>或者</span>
-            <img src="/assets/figma/auth/foodmate-login-line.svg" alt="" />
+            <img src={loginAsset(visualState, 'line')} alt="" />
           </div>
           <div className={styles.signupRow} data-login-motion="signup">
             <span className={styles.signupPrompt}>没有账号？</span>

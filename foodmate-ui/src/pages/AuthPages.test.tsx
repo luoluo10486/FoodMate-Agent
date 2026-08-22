@@ -43,7 +43,21 @@ describe('authentication pages', () => {
   it('uses the Figma submitting assets and example values', () => {
     renderAuth('/login?state=submitting');
 
-    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-submitting-leaf.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-submitting-user.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-submitting-lock.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-submitting-eye.svg"]'),
+    ).toBeInTheDocument();
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-login-submitting-line.svg"]')).toHaveLength(
+      2,
+    );
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-loader.svg"]')).toBeInTheDocument();
     expect(screen.getByLabelText('邮箱地址')).toHaveValue('alex@foodmate.com');
     expect(screen.getByLabelText('密码')).toHaveValue('password');
