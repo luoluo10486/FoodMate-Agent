@@ -363,3 +363,19 @@
 | 真实阻塞证据 | 当前 FoodMate PostgreSQL 未执行 V17/V18/V23/V24/V25 手工 SQL；应用启动后的定时任务查询 `knowledge_index_outbox`、`admin_export_jobs`、`runtime_dlq_replay_outbox` 等不存在表，Tool Registry/SQL Agent 所需业务数据也不完整 |
 | 数据边界 | 测试使用随机账号/Run；本轮未执行迁移、truncate、删除、备份恢复或其他故障注入 |
 | 处理结论 | 保留 `M14RocketMqTransportE2ETest` 真实通过证据；Proposal/Result 只记录为 schema 前置阻塞，不修改生产代码绕过，也不把该 E2E 记为通过 |
+
+## M2-1 索引闭环本地业务核验（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23（本地业务联调轮次） |
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；Java 21；Python 使用 `agent-runtime\.venv`；Docker Desktop 本地依赖；未调用付费模型或真实 embedding API |
+| 迁移 | 实际执行 V16-V25 增量 SQL，全部成功；未执行 truncate、回滚、备份恢复；保留既有本地数据 |
+| 应用配置 | Java 与 Python 显式使用 `deterministic:local`；RAG 业务路径使用本地 deterministic 模式；Compose 运行时地址固定为 `http://agent-runtime:9000` |
+| Java 验证 | 知识导入、索引 Outbox、结果消费、批次状态、发布/可见性、用户检索及保留治理定向测试通过；知识与保留相关定向测试合计 29/29 通过 |
+| Python 验证 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：107 passed、1 skipped、1 warning；跳过项为显式真实云集成 |
+| Docker 校验 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；PostgreSQL、Redis、MinIO、RocketMQ、Milvus 依赖 readiness 已验证 |
+| 跨运行时业务结果 | Java Outbox -> RocketMQ -> Python Worker -> MinIO 读取 -> Java 索引结果回写成功；首次 MinIO 凭据错误产生 `RAG_OBJECT_UNAVAILABLE`，管理员重试后成功；批次最终为 `completed`；文档发布后可见性同步和 Java 用户检索成功；deterministic AgentRun 完成并通过 SSE 返回 2 条安全 citations |
+| 测试数据 | 使用随机用户、批次、文档、条目和隔离 RAG 命名空间；本轮测试生成的数据在收尾阶段清理；不删除既有业务数据、命名卷或既有 Milvus 集合 |
+| 未执行范围 | Docker 应用镜像因 Docker Hub 网络阻塞未完成真实构建/启动证据；真实云模型/embedding、吞吐与性能压测、Java/Python/数据库/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵和 SSE Last-Event-ID 故障验证继续暂缓 |
+| 结论 | M2-1 deterministic 本地业务闭环具备代码、业务测试和依赖联调证据；不将需要真实 Docker 应用镜像或性能/故障证据的范围标记为完成 |
