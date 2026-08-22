@@ -66,8 +66,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                         + documentId
                         + "-"
                         + filename.replaceAll("[^A-Za-z0-9._-]", "_");
+        boolean objectWriteStarted = false;
         try {
             storage.ensureBucket(bucket);
+            objectWriteStarted = true;
             storage.put(
                     bucket,
                     key,
@@ -77,7 +79,14 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             store.insertDocument(documentId, filename, key, operatorId);
             audit(operatorId, traceId, "knowledge.upload", Long.toString(documentId));
             return documentId;
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
+            if (objectWriteStarted) {
+                try {
+                    storage.delete(bucket, key);
+                } catch (RuntimeException cleanupFailure) {
+                    exception.addSuppressed(cleanupFailure);
+                }
+            }
             throw new IllegalStateException("knowledge upload failed", exception);
         }
     }
@@ -124,13 +133,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 ValidatedFile validated = validatedFiles.get(index);
                 String filename = validated.filename();
                 String key = "knowledge/public/" + documentId + "/" + filename;
+                uploadedKeys.add(key);
                 storage.put(
                         bucket,
                         key,
                         new ByteArrayInputStream(validated.content()),
                         validated.content().length,
                         validated.contentType());
-                uploadedKeys.add(key);
                 store.insertDocument(documentId, filename, key, operatorId);
                 store.updateDocumentSource(
                         documentId,
@@ -164,12 +173,12 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             }
             audit(operatorId, traceId, "knowledge.import_batch.create", Long.toString(jobId));
             return jobId;
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             for (String key : uploadedKeys) {
                 try {
                     storage.delete(bucket, key);
-                } catch (Exception ignored) {
-                    // Prefix reconciliation can remove an object when storage is temporarily down.
+                } catch (RuntimeException cleanupFailure) {
+                    exception.addSuppressed(cleanupFailure);
                 }
             }
             throw new IllegalStateException("knowledge import batch failed", exception);
