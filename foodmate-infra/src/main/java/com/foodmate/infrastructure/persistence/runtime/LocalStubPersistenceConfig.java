@@ -19,11 +19,13 @@ import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository.ToolDefinition;
 import com.foodmate.application.runtime.service.ToolRegistryCatalog;
-import java.math.BigDecimal;
-import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 /** 本地无数据 stub 的显式持久化适配器。 */
 @Configuration
@@ -255,36 +257,48 @@ public class LocalStubPersistenceConfig {
     @Bean
     AdminManagementRepository localAdminManagementRepository() {
         return new AdminManagementRepository() {
+            public AdminManagementRepository.UserSnapshot findUser(long userId) {
+                return null;
+            }
+
+            public AdminManagementRepository.ToolSnapshot findTool(String name) {
+                return null;
+            }
+
+            public AdminManagementRepository.ResourceSnapshot findResource(
+                    com.foodmate.shared.admin.enums.RestorableResourceType resourceType,
+                    long resourceId) {
+                return null;
+            }
+
             public int updateUserStatus(
                     long userId,
                     com.foodmate.shared.account.enums.UserStatus status,
-                    long operatorId) {
+                    long operatorId,
+                    long revision) {
                 return 0;
             }
 
-            public int revokeSessions(long userId, long operatorId) {
-                return 0;
+            public AdminManagementRepository.RevokeResult revokeSessions(
+                    long userId, long operatorId, long revision) {
+                return null;
             }
 
             public int updateToolStatus(
                     String name,
                     com.foodmate.shared.runtime.enums.ToolStatus status,
-                    long operatorId) {
+                    long operatorId,
+                    long revision) {
                 return 0;
             }
 
             public int restore(
                     com.foodmate.shared.admin.enums.RestorableResourceType resourceType,
                     long resourceId,
-                    long operatorId) {
+                    long operatorId,
+                    long revision) {
                 return 0;
             }
-
-            public long nextAuditId() {
-                return 1;
-            }
-
-            public void insertAudit(AdminManagementRepository.Audit audit) {}
         };
     }
 

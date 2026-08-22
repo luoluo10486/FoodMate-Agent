@@ -1,18 +1,28 @@
 package com.foodmate.application.account.service;
 
+import com.foodmate.shared.account.enums.UserRole;
 import com.foodmate.shared.account.enums.UserStatus;
 import com.foodmate.shared.admin.enums.RestorableResourceType;
 import com.foodmate.shared.runtime.enums.ToolStatus;
 
 /** 后台管理用例接口。 */
 public interface AdminManagementService {
-    void updateUserStatus(long userId, UserStatus status, long operatorId, String traceId);
+    ManagementResult updateUserStatus(long userId, UserStatus status, AdminWriteCommand command);
 
-    int revokeSessions(long userId, long operatorId, String traceId);
+    ManagementResult revokeSessions(long userId, AdminWriteCommand command);
 
-    void updateToolStatus(String name, ToolStatus status, long operatorId, String traceId);
+    ManagementResult updateToolStatus(String name, ToolStatus status, AdminWriteCommand command);
 
-    void restore(RestorableResourceType type, long id, long operatorId, String traceId);
+    ManagementResult restore(RestorableResourceType type, long id, AdminWriteCommand command);
 
-    void recordAudit(long operatorId, String traceId, String action, String type, String id);
+    record AdminWriteCommand(
+            long operatorId,
+            UserRole operatorRole,
+            String traceId,
+            String idempotencyKey,
+            long revision,
+            boolean confirmed,
+            String confirmationDigest) {}
+
+    record ManagementResult(boolean changed, String status, int affected, long revision) {}
 }

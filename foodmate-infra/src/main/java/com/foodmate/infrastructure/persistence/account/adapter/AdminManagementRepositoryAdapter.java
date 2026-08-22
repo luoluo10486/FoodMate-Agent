@@ -1,66 +1,59 @@
 package com.foodmate.infrastructure.persistence.account.adapter;
 
 import com.foodmate.application.account.port.out.AdminManagementRepository;
-import com.foodmate.application.common.port.out.OperationAuditPort;
+import com.foodmate.application.account.port.out.AdminManagementRepository.RevokeResult;
 import com.foodmate.infrastructure.persistence.account.AdminManagementMapper;
 import com.foodmate.shared.account.enums.UserStatus;
 import com.foodmate.shared.admin.enums.RestorableResourceType;
-import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.enums.ToolStatus;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
+/** PostgreSQL 管理写操作适配器；业务审计由 application 统一端口提交。 */
 @Repository
 @Profile("local")
 public class AdminManagementRepositoryAdapter implements AdminManagementRepository {
     private final AdminManagementMapper mapper;
-    private final OperationAuditPort audit;
-    private final IdGenerator ids;
 
-    public AdminManagementRepositoryAdapter(
-            AdminManagementMapper mapper, OperationAuditPort audit, IdGenerator ids) {
+    public AdminManagementRepositoryAdapter(AdminManagementMapper mapper) {
         this.mapper = mapper;
-        this.audit = audit;
-        this.ids = ids;
     }
 
-    public int updateUserStatus(long userId, UserStatus status, long operatorId) {
-        return mapper.updateUserStatus(userId, status.code(), operatorId);
+    @Override
+    public UserSnapshot findUser(long userId) {
+        return mapper.findUser(userId);
     }
 
-    public int revokeSessions(long userId, long operatorId) {
-        return mapper.revokeSessions(userId, operatorId);
+    @Override
+    public ToolSnapshot findTool(String name) {
+        return mapper.findTool(name);
     }
 
-    public int updateToolStatus(String name, ToolStatus status, long operatorId) {
-        return mapper.updateToolStatus(name, status.code(), operatorId);
+    @Override
+    public ResourceSnapshot findResource(RestorableResourceType resourceType, long resourceId) {
+        return mapper.findResource(resourceType.code(), resourceId);
     }
 
-    public int restore(RestorableResourceType resourceType, long resourceId, long operatorId) {
-        return mapper.restore(resourceType.code(), resourceId, operatorId);
+    @Override
+    public int updateUserStatus(long userId, UserStatus status, long operatorId, long revision) {
+        return mapper.updateUserStatus(userId, status.code(), operatorId, revision);
     }
 
-    public long nextAuditId() {
-        return ids.nextId();
+    @Override
+    public RevokeResult revokeSessions(long userId, long operatorId, long revision) {
+        if (mapper.bumpUserRevision(userId, operatorId, revision) != 1) return null;
+        return new RevokeResult(mapper.revokeSessions(userId, operatorId), revision + 1);
     }
 
-    public void insertAudit(Audit audit) {
-        int inserted =
-                this.audit.insert(
-                        new OperationAuditPort.AuditRecord(
-                                audit.id(),
-                                audit.operatorId(),
-                                null,
-                                audit.traceId(),
-                                audit.targetType(),
-                                audit.targetId(),
-                                audit.action(),
-                                "success",
-                                null,
-                                "{}",
-                                "{}",
-                                null,
-                                null));
-        if (inserted != 1) throw new IllegalStateException("operation audit was not persisted");
+    @Override
+    public int updateToolStatus(String name, ToolStatus status, long operatorId, long revision) {
+        return mapper.updateToolStatus(name, status.code(), operatorId, revision);
+    }
+
+    @Override
+    public int restore(
+            RestorableResourceType resourceType, long resourceId, long operatorId, long revision) {
+        return mapper.restore(resourceType.code(), resourceId, operatorId, revision);
     }
 }
