@@ -379,3 +379,17 @@
 | 测试数据 | 使用随机用户、批次、文档、条目和隔离 RAG 命名空间；本轮测试生成的数据在收尾阶段清理；不删除既有业务数据、命名卷或既有 Milvus 集合 |
 | 未执行范围 | Docker 应用镜像因 Docker Hub 网络阻塞未完成真实构建/启动证据；真实云模型/embedding、吞吐与性能压测、Java/Python/数据库/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵和 SSE Last-Event-ID 故障验证继续暂缓 |
 | 结论 | M2-1 deterministic 本地业务闭环具备代码、业务测试和依赖联调证据；不将需要真实 Docker 应用镜像或性能/故障证据的范围标记为完成 |
+
+## M2-1 收尾门禁与测试数据清理（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Java 门禁 | `\.\mvnw.cmd verify` 最终通过；Shared 12/12、Application 155/155、Infrastructure 68/68（11 skipped）、API 58/58、Bootstrap 57/57（37 skipped），Spotless 和 Spring Boot repackage 均通过 |
+| Python 门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：107 passed、1 skipped、2 warnings；未调用付费模型或真实 embedding |
+| Compose 门禁 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；本地 PostgreSQL、Redis、MinIO、RocketMQ、Milvus 依赖保持 healthy |
+| 门禁修复 | `FoodMateApplicationTest` 暴露 `local-stub` 缺少 `AdminAuditReportRepository` 替身；补齐零数据 stub 后启动上下文通过，提交 `2680b46 fix(local-stub): 补齐运营审计报告替身` |
+| PostgreSQL 清理 | 仅清理本轮 3 个随机用户、2 个 Session、2 个 AgentRun、4 条消息、知识批次/条目/文档及其 Outbox/Inbox/SSE/审计事实；事务提交后用户、文档、批次、Run、Session、审计残留均为 0 |
+| MinIO 清理 | 精确删除 `foodmate-private/knowledge/public/349616464812052480/guide.md`；删除后 `mc stat` 确认对象不存在 |
+| Redis 清理 | 删除本轮 6 个 stub chunk hash 条目、索引完成事实和 4 个 Agent checkpoint key；未删除日期级预算统计或其他隔离空间 |
+| Git 边界 | 当前分支 `codex/m2-remaining-business`；本轮提交 `44130fe`、`1b423a5`、`2680b46`；既有 UI/QA 改动保留未提交 |
+| 未执行范围 | Docker Java/Python 应用镜像因 Docker Hub 网络阻塞未完成真实构建/启动；性能压测、组件重启、ACK 丢失、重复投递故障矩阵、SSE Last-Event-ID 专项验证、真实云模型/Embedding 和生产环境范围继续暂缓 |
