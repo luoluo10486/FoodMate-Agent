@@ -65,7 +65,9 @@ describe('PlanningPage', () => {
 
     expect(screen.getByText('夏日减脂轻食计划')).toBeInTheDocument();
     expect(screen.queryByText('高蛋白增肌能量餐')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: '草稿箱' }));
+    const draftTab = screen.getByRole('tab', { name: '草稿箱' });
+    expect(draftTab).toHaveClass('inline-flex');
+    await user.click(draftTab);
     expect(screen.getByText('高蛋白增肌能量餐')).toBeInTheDocument();
     expect(screen.queryByText('夏日减脂轻食计划')).not.toBeInTheDocument();
 
@@ -78,6 +80,7 @@ describe('PlanningPage', () => {
     const user = userEvent.setup();
     renderPage('/planning?state=wizard-step1');
 
+    expect(screen.getByRole('button', { name: /设置目标/ })).toHaveClass('inline-flex');
     await user.click(screen.getByRole('button', { name: '下一步: 膳食约束' }));
     expect(screen.getByRole('heading', { name: '步骤 2: 设置膳食约束 & 偏好' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '下一步: 确认并生成' }));

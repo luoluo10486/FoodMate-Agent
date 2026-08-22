@@ -6,7 +6,6 @@ import {
   MoreHorizontal,
   Plus,
   Printer,
-  RotateCcw,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -116,15 +115,16 @@ function FlowStepper({ currentStep, onNavigate }: { currentStep: number; onNavig
         const target = step === 1 ? 'wizard-step1' : step === 2 ? 'wizard-step2' : 'wizard-step3';
         return (
           <div className={styles.stepperItem} key={label}>
-            <button
+            <Button
               className={`${styles.stepperStep} ${active ? styles.stepperActive : ''} ${done ? styles.stepperDone : ''}`}
+              variant="ghost"
               type="button"
               aria-current={active ? 'step' : undefined}
               onClick={() => step <= currentStep && onNavigate(target)}
             >
               <span className={styles.stepperCircle}>{done ? <Check aria-hidden="true" /> : step}</span>
               <span>{label}</span>
-            </button>
+            </Button>
             {step < steps.length ? (
               <span className={`${styles.stepperLine} ${done ? styles.stepperLineDone : ''}`} />
             ) : null}
@@ -430,8 +430,9 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
           ['draft', '草稿箱'],
           ['archived', '已归档'],
         ].map(([key, label]) => (
-          <button
+          <Button
             className={tab === key ? styles.listTabActive : ''}
+            variant="ghost"
             key={key}
             type="button"
             role="tab"
@@ -439,7 +440,7 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
             onClick={() => setTab(key as typeof tab)}
           >
             {label}
-          </button>
+          </Button>
         ))}
       </div>
       <div className={styles.planList}>
@@ -714,7 +715,6 @@ function GeneratingView({ onNavigate }: { onNavigate: NavigateToView }) {
           </div>
         </div>
         <FlowButton variant="outline" onClick={() => onNavigate('wizard-step3')}>
-          <RotateCcw aria-hidden="true" />
           取消生成
         </FlowButton>
       </div>

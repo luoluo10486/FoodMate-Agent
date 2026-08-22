@@ -66,9 +66,14 @@
   margin: 0;
   color: #333333;
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
   line-height: 1.2;
+}
+
+.listHeader h1,
+.shoppingHeader h1 {
+  font-size: 24px;
 }
 
 .listHeader p,
@@ -91,7 +96,9 @@
 }
 
 .listTabs button {
+  height: auto;
   min-height: 34px;
+  min-width: 0;
   padding: 8px 16px;
   border: 0;
   border-radius: 8px;
@@ -323,6 +330,8 @@
 
 .stepperStep {
   display: inline-flex;
+  height: 32px;
+  min-height: 32px;
   min-width: 0;
   align-items: center;
   gap: 12px;
@@ -330,6 +339,7 @@
   border: 0;
   background: transparent;
   color: #6b7280;
+  font: inherit;
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 15px;
   font-weight: 500;
@@ -1266,8 +1276,8 @@
 
 .generatingRing {
   display: grid;
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   place-items: center;
   border-radius: 50%;
   background: conic-gradient(#89b27c 0deg 216deg, #f1f7ef 216deg 360deg);
@@ -1275,8 +1285,8 @@
 
 .generatingRing::before {
   position: absolute;
-  width: 78px;
-  height: 78px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   background: #ffffff;
   content: '';
