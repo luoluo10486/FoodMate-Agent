@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import type { SessionSummary } from '../../types/session';
-import { loadMealPlans, type MealPlan } from '../../services/planningService';
+import { loadMealPlans, loadShoppingList, type MealPlan, type ShoppingList } from '../../services/planningService';
 import { MealPlanningFlow, type MealPlanningFlowView } from './MealPlanningFlow';
 import styles from './PlanningPage.module.css';
 
@@ -359,7 +359,23 @@ function DefaultPlanningView({ plan }: { plan?: MealPlan }) {
   );
 }
 
-function PlanSidebar({ plan }: { plan?: MealPlan }) {
+function shoppingItemLabel(item: Record<string, unknown>) {
+  const name = typeof item.name === 'string' && item.name.trim() ? item.name.trim() : '未命名食材';
+  const amount = item.amount == null ? '' : `${item.amount}`;
+  const unit = typeof item.unit === 'string' ? item.unit : '';
+  const detail = amount || unit ? ` (${amount}${unit})` : '';
+  return `${name}${detail}`;
+}
+
+function PlanSidebar({
+  plan,
+  shoppingList,
+  shoppingLoading,
+}: {
+  plan?: MealPlan;
+  shoppingList?: ShoppingList;
+  shoppingLoading?: boolean;
+}) {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
   const toggleShoppingItem = (item: string) => {
@@ -410,7 +426,28 @@ function PlanSidebar({ plan }: { plan?: MealPlan }) {
       <section className={styles.shoppingSection} aria-labelledby="shopping-title">
         <h2 id="shopping-title">购物清单预览</h2>
         {plan ? (
-          <p className={styles.notice}>当前计划尚未生成购物清单。</p>
+          shoppingLoading ? (
+            <p className={styles.notice}>正在读取购物清单...</p>
+          ) : shoppingList?.items?.length ? (
+            <div className={styles.shoppingItems}>
+              {shoppingList.items.map((item, index) => {
+                const label = shoppingItemLabel(item);
+                return (
+                  <Checkbox
+                    aria-label={label}
+                    checked={Boolean(checkedItems[label])}
+                    className={styles.shoppingItem}
+                    key={`${label}-${index}`}
+                    onCheckedChange={() => toggleShoppingItem(label)}
+                  >
+                    <span>{label}</span>
+                  </Checkbox>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.notice}>当前计划暂无购物清单。</p>
+          )
         ) : (
           shoppingGroups.map((group) => (
             <div className={styles.shoppingGroup} key={group.label}>
@@ -445,6 +482,8 @@ export function PlanningPage() {
   const [realPlans, setRealPlans] = useState<MealPlan[]>([]);
   const [realLoading, setRealLoading] = useState(isRealMode);
   const [realError, setRealError] = useState<string>();
+  const [realShoppingList, setRealShoppingList] = useState<ShoppingList>();
+  const [realShoppingLoading, setRealShoppingLoading] = useState(false);
 
   useEffect(() => {
     if (!isRealMode) return;
@@ -473,6 +512,29 @@ export function PlanningPage() {
     realPlans.find((plan) => plan.meal_plan_id === selectedPlanId) ??
     realPlans.find((plan) => !plan.deleted) ??
     realPlans[0];
+
+  useEffect(() => {
+    if (!isRealMode || !selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved') {
+      setRealShoppingList(undefined);
+      setRealShoppingLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setRealShoppingLoading(true);
+    loadShoppingList(selectedPlan.meal_plan_id)
+      .then((value) => {
+        if (!cancelled) setRealShoppingList(value);
+      })
+      .catch(() => {
+        if (!cancelled) setRealShoppingList(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setRealShoppingLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isRealMode, selectedPlan?.meal_plan_id, selectedPlan?.deleted, selectedPlan?.status]);
   const isFigmaFixture = !isRealMode && (requestedView === 'v2' || view !== 'default');
 
   const navigatePlanningView = (nextView: MealPlanningFlowView | 'default') => {
@@ -523,7 +585,11 @@ export function PlanningPage() {
       activeModule="planning"
       rightRail={
         view === 'default' && (!isRealMode || selectedPlan) ? (
-          <PlanSidebar plan={isRealMode ? selectedPlan : undefined} />
+          <PlanSidebar
+            plan={isRealMode ? selectedPlan : undefined}
+            shoppingList={isRealMode ? realShoppingList : undefined}
+            shoppingLoading={isRealMode ? realShoppingLoading : false}
+          />
         ) : undefined
       }
       rightRailWidth={view === 'default' && (!isRealMode || selectedPlan) ? 340 : undefined}

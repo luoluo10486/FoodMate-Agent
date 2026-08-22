@@ -2,11 +2,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadMealPlans } from '../../services/planningService';
+import { loadMealPlans, loadShoppingList } from '../../services/planningService';
 import { PlanningPage } from './PlanningPage';
 
 vi.mock('../../services/planningService', () => ({
   loadMealPlans: vi.fn(),
+  loadShoppingList: vi.fn(),
 }));
 
 const plan = {
@@ -68,6 +69,14 @@ describe('PlanningPage real mode', () => {
       ),
     );
     vi.mocked(loadMealPlans).mockResolvedValue([plan]);
+    vi.mocked(loadShoppingList).mockResolvedValue({
+      shopping_list_id: '901',
+      meal_plan_id: '701',
+      items: [{ name: '服务端鸡胸肉', amount: 600, unit: 'g' }],
+      status: 'generated',
+      created_at: '2026-08-22T12:00:00Z',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
   });
 
   afterEach(() => {
@@ -91,6 +100,7 @@ describe('PlanningPage real mode', () => {
     expect(screen.getByText('服务端燕麦碗')).toBeInTheDocument();
     expect(screen.getByText('服务端鸡肉藜麦')).toBeInTheDocument();
     expect(screen.getByText('服务端豆腐')).toBeInTheDocument();
+    expect(await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).toBeInTheDocument();
     expect(screen.queryByText('燕麦莓果碗')).not.toBeInTheDocument();
   });
 });

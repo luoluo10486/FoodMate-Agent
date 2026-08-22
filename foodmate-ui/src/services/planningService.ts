@@ -25,12 +25,25 @@ export type MealPlan = {
   updated_at: string;
 };
 
+export type ShoppingList = {
+  shopping_list_id: string;
+  meal_plan_id: string;
+  items: Array<Record<string, unknown>>;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export async function loadMealPlans(): Promise<MealPlan[]> {
   return apiRequest<MealPlan[]>('/api/meal-plans');
 }
 
 export async function loadMealPlan(mealPlanId: string): Promise<MealPlan> {
   return apiRequest<MealPlan>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}`);
+}
+
+export async function loadShoppingList(mealPlanId: string): Promise<ShoppingList> {
+  return apiRequest<ShoppingList>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}/shopping-list`);
 }
 
 /** Fixture helpers remain available for the design preview mode. */
