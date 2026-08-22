@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Leaf, LockKeyhole, Mail, UserRound } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -32,7 +32,14 @@ export function AuthBrand({
     <header className={styles.authHeader}>
       <div className={styles.authBrand} data-node-id="680:220">
         <span className={styles.authMark} aria-hidden="true">
-          {mark === 'utensils' ? <img src="/assets/figma/auth/foodmate-fork-knife.svg" alt="" /> : <Leaf />}
+          <img
+            src={
+              mark === 'utensils'
+                ? '/assets/figma/auth/foodmate-fork-knife.svg'
+                : '/assets/figma/auth/foodmate-leaf.svg'
+            }
+            alt=""
+          />
         </span>
         <span className={styles.authWordmark}>
           <span>Food</span>

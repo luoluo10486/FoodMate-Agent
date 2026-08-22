@@ -62,6 +62,7 @@ describe('authentication pages', () => {
   it('starts the mock registration fixture with the Figma example values', () => {
     renderAuth('/register');
 
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
     expect(screen.getByLabelText('用户名')).toHaveValue('麦克斯');
     expect(screen.getByLabelText('邮箱地址')).toHaveValue('max@foodmate.com');
     expect(screen.getByLabelText('密码')).toHaveValue('Foodmate123');

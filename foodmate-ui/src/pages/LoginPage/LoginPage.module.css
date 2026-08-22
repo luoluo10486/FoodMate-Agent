@@ -651,6 +651,11 @@
   stroke-width: 1.7;
 }
 
+.authMark img {
+  width: 22px;
+  height: 22px;
+}
+
 .authWordmark {
   color: #2a3439;
   font-family: 'Montserrat', sans-serif;
