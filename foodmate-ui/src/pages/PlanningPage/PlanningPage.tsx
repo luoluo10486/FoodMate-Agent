@@ -288,7 +288,7 @@ function DefaultPlanningView({ plan }: { plan?: MealPlan }) {
 
   const announce = (message: string) => setNotice(message);
   const planName = plan ? plan.plan_name?.trim() || '餐食计划' : '增肌计划 v3';
-  const calorieTarget = plan?.constraints.calorie_target;
+  const calorieTarget = plan ? plan.constraints.calorie_target : 2400;
   const dayCount = Math.max(schedule.days.length, 1);
   const scheduleColumns = { gridTemplateColumns: `100px repeat(${dayCount}, minmax(0, 1fr))` };
   const dayButtonColumns = { gridTemplateColumns: `repeat(${dayCount}, minmax(0, 1fr))` };
@@ -451,15 +451,15 @@ function PlanSidebar({
               {shoppingList.items.map((item, index) => {
                 const label = shoppingItemLabel(item);
                 return (
-                  <Checkbox
-                    aria-label={label}
-                    checked={Boolean(checkedItems[label])}
-                    className={styles.shoppingItem}
-                    key={`${label}-${index}`}
-                    onCheckedChange={() => toggleShoppingItem(label)}
-                  >
+                  <div className={styles.shoppingRow} key={`${label}-${index}`}>
+                    <Checkbox
+                      aria-label={label}
+                      checked={Boolean(checkedItems[label])}
+                      className={styles.shoppingCheckbox}
+                      onCheckedChange={() => toggleShoppingItem(label)}
+                    />
                     <span>{label}</span>
-                  </Checkbox>
+                  </div>
                 );
               })}
             </div>
@@ -472,15 +472,15 @@ function PlanSidebar({
               <h3>{group.label}</h3>
               <div className={styles.shoppingItems}>
                 {group.items.map((item) => (
-                  <Checkbox
-                    aria-label={item}
-                    checked={Boolean(checkedItems[item])}
-                    className={styles.shoppingItem}
-                    key={item}
-                    onCheckedChange={() => toggleShoppingItem(item)}
-                  >
+                  <div className={styles.shoppingRow} key={item}>
+                    <Checkbox
+                      aria-label={item}
+                      checked={Boolean(checkedItems[item])}
+                      className={styles.shoppingCheckbox}
+                      onCheckedChange={() => toggleShoppingItem(item)}
+                    />
                     <span>{item}</span>
-                  </Checkbox>
+                  </div>
                 ))}
               </div>
             </div>

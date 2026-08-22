@@ -1,6 +1,6 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-18
+更新时间：2026-08-23
 
 ## 1. 结论
 
@@ -53,7 +53,7 @@
 | Agent Chat | `640:428` | 1440×1024 | 24.19% | 16.51 | `DIFF_REVIEW` |
 | Diet Records | `640:588` | 1440×1024 | 37.94% | 17.38 | `DIFF_REVIEW` |
 | Intake Analysis | `640:773` | 1440×1024 | 28.07% | 18.50 | `DIFF_REVIEW` |
-| Meal Planning | `640:901` | 1440×1024 | 24.50% | 16.00 | `DIFF_REVIEW` |
+| Meal Planning | `640:901` | 1440×1024 | 23.83% | 16.80 | `DIFF_REVIEW` |
 | Admin Overview | `995:977` | 1440×1024 | 33.57% | 19.58 | `DIFF_REVIEW` |
 | Admin Tool Registry | `692:3847` | 1440×1024 | 21.43% | 18.84 | `DIFF_REVIEW` |
 | Admin Deleted Resources | `692:4104` | 1440×1024 | 79.34% | 21.09 | `DIFF_REVIEW` |
@@ -483,3 +483,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；仅保留用于 Figma 垂直布局对齐的空白占位，未修改 Figma 设计稿；其它圆形业务控件未按窗口装饰点处理。
 - [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=396008`、差异比例 `26.8560%`、`MAE=3.2500`、`RMSE=17.4654`、最大通道差异 `234`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；图标处理、字体光栅化和主体视觉处理仍有可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+
+## 61. 2026-08-23 Meal Planning 当前版本验收证据更新
+
+- [x] `640:901` `/planning?state=v2` 已使用当前 Figma 截图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-v2-current.png`，浏览器证据为同尺寸 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-browser-current-rgba.png`。
+- [x] 浏览器运行时实测视口为 `1440×1024`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出；默认目标文案为 `2,400千卡`，购物清单复选框为独立 `14×14px` 控件。
+- [x] 前端左上角红、黄、绿窗口装饰点检查结果为 `0`，因此没有对应代码需要删除；首页活跃会话中的 `sessionDot` 属于业务状态指示器，不属于窗口装饰点，保留不变；Figma 设计稿未修改。
+- [x] 当前 PNG diff：差异比例 `23.8253%`、`MAE=3.0472`、`RMSE=16.8015`、最大通道差异 `234`；机器结果锚点为 `figma-105-diff-results.json#meal-planning-v2`。
+- [ ] 本页继续保持 `DIFF_REVIEW`；计划工具栏、导航、餐卡几何、字体和内容密度仍存在视觉差异，不能标记 `PASS`。
