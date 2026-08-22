@@ -4,12 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.common.port.out.ObjectStoragePort;
+import com.foodmate.application.retention.port.out.DataRetentionDatabasePurgePort;
 import com.foodmate.application.retention.port.out.DataRetentionRepository.PurgeTaskSnapshot;
 import com.foodmate.application.retention.service.DataRetentionDeliveryService;
 import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -20,6 +22,7 @@ public class DataRetentionTaskPublisher {
     private final DataRetentionDeliveryService service;
     private final ObjectStoragePort storage;
     private final MessagePublisherPort publisher;
+    private final DataRetentionDatabasePurgePort databasePurge;
     private final ObjectMapper mapper;
     private final boolean enabled;
     private final boolean rocketMq;
@@ -32,13 +35,52 @@ public class DataRetentionTaskPublisher {
             @Value("${foodmate.retention.execution.enabled:false}") boolean enabled,
             @Value("${foodmate.runtime.transport:http}") String transport,
             @Value("${foodmate.storage.bucket:foodmate-private}") String bucket) {
+        this(
+                service,
+                storage,
+                publisher,
+                (DataRetentionDatabasePurgePort) null,
+                enabled,
+                transport,
+                bucket);
+    }
+
+    /** Constructor used by business tests that provide a database purge port directly. */
+    public DataRetentionTaskPublisher(
+            DataRetentionDeliveryService service,
+            ObjectProvider<ObjectStoragePort> storage,
+            ObjectProvider<MessagePublisherPort> publisher,
+            DataRetentionDatabasePurgePort databasePurge,
+            boolean enabled,
+            String transport,
+            String bucket) {
         this.service = service;
         this.storage = storage.getIfAvailable();
         this.publisher = publisher.getIfAvailable();
+        this.databasePurge = databasePurge;
         this.mapper = new ObjectMapper();
         this.enabled = enabled;
         this.rocketMq = "rocketmq".equals(transport);
         this.bucket = requireBucket(bucket);
+    }
+
+    @Autowired
+    public DataRetentionTaskPublisher(
+            DataRetentionDeliveryService service,
+            ObjectProvider<ObjectStoragePort> storage,
+            ObjectProvider<MessagePublisherPort> publisher,
+            ObjectProvider<DataRetentionDatabasePurgePort> databasePurge,
+            @Value("${foodmate.retention.execution.enabled:false}") boolean enabled,
+            @Value("${foodmate.runtime.transport:http}") String transport,
+            @Value("${foodmate.storage.bucket:foodmate-private}") String bucket) {
+        this(
+                service,
+                storage,
+                publisher,
+                databasePurge.getIfAvailable(),
+                enabled,
+                transport,
+                bucket);
     }
 
     @Scheduled(fixedDelayString = "${foodmate.retention.execution-poll-ms:1000}")
@@ -46,7 +88,6 @@ public class DataRetentionTaskPublisher {
         if (!enabled) return;
         for (PurgeTaskSnapshot task : service.pending(20)) {
             if (!task.hardDeleteEnabled()) continue;
-            if ("database".equals(task.taskType())) continue;
             String owner = "retention_" + UUID.randomUUID();
             if (service.lease(task.taskId(), owner, task.resourceType(), task.resourceId()) != 1)
                 continue;
@@ -55,6 +96,8 @@ public class DataRetentionTaskPublisher {
                     executeObjectDelete(task, owner);
                 } else if ("vector_index".equals(task.taskType())) {
                     publishVectorDelete(task, owner);
+                } else if ("database".equals(task.taskType())) {
+                    executeDatabasePurge(task, owner);
                 } else {
                     throw new IllegalArgumentException("retention task type is invalid");
                 }
@@ -63,6 +106,14 @@ public class DataRetentionTaskPublisher {
                         task.taskId(), owner, "RETENTION_TASK_FAILED", safeMessage(exception));
             }
         }
+    }
+
+    private void executeDatabasePurge(PurgeTaskSnapshot task, String owner) {
+        if (databasePurge == null) {
+            throw new IllegalStateException("database purge is unavailable");
+        }
+        databasePurge.purge(task.resourceType(), task.resourceId());
+        service.succeeded(task.taskId(), owner, "", "");
     }
 
     private void executeObjectDelete(PurgeTaskSnapshot task, String owner) {

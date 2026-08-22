@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.foodmate.application.common.port.out.ObjectStoragePort;
 import com.foodmate.application.retention.messaging.DataRetentionTaskPublisher;
+import com.foodmate.application.retention.port.out.DataRetentionDatabasePurgePort;
 import com.foodmate.application.retention.port.out.DataRetentionRepository;
 import com.foodmate.application.retention.service.DataRetentionDeliveryService;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
@@ -158,29 +159,34 @@ class DataRetentionTaskPublisherTest {
     }
 
     @Test
-    void databaseTaskRemainsPendingUntilTheDeferredHardDeleteMilestone() {
+    void databaseTaskIsPurgedWhenHardDeleteIsEnabled() {
         DataRetentionDeliveryService service = Mockito.mock(DataRetentionDeliveryService.class);
+        DataRetentionDatabasePurgePort database =
+                Mockito.mock(DataRetentionDatabasePurgePort.class);
         DataRetentionRepository.PurgeTaskSnapshot task =
                 snapshot(
                         105L,
                         "database",
                         null,
-                        "{\"resource_type\":\"knowledge_document\",\"resource_id\":42}");
+                        "{\"resource_type\":\"knowledge_document\",\"resource_id\":42}",
+                        true);
         when(service.pending(20)).thenReturn(List.of(task));
+        when(service.lease(eq(105L), anyString(), eq("knowledge_document"), eq(42L))).thenReturn(1);
 
         DataRetentionTaskPublisher publisher =
                 new DataRetentionTaskPublisher(
                         service,
                         provider(null),
                         provider(null),
+                        database,
                         true,
                         "rocketmq",
                         "foodmate-private");
 
         publisher.publishPending();
 
-        verify(service, never()).lease(any(Long.class), anyString(), anyString(), any(Long.class));
-        verify(service, never()).retry(any(Long.class), anyString(), anyString(), anyString());
+        verify(database).purge("knowledge_document", 42L);
+        verify(service).succeeded(eq(105L), anyString(), eq(""), eq(""));
     }
 
     @Test

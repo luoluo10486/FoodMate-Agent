@@ -50,7 +50,7 @@ public interface DataRetentionMapper {
     int insertPurgeTask(@Param("task") DataRetentionRepository.PurgeTask task);
 
     @Select(
-            "SELECT t.task_id AS taskId,t.request_id AS requestId,r.resource_type AS resourceType,r.resource_id AS resourceId,t.task_type AS taskType,t.topic,t.target_ref::text AS targetRef,t.status,p.hard_delete_enabled AS hardDeleteEnabled FROM data_purge_tasks t JOIN data_purge_requests r ON r.request_id=t.request_id JOIN data_retention_policies p ON p.policy_id=r.policy_id WHERE t.next_attempt_at<=CURRENT_TIMESTAMP AND ((t.status='pending') OR (t.status='leased' AND t.lease_until<CURRENT_TIMESTAMP)) ORDER BY t.created_at LIMIT #{limit}")
+            "SELECT t.task_id AS taskId,t.request_id AS requestId,r.resource_type AS resourceType,r.resource_id AS resourceId,t.task_type AS taskType,t.topic,t.target_ref::text AS targetRef,t.status,p.hard_delete_enabled AS hardDeleteEnabled FROM data_purge_tasks t JOIN data_purge_requests r ON r.request_id=t.request_id JOIN data_retention_policies p ON p.policy_id=r.policy_id WHERE t.next_attempt_at<=CURRENT_TIMESTAMP AND ((t.status='pending') OR (t.status='leased' AND t.lease_until<CURRENT_TIMESTAMP)) AND (t.task_type<>'database' OR NOT EXISTS (SELECT 1 FROM data_purge_tasks prerequisite WHERE prerequisite.request_id=t.request_id AND prerequisite.task_type IN ('object_storage','vector_index') AND prerequisite.status<>'succeeded')) ORDER BY t.created_at LIMIT #{limit}")
     java.util.List<DataRetentionRepository.PurgeTaskSnapshot> pendingTasks(
             @Param("limit") int limit);
 
@@ -94,7 +94,7 @@ public interface DataRetentionMapper {
             @Param("errorSummary") String errorSummary);
 
     @Update(
-            "UPDATE data_purge_requests r SET status=CASE WHEN EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status='failed') THEN 'failed' WHEN EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status IN ('published','succeeded')) THEN 'running' ELSE 'approved' END,updated_at=CURRENT_TIMESTAMP WHERE r.request_id=(SELECT request_id FROM data_purge_tasks WHERE task_id=#{taskId}) AND r.status IN ('approved','running')")
+            "UPDATE data_purge_requests r SET status=CASE WHEN EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status='failed') THEN 'failed' WHEN NOT EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status<>'succeeded') THEN 'completed' WHEN EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status IN ('published','succeeded')) THEN 'running' ELSE 'approved' END,completed_at=CASE WHEN NOT EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status<>'succeeded') THEN CURRENT_TIMESTAMP ELSE r.completed_at END,updated_at=CURRENT_TIMESTAMP WHERE r.request_id=(SELECT request_id FROM data_purge_tasks WHERE task_id=#{taskId}) AND r.status IN ('approved','running')")
     void refreshPurgeRequest(@Param("taskId") long taskId);
 
     @Insert(
