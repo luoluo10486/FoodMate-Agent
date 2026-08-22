@@ -411,3 +411,17 @@
 | 重要纠正 | 第一条 AgentRun 因启动命令错误继承 `.env` 云模型路由，实际产生了 1 次云 Composer 和 1 次云 Judge 请求；该结果不计入 deterministic 证据。随后已重启 Python 并显式锁定全部模型 tier 为 `deterministic:local`，后续有效 AgentRun 未调用云模型。 |
 | 未执行范围 | Docker Java/Python 应用镜像因 Docker Hub 网络阻塞未完成构建/启动；真实 embedding API、吞吐/延迟/积压压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递和 SSE `Last-Event-ID` 专项验证继续暂缓 |
 | 结论 | M2-1 deterministic 本地业务闭环的真实上传、索引、发布、检索、AgentRun 引用、下线/恢复业务证据成立；生产强化和用户明确暂缓的测试不计入完成门槛 |
+
+## M2-1 Chat SSE V1 路由收尾（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 04:28-04:35（Asia/Shanghai） |
+| 分支与提交 | `codex/m2-remaining-business`；`c37a2fc 修复(运行时): 统一V1聊天SSE回放入口` |
+| 代码变更 | `/api/chat/runs/{runId}/stream` 对已存在的数值型 V1 Run 分流到持久化 `V1RuntimeEventService`；保留旧字符串 Run 的 RuntimeGateway 内存订阅路径；新增 `RunStreamControllerTest` |
+| Java 定向验证 | `mvnw.cmd -pl foodmate-api -am test -Dtest=RunStreamControllerTest,ChatControllerTest -Dsurefire.failIfNoSpecifiedTests=false`：3/3 通过；`mvnw.cmd -pl foodmate-bootstrap -am package -DskipTests`：构建通过 |
+| 真实业务验证 | 本地随机账号创建 deterministic AgentRun `349652008543719424`，最终状态 `completed`；请求 `/api/chat/runs/349652008543719424/stream` 携带 `Last-Event-ID: 5`，成功回放 `run.completed`，返回稳定 `sse_*` 事件 ID；Run 事件总数为 6，未出现 `runId does not exist`、重复终态或 SSE 缺口 |
+| 运行环境 | Windows、Java 21、宿主 Java `18080`、宿主 Python Runtime `19000`、Docker PostgreSQL/Redis/RocketMQ 依赖；模型 tier 固定 `deterministic:local`，未调用付费模型或真实 embedding API |
+| 清理 | 精确删除本轮用户 `349652007885213696`、Session `349652008514359296`、Run `349652008543719424`、消息 `349652008778600448` 及关联 Inbox/Outbox/SSE/审计；Redis checkpoint 2 个键删除；SQL 复核 users/sessions/runs/messages/audits 均为 0；删除本轮 Python 启动脚本和日志 |
+| 未执行范围 | 吞吐/延迟/积压压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、真实云模型/Embedding、Docker 应用镜像和生产环境继续暂缓 |
+| 结论 | Chat 兼容入口现在能够复用 V1 持久化 SSE 回放服务；本轮只补齐业务正确性证据，不将 Last-Event-ID 业务回放扩大解释为故障恢复矩阵完成 |
