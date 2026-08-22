@@ -69,7 +69,8 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 row.status(),
                 row.scope(),
                 row.owner(),
-                row.lastCalledAt());
+                row.lastCalledAt(),
+                row.revision());
     }
 
     private static Usage usage(AdminDashboardRepository.UsageRow row) {
@@ -88,6 +89,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 row.documentId(),
                 row.title(),
                 row.status(),
+                row.visibility(),
                 row.chunks(),
                 row.owner(),
                 row.source(),

@@ -302,7 +302,27 @@ def _await_result(proposal_id: str, timeout_seconds: float) -> dict:
         return _result_waiters.pop(proposal_id)
 
 
-def _save_tool_wait_checkpoint(command: dict, proposals: list[dict]) -> dict[str, object]:
+def _enrich_tool_result(result: dict, proposal: dict) -> dict:
+    """Attach only proposal metadata needed by the follow-up Composer."""
+    enriched = dict(result)
+    tool_name = str(proposal.get("tool_name") or "")
+    if tool_name and not enriched.get("tool_name"):
+        enriched["tool_name"] = tool_name
+    if tool_name == "database_query":
+        raw_plan = proposal.get("input") or {}
+        enriched["query_plan"] = {
+            "intent": raw_plan.get("intent"),
+            "time_range": raw_plan.get("time_range"),
+            "metrics": list(raw_plan.get("metrics") or ()),
+            "dimensions": list(raw_plan.get("dimensions") or ()),
+            "filters": dict(raw_plan.get("filters") or {}),
+        }
+    return enriched
+
+
+def _save_tool_wait_checkpoint(
+    command: dict, proposals: list[dict], completed_invocation_ids: list[str] | None = None
+) -> dict[str, object]:
     """Persist the only resumable boundary before a Java-owned tool invocation."""
     budget = ((command.get("runtime_options") or {}).get("budget_snapshot") or command.get("budget_snapshot") or {})
     checkpoint = {
@@ -315,7 +335,7 @@ def _save_tool_wait_checkpoint(command: dict, proposals: list[dict]) -> dict[str
         "current_node": "tool_wait",
         "deadline_at": command["deadline_at"],
         "budget_revision": int(budget.get("revision", 1)),
-        "completed_invocation_ids": [],
+        "completed_invocation_ids": list(completed_invocation_ids or []),
         "pending_proposals": proposals,
         "event_seq": 1,
     }
@@ -412,10 +432,19 @@ def execute(command):
             str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
         )
         execution = run_deterministic(execution_command, _checkpoint)
-        if execution.proposals:
+        all_results: list[dict] = []
+        while execution.proposals:
             if _proposal_publisher is None:
                 raise RuntimeError("TOOL_RUNTIME_UNAVAILABLE")
-            checkpoint_payload = _save_tool_wait_checkpoint(command, execution.proposals)
+            checkpoint_payload = _save_tool_wait_checkpoint(
+                command,
+                execution.proposals,
+                [
+                    str(item["invocation_id"])
+                    for item in all_results
+                    if item.get("invocation_id")
+                ],
+            )
             emit(command, prefix + "-checkpoint", next_sequence, "run.checkpoint_saved", checkpoint_payload)
             next_sequence += 1
             # 仅用于本地故障演练：暂停点让测试可以在 checkpoint 已落 Redis、Tool 尚未发送前终止进程。
@@ -439,6 +468,7 @@ def execute(command):
                     proposal["proposal_id"],
                     float(os.getenv("FOODMATE_AGENT_TOOL_RESULT_TIMEOUT_SECONDS", "30")),
                 )
+                result = _enrich_tool_result(result, proposal)
                 results.append(result)
                 emit(command, prefix + "-tool-finished-" + str(proposal["proposal_id"]), next_sequence,
                      "run.tool_finished", {
@@ -448,13 +478,24 @@ def execute(command):
                          "error_code": result.get("error_code"),
                      })
                 next_sequence += 1
-            _mark_tool_results_applied(command, results)
+            all_results.extend(results)
+            _mark_tool_results_applied(command, all_results)
             resumed = dict(command)
             resumed["_checkpoint_key"] = (
                 str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
             )
             authorized = dict(resumed.get("authorized_context") or {})
-            authorized["tool_results"] = results
+            authorized["tool_results"] = all_results
+            query_result = next(
+                (
+                    item
+                    for item in reversed(all_results)
+                    if item.get("tool_name") == "database_query"
+                ),
+                None,
+            )
+            if query_result and query_result.get("query_plan"):
+                authorized["database_query_plan"] = query_result["query_plan"]
             resumed["authorized_context"] = authorized
             follow_up = run_deterministic(resumed, _checkpoint)
             follow_up.model_attempts = execution.model_attempts + follow_up.model_attempts
@@ -543,18 +584,38 @@ def _attach_public_citations(command: dict) -> dict:
         authorized["citations"] = []
     else:
         try:
-            settings = RagSettings.from_environment()
             query = str((command.get("message") or {}).get("content", ""))
-            citations = (
-                RedisStubIndex().search(query, PUBLIC_SCOPE)
-                if settings.mode == "stub"
-                else MilvusIndex(settings).search(query, OpenAICompatibleEmbedder(settings), PUBLIC_SCOPE)
-            )
-            authorized["citations"] = [{"citation_id": item.chunk_id, "document_id": item.document_id, "title": item.title, "version": item.version, "section_path": item.section_path, "snippet": item.snippet} for item in citations]
+            authorized["citations"] = _citation_payload(_search_public_knowledge(query))
         except (RagError, RuntimeError):
             authorized["citations"] = []
     copy = dict(command); copy["authorized_context"] = authorized
     return copy
+
+
+def _search_public_knowledge(query: str):
+    """Search only the Java-authorized public scope in the configured backend."""
+    settings = RagSettings.from_environment()
+    return (
+        RedisStubIndex().search(query, PUBLIC_SCOPE)
+        if settings.mode == "stub"
+        else MilvusIndex(settings).search(
+            query, OpenAICompatibleEmbedder(settings), PUBLIC_SCOPE
+        )
+    )
+
+
+def _citation_payload(citations) -> list[dict[str, str]]:
+    return [
+        {
+            "citation_id": item.chunk_id,
+            "document_id": item.document_id,
+            "title": item.title,
+            "version": item.version,
+            "section_path": item.section_path,
+            "snippet": item.snippet,
+        }
+        for item in citations
+    ]
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -571,7 +632,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         is_dispatch = self.path == "/foodmate/internal/v1/runs"
         is_cancel = self.path.startswith("/foodmate/internal/v1/runs/") and self.path.endswith("/cancel")
-        if not is_dispatch and not is_cancel:
+        is_knowledge_search = self.path == "/foodmate/internal/v1/knowledge/search"
+        if not is_dispatch and not is_cancel and not is_knowledge_search:
             self.send_error(404)
             return
         if not self._authenticated() or self.headers.get("X-Contract-Version", CONTRACT_VERSION) != CONTRACT_VERSION:
@@ -581,10 +643,34 @@ class Handler(BaseHTTPRequestHandler):
             command = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
             if is_dispatch:
                 self._dispatch(command)
+            elif is_knowledge_search:
+                self._knowledge_search(command)
             else:
                 self._cancel(command, self.path.split("/")[-2])
         except (KeyError, ValueError, json.JSONDecodeError):
             self._json(400, {"code": "RUNTIME_CONTRACT_INVALID"})
+
+    def _knowledge_search(self, command):
+        if not isinstance(command, dict):
+            self._json(400, {"code": "RUNTIME_CONTRACT_INVALID"})
+            return
+        if command.get("knowledge_scope") != PUBLIC_SCOPE:
+            self._json(403, {"code": "RAG_SCOPE_DENIED"})
+            return
+        query = command.get("query")
+        if not isinstance(query, str) or not query.strip() or len(query) > 2000:
+            self._json(400, {"code": "RAG_QUERY_INVALID"})
+            return
+        try:
+            citations = _search_public_knowledge(query.strip())
+        except RagError as error:
+            status = 403 if error.code == "RAG_SCOPE_DENIED" else 503
+            self._json(status, {"code": error.code})
+            return
+        self._json(
+            200,
+            {"knowledge_scope": PUBLIC_SCOPE, "citations": _citation_payload(citations)},
+        )
 
     def _dispatch(self, command):
         for required in ("run_id", "dispatch_id", "deadline_at", "attempt"):
@@ -622,7 +708,13 @@ class Handler(BaseHTTPRequestHandler):
         authorization = self.headers.get("Authorization", "")
         if not authorization.startswith("Bearer "):
             return False
-        required_scope = "runtime:dispatch" if self.path.endswith("/runs") else "runtime:cancel"
+        required_scope = (
+            "runtime:dispatch"
+            if self.path.endswith("/runs")
+            else "runtime:knowledge-search"
+            if self.path == "/foodmate/internal/v1/knowledge/search"
+            else "runtime:cancel"
+        )
         return _verify(authorization[7:], "foodmate-control-plane", "foodmate-agent-runtime", required_scope)
 
     def _json(self, status, value):

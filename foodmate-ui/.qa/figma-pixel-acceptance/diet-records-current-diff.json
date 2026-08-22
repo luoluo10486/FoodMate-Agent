@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-08-22",
+  "tool": "scripts/png-diff.mjs",
+  "capture": {
+    "viewport": "1440x1024",
+    "dpr": 1.0000000149011612,
+    "fonts": "loaded",
+    "textOverflow": 0,
+    "layoutOverflow": 0
+  },
+  "results": {
+    "diet-records-loading": {
+      "status": "COMPARED",
+      "width": 1440,
+      "height": 1024,
+      "pixelCount": 1474560,
+      "differentPixels": 388587,
+      "differentRatio": 0.2635274251302083,
+      "meanAbsoluteError": 2.8032930162217884,
+      "rmse": 14.631144520533587,
+      "maxChannelDelta": 247
+    },
+    "diet-records-empty": {
+      "status": "COMPARED",
+      "width": 1440,
+      "height": 1024,
+      "pixelCount": 1474560,
+      "differentPixels": 236257,
+      "differentRatio": 0.16022203233506943,
+      "meanAbsoluteError": 2.5943389892578126,
+      "rmse": 16.148160293087166,
+      "maxChannelDelta": 247
+    },
+    "diet-records-error": {
+      "status": "COMPARED",
+      "width": 1440,
+      "height": 1024,
+      "pixelCount": 1474560,
+      "differentPixels": 275730,
+      "differentRatio": 0.18699137369791666,
+      "meanAbsoluteError": 3.2224497477213543,
+      "rmse": 20.12634241696051,
+      "maxChannelDelta": 247
+    }
+  }
+}

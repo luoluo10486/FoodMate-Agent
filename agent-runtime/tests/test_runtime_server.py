@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 sys.path.append(str(Path(__file__).parents[1]))
 import runtime_server
 from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoint, Plan, Reflector, RouteDecision, StepValidator, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
+from knowledge_rag import Citation, PUBLIC_SCOPE
 from proposal_protocol import Proposal, validate_proposal
 from recovery_protocol import checkpoint_digest, validate_recovery_command
 from langgraph_adapter import build_graph
@@ -70,6 +71,35 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertEqual("UP", payload["status"])
         self.assertEqual("disabled", payload["dependencies"]["redis"]["status"])
+
+    def test_knowledge_search_endpoint_returns_safe_public_citations(self):
+        handler = runtime_server.Handler.__new__(runtime_server.Handler)
+        responses = []
+        handler._json = lambda status, payload: responses.append((status, payload))
+        citation = Citation("42", "Nutrition guide", "v1", "Protein", "emb-1", "safe snippet")
+        with patch.object(runtime_server, "_search_public_knowledge", return_value=[citation]):
+            handler._knowledge_search({"knowledge_scope": PUBLIC_SCOPE, "query": "protein"})
+
+        self.assertEqual(200, responses[0][0])
+        self.assertEqual(PUBLIC_SCOPE, responses[0][1]["knowledge_scope"])
+        self.assertEqual(
+            {
+                "citation_id": "emb-1",
+                "document_id": "42",
+                "title": "Nutrition guide",
+                "version": "v1",
+                "section_path": "Protein",
+                "snippet": "safe snippet",
+            },
+            responses[0][1]["citations"][0],
+        )
+
+    def test_knowledge_search_endpoint_cannot_widen_scope(self):
+        handler = runtime_server.Handler.__new__(runtime_server.Handler)
+        responses = []
+        handler._json = lambda status, payload: responses.append((status, payload))
+        handler._knowledge_search({"knowledge_scope": "private", "query": "protein"})
+        self.assertEqual((403, {"code": "RAG_SCOPE_DENIED"}), responses[0])
 
     def test_missing_parameter_enters_waiting_user_without_answer_body(self):
         events = []
@@ -198,15 +228,85 @@ class RuntimeContractTests(unittest.TestCase):
             {"message_id": ("m1",), "invocation_id": ("inv-1",)},
             tool_results=({"invocation_id": "inv-1", "status": "succeeded", "rows": []},),
         )
-        self.assertEqual(
-            "REFLECTION_TOOL_RESULT_INCOMPLETE",
-            Reflector().reflect("answer", route, incomplete).reason,
-        )
+        self.assertEqual("REFLECTION_PASSED", Reflector().reflect("answer", route, incomplete).reason)
 
     def test_sql_proposal_rejects_write_statement(self):
         proposal = Proposal("p1", "r1", "sql_read", "v1", {"statement": "UPDATE food_logs SET notes='x'", "invocation_id": "inv-1"})
         with self.assertRaisesRegex(ValueError, "SQL_PROPOSAL_NOT_READ_ONLY"):
             validate_proposal(proposal)
+
+    def test_analysis_generates_structured_database_query_proposal(self):
+        execution = run_deterministic({
+            "run_id": "analysis-1",
+            "dispatch_id": "d1",
+            "message": {"content": "分析最近7天蛋白质摄入"},
+            "authorized_context": {"sql_read_request": {"invocation_id": "inv-analysis"}},
+        })
+
+        self.assertEqual(1, len(execution.proposals))
+        proposal = execution.proposals[0]
+        self.assertEqual("tool", proposal["proposal_type"])
+        self.assertEqual("time_parser", proposal["tool_name"])
+        self.assertEqual("Asia/Shanghai", proposal["input"]["timezone"])
+        validate_proposal(Proposal(**proposal))
+
+        completed = {
+            "tool_name": "time_parser",
+            "invocation_id": proposal["payload"]["invocation_id"],
+            "status": "succeeded",
+            "rows": [{"days": 7, "from": "2026-08-15T00:00:00Z", "to": "2026-08-22T00:00:00Z"}],
+        }
+        second = run_deterministic(
+            {
+                "run_id": "analysis-1",
+                "dispatch_id": "d1",
+                "message": {"content": "分析最近7天蛋白质摄入"},
+                "authorized_context": {"tool_results": [completed]},
+            }
+        )
+        self.assertEqual(1, len(second.proposals))
+        database = second.proposals[0]
+        self.assertEqual("database_query", database["tool_name"])
+        self.assertEqual("nutrition_summary", database["input"]["intent"])
+        self.assertEqual(database["payload"]["statement"], database["input"]["candidate_sql"])
+        validate_proposal(Proposal(**database))
+
+    def test_analysis_without_time_range_stops_for_clarification(self):
+        execution = run_deterministic({
+            "run_id": "analysis-clarify",
+            "dispatch_id": "d1",
+            "message": {"content": "分析我的蛋白质摄入"},
+        })
+
+        self.assertEqual("SQL_PLANNER_TIME_RANGE_REQUIRED", execution.eval.reason)
+        self.assertEqual([], execution.proposals)
+
+    def test_analysis_empty_result_has_no_fabricated_trend(self):
+        execution = run_deterministic(
+            {
+                "run_id": "analysis-empty",
+                "dispatch_id": "d1",
+                "message": {"content": "分析最近7天蛋白质摄入"},
+                "authorized_context": {
+                    "database_query_plan": {
+                        "time_range": {"days": "7"},
+                        "metrics": ["protein_g"],
+                        "dimensions": ["meal_time"],
+                    },
+                    "tool_results": [
+                        {
+                            "tool_name": "database_query",
+                            "invocation_id": "inv-dbq",
+                            "status": "succeeded",
+                            "rows": [],
+                            "sql_audit_id": "99",
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertIn("未找到可用的饮食记录", execution.answer)
+        self.assertNotIn("上升趋势", execution.answer)
 
     def test_proposal_requires_invocation_id_and_valid_request_hash(self):
         with self.assertRaisesRegex(ValueError, "PROPOSAL_INVOCATION_ID_REQUIRED"):
@@ -248,6 +348,88 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual("tool_wait", recovery_snapshot[1]["current_node"])
         self.assertEqual(list(range(1, len(emitted) + 1)), [sequence for sequence, _ in emitted])
         self.assertEqual(["run.tool_started", "run.tool_finished"], [event for _, event in emitted[3:5]])
+        self.assertEqual("run.completed", events[-1])
+
+    def test_execute_supports_time_parser_then_database_query_rounds(self):
+        events, published, commands = [], [], []
+        time_proposal = Proposal(
+            "time-proposal",
+            "r1",
+            "tool",
+            "v1",
+            {"invocation_id": "time-inv", "statement": ""},
+            False,
+            tool_name="time_parser",
+            input={"question": "分析最近7天蛋白质摄入", "timezone": "Asia/Shanghai"},
+        ).as_dict()
+        database_proposal = Proposal(
+            "database-proposal",
+            "r1",
+            "tool",
+            "v1",
+            {"invocation_id": "db-inv", "statement": "SELECT protein_g LIMIT 500"},
+            False,
+            tool_name="database_query",
+            input={
+                "intent": "nutrition_summary",
+                "time_range": {"kind": "relative", "days": "7"},
+                "metrics": ["protein_g"],
+                "dimensions": ["meal_time"],
+                "filters": {},
+                "candidate_sql": "SELECT protein_g LIMIT 500",
+                "planner_mode": "stub",
+                "planner_version": "v1",
+            },
+        ).as_dict()
+        route = SimpleNamespace(intent="analysis", complexity="complex", risk_level="low")
+        executions = [
+            SimpleNamespace(
+                proposals=[time_proposal],
+                route=route,
+                model_attempts=[],
+                usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1),
+            ),
+            SimpleNamespace(
+                proposals=[database_proposal],
+                route=route,
+                model_attempts=[],
+                usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1),
+            ),
+            SimpleNamespace(
+                proposals=[],
+                route=route,
+                model_attempts=[],
+                eval=SimpleNamespace(result="pass", reason="ok"),
+                answer="analysis complete",
+                budget_mode="normal",
+                budget_actions={},
+                usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1),
+                workflow={},
+                memory_candidates=[],
+            ),
+        ]
+
+        class Publisher:
+            def publish(self, value):
+                published.append(value)
+                result = {
+                    "proposal_id": value["proposal_id"],
+                    "invocation_id": value["payload"]["invocation_id"],
+                    "request_hash": value["request_hash"],
+                    "status": "succeeded",
+                    "rows": [{"protein_g": 24}] if value["tool_name"] == "database_query" else [{"days": 7}],
+                }
+                runtime_server._on_result(result)
+
+        command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
+        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store: commands.append(value) or executions[len(commands) - 1]), patch.object(
+            runtime_server, "emit", side_effect=lambda *args: events.append(args[3])
+        ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
+            runtime_server.execute(command)
+
+        self.assertEqual([time_proposal, database_proposal], published)
+        self.assertEqual(2, len(commands[2]["authorized_context"]["tool_results"]))
+        self.assertEqual("database_query", commands[2]["authorized_context"]["tool_results"][1]["tool_name"])
         self.assertEqual("run.completed", events[-1])
 
     def test_execute_marks_result_timeout_as_retryable_failure(self):

@@ -59,12 +59,14 @@ export function AdminOperationStatus({
   }
 
   if (status === 'success') {
-    const resultVerb = action?.action === '停用工具' ? '停用' : '启用';
     return (
       <Alert className={`${styles.operationBanner} ${styles.operationSuccessBanner}`}>
         <Info aria-hidden="true" />
         <span>
-          操作成功：工具 {action?.targetLabel} 已成功{resultVerb}
+          操作成功：
+          {action?.action === '停用工具'
+            ? `工具 ${action.targetLabel} 已成功停用`
+            : `${action?.action} ${action?.targetLabel} 已完成`}
         </span>
       </Alert>
     );
@@ -157,17 +159,17 @@ export function AdminOperationStatus({
         aria-describedby="operation-failed-description"
       >
         <DialogHeader className={styles.operationDialogHeader}>
-          <span className={`${styles.operationIconWrapper} ${styles.operationErrorIcon}`}>
+          <span className={`${styles.operationIconWrapper} ${styles.operationWarningIcon}`}>
             <XCircle aria-hidden="true" />
           </span>
           <DialogTitle>操作失败</DialogTitle>
         </DialogHeader>
         <DialogDescription asChild id="operation-failed-description" className={styles.operationDialogBody}>
           <div>
-            <p>{error?.message ?? '操作未完成，请检查服务状态后重试。'}</p>
-            <p className={styles.operationDialogMuted}>
-              请求发送后，healthy-cluster-0 节点未能及时返回响应。当前配置未改变，请稍后重试。
+            <p>
+              <strong>{error?.message ?? '操作未完成，请检查服务状态后重试。'}</strong>
             </p>
+            <p className={styles.operationDialogMuted}>服务端未确认本次变更，当前配置未改变。请检查错误码后重试。</p>
             <div className={styles.operationDebugBox}>
               <span>ERROR_CODE: {error?.code ?? 'REGISTRY_TIMEOUT_504'}</span>
               <span>REQUEST_ID: {error?.requestId ?? 'req-foodmate-9082ac918'}</span>
@@ -176,7 +178,7 @@ export function AdminOperationStatus({
         </DialogDescription>
         <DialogFooter className={styles.operationDialogActions}>
           <Button variant="outline" onClick={onDismiss}>
-            关闭
+            取消
           </Button>
           <Button className={styles.operationPrimaryButton} onClick={onRetry}>
             <RefreshCw aria-hidden="true" />

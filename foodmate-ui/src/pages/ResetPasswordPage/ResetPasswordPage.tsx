@@ -45,27 +45,29 @@ export function ResetPasswordPage() {
       <AuthCard className={styles.resetCard}>
         <AuthBrand title="重置密码" subtitle="请输入你的新密码" />
         <form className={styles.authForm} onSubmit={submit}>
-          <PasswordField
-            label="新密码"
-            name="password"
-            autoComplete="new-password"
-            placeholder="StrongPass99"
-            value={values.password}
-            show={showPassword}
-            onToggle={() => setShowPassword((current) => !current)}
-            onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))}
-          />
-          <PasswordField
-            label="确认新密码"
-            name="confirmPassword"
-            autoComplete="new-password"
-            placeholder="StrongPass99"
-            value={values.confirmPassword}
-            show={showConfirmPassword}
-            onToggle={() => setShowConfirmPassword((current) => !current)}
-            onChange={(event) => setValues((current) => ({ ...current, confirmPassword: event.target.value }))}
-          />
-          <div className={styles.passwordStrength}>
+          <div className={styles.resetFields} data-node-id="680:318">
+            <PasswordField
+              label="新密码"
+              name="password"
+              autoComplete="new-password"
+              placeholder="StrongPass99"
+              value={values.password}
+              show={showPassword}
+              onToggle={() => setShowPassword((current) => !current)}
+              onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))}
+            />
+            <PasswordField
+              label="确认新密码"
+              name="confirmPassword"
+              autoComplete="new-password"
+              placeholder="StrongPass99"
+              value={values.confirmPassword}
+              show={showConfirmPassword}
+              onToggle={() => setShowConfirmPassword((current) => !current)}
+              onChange={(event) => setValues((current) => ({ ...current, confirmPassword: event.target.value }))}
+            />
+          </div>
+          <div className={styles.passwordStrength} data-node-id="680:331">
             <div>
               <span>密码强度</span>
               <strong>高安全</strong>
@@ -77,7 +79,7 @@ export function ResetPasswordPage() {
               <i />
             </div>
           </div>
-          <div className={styles.authActionStack}>
+          <div className={styles.authActionStack} data-node-id="680:340">
             <AuthSubmit disabled={submitting}>{submitting ? '重置中...' : '确认重置'}</AuthSubmit>
             <Button className={styles.authBackLink} variant="ghost" type="button" onClick={() => navigate('/login')}>
               返回登录

@@ -109,9 +109,8 @@ function ToolRegistrySection({
   operationStatus?: AdminOperationState;
   refreshNonce?: number;
 }) {
-  const [tools, setTools] = useState<ToolRegistryRow[]>(
-    import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminToolRegistryRows,
-  );
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
+  const [tools, setTools] = useState<ToolRegistryRow[]>(isRealMode ? [] : adminToolRegistryRows);
   const [statusFilter, setStatusFilter] = useState('all');
   const [riskFilter, setRiskFilter] = useState('all');
   const [scopeFilter, setScopeFilter] = useState('all');
@@ -128,7 +127,7 @@ function ToolRegistrySection({
       targetType: 'tool',
       targetId: record.name,
       execute: async () => {
-        await updateAdminToolStatus(record.name, nextStatus);
+        await updateAdminToolStatus(record.name, nextStatus, record.revision ?? 1);
       },
       onApply: () => {
         setTools((current) =>
@@ -139,11 +138,11 @@ function ToolRegistrySection({
   };
 
   useEffect(() => {
-    if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
+    if (!isRealMode) return;
     loadAdminDashboard()
       .then((dashboard) => setTools(dashboard.tools.map(registryRowFromTool)))
       .catch(() => setTools([]));
-  }, [refreshNonce]);
+  }, [isRealMode, refreshNonce]);
 
   const filteredTools = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -167,7 +166,9 @@ function ToolRegistrySection({
         return (
           <span className={styles.registryNameCell}>
             <strong>{name}</strong>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               className={styles.registryCopyButton}
               type="button"
               aria-label={`复制 ${name}`}
@@ -175,7 +176,7 @@ function ToolRegistrySection({
               title={`复制 ${name}`}
             >
               <Copy aria-hidden="true" />
-            </button>
+            </Button>
           </span>
         );
       },
@@ -246,9 +247,9 @@ function ToolRegistrySection({
     },
   ];
 
-  const totalResults =
-    query || statusFilter !== 'all' || riskFilter !== 'all' || scopeFilter !== 'all' ? filteredTools.length : 24;
-  const visibleResults = filteredTools.slice(0, 6);
+  const hasFilter = Boolean(query.trim()) || statusFilter !== 'all' || riskFilter !== 'all' || scopeFilter !== 'all';
+  const totalResults = isRealMode || hasFilter ? filteredTools.length : 24;
+  const visibleResults = filteredTools.slice((page - 1) * 6, page * 6);
 
   return (
     <>
@@ -318,7 +319,14 @@ function ToolRegistrySection({
       </section>
 
       <section className={styles.registryStats} aria-label="工具注册表指标">
-        {registryMetrics.map((metric, index) => (
+        {(isRealMode
+          ? [
+              { label: '已注册工具', value: `${tools.length} 个` },
+              { label: '高风险运行限制', value: `${tools.filter((tool) => tool.risk === 'high').length} 个` },
+              { label: '今日 API 调用', value: '服务端未提供' },
+            ]
+          : registryMetrics
+        ).map((metric, index) => (
           <Card className={`${styles.registryStatCard} ${styles[`registryStat${index}`]}`} key={metric.label}>
             <span>{metric.label}</span>
             <strong>{metric.value}</strong>
@@ -482,7 +490,11 @@ function ToolCallsSection({
                 targetType: 'tool',
                 targetId: record.name,
                 execute: async () => {
-                  await updateAdminToolStatus(record.name, record.status === 'active' ? 'disabled' : 'active');
+                  await updateAdminToolStatus(
+                    record.name,
+                    record.status === 'active' ? 'disabled' : 'active',
+                    record.revision ?? 1,
+                  );
                 },
                 onApply: () => {
                   record.status = record.status === 'active' ? 'disabled' : 'active';

@@ -66,9 +66,14 @@
   margin: 0;
   color: #333333;
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
   line-height: 1.2;
+}
+
+.listHeader h1,
+.shoppingHeader h1 {
+  font-size: 24px;
 }
 
 .listHeader p,
@@ -91,7 +96,9 @@
 }
 
 .listTabs button {
+  height: auto;
   min-height: 34px;
+  min-width: 0;
   padding: 8px 16px;
   border: 0;
   border-radius: 8px;
@@ -323,6 +330,8 @@
 
 .stepperStep {
   display: inline-flex;
+  height: 32px;
+  min-height: 32px;
   min-width: 0;
   align-items: center;
   gap: 12px;
@@ -330,6 +339,7 @@
   border: 0;
   background: transparent;
   color: #6b7280;
+  font: inherit;
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 15px;
   font-weight: 500;
@@ -439,7 +449,7 @@
 
 .field input,
 .unitInput,
-.selectWrap select {
+.cuisineSelect {
   height: 42px;
   border: 0;
   border-radius: 8px;
@@ -455,7 +465,7 @@
 }
 
 .field input:focus-visible,
-.selectWrap select:focus-visible {
+.cuisineSelect:focus-visible {
   outline: 2px solid rgba(166, 217, 151, 0.75);
   outline-offset: 1px;
 }
@@ -561,6 +571,9 @@
 
 .checkChip {
   display: inline-flex;
+  height: auto;
+  width: auto;
+  min-width: max-content;
   min-height: 32px;
   align-items: center;
   gap: 8px;
@@ -572,18 +585,9 @@
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 12px;
   font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
   cursor: pointer;
-}
-
-.checkChip input,
-.radioOption input,
-.shoppingRow input,
-.selectAll input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .checkChipActive {
@@ -604,13 +608,29 @@
   color: #89b27c;
 }
 
-.checkChipActive .checkboxMark,
-.shoppingRow:has(input:checked) .checkboxMark,
-.selectAll:has(input:checked) .checkboxMark {
+.checkChip > [data-slot='checkbox-indicator'],
+.shoppingRow > [data-slot='checkbox-indicator'],
+.selectAll > [data-slot='checkbox-indicator'] {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1.5px solid #f4f6f5;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #89b27c;
+}
+
+.checkChip[data-state='checked'] > [data-slot='checkbox-indicator'],
+.shoppingRow[data-state='checked'] > [data-slot='checkbox-indicator'],
+.selectAll[data-state='checked'] > [data-slot='checkbox-indicator'] {
   border-color: #89b27c;
 }
 
-.checkboxMark svg {
+.checkChip > [data-slot='checkbox-indicator'] svg,
+.shoppingRow > [data-slot='checkbox-indicator'] svg,
+.selectAll > [data-slot='checkbox-indicator'] svg {
   width: 12px;
   height: 12px;
   stroke-width: 3;
@@ -619,6 +639,7 @@
 .allergyChip,
 .addAllergy {
   display: inline-flex;
+  height: 26px;
   min-height: 26px;
   align-items: center;
   gap: 4px;
@@ -647,21 +668,19 @@
   position: relative;
 }
 
-.selectWrap select {
+.cuisineSelect {
   width: 100%;
-  appearance: none;
-  padding: 0 36px 0 12px;
+  padding: 0 12px;
+  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  text-align: left;
 }
 
-.selectWrap svg {
-  position: absolute;
-  top: 50%;
-  right: 12px;
+.cuisineSelect > svg {
   width: 14px;
   height: 14px;
   color: #6b7280;
-  pointer-events: none;
-  transform: translateY(-50%);
 }
 
 .wizardIntro {
@@ -999,23 +1018,40 @@
   color: #59665e;
   font-size: 11px;
   line-height: 1.35;
-  cursor: pointer;
 }
 
-.radioOption::before {
+.radioGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.radioOption > [data-slot='radio-group-item'] {
+  display: grid;
   width: 9px;
   height: 9px;
   flex: 0 0 auto;
+  padding: 0;
   border: 2px solid #f4f6f5;
   border-radius: 50%;
   background: #ffffff;
-  content: '';
+  color: #ffda93;
+  cursor: pointer;
 }
 
-.radioOption:has(input:checked)::before {
+.radioOption > [data-slot='radio-group-item'][data-state='checked'] {
   border-color: #ffda93;
-  background: #ffda93;
-  box-shadow: inset 0 0 0 2px #ffffff;
+}
+
+.radioOption > [data-slot='radio-group-item'] svg {
+  width: 5px;
+  height: 5px;
+  color: #ffda93;
+  fill: #ffda93;
+}
+
+.radioOption > label {
+  min-width: 0;
+  cursor: pointer;
 }
 
 .applyConflict {
@@ -1130,17 +1166,22 @@
 .shoppingRow {
   position: relative;
   display: flex;
+  width: 100%;
   min-width: 0;
   min-height: 54px;
   align-items: center;
   gap: 12px;
   padding: 12px;
+  border: 0;
   border-radius: 8px;
   background: #f4f6f5;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-.shoppingRow:has(input:checked) .checkboxMark {
+.shoppingRow[data-state='checked'] > [data-slot='checkbox-indicator'] {
   border-width: 2px;
   background: #ffffff;
 }
@@ -1206,12 +1247,17 @@
 
 .selectAll {
   display: inline-flex;
-  min-width: 0;
+  height: auto;
+  width: auto;
+  min-width: max-content;
   align-items: center;
   gap: 8px;
   color: #333333;
+  font: inherit;
   font-size: 14px;
   font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -1266,8 +1312,8 @@
 
 .generatingRing {
   display: grid;
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   place-items: center;
   border-radius: 50%;
   background: conic-gradient(#89b27c 0deg 216deg, #f1f7ef 216deg 360deg);
@@ -1275,8 +1321,8 @@
 
 .generatingRing::before {
   position: absolute;
-  width: 78px;
-  height: 78px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   background: #ffffff;
   content: '';

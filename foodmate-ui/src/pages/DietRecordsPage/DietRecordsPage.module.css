@@ -1,4 +1,5 @@
 .page {
+  position: relative;
   min-width: 0;
   min-height: calc(100dvh - 68px);
   height: 100%;
@@ -464,9 +465,13 @@
 
 .addFoodButton,
 .entryActions button {
+  height: auto;
+  min-height: 0;
+  min-width: 0;
   line-height: 17px;
   padding: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
   color: #c79654;
   font-family: var(--fm-font);
@@ -563,9 +568,12 @@
   display: grid;
   width: 16px;
   height: 16px;
+  min-width: 16px;
+  min-height: 16px;
   place-items: center;
   padding: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--fm-muted);
   cursor: pointer;
@@ -591,6 +599,52 @@
   background: #fafcfa;
   font-family: var(--fm-font);
   overflow: hidden;
+}
+
+.recordsActions {
+  display: flex;
+  position: absolute;
+  top: 572px;
+  left: 32px;
+  width: calc(100% - 64px);
+  height: 48px;
+  gap: 16px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.logMealButton,
+.analyzeDayButton {
+  height: 40px;
+  border-radius: 8px;
+  font-family: var(--fm-font);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.logMealButton {
+  width: 140px;
+  background: var(--fm-green);
+  color: #ffffff;
+}
+
+.logMealButton:hover,
+.logMealButton:focus-visible {
+  background: var(--fm-green-dark);
+  color: #ffffff;
+}
+
+.analyzeDayButton {
+  width: 164px;
+  border-color: #d1d6e0;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
+}
+
+.analyzeDayButton:hover,
+.analyzeDayButton:focus-visible {
+  background: var(--fm-bg-soft);
+  color: var(--fm-ink);
 }
 
 .entryDetail h2,
@@ -727,6 +781,13 @@
     min-height: 220px;
     margin: 0 16px;
     padding: 16px;
+  }
+
+  .recordsActions {
+    position: static;
+    width: 100%;
+    height: auto;
+    flex-wrap: wrap;
   }
 
   .statePanel {

@@ -53,6 +53,7 @@ import {
 } from '@/services/accountService';
 import type { AuthSession, Profile, ProfileUpdateRequest } from '@/services/accountService';
 import type { AuthUser } from '@/mock/auth';
+import type { SessionSummary } from '@/types/session';
 import { confirmMemory, deleteMemory, loadMemories, updateMemory, type MemoryRecord } from '@/services/memoryService';
 import styles from './ProfilePage.module.css';
 
@@ -236,6 +237,18 @@ type ProfileFixtureState =
   | 'privacy-delete-confirm';
 
 type ProfileBaseFigmaState = 'basic' | 'memories' | 'security' | 'privacy';
+
+const figmaSidebarSessions: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
+];
 
 function getProfileBaseFigmaState(value: string | null): ProfileBaseFigmaState | undefined {
   return value === 'basic' || value === 'memories' || value === 'security' || value === 'privacy' ? value : undefined;
@@ -476,14 +489,16 @@ function IconAction({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
+        <Button
           className={cn(styles.iconAction, danger && styles.iconActionDanger)}
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label={label}
           onClick={onClick}
         >
           {children}
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
@@ -789,10 +804,16 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
             <span className={styles.fieldLabel}>过敏原与不耐受</span>
             <div className={styles.tagRow}>
               {profileForm.allergens.map((item) => (
-                <button key={item} className={styles.allergenTag} type="button" onClick={() => removeAllergen(item)}>
+                <Button
+                  key={item}
+                  className={styles.allergenTag}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => removeAllergen(item)}
+                >
                   {item}
                   <X aria-hidden="true" />
-                </button>
+                </Button>
               ))}
               <div className={styles.addAllergen}>
                 <Input
@@ -904,16 +925,17 @@ function MemoriesTab() {
               ['confirmed', '已确认 (21)'],
             ] as const
           ).map(([value, label]) => (
-            <button
+            <Button
               key={value}
               className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
+              variant="ghost"
               type="button"
               role="tab"
               aria-selected={filter === value}
               onClick={() => setFilter(value)}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
         <Select value={category} onValueChange={setCategory}>
@@ -1264,9 +1286,9 @@ function SecurityTab() {
             <h2>最近安全活动</h2>
             <p>查看最近的登录、密码和设备状态变化</p>
           </div>
-          <button type="button" className={styles.textLink}>
+          <Button type="button" className={styles.textLink} variant="ghost">
             查看登录历史 &gt;
-          </button>
+          </Button>
         </div>
         <div className={styles.activityList}>
           <ActivityRow dot="green" title="密码更新" detail="今天 09:42 · 当前设备" status="已完成" />
@@ -1515,20 +1537,35 @@ function PrivacyTab() {
               <span>{row.size}</span>
               <span>
                 {row.status === 'completed' ? (
-                  <button className={styles.textLink} type="button" onClick={() => void downloadExport(row)}>
+                  <Button
+                    className={styles.textLink}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => void downloadExport(row)}
+                  >
                     <Download aria-hidden="true" />
                     下载归档
-                  </button>
+                  </Button>
                 ) : row.status === 'expired' ? (
-                  <button className={styles.textLinkOrange} type="button" onClick={() => void createExport()}>
+                  <Button
+                    className={styles.textLinkOrange}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => void createExport()}
+                  >
                     <RefreshCw aria-hidden="true" />
                     重新创建
-                  </button>
+                  </Button>
                 ) : row.status === 'failed' ? (
-                  <button className={styles.textLinkOrange} type="button" onClick={() => void createExport()}>
+                  <Button
+                    className={styles.textLinkOrange}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => void createExport()}
+                  >
                     <RefreshCw aria-hidden="true" />
                     重新创建
-                  </button>
+                  </Button>
                 ) : (
                   <span className={styles.mutedText}>处理中</span>
                 )}
@@ -1806,6 +1843,11 @@ export function ProfilePage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       profileActiveTab={baseFigmaState}
+      sidebarAvatarSrc={
+        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
+      }
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       pageOverlay={
         fixtureState ? <ProfileFixtureOverlay state={fixtureState} onDismiss={() => navigate('/profile')} /> : null
       }

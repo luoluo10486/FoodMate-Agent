@@ -38,7 +38,7 @@ public interface UserAccountMapper {
     List<AuthSessionView> authSessions(long userId);
 
     @Select(
-            "SELECT user_id AS userId,username,email,nickname,role,status FROM users WHERE is_deleted=FALSE ORDER BY created_at DESC")
+            "SELECT user_id AS userId,username,CASE WHEN email IS NULL THEN NULL ELSE CONCAT('email-',MD5(email)) END AS email,nickname,role,status,revision FROM users WHERE is_deleted=FALSE ORDER BY created_at DESC")
     List<AdminUserView> adminUsers();
 
     @Update(

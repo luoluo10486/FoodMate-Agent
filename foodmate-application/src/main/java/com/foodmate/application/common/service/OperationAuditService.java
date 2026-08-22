@@ -5,14 +5,16 @@ import com.foodmate.application.common.port.out.OperationAuditPort.AuditRecord;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHolder;
-import java.util.Map;
-import java.util.Objects;
+
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import java.util.Map;
+import java.util.Objects;
 
 /** 业务层统一构造审计事实；原始业务内容不会进入审计 JSON。 */
 @Service
@@ -84,6 +86,40 @@ public class OperationAuditService {
     public int reserve(AuditRecord record) {
         if (store == null) return 1;
         return store.reserve(record);
+    }
+
+    /** 构造并占用一条业务写操作的 pending 审计事实。 */
+    public int reserve(
+            Long operatorId,
+            String targetType,
+            String targetId,
+            String action,
+            String parametersDigest,
+            String idempotencyKey,
+            Map<String, ?> metadata) {
+        if (store == null) return 1;
+        TraceContext trace = TraceContextHolder.currentOrNew();
+        return reserve(
+                new AuditRecord(
+                        ids.nextId(),
+                        operatorId,
+                        trace.requestId(),
+                        trace.traceId(),
+                        required(targetType, "targetType"),
+                        targetId,
+                        required(action, "action"),
+                        "pending",
+                        null,
+                        safeJson(metadata),
+                        "{}",
+                        parametersDigest,
+                        idempotencyKey));
+    }
+
+    /** 查询操作者和幂等键对应的审计事实。 */
+    public OperationAuditPort.IdempotencyRecord findIdempotency(
+            long operatorId, String idempotencyKey) {
+        return store == null ? null : store.findIdempotency(operatorId, idempotencyKey);
     }
 
     /** 完成带幂等键的业务审计。 */

@@ -9,12 +9,12 @@ import { Input as ShadcnInput } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AdminOnlyNotice } from './AdminComponents';
 import { adminOperationAuditRows, canViewAudit, statusTag } from './AdminShared';
-import { loadAdminDashboard } from '../../../services/adminService';
+import { loadAdminOperationAudits } from '../../../services/adminService';
 import styles from '../AdminPage.module.css';
 
 type AuditSource = {
   key: string;
-  operator_id: string;
+  operator_id: string | number | null;
   operator: string;
   action: string;
   target_type: string;
@@ -22,7 +22,7 @@ type AuditSource = {
   result: string;
   request_id: string;
   trace_id: string;
-  created_at?: string;
+  created_at?: string | null;
   createdAt?: string;
   request_summary?: string;
   requestSummary?: string;
@@ -59,7 +59,7 @@ const pageSize = 8;
 function normalizeAuditRow(row: AuditSource): AuditRecord {
   return {
     key: row.key,
-    operatorId: row.operator_id || '-',
+    operatorId: row.operator_id == null ? '-' : String(row.operator_id),
     operator: row.operator || '-',
     action: row.action || '-',
     targetType: row.target_type || '-',
@@ -197,10 +197,18 @@ export function OperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: num
 
   useEffect(() => {
     if (!isRealMode) return;
-    loadAdminDashboard()
-      .then((dashboard) => {
+    loadAdminOperationAudits()
+      .then((items) => {
         setLoadError('');
-        setRealRows((dashboard.operation_audits as AuditSource[]).map(normalizeAuditRow));
+        setRealRows(
+          items.map((row, index) =>
+            normalizeAuditRow({
+              ...row,
+              key: `operation-${row.request_id || index}`,
+              operator: row.operator_id == null ? '-' : String(row.operator_id),
+            }),
+          ),
+        );
       })
       .catch((error) => {
         setRealRows([]);

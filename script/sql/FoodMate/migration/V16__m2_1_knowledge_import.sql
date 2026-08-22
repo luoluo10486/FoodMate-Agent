@@ -2,6 +2,7 @@
 -- Manual execution only. Existing knowledge documents remain private drafts until explicitly published.
 
 ALTER TABLE knowledge_documents
+    ALTER COLUMN version TYPE VARCHAR(128),
     ADD COLUMN IF NOT EXISTS source_name VARCHAR(255),
     ADD COLUMN IF NOT EXISTS source_version VARCHAR(128),
     ADD COLUMN IF NOT EXISTS license_notice VARCHAR(1024),
@@ -10,6 +11,7 @@ ALTER TABLE knowledge_documents
     ADD COLUMN IF NOT EXISTS indexed_at TIMESTAMPTZ;
 
 ALTER TABLE knowledge_chunks
+    ALTER COLUMN version TYPE VARCHAR(128),
     ADD COLUMN IF NOT EXISTS document_version VARCHAR(128) NOT NULL DEFAULT '1',
     ADD COLUMN IF NOT EXISTS acl_metadata JSONB NOT NULL DEFAULT '{"tenant_id":0,"scope":"public"}'::jsonb;
 
@@ -49,6 +51,7 @@ CREATE TABLE IF NOT EXISTS knowledge_import_jobs (
     completed_at TIMESTAMPTZ,
     CONSTRAINT chk_knowledge_import_jobs_status CHECK (status IN ('queued','uploading','uploaded','indexing','completed','partial_failed','failed','cancelled')),
     CONSTRAINT chk_knowledge_import_jobs_mode CHECK (requested_mode IN ('stub','local')),
+    CONSTRAINT chk_knowledge_import_jobs_idempotency CHECK (length(btrim(idempotency_key)) > 0),
     CONSTRAINT uk_knowledge_import_jobs_operator_idempotency UNIQUE (operator_id, idempotency_key)
 );
 
@@ -94,6 +97,7 @@ CREATE TABLE IF NOT EXISTS knowledge_index_outbox (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     published_at TIMESTAMPTZ,
     CONSTRAINT chk_knowledge_index_outbox_status CHECK (status IN ('pending','published','failed')),
+    CONSTRAINT chk_knowledge_index_outbox_topic CHECK (topic = 'foodmate-knowledge-index-v1'),
     CONSTRAINT uk_knowledge_index_outbox_item_topic UNIQUE (item_id, topic)
 );
 CREATE INDEX IF NOT EXISTS idx_knowledge_index_outbox_pending

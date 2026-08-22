@@ -108,7 +108,9 @@ describe('ChatPage Figma 空态', () => {
     expect(screen.queryByText('运行轨迹')).not.toBeInTheDocument();
 
     const input = screen.getByPlaceholderText('输入消息或添加自定义指令...');
-    fireEvent.click(screen.getByRole('button', { name: /制定本周餐食计划/ }));
+    const planPrompt = screen.getByRole('button', { name: /制定本周餐食计划/ });
+    expect(planPrompt).toHaveClass('inline-flex');
+    fireEvent.click(planPrompt);
     expect(input).toHaveValue('根据我的减脂目标制定本周餐食计划');
   });
 });
@@ -268,6 +270,19 @@ describe('ChatPage Figma history fixtures', () => {
     expect(screen.getByText(page)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('搜索会话...')).toHaveValue(searchValue);
   });
+
+  it('uses the shadcn radio group for the meal log target', () => {
+    renderChatState('history-page-2');
+
+    const addToLunch = screen.getByRole('radio', { name: '是，添加到今天的午餐' });
+    const referenceOnly = screen.getByRole('radio', { name: '否，仅作为对话参考' });
+    expect(addToLunch).toBeChecked();
+    expect(referenceOnly).not.toBeChecked();
+
+    fireEvent.click(referenceOnly);
+    expect(referenceOnly).toBeChecked();
+    expect(addToLunch).not.toBeChecked();
+  });
 });
 
 describe('ChatPage Figma session operation fixtures', () => {
@@ -276,7 +291,14 @@ describe('ChatPage Figma session operation fixtures', () => {
 
     expect(screen.getByRole('dialog', { name: '会话管理' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重命名会话' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '当前会话' })).toHaveTextContent('RUNNING');
+    expect(screen.getByText('操作')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭会话管理' })).toBeInTheDocument();
     expect(screen.getByText('RUN ID: fst_trace_88192a')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭会话管理' }));
+    expect(screen.queryByRole('dialog', { name: '会话管理' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('已关闭会话管理面板。');
   });
 
   it.each([
@@ -289,17 +311,47 @@ describe('ChatPage Figma session operation fixtures', () => {
     expect(screen.getByRole('dialog', { name: title })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: action })).toBeInTheDocument();
     expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
+    if (state === 'renamed') {
+      expect(screen.getByText('SAVED')).toBeInTheDocument();
+      expect(screen.getByText('列表已同步，可继续查看此会话')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '关闭重命名结果' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: '关闭重命名结果' }));
+      expect(screen.queryByRole('dialog', { name: '会话已重命名' })).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('已关闭重命名结果。');
+    }
+    if (state === 'archived') {
+      expect(screen.getByText('ARCHIVED')).toBeInTheDocument();
+      expect(screen.getByText('保留会话内容，恢复后回到 Agent 对话列表')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '关闭归档结果' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: '关闭归档结果' }));
+      expect(screen.queryByRole('dialog', { name: '已归档会话' })).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('已关闭归档结果。');
+    }
+    if (state === 'trash') {
+      expect(screen.getByText('RECOVERABLE')).toBeInTheDocument();
+      expect(screen.getByText('回收站仅支持恢复，不提供永久删除')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '关闭回收站结果' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: '关闭回收站结果' }));
+      expect(screen.queryByRole('dialog', { name: '会话回收站' })).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('已关闭回收站结果。');
+    }
   });
 });
 
 describe('ChatPage Figma navigation fixtures', () => {
-  it.each(['redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination'])('%s keeps the complete Figma conversation and trace', (state) => {
-    renderChatState(state);
+  it.each(['redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination'])(
+    '%s keeps the complete Figma conversation and trace',
+    (state) => {
+      renderChatState(state);
 
-    expect(screen.getByText(/我已为您分析了野生三文鱼/)).toBeInTheDocument();
-    expect(screen.getByText('查询扩展 (Query Expansion)')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '是否将此记录到你的周二饮食日志？' })).toBeInTheDocument();
-  });
+      expect(screen.getByText(/我已为您分析了野生三文鱼/)).toBeInTheDocument();
+      expect(screen.getByText('查询扩展 (Query Expansion)')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: '是否将此记录到你的周二饮食日志？' })).toBeInTheDocument();
+    },
+  );
 });
 
 describe('ChatPage Figma running-stop fixture', () => {

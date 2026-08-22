@@ -13,13 +13,13 @@ public interface KnowledgeDeliveryService {
 
     int leaseVisibility(long id, String owner);
 
-    void publishedIndex(long id);
+    void publishedIndex(long id, String owner);
 
-    void publishedVisibility(long id);
+    void publishedVisibility(long id, String owner);
 
-    void retryIndex(long id, String error);
+    void retryIndex(long id, String owner, String error);
 
-    void retryVisibility(long id, String error);
+    void retryVisibility(long id, String owner, String error);
 
     void accept(KnowledgeRepository.IndexResult result, String hash);
 }

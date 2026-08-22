@@ -26,6 +26,7 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('91.4%')).toBeInTheDocument();
     expect(screen.getByText('$128.45')).toBeInTheDocument();
     expect(screen.getAllByText('查看详情')).toHaveLength(6);
+    expect(screen.getByRole('button', { name: '复制 run_889a4' })).toBeInTheDocument();
 
     for (const label of [
       '概览',
@@ -42,6 +43,7 @@ describe('AdminPage overview', () => {
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
+    expect(screen.queryByRole('link', { name: '模型治理' })).not.toBeInTheDocument();
   });
 
   it('filters the overview table by result and search query', async () => {
@@ -76,20 +78,85 @@ describe('AdminPage overview', () => {
   });
 
   it('maps admin visual fixture query states to their real sections', () => {
-    const { unmount } = renderAdmin('/admin?state=tool-registry');
+    let view = renderAdmin('/admin?state=tool-registry');
     expect(screen.getByText('已注册工具')).toBeInTheDocument();
+    expect(document.querySelector('nav a[aria-current="page"]')).toHaveAttribute('href', '/admin/tools?tab=registry');
 
-    unmount();
-    renderAdmin('/admin?state=deleted-resources');
+    view.unmount();
+    view = renderAdmin('/admin?state=deleted-resources');
     expect(screen.getByText('存档数据保护规范与合规通告')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '软删除资源' })).toHaveAttribute('aria-current', 'page');
 
-    unmount();
-    renderAdmin('/admin?state=user-detail');
+    view.unmount();
+    view = renderAdmin('/admin?state=user-detail');
     expect(screen.getByText('用户详情')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '用户管理' })).toHaveAttribute('aria-current', 'page');
 
-    unmount();
-    renderAdmin('/admin?state=op-confirm');
+    view.unmount();
+    view = renderAdmin('/admin?state=op-confirm');
     expect(screen.getByText('已注册工具')).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: '确认停用工具' })).toBeInTheDocument();
+    expect(document.querySelector('nav a[aria-current="page"]')).toHaveAttribute('href', '/admin/tools?tab=registry');
+    view.unmount();
+  });
+
+  it('renders the Figma run detail fixture with a table and execution steps', () => {
+    renderAdmin('/admin?state=run-detail');
+
+    expect(screen.getByText('Agent 运行控制台')).toBeInTheDocument();
+    expect(screen.getAllByText('run_98218a')).toHaveLength(2);
+    expect(screen.getByRole('region', { name: '执行事件追踪' })).toBeInTheDocument();
+    expect(screen.getByText('1. 分发')).toBeInTheDocument();
+    expect(screen.getByText('4. 失败')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Run 详情字段' })).toBeInTheDocument();
+    expect(screen.getByText(/父 Run：run_9812a0/)).toBeInTheDocument();
+    expect(screen.getByText(/request_id req_7c2e/)).toBeInTheDocument();
+    expect(screen.queryByText(/caller_context_mask/)).not.toBeInTheDocument();
+  });
+
+  it('renders the Figma tool call fixture with filters and masked payload details', async () => {
+    const user = userEvent.setup();
+    renderAdmin('/admin?state=tool-calls');
+
+    expect(screen.getByText('工具调用与 SQL 审计')).toBeInTheDocument();
+    expect(document.querySelector('nav[aria-label="治理详情视图"] a')).toHaveAttribute(
+      'href',
+      '/admin?state=tool-calls',
+    );
+    expect(screen.getByText('Arguments & System Schema (call_829c)')).toBeInTheDocument();
+    expect(screen.getByText('策略：通过')).toBeInTheDocument();
+    expect(document.body.textContent).toContain('SENSITIVE_USER_CREDENTIALS_MASKED');
+
+    const search = screen.getByRole('textbox', { name: '搜索运行 ID' });
+    await user.type(search, 'does-not-exist');
+    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('没有匹配的工具调用');
+  });
+
+  it('renders the Figma SQL audit fixture with redaction guidance', async () => {
+    const user = userEvent.setup();
+    renderAdmin('/admin?state=sql-audit');
+
+    expect(screen.getByText('工具调用与 SQL 审计')).toBeInTheDocument();
+    expect(screen.getByText('SQL Audit · 筛选与详情')).toBeInTheDocument();
+    expect(screen.getByText(/数据库凭据、令牌和敏感参数统一脱敏/)).toBeInTheDocument();
+    expect(
+      document.querySelector('nav[aria-label="治理详情视图"] a[href="/admin?state=sql-audit"]'),
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: '搜索 SQL 运行 ID' }), 'not-found');
+    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('没有匹配的 SQL 审计记录');
+  });
+
+  it('renders the Figma trace fixture with timeline and trace aggregation guidance', () => {
+    renderAdmin('/admin?state=trace');
+
+    expect(screen.getByText('Agent 运行控制台')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '执行事件追踪' })).toBeInTheDocument();
+    expect(screen.getByText('Trace 聚合与筛选')).toBeInTheDocument();
+    expect(screen.getByText(/request_id req_7c2e/)).toBeInTheDocument();
+    expect(screen.getByText('3. 降级')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下载完整日志' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Run 详情字段' })).not.toBeInTheDocument();
+    expect(document.querySelector('.fixtureSurfaceCard')).toBeNull();
   });
 });

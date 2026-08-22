@@ -320,6 +320,19 @@
   background: #ecccff;
 }
 
+.chartSummary {
+  position: absolute;
+  right: 24px;
+  bottom: 12px;
+  left: 24px;
+  margin: 0;
+  color: var(--fm-muted);
+  font-family: var(--fm-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+
 .insightCard {
   min-height: 219px;
 }

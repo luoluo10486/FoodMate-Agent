@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   CalendarDays,
-  ChevronDown,
   CircleUserRound,
   Copy,
   History,
@@ -18,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import styles from '../AdminPage.module.css';
 import { AdminOnlyNotice } from './AdminComponents';
 import {
@@ -50,6 +51,7 @@ type AdminUserView = UserRow & {
   activeSessions?: number;
   customModel?: string;
   registeredLabel?: string;
+  revision?: number;
 };
 
 // This fixture mirrors Figma node 801:215. Real mode continues to use the API response unchanged.
@@ -228,7 +230,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
       targetType: 'user',
       targetId: record.userId,
       execute: async () => {
-        await updateAdminUserStatus(record.userId, status);
+        await updateAdminUserStatus(record.userId, status, record.revision ?? 1);
       },
       onApply: () => {
         setUsers((current) =>
@@ -249,7 +251,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
       targetType: 'user_session',
       targetId: record.userId,
       execute: async () => {
-        await revokeAdminUserSessions(record.userId);
+        await revokeAdminUserSessions(record.userId, record.revision ?? 1);
       },
       onApply: () => {
         adminUserSessionRows
@@ -267,7 +269,8 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
         <div className={styles.usersFilters}>
           <label className={styles.usersSearch}>
             <Search aria-hidden="true" />
-            <input
+            <Input
+              className={styles.usersSearchInput}
               aria-label="搜索用户名、ID或邮箱"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -296,11 +299,18 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
               ['locked', '状态：已锁定'],
             ]}
           />
-          <button className={styles.usersDateFilter} type="button" onClick={() => setFiltersChanged(true)}>
+          <Button
+            variant="outline"
+            className={styles.usersDateFilter}
+            type="button"
+            aria-label="注册时间筛选"
+            onClick={() => setFiltersChanged(true)}
+          >
             <span>Registered: Last 30 Days</span>
             <CalendarDays aria-hidden="true" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             className={styles.usersResetFilter}
             type="button"
             onClick={() => {
@@ -311,7 +321,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
             }}
           >
             重置筛选
-          </button>
+          </Button>
         </div>
 
         {loadError ? <Badge variant="destructive">{loadError}</Badge> : null}
@@ -350,14 +360,18 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
         <div className={styles.usersPagination}>
           <span>Showing 1-{visibleUsers.length} of 1,284 users</span>
           <div>
-            <button type="button" disabled aria-label="上一页">
+            <Button variant="outline" size="sm" type="button" disabled aria-label="上一页">
               上一页
-            </button>
-            <button className={styles.usersPageActive} type="button" aria-current="page">
+            </Button>
+            <Button variant="outline" size="sm" className={styles.usersPageActive} type="button" aria-current="page">
               1
-            </button>
-            <button type="button">2</button>
-            <button type="button">下一页</button>
+            </Button>
+            <Button variant="outline" size="sm" type="button">
+              2
+            </Button>
+            <Button variant="outline" size="sm" type="button">
+              下一页
+            </Button>
           </div>
         </div>
       </div>
@@ -391,16 +405,18 @@ function FilterSelect({
   options: Array<[string, string]>;
 }) {
   return (
-    <label className={styles.usersSelect}>
-      <select aria-label={ariaLabel} value={value} onChange={(event) => onChange(event.target.value)}>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={styles.usersSelect} aria-label={ariaLabel}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
         {options.map(([optionValue, label]) => (
-          <option key={optionValue} value={optionValue}>
+          <SelectItem key={optionValue} value={optionValue}>
             {label}
-          </option>
+          </SelectItem>
         ))}
-      </select>
-      <ChevronDown aria-hidden="true" />
-    </label>
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -432,7 +448,9 @@ function UserTableRow({
     >
       <div className={styles.userIdCell} role="cell">
         <code>{user.userId}</code>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label={`复制 ${user.userId}`}
           onClick={(event) => {
@@ -441,7 +459,7 @@ function UserTableRow({
           }}
         >
           <Copy aria-hidden="true" />
-        </button>
+        </Button>
       </div>
       <strong role="cell">{user.username}</strong>
       <span className={styles.userEmailCell} role="cell">
@@ -459,9 +477,9 @@ function UserTableRow({
       <div role="cell" className={styles.userRowMenu} onClick={(event) => event.stopPropagation()}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" aria-label={`${user.userId} 操作`}>
+            <Button variant="ghost" size="icon" type="button" aria-label={`${user.userId} 操作`}>
               <MoreHorizontal aria-hidden="true" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className={styles.userActionMenu}>
             <DropdownMenuItem onSelect={onSelect}>查看详情</DropdownMenuItem>
@@ -506,13 +524,14 @@ function UserDetailCard({
     : [];
   const initials = user.displayName.slice(0, 1) || user.username.slice(0, 1).toUpperCase();
   const avatarSource = resolveAvatarUrl(user.avatarUrl, user.gender);
-  const isFigmaDetail = user.userId === 'usr_098a1';
 
   return (
     <Card className={styles.userDetailCard}>
       <div className={styles.userDetailTitle}>
         <strong>用户详情</strong>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label="关闭用户详情"
           onClick={() =>
@@ -522,7 +541,7 @@ function UserDetailCard({
           }
         >
           <X aria-hidden="true" />
-        </button>
+        </Button>
       </div>
       <div className={styles.userDetailIdentity}>
         <div className={styles.userDetailAvatar} aria-hidden="true">
@@ -606,17 +625,15 @@ function UserDetailCard({
           撤销所有会话
         </Button>
       </div>
-      {isFigmaDetail ? (
-        <div className={styles.userDetailAnnotation} aria-label="用户详情设计说明">
-          <p>用户详情 Tab</p>
-          <p>资料 · 饮食画像 · 登录会话 · 业务会话 · 操作历史</p>
-          <p>资料字段：注册时间 · 最近登录 · 账号状态 · 角色 · 活跃会话数</p>
-          <p className={styles.userDetailAnnotationWarning}>
-            禁用 / 锁定前显示影响：撤销会话、停止新运行、保留审计记录；admin 需二次确认。
-          </p>
-          <p className={styles.userDetailAnnotationMuted}>operator：只读；无启用、禁用、锁定和撤销全部会话权限。</p>
-        </div>
-      ) : null}
+      <aside className={styles.userDetailGuidance} aria-label="用户详情 Tab">
+        <h2>用户详情 Tab</h2>
+        <p>资料 · 饮食画像 · 登录会话 · 业务会话 · 操作历史</p>
+        <p>资料字段：注册时间 · 最近登录 · 账号状态 · 角色 · 活跃会话数</p>
+        <p className={styles.userDetailGuidanceDanger}>
+          禁用 / 锁定前显示影响：撤销会话、停止新运行、保留审计记录；admin 需二次确认。
+        </p>
+        <p className={styles.userDetailGuidanceMuted}>operator：只读；无启用、禁用、锁定和撤销全部会话权限。</p>
+      </aside>
     </Card>
   );
 }

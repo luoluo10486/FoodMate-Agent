@@ -88,6 +88,11 @@ public class MealPlanServiceImpl implements MealPlanService {
     }
 
     @Override
+    public List<PlanView> list(long userId) {
+        return store.findOwnedPlans(userId, true).stream().map(this::view).toList();
+    }
+
+    @Override
     @Transactional
     public PlanView update(long userId, long mealPlanId, long revision, UpdateCommand command) {
         validateUpdate(command);

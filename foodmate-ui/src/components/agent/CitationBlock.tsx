@@ -8,13 +8,15 @@ type CitationBlockProps = {
 
 export function CitationBlock({ citation }: CitationBlockProps) {
   return (
-    <article className={styles.block}>
-      <div className={styles.titleRow}>
+    <details className={styles.block}>
+      <summary className={styles.titleRow}>
         <strong>{citation.title}</strong>
         {citation.score ? <Badge variant="outline">{citation.score.toFixed(2)}</Badge> : null}
+      </summary>
+      <div className={styles.details}>
+        <p>{citation.snippet}</p>
+        <span>{citation.source}</span>
       </div>
-      <p>{citation.snippet}</p>
-      <span>{citation.source}</span>
-    </article>
+    </details>
   );
 }

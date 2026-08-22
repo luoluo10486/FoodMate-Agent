@@ -31,6 +31,7 @@
     <java.version>21</java.version>
     <maven.version>3.9.11</maven.version>
     <mybatis-plus.version>3.5.16</mybatis-plus.version>
+    <jsqlparser.version>5.2</jsqlparser.version>
     <archunit.version>1.4.1</archunit.version>
     <testcontainers.version>1.20.6</testcontainers.version>
     <!-- 与 docker/compose.yml 中的 Broker 版本保持一致，避免协议差异。 -->

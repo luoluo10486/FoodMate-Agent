@@ -1,0 +1,163 @@
+package com.foodmate.application.runtime;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.foodmate.application.runtime.port.out.ToolGatewayPort;
+import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
+import com.foodmate.application.runtime.service.ToolGatewayService;
+import com.foodmate.application.runtime.service.ToolRegistryCatalog;
+import com.foodmate.application.runtime.service.ToolRegistryService;
+import com.foodmate.application.runtime.service.impl.ToolGatewayServiceImpl;
+import com.foodmate.application.runtime.service.impl.ToolRegistryServiceImpl;
+import com.foodmate.shared.id.IdGenerator;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+class ToolPolicyGatewayServiceTest {
+    private final ToolGatewayPort store = mock(ToolGatewayPort.class);
+    private final ToolRegistryRepository registryStore = mock(ToolRegistryRepository.class);
+    private final IdGenerator ids = () -> 99L;
+
+    @Test
+    void resolvesDatabaseQueryFromSqlReadAndDoesNotRequireConfirmation() {
+        ToolRegistryService registry = registryWith("database_query");
+        when(store.runExists(42L)).thenReturn(true);
+        when(store.executeRead("SELECT 1"))
+                .thenReturn(List.of(JsonNodeFactory.instance.objectNode().put("value", 1)));
+
+        var result = gateway(registry).execute(sqlProposal("SELECT 1"));
+
+        assertEquals("succeeded", result.status());
+        assertEquals(1, result.rows().size());
+    }
+
+    @Test
+    void rejectsUnknownRegistryToolBeforeAnyExecution() {
+        when(registryStore.findCurrent("unknown_tool")).thenReturn(null);
+
+        var result = gateway(registry()).execute(toolProposal("unknown_tool", object()));
+
+        assertEquals("TOOL_NOT_FOUND", result.errorCode());
+        verifyNoInteractions(store);
+    }
+
+    @Test
+    void appliesWriterSchemaAndConfirmationPolicyBeforeApproval() {
+        ToolRegistryService registry = registryWith("food_log_writer");
+        var input = object();
+        input.putArray("items").addObject().put("name", "rice");
+
+        var result = gateway(registry).execute(toolProposal("food_log_writer", input));
+
+        assertEquals("confirmation_required", result.status());
+        assertEquals("TOOL_CONFIRMATION_REQUIRED", result.errorCode());
+        verifyNoInteractions(store);
+    }
+
+    @Test
+    void rejectsInvalidSchemaInputBeforeExecutor() {
+        ToolRegistryService registry = registryWith("calculator");
+        var invalid = JsonNodeFactory.instance.arrayNode().add(1);
+
+        var result = gateway(registry).execute(toolProposal("calculator", invalid));
+
+        assertEquals("TOOL_INPUT_INVALID", result.errorCode());
+        verifyNoInteractions(store);
+    }
+
+    @Test
+    void registeredToolWithoutExecutorHasExplicitUnavailableResult() {
+        ToolRegistryService registry = registryWith("calculator");
+        var input = object().put("expression", "1 + 1");
+
+        var result = gateway(registry).execute(toolProposal("calculator", input));
+
+        assertEquals("TOOL_EXECUTOR_UNAVAILABLE", result.errorCode());
+    }
+
+    @Test
+    void disabledRegistryToolIsRejectedWithStableCode() {
+        var definition =
+                ToolRegistryCatalog.defaults().stream()
+                        .filter(tool -> "calculator".equals(tool.name()))
+                        .findFirst()
+                        .orElseThrow();
+        when(registryStore.findCurrent("calculator"))
+                .thenReturn(
+                        new ToolRegistryRepository.ToolDefinition(
+                                definition.toolId(),
+                                definition.name(),
+                                definition.displayName(),
+                                definition.description(),
+                                definition.category(),
+                                definition.riskLevel(),
+                                definition.availabilityScope(),
+                                "disabled",
+                                definition.currentVersion(),
+                                definition.version(),
+                                definition.inputSchemaJson(),
+                                definition.outputSchemaJson(),
+                                definition.permissionsJson(),
+                                definition.timeoutMs(),
+                                definition.retryable(),
+                                definition.idempotent(),
+                                definition.publishedAt()));
+
+        var result = gateway(registry()).execute(toolProposal("calculator", object()));
+
+        assertEquals("TOOL_DISABLED", result.errorCode());
+    }
+
+    private ToolGatewayServiceImpl gateway(ToolRegistryService registry) {
+        return new ToolGatewayServiceImpl(
+                store,
+                ids,
+                (com.foodmate.application.food.service.ApprovalService) null,
+                new com.fasterxml.jackson.databind.ObjectMapper(),
+                registry);
+    }
+
+    private ToolRegistryService registry() {
+        return new ToolRegistryServiceImpl(registryStore);
+    }
+
+    private ToolRegistryService registryWith(String name) {
+        ToolRegistryRepository.ToolDefinition definition =
+                ToolRegistryCatalog.defaults().stream()
+                        .filter(tool -> name.equals(tool.name()))
+                        .findFirst()
+                        .orElseThrow();
+        when(registryStore.findCurrent(name)).thenReturn(definition);
+        return registry();
+    }
+
+    private static ToolGatewayService.ProposalCommand sqlProposal(String statement) {
+        return new ToolGatewayService.ProposalCommand(
+                "proposal-sql",
+                "42",
+                "sql_read",
+                "v1",
+                new ToolGatewayService.ProposalPayload(statement, "invocation-sql"));
+    }
+
+    private static ToolGatewayService.ProposalCommand toolProposal(
+            String name, com.fasterxml.jackson.databind.JsonNode input) {
+        return new ToolGatewayService.ProposalCommand(
+                "proposal-" + name,
+                "42",
+                "tool",
+                "v1",
+                name,
+                null,
+                input,
+                new ToolGatewayService.ProposalPayload("", "invocation-" + name, null));
+    }
+
+    private static com.fasterxml.jackson.databind.node.ObjectNode object() {
+        return JsonNodeFactory.instance.objectNode();
+    }
+}

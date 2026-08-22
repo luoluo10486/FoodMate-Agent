@@ -32,7 +32,7 @@ import {
   adminUserOperationHistoryRows,
   adminUserSessionRows,
 } from '../../../services/adminService';
-import type { AdminToolRegistryRow, AdminToolRow } from '../../../services/adminService';
+import type { AdminDeletedRow, AdminToolRegistryRow, AdminToolRow } from '../../../services/adminService';
 import { getAuthStatus, getAuthUser, type AuthStatus } from '../../../services/authService';
 
 const authStatus = getAuthStatus();
@@ -96,7 +96,7 @@ export type ToolRow = AdminToolRow;
 export type ToolRegistryRow = AdminToolRegistryRow;
 export type ModelUsageRow = (typeof adminModelUsageRows)[number];
 export type KnowledgeRow = (typeof adminKnowledgeRows)[number];
-export type DeletedRow = (typeof adminDeletedRows)[number];
+export type DeletedRow = AdminDeletedRow;
 export type OperationAuditRow = (typeof adminOperationAuditRows)[number];
 
 export const adminNavItems: Array<{ key: string; path: string; label: string; icon: ReactNode; adminOnly?: boolean }> =
@@ -137,6 +137,11 @@ export const sectionMeta: Record<string, { title: string; description: string; t
   },
   tools: { title: '工具调用', description: '管理工具注册表、版本、权限范围、风险等级和启停状态。', tag: 'Tools' },
   usage: { title: '模型用量', description: '查看供应商、模型、场景、Token、成本和耗时。', tag: 'Model Usage' },
+  model: {
+    title: '模型治理',
+    description: '查看模型供应商、目录、路由、价格和预算策略；敏感凭据只显示安全摘要。',
+    tag: 'Governance',
+  },
   knowledge: { title: '知识库', description: '管理知识库文档、解析状态、索引进度和下线恢复。', tag: 'Knowledge' },
   deleted: { title: '软删除资源', description: '查看已删除业务资源，并由 admin 执行恢复操作。', tag: 'Recovery' },
   audit: {
@@ -239,6 +244,7 @@ export function getSectionKey(pathname: string, search = ''): string {
   if (pathname.endsWith('/runs')) return 'runs';
   if (pathname.endsWith('/tools')) return 'tools';
   if (pathname.endsWith('/usage')) return 'usage';
+  if (pathname.endsWith('/model-governance')) return 'model';
   if (pathname.endsWith('/knowledge')) return 'knowledge';
   if (pathname.endsWith('/deleted')) return 'deleted';
   return 'overview';

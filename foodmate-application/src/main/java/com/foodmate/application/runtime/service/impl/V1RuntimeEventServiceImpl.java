@@ -369,6 +369,8 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         copyField(usage, payload, "provider_attempt_id");
         copyField(usage, payload, "provider_request_id");
         copyField(usage, payload, "price_version");
+        copyField(usage, payload, "route_version");
+        copyField(usage, payload, "budget_policy_version");
         JsonNode amount = payload.path("cost").path("amount");
         store.insertUsage(
                 ids.nextId(),
@@ -381,7 +383,10 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
                 amount.isMissingNode() || amount.isNull()
                         ? null
                         : new java.math.BigDecimal(amount.asText()),
-                payload.path("status").asText("success"));
+                payload.path("status").asText("success"),
+                string(payload.get("route_version")),
+                string(payload.get("price_version")),
+                string(payload.get("budget_policy_version")));
     }
 
     private void persistAssistantMessage(long runId, JsonNode result) {

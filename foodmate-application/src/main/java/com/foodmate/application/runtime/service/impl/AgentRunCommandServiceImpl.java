@@ -10,7 +10,9 @@ import com.foodmate.application.conversation.service.SessionSummaryService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.command.AgentRunBudgetDefaults;
 import com.foodmate.application.runtime.port.out.AgentRunCommandRepository;
+import com.foodmate.application.runtime.port.out.ModelGovernanceRepository.ModelGovernanceSnapshot;
 import com.foodmate.application.runtime.service.AgentRunCommandService;
+import com.foodmate.application.runtime.service.ModelGovernanceService;
 import com.foodmate.shared.conversation.enums.MessageRole;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1RunCommand;
@@ -36,6 +38,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
     private final AgentRunBudgetDefaults budgetDefaults;
     private final AgentAdmissionService admission;
     private final SessionSummaryService summaries;
+    private final ModelGovernanceService modelGovernance;
     private final ObjectMapper mapper;
     private final OperationAuditService audit;
 
@@ -46,7 +49,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             AgentRunBudgetDefaults budgetDefaults,
             AgentAdmissionService admission,
             SessionSummaryService summaries) {
-        this(store, ids, accounts, budgetDefaults, admission, summaries, null);
+        this(store, ids, accounts, budgetDefaults, admission, summaries, null, null);
     }
 
     @Autowired
@@ -58,6 +61,18 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             AgentAdmissionService admission,
             SessionSummaryService summaries,
             ObjectProvider<OperationAuditService> auditProvider) {
+        this(store, ids, accounts, budgetDefaults, admission, summaries, auditProvider, null);
+    }
+
+    public AgentRunCommandServiceImpl(
+            ObjectProvider<AgentRunCommandRepository> store,
+            IdGenerator ids,
+            UserAccountService accounts,
+            AgentRunBudgetDefaults budgetDefaults,
+            AgentAdmissionService admission,
+            SessionSummaryService summaries,
+            ObjectProvider<OperationAuditService> auditProvider,
+            ObjectProvider<ModelGovernanceService> modelGovernanceProvider) {
         this.store = store.getIfAvailable();
         this.ids = ids;
         this.accounts = accounts;
@@ -65,6 +80,8 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         this.admission = admission;
         this.summaries = summaries;
         this.audit = auditProvider == null ? null : auditProvider.getIfAvailable();
+        this.modelGovernance =
+                modelGovernanceProvider == null ? null : modelGovernanceProvider.getIfAvailable();
         this.mapper =
                 new ObjectMapper()
                         .findAndRegisterModules()
@@ -130,7 +147,9 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         if (parentRunId != null) {
             supersedeParentRun(parentRunId, runId, userId);
         }
-        insertInitialBudgetSnapshot(runId);
+        ModelGovernanceSnapshot governanceSnapshot =
+                modelGovernance == null ? null : modelGovernance.resolve("agent_run", "chat");
+        insertInitialBudgetSnapshot(runId, governanceSnapshot);
 
         // command、摘要和 outbox 必须在同一事务里生成，publisher 提交后才允许发送。
         String dispatchId = "dsp_" + UUID.randomUUID().toString().replace("-", "");
@@ -193,27 +212,62 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                         longTermMemories,
                         sqlReadRequest,
                         "public_published");
+        int maxTotalTokens =
+                governanceSnapshot == null
+                        ? budgetDefaults.maxTotalTokens()
+                        : governanceSnapshot.maxTotalTokens();
+        java.math.BigDecimal maxCostCny =
+                governanceSnapshot == null
+                        ? budgetDefaults.maxCostCny()
+                        : governanceSnapshot.maxCostCny();
+        int maxStepRetries =
+                governanceSnapshot == null
+                        ? budgetDefaults.maxStepRetries()
+                        : governanceSnapshot.maxStepRetries();
+        int maxModelCalls =
+                governanceSnapshot == null
+                        ? budgetDefaults.maxModelCalls()
+                        : governanceSnapshot.maxModelCalls();
         V1RunCommand.BudgetSnapshot budgetSnapshot =
                 new V1RunCommand.BudgetSnapshot(
-                        budgetDefaults.maxTotalTokens(),
-                        budgetDefaults.maxCostCny(),
-                        budgetDefaults.maxStepRetries(),
+                        maxTotalTokens,
+                        maxCostCny,
+                        maxStepRetries,
                         budgetDefaults.maxReplans(),
                         budgetDefaults.maxAnswerRewrites(),
                         budgetDefaults.maxTotalSteps(),
-                        budgetDefaults.maxModelCalls(),
+                        maxModelCalls,
                         budgetDefaults.queueTimeoutSeconds(),
                         budgetDefaults.executionTimeoutSeconds(),
                         budgetDefaults.nodeTimeoutSeconds(),
                         budgetDefaults.waitingUserTimeoutSeconds(),
                         1,
-                        budgetDefaults.configVersion());
+                        governanceSnapshot == null
+                                ? budgetDefaults.configVersion()
+                                : governanceSnapshot.budgetPolicyVersion());
+        V1RunCommand.ModelSnapshot modelSnapshot =
+                governanceSnapshot == null
+                        ? null
+                        : new V1RunCommand.ModelSnapshot(
+                                governanceSnapshot.scene(),
+                                governanceSnapshot.modelType(),
+                                governanceSnapshot.routeVersion(),
+                                governanceSnapshot.providerCode(),
+                                governanceSnapshot.modelName(),
+                                governanceSnapshot.fallbackProviderCode(),
+                                governanceSnapshot.fallbackModelName(),
+                                governanceSnapshot.priceVersion(),
+                                governanceSnapshot.inputPricePerMillion(),
+                                governanceSnapshot.outputPricePerMillion(),
+                                governanceSnapshot.budgetPolicyVersion(),
+                                governanceSnapshot.modelTimeoutMs());
         V1RunCommand.RuntimeOptions runtimeOptions =
                 new V1RunCommand.RuntimeOptions(
                         "foodmate-m1-4-deterministic-v1",
                         budgetDefaults.maxTotalSteps(),
                         true,
-                        budgetSnapshot);
+                        budgetSnapshot,
+                        modelSnapshot);
         // 将接受 Run 时的不可变预算快照随命令发送，Python 恢复时不得读取新环境变量覆盖它。
         V1RunCommand.V1Message commandMessage =
                 new V1RunCommand.V1Message(Long.toString(message.messageId()), content, List.of());
@@ -311,22 +365,41 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             audit.record(userId, targetType, targetId, action, result, null, null, null, metadata);
     }
 
-    private void insertInitialBudgetSnapshot(long runId) {
+    private void insertInitialBudgetSnapshot(
+            long runId, ModelGovernanceSnapshot governanceSnapshot) {
+        int maxTotalTokens =
+                governanceSnapshot == null
+                        ? budgetDefaults.maxTotalTokens()
+                        : governanceSnapshot.maxTotalTokens();
+        java.math.BigDecimal maxCostCny =
+                governanceSnapshot == null
+                        ? budgetDefaults.maxCostCny()
+                        : governanceSnapshot.maxCostCny();
+        int maxStepRetries =
+                governanceSnapshot == null
+                        ? budgetDefaults.maxStepRetries()
+                        : governanceSnapshot.maxStepRetries();
+        int maxModelCalls =
+                governanceSnapshot == null
+                        ? budgetDefaults.maxModelCalls()
+                        : governanceSnapshot.maxModelCalls();
         store.insertBudget(
                 ids.nextId(),
                 runId,
-                budgetDefaults.maxTotalTokens(),
-                budgetDefaults.maxCostCny(),
-                budgetDefaults.maxStepRetries(),
+                maxTotalTokens,
+                maxCostCny,
+                maxStepRetries,
                 budgetDefaults.maxReplans(),
                 budgetDefaults.maxAnswerRewrites(),
                 budgetDefaults.maxTotalSteps(),
-                budgetDefaults.maxModelCalls(),
+                maxModelCalls,
                 budgetDefaults.queueTimeoutSeconds(),
                 budgetDefaults.executionTimeoutSeconds(),
                 budgetDefaults.nodeTimeoutSeconds(),
                 budgetDefaults.waitingUserTimeoutSeconds(),
-                budgetDefaults.configVersion());
+                governanceSnapshot == null
+                        ? budgetDefaults.configVersion()
+                        : governanceSnapshot.budgetPolicyVersion());
     }
 
     private String json(Object value) {

@@ -65,7 +65,20 @@ class V1RunCommandTest {
                                         30,
                                         86400,
                                         1,
-                                        "m1-4-default")),
+                                        "m1-4-default"),
+                                new V1RunCommand.ModelSnapshot(
+                                        "agent_run",
+                                        "chat",
+                                        "route-1",
+                                        "deterministic",
+                                        "stub-chat-v1",
+                                        null,
+                                        null,
+                                        "stub-price-v1",
+                                        new BigDecimal("1.25"),
+                                        new BigDecimal("2.50"),
+                                        "stub-budget-v1",
+                                        15000)),
                         null);
 
         String json = mapper.writeValueAsString(command);
@@ -85,11 +98,15 @@ class V1RunCommandTest {
                                         .path("budget_snapshot")
                                         .path("max_cost_cny")
                                         .decimalValue()));
+        assertEquals(
+                "stub-price-v1",
+                root.path("runtime_options").path("model_snapshot").path("price_version").asText());
         assertTrue(root.path("recovery_context").isMissingNode());
 
         V1RunCommand restored = mapper.readValue(json, V1RunCommand.class);
         assertEquals("message-1", restored.message().messageId());
         assertEquals(1, restored.authorizedContext().recentMessages().size());
         assertEquals(1, restored.runtimeOptions().budgetSnapshot().revision());
+        assertEquals("route-1", restored.runtimeOptions().modelSnapshot().routeVersion());
     }
 }

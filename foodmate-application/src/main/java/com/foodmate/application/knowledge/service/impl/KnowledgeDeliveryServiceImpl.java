@@ -30,20 +30,20 @@ public class KnowledgeDeliveryServiceImpl implements KnowledgeDeliveryService {
         return store.leaseVisibilityOutbox(id, owner);
     }
 
-    public void publishedIndex(long id) {
-        store.markIndexOutboxPublished(id);
+    public void publishedIndex(long id, String owner) {
+        store.markIndexOutboxPublished(id, owner);
     }
 
-    public void publishedVisibility(long id) {
-        store.markVisibilityOutboxPublished(id);
+    public void publishedVisibility(long id, String owner) {
+        store.markVisibilityOutboxPublished(id, owner);
     }
 
-    public void retryIndex(long id, String error) {
-        store.retryIndexOutbox(id, error);
+    public void retryIndex(long id, String owner, String error) {
+        store.retryIndexOutbox(id, owner, error);
     }
 
-    public void retryVisibility(long id, String error) {
-        store.retryVisibilityOutbox(id, error);
+    public void retryVisibility(long id, String owner, String error) {
+        store.retryVisibilityOutbox(id, owner, error);
     }
 
     @Transactional

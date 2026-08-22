@@ -24,6 +24,7 @@ describe('Admin tool registry', () => {
     expect(screen.getByText('1,420,951 次')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '工具注册表' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getAllByRole('button', { name: '配置详情' })).toHaveLength(6);
+    expect(screen.getByRole('button', { name: '复制 nutrition_lookup' })).toBeInTheDocument();
     expect(screen.getByText('nutrition_lookup')).toBeInTheDocument();
     expect(screen.getByText('user_memory_write')).toBeInTheDocument();
   });

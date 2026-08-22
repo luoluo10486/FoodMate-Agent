@@ -314,6 +314,7 @@
   border-radius: 12px;
   background: var(--fm-bg-soft);
   color: var(--fm-ink);
+  font: inherit;
   text-align: left;
 }
 
@@ -512,18 +513,15 @@
 }
 
 .homeStatePanel {
-  position: fixed;
-  inset: 68px 0 0 260px;
-  z-index: 20;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 12px;
-  padding: 32px;
-  overflow: auto;
-  background: var(--background);
-  color: var(--foreground);
-  text-align: center;
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  margin-top: 32px;
+  border: 1px solid var(--fm-border);
+  border-radius: 24px;
+  background: var(--fm-surface);
+  color: var(--fm-ink);
 }
 
 .homeStatePanel h2,
@@ -532,17 +530,18 @@
 }
 
 .homeStatePanel h2 {
-  font-size: 24px;
+  font-size: 20px;
+  font-weight: 900;
 }
 
 .homeStatePanel p {
-  color: var(--muted-foreground);
+  color: var(--fm-muted);
 }
 
 .homeStateIcon {
   display: grid;
-  width: 112px;
-  height: 112px;
+  width: 80px;
+  height: 80px;
   place-items: center;
   border-radius: 50%;
   background: #fff1c9;
@@ -557,8 +556,6 @@
 
 .homeStateError {
   border: 1px solid var(--fm-color-danger);
-  border-radius: 24px;
-  inset: 300px 32px 32px 292px;
 }
 
 .homeStateError .homeStateIcon {
@@ -571,11 +568,83 @@
   height: 40px;
 }
 
+.homeStateCenteredContent {
+  display: grid;
+  width: 100%;
+  min-height: 360px;
+  place-items: center;
+  align-content: center;
+  gap: 24px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.homeStateCenteredContent > div {
+  display: grid;
+  gap: 8px;
+}
+
+.homeStateCenteredContent p {
+  font-size: 14px;
+}
+
+.homeStateAction {
+  min-height: 48px;
+  padding: 0 24px;
+  border: 1px solid var(--fm-border);
+  border-radius: 999px;
+  background: #ffda93;
+  color: #ffffff;
+  font-size: 15px;
+  box-shadow: none;
+}
+
+.homeStateAction:hover {
+  background: #f6cc7e;
+  color: #ffffff;
+}
+
+.homeStateLoading {
+  display: block;
+  min-height: 470px;
+  padding: 32px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.loadingHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.loadingHeading h2 {
+  color: var(--fm-orange);
+  font-size: 32px;
+  line-height: 1.3;
+}
+
+.loadingHeading p {
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.loadingHeading > span {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--fm-purple-soft);
+  color: #b58cc4;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .homeStateSkeletonChips,
 .homeStateMetricSkeletons,
 .homeStateGridSkeletons {
   display: grid;
-  width: min(100%, 1080px);
+  width: 100%;
   gap: 16px;
 }
 
@@ -585,7 +654,7 @@
 }
 
 .homeStateSkeletonChips span {
-  height: 36px;
+  height: 38px;
   border-radius: 999px;
   background: #eeeeef;
 }
@@ -598,7 +667,7 @@
 .homeStateMetricSkeletons span {
   height: 88px;
   border: 1px solid var(--fm-border);
-  border-radius: 18px;
+  border-radius: var(--radius-container);
   background: linear-gradient(90deg, #f1f1f1, #fafafa, #f1f1f1);
 }
 
@@ -608,20 +677,19 @@
 }
 
 .homeStateGridSkeletons span {
-  height: 280px;
+  height: 240px;
   border: 1px solid var(--fm-border);
   border-radius: 18px;
   background: linear-gradient(90deg, #f7f7f7, #fcfcfc, #f7f7f7);
 }
 
 @media (max-width: 760px) {
-  .homeStatePanel {
-    inset: 0;
-    padding: 24px 16px;
+  .homeStateLoading {
+    padding: 24px 0;
   }
 
-  .homeStateError {
-    inset: 160px 16px 16px;
+  .loadingHeading h2 {
+    font-size: 25px;
   }
 
   .homeStateSkeletonChips,

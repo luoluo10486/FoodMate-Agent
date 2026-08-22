@@ -1,18 +1,11 @@
-import {
-  Check,
-  ChevronDown,
-  CircleAlert,
-  Download,
-  MoreHorizontal,
-  Plus,
-  Printer,
-  RotateCcw,
-  Sparkles,
-  X,
-} from 'lucide-react';
+import { Check, CircleAlert, Download, MoreHorizontal, Plus, Printer, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { MealPlan, MealPlanDraft } from '../../services/planningService';
 import styles from './MealPlanningFlow.module.css';
 
 export type MealPlanningFlowView =
@@ -57,6 +50,244 @@ const plans = [
     updated: '最后修改: 2周前',
   },
 ] as const;
+
+type PlanCard = {
+  id: string;
+  name: string;
+  status: string;
+  statusTone: 'active' | 'draft' | 'archived';
+  dates: string;
+  calories: string;
+  protein: string;
+  budget: string;
+  level: string;
+  updated: string;
+};
+
+function realPlanCard(plan: MealPlan): PlanCard {
+  const archived = plan.deleted;
+  const statusTone = archived ? 'archived' : plan.status === 'draft' ? 'draft' : 'active';
+  const status = archived ? '已归档' : statusTone === 'draft' ? '草稿' : '进行中';
+  const calorieTarget = plan.constraints.calorie_target;
+  const proteinTarget = plan.constraints.protein_target;
+  const budget = plan.budget == null ? '未设置' : `${plan.budget}`;
+  const updated = new Date(plan.updated_at).toLocaleString('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return {
+    id: plan.meal_plan_id,
+    name: plan.plan_name?.trim() || `未命名 ${plan.meal_plan_id}`,
+    status,
+    statusTone,
+    dates: `${plan.days} 天计划`,
+    calories: calorieTarget == null ? '每日目标: 未设置' : `每日目标: ${calorieTarget.toLocaleString()} kcal`,
+    protein: proteinTarget == null ? '蛋白质: 未设置' : `蛋白质: ${proteinTarget}g`,
+    budget: `预算: ¥${budget}/天`,
+    level: '服务端计划',
+    updated: `最后修改: ${updated}`,
+  };
+}
+
+function RealWizardStep({
+  step,
+  draft,
+  onDraftChange,
+  onNavigate,
+  onCreate,
+  creating,
+  error,
+}: {
+  step: 1 | 2 | 3;
+  draft: MealPlanDraft;
+  onDraftChange: (patch: Partial<MealPlanDraft>) => void;
+  onNavigate: NavigateToView;
+  onCreate: () => void;
+  creating: boolean;
+  error?: string;
+}) {
+  const updateList = (field: 'allergens' | 'dislikes', value: string) => {
+    const normalized = value.trim();
+    if (!normalized || draft[field].includes(normalized)) return;
+    onDraftChange({ [field]: [...draft[field], normalized] });
+  };
+
+  if (step === 1) {
+    return (
+      <div className={styles.wizardPage}>
+        <FlowStepper currentStep={1} onNavigate={onNavigate} />
+        <div className={styles.wizardGrid}>
+          <section className={styles.wizardCard} aria-labelledby="real-wizard-step-one-title">
+            <h1 id="real-wizard-step-one-title">步骤 1: 设置基本目标</h1>
+            <div className={styles.formGrid}>
+              <Field label="计划名称" className={styles.fieldFull}>
+                <Input value={draft.planName} onChange={(event) => onDraftChange({ planName: event.target.value })} />
+              </Field>
+              <Field label="开始日期">
+                <Input
+                  type="date"
+                  value={draft.startDate}
+                  onChange={(event) => onDraftChange({ startDate: event.target.value })}
+                />
+              </Field>
+              <Field label="结束日期">
+                <Input
+                  type="date"
+                  value={draft.endDate}
+                  onChange={(event) => onDraftChange({ endDate: event.target.value })}
+                />
+              </Field>
+              <Field label="每日能量目标">
+                <UnitInput
+                  value={draft.calories}
+                  unit="kcal"
+                  onChange={(value) => onDraftChange({ calories: value })}
+                />
+              </Field>
+              <Field label="每日蛋白质目标">
+                <UnitInput value={draft.protein} unit="g" onChange={(value) => onDraftChange({ protein: value })} />
+              </Field>
+              <Field label="每日支出预算 (RMB)" className={styles.fieldFull}>
+                <UnitInput value={draft.budget} unit="元/天" onChange={(value) => onDraftChange({ budget: value })} />
+              </Field>
+            </div>
+            <div className={styles.wizardActions}>
+              <FlowButton variant="outline" onClick={() => onNavigate('list')}>
+                取消
+              </FlowButton>
+              <FlowButton onClick={() => onNavigate('wizard-step2')}>下一步: 膳食约束</FlowButton>
+            </div>
+          </section>
+          <ValidationPanel step={1} />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div className={styles.wizardPage}>
+        <FlowStepper currentStep={2} onNavigate={onNavigate} />
+        <div className={styles.wizardGrid}>
+          <section className={styles.wizardCard} aria-labelledby="real-wizard-step-two-title">
+            <h1 id="real-wizard-step-two-title">步骤 2: 设置膳食约束</h1>
+            <div className={styles.preferenceBlock}>
+              <span className={styles.blockLabel}>过敏源</span>
+              <div className={styles.allergyRow}>
+                {draft.allergens.map((item) => (
+                  <Button
+                    className={styles.allergyChip}
+                    key={item}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => onDraftChange({ allergens: draft.allergens.filter((value) => value !== item) })}
+                  >
+                    {item} <X aria-hidden="true" />
+                  </Button>
+                ))}
+                <Button
+                  className={styles.addAllergy}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => updateList('allergens', '坚果')}
+                >
+                  + 添加过敏源
+                </Button>
+              </div>
+            </div>
+            <div className={styles.preferenceBlock}>
+              <span className={styles.blockLabel}>忌口</span>
+              <div className={styles.allergyRow}>
+                {draft.dislikes.map((item) => (
+                  <Button
+                    className={styles.allergyChip}
+                    key={item}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => onDraftChange({ dislikes: draft.dislikes.filter((value) => value !== item) })}
+                  >
+                    {item} <X aria-hidden="true" />
+                  </Button>
+                ))}
+                <Button
+                  className={styles.addAllergy}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => updateList('dislikes', '猪肉')}
+                >
+                  + 添加忌口
+                </Button>
+              </div>
+            </div>
+            <div className={styles.wizardActions}>
+              <FlowButton variant="outline" onClick={() => onNavigate('wizard-step1')}>
+                上一步
+              </FlowButton>
+              <FlowButton onClick={() => onNavigate('wizard-step3')}>下一步: 确认并生成</FlowButton>
+            </div>
+          </section>
+          <ValidationPanel step={2} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.wizardPage}>
+      <FlowStepper currentStep={3} onNavigate={onNavigate} />
+      <div className={styles.wizardGrid}>
+        <section className={styles.wizardCard} aria-labelledby="real-wizard-step-three-title">
+          <h1 id="real-wizard-step-three-title">步骤 3: 确认并创建计划</h1>
+          <p className={styles.wizardIntro}>创建后先保存为草稿，服务端会按当前约束返回可继续编辑的计划。</p>
+          <div className={styles.confirmSummary}>
+            <div className={styles.confirmTitleRow}>
+              <strong>计划名称</strong>
+              <span>{draft.planName || '我的餐食计划'}</span>
+            </div>
+            <div className={styles.confirmGrid}>
+              <div>
+                <small>规划日期范围</small>
+                <strong>
+                  {draft.startDate} 至 {draft.endDate}
+                </strong>
+              </div>
+              <div>
+                <small>能量/蛋白目标</small>
+                <strong>
+                  {draft.calories || '未设置'} kcal / {draft.protein || '未设置'}g
+                </strong>
+              </div>
+              <div>
+                <small>每日预算</small>
+                <strong>{draft.budget || '未设置'} 元</strong>
+              </div>
+              <div>
+                <small>过敏源 / 忌口</small>
+                <strong>{[...draft.allergens, ...draft.dislikes].join('、') || '无'}</strong>
+              </div>
+            </div>
+          </div>
+          {error ? (
+            <p className={styles.wizardIntro} role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div className={styles.wizardActions}>
+            <FlowButton variant="outline" onClick={() => onNavigate('wizard-step2')}>
+              上一步
+            </FlowButton>
+            <FlowButton disabled={creating} onClick={onCreate}>
+              {creating ? '正在创建...' : '创建并保存计划'}
+            </FlowButton>
+          </div>
+        </section>
+        <ValidationPanel step={3} />
+      </div>
+    </div>
+  );
+}
 
 const shoppingCategories = [
   {
@@ -116,15 +347,16 @@ function FlowStepper({ currentStep, onNavigate }: { currentStep: number; onNavig
         const target = step === 1 ? 'wizard-step1' : step === 2 ? 'wizard-step2' : 'wizard-step3';
         return (
           <div className={styles.stepperItem} key={label}>
-            <button
+            <Button
               className={`${styles.stepperStep} ${active ? styles.stepperActive : ''} ${done ? styles.stepperDone : ''}`}
+              variant="ghost"
               type="button"
               aria-current={active ? 'step' : undefined}
               onClick={() => step <= currentStep && onNavigate(target)}
             >
               <span className={styles.stepperCircle}>{done ? <Check aria-hidden="true" /> : step}</span>
               <span>{label}</span>
-            </button>
+            </Button>
             {step < steps.length ? (
               <span className={`${styles.stepperLine} ${done ? styles.stepperLineDone : ''}`} />
             ) : null}
@@ -267,11 +499,14 @@ function WizardStepOne({ onNavigate }: { onNavigate: NavigateToView }) {
 
 function CheckChip({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
-    <label className={`${styles.checkChip} ${checked ? styles.checkChipActive : ''}`}>
-      <input type="checkbox" checked={checked} onChange={onChange} />
-      <span className={styles.checkboxMark}>{checked ? <Check aria-hidden="true" /> : null}</span>
+    <Checkbox
+      aria-label={label}
+      checked={checked}
+      className={`${styles.checkChip} ${checked ? styles.checkChipActive : ''}`}
+      onCheckedChange={onChange}
+    >
       <span>{label}</span>
-    </label>
+    </Checkbox>
   );
 }
 
@@ -306,22 +541,24 @@ function WizardStepTwo({ onNavigate }: { onNavigate: NavigateToView }) {
           <span className={styles.blockLabel}>食物过敏源过滤</span>
           <div className={styles.allergyRow}>
             {allergies.map((item) => (
-              <button
+              <Button
                 className={styles.allergyChip}
                 key={item}
+                variant="ghost"
                 type="button"
                 onClick={() => setAllergies((current) => current.filter((value) => value !== item))}
               >
                 {item} <X aria-hidden="true" />
-              </button>
+              </Button>
             ))}
-            <button
+            <Button
               className={styles.addAllergy}
+              variant="ghost"
               type="button"
               onClick={() => setAllergies((current) => [...current, '坚果'])}
             >
               + 添加过敏源
-            </button>
+            </Button>
           </div>
         </div>
         <div className={styles.formGrid}>
@@ -330,12 +567,16 @@ function WizardStepTwo({ onNavigate }: { onNavigate: NavigateToView }) {
           </Field>
           <Field label="首选菜系口味">
             <div className={styles.selectWrap}>
-              <select value={cuisine} onChange={(event) => setCuisine(event.target.value)}>
-                <option>中式、日式轻食</option>
-                <option>地中海轻食</option>
-                <option>西式高蛋白</option>
-              </select>
-              <ChevronDown aria-hidden="true" />
+              <Select value={cuisine} onValueChange={setCuisine}>
+                <SelectTrigger aria-label="首选菜系口味" className={styles.cuisineSelect}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="中式、日式轻食">中式、日式轻食</SelectItem>
+                  <SelectItem value="地中海轻食">地中海轻食</SelectItem>
+                  <SelectItem value="西式高蛋白">西式高蛋白</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </Field>
         </div>
@@ -408,9 +649,20 @@ function WizardStepThree({ onNavigate }: { onNavigate: NavigateToView }) {
   );
 }
 
-function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
+function PlanListView({
+  onNavigate,
+  realPlans,
+  onOpenPlan,
+}: {
+  onNavigate: NavigateToView;
+  realPlans?: MealPlan[];
+  onOpenPlan?: (mealPlanId: string) => void;
+}) {
   const [tab, setTab] = useState<'active' | 'draft' | 'archived'>('active');
-  const visiblePlans = plans.filter((plan) => plan.statusTone === tab);
+  const planCards: PlanCard[] = realPlans
+    ? realPlans.map(realPlanCard)
+    : plans.map((plan) => ({ ...plan, id: plan.name }));
+  const visiblePlans = planCards.filter((plan) => plan.statusTone === tab);
 
   return (
     <div className={`${styles.flowPage} ${styles.listPage}`}>
@@ -430,8 +682,9 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
           ['draft', '草稿箱'],
           ['archived', '已归档'],
         ].map(([key, label]) => (
-          <button
+          <Button
             className={tab === key ? styles.listTabActive : ''}
+            variant="ghost"
             key={key}
             type="button"
             role="tab"
@@ -439,12 +692,12 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
             onClick={() => setTab(key as typeof tab)}
           >
             {label}
-          </button>
+          </Button>
         ))}
       </div>
       <div className={styles.planList}>
         {visiblePlans.map((plan) => (
-          <article className={styles.planListCard} key={plan.name}>
+          <article className={styles.planListCard} key={plan.id}>
             <div className={styles.planListMain}>
               <div className={styles.planListTitleRow}>
                 <h2>{plan.name}</h2>
@@ -460,12 +713,21 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
               </div>
             </div>
             <div className={styles.planListActions}>
-              <FlowButton variant="outline" onClick={() => onNavigate('default')}>
+              <FlowButton
+                variant="outline"
+                onClick={() => (onOpenPlan && realPlans ? onOpenPlan(plan.id) : onNavigate('default'))}
+              >
                 进入计划
               </FlowButton>
-              <button className={styles.iconAction} type="button" aria-label={`${plan.name}更多操作`}>
+              <Button
+                className={styles.iconAction}
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label={`${plan.name}更多操作`}
+              >
                 <MoreHorizontal aria-hidden="true" />
-              </button>
+              </Button>
             </div>
           </article>
         ))}
@@ -485,8 +747,13 @@ function PlanListView({ onNavigate }: { onNavigate: NavigateToView }) {
   );
 }
 
+type ConflictChoice = 'protein-relax' | 'replace';
+
 function ConflictView({ onNavigate }: { onNavigate: NavigateToView }) {
-  const [choice, setChoice] = useState<'protein-relax' | 'replace'>('protein-relax');
+  const [choice, setChoice] = useState<ConflictChoice>('protein-relax');
+  const updateChoice = (value: string) => {
+    if (value === 'protein-relax' || value === 'replace') setChoice(value);
+  };
   return (
     <div className={`${styles.flowPage} ${styles.conflictPage} ${styles.interPage}`}>
       <div className={styles.conflictAlert}>
@@ -547,14 +814,29 @@ function ConflictView({ onNavigate }: { onNavigate: NavigateToView }) {
               <span>高危</span>
             </div>
             <p>周二晚餐“超重蛋白酸面包”含蛋白质过多，使单日蛋白质达到 152g，超出设定限额上限（110g）。</p>
-            <label className={styles.radioOption}>
-              <input type="radio" checked={choice === 'protein-relax'} onChange={() => setChoice('protein-relax')} />
-              <span>放宽约束（调整为允许150g）</span>
-            </label>
-            <label className={styles.radioOption}>
-              <input type="radio" checked={choice === 'replace'} onChange={() => setChoice('replace')} />
-              <span>替换菜品（智能推荐低蛋白早餐）</span>
-            </label>
+            <RadioGroup
+              aria-label="蛋白质贡献冲突解决方案"
+              className={styles.radioGroup}
+              value={choice}
+              onValueChange={updateChoice}
+            >
+              <div className={styles.radioOption}>
+                <RadioGroupItem
+                  aria-label="放宽约束（调整为允许150g）"
+                  id="conflict-protein-relax"
+                  value="protein-relax"
+                />
+                <label htmlFor="conflict-protein-relax">放宽约束（调整为允许150g）</label>
+              </div>
+              <div className={styles.radioOption}>
+                <RadioGroupItem
+                  aria-label="替换菜品（智能推荐低蛋白早餐）"
+                  id="conflict-protein-replace"
+                  value="replace"
+                />
+                <label htmlFor="conflict-protein-replace">替换菜品（智能推荐低蛋白早餐）</label>
+              </div>
+            </RadioGroup>
           </div>
           <div className={styles.resolutionCard}>
             <div className={styles.resolutionTitle}>
@@ -562,14 +844,29 @@ function ConflictView({ onNavigate }: { onNavigate: NavigateToView }) {
               <span className={styles.mediumRisk}>中等</span>
             </div>
             <p>“三文鱼”在一周里两次相同餐中使用了 4 次，超出了健康和多样性的要求。</p>
-            <label className={styles.radioOption}>
-              <input type="radio" checked={choice === 'replace'} onChange={() => setChoice('replace')} />
-              <span>一键替换（将周四午餐替换为烤鸡蛋）</span>
-            </label>
-            <label className={styles.radioOption}>
-              <input type="radio" checked={choice === 'protein-relax'} onChange={() => setChoice('protein-relax')} />
-              <span>忽略冲突（保留三文鱼套餐）</span>
-            </label>
+            <RadioGroup
+              aria-label="主食材复用冲突解决方案"
+              className={styles.radioGroup}
+              value={choice}
+              onValueChange={updateChoice}
+            >
+              <div className={styles.radioOption}>
+                <RadioGroupItem
+                  aria-label="一键替换（将周四午餐替换为烤鸡蛋）"
+                  id="conflict-ingredient-replace"
+                  value="replace"
+                />
+                <label htmlFor="conflict-ingredient-replace">一键替换（将周四午餐替换为烤鸡蛋）</label>
+              </div>
+              <div className={styles.radioOption}>
+                <RadioGroupItem
+                  aria-label="忽略冲突（保留三文鱼套餐）"
+                  id="conflict-ingredient-relax"
+                  value="protein-relax"
+                />
+                <label htmlFor="conflict-ingredient-relax">忽略冲突（保留三文鱼套餐）</label>
+              </div>
+            </RadioGroup>
           </div>
           <FlowButton className={styles.applyConflict} onClick={() => onNavigate('default')}>
             应用修改并重新计划
@@ -641,10 +938,14 @@ function ShoppingListView() {
         ))}
       </div>
       <footer className={styles.shoppingToolbar}>
-        <label className={styles.selectAll}>
-          <input type="checkbox" checked={allChecked} onChange={toggleAll} />
-          <span className={styles.checkboxMark}>{allChecked ? <Check aria-hidden="true" /> : null}</span>全选所有项目
-        </label>
+        <Checkbox
+          aria-label="全选所有项目"
+          checked={allChecked}
+          className={styles.selectAll}
+          onCheckedChange={toggleAll}
+        >
+          <span>全选所有项目</span>
+        </Checkbox>
         <div className={styles.toolbarActions}>
           <FlowButton className={styles.orangeButton} onClick={() => setNotice('已添加自定义项目入口。')}>
             <Plus aria-hidden="true" />
@@ -679,9 +980,12 @@ function ShoppingRow({
   onChange: () => void;
 }) {
   return (
-    <label className={styles.shoppingRow}>
-      <input type="checkbox" checked={checked} onChange={onChange} />
-      <span className={styles.checkboxMark}>{checked ? <Check aria-hidden="true" /> : null}</span>
+    <Checkbox
+      aria-label={`${item.name} (${item.detail})`}
+      checked={checked}
+      className={styles.shoppingRow}
+      onCheckedChange={onChange}
+    >
       <span className={styles.shoppingCopy}>
         <strong>{item.name}</strong>
         <small>{item.detail}</small>
@@ -689,7 +993,7 @@ function ShoppingRow({
       <em className={`${styles.itemStatus} ${item.tone === 'owned' ? styles.itemOwned : styles.itemPending}`}>
         {item.status}
       </em>
-    </label>
+    </Checkbox>
   );
 }
 
@@ -714,7 +1018,6 @@ function GeneratingView({ onNavigate }: { onNavigate: NavigateToView }) {
           </div>
         </div>
         <FlowButton variant="outline" onClick={() => onNavigate('wizard-step3')}>
-          <RotateCcw aria-hidden="true" />
           取消生成
         </FlowButton>
       </div>
@@ -722,8 +1025,42 @@ function GeneratingView({ onNavigate }: { onNavigate: NavigateToView }) {
   );
 }
 
-export function MealPlanningFlow({ view, onNavigate }: { view: MealPlanningFlowView; onNavigate: NavigateToView }) {
-  if (view === 'list') return <PlanListView onNavigate={onNavigate} />;
+export function MealPlanningFlow({
+  view,
+  onNavigate,
+  realPlans,
+  onOpenPlan,
+  realDraft,
+  onDraftChange,
+  onCreatePlan,
+  creatingPlan = false,
+  createError,
+}: {
+  view: MealPlanningFlowView;
+  onNavigate: NavigateToView;
+  realPlans?: MealPlan[];
+  onOpenPlan?: (mealPlanId: string) => void;
+  realDraft?: MealPlanDraft;
+  onDraftChange?: (patch: Partial<MealPlanDraft>) => void;
+  onCreatePlan?: () => void;
+  creatingPlan?: boolean;
+  createError?: string;
+}) {
+  if (view === 'list') return <PlanListView onNavigate={onNavigate} realPlans={realPlans} onOpenPlan={onOpenPlan} />;
+  if (realPlans && realDraft && onDraftChange && onCreatePlan) {
+    if (view === 'wizard-step1' || view === 'wizard-step2' || view === 'wizard-step3')
+      return (
+        <RealWizardStep
+          step={view === 'wizard-step1' ? 1 : view === 'wizard-step2' ? 2 : 3}
+          draft={realDraft}
+          onDraftChange={onDraftChange}
+          onNavigate={onNavigate}
+          onCreate={onCreatePlan}
+          creating={creatingPlan}
+          error={createError}
+        />
+      );
+  }
   if (view === 'wizard-step1') return <WizardStepOne onNavigate={onNavigate} />;
   if (view === 'wizard-step2') return <WizardStepTwo onNavigate={onNavigate} />;
   if (view === 'wizard-step3') return <WizardStepThree onNavigate={onNavigate} />;

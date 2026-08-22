@@ -50,8 +50,8 @@
       "intent": "analysis",
       "complexity": "complex",
       "eval_result": "pass",
-      "eval_reason": "LOCAL_DETERMINISTIC_JUDGE",
-      "model_scenes": ["composer", "eval"]
+      "eval_reason": "SQL_PLANNER_TIME_RANGE_REQUIRED",
+      "model_scenes": []
     }
   },
   {

@@ -5,6 +5,8 @@ import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ROUTES } from '../../constants/routes';
 import { adminOperationAuditRows } from '../../services/adminService';
 import { getAuthUser } from '../../services/authService';
@@ -17,6 +19,7 @@ import { OverviewSection } from './tabs/OverviewTab';
 import { RunsSection } from './tabs/RunsTab';
 import { ToolsSection } from './tabs/ToolsTab';
 import { UsageSection } from './tabs/UsageTab';
+import { ModelGovernanceSection } from './tabs/ModelGovernanceTab';
 import { UsersSection } from './tabs/UsersTab';
 import { AdminOperationStatus } from './tabs/AdminOperationStatus';
 import { OperationAuditSection } from './tabs/OperationAuditTab';
@@ -81,6 +84,359 @@ function getAdminFixtureState(value: string | null): AdminFixtureState | undefin
   return value && states.includes(value as AdminFixtureState) ? (value as AdminFixtureState) : undefined;
 }
 
+function getFixtureNavKey(state: AdminFixtureState | undefined): string | undefined {
+  if (!state) return undefined;
+  if (state === 'tool-registry' || state.startsWith('op-')) return 'registry';
+  if (state === 'deleted-resources') return 'deleted';
+  if (state === 'user-detail') return 'users';
+  if (state.startsWith('knowledge-')) return 'knowledge';
+  if (state === 'run-detail') return 'runs';
+  if (state === 'tool-calls') return 'tools';
+  if (state === 'sql-audit') return 'sql';
+  if (state === 'trace') return 'trace';
+  if (state === 'overview') return 'overview';
+  return undefined;
+}
+
+const toolCallsPayload = `{
+  "query": "avocado sourdough toast",
+  "filters": {
+    "usda_ndb_id": "1103982",
+    "strict_keto_validation": true
+  },
+  "caller_context_mask": "SENSITIVE_USER_CREDENTIALS_MASKED_***"
+}`;
+
+type GovernanceTabKey = 'tool-calls' | 'sql-audit' | 'trace';
+
+function GovernanceTabs({ active }: { active: GovernanceTabKey }) {
+  const tabs: Array<{ key: GovernanceTabKey; label: string; href: string }> = [
+    { key: 'tool-calls', label: '工具调用', href: '/admin?state=tool-calls' },
+    { key: 'sql-audit', label: 'SQL 审计', href: '/admin?state=sql-audit' },
+    { key: 'trace', label: '追踪视图', href: '/admin?state=trace' },
+  ];
+
+  return (
+    <nav className={styles.governanceTabs} aria-label="治理详情视图">
+      {tabs.map((tab) => (
+        <Button
+          asChild
+          key={tab.key}
+          size="sm"
+          variant={tab.key === active ? 'default' : 'outline'}
+          className={`${styles.governanceTab} ${tab.key === active ? styles.governanceTabActive : ''}`}
+        >
+          <Link to={tab.href}>{tab.label}</Link>
+        </Button>
+      ))}
+    </nav>
+  );
+}
+
+function ToolCallsFixture() {
+  const [search, setSearch] = useState('');
+  const hasMatch =
+    !search.trim() ||
+    ['call_829c', 'run_98218a', 'usda_food_api.query_ingredients'].some((value) =>
+      value.toLowerCase().includes(search.trim().toLowerCase()),
+    );
+
+  return (
+    <section className={styles.governanceSurface} aria-label="工具调用详情 fixture">
+      <GovernanceTabs active="tool-calls" />
+
+      <div className={styles.governanceFilters} aria-label="工具调用筛选">
+        <span className={styles.governanceStaticFilter}>tool_name: query_usda</span>
+        <Select defaultValue="high">
+          <SelectTrigger className={styles.governanceRiskFilter} aria-label="风险筛选">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="high">风险：高</SelectItem>
+            <SelectItem value="medium">风险：中</SelectItem>
+            <SelectItem value="low">风险：低</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          aria-label="搜索运行 ID"
+          className={styles.governanceSearch}
+          placeholder="搜索运行ID..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </div>
+
+      <section className={styles.governanceTable} aria-label="工具调用记录">
+        <div className={styles.governanceTableHeader} role="row">
+          <span>调用 ID</span>
+          <span>运行 ID</span>
+          <span>工具组件</span>
+          <span>版本</span>
+          <span>状态</span>
+          <span>耗时</span>
+          <span>风险</span>
+        </div>
+        {hasMatch ? (
+          <div className={styles.governanceTableRow} role="row">
+            <strong>call_829c</strong>
+            <code>run_98218a</code>
+            <strong>usda_food_api.query_ingredients</strong>
+            <span>v2.1</span>
+            <span className={styles.governanceFailure}>失败</span>
+            <span>8.5s</span>
+            <span className={styles.governanceRiskMedium}>中</span>
+          </div>
+        ) : (
+          <p className={styles.governanceEmpty} role="status">
+            没有匹配的工具调用
+          </p>
+        )}
+      </section>
+
+      <section className={styles.governancePayloadCard} aria-label="Arguments & System Schema">
+        <div className={styles.governancePayloadHeader}>
+          <h2>Arguments &amp; System Schema (call_829c)</h2>
+          <span className={styles.governancePolicy}>策略：通过</span>
+        </div>
+        <div className={styles.governancePayload}>
+          <div className={styles.governancePayloadMeta}>
+            <strong>payload_arguments.json</strong>
+            <code>只读</code>
+          </div>
+          <pre>{toolCallsPayload}</pre>
+        </div>
+        <p className={styles.governanceFootnote}>
+          * Sensitive fields masked automatically by Foodmate PII filter gateway.
+        </p>
+      </section>
+
+      <aside className={styles.governanceNotes} aria-label="Tool Calls 筛选与详情">
+        <h2>Tool Calls · 筛选与详情</h2>
+        <p>筛选：时间范围 · 状态 · 工具名 · 风险等级 · 仅看失败 · 重试次数</p>
+        <p>详情字段：call_id · run_id · 创建时间 · 完成时间 · 耗时 · 状态 · 重试次数 · 错误码</p>
+        <p className={styles.governanceNoteSuccess}>
+          输入 / 输出：结构化摘要 + 脱敏 payload；敏感字段仅显示 [MASKED]，支持复制 call_id 与查看所属 Run。
+        </p>
+        <p className={styles.governanceNoteMuted}>
+          工具策略校验：权限范围、超时、重试策略、风险等级和 SQL Guard 结果均可追踪。
+        </p>
+      </aside>
+    </section>
+  );
+}
+
+function SqlAuditFixture() {
+  const [search, setSearch] = useState('');
+  const hasMatch =
+    !search.trim() ||
+    ['call_829c', 'run_98218a', 'usda_food_api.query_ingredients'].some((value) =>
+      value.toLowerCase().includes(search.trim().toLowerCase()),
+    );
+
+  return (
+    <section className={styles.governanceSurface} aria-label="SQL 审计详情 fixture">
+      <GovernanceTabs active="sql-audit" />
+
+      <div className={styles.governanceFilters} aria-label="SQL 审计筛选">
+        <span className={styles.governanceStaticFilter}>tool_name: query_usda</span>
+        <Select defaultValue="high">
+          <SelectTrigger className={styles.governanceRiskFilter} aria-label="SQL 风险筛选">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="high">风险：高</SelectItem>
+            <SelectItem value="medium">风险：中</SelectItem>
+            <SelectItem value="low">风险：低</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          aria-label="搜索 SQL 运行 ID"
+          className={styles.governanceSearch}
+          placeholder="搜索运行ID..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </div>
+
+      <section className={styles.governanceTable} aria-label="SQL 审计记录">
+        <div className={styles.governanceTableHeader} role="row">
+          <span>调用 ID</span>
+          <span>运行 ID</span>
+          <span>工具组件</span>
+          <span>版本</span>
+          <span>状态</span>
+          <span>耗时</span>
+          <span>风险</span>
+        </div>
+        {hasMatch ? (
+          <div className={styles.governanceTableRow} role="row">
+            <strong>call_829c</strong>
+            <code>run_98218a</code>
+            <strong>usda_food_api.query_ingredients</strong>
+            <span>v2.1</span>
+            <span className={styles.governanceFailure}>失败</span>
+            <span>8.5s</span>
+            <span className={styles.governanceRiskMedium}>中</span>
+          </div>
+        ) : (
+          <p className={styles.governanceEmpty} role="status">
+            没有匹配的 SQL 审计记录
+          </p>
+        )}
+      </section>
+
+      <section className={styles.governancePayloadCard} aria-label="SQL 审计参数详情">
+        <div className={styles.governancePayloadHeader}>
+          <h2>Arguments &amp; System Schema (call_829c)</h2>
+          <span className={styles.governancePolicy}>策略：通过</span>
+        </div>
+        <div className={styles.governancePayload}>
+          <div className={styles.governancePayloadMeta}>
+            <strong>payload_arguments.json</strong>
+            <code>只读</code>
+          </div>
+          <pre>{toolCallsPayload}</pre>
+        </div>
+        <p className={styles.governanceFootnote}>
+          * Sensitive fields masked automatically by Foodmate PII filter gateway.
+        </p>
+      </section>
+
+      <aside className={styles.governanceNotes} aria-label="SQL Audit 筛选与详情">
+        <h2>SQL Audit · 筛选与详情</h2>
+        <p>筛选：时间范围 · 用户 / Run · 工具组件 · 风险等级 · 执行结果 · 仅看失败</p>
+        <p>列表字段：audit_id · run_id · tool_name · query_hash · 执行时间 · 耗时 · 状态 · 风险等级</p>
+        <p className={styles.governanceNoteSuccess}>
+          详情字段：SQL 摘要 · 参数摘要 · 行数 / 结果摘要 · Guard 决策 · 错误码 · request_id / trace_id
+        </p>
+        <p className={styles.governanceNoteDanger}>
+          数据库凭据、令牌和敏感参数统一脱敏；只展示经过权限过滤的审计内容。
+        </p>
+      </aside>
+    </section>
+  );
+}
+
+function AgentTimelineFixture({ trace }: { trace: boolean }) {
+  return (
+    <section
+      className={`${styles.fixtureSurface} ${styles.fixtureSurfaceInline}`}
+      aria-label={trace ? 'Trace 详情 fixture' : 'Run 详情 fixture'}
+    >
+      <div className={styles.runFixtureToolbar} aria-label="Run 筛选">
+        <span className={styles.runFixtureId}>Run ID: run_...</span>
+        <span className={styles.runFixtureSearch}>搜索用户...</span>
+        <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusFailed}`}>Failed ×</span>
+        <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusSuccess}`}>Success ✓</span>
+        <span className={styles.runFixtureDegraded}>
+          仅降级
+          <i aria-hidden="true" />
+        </span>
+      </div>
+      <section className={styles.runFixtureTable} aria-label="Run 记录">
+        <div className={styles.runFixtureTableHeader} role="row">
+          <span>运行 ID</span>
+          <span>用户</span>
+          <span>上下文</span>
+          <span>状态</span>
+          <span>阶段</span>
+          <span>耗时</span>
+          <span>成本</span>
+          <span>工具数</span>
+        </div>
+        <div className={styles.runFixtureTableRow} role="row">
+          <strong>run_98218a</strong>
+          <strong>anddy_lab</strong>
+          <span>Keto Meal Plan Formulation for target 1800kcal</span>
+          <b className={styles.runFixtureFailure}>失败</b>
+          <span>RAG_RETRIEVE</span>
+          <span>12.4s</span>
+          <span>$0.045</span>
+          <span>12 calls</span>
+        </div>
+      </section>
+      <section className={styles.runFixtureTrace} aria-label="执行事件追踪">
+        <div className={styles.runFixtureTraceHeader}>
+          <h2>
+            执行事件追踪： <code>run_98218a</code>
+          </h2>
+          <Button
+            variant="ghost"
+            type="button"
+            className={styles.runFixtureDownload}
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent('foodmate:admin-notice', { detail: { message: '完整日志下载已加入队列。' } }),
+              )
+            }
+          >
+            下载完整日志
+          </Button>
+        </div>
+        <div className={styles.runFixtureSteps}>
+          <article>
+            <header>
+              <strong>1. 分发</strong>
+              <code>0.2s</code>
+            </header>
+            <p>Agent queued and initialized on gpt-4-turbo</p>
+          </article>
+          <article>
+            <header>
+              <strong>2. RAG 查询</strong>
+              <code>3.1s</code>
+            </header>
+            <p>Semantic query to Vector DB. Index hit: 94%</p>
+          </article>
+          <article>
+            <header>
+              <strong>3. 降级</strong>
+              <code>8.5s</code>
+            </header>
+            <p>USDA API 延迟阈值超限警告</p>
+          </article>
+          <article>
+            <header>
+              <strong>4. 失败</strong>
+              <code>0.6s</code>
+            </header>
+            <p>进程中止：上下文Token溢出限制</p>
+          </article>
+        </div>
+      </section>
+      {!trace ? (
+        <section className={styles.runFixtureDetailFields} aria-label="Run 详情字段">
+          <h2>Run 详情字段</h2>
+          <p>父 Run：run_9812a0 · 接续 Run：— · 开始时间：10:24:12 · 终止原因：上游 Token 超限</p>
+          <p>事件诊断：缺口 0 · 重复 0 · 乱序 0 · 当前阶段：RAG_RETRIEVE · 结果类型：failed / degraded</p>
+          <p>用量：输入 2,840 tokens · 输出 612 tokens · 成本 $0.045 · revision r17 · 追加记录 0</p>
+          <p className={styles.runFixtureDetailSupport}>
+            request_id req_7c2e · trace_id tr_88192a · dispatch_id dsp_55aa · 支持复制 ID / 查看会话 / 查看 Tool Calls /
+            查看 Trace
+          </p>
+          <p className={styles.runFixtureDetailNotice}>
+            输入 / 输出均已脱敏；不展示隐藏推理、数据库凭据或未授权敏感参数。
+          </p>
+        </section>
+      ) : null}
+      {trace ? (
+        <aside className={`${styles.governanceNotes} ${styles.traceNotes}`} aria-label="Trace 聚合与筛选">
+          <h2>Trace 聚合与筛选</h2>
+          <p>按 trace_id 聚合：请求 · Run · Tool Calls · 模型调用 · 管理操作</p>
+          <p>筛选：时间范围 · 仅看失败 · 状态 · 节点类型；支持展开节点与复制 trace_id</p>
+          <p className={styles.governanceNoteSuccess}>
+            时间线字段：开始 / 完成时间 · 阶段 · 状态 · 耗时 · 父子关系 · 事件顺序缺口 / 重复 / 乱序
+          </p>
+          <p className={styles.governanceNoteSuccess}>
+            request_id req_7c2e · trace_id tr_88192a · dispatch_id dsp_55aa · 复制后可回到 Run 或 SQL Audit
+          </p>
+          <p className={styles.governanceNoteMuted}>敏感字段只显示脱敏摘要，不展示数据库凭据和隐藏推理。</p>
+        </aside>
+      ) : null}
+    </section>
+  );
+}
+
 function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; onDismiss: () => void }) {
   if (state === 'overview' || state === 'tool-registry' || state === 'deleted-resources' || state === 'user-detail')
     return null;
@@ -103,7 +459,13 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
     );
   }
   if (isDetail) {
-    const title = state === 'run-detail' || state === 'trace' ? 'Agent 运行控制台' : '工具调用与 SQL 审计';
+    if (state === 'run-detail') {
+      return <AgentTimelineFixture trace={false} />;
+    }
+    if (state === 'tool-calls') return <ToolCallsFixture />;
+    if (state === 'sql-audit') return <SqlAuditFixture />;
+    if (state === 'trace') return <AgentTimelineFixture trace />;
+    const title = '工具调用与 SQL 审计';
     return (
       <div className={styles.fixtureSurface}>
         <div className={styles.fixtureSurfaceHeader}>
@@ -118,11 +480,7 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
           <span>12.4s · $0.045 · 12 calls</span>
         </div>
         <div className={styles.fixtureSurfaceCard}>
-          <h3>
-            {state === 'tool-calls' || state === 'sql-audit'
-              ? 'Arguments &amp; System Schema (call_829c)'
-              : '执行事件追踪：run_98218a'}
-          </h3>
+          <h3>执行事件追踪：run_98218a</h3>
           <pre>
             {JSON.stringify(
               {
@@ -145,8 +503,8 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
     state === 'knowledge-format-error'
       ? '文件格式校验失败'
       : state === 'knowledge-size-error'
-      ? '文件大小超过限制'
-      : '知识库上传失败';
+        ? '文件大小超过限制'
+        : '知识库上传失败';
   const knowledgeProgressTitle =
     state === 'knowledge-uploading'
       ? '批量任务已提交'
@@ -288,11 +646,13 @@ function renderSection(
     case 'tools':
       return <ToolsSection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />;
     case 'usage':
-      return <UsageSection />;
+      return <UsageSection onAction={onAction} refreshNonce={refreshNonce} />;
+    case 'model':
+      return <ModelGovernanceSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'knowledge':
-      return <KnowledgeSection onAction={onAction} />;
+      return <KnowledgeSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'deleted':
-      return <DeletedSection onAction={onAction} />;
+      return <DeletedSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'audit':
       return <OperationAuditSection refreshNonce={refreshNonce} />;
     default:
@@ -305,6 +665,7 @@ export function AdminPage() {
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const requestedFixture = getAdminFixtureState(new URLSearchParams(search).get('state'));
+  const fixtureNavKey = getFixtureNavKey(requestedFixture);
   const sectionKey = (
     requestedFixture?.startsWith('op-')
       ? 'tools'
@@ -323,6 +684,13 @@ export function AdminPage() {
     requestedFixture === 'tool-registry' ||
     (pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry');
   const isDeletedRoute = pathname.endsWith('/deleted') || requestedFixture === 'deleted-resources';
+  const isDetailFixture =
+    requestedFixture === 'run-detail' ||
+    requestedFixture === 'tool-calls' ||
+    requestedFixture === 'sql-audit' ||
+    requestedFixture === 'trace';
+  const detailTitle =
+    requestedFixture === 'tool-calls' || requestedFixture === 'sql-audit' ? '工具调用与 SQL 审计' : 'Agent 运行控制台';
   const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
   const [operationStatus, setOperationStatus] = useState<AdminOperationState>('idle');
   const [operationError, setOperationError] = useState<AdminOperationError>();
@@ -448,7 +816,9 @@ export function AdminPage() {
         </div>
         <nav className={styles.adminNav} aria-label="管理后台导航">
           {adminNavItems.map((item) => {
-            const isActive = isAdminNavItemActive(item.path, pathname, search);
+            const isActive = fixtureNavKey
+              ? item.key === fixtureNavKey
+              : isAdminNavItemActive(item.path, pathname, search);
             const isLocked = Boolean(item.adminOnly && !canManage);
             return (
               <Link
@@ -497,27 +867,31 @@ export function AdminPage() {
           onRetry={fixtureOperationStatus ? dismissFixture : () => void executePendingAction()}
           onDismiss={fixtureOperationStatus ? dismissFixture : dismissOperation}
         />
-        {requestedFixture && !requestedFixture.startsWith('op-') ? (
+        {requestedFixture && !requestedFixture.startsWith('op-') && !isDetailFixture ? (
           <AdminFixtureOverlay state={requestedFixture} onDismiss={() => navigate('/admin', { replace: true })} />
         ) : null}
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
             <strong>
-              {sectionKey === 'overview'
-                ? '管理概览'
-                : isRegistryRoute
-                  ? '工具注册表'
-                  : isDeletedRoute
-                    ? '删除资源管理'
-                    : sectionKey === 'users'
-                      ? '用户管理'
-                      : sectionKey === 'knowledge'
-                        ? '知识库管理'
-                        : sectionKey === 'audit'
-                          ? '操作审计'
-                          : '管理控制台'}
+              {isDetailFixture
+                ? detailTitle
+                : sectionKey === 'overview'
+                  ? '管理概览'
+                  : isRegistryRoute
+                    ? '工具注册表'
+                    : isDeletedRoute
+                      ? '删除资源管理'
+                      : sectionKey === 'users'
+                        ? '用户管理'
+                        : sectionKey === 'knowledge'
+                          ? '知识库管理'
+                          : sectionKey === 'model'
+                            ? '模型治理'
+                            : sectionKey === 'audit'
+                              ? '操作审计'
+                              : '管理控制台'}
             </strong>
-            {sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
+            {isDetailFixture || sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
               <span className={styles.envBadge}>生产环境</span>
             ) : isDeletedRoute ? (
               <span className={styles.securityBadge}>审计存档区</span>
@@ -525,43 +899,57 @@ export function AdminPage() {
           </div>
           <div className={styles.topbarActions}>
             <span className={styles.refreshStatus}>
-              {isRegistryRoute
-                ? '服务节点：healthy-cluster-0'
-                : isDeletedRoute
-                  ? '存档保留时长：90天安全窗口'
-                  : sectionKey === 'users'
-                    ? '刷新时间：刚刚'
-                    : sectionKey === 'audit'
-                      ? '审计记录只读'
-                      : '数据刷新：刚刚'}
+              {isDetailFixture
+                ? '刷新时间：刚刚'
+                : isRegistryRoute
+                  ? '服务节点：healthy-cluster-0'
+                  : isDeletedRoute
+                    ? '存档保留时长：90天安全窗口'
+                    : sectionKey === 'users'
+                      ? '刷新时间：刚刚'
+                      : sectionKey === 'audit'
+                        ? '审计记录只读'
+                        : '数据刷新：刚刚'}
             </span>
             <Button
               variant="outline"
               className={styles.topbarRefresh}
               onClick={isDeletedRoute ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。') : handleRefresh}
             >
-              {isRegistryRoute
-                ? '更新状态'
-                : isDeletedRoute
-                  ? '合规性审计'
-                  : sectionKey === 'users'
-                    ? '刷新'
-                    : sectionKey === 'audit'
-                      ? '刷新审计'
-                      : '刷新数据'}
+              {isDetailFixture
+                ? '刷新'
+                : isRegistryRoute
+                  ? '更新状态'
+                  : isDeletedRoute
+                    ? '合规性审计'
+                    : sectionKey === 'users'
+                      ? '刷新'
+                      : sectionKey === 'audit'
+                        ? '刷新审计'
+                        : '刷新数据'}
             </Button>
           </div>
         </header>
-        <div className={`${styles.page} ${sectionKey === 'users' ? styles.usersPage : ''} fm-enter`}>
+        <div
+          className={`${styles.page} ${sectionKey === 'users' ? styles.usersPage : ''} ${isDetailFixture ? styles.fixtureDetailPage : ''} fm-enter`}
+        >
           {notice ? (
             <div className={styles.notice} role="status">
               {notice}
             </div>
           ) : null}
-          {sectionKey === 'overview' || sectionKey === 'users' || sectionKey === 'knowledge' || isRegistryRoute || isDeletedRoute ? null : (
+          {sectionKey === 'overview' ||
+          sectionKey === 'users' ||
+          sectionKey === 'knowledge' ||
+          isRegistryRoute ||
+          isDeletedRoute ? null : (
             <AdminHeader sectionKey={sectionKey} />
           )}
-          {renderSection(sectionKey, requestAdminAction, refreshNonce, activeOperationStatus)}
+          {isDetailFixture ? (
+            <AdminFixtureOverlay state={requestedFixture} onDismiss={() => navigate('/admin', { replace: true })} />
+          ) : (
+            renderSection(sectionKey, requestAdminAction, refreshNonce, activeOperationStatus)
+          )}
         </div>
       </main>
     </div>

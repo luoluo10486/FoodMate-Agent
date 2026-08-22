@@ -235,18 +235,19 @@
   width: min(520px, 100%);
   align-items: center;
   flex-direction: column;
-  gap: 16px;
-  padding: 32px;
+  gap: 24px;
+  padding: 48px;
   border: 1px solid var(--fm-border);
-  border-radius: 20px;
+  border-radius: 24px;
   background: var(--fm-surface);
+  box-shadow: 0 12px 12px rgb(0 0 0 / 2%);
   text-align: center;
 }
 
 .feedbackIcon {
   display: grid;
-  width: 72px;
-  height: 72px;
+  width: 100px;
+  height: 100px;
   place-items: center;
   border-radius: 50%;
   background: rgba(166, 217, 151, 0.18);
@@ -254,8 +255,8 @@
 }
 
 .feedbackIcon svg {
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
   stroke-width: 1.5;
 }
 
@@ -268,23 +269,23 @@
   margin: 0;
   color: var(--fm-ink);
   font-family: var(--fm-font);
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1.2;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: normal;
 }
 
 .feedbackCard p {
-  max-width: 420px;
+  max-width: 360px;
   margin: 0;
   color: var(--fm-muted);
   font-family: var(--fm-font);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .errorCode {
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
   background: var(--fm-bg-soft);
   color: var(--fm-muted);
   font-family: var(--fm-font);
@@ -295,14 +296,29 @@
 .feedbackActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .feedbackActions button {
-  height: 40px;
-  border-radius: 10px;
+  height: 44px;
+  padding: 12px 24px;
+  border-radius: 12px;
   font-family: var(--fm-font);
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.feedbackPrimary svg {
+  width: 16px;
+  height: 16px;
+}
+
+.feedbackCardEmpty {
+  gap: 20px;
+}
+
+.feedbackCardEmpty .feedbackIcon {
+  background: rgba(166, 217, 151, 0.18);
 }
 
 .feedbackPrimary {
@@ -537,6 +553,7 @@
   align-items: flex-start;
   padding-top: 29px;
   color: var(--fm-muted);
+  font: inherit;
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
@@ -595,6 +612,7 @@
   border: 1px dashed var(--fm-border);
   background: transparent;
   color: var(--fm-muted);
+  font: inherit;
   font-size: 12px;
   font-weight: 600;
   line-height: 14px;
@@ -739,6 +757,7 @@
 
 .shoppingItem {
   display: flex;
+  width: 100%;
   min-width: 0;
   align-items: center;
   gap: 8px;
@@ -746,22 +765,25 @@
   font-family: var(--fm-font);
   font-size: 13px;
   line-height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
   cursor: pointer;
 }
 
-.shoppingItem input {
+.shoppingItem > [data-slot='checkbox-indicator'] {
   width: 14px;
   height: 14px;
   flex: 0 0 auto;
   margin: 0;
-  appearance: none;
   border: 1px solid var(--fm-border);
   border-radius: 3px;
   background: var(--fm-surface);
   cursor: pointer;
 }
 
-.shoppingItem input:checked {
+.shoppingItem[data-state='checked'] > [data-slot='checkbox-indicator'] {
   border-color: #a6d997;
   background: #a6d997;
   box-shadow: inset 0 0 0 3px #ffffff;

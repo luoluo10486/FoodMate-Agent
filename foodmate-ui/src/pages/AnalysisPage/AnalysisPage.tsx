@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ChartColumn } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
+import type { SessionSummary } from '../../types/session';
 import styles from './AnalysisPage.module.css';
 
 type RangeKey = '7d' | '30d' | '90d';
@@ -13,6 +15,18 @@ const ranges: Array<{ key: RangeKey; label: string }> = [
   { key: '7d', label: '7 天' },
   { key: '30d', label: '30 天' },
   { key: '90d', label: '90 天' },
+];
+
+const figmaSidebarSessions: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
 ];
 
 const rangeData: Record<
@@ -105,7 +119,16 @@ function LoadingAnalysis() {
   );
 }
 
-function EmptyAnalysis({ onRecord }: { onRecord: () => void }) {
+function EmptyAnalysis({
+  onRecord,
+  realMode = false,
+  range = '7d',
+}: {
+  onRecord: () => void;
+  realMode?: boolean;
+  range?: '7d' | '30d';
+}) {
+  const days = range === '30d' ? 30 : 7;
   return (
     <>
       <section className={styles.metrics} aria-label="分析摘要">
@@ -119,7 +142,7 @@ function EmptyAnalysis({ onRecord }: { onRecord: () => void }) {
         </article>
         <article className={styles.metricCard}>
           <span>活跃记录天数</span>
-          <strong>0 / 7 Days</strong>
+          <strong>0 / {days} Days</strong>
         </article>
       </section>
       <section className={styles.emptyChartCard} aria-labelledby="empty-analysis-title">
@@ -130,7 +153,7 @@ function EmptyAnalysis({ onRecord }: { onRecord: () => void }) {
           </div>
           <div className={styles.stateCopy}>
             <h3>数据不足，无法生成分析</h3>
-            <p>至少需要 3 天的饮食记录才能生成趋势分析</p>
+            <p>{realMode ? '当前范围暂无饮食记录' : '至少需要 3 天的饮食记录才能生成趋势分析'}</p>
           </div>
           <Button className={styles.recordButton} onClick={onRecord}>
             去记录饮食
@@ -141,7 +164,7 @@ function EmptyAnalysis({ onRecord }: { onRecord: () => void }) {
   );
 }
 
-function ErrorAnalysis({ onReload }: { onReload: () => void }) {
+function ErrorAnalysis({ onReload, detail }: { onReload: () => void; detail?: string }) {
   return (
     <section className={styles.errorCard} role="alert" aria-label="分析数据加载失败">
       <div className={styles.errorStateIcon}>
@@ -150,6 +173,7 @@ function ErrorAnalysis({ onReload }: { onReload: () => void }) {
       <div className={styles.stateCopy}>
         <h3>分析数据加载失败</h3>
         <p>获取营养趋势数据时出错，请稍后重试</p>
+        {detail ? <p>{detail}</p> : null}
       </div>
       <Button className={styles.reloadButton} variant="outline" onClick={onReload}>
         重新加载
@@ -162,16 +186,62 @@ export function AnalysisPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const analysisState = getAnalysisState(searchParams.get('state'));
-  const isFigmaFixture = searchParams.get('state') === 'v2';
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
+  const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'v2' || analysisState !== 'default');
   const [range, setRange] = useState<RangeKey>('7d');
   const [notice, setNotice] = useState('');
+  const [realData, setRealData] = useState<NutritionAnalysis>();
+  const [realLoading, setRealLoading] = useState(isRealMode);
+  const [realError, setRealError] = useState<string>();
+  const [realReloadNonce, setRealReloadNonce] = useState(0);
   const data = rangeData[range];
+  const realRange = range === '90d' ? '30d' : range;
+
+  useEffect(() => {
+    if (!isRealMode) return;
+    let active = true;
+    setRealLoading(true);
+    setRealError(undefined);
+    loadNutritionAnalysis(realRange)
+      .then((value) => {
+        if (active) setRealData(value);
+      })
+      .catch((cause) => {
+        if (active) {
+          setRealData(undefined);
+          setRealError(cause instanceof Error ? cause.message : '营养分析加载失败');
+        }
+      })
+      .finally(() => {
+        if (active) setRealLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isRealMode, realRange, realReloadNonce]);
+
+  const realDays = realRange === '7d' ? 7 : 30;
+  const realCalories = Number(realData?.calories_kcal ?? 0);
+  const realProtein = Number(realData?.protein_g ?? 0);
+  const realCoverage = Number(realData?.coverage ?? 0);
+  const realTargetCalories = (realData?.calorie_target ?? 0) * realDays;
+  const realBarHeight = useMemo(() => {
+    if (realTargetCalories <= 0) return 8;
+    return Math.max(8, Math.min(170, Math.round((realCalories / realTargetCalories) * 170)));
+  }, [realCalories, realTargetCalories]);
+  const realHasNoData = Boolean(realData && realData.total_items === 0);
+  const realState = realLoading ? 'loading' : realError ? 'error' : realHasNoData ? 'empty' : 'default';
+  const visibleState = isRealMode ? realState : analysisState;
 
   const exportCsv = () => {
     setNotice('分析报告已排队，完成后可下载 CSV。');
   };
 
   const reloadAnalysis = () => {
+    if (isRealMode) {
+      setRealReloadNonce((current) => current + 1);
+      return;
+    }
     setSearchParams({});
     setNotice('正在重新加载摄入分析。');
   };
@@ -181,55 +251,88 @@ export function AnalysisPage() {
       activeModule="analysis"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+      sidebarAvatarSrc={
+        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
+      }
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      showKnowledgeTopNav={!isFigmaFixture}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       <div className={styles.page}>
         <section className={styles.analysisBody} aria-label="摄入分析">
-          <header className={`${styles.filterRow} ${analysisState === 'loading' ? styles.stateFilterRow : ''}`}>
+          <header className={`${styles.filterRow} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}>
             <div className={styles.filters} role="tablist" aria-label="分析范围">
-              {ranges.map((item) => (
-                <button
+              {(isRealMode ? ranges.filter((item) => item.key !== '90d') : ranges).map((item) => (
+                <Button
                   className={range === item.key ? styles.rangeActive : ''}
+                  variant="ghost"
                   key={item.key}
                   type="button"
                   role="tab"
                   aria-selected={range === item.key}
                   onClick={() => setRange(item.key)}
-                  disabled={analysisState === 'loading' || analysisState === 'error'}
+                  disabled={visibleState === 'loading' || visibleState === 'error'}
                 >
                   {item.label}
-                </button>
+                </Button>
               ))}
-              <button
+              <Button
                 className={styles.filterPill}
+                variant="ghost"
                 type="button"
                 onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
-                disabled={analysisState === 'loading' || analysisState === 'error'}
+                disabled={isRealMode || visibleState === 'loading' || visibleState === 'error'}
               >
                 自定义范围
-              </button>
-              <button
+              </Button>
+              <Button
                 className={styles.filterPill}
+                variant="ghost"
                 type="button"
                 onClick={() => setNotice('当前分析覆盖全部餐次。')}
-                disabled={analysisState === 'loading' || analysisState === 'error'}
+                disabled={isRealMode || visibleState === 'loading' || visibleState === 'error'}
               >
                 全部餐次
-              </button>
+              </Button>
             </div>
             <Button
               className={styles.exportButton}
               variant="ghost"
               onClick={exportCsv}
-              disabled={analysisState !== 'default'}
+              disabled={isRealMode || visibleState !== 'default'}
             >
               导出 CSV
             </Button>
           </header>
 
-          {analysisState === 'loading' ? <LoadingAnalysis /> : null}
-          {analysisState === 'empty' ? <EmptyAnalysis onRecord={() => navigate('/analysis?view=records')} /> : null}
-          {analysisState === 'error' ? <ErrorAnalysis onReload={reloadAnalysis} /> : null}
-          {analysisState === 'default' ? (
+          {visibleState === 'loading' ? <LoadingAnalysis /> : null}
+          {visibleState === 'empty' ? (
+            <EmptyAnalysis
+              onRecord={() => navigate('/analysis?view=records')}
+              range={realRange}
+              realMode={isRealMode}
+            />
+          ) : null}
+          {visibleState === 'error' ? (
+            <ErrorAnalysis detail={isRealMode ? realError : undefined} onReload={reloadAnalysis} />
+          ) : null}
+          {visibleState === 'default' && isRealMode && realData ? (
+            <section className={styles.metrics} aria-label="分析摘要">
+              <article className={styles.metricCard}>
+                <span>区间总能量</span>
+                <strong>{realCalories.toLocaleString('zh-CN')} kcal</strong>
+              </article>
+              <article className={styles.metricCard}>
+                <span>区间总蛋白质</span>
+                <strong>{realProtein.toLocaleString('zh-CN')} g</strong>
+              </article>
+              <article className={styles.metricCard}>
+                <span>记录匹配率</span>
+                <strong>{Math.round(realCoverage * 100)}%</strong>
+              </article>
+            </section>
+          ) : null}
+          {visibleState === 'default' && !isRealMode ? (
             <section className={styles.metrics} aria-label="分析摘要">
               <article className={styles.metricCard}>
                 <span>日均能量</span>
@@ -249,7 +352,34 @@ export function AnalysisPage() {
             </section>
           ) : null}
 
-          {analysisState === 'default' ? (
+          {visibleState === 'default' && isRealMode && realData ? (
+            <section className={styles.chartCard} aria-labelledby="calorie-chart-title">
+              <h2 id="calorie-chart-title">区间能量摄入与目标对比</h2>
+              <div className={styles.chartArea}>
+                <div className={styles.legend} aria-label="图例">
+                  <span>
+                    <i className={styles.actualDot} />
+                    实际总摄入
+                  </span>
+                  {realTargetCalories > 0 ? (
+                    <span>
+                      <i className={styles.targetDot} />
+                      目标总量
+                    </span>
+                  ) : null}
+                </div>
+                <div className={styles.barChart} role="img" aria-label="区间能量摄入柱状图">
+                  <span className={styles.bar} style={{ height: realBarHeight }} />
+                </div>
+                <p className={styles.chartSummary}>
+                  {realTargetCalories > 0
+                    ? `${realCalories.toLocaleString('zh-CN')} / ${realTargetCalories.toLocaleString('zh-CN')} kcal`
+                    : `${realCalories.toLocaleString('zh-CN')} kcal · 未配置能量目标`}
+                </p>
+              </div>
+            </section>
+          ) : null}
+          {visibleState === 'default' && !isRealMode ? (
             <section className={styles.chartCard} aria-labelledby="calorie-chart-title">
               <h2 id="calorie-chart-title">能量摄入与目标对比</h2>
               <div className={styles.chartArea}>
@@ -276,7 +406,31 @@ export function AnalysisPage() {
             </section>
           ) : null}
 
-          {analysisState === 'default' ? (
+          {visibleState === 'default' && isRealMode && realData ? (
+            <section className={styles.insightCard} aria-labelledby="insight-title">
+              <h2 id="insight-title">营养洞察（基于已匹配记录）</h2>
+              <div className={styles.insights}>
+                <p>
+                  <i className={styles.insightPurple} />
+                  已匹配 {realData.matched_items} / {realData.total_items} 条饮食记录，覆盖率为{' '}
+                  {Math.round(realCoverage * 100)}%。
+                </p>
+                <p>
+                  <i className={styles.insightBlue} />
+                  {realData.protein_target == null
+                    ? '当前未配置蛋白质目标，暂不进行目标达成判断。'
+                    : `区间蛋白质 ${realProtein.toLocaleString('zh-CN')} g，目标为 ${realData.protein_target * realDays} g。`}
+                </p>
+                <p>
+                  <i className={styles.insightOrange} />
+                  {realData.incomplete
+                    ? `有 ${realData.unmatched_names.length} 项记录未匹配营养目录。`
+                    : '所有记录均已匹配营养目录。'}
+                </p>
+              </div>
+            </section>
+          ) : null}
+          {visibleState === 'default' && !isRealMode ? (
             <section className={styles.insightCard} aria-labelledby="insight-title">
               <h2 id="insight-title">营养洞察（由 Agent 生成）</h2>
               <div className={styles.insights}>
@@ -308,7 +462,25 @@ export function AnalysisPage() {
           ) : null}
         </section>
 
-        {analysisState === 'default' ? (
+        {visibleState === 'default' && isRealMode && realData ? (
+          <section className={styles.qualityPanel} aria-label="分析维度与数据质量">
+            <h2>分析维度与数据质量</h2>
+            <p>
+              统计范围：{realData.range === '7d' ? '最近 7 天' : '最近 30 天'} · 已匹配 {realData.matched_items} /{' '}
+              {realData.total_items} 条记录
+            </p>
+            <p>
+              营养合计：蛋白质 {realProtein.toLocaleString('zh-CN')} g · 脂肪{' '}
+              {Number(realData.fat_g).toLocaleString('zh-CN')} g · 碳水{' '}
+              {Number(realData.carbs_g).toLocaleString('zh-CN')} g
+            </p>
+            <p className={styles.qualityNote}>{realData.disclaimer}</p>
+            {realData.unmatched_names.length ? (
+              <p className={styles.qualityNote}>未匹配项：{realData.unmatched_names.join('、')}</p>
+            ) : null}
+          </section>
+        ) : null}
+        {visibleState === 'default' && !isRealMode ? (
           <section className={styles.qualityPanel} aria-label="分析维度与数据质量">
             <h2>分析维度与数据质量</h2>
             <p>趋势指标：能量 · 蛋白质 · 碳水 · 脂肪 · 对比：上一周期 / 不对比 · 餐次：全部餐次 / 指定餐次</p>

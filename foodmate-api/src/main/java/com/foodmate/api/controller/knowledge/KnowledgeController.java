@@ -157,12 +157,15 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
         return ok(new KnowledgeUploadBatchDetailResponse(knowledge.batch(batchId)));
     }
 
-    @PostMapping("/knowledge-upload-batches/{batchId}/documents/{itemId}/retry")
+    @PostMapping("/knowledge-upload-batches/{batchId}/documents/{documentId}/retry")
     public ApiResponse<StatusUpdateResponse> retry(
-            @PathVariable long batchId, @PathVariable long itemId, HttpServletRequest request) {
+            @PathVariable long batchId, @PathVariable long documentId, HttpServletRequest request) {
         var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
         knowledge.retryItem(
-                batchId, itemId, operator.userId(), TraceContextHolder.currentOrNew().traceId());
+                batchId,
+                documentId,
+                operator.userId(),
+                TraceContextHolder.currentOrNew().traceId());
         return ok(new StatusUpdateResponse(true, "pending"));
     }
 

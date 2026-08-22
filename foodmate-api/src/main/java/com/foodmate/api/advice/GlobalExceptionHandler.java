@@ -88,6 +88,8 @@ public class GlobalExceptionHandler {
                             ErrorCode.CONFLICT;
                     case "RUNTIME_UNAVAILABLE" -> ErrorCode.TOOL_FAILED;
                     case "RUNTIME_COORDINATION_UNAVAILABLE" -> ErrorCode.COORDINATION_UNAVAILABLE;
+                    case "RAG_UNAVAILABLE" -> ErrorCode.COORDINATION_UNAVAILABLE;
+                    case "RAG_SCOPE_DENIED" -> ErrorCode.FORBIDDEN;
                     case "RUNTIME_CAPACITY_EXCEEDED" -> ErrorCode.RUNTIME_CAPACITY_EXCEEDED;
                     case "RUNTIME_QUEUE_TIMEOUT" -> ErrorCode.RUNTIME_QUEUE_TIMEOUT;
                     default -> ErrorCode.INVALID_ARGUMENT;

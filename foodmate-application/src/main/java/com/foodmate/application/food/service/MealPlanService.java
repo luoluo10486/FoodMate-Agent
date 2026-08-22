@@ -11,6 +11,8 @@ public interface MealPlanService {
 
     PlanView get(long userId, long mealPlanId);
 
+    List<PlanView> list(long userId);
+
     PlanView update(long userId, long mealPlanId, long revision, UpdateCommand command);
 
     void delete(long userId, long mealPlanId, long revision, String idempotencyKey);

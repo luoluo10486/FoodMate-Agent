@@ -3,6 +3,7 @@ package com.foodmate.infrastructure.persistence.runtime;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.foodmate.application.account.port.out.AdminDashboardRepository;
 import com.foodmate.application.account.port.out.AdminManagementRepository;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
 import com.foodmate.application.conversation.port.out.ConversationSummaryRepository;
 import com.foodmate.application.conversation.port.out.MemoryRepository;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
@@ -12,12 +13,19 @@ import com.foodmate.application.runtime.port.out.DeadLetterRepository;
 import com.foodmate.application.runtime.port.out.InboxRepository;
 import com.foodmate.application.runtime.port.out.OutboxRepository;
 import com.foodmate.application.runtime.port.out.ProtocolAuditRepository;
+import com.foodmate.application.runtime.port.out.SqlSchemaCatalogRepository;
+import com.foodmate.application.runtime.port.out.SqlSchemaCatalogRepository.CatalogField;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
-import java.math.BigDecimal;
-import java.util.List;
+import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
+import com.foodmate.application.runtime.port.out.ToolRegistryRepository.ToolDefinition;
+import com.foodmate.application.runtime.service.ToolRegistryCatalog;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 /** 本地无数据 stub 的显式持久化适配器。 */
 @Configuration
@@ -249,36 +257,48 @@ public class LocalStubPersistenceConfig {
     @Bean
     AdminManagementRepository localAdminManagementRepository() {
         return new AdminManagementRepository() {
+            public AdminManagementRepository.UserSnapshot findUser(long userId) {
+                return null;
+            }
+
+            public AdminManagementRepository.ToolSnapshot findTool(String name) {
+                return null;
+            }
+
+            public AdminManagementRepository.ResourceSnapshot findResource(
+                    com.foodmate.shared.admin.enums.RestorableResourceType resourceType,
+                    long resourceId) {
+                return null;
+            }
+
             public int updateUserStatus(
                     long userId,
                     com.foodmate.shared.account.enums.UserStatus status,
-                    long operatorId) {
+                    long operatorId,
+                    long revision) {
                 return 0;
             }
 
-            public int revokeSessions(long userId, long operatorId) {
-                return 0;
+            public AdminManagementRepository.RevokeResult revokeSessions(
+                    long userId, long operatorId, long revision) {
+                return null;
             }
 
             public int updateToolStatus(
                     String name,
                     com.foodmate.shared.runtime.enums.ToolStatus status,
-                    long operatorId) {
+                    long operatorId,
+                    long revision) {
                 return 0;
             }
 
             public int restore(
                     com.foodmate.shared.admin.enums.RestorableResourceType resourceType,
                     long resourceId,
-                    long operatorId) {
+                    long operatorId,
+                    long revision) {
                 return 0;
             }
-
-            public long nextAuditId() {
-                return 1;
-            }
-
-            public void insertAudit(AdminManagementRepository.Audit audit) {}
         };
     }
 
@@ -311,12 +331,20 @@ public class LocalStubPersistenceConfig {
 
             public void insertImportJob(ImportJob job) {}
 
+            public ImportJob findImportJob(long operatorId, String idempotencyKey) {
+                return null;
+            }
+
             public void insertImportItem(ImportItem item) {}
 
             public void insertIndexOutbox(long outboxId, long itemId, String payload) {}
 
             public int updateVisibility(long documentId, String visibility, long operatorId) {
                 return 0;
+            }
+
+            public KnowledgeRepository.DocumentView document(long documentId) {
+                return null;
             }
 
             public void insertVisibilityOutbox(long outboxId, long documentId, String payload) {}
@@ -338,13 +366,13 @@ public class LocalStubPersistenceConfig {
                 return 0;
             }
 
-            public void markIndexOutboxPublished(long id) {}
+            public void markIndexOutboxPublished(long id, String owner) {}
 
-            public void markVisibilityOutboxPublished(long id) {}
+            public void markVisibilityOutboxPublished(long id, String owner) {}
 
-            public void retryIndexOutbox(long id, String error) {}
+            public void retryIndexOutbox(long id, String owner, String error) {}
 
-            public void retryVisibilityOutbox(long id, String error) {}
+            public void retryVisibilityOutbox(long id, String owner, String error) {}
 
             public void applyIndexResult(KnowledgeRepository.IndexResult result, String hash) {}
 
@@ -360,7 +388,15 @@ public class LocalStubPersistenceConfig {
                 return java.util.List.of();
             }
 
-            public int retryItem(long itemId, long operatorId, long outboxId, String payload) {
+            public long jobIdForItem(long itemId) {
+                return 0;
+            }
+
+            public void insertJobEvent(
+                    long eventId, long jobId, Long itemId, String eventType, String payload) {}
+
+            public int retryItem(
+                    long itemId, long jobId, long operatorId, long outboxId, String payload) {
                 return 0;
             }
         };
@@ -416,6 +452,83 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
+    AdminOperationalQueryRepository localAdminOperationalQueryRepository() {
+        return new AdminOperationalQueryRepository() {
+            public List<UserRow> users(Query query) {
+                return List.of();
+            }
+
+            public long countUsers(Query query) {
+                return 0;
+            }
+
+            public List<RunRow> runs(Query query) {
+                return List.of();
+            }
+
+            public long countRuns(Query query) {
+                return 0;
+            }
+
+            public List<ToolCallRow> toolCalls(Query query) {
+                return List.of();
+            }
+
+            public long countToolCalls(Query query) {
+                return 0;
+            }
+
+            public List<SqlAuditRow> sqlAudits(Query query) {
+                return List.of();
+            }
+
+            public long countSqlAudits(Query query) {
+                return 0;
+            }
+
+            public List<ToolRow> tools(Query query) {
+                return List.of();
+            }
+
+            public long countTools(Query query) {
+                return 0;
+            }
+
+            public List<UsageRow> usage(Query query) {
+                return List.of();
+            }
+
+            public long countUsage(Query query) {
+                return 0;
+            }
+
+            public List<KnowledgeRow> knowledge(Query query) {
+                return List.of();
+            }
+
+            public long countKnowledge(Query query) {
+                return 0;
+            }
+
+            public List<DeletedRow> deleted(Query query) {
+                return List.of();
+            }
+
+            public long countDeleted(Query query) {
+                return 0;
+            }
+
+            public List<OperationAuditRow> operationAudits(Query query) {
+                return List.of();
+            }
+
+            public long countOperationAudits(Query query) {
+                return 0;
+            }
+        };
+    }
+
+    @Bean
     ToolGatewayPort localToolGatewayPort() {
         return new ToolGatewayPort() {
             public boolean runExists(long runId) {
@@ -432,6 +545,132 @@ public class LocalStubPersistenceConfig {
 
             public void audit(Audit audit) {}
         };
+    }
+
+    @Bean
+    ToolRegistryRepository localToolRegistryRepository() {
+        return new ToolRegistryRepository() {
+            private final List<ToolDefinition> definitions = ToolRegistryCatalog.defaults();
+
+            @Override
+            public List<ToolDefinition> findAll() {
+                return definitions;
+            }
+
+            @Override
+            public ToolDefinition findCurrent(String name) {
+                return definitions.stream()
+                        .filter(item -> item.name().equals(name))
+                        .findFirst()
+                        .orElse(null);
+            }
+
+            @Override
+            public ToolDefinition findVersion(String name, String version) {
+                return definitions.stream()
+                        .filter(item -> item.name().equals(name) && item.version().equals(version))
+                        .findFirst()
+                        .orElse(null);
+            }
+        };
+    }
+
+    @Bean
+    SqlSchemaCatalogRepository localSqlSchemaCatalogRepository() {
+        return datasourceId ->
+                datasourceId == 1L
+                        ? List.of(
+                                catalog(datasourceId, "food_logs", "food_log_id", "bigint"),
+                                catalog(datasourceId, "food_logs", "user_id", "bigint"),
+                                catalog(datasourceId, "food_logs", "meal_time", "timestamptz"),
+                                catalog(datasourceId, "food_logs", "meal_type", "varchar"),
+                                catalog(datasourceId, "food_logs", "is_deleted", "bool"),
+                                catalog(
+                                        datasourceId,
+                                        "food_log_items",
+                                        "food_log_item_id",
+                                        "bigint"),
+                                catalog(datasourceId, "food_log_items", "food_log_id", "bigint"),
+                                catalog(datasourceId, "food_log_items", "raw_name", "varchar"),
+                                catalog(datasourceId, "food_log_items", "amount", "numeric"),
+                                catalog(datasourceId, "food_log_items", "calories_kcal", "numeric"),
+                                catalog(datasourceId, "food_log_items", "protein_g", "numeric"),
+                                catalog(datasourceId, "food_log_items", "fat_g", "numeric"),
+                                catalog(datasourceId, "food_log_items", "carbs_g", "numeric"),
+                                catalog(datasourceId, "food_log_items", "is_deleted", "bool"),
+                                catalog(datasourceId, "meal_plans", "meal_plan_id", "bigint"),
+                                catalog(datasourceId, "meal_plans", "user_id", "bigint"),
+                                catalog(datasourceId, "meal_plans", "status", "varchar"),
+                                catalog(datasourceId, "meal_plans", "updated_at", "timestamptz"),
+                                catalog(datasourceId, "meal_plans", "is_deleted", "bool"),
+                                catalog(
+                                        datasourceId,
+                                        "shopping_lists",
+                                        "shopping_list_id",
+                                        "bigint"),
+                                catalog(datasourceId, "shopping_lists", "meal_plan_id", "bigint"),
+                                catalog(datasourceId, "shopping_lists", "user_id", "bigint"),
+                                catalog(datasourceId, "shopping_lists", "status", "varchar"),
+                                catalog(datasourceId, "shopping_lists", "is_deleted", "bool"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "nutrition_food_id",
+                                        "bigint"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "standard_name",
+                                        "varchar"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "calories_kcal_per_100",
+                                        "numeric"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "protein_g_per_100",
+                                        "numeric"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "fat_g_per_100",
+                                        "numeric"),
+                                catalog(
+                                        datasourceId,
+                                        "nutrition_foods",
+                                        "carbs_g_per_100",
+                                        "numeric"),
+                                catalog(datasourceId, "nutrition_foods", "is_deleted", "bool"),
+                                catalog(
+                                        datasourceId,
+                                        "knowledge_documents",
+                                        "document_id",
+                                        "bigint"),
+                                catalog(datasourceId, "knowledge_documents", "tenant_id", "bigint"),
+                                catalog(datasourceId, "knowledge_documents", "status", "varchar"),
+                                catalog(
+                                        datasourceId,
+                                        "knowledge_documents",
+                                        "visibility",
+                                        "varchar"),
+                                catalog(datasourceId, "knowledge_documents", "is_deleted", "bool"))
+                        : List.of();
+    }
+
+    private static CatalogField catalog(
+            long datasourceId, String tableName, String fieldName, String dataType) {
+        return new CatalogField(
+                datasourceId,
+                "local-stub-v1",
+                "public",
+                tableName,
+                fieldName,
+                null,
+                dataType,
+                false,
+                null);
     }
 
     private static IllegalStateException unavailable() {

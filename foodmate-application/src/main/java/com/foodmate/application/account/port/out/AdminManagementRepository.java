@@ -5,23 +5,26 @@ import com.foodmate.shared.admin.enums.RestorableResourceType;
 import com.foodmate.shared.runtime.enums.ToolStatus;
 
 public interface AdminManagementRepository {
-    int updateUserStatus(long userId, UserStatus status, long operatorId);
+    UserSnapshot findUser(long userId);
 
-    int revokeSessions(long userId, long operatorId);
+    ToolSnapshot findTool(String name);
 
-    int updateToolStatus(String name, ToolStatus status, long operatorId);
+    ResourceSnapshot findResource(RestorableResourceType resourceType, long resourceId);
 
-    int restore(RestorableResourceType resourceType, long resourceId, long operatorId);
+    int updateUserStatus(long userId, UserStatus status, long operatorId, long revision);
 
-    long nextAuditId();
+    RevokeResult revokeSessions(long userId, long operatorId, long revision);
 
-    void insertAudit(Audit audit);
+    int updateToolStatus(String name, ToolStatus status, long operatorId, long revision);
 
-    record Audit(
-            long id,
-            long operatorId,
-            String traceId,
-            String targetType,
-            String targetId,
-            String action) {}
+    int restore(
+            RestorableResourceType resourceType, long resourceId, long operatorId, long revision);
+
+    record UserSnapshot(long userId, String role, String status, long revision) {}
+
+    record ToolSnapshot(String name, String riskLevel, String status, long revision) {}
+
+    record ResourceSnapshot(String resourceType, long resourceId, long revision) {}
+
+    record RevokeResult(int revoked, long revision) {}
 }

@@ -73,6 +73,8 @@ class ProviderAttempt:
     error_code: str | None = None
     price_version: str = "unconfigured"
     cached_input_tokens: int | None = None
+    route_version: str | None = None
+    budget_policy_version: str | None = None
 
     def event_payload(self) -> dict[str, object]:
         """Build exactly the existing V1 run.model_usage payload."""
@@ -96,6 +98,8 @@ class ProviderAttempt:
                 "currency": None if self.cost_cny is None else "CNY",
             },
             "price_version": self.price_version,
+            "route_version": self.route_version,
+            "budget_policy_version": self.budget_policy_version,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
         }
@@ -217,27 +221,125 @@ class ModelRouter:
         self.environment = environment if environment is not None else dict(os.environ)
         self.provider_factory = provider_factory or self._provider_from_environment
 
-    def invoke(self, request: ModelRequest, tier: str, fallback_tiers: tuple[str, ...] = ()) -> tuple[ModelResponse, list[ProviderAttempt]]:
-        candidates = (tier,) + (fallback_tiers if self._enabled("FOODMATE_MODEL_FALLBACK_ENABLED", True) else ())
+    def invoke(
+        self,
+        request: ModelRequest,
+        tier: str,
+        fallback_tiers: tuple[str, ...] = (),
+        governed_route: dict[str, object] | None = None,
+    ) -> tuple[ModelResponse, list[ProviderAttempt]]:
+        candidates = self._candidates(tier, fallback_tiers, governed_route)
         model_call_id = "mdl_" + uuid.uuid4().hex
         attempts: list[ProviderAttempt] = []
-        for candidate in candidates:
-            alias = self._alias(candidate)
-            self._require_audited_price(alias)
+        for (
+            alias,
+            route_version,
+            budget_policy_version,
+            price_version,
+            input_price_per_million,
+            output_price_per_million,
+        ) in candidates:
+            self._require_audited_price(
+                alias,
+                input_price_per_million,
+                output_price_per_million,
+                price_version,
+            )
             started = datetime.now(timezone.utc)
             begin = time.monotonic()
             try:
                 response = self.provider_factory(alias.provider_code).complete(alias.model_name, request)
-                attempts.append(self._attempt(model_call_id, request.scene, alias, "success", started, begin, response=response))
+                attempts.append(
+                    self._attempt(
+                        model_call_id,
+                        request.scene,
+                        alias,
+                        "success",
+                        started,
+                        begin,
+                        response=response,
+                        price_version_override=price_version,
+                        input_price_per_million=input_price_per_million,
+                        output_price_per_million=output_price_per_million,
+                        route_version=route_version,
+                        budget_policy_version=budget_policy_version,
+                    )
+                )
                 return response, attempts
             except ModelProviderError as error:
-                attempts.append(self._attempt(model_call_id, request.scene, alias, self._status(error), started, begin, error=error))
+                attempts.append(
+                    self._attempt(
+                        model_call_id,
+                        request.scene,
+                        alias,
+                        self._status(error),
+                        started,
+                        begin,
+                        error=error,
+                        price_version_override=price_version,
+                        input_price_per_million=input_price_per_million,
+                        output_price_per_million=output_price_per_million,
+                        route_version=route_version,
+                        budget_policy_version=budget_policy_version,
+                    )
+                )
                 if not error.retryable or error.code not in RETRYABLE_ERROR_CODES:
                     error.attempts = attempts
                     raise
         error = ModelProviderError("MODEL_PROVIDER_UNAVAILABLE", "all configured model providers failed", True)
         error.attempts = attempts
         raise error
+
+    def _candidates(
+        self,
+        tier: str,
+        fallback_tiers: tuple[str, ...],
+        governed_route: dict[str, object] | None,
+    ) -> tuple[tuple[ModelAlias, str | None, str | None, str | None, Decimal | None, Decimal | None], ...]:
+        if governed_route is not None:
+            provider = str(governed_route.get("provider_code") or "").strip()
+            model = str(governed_route.get("model_name") or "").strip()
+            if not provider or not model:
+                raise ModelProviderError(
+                    "MODEL_ROUTE_UNAVAILABLE", "governed model route is incomplete"
+                )
+            route_version = str(governed_route.get("route_version") or "").strip() or None
+            budget_version = (
+                str(governed_route.get("budget_policy_version") or "").strip() or None
+            )
+            price_version = str(governed_route.get("price_version") or "").strip() or None
+            input_price = _decimal_or_none(governed_route.get("input_price_per_million"))
+            output_price = _decimal_or_none(governed_route.get("output_price_per_million"))
+            candidates = [
+                (
+                    ModelAlias(provider, model),
+                    route_version,
+                    budget_version,
+                    price_version,
+                    input_price,
+                    output_price,
+                )
+            ]
+            fallback_provider = str(governed_route.get("fallback_provider_code") or "").strip()
+            fallback_model = str(governed_route.get("fallback_model_name") or "").strip()
+            if fallback_provider and fallback_model and self._enabled(
+                "FOODMATE_MODEL_FALLBACK_ENABLED", True
+            ):
+                candidates.append(
+                    (
+                        ModelAlias(fallback_provider, fallback_model),
+                        route_version,
+                        budget_version,
+                        price_version,
+                        input_price,
+                        output_price,
+                    )
+                )
+            return tuple(candidates)
+        tiers = (tier,) + (
+            fallback_tiers if self._enabled("FOODMATE_MODEL_FALLBACK_ENABLED", True) else ()
+        )
+        return tuple((self._alias(candidate), None, None, None, None, None) for candidate in tiers)
 
     def tier_for(self, scene: str, complexity: str, risk_level: str, budget_mode: str) -> str:
         if scene == "eval":
@@ -268,7 +370,22 @@ class ModelRouter:
             float(self.environment.get(prefix + "TIMEOUT_SECONDS", "30")),
         )
 
-    def _attempt(self, model_call_id: str, scene: str, alias: ModelAlias, status: str, started: datetime, begin: float, response: ModelResponse | None = None, error: ModelProviderError | None = None) -> ProviderAttempt:
+    def _attempt(
+        self,
+        model_call_id: str,
+        scene: str,
+        alias: ModelAlias,
+        status: str,
+        started: datetime,
+        begin: float,
+        response: ModelResponse | None = None,
+        error: ModelProviderError | None = None,
+        price_version_override: str | None = None,
+        input_price_per_million: Decimal | None = None,
+        output_price_per_million: Decimal | None = None,
+        route_version: str | None = None,
+        budget_policy_version: str | None = None,
+    ) -> ProviderAttempt:
         finished = datetime.now(timezone.utc)
         input_tokens = response.input_tokens if response else None
         output_tokens = response.output_tokens if response else None
@@ -277,19 +394,43 @@ class ModelRouter:
             model_call_id=model_call_id, provider_attempt_id="mat_" + uuid.uuid4().hex,
             scene=scene, provider_code=alias.provider_code, model_name=alias.model_name, status=status,
             input_tokens=input_tokens, output_tokens=output_tokens, total_tokens=total_tokens,
-            cost_cny=self._cost(alias, input_tokens, output_tokens, response.cached_input_tokens if response else 0) if response else None,
+            cost_cny=(
+                self._cost(
+                    alias,
+                    input_tokens,
+                    output_tokens,
+                    response.cached_input_tokens if response else 0,
+                    (input_price_per_million, output_price_per_million)
+                    if input_price_per_million is not None and output_price_per_million is not None
+                    else None,
+                )
+                if response
+                else None
+            ),
             latency_ms=max(0, int((time.monotonic() - begin) * 1000)),
             started_at=started.isoformat().replace("+00:00", "Z"), finished_at=finished.isoformat().replace("+00:00", "Z"),
             provider_request_id=response.provider_request_id if response else None,
             error_code=error.code if error else None,
-            price_version=self._price(alias)[3],
+            price_version=price_version_override or self._price(alias)[3],
             cached_input_tokens=response.cached_input_tokens if response else None,
+            route_version=route_version,
+            budget_policy_version=budget_policy_version,
         )
 
-    def _cost(self, alias: ModelAlias, input_tokens: int | None, output_tokens: int | None, cached_input_tokens: int = 0) -> Decimal | None:
+    def _cost(
+        self,
+        alias: ModelAlias,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        cached_input_tokens: int = 0,
+        price_override: tuple[Decimal, Decimal] | None = None,
+    ) -> Decimal | None:
         if input_tokens is None or output_tokens is None:
             return None
         in_price, out_price, cached_price, _ = self._price(alias)
+        if price_override is not None:
+            in_price, out_price = price_override
+            cached_price = in_price
         cached_tokens = max(0, min(cached_input_tokens, input_tokens))
         if in_price is None or out_price is None or (cached_tokens and cached_price is None):
             return None
@@ -320,10 +461,26 @@ class ModelRouter:
             return None, None, None, version
         return in_price, out_price, cached_price, version
 
-    def _require_audited_price(self, alias: ModelAlias) -> None:
+    def _require_audited_price(
+        self,
+        alias: ModelAlias,
+        input_price_per_million: Decimal | None = None,
+        output_price_per_million: Decimal | None = None,
+        price_version: str | None = None,
+    ) -> None:
         """生产成本审计开启时，禁止在价格未知的情况下产生云调用。"""
         required = self.environment.get("FOODMATE_MODEL_PRICE_AUDIT_REQUIRED", "false").lower() == "true"
         if alias.provider_code == "deterministic" or not required:
+            if (
+                price_version
+                and (input_price_per_million is None or output_price_per_million is None)
+                and alias.provider_code != "deterministic"
+            ):
+                raise ModelProviderError(
+                    "MODEL_PRICE_UNCONFIGURED", "governed model price is not configured"
+                )
+            return
+        if input_price_per_million is not None and output_price_per_million is not None:
             return
         input_price, output_price, cached_price, version = self._price(alias)
         if input_price is None or output_price is None or version == "unconfigured":
@@ -337,3 +494,13 @@ class ModelRouter:
         if error.code == "MODEL_TIMEOUT":
             return "timeout"
         return "failed"
+
+
+def _decimal_or_none(value: object) -> Decimal | None:
+    if value is None or value == "":
+        return None
+    try:
+        parsed = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+    return parsed if parsed.is_finite() and parsed >= 0 else None

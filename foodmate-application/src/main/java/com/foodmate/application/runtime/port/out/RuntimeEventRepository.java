@@ -63,7 +63,10 @@ public interface RuntimeEventRepository {
             String usage,
             Integer latency,
             BigDecimal cost,
-            String status);
+            String status,
+            String routeVersion,
+            String priceVersion,
+            String budgetPolicyVersion);
 
     boolean assistantExists(long runId);
 

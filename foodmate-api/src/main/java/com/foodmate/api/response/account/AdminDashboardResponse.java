@@ -72,7 +72,8 @@ public record AdminDashboardResponse(
                                                 item.status(),
                                                 item.scope(),
                                                 item.owner(),
-                                                item.lastCalledAt()))
+                                                item.lastCalledAt(),
+                                                item.revision()))
                         .toList(),
                 value.usage().stream()
                         .map(
@@ -93,6 +94,7 @@ public record AdminDashboardResponse(
                                                 item.documentId(),
                                                 item.title(),
                                                 item.status(),
+                                                item.visibility(),
                                                 item.chunks(),
                                                 item.owner(),
                                                 item.source(),
@@ -158,7 +160,8 @@ public record AdminDashboardResponse(
             String status,
             String scope,
             String owner,
-            String lastCalledAt) {}
+            String lastCalledAt,
+            long revision) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Usage(
@@ -175,6 +178,7 @@ public record AdminDashboardResponse(
             Long documentId,
             String title,
             String status,
+            String visibility,
             Long chunks,
             String owner,
             String source,

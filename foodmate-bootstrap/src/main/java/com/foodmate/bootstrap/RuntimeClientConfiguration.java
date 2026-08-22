@@ -1,10 +1,12 @@
 package com.foodmate.bootstrap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.knowledge.port.out.KnowledgeSearchPort;
 import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.application.runtime.port.out.RuntimeGatewayPort;
 import com.foodmate.infrastructure.client.runtime.HttpGatewayClient;
 import com.foodmate.infrastructure.client.runtime.UnavailableGatewayClient;
+import com.foodmate.infrastructure.client.runtime.V1HttpKnowledgeSearchClient;
 import com.foodmate.infrastructure.client.runtime.V1HttpRuntimeClient;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -34,6 +36,25 @@ public class RuntimeClientConfiguration {
                 privateKey,
                 kid,
                 contractVersion);
+    }
+
+    @Bean
+    KnowledgeSearchPort knowledgeSearchClient(
+            @Value("${foodmate.runtime.agent-base-url}") URI baseUrl,
+            @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
+            @Value("${foodmate.runtime.service-jwt.java-private-key:}") String privateKey,
+            @Value("${foodmate.runtime.service-jwt.java-kid:}") String kid,
+            @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
+            ObjectMapper objectMapper) {
+        return new V1HttpKnowledgeSearchClient(
+                baseUrl,
+                Duration.ofSeconds(10),
+                HttpClient.newHttpClient(),
+                objectMapper,
+                privateKey,
+                kid,
+                contractVersion,
+                jwtEnabled);
     }
 
     /**

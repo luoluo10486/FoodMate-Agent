@@ -19,6 +19,7 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.food.service.MealPlanService;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -54,6 +55,23 @@ class MealPlanControllerTest {
                 .andExpect(jsonPath("$.data.meal_plan_id", is("100")))
                 .andExpect(jsonPath("$.data.revision", is(2)))
                 .andExpect(jsonPath("$.data.deleted", is(false)));
+    }
+
+    @Test
+    void listsOwnedPlansIncludingArchivedRecords() throws Exception {
+        when(accounts.requireSessionUser("session-1")).thenReturn(user());
+        when(plans.list(7L)).thenReturn(List.of(view()));
+
+        mvc.perform(
+                        get("/api/meal-plans")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "session-1")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].meal_plan_id", is("100")))
+                .andExpect(jsonPath("$.data[0].revision", is(2)));
+
+        verify(plans).list(7L);
     }
 
     @Test

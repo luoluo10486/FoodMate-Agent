@@ -72,4 +72,24 @@ describe('HomePage 独立渲染', () => {
     expect(screen.getByText('👋 早上好，Anddy！')).toBeInTheDocument();
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
   });
+
+  it('加载、空数据和错误 fixture 保留工作台输入器并替换正文内容', () => {
+    const states = [
+      ['loading', '工作台正在加载'],
+      ['empty', '还没有任何数据'],
+      ['error', '数据加载失败'],
+    ] as const;
+
+    for (const [state, expectedText] of states) {
+      const { unmount } = render(
+        <MemoryRouter initialEntries={[`/?state=${state}`]}>
+          <HomePage />
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByText(expectedText)).toBeInTheDocument();
+      expect(screen.getByLabelText('任务内容')).toBeInTheDocument();
+      unmount();
+    }
+  });
 });

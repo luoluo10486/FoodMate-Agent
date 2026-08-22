@@ -11,6 +11,7 @@ import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,6 +63,11 @@ public class MealPlanController extends AuthenticatedControllerSupport {
     public ApiResponse<MealPlanResponse> get(
             HttpServletRequest request, @PathVariable long mealPlanId) {
         return ok(map(plans.get(user(request).userId(), mealPlanId)));
+    }
+
+    @GetMapping
+    public ApiResponse<List<MealPlanResponse>> list(HttpServletRequest request) {
+        return ok(plans.list(user(request).userId()).stream().map(this::map).toList());
     }
 
     @PatchMapping("/{mealPlanId}")

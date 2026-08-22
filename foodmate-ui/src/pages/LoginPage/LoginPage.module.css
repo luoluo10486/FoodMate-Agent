@@ -189,12 +189,17 @@
   margin-top: 2px;
 }
 
-.loginAlert button {
+.loginAlertAction {
+  display: block !important;
+  width: fit-content;
+  height: auto !important;
+  min-height: 0;
   padding: 0;
   border: 0;
+  border-radius: 0 !important;
   background: transparent;
   color: inherit;
-  cursor: pointer;
+  box-shadow: none !important;
   font: inherit;
   font-weight: 700;
   text-decoration: underline;
@@ -251,6 +256,7 @@
   display: grid;
   width: 24px;
   height: 24px;
+  min-width: 24px;
   padding: 3px;
   place-items: center;
   border: 0;
@@ -411,6 +417,7 @@
 .tokenCard {
   display: flex;
   width: min(460px, calc(100vw - 32px));
+  box-sizing: border-box;
   flex-direction: column;
   align-items: center;
   gap: 32px;
@@ -422,18 +429,42 @@
   gap: 0;
 }
 
+.authPage-token .authBrand {
+  gap: 10px;
+}
+
 .tokenCard .authHeading {
   display: none;
 }
 
 .authPage-token .authMark {
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: #2e7d32;
+  box-shadow: none;
 }
 
-.authPage-token .authMark svg {
-  width: 20px;
-  height: 20px;
+.authPage-token .authMark img {
+  width: 18px;
+  height: 18px;
+}
+
+.authPage-token .authWordmark {
+  font-size: 20px;
+  line-height: normal;
+}
+
+.authPage-token .authDiagonal {
+  background: #dfeedb;
+}
+
+.tokenContent {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
 }
 
 .tokenIcon {
@@ -448,6 +479,11 @@
   width: 30px;
   height: 30px;
   stroke-width: 1.7;
+}
+
+.tokenIcon img {
+  width: 32px;
+  height: 32px;
 }
 
 .tokenIcon-invalid {
@@ -465,19 +501,29 @@
   color: var(--fm-color-info-strong);
 }
 
-.tokenCard h1 {
+.tokenMessage {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+}
+
+.tokenMessage h1 {
   margin: 0;
   color: #2a3439;
   font-size: 24px;
-  line-height: 1.2;
+  font-weight: 700;
+  line-height: 29px;
 }
 
-.tokenCard > p {
+.tokenMessage p {
   width: 100%;
   margin: 0;
   color: #6b7280;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 22px;
 }
 
 .tokenActions {
@@ -495,7 +541,7 @@
   border-radius: 16px;
   background: transparent;
   color: #2a3439;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -512,12 +558,19 @@
   background: var(--fm-color-success);
 }
 
-.tokenCard .authBackLink {
+.tokenBackRow {
+  display: flex;
+  width: 100%;
+  height: 25px;
+  box-sizing: border-box;
+  justify-content: center;
   padding-top: 8px;
 }
 
-.tokenDecorIcon {
-  display: none;
+.tokenCard .authBackLink {
+  height: 17px;
+  min-height: 17px;
+  line-height: 17px;
 }
 
 .authDiagonal {
@@ -650,6 +703,24 @@
   width: 100%;
   flex-direction: column;
   gap: 14px;
+}
+
+.authPage-register .authForm {
+  display: contents;
+}
+
+.registerFields {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.registerActions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .authField {
@@ -814,6 +885,37 @@
   align-items: center;
 }
 
+.authPage-forgot .authForm {
+  display: contents;
+}
+
+.authPage-forgot .authHeading {
+  gap: 8px;
+}
+
+.authPage-forgot .authFieldLabel {
+  line-height: normal;
+}
+
+.authPage-reset .authForm {
+  display: contents;
+}
+
+.authPage-reset .authHeading {
+  gap: 8px;
+}
+
+.authPage-reset .authFieldLabel {
+  line-height: normal;
+}
+
+.resetFields {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .authBackLink {
   width: fit-content;
   height: auto;
@@ -899,6 +1001,22 @@
   text-align: center;
 }
 
+.successContent {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.successActions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
 .successIcon {
   display: grid;
   width: 56px;
@@ -912,6 +1030,24 @@
 .successIcon svg {
   width: 28px;
   height: 28px;
+}
+
+.successActionButton {
+  width: 100%;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: #48c78e;
+  box-shadow: none;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.successActionButton:hover,
+.successActionButton:focus-visible {
+  background: #48c78e;
+  color: #ffffff;
 }
 
 .successCard h1 {

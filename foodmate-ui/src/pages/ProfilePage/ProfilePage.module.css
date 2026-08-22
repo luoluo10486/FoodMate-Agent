@@ -643,6 +643,8 @@
 }
 
 .filterButton {
+  height: auto;
+  min-width: 0;
   padding: 0 16px;
 }
 
@@ -1071,6 +1073,9 @@
 .textLink,
 .textLinkOrange {
   display: inline-flex;
+  height: auto;
+  min-height: 0;
+  min-width: 0;
   align-items: center;
   gap: 5px;
   padding: 0;
@@ -1582,38 +1587,42 @@
 }
 .fixtureOverlay {
   position: fixed;
-  inset: 0;
+  inset: 0 0 0 260px;
   z-index: 40;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgb(29 35 42 / 34%);
+  background: rgb(255 255 255 / 72%);
 }
 
 .fixtureOverlaySuccess {
-  background: rgb(29 35 42 / 8%);
+  background: rgb(255 255 255 / 72%);
 }
 
 .fixtureModal {
-  width: min(580px, 100%);
-  min-height: 230px;
-  padding: 32px;
+  position: absolute;
+  top: 300px;
+  left: 50%;
+  width: 560px;
+  min-height: 280px;
+  box-sizing: border-box;
+  padding: 30px 31px;
   border: 1px solid #8db6ff;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 20px 48px rgb(31 41 55 / 18%);
+  box-shadow: none;
+  transform: translateX(-50%);
 }
 
 .fixtureModal h2 {
   margin: 0;
-  color: #1f2937;
-  font-size: 24px;
+  color: #4777e9;
+  font-size: 22px;
   font-weight: 500;
+  line-height: 28px;
 }
 .fixtureModal p {
   margin: 24px 0 0;
-  color: #667085;
-  line-height: 1.7;
+  color: #596273;
+  font-size: 15px;
+  line-height: 22px;
 }
 .fixtureModalError {
   border-color: #ef8b86;
@@ -1640,16 +1649,17 @@
 .fixtureProgress {
   display: block;
   height: 8px;
-  margin-top: 24px;
+  margin-top: 18px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #e7ebf0;
 }
 .fixtureProgress i {
   display: block;
   width: 68%;
   height: 100%;
-  background: #4caf59;
+  border-radius: inherit;
+  background: #42b45a;
 }
 .fixtureModal > button {
   margin-top: 28px;
@@ -1688,9 +1698,11 @@
 
 @media (max-width: 760px) {
   .fixtureOverlay {
-    padding: 16px;
+    left: 0;
   }
   .fixtureModal {
+    top: 30%;
+    width: calc(100% - 32px);
     padding: 24px;
   }
   .fixturePanel {

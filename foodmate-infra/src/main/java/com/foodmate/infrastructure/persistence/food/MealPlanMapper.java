@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.persistence.food;
 
 import com.foodmate.application.food.port.out.MealPlanRepository.*;
+import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -45,6 +46,11 @@ public interface MealPlanMapper {
             @Param("userId") long userId,
             @Param("mealPlanId") long mealPlanId,
             @Param("includeDeleted") boolean includeDeleted);
+
+    @Select(
+            "SELECT meal_plan_id AS mealPlanId,user_id AS userId,session_id AS sessionId,plan_name AS planName,days,budget,constraints_json::text AS constraintsJson,plan_json::text AS planJson,validation_json::text AS validationJson,status,idempotency_key AS idempotencyKey,revision,is_deleted AS deleted,created_at AS createdAt,updated_at AS updatedAt FROM meal_plans WHERE user_id=#{userId} AND (#{includeDeleted}=TRUE OR is_deleted=FALSE) ORDER BY is_deleted ASC,updated_at DESC,meal_plan_id DESC")
+    List<PlanSnapshot> findOwnedPlans(
+            @Param("userId") long userId, @Param("includeDeleted") boolean includeDeleted);
 
     @Update(
             "UPDATE meal_plans SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,deleted_by=#{userId},updated_at=CURRENT_TIMESTAMP,updated_by=#{userId},revision=revision+1 WHERE meal_plan_id=#{mealPlanId} AND user_id=#{userId} AND revision=#{revision} AND is_deleted=FALSE")

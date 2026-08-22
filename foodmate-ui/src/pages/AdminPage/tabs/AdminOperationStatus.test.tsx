@@ -71,8 +71,11 @@ describe('AdminOperationStatus', () => {
       />,
     );
     expect(screen.getByRole('dialog', { name: '操作失败' })).toBeInTheDocument();
+    expect(screen.getByText('管理服务未能在规定时间内完成请求，请检查服务状态后重试。')).toBeInTheDocument();
+    expect(screen.getByText(/当前配置未改变/)).toBeInTheDocument();
     expect(screen.getByText('ERROR_CODE: REGISTRY_TIMEOUT_504')).toBeInTheDocument();
     expect(screen.getByText('REQUEST_ID: req-foodmate-9082ac918')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
   });
 
   it('shows the operator no-permission banner and a dismissible success banner', async () => {

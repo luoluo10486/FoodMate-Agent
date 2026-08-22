@@ -33,7 +33,7 @@ class AdminUserControllerRbacTest {
                 .thenReturn(
                         List.of(
                                 new UserAccountService.AdminUserView(
-                                        1L, "safe", "safe@example.com", "Safe", "user", "active")));
+                                        1L, "safe", "safe@example.com", "Safe", "user", "active", 1L)));
     }
 
     @Test

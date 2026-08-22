@@ -9,7 +9,7 @@
 1. Figma 文件内部结构、组件系统、Prototype 和画板截图回读已完成。
 2. 前端代码与 Figma 画板的自动化像素差异已覆盖 105 个已建立映射的页面/状态，105 个结果均为 `DIFF_REVIEW`，不能标记为像素级通过。
 
-因此当前不能宣称“Figma 105 张画板已全部完成前端像素级验收”。已经完成的是可复核的 Figma 全量结构验收、105 个画板的路由/状态映射、差异证据收集，以及运行时几何、可见文字、DPR 检查；人工视觉复核仍未关闭。
+因此当前不能宣称“Figma 105 张画板已全部像素级通过”。已经完成的是可复核的 Figma 全量结构验收、105 个画板的路由/状态映射、差异证据收集，以及运行时几何、可见文字、DPR 和 105/105 人工视觉复核登记；由于仍存在可见差异，结果继续保留为 `DIFF_REVIEW`。
 
 ## 2. Figma 文件内部验收
 
@@ -76,7 +76,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。运行时检查文件 [`figma-105-runtime-checks.json`](../../foodmate-ui/.qa/figma-pixel-acceptance/figma-105-runtime-checks.json) 已实际记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105` 与字体加载完成；`manualReview.status` 仍为 `PENDING (105/105)`，因此不能将 `DIFF_REVIEW` 改为 `PASS`。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。运行时检查文件 [`figma-105-runtime-checks.json`](../../foodmate-ui/.qa/figma-pixel-acceptance/figma-105-runtime-checks.json) 已实际记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105` 与字体加载完成；映射文件已记录 `manualPending=0` 且 105/105 人工结论均为差异复核结果，因此不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 
@@ -309,3 +309,151 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 此前由 JPEG 字节误命名为 `.png` 导致的 `DIFF_ERROR` 已从当前 105 条输入中排除：汇总脚本会校验 PNG 文件头，并优先选择同尺寸的 RGBA 证据。当前清单引用的 105 个 Figma PNG 与 105 个浏览器 PNG 均已通过文件头和尺寸校验。运行时检查确认 `viewportPass`、`dprPass`、`geometryPass` 和 `textPass` 均为 `105/105`，字体状态均为 `loaded`；人工视觉复核仍为 `0/105`。新增 Agent 六个状态均已建立 `/chat?state=...` fixture、浏览器 PNG 和 diff 记录，但结果继续保持 `DIFF_REVIEW`。
 
 本轮已关闭 `UNMAPPED` 映射缺口，但没有关闭任何 `PASS`。部分 Admin 操作弹窗、Profile 异步操作、历史会话交互和 Workspace 输入状态均使用独立 query fixture，不能与默认页面截图混淆。iconfont 实体资源仍为 `BLOCKED`；后端真实 Agent/SSE 闭环也不作为本轮 fixture 完成标准。
+
+## 46. 2026-08-22 shadcn 控件迁移后的运行时复核
+
+本轮完成的是业务页面控件基础设施迁移，不重新生成 105 张画板的 Figma PNG 或像素 diff，因此不改变上一节的全量结论。
+
+- Planning `/planning?state=wizard-step2` 浏览器复核确认：步骤导航控件为 `32px`，过敏源 Chip 和添加入口为 `26px`；修正前 shadcn 默认高度曾将 Chip 撑到 `40px`，已通过页面 CSS 显式覆盖并重新截图确认。
+- Profile `/profile?state=basic` 浏览器复核确认：资料操作按钮和过敏原标签均保持设计 CSS 尺寸，过敏原标签为 `32px`；未发现页面级横向溢出。
+- 业务页面源码扫描结果：原生 `<button>` 数量 `0`，`AdminPrimitives` 直接依赖数量 `0`；这项结果只证明控件实现边界，不证明页面与 Figma 已像素一致。
+- Planning 冲突解决页 `/planning?state=conflict` 已实测两个 `radiogroup`、4 个可访问 radio、默认选中态和切换态；菜系选择 `/planning?state=wizard-step2` 已实测 shadcn Select 的三个 option 和受控值更新。
+- Chat 历史写入确认卡 `/chat?state=history-page-2` 已实测两个可访问 radio，默认“添加到今天的午餐”，点击后可切换到“仅作为对话参考”。
+- 当前页面级原生 `<button>`、`<select>`、`type="radio"`、`type="checkbox"` 均为 `0`；仅保留 3 个文件上传输入，属于浏览器文件选择 API 的必要入口；`AdminPrimitives` 直接依赖仍为 `0`。
+- Planning 定向测试 `7/7`、Chat 定向测试 `25/25`，全量测试 `25` 个测试文件、`136/136`；`npm run typecheck`、`npm run build` 与 `git diff --check` 均通过。
+- `MealPlanningFlow.tsx` 定向 Prettier 已通过；全量 `format:check` 仍受其他未提交文件阻塞，未把该阻塞写成当前页面运行失败。
+
+本次不更新 105 条 diff 状态：仍为 `DIFF_REVIEW=105`、`PASS=0`，人工视觉复核仍未完成；iconfont 资源继续为 `BLOCKED`。
+
+## 51. 2026-08-22 Agent Chat 会话操作面板复核
+
+本轮重新读取 Figma 节点 `806:212`，并对 `/chat?state=session-actions` 完成代码、交互和同尺寸截图复核。Figma 关键几何为遮罩起点 `x=260`、操作面板 `x=470,y=90,w=760,h=316`、选中会话卡 `w=712,h=72`；浏览器实测保持这些尺寸，关闭按钮会隐藏面板并写入 `role=status` 提示。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点 | `806:212`，画板 `1440×1024` |
+| 浏览器截图 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-session-actions-browser-current.png` |
+| diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-session-actions-current-diff.json` |
+| PNG diff | `differentRatio=40.11095%`、`MAE=4.91090`、`RMSE=19.75133`、`maxChannelDelta=255`，保持 `DIFF_REVIEW` |
+| 几何与运行时 | `1440×1024`、DPR `1`、面板 `760×316`、会话卡 `712×72`、根节点无滚动溢出 |
+| 行为回归 | Chat 定向测试 `25/25`；关闭操作后 `dialogCount=0`；`npm run typecheck` 与目标文件 Prettier 通过 |
+
+- [x] 当前画板已完成自动 diff、几何检查、文字检查和人工视觉复核登记；结果仍为 `DIFF_REVIEW`，没有把面板几何通过写成像素 `PASS`。
+- [ ] 底层 Workspace 壳层、字体渲染、图标、遮罩合成和对话/Trace 内容仍与 Figma 存在差异；后续继续逐页修正。
+- [ ] iconfont 实体资源登记继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
+
+## 53. 2026-08-22 Agent Chat 归档结果卡复核
+
+本轮重新读取 Figma 节点 `806:662`，并对 `/chat?state=archived` 完成同尺寸截图和交互复核。设计卡片为 `x=540,y=286,w=620,h=276`，浏览器已对齐 `ARCHIVED` 状态、归档会话条、保留说明、恢复按钮和关闭按钮；恢复与关闭均保留独立状态提示。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点 | `806:662`，画板 `1440×1024` |
+| 浏览器截图 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-archived-browser-current.png` |
+| diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-archived-current-diff.json` |
+| PNG diff | `differentRatio=38.11252%`、`MAE=3.88295`、`RMSE=17.12204`、`maxChannelDelta=255`，保持 `DIFF_REVIEW` |
+| 几何与运行时 | `1440×1024`、DPR `1`、卡片 `620×276`、归档条 `556×56`、根节点无滚动溢出 |
+| 行为回归 | Chat 定向测试 `25/25`；恢复/关闭动作已在浏览器验证；`npm run typecheck` 与目标文件 Prettier 通过 |
+
+- [x] 当前画板已完成自动 diff、几何检查、文字检查和人工视觉复核登记；结果仍为 `DIFF_REVIEW`，没有把归档卡几何通过写成像素 `PASS`。
+- [ ] 底层 Workspace 壳层、字体渲染、图标、遮罩合成和对话/Trace 内容仍与 Figma 存在差异；后续继续逐页修正。
+- [ ] iconfont 实体资源登记继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
+
+## 52. 2026-08-22 Agent Chat 会话重命名结果卡复核
+
+本轮重新读取 Figma 节点 `806:438`，并对 `/chat?state=renamed` 完成同尺寸截图和交互复核。设计卡片为 `x=540,y=300,w=620,h=244`，浏览器已对齐 `SAVED` 状态、同步说明、关闭按钮和 `148×44` 返回按钮；关闭结果后不会继续保留遮罩。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点 | `806:438`，画板 `1440×1024` |
+| 浏览器截图 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-browser-current.png` |
+| diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-current-diff.json` |
+| PNG diff | `differentRatio=37.23843%`、`MAE=3.76595`、`RMSE=16.77892`、`maxChannelDelta=255`，保持 `DIFF_REVIEW` |
+| 几何与运行时 | `1440×1024`、DPR `1`、卡片 `620×244`、返回按钮 `148×44`、根节点无滚动溢出 |
+| 行为回归 | Chat 定向测试 `25/25`；返回/关闭动作已在浏览器验证；`npm run typecheck` 与目标文件 Prettier 通过 |
+
+- [x] 当前画板已完成自动 diff、几何检查、文字检查和人工视觉复核登记；结果仍为 `DIFF_REVIEW`，没有把成功卡几何通过写成像素 `PASS`。
+- [ ] 底层 Workspace 壳层、字体渲染、图标、遮罩合成和对话/Trace 内容仍与 Figma 存在差异；后续继续逐页修正。
+- [ ] iconfont 实体资源登记继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
+
+## 47. 2026-08-22 注册页布局层级收敛
+
+本轮重新读取 Figma 节点 `680:216`，并在 `1440×900`、DPR 1、字体加载完成条件下重新采集 `/register`。改动范围仅限注册页结构：将 Figma 中独立的四字段组 `680:227`、密码规则组 `680:250` 和底部操作组 `680:263` 从平铺表单间距改为对应的嵌套层级，保留 `form` 语义、真实注册接口和 shadcn `Input`/`Button` 控件。
+
+| 验收项 | 当前证据 |
+|---|---|
+| 卡片几何 | `x=490,y=34.4,w=460,h=831.2`；内容宽 `380px` |
+| 输入几何 | 四个输入 `y=235.2/320.8/406.4/492px`，均为 `380×50px` |
+| Figma 参考 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png` |
+| 浏览器 RGBA | `foodmate-ui/.qa/figma-pixel-acceptance/register-page-browser-current-rgba.png` |
+| PNG diff | `differentRatio=54.06998%`、`meanAbsoluteError=0.80904`、`RMSE=5.52169`，保持 `DIFF_REVIEW` |
+| 行为回归 | `AuthPages.test.tsx`：`13/13`；`npm run typecheck` 通过；触及文件 Prettier 通过 |
+
+- [x] 注册页的卡片、字段、密码规则和操作区已按 Figma 层级分组，按钮与页脚不再受字段组平铺间距影响。
+- [x] 注册页保留空值交互状态，用户输入后密码规则按真实值更新；Figma 静态参考图中的示例值和全绿规则因此继续作为状态差异记录。
+- [ ] 该画板仍不能标记 `PASS`：当前浏览器交互态与 Figma 示例填充态不同，且完整人工视觉复核尚未关闭；不得用本轮几何通过替代像素验收。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮未添加虚构字体包、Unicode 或 CSS 映射。
+
+## 48. 2026-08-22 找回密码页布局层级收敛
+
+本轮重新读取 Figma 节点 `680:275`，并按实时画板重构 `/forgot-password` 的左右卡片层级。左卡片的邮箱字段与操作区由卡片的 `28px` 间距直接分隔；右卡片将成功图标、标题和说明归入 `16px` 内容组，返回按钮独立使用 Figma 的 `360×46px`、`12px` 圆角样式。表单仍保留真实 `requestPasswordReset` 接口和提交后的状态提示。
+
+| 验收项 | 当前证据 |
+|---|---|
+| 桌面视口 | `1440×900`，DPR `1.0000000149011612`，页面宽度 `1440` |
+| 左侧几何 | 卡片 `x=260,w=440,h=416.4`；输入 `y=452.2,h=50`；发送按钮 `y=530.2,h=50` |
+| 右侧几何 | 卡片 `x=740,w=440,h=306.4`；返回按钮 `x=780,y=462.2,w=360,h=46` |
+| Figma 参考 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/forgot-password-page-latest.png` |
+| 浏览器 RGBA | `foodmate-ui/.qa/figma-pixel-acceptance/forgot-password-page-browser-current-rgba.png` |
+| PNG diff | `differentRatio=99.92716%`、`meanAbsoluteError=1.10110`、`RMSE=6.82914`，保持 `DIFF_REVIEW` |
+| 行为回归 | `AuthPages.test.tsx`：`13/13`；`npm run typecheck` 通过；触及文件 Prettier 通过 |
+
+- [x] 左右卡片均无页面级横向溢出，右侧成功卡片的默认结构与 Figma 成功态保持一致。
+- [x] 发送重置邮件、返回登录和提交后 `role=status` 提示继续保持可操作；真实模式仍只调用既有密码找回接口。
+- [ ] 该画板仍不能标记 `PASS`：PNG 自动 diff 与完整人工视觉复核门槛尚未关闭；`differentRatio` 不能被“视觉接近”替代。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮继续使用 Lucide 标准图标。
+
+## 49. 2026-08-22 重置密码页布局层级收敛
+
+本轮重新读取 Figma 节点 `680:307`，并按 `680:318`、`680:331`、`680:340` 将 `/reset-password` 的密码字段组、强度组和提交操作组拆为卡片的独立层级。字段组内部使用 `16px` 间距，卡片组间使用 Figma 的 `28px` 间距；标题组和字段标签行高也按实时节点的 `8px`/`normal` 约束覆盖。真实 token 校验、密码确认、提交和返回登录行为保持不变。
+
+| 验收项 | 当前证据 |
+|---|---|
+| 桌面视口 | `1440×900`，DPR `1.0000000149011612`，页面宽度 `1440` |
+| 卡片几何 | `x=490,y=166.2,w=460,h=567.6`；内容宽 `380px` |
+| 输入几何 | 两个输入 `y=376.6/467.8px`，均为 `380×50px` |
+| 强度/操作组 | 强度条 `y=571.8,h=6`；确认按钮组 `y=605.8,h=88` |
+| Figma 参考 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/reset-password-page-latest.png` |
+| 浏览器 RGBA | `foodmate-ui/.qa/figma-pixel-acceptance/reset-password-page-browser-current-rgba.png` |
+| PNG diff | `differentRatio=99.13426%`、`meanAbsoluteError=1.46441`、`RMSE=10.02255`，保持 `DIFF_REVIEW` |
+| 行为回归 | `AuthPages.test.tsx`：`13/13`；`npm run typecheck` 通过；触及文件 Prettier 通过 |
+
+- [x] 字段、强度条和提交操作已按 Figma 层级拆分，页面无横向溢出。
+- [x] 前端保持空值密码输入和 token 缺失保护；真实模式仍调用既有 `confirmPasswordReset`，不伪造成功响应。
+- [ ] 该画板仍不能标记 `PASS`：Figma 静态示例值与交互页面 placeholder 状态不同，自动 diff 和完整人工复核门槛尚未关闭。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮未添加虚构字体包、Unicode 或 CSS 映射。
+
+## 50. 2026-08-22 Token 状态页结构与资产对齐
+
+本轮重新读取 Figma 节点 `680:738`、`680:757`、`680:776`，并按各自的 `error-card`、状态内容组和操作组重构 `/token-status?state=invalid|expired|used`。Figma 返回的真实 SVG 已登记到 `foodmate-ui/public/assets/figma/auth/`：品牌 fork-knife、错误三角、过期时钟和已使用信息图标。未创建虚构 iconfont glyph。
+
+| 状态 | Figma 卡片 | 浏览器卡片 | 操作结构 | PNG diff |
+|---|---|---|---|---|
+| 无效 `680:738` | `x=490,y=242,w=460,h=416` | `x=490,y=242,w=460,h=416` | 重新发送 `380×52`；返回登录行 `380×25` | `differentRatio=99.99877%`，`MAE=14.14673`，`RMSE=25.36159`，`DIFF_REVIEW` |
+| 过期 `680:757` | `x=490,y=242,w=460,h=416` | `x=490,y=242,w=460,h=416` | 重新发送 `380×52`；返回登录行 `380×25` | `differentRatio=99.99877%`，`MAE=14.18704`，`RMSE=25.47945`，`DIFF_REVIEW` |
+| 已使用 `680:776` | `x=490,y=197,w=460,h=506` | `x=490,y=197,w=460,h=506` | 重新发送/联系客服均 `380×52`；返回登录行 `380×25` | `differentRatio=99.99414%`，`MAE=14.27139`，`RMSE=25.74397`，`DIFF_REVIEW` |
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点 | `680:738`、`680:757`、`680:776`；卡片内层均为 `380px` |
+| 浏览器桌面 | `1440×900`、DPR `1.0000000149011612`、字体状态 `loaded`、三态 `scrollWidth=clientWidth=1440` |
+| 浏览器移动 | `390×844`；三态 `scrollWidth=clientWidth=390`，所有图标均完成加载 |
+| Figma PNG | `docxs/设计/figma-png/token-invalid.png`、`token-expired.png`、`token-used.png` |
+| 浏览器 PNG | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-invalid-browser.png`、`token-expired-browser.png`、`token-used-browser.png` |
+| diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/figma-105-diff-results.json#token-invalid|token-expired|token-used` |
+| 行为回归 | `TokenStatusPage.test.tsx` 与 `AuthPages.test.tsx`：`16/16`；`npm run typecheck`、目标文件 Prettier 和 `git diff --check` 通过 |
+
+- [x] 品牌、状态内容、操作组已按 Figma 层级拆分；三态真实导航行为保持不变。
+- [x] 使用 Figma 节点返回的真实 SVG 资产；标准按钮继续使用 shadcn `Button`。
+- [ ] 三态仍不能标记 `PASS`：自动 diff 仍存在差异，完整 105 画板人工视觉复核也未关闭。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮没有创建字体包、CSS/Unicode 映射或伪造许可证信息。

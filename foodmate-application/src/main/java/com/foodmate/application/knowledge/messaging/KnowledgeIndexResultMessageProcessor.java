@@ -6,6 +6,7 @@ import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.application.knowledge.service.KnowledgeDeliveryService;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import org.springframework.stereotype.Service;
@@ -24,17 +25,41 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
         try {
             JsonNode node = mapper.readTree(body);
             String status = node.path("status").asText();
-            if (!("indexed".equals(status) || "index_failed".equals(status)))
+            long itemId = node.path("item_id").asLong(0);
+            long documentId = node.path("document_id").asLong(0);
+            String version = node.path("version").asText("").trim();
+            int attempt = node.path("attempt").asInt(0);
+            int chunkCount = node.path("chunk_count").asInt(0);
+            long tokenCount = node.path("token_count").asLong(0);
+            String errorCode = node.path("error_code").asText(null);
+            String modelVersion = node.path("model_version").asText(null);
+            if (!("indexed".equals(status) || "index_failed".equals(status))
+                    || itemId <= 0
+                    || documentId <= 0
+                    || version.isBlank()
+                    || attempt < 1
+                    || attempt > 3
+                    || chunkCount < 0
+                    || tokenCount < 0
+                    || ("indexed".equals(status)
+                            && (modelVersion == null || modelVersion.isBlank()))
+                    || ("index_failed".equals(status)
+                            && (errorCode == null || errorCode.isBlank())))
                 return MqConsumeDecision.REJECT;
+            BigDecimal costAmount = new BigDecimal(node.path("cost_amount").asText("0"));
+            if (costAmount.signum() < 0) return MqConsumeDecision.REJECT;
             service.accept(
                     new KnowledgeRepository.IndexResult(
-                            node.path("item_id").asLong(),
-                            node.path("document_id").asLong(),
-                            node.path("version").asText(),
+                            itemId,
+                            documentId,
+                            version,
                             status,
-                            node.path("chunk_count").asInt(),
-                            node.path("error_code").asText(null),
-                            node.path("attempt").asInt(1)),
+                            chunkCount,
+                            errorCode,
+                            attempt,
+                            tokenCount,
+                            costAmount,
+                            modelVersion),
                     hash(body));
             return MqConsumeDecision.ACK;
         } catch (com.fasterxml.jackson.core.JsonProcessingException

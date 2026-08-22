@@ -16,6 +16,7 @@ from typing import Any
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
 from proposal_protocol import Proposal, validate_proposal
+from sql_planner import SqlPlannerError, planner_from_environment
 
 
 def _digest(value: Any) -> str:
@@ -151,6 +152,7 @@ class Context:
     sources: dict[str, tuple[str, ...]]
     estimated_tokens: int = 0
     tool_results: tuple[dict[str, Any], ...] = ()
+    analysis_plan: dict[str, Any] | None = None
 
 
 class ContextBuilder:
@@ -176,6 +178,16 @@ class ContextBuilder:
         summary = authorized.get("session_summary")
         memories = tuple(authorized.get("long_term_memories") or ())
         tool_results = tuple(authorized.get("tool_results") or ())
+        analysis_plan = authorized.get("database_query_plan")
+        if not isinstance(analysis_plan, dict):
+            analysis_plan = next(
+                (
+                    item.get("query_plan")
+                    for item in reversed(tool_results)
+                    if isinstance(item.get("query_plan"), dict)
+                ),
+                None,
+            )
         citations = tuple(authorized.get("citations") or ())
         # 先保留最新消息，再从最旧的原始消息开始裁剪；当前输入在最后，不会被裁掉。
         while len(messages) > 1 and self._estimate_tokens(tuple(messages), summary, memories, tool_results) > self.max_context_tokens:
@@ -189,7 +201,17 @@ class ContextBuilder:
             "citation_id": tuple(str(item["citation_id"]) for item in authorized.get("citations") or () if item.get("citation_id") is not None),
             "invocation_id": tuple(str(item["invocation_id"]) for item in tool_results if item.get("invocation_id") is not None),
         }
-        return Context(messages, summary, memories, unresolved, sources, self._estimate_tokens(messages, summary, memories, tool_results) + len(json.dumps(citations, ensure_ascii=False)), tool_results)
+        return Context(
+            messages,
+            summary,
+            memories,
+            unresolved,
+            sources,
+            self._estimate_tokens(messages, summary, memories, tool_results)
+            + len(json.dumps(citations, ensure_ascii=False)),
+            tool_results,
+            analysis_plan if isinstance(analysis_plan, dict) else None,
+        )
 
 
 class DeterministicRouter:
@@ -321,7 +343,7 @@ class Reflector:
             return ReflectionResult(False, "REFLECTION_NO_AUTHORIZED_SOURCE")
         if any(
             item.get("status") == "succeeded"
-            and not item.get("rows")
+            and "rows" not in item
             and not item.get("error_code")
             for item in context.tool_results
         ):
@@ -333,6 +355,10 @@ class DeterministicComposer:
     def compose(self, content: str, route: RouteDecision, context: Context, budget_mode: str) -> str:
         if route.missing_slots:
             return "为了继续处理，请补充以下信息：" + "、".join(route.missing_slots) + "。"
+        if route.intent == "analysis" and context.tool_results:
+            analysis = self._compose_analysis(context, budget_mode)
+            if analysis is not None:
+                return analysis
         prefix = "节省模式：" if budget_mode in {"economy", "partial"} else ""
         recent = len(context.messages)
         tool_note = ""
@@ -340,6 +366,47 @@ class DeterministicComposer:
             tool_note = f"已回注 {len(context.tool_results)} 个 Java 工具结果。"
         evidence_note = f"已检索到 {len(context.sources['citation_id'])} 条公共知识库证据。" if context.sources["citation_id"] else ""
         return f"{prefix}已完成{route.intent}请求的受控分析，已读取当前会话中的 {recent} 条有效消息。{tool_note}{evidence_note}"
+
+    @staticmethod
+    def _compose_analysis(context: Context, budget_mode: str) -> str | None:
+        results = list(context.tool_results)
+        database = next(
+            (item for item in reversed(results) if item.get("tool_name") == "database_query"),
+            None,
+        )
+        if database is None and any(item.get("sql_audit_id") for item in results):
+            database = next((item for item in reversed(results) if item.get("sql_audit_id")), None)
+        if database is None:
+            return None
+        plan = context.analysis_plan or {}
+        time_range = plan.get("time_range") or {}
+        days = time_range.get("days") if isinstance(time_range, dict) else None
+        range_text = f"最近 {days} 天" if days else "已授权时间范围"
+        metrics = ", ".join(str(item) for item in plan.get("metrics") or ()) or "已批准指标"
+        dimensions = ", ".join(str(item) for item in plan.get("dimensions") or ()) or "无分组维度"
+        status = database.get("status")
+        if status != "succeeded":
+            code = str(database.get("error_code") or "DATABASE_QUERY_FAILED")
+            return (
+                f"{('节省模式：' if budget_mode in {'economy', 'partial'} else '')}"
+                f"饮食分析未完成。时间范围：{range_text}；统计口径：{metrics}；"
+                f"分组维度：{dimensions}；工具状态：{code}。未生成趋势结论，请稍后重试。"
+            )
+        rows = database.get("rows") or []
+        if not rows:
+            return (
+                f"时间范围：{range_text}。统计口径：{metrics}；分组维度：{dimensions}。"
+                "数据覆盖：未找到可用的饮食记录。当前没有足够数据生成趋势结论，"
+                "建议先补充饮食记录后再分析。"
+            )
+        safe_rows = json.dumps(rows[:20], ensure_ascii=False, separators=(",", ":"), default=str)
+        if len(safe_rows) > 2_000:
+            safe_rows = safe_rows[:2_000] + "..."
+        return (
+            f"时间范围：{range_text}。统计口径：{metrics}；分组维度：{dimensions}。"
+            f"数据覆盖：返回 {len(rows)} 条已授权聚合结果。结果摘要：{safe_rows}。"
+            "建议结合完整记录和个人目标继续查看变化。"
+        )
 
 
 def budget_mode(usage: Usage, budget: BudgetSnapshot) -> str:
@@ -413,6 +480,7 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
 def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> list[dict[str, Any]]:
     """只包装 Java 授权的工具请求；Python 不自行确认或拼接业务写入。"""
     authorized = command.get("authorized_context") or {}
+    tool_results = list(authorized.get("tool_results") or ())
     writer = authorized.get("food_log_writer_request") or {}
     if isinstance(writer, dict) and writer and route.intent == "record":
         invocation_id = str(writer.get("invocation_id") or "")
@@ -435,9 +503,105 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
         return [proposal]
     request = authorized.get("sql_read_request") or {}
     if not isinstance(request, dict) or not request.get("statement") or route.intent not in {"record", "analysis"}:
-        return []
-    if (command.get("authorized_context") or {}).get("tool_results"):
-        return []
+        if route.intent != "analysis":
+            return []
+    if route.intent == "analysis":
+        question = str((command.get("message") or {}).get("content", ""))
+        plan = planner_from_environment().plan(question)
+        if plan.status == "need_clarification":
+            raise SqlPlannerError(
+                "SQL_PLANNER_TIME_RANGE_REQUIRED",
+                "analysis query requires a time range",
+                plan.missing_slots,
+            )
+        database_result = next(
+            (
+                item
+                for item in reversed(tool_results)
+                if item.get("tool_name") == "database_query"
+                or item.get("sql_audit_id")
+            ),
+            None,
+        )
+        if database_result is not None:
+            return []
+        time_result = next(
+            (item for item in reversed(tool_results) if item.get("tool_name") == "time_parser"),
+            None,
+        )
+        if time_result is None:
+            invocation_id = str(
+                "time_"
+                + hashlib.sha256(
+                    (str(command["run_id"]) + question).encode("utf-8")
+                ).hexdigest()[:24]
+            )
+            proposal = Proposal(
+                proposal_id="prop_" + invocation_id,
+                run_id=str(command["run_id"]),
+                proposal_type="tool",
+                schema_version="v1",
+                payload={
+                    "invocation_id": invocation_id,
+                    "idempotency_key": "time_"
+                    + hashlib.sha256(question.encode("utf-8")).hexdigest()[:32],
+                },
+                requires_confirmation=False,
+                tool_name="time_parser",
+                input={
+                    "question": question,
+                    "timezone": (plan.time_range or {}).get("timezone", "Asia/Shanghai"),
+                },
+            ).as_dict()
+            validate_proposal(
+                Proposal(
+                    proposal["proposal_id"],
+                    proposal["run_id"],
+                    proposal["proposal_type"],
+                    proposal["schema_version"],
+                    proposal["payload"],
+                    proposal["requires_confirmation"],
+                    proposal["request_hash"],
+                    proposal.get("tool_name"),
+                    proposal.get("confirmation_ref"),
+                    proposal.get("input"),
+                )
+            )
+            return [proposal]
+        if time_result.get("status") != "succeeded":
+            return []
+        statement = str(plan.candidate_sql)
+        invocation_id = str(request.get("invocation_id") or "inv_" + hashlib.sha256(statement.encode("utf-8")).hexdigest()[:24])
+        input_plan = {
+            "intent": plan.intent,
+            "time_range": plan.time_range,
+            "metrics": list(plan.metrics),
+            "dimensions": list(plan.dimensions),
+            "filters": dict(plan.filters),
+            "candidate_sql": statement,
+            "planner_mode": plan.planner_mode,
+            "planner_version": plan.planner_version,
+        }
+        proposal = Proposal(
+            proposal_id="prop_" + invocation_id,
+            run_id=str(command["run_id"]),
+            proposal_type="tool",
+            schema_version="v1",
+            payload={
+                "statement": statement,
+                "invocation_id": invocation_id,
+                "idempotency_key": "dbq_" + hashlib.sha256((str(command["run_id"]) + statement).encode("utf-8")).hexdigest()[:32],
+            },
+            requires_confirmation=False,
+            tool_name="database_query",
+            input=input_plan,
+        ).as_dict()
+        validate_proposal(Proposal(
+            proposal["proposal_id"], proposal["run_id"], proposal["proposal_type"], proposal["schema_version"],
+            proposal["payload"], proposal["requires_confirmation"], proposal["request_hash"],
+            proposal.get("tool_name"), proposal.get("confirmation_ref"), proposal.get("input"),
+        ))
+        return [proposal]
     statement = str(request["statement"]).strip()
     invocation_id = str(request.get("invocation_id") or "inv_" + hashlib.sha256(statement.encode("utf-8")).hexdigest()[:24])
     proposal = Proposal(
@@ -570,9 +734,33 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
             graph.as_dict(),
             [],
         )
+    try:
+        proposals = generate_tool_proposals(command, route)
+    except SqlPlannerError as error:
+        if error.code == "SQL_PLANNER_TIME_RANGE_REQUIRED":
+            answer = "为了分析摄入情况，请补充时间范围，例如最近 7 天。"
+            decision = EvalDecision("pass", error.code)
+            return AgentExecution(
+                route,
+                plan,
+                context,
+                answer,
+                decision,
+                usage,
+                mode,
+                [],
+                [],
+                policy.as_dict(),
+                graph.as_dict(),
+                [],
+            )
+        raise
     candidate = DeterministicComposer().compose(content, route, context, mode)
     router = model_router or ModelRouter()
     tier = router.tier_for("composer", route.complexity, route.risk_level, mode)
+    governed_route = options.get("model_snapshot")
+    if not isinstance(governed_route, dict):
+        governed_route = None
     deadline_at = command.get("deadline_at")
     composer_timeout = _model_timeout_seconds("COMPOSER", 45.0)
     try:
@@ -585,6 +773,7 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
             ),
             tier,
             router.fallback_tiers_for(tier),
+            governed_route=governed_route,
         )
     except ModelProviderError:
         # 不能静默伪造云模型回答；上层会把该失败写为可观测终态。
@@ -655,7 +844,7 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
             "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
             "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
         })
-    return AgentExecution(route, plan, context, answer, decision, usage, mode, generate_memory_candidates(context, content), attempts, policy.as_dict(), graph.as_dict(), generate_tool_proposals(command, route))
+    return AgentExecution(route, plan, context, answer, decision, usage, mode, generate_memory_candidates(context, content), attempts, policy.as_dict(), graph.as_dict(), proposals)
 
 
 def _model_timeout_seconds(scene: str, default: float) -> float:

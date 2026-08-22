@@ -5,11 +5,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
+import com.foodmate.application.runtime.service.SqlQueryGuard;
+import com.foodmate.application.runtime.service.SqlQueryPlanValidator;
+import com.foodmate.application.runtime.service.SqlSchemaCatalogService;
 import com.foodmate.application.runtime.service.ToolGatewayService;
+import com.foodmate.application.runtime.service.ToolPolicy;
+import com.foodmate.application.runtime.service.ToolRegistryService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,17 +28,24 @@ import org.springframework.stereotype.Service;
 public class ToolGatewayServiceImpl implements ToolGatewayService {
     private static final int MAX_ID_LENGTH = 128;
     private static final int MAX_SQL_LENGTH = 8_192;
-    private static final Pattern READ_ONLY = Pattern.compile("(?is)^\\s*select\\b.*");
-    private static final Pattern FORBIDDEN =
-            Pattern.compile(
-                    "(?is)(;|\\binsert\\b|\\bupdate\\b|\\bdelete\\b|\\bdrop\\b|\\balter\\b|\\btruncate\\b|\\bgrant\\b|\\brevoke\\b)");
+    private static final Pattern RELATIVE_DAYS = Pattern.compile("(?:最近|过去|近)\\s*(\\d{1,3})\\s*天");
     private final ToolGatewayPort store;
     private final IdGenerator ids;
     private final ApprovalService approvals;
     private final ObjectMapper mapper;
+    private final ToolRegistryService registry;
+    private final SqlQueryGuard sqlGuard;
+    private final SqlSchemaCatalogService catalogService;
 
     public ToolGatewayServiceImpl(ToolGatewayPort store, IdGenerator ids) {
-        this(store, ids, (ApprovalService) null, new ObjectMapper().findAndRegisterModules());
+        this(
+                store,
+                ids,
+                (ApprovalService) null,
+                new ObjectMapper().findAndRegisterModules(),
+                null,
+                null,
+                null);
     }
 
     @Autowired
@@ -38,8 +53,11 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             ToolGatewayPort store,
             IdGenerator ids,
             ObjectProvider<ApprovalService> approvals,
-            ObjectMapper mapper) {
-        this(store, ids, approvals.getIfAvailable(), mapper);
+            ObjectMapper mapper,
+            ToolRegistryService registry,
+            SqlQueryGuard sqlGuard,
+            SqlSchemaCatalogService catalogService) {
+        this(store, ids, approvals.getIfAvailable(), mapper, registry, sqlGuard, catalogService);
     }
 
     public ToolGatewayServiceImpl(
@@ -47,10 +65,33 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             IdGenerator ids,
             ApprovalService approvals,
             ObjectMapper mapper) {
+        this(store, ids, approvals, mapper, null, null, null);
+    }
+
+    public ToolGatewayServiceImpl(
+            ToolGatewayPort store,
+            IdGenerator ids,
+            ApprovalService approvals,
+            ObjectMapper mapper,
+            ToolRegistryService registry) {
+        this(store, ids, approvals, mapper, registry, null, null);
+    }
+
+    public ToolGatewayServiceImpl(
+            ToolGatewayPort store,
+            IdGenerator ids,
+            ApprovalService approvals,
+            ObjectMapper mapper,
+            ToolRegistryService registry,
+            SqlQueryGuard sqlGuard,
+            SqlSchemaCatalogService catalogService) {
         this.store = store;
         this.ids = ids;
         this.approvals = approvals;
         this.mapper = mapper.copy().findAndRegisterModules();
+        this.registry = registry;
+        this.sqlGuard = sqlGuard;
+        this.catalogService = catalogService;
     }
 
     @Override
@@ -70,22 +111,76 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 || runId.length() > MAX_ID_LENGTH
                 || invocationId.length() > MAX_ID_LENGTH)
             return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
-        if ("food_log_writer".equals(proposal.toolName()) && !"tool".equals(type))
-            return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
-        if ("tool".equals(type) && !"food_log_writer".equals(proposal.toolName()))
-            return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
-        if ("sql_read".equals(type)
-                && proposal.toolName() != null
-                && !"database_query".equals(proposal.toolName()))
-            return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+        if (registry != null) {
+            ToolRegistryService.ToolView tool;
+            String toolName =
+                    "sql_read".equals(type) ? "database_query" : text(proposal.toolName());
+            try {
+                // schema_version is the wire protocol version; registry versioning is independent.
+                tool = registry.resolve(toolName, null);
+            } catch (BusinessException exception) {
+                return reject(proposalId, exception.errorCode().code());
+            }
+            if ("sql_read".equals(type) && !"database_query".equals(tool.name()))
+                return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+            if ("tool".equals(type)) {
+                String schemaError = ToolPolicy.validateInput(tool, proposal.input());
+                if (schemaError != null) return reject(proposalId, schemaError);
+                if (ToolPolicy.requiresConfirmation(tool)
+                        && (text(proposal.confirmationRef()) == null
+                                || payload == null
+                                || text(payload.idempotencyKey()) == null))
+                    return result(
+                            proposalId,
+                            runId,
+                            invocationId,
+                            "confirmation_required",
+                            "TOOL_CONFIRMATION_REQUIRED",
+                            null);
+            }
+            if ("tool".equals(type)
+                    && !"database_query".equals(tool.name())
+                    && !"time_parser".equals(tool.name())
+                    && !"food_log_writer".equals(tool.name())
+                    && !"meal_plan.save_plan".equals(tool.name()))
+                return reject(proposalId, "TOOL_EXECUTOR_UNAVAILABLE");
+        }
+        if (registry == null) {
+            if ("food_log_writer".equals(proposal.toolName()) && !"tool".equals(type))
+                return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
+            if ("tool".equals(type)
+                    && !"database_query".equals(proposal.toolName())
+                    && !"time_parser".equals(proposal.toolName())
+                    && !"food_log_writer".equals(proposal.toolName()))
+                return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+            if ("sql_read".equals(type)
+                    && proposal.toolName() != null
+                    && !"database_query".equals(proposal.toolName()))
+                return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
+        }
         if ("food_log_writer".equals(proposal.toolName()))
-            return executeFoodLog(proposal, proposalId, runId, invocationId);
+            return executeApprovalWrite(
+                    proposal, proposalId, runId, invocationId, "food_log_writer");
+        if ("meal_plan.save_plan".equals(proposal.toolName()))
+            return executeApprovalWrite(
+                    proposal, proposalId, runId, invocationId, "meal_plan.save_plan");
+        if ("tool".equals(type) && "time_parser".equals(proposal.toolName()))
+            return executeTimeParser(proposalId, runId, invocationId, proposal.input());
+        if ("tool".equals(type) && "database_query".equals(proposal.toolName())) {
+            String planError = SqlQueryPlanValidator.validate(proposal.input(), statement);
+            if (planError != null) return reject(proposalId, planError);
+            return executeValidated(proposalId, runId, statement, invocationId);
+        }
         if (!"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
         return executeValidated(proposalId, runId, statement, invocationId);
     }
 
-    private ProposalResult executeFoodLog(
-            ProposalCommand proposal, String proposalId, String runId, String invocationId) {
+    private ProposalResult executeApprovalWrite(
+            ProposalCommand proposal,
+            String proposalId,
+            String runId,
+            String invocationId,
+            String toolName) {
         if (approvals == null || proposal.input() == null)
             return reject(proposalId, "TOOL_NOT_CONFIGURED");
         String confirmationRef = text(proposal.confirmationRef());
@@ -126,16 +221,19 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                         execution.status(),
                         "TOOL_EXECUTION_FAILED",
                         null);
-            long foodLogId = execution.resourceId();
+            long resourceId = execution.resourceId();
             ObjectNode row = mapper.createObjectNode();
-            row.put("food_log_id", Long.toString(foodLogId));
+            row.put(
+                    "meal_plan.save_plan".equals(toolName) ? "meal_plan_id" : "food_log_id",
+                    Long.toString(resourceId));
             row.put("status", "saved");
             List<JsonNode> rows = List.of(row);
+            long sqlAuditId = ids.nextId();
             store.audit(
                     new ToolGatewayPort.Audit(
-                            ids.nextId(),
+                            sqlAuditId,
                             numericRunId,
-                            "food_log_writer",
+                            toolName,
                             "executed",
                             1,
                             null,
@@ -189,13 +287,96 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 proposalId, runId, status, errorCode, rows == null ? List.of() : rows);
     }
 
+    private ProposalResult executeTimeParser(
+            String proposalId, String runId, String invocationId, JsonNode input) {
+        String question = input == null ? null : text(input.path("question").asText(null));
+        String timezone = input == null ? null : text(input.path("timezone").asText(null));
+        if (question == null || question.length() > 2_000)
+            return toolResult(
+                    proposalId, runId, "failed", "TIME_RANGE_INPUT_INVALID", List.of(), null);
+        if (timezone == null) timezone = "Asia/Shanghai";
+        long numericRunId;
+        try {
+            numericRunId = Long.parseLong(runId);
+        } catch (NumberFormatException exception) {
+            return reject(proposalId, "RUN_ID_INVALID");
+        }
+        if (!store.runExists(numericRunId)) return reject(proposalId, "RUN_NOT_FOUND");
+        ZonedDateTime now;
+        try {
+            now = ZonedDateTime.now(ZoneId.of(timezone));
+        } catch (RuntimeException exception) {
+            return toolResult(proposalId, runId, "failed", "TIMEZONE_INVALID", List.of(), null);
+        }
+        ZonedDateTime from;
+        ZonedDateTime to;
+        Matcher matcher = RELATIVE_DAYS.matcher(question);
+        if (matcher.find()) {
+            int days = Integer.parseInt(matcher.group(1));
+            if (days < 1 || days > 90)
+                return toolResult(
+                        proposalId, runId, "failed", "TIME_RANGE_OUT_OF_BOUNDS", List.of(), null);
+            from = now.minusDays(days);
+            to = now;
+        } else if (question.contains("最近一周")
+                || question.contains("过去一周")
+                || question.contains("近一周")) {
+            from = now.minusDays(7);
+            to = now;
+        } else if (question.contains("昨天")) {
+            from = now.toLocalDate().minusDays(1).atStartOfDay(now.getZone());
+            to = from.plusDays(1);
+        } else if (question.contains("今天")) {
+            from = now.toLocalDate().atStartOfDay(now.getZone());
+            to = from.plusDays(1);
+        } else {
+            return toolResult(
+                    proposalId, runId, "failed", "TIME_RANGE_UNSUPPORTED", List.of(), null);
+        }
+        ObjectNode row = mapper.createObjectNode();
+        row.put("from", from.toInstant().toString());
+        row.put("to", to.toInstant().toString());
+        row.put("timezone", timezone);
+        row.put("days", Math.max(1, java.time.Duration.between(from, to).toDays()));
+        long auditId = ids.nextId();
+        store.audit(
+                new ToolGatewayPort.Audit(
+                        auditId,
+                        numericRunId,
+                        "time_parser",
+                        "executed",
+                        1,
+                        null,
+                        0,
+                        "proposal:" + proposalId));
+        return toolResult(
+                proposalId, runId, "succeeded", null, List.of(row), Long.toString(auditId));
+    }
+
+    private ProposalResult toolResult(
+            String proposalId,
+            String runId,
+            String status,
+            String errorCode,
+            List<JsonNode> rows,
+            String auditId) {
+        return new ProposalResult(
+                proposalId,
+                runId,
+                status,
+                errorCode,
+                rows == null ? List.of() : rows,
+                auditId,
+                "time_parser");
+    }
+
     /** 执行最小 sql_read Proposal；无数据库时明确返回不可用，不回退到进程内伪造数据。 */
     private ProposalResult executeValidated(
             String proposalId, String runId, String statement, String invocationId) {
-        if (statement == null
-                || statement.length() > MAX_SQL_LENGTH
-                || !READ_ONLY.matcher(statement).matches()
-                || FORBIDDEN.matcher(statement).find())
+        if (statement == null || statement.length() > MAX_SQL_LENGTH)
+            return reject(proposalId, "SQL_PROPOSAL_NOT_READ_ONLY");
+        if (sqlGuard == null
+                && !statement.trim().toLowerCase(java.util.Locale.ROOT).startsWith("select"))
             return reject(proposalId, "SQL_PROPOSAL_NOT_READ_ONLY");
         long numericRunId;
         try {
@@ -203,29 +384,55 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         } catch (NumberFormatException exception) {
             return reject(proposalId, "RUN_ID_INVALID");
         }
-        if (!store.runExists(numericRunId)) {
+        ToolGatewayPort.RunContext context = null;
+        SqlQueryGuard.GuardedQuery guarded = null;
+        if (sqlGuard != null && catalogService != null) {
+            context = store.runContext(numericRunId);
+            if (context == null) return reject(proposalId, "RUN_NOT_FOUND");
+            try {
+                guarded =
+                        sqlGuard.guard(
+                                statement,
+                                catalogService.current(context.datasourceId()),
+                                context.userId());
+            } catch (BusinessException exception) {
+                return reject(proposalId, exception.errorCode().code());
+            }
+        } else if (!store.runExists(numericRunId)) {
             return reject(proposalId, "RUN_NOT_FOUND");
         }
         long started = System.nanoTime();
+        long sqlAuditId = ids.nextId();
         List<JsonNode> rows;
         try {
-            rows = store.executeRead(statement);
+            rows =
+                    guarded == null
+                            ? store.executeRead(statement)
+                            : store.executeRead(
+                                    guarded.statement(), guarded.parameters(), guarded.timeoutMs());
             if (rows.size() > 500) rows = rows.subList(0, 500);
             store.audit(
                     new ToolGatewayPort.Audit(
-                            ids.nextId(),
+                            sqlAuditId,
                             numericRunId,
-                            statement,
+                            guarded == null ? statement : guarded.statement(),
                             "executed",
                             rows.size(),
                             null,
                             (System.nanoTime() - started) / 1_000_000,
                             "proposal:" + proposalId));
-            return new ProposalResult(proposalId, runId, "succeeded", null, rows);
+            return new ProposalResult(
+                    proposalId,
+                    runId,
+                    "succeeded",
+                    null,
+                    rows,
+                    Long.toString(sqlAuditId),
+                    "database_query");
         } catch (RuntimeException error) {
             store.audit(
                     new ToolGatewayPort.Audit(
-                            ids.nextId(),
+                            sqlAuditId,
                             numericRunId,
                             statement,
                             "rejected",
@@ -234,7 +441,13 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                             (System.nanoTime() - started) / 1_000_000,
                             "proposal:" + proposalId));
             return new ProposalResult(
-                    proposalId, runId, "failed", "SQL_EXECUTION_FAILED", List.of());
+                    proposalId,
+                    runId,
+                    "failed",
+                    "SQL_EXECUTION_FAILED",
+                    List.of(),
+                    Long.toString(sqlAuditId),
+                    "database_query");
         }
     }
 

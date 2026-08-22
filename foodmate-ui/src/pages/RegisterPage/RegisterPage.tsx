@@ -54,47 +54,49 @@ export function RegisterPage() {
       <AuthCard className={styles.registerCard}>
         <AuthBrand title="创建账号" subtitle="开始你的营养管理之旅" />
         <form className={styles.authForm} onSubmit={submit}>
-          <AuthField
-            label="用户名"
-            name="username"
-            autoComplete="username"
-            placeholder="麦克斯"
-            leadingIcon="user"
-            value={values.username}
-            onChange={update('username')}
-          />
-          <AuthField
-            label="邮箱地址"
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="max@foodmate.com"
-            leadingIcon="mail"
-            value={values.email}
-            onChange={update('email')}
-          />
-          <PasswordField
-            label="密码"
-            name="password"
-            autoComplete="new-password"
-            placeholder="Foodmate123"
-            value={values.password}
-            show={showPassword}
-            onToggle={() => setShowPassword((current) => !current)}
-            onChange={update('password')}
-          />
-          <PasswordField
-            label="确认密码"
-            name="confirmPassword"
-            autoComplete="new-password"
-            placeholder="Foodmate123"
-            value={values.confirmPassword}
-            show={showConfirmPassword}
-            onToggle={() => setShowConfirmPassword((current) => !current)}
-            onChange={update('confirmPassword')}
-          />
+          <div className={styles.registerFields} data-node-id="680:227">
+            <AuthField
+              label="用户名"
+              name="username"
+              autoComplete="username"
+              placeholder="麦克斯"
+              leadingIcon="user"
+              value={values.username}
+              onChange={update('username')}
+            />
+            <AuthField
+              label="邮箱地址"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="max@foodmate.com"
+              leadingIcon="mail"
+              value={values.email}
+              onChange={update('email')}
+            />
+            <PasswordField
+              label="密码"
+              name="password"
+              autoComplete="new-password"
+              placeholder="Foodmate123"
+              value={values.password}
+              show={showPassword}
+              onToggle={() => setShowPassword((current) => !current)}
+              onChange={update('password')}
+            />
+            <PasswordField
+              label="确认密码"
+              name="confirmPassword"
+              autoComplete="new-password"
+              placeholder="Foodmate123"
+              value={values.confirmPassword}
+              show={showConfirmPassword}
+              onToggle={() => setShowConfirmPassword((current) => !current)}
+              onChange={update('confirmPassword')}
+            />
+          </div>
 
-          <div className={styles.passwordRules} aria-label="密码要求">
+          <div className={styles.passwordRules} aria-label="密码要求" data-node-id="680:250">
             {rules.map((rule) => {
               const valid = rule.matches(values.password);
               return (
@@ -106,13 +108,20 @@ export function RegisterPage() {
             })}
           </div>
 
-          <AuthSubmit disabled={submitting}>{submitting ? '注册中...' : '注册'}</AuthSubmit>
-          <AuthDivider />
-          <div className={styles.authLinkRow}>
-            <span>已有账号？</span>
-            <Button className={styles.authSecondary} variant="outline" type="button" onClick={() => navigate('/login')}>
-              登录
-            </Button>
+          <div className={styles.registerActions} data-node-id="680:263">
+            <AuthSubmit disabled={submitting}>{submitting ? '注册中...' : '注册'}</AuthSubmit>
+            <AuthDivider />
+            <div className={styles.authLinkRow}>
+              <span>已有账号？</span>
+              <Button
+                className={styles.authSecondary}
+                variant="outline"
+                type="button"
+                onClick={() => navigate('/login')}
+              >
+                登录
+              </Button>
+            </div>
           </div>
         </form>
       </AuthCard>

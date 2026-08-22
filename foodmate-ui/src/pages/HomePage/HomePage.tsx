@@ -18,6 +18,7 @@ import { Input } from '../../components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { getAuthUser } from '../../services/authService';
 import { getHomeSessions, getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
+import type { SessionSummary } from '../../types/session';
 import styles from './HomePage.module.css';
 
 const metricCards = [
@@ -39,6 +40,18 @@ const pendingItems = [
 
 type HomeState = 'default' | 'loading' | 'empty' | 'error' | 'input-states';
 
+const figmaSidebarSessions: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
+];
+
 function getHomeState(value: string | null): HomeState {
   return value === 'loading' || value === 'empty' || value === 'error' || value === 'input-states' ? value : 'default';
 }
@@ -52,8 +65,18 @@ function HomeStatePanel({
 }) {
   if (state === 'loading') {
     return (
-      <section className={styles.homeStatePanel} aria-busy="true" aria-label="工作台正在加载">
-        <h2>工作台正在加载</h2>
+      <section
+        className={`${styles.homeStatePanel} ${styles.homeStateLoading}`}
+        aria-busy="true"
+        aria-label="工作台正在加载"
+      >
+        <div className={styles.loadingHeading}>
+          <div>
+            <h2>工作台正在加载</h2>
+            <p>正在整理你的营养摘要和任务数据</p>
+          </div>
+          <span>加载中</span>
+        </div>
         <div className={styles.homeStateSkeletonChips}>
           {[1, 2, 3, 4, 5].map((item) => (
             <span key={item} />
@@ -79,14 +102,18 @@ function HomeStatePanel({
       className={`${styles.homeStatePanel} ${isError ? styles.homeStateError : styles.homeStateEmpty}`}
       role={isError ? 'alert' : undefined}
     >
-      <span className={styles.homeStateIcon}>
-        <Icon aria-hidden="true" />
-      </span>
-      <h2>{isError ? '数据加载失败' : '还没有任何数据'}</h2>
-      <p>{isError ? '无法获取您的营养摘要和任务数据' : '开始你的第一次对话来记录饮食吧'}</p>
-      <Button type="button" onClick={onRetry}>
-        {isError ? '重新加载' : '开始使用'}
-      </Button>
+      <div className={styles.homeStateCenteredContent}>
+        <span className={styles.homeStateIcon}>
+          <Icon aria-hidden="true" />
+        </span>
+        <div>
+          <h2>{isError ? '数据加载失败' : '还没有任何数据'}</h2>
+          <p>{isError ? '无法获取您的营养摘要和任务数据' : '开始你的第一次对话来记录饮食吧'}</p>
+        </div>
+        <Button className={styles.homeStateAction} type="button" onClick={onRetry}>
+          {isError ? '重新加载' : '开始使用'}
+        </Button>
+      </div>
     </section>
   );
 }
@@ -152,11 +179,8 @@ export function HomePage() {
         isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
       }
       topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
-      pageOverlay={
-        homeState === 'loading' || homeState === 'empty' || homeState === 'error' ? (
-          <HomeStatePanel state={homeState} onRetry={() => navigate('/')} />
-        ) : null
-      }
+      showKnowledgeTopNav={!isFigmaFixture}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.intro}>
@@ -216,100 +240,112 @@ export function HomePage() {
           </span>
         ) : null}
 
-        <section className={styles.quickActions} aria-label="快速操作">
-          {quickActions.map(({ icon: Icon, label, prompt: actionPrompt, tone }) => (
-            <Button
-              className={`${styles.quickButton} ${styles[`quick${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
-              key={label}
-              variant="outline"
-              onClick={() => setPrompt(actionPrompt)}
-            >
-              <Icon aria-hidden="true" />
-              <span>{label}</span>
-            </Button>
-          ))}
-        </section>
-
-        <section className={styles.metrics} aria-label="今日营养指标">
-          {metricCards.map((metric) => (
-            <article className={styles.metricCard} key={metric.label}>
-              <div>
-                <span className={styles.metricLabel}>{metric.label}</span>
-                <strong>
-                  {metric.value}
-                  <small>{metric.unit}</small>
-                </strong>
-              </div>
-              <span
-                className={`${styles.progress} ${styles[`progress${metric.tone[0].toUpperCase()}${metric.tone.slice(1)}`]}`}
-              >
-                <span>{metric.progress}%</span>
-              </span>
-            </article>
-          ))}
-        </section>
-
-        <section className={styles.dashboardGrid}>
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>活跃会话</h2>
-            </div>
-            <div className={styles.sessionCards}>
-              {sessions.map((session, index) => (
-                <button
-                  className={styles.sessionCard}
-                  key={session.id}
-                  type="button"
-                  onClick={() => navigate(`/chat/${session.id}`)}
+        {homeState === 'loading' || homeState === 'empty' || homeState === 'error' ? (
+          <HomeStatePanel state={homeState} onRetry={() => navigate('/')} />
+        ) : (
+          <>
+            <section className={styles.quickActions} aria-label="快速操作">
+              {quickActions.map(({ icon: Icon, label, prompt: actionPrompt, tone }) => (
+                <Button
+                  className={`${styles.quickButton} ${styles[`quick${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
+                  key={label}
+                  variant="outline"
+                  onClick={() => setPrompt(actionPrompt)}
                 >
-                  <span className={`${styles.sessionDot} ${styles[`dot${index}`]}`} aria-hidden="true" />
-                  <span>
-                    <strong>{session.title}</strong>
-                    <small>{session.subtitle}</small>
-                  </span>
-                  <ArrowRight aria-hidden="true" />
-                </button>
+                  <Icon aria-hidden="true" />
+                  <span>{label}</span>
+                </Button>
               ))}
-            </div>
-          </article>
+            </section>
 
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>待确认队列</h2>
-            </div>
-            <div className={styles.pendingCards}>
-              {pendingItems.map((item) => {
-                const confirmed = confirmedItems.includes(item.id);
-                return (
-                  <div className={`${styles.pendingCard} ${confirmed ? styles.pendingConfirmed : ''}`} key={item.id}>
-                    <span>
-                      <strong>{item.title}</strong>
-                      <small>{confirmed ? '已提交确认' : item.detail}</small>
-                    </span>
-                    <Button
-                      className={styles.confirmButton}
-                      size="sm"
-                      onClick={() => confirmItem(item.id, item.prompt)}
-                    >
-                      {confirmed ? <Check aria-hidden="true" /> : null}
-                      {confirmed ? '已确认' : '确认'}
-                    </Button>
+            <section className={styles.metrics} aria-label="今日营养指标">
+              {metricCards.map((metric) => (
+                <article className={styles.metricCard} key={metric.label}>
+                  <div>
+                    <span className={styles.metricLabel}>{metric.label}</span>
+                    <strong>
+                      {metric.value}
+                      <small>{metric.unit}</small>
+                    </strong>
                   </div>
-                );
-              })}
-            </div>
-          </article>
-        </section>
+                  <span
+                    className={`${styles.progress} ${styles[`progress${metric.tone[0].toUpperCase()}${metric.tone.slice(1)}`]}`}
+                  >
+                    <span>{metric.progress}%</span>
+                  </span>
+                </article>
+              ))}
+            </section>
 
-        <section className={styles.statusPanel} aria-labelledby="status-title">
-          <h2 id="status-title">任务入口与状态</h2>
-          <p>输入器：空输入时发送禁用 · 有内容时启用 · Agent 运行中切换为停止 · 附件解析中显示进度</p>
-          <p>高频任务点击后带入输入器；继续任务打开原会话；查看全部进入会话列表。</p>
-          <p className={styles.statusGreen}>
-            Tools / Agents 面板可展开查看健康状态；待处理事项提醒写入确认、预算通知、记忆确认和失败任务。
-          </p>
-          <p className={styles.statusMuted}>摘要局部失败支持重试，不替换已有成功数据；空态不展示虚构营养或任务数据。</p>
-        </section>
+            <section className={styles.dashboardGrid}>
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <h2>活跃会话</h2>
+                </div>
+                <div className={styles.sessionCards}>
+                  {sessions.map((session, index) => (
+                    <Button
+                      className={styles.sessionCard}
+                      variant="ghost"
+                      key={session.id}
+                      type="button"
+                      onClick={() => navigate(`/chat/${session.id}`)}
+                    >
+                      <span className={`${styles.sessionDot} ${styles[`dot${index}`]}`} aria-hidden="true" />
+                      <span>
+                        <strong>{session.title}</strong>
+                        <small>{session.subtitle}</small>
+                      </span>
+                      <ArrowRight aria-hidden="true" />
+                    </Button>
+                  ))}
+                </div>
+              </article>
+
+              <article className={styles.panel}>
+                <div className={styles.panelHeader}>
+                  <h2>待确认队列</h2>
+                </div>
+                <div className={styles.pendingCards}>
+                  {pendingItems.map((item) => {
+                    const confirmed = confirmedItems.includes(item.id);
+                    return (
+                      <div
+                        className={`${styles.pendingCard} ${confirmed ? styles.pendingConfirmed : ''}`}
+                        key={item.id}
+                      >
+                        <span>
+                          <strong>{item.title}</strong>
+                          <small>{confirmed ? '已提交确认' : item.detail}</small>
+                        </span>
+                        <Button
+                          className={styles.confirmButton}
+                          size="sm"
+                          onClick={() => confirmItem(item.id, item.prompt)}
+                        >
+                          {confirmed ? <Check aria-hidden="true" /> : null}
+                          {confirmed ? '已确认' : '确认'}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+            </section>
+
+            <section className={styles.statusPanel} aria-labelledby="status-title">
+              <h2 id="status-title">任务入口与状态</h2>
+              <p>输入器：空输入时发送禁用 · 有内容时启用 · Agent 运行中切换为停止 · 附件解析中显示进度</p>
+              <p>高频任务点击后带入输入器；继续任务打开原会话；查看全部进入会话列表。</p>
+              <p className={styles.statusGreen}>
+                Tools / Agents 面板可展开查看健康状态；待处理事项提醒写入确认、预算通知、记忆确认和失败任务。
+              </p>
+              <p className={styles.statusMuted}>
+                摘要局部失败支持重试，不替换已有成功数据；空态不展示虚构营养或任务数据。
+              </p>
+            </section>
+          </>
+        )}
       </div>
     </WorkspaceLayout>
   );

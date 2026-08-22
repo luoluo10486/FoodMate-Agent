@@ -1,4 +1,3 @@
-import { AlertTriangle, Clock3, Info, Utensils } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { AuthBrand, AuthShell } from '../Auth/AuthVisual';
@@ -24,23 +23,32 @@ const tokenStates: Record<TokenState, { title: string; description: string; acti
   },
 };
 
+const tokenIcons: Record<TokenState, string> = {
+  invalid: '/assets/figma/auth/token-alert-triangle.svg',
+  expired: '/assets/figma/auth/token-clock.svg',
+  used: '/assets/figma/auth/token-info.svg',
+};
+
 export function TokenStatusPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const requested = params.get('state') as TokenState | null;
   const state: TokenState = requested && requested in tokenStates ? requested : 'invalid';
   const copy = tokenStates[state];
-  const Icon = state === 'invalid' ? AlertTriangle : state === 'expired' ? Clock3 : Info;
 
   return (
     <AuthShell variant="token">
       <section className={styles.tokenCard} aria-labelledby="token-title">
         <AuthBrand title="" subtitle="" mark="utensils" />
-        <div className={`${styles.tokenIcon} ${styles[`tokenIcon-${state}`]}`} aria-hidden="true">
-          <Icon />
+        <div className={styles.tokenContent}>
+          <div className={`${styles.tokenIcon} ${styles[`tokenIcon-${state}`]}`} aria-hidden="true">
+            <img src={tokenIcons[state]} alt="" />
+          </div>
+          <div className={styles.tokenMessage}>
+            <h1 id="token-title">{copy.title}</h1>
+            <p>{copy.description}</p>
+          </div>
         </div>
-        <h1 id="token-title">{copy.title}</h1>
-        <p>{copy.description}</p>
         <div className={styles.tokenActions}>
           <Button className={styles.authPrimary} type="button" onClick={() => navigate('/forgot-password')}>
             {copy.action}
@@ -50,11 +58,12 @@ export function TokenStatusPage() {
               联系客服
             </Button>
           ) : null}
-          <Button className={styles.authBackLink} variant="ghost" type="button" onClick={() => navigate('/login')}>
-            返回登录
-          </Button>
+          <div className={styles.tokenBackRow}>
+            <Button className={styles.authBackLink} variant="ghost" type="button" onClick={() => navigate('/login')}>
+              返回登录
+            </Button>
+          </div>
         </div>
-        <Utensils className={styles.tokenDecorIcon} aria-hidden="true" />
       </section>
     </AuthShell>
   );

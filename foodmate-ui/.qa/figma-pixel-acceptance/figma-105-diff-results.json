@@ -172,33 +172,33 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 1295889,
-      "differentRatio": 0.9999143518518518,
-      "meanAbsoluteError": 1.2371898148148148,
-      "rmse": 9.306803979274624,
-      "maxChannelDelta": 217
+      "differentPixels": 1295984,
+      "differentRatio": 0.9999876543209877,
+      "meanAbsoluteError": 14.146727044753087,
+      "rmse": 25.361588352726415,
+      "maxChannelDelta": 214
     },
     "token-expired": {
       "status": "COMPARED",
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 1295890,
-      "differentRatio": 0.9999151234567901,
-      "meanAbsoluteError": 1.2890559413580247,
-      "rmse": 9.54431563989533,
-      "maxChannelDelta": 217
+      "differentPixels": 1295984,
+      "differentRatio": 0.9999876543209877,
+      "meanAbsoluteError": 14.187043981481482,
+      "rmse": 25.479450317914758,
+      "maxChannelDelta": 216
     },
     "token-used": {
       "status": "COMPARED",
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 1295780,
-      "differentRatio": 0.9998302469135802,
-      "meanAbsoluteError": 1.5177762345679013,
-      "rmse": 10.649093597318245,
-      "maxChannelDelta": 220
+      "differentPixels": 1295924,
+      "differentRatio": 0.9999413580246913,
+      "meanAbsoluteError": 14.271392939814815,
+      "rmse": 25.743970868390345,
+      "maxChannelDelta": 213
     },
     "agent-empty": {
       "status": "COMPARED",
@@ -887,65 +887,65 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1182100,
-      "differentRatio": 0.8016628689236112,
-      "meanAbsoluteError": 29.25115712483724,
-      "rmse": 76.78263646400148,
-      "maxChannelDelta": 255
+      "differentPixels": 433025,
+      "differentRatio": 0.2936638726128472,
+      "meanAbsoluteError": 3.591178385416667,
+      "rmse": 17.88054529589821,
+      "maxChannelDelta": 230
     },
     "admin-tool-calls": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1146239,
-      "differentRatio": 0.7773430718315972,
-      "meanAbsoluteError": 41.178246222602,
-      "rmse": 92.96440788927096,
-      "maxChannelDelta": 255
+      "differentPixels": 360416,
+      "differentRatio": 0.24442274305555556,
+      "meanAbsoluteError": 3.0583816528320313,
+      "rmse": 17.04884253706303,
+      "maxChannelDelta": 234
     },
     "admin-sql-audit": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1146239,
-      "differentRatio": 0.7773430718315972,
-      "meanAbsoluteError": 41.178246222602,
-      "rmse": 92.96440788927096,
-      "maxChannelDelta": 255
+      "differentPixels": 363060,
+      "differentRatio": 0.2462158203125,
+      "meanAbsoluteError": 3.1204818725585937,
+      "rmse": 17.261016232427895,
+      "maxChannelDelta": 234
     },
     "admin-trace": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1182100,
-      "differentRatio": 0.8016628689236112,
-      "meanAbsoluteError": 29.25115712483724,
-      "rmse": 76.78263646400148,
-      "maxChannelDelta": 255
+      "differentPixels": 395955,
+      "differentRatio": 0.268524169921875,
+      "meanAbsoluteError": 3.375845675998264,
+      "rmse": 17.29851896381512,
+      "maxChannelDelta": 230
     },
     "admin-user-detail": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 524772,
-      "differentRatio": 0.3558837890625,
-      "meanAbsoluteError": 3.5855372111002604,
-      "rmse": 18.56367305726741,
-      "maxChannelDelta": 237
+      "differentPixels": 330139,
+      "differentRatio": 0.22388983832465278,
+      "meanAbsoluteError": 3.266695488823785,
+      "rmse": 17.450744436198008,
+      "maxChannelDelta": 230
     },
     "agent-chat-session-actions": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 504525,
-      "differentRatio": 0.3421529134114583,
-      "meanAbsoluteError": 4.201541137695313,
-      "rmse": 20.42839163287081,
+      "differentPixels": 591460,
+      "differentRatio": 0.4011094835069444,
+      "meanAbsoluteError": 4.910896301269531,
+      "rmse": 19.751332457242835,
       "maxChannelDelta": 255
     },
     "agent-chat-renamed": {
@@ -953,10 +953,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 960064,
-      "differentRatio": 0.6510850694444444,
-      "meanAbsoluteError": 3.919110107421875,
-      "rmse": 17.695493449375288,
+      "differentPixels": 549103,
+      "differentRatio": 0.3723843044704861,
+      "meanAbsoluteError": 3.765952724880642,
+      "rmse": 16.7789168324172,
       "maxChannelDelta": 255
     },
     "agent-chat-archived": {
@@ -964,10 +964,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 955935,
-      "differentRatio": 0.648284912109375,
-      "meanAbsoluteError": 3.9480360243055554,
-      "rmse": 17.846185653145504,
+      "differentPixels": 561992,
+      "differentRatio": 0.3811252170138889,
+      "meanAbsoluteError": 3.8829532199435763,
+      "rmse": 17.122038187408666,
       "maxChannelDelta": 255
     },
     "agent-chat-trash": {
@@ -975,10 +975,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 955936,
-      "differentRatio": 0.6482855902777778,
-      "meanAbsoluteError": 4.078544616699219,
-      "rmse": 18.5055970989733,
+      "differentPixels": 561990,
+      "differentRatio": 0.3811238606770833,
+      "meanAbsoluteError": 3.9091139051649306,
+      "rmse": 17.392570704366282,
       "maxChannelDelta": 255
     },
     "profile-basic": {

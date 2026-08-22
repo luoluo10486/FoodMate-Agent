@@ -59,6 +59,42 @@ describe('authentication pages', () => {
     expect(screen.getByText('包含数字')).toHaveClass(/passwordRuleValid/);
   });
 
+  it('uses the shared shadcn icon button for password visibility', async () => {
+    const user = userEvent.setup();
+    renderAuth('/register');
+
+    const password = screen.getByLabelText('密码');
+    const toggle = screen.getByRole('button', { name: /^显示密码$/ });
+    expect(toggle).toBeInTheDocument();
+    expect(password).toHaveAttribute('type', 'password');
+
+    await user.click(toggle);
+    expect(password).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: /^隐藏密码$/ })).toBeInTheDocument();
+  });
+
+  it('uses the shared shadcn icon button for login password visibility', async () => {
+    const user = userEvent.setup();
+    renderAuth('/login');
+
+    const password = screen.getByLabelText('密码');
+    const toggle = screen.getByRole('button', { name: /^显示密码$/ });
+    expect(toggle).toHaveClass('inline-flex');
+    expect(password).toHaveAttribute('type', 'password');
+
+    await user.click(toggle);
+    expect(password).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('隐藏密码')).toHaveClass('inline-flex');
+  });
+
+  it('keeps account support and service recovery actions available as shadcn buttons', () => {
+    renderAuth('/login?state=account-disabled');
+    expect(screen.getByRole('button', { name: '联系客服' })).toHaveClass('inline-flex');
+
+    renderAuth('/login?state=service-unavailable');
+    expect(screen.getByRole('button', { name: '刷新页面' })).toHaveClass('inline-flex');
+  });
+
   it('keeps the forgot-password success card visible beside the form', async () => {
     const user = userEvent.setup();
     renderAuth('/forgot-password');

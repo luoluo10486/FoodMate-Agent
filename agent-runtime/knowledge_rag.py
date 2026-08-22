@@ -31,6 +31,12 @@ class RagError(RuntimeError):
 
 PUBLIC_SCOPE = "public_published"
 _WORD = re.compile(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]+")
+_EMAIL = re.compile(r"(?i)(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z0-9.-])")
+_MOBILE = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
+_CHINA_ID = re.compile(
+    r"(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])"
+    r"(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)"
+)
 
 
 @dataclass(frozen=True)
@@ -131,6 +137,7 @@ class KnowledgeChunk:
     visibility: str = "published"
     indexed: bool = True
     deleted: bool = False
+    current_version: bool = True
 
 
 @dataclass(frozen=True)
@@ -180,6 +187,15 @@ class StubIndex:
         self._chunks: dict[str, tuple[str, KnowledgeChunk]] = {}
 
     def upsert(self, title: str, chunks: Iterable[KnowledgeChunk]) -> None:
+        chunks = list(chunks)
+        current_ids = {chunk.embedding_id for chunk in chunks}
+        for embedding_id, (_, existing) in list(self._chunks.items()):
+            if (
+                existing.document_id == (chunks[0].document_id if chunks else "")
+                and existing.version == (chunks[0].version if chunks else "")
+                and embedding_id not in current_ids
+            ):
+                del self._chunks[embedding_id]
         for chunk in chunks:
             self._chunks[chunk.embedding_id] = (title, chunk)
 
@@ -189,7 +205,7 @@ class StubIndex:
         terms = set(_tokens(query))
         scored = []
         for title, chunk in self._chunks.values():
-            if chunk.tenant_id != 0 or chunk.scope != PUBLIC_SCOPE or chunk.visibility != "published" or not chunk.indexed or chunk.deleted:
+            if chunk.tenant_id != 0 or chunk.scope != PUBLIC_SCOPE or chunk.visibility != "published" or not chunk.indexed or chunk.deleted or not chunk.current_version:
                 continue
             score = len(terms.intersection(_tokens(chunk.text)))
             if score:
@@ -216,18 +232,38 @@ class RedisStubIndex:
         self.prefix = prefix or os.getenv("FOODMATE_RAG_STUB_REDIS_PREFIX", "foodmate:rag:stub")
 
     def upsert(self, title: str, chunks: Iterable[KnowledgeChunk]) -> None:
+        chunks = list(chunks)
+        if not chunks:
+            return
+        current_ids = {chunk.embedding_id for chunk in chunks}
+        pipeline = self.client.pipeline()
+        for chunk_id, raw in self.client.hgetall(f"{self.prefix}:chunks").items():
+            value = json.loads(raw)
+            if (
+                str(value.get("document_id")) == str(chunks[0].document_id)
+                and str(value.get("version")) == str(chunks[0].version)
+                and chunk_id not in current_ids
+            ):
+                pipeline.hdel(f"{self.prefix}:chunks", chunk_id)
         for chunk in chunks:
-            payload = {"title": title, "document_id": chunk.document_id, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": "draft", "indexed": True, "deleted": False}
-            self.client.hset(f"{self.prefix}:chunks", chunk.embedding_id, json.dumps(payload, ensure_ascii=False))
+            payload = {"title": title, "document_id": chunk.document_id, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": "draft", "indexed": True, "deleted": False, "current_version": chunk.current_version}
+            pipeline.hset(f"{self.prefix}:chunks", chunk.embedding_id, json.dumps(payload, ensure_ascii=False))
+        pipeline.execute()
 
-    def update_visibility(self, document_id: str, visibility: str) -> None:
+    def update_visibility(self, document_id: str, visibility: str, current_version: bool = True, version: str | None = None) -> None:
+        if visibility not in {"published", "draft", "disabled", "deleted"}:
+            raise RagError("RAG_VISIBILITY_INVALID", "visibility is invalid")
         values = self.client.hgetall(f"{self.prefix}:chunks")
         pipeline = self.client.pipeline()
         for chunk_id, raw in values.items():
             value = json.loads(raw)
-            if str(value.get("document_id")) == str(document_id):
+            if (
+                str(value.get("document_id")) == str(document_id)
+                and (version is None or str(value.get("version")) == str(version))
+            ):
                 value["visibility"] = visibility
                 value["deleted"] = visibility == "deleted"
+                value["current_version"] = current_version
                 pipeline.hset(f"{self.prefix}:chunks", chunk_id, json.dumps(value, ensure_ascii=False))
         pipeline.execute()
 
@@ -238,7 +274,7 @@ class RedisStubIndex:
         ranked = []
         for chunk_id, raw in self.client.hgetall(f"{self.prefix}:chunks").items():
             value = json.loads(raw)
-            if value.get("tenant_id") != 0 or value.get("scope") != PUBLIC_SCOPE or value.get("visibility") != "published" or not value.get("indexed") or value.get("deleted"):
+            if value.get("tenant_id") != 0 or value.get("scope") != PUBLIC_SCOPE or value.get("visibility") != "published" or not value.get("indexed") or value.get("deleted") or not value.get("current_version", True):
                 continue
             score = len(terms.intersection(_tokens(value.get("text", ""))))
             if score: ranked.append((score, chunk_id, value))
@@ -305,7 +341,7 @@ def parse_document(filename: str, content: bytes) -> str:
         raise RagError("RAG_EMPTY_DOCUMENT", "document is empty")
     if suffix in {".md", ".txt"}:
         try:
-            return content.decode("utf-8").strip()
+            return _reject_personal_data(content.decode("utf-8").strip())
         except UnicodeDecodeError as error:
             raise RagError("RAG_TEXT_ENCODING_INVALID", "text document must be UTF-8") from error
     if suffix == ".pdf":
@@ -314,9 +350,15 @@ def parse_document(filename: str, content: bytes) -> str:
         try:
             from pypdf import PdfReader
             reader = PdfReader(io.BytesIO(content), strict=True)
-            return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+            if _pdf_has_unsafe_actions(reader):
+                raise RagError("RAG_PDF_UNSAFE", "PDF contains an executable or external action")
+            return _reject_personal_data(
+                "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+            )
         except ImportError as error:
             raise RagError("RAG_PDF_PARSER_UNAVAILABLE", "pypdf is not installed") from error
+        except RagError:
+            raise
         except Exception as error:
             raise RagError("RAG_PDF_PARSE_FAILED", "PDF could not be parsed safely") from error
     if suffix == ".docx":
@@ -325,15 +367,70 @@ def parse_document(filename: str, content: bytes) -> str:
         try:
             with zipfile.ZipFile(io.BytesIO(content)) as archive:
                 names = set(archive.namelist())
-                if "word/document.xml" not in names or any(name.endswith("vbaProject.bin") for name in names):
+                if (
+                    "word/document.xml" not in names
+                    or any(
+                        name.endswith("vbaProject.bin")
+                        or name.startswith(("word/embeddings/", "word/activeX/", "word/webExtensions/"))
+                        for name in names
+                    )
+                ):
                     raise RagError("RAG_DOCX_UNSAFE", "DOCX macro or document body is invalid")
+                for name in names:
+                    if name.endswith(".rels"):
+                        relationships = ElementTree.fromstring(archive.read(name))
+                        if any(
+                            relationship.attrib.get("TargetMode", "").lower() == "external"
+                            for relationship in relationships
+                        ):
+                            raise RagError("RAG_DOCX_EXTERNAL_LINK", "DOCX contains an external relationship")
                 root = ElementTree.fromstring(archive.read("word/document.xml"))
-                return "\n".join("".join(node.itertext()).strip() for node in root.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p") if "".join(node.itertext()).strip()).strip()
+                return _reject_personal_data(
+                    "\n".join(
+                        "".join(node.itertext()).strip()
+                        for node in root.findall(
+                            ".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p"
+                        )
+                        if "".join(node.itertext()).strip()
+                    ).strip()
+                )
         except RagError:
             raise
         except (OSError, zipfile.BadZipFile, ElementTree.ParseError) as error:
             raise RagError("RAG_DOCX_PARSE_FAILED", "DOCX could not be parsed safely") from error
     raise RagError("RAG_DOCUMENT_TYPE_UNSUPPORTED", "unsupported knowledge document type")
+
+
+def _reject_personal_data(text: str) -> str:
+    """Keep basic personal identifiers out of the public knowledge index."""
+    if _EMAIL.search(text) or _MOBILE.search(text) or _CHINA_ID.search(text):
+        raise RagError("RAG_PII_DETECTED", "document contains a personal identifier")
+    return text
+
+
+def _pdf_has_unsafe_actions(reader) -> bool:
+    """Inspect PDF objects without executing actions or resolving external URLs."""
+    unsafe_keys = {"/JS", "/JavaScript", "/OpenAction", "/AA", "/Launch", "/URI"}
+    seen: set[int] = set()
+
+    def walk(value) -> bool:
+        try:
+            value = value.get_object()
+        except AttributeError:
+            pass
+        marker = id(value)
+        if marker in seen:
+            return False
+        seen.add(marker)
+        if hasattr(value, "keys"):
+            for key in value.keys():
+                if str(key) in unsafe_keys or walk(value[key]):
+                    return True
+        elif isinstance(value, (list, tuple)):
+            return any(walk(item) for item in value)
+        return False
+
+    return walk(reader.trailer)
 
 
 class MilvusIndex:
@@ -383,22 +480,24 @@ class MilvusIndex:
         self._ensure_collection(len(vectors[0]))
         rows = []
         for chunk, vector in zip(chunks, vectors, strict=True):
-            rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted})
+            rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted, "current_version": chunk.current_version})
         try:
             self.client.upsert(collection_name=self.collection, data=rows)
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus upsert failed") from error
 
-    def update_visibility(self, document_id: str, visibility: str, deleted: bool) -> None:
+    def update_visibility(self, document_id: str, visibility: str, deleted: bool, current_version: bool = True, version: str | None = None) -> None:
         if visibility not in {"published", "draft", "disabled", "deleted"}:
             raise RagError("RAG_VISIBILITY_INVALID", "visibility is invalid")
         try:
             if not self.client.has_collection(self.collection):
                 return
-            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{document_id}"', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted"])
+            version_filter = "" if version is None else f' and version == "{_milvus_string(version)}"'
+            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{_milvus_string(document_id)}"{version_filter}', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted", "current_version"])
             for row in rows:
                 row["visibility"] = visibility
                 row["deleted"] = deleted
+                row["current_version"] = current_version
             if rows:
                 self.client.upsert(collection_name=self.collection, data=rows)
         except Exception as error:
@@ -414,9 +513,9 @@ class MilvusIndex:
                 collection_name=self.collection,
                 data=vectors,
                 anns_field="vector",
-                filter='tenant_id == 0 and scope == "public_published" and visibility == "published" and indexed == true and deleted == false',
+                filter='tenant_id == 0 and scope == "public_published" and visibility == "published" and indexed == true and deleted == false and current_version == true',
                 limit=12,
-                output_fields=["document_id", "title", "version", "section_path", "text"],
+                output_fields=["document_id", "title", "version", "section_path", "text", "current_version"],
             )[0]
         except Exception as error:
             raise RagError("RAG_MILVUS_SEARCH_FAILED", "Milvus search failed") from error
@@ -432,3 +531,8 @@ class MilvusIndex:
             if len(result) == 4:
                 break
         return result
+
+
+def _milvus_string(value: str) -> str:
+    """Escape string literals used in Milvus boolean expressions."""
+    return str(value).replace("\\", "\\\\").replace('"', '\\"')

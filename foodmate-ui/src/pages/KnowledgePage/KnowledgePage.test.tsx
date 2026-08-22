@@ -57,6 +57,14 @@ describe('KnowledgePage', () => {
     expect(screen.getByText('显示 24 条结果')).toBeInTheDocument();
   });
 
+  it('uses the Figma shell fixture for knowledge states', () => {
+    renderPage('/knowledge?state=empty');
+
+    expect(screen.getByText('Anddy')).toBeInTheDocument();
+    expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('没有找到相关内容');
+  });
+
   it('recovers from search and source availability errors', async () => {
     const user = userEvent.setup();
     const { unmount } = renderPage('/knowledge?state=search-failed');

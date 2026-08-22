@@ -713,26 +713,53 @@
   line-height: 16px;
 }
 
-.inlineConfirmation label {
+.inlineConfirmationOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.inlineConfirmationOption {
   display: flex;
   height: 16px;
   align-items: center;
   gap: 8px;
+}
+
+.inlineConfirmationOption + .inlineConfirmationOption {
+  margin-top: -4px;
+}
+
+.inlineConfirmationOption > [data-slot='radio-group-item'] {
+  display: grid;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--fm-border);
+  border-radius: 50%;
+  background: var(--fm-surface);
+  color: var(--fm-orange);
+  cursor: pointer;
+}
+
+.inlineConfirmationOption > [data-slot='radio-group-item'][data-state='checked'] {
+  border-color: var(--fm-orange);
+}
+
+.inlineConfirmationOption > [data-slot='radio-group-item'] svg {
+  width: 5px;
+  height: 5px;
+  color: var(--fm-orange);
+  fill: var(--fm-orange);
+}
+
+.inlineConfirmationOption > label {
+  min-width: 0;
   color: var(--fm-ink);
   font-size: 13px;
   line-height: 16px;
   cursor: pointer;
-}
-
-.inlineConfirmation label + label {
-  margin-top: -4px;
-}
-
-.inlineConfirmation input {
-  width: 12px;
-  height: 12px;
-  margin: 0;
-  accent-color: var(--fm-orange);
 }
 
 .inlineConfirmationActions {
@@ -1464,25 +1491,31 @@
   font-size: 12px;
 }
 
-.sessionActionsOverlay {
+.sessionActionsBackdrop {
   position: fixed;
   z-index: 20;
-  top: 90px;
-  left: 50%;
-  display: grid;
-  width: min(760px, calc(100vw - 320px));
-  min-height: 174px;
-  gap: 12px;
-  padding: 20px 24px;
-  border: 1px solid #dbe1df;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: none;
-  transform: translateX(-33.333%);
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 10%);
 }
 
-.sessionActionsOverlay h2,
-.sessionResultOverlay h2 {
+.sessionActionsOverlay {
+  position: absolute;
+  top: 90px;
+  left: 210px;
+  width: 760px;
+  height: 316px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(244 246 245 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+}
+
+.sessionActionsOverlay h2 {
+  position: absolute;
+  top: 27px;
+  left: 23px;
   margin: 0;
   color: #1f2933;
   font-size: 20px;
@@ -1490,9 +1523,11 @@
   line-height: 28px;
 }
 
-.sessionActionsOverlay p,
-.sessionResultOverlay p,
-.sessionResultOverlay strong {
+.sessionActionsOverlay > p {
+  position: absolute;
+  top: 61px;
+  left: 23px;
+  width: 520px;
   margin: 0;
   color: #333;
   font-size: 14px;
@@ -1502,56 +1537,515 @@
 
 .sessionActionsOverlayActions {
   display: flex;
+  position: absolute;
+  top: 207px;
+  left: 23px;
   align-items: center;
-  gap: 48px;
-  margin-top: 12px;
+  gap: 16px;
 }
 
-.sessionActionsOverlayActions button,
-.sessionResultOverlay > button {
-  height: 32px;
+.sessionActionsOverlayActions button {
+  height: 44px;
   padding: 0;
-  color: #333;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
 }
 
-.sessionResultBackdrop {
+.sessionActionsOverlayActions button:nth-child(1) {
+  width: 144px;
+  border: 1px solid #a6d997;
+  background: #dfeedb;
+  color: #89b27c;
+}
+
+.sessionActionsOverlayActions button:nth-child(2) {
+  width: 144px;
+  border: 1px solid #d6dde6;
+  background: #f7f8fa;
+  color: #6b7280;
+}
+
+.sessionActionsOverlayActions button:nth-child(3) {
+  width: 160px;
+  border: 1px solid #ff7576;
+  background: #ffeeec;
+  color: #d67676;
+}
+
+.sessionActionsOverlayStatus {
+  position: absolute;
+  top: 15px;
+  right: 53px;
+  display: grid;
+  width: 64px;
+  height: 24px;
+  place-items: center;
+  border-radius: 12px;
+  background: #edeff1;
+  color: rgb(51 51 51 / 95%);
+  font-size: 11px;
+  line-height: 24px;
+}
+
+.sessionActionsOverlayClose {
+  position: absolute;
+  top: 13px;
+  right: 17px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(244 246 245 / 24%);
+  border-radius: 14px;
+  background: #edeff1;
+  color: rgb(51 51 51 / 90%);
+}
+
+.sessionActionsOverlayClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sessionActionsSelected {
+  position: absolute;
+  top: 101px;
+  left: 23px;
+  display: flex;
+  width: 712px;
+  height: 72px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 17px;
+  border: 1px solid #e2e7ee;
+  border-radius: 14px;
+  background: #f7fafc;
+}
+
+.sessionActionsRunningDot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #a6d997;
+}
+
+.sessionActionsSelected > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sessionActionsSelected strong {
+  color: #333;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.sessionActionsSelected div span {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sessionActionsRunningStatus {
+  display: grid;
+  width: 88px;
+  height: 24px;
+  margin-left: auto;
+  place-items: center;
+  border-radius: 12px;
+  background: #dfeedb;
+  color: #89b27c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sessionRenamedBackdrop {
   position: fixed;
   z-index: 20;
-  inset: 0;
-  display: grid;
-  align-items: start;
-  justify-items: center;
-  padding-top: 290px;
-  background: rgb(255 255 255 / 80%);
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 72%);
 }
 
-.sessionResultOverlay {
+.sessionRenamedCard {
+  position: absolute;
+  top: 300px;
+  left: 280px;
+  width: 620px;
+  height: 244px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(166 217 151 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+}
+
+.sessionRenamedAccent {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 244px;
+  border-radius: 3px;
+  background: rgb(166 217 151 / 90%);
+}
+
+.sessionRenamedCard h2 {
+  position: absolute;
+  top: 47px;
+  left: 31px;
+  margin: 0;
+  color: #89b27c;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.sessionRenamedCard > p {
+  position: absolute;
+  top: 85px;
+  left: 31px;
+  width: 520px;
+  margin: 0;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.sessionRenamedSync {
+  position: absolute;
+  top: 131px;
+  left: 31px;
+  width: 470px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sessionRenamedStatus {
+  position: absolute;
+  top: 15px;
+  right: 33px;
   display: grid;
-  width: min(620px, calc(100vw - 80px));
-  min-height: 260px;
-  align-content: start;
-  gap: 24px;
-  padding: 28px 32px;
-  border: 1px solid #64c885;
+  width: 144px;
+  height: 24px;
+  place-items: center;
   border-radius: 12px;
-  background: #fff;
-  box-shadow: none;
-  transform: translateX(130px);
+  background: #dfeedb;
+  color: #89b27c;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
 }
 
-.sessionResultOverlay strong {
-  font-weight: 500;
+.sessionRenamedClose {
+  position: absolute;
+  top: 13px;
+  right: 16px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(166 217 151 / 24%);
+  border-radius: 14px;
+  background: #ecf7ed;
+  color: rgb(137 178 124 / 90%);
 }
 
-.sessionRenamedOverlay {
-  width: min(560px, calc(100vw - 80px));
-  min-height: 220px;
+.sessionRenamedClose svg {
+  width: 18px;
+  height: 18px;
 }
 
-.sessionTrashOverlay {
-  border-color: #ff6b61;
+.sessionRenamedBack {
+  position: absolute;
+  top: 167px;
+  left: 31px;
+  width: 148px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #89b27c;
+  border-radius: 12px;
+  background: #a6d997;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.sessionArchivedBackdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.sessionArchivedCard {
+  position: absolute;
+  top: 286px;
+  left: 280px;
+  width: 620px;
+  height: 276px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(199 150 84 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+}
+
+.sessionArchivedAccent {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 276px;
+  border-radius: 3px;
+  background: rgb(199 150 84 / 90%);
+}
+
+.sessionArchivedCard h2 {
+  position: absolute;
+  top: 47px;
+  left: 31px;
+  margin: 0;
+  color: #c79654;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.sessionArchivedCard > p {
+  position: absolute;
+  top: 85px;
+  left: 31px;
+  width: 520px;
+  margin: 0;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.sessionArchivedStatus {
+  position: absolute;
+  top: 15px;
+  right: 33px;
+  display: grid;
+  width: 144px;
+  height: 24px;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff8e5;
+  color: #c79654;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.sessionArchivedClose {
+  position: absolute;
+  top: 13px;
+  right: 16px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(199 150 84 / 24%);
+  border-radius: 14px;
+  background: #fff6e2;
+  color: rgb(199 150 84 / 90%);
+}
+
+.sessionArchivedClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sessionArchivedItem {
+  position: absolute;
+  top: 121px;
+  left: 31px;
+  display: flex;
+  width: 556px;
+  height: 56px;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid #c79654;
+  border-radius: 12px;
+  background: #fff9eb;
+  color: #333;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.sessionArchivedSync {
+  position: absolute;
+  top: 187px;
+  left: 31px;
+  width: 520px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sessionArchivedRestore {
+  position: absolute;
+  top: 213px;
+  left: 31px;
+  width: 108px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #89b27c;
+  border-radius: 12px;
+  background: #a6d997;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.sessionTrashBackdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.sessionTrashCard {
+  position: absolute;
+  top: 286px;
+  left: 280px;
+  width: 620px;
+  height: 276px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(214 118 118 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+}
+
+.sessionTrashAccent {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 276px;
+  border-radius: 3px;
+  background: rgb(214 118 118 / 90%);
+}
+
+.sessionTrashCard h2 {
+  position: absolute;
+  top: 47px;
+  left: 31px;
+  margin: 0;
+  color: #d67676;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.sessionTrashCard > p {
+  position: absolute;
+  top: 85px;
+  left: 31px;
+  width: 520px;
+  margin: 0;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.sessionTrashStatus {
+  position: absolute;
+  top: 15px;
+  right: 33px;
+  display: grid;
+  width: 144px;
+  height: 24px;
+  place-items: center;
+  border-radius: 12px;
+  background: #ffeeec;
+  color: #d67676;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.sessionTrashClose {
+  position: absolute;
+  top: 13px;
+  right: 16px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(214 118 118 / 24%);
+  border-radius: 14px;
+  background: #ffe9e9;
+  color: rgb(214 118 118 / 90%);
+}
+
+.sessionTrashClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sessionTrashItem {
+  position: absolute;
+  top: 121px;
+  left: 31px;
+  display: flex;
+  width: 556px;
+  height: 56px;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid #ff7576;
+  border-radius: 12px;
+  background: #fff5f4;
+  color: #333;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.sessionTrashSync {
+  position: absolute;
+  top: 187px;
+  left: 31px;
+  width: 520px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sessionTrashRestore {
+  position: absolute;
+  top: 213px;
+  left: 31px;
+  width: 108px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #80e0e6;
+  border-radius: 12px;
+  background: #80e0e6;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
 }
 
 @media (max-width: 1100px) {
@@ -1561,7 +2055,18 @@
     transform: translateX(-50%);
   }
 
-  .sessionResultOverlay {
-    transform: none;
+  .sessionRenamedCard {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .sessionArchivedCard {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .sessionTrashCard {
+    left: 50%;
+    transform: translateX(-50%);
   }
 }

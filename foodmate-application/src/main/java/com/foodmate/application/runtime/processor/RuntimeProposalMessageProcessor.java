@@ -103,7 +103,9 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                                     invocationId,
                                     result.status(),
                                     result.errorCode() == null ? "" : result.errorCode(),
-                                    result.rows()));
+                                    result.rows(),
+                                    result.sqlAuditId(),
+                                    result.toolName()));
             try {
                 MessagePublisherPort.PublishResult published =
                         publisher.publish(

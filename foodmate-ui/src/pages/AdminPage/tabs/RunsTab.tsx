@@ -30,8 +30,11 @@ import {
   statusTag,
 } from './AdminShared';
 import {
-  loadAdminDashboard,
+  loadAdminQuery,
   type AdminRunRow,
+  type AdminQueryRun,
+  type AdminQuerySqlAudit,
+  type AdminQueryToolCall,
   type AdminSqlAuditRow,
   type AdminToolCallRow,
   type AdminTraceRow,
@@ -103,6 +106,61 @@ function medianDuration(rows: AdminRunRow[]) {
   if (!rows.length) return '-';
   const values = rows.map((row) => row.durationMs).sort((a, b) => a - b);
   return formatDuration(values[Math.floor(values.length / 2)]);
+}
+
+function queryRunRow(row: AdminQueryRun, index: number): AdminRunRow {
+  return {
+    key: `run-${row.agent_run_id ?? index}`,
+    runId: textValue(row.agent_run_id),
+    user: row.actor_ref || '-',
+    intent: row.intent || '-',
+    status: row.status || '-',
+    durationMs: Number(row.duration_ms ?? 0),
+    traceId: row.trace_id || '-',
+    sessionId: row.session_id == null ? undefined : String(row.session_id),
+    resultType: row.status || '-',
+    errorCode: '-',
+    stage: row.intent || '-',
+    model: '-',
+  };
+}
+
+function queryToolCallRow(row: AdminQueryToolCall, index: number): AdminToolCallRow {
+  return {
+    key: `call-${row.tool_call_id ?? index}`,
+    callId: textValue(row.tool_call_id),
+    runId: textValue(row.agent_run_id),
+    toolName: row.tool_name || '-',
+    status: row.status || '-',
+    latencyMs: row.latency_ms ?? 0,
+    traceId: row.trace_id || '-',
+    requestId: '-',
+    inputSummary: '-',
+    outputSummary: '-',
+    errorCode: '-',
+  };
+}
+
+function querySqlAuditRow(row: AdminQuerySqlAudit, index: number): AdminSqlAuditRow {
+  return {
+    key: `sql-${row.sql_audit_id ?? index}`,
+    auditId: textValue(row.sql_audit_id),
+    actor: textValue(row.actor),
+    statement: row.query_hash ? `query_hash:${row.query_hash}` : '-',
+    risk: '-',
+    result: row.result || '-',
+    traceId: row.trace_id || '-',
+    durationMs: row.latency_ms ?? 0,
+    rowCount: row.row_count ?? 0,
+    policy: '-',
+    queryHash: row.query_hash || '-',
+    errorCode: row.error_code || '-',
+    createdAt: row.created_at || '-',
+  };
+}
+
+function textValue(value: number | null | undefined) {
+  return value == null ? '-' : String(value);
 }
 
 function copyValue(value: string) {
@@ -217,7 +275,8 @@ function RunDetailSheet({
                       {dashboard.toolCalls
                         .filter((call) => call.runId === selection.row.runId)
                         .map((call) => (
-                          <button
+                          <Button
+                            variant="ghost"
                             className={styles.relatedRecord}
                             key={call.key}
                             type="button"
@@ -228,7 +287,7 @@ function RunDetailSheet({
                               <small>{call.callId}</small>
                             </span>
                             {statusTag(call.status)}
-                          </button>
+                          </Button>
                         ))}
                     </div>
                   ) : (
@@ -364,15 +423,23 @@ function RunDetailSheet({
   );
 }
 
-function DataPlaceholder({ filtered, tab }: { filtered: boolean; tab: GovernanceTab }) {
-  const title = filtered ? '未找到匹配记录' : isRealMode ? '真实接口暂未返回数据' : '暂无治理记录';
+function DataPlaceholder({ filtered, tab, error }: { filtered: boolean; tab: GovernanceTab; error?: string }) {
+  const title = error
+    ? '真实接口加载失败'
+    : filtered
+      ? '未找到匹配记录'
+      : isRealMode
+        ? '真实接口暂未返回数据'
+        : '暂无治理记录';
   const description = filtered
     ? '请调整关键词、状态或错误码筛选条件。'
-    : isRealMode
-      ? tab === 'traces'
-        ? '当前管理仪表盘契约尚未接入 Trace 明细，页面不会伪造链路数据。'
-        : '当前接口没有返回该类记录。'
-      : 'mock 数据集中没有可展示的记录。';
+    : error
+      ? error
+      : isRealMode
+        ? tab === 'traces'
+          ? '当前管理仪表盘契约尚未接入 Trace 明细，页面不会伪造链路数据。'
+          : '当前接口没有返回该类记录。'
+        : 'mock 数据集中没有可展示的记录。';
   return (
     <div className={styles.runEmptyState} role="status">
       <AlertTriangle aria-hidden="true" />
@@ -390,23 +457,32 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [resultFilter, setResultFilter] = useState('all');
   const [errorFilter, setErrorFilter] = useState('');
   const [selection, setSelection] = useState<DetailSelection>();
+  const [loadError, setLoadError] = useState('');
   const activeTab = tabFromSearch(searchParams);
 
   useEffect(() => {
     if (!isRealMode) return;
     let mounted = true;
-    loadAdminDashboard()
-      .then((data) => {
+    setLoadError('');
+    Promise.all([
+      loadAdminQuery<AdminQueryRun>('runs'),
+      loadAdminQuery<AdminQueryToolCall>('tool-calls'),
+      loadAdminQuery<AdminQuerySqlAudit>('sql-audits'),
+    ])
+      .then(([runs, toolCalls, sqlAudits]) => {
         if (mounted)
           setDashboard({
-            runs: data.runs,
-            toolCalls: data.tool_calls,
-            sqlAudits: data.sql_audits,
-            traces: data.traces,
+            runs: runs.items.map(queryRunRow),
+            toolCalls: toolCalls.items.map(queryToolCallRow),
+            sqlAudits: sqlAudits.items.map(querySqlAuditRow),
+            traces: [],
           });
       })
-      .catch(() => {
-        if (mounted) setDashboard(emptyDashboard);
+      .catch((error) => {
+        if (mounted) {
+          setDashboard(emptyDashboard);
+          setLoadError(error instanceof Error ? error.message : '运行治理数据加载失败');
+        }
       });
     return () => {
       mounted = false;
@@ -670,6 +746,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
               <DataPlaceholder
                 filtered={Boolean(query || errorFilter || statusFilter !== 'all' || resultFilter !== 'all')}
                 tab="agent-runs"
+                error={loadError}
               />
             )}
           </TabsContent>
@@ -677,14 +754,22 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             {filteredToolCalls.length ? (
               <DataTable className={styles.runTable} columns={toolColumns} data={filteredToolCalls} />
             ) : (
-              <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="tool-calls" />
+              <DataPlaceholder
+                filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
+                tab="tool-calls"
+                error={loadError}
+              />
             )}
           </TabsContent>
           <TabsContent value="sql-audits">
             {filteredSqlAudits.length ? (
               <DataTable className={styles.runTable} columns={sqlColumns} data={filteredSqlAudits} />
             ) : (
-              <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="sql-audits" />
+              <DataPlaceholder
+                filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
+                tab="sql-audits"
+                error={loadError}
+              />
             )}
           </TabsContent>
           <TabsContent value="traces">

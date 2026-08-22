@@ -14,10 +14,12 @@ import {
   Search,
   ShieldAlert,
   XCircle,
+  X,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection } from '../../types/agent';
 import type { Message } from '../../types/session';
@@ -161,14 +163,16 @@ function InlineConfirmationCard({ onConfirm, onCancel }: { onConfirm: () => void
   return (
     <section className={styles.inlineConfirmation} aria-label="饮食记录确认">
       <h3>是否将此记录到你的周二饮食日志？</h3>
-      <label>
-        <input defaultChecked name="meal-log-target" type="radio" />
-        <span>是，添加到今天的午餐</span>
-      </label>
-      <label>
-        <input name="meal-log-target" type="radio" />
-        <span>否，仅作为对话参考</span>
-      </label>
+      <RadioGroup aria-label="饮食记录目标" className={styles.inlineConfirmationOptions} defaultValue="add-to-lunch">
+        <div className={styles.inlineConfirmationOption}>
+          <RadioGroupItem aria-label="是，添加到今天的午餐" id="meal-log-add-to-lunch" value="add-to-lunch" />
+          <label htmlFor="meal-log-add-to-lunch">是，添加到今天的午餐</label>
+        </div>
+        <div className={styles.inlineConfirmationOption}>
+          <RadioGroupItem aria-label="否，仅作为对话参考" id="meal-log-reference-only" value="reference-only" />
+          <label htmlFor="meal-log-reference-only">否，仅作为对话参考</label>
+        </div>
+      </RadioGroup>
       <div className={styles.inlineConfirmationActions}>
         <Button type="button" onClick={onConfirm}>
           提交并继续
@@ -337,8 +341,9 @@ function EmptyChatPage() {
             {emptyPrompts.map((item) => {
               const Icon = item.icon;
               return (
-                <button
+                <Button
                   className={styles.emptyPrompt}
+                  variant="ghost"
                   key={item.title}
                   type="button"
                   onClick={() => setInput(item.prompt)}
@@ -350,7 +355,7 @@ function EmptyChatPage() {
                     <strong>{item.title}</strong>
                     <span>{item.description}</span>
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -676,7 +681,9 @@ type HistoryFixture = {
   };
 };
 
-function historyFixture(state: Extract<ChatAuxState, 'history-page-2' | 'history-page-3' | 'search-results'>): HistoryFixture {
+function historyFixture(
+  state: Extract<ChatAuxState, 'history-page-2' | 'history-page-3' | 'search-results'>,
+): HistoryFixture {
   const isSearch = state === 'search-results';
   const isPageThree = state === 'history-page-3';
   const baseSessions: SessionSummary[] = [
@@ -696,7 +703,8 @@ function historyFixture(state: Extract<ChatAuxState, 'history-page-2' | 'history
   ];
   return {
     prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
-    response: 'I have analyzed the typical values for wild salmon (150g) and cooked quinoa (100g). Together, they provide approximately 38g of high-quality protein.',
+    response:
+      'I have analyzed the typical values for wild salmon (150g) and cooked quinoa (100g). Together, they provide approximately 38g of high-quality protein.',
     source: 'Source: USDA FoodData Central Ref #451992',
     run: {
       id: 'fst_trace_88192a',
@@ -708,10 +716,38 @@ function historyFixture(state: Extract<ChatAuxState, 'history-page-2' | 'history
       agentsTotal: 1,
       citations: [],
       toolCalls: [
-        { id: 'query-expansion', name: 'query_expansion', displayName: '查询扩展', status: 'success', latencyMs: 12, summary: '已完成查询扩展' },
-        { id: 'vector-search', name: 'vector_search', displayName: '向量索引检索', status: 'success', latencyMs: 184, summary: '已命中知识库向量索引' },
-        { id: 'usda-lookup', name: 'usda_lookup', displayName: 'USDA 数据库调用', status: 'success', latencyMs: 92, summary: '已返回标准营养值' },
-        { id: 'response-compose', name: 'response_compose', displayName: '响应合成', status: 'success', latencyMs: 45, summary: '已生成可追溯回答' },
+        {
+          id: 'query-expansion',
+          name: 'query_expansion',
+          displayName: '查询扩展',
+          status: 'success',
+          latencyMs: 12,
+          summary: '已完成查询扩展',
+        },
+        {
+          id: 'vector-search',
+          name: 'vector_search',
+          displayName: '向量索引检索',
+          status: 'success',
+          latencyMs: 184,
+          summary: '已命中知识库向量索引',
+        },
+        {
+          id: 'usda-lookup',
+          name: 'usda_lookup',
+          displayName: 'USDA 数据库调用',
+          status: 'success',
+          latencyMs: 92,
+          summary: '已返回标准营养值',
+        },
+        {
+          id: 'response-compose',
+          name: 'response_compose',
+          displayName: '响应合成',
+          status: 'success',
+          latencyMs: 45,
+          summary: '已生成可追溯回答',
+        },
       ],
     },
     sidebar: {
@@ -727,15 +763,44 @@ function navigationFixture(): HistoryFixture {
   return {
     ...fixture,
     prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
-    response: '我已为您分析了野生三文鱼（150克）和熟藜麦（100克）的标准营养价值。它们一共可提供大约 38 克的优质蛋白质。',
+    response:
+      '我已为您分析了野生三文鱼（150克）和熟藜麦（100克）的标准营养价值。它们一共可提供大约 38 克的优质蛋白质。',
     source: '来源: USDA FoodData Central Ref #451992',
     run: {
       ...fixture.run,
       toolCalls: [
-        { id: 'query-expansion', name: 'query_expansion', displayName: '查询扩展 (Query Expansion)', status: 'success', latencyMs: 12, summary: '已完成查询扩展' },
-        { id: 'vector-search', name: 'vector_search', displayName: '向量索引检索 (RAG Search)', status: 'success', latencyMs: 184, summary: '已命中知识库向量索引' },
-        { id: 'usda-lookup', name: 'usda_lookup', displayName: 'USDA 数据库调用 (API Call)', status: 'success', latencyMs: 92, summary: '已返回标准营养值' },
-        { id: 'response-compose', name: 'response_compose', displayName: '响应合成 (Response Generation)', status: 'success', latencyMs: 45, summary: '已生成可追溯回答' },
+        {
+          id: 'query-expansion',
+          name: 'query_expansion',
+          displayName: '查询扩展 (Query Expansion)',
+          status: 'success',
+          latencyMs: 12,
+          summary: '已完成查询扩展',
+        },
+        {
+          id: 'vector-search',
+          name: 'vector_search',
+          displayName: '向量索引检索 (RAG Search)',
+          status: 'success',
+          latencyMs: 184,
+          summary: '已命中知识库向量索引',
+        },
+        {
+          id: 'usda-lookup',
+          name: 'usda_lookup',
+          displayName: 'USDA 数据库调用 (API Call)',
+          status: 'success',
+          latencyMs: 92,
+          summary: '已返回标准营养值',
+        },
+        {
+          id: 'response-compose',
+          name: 'response_compose',
+          displayName: '响应合成 (Response Generation)',
+          status: 'success',
+          latencyMs: 45,
+          summary: '已生成可追溯回答',
+        },
       ],
     },
   };
@@ -743,74 +808,162 @@ function navigationFixture(): HistoryFixture {
 
 type SessionOverlayState = Extract<ChatAuxState, 'session-actions' | 'renamed' | 'archived' | 'trash'>;
 
-function SessionStateOverlay({ state, onAction }: { state: SessionOverlayState; onAction: (message: string) => void }) {
+function SessionStateOverlay({
+  state,
+  onAction,
+  onClose,
+}: {
+  state: SessionOverlayState;
+  onAction: (message: string) => void;
+  onClose: () => void;
+}) {
   if (state === 'session-actions') {
     return (
-      <Card className={styles.sessionActionsOverlay} role="dialog" aria-label="会话管理">
-        <h2>会话管理</h2>
-        <p>选择一个会话后可重命名、归档，或移入回收站</p>
-        <div className={styles.sessionActionsOverlayActions}>
-          <Button size="sm" variant="ghost" onClick={() => onAction('已打开会话重命名入口。')}>
-            重命名会话
+      <div className={styles.sessionActionsBackdrop}>
+        <Card className={styles.sessionActionsOverlay} role="dialog" aria-label="会话管理">
+          <span className={styles.sessionActionsOverlayStatus}>操作</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={styles.sessionActionsOverlayClose}
+            aria-label="关闭会话管理"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => onAction('会话已归档，可从归档列表恢复。')}>
-            归档会话
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onAction('会话已移入回收站，保留期内可恢复。')}>
-            移入回收站
-          </Button>
-        </div>
-      </Card>
+          <h2>会话管理</h2>
+          <p>选择一个会话后可重命名、归档，或移入回收站</p>
+          <section className={styles.sessionActionsSelected} aria-label="当前会话">
+            <span className={styles.sessionActionsRunningDot} aria-hidden="true" />
+            <div>
+              <strong>每周饮食微调</strong>
+              <span>进行中 · 今天 12:45 更新</span>
+            </div>
+            <span className={styles.sessionActionsRunningStatus}>RUNNING</span>
+          </section>
+          <div className={styles.sessionActionsOverlayActions}>
+            <Button size="sm" variant="ghost" onClick={() => onAction('已打开会话重命名入口。')}>
+              重命名会话
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onAction('会话已归档，可从归档列表恢复。')}>
+              归档会话
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onAction('会话已移入回收站，保留期内可恢复。')}>
+              移入回收站
+            </Button>
+          </div>
+        </Card>
+      </div>
     );
   }
 
-  const content = {
-    renamed: {
-      title: '会话已重命名',
-      description: '“每周饮食微调”已更新为“本周饮食分析”。',
-      detail: undefined,
-      action: '返回会话列表',
-    },
-    archived: {
-      title: '已归档会话',
-      description: '本页显示已归档的会话，可恢复到 Agent 对话列表。',
-      detail: '每周饮食微调 · 归档于今天 12:45',
-      action: '恢复会话',
-    },
-    trash: {
-      title: '会话回收站',
-      description: '删除的会话将在保留期内可恢复，不提供永久删除入口。',
-      detail: '运动前零食建议 · 移入回收站于今天 12:45',
-      action: '恢复会话',
-    },
-  }[state];
-  return (
-    <div className={styles.sessionResultBackdrop}>
-      <Card
-        className={`${styles.sessionResultOverlay} ${state === 'renamed' ? styles.sessionRenamedOverlay : ''} ${state === 'trash' ? styles.sessionTrashOverlay : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={content.title}
-      >
-        <h2>{content.title}</h2>
-        <p>{content.description}</p>
-        {content.detail ? <strong>{content.detail}</strong> : null}
-        <Button size="sm" variant="ghost" onClick={() => onAction(`${content.action}操作已记录。`)}>
-          {content.action}
-        </Button>
-      </Card>
-    </div>
-  );
+  if (state === 'renamed') {
+    return (
+      <div className={styles.sessionRenamedBackdrop}>
+        <Card className={styles.sessionRenamedCard} role="dialog" aria-modal="true" aria-label="会话已重命名">
+          <span className={styles.sessionRenamedAccent} aria-hidden="true" />
+          <span className={styles.sessionRenamedStatus}>SAVED</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={styles.sessionRenamedClose}
+            aria-label="关闭重命名结果"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
+          </Button>
+          <h2>会话已重命名</h2>
+          <p>“每周饮食微调”已更新为“本周饮食分析”。</p>
+          <span className={styles.sessionRenamedSync}>列表已同步，可继续查看此会话</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={styles.sessionRenamedBack}
+            onClick={() => onAction('已返回会话列表。')}
+          >
+            返回会话列表
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (state === 'archived') {
+    return (
+      <div className={styles.sessionArchivedBackdrop}>
+        <Card className={styles.sessionArchivedCard} role="dialog" aria-modal="true" aria-label="已归档会话">
+          <span className={styles.sessionArchivedAccent} aria-hidden="true" />
+          <span className={styles.sessionArchivedStatus}>ARCHIVED</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={styles.sessionArchivedClose}
+            aria-label="关闭归档结果"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
+          </Button>
+          <h2>已归档会话</h2>
+          <p>本页显示已归档的会话，可恢复到 Agent 对话列表。</p>
+          <div className={styles.sessionArchivedItem}>每周饮食微调 · 归档于今天 12:45</div>
+          <span className={styles.sessionArchivedSync}>保留会话内容，恢复后回到 Agent 对话列表</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={styles.sessionArchivedRestore}
+            onClick={() => onAction('已恢复会话，可从 Agent 对话列表继续查看。')}
+          >
+            恢复会话
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (state === 'trash') {
+    return (
+      <div className={styles.sessionTrashBackdrop}>
+        <Card className={styles.sessionTrashCard} role="dialog" aria-modal="true" aria-label="会话回收站">
+          <span className={styles.sessionTrashAccent} aria-hidden="true" />
+          <span className={styles.sessionTrashStatus}>RECOVERABLE</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={styles.sessionTrashClose}
+            aria-label="关闭回收站结果"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
+          </Button>
+          <h2>会话回收站</h2>
+          <p>删除的会话将在保留期内可恢复，不提供永久删除入口。</p>
+          <div className={styles.sessionTrashItem}>运动前零食建议 · 移入回收站于今天 12:45</div>
+          <span className={styles.sessionTrashSync}>回收站仅支持恢复，不提供永久删除</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={styles.sessionTrashRestore}
+            onClick={() => onAction('已恢复回收站会话，可从 Agent 对话列表继续查看。')}
+          >
+            恢复会话
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 }
 
 function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
   const messagesRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('');
   const [notice, setNotice] = useState('');
+  const [sessionOverlayVisible, setSessionOverlayVisible] = useState(true);
   const isRunning = state === 'running-stop';
   const isHistoryState = state === 'history-page-2' || state === 'history-page-3' || state === 'search-results';
-  const isSessionOverlayState = state === 'session-actions' || state === 'renamed' || state === 'archived' || state === 'trash';
-  const isNavigationState = state === 'redesign-default' || state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
+  const isSessionOverlayState =
+    state === 'session-actions' || state === 'renamed' || state === 'archived' || state === 'trash';
+  const isNavigationState =
+    state === 'redesign-default' || state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
   const history = isHistoryState
     ? historyFixture(state)
     : isSessionOverlayState
@@ -819,10 +972,10 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
         ? navigationFixture()
         : isRunning
           ? historyFixture('history-page-2')
-        : undefined;
+          : undefined;
   const run = isRunning
     ? { ...(history?.run ?? fixtureRun('sse-reconnecting')), status: 'executing_tools' as const }
-    : history?.run ?? fixtureRun('tool-failed-retryable');
+    : (history?.run ?? fixtureRun('tool-failed-retryable'));
   const labels: Record<ChatAuxState, string> = {
     'completed-with-citations': '分析已完成，以下内容包含可追溯引用。',
     'redesign-default': '我分析了野生三文鱼和熟藜麦的标准营养值。',
@@ -854,15 +1007,47 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
       pageOverlay={
-        isSessionOverlayState ? <SessionStateOverlay state={state} onAction={setNotice} /> : undefined
+        isSessionOverlayState && sessionOverlayVisible ? (
+          <SessionStateOverlay
+            state={state}
+            onAction={setNotice}
+            onClose={() => {
+              setSessionOverlayVisible(false);
+              setNotice(
+                state === 'session-actions'
+                  ? '已关闭会话管理面板。'
+                  : state === 'renamed'
+                    ? '已关闭重命名结果。'
+                    : state === 'archived'
+                      ? '已关闭归档结果。'
+                      : '已关闭回收站结果。',
+              );
+            }}
+          />
+        ) : undefined
       }
       sidebarFixture={history?.sidebar}
     >
       {history ? (
         <>
-          <MessageBubble message={{ id: `${state}-user`, role: 'user', content: history.prompt, time: '12:45', wide: isNavigationState }} />
           <MessageBubble
-            message={{ id: `${state}-assistant`, role: 'assistant', content: history.response, source: history.source, time: '12:46', wide: isNavigationState }}
+            message={{
+              id: `${state}-user`,
+              role: 'user',
+              content: history.prompt,
+              time: '12:45',
+              wide: isNavigationState,
+            }}
+          />
+          <MessageBubble
+            message={{
+              id: `${state}-assistant`,
+              role: 'assistant',
+              content: history.response,
+              source: history.source,
+              time: '12:46',
+              wide: isNavigationState,
+            }}
           >
             <InlineConfirmationCard
               onConfirm={() => setNotice('fixture 已记录写入确认；未调用任何后端写入接口。')}
@@ -874,7 +1059,9 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               <h2>消息操作</h2>
               <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
               <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
-              <p className={styles.actionGreen}>工具失败时显示重试；运行中发送按钮切换为停止；写入确认 / 预算追加仍需确认后继续。</p>
+              <p className={styles.actionGreen}>
+                工具失败时显示重试；运行中发送按钮切换为停止；写入确认 / 预算追加仍需确认后继续。
+              </p>
             </section>
           ) : null}
         </>

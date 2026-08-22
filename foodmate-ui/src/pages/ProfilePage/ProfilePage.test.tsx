@@ -42,6 +42,14 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('link', { name: '基本资料' })).not.toHaveAttribute('aria-current');
   });
 
+  it('renders the Figma profile shell fixture', () => {
+    renderPage('/profile?state=basic');
+
+    expect(screen.getByText('Anddy')).toBeInTheDocument();
+    expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
+    expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');
@@ -54,7 +62,7 @@ describe('ProfilePage', () => {
     await user.type(allergenInput, '花生');
     await user.click(screen.getByRole('button', { name: '添加过敏原' }));
 
-    expect(screen.getByRole('button', { name: '花生' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '花生' })).toHaveClass('inline-flex');
     expect(screen.getByRole('button', { name: '放弃更改' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: '保存资料' }));
@@ -69,6 +77,7 @@ describe('ProfilePage', () => {
     renderPage('/profile/memories');
 
     await user.click(screen.getByRole('tab', { name: '待确认 (3)' }));
+    expect(screen.getByRole('tab', { name: '待确认 (3)' })).toHaveClass('inline-flex');
     expect(screen.getByText(/Attempts to avoid soy protein isolates/)).toBeInTheDocument();
     expect(screen.queryByText(/Prefers wild caught salmon/)).not.toBeInTheDocument();
 
@@ -96,6 +105,7 @@ describe('ProfilePage', () => {
     const user = userEvent.setup();
     renderPage('/profile/security');
 
+    expect(screen.getByRole('button', { name: /查看登录历史/ })).toHaveClass('inline-flex');
     await user.click(screen.getByRole('button', { name: '退出其他设备' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '退出其他设备？' })).toBeInTheDocument();
@@ -115,6 +125,7 @@ describe('ProfilePage', () => {
     expect(screen.getByText('今天')).toBeInTheDocument();
     expect(screen.getAllByText('排队中').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: '创建数据导出' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /下载归档/ })).toHaveClass('inline-flex');
 
     await user.click(screen.getByRole('button', { name: '申请注销账号' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();

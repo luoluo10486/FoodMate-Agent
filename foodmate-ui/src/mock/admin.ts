@@ -647,6 +647,7 @@ export const adminKnowledgeRows = [
     documentId: 'doc_146',
     title: '营养与烹饪指南',
     status: 'indexed',
+    visibility: 'published',
     chunks: 428,
     owner: '运营账号',
     source: 'MinIO / knowledge/nutrition-guide.pdf',
@@ -658,6 +659,7 @@ export const adminKnowledgeRows = [
     documentId: 'doc_147',
     title: '高蛋白食材 FAQ',
     status: 'indexing',
+    visibility: 'draft',
     chunks: 116,
     owner: '运营账号',
     source: 'MinIO / knowledge/protein-faq.md',
@@ -669,6 +671,7 @@ export const adminKnowledgeRows = [
     documentId: 'doc_148',
     title: '家庭备餐规则',
     status: 'failed',
+    visibility: 'draft',
     chunks: 0,
     owner: 'admin',
     source: 'MinIO / knowledge/meal-prep.xlsx',
@@ -688,6 +691,7 @@ export const adminDeletedRows = [
     deletedAt: '2024-03-14 10:24',
     restorable: true,
     reason: '存档保留',
+    revision: 1,
   },
   {
     key: 'del-2',
@@ -699,6 +703,7 @@ export const adminDeletedRows = [
     deletedAt: '2024-03-13 04:12',
     restorable: true,
     reason: '存档保留',
+    revision: 1,
   },
   {
     key: 'del-3',
@@ -710,6 +715,7 @@ export const adminDeletedRows = [
     deletedAt: '2024-03-12 18:30',
     restorable: false,
     reason: '已超过恢复条件',
+    revision: 1,
   },
   {
     key: 'del-4',
@@ -721,6 +727,7 @@ export const adminDeletedRows = [
     deletedAt: '2024-03-10 22:15',
     restorable: true,
     reason: '存档保留',
+    revision: 1,
   },
 ];
 
