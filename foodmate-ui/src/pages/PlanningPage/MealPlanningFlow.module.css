@@ -232,6 +232,10 @@
   line-height: 17px;
 }
 
+.planListMeta small {
+  line-height: normal;
+}
+
 .planListCard p {
   margin: 0;
   font-size: 14px;
