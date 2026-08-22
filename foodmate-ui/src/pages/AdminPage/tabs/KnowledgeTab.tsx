@@ -167,6 +167,7 @@ export function KnowledgeSection({
         });
         setBatchId(uploaded.batch_id);
         window.localStorage.setItem('foodmate:admin:knowledge:last-batch', uploaded.batch_id);
+        setLocalRefreshNonce((current) => current + 1);
       }
       setUploadVisible(false);
       setUploadFiles([]);
@@ -381,10 +382,24 @@ export function KnowledgeSection({
 
 function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (documentId: string) => Promise<unknown> }) {
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadKnowledgeBatch>>>();
+  const [retryingItemId, setRetryingItemId] = useState<string>();
+  const [retryError, setRetryError] = useState('');
   const refresh = () =>
     loadKnowledgeBatch(batchId)
       .then(setDetail)
       .catch(() => undefined);
+  const retry = async (itemId: string, documentId: string) => {
+    setRetryingItemId(itemId);
+    setRetryError('');
+    try {
+      await onRetry(documentId);
+      await refresh();
+    } catch (cause) {
+      setRetryError(cause instanceof Error ? cause.message : '索引重试失败，请稍后重试');
+    } finally {
+      setRetryingItemId(undefined);
+    }
+  };
   useEffect(() => {
     let active = true;
     const load = () =>
@@ -402,6 +417,7 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (docume
     <Card className={styles.knowledgeInsights} aria-label="批次进度">
       <strong>批次 {batchId}</strong>
       <span>{detail?.batch.job.status ?? '上传已提交'}</span>
+      {retryError ? <span role="alert">{retryError}</span> : null}
       {detail?.batch.items.map((item) => (
         <div key={item.item_id}>
           <span>
@@ -409,8 +425,12 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (docume
             {item.error_code ? ` (${item.error_code})` : ''}
           </span>
           {item.index_status === 'index_failed' ? (
-            <Button variant="outline" onClick={() => void onRetry(item.document_id).then(refresh)}>
-              重试
+            <Button
+              variant="outline"
+              disabled={retryingItemId === item.item_id}
+              onClick={() => void retry(item.item_id, item.document_id)}
+            >
+              {retryingItemId === item.item_id ? '重试中...' : '重试'}
             </Button>
           ) : null}
         </div>
