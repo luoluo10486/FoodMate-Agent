@@ -34,8 +34,8 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [values, setValues] = useState<RegisterValues>(() => (isRealMode ? emptyRegisterValues : figmaRegisterValues));
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(() => !isRealMode);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
   const [submitting, setSubmitting] = useState(false);
 
   const update = (key: keyof RegisterValues) => (event: ChangeEvent<HTMLInputElement>) =>

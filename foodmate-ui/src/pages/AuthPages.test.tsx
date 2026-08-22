@@ -89,13 +89,13 @@ describe('authentication pages', () => {
     renderAuth('/register');
 
     const password = screen.getByLabelText('密码');
-    const toggle = screen.getByRole('button', { name: /^显示密码$/ });
+    const toggle = screen.getByRole('button', { name: /^隐藏密码$/ });
     expect(toggle).toBeInTheDocument();
-    expect(password).toHaveAttribute('type', 'password');
+    expect(password).toHaveAttribute('type', 'text');
 
     await user.click(toggle);
-    expect(password).toHaveAttribute('type', 'text');
-    expect(screen.getByRole('button', { name: /^隐藏密码$/ })).toBeInTheDocument();
+    expect(password).toHaveAttribute('type', 'password');
+    expect(screen.getByRole('button', { name: /^显示密码$/ })).toBeInTheDocument();
   });
 
   it('uses the shared shadcn icon button for login password visibility', async () => {
