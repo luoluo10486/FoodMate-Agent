@@ -522,7 +522,7 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
                 item
                 for item in reversed(tool_results)
                 if item.get("tool_name") == "database_query"
-                or item.get("sql_audit_id")
+                or (not item.get("tool_name") and item.get("sql_audit_id"))
             ),
             None,
         )
@@ -574,7 +574,13 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
         if time_result.get("status") != "succeeded":
             return []
         statement = str(plan.candidate_sql)
-        invocation_id = str(request.get("invocation_id") or "inv_" + hashlib.sha256(statement.encode("utf-8")).hexdigest()[:24])
+        invocation_id = str(
+            request.get("invocation_id")
+            or "inv_"
+            + hashlib.sha256(
+                (str(command["run_id"]) + ":" + statement).encode("utf-8")
+            ).hexdigest()[:24]
+        )
         input_plan = {
             "intent": plan.intent,
             "time_range": plan.time_range,

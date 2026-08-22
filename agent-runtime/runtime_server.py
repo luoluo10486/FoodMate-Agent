@@ -459,7 +459,13 @@ def execute(command):
                     if item.get("invocation_id")
                 ],
             )
-            emit(command, prefix + "-checkpoint", next_sequence, "run.checkpoint_saved", checkpoint_payload)
+            emit(
+                command,
+                prefix + "-checkpoint-" + str(next_sequence),
+                next_sequence,
+                "run.checkpoint_saved",
+                checkpoint_payload,
+            )
             next_sequence += 1
             # 仅用于本地故障演练：暂停点让测试可以在 checkpoint 已落 Redis、Tool 尚未发送前终止进程。
             # 默认 0，不改变生产路径，也不把测试状态写入业务协议。

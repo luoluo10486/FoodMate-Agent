@@ -425,3 +425,18 @@
 | 清理 | 精确删除本轮用户 `349652007885213696`、Session `349652008514359296`、Run `349652008543719424`、消息 `349652008778600448` 及关联 Inbox/Outbox/SSE/审计；Redis checkpoint 2 个键删除；SQL 复核 users/sessions/runs/messages/audits 均为 0；删除本轮 Python 启动脚本和日志 |
 | 未执行范围 | 吞吐/延迟/积压压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、真实云模型/Embedding、Docker 应用镜像和生产环境继续暂缓 |
 | 结论 | Chat 兼容入口现在能够复用 V1 持久化 SSE 回放服务；本轮只补齐业务正确性证据，不将 Last-Event-ID 业务回放扩大解释为故障恢复矩阵完成 |
+
+## M2-2 database_query 多轮 AgentRun 业务收尾（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 04:48-05:20（Asia/Shanghai） |
+| 代码变更 | 修复带 `sql_audit_id` 的 `time_parser` 结果误判为 `database_query` 已完成；数据库 Proposal 的回退 `invocation_id` 纳入 `run_id`，避免跨 Run 复用 `proposal_id`；多轮工具执行的 `run.checkpoint_saved` 事件 ID 纳入事件序号，避免 Java Inbox 去重阻断后续事件 |
+| Python 定向验证 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest tests/test_runtime_server.py -q`：41 passed；新增跨 Run Proposal 唯一性和多轮事件 ID 唯一性回归断言 |
+| Python 全量验证 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：113 passed、1 skipped、1 warning；跳过项为显式真实云集成，未调用付费模型或真实 embedding |
+| 真实业务验证 | 随机用户创建 AgentRun `349662250480439296`，通过 Java `18080` -> RocketMQ -> Python `19000` -> Java 结果回写完成；`time_parser` 与 `database_query` Proposal 均为 `succeeded`，生成 2 条 `sql_query_audits` 且状态均为 `executed`（行数 1、0），Run 事件 `1..14` 连续，最终 `status=completed`、`result_type=normal` |
+| 运行态 | Python readiness HTTP 200；Redis checkpoint、RocketMQ command/result consumer 和 Java Outbox/Inbox 均可用；最终恢复 Python 标准 consumer group，删除本轮临时 consumer group/retry Topic |
+| 清理 | 精确清理本轮 10 个 `codex_sql_*` 用户、7 个 AgentRun、Session、消息、SQL/运行时/统一审计及 Outbox/Inbox；PostgreSQL 用户、Run、Session、审计、SQL 审计和运行时 Inbox/Outbox 复核均为 0；Redis 本轮 checkpoint、command/result Inbox 复核无残留；临时脚本和日志已删除 |
+| 失败记录 | 修复前 4 个 Run 因跨 Run Proposal ID 冲突或重复 checkpoint ID 卡在工具等待并最终失败；另有 2 个 Run 受本地旧 RocketMQ consumer group 位点干扰；均已纳入本轮清理，不修改既有业务数据 |
+| 未执行范围 | 吞吐/延迟/积压压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、SSE `Last-Event-ID` 故障恢复、真实云模型/Embedding、Docker 应用镜像和生产环境继续暂缓 |
+| 结论 | M2-2 结构化分析的真实业务主路径已补齐多轮工具、SQL 审计、事件连续性和 AgentRun 终态证据；本轮不据此扩大性能或故障恢复范围 |

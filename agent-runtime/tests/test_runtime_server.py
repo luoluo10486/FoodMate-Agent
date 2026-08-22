@@ -269,6 +269,7 @@ class RuntimeContractTests(unittest.TestCase):
             "invocation_id": proposal["payload"]["invocation_id"],
             "status": "succeeded",
             "rows": [{"days": 7, "from": "2026-08-15T00:00:00Z", "to": "2026-08-22T00:00:00Z"}],
+            "sql_audit_id": "time-audit-1",
         }
         second = run_deterministic(
             {
@@ -284,6 +285,33 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual("nutrition_summary", database["input"]["intent"])
         self.assertEqual(database["payload"]["statement"], database["input"]["candidate_sql"])
         validate_proposal(Proposal(**database))
+
+    def test_analysis_fallback_database_invocation_is_unique_per_run(self):
+        completed = {
+            "tool_name": "time_parser",
+            "invocation_id": "time-result",
+            "status": "succeeded",
+            "rows": [{"days": 7}],
+            "sql_audit_id": "time-audit-1",
+        }
+
+        def proposal_for(run_id):
+            execution = run_deterministic(
+                {
+                    "run_id": run_id,
+                    "dispatch_id": "dispatch-" + run_id,
+                    "message": {"content": "分析最近7天蛋白质摄入"},
+                    "authorized_context": {"tool_results": [completed]},
+                }
+            )
+            return execution.proposals[0]
+
+        first = proposal_for("analysis-run-1")
+        second = proposal_for("analysis-run-2")
+        self.assertEqual("database_query", first["tool_name"])
+        self.assertEqual("database_query", second["tool_name"])
+        self.assertNotEqual(first["proposal_id"], second["proposal_id"])
+        self.assertNotEqual(first["payload"]["invocation_id"], second["payload"]["invocation_id"])
 
     def test_analysis_phrase_containing_record_is_not_routed_as_record(self):
         execution = run_deterministic({
@@ -386,7 +414,7 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual("run.completed", events[-1])
 
     def test_execute_supports_time_parser_then_database_query_rounds(self):
-        events, published, commands = [], [], []
+        events, event_ids, published, commands = [], [], [], []
         time_proposal = Proposal(
             "time-proposal",
             "r1",
@@ -458,11 +486,12 @@ class RuntimeContractTests(unittest.TestCase):
 
         command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
         with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store: commands.append(value) or executions[len(commands) - 1]), patch.object(
-            runtime_server, "emit", side_effect=lambda *args: events.append(args[3])
+            runtime_server, "emit", side_effect=lambda *args: (event_ids.append(args[1]), events.append(args[3]))
         ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
             runtime_server.execute(command)
 
         self.assertEqual([time_proposal, database_proposal], published)
+        self.assertEqual(len(event_ids), len(set(event_ids)))
         self.assertEqual(2, len(commands[2]["authorized_context"]["tool_results"]))
         self.assertEqual("database_query", commands[2]["authorized_context"]["tool_results"][1]["tool_name"])
         self.assertEqual("run.completed", events[-1])
