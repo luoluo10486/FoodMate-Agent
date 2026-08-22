@@ -192,7 +192,8 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
           </div>
           {documents.length ? (
             documents.map((document) => (
-              <button
+              <Button
+                variant="ghost"
                 className={`${styles.knowledgeTableRow} ${selectedDoc?.documentId === document.documentId ? styles.knowledgeTableRowSelected : ''}`}
                 key={document.documentId}
                 type="button"
@@ -206,7 +207,7 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
                 <span>{documentSize(document)}</span>
                 <span>{documentStatus(document)}</span>
                 <span>{document.chunks} chunks</span>
-              </button>
+              </Button>
             ))
           ) : (
             <div className={styles.knowledgeTableEmpty}>暂无可展示的知识库文档</div>
