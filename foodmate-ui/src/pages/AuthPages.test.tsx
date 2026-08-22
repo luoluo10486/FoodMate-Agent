@@ -131,6 +131,11 @@ describe('authentication pages', () => {
     const user = userEvent.setup();
     renderAuth('/forgot-password');
 
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-forgot-leaf.svg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-forgot-mail.svg"]')).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-forgot-check-circle.svg"]'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '邮件已发送' })).toBeInTheDocument();
     await user.type(screen.getByLabelText('邮箱地址'), 'demo@example.com');
     await user.click(screen.getByRole('button', { name: '发送重置邮件' }));

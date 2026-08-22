@@ -28,23 +28,22 @@ export function AuthBrand({
   title,
   subtitle,
   mark = 'leaf',
+  iconSrc,
 }: {
   title: string;
   subtitle: string;
   mark?: 'leaf' | 'utensils';
+  iconSrc?: string;
 }) {
+  const resolvedIconSrc =
+    iconSrc ??
+    (mark === 'utensils' ? '/assets/figma/auth/foodmate-fork-knife.svg' : '/assets/figma/auth/foodmate-leaf.svg');
+
   return (
     <header className={styles.authHeader}>
       <div className={styles.authBrand} data-node-id="680:220">
         <span className={styles.authMark} aria-hidden="true">
-          <img
-            src={
-              mark === 'utensils'
-                ? '/assets/figma/auth/foodmate-fork-knife.svg'
-                : '/assets/figma/auth/foodmate-leaf.svg'
-            }
-            alt=""
-          />
+          <img src={resolvedIconSrc} alt="" />
         </span>
         <span className={styles.authWordmark}>
           <span>Food</span>
@@ -67,6 +66,7 @@ type AuthFieldProps = {
   type?: 'text' | 'email';
   autoComplete?: string;
   leadingIcon?: 'user' | 'mail';
+  leadingIconSrc?: string;
   required?: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
@@ -79,10 +79,12 @@ export function AuthField({
   type = 'text',
   autoComplete,
   leadingIcon,
+  leadingIconSrc,
   required = true,
   onChange,
 }: AuthFieldProps) {
-  const icon = leadingIcon ? <img src={fieldIconSources[leadingIcon]} alt="" /> : undefined;
+  const iconSource = leadingIconSrc ?? (leadingIcon ? fieldIconSources[leadingIcon] : undefined);
+  const icon = iconSource ? <img src={iconSource} alt="" /> : undefined;
 
   return (
     <label className={styles.authField}>

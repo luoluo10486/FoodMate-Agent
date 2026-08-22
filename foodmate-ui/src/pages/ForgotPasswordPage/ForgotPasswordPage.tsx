@@ -1,4 +1,3 @@
-import { CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -31,7 +30,11 @@ export function ForgotPasswordPage() {
     <AuthShell variant="forgot">
       <div className={styles.forgotContainer}>
         <AuthCard className={styles.forgotCard}>
-          <AuthBrand title="找回密码" subtitle="输入你的注册邮箱，我们将发送重置链接" />
+          <AuthBrand
+            title="找回密码"
+            subtitle="输入你的注册邮箱，我们将发送重置链接"
+            iconSrc="/assets/figma/auth/foodmate-forgot-leaf.svg"
+          />
           <form className={styles.authForm} onSubmit={submit}>
             <AuthField
               label="邮箱地址"
@@ -40,6 +43,7 @@ export function ForgotPasswordPage() {
               autoComplete="email"
               placeholder="example@foodmate.com"
               leadingIcon="mail"
+              leadingIconSrc="/assets/figma/auth/foodmate-forgot-mail.svg"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -54,7 +58,7 @@ export function ForgotPasswordPage() {
         <AuthCard className={`${styles.forgotCard} ${styles.successCard}`}>
           <div className={styles.successContent} data-node-id="680:298">
             <div className={styles.successIcon} aria-hidden="true" data-node-id="680:299">
-              <CheckCircle2 />
+              <img src="/assets/figma/auth/foodmate-forgot-check-circle.svg" alt="" />
             </div>
             <h1>邮件已发送</h1>
             <p>如果该邮箱已注册，你将收到重置密码的邮件。请检查你的收件箱。</p>

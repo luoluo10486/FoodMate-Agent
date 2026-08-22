@@ -1048,6 +1048,11 @@
   height: 28px;
 }
 
+.successIcon img {
+  width: 28px;
+  height: 28px;
+}
+
 .successActionButton {
   width: 100%;
   height: 46px;
