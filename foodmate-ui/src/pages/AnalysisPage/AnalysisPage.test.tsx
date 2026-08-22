@@ -48,6 +48,28 @@ describe('AnalysisPage', () => {
     expect(screen.getByText('能量摄入与目标对比')).toBeInTheDocument();
   });
 
+  it('renders the Figma filter controls and eight-session sidebar fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/analysis?state=v2');
+
+    expect(screen.getByRole('button', { name: '自定义范围' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '全部餐次' })).toBeInTheDocument();
+    [
+      '每周饮食微调',
+      '运动前零食建议',
+      '过敏原排除规则',
+      '蛋白质补充方案',
+      '睡前加餐建议',
+      '早餐碳水搭配',
+      '晚餐蛋白质补充',
+      '低碳水饮食建议',
+      '早餐奶昔配方',
+    ].forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: '全部餐次' }));
+    expect(screen.getByText('当前分析覆盖全部餐次。')).toBeInTheDocument();
+  });
+
   it('renders loading, empty, and error analysis states with recovery paths', async () => {
     const user = userEvent.setup();
     const { unmount } = renderPage('/analysis?state=loading');

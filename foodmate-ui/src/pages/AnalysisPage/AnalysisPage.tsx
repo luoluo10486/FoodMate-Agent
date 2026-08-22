@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import type { SessionSummary } from '../../types/session';
 import styles from './AnalysisPage.module.css';
 
 type RangeKey = '7d' | '30d' | '90d';
@@ -13,6 +14,18 @@ const ranges: Array<{ key: RangeKey; label: string }> = [
   { key: '7d', label: '7 天' },
   { key: '30d', label: '30 天' },
   { key: '90d', label: '90 天' },
+];
+
+const figmaSidebarSessions: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
+  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
 ];
 
 const rangeData: Record<
@@ -162,7 +175,7 @@ export function AnalysisPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const analysisState = getAnalysisState(searchParams.get('state'));
-  const isFigmaFixture = searchParams.get('state') === 'v2';
+  const isFigmaFixture = searchParams.get('state') === 'v2' || analysisState !== 'default';
   const [range, setRange] = useState<RangeKey>('7d');
   const [notice, setNotice] = useState('');
   const data = rangeData[range];
@@ -181,6 +194,10 @@ export function AnalysisPage() {
       activeModule="analysis"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined}
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      showKnowledgeTopNav={!isFigmaFixture}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       <div className={styles.page}>
         <section className={styles.analysisBody} aria-label="摄入分析">
@@ -188,8 +205,8 @@ export function AnalysisPage() {
             <div className={styles.filters} role="tablist" aria-label="分析范围">
               {ranges.map((item) => (
                 <Button
-                  variant="ghost"
                   className={range === item.key ? styles.rangeActive : ''}
+                  variant="ghost"
                   key={item.key}
                   type="button"
                   role="tab"
@@ -200,22 +217,24 @@ export function AnalysisPage() {
                   {item.label}
                 </Button>
               ))}
-              <button
+              <Button
                 className={styles.filterPill}
+                variant="ghost"
                 type="button"
                 onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
                 disabled={analysisState === 'loading' || analysisState === 'error'}
               >
                 自定义范围
-              </button>
-              <button
+              </Button>
+              <Button
                 className={styles.filterPill}
+                variant="ghost"
                 type="button"
                 onClick={() => setNotice('当前分析覆盖全部餐次。')}
                 disabled={analysisState === 'loading' || analysisState === 'error'}
               >
                 全部餐次
-              </button>
+              </Button>
             </div>
             <Button
               className={styles.exportButton}
