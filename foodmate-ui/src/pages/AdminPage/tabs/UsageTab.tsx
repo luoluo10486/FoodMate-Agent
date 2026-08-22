@@ -1,20 +1,24 @@
-import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import styles from '../AdminPage.module.css';
 import { AdminFilters, MiniStat } from './AdminComponents';
 import { adminModelUsageRows, modelUsageColumns } from './AdminShared';
-import { loadAdminDashboard } from '../../../services/adminService';
+import { ModelGovernanceSection } from './ModelGovernanceTab';
+import type { AdminActionPayload } from './types';
 
-export function UsageSection() {
-  const [rows, setRows] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminModelUsageRows);
-  useEffect(() => {
-    if (import.meta.env.VITE_AGENT_MODE === 'real')
-      loadAdminDashboard()
-        .then((d) => setRows(d.usage as typeof adminModelUsageRows))
-        .catch(() => setRows([]));
-  }, []);
+export function UsageSection({
+  onAction,
+  refreshNonce,
+}: {
+  onAction: (payload: AdminActionPayload) => void;
+  refreshNonce: number;
+}) {
+  if (import.meta.env.VITE_AGENT_MODE === 'real') {
+    return <ModelGovernanceSection onAction={onAction} refreshNonce={refreshNonce} />;
+  }
+
+  const rows = adminModelUsageRows;
   return (
     <>
       <section className={styles.sectionCards}>

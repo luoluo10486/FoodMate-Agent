@@ -108,6 +108,7 @@ export const adminNavItems: Array<{ key: string; path: string; label: string; ic
     { key: 'sql', path: '/admin/runs?tab=sql', label: 'SQL 审计', icon: <Database /> },
     { key: 'trace', path: '/admin/runs?tab=trace', label: 'Trace', icon: <GitBranch /> },
     { key: 'usage', path: '/admin/usage', label: '模型用量', icon: <Database /> },
+    { key: 'model', path: '/admin/model-governance', label: '模型治理', icon: <ShieldCheck /> },
     { key: 'knowledge', path: '/admin/knowledge', label: '知识库管理', icon: <BookOpen /> },
     { key: 'registry', path: '/admin/tools?tab=registry', label: '工具注册表', icon: <PackageCheck /> },
     { key: 'deleted', path: '/admin/deleted', label: '软删除资源', icon: <Archive />, adminOnly: true },
@@ -137,6 +138,11 @@ export const sectionMeta: Record<string, { title: string; description: string; t
   },
   tools: { title: '工具调用', description: '管理工具注册表、版本、权限范围、风险等级和启停状态。', tag: 'Tools' },
   usage: { title: '模型用量', description: '查看供应商、模型、场景、Token、成本和耗时。', tag: 'Model Usage' },
+  model: {
+    title: '模型治理',
+    description: '查看模型供应商、目录、路由、价格和预算策略；敏感凭据只显示安全摘要。',
+    tag: 'Governance',
+  },
   knowledge: { title: '知识库', description: '管理知识库文档、解析状态、索引进度和下线恢复。', tag: 'Knowledge' },
   deleted: { title: '软删除资源', description: '查看已删除业务资源，并由 admin 执行恢复操作。', tag: 'Recovery' },
   audit: {
@@ -239,6 +245,7 @@ export function getSectionKey(pathname: string, search = ''): string {
   if (pathname.endsWith('/runs')) return 'runs';
   if (pathname.endsWith('/tools')) return 'tools';
   if (pathname.endsWith('/usage')) return 'usage';
+  if (pathname.endsWith('/model-governance')) return 'model';
   if (pathname.endsWith('/knowledge')) return 'knowledge';
   if (pathname.endsWith('/deleted')) return 'deleted';
   return 'overview';

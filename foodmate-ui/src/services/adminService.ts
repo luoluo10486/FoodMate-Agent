@@ -547,7 +547,15 @@ export type KnowledgeUploadBatch = {
 export type KnowledgeBatchDetail = {
   batch: {
     job: { job_id: string; status: string; total_items: number; indexed_items: number; failed_items: number };
-    items: Array<{ item_id: string; document_id: string; filename: string; upload_status: string; index_status: string; attempts: number; error_code?: string }>;
+    items: Array<{
+      item_id: string;
+      document_id: string;
+      filename: string;
+      upload_status: string;
+      index_status: string;
+      attempts: number;
+      error_code?: string;
+    }>;
   };
 };
 
@@ -559,7 +567,10 @@ export type KnowledgeBatchEvent = {
 
 export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise<{ batch_id: string }> {
   const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const csrf = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='))?.split('=')[1];
+  const csrf = document.cookie
+    .split('; ')
+    .find((value) => value.startsWith('foodmate_csrf='))
+    ?.split('=')[1];
   const form = new FormData();
   batch.files.forEach((file) => form.append('files', file));
   form.append('source_type', batch.sourceType);
@@ -568,9 +579,16 @@ export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise
   form.append('license_notice', batch.licenseNotice);
   form.append('idempotency_key', batch.idempotencyKey);
   const response = await fetch(`${baseUrl}/api/admin/knowledge-documents/upload-batches`, {
-    method: 'POST', credentials: 'include', headers: csrf ? { 'X-CSRF-Token': csrf } : {}, body: form,
+    method: 'POST',
+    credentials: 'include',
+    headers: csrf ? { 'X-CSRF-Token': csrf } : {},
+    body: form,
   });
-  const body = (await response.json()) as { success: boolean; data?: { batch_id: string }; error?: { message?: string } };
+  const body = (await response.json()) as {
+    success: boolean;
+    data?: { batch_id: string };
+    error?: { message?: string };
+  };
   if (!response.ok || !body.success || !body.data) throw new Error(body.error?.message ?? '知识库批次上传失败');
   return body.data;
 }
@@ -578,14 +596,14 @@ export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise
 export const loadKnowledgeBatch = (batchId: string) =>
   apiRequest<KnowledgeBatchDetail>(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}`);
 
-export function streamKnowledgeBatch(
-  batchId: string,
-  onEvent: (event: KnowledgeBatchEvent) => void,
-): () => void {
+export function streamKnowledgeBatch(batchId: string, onEvent: (event: KnowledgeBatchEvent) => void): () => void {
   const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const source = new EventSource(`${baseUrl}/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/events`, {
-    withCredentials: true,
-  });
+  const source = new EventSource(
+    `${baseUrl}/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/events`,
+    {
+      withCredentials: true,
+    },
+  );
   const eventTypes = [
     'knowledge.index.indexed',
     'knowledge.index.index_failed',
@@ -612,9 +630,196 @@ export function streamKnowledgeBatch(
   };
 }
 export const retryKnowledgeItem = (batchId: string, itemId: string) =>
-  adminWrite(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/retry`, 'POST');
-export const changeKnowledgeVisibility = (documentId: string, visibility: 'published' | 'disabled' | 'draft' | 'deleted') =>
-  adminWrite(`/api/admin/knowledge-documents/${encodeURIComponent(documentId)}/${visibility === 'draft' ? 'restore' : visibility}`, 'POST');
+  adminWrite(
+    `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/retry`,
+    'POST',
+  );
+export const changeKnowledgeVisibility = (
+  documentId: string,
+  visibility: 'published' | 'disabled' | 'draft' | 'deleted',
+) =>
+  adminWrite(
+    `/api/admin/knowledge-documents/${encodeURIComponent(documentId)}/${visibility === 'draft' ? 'restore' : visibility}`,
+    'POST',
+  );
+
+export type ModelGovernanceProvider = {
+  provider_id: number;
+  provider_code: string;
+  display_name: string;
+  status: 'active' | 'disabled' | string;
+  endpoint_config_key: string;
+  configured: boolean;
+  fingerprint: string;
+  revision: number;
+};
+
+export type ModelGovernanceModel = {
+  model_id: number;
+  provider_code: string;
+  model_name: string;
+  model_type: string;
+  status: 'active' | 'disabled' | string;
+  context_tokens: number | null;
+  max_output_tokens: number | null;
+  timeout_ms: number;
+  revision: number;
+};
+
+export type ModelGovernanceRoute = {
+  route_id: number;
+  tenant_id: number;
+  scene: string;
+  model_type: string;
+  provider_code: string;
+  model_name: string;
+  fallback_provider_code: string | null;
+  fallback_model_name: string | null;
+  priority: number;
+  route_version: string;
+  price_version: string;
+  budget_policy_version: string;
+  max_cost: number | string | null;
+  max_latency_ms: number | null;
+  status: 'active' | 'disabled' | string;
+  revision: number;
+};
+
+export type ModelGovernancePrice = {
+  price_version_id: number;
+  provider_code: string;
+  model_name: string;
+  price_version: string;
+  input_price_per_million: number | string;
+  output_price_per_million: number | string;
+  currency: string;
+  status: string;
+  effective_at: string;
+};
+
+export type ModelGovernanceBudget = {
+  budget_policy_id: number;
+  policy_key: string;
+  scene: string;
+  scope_type: string;
+  max_total_tokens: number;
+  max_cost_cny: number | string;
+  max_model_calls: number;
+  max_step_retries: number;
+  window_type: string;
+  policy_version: string;
+  status: string;
+  revision: number;
+};
+
+export type ModelGovernanceUsage = {
+  provider_code: string;
+  model_name: string;
+  scene: string;
+  status: string;
+  calls: number;
+  total_tokens: number;
+  total_cost: number | string;
+  average_latency_ms: number | string;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+};
+
+export type ModelGovernanceView = {
+  providers: ModelGovernanceProvider[];
+  models: ModelGovernanceModel[];
+  routes: ModelGovernanceRoute[];
+  prices: ModelGovernancePrice[];
+  budgets: ModelGovernanceBudget[];
+  usage: ModelGovernanceUsage[];
+};
+
+type ModelGovernanceMutation = {
+  changed: boolean;
+  resource_id: number;
+  version: string;
+  revision: number;
+};
+
+function randomIdempotencyKey(prefix: string) {
+  const suffix = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${suffix}`;
+}
+
+async function confirmationDigest(action: string, target: string, value: string, revision: number) {
+  const input = new TextEncoder().encode(`${action}|${target}|${value}|${revision}`);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', input);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function modelGovernanceWrite<T>(
+  path: string,
+  method: 'PATCH' | 'PUT',
+  payload: object,
+  idempotencyPrefix: string,
+) {
+  return apiRequest<T>(path, {
+    method,
+    headers: { 'Idempotency-Key': randomIdempotencyKey(idempotencyPrefix) },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function loadModelGovernance(): Promise<ModelGovernanceView> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real model governance API is disabled');
+  return apiRequest<ModelGovernanceView>('/api/admin/model-governance');
+}
+
+export async function updateModelProviderStatus(provider: ModelGovernanceProvider, status: string) {
+  const action = 'model.provider.status.update';
+  const target = provider.provider_code;
+  const digest = await confirmationDigest(action, target, status, provider.revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    `/api/admin/model-governance/providers/${encodeURIComponent(provider.provider_code)}/status`,
+    'PATCH',
+    { status, revision: provider.revision, confirmed: true, confirmationDigest: digest },
+    'model-provider-status',
+  );
+}
+
+export async function updateModelCatalogStatus(model: ModelGovernanceModel, status: string) {
+  const action = 'model.catalog.status.update';
+  const target = String(model.model_id);
+  const digest = await confirmationDigest(action, target, status, model.revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    `/api/admin/model-governance/models/${encodeURIComponent(model.model_id)}/status`,
+    'PATCH',
+    { status, revision: model.revision, confirmed: true, confirmationDigest: digest },
+    'model-catalog-status',
+  );
+}
+
+export async function updateModelRoute(route: ModelGovernanceRoute, status: string) {
+  const action = 'model.route.update';
+  const target = String(route.route_id);
+  const digest = await confirmationDigest(action, target, route.route_version, route.revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    `/api/admin/model-governance/routes/${encodeURIComponent(route.route_id)}`,
+    'PUT',
+    {
+      providerCode: route.provider_code,
+      modelName: route.model_name,
+      fallbackProviderCode: route.fallback_provider_code,
+      fallbackModelName: route.fallback_model_name,
+      priority: route.priority,
+      routeVersion: route.route_version,
+      priceVersion: route.price_version,
+      budgetPolicyVersion: route.budget_policy_version,
+      maxCost: route.max_cost,
+      maxLatencyMs: route.max_latency_ms,
+      status,
+      revision: route.revision,
+      confirmed: true,
+      confirmationDigest: digest,
+    },
+    'model-route-update',
+  );
+}
 
 export {
   adminAuditRows,

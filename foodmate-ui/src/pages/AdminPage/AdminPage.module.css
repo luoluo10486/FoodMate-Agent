@@ -2433,6 +2433,151 @@
 .blue strong {
   color: #5da9b2;
 }
+.purple strong {
+  color: #8b78c8;
+}
+
+.modelGovernanceSurface {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.modelGovernanceState,
+.modelGovernanceReadOnly {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 16px;
+  color: #6b7280;
+}
+
+.modelGovernanceState {
+  justify-content: space-between;
+}
+
+.modelGovernanceReadOnly {
+  border: 1px solid #f1ddaf;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: #9c783e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modelGovernanceMuted {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.modelGovernanceGrid,
+.modelGovernanceSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.modelGovernanceSummaryGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.modelGovernanceTable,
+.modelGovernanceTableWide {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.modelGovernanceTable h2,
+.modelGovernanceSummaryGrid h2 {
+  margin: 0 0 10px;
+  color: #333333;
+  font-size: 14px;
+}
+
+.modelGovernanceTableHeader,
+.modelGovernanceTableRow {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.3fr) minmax(100px, 1fr) minmax(100px, 1fr) 72px;
+  gap: 12px;
+  min-width: 580px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.modelGovernanceTableWide .modelGovernanceTableHeader,
+.modelGovernanceTableWide .modelGovernanceTableRow {
+  grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.3fr) minmax(140px, 1.2fr) 100px 90px 72px;
+  min-width: 820px;
+}
+
+.modelGovernanceTableHeader {
+  background: #f4f6f5;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.modelGovernanceTableRow {
+  min-height: 52px;
+  border-bottom: 1px solid #f0f2f1;
+  color: #555c58;
+  font-size: 12px;
+}
+
+.modelGovernanceTableRow:last-child {
+  border-bottom: 0;
+}
+
+.modelGovernanceTableRow > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelGovernanceTableRow strong,
+.modelGovernanceSummaryGrid strong {
+  overflow: hidden;
+  color: #333333;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelGovernanceTableRow button {
+  justify-self: end;
+}
+
+.modelGovernanceEmpty {
+  margin: 0;
+  padding: 18px 12px;
+  color: #8a918d;
+  text-align: center;
+}
+
+.modelGovernanceSummaryGrid > div {
+  min-width: 0;
+}
+
+.modelGovernanceSummaryGrid p {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f1;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.modelGovernanceSummaryGrid p:last-child {
+  border-bottom: 0;
+}
 
 .filters {
   display: flex;

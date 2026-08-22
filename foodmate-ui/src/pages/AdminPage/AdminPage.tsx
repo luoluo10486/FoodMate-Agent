@@ -19,6 +19,7 @@ import { OverviewSection } from './tabs/OverviewTab';
 import { RunsSection } from './tabs/RunsTab';
 import { ToolsSection } from './tabs/ToolsTab';
 import { UsageSection } from './tabs/UsageTab';
+import { ModelGovernanceSection } from './tabs/ModelGovernanceTab';
 import { UsersSection } from './tabs/UsersTab';
 import { AdminOperationStatus } from './tabs/AdminOperationStatus';
 import { OperationAuditSection } from './tabs/OperationAuditTab';
@@ -630,7 +631,9 @@ function renderSection(
     case 'tools':
       return <ToolsSection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />;
     case 'usage':
-      return <UsageSection />;
+      return <UsageSection onAction={onAction} refreshNonce={refreshNonce} />;
+    case 'model':
+      return <ModelGovernanceSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'knowledge':
       return <KnowledgeSection onAction={onAction} />;
     case 'deleted':
@@ -867,9 +870,11 @@ export function AdminPage() {
                         ? '用户管理'
                         : sectionKey === 'knowledge'
                           ? '知识库管理'
-                          : sectionKey === 'audit'
-                            ? '操作审计'
-                            : '管理控制台'}
+                          : sectionKey === 'model'
+                            ? '模型治理'
+                            : sectionKey === 'audit'
+                              ? '操作审计'
+                              : '管理控制台'}
             </strong>
             {isDetailFixture || sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
               <span className={styles.envBadge}>生产环境</span>
