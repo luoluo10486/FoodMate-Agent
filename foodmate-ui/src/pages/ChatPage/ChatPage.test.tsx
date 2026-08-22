@@ -311,6 +311,15 @@ describe('ChatPage Figma session operation fixtures', () => {
     expect(screen.getByRole('dialog', { name: title })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: action })).toBeInTheDocument();
     expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
+    if (state === 'renamed') {
+      expect(screen.getByText('SAVED')).toBeInTheDocument();
+      expect(screen.getByText('列表已同步，可继续查看此会话')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '关闭重命名结果' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: '关闭重命名结果' }));
+      expect(screen.queryByRole('dialog', { name: '会话已重命名' })).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('已关闭重命名结果。');
+    }
   });
 });
 

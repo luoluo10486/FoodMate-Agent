@@ -1718,9 +1718,120 @@
   font-weight: 500;
 }
 
-.sessionRenamedOverlay {
-  width: min(560px, calc(100vw - 80px));
-  min-height: 220px;
+.sessionRenamedBackdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.sessionRenamedCard {
+  position: absolute;
+  top: 300px;
+  left: 280px;
+  width: 620px;
+  height: 244px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(166 217 151 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+}
+
+.sessionRenamedAccent {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 244px;
+  border-radius: 3px;
+  background: rgb(166 217 151 / 90%);
+}
+
+.sessionRenamedCard h2 {
+  position: absolute;
+  top: 47px;
+  left: 31px;
+  margin: 0;
+  color: #89b27c;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.sessionRenamedCard > p {
+  position: absolute;
+  top: 85px;
+  left: 31px;
+  width: 520px;
+  margin: 0;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.sessionRenamedSync {
+  position: absolute;
+  top: 131px;
+  left: 31px;
+  width: 470px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sessionRenamedStatus {
+  position: absolute;
+  top: 15px;
+  right: 33px;
+  display: grid;
+  width: 144px;
+  height: 24px;
+  place-items: center;
+  border-radius: 12px;
+  background: #dfeedb;
+  color: #89b27c;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.sessionRenamedClose {
+  position: absolute;
+  top: 13px;
+  right: 16px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(166 217 151 / 24%);
+  border-radius: 14px;
+  background: #ecf7ed;
+  color: rgb(137 178 124 / 90%);
+}
+
+.sessionRenamedClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sessionRenamedBack {
+  position: absolute;
+  top: 167px;
+  left: 31px;
+  width: 148px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #89b27c;
+  border-radius: 12px;
+  background: #a6d997;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
 }
 
 .sessionTrashOverlay {
@@ -1736,5 +1847,10 @@
 
   .sessionResultOverlay {
     transform: none;
+  }
+
+  .sessionRenamedCard {
+    left: 50%;
+    transform: translateX(-50%);
   }
 }

@@ -857,13 +857,38 @@ function SessionStateOverlay({
     );
   }
 
+  if (state === 'renamed') {
+    return (
+      <div className={styles.sessionRenamedBackdrop}>
+        <Card className={styles.sessionRenamedCard} role="dialog" aria-modal="true" aria-label="会话已重命名">
+          <span className={styles.sessionRenamedAccent} aria-hidden="true" />
+          <span className={styles.sessionRenamedStatus}>SAVED</span>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={styles.sessionRenamedClose}
+            aria-label="关闭重命名结果"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
+          </Button>
+          <h2>会话已重命名</h2>
+          <p>“每周饮食微调”已更新为“本周饮食分析”。</p>
+          <span className={styles.sessionRenamedSync}>列表已同步，可继续查看此会话</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={styles.sessionRenamedBack}
+            onClick={() => onAction('已返回会话列表。')}
+          >
+            返回会话列表
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   const content = {
-    renamed: {
-      title: '会话已重命名',
-      description: '“每周饮食微调”已更新为“本周饮食分析”。',
-      detail: undefined,
-      action: '返回会话列表',
-    },
     archived: {
       title: '已归档会话',
       description: '本页显示已归档的会话，可恢复到 Agent 对话列表。',
@@ -880,7 +905,7 @@ function SessionStateOverlay({
   return (
     <div className={styles.sessionResultBackdrop}>
       <Card
-        className={`${styles.sessionResultOverlay} ${state === 'renamed' ? styles.sessionRenamedOverlay : ''} ${state === 'trash' ? styles.sessionTrashOverlay : ''}`}
+        className={`${styles.sessionResultOverlay} ${state === 'trash' ? styles.sessionTrashOverlay : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={content.title}
@@ -956,7 +981,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
             onAction={setNotice}
             onClose={() => {
               setSessionOverlayVisible(false);
-              setNotice('已关闭会话管理面板。');
+              setNotice(state === 'session-actions' ? '已关闭会话管理面板。' : '已关闭重命名结果。');
             }}
           />
         ) : undefined
