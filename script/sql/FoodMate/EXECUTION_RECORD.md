@@ -498,3 +498,19 @@
 | 最终 Java 结果 | BUILD SUCCESS；Shared `12/12`、Application `157/157`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）；Spotless、编译和 Spring Boot repackage 均通过。 |
 | 数字更正 | D2 的 Application `156/156` 是当时记录值；以本次最终复核的 `157/157` 为准，未改写历史执行记录。 |
 | 结论 | 当前业务代码 Java 门禁保持通过；性能压测、组件重启、ACK/重复投递故障注入、SSE Last-Event-ID 专项和生产范围仍按用户决定暂缓。 |
+
+## M2-1 deterministic 宿主跨运行时业务 smoke（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 06:39-06:57（Asia/Shanghai） |
+| 环境 | Windows；宿主 Java 21 `18080`；项目 `agent-runtime\\.venv` Python `19000`；Docker PostgreSQL、Redis、MinIO、RocketMQ NameServer/Broker/Proxy、Milvus 依赖保持 healthy；未调用真实模型或 embedding API |
+| 配置 | Java 使用 `local + rocketmq + stub + deterministic`；Python 显式启用 `FOODMATE_KNOWLEDGE_INDEX_WORKER_ENABLED=true`、MinIO 读取和隔离 Redis 前缀；Python readiness HTTP 200，Redis/checkpoint/RocketMQ consumer 均 ready |
+| 上传与索引 | 管理员批次 multipart 上传真实返回 `202`；Java `knowledge_index_outbox` 发布到 `foodmate-knowledge-index-v1`；Python Worker 从 MinIO 读取 Markdown、解析/分块、写入 Redis stub；`foodmate-knowledge-index-result-v1` 回写后批次 `completed`、条目 `indexed`、attempt `1` |
+| 发布与检索 | 发布接口成功；公共检索按 `tenant_id=0/public_published` 返回当前文档安全引用，未暴露对象键或地址；同查询中的历史 smoke 文档通过按 `document_id` 复核排除 |
+| AgentRun | 真实 Java -> RocketMQ -> Python -> Java 路径完成 3 个 deterministic AgentRun；有效收尾 Run 事件 6 条连续、状态 `completed`、`result_type=normal`、`run.completed` 包含 2 条引用，模型成本为 `0` |
+| 可见性 | 当前文档下线后该文档不再出现在检索结果；恢复接口只回到 `draft`，恢复后仍不可检索；visibility Outbox 由 Java 权威状态产生并由 Worker 投影 |
+| 失败记录与修正 | 首次脚本因 Python Worker 未显式启用停在 `uploaded/pending`，重启项目 `.venv` Runtime 后自动收敛；重复来源/版本/标题被 PostgreSQL 唯一约束正确拒绝；脚本先误读 camelCase 批次字段、后误把其他 smoke 文档命中计入下线断言，均修正为按业务字段和 `document_id` 断言 |
+| 清理 | 精确删除本轮 operator `349684404412485632`、5 个批次/条目/文档、3 个 AgentRun、Session、消息、Outbox/Inbox/SSE/统一审计事实；MinIO 5 个测试对象确认不存在；Redis 隔离 chunks、5 条 Worker 完成事实和 3 个 checkpoint 删除；PostgreSQL 复核 user/jobs/docs/runs/sessions 均为 `0` |
+| 未执行范围 | Docker Java/Python 应用镜像构建与启动、真实 embedding/云模型、吞吐/延迟/积压压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、SSE `Last-Event-ID` 故障恢复、备份恢复和生产环境继续暂缓 |
+| 结论 | M2-1 deterministic 公共知识库的上传 -> Java Outbox -> RocketMQ -> Python Worker -> Java 状态回写 -> 发布 -> 用户检索 -> AgentRun 引用 -> 下线/恢复业务闭环具备本轮真实证据；不据此扩大后置测试或生产完成范围 |
