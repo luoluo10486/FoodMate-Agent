@@ -5,7 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import type { SessionSummary } from '../../types/session';
-import { loadMealPlans, loadShoppingList, type MealPlan, type ShoppingList } from '../../services/planningService';
+import {
+  createMealPlan,
+  loadMealPlans,
+  loadShoppingList,
+  type MealPlan,
+  type MealPlanDraft,
+  type ShoppingList,
+} from '../../services/planningService';
 import { MealPlanningFlow, type MealPlanningFlowView } from './MealPlanningFlow';
 import styles from './PlanningPage.module.css';
 
@@ -27,6 +34,17 @@ const mealSlots = [
   { key: 'lunch', label: '午餐' },
   { key: 'dinner', label: '晚餐' },
 ] as const;
+
+const initialMealPlanDraft: MealPlanDraft = {
+  planName: '我的本地餐食计划',
+  startDate: '2026-08-24',
+  endDate: '2026-08-30',
+  calories: '2200',
+  protein: '130',
+  budget: '120',
+  allergens: [],
+  dislikes: [],
+};
 
 function objectValue(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
@@ -484,6 +502,9 @@ export function PlanningPage() {
   const [realError, setRealError] = useState<string>();
   const [realShoppingList, setRealShoppingList] = useState<ShoppingList>();
   const [realShoppingLoading, setRealShoppingLoading] = useState(false);
+  const [realDraft, setRealDraft] = useState<MealPlanDraft>(initialMealPlanDraft);
+  const [creatingPlan, setCreatingPlan] = useState(false);
+  const [createPlanError, setCreatePlanError] = useState<string>();
 
   useEffect(() => {
     if (!isRealMode) return;
@@ -543,13 +564,43 @@ export function PlanningPage() {
 
   const openRealPlan = (mealPlanId: string) => navigate(`/planning?planId=${encodeURIComponent(mealPlanId)}`);
 
+  const updateRealDraft = (patch: Partial<MealPlanDraft>) => {
+    setCreatePlanError(undefined);
+    setRealDraft((current) => ({ ...current, ...patch }));
+  };
+
+  const submitRealPlan = async () => {
+    if (creatingPlan) return;
+    setCreatingPlan(true);
+    setCreatePlanError(undefined);
+    try {
+      const created = await createMealPlan(realDraft);
+      setRealPlans((current) => [created, ...current.filter((plan) => plan.meal_plan_id !== created.meal_plan_id)]);
+      navigate(`/planning?planId=${encodeURIComponent(created.meal_plan_id)}`);
+    } catch (error: unknown) {
+      setCreatePlanError(error instanceof Error ? error.message : '计划创建失败，请检查参数后重试');
+    } finally {
+      setCreatingPlan(false);
+    }
+  };
+
   const content = isRealMode ? (
     realLoading ? (
       <PlanLoadingView />
     ) : realError ? (
       <PlanningFeedbackView kind="error" onPrimary={() => navigate('/planning')} onSecondary={() => navigate('/')} />
     ) : view === 'list' ? (
-      <MealPlanningFlow view="list" onNavigate={navigatePlanningView} realPlans={realPlans} onOpenPlan={openRealPlan} />
+      <MealPlanningFlow
+        view="list"
+        onNavigate={navigatePlanningView}
+        realPlans={realPlans}
+        onOpenPlan={openRealPlan}
+        realDraft={realDraft}
+        onDraftChange={updateRealDraft}
+        onCreatePlan={() => void submitRealPlan()}
+        creatingPlan={creatingPlan}
+        createError={createPlanError}
+      />
     ) : view === 'empty' || realPlans.length === 0 ? (
       <PlanningFeedbackView kind="empty" onPrimary={() => navigate('/chat?prompt=请为我创建本周餐食规划')} />
     ) : view === 'wizard-step1' ||
@@ -558,7 +609,17 @@ export function PlanningPage() {
       view === 'conflict' ||
       view === 'shopping-list' ||
       view === 'generating' ? (
-      <MealPlanningFlow view={view} onNavigate={navigatePlanningView} realPlans={realPlans} onOpenPlan={openRealPlan} />
+      <MealPlanningFlow
+        view={view}
+        onNavigate={navigatePlanningView}
+        realPlans={realPlans}
+        onOpenPlan={openRealPlan}
+        realDraft={realDraft}
+        onDraftChange={updateRealDraft}
+        onCreatePlan={() => void submitRealPlan()}
+        creatingPlan={creatingPlan}
+        createError={createPlanError}
+      />
     ) : (
       <DefaultPlanningView plan={selectedPlan} />
     )

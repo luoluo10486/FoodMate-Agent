@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { MealPlan } from '../../services/planningService';
+import type { MealPlan, MealPlanDraft } from '../../services/planningService';
 import styles from './MealPlanningFlow.module.css';
 
 export type MealPlanningFlowView =
@@ -89,6 +89,204 @@ function realPlanCard(plan: MealPlan): PlanCard {
     level: '服务端计划',
     updated: `最后修改: ${updated}`,
   };
+}
+
+function RealWizardStep({
+  step,
+  draft,
+  onDraftChange,
+  onNavigate,
+  onCreate,
+  creating,
+  error,
+}: {
+  step: 1 | 2 | 3;
+  draft: MealPlanDraft;
+  onDraftChange: (patch: Partial<MealPlanDraft>) => void;
+  onNavigate: NavigateToView;
+  onCreate: () => void;
+  creating: boolean;
+  error?: string;
+}) {
+  const updateList = (field: 'allergens' | 'dislikes', value: string) => {
+    const normalized = value.trim();
+    if (!normalized || draft[field].includes(normalized)) return;
+    onDraftChange({ [field]: [...draft[field], normalized] });
+  };
+
+  if (step === 1) {
+    return (
+      <div className={styles.wizardPage}>
+        <FlowStepper currentStep={1} onNavigate={onNavigate} />
+        <div className={styles.wizardGrid}>
+          <section className={styles.wizardCard} aria-labelledby="real-wizard-step-one-title">
+            <h1 id="real-wizard-step-one-title">步骤 1: 设置基本目标</h1>
+            <div className={styles.formGrid}>
+              <Field label="计划名称" className={styles.fieldFull}>
+                <Input value={draft.planName} onChange={(event) => onDraftChange({ planName: event.target.value })} />
+              </Field>
+              <Field label="开始日期">
+                <Input
+                  type="date"
+                  value={draft.startDate}
+                  onChange={(event) => onDraftChange({ startDate: event.target.value })}
+                />
+              </Field>
+              <Field label="结束日期">
+                <Input
+                  type="date"
+                  value={draft.endDate}
+                  onChange={(event) => onDraftChange({ endDate: event.target.value })}
+                />
+              </Field>
+              <Field label="每日能量目标">
+                <UnitInput
+                  value={draft.calories}
+                  unit="kcal"
+                  onChange={(value) => onDraftChange({ calories: value })}
+                />
+              </Field>
+              <Field label="每日蛋白质目标">
+                <UnitInput value={draft.protein} unit="g" onChange={(value) => onDraftChange({ protein: value })} />
+              </Field>
+              <Field label="每日支出预算 (RMB)" className={styles.fieldFull}>
+                <UnitInput value={draft.budget} unit="元/天" onChange={(value) => onDraftChange({ budget: value })} />
+              </Field>
+            </div>
+            <div className={styles.wizardActions}>
+              <FlowButton variant="outline" onClick={() => onNavigate('list')}>
+                取消
+              </FlowButton>
+              <FlowButton onClick={() => onNavigate('wizard-step2')}>下一步: 膳食约束</FlowButton>
+            </div>
+          </section>
+          <ValidationPanel step={1} />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div className={styles.wizardPage}>
+        <FlowStepper currentStep={2} onNavigate={onNavigate} />
+        <div className={styles.wizardGrid}>
+          <section className={styles.wizardCard} aria-labelledby="real-wizard-step-two-title">
+            <h1 id="real-wizard-step-two-title">步骤 2: 设置膳食约束</h1>
+            <div className={styles.preferenceBlock}>
+              <span className={styles.blockLabel}>过敏源</span>
+              <div className={styles.allergyRow}>
+                {draft.allergens.map((item) => (
+                  <Button
+                    className={styles.allergyChip}
+                    key={item}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => onDraftChange({ allergens: draft.allergens.filter((value) => value !== item) })}
+                  >
+                    {item} <X aria-hidden="true" />
+                  </Button>
+                ))}
+                <Button
+                  className={styles.addAllergy}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => updateList('allergens', '坚果')}
+                >
+                  + 添加过敏源
+                </Button>
+              </div>
+            </div>
+            <div className={styles.preferenceBlock}>
+              <span className={styles.blockLabel}>忌口</span>
+              <div className={styles.allergyRow}>
+                {draft.dislikes.map((item) => (
+                  <Button
+                    className={styles.allergyChip}
+                    key={item}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => onDraftChange({ dislikes: draft.dislikes.filter((value) => value !== item) })}
+                  >
+                    {item} <X aria-hidden="true" />
+                  </Button>
+                ))}
+                <Button
+                  className={styles.addAllergy}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => updateList('dislikes', '猪肉')}
+                >
+                  + 添加忌口
+                </Button>
+              </div>
+            </div>
+            <div className={styles.wizardActions}>
+              <FlowButton variant="outline" onClick={() => onNavigate('wizard-step1')}>
+                上一步
+              </FlowButton>
+              <FlowButton onClick={() => onNavigate('wizard-step3')}>下一步: 确认并生成</FlowButton>
+            </div>
+          </section>
+          <ValidationPanel step={2} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.wizardPage}>
+      <FlowStepper currentStep={3} onNavigate={onNavigate} />
+      <div className={styles.wizardGrid}>
+        <section className={styles.wizardCard} aria-labelledby="real-wizard-step-three-title">
+          <h1 id="real-wizard-step-three-title">步骤 3: 确认并创建计划</h1>
+          <p className={styles.wizardIntro}>创建后先保存为草稿，服务端会按当前约束返回可继续编辑的计划。</p>
+          <div className={styles.confirmSummary}>
+            <div className={styles.confirmTitleRow}>
+              <strong>计划名称</strong>
+              <span>{draft.planName || '我的餐食计划'}</span>
+            </div>
+            <div className={styles.confirmGrid}>
+              <div>
+                <small>规划日期范围</small>
+                <strong>
+                  {draft.startDate} 至 {draft.endDate}
+                </strong>
+              </div>
+              <div>
+                <small>能量/蛋白目标</small>
+                <strong>
+                  {draft.calories || '未设置'} kcal / {draft.protein || '未设置'}g
+                </strong>
+              </div>
+              <div>
+                <small>每日预算</small>
+                <strong>{draft.budget || '未设置'} 元</strong>
+              </div>
+              <div>
+                <small>过敏源 / 忌口</small>
+                <strong>{[...draft.allergens, ...draft.dislikes].join('、') || '无'}</strong>
+              </div>
+            </div>
+          </div>
+          {error ? (
+            <p className={styles.wizardIntro} role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div className={styles.wizardActions}>
+            <FlowButton variant="outline" onClick={() => onNavigate('wizard-step2')}>
+              上一步
+            </FlowButton>
+            <FlowButton disabled={creating} onClick={onCreate}>
+              {creating ? '正在创建...' : '创建并保存计划'}
+            </FlowButton>
+          </div>
+        </section>
+        <ValidationPanel step={3} />
+      </div>
+    </div>
+  );
 }
 
 const shoppingCategories = [
@@ -832,13 +1030,37 @@ export function MealPlanningFlow({
   onNavigate,
   realPlans,
   onOpenPlan,
+  realDraft,
+  onDraftChange,
+  onCreatePlan,
+  creatingPlan = false,
+  createError,
 }: {
   view: MealPlanningFlowView;
   onNavigate: NavigateToView;
   realPlans?: MealPlan[];
   onOpenPlan?: (mealPlanId: string) => void;
+  realDraft?: MealPlanDraft;
+  onDraftChange?: (patch: Partial<MealPlanDraft>) => void;
+  onCreatePlan?: () => void;
+  creatingPlan?: boolean;
+  createError?: string;
 }) {
   if (view === 'list') return <PlanListView onNavigate={onNavigate} realPlans={realPlans} onOpenPlan={onOpenPlan} />;
+  if (realPlans && realDraft && onDraftChange && onCreatePlan) {
+    if (view === 'wizard-step1' || view === 'wizard-step2' || view === 'wizard-step3')
+      return (
+        <RealWizardStep
+          step={view === 'wizard-step1' ? 1 : view === 'wizard-step2' ? 2 : 3}
+          draft={realDraft}
+          onDraftChange={onDraftChange}
+          onNavigate={onNavigate}
+          onCreate={onCreatePlan}
+          creating={creatingPlan}
+          error={createError}
+        />
+      );
+  }
   if (view === 'wizard-step1') return <WizardStepOne onNavigate={onNavigate} />;
   if (view === 'wizard-step2') return <WizardStepTwo onNavigate={onNavigate} />;
   if (view === 'wizard-step3') return <WizardStepThree onNavigate={onNavigate} />;

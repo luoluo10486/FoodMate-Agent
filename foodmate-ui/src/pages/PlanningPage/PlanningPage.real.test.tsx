@@ -2,10 +2,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadMealPlans, loadShoppingList } from '../../services/planningService';
+import { createMealPlan, loadMealPlans, loadShoppingList } from '../../services/planningService';
 import { PlanningPage } from './PlanningPage';
 
 vi.mock('../../services/planningService', () => ({
+  createMealPlan: vi.fn(),
   loadMealPlans: vi.fn(),
   loadShoppingList: vi.fn(),
 }));
@@ -102,5 +103,21 @@ describe('PlanningPage real mode', () => {
     expect(screen.getByText('服务端豆腐')).toBeInTheDocument();
     expect(await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).toBeInTheDocument();
     expect(screen.queryByText('燕麦莓果碗')).not.toBeInTheDocument();
+  });
+
+  it('submits the real wizard to create a server plan', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createMealPlan).mockResolvedValue({ ...plan, meal_plan_id: '702', plan_name: '新建服务端计划' });
+    renderPage('/planning?state=list');
+
+    await user.click(await screen.findByRole('button', { name: '新建膳食计划' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 膳食约束' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 确认并生成' }));
+    await user.click(screen.getByRole('button', { name: '创建并保存计划' }));
+
+    await waitFor(() =>
+      expect(createMealPlan).toHaveBeenCalledWith(expect.objectContaining({ planName: '我的本地餐食计划' })),
+    );
+    expect(await screen.findByRole('heading', { name: '新建服务端计划' })).toBeInTheDocument();
   });
 });
