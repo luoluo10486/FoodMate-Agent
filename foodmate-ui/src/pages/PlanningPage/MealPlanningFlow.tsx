@@ -662,7 +662,11 @@ function PlanListView({
   const planCards: PlanCard[] = realPlans
     ? realPlans.map(realPlanCard)
     : plans.map((plan) => ({ ...plan, id: plan.name }));
-  const visiblePlans = planCards.filter((plan) => plan.statusTone === tab);
+  const visiblePlans = realPlans
+    ? planCards.filter((plan) => plan.statusTone === tab)
+    : tab === 'active'
+      ? planCards
+      : planCards.filter((plan) => plan.statusTone === tab);
 
   return (
     <div className={`${styles.flowPage} ${styles.listPage}`}>

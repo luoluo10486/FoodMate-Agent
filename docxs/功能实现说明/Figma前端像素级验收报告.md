@@ -123,7 +123,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | 冲突解决 | `692:3375` | `/planning?state=conflict` | `meal-plan-conflict-figma.png` | `meal-plan-conflict-browser-stable-rgba.png` | 37.28% | 25.12 | `DIFF_REVIEW` |
 | 购物清单 | `692:3569` | `/planning?state=shopping-list` | `meal-plan-shopping-list-figma.png` | `meal-plan-shopping-list-browser-stable-rgba.png` | 24.35% | 17.23 | `DIFF_REVIEW` |
 | 生成中 | `692:3746` | `/planning?state=generating` | `meal-plan-generating-figma.png` | `meal-plan-generating-browser-stable-rgba.png` | 13.69% | 16.84 | `DIFF_REVIEW` |
-| 计划列表 | `692:2662` | `/planning?state=list` | `meal-plan-list-figma.png` | `meal-plan-list-browser-stable-rgba.png` | 43.22% | 19.78 | `DIFF_REVIEW` |
+| 计划列表 | `692:2662` | `/planning?state=list` | `meal-plan-list-figma.png` | `meal-plan-list-browser-current-rgba.png` | 28.2844% | 19.40 | `DIFF_REVIEW` |
 
 浏览器 smoke 已实际确认：向导步骤推进和取消生成、冲突方案应用、购物清单初始采购数量及导出反馈均可操作；七个入口均无页面级横向溢出。流程 fixture 只复现前端设计状态，不代表真实餐食生成、冲突解决、购物清单持久化或异步任务后端闭环完成。
 
@@ -474,6 +474,26 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 使用 Figma 节点返回的真实 SVG 资产；标准按钮继续使用 shadcn `Button`。
 - [ ] 三态仍不能标记 `PASS`：自动 diff 仍存在差异，完整 105 画板人工视觉复核也未关闭。
 - [ ] iconfont 实体资源继续为 `BLOCKED`，本轮没有创建字体包、CSS/Unicode 映射或伪造许可证信息。
+
+## 51. 2026-08-23 餐食规划列表默认态卡片复核
+
+本轮重新读取 Figma 节点 `692:2662`，并修正 `/planning?state=list` 前端 fixture 的默认展示规则。Figma 默认画板在“进行中”标签选中时仍同时呈现进行中、草稿和已归档三张计划卡；原实现只呈现进行中卡片，造成主内容区域与 Figma 不一致。当前实现默认展示三张卡，切换到“草稿箱”或“已归档”后继续按状态筛选；真实模式仍按服务端计划状态筛选。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点与视口 | `692:2662`，`1440×1024` |
+| 前端入口 | `/planning?state=list` |
+| 浏览器检查 | 字体 `loaded`；三张计划卡、三种状态标签、进入计划和更多操作均存在；`document/body` 无横向溢出 |
+| Figma 参考 | `docxs/设计/figma-png/meal-plan-list.png` |
+| 浏览器 RGBA | `foodmate-ui/.qa/figma-pixel-acceptance/meal-plan-list-browser-current-rgba.png` |
+| diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/meal-plan-list-current-diff.json`、`figma-105-diff-results.json#meal-plan-list` |
+| PNG diff | `differentRatio=28.28437%`、`MAE=3.94548`、`RMSE=19.39610`，保持 `DIFF_REVIEW` |
+| 行为回归 | `PlanningPage.test.tsx`：`8/8`；`npm run typecheck`、Prettier、`git diff --check` 通过 |
+
+- [x] 本轮仅修改前端列表默认展示逻辑和对应测试；Figma 设计稿未修改。
+- [x] 前端左上角红、黄、绿窗口装饰点检查结果为 `0`；业务状态圆点不属于窗口装饰点，继续保留。
+- [ ] 该画板仍不能标记 `PASS`：卡片几何、内容密度、字体和图标光栅化仍存在差异；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮未创建虚构字体、Unicode 或 CSS 映射。
 
 ## 60. 2026-08-23 Intake Analysis 当前版本验收证据更新
 
