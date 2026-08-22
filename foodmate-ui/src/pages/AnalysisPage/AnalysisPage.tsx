@@ -78,7 +78,7 @@ function LoadingMetrics() {
   ] as const;
 
   return (
-    <section className={styles.metrics} aria-label="分析摘要加载中" aria-busy="true">
+    <section className={`${styles.metrics} ${styles.loadingMetrics}`} aria-label="分析摘要加载中" aria-busy="true">
       {skeletons.map((item) => (
         <article className={styles.metricCard} key={item.label}>
           <span>{item.label}</span>

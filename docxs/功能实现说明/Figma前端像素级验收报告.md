@@ -560,3 +560,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体 `loaded`、根节点无横向溢出、文字越界 `0`；前端左上角红黄绿窗口装饰点仍为 `0`，Figma 设计稿未修改。
 - [x] `scripts/png-diff.mjs` 同尺寸结果：`differentPixels=177158`、差异比例 `12.0143%`、`MAE=1.5468`、`RMSE=12.2186`、最大通道差异 `230`；独立结果见 `intake-analysis-error-current-diff.json`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，剩余差异主要为头像、侧栏/图标光栅化和字体渲染；不能标记像素级 `PASS`。iconfont 继续为 `BLOCKED`。
+
+## 70. 2026-08-23 摄入分析加载态指标骨架对齐
+
+- [x] 实时读取 Figma 节点 `692:1901`，前端入口为 `/analysis?state=loading`；Figma 参考图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-loading-current.png`。
+- [x] 按 Figma 结构新增 loading 专用指标区域：三张卡均为 `126px` 高，卡内保持 `20px` padding、`12px` 间距、`32px` 主骨架和 `16px` 详情骨架；普通分析指标卡不受影响。
+- [x] 浏览器实测三张指标卡均为 `126px` 高，指标容器为 `1116×126px`；视口为 `1440×1024`，字体加载完成，页面无横向溢出。
+- [x] 浏览器原始截图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current.jpg`，RGBA 证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current-rgba.png`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果：`differentPixels=447209`、差异比例 `30.3283%`、`MAE=2.2087`、`RMSE=12.5071`、最大通道差异 `230`；结果锚点为 `figma-105-diff-results.json#intake-analysis-loading`，独立结果为 `intake-analysis-loading-current-diff.json`。
+- [x] `AnalysisPage.test.tsx` loading/error/empty 定向测试 `4/4`，`npm run typecheck` 和 `git diff --check` 通过。
+- [ ] 本页继续保持 `DIFF_REVIEW`，剩余导航上下文、头像、字体和图标光栅化差异不能被本次 loading 骨架对齐覆盖；不能标记 `PASS`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍为 `BLOCKED`；Figma 设计稿未修改，前端左上角红黄绿窗口装饰点仍为 `0`，业务状态圆点保留。

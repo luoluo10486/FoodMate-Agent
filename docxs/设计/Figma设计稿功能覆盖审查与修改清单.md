@@ -923,3 +923,12 @@
 - [x] 本轮定向测试 `5/5` 通过，`npm run typecheck` 通过。
 - [ ] 该状态只关闭前端视觉 fixture 覆盖，不关闭真实 AgentRun、SSE、澄清提交、后端任务闭环或后端数据契约。
 - [ ] iconfont 实体资源登记仍为 `BLOCKED`，等待真实包、CSS 映射、来源 URL、授权范围、许可证和 glyph 清单；标准图标继续使用 Lucide。
+
+## 44. 2026-08-23 摄入分析加载态前端对齐
+
+- [x] 实时 Figma 节点 `692:1901` 已对应 `/analysis?state=loading`；Figma 作为唯一视觉来源，前端没有反向修改设计稿。
+- [x] loading 指标卡按 Figma 节点的 `20px` 内边距、`12px` 间距、`32px` 主骨架、`16px` 详情骨架和 `126px` 卡片高度实现；普通态指标卡保持独立尺寸。
+- [x] 浏览器 `1440×1024` 实测指标容器 `1116×126px`，三卡高度均为 `126px`；定向测试 `4/4`、typecheck 和 diff check 通过。
+- [x] Figma PNG、浏览器原始截图、RGBA PNG 和 diff 已登记；当前自动差异为 `30.3283% / RMSE 12.5071`，继续为 `DIFF_REVIEW`。
+- [x] 前端左上角红黄绿窗口装饰点核查结果为 `0`，不存在需要删除的对应代码；业务会话状态圆点保留，Figma 设计稿未修改。
+- [ ] 本项不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、后端 Agent/SSE 闭环或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。

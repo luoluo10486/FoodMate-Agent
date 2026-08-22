@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { AnalysisPage } from './AnalysisPage';
+import styles from './AnalysisPage.module.css';
 
 function LocationProbe() {
   const location = useLocation();
@@ -74,6 +75,7 @@ describe('AnalysisPage', () => {
     const user = userEvent.setup();
     const loadingRender = renderPage('/analysis?state=loading');
     expect(screen.getByLabelText('分析摘要加载中')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByLabelText('分析摘要加载中')).toHaveClass(styles.loadingMetrics);
     expect(screen.getByLabelText('能量摄入分析加载中')).toBeInTheDocument();
     expect(screen.queryByText('1,940 kcal')).not.toBeInTheDocument();
     loadingRender.unmount();

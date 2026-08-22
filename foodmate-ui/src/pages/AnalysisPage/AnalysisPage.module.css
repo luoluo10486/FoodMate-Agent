@@ -120,6 +120,14 @@
   height: 107px;
 }
 
+.loadingMetrics {
+  height: 126px;
+}
+
+.loadingMetrics .metricCard {
+  height: 126px;
+}
+
 .metricCard {
   display: grid;
   min-width: 0;
@@ -616,6 +624,10 @@
   .metrics {
     grid-template-columns: 1fr;
     height: auto;
+  }
+
+  .loadingMetrics .metricCard {
+    height: 126px;
   }
 
   .barChart {
