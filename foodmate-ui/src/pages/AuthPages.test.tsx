@@ -114,6 +114,36 @@ describe('authentication pages', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('邮箱或密码错误，请重试');
   });
 
+  it('uses the Figma account-locked warning, disabled controls and example values', () => {
+    renderAuth('/login?state=account-locked');
+
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-locked-leaf.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-locked-alert.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-locked-user.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-locked-lock.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-account-locked-eye.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('img[src="/assets/figma/auth/foodmate-login-account-locked-line.svg"]'),
+    ).toHaveLength(2);
+    expect(screen.getByLabelText('邮箱地址')).toHaveValue('locked@foodmate.com');
+    expect(screen.getByLabelText('密码')).toHaveValue('password');
+    expect(screen.getByRole('alert')).toHaveTextContent('账号已锁定');
+    expect(screen.getByRole('alert')).toHaveTextContent('由于多次登录失败');
+    expect(screen.getByRole('main')).toHaveClass(/authPageLoginAccountLocked/);
+    expect(screen.getByRole('button', { name: '忘记密码？' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '登录已禁用' })).toHaveProperty('disabled', true);
+  });
+
   it('routes login recovery and registration actions to independent Figma pages', async () => {
     const user = userEvent.setup();
     renderAuth('/login');

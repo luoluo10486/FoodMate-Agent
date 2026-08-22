@@ -1,4 +1,4 @@
-import { AlertCircle, AlertTriangle, EyeOff, Info } from 'lucide-react';
+import { AlertCircle, EyeOff, Info } from 'lucide-react';
 import { useState } from 'react';
 import { useRef } from 'react';
 import type { FormEvent } from 'react';
@@ -34,7 +34,9 @@ function loginAsset(state: LoginState, name: 'user' | 'lock' | 'eye' | 'line') {
         ? '-field-error'
         : state === 'credential-error'
           ? '-credential-error'
-          : '';
+          : state === 'account-locked'
+            ? '-account-locked'
+            : '';
   return `/assets/figma/auth/foodmate-login${suffix}-${name}.svg`;
 }
 
@@ -42,11 +44,14 @@ function loginLeafAsset(state: LoginState) {
   if (state === 'submitting') return '/assets/figma/auth/foodmate-login-submitting-leaf.svg';
   if (state === 'field-error') return '/assets/figma/auth/foodmate-login-field-error-leaf.svg';
   if (state === 'credential-error') return '/assets/figma/auth/foodmate-login-credential-error-leaf.svg';
+  if (state === 'account-locked') return '/assets/figma/auth/foodmate-login-account-locked-leaf.svg';
   return '/assets/figma/auth/foodmate-leaf.svg';
 }
 
 function loginAlertAsset(state: LoginState) {
-  return state === 'credential-error' ? '/assets/figma/auth/foodmate-login-credential-error-alert.svg' : undefined;
+  if (state === 'credential-error') return '/assets/figma/auth/foodmate-login-credential-error-alert.svg';
+  if (state === 'account-locked') return '/assets/figma/auth/foodmate-login-account-locked-alert.svg';
+  return undefined;
 }
 
 const loginStates = new Set<LoginState>([
@@ -98,6 +103,7 @@ export function LoginPage() {
   const [loginValues, setLoginValues] = useState<LoginValues>(() => {
     if (state === 'submitting') return { ...defaults, username: 'alex@foodmate.com', password: 'password' };
     if (state === 'credential-error') return { ...defaults, username: 'wrong@foodmate.com', password: 'password' };
+    if (state === 'account-locked') return { ...defaults, username: 'locked@foodmate.com', password: 'password' };
     return defaults;
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -148,7 +154,7 @@ export function LoginPage() {
 
   return (
     <main
-      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : state === 'field-error' ? styles.authPageLoginFieldError : state === 'credential-error' ? styles.authPageLoginCredentialError : ''}`}
+      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : state === 'field-error' ? styles.authPageLoginFieldError : state === 'credential-error' ? styles.authPageLoginCredentialError : state === 'account-locked' ? styles.authPageLoginAccountLocked : ''}`}
       ref={pageRef}
     >
       <div className={styles.authDiagonal} aria-hidden="true" data-login-motion="diagonal" />
@@ -182,7 +188,7 @@ export function LoginPage() {
           ) : null}
           {state === 'account-locked' ? (
             <div className={`${styles.loginAlert} ${styles.loginAlertWarning}`} role="alert">
-              <AlertTriangle aria-hidden="true" />
+              <img src={loginAlertAsset(state)} alt="" aria-hidden="true" />
               <div>
                 <strong>账号已锁定</strong>
                 <span>由于多次登录失败，你的账号已被暂时锁定。请 30 分钟后重试或联系客服。</span>
