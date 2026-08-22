@@ -309,3 +309,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 此前由 JPEG 字节误命名为 `.png` 导致的 `DIFF_ERROR` 已从当前 105 条输入中排除：汇总脚本会校验 PNG 文件头，并优先选择同尺寸的 RGBA 证据。当前清单引用的 105 个 Figma PNG 与 105 个浏览器 PNG 均已通过文件头和尺寸校验。运行时检查确认 `viewportPass`、`dprPass`、`geometryPass` 和 `textPass` 均为 `105/105`，字体状态均为 `loaded`；人工视觉复核仍为 `0/105`。新增 Agent 六个状态均已建立 `/chat?state=...` fixture、浏览器 PNG 和 diff 记录，但结果继续保持 `DIFF_REVIEW`。
 
 本轮已关闭 `UNMAPPED` 映射缺口，但没有关闭任何 `PASS`。部分 Admin 操作弹窗、Profile 异步操作、历史会话交互和 Workspace 输入状态均使用独立 query fixture，不能与默认页面截图混淆。iconfont 实体资源仍为 `BLOCKED`；后端真实 Agent/SSE 闭环也不作为本轮 fixture 完成标准。
+
+## 46. 2026-08-22 shadcn 控件迁移后的运行时复核
+
+本轮完成的是业务页面控件基础设施迁移，不重新生成 105 张画板的 Figma PNG 或像素 diff，因此不改变上一节的全量结论。
+
+- Planning `/planning?state=wizard-step2` 浏览器复核确认：步骤导航控件为 `32px`，过敏源 Chip 和添加入口为 `26px`；修正前 shadcn 默认高度曾将 Chip 撑到 `40px`，已通过页面 CSS 显式覆盖并重新截图确认。
+- Profile `/profile?state=basic` 浏览器复核确认：资料操作按钮和过敏原标签均保持设计 CSS 尺寸，过敏原标签为 `32px`；未发现页面级横向溢出。
+- 业务页面源码扫描结果：原生 `<button>` 数量 `0`，`AdminPrimitives` 直接依赖数量 `0`；这项结果只证明控件实现边界，不证明页面与 Figma 已像素一致。
+- Planning/Profile 定向测试合计 `16/16`，全量测试 `25` 个测试文件、`134/134`，`npm run typecheck` 与 `npm run build` 通过。
+- `MealPlanningFlow.tsx` 定向 Prettier 已通过；全量 `format:check` 仍受其他未提交文件阻塞，未把该阻塞写成当前页面运行失败。
+
+本次不更新 105 条 diff 状态：仍为 `DIFF_REVIEW=105`、`PASS=0`，人工视觉复核仍未完成；iconfont 资源继续为 `BLOCKED`。
