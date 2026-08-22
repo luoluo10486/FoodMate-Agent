@@ -221,12 +221,15 @@ class DeterministicRouter:
         text = content.strip()
         lower = text.lower()
         risk = "high" if any(word in text for word in ("疾病", "诊断", "处方", "过敏反应")) else "low"
+        # Analysis questions often describe the absence of records. Match the
+        # requested operation before the noun "记录" so those questions do not
+        # enter the write-oriented route.
+        if any(word in text for word in ("分析", "营养", "蛋白质", "热量")):
+            return RouteDecision("analysis", "complex", risk)
         if any(word in text for word in ("记录", "吃了", "早餐", "午餐", "晚餐")):
             return RouteDecision("record", "complex" if len(text) > 60 else "simple", risk)
         if any(word in text for word in ("计划", "食谱", "购物清单")):
             return RouteDecision("planning", "complex", risk, ("days",) if "天" not in text else ())
-        if any(word in text for word in ("分析", "营养", "蛋白质", "热量")):
-            return RouteDecision("analysis", "complex", risk)
         return RouteDecision("knowledge_qna", "simple", risk)
 
 

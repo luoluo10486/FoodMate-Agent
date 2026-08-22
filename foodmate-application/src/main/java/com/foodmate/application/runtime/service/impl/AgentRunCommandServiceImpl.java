@@ -193,14 +193,9 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                                                 memory.confidence(),
                                                 memory.scope()))
                         .toList();
-        // 仅预授权当前会话的最近消息只读查询；Python 只能提出 Proposal，不能自行拼接或执行 SQL。
-        V1RunCommand.SqlReadRequest sqlReadRequest =
-                new V1RunCommand.SqlReadRequest(
-                        "SELECT sequence_no,role,content FROM messages WHERE session_id="
-                                + sessionId
-                                + " AND is_deleted=FALSE ORDER BY sequence_no DESC LIMIT 8",
-                        "context_messages_" + runId,
-                        false);
+        // 最近消息已经作为授权上下文随命令发送。不要再为同一份上下文创建 SQL
+        // Proposal：messages 不属于 database_query 的业务 Catalog，且 Python 不应为上下文读取
+        // 触发额外的 Java Tool Gateway 调用。
         V1RunCommand.AuthorizedContext authorizedContext =
                 new V1RunCommand.AuthorizedContext(
                         Long.toString(sessionId),
@@ -210,7 +205,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                         recentMessages,
                         sessionSummary,
                         longTermMemories,
-                        sqlReadRequest,
+                        null,
                         "public_published");
         int maxTotalTokens =
                 governanceSnapshot == null

@@ -271,6 +271,27 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual(database["payload"]["statement"], database["input"]["candidate_sql"])
         validate_proposal(Proposal(**database))
 
+    def test_analysis_phrase_containing_record_is_not_routed_as_record(self):
+        execution = run_deterministic({
+            "run_id": "analysis-route",
+            "dispatch_id": "d1",
+            "message": {"content": "请分析最近7天的蛋白质摄入，并说明没有记录时应如何处理"},
+        })
+
+        self.assertEqual("analysis", execution.route.intent)
+        self.assertEqual(1, len(execution.proposals))
+        self.assertEqual("time_parser", execution.proposals[0]["tool_name"])
+
+    def test_record_route_without_authorized_writer_does_not_query_context_sql(self):
+        execution = run_deterministic({
+            "run_id": "record-route",
+            "dispatch_id": "d1",
+            "message": {"content": "记录我吃了早餐"},
+        })
+
+        self.assertEqual("record", execution.route.intent)
+        self.assertEqual([], execution.proposals)
+
     def test_analysis_without_time_range_stops_for_clarification(self):
         execution = run_deterministic({
             "run_id": "analysis-clarify",
