@@ -571,6 +571,9 @@
 
 .checkChip {
   display: inline-flex;
+  height: auto;
+  width: auto;
+  min-width: max-content;
   min-height: 32px;
   align-items: center;
   gap: 8px;
@@ -582,18 +585,9 @@
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 12px;
   font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
   cursor: pointer;
-}
-
-.checkChip input,
-.radioOption input,
-.shoppingRow input,
-.selectAll input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .checkChipActive {
@@ -614,13 +608,29 @@
   color: #89b27c;
 }
 
-.checkChipActive .checkboxMark,
-.shoppingRow:has(input:checked) .checkboxMark,
-.selectAll:has(input:checked) .checkboxMark {
+.checkChip > [data-slot='checkbox-indicator'],
+.shoppingRow > [data-slot='checkbox-indicator'],
+.selectAll > [data-slot='checkbox-indicator'] {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1.5px solid #f4f6f5;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #89b27c;
+}
+
+.checkChip[data-state='checked'] > [data-slot='checkbox-indicator'],
+.shoppingRow[data-state='checked'] > [data-slot='checkbox-indicator'],
+.selectAll[data-state='checked'] > [data-slot='checkbox-indicator'] {
   border-color: #89b27c;
 }
 
-.checkboxMark svg {
+.checkChip > [data-slot='checkbox-indicator'] svg,
+.shoppingRow > [data-slot='checkbox-indicator'] svg,
+.selectAll > [data-slot='checkbox-indicator'] svg {
   width: 12px;
   height: 12px;
   stroke-width: 3;
@@ -1141,17 +1151,22 @@
 .shoppingRow {
   position: relative;
   display: flex;
+  width: 100%;
   min-width: 0;
   min-height: 54px;
   align-items: center;
   gap: 12px;
   padding: 12px;
+  border: 0;
   border-radius: 8px;
   background: #f4f6f5;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-.shoppingRow:has(input:checked) .checkboxMark {
+.shoppingRow[data-state='checked'] > [data-slot='checkbox-indicator'] {
   border-width: 2px;
   background: #ffffff;
 }
@@ -1217,12 +1232,17 @@
 
 .selectAll {
   display: inline-flex;
-  min-width: 0;
+  height: auto;
+  width: auto;
+  min-width: max-content;
   align-items: center;
   gap: 8px;
   color: #333333;
+  font: inherit;
   font-size: 14px;
   font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 
