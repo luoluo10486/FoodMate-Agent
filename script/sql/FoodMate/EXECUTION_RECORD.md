@@ -480,3 +480,12 @@
 | Git 提交 | `4caa4d2`、`d945784`、`55a16ca`、`73f1f89`；用户既有 UI/Figma/ChatPage 改动未暂存。 |
 | 未执行范围 | Docker 应用镜像构建、真实模型/embedding、吞吐/延迟压测、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障注入、SSE Last-Event-ID 故障矩阵、备份恢复和生产环境继续暂缓。 |
 | 结论 | 当前业务代码、Java 21 规范子集、Python、前端和 Compose 配置门禁均通过；不能据此宣称后置性能、故障恢复或生产范围完成。 |
+
+## D3 协议错误审计失败重试（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 代码提交 | `824ffe9 fix(runtime): 保留协议审计失败重试` |
+| 场景 | Python -> Java 的不可解析 RunEvent 没有可信 `run_id`；协议错误审计成功后 REJECT，审计存储失败改为 RETRY，避免 ACK 后静默丢失审计事实。 |
+| Java 定向验证 | `mvnw.cmd -pl foodmate-application -am test -Dtest=RuntimeEventMessageProcessorTest -Dsurefire.failIfNoSpecifiedTests=false`：`7/7` 通过；Spotless apply 通过。 |
+| 边界 | 只修改协议错误审计失败分类；业务事件、数据库重试、DLQ 和用户可见状态未改变。 |
