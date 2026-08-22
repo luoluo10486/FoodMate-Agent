@@ -29,7 +29,9 @@ describe('AnalysisPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole('tab', { name: '30 天' }));
+    const rangeTab = screen.getByRole('tab', { name: '30 天' });
+    expect(rangeTab).toHaveClass('inline-flex');
+    await user.click(rangeTab);
 
     expect(screen.getByRole('tab', { name: '30 天' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('1,896 kcal')).toBeInTheDocument();

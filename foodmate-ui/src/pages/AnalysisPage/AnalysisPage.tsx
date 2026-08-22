@@ -187,7 +187,8 @@ export function AnalysisPage() {
           <header className={`${styles.filterRow} ${analysisState === 'loading' ? styles.stateFilterRow : ''}`}>
             <div className={styles.filters} role="tablist" aria-label="分析范围">
               {ranges.map((item) => (
-                <button
+                <Button
+                  variant="ghost"
                   className={range === item.key ? styles.rangeActive : ''}
                   key={item.key}
                   type="button"
@@ -197,7 +198,7 @@ export function AnalysisPage() {
                   disabled={analysisState === 'loading' || analysisState === 'error'}
                 >
                   {item.label}
-                </button>
+                </Button>
               ))}
               <button
                 className={styles.filterPill}
