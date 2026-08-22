@@ -8,3 +8,15 @@ SELECT column_name, character_maximum_length FROM information_schema.columns
     AND column_name = 'version';
 SELECT COUNT(*) AS invalid_public_documents FROM knowledge_documents
   WHERE visibility = 'published' AND (status <> 'indexed' OR is_deleted = TRUE OR current_version = FALSE);
+SELECT COUNT(*) AS invalid_import_jobs
+  FROM knowledge_import_jobs
+  WHERE status NOT IN ('queued','uploading','uploaded','indexing','completed','partial_failed','failed','cancelled')
+     OR requested_mode NOT IN ('stub','local')
+     OR length(btrim(idempotency_key)) = 0;
+SELECT COUNT(*) AS invalid_import_items
+  FROM knowledge_import_items
+  WHERE attempt_count NOT BETWEEN 0 AND 3
+     OR upload_status NOT IN ('queued','uploading','uploaded','upload_failed')
+     OR index_status NOT IN ('pending','parsing','parsed','indexing','indexed','index_failed');
+SELECT indexname FROM pg_indexes WHERE schemaname='public'
+  AND indexname IN ('uk_knowledge_documents_current_source_version','uk_knowledge_chunks_embedding_id');

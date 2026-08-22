@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS knowledge_import_jobs (
     completed_at TIMESTAMPTZ,
     CONSTRAINT chk_knowledge_import_jobs_status CHECK (status IN ('queued','uploading','uploaded','indexing','completed','partial_failed','failed','cancelled')),
     CONSTRAINT chk_knowledge_import_jobs_mode CHECK (requested_mode IN ('stub','local')),
+    CONSTRAINT chk_knowledge_import_jobs_idempotency CHECK (length(btrim(idempotency_key)) > 0),
     CONSTRAINT uk_knowledge_import_jobs_operator_idempotency UNIQUE (operator_id, idempotency_key)
 );
 
@@ -96,6 +97,7 @@ CREATE TABLE IF NOT EXISTS knowledge_index_outbox (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     published_at TIMESTAMPTZ,
     CONSTRAINT chk_knowledge_index_outbox_status CHECK (status IN ('pending','published','failed')),
+    CONSTRAINT chk_knowledge_index_outbox_topic CHECK (topic = 'foodmate-knowledge-index-v1'),
     CONSTRAINT uk_knowledge_index_outbox_item_topic UNIQUE (item_id, topic)
 );
 CREATE INDEX IF NOT EXISTS idx_knowledge_index_outbox_pending

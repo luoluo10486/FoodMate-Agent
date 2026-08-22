@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS knowledge_visibility_outbox (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     published_at TIMESTAMPTZ,
-    CONSTRAINT chk_knowledge_visibility_outbox_status CHECK (status IN ('pending','published','failed'))
+    CONSTRAINT chk_knowledge_visibility_outbox_status CHECK (status IN ('pending','published','failed')),
+    CONSTRAINT chk_knowledge_visibility_outbox_topic CHECK (topic = 'foodmate-knowledge-visibility-v1')
 );
 CREATE INDEX IF NOT EXISTS idx_knowledge_visibility_outbox_pending
     ON knowledge_visibility_outbox (available_at, outbox_id) WHERE status = 'pending';
@@ -37,7 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_visibility_outbox_pending
 CREATE TABLE IF NOT EXISTS knowledge_index_result_inbox (
     item_id BIGINT NOT NULL REFERENCES knowledge_import_items(item_id),
     document_version VARCHAR(128) NOT NULL,
-    attempt_count INT NOT NULL,
+    attempt_count INT NOT NULL CHECK (attempt_count BETWEEN 1 AND 3),
     payload_hash VARCHAR(128) NOT NULL,
     received_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (item_id, document_version, attempt_count)
