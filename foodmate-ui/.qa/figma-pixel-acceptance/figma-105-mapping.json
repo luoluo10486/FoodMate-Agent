@@ -3651,12 +3651,12 @@
       "frontendRoute": "/admin",
       "queryState": "state=sql-audit",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/admin-sql-audit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-sql-audit",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-figma-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture after confirming the current Figma SQL Audit tabs, filters, call summary, masked payload and detail fields: 1440x1024, no overflow, automatic diff 0.2462158203 / RMSE 17.2610162; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3681,8 +3681,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Browser represents only the payload code panel and omits Figma SQL-audit tabs, filters, call table, risk/status fields, and source note. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "Current browser contains the Figma SQL Audit tabs, tool and risk filters, call summary table, masked payload and SQL Audit detail fields. Shell identity, icon treatment, typography, spacing and other visual differences remain; retain DIFF_REVIEW."
       }
     },
     {
