@@ -123,7 +123,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | 冲突解决 | `692:3375` | `/planning?state=conflict` | `meal-plan-conflict-figma.png` | `meal-plan-conflict-browser-stable-rgba.png` | 37.28% | 25.12 | `DIFF_REVIEW` |
 | 购物清单 | `692:3569` | `/planning?state=shopping-list` | `meal-plan-shopping-list-figma.png` | `meal-plan-shopping-list-browser-stable-rgba.png` | 24.35% | 17.23 | `DIFF_REVIEW` |
 | 生成中 | `692:3746` | `/planning?state=generating` | `meal-plan-generating-figma.png` | `meal-plan-generating-browser-stable-rgba.png` | 13.69% | 16.84 | `DIFF_REVIEW` |
-| 计划列表 | `692:2662` | `/planning?state=list` | `meal-plan-list-figma.png` | `meal-plan-list-browser-current-rgba.png` | 26.1015% | 19.40 | `DIFF_REVIEW` |
+| 计划列表 | `692:2662` | `/planning?state=list` | `meal-plan-list-figma.png` | `meal-plan-list-browser-current-rgba.png` | 26.1032% | 19.40 | `DIFF_REVIEW` |
 
 浏览器 smoke 已实际确认：向导步骤推进和取消生成、冲突方案应用、购物清单初始采购数量及导出反馈均可操作；七个入口均无页面级横向溢出。流程 fixture 只复现前端设计状态，不代表真实餐食生成、冲突解决、购物清单持久化或异步任务后端闭环完成。
 
@@ -652,3 +652,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `scripts/png-diff.mjs` 同尺寸结果：`differentPixels=274336`、差异比例 `18.6046%`、`MAE=2.4987`、`RMSE=15.8118`、最大通道差异 `237`；结果锚点为 `figma-105-diff-results.json#intake-analysis-empty`，独立结果为 `intake-analysis-empty-current-diff.json`。
 - [x] `AnalysisPage.test.tsx` 定向测试 `4/4`，新增真实 Figma 图标资源路径断言；`npm run typecheck`、Prettier 和 `git diff --check` 通过。
 - [ ] 本页继续保持 `DIFF_REVIEW`，剩余头像、字体和图标/浏览器光栅化差异不能标记 `PASS`；iconfont 实体资源继续为 `BLOCKED`。
+
+## 72. 2026-08-23 餐食规划列表操作按钮高度复核
+
+- [x] 依据 Figma 节点 `692:2762`、`692:2779`、`692:2796` 的 `px=14、py=8、36px` 操作 frame，将三个“进入计划”按钮显式设为 `height=36px`，覆盖 shadcn 默认 `h-10`，菜单按钮保持 `36px`。
+- [x] 浏览器实测三个操作组的按钮均为 `36×81.6px`，菜单按钮均为 `36×36px`，共同垂直居中且间距保持 `16px`；页面无横向溢出。
+- [x] 最新 PNG diff：`differentPixels=384908`、差异比例 `26.1032%`、`MAE=3.8917`、`RMSE=19.4005`、最大通道差异 `234`。
+- [ ] 该画板继续保持 `DIFF_REVIEW`；本项完成按钮 frame 几何对齐，不代表整页像素级 `PASS`。
