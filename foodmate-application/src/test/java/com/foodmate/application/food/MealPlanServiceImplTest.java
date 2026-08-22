@@ -47,6 +47,21 @@ class MealPlanServiceImplTest {
     }
 
     @Test
+    void listsOwnedPlansAndPreservesDeletedState() {
+        MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
+        when(repository.findOwnedPlans(7L, true)).thenReturn(List.of(plan("saved", 2, false)));
+        MealPlanService service = new MealPlanServiceImpl(repository, ids(100L), mapper);
+
+        List<MealPlanService.PlanView> result = service.list(7L);
+
+        assertEquals(1, result.size());
+        assertEquals("saved", result.get(0).status());
+        assertEquals(2, result.get(0).revision());
+        assertEquals(false, result.get(0).deleted());
+        verify(repository).findOwnedPlans(7L, true);
+    }
+
+    @Test
     void rejectsAllergenAndKeepsPlanOutOfValidatedState() throws Exception {
         MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
         when(repository.insertPlan(any())).thenReturn(1);

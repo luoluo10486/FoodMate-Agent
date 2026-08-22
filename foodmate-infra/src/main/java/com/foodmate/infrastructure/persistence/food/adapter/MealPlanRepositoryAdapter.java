@@ -3,6 +3,7 @@ package com.foodmate.infrastructure.persistence.food.adapter;
 import com.foodmate.application.common.port.out.OperationAuditPort;
 import com.foodmate.application.food.port.out.MealPlanRepository;
 import com.foodmate.infrastructure.persistence.food.MealPlanMapper;
+import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
@@ -67,6 +68,11 @@ public class MealPlanRepositoryAdapter implements MealPlanRepository {
     @Override
     public PlanSnapshot findOwnedPlan(long userId, long mealPlanId) {
         return mapper.findOwnedPlan(userId, mealPlanId, false);
+    }
+
+    @Override
+    public List<PlanSnapshot> findOwnedPlans(long userId, boolean includeDeleted) {
+        return mapper.findOwnedPlans(userId, includeDeleted);
     }
 
     @Override

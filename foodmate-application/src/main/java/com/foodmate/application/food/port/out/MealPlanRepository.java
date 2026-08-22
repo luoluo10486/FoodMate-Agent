@@ -2,6 +2,7 @@ package com.foodmate.application.food.port.out;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 /** 餐食计划和购物清单持久化端口。 */
 public interface MealPlanRepository {
@@ -25,6 +26,8 @@ public interface MealPlanRepository {
     PlanSnapshot findOwnedPlan(long userId, long mealPlanId);
 
     PlanSnapshot findOwnedPlan(long userId, long mealPlanId, boolean includeDeleted);
+
+    List<PlanSnapshot> findOwnedPlans(long userId, boolean includeDeleted);
 
     int softDelete(long userId, long mealPlanId, long revision);
 
