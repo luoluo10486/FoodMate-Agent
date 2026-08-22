@@ -108,7 +108,9 @@ describe('ChatPage Figma 空态', () => {
     expect(screen.queryByText('运行轨迹')).not.toBeInTheDocument();
 
     const input = screen.getByPlaceholderText('输入消息或添加自定义指令...');
-    fireEvent.click(screen.getByRole('button', { name: /制定本周餐食计划/ }));
+    const planPrompt = screen.getByRole('button', { name: /制定本周餐食计划/ });
+    expect(planPrompt).toHaveClass('inline-flex');
+    fireEvent.click(planPrompt);
     expect(input).toHaveValue('根据我的减脂目标制定本周餐食计划');
   });
 });

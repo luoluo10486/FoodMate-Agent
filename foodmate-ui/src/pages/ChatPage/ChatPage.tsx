@@ -337,8 +337,9 @@ function EmptyChatPage() {
             {emptyPrompts.map((item) => {
               const Icon = item.icon;
               return (
-                <button
+                <Button
                   className={styles.emptyPrompt}
+                  variant="ghost"
                   key={item.title}
                   type="button"
                   onClick={() => setInput(item.prompt)}
@@ -350,7 +351,7 @@ function EmptyChatPage() {
                     <strong>{item.title}</strong>
                     <span>{item.description}</span>
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>
