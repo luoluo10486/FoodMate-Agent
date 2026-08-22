@@ -1847,7 +1847,7 @@ export function ProfilePage() {
       sidebarAvatarSrc={
         isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
       }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       pageOverlay={
         fixtureState ? <ProfileFixtureOverlay state={fixtureState} onDismiss={() => navigate('/profile')} /> : null

@@ -52,6 +52,10 @@ describe('ProfilePage', () => {
       'src',
       '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
     );
+    expect(screen.getByRole('button', { name: 'Anddy' }).querySelector('img')).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
+    );
   });
 
   it('edits profile fields and manages allergens before saving', async () => {
