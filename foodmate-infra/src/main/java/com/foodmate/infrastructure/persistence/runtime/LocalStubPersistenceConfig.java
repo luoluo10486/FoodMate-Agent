@@ -464,6 +464,35 @@ public class LocalStubPersistenceConfig {
                 throw unavailable();
             }
 
+            public java.util.List<PurgeTaskSnapshot> pendingTasks(int limit) {
+                return java.util.List.of();
+            }
+
+            public int leaseTask(long taskId, String owner, String resourceType, long resourceId) {
+                throw unavailable();
+            }
+
+            public int markTaskPublished(long taskId, String owner, String messageId) {
+                throw unavailable();
+            }
+
+            public int markTaskSucceeded(
+                    long taskId, String owner, String errorCode, String errorSummary) {
+                throw unavailable();
+            }
+
+            public void retryTask(
+                    long taskId, String owner, String errorCode, String errorSummary) {
+                throw unavailable();
+            }
+
+            public int applyTaskResult(
+                    long taskId, String status, String errorCode, String errorSummary) {
+                throw unavailable();
+            }
+
+            public void refreshPurgeRequest(long taskId) {}
+
             public int insertHold(NewHold hold) {
                 throw unavailable();
             }

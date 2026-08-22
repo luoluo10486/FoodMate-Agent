@@ -358,13 +358,18 @@ public class DataRetentionServiceImpl implements DataRetentionService {
             count++;
         }
         if ("knowledge_document".equals(request.resourceType())) {
+            long vectorTaskId = ids.nextId();
             if (store.insertPurgeTask(
                             new DataRetentionRepository.PurgeTask(
-                                    ids.nextId(),
+                                    vectorTaskId,
                                     request.requestId(),
                                     "vector_index",
                                     "foodmate-knowledge-purge-v1",
-                                    vectorTarget(request.resourceId(), resource.version())))
+                                    vectorTarget(
+                                            vectorTaskId,
+                                            request.requestId(),
+                                            request.resourceId(),
+                                            resource.version())))
                     != 1)
                 throw new IllegalStateException("retention vector task was not persisted");
             count++;
@@ -452,8 +457,16 @@ public class DataRetentionServiceImpl implements DataRetentionService {
         return "{\"bucket\":\"" + escape(bucket) + "\",\"key\":\"" + escape(key) + "\"}";
     }
 
-    private String vectorTarget(long documentId, String version) {
-        return "{\"document_id\":" + documentId + ",\"version\":\"" + escape(version) + "\"}";
+    private String vectorTarget(long taskId, long requestId, long documentId, String version) {
+        return "{\"task_id\":"
+                + taskId
+                + ",\"request_id\":"
+                + requestId
+                + ",\"document_id\":"
+                + documentId
+                + ",\"version\":\""
+                + escape(version)
+                + "\"}";
     }
 
     private String databaseTarget(String resourceType, long resourceId) {

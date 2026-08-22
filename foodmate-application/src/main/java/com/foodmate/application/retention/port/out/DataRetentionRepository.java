@@ -20,6 +20,20 @@ public interface DataRetentionRepository {
 
     int insertPurgeTask(PurgeTask task);
 
+    java.util.List<PurgeTaskSnapshot> pendingTasks(int limit);
+
+    int leaseTask(long taskId, String owner, String resourceType, long resourceId);
+
+    int markTaskPublished(long taskId, String owner, String messageId);
+
+    int markTaskSucceeded(long taskId, String owner, String errorCode, String errorSummary);
+
+    void retryTask(long taskId, String owner, String errorCode, String errorSummary);
+
+    int applyTaskResult(long taskId, String status, String errorCode, String errorSummary);
+
+    void refreshPurgeRequest(long taskId);
+
     int insertHold(NewHold hold);
 
     Hold activeHold(String resourceType, long resourceId);
@@ -68,6 +82,17 @@ public interface DataRetentionRepository {
 
     record PurgeTask(
             long taskId, long requestId, String taskType, String topic, String targetRef) {}
+
+    record PurgeTaskSnapshot(
+            long taskId,
+            long requestId,
+            String resourceType,
+            long resourceId,
+            String taskType,
+            String topic,
+            String targetRef,
+            String status,
+            boolean hardDeleteEnabled) {}
 
     record Hold(
             long holdId,

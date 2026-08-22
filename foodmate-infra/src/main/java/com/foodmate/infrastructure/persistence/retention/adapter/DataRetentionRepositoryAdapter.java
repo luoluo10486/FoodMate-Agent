@@ -57,6 +57,41 @@ public class DataRetentionRepositoryAdapter implements DataRetentionRepository {
     }
 
     @Override
+    public java.util.List<PurgeTaskSnapshot> pendingTasks(int limit) {
+        return mapper.pendingTasks(limit);
+    }
+
+    @Override
+    public int leaseTask(long taskId, String owner, String resourceType, long resourceId) {
+        return mapper.leaseTask(taskId, owner, resourceType, resourceId);
+    }
+
+    @Override
+    public int markTaskPublished(long taskId, String owner, String messageId) {
+        return mapper.markTaskPublished(taskId, owner, messageId);
+    }
+
+    @Override
+    public int markTaskSucceeded(long taskId, String owner, String errorCode, String errorSummary) {
+        return mapper.markTaskSucceeded(taskId, owner, errorCode, errorSummary);
+    }
+
+    @Override
+    public void retryTask(long taskId, String owner, String errorCode, String errorSummary) {
+        mapper.retryTask(taskId, owner, errorCode, errorSummary);
+    }
+
+    @Override
+    public int applyTaskResult(long taskId, String status, String errorCode, String errorSummary) {
+        return mapper.applyTaskResult(taskId, status, errorCode, errorSummary);
+    }
+
+    @Override
+    public void refreshPurgeRequest(long taskId) {
+        mapper.refreshPurgeRequest(taskId);
+    }
+
+    @Override
     public int insertHold(NewHold hold) {
         return mapper.insertHold(hold);
     }
