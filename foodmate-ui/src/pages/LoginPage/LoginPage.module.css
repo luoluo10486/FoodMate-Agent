@@ -67,6 +67,11 @@
   stroke-width: 1.7;
 }
 
+.loginMark img {
+  width: 22px;
+  height: 22px;
+}
+
 .wordmark {
   font-family: 'Montserrat', sans-serif;
   font-size: 22px;
@@ -237,6 +242,91 @@
   margin-right: 8px;
   animation: loginSpin 1s linear infinite;
   vertical-align: -4px;
+}
+
+.authPage.authPageLoginSubmitting .authCard {
+  display: flex;
+  width: 460px;
+  height: auto;
+  gap: 24px;
+  padding: 40px;
+  transform: none;
+}
+
+.authPage.authPageLoginSubmitting .brand {
+  height: auto;
+  gap: 20px;
+}
+
+.authPage.authPageLoginSubmitting .loginBrand {
+  margin-bottom: 0;
+}
+
+.authPage.authPageLoginSubmitting .welcome {
+  gap: 6px;
+}
+
+.authPage.authPageLoginSubmitting .welcome p {
+  font-size: 28px;
+  line-height: normal;
+}
+
+.authPage.authPageLoginSubmitting .welcome span {
+  color: #5a6672;
+  line-height: normal;
+}
+
+.authPage.authPageLoginSubmitting .form {
+  height: auto;
+}
+
+.authPage.authPageLoginSubmitting .field {
+  opacity: 0.7;
+}
+
+.authPage.authPageLoginSubmitting .figmaInput {
+  background: rgba(237, 242, 247, 0.65) !important;
+}
+
+.authPage.authPageLoginSubmitting .options {
+  opacity: 0.5;
+}
+
+.authPage.authPageLoginSubmitting .primaryActionDisabled {
+  border-color: #cbd5e0 !important;
+  background: #cbd5e0 !important;
+  box-shadow: none;
+  color: #718096 !important;
+  opacity: 0.75 !important;
+}
+
+.authPage.authPageLoginSubmitting .loginSpinner {
+  animation: none;
+}
+
+.authPage.authPageLoginSubmitting .actions {
+  display: flex;
+  height: auto;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.authPage.authPageLoginSubmitting .divider {
+  height: auto;
+  padding: 12px 0;
+  font-size: 13px;
+}
+
+.authPage.authPageLoginSubmitting .signupRow {
+  min-height: 0;
+}
+
+.authPage.authPageLoginSubmitting .signupButton {
+  height: auto;
+  padding: 10px 24px;
+  border: 1px solid rgba(51, 51, 51, 0.12);
+  border-radius: 22px;
+  background: rgba(51, 51, 51, 0.03);
 }
 
 .primaryActionDisabled {

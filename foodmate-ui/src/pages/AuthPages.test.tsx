@@ -40,6 +40,16 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: buttonText })).toHaveProperty('disabled', disabled);
   });
 
+  it('uses the Figma submitting assets and example values', () => {
+    renderAuth('/login?state=submitting');
+
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-loader.svg"]')).toBeInTheDocument();
+    expect(screen.getByLabelText('邮箱地址')).toHaveValue('alex@foodmate.com');
+    expect(screen.getByLabelText('密码')).toHaveValue('password');
+    expect(screen.getByRole('button', { name: '登录中...' })).toHaveClass('primaryActionDisabled');
+  });
+
   it('routes login recovery and registration actions to independent Figma pages', async () => {
     const user = userEvent.setup();
     renderAuth('/login');

@@ -1,4 +1,4 @@
-import { AlertCircle, AlertTriangle, Eye, EyeOff, Info, Leaf, LoaderCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, EyeOff, Info } from 'lucide-react';
 import { useState } from 'react';
 import { useRef } from 'react';
 import type { FormEvent } from 'react';
@@ -52,7 +52,7 @@ function LoginBrand({ state }: { state: LoginState }) {
         <span className={styles.logoPlaceholder} aria-hidden="true" data-login-motion="logo" data-node-id="660:212" />
       ) : (
         <span className={styles.loginMark} aria-hidden="true" data-login-motion="logo">
-          <Leaf />
+          <img src="/assets/figma/auth/foodmate-leaf.svg" alt="" />
         </span>
       )}
       <span className={styles.wordmark} data-login-motion="wordmark" data-node-id="647:236">
@@ -72,7 +72,9 @@ export function LoginPage() {
   const state = requestedState && loginStates.has(requestedState) ? requestedState : 'default';
   const [submitting, setSubmitting] = useState(false);
   const visualState: LoginState = state === 'default' && submitting ? 'submitting' : state;
-  const [loginValues, setLoginValues] = useState<LoginValues>(defaults);
+  const [loginValues, setLoginValues] = useState<LoginValues>(
+    state === 'submitting' ? { ...defaults, username: 'alex@foodmate.com', password: 'password' } : defaults,
+  );
   const [showPassword, setShowPassword] = useState(false);
 
   useGSAP(
@@ -120,7 +122,10 @@ export function LoginPage() {
   };
 
   return (
-    <main className={`${styles.authPage} ${styles['authPage-login']}`} ref={pageRef}>
+    <main
+      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : ''}`}
+      ref={pageRef}
+    >
       <div className={styles.authDiagonal} aria-hidden="true" data-login-motion="diagonal" />
       <section className={styles.authCard} aria-label="欢迎回来">
         <div className={styles.brand}>
@@ -273,7 +278,12 @@ export function LoginPage() {
           >
             {visualState === 'submitting' ? (
               <>
-                <LoaderCircle className={styles.loginSpinner} aria-hidden="true" />
+                <img
+                  className={styles.loginSpinner}
+                  src="/assets/figma/auth/foodmate-login-loader.svg"
+                  alt=""
+                  aria-hidden="true"
+                />
                 登录中...
               </>
             ) : visualState === 'account-locked' ? (
