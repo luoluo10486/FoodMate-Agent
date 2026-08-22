@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import type { SessionSummary } from '../../types/session';
 import styles from './SidebarSessionList.module.css';
 
@@ -36,14 +37,16 @@ export function SidebarSessionList({ sessions, onAction, currentPage = 1 }: Side
               {onAction ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button
+                    <Button
                       className={styles.moreButton}
+                      variant="ghost"
+                      size="icon"
                       aria-label={`管理${session.title}`}
                       title={`管理${session.title}`}
                       type="button"
                     >
                       <MoreHorizontal aria-hidden="true" />
-                    </button>
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onSelect={() => onAction('rename', session)}>
@@ -66,13 +69,13 @@ export function SidebarSessionList({ sessions, onAction, currentPage = 1 }: Side
         })}
       </div>
       <div className={styles.pagination} aria-label="会话分页">
-        <button aria-label="上一页" disabled type="button">
+        <Button variant="ghost" size="icon" aria-label="上一页" disabled type="button">
           <ChevronLeft aria-hidden="true" />
-        </button>
+        </Button>
         <span>{currentPage} / 3</span>
-        <button aria-label="下一页" type="button">
+        <Button variant="ghost" size="icon" aria-label="下一页" type="button">
           <ChevronRight aria-hidden="true" />
-        </button>
+        </Button>
       </div>
     </section>
   );
