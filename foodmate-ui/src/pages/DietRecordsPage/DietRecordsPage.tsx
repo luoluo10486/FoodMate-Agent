@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { createFoodLog, deleteFoodLog, loadFoodLogs, type FoodLog } from '../../services/foodLogService';
 import type { SessionSummary } from '../../types/session';
 import styles from './DietRecordsPage.module.css';
 
@@ -22,10 +23,12 @@ type FoodItem = {
   carbs: string;
   protein: string;
   fat: string;
+  logId?: string;
+  revision?: number;
 };
 
 type MealSection = {
-  id: 'breakfast' | 'lunch';
+  id: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   icon: string;
   title: string;
   time: string;
@@ -77,7 +80,15 @@ const initialMeals: MealSection[] = [
   },
 ];
 
-const metrics = [
+type Metric = {
+  label: string;
+  value: string;
+  unit: string;
+  percentage: number;
+  tone: 'purple' | 'green' | 'orange' | 'red';
+};
+
+const metrics: Metric[] = [
   { label: '能量完成', value: '1,420', unit: '/ 2,000 kcal', percentage: 71, tone: 'purple' },
   { label: '蛋白质目标', value: '98', unit: '/ 120 g', percentage: 81, tone: 'green' },
   { label: '碳水目标', value: '150', unit: '/ 250 g', percentage: 60, tone: 'orange' },
@@ -103,9 +114,16 @@ function getRecordsState(value: string | null): RecordsState {
   return value === 'loading' || value === 'empty' || value === 'error' ? value : 'default';
 }
 
-function formatDateLabel(date: Date) {
-  const isInitialDate = date.getTime() === initialDate.getTime();
-  return isInitialDate ? '今天，3月14日' : `${date.getMonth() + 1}月${date.getDate()}日`;
+function formatDateLabel(date: Date, realMode = false) {
+  const today = new Date();
+  const isInitialDate = realMode
+    ? date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    : date.getTime() === initialDate.getTime();
+  return isInitialDate
+    ? `今天，${date.getMonth() + 1}月${date.getDate()}日`
+    : `${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
 function shiftDate(date: Date, amount: number) {
@@ -114,7 +132,7 @@ function shiftDate(date: Date, amount: number) {
   return next;
 }
 
-function ProgressRing({ percentage, tone }: { percentage: number; tone: (typeof metrics)[number]['tone'] }) {
+function ProgressRing({ percentage, tone }: { percentage: number; tone: Metric['tone'] }) {
   const style = { '--progress': percentage } as CSSProperties;
   return (
     <div className={`${styles.progressRing} ${styles[tone]}`} style={style} aria-label={`${percentage}% 完成`}>
@@ -123,17 +141,131 @@ function ProgressRing({ percentage, tone }: { percentage: number; tone: (typeof 
   );
 }
 
+const realMealMeta: Record<MealSection['id'], { icon: string; title: string }> = {
+  breakfast: { icon: '🌅', title: '早餐' },
+  lunch: { icon: '🌞', title: '午餐' },
+  dinner: { icon: '🌙', title: '晚餐' },
+  snack: { icon: '🍎', title: '加餐' },
+};
+
+function dayWindow(date: Date) {
+  const from = new Date(date);
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(from);
+  to.setDate(to.getDate() + 1);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
+function formatMetricNumber(value: number) {
+  return value.toLocaleString('zh-CN', { maximumFractionDigits: 1 });
+}
+
+function asNumber(value: number | string | null | undefined) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function mapFoodLogs(logs: FoodLog[]): MealSection[] {
+  const sections = Object.keys(realMealMeta).map((id) => {
+    const mealId = id as MealSection['id'];
+    const meta = realMealMeta[mealId];
+    const relatedLogs = logs.filter((log) => log.meal_type === mealId);
+    return {
+      id: mealId,
+      icon: meta.icon,
+      title: meta.title,
+      time: relatedLogs[0]
+        ? new Date(relatedLogs[0].meal_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+        : '暂无记录',
+      items: relatedLogs.flatMap((log) =>
+        log.items.map((item) => ({
+          id: `${log.food_log_id}-${item.food_log_item_id}`,
+          name: item.raw_name,
+          status: item.nutrition_status === 'matched' ? ('confirmed' as const) : ('pending' as const),
+          carbs: item.carbs_g == null ? 'C: 待估算' : `C: ${formatMetricNumber(asNumber(item.carbs_g))}g`,
+          protein: item.protein_g == null ? 'P: 待估算' : `P: ${formatMetricNumber(asNumber(item.protein_g))}g`,
+          fat: item.fat_g == null ? 'F: 待估算' : `F: ${formatMetricNumber(asNumber(item.fat_g))}g`,
+          logId: log.food_log_id,
+          revision: log.revision,
+        })),
+      ),
+    } satisfies MealSection;
+  });
+  return sections.filter((section) => section.items.length > 0);
+}
+
+function realMetrics(logs: FoodLog[]): Metric[] {
+  const items = logs.flatMap((log) => log.items);
+  const total = (key: 'calories_kcal' | 'protein_g' | 'carbs_g' | 'fat_g') =>
+    items.reduce((sum, item) => sum + asNumber(item[key]), 0);
+  return [
+    {
+      label: '能量合计',
+      value: formatMetricNumber(total('calories_kcal')),
+      unit: 'kcal · 未配置目标',
+      percentage: 0,
+      tone: 'purple',
+    },
+    {
+      label: '蛋白质合计',
+      value: formatMetricNumber(total('protein_g')),
+      unit: 'g · 未配置目标',
+      percentage: 0,
+      tone: 'green',
+    },
+    {
+      label: '碳水合计',
+      value: formatMetricNumber(total('carbs_g')),
+      unit: 'g · 当前日期',
+      percentage: 0,
+      tone: 'orange',
+    },
+    { label: '脂肪合计', value: formatMetricNumber(total('fat_g')), unit: 'g · 当前日期', percentage: 0, tone: 'red' },
+  ];
+}
+
 export function DietRecordsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const recordsState = getRecordsState(searchParams.get('state'));
-  const isFigmaFixture = searchParams.get('state') === 'v2' || recordsState !== 'default';
-  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
+  const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'v2' || recordsState !== 'default');
+  const [selectedDate, setSelectedDate] = useState(() => (isRealMode ? new Date() : initialDate));
   const [view, setView] = useState<'day' | 'week'>('day');
   const [meals, setMeals] = useState<MealSection[]>(initialMeals);
+  const [realLogs, setRealLogs] = useState<FoodLog[]>([]);
+  const [realLoading, setRealLoading] = useState(isRealMode);
+  const [realError, setRealError] = useState<string>();
+  const [realReloadNonce, setRealReloadNonce] = useState(0);
   const [dialogMealId, setDialogMealId] = useState<MealSection['id']>();
   const [foodName, setFoodName] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    if (!isRealMode) return;
+    let active = true;
+    setRealLoading(true);
+    setRealError(undefined);
+    const window = dayWindow(selectedDate);
+    loadFoodLogs(window.from, window.to)
+      .then((logs) => {
+        if (!active) return;
+        setRealLogs(logs);
+        setMeals(mapFoodLogs(logs));
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setRealLogs([]);
+        setMeals([]);
+        setRealError(cause instanceof Error ? cause.message : '饮食记录加载失败');
+      })
+      .finally(() => {
+        if (active) setRealLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isRealMode, realReloadNonce, selectedDate]);
 
   const selectedMeal = useMemo(() => meals.find((meal) => meal.id === dialogMealId), [dialogMealId, meals]);
 
@@ -150,6 +282,22 @@ export function DietRecordsPage() {
   const addFood = () => {
     const name = foodName.trim();
     if (!name || !dialogMealId) return;
+
+    if (isRealMode) {
+      void createFoodLog({
+        meal_time: new Date(selectedDate).toISOString(),
+        meal_type: dialogMealId,
+        items: [{ raw_name: name, amount: 1, unit: '份' }],
+      })
+        .then((created) => {
+          setRealLogs((current) => [...current, created]);
+          setMeals(mapFoodLogs([...realLogs, created]));
+          setNotice(`${name} 已提交，营养值将由服务端估算。`);
+          closeFoodDialog();
+        })
+        .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录保存失败'));
+      return;
+    }
 
     setMeals((current) =>
       current.map((meal) =>
@@ -176,6 +324,19 @@ export function DietRecordsPage() {
   };
 
   const removeFood = (mealId: MealSection['id'], foodId: string, foodNameToRemove: string) => {
+    if (isRealMode) {
+      const item = meals.find((meal) => meal.id === mealId)?.items.find((candidate) => candidate.id === foodId);
+      if (!item?.logId || item.revision == null) return;
+      void deleteFoodLog(item.logId, item.revision)
+        .then(() => {
+          const nextLogs = realLogs.filter((log) => log.food_log_id !== item.logId);
+          setRealLogs(nextLogs);
+          setMeals(mapFoodLogs(nextLogs));
+          setNotice(`${foodNameToRemove} 已从当前记录移除。`);
+        })
+        .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录删除失败'));
+      return;
+    }
     setMeals((current) =>
       current.map((meal) =>
         meal.id === mealId ? { ...meal, items: meal.items.filter((item) => item.id !== foodId) } : meal,
@@ -185,11 +346,25 @@ export function DietRecordsPage() {
   };
 
   const reloadRecords = () => {
+    if (isRealMode) {
+      setRealReloadNonce((current) => current + 1);
+      return;
+    }
     setSearchParams({ view: 'records' });
     setNotice('正在重新加载饮食记录。');
   };
 
-  const recordMetrics = recordsState === 'empty' ? emptyMetrics : metrics;
+  const realEmpty = isRealMode && !realLoading && !realError && realLogs.length === 0;
+  const visibleState: RecordsState = isRealMode
+    ? realLoading
+      ? 'loading'
+      : realError
+        ? 'error'
+        : realEmpty
+          ? 'empty'
+          : 'default'
+    : recordsState;
+  const recordMetrics = isRealMode ? realMetrics(realLogs) : recordsState === 'empty' ? emptyMetrics : metrics;
 
   return (
     <WorkspaceLayout
@@ -217,7 +392,11 @@ export function DietRecordsPage() {
                 <ChevronLeft aria-hidden="true" />
               </Button>
               <Button className={styles.dateLabel} variant="ghost" onClick={() => setSelectedDate(initialDate)}>
-                {view === 'week' ? '本周，3月11日 - 3月17日' : formatDateLabel(selectedDate)}
+                {view === 'week'
+                  ? isRealMode
+                    ? '周视图暂未接入'
+                    : '本周，3月11日 - 3月17日'
+                  : formatDateLabel(selectedDate, isRealMode)}
               </Button>
               <Button
                 className={styles.dateButton}
@@ -247,13 +426,14 @@ export function DietRecordsPage() {
                 role="tab"
                 aria-selected={view === 'week'}
                 onClick={() => setView('week')}
+                disabled={isRealMode}
               >
                 周视图
               </Button>
             </div>
           </header>
 
-          {recordsState === 'loading' ? (
+          {visibleState === 'loading' ? (
             <section className={styles.loadingContent} aria-label="饮食记录加载中" aria-busy="true">
               <div className={styles.loadingMetrics}>
                 {Array.from({ length: 4 }, (_, index) => (
@@ -280,7 +460,7 @@ export function DietRecordsPage() {
                 <strong />
               </div>
             </section>
-          ) : recordsState === 'error' ? (
+          ) : visibleState === 'error' ? (
             <section className={styles.statePanel} aria-label="饮食记录加载失败" role="alert">
               <div className={`${styles.stateIcon} ${styles.stateIconError}`}>
                 <AlertTriangle aria-hidden="true" />
@@ -288,6 +468,7 @@ export function DietRecordsPage() {
               <div className={styles.stateCopy}>
                 <h2>饮食记录加载失败</h2>
                 <p>请检查网络连接后重试</p>
+                {isRealMode && realError ? <p>{realError}</p> : null}
               </div>
               <Button className={styles.stateAction} onClick={reloadRecords}>
                 <RefreshCw aria-hidden="true" />
@@ -311,7 +492,7 @@ export function DietRecordsPage() {
                 ))}
               </section>
 
-              {recordsState === 'empty' ? (
+              {visibleState === 'empty' ? (
                 <section className={styles.statePanel} aria-label="今天还没有饮食记录">
                   <div className={`${styles.stateIcon} ${styles.stateIconEmpty}`}>
                     <Utensils aria-hidden="true" />
@@ -365,8 +546,8 @@ export function DietRecordsPage() {
                                 variant="ghost"
                                 size="icon"
                                 type="button"
-                                aria-label={`删除${item.name}`}
-                                title={`删除${item.name}`}
+                                aria-label={`删除${item.name}${isRealMode ? '所在记录' : ''}`}
+                                title={`删除${item.name}${isRealMode ? '所在记录' : ''}`}
                                 onClick={() => removeFood(meal.id, item.id, item.name)}
                               >
                                 <Trash2 aria-hidden="true" />
@@ -383,7 +564,7 @@ export function DietRecordsPage() {
           )}
         </section>
 
-        {recordsState === 'default' ? (
+        {visibleState === 'default' ? (
           <section className={styles.recordsActions} aria-label="饮食记录操作">
             <Button className={styles.logMealButton} type="button" onClick={() => openFoodDialog('breakfast')}>
               记录一餐
@@ -399,7 +580,7 @@ export function DietRecordsPage() {
           </section>
         ) : null}
 
-        {recordsState === 'default' ? (
+        {visibleState === 'default' && !isRealMode ? (
           <section className={styles.entryDetail} aria-label="记录详情">
             <h2>记录详情 · 待确认记录可在这里补充后保存</h2>
             <p>蓝莓燕麦粥 · 早餐 · 08:30 · 估算值</p>
