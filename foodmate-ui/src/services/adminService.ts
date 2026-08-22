@@ -122,6 +122,7 @@ type AdminKnowledgeResponse = {
   document_id: number | null;
   title: string;
   status: string;
+  visibility?: string;
   chunks: number | null;
   owner: string;
   source: string;
@@ -379,6 +380,7 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       documentId: text(row.document_id),
       title: row.title,
       status: row.status,
+      visibility: row.visibility || 'draft',
       chunks: row.chunks ?? 0,
       owner: row.owner,
       source: row.source,
