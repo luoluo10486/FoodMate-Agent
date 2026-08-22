@@ -2948,11 +2948,11 @@
       "queryState": "state=basic-avatar-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic-avatar-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-avatar-failed-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-avatar-failed",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-avatar-failed-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-basic-avatar-failed-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.6151007758246527; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2977,7 +2977,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Avatar upload failure modal is present, but browser differs in allowed-format/size rule, error detail, action availability, modal geometry, profile identity, and underlying layout. Retain DIFF_REVIEW."
       }
     },
@@ -2992,11 +2992,11 @@
       "queryState": "state=basic-unsaved-leave-confirmation",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic-unsaved-leave-confirmation.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-unsaved-leave-confirmation",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.825146484375; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3021,7 +3021,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Unsaved-change confirmation is present, but browser changes action wording/order, omits the Figma full-page composition, and differs in dialog geometry, profile data, avatar, and lower preference section. Retain DIFF_REVIEW."
       }
     },
@@ -3036,11 +3036,11 @@
       "queryState": "state=security-password-submitting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security-password-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-submitting-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-submitting",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-submitting-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-submitting-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.5773715549045139; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3065,7 +3065,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Password update state is present, but browser uses a different profile identity, security-page composition, modal geometry, progress bar, supporting copy, and device/activity detail. Retain DIFF_REVIEW."
       }
     },
@@ -3080,11 +3080,11 @@
       "queryState": "state=security-password-success",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security-password-success.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-success-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security-password-success",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-success-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-security-password-success-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: password-success dialog semantics exist, but the profile identity, base page composition, dialog geometry, progress treatment, and supporting detail differ.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.5753587510850694; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3109,7 +3109,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Password-success dialog semantics exist, but the profile identity, base page composition, dialog geometry, progress treatment, and supporting detail differ. Retain DIFF_REVIEW."
       }
     },
@@ -3212,11 +3212,11 @@
       "queryState": "state=privacy-export-running",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-running.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-running",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: export-running progress semantics exist, but the privacy-page composition, content density, progress presentation, dialog boundary, color, and layout differ.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.35830552842881946; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3241,7 +3241,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Export-running progress semantics exist, but the privacy-page composition, content density, progress presentation, dialog boundary, color, and layout differ. Retain DIFF_REVIEW."
       }
     },
@@ -3256,11 +3256,11 @@
       "queryState": "state=privacy-export-expired",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-expired.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-export-expired",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: export-expired semantics exist, but the dialog geometry, content density, page composition, and visual treatment differ.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.3515692816840278; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3285,7 +3285,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Export-expired semantics exist, but the dialog geometry, content density, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
@@ -3300,11 +3300,11 @@
       "queryState": "state=privacy-deletion-submitting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-submitting",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: account-deletion submission semantics exist, but the dialog geometry, progress treatment, page composition, and visual treatment differ.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.8227925618489583; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3329,7 +3329,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Account-deletion submission semantics exist, but the dialog geometry, progress treatment, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
@@ -3344,11 +3344,11 @@
       "queryState": "state=privacy-deletion-success",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-success.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-success-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-success",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-success-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-success-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: account-deletion success semantics exist, but the dialog geometry, supporting detail, page composition, and visual treatment differ.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.3486395941840278; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3373,7 +3373,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Account-deletion success semantics exist, but the dialog geometry, supporting detail, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
@@ -3388,11 +3388,11 @@
       "queryState": "state=privacy-deletion-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-failed-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-privacy-deletion-failed",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-failed-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-failed-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: account-deletion failure semantics exist, but the dialog geometry, error treatment, page composition, and visual treatment differ.",
+      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.35199924045138886; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3417,7 +3417,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
+        "reviewedAt": "2026-08-22",
         "conclusion": "Account-deletion failure semantics exist, but the dialog geometry, error treatment, page composition, and visual treatment differ. Retain DIFF_REVIEW."
       }
     },
