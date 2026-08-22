@@ -42,3 +42,39 @@ class KnowledgeIndexWorkerTests(TestCase):
         worker = KnowledgeIndexWorker(lambda _: (_ for _ in ()).throw(AssertionError("object must not be read")), published.append, RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))
         result = worker.handle_index({"item_id": "i1", "document_id": "d1", "version": "v1", "mode": "local"})
         self.assertEqual("RAG_MODE_MISMATCH", result["error_code"])
+
+    def test_worker_rejects_non_public_index_scope(self):
+        published = []
+        worker = KnowledgeIndexWorker(lambda _: ("guide.md", b"Protein supports recovery."), published.append, RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))
+
+        result = worker.handle_index({"item_id": "i1", "document_id": "d1", "version": "v1", "mode": "stub", "tenant_id": 9})
+
+        self.assertEqual("RAG_SCOPE_DENIED", result["error_code"])
+        self.assertEqual({}, worker.stub._chunks)
+
+    def test_local_worker_cannot_receive_stub_backend(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_base_url="http://embedding",
+            embedding_api_key="key",
+            embedding_model="model",
+            milvus_uri="http://milvus",
+            milvus_collection="knowledge",
+            batch_token_limit=100,
+            daily_token_limit=100,
+            batch_cost_limit=1,
+            daily_cost_limit=1,
+            price_per_million_tokens=1,
+            price_version="test-v1",
+        )
+
+        with self.assertRaisesRegex(RagError, "stub index"):
+            KnowledgeIndexWorker(settings=settings, stub_index=object())
+
+    def test_visibility_requires_version_and_public_scope(self):
+        worker = KnowledgeIndexWorker(lambda _: ("guide.md", b"Protein supports recovery."), settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))
+
+        with self.assertRaisesRegex(RagError, "version is required"):
+            worker.handle_visibility({"document_id": "d1", "visibility": "published"})
+        with self.assertRaisesRegex(RagError, "scope is not public"):
+            worker.handle_visibility({"document_id": "d1", "visibility": "published", "version": "v1", "scope": "private"})

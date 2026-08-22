@@ -1,8 +1,98 @@
+import json
 from io import BytesIO
 from unittest import TestCase
 import zipfile
 
-from knowledge_rag import (KnowledgeChunk, OpenAICompatibleEmbedder, RagError, RagSettings, StubIndex, chunk_markdown, parse_document, safe_object_key)
+from knowledge_rag import (KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, chunk_markdown, parse_document, safe_object_key)
+
+
+class _HashPipeline:
+    def __init__(self, client):
+        self.client = client
+        self.operations = []
+
+    def hdel(self, key, field):
+        self.operations.append(("hdel", key, field))
+
+    def hset(self, key, field, value):
+        self.operations.append(("hset", key, field, value))
+
+    def execute(self):
+        for operation in self.operations:
+            if operation[0] == "hdel":
+                self.client.hashes.setdefault(operation[1], {}).pop(operation[2], None)
+            else:
+                self.client.hashes.setdefault(operation[1], {})[operation[2]] = operation[3]
+
+
+class _HashRedis:
+    def __init__(self):
+        self.hashes = {}
+
+    def hgetall(self, key):
+        return dict(self.hashes.get(key, {}))
+
+    def pipeline(self):
+        return _HashPipeline(self)
+
+
+class _MilvusClient:
+    def __init__(self):
+        self.rows = [
+            {"embedding_id": "old", "vector": [1.0], "document_id": "d1", "title": "Guide", "version": "v1", "section_path": "old", "text": "old", "tenant_id": 0, "scope": "public_published", "indexed": True, "visibility": "draft", "deleted": False, "current_version": False},
+            {"embedding_id": "new", "vector": [1.0], "document_id": "d1", "title": "Guide", "version": "v2", "section_path": "new", "text": "new", "tenant_id": 0, "scope": "public_published", "indexed": True, "visibility": "draft", "deleted": False, "current_version": True},
+        ]
+        self.filters = []
+        self.upserts = []
+
+    def has_collection(self, _collection):
+        return True
+
+    def query(self, **kwargs):
+        self.filters.append(kwargs["filter"])
+        return [dict(row) for row in self.rows if row["version"] == "v1"]
+
+    def upsert(self, **kwargs):
+        self.upserts.append(kwargs["data"])
+
+
+class MilvusIndexTests(TestCase):
+    def test_visibility_update_is_limited_to_document_version(self):
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _MilvusClient()
+        index.collection = "public_knowledge"
+
+        index.update_visibility("d1", "published", False, True, "v1")
+
+        self.assertEqual(['document_id == "d1" and version == "v1"'], index.client.filters)
+        self.assertEqual("published", index.client.upserts[0][0]["visibility"])
+        self.assertEqual("v1", index.client.upserts[0][0]["version"])
+
+
+class RedisStubIndexTests(TestCase):
+    def test_reindex_removes_stale_chunks_for_the_same_version(self):
+        client = _HashRedis()
+        index = RedisStubIndex(client, "test:rag")
+        index.upsert("Guide", [
+            KnowledgeChunk("old", "d1", "v1", 0, "", "old"),
+            KnowledgeChunk("keep", "d1", "v1", 1, "", "keep"),
+        ])
+        index.upsert("Guide", [KnowledgeChunk("keep", "d1", "v1", 1, "", "keep")])
+
+        values = client.hgetall("test:rag:chunks")
+        self.assertEqual(1, len(values))
+        self.assertEqual("keep", json.loads(next(iter(values.values())))["text"])
+
+    def test_visibility_update_does_not_touch_another_version(self):
+        client = _HashRedis()
+        index = RedisStubIndex(client, "test:rag")
+        index.upsert("Guide", [KnowledgeChunk("v1", "d1", "v1", 0, "", "old", current_version=False)])
+        index.upsert("Guide", [KnowledgeChunk("v2", "d1", "v2", 0, "", "new")])
+        index.update_visibility("d1", "published", True, "v1")
+
+        values = {key: json.loads(value) for key, value in client.hgetall("test:rag:chunks").items()}
+        self.assertEqual("published", values["v1"]["visibility"])
+        self.assertEqual("draft", values["v2"]["visibility"])
 
 
 class RagSettingsTests(TestCase):

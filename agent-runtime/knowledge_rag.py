@@ -187,6 +187,15 @@ class StubIndex:
         self._chunks: dict[str, tuple[str, KnowledgeChunk]] = {}
 
     def upsert(self, title: str, chunks: Iterable[KnowledgeChunk]) -> None:
+        chunks = list(chunks)
+        current_ids = {chunk.embedding_id for chunk in chunks}
+        for embedding_id, (_, existing) in list(self._chunks.items()):
+            if (
+                existing.document_id == (chunks[0].document_id if chunks else "")
+                and existing.version == (chunks[0].version if chunks else "")
+                and embedding_id not in current_ids
+            ):
+                del self._chunks[embedding_id]
         for chunk in chunks:
             self._chunks[chunk.embedding_id] = (title, chunk)
 
@@ -223,16 +232,35 @@ class RedisStubIndex:
         self.prefix = prefix or os.getenv("FOODMATE_RAG_STUB_REDIS_PREFIX", "foodmate:rag:stub")
 
     def upsert(self, title: str, chunks: Iterable[KnowledgeChunk]) -> None:
+        chunks = list(chunks)
+        if not chunks:
+            return
+        current_ids = {chunk.embedding_id for chunk in chunks}
+        pipeline = self.client.pipeline()
+        for chunk_id, raw in self.client.hgetall(f"{self.prefix}:chunks").items():
+            value = json.loads(raw)
+            if (
+                str(value.get("document_id")) == str(chunks[0].document_id)
+                and str(value.get("version")) == str(chunks[0].version)
+                and chunk_id not in current_ids
+            ):
+                pipeline.hdel(f"{self.prefix}:chunks", chunk_id)
         for chunk in chunks:
             payload = {"title": title, "document_id": chunk.document_id, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": "draft", "indexed": True, "deleted": False, "current_version": chunk.current_version}
-            self.client.hset(f"{self.prefix}:chunks", chunk.embedding_id, json.dumps(payload, ensure_ascii=False))
+            pipeline.hset(f"{self.prefix}:chunks", chunk.embedding_id, json.dumps(payload, ensure_ascii=False))
+        pipeline.execute()
 
-    def update_visibility(self, document_id: str, visibility: str, current_version: bool = True) -> None:
+    def update_visibility(self, document_id: str, visibility: str, current_version: bool = True, version: str | None = None) -> None:
+        if visibility not in {"published", "draft", "disabled", "deleted"}:
+            raise RagError("RAG_VISIBILITY_INVALID", "visibility is invalid")
         values = self.client.hgetall(f"{self.prefix}:chunks")
         pipeline = self.client.pipeline()
         for chunk_id, raw in values.items():
             value = json.loads(raw)
-            if str(value.get("document_id")) == str(document_id):
+            if (
+                str(value.get("document_id")) == str(document_id)
+                and (version is None or str(value.get("version")) == str(version))
+            ):
                 value["visibility"] = visibility
                 value["deleted"] = visibility == "deleted"
                 value["current_version"] = current_version
@@ -458,13 +486,14 @@ class MilvusIndex:
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus upsert failed") from error
 
-    def update_visibility(self, document_id: str, visibility: str, deleted: bool, current_version: bool = True) -> None:
+    def update_visibility(self, document_id: str, visibility: str, deleted: bool, current_version: bool = True, version: str | None = None) -> None:
         if visibility not in {"published", "draft", "disabled", "deleted"}:
             raise RagError("RAG_VISIBILITY_INVALID", "visibility is invalid")
         try:
             if not self.client.has_collection(self.collection):
                 return
-            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{document_id}"', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted", "current_version"])
+            version_filter = "" if version is None else f' and version == "{_milvus_string(version)}"'
+            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{_milvus_string(document_id)}"{version_filter}', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted", "current_version"])
             for row in rows:
                 row["visibility"] = visibility
                 row["deleted"] = deleted
@@ -502,3 +531,8 @@ class MilvusIndex:
             if len(result) == 4:
                 break
         return result
+
+
+def _milvus_string(value: str) -> str:
+    """Escape string literals used in Milvus boolean expressions."""
+    return str(value).replace("\\", "\\\\").replace('"', '\\"')

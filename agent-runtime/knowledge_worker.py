@@ -8,7 +8,7 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Callable
 
-from knowledge_rag import MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, chunk_markdown, parse_document, safe_object_key
+from knowledge_rag import MilvusIndex, OpenAICompatibleEmbedder, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, chunk_markdown, parse_document, safe_object_key
 
 
 class _MemoryCompletionStore:
@@ -34,15 +34,19 @@ class _MemoryCompletionStore:
 
 
 class KnowledgeIndexWorker:
-    def __init__(self, object_reader: Callable[[str], bytes] | None = None, result_publisher: Callable[[dict], None] | None = None, settings: RagSettings | None = None, completed_store=None, stub_index=None):
+    def __init__(self, object_reader: Callable[[str], bytes] | None = None, result_publisher: Callable[[dict], None] | None = None, settings: RagSettings | None = None, completed_store=None, stub_index=None, embedder=None, milvus_index=None):
         self.settings = settings or RagSettings.from_environment()
+        if self.settings.mode == "local" and stub_index is not None:
+            raise RagError("RAG_MODE_MISMATCH", "local mode cannot use the stub index")
+        if self.settings.mode == "stub" and (embedder is not None or milvus_index is not None):
+            raise RagError("RAG_MODE_MISMATCH", "stub mode cannot use the local index")
         self.object_reader = object_reader or self._read_minio
         self.result_publisher = result_publisher or (lambda _result: None)
         # In-memory dependencies are only for isolated unit tests. The runtime path
         # constructs the worker without an object_reader and therefore always uses Redis.
         self.stub = stub_index or (RedisStubIndex() if self.settings.mode == "stub" and object_reader is None else StubIndex() if self.settings.mode == "stub" else None)
-        self.embedder = OpenAICompatibleEmbedder(self.settings) if self.settings.mode == "local" else None
-        self.milvus = MilvusIndex(self.settings) if self.settings.mode == "local" else None
+        self.embedder = embedder or (OpenAICompatibleEmbedder(self.settings) if self.settings.mode == "local" else None)
+        self.milvus = milvus_index or (MilvusIndex(self.settings) if self.settings.mode == "local" else None)
         self.completed = completed_store or (self._completed_store() if object_reader is None else _MemoryCompletionStore())
 
     def handle_index(self, payload: dict) -> dict:
@@ -54,6 +58,10 @@ class KnowledgeIndexWorker:
         payload_mode = str(payload.get("mode", "")).strip().lower()
         if payload_mode != self.settings.mode:
             result = {"item_id": item_id, "document_id": document_id, "version": version, "status": "index_failed", "error_code": "RAG_MODE_MISMATCH", "error_summary": "knowledge index mode does not match worker mode", "attempt": 3}
+            self.result_publisher(result)
+            return result
+        if payload.get("tenant_id", 0) != 0 or payload.get("scope", PUBLIC_SCOPE) != PUBLIC_SCOPE:
+            result = {"item_id": item_id, "document_id": document_id, "version": version, "status": "index_failed", "error_code": "RAG_SCOPE_DENIED", "error_summary": "knowledge index scope is not public", "attempt": attempt}
             self.result_publisher(result)
             return result
         if attempt < 1:
@@ -74,6 +82,7 @@ class KnowledgeIndexWorker:
             raise RagError("RAG_INDEX_IN_PROGRESS", "knowledge index item is already being processed")
         try:
             prefix = f"knowledge/public/{document_id}/"
+            safe_object_key(prefix)
             filename, content = self._read_document(prefix)
             text = parse_document(filename, content)
             chunks = [replace(chunk, visibility="draft", current_version=True) for chunk in chunk_markdown(text, document_id, version)]
@@ -106,13 +115,18 @@ class KnowledgeIndexWorker:
         return result
 
     def handle_visibility(self, payload: dict) -> None:
+        if payload.get("tenant_id", 0) != 0 or payload.get("scope", PUBLIC_SCOPE) != PUBLIC_SCOPE:
+            raise RagError("RAG_SCOPE_DENIED", "knowledge visibility scope is not public")
         document_id = str(payload["document_id"])
         visibility = str(payload["visibility"])
+        version = str(payload.get("version", "")).strip()
+        if not version:
+            raise RagError("RAG_VERSION_INVALID", "knowledge visibility version is required")
         current_version = bool(payload.get("current_version", True))
         if self.milvus:
-            self.milvus.update_visibility(document_id, visibility, visibility == "deleted", current_version)
+            self.milvus.update_visibility(document_id, visibility, visibility == "deleted", current_version, version)
         elif self.stub:
-            self.stub.update_visibility(document_id, visibility, current_version)
+            self.stub.update_visibility(document_id, visibility, current_version, version)
 
     def _read_document(self, prefix: str) -> tuple[str, bytes]:
         # The restricted MinIO identity may list only this fixed public-knowledge namespace.
