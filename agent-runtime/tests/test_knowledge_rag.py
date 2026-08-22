@@ -3,7 +3,7 @@ from io import BytesIO
 from unittest import TestCase
 import zipfile
 
-from knowledge_rag import (KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, chunk_markdown, parse_document, safe_object_key)
+from knowledge_rag import (DeterministicEmbedder, KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key)
 
 
 class _HashPipeline:
@@ -56,6 +56,26 @@ class _MilvusClient:
         self.upserts.append(kwargs["data"])
 
 
+class _VectorMilvusClient:
+    def __init__(self, dimension=None):
+        self.dimension = dimension
+        self.created = []
+        self.upserts = []
+
+    def has_collection(self, _collection):
+        return self.dimension is not None
+
+    def create_collection(self, *args, **kwargs):
+        self.dimension = kwargs["dimension"]
+        self.created.append((args, kwargs))
+
+    def describe_collection(self, _collection):
+        return {"fields": [{"name": "vector", "params": {"dim": self.dimension}}]}
+
+    def upsert(self, **kwargs):
+        self.upserts.append(kwargs["data"])
+
+
 class MilvusIndexTests(TestCase):
     def test_visibility_update_is_limited_to_document_version(self):
         index = MilvusIndex.__new__(MilvusIndex)
@@ -67,6 +87,43 @@ class MilvusIndexTests(TestCase):
         self.assertEqual(['document_id == "d1" and version == "v1"'], index.client.filters)
         self.assertEqual("published", index.client.upserts[0][0]["visibility"])
         self.assertEqual("v1", index.client.upserts[0][0]["version"])
+
+    def test_upsert_initializes_collection_from_actual_vector_dimension(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="deterministic",
+            milvus_uri="http://milvus",
+            milvus_collection="public_knowledge",
+            deterministic_dimension=12,
+        )
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _VectorMilvusClient()
+        index.collection = settings.milvus_collection
+        embedder = DeterministicEmbedder(settings)
+        chunks = [KnowledgeChunk("emb-1", "d1", "v1", 0, "Guide", "protein recovery")]
+
+        index.upsert("Guide", chunks, embedder.embed([chunks[0].text]))
+
+        self.assertEqual(12, index.client.created[0][1]["dimension"])
+        self.assertEqual(12, len(index.client.upserts[0][0]["vector"]))
+        self.assertEqual("public_published", index.client.upserts[0][0]["scope"])
+
+    def test_upsert_rejects_existing_collection_dimension_mismatch(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="deterministic",
+            milvus_uri="http://milvus",
+            milvus_collection="public_knowledge",
+            deterministic_dimension=12,
+        )
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _VectorMilvusClient(dimension=8)
+        index.collection = settings.milvus_collection
+
+        with self.assertRaisesRegex(RagError, "does not match") as raised:
+            index.upsert("Guide", [KnowledgeChunk("emb-1", "d1", "v1", 0, "", "protein")], [[0.1] * 12])
+
+        self.assertEqual("RAG_MILVUS_DIMENSION_MISMATCH", raised.exception.code)
 
 
 class RedisStubIndexTests(TestCase):
@@ -114,6 +171,57 @@ class RagSettingsTests(TestCase):
             "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1", "FOODMATE_RAG_PRICE_VERSION": "test-v1",
         })
         self.assertEqual(4, settings.index_concurrency)
+
+    def test_local_deterministic_provider_needs_no_real_embedding_credentials(self):
+        settings = RagSettings.from_environment({
+            "FOODMATE_RAG_MODE": "local",
+            "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+            "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+            "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+            "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+            "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+            "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+            "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+            "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+            "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+        })
+
+        self.assertEqual("deterministic", settings.embedding_provider)
+        self.assertEqual("deterministic-local-v1", settings.embedding_model)
+        self.assertIsInstance(build_local_embedder(settings), DeterministicEmbedder)
+
+    def test_openai_provider_still_fails_closed_without_api_key(self):
+        with self.assertRaisesRegex(RagError, "incomplete") as raised:
+            RagSettings.from_environment({
+                "FOODMATE_RAG_MODE": "local",
+                "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+                "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+                "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+            })
+        self.assertEqual("RAG_EMBEDDING_BASE_URL_MISSING", raised.exception.code)
+
+
+class DeterministicEmbedderTests(TestCase):
+    def test_vectors_are_stable_non_zero_and_have_configured_dimension(self):
+        settings = RagSettings(mode="local", embedding_provider="deterministic", deterministic_dimension=16)
+        embedder = DeterministicEmbedder(settings)
+
+        first = embedder.embed(["Protein supports recovery.", "Protein supports recovery."])
+
+        self.assertEqual(first[0], first[1])
+        self.assertEqual(16, len(first[0]))
+        self.assertGreater(sum(item * item for item in first[0]), 0)
+
+    def test_provider_mismatch_does_not_silently_fallback(self):
+        settings = RagSettings(mode="local", embedding_provider="openai-compatible")
+
+        with self.assertRaisesRegex(RagError, "explicit local provider"):
+            DeterministicEmbedder(settings)
 
 
 class StubIndexTests(TestCase):

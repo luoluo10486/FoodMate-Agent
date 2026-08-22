@@ -1,6 +1,17 @@
 from unittest import TestCase
 from knowledge_worker import KnowledgeIndexWorker
-from knowledge_rag import RagError, RagSettings
+from knowledge_rag import DeterministicEmbedder, RagError, RagSettings
+
+
+class _VectorIndex:
+    def __init__(self):
+        self.rows = []
+
+    def upsert(self, title, chunks, vectors):
+        self.rows.append((title, list(chunks), vectors))
+
+    def update_visibility(self, *_args):
+        pass
 
 class KnowledgeIndexWorkerTests(TestCase):
     def test_stub_indexes_one_document_once(self):
@@ -70,6 +81,42 @@ class KnowledgeIndexWorkerTests(TestCase):
 
         with self.assertRaisesRegex(RagError, "stub index"):
             KnowledgeIndexWorker(settings=settings, stub_index=object())
+
+    def test_local_deterministic_provider_writes_vectors_to_milvus_adapter(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="deterministic",
+            embedding_model="deterministic-local-v1",
+            milvus_uri="http://milvus",
+            milvus_collection="knowledge",
+            deterministic_dimension=16,
+            batch_token_limit=100,
+            daily_token_limit=100,
+            batch_cost_limit=0,
+            daily_cost_limit=0,
+            price_per_million_tokens=0,
+            price_version="deterministic-v1",
+        )
+        index = _VectorIndex()
+        worker = KnowledgeIndexWorker(
+            lambda _: ("guide.md", b"# Recovery\nProtein supports recovery."),
+            settings=settings,
+            embedder=DeterministicEmbedder(settings),
+            milvus_index=index,
+        )
+
+        result = worker.handle_index({
+            "item_id": "i-local",
+            "document_id": "d-local",
+            "version": "v1",
+            "mode": "local",
+            "tenant_id": 0,
+            "scope": "public_published",
+        })
+
+        self.assertEqual("indexed", result["status"])
+        self.assertEqual(1, len(index.rows))
+        self.assertEqual(16, len(index.rows[0][2][0]))
 
     def test_visibility_requires_version_and_public_scope(self):
         worker = KnowledgeIndexWorker(lambda _: ("guide.md", b"Protein supports recovery."), settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))

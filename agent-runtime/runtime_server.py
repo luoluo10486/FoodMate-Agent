@@ -20,7 +20,7 @@ from agent_core import DeterministicPlanner, DeterministicRouter, InMemoryCheckp
 from eval.metrics import EvalMetrics, RuntimeMetrics
 from model_provider import ModelProviderError
 from recovery_protocol import checkpoint_digest, validate_recovery_command
-from knowledge_rag import MilvusIndex, OpenAICompatibleEmbedder, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex
+from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, build_local_embedder
 
 JAVA_CALLBACK_URL = os.getenv("JAVA_CALLBACK_URL", "http://localhost:8080")
 CONTRACT_VERSION = os.getenv("FOODMATE_CONTRACT_VERSION", "v1")
@@ -599,7 +599,7 @@ def _search_public_knowledge(query: str):
         RedisStubIndex().search(query, PUBLIC_SCOPE)
         if settings.mode == "stub"
         else MilvusIndex(settings).search(
-            query, OpenAICompatibleEmbedder(settings), PUBLIC_SCOPE
+            query, build_local_embedder(settings), PUBLIC_SCOPE
         )
     )
 

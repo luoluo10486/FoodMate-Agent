@@ -8,7 +8,7 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Callable
 
-from knowledge_rag import MilvusIndex, OpenAICompatibleEmbedder, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, chunk_markdown, parse_document, safe_object_key
+from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
 
 
 class _MemoryCompletionStore:
@@ -45,7 +45,7 @@ class KnowledgeIndexWorker:
         # In-memory dependencies are only for isolated unit tests. The runtime path
         # constructs the worker without an object_reader and therefore always uses Redis.
         self.stub = stub_index or (RedisStubIndex() if self.settings.mode == "stub" and object_reader is None else StubIndex() if self.settings.mode == "stub" else None)
-        self.embedder = embedder or (OpenAICompatibleEmbedder(self.settings) if self.settings.mode == "local" else None)
+        self.embedder = embedder or (build_local_embedder(self.settings) if self.settings.mode == "local" else None)
         self.milvus = milvus_index or (MilvusIndex(self.settings) if self.settings.mode == "local" else None)
         self.completed = completed_store or (self._completed_store() if object_reader is None else _MemoryCompletionStore())
 

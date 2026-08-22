@@ -234,6 +234,8 @@ services:
     environment:
       ETCD_ENDPOINTS: milvus-etcd:2379
       MINIO_ADDRESS: milvus-minio:9000
+      MINIO_ACCESS_KEY_ID: ${MILVUS_MINIO_ROOT_USER:-milvus}
+      MINIO_SECRET_ACCESS_KEY: ${MILVUS_MINIO_ROOT_PASSWORD:-milvus-minio-change-me}
     depends_on:
       milvus-etcd: { condition: service_healthy }
       milvus-minio: { condition: service_healthy }

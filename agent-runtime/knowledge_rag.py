@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
-from typing import Iterable
+from typing import Iterable, Protocol
 
 
 class RagError(RuntimeError):
@@ -42,11 +42,13 @@ _CHINA_ID = re.compile(
 @dataclass(frozen=True)
 class RagSettings:
     mode: str
+    embedding_provider: str = "openai-compatible"
     embedding_base_url: str = ""
     embedding_api_key: str = ""
     embedding_model: str = ""
     milvus_uri: str = ""
     milvus_collection: str = ""
+    deterministic_dimension: int = 64
     index_concurrency: int = 4
     timeout_seconds: float = 20.0
     batch_token_limit: int | None = None
@@ -62,16 +64,30 @@ class RagSettings:
         mode = env.get("FOODMATE_RAG_MODE", "stub").strip().lower()
         if mode not in {"stub", "local"}:
             raise RagError("RAG_MODE_INVALID", "FOODMATE_RAG_MODE must be stub or local")
+        provider = env.get("FOODMATE_RAG_EMBEDDING_PROVIDER", "openai-compatible").strip().lower()
+        if provider not in {"openai-compatible", "deterministic"}:
+            raise RagError("RAG_EMBEDDING_PROVIDER_INVALID", "embedding provider is invalid")
         concurrency = _integer(env.get("FOODMATE_RAG_INDEX_CONCURRENCY", "4"), "RAG_INDEX_CONCURRENCY_INVALID")
         if not 1 <= concurrency <= 8:
             raise RagError("RAG_INDEX_CONCURRENCY_INVALID", "index concurrency must be between 1 and 8")
+        deterministic_dimension = _integer(
+            env.get("FOODMATE_RAG_DETERMINISTIC_DIMENSION", "64"),
+            "RAG_DETERMINISTIC_DIMENSION_INVALID",
+        )
+        if not 8 <= deterministic_dimension <= 4096:
+            raise RagError("RAG_DETERMINISTIC_DIMENSION_INVALID", "deterministic dimension must be between 8 and 4096")
+        embedding_model = env.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip()
+        if provider == "deterministic" and not embedding_model:
+            embedding_model = "deterministic-local-v1"
         settings = cls(
             mode=mode,
+            embedding_provider=provider,
             embedding_base_url=env.get("FOODMATE_RAG_EMBEDDING_BASE_URL", "").strip(),
             embedding_api_key=env.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip(),
-            embedding_model=env.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip(),
+            embedding_model=embedding_model,
             milvus_uri=env.get("FOODMATE_RAG_MILVUS_URI", "").strip(),
             milvus_collection=env.get("FOODMATE_RAG_MILVUS_COLLECTION", "").strip(),
+            deterministic_dimension=deterministic_dimension,
             index_concurrency=concurrency,
             timeout_seconds=float(env.get("FOODMATE_RAG_ITEM_TIMEOUT_SECONDS", "20")),
             batch_token_limit=_optional_integer(env.get("FOODMATE_RAG_BATCH_TOKEN_LIMIT", "")),
@@ -82,10 +98,15 @@ class RagSettings:
             price_version=env.get("FOODMATE_RAG_PRICE_VERSION", "").strip(),
         )
         if mode == "local":
+            if provider == "openai-compatible":
+                for code, value in {
+                    "RAG_EMBEDDING_BASE_URL_MISSING": settings.embedding_base_url,
+                    "RAG_EMBEDDING_API_KEY_MISSING": settings.embedding_api_key,
+                    "RAG_EMBEDDING_MODEL_MISSING": settings.embedding_model,
+                }.items():
+                    if not value:
+                        raise RagError(code, "local RAG configuration is incomplete")
             required = {
-                "RAG_EMBEDDING_BASE_URL_MISSING": settings.embedding_base_url,
-                "RAG_EMBEDDING_API_KEY_MISSING": settings.embedding_api_key,
-                "RAG_EMBEDDING_MODEL_MISSING": settings.embedding_model,
                 "RAG_MILVUS_URI_MISSING": settings.milvus_uri,
                 "RAG_MILVUS_COLLECTION_MISSING": settings.milvus_collection,
                 "RAG_BATCH_TOKEN_LIMIT_MISSING": settings.batch_token_limit,
@@ -148,6 +169,11 @@ class Citation:
     section_path: str
     chunk_id: str
     snippet: str
+
+
+class EmbeddingProvider(Protocol):
+    def embed(self, inputs: list[str]) -> list[list[float]]:
+        ...
 
 
 def chunk_markdown(text: str, document_id: str, version: str, max_chars: int = 900) -> list[KnowledgeChunk]:
@@ -299,8 +325,8 @@ def _snippet(value: str, limit: int = 240) -> str:
 
 class OpenAICompatibleEmbedder:
     def __init__(self, settings: RagSettings):
-        if settings.mode != "local":
-            raise RagError("RAG_MODE_INVALID", "real embedder requires local mode")
+        if settings.mode != "local" or settings.embedding_provider != "openai-compatible":
+            raise RagError("RAG_EMBEDDING_PROVIDER_MISMATCH", "OpenAI-compatible embedder requires its explicit local provider")
         self.settings = settings
 
     def embed(self, inputs: list[str]) -> list[list[float]]:
@@ -325,6 +351,45 @@ class OpenAICompatibleEmbedder:
 
     def _url(self) -> str:
         return self.settings.embedding_base_url if self.settings.embedding_base_url.endswith("/embeddings") else self.settings.embedding_base_url.rstrip("/") + "/embeddings"
+
+
+class DeterministicEmbedder:
+    """Generate stable lexical vectors for local Milvus business tests."""
+
+    def __init__(self, settings: RagSettings):
+        if settings.mode != "local" or settings.embedding_provider != "deterministic":
+            raise RagError("RAG_EMBEDDING_PROVIDER_MISMATCH", "deterministic embedder requires its explicit local provider")
+        self.dimension = settings.deterministic_dimension
+        self.model_version = settings.embedding_model
+
+    def embed(self, inputs: list[str]) -> list[list[float]]:
+        if not inputs:
+            raise RagError("RAG_EMBEDDING_INVALID_INPUT", "embedding input must not be empty")
+        return [self._embed_one(value) for value in inputs]
+
+    def _embed_one(self, value: str) -> list[float]:
+        tokens = _tokens(value)
+        if not tokens:
+            tokens = [value.strip() or "empty"]
+        vector = [0.0] * self.dimension
+        for token in tokens:
+            digest = hashlib.blake2b(token.encode("utf-8"), digest_size=16).digest()
+            bucket = int.from_bytes(digest[:8], "big") % self.dimension
+            sign = 1.0 if digest[8] & 1 else -1.0
+            vector[bucket] += sign
+        norm = math.sqrt(sum(item * item for item in vector))
+        return [item / norm for item in vector] if norm else [1.0] + [0.0] * (self.dimension - 1)
+
+
+def build_local_embedder(settings: RagSettings) -> EmbeddingProvider:
+    """Create exactly the configured local provider without implicit fallback."""
+    if settings.mode != "local":
+        raise RagError("RAG_MODE_INVALID", "local embedding provider requires local mode")
+    if settings.embedding_provider == "deterministic":
+        return DeterministicEmbedder(settings)
+    if settings.embedding_provider == "openai-compatible":
+        return OpenAICompatibleEmbedder(settings)
+    raise RagError("RAG_EMBEDDING_PROVIDER_INVALID", "embedding provider is invalid")
 
 
 def safe_object_key(key: str) -> str:
@@ -456,6 +521,7 @@ class MilvusIndex:
                     dimension=dimension,
                     primary_field_name="embedding_id",
                     id_type="string",
+                    max_length=128,
                     vector_field_name="vector",
                     metric_type="COSINE",
                     auto_id=False,
@@ -503,7 +569,7 @@ class MilvusIndex:
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus visibility update failed") from error
 
-    def search(self, query: str, embedder: OpenAICompatibleEmbedder, scope: str = PUBLIC_SCOPE) -> list[Citation]:
+    def search(self, query: str, embedder: EmbeddingProvider, scope: str = PUBLIC_SCOPE) -> list[Citation]:
         if scope != PUBLIC_SCOPE:
             raise RagError("RAG_SCOPE_DENIED", "only public_published scope is supported")
         vectors = embedder.embed([query])
@@ -515,7 +581,7 @@ class MilvusIndex:
                 anns_field="vector",
                 filter='tenant_id == 0 and scope == "public_published" and visibility == "published" and indexed == true and deleted == false and current_version == true',
                 limit=12,
-                output_fields=["document_id", "title", "version", "section_path", "text", "current_version"],
+                output_fields=["embedding_id", "document_id", "title", "version", "section_path", "text", "current_version"],
             )[0]
         except Exception as error:
             raise RagError("RAG_MILVUS_SEARCH_FAILED", "Milvus search failed") from error
@@ -527,7 +593,7 @@ class MilvusIndex:
             if not document_id or per_document.get(document_id, 0) >= 2:
                 continue
             per_document[document_id] = per_document.get(document_id, 0) + 1
-            result.append(Citation(document_id, str(entity.get("title", "Knowledge")), str(entity.get("version", "1")), str(entity.get("section_path", "")), str(hit.get("id", entity.get("embedding_id", ""))), _snippet(str(entity.get("text", "")))))
+            result.append(Citation(document_id, str(entity.get("title", "Knowledge")), str(entity.get("version", "1")), str(entity.get("section_path", "")), str(entity.get("embedding_id", hit.get("id", ""))), _snippet(str(entity.get("text", "")))))
             if len(result) == 4:
                 break
         return result

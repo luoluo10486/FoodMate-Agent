@@ -257,3 +257,18 @@
 | SQL 状态 | 已新增 `V23__m2_3_admin_export_jobs.sql`、validation 和 rollback 前置检查；本轮未执行迁移，未改变本地数据 |
 | 环境边界 | 未启动 Docker/Milvus；未执行真实对象存储下载、跨运行时索引、性能压测、组件重启或故障注入 |
 | 结论 | 管理端脱敏运营导出业务代码和定向门禁通过；M2 总体和真实依赖闭环状态不变 |
+
+## M2-1 本地 deterministic embedding 与 Milvus 业务路径（2026-08-22）
+
+| 项目 | 结果 |
+|---|---|
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；仅启动 Compose 的 `milvus`、`milvus-etcd`、`milvus-minio`；未启动 Java、PostgreSQL、Redis、RocketMQ，不执行迁移、清库、备份恢复或付费模型调用 |
+| 配置 | `FOODMATE_RAG_MODE=local`、`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`、16 维向量、隔离集合 `foodmate_knowledge_codex_local_20260822` |
+| Python 业务测试 | `.\agent-runtime\.venv\Scripts\python.exe -m pytest -q`：99 passed、1 skipped、2 warnings；知识 RAG/Worker 定向测试 28 passed |
+| Docker 静态检查 | `docker compose --env-file .env -f docker/compose.yml config --quiet`：通过 |
+| 首次联调失败 | Milvus 2.5.5 创建字符串主键时要求 `max_length`；同时 Compose 使用了该镜像不识别的 `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY`，导致 MinIO 认证失败和 Milvus 退出 |
+| 修复 | Milvus collection 创建增加 `max_length=128`；改用 `MINIO_ACCESS_KEY_ID`/`MINIO_SECRET_ACCESS_KEY` 传递 Compose 凭据 |
+| 实际业务结果 | deterministic 向量生成、按实际维度建集合、chunk upsert、发布 metadata、带 ACL 过滤检索均通过；返回标题 `Local RAG Guide`、版本 `v1`、章节 `Recovery`、chunk `emb_local_1` |
+| 数据处理 | 测试集合为本轮专用命名空间，验证后删除该集合；未删除任何既有业务集合或命名卷；容器已停止但卷保留 |
+| 未执行范围 | 真实 embedding API、Java -> RocketMQ -> Python 跨运行时上传闭环、性能压测、组件重启、ACK 丢失、重复投递、SSE Last-Event-ID 故障验证继续暂缓 |
+| 结论 | local deterministic + Milvus 业务适配和 Docker 依赖路径具备本地证据；真实 provider 仍需显式配置后单独验证，M2-1 整体不据此标记完成 |

@@ -29,6 +29,21 @@ docker compose --env-file .env -f docker/compose.yml down
 
 配置模板见 `.env.example`。真实 `.env` 只保存在本机并被 Git 忽略。
 
+## M2-1 RAG
+
+默认 `FOODMATE_RAG_MODE=stub`，只使用 Redis 隔离前缀保存确定性关键词索引，不连接 Milvus，也不读取 embedding API Key。
+
+需要验证向量索引业务路径时，使用 `FOODMATE_RAG_MODE=local` 和
+`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`。此模式使用本地确定性向量并写入 Compose 的 Milvus：
+
+```powershell
+docker compose --env-file .env -f docker/compose.yml up -d milvus
+```
+
+无需真实模型或付费 embedding 服务。集合维度以首次生成的实际向量为准，已有集合维度不一致时会失败关闭。
+
+切换真实 OpenAI-compatible embedding 时，将 provider 改为 `openai-compatible`，并显式配置 endpoint、API Key、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。当前只提供基础设施容器，Python/Java 应用仍按各自开发命令启动；Compose 不自动执行数据库迁移。
+
 ## RocketMQ
 
 `rocketmq-namesrv` + `rocketmq-broker` 是 Java 控制面与 Python Runtime 的异步主通道（[ADR-0005](../docxs/决策/ADR-0005-RocketMQ异步主通道.md)）。本地只部署单 NameServer + 单 Broker，不配置集群、TLS 或 ACL。
