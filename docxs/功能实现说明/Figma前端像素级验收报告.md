@@ -342,6 +342,23 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [ ] 底层 Workspace 壳层、字体渲染、图标、遮罩合成和对话/Trace 内容仍与 Figma 存在差异；后续继续逐页修正。
 - [ ] iconfont 实体资源登记继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
 
+## 52. 2026-08-22 Agent Chat 会话重命名结果卡复核
+
+本轮重新读取 Figma 节点 `806:438`，并对 `/chat?state=renamed` 完成同尺寸截图和交互复核。设计卡片为 `x=540,y=300,w=620,h=244`，浏览器已对齐 `SAVED` 状态、同步说明、关闭按钮和 `148×44` 返回按钮；关闭结果后不会继续保留遮罩。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点 | `806:438`，画板 `1440×1024` |
+| 浏览器截图 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-browser-current.png` |
+| diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-current-diff.json` |
+| PNG diff | `differentRatio=37.23843%`、`MAE=3.76595`、`RMSE=16.77892`、`maxChannelDelta=255`，保持 `DIFF_REVIEW` |
+| 几何与运行时 | `1440×1024`、DPR `1`、卡片 `620×244`、返回按钮 `148×44`、根节点无滚动溢出 |
+| 行为回归 | Chat 定向测试 `25/25`；返回/关闭动作已在浏览器验证；`npm run typecheck` 与目标文件 Prettier 通过 |
+
+- [x] 当前画板已完成自动 diff、几何检查、文字检查和人工视觉复核登记；结果仍为 `DIFF_REVIEW`，没有把成功卡几何通过写成像素 `PASS`。
+- [ ] 底层 Workspace 壳层、字体渲染、图标、遮罩合成和对话/Trace 内容仍与 Figma 存在差异；后续继续逐页修正。
+- [ ] iconfont 实体资源登记继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
+
 ## 47. 2026-08-22 注册页布局层级收敛
 
 本轮重新读取 Figma 节点 `680:216`，并在 `1440×900`、DPR 1、字体加载完成条件下重新采集 `/register`。改动范围仅限注册页结构：将 Figma 中独立的四字段组 `680:227`、密码规则组 `680:250` 和底部操作组 `680:263` 从平铺表单间距改为对应的嵌套层级，保留 `form` 语义、真实注册接口和 shadcn `Input`/`Button` 控件。

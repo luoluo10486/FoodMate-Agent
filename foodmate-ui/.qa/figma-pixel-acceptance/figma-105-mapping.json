@@ -3828,11 +3828,11 @@
       "queryState": "state=renamed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-renamed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-renamed",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-renamed-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture after aligning the renamed-session success card, SAVED status, sync note, return button and close interaction with Figma node 806:438: 1440x1024, DPR 1, no page overflow, automatic diff 0.3723843045 / RMSE 16.7789168; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3857,8 +3857,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Rename outcome is represented by an inline browser summary, but Figma uses a centered dimmed dialog with a different title, confirmation copy, action placement, and background composition. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "Current browser contains the Figma-sized renamed-session card, SAVED status, synchronized-list note, return action and close interaction. Underlying Workspace shell, font rendering, icon treatment, overlay compositing and conversation/Trace content still differ from Figma; retain DIFF_REVIEW."
       }
     },
     {
