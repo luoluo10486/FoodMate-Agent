@@ -377,6 +377,36 @@
   background: var(--fm-color-warning-surface);
 }
 
+@media (min-width: 1400px) {
+  .figmaFixture .topbar > :first-child {
+    flex: 0 0 136px;
+  }
+
+  .figmaFixture .nav {
+    flex: 0 0 auto;
+    gap: 16px;
+  }
+
+  .figmaFixture .topNavLink {
+    height: 33px;
+    padding-inline: 16px;
+  }
+
+  .figmaFixture .userActions {
+    gap: 16px;
+    margin-left: auto;
+  }
+
+  .figmaFixture .workspaceSearch,
+  .figmaFixture .workspaceSearch input {
+    height: 32px;
+  }
+
+  .figmaFixture .userButton {
+    width: 84px;
+  }
+}
+
 .moduleLabel {
   display: inline-flex;
   margin-left: 4px;

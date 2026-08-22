@@ -217,7 +217,7 @@ export function WorkspaceLayout({
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''}`}
+        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${sidebarFixture && !showKnowledgeTopNav ? styles.figmaFixture : ''}`}
       >
         <aside className={styles.sidebar}>
           <div className={styles.sidebarWindowSpacer} aria-hidden="true" />
