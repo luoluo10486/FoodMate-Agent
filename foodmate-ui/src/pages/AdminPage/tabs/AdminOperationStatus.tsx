@@ -157,14 +157,16 @@ export function AdminOperationStatus({
         aria-describedby="operation-failed-description"
       >
         <DialogHeader className={styles.operationDialogHeader}>
-          <span className={`${styles.operationIconWrapper} ${styles.operationErrorIcon}`}>
+          <span className={`${styles.operationIconWrapper} ${styles.operationWarningIcon}`}>
             <XCircle aria-hidden="true" />
           </span>
           <DialogTitle>操作失败</DialogTitle>
         </DialogHeader>
         <DialogDescription asChild id="operation-failed-description" className={styles.operationDialogBody}>
           <div>
-            <p>{error?.message ?? '操作未完成，请检查服务状态后重试。'}</p>
+            <p>
+              <strong>{error?.message ?? '操作未完成，请检查服务状态后重试。'}</strong>
+            </p>
             <p className={styles.operationDialogMuted}>
               请求发送后，healthy-cluster-0 节点未能及时返回响应。当前配置未改变，请稍后重试。
             </p>
@@ -176,7 +178,7 @@ export function AdminOperationStatus({
         </DialogDescription>
         <DialogFooter className={styles.operationDialogActions}>
           <Button variant="outline" onClick={onDismiss}>
-            关闭
+            取消
           </Button>
           <Button className={styles.operationPrimaryButton} onClick={onRetry}>
             <RefreshCw aria-hidden="true" />
