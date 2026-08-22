@@ -43,6 +43,7 @@ describe('AdminPage overview', () => {
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
+    expect(screen.queryByRole('link', { name: '模型治理' })).not.toBeInTheDocument();
   });
 
   it('filters the overview table by result and search query', async () => {

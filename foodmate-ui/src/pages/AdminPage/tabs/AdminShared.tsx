@@ -108,7 +108,6 @@ export const adminNavItems: Array<{ key: string; path: string; label: string; ic
     { key: 'sql', path: '/admin/runs?tab=sql', label: 'SQL 审计', icon: <Database /> },
     { key: 'trace', path: '/admin/runs?tab=trace', label: 'Trace', icon: <GitBranch /> },
     { key: 'usage', path: '/admin/usage', label: '模型用量', icon: <Database /> },
-    { key: 'model', path: '/admin/model-governance', label: '模型治理', icon: <ShieldCheck /> },
     { key: 'knowledge', path: '/admin/knowledge', label: '知识库管理', icon: <BookOpen /> },
     { key: 'registry', path: '/admin/tools?tab=registry', label: '工具注册表', icon: <PackageCheck /> },
     { key: 'deleted', path: '/admin/deleted', label: '软删除资源', icon: <Archive />, adminOnly: true },
