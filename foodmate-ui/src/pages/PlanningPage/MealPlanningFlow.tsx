@@ -1,9 +1,10 @@
-import { Check, ChevronDown, CircleAlert, Download, MoreHorizontal, Plus, Printer, Sparkles, X } from 'lucide-react';
+import { Check, CircleAlert, Download, MoreHorizontal, Plus, Printer, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import styles from './MealPlanningFlow.module.css';
 
 export type MealPlanningFlowView =
@@ -327,12 +328,16 @@ function WizardStepTwo({ onNavigate }: { onNavigate: NavigateToView }) {
           </Field>
           <Field label="首选菜系口味">
             <div className={styles.selectWrap}>
-              <select value={cuisine} onChange={(event) => setCuisine(event.target.value)}>
-                <option>中式、日式轻食</option>
-                <option>地中海轻食</option>
-                <option>西式高蛋白</option>
-              </select>
-              <ChevronDown aria-hidden="true" />
+              <Select value={cuisine} onValueChange={setCuisine}>
+                <SelectTrigger aria-label="首选菜系口味" className={styles.cuisineSelect}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="中式、日式轻食">中式、日式轻食</SelectItem>
+                  <SelectItem value="地中海轻食">地中海轻食</SelectItem>
+                  <SelectItem value="西式高蛋白">西式高蛋白</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </Field>
         </div>

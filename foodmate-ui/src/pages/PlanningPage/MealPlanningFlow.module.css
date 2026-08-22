@@ -449,7 +449,7 @@
 
 .field input,
 .unitInput,
-.selectWrap select {
+.cuisineSelect {
   height: 42px;
   border: 0;
   border-radius: 8px;
@@ -465,7 +465,7 @@
 }
 
 .field input:focus-visible,
-.selectWrap select:focus-visible {
+.cuisineSelect:focus-visible {
   outline: 2px solid rgba(166, 217, 151, 0.75);
   outline-offset: 1px;
 }
@@ -668,21 +668,19 @@
   position: relative;
 }
 
-.selectWrap select {
+.cuisineSelect {
   width: 100%;
-  appearance: none;
-  padding: 0 36px 0 12px;
+  padding: 0 12px;
+  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  text-align: left;
 }
 
-.selectWrap svg {
-  position: absolute;
-  top: 50%;
-  right: 12px;
+.cuisineSelect > svg {
   width: 14px;
   height: 14px;
   color: #6b7280;
-  pointer-events: none;
-  transform: translateY(-50%);
 }
 
 .wizardIntro {

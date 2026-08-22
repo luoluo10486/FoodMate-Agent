@@ -110,6 +110,17 @@ describe('PlanningPage', () => {
     expect(planMenu).toHaveClass('inline-flex');
   });
 
+  it('uses the shadcn select for cuisine preferences', async () => {
+    const user = userEvent.setup();
+    renderPage('/planning?state=wizard-step2');
+
+    const cuisine = screen.getByRole('combobox', { name: '首选菜系口味' });
+    expect(cuisine).toHaveTextContent('中式、日式轻食');
+    await user.click(cuisine);
+    await user.click(screen.getByRole('option', { name: '地中海轻食' }));
+    expect(cuisine).toHaveTextContent('地中海轻食');
+  });
+
   it('applies a selected conflict resolution and updates the shopping progress count', async () => {
     const user = userEvent.setup();
     renderPage('/planning?state=conflict');
