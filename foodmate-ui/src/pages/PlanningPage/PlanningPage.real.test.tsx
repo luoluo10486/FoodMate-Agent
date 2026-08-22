@@ -120,4 +120,15 @@ describe('PlanningPage real mode', () => {
     );
     expect(await screen.findByRole('heading', { name: '新建服务端计划' })).toBeInTheDocument();
   });
+
+  it('lets an empty real account enter the create wizard', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadMealPlans).mockResolvedValue([]);
+    renderPage('/planning');
+
+    expect(await screen.findByRole('heading', { name: '暂无周餐食规划' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '创建首个规划方案' }));
+
+    expect(screen.getByRole('heading', { name: '步骤 1: 设置基本目标' })).toBeInTheDocument();
+  });
 });

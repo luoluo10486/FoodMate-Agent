@@ -601,8 +601,6 @@ export function PlanningPage() {
         creatingPlan={creatingPlan}
         createError={createPlanError}
       />
-    ) : view === 'empty' || realPlans.length === 0 ? (
-      <PlanningFeedbackView kind="empty" onPrimary={() => navigate('/chat?prompt=请为我创建本周餐食规划')} />
     ) : view === 'wizard-step1' ||
       view === 'wizard-step2' ||
       view === 'wizard-step3' ||
@@ -620,6 +618,8 @@ export function PlanningPage() {
         creatingPlan={creatingPlan}
         createError={createPlanError}
       />
+    ) : view === 'empty' || realPlans.length === 0 ? (
+      <PlanningFeedbackView kind="empty" onPrimary={() => navigate('/planning?state=wizard-step1')} />
     ) : (
       <DefaultPlanningView plan={selectedPlan} />
     )
