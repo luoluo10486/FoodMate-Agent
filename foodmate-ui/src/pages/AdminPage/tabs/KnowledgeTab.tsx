@@ -19,6 +19,7 @@ import {
   loadAdminDashboard,
   loadKnowledgeBatch,
   retryKnowledgeItem,
+  streamKnowledgeBatch,
   updateKnowledgeStatus,
   uploadKnowledgeBatch,
   uploadKnowledgeDocument,
@@ -30,6 +31,7 @@ const figmaKnowledgeRows: KnowledgeRow[] = [
     documentId: 'doc_118a9',
     title: 'USDA_Keto_Ingredient_Guidelines.pdf',
     status: 'indexed',
+    visibility: 'published',
     chunks: 148,
     owner: 'Anddy',
     source: 'knowledge/USDA_Keto_Ingredient_Guidelines.pdf',
@@ -41,6 +43,7 @@ const figmaKnowledgeRows: KnowledgeRow[] = [
     documentId: 'doc_552b1',
     title: 'FoodMate_Custom_Recipes_v3.csv',
     status: 'indexing',
+    visibility: 'draft',
     chunks: 890,
     owner: 'Anddy',
     source: 'knowledge/FoodMate_Custom_Recipes_v3.csv',
@@ -52,6 +55,7 @@ const figmaKnowledgeRows: KnowledgeRow[] = [
     documentId: 'doc_990c4',
     title: 'Allergen_Safety_Manual.xlsx',
     status: 'failed',
+    visibility: 'draft',
     chunks: 0,
     owner: 'Anddy',
     source: 'knowledge/Allergen_Safety_Manual.xlsx',
@@ -68,8 +72,20 @@ function documentSize(document: KnowledgeRow) {
 }
 
 function documentStatus(document: KnowledgeRow) {
-  const label = document.status === 'indexed' ? '已索引' : document.status === 'indexing' ? '索引中' : '失败';
-  return <span className={`${styles.knowledgeStatus} ${styles[`knowledgeStatus${document.status}`]}`}>{label}</span>;
+  const visibility = document.visibility;
+  const label = visibility === 'published'
+    ? '已发布'
+    : visibility === 'disabled'
+      ? '已下线'
+      : visibility === 'draft'
+        ? '草稿'
+        : document.status === 'indexed'
+          ? '已索引'
+          : document.status === 'indexing'
+            ? '索引中'
+            : '失败';
+  const styleKey = visibility === 'published' || visibility === 'disabled' || visibility === 'draft' ? visibility : document.status;
+  return <span className={`${styles.knowledgeStatus} ${styles[`knowledgeStatus${styleKey}`] ?? ''}`}>{label}</span>;
 }
 
 export function KnowledgeSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
@@ -78,7 +94,9 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
   const [selectedDoc, setSelectedDoc] = useState<KnowledgeRow | undefined>(documents[0]);
   const [uploadVisible, setUploadVisible] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
-  const [batchId, setBatchId] = useState<string>();
+  const [batchId, setBatchId] = useState<string | undefined>(() =>
+    isRealMode ? window.localStorage.getItem('foodmate:admin:knowledge:last-batch') ?? undefined : undefined,
+  );
   const [sourceName, setSourceName] = useState('管理员导入');
   const [sourceVersion, setSourceVersion] = useState('1');
   const [licenseNotice, setLicenseNotice] = useState('管理员确认具备发布授权');
@@ -113,37 +131,32 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
         idempotencyKey: crypto.randomUUID(),
       });
       setBatchId(uploaded.batch_id);
+      window.localStorage.setItem('foodmate:admin:knowledge:last-batch', uploaded.batch_id);
     }
     setUploadVisible(false);
     setUploadFiles([]);
     notify('文档上传已提交', 'success');
   };
-  const requestStatusChange = () => {
+  const requestVisibilityChange = (visibility: 'published' | 'disabled' | 'draft' | 'deleted', label: string) => {
     if (!selectedDoc) return;
     onAction({
-      action: selectedDoc.status === 'indexed' ? '下线文档' : '恢复文档',
+      action: label,
       targetLabel: selectedDoc.documentId,
       targetType: 'knowledge_document',
       targetId: selectedDoc.documentId,
       execute: async () => {
-        if (isRealMode)
-          await changeKnowledgeVisibility(selectedDoc.documentId, selectedDoc.status === 'indexed' ? 'disabled' : 'published');
-        else await updateKnowledgeStatus(selectedDoc.documentId, selectedDoc.status === 'indexed' ? 'disabled' : 'indexed');
+        if (isRealMode) await changeKnowledgeVisibility(selectedDoc.documentId, visibility);
+        else await updateKnowledgeStatus(selectedDoc.documentId, visibility === 'disabled' ? 'disabled' : 'indexed');
       },
       onApply: () =>
-        setDocuments((current) =>
-          current.map((document) =>
-            document.documentId === selectedDoc.documentId
-              ? {
-                  ...document,
-                  status: document.status === 'indexed' ? 'disabled' : 'indexed',
-                  indexProgress: document.status === 'indexed' ? '0%' : '100%',
-                }
-              : document,
-          ),
-        ),
+        setDocuments((current) => visibility === 'deleted'
+          ? current.filter((document) => document.documentId !== selectedDoc.documentId)
+          : current.map((document) => document.documentId === selectedDoc.documentId
+            ? { ...document, visibility, status: document.status === 'indexed' ? document.status : visibility === 'draft' ? 'parsed' : document.status }
+            : document)),
     });
   };
+  const selectedVisibility = selectedDoc?.visibility ?? (selectedDoc?.status === 'indexed' ? 'published' : 'draft');
 
   return (
     <section className={styles.knowledgeWorkspace} aria-label="知识库文档管理">
@@ -213,14 +226,25 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
           <ChunkPreview id="chunk_02" score="0.884" text="避免食用酸面包，除非标明为低碳水高纤维小麦淀粉替代品..." />
         </div>
         {selectedDoc ? (
-          <Button
-            className={styles.knowledgeManageButton}
-            disabled={!canManage}
-            variant="outline"
-            onClick={requestStatusChange}
-          >
-            {selectedDoc.status === 'indexed' ? '下线文档' : '恢复文档'}
-          </Button>
+          <div className={styles.knowledgeManageActions}>
+            {selectedVisibility === 'published' ? (
+              <Button className={styles.knowledgeManageButton} disabled={!canManage} variant="outline" onClick={() => requestVisibilityChange('disabled', '下线文档')}>
+                下线文档
+              </Button>
+            ) : (
+              <>
+                <Button className={styles.knowledgeManageButton} disabled={!canManage || selectedDoc.status !== 'indexed'} variant="outline" onClick={() => requestVisibilityChange('published', '发布文档')}>
+                  发布文档
+                </Button>
+                <Button className={styles.knowledgeManageButton} disabled={!canManage} variant="outline" onClick={() => requestVisibilityChange('draft', '恢复草稿')}>
+                  恢复草稿
+                </Button>
+              </>
+            )}
+            <Button className={styles.knowledgeManageButton} disabled={!canManage} variant="destructive" onClick={() => requestVisibilityChange('deleted', '删除文档')}>
+              删除文档
+            </Button>
+          </div>
         ) : null}
       </Card>
       <Dialog open={uploadVisible} onOpenChange={setUploadVisible}>
@@ -248,21 +272,22 @@ export function KnowledgeSection({ onAction }: { onAction: (payload: AdminAction
   );
 }
 
-function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (itemId: string) => Promise<unknown> }) {
+function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (documentId: string) => Promise<unknown> }) {
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadKnowledgeBatch>>>();
+  const refresh = () => loadKnowledgeBatch(batchId).then(setDetail).catch(() => undefined);
   useEffect(() => {
     let active = true;
-    const refresh = () => loadKnowledgeBatch(batchId).then((value) => active && setDetail(value)).catch(() => undefined);
-    refresh();
-    const timer = window.setInterval(refresh, 1000);
-    return () => { active = false; window.clearInterval(timer); };
+    const load = () => loadKnowledgeBatch(batchId).then((value) => active && setDetail(value)).catch(() => undefined);
+    load();
+    const closeStream = streamKnowledgeBatch(batchId, load);
+    return () => { active = false; closeStream(); };
   }, [batchId]);
   return <Card className={styles.knowledgeInsights} aria-label="批次进度">
     <strong>批次 {batchId}</strong>
     <span>{detail?.batch.job.status ?? '上传已提交'}</span>
     {detail?.batch.items.map((item) => <div key={item.item_id}>
       <span>{item.filename}: {item.index_status}{item.error_code ? ` (${item.error_code})` : ''}</span>
-      {item.index_status === 'index_failed' ? <Button variant="outline" onClick={() => void onRetry(item.document_id)}>重试</Button> : null}
+      {item.index_status === 'index_failed' ? <Button variant="outline" onClick={() => void onRetry(item.document_id).then(refresh)}>重试</Button> : null}
     </div>)}
   </Card>;
 }

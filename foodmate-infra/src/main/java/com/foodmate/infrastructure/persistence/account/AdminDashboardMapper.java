@@ -38,7 +38,7 @@ public interface AdminDashboardMapper {
     List<UsageRow> usage();
 
     @Select(
-            "SELECT document_id,title,status,(SELECT COUNT(*) FROM knowledge_chunks c WHERE c.document_id=d.document_id AND c.is_deleted=FALSE) AS chunks,created_by AS owner,storage_key AS source,CASE WHEN status='indexed' THEN '100%' WHEN status='parsed' THEN '70%' ELSE '0%' END AS index_progress,updated_at FROM knowledge_documents d WHERE is_deleted=FALSE ORDER BY updated_at DESC LIMIT 100")
+            "SELECT document_id,title,status,visibility,(SELECT COUNT(*) FROM knowledge_chunks c WHERE c.document_id=d.document_id AND c.is_deleted=FALSE) AS chunks,created_by AS owner,storage_key AS source,CASE WHEN status='indexed' THEN '100%' WHEN status='parsed' THEN '70%' ELSE '0%' END AS index_progress,updated_at FROM knowledge_documents d WHERE is_deleted=FALSE ORDER BY updated_at DESC LIMIT 100")
     List<KnowledgeRow> knowledge();
 
     @Select(

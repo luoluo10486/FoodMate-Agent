@@ -88,6 +88,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 row.documentId(),
                 row.title(),
                 row.status(),
+                row.visibility(),
                 row.chunks(),
                 row.owner(),
                 row.source(),

@@ -71,6 +71,7 @@ public interface AdminDashboardRepository {
             Long documentId,
             String title,
             String status,
+            String visibility,
             Long chunks,
             String owner,
             String source,

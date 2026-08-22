@@ -247,6 +247,7 @@ export type AdminKnowledgeRow = {
   documentId: string;
   title: string;
   status: string;
+  visibility?: 'draft' | 'published' | 'disabled' | 'deleted' | string;
   chunks: number;
   owner: string;
   source: string;
@@ -550,6 +551,12 @@ export type KnowledgeBatchDetail = {
   };
 };
 
+export type KnowledgeBatchEvent = {
+  event_id: string;
+  event_type: string;
+  payload: unknown;
+};
+
 export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise<{ batch_id: string }> {
   const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
   const csrf = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='))?.split('=')[1];
@@ -570,6 +577,40 @@ export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise
 
 export const loadKnowledgeBatch = (batchId: string) =>
   apiRequest<KnowledgeBatchDetail>(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}`);
+
+export function streamKnowledgeBatch(
+  batchId: string,
+  onEvent: (event: KnowledgeBatchEvent) => void,
+): () => void {
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+  const source = new EventSource(`${baseUrl}/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/events`, {
+    withCredentials: true,
+  });
+  const eventTypes = [
+    'knowledge.index.indexed',
+    'knowledge.index.index_failed',
+    'knowledge.index.retry',
+    'knowledge.batch.progress',
+  ];
+  const listeners = eventTypes.map((eventType) => {
+    const listener = (message: Event) => {
+      const event = message as MessageEvent<string>;
+      let payload: unknown = event.data;
+      try {
+        payload = JSON.parse(event.data);
+      } catch {
+        // The server may return a safe textual error payload; progress refresh still remains authoritative.
+      }
+      onEvent({ event_id: event.lastEventId, event_type: eventType, payload });
+    };
+    source.addEventListener(eventType, listener);
+    return [eventType, listener] as const;
+  });
+  return () => {
+    listeners.forEach(([eventType, listener]) => source.removeEventListener(eventType, listener));
+    source.close();
+  };
+}
 export const retryKnowledgeItem = (batchId: string, itemId: string) =>
   adminWrite(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/retry`, 'POST');
 export const changeKnowledgeVisibility = (documentId: string, visibility: 'published' | 'disabled' | 'draft' | 'deleted') =>
