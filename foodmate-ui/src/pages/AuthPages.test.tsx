@@ -88,6 +88,32 @@ describe('authentication pages', () => {
     expect(screen.getByText('密码不能为空')).toBeInTheDocument();
   });
 
+  it('uses the Figma credential-error banner, assets and example values', () => {
+    renderAuth('/login?state=credential-error');
+
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-credential-error-leaf.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-credential-error-alert.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-credential-error-user.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-credential-error-lock.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-credential-error-eye.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('img[src="/assets/figma/auth/foodmate-login-credential-error-line.svg"]'),
+    ).toHaveLength(2);
+    expect(screen.getByLabelText('邮箱地址')).toHaveValue('wrong@foodmate.com');
+    expect(screen.getByLabelText('密码')).toHaveValue('password');
+    expect(screen.getByRole('alert')).toHaveTextContent('邮箱或密码错误，请重试');
+  });
+
   it('routes login recovery and registration actions to independent Figma pages', async () => {
     const user = userEvent.setup();
     renderAuth('/login');
