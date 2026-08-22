@@ -1935,12 +1935,12 @@
       "frontendRoute": "/analysis",
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/intake-analysis-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-empty-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: insufficient-data semantics exist, but chart empty-state geometry, iconography, copy density, navigation context, and visual treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: empty chart geometry matches the Figma layout and the empty-state chart-column SVG now uses the Figma asset; remaining avatar, typography, and rasterization differences keep DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1965,8 +1965,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Insufficient-data semantics exist, but chart empty-state geometry, iconography, copy density, navigation context, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "The current browser capture matches the Figma empty-state structure, geometry, copy hierarchy, and chart-column asset. Avatar treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {

@@ -83,6 +83,10 @@ describe('AnalysisPage', () => {
     const emptyRender = renderPage('/analysis?state=empty');
     expect(screen.getByText('数据不足，无法生成分析')).toBeInTheDocument();
     expect(screen.getByText('0 / 7 Days')).toBeInTheDocument();
+    expect(screen.getByTestId('empty-analysis-icon')).toHaveAttribute(
+      'src',
+      '/assets/figma/analysis/intake-analysis-empty-chart-column.svg',
+    );
     await user.click(screen.getByRole('button', { name: '去记录饮食' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/analysis?view=records');
     emptyRender.unmount();

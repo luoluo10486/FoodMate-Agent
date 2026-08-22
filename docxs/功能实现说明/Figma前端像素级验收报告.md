@@ -571,3 +571,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `AnalysisPage.test.tsx` loading/error/empty 定向测试 `4/4`，`npm run typecheck` 和 `git diff --check` 通过。
 - [ ] 本页继续保持 `DIFF_REVIEW`，剩余导航上下文、头像、字体和图标光栅化差异不能被本次 loading 骨架对齐覆盖；不能标记 `PASS`。
 - [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍为 `BLOCKED`；Figma 设计稿未修改，前端左上角红黄绿窗口装饰点仍为 `0`，业务状态圆点保留。
+
+## 71. 2026-08-23 摄入分析空态图标资源对齐
+
+- [x] 实时读取 Figma 节点 `692:2026`，前端入口为 `/analysis?state=empty`；当前 Figma 参考图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-empty-current.png`。
+- [x] 空态图表区继续保持 Figma 的 `60px` padding、`64px` 图标容器、`20px` 内容间距、标题/说明/操作层级；空态图标改为 Figma 节点返回的真实 SVG `public/assets/figma/analysis/intake-analysis-empty-chart-column.svg`。
+- [x] 浏览器实测空态图表卡为 `1116px` 宽、内容区域为 `1066.4×320px`，视口为 `1440×1024`，页面无横向溢出；浏览器原始截图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-current.jpg`，RGBA 证据已生成。
+- [x] `scripts/png-diff.mjs` 同尺寸结果：`differentPixels=274336`、差异比例 `18.6046%`、`MAE=2.4987`、`RMSE=15.8118`、最大通道差异 `237`；结果锚点为 `figma-105-diff-results.json#intake-analysis-empty`，独立结果为 `intake-analysis-empty-current-diff.json`。
+- [x] `AnalysisPage.test.tsx` 定向测试 `4/4`，新增真实 Figma 图标资源路径断言；`npm run typecheck`、Prettier 和 `git diff --check` 通过。
+- [ ] 本页继续保持 `DIFF_REVIEW`，剩余头像、字体和图标/浏览器光栅化差异不能标记 `PASS`；iconfont 实体资源继续为 `BLOCKED`。

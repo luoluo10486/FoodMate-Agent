@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChartColumn } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -149,7 +149,11 @@ function EmptyAnalysis({
         <h2 id="empty-analysis-title">能量摄入与目标对比</h2>
         <div className={styles.emptyChartArea}>
           <div className={styles.emptyStateIcon}>
-            <ChartColumn aria-hidden="true" />
+            <img
+              src="/assets/figma/analysis/intake-analysis-empty-chart-column.svg"
+              alt=""
+              data-testid="empty-analysis-icon"
+            />
           </div>
           <div className={styles.stateCopy}>
             <h3>数据不足，无法生成分析</h3>

@@ -932,3 +932,11 @@
 - [x] Figma PNG、浏览器原始截图、RGBA PNG 和 diff 已登记；当前自动差异为 `30.3283% / RMSE 12.5071`，继续为 `DIFF_REVIEW`。
 - [x] 前端左上角红黄绿窗口装饰点核查结果为 `0`，不存在需要删除的对应代码；业务会话状态圆点保留，Figma 设计稿未修改。
 - [ ] 本项不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、后端 Agent/SSE 闭环或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。
+
+## 45. 2026-08-23 摄入分析空态图标资源对齐
+
+- [x] 实时 Figma 节点 `692:2026` 已对应 `/analysis?state=empty`；空态图表区的尺寸、间距、文案层级和按钮布局均按当前设计稿核对。
+- [x] 空态图标改用 Figma 返回的真实 SVG 资源 `public/assets/figma/analysis/intake-analysis-empty-chart-column.svg`，没有创建 iconfont 字体包、glyph 或 Unicode 映射。
+- [x] 浏览器 `1440×1024` 实测空态卡宽 `1116px`、内容区域 `1066.4×320px`；自动差异 `18.6046% / RMSE 15.8118`，继续保持 `DIFF_REVIEW`。
+- [x] 前端左上角红黄绿窗口装饰点核查结果为 `0`，不存在需要删除的对应代码；业务会话状态圆点保留，Figma 设计稿未修改。
+- [ ] 本项不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、后端闭环或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。
