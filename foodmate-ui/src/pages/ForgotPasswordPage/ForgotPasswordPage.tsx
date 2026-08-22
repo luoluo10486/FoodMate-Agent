@@ -43,7 +43,7 @@ export function ForgotPasswordPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
-            <div className={styles.authActionStack}>
+            <div className={styles.authActionStack} data-node-id="680:293">
               <AuthSubmit disabled={submitting}>{submitting ? '发送中...' : '发送重置邮件'}</AuthSubmit>
               <Button className={styles.authBackLink} variant="ghost" type="button" onClick={() => navigate('/login')}>
                 返回登录
@@ -52,19 +52,23 @@ export function ForgotPasswordPage() {
           </form>
         </AuthCard>
         <AuthCard className={`${styles.forgotCard} ${styles.successCard}`}>
-          <div className={styles.successIcon} aria-hidden="true">
-            <CheckCircle2 />
+          <div className={styles.successContent} data-node-id="680:298">
+            <div className={styles.successIcon} aria-hidden="true" data-node-id="680:299">
+              <CheckCircle2 />
+            </div>
+            <h1>邮件已发送</h1>
+            <p>如果该邮箱已注册，你将收到重置密码的邮件。请检查你的收件箱。</p>
           </div>
-          <h1>邮件已发送</h1>
-          <p>如果该邮箱已注册，你将收到重置密码的邮件。请检查你的收件箱。</p>
-          <Button className={styles.authPrimary} type="button" onClick={() => navigate('/login')}>
-            返回登录
-          </Button>
-          {sent ? (
-            <span className={styles.successLive} role="status">
-              重置邮件请求已完成
-            </span>
-          ) : null}
+          <div className={styles.successActions} data-node-id="680:303">
+            <Button className={styles.successActionButton} type="button" onClick={() => navigate('/login')}>
+              返回登录
+            </Button>
+            {sent ? (
+              <span className={styles.successLive} role="status">
+                重置邮件请求已完成
+              </span>
+            ) : null}
+          </div>
         </AuthCard>
       </div>
     </AuthShell>

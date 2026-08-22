@@ -342,3 +342,22 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 注册页保留空值交互状态，用户输入后密码规则按真实值更新；Figma 静态参考图中的示例值和全绿规则因此继续作为状态差异记录。
 - [ ] 该画板仍不能标记 `PASS`：当前浏览器交互态与 Figma 示例填充态不同，且完整人工视觉复核尚未关闭；不得用本轮几何通过替代像素验收。
 - [ ] iconfont 实体资源继续为 `BLOCKED`，本轮未添加虚构字体包、Unicode 或 CSS 映射。
+
+## 48. 2026-08-22 找回密码页布局层级收敛
+
+本轮重新读取 Figma 节点 `680:275`，并按实时画板重构 `/forgot-password` 的左右卡片层级。左卡片的邮箱字段与操作区由卡片的 `28px` 间距直接分隔；右卡片将成功图标、标题和说明归入 `16px` 内容组，返回按钮独立使用 Figma 的 `360×46px`、`12px` 圆角样式。表单仍保留真实 `requestPasswordReset` 接口和提交后的状态提示。
+
+| 验收项 | 当前证据 |
+|---|---|
+| 桌面视口 | `1440×900`，DPR `1.0000000149011612`，页面宽度 `1440` |
+| 左侧几何 | 卡片 `x=260,w=440,h=416.4`；输入 `y=452.2,h=50`；发送按钮 `y=530.2,h=50` |
+| 右侧几何 | 卡片 `x=740,w=440,h=306.4`；返回按钮 `x=780,y=462.2,w=360,h=46` |
+| Figma 参考 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/forgot-password-page-latest.png` |
+| 浏览器 RGBA | `foodmate-ui/.qa/figma-pixel-acceptance/forgot-password-page-browser-current-rgba.png` |
+| PNG diff | `differentRatio=99.92716%`、`meanAbsoluteError=1.10110`、`RMSE=6.82914`，保持 `DIFF_REVIEW` |
+| 行为回归 | `AuthPages.test.tsx`：`13/13`；`npm run typecheck` 通过；触及文件 Prettier 通过 |
+
+- [x] 左右卡片均无页面级横向溢出，右侧成功卡片的默认结构与 Figma 成功态保持一致。
+- [x] 发送重置邮件、返回登录和提交后 `role=status` 提示继续保持可操作；真实模式仍只调用既有密码找回接口。
+- [ ] 该画板仍不能标记 `PASS`：PNG 自动 diff 与完整人工视觉复核门槛尚未关闭；`differentRatio` 不能被“视觉接近”替代。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮继续使用 Lucide 标准图标。
