@@ -217,7 +217,8 @@ function RunDetailSheet({
                       {dashboard.toolCalls
                         .filter((call) => call.runId === selection.row.runId)
                         .map((call) => (
-                          <button
+                          <Button
+                            variant="ghost"
                             className={styles.relatedRecord}
                             key={call.key}
                             type="button"
@@ -228,7 +229,7 @@ function RunDetailSheet({
                               <small>{call.callId}</small>
                             </span>
                             {statusTag(call.status)}
-                          </button>
+                          </Button>
                         ))}
                     </div>
                   ) : (
