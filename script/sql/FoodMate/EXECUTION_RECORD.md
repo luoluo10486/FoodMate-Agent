@@ -536,3 +536,18 @@
 | 明确后置 | M1-6 Agent 业务压测、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障恢复；真实云服务、Docker 应用镜像、生产部署、备份恢复、发布回滚、真实依赖清理和不可逆数据库硬删除 |
 | 安全边界 | `hard_delete_enabled=false` 默认关闭；本轮未执行迁移、truncate、真实对象/向量/数据库删除或备份恢复 |
 | 文档结论 | D1 文档状态和业务完成边界已与代码、定向测试和既有执行证据对齐；不将后置范围标记为完成 |
+
+## D7 M2/M3 代码规范收口与本地环境复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 07:17-07:20（Asia/Shanghai） |
+| 代码变更 | 为知识索引结果处理、知识投递/检索/上传服务、保留投递、知识 Mapper、PostgreSQL 仓储适配器和管理端控制器补充职责 Javadoc；`KnowledgeIndexResultMessageProcessor.hash()` 将泛化异常捕获收紧为 `NoSuchAlgorithmException`，消息 ACK/RETRY/REJECT 行为不变 |
+| Git 提交 | `f9e85ba 规范(知识库): 补充核心类注释并收紧异常捕获` |
+| Java 定向测试 | `mvnw.cmd -pl foodmate-application,foodmate-infra,foodmate-api -am test '-Dtest=KnowledgeIndexResultMessageProcessorTest,KnowledgeServiceImplTest,KnowledgeSearchServiceImplTest,DataRetentionDeliveryServiceImplTest,KnowledgeRepositoryAdapterTest,KnowledgeControllerTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：Application 14/14、Infrastructure 5/5、API 3/3，共 22/22 通过 |
+| Java 规范门禁 | `mvnw.cmd -Palibaba-code-style verify -DskipTests`：六个模块 Spotless 通过，Checkstyle 均为 0 violations，Bootstrap repackage 通过 |
+| Compose/依赖复核 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；PostgreSQL、Redis、MinIO、RocketMQ NameServer/Broker/Proxy、Milvus 及其 etcd/MinIO 容器均 healthy |
+| Docker 应用边界 | 本机没有可复用的 FoodMate 应用镜像；现有 RocketMQ Proxy 占用宿主 `8080/8081`。本轮未启动/重建应用容器，未重启现有依赖，不将静态配置或依赖健康误记为应用联调完成 |
+| 未执行范围 | 真实 embedding/云模型、应用镜像启动、吞吐/延迟/积压压测、组件重启、ACK 丢失、重复投递故障矩阵、SSE 故障恢复、备份恢复、真实清理和生产环境继续暂缓 |
+| 工作树保护 | 仅提交 8 个 Java 业务文件；用户已有 UI/Figma、`tmp` 和 Python 缓存改动未暂存 |
+| 结论 | M2/M3 核心代码规范收口和业务门禁具备可复核证据；后置性能、故障、生产和不可逆删除范围保持未完成 |
