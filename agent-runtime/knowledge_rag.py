@@ -248,6 +248,11 @@ class StubIndex:
                 break
         return citations
 
+    def delete_document(self, document_id: str, version: str) -> None:
+        for embedding_id, (_, chunk) in list(self._chunks.items()):
+            if str(chunk.document_id) == str(document_id) and str(chunk.version) == str(version):
+                del self._chunks[embedding_id]
+
 
 class RedisStubIndex:
     """Shared deterministic public index. Redis is the stub mode's durable search backend."""
@@ -291,6 +296,15 @@ class RedisStubIndex:
                 value["deleted"] = visibility == "deleted"
                 value["current_version"] = current_version
                 pipeline.hset(f"{self.prefix}:chunks", chunk_id, json.dumps(value, ensure_ascii=False))
+        pipeline.execute()
+
+    def delete_document(self, document_id: str, version: str) -> None:
+        values = self.client.hgetall(f"{self.prefix}:chunks")
+        pipeline = self.client.pipeline()
+        for chunk_id, raw in values.items():
+            value = json.loads(raw)
+            if str(value.get("document_id")) == str(document_id) and str(value.get("version")) == str(version):
+                pipeline.hdel(f"{self.prefix}:chunks", chunk_id)
         pipeline.execute()
 
     def search(self, query: str, scope: str = PUBLIC_SCOPE) -> list[Citation]:
@@ -568,6 +582,21 @@ class MilvusIndex:
                 self.client.upsert(collection_name=self.collection, data=rows)
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus visibility update failed") from error
+
+    def delete_document(self, document_id: str, version: str) -> None:
+        try:
+            if not self.client.has_collection(self.collection):
+                return
+            rows = self.client.query(
+                collection_name=self.collection,
+                filter=f'document_id == "{_milvus_string(document_id)}" and version == "{_milvus_string(version)}"',
+                output_fields=["embedding_id"],
+            )
+            ids = [row["embedding_id"] for row in rows if row.get("embedding_id")]
+            if ids:
+                self.client.delete(collection_name=self.collection, ids=ids)
+        except Exception as error:
+            raise RagError("RAG_MILVUS_DELETE_FAILED", "Milvus vector delete failed") from error
 
     def search(self, query: str, embedder: EmbeddingProvider, scope: str = PUBLIC_SCOPE) -> list[Citation]:
         if scope != PUBLIC_SCOPE:

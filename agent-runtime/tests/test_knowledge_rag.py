@@ -44,6 +44,7 @@ class _MilvusClient:
         ]
         self.filters = []
         self.upserts = []
+        self.deletes = []
 
     def has_collection(self, _collection):
         return True
@@ -54,6 +55,9 @@ class _MilvusClient:
 
     def upsert(self, **kwargs):
         self.upserts.append(kwargs["data"])
+
+    def delete(self, **kwargs):
+        self.deletes.append(kwargs)
 
 
 class _VectorMilvusClient:
@@ -124,6 +128,16 @@ class MilvusIndexTests(TestCase):
             index.upsert("Guide", [KnowledgeChunk("emb-1", "d1", "v1", 0, "", "protein")], [[0.1] * 12])
 
         self.assertEqual("RAG_MILVUS_DIMENSION_MISMATCH", raised.exception.code)
+
+    def test_delete_is_limited_to_document_version(self):
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _MilvusClient()
+        index.collection = "public_knowledge"
+
+        index.delete_document("d1", "v1")
+
+        self.assertEqual(["old"], index.client.deletes[0]["ids"])
+        self.assertIn('document_id == "d1" and version == "v1"', index.client.filters)
 
 
 class RedisStubIndexTests(TestCase):

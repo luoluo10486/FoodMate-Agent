@@ -1,17 +1,24 @@
+import sys
+from types import ModuleType, SimpleNamespace
 from unittest import TestCase
-from knowledge_worker import KnowledgeIndexWorker
+from unittest.mock import patch
+from knowledge_worker import KnowledgeIndexWorker, _MemoryCompletionStore
 from knowledge_rag import DeterministicEmbedder, RagError, RagSettings
 
 
 class _VectorIndex:
     def __init__(self):
         self.rows = []
+        self.deleted = []
 
     def upsert(self, title, chunks, vectors):
         self.rows.append((title, list(chunks), vectors))
 
     def update_visibility(self, *_args):
         pass
+
+    def delete_document(self, document_id, version):
+        self.deleted.append((document_id, version))
 
 class KnowledgeIndexWorkerTests(TestCase):
     def test_stub_indexes_one_document_once(self):
@@ -125,3 +132,123 @@ class KnowledgeIndexWorkerTests(TestCase):
             worker.handle_visibility({"document_id": "d1", "visibility": "published"})
         with self.assertRaisesRegex(RagError, "scope is not public"):
             worker.handle_visibility({"document_id": "d1", "visibility": "published", "version": "v1", "scope": "private"})
+
+    def test_purge_is_idempotent_and_uses_the_explicit_publisher(self):
+        index = _VectorIndex()
+        index_published = []
+        purge_published = []
+        settings = RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"})
+        worker = KnowledgeIndexWorker(
+            result_publisher=index_published.append,
+            settings=settings,
+            stub_index=index,
+            completed_store=_MemoryCompletionStore(),
+        )
+
+        first = worker.handle_purge(
+            {"task_id": 71, "document_id": "d1", "version": "v2"},
+            result_publisher=purge_published.append,
+        )
+        second = worker.handle_purge(
+            {"task_id": 71, "document_id": "d1", "version": "v2"},
+            result_publisher=purge_published.append,
+        )
+
+        self.assertEqual("succeeded", first["status"])
+        self.assertTrue(second["duplicate"])
+        self.assertEqual([("d1", "v2")], index.deleted)
+        self.assertEqual([], index_published)
+        self.assertEqual(2, len(purge_published))
+
+    def test_purge_failure_is_published_with_a_stable_error_code(self):
+        class FailingIndex(_VectorIndex):
+            def delete_document(self, _document_id, _version):
+                raise RagError("RAG_MILVUS_DELETE_FAILED", "backend unavailable")
+
+        published = []
+        worker = KnowledgeIndexWorker(
+            result_publisher=published.append,
+            settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}),
+            stub_index=FailingIndex(),
+            completed_store=_MemoryCompletionStore(),
+        )
+
+        result = worker.handle_purge(
+            {"task_id": 72, "document_id": "d1", "version": "v1"}
+        )
+
+        self.assertEqual("failed", result["status"])
+        self.assertEqual("RAG_MILVUS_DELETE_FAILED", result["error_code"])
+        self.assertEqual("backend unavailable", result["error_summary"])
+
+    def test_unexpected_purge_failure_is_converted_to_a_stable_error(self):
+        class FailingIndex(_VectorIndex):
+            def delete_document(self, _document_id, _version):
+                raise RuntimeError("connection details must not be returned")
+
+        published = []
+        worker = KnowledgeIndexWorker(
+            result_publisher=published.append,
+            settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}),
+            stub_index=FailingIndex(),
+            completed_store=_MemoryCompletionStore(),
+        )
+
+        result = worker.handle_purge({"task_id": 74, "document_id": "d1", "version": "v1"})
+
+        self.assertEqual("failed", result["status"])
+        self.assertEqual("RAG_PURGE_EXECUTION_FAILED", result["error_code"])
+        self.assertNotIn("connection details", result["error_summary"])
+
+    def test_purge_rejects_non_numeric_task_id(self):
+        worker = KnowledgeIndexWorker(
+            settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}),
+            stub_index=_VectorIndex(),
+            completed_store=_MemoryCompletionStore(),
+        )
+
+        with self.assertRaisesRegex(RagError, "task id is invalid") as raised:
+            worker.handle_purge({"task_id": "bad", "document_id": "d1", "version": "v1"})
+
+        self.assertEqual("RAG_PURGE_CONTRACT_INVALID", raised.exception.code)
+
+    def test_purge_rejects_a_completed_target_conflict(self):
+        worker = KnowledgeIndexWorker(
+            settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}),
+            stub_index=_VectorIndex(),
+            completed_store=_MemoryCompletionStore(),
+        )
+        worker.handle_purge({"task_id": 73, "document_id": "d1", "version": "v1"})
+
+        with self.assertRaisesRegex(RagError, "completed fact") as raised:
+            worker.handle_purge({"task_id": 73, "document_id": "d2", "version": "v1"})
+
+        self.assertEqual("RAG_PURGE_IDEMPOTENCY_CONFLICT", raised.exception.code)
+
+    def test_rocketmq_worker_exposes_index_visibility_and_purge_consumers(self):
+        class FakeConsumer:
+            instances = []
+
+            def __init__(self, *_args, **_kwargs):
+                self.__class__.instances.append(self)
+
+        rocketmq = ModuleType("rocketmq")
+        rocketmq.ClientConfiguration = lambda *args: args
+        rocketmq.Credentials = lambda: object()
+        rocketmq.FilterExpression = lambda value: value
+        rocketmq.MessageListener = object
+        rocketmq.PushConsumer = FakeConsumer
+        rocketmq.ConsumeResult = SimpleNamespace(SUCCESS="SUCCESS", FAILURE="FAILURE")
+
+        mq_runtime = ModuleType("mq_runtime")
+        mq_runtime.RocketMqKnowledgeResultPublisher = lambda: SimpleNamespace(publish=lambda _result: None)
+        mq_runtime.RocketMqKnowledgePurgeResultPublisher = lambda: SimpleNamespace(publish=lambda _result: None)
+        mq_runtime._startup_client_with_timeout = lambda *_args: None
+
+        with patch.dict(sys.modules, {"rocketmq": rocketmq, "mq_runtime": mq_runtime}):
+            from knowledge_worker import start_rocketmq_worker
+
+            consumers = start_rocketmq_worker()
+
+        self.assertEqual(3, len(consumers))
+        self.assertEqual(3, len(FakeConsumer.instances))
