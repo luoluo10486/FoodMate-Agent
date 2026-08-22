@@ -499,3 +499,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点检查结果为 `0`；当前实现保留 Figma 所需的顶部空白布局占位，不包含窗口装饰点；Figma 设计稿未修改。
 - [x] 当前 PNG diff：差异比例 `15.4844%`、`MAE=1.8229`、`RMSE=12.9095`、最大通道差异 `251`；机器结果锚点为 `figma-105-diff-results.json#agent-awaiting-clarification`。
 - [ ] 本页继续保持 `DIFF_REVIEW`；剩余差异主要来自头像处理及字体/图标光栅化，不能标记 `PASS`。
+
+## 63. 2026-08-23 Agent Write Confirmation 当前画板证据复核
+
+- [x] `687:773` `/chat?state=write-confirmation` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-current.png`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-browser-current.png`。
+- [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；写入目标、日期、食物、热量、蛋白质、来源、估算假设和确认/取消操作均存在。
+- [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；当前实现没有对应窗口装饰点，Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=379283`、差异比例 `25.7218%`、`MAE=2.9444`、`RMSE=16.2155`、最大通道差异 `237`；机器结果锚点为 `figma-105-diff-results.json#agent-write-confirmation`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；卡片几何、边框、操作样式、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
