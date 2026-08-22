@@ -91,6 +91,54 @@ class ToolGatewayServiceTest {
     }
 
     @Test
+    void executesBoundedTimeParserWithoutModelOrDatabaseSql() {
+        when(store.runExists(42L)).thenReturn(true);
+        var input = JsonNodeFactory.instance.objectNode();
+        input.put("question", "分析最近7天蛋白质摄入");
+        input.put("timezone", "Asia/Shanghai");
+
+        var result =
+                gateway.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-time",
+                                "42",
+                                "tool",
+                                "v1",
+                                "time_parser",
+                                null,
+                                input,
+                                new ToolGatewayService.ProposalPayload("", "inv-time", "key")));
+
+        assertEquals("succeeded", result.status());
+        assertEquals("time_parser", result.toolName());
+        assertEquals("7", result.rows().getFirst().path("days").asText());
+        verify(store).audit(any(ToolGatewayPort.Audit.class));
+    }
+
+    @Test
+    void rejectsUnsupportedTimeExpressionWithoutExecutingSql() {
+        when(store.runExists(42L)).thenReturn(true);
+        var input = JsonNodeFactory.instance.objectNode().put("question", "分析我的摄入");
+
+        var result =
+                gateway.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-time-unsupported",
+                                "42",
+                                "tool",
+                                "v1",
+                                "time_parser",
+                                null,
+                                input,
+                                new ToolGatewayService.ProposalPayload(
+                                        "", "inv-time-unsupported", "key")));
+
+        assertEquals("failed", result.status());
+        assertEquals("TIME_RANGE_UNSUPPORTED", result.errorCode());
+        verify(store, org.mockito.Mockito.never()).executeRead(anyString());
+    }
+
+    @Test
     void writerRequiresConfirmationAndDoesNotWriteWithoutIt() {
         ApprovalService approvals = Mockito.mock(ApprovalService.class);
         ToolGatewayService service =

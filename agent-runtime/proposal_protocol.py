@@ -7,6 +7,8 @@ import hashlib
 import json
 from typing import Any
 
+from sql_planner import validate_candidate_sql
+
 
 MAX_ID_LENGTH = 128
 MAX_STATEMENT_LENGTH = 8_192
@@ -67,8 +69,31 @@ def validate_proposal(proposal: Proposal) -> None:
         if not statement.startswith("select") or any(token in statement for token in ("insert ", "update ", "delete ", "drop ", "alter ", ";")):
             raise ValueError("SQL_PROPOSAL_NOT_READ_ONLY")
     if proposal.proposal_type == "tool":
-        if proposal.tool_name != "food_log_writer":
+        if proposal.tool_name == "database_query":
+            if proposal.requires_confirmation or not isinstance(proposal.input, dict):
+                raise ValueError("SQL_QUERY_INPUT_INVALID")
+            candidate = proposal.input.get("candidate_sql")
+            if not isinstance(candidate, str) or candidate != proposal.payload.get("statement"):
+                raise ValueError("SQL_QUERY_CANDIDATE_MISMATCH")
+            validate_candidate_sql(candidate)
+            for field in ("intent", "planner_mode", "planner_version"):
+                if not isinstance(proposal.input.get(field), str) or not proposal.input[field]:
+                    raise ValueError("SQL_QUERY_INPUT_INVALID")
+            if proposal.input["planner_mode"] not in {"stub", "local"}:
+                raise ValueError("SQL_QUERY_INPUT_INVALID")
+        elif proposal.tool_name == "time_parser":
+            if proposal.requires_confirmation or not isinstance(proposal.input, dict):
+                raise ValueError("TIME_PARSER_INPUT_INVALID")
+            question = proposal.input.get("question")
+            timezone = proposal.input.get("timezone", "Asia/Shanghai")
+            if not isinstance(question, str) or not question.strip() or len(question) > 2_000:
+                raise ValueError("TIME_PARSER_INPUT_INVALID")
+            if not isinstance(timezone, str) or not timezone.strip() or len(timezone) > 64:
+                raise ValueError("TIME_PARSER_INPUT_INVALID")
+        elif proposal.tool_name != "food_log_writer":
             raise ValueError("TOOL_NAME_NOT_ALLOWED")
+        if proposal.tool_name in {"database_query", "time_parser"}:
+            return
         if not proposal.confirmation_ref:
             raise ValueError("TOOL_CONFIRMATION_REF_REQUIRED")
         if not isinstance(proposal.input, dict):

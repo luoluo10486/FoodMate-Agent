@@ -14,7 +14,11 @@ import com.foodmate.application.runtime.service.ToolRegistryService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +28,7 @@ import org.springframework.stereotype.Service;
 public class ToolGatewayServiceImpl implements ToolGatewayService {
     private static final int MAX_ID_LENGTH = 128;
     private static final int MAX_SQL_LENGTH = 8_192;
+    private static final Pattern RELATIVE_DAYS = Pattern.compile("(?:最近|过去|近)\\s*(\\d{1,3})\\s*天");
     private final ToolGatewayPort store;
     private final IdGenerator ids;
     private final ApprovalService approvals;
@@ -135,6 +140,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             }
             if ("tool".equals(type)
                     && !"database_query".equals(tool.name())
+                    && !"time_parser".equals(tool.name())
                     && !"food_log_writer".equals(tool.name())
                     && !"meal_plan.save_plan".equals(tool.name()))
                 return reject(proposalId, "TOOL_EXECUTOR_UNAVAILABLE");
@@ -144,6 +150,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
             if ("tool".equals(type)
                     && !"database_query".equals(proposal.toolName())
+                    && !"time_parser".equals(proposal.toolName())
                     && !"food_log_writer".equals(proposal.toolName()))
                 return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
             if ("sql_read".equals(type)
@@ -157,6 +164,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         if ("meal_plan.save_plan".equals(proposal.toolName()))
             return executeApprovalWrite(
                     proposal, proposalId, runId, invocationId, "meal_plan.save_plan");
+        if ("tool".equals(type) && "time_parser".equals(proposal.toolName()))
+            return executeTimeParser(proposalId, runId, invocationId, proposal.input());
         if ("tool".equals(type) && "database_query".equals(proposal.toolName())) {
             String planError = SqlQueryPlanValidator.validate(proposal.input(), statement);
             if (planError != null) return reject(proposalId, planError);
@@ -278,6 +287,89 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 proposalId, runId, status, errorCode, rows == null ? List.of() : rows);
     }
 
+    private ProposalResult executeTimeParser(
+            String proposalId, String runId, String invocationId, JsonNode input) {
+        String question = input == null ? null : text(input.path("question").asText(null));
+        String timezone = input == null ? null : text(input.path("timezone").asText(null));
+        if (question == null || question.length() > 2_000)
+            return toolResult(
+                    proposalId, runId, "failed", "TIME_RANGE_INPUT_INVALID", List.of(), null);
+        if (timezone == null) timezone = "Asia/Shanghai";
+        long numericRunId;
+        try {
+            numericRunId = Long.parseLong(runId);
+        } catch (NumberFormatException exception) {
+            return reject(proposalId, "RUN_ID_INVALID");
+        }
+        if (!store.runExists(numericRunId)) return reject(proposalId, "RUN_NOT_FOUND");
+        ZonedDateTime now;
+        try {
+            now = ZonedDateTime.now(ZoneId.of(timezone));
+        } catch (RuntimeException exception) {
+            return toolResult(proposalId, runId, "failed", "TIMEZONE_INVALID", List.of(), null);
+        }
+        ZonedDateTime from;
+        ZonedDateTime to;
+        Matcher matcher = RELATIVE_DAYS.matcher(question);
+        if (matcher.find()) {
+            int days = Integer.parseInt(matcher.group(1));
+            if (days < 1 || days > 90)
+                return toolResult(
+                        proposalId, runId, "failed", "TIME_RANGE_OUT_OF_BOUNDS", List.of(), null);
+            from = now.minusDays(days);
+            to = now;
+        } else if (question.contains("最近一周")
+                || question.contains("过去一周")
+                || question.contains("近一周")) {
+            from = now.minusDays(7);
+            to = now;
+        } else if (question.contains("昨天")) {
+            from = now.toLocalDate().minusDays(1).atStartOfDay(now.getZone());
+            to = from.plusDays(1);
+        } else if (question.contains("今天")) {
+            from = now.toLocalDate().atStartOfDay(now.getZone());
+            to = from.plusDays(1);
+        } else {
+            return toolResult(
+                    proposalId, runId, "failed", "TIME_RANGE_UNSUPPORTED", List.of(), null);
+        }
+        ObjectNode row = mapper.createObjectNode();
+        row.put("from", from.toInstant().toString());
+        row.put("to", to.toInstant().toString());
+        row.put("timezone", timezone);
+        row.put("days", Math.max(1, java.time.Duration.between(from, to).toDays()));
+        long auditId = ids.nextId();
+        store.audit(
+                new ToolGatewayPort.Audit(
+                        auditId,
+                        numericRunId,
+                        "time_parser",
+                        "executed",
+                        1,
+                        null,
+                        0,
+                        "proposal:" + proposalId));
+        return toolResult(
+                proposalId, runId, "succeeded", null, List.of(row), Long.toString(auditId));
+    }
+
+    private ProposalResult toolResult(
+            String proposalId,
+            String runId,
+            String status,
+            String errorCode,
+            List<JsonNode> rows,
+            String auditId) {
+        return new ProposalResult(
+                proposalId,
+                runId,
+                status,
+                errorCode,
+                rows == null ? List.of() : rows,
+                auditId,
+                "time_parser");
+    }
+
     /** 执行最小 sql_read Proposal；无数据库时明确返回不可用，不回退到进程内伪造数据。 */
     private ProposalResult executeValidated(
             String proposalId, String runId, String statement, String invocationId) {
@@ -330,7 +422,13 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                             (System.nanoTime() - started) / 1_000_000,
                             "proposal:" + proposalId));
             return new ProposalResult(
-                    proposalId, runId, "succeeded", null, rows, Long.toString(sqlAuditId));
+                    proposalId,
+                    runId,
+                    "succeeded",
+                    null,
+                    rows,
+                    Long.toString(sqlAuditId),
+                    "database_query");
         } catch (RuntimeException error) {
             store.audit(
                     new ToolGatewayPort.Audit(
@@ -348,7 +446,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     "failed",
                     "SQL_EXECUTION_FAILED",
                     List.of(),
-                    Long.toString(sqlAuditId));
+                    Long.toString(sqlAuditId),
+                    "database_query");
         }
     }
 

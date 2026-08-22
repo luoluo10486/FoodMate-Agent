@@ -302,7 +302,27 @@ def _await_result(proposal_id: str, timeout_seconds: float) -> dict:
         return _result_waiters.pop(proposal_id)
 
 
-def _save_tool_wait_checkpoint(command: dict, proposals: list[dict]) -> dict[str, object]:
+def _enrich_tool_result(result: dict, proposal: dict) -> dict:
+    """Attach only proposal metadata needed by the follow-up Composer."""
+    enriched = dict(result)
+    tool_name = str(proposal.get("tool_name") or "")
+    if tool_name and not enriched.get("tool_name"):
+        enriched["tool_name"] = tool_name
+    if tool_name == "database_query":
+        raw_plan = proposal.get("input") or {}
+        enriched["query_plan"] = {
+            "intent": raw_plan.get("intent"),
+            "time_range": raw_plan.get("time_range"),
+            "metrics": list(raw_plan.get("metrics") or ()),
+            "dimensions": list(raw_plan.get("dimensions") or ()),
+            "filters": dict(raw_plan.get("filters") or {}),
+        }
+    return enriched
+
+
+def _save_tool_wait_checkpoint(
+    command: dict, proposals: list[dict], completed_invocation_ids: list[str] | None = None
+) -> dict[str, object]:
     """Persist the only resumable boundary before a Java-owned tool invocation."""
     budget = ((command.get("runtime_options") or {}).get("budget_snapshot") or command.get("budget_snapshot") or {})
     checkpoint = {
@@ -315,7 +335,7 @@ def _save_tool_wait_checkpoint(command: dict, proposals: list[dict]) -> dict[str
         "current_node": "tool_wait",
         "deadline_at": command["deadline_at"],
         "budget_revision": int(budget.get("revision", 1)),
-        "completed_invocation_ids": [],
+        "completed_invocation_ids": list(completed_invocation_ids or []),
         "pending_proposals": proposals,
         "event_seq": 1,
     }
@@ -412,10 +432,19 @@ def execute(command):
             str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
         )
         execution = run_deterministic(execution_command, _checkpoint)
-        if execution.proposals:
+        all_results: list[dict] = []
+        while execution.proposals:
             if _proposal_publisher is None:
                 raise RuntimeError("TOOL_RUNTIME_UNAVAILABLE")
-            checkpoint_payload = _save_tool_wait_checkpoint(command, execution.proposals)
+            checkpoint_payload = _save_tool_wait_checkpoint(
+                command,
+                execution.proposals,
+                [
+                    str(item["invocation_id"])
+                    for item in all_results
+                    if item.get("invocation_id")
+                ],
+            )
             emit(command, prefix + "-checkpoint", next_sequence, "run.checkpoint_saved", checkpoint_payload)
             next_sequence += 1
             # 仅用于本地故障演练：暂停点让测试可以在 checkpoint 已落 Redis、Tool 尚未发送前终止进程。
@@ -439,6 +468,7 @@ def execute(command):
                     proposal["proposal_id"],
                     float(os.getenv("FOODMATE_AGENT_TOOL_RESULT_TIMEOUT_SECONDS", "30")),
                 )
+                result = _enrich_tool_result(result, proposal)
                 results.append(result)
                 emit(command, prefix + "-tool-finished-" + str(proposal["proposal_id"]), next_sequence,
                      "run.tool_finished", {
@@ -448,13 +478,24 @@ def execute(command):
                          "error_code": result.get("error_code"),
                      })
                 next_sequence += 1
-            _mark_tool_results_applied(command, results)
+            all_results.extend(results)
+            _mark_tool_results_applied(command, all_results)
             resumed = dict(command)
             resumed["_checkpoint_key"] = (
                 str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
             )
             authorized = dict(resumed.get("authorized_context") or {})
-            authorized["tool_results"] = results
+            authorized["tool_results"] = all_results
+            query_result = next(
+                (
+                    item
+                    for item in reversed(all_results)
+                    if item.get("tool_name") == "database_query"
+                ),
+                None,
+            )
+            if query_result and query_result.get("query_plan"):
+                authorized["database_query_plan"] = query_result["query_plan"]
             resumed["authorized_context"] = authorized
             follow_up = run_deterministic(resumed, _checkpoint)
             follow_up.model_attempts = execution.model_attempts + follow_up.model_attempts

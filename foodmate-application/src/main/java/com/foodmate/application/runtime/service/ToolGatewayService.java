@@ -14,14 +14,25 @@ public interface ToolGatewayService {
             String status,
             String errorCode,
             List<JsonNode> rows,
-            @JsonProperty("sql_audit_id") String sqlAuditId) {
+            @JsonProperty("sql_audit_id") String sqlAuditId,
+            @JsonProperty("tool_name") String toolName) {
         public ProposalResult(
                 String proposalId,
                 String runId,
                 String status,
                 String errorCode,
                 List<JsonNode> rows) {
-            this(proposalId, runId, status, errorCode, rows, null);
+            this(proposalId, runId, status, errorCode, rows, null, null);
+        }
+
+        public ProposalResult(
+                String proposalId,
+                String runId,
+                String status,
+                String errorCode,
+                List<JsonNode> rows,
+                String sqlAuditId) {
+            this(proposalId, runId, status, errorCode, rows, sqlAuditId, null);
         }
     }
 
