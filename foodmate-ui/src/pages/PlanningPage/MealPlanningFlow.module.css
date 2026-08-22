@@ -87,6 +87,15 @@
   line-height: 1.4;
 }
 
+.listHeader p {
+  font-size: 14px;
+  line-height: 17px;
+}
+
+.listHeader > .flowButton {
+  font-size: 14px;
+}
+
 .listTabs {
   display: flex;
   align-items: center;
@@ -107,6 +116,7 @@
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 14px;
   font-weight: 500;
+  line-height: 17px;
   cursor: pointer;
 }
 
@@ -208,6 +218,11 @@
   font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   font-size: 12px;
   line-height: 1.3;
+}
+
+.planDate {
+  font-size: 13px;
+  line-height: 17px;
 }
 
 .planListCard p {
