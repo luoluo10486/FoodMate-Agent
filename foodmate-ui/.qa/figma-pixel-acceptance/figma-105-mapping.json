@@ -3784,11 +3784,11 @@
       "queryState": "state=session-actions",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-session-actions.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-session-actions-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-session-actions",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-session-actions-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-session-actions-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture after aligning the session management panel, selected-session card, operation buttons, status chip and close interaction with Figma node 806:212: 1440x1024, DPR 1, no page overflow, automatic diff 0.4011094835 / RMSE 19.7513325; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3813,8 +3813,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Session actions are exposed in the browser as an inline summary, while Figma uses a larger management dialog with different placement, spacing, action treatment, and underlying conversation/Trace composition. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "Current browser contains the Figma-sized session management dialog, selected session summary, RUNNING status, three operation buttons and a working close action. Underlying Workspace shell, font rendering, icon treatment, overlay compositing and conversation/Trace content still differ from Figma; retain DIFF_REVIEW."
       }
     },
     {

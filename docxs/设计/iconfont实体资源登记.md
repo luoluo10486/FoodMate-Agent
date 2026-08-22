@@ -58,3 +58,9 @@
 - 已核对仓库和 Figma 验收证据目录，仍未收到 `.woff2/.woff/.ttf/.otf` 实体包、`iconfont.css` 映射、来源 URL、SHA-256、SPDX/原始许可证和 glyph-Figma 映射。
 - 本轮没有创建虚构 `@font-face`、class、Unicode codepoint 或 React wrapper；标准命令图标继续使用 Lucide，缺失领域图标继续使用可追溯的 SVG fallback。
 - 关闭阻塞前仍需完成浅色/深色背景、字体加载失败、SVG/Lucide fallback、无障碍标签和生产构建产物检查。
+
+## 2026-08-22 继续阻塞确认
+
+- 状态仍为 `BLOCKED`；本轮 Chat 会话操作面板继续使用 Lucide 标准命令图标，没有接入未经登记的领域字形。
+- 仍未收到实体字体包、完整 CSS/class/Unicode 映射、来源 URL、版本与 SHA-256、SPDX/原始许可证、授权范围或 glyph-Figma 映射，因此不创建虚构 `@font-face`、Unicode 或 React iconfont wrapper。
+- 当前新增的 Figma/浏览器验收证据只覆盖页面视觉和交互，不构成 iconfont 资源到位证明；收到完整资料后仍需按本登记表执行哈希、构建产物、背景、加载失败、fallback 和无障碍验收。

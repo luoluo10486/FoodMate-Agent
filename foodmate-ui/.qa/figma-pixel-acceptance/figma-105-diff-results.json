@@ -942,10 +942,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 504525,
-      "differentRatio": 0.3421529134114583,
-      "meanAbsoluteError": 4.201541137695313,
-      "rmse": 20.42839163287081,
+      "differentPixels": 591460,
+      "differentRatio": 0.4011094835069444,
+      "meanAbsoluteError": 4.910896301269531,
+      "rmse": 19.751332457242835,
       "maxChannelDelta": 255
     },
     "agent-chat-renamed": {
