@@ -146,3 +146,19 @@
 | Python 定向验证 | 先前本轮已执行 `.\agent-runtime\.venv\Scripts\python.exe -m pytest agent-runtime\tests\test_eval_metrics.py agent-runtime\tests\test_mq_runtime.py agent-runtime\tests\test_runtime_server.py -q`：40 passed，1 warning |
 | 流量/故障入口 | 已新增 `script/local/m1-6-traffic-recovery.ps1`；默认仅 readiness/Compose 预检，`-EnableFaultInjection` 才重启 Redis。当前未运行，未产生吞吐、延迟、队列或恢复时间数据 |
 | 结论 | 审计与观测代码测试通过；共享 Redis/RocketMQ Agent 业务流量、PostgreSQL/Java/Python/RocketMQ 重启、ACK 丢失、重复投递与 SSE 恢复仍未执行，M1-6 整体保持未完成 |
+
+## M2-3 管理后台真实接口与前端业务切片（2026-08-22）
+
+| 项目 | 结果 |
+|---|---|
+| 环境 | Windows 本地工作区 `D:\develop\FoodMate`；未启动生产/staging，不执行数据库迁移、清库、备份恢复或性能测试 |
+| 分支 | `codex/m2-functional-completion` |
+| 后端范围 | 真实管理查询、用户状态/会话撤销、工具/知识库/回收站/审计操作、模型治理接口的分页、RBAC、revision、幂等、确认和审计契约已接入 |
+| 前端范围 | real 模式用户管理、AgentRun/ToolCall/SQLAudit 分页查询、工具/知识库/审计/回收站/模型治理，以及概览真实运行查询和加载/空态/错误态 |
+| 用户切片提交 | `1d0d875 feat(管理后台): 接入真实用户管理接口` |
+| AgentRun 切片提交 | `af3b761 feat(管理后台): 接入 AgentRun 分页查询` |
+| 概览切片提交 | `fa30227 fix(管理后台): 移除概览页真实模式伪造指标` |
+| 前端验证 | `npm run typecheck` 通过；UsersTab 4/4、RunsTab 3/3、AdminPage 8/8 通过 |
+| Java 验证 | `AdminUserControllerRbacTest`、`AdminManagementControllerTest` 共 4/4 通过；API/application 编译通过 |
+| 失败记录 | 首次从 `foodmate-ui` 子目录执行仓库根路径 `git add`，路径不匹配且未提交；随后从仓库根目录按文件范围正确提交，未改变其他工作区文件 |
+| 结论 | M2-3 管理后台核心业务切片已完成；M2-1 知识库真实跨运行时闭环、M2-2 Tool Gateway/SQL Agent、全量 `verify`/Docker 联调和生产强化仍未完成 |
