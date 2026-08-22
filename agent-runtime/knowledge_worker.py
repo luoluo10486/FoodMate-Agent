@@ -86,6 +86,8 @@ class KnowledgeIndexWorker:
             filename, content = self._read_document(prefix)
             text = parse_document(filename, content)
             chunks = [replace(chunk, visibility="draft", current_version=True) for chunk in chunk_markdown(text, document_id, version)]
+            if not chunks:
+                raise RagError("RAG_EMPTY_DOCUMENT", "document contains no indexable chunks")
             title = payload.get("title") or filename
             token_count = sum(_estimate_tokens(chunk.text) for chunk in chunks)
             cost_amount = _cost_amount(self.settings, token_count)

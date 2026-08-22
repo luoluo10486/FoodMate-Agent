@@ -38,6 +38,22 @@ class KnowledgeIndexWorkerTests(TestCase):
         with self.assertRaisesRegex(RagError, "already being processed"):
             worker.handle_index({"item_id": "i1", "document_id": "d1", "version": "v1", "mode": "stub"})
 
+    def test_empty_chunk_result_fails_closed(self):
+        published = []
+        worker = KnowledgeIndexWorker(
+            lambda _: ("guide.md", b"# Heading"),
+            published.append,
+            RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}),
+        )
+
+        result = worker.handle_index(
+            {"item_id": "i-empty", "document_id": "d-empty", "version": "v1", "mode": "stub"}
+        )
+
+        self.assertEqual("index_failed", result["status"])
+        self.assertEqual("RAG_EMPTY_DOCUMENT", result["error_code"])
+        self.assertEqual(1, len(published))
+
     def test_daily_token_limit_is_enforced_and_failure_is_safe(self):
         published = []
         settings = RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub", "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "1"})
