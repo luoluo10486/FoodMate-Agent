@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+/** Exposes administrator knowledge ingestion, lifecycle, progress, and SSE endpoints. */
 @RestController
 @RequestMapping("/api/admin")
 public class KnowledgeController extends AuthenticatedControllerSupport {

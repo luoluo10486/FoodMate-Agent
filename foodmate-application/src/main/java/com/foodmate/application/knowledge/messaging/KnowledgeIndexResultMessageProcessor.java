@@ -9,8 +9,10 @@ import com.foodmate.application.runtime.messaging.MqMessageHandler;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.springframework.stereotype.Service;
 
+/** Consumes Python indexing results and applies them to the Java-owned knowledge state. */
 @Service
 public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
     private final KnowledgeDeliveryService service;
@@ -78,7 +80,7 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
             StringBuilder value = new StringBuilder("sha256:");
             for (byte item : bytes) value.append(String.format("%02x", item));
             return value.toString();
-        } catch (Exception error) {
+        } catch (NoSuchAlgorithmException error) {
             throw new IllegalStateException(error);
         }
     }

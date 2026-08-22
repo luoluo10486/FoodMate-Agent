@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Coordinates delivery and durable result convergence for data-retention purge tasks. */
 @Service
 public class DataRetentionDeliveryServiceImpl implements DataRetentionDeliveryService {
     private final DataRetentionRepository store;

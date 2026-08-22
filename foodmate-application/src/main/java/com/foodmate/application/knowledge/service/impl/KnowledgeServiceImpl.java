@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Implements administrator knowledge ingestion, lifecycle changes, and batch progress queries. */
 @Service
 public class KnowledgeServiceImpl implements KnowledgeService {
     private static final long MAX_FILE_SIZE = 20 * 1024 * 1024;

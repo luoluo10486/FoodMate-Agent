@@ -8,6 +8,7 @@ import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
+/** Adapts the application knowledge port to PostgreSQL persistence and shared audit storage. */
 @Repository
 @Profile("local")
 public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
