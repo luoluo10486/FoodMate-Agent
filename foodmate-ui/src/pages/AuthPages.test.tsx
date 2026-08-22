@@ -146,6 +146,13 @@ describe('authentication pages', () => {
     const user = userEvent.setup();
     renderAuth('/reset-password');
 
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-reset-leaf.svg"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-reset-lock.svg"]')).toHaveLength(2);
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-reset-eye.svg"]')).toHaveLength(2);
+    expect(screen.getByLabelText('新密码')).toHaveValue('StrongPass99');
+    expect(screen.getByLabelText('新密码')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('确认新密码')).toHaveValue('StrongPass99');
+    expect(screen.getByLabelText('确认新密码')).toHaveAttribute('type', 'text');
     expect(screen.getByText('高安全')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '确认重置' }));
     expect(screen.getByRole('heading', { name: '重置密码' })).toBeInTheDocument();

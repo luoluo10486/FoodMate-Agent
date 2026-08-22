@@ -110,6 +110,8 @@ type PasswordFieldProps = {
   value: string;
   placeholder?: string;
   autoComplete?: string;
+  leadingIconSrc?: string;
+  visibleIconSrc?: string;
   show: boolean;
   onToggle: () => void;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -121,6 +123,8 @@ export function PasswordField({
   value,
   placeholder,
   autoComplete,
+  leadingIconSrc = '/assets/figma/auth/foodmate-register-lock.svg',
+  visibleIconSrc = '/assets/figma/auth/foodmate-register-eye.svg',
   show,
   onToggle,
   onChange,
@@ -134,7 +138,7 @@ export function PasswordField({
         type={show ? 'text' : 'password'}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        leadingIcon={<img src="/assets/figma/auth/foodmate-register-lock.svg" alt="" />}
+        leadingIcon={<img src={leadingIconSrc} alt="" />}
         trailingAction={
           <Button
             variant="ghost"
@@ -144,7 +148,7 @@ export function PasswordField({
             aria-label={show ? `隐藏${label}` : `显示${label}`}
             onClick={onToggle}
           >
-            {show ? <img src="/assets/figma/auth/foodmate-register-eye.svg" alt="" /> : <Eye aria-hidden="true" />}
+            {show ? <img src={visibleIconSrc} alt="" /> : <Eye aria-hidden="true" />}
           </Button>
         }
         value={value}
