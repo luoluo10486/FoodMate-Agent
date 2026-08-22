@@ -3607,12 +3607,12 @@
       "frontendRoute": "/admin",
       "queryState": "state=tool-calls",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/admin-tool-calls.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-tool-calls",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-figma-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-browser-current.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-22 recapture: current Figma and browser both contain tabs, filters, call summary table, masked payload and Tool Calls detail fields; automatic diff 0.2444227431 / RMSE 17.0488425, retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3637,8 +3637,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Tool-call payload code is represented, but browser omits the Figma audit tabs, filters, call summary table, risk/status fields, and source note. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-22",
+        "conclusion": "Current browser contains the Figma Tool Calls tabs, filters, call summary table, risk/status fields, masked payload and Tool Calls detail fields. Shell identity, icon treatment, spacing and other visual differences remain; retain DIFF_REVIEW."
       }
     },
     {

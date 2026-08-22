@@ -898,11 +898,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1146239,
-      "differentRatio": 0.7773430718315972,
-      "meanAbsoluteError": 41.178246222602,
-      "rmse": 92.96440788927096,
-      "maxChannelDelta": 255
+      "differentPixels": 360416,
+      "differentRatio": 0.24442274305555556,
+      "meanAbsoluteError": 3.0583816528320313,
+      "rmse": 17.04884253706303,
+      "maxChannelDelta": 234
     },
     "admin-sql-audit": {
       "status": "COMPARED",
