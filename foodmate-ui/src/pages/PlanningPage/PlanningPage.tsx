@@ -659,7 +659,7 @@ export function PlanningPage() {
       sidebarAvatarSrc={
         isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
       }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/planning/meal-plan-list-topbar-avatar.png' : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >

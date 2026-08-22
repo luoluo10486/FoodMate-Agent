@@ -2028,7 +2028,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: default fixture now renders all three Figma plan cards while retaining status-tab filtering for draft and archived views; details, density, and visual treatment still differ, so retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: default fixture now renders all three Figma plan cards, uses the Figma-sourced planning topbar avatar, and retains status-tab filtering for draft and archived views; details, density, and visual treatment still differ, so retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2054,7 +2054,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-23",
-        "conclusion": "The current browser capture shows all three plan cards, matching the Figma default list composition. Card geometry, details, density, and remaining typography/icon rasterization differences remain; retain DIFF_REVIEW."
+        "conclusion": "The current browser capture shows all three plan cards and uses the Figma-sourced topbar avatar, matching the current list composition more closely. Card geometry, details, density, and remaining typography/icon rasterization differences remain; retain DIFF_REVIEW."
       }
     },
     {

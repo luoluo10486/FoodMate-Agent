@@ -123,7 +123,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | 冲突解决 | `692:3375` | `/planning?state=conflict` | `meal-plan-conflict-figma.png` | `meal-plan-conflict-browser-stable-rgba.png` | 37.28% | 25.12 | `DIFF_REVIEW` |
 | 购物清单 | `692:3569` | `/planning?state=shopping-list` | `meal-plan-shopping-list-figma.png` | `meal-plan-shopping-list-browser-stable-rgba.png` | 24.35% | 17.23 | `DIFF_REVIEW` |
 | 生成中 | `692:3746` | `/planning?state=generating` | `meal-plan-generating-figma.png` | `meal-plan-generating-browser-stable-rgba.png` | 13.69% | 16.84 | `DIFF_REVIEW` |
-| 计划列表 | `692:2662` | `/planning?state=list` | `meal-plan-list-figma.png` | `meal-plan-list-browser-current-rgba.png` | 28.3198% | 19.40 | `DIFF_REVIEW` |
+| 计划列表 | `692:2662` | `/planning?state=list` | `meal-plan-list-figma.png` | `meal-plan-list-browser-current-rgba.png` | 28.3485% | 19.37 | `DIFF_REVIEW` |
 
 浏览器 smoke 已实际确认：向导步骤推进和取消生成、冲突方案应用、购物清单初始采购数量及导出反馈均可操作；七个入口均无页面级横向溢出。流程 fixture 只复现前端设计状态，不代表真实餐食生成、冲突解决、购物清单持久化或异步任务后端闭环完成。
 
@@ -501,6 +501,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `/planning?state=list` 浏览器复核确认三个计划卡的更多操作按钮均存在，`scrollWidth=1440`，无页面级横向溢出。
 - [x] 当前证据继续使用 `foodmate-ui/.qa/figma-pixel-acceptance/meal-plan-list-browser-current-rgba.png`，独立 diff 为 `meal-plan-list-current-diff.json`；PNG diff 为 `28.3198% / MAE 3.9498 / RMSE 19.4020`，保持 `DIFF_REVIEW`。
 - [ ] 该画板仍不能标记 `PASS`；剩余卡片几何、内容密度、字体与图标光栅化差异仍需后续逐项收口，iconfont 实体资源继续为 `BLOCKED`。
+
+## 53. 2026-08-23 餐食规划列表顶部头像资源复核
+
+- [x] 实时读取 Figma `692:2662` 的原始图片资产，确认顶部用户头像应使用 Figma 返回的男性肖像，而不是旧的渐变字标图；新增本地资源 `foodmate-ui/public/assets/figma/planning/meal-plan-list-topbar-avatar.png`。
+- [x] `/planning?state=list` 浏览器实测顶部头像 `src` 为 `/assets/figma/planning/meal-plan-list-topbar-avatar.png`，图片加载完成；Figma 设计稿未修改，业务默认头像资源未改写。
+- [x] 当前浏览器 RGBA 证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-plan-list-browser-current-rgba.png`，PNG diff 为 `28.3485% / MAE 3.9456 / RMSE 19.3731`，保持 `DIFF_REVIEW`。
+- [ ] 卡片几何、内容密度、字体和图标光栅化仍需继续验收；iconfont 实体资源继续为 `BLOCKED`。
 
 ## 60. 2026-08-23 Intake Analysis 当前版本验收证据更新
 
