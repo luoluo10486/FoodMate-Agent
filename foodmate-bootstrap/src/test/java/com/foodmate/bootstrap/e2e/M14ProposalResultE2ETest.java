@@ -249,13 +249,21 @@ class M14ProposalResultE2ETest {
 
     private static Map<String, Object> databaseQueryInput(String statement) {
         return Map.of(
-                "intent", "nutrition_summary",
-                "time_range", Map.of("kind", "relative", "days", "7"),
-                "metrics", java.util.List.of("protein_g"),
-                "dimensions", java.util.List.of("meal_type"),
-                "filters", Map.of(),
-                "candidate_sql", statement,
-                "planner_mode", "stub",
-                "planner_version", "v1");
+                "intent",
+                "nutrition_summary",
+                "time_range",
+                Map.of("kind", "relative", "days", "7"),
+                "metrics",
+                java.util.List.of("protein_g"),
+                "dimensions",
+                java.util.List.of("meal_type"),
+                "filters",
+                Map.of(),
+                "candidate_sql",
+                statement,
+                "planner_mode",
+                "stub",
+                "planner_version",
+                "v1");
     }
 }
