@@ -219,7 +219,9 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
                   <TableCell>
                     <span className={styles.overviewRunIdCell}>
                       <strong>{row.runId}</strong>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className={styles.copyButton}
                         type="button"
                         aria-label={`复制 ${row.runId}`}
@@ -227,7 +229,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
                         title={`复制 ${row.runId}`}
                       >
                         <Copy aria-hidden="true" />
-                      </button>
+                      </Button>
                     </span>
                   </TableCell>
                   <TableCell>

@@ -26,6 +26,7 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('91.4%')).toBeInTheDocument();
     expect(screen.getByText('$128.45')).toBeInTheDocument();
     expect(screen.getAllByText('查看详情')).toHaveLength(6);
+    expect(screen.getByRole('button', { name: '复制 run_889a4' })).toBeInTheDocument();
 
     for (const label of [
       '概览',
