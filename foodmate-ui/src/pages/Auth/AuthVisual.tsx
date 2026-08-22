@@ -1,10 +1,15 @@
-import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import styles from '../LoginPage/LoginPage.module.css';
 
 export type AuthVariant = 'login' | 'register' | 'forgot' | 'reset' | 'token';
+
+const fieldIconSources = {
+  user: '/assets/figma/auth/foodmate-register-user.svg',
+  mail: '/assets/figma/auth/foodmate-register-mail.svg',
+} as const;
 
 export function AuthShell({ variant, children }: { variant: AuthVariant; children: ReactNode }) {
   return (
@@ -77,8 +82,7 @@ export function AuthField({
   required = true,
   onChange,
 }: AuthFieldProps) {
-  const icon =
-    leadingIcon === 'mail' ? <Mail aria-hidden="true" /> : leadingIcon === 'user' ? <UserRound /> : undefined;
+  const icon = leadingIcon ? <img src={fieldIconSources[leadingIcon]} alt="" /> : undefined;
 
   return (
     <label className={styles.authField}>
@@ -128,7 +132,7 @@ export function PasswordField({
         type={show ? 'text' : 'password'}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        leadingIcon={<LockKeyhole aria-hidden="true" />}
+        leadingIcon={<img src="/assets/figma/auth/foodmate-register-lock.svg" alt="" />}
         trailingAction={
           <Button
             variant="ghost"
@@ -138,7 +142,7 @@ export function PasswordField({
             aria-label={show ? `隐藏${label}` : `显示${label}`}
             onClick={onToggle}
           >
-            {show ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+            {show ? <img src="/assets/figma/auth/foodmate-register-eye.svg" alt="" /> : <Eye aria-hidden="true" />}
           </Button>
         }
         value={value}

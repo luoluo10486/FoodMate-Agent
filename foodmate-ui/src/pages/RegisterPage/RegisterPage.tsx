@@ -110,7 +110,11 @@ export function RegisterPage() {
               const valid = rule.matches(values.password);
               return (
                 <span className={valid ? styles.passwordRuleValid : styles.passwordRule} key={rule.label}>
-                  <CheckCircle2 aria-hidden="true" />
+                  {valid ? (
+                    <img src="/assets/figma/auth/foodmate-register-check-circle.svg" alt="" />
+                  ) : (
+                    <CheckCircle2 aria-hidden="true" />
+                  )}
                   {rule.label}
                 </span>
               );

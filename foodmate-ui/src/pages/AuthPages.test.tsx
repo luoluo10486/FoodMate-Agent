@@ -63,6 +63,13 @@ describe('authentication pages', () => {
     renderAuth('/register');
 
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-user.svg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-mail.svg"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-register-lock.svg"]')).toHaveLength(2);
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-register-eye.svg"]')).toHaveLength(2);
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-register-check-circle.svg"]')).toHaveLength(
+      4,
+    );
     expect(screen.getByLabelText('用户名')).toHaveValue('麦克斯');
     expect(screen.getByLabelText('邮箱地址')).toHaveValue('max@foodmate.com');
     expect(screen.getByLabelText('密码')).toHaveValue('Foodmate123');
