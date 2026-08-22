@@ -2028,7 +2028,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: default fixture now renders all three Figma plan cards, uses the Figma-sourced planning topbar avatar with circular clipping, and retains status-tab filtering for draft and archived views; latest capture produced 27.8745% pixel difference, while details, density, and visual treatment still differ, so retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: default fixture now renders all three Figma plan cards, uses the Figma-sourced planning topbar avatar with circular clipping, and aligns the lifecycle panel to the Figma x/y/size geometry; latest capture produced 23.0783% pixel difference, while card details, density, and visual treatment still differ, so retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
