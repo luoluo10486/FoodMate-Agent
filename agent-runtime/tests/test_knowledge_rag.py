@@ -65,6 +65,7 @@ class _VectorMilvusClient:
         self.dimension = dimension
         self.created = []
         self.upserts = []
+        self.flushed = []
 
     def has_collection(self, _collection):
         return self.dimension is not None
@@ -78,6 +79,9 @@ class _VectorMilvusClient:
 
     def upsert(self, **kwargs):
         self.upserts.append(kwargs["data"])
+
+    def flush(self, **kwargs):
+        self.flushed.append(kwargs["collection_name"])
 
 
 class MilvusIndexTests(TestCase):
@@ -111,6 +115,7 @@ class MilvusIndexTests(TestCase):
         self.assertEqual(12, index.client.created[0][1]["dimension"])
         self.assertEqual(12, len(index.client.upserts[0][0]["vector"]))
         self.assertEqual("public_published", index.client.upserts[0][0]["scope"])
+        self.assertEqual(["public_knowledge"], index.client.flushed)
 
     def test_upsert_rejects_existing_collection_dimension_mismatch(self):
         settings = RagSettings(

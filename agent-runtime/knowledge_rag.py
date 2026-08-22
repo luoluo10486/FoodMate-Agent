@@ -571,6 +571,7 @@ class MilvusIndex:
             rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted, "current_version": chunk.current_version})
         try:
             self.client.upsert(collection_name=self.collection, data=rows)
+            self._flush()
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus upsert failed") from error
 
@@ -588,6 +589,7 @@ class MilvusIndex:
                 row["current_version"] = current_version
             if rows:
                 self.client.upsert(collection_name=self.collection, data=rows)
+                self._flush()
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus visibility update failed") from error
 
@@ -603,8 +605,14 @@ class MilvusIndex:
             ids = [row["embedding_id"] for row in rows if row.get("embedding_id")]
             if ids:
                 self.client.delete(collection_name=self.collection, ids=ids)
+                self._flush()
         except Exception as error:
             raise RagError("RAG_MILVUS_DELETE_FAILED", "Milvus vector delete failed") from error
+
+    def _flush(self) -> None:
+        flush = getattr(self.client, "flush", None)
+        if callable(flush):
+            flush(collection_name=self.collection)
 
     def search(self, query: str, embedder: EmbeddingProvider, scope: str = PUBLIC_SCOPE) -> list[Citation]:
         if scope != PUBLIC_SCOPE:
