@@ -7,6 +7,11 @@
   background: var(--fm-bg);
 }
 
+/* Keep the Chat fixture's sidebar content at the Figma baseline without rendering desktop window controls. */
+.figmaFixture .sidebar {
+  padding-top: 52px;
+}
+
 .withRail {
   grid-template-columns: 260px minmax(0, 1fr) 320px;
 }
