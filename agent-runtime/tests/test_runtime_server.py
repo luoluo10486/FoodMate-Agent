@@ -31,6 +31,20 @@ class RuntimeContractTests(unittest.TestCase):
             runtime_server.execute(command)
         self.assertEqual(["run.accepted", "run.routed", "run.model_usage", "run.eval_decided", "run.answer_stream", "run.completed"], events)
 
+    def test_emit_bounds_event_id_to_postgres_contract(self):
+        published = []
+        publisher = SimpleNamespace(publish=lambda event: published.append(event))
+        command = {"run_id": "1", "dispatch_id": "d1", "attempt": 1}
+        long_id = "d1-tool-started-" + "p" * 100
+        with patch.object(runtime_server, "_event_publisher", publisher):
+            runtime_server.emit(command, long_id, 4, "run.tool_started", {})
+            runtime_server.emit(command, long_id, 4, "run.tool_started", {})
+
+        self.assertEqual(2, len(published))
+        self.assertEqual(published[0]["event_id"], published[1]["event_id"])
+        self.assertLessEqual(len(published[0]["event_id"]), runtime_server.MAX_EVENT_ID_LENGTH)
+        self.assertNotEqual(long_id, published[0]["event_id"])
+
     def test_model_failure_still_has_contiguous_route_event(self):
         events = []
         command = {"run_id": "1", "dispatch_id": "d-failed", "deadline_at": "x", "attempt": 1}

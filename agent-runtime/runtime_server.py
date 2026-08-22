@@ -6,6 +6,7 @@ import threading
 import urllib.error
 import urllib.request
 import base64
+import hashlib
 import uuid
 import traceback
 import time
@@ -40,6 +41,18 @@ _eval_metrics = EvalMetrics()
 _runtime_metrics = RuntimeMetrics()
 _runtime_started_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 _mq_runtime = None
+MAX_EVENT_ID_LENGTH = 64
+
+
+def _bounded_event_id(event_id: str) -> str:
+    """Keep the persisted event identifier within the V1 database contract."""
+    if len(event_id) <= MAX_EVENT_ID_LENGTH:
+        return event_id
+    digest = hashlib.sha256(event_id.encode("utf-8")).hexdigest()[:16]
+    prefix_length = MAX_EVENT_ID_LENGTH - len(digest) - 1
+    return event_id[:prefix_length] + "-" + digest
+
+
 def _new_checkpoint():
     # 本地默认内存后端；启用 Redis 时必须同时配置 checkpoint 加密密钥。
     if os.getenv("FOODMATE_AGENT_CHECKPOINT_BACKEND", "inmemory").lower() == "redis":
@@ -238,6 +251,7 @@ def _verify(token, issuer, audience, scope):
 
 def emit(command, event_id, sequence, event_type, payload=None):
     # Runtime 只回传协议事件，不直接写 FoodMate 业务表；状态投影由 Java 完成。
+    event_id = _bounded_event_id(event_id)
     request_id = "req_evt_" + uuid.uuid4().hex
     occurred_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     stable = {
