@@ -54,7 +54,7 @@ describe('ProfilePage', () => {
     await user.type(allergenInput, '花生');
     await user.click(screen.getByRole('button', { name: '添加过敏原' }));
 
-    expect(screen.getByRole('button', { name: '花生' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '花生' })).toHaveClass('inline-flex');
     expect(screen.getByRole('button', { name: '放弃更改' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: '保存资料' }));
@@ -69,6 +69,7 @@ describe('ProfilePage', () => {
     renderPage('/profile/memories');
 
     await user.click(screen.getByRole('tab', { name: '待确认 (3)' }));
+    expect(screen.getByRole('tab', { name: '待确认 (3)' })).toHaveClass('inline-flex');
     expect(screen.getByText(/Attempts to avoid soy protein isolates/)).toBeInTheDocument();
     expect(screen.queryByText(/Prefers wild caught salmon/)).not.toBeInTheDocument();
 

@@ -476,14 +476,16 @@ function IconAction({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
+        <Button
           className={cn(styles.iconAction, danger && styles.iconActionDanger)}
+          variant="ghost"
+          size="icon"
           type="button"
           aria-label={label}
           onClick={onClick}
         >
           {children}
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
@@ -789,10 +791,16 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
             <span className={styles.fieldLabel}>过敏原与不耐受</span>
             <div className={styles.tagRow}>
               {profileForm.allergens.map((item) => (
-                <button key={item} className={styles.allergenTag} type="button" onClick={() => removeAllergen(item)}>
+                <Button
+                  key={item}
+                  className={styles.allergenTag}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => removeAllergen(item)}
+                >
                   {item}
                   <X aria-hidden="true" />
-                </button>
+                </Button>
               ))}
               <div className={styles.addAllergen}>
                 <Input
@@ -904,16 +912,17 @@ function MemoriesTab() {
               ['confirmed', '已确认 (21)'],
             ] as const
           ).map(([value, label]) => (
-            <button
+            <Button
               key={value}
               className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
+              variant="ghost"
               type="button"
               role="tab"
               aria-selected={filter === value}
               onClick={() => setFilter(value)}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
         <Select value={category} onValueChange={setCategory}>

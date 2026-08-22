@@ -643,6 +643,8 @@
 }
 
 .filterButton {
+  height: auto;
+  min-width: 0;
   padding: 0 16px;
 }
 
