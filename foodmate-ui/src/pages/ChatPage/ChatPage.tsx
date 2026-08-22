@@ -377,7 +377,8 @@ function EmptyChatPage() {
 }
 
 function PlanningStatePage() {
-  const userAvatar = resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
+  const planningAvatarSrc = '/assets/figma/planning/meal-plan-list-topbar-avatar.png';
+  const planningSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const planningRun: AgentRunView = {
     id: 'run_planning_fixture',
     status: 'planning',
@@ -402,12 +403,20 @@ function PlanningStatePage() {
       onStop={() => undefined}
       placeholder="正在规划任务流程，请稍候..."
       showTrace={false}
+      avatarSrc={planningAvatarSrc}
+      sidebarAvatarSrc={planningAvatarSrc}
+      topAvatarSrc={planningAvatarSrc}
+      displayNameOverride="Anddy"
+      profileIdOverride="1234567"
+      showKnowledgeTopNav={false}
+      designChat
+      sidebarFixture={planningSidebar}
     >
       <article className={styles.planningUserMessage}>
         <div className={styles.planningUserLine}>
           <div className={styles.planningUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.planningUserAvatar} aria-hidden="true">
-            <img src={userAvatar} alt="" />
+            <img src={planningAvatarSrc} alt="" />
           </span>
         </div>
         <div className={styles.planningMessageMeta}>Anddy · 12:45 PM</div>
