@@ -629,6 +629,7 @@
 .allergyChip,
 .addAllergy {
   display: inline-flex;
+  height: 26px;
   min-height: 26px;
   align-items: center;
   gap: 4px;
