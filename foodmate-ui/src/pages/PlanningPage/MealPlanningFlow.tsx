@@ -1,4 +1,4 @@
-import { Check, CircleAlert, Download, MoreHorizontal, Plus, Printer, Sparkles, X } from 'lucide-react';
+import { Check, CircleAlert, Download, Menu, Plus, Printer, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -730,7 +730,7 @@ function PlanListView({
                 type="button"
                 aria-label={`${plan.name}更多操作`}
               >
-                <MoreHorizontal aria-hidden="true" />
+                <Menu aria-hidden="true" />
               </Button>
             </div>
           </article>
