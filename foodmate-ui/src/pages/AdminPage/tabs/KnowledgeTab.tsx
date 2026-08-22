@@ -262,7 +262,7 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (itemId
     <span>{detail?.batch.job.status ?? '上传已提交'}</span>
     {detail?.batch.items.map((item) => <div key={item.item_id}>
       <span>{item.filename}: {item.index_status}{item.error_code ? ` (${item.error_code})` : ''}</span>
-      {item.index_status === 'index_failed' ? <Button variant="outline" onClick={() => void onRetry(item.item_id)}>重试</Button> : null}
+      {item.index_status === 'index_failed' ? <Button variant="outline" onClick={() => void onRetry(item.document_id)}>重试</Button> : null}
     </div>)}
   </Card>;
 }

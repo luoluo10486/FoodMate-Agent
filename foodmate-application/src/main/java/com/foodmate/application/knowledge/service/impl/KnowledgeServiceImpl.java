@@ -204,11 +204,19 @@ public class KnowledgeServiceImpl implements KnowledgeService {
 
     @Override
     @Transactional
-    public void retryItem(long batchId, long itemId, long operatorId, String traceId) {
-        batch(batchId);
-        if (store.retryItem(itemId, batchId, operatorId, ids.nextId(), "{}") != 1)
+    public void retryItem(long batchId, long documentId, long operatorId, String traceId) {
+        BatchDetail detail = batch(batchId);
+        KnowledgeRepository.ItemView item =
+                detail.items().stream()
+                        .filter(value -> value.documentId() == documentId)
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "knowledge document is not part of this batch"));
+        if (store.retryItem(item.itemId(), batchId, operatorId, ids.nextId(), "{}") != 1)
             throw new IllegalArgumentException("knowledge import item is not retryable");
-        audit(operatorId, traceId, "knowledge.import_item.retry", Long.toString(itemId));
+        audit(operatorId, traceId, "knowledge.import_item.retry", Long.toString(item.documentId()));
     }
 
     private void audit(long operatorId, String traceId, String action, String documentId) {

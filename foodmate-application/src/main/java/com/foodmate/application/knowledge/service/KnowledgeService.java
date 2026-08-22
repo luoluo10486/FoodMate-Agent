@@ -29,7 +29,7 @@ public interface KnowledgeService {
 
     java.util.List<BatchEvent> batchEvents(long batchId, long afterEventId);
 
-    void retryItem(long batchId, long itemId, long operatorId, String traceId);
+    void retryItem(long batchId, long documentId, long operatorId, String traceId);
 
     record ImportBatch(
             String idempotencyKey,

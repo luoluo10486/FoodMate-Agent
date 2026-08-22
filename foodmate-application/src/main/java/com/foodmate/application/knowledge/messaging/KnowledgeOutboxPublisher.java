@@ -4,8 +4,8 @@ import com.foodmate.application.knowledge.port.out.KnowledgeRepository.OutboxRow
 import com.foodmate.application.knowledge.service.KnowledgeDeliveryService;
 import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
-import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -36,7 +36,7 @@ public class KnowledgeOutboxPublisher {
 
     private void relay(List<OutboxRow> rows, boolean index) {
         for (OutboxRow row : rows) {
-            String owner = "knowledge_" + Instant.now().toEpochMilli();
+            String owner = "knowledge_" + UUID.randomUUID();
             if ((index
                             ? service.leaseIndex(row.outboxId(), owner)
                             : service.leaseVisibility(row.outboxId(), owner))

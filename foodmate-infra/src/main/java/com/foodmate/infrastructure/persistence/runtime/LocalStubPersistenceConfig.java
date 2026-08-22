@@ -364,6 +364,13 @@ public class LocalStubPersistenceConfig {
                 return java.util.List.of();
             }
 
+            public long jobIdForItem(long itemId) {
+                return 0;
+            }
+
+            public void insertJobEvent(
+                    long eventId, long jobId, Long itemId, String eventType, String payload) {}
+
             public int retryItem(
                     long itemId, long jobId, long operatorId, long outboxId, String payload) {
                 return 0;

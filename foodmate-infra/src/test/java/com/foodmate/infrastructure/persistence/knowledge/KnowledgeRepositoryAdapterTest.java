@@ -30,7 +30,10 @@ class KnowledgeRepositoryAdapterTest {
         when(mapper.insertResultInbox(11L, "v1", 2, "sha256:ok")).thenReturn(1);
         when(mapper.markItemIndexed(11L, 12L, 2, 4, "v1", 100L, new BigDecimal("0.12"), "stub-v1"))
                 .thenReturn(1);
-        when(ids.nextId()).thenReturn(900L);
+        when(mapper.jobIdForItem(11L)).thenReturn(77L);
+        when(mapper.job(77L))
+                .thenReturn(new KnowledgeRepository.JobView(77L, "completed", 1, 1, 0));
+        when(ids.nextId()).thenReturn(900L, 901L);
 
         adapter.applyIndexResult(
                 new KnowledgeRepository.IndexResult(
@@ -48,7 +51,10 @@ class KnowledgeRepositoryAdapterTest {
 
         verify(mapper).markDocumentIndexed(12L, "v1");
         verify(mapper).refreshJob(11L);
-        verify(mapper).insertJobEvent(eq(900L), eq(11L), eq("knowledge.index.indexed"), any());
+        verify(mapper)
+                .insertJobEvent(eq(900L), eq(77L), eq(11L), eq("knowledge.index.indexed"), any());
+        verify(mapper)
+                .insertJobEvent(eq(901L), eq(77L), eq(11L), eq("knowledge.batch.progress"), any());
     }
 
     @Test
@@ -64,7 +70,7 @@ class KnowledgeRepositoryAdapterTest {
         verify(mapper, never())
                 .markItemIndexed(
                         anyLong(), anyLong(), anyInt(), anyInt(), any(), anyLong(), any(), any());
-        verify(mapper, never()).insertJobEvent(anyLong(), anyLong(), any(), any());
+        verify(mapper, never()).insertJobEvent(anyLong(), anyLong(), any(), any(), any());
     }
 
     @Test
@@ -88,5 +94,23 @@ class KnowledgeRepositoryAdapterTest {
                                         "stub-v1"),
                                 "sha256:bad"));
         verify(mapper, never()).insertResultInbox(anyLong(), any(), anyInt(), any());
+    }
+
+    @Test
+    void manualRetryResetsAuthorityAndEmitsReplayableProgressFacts() {
+        when(mapper.resetItem(11L, 77L)).thenReturn(1);
+        when(mapper.requeueIndexOutbox(11L, 1, 0, null)).thenReturn(1);
+        when(mapper.job(77L)).thenReturn(new KnowledgeRepository.JobView(77L, "indexing", 1, 0, 0));
+        when(ids.nextId()).thenReturn(901L, 902L);
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                1, adapter.retryItem(11L, 77L, 7L, 903L, "{}"));
+
+        verify(mapper).deleteResultInbox(11L);
+        verify(mapper).refreshJob(11L);
+        verify(mapper)
+                .insertJobEvent(eq(901L), eq(77L), eq(11L), eq("knowledge.index.retry"), any());
+        verify(mapper)
+                .insertJobEvent(eq(902L), eq(77L), eq(11L), eq("knowledge.batch.progress"), any());
     }
 }

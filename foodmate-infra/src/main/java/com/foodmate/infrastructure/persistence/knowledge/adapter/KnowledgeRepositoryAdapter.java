@@ -200,14 +200,23 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                                     attempt,
                                     result.version())
                             == 1;
-            if (changed && attempt < 3)
-                mapper.requeueIndexOutbox(
-                        result.itemId(), attempt + 1, 1 << (attempt - 1), result.errorCode());
+            if (changed && attempt < 3) {
+                if (mapper.requeueIndexOutbox(
+                                result.itemId(),
+                                attempt + 1,
+                                1 << (attempt - 1),
+                                result.errorCode())
+                        != 1) {
+                    throw new IllegalStateException("knowledge index outbox is missing");
+                }
+            }
         }
         if (!changed) return;
         mapper.refreshJob(result.itemId());
+        long jobId = mapper.jobIdForItem(result.itemId());
         mapper.insertJobEvent(
                 ids.nextId(),
+                jobId,
                 result.itemId(),
                 "knowledge.index." + result.status(),
                 "{\"item_id\":"
@@ -217,6 +226,23 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                         + ",\"status\":\""
                         + result.status()
                         + "\"}");
+        JobView progress = mapper.job(jobId);
+        mapper.insertJobEvent(
+                ids.nextId(),
+                jobId,
+                result.itemId(),
+                "knowledge.batch.progress",
+                "{\"job_id\":"
+                        + jobId
+                        + ",\"status\":\""
+                        + progress.status()
+                        + "\",\"total_items\":"
+                        + progress.totalItems()
+                        + ",\"indexed_items\":"
+                        + progress.indexedItems()
+                        + ",\"failed_items\":"
+                        + progress.failedItems()
+                        + "}");
     }
 
     @Override
@@ -235,11 +261,47 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     }
 
     @Override
+    public long jobIdForItem(long itemId) {
+        return mapper.jobIdForItem(itemId);
+    }
+
+    @Override
+    public void insertJobEvent(
+            long eventId, long jobId, Long itemId, String eventType, String payload) {
+        mapper.insertJobEvent(eventId, jobId, itemId, eventType, payload);
+    }
+
+    @Override
     public int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload) {
         int changed = mapper.resetItem(itemId, jobId);
         if (changed == 1) {
             mapper.deleteResultInbox(itemId);
-            mapper.requeueIndexOutbox(itemId, 1, 0, null);
+            if (mapper.requeueIndexOutbox(itemId, 1, 0, null) != 1)
+                throw new IllegalStateException("knowledge index outbox is missing");
+            mapper.refreshJob(itemId);
+            mapper.insertJobEvent(
+                    ids.nextId(),
+                    jobId,
+                    itemId,
+                    "knowledge.index.retry",
+                    "{\"item_id\":" + itemId + ",\"status\":\"pending\"}");
+            JobView progress = mapper.job(jobId);
+            mapper.insertJobEvent(
+                    ids.nextId(),
+                    jobId,
+                    itemId,
+                    "knowledge.batch.progress",
+                    "{\"job_id\":"
+                            + jobId
+                            + ",\"status\":\""
+                            + progress.status()
+                            + "\",\"total_items\":"
+                            + progress.totalItems()
+                            + ",\"indexed_items\":"
+                            + progress.indexedItems()
+                            + ",\"failed_items\":"
+                            + progress.failedItems()
+                            + "}");
         }
         return changed;
     }

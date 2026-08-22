@@ -110,14 +110,14 @@ public interface KnowledgeMapper {
             @Param("outboxId") long outboxId, @Param("owner") String owner);
 
     @Update(
-            "UPDATE knowledge_index_outbox SET status='pending',owner_token=NULL,lease_until=NULL,last_error=#{error},available_at=CURRENT_TIMESTAMP+INTERVAL '2 seconds',updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId} AND status='pending' AND owner_token=#{owner}")
+            "UPDATE knowledge_index_outbox SET status='pending',owner_token=NULL,lease_until=NULL,last_error=#{error},available_at=CURRENT_TIMESTAMP + (LEAST(60,POWER(2,GREATEST(attempt_count-1,0))) * INTERVAL '1 second'),updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId} AND status='pending' AND owner_token=#{owner}")
     void retryIndexOutbox(
             @Param("outboxId") long outboxId,
             @Param("owner") String owner,
             @Param("error") String error);
 
     @Update(
-            "UPDATE knowledge_visibility_outbox SET status='pending',owner_token=NULL,lease_until=NULL,last_error=#{error},available_at=CURRENT_TIMESTAMP+INTERVAL '2 seconds',updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId} AND status='pending' AND owner_token=#{owner}")
+            "UPDATE knowledge_visibility_outbox SET status='pending',owner_token=NULL,lease_until=NULL,last_error=#{error},available_at=CURRENT_TIMESTAMP + (LEAST(60,POWER(2,GREATEST(attempt_count-1,0))) * INTERVAL '1 second'),updated_at=CURRENT_TIMESTAMP WHERE outbox_id=#{outboxId} AND status='pending' AND owner_token=#{owner}")
     void retryVisibilityOutbox(
             @Param("outboxId") long outboxId,
             @Param("owner") String owner,
@@ -185,12 +185,16 @@ public interface KnowledgeMapper {
     void refreshJob(long itemId);
 
     @Insert(
-            "INSERT INTO knowledge_import_sse_outbox(event_id,job_id,item_id,event_type,payload_json) SELECT #{eventId},job_id,item_id,#{eventType},CAST(#{payload} AS jsonb) FROM knowledge_import_items WHERE item_id=#{itemId}")
+            "INSERT INTO knowledge_import_sse_outbox(event_id,job_id,item_id,event_type,payload_json) VALUES(#{eventId},#{jobId},#{itemId},#{eventType},CAST(#{payload} AS jsonb))")
     void insertJobEvent(
             @Param("eventId") long eventId,
-            @Param("itemId") long itemId,
+            @Param("jobId") long jobId,
+            @Param("itemId") Long itemId,
             @Param("eventType") String eventType,
             @Param("payload") String payload);
+
+    @Select("SELECT job_id FROM knowledge_import_items WHERE item_id=#{itemId}")
+    long jobIdForItem(@Param("itemId") long itemId);
 
     @Select(
             "SELECT j.job_id AS jobId,j.status AS status,COUNT(i.item_id) AS totalItems,COUNT(i.item_id) FILTER(WHERE i.index_status='indexed') AS indexedItems,COUNT(i.item_id) FILTER(WHERE i.index_status='index_failed') AS failedItems FROM knowledge_import_jobs j LEFT JOIN knowledge_import_items i ON i.job_id=j.job_id WHERE j.job_id=#{jobId} GROUP BY j.job_id")
@@ -206,7 +210,7 @@ public interface KnowledgeMapper {
             @Param("jobId") long jobId, @Param("afterEventId") long afterEventId);
 
     @Update(
-            "UPDATE knowledge_import_items SET index_status='pending',attempt_count=0,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND job_id=#{jobId} AND index_status='index_failed'")
+            "UPDATE knowledge_import_items SET index_status='pending',attempt_count=0,chunk_count=NULL,indexed_at=NULL,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND job_id=#{jobId} AND index_status='index_failed'")
     int resetItem(@Param("itemId") long itemId, @Param("jobId") long jobId);
 
     @org.apache.ibatis.annotations.Delete(

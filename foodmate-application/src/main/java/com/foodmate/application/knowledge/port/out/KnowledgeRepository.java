@@ -56,6 +56,10 @@ public interface KnowledgeRepository {
 
     java.util.List<JobEvent> jobEvents(long jobId, long afterEventId);
 
+    long jobIdForItem(long itemId);
+
+    void insertJobEvent(long eventId, long jobId, Long itemId, String eventType, String payload);
+
     int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload);
 
     record OutboxRow(long outboxId, long itemOrDocumentId, String topic, String payload) {}
