@@ -30,3 +30,5 @@
 `V19__m2_2_database_query_structured_contract.sql`：在不修改 V18 的前提下，为 `database_query` 发布结构化输入、候选 SQL、规划模式和 SQL 审计 ID 的 v2 注册表 Schema，并将当前版本切换到 v2；通信包的 `schema_version` 仍为 v1。执行前必须确认 V18 的 `database_query` 注册表当前版本为 v1。配套校验为 `validation/V19__m2_2_database_query_structured_contract_validation.sql`，回滚为 `rollback/R19__m2_2_database_query_structured_contract.sql`。
 
 `V20__m2_3_admin_management_contract.sql`：为管理员状态写入、工具启停和软删除恢复增加 `revision` 乐观并发版本；管理写接口同时要求 `Idempotency-Key`，高风险工具和恢复操作要求确认摘要。该脚本仅人工执行，不由 Java 启动自动迁移；配套校验为 `validation/V20__m2_3_admin_management_contract_validation.sql`，回滚为 `rollback/R20__m2_3_admin_management_contract.sql`。
+
+`V21__m1_model_governance_contract.sql`：增加供应商/模型目录、价格版本和预算策略，并为路由和模型用量事实补齐路由、价格与预算版本快照。治理表不保存 API Key、Secret 或可逆凭据；当前运行时没有匹配的数据库路由时仍使用显式配置的 deterministic/stub 默认快照。该脚本仅人工执行，不清理已有路由或用量；配套校验为 `validation/V21__m1_model_governance_contract_validation.sql`，回滚为 `rollback/R21__m1_model_governance_contract.sql`。

@@ -92,7 +92,7 @@ public interface V1RuntimeEventMapper {
             String id, long runId, V1RunEvent event, String reason, String code, String envelope);
 
     @Insert(
-            "INSERT INTO model_usage_logs(model_usage_log_id,request_id,trace_id,scene,provider_code,model_name,usage_json,latency_ms,cost_amount,status,created_by,updated_by) VALUES (#{id},#{event.requestId},#{event.traceId},#{scene},#{provider},#{model},CAST(#{usage} AS jsonb),#{latency},#{cost},#{status},NULL,NULL) ON CONFLICT (request_id) DO NOTHING")
+            "INSERT INTO model_usage_logs(model_usage_log_id,request_id,trace_id,scene,provider_code,model_name,usage_json,latency_ms,cost_amount,status,route_version,price_version,budget_policy_version,created_by,updated_by) VALUES (#{id},#{event.requestId},#{event.traceId},#{scene},#{provider},#{model},CAST(#{usage} AS jsonb),#{latency},#{cost},#{status},#{routeVersion},#{priceVersion},#{budgetPolicyVersion},NULL,NULL) ON CONFLICT (request_id) DO NOTHING")
     void insertUsage(
             long id,
             V1RunEvent event,
@@ -102,7 +102,10 @@ public interface V1RuntimeEventMapper {
             String usage,
             Integer latency,
             BigDecimal cost,
-            String status);
+            String status,
+            String routeVersion,
+            String priceVersion,
+            String budgetPolicyVersion);
 
     @Select(
             "SELECT EXISTS(SELECT 1 FROM messages WHERE agent_run_id=#{runId} AND role='assistant' AND is_deleted=FALSE)")

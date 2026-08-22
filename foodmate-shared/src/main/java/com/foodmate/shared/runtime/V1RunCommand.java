@@ -105,7 +105,32 @@ public record V1RunCommand(
             @JsonProperty("prompt_set_version") String promptSetVersion,
             @JsonProperty("max_steps") int maxSteps,
             @JsonProperty("stream_answer") boolean streamAnswer,
-            @JsonProperty("budget_snapshot") BudgetSnapshot budgetSnapshot) {}
+            @JsonProperty("budget_snapshot") BudgetSnapshot budgetSnapshot,
+            @JsonProperty("model_snapshot") @JsonInclude(JsonInclude.Include.NON_EMPTY)
+                    ModelSnapshot modelSnapshot) {
+        public RuntimeOptions(
+                String promptSetVersion,
+                int maxSteps,
+                boolean streamAnswer,
+                BudgetSnapshot budgetSnapshot) {
+            this(promptSetVersion, maxSteps, streamAnswer, budgetSnapshot, null);
+        }
+    }
+
+    /** Non-secret model routing facts frozen when the run is accepted. */
+    public record ModelSnapshot(
+            String scene,
+            @JsonProperty("model_type") String modelType,
+            @JsonProperty("route_version") String routeVersion,
+            @JsonProperty("provider_code") String providerCode,
+            @JsonProperty("model_name") String modelName,
+            @JsonProperty("fallback_provider_code") String fallbackProviderCode,
+            @JsonProperty("fallback_model_name") String fallbackModelName,
+            @JsonProperty("price_version") String priceVersion,
+            @JsonProperty("input_price_per_million") BigDecimal inputPricePerMillion,
+            @JsonProperty("output_price_per_million") BigDecimal outputPricePerMillion,
+            @JsonProperty("budget_policy_version") String budgetPolicyVersion,
+            @JsonProperty("model_timeout_ms") int modelTimeoutMs) {}
 
     public record BudgetSnapshot(
             @JsonProperty("max_total_tokens") int maxTotalTokens,

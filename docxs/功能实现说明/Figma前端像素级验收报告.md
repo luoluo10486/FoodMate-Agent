@@ -361,3 +361,23 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 发送重置邮件、返回登录和提交后 `role=status` 提示继续保持可操作；真实模式仍只调用既有密码找回接口。
 - [ ] 该画板仍不能标记 `PASS`：PNG 自动 diff 与完整人工视觉复核门槛尚未关闭；`differentRatio` 不能被“视觉接近”替代。
 - [ ] iconfont 实体资源继续为 `BLOCKED`，本轮继续使用 Lucide 标准图标。
+
+## 49. 2026-08-22 重置密码页布局层级收敛
+
+本轮重新读取 Figma 节点 `680:307`，并按 `680:318`、`680:331`、`680:340` 将 `/reset-password` 的密码字段组、强度组和提交操作组拆为卡片的独立层级。字段组内部使用 `16px` 间距，卡片组间使用 Figma 的 `28px` 间距；标题组和字段标签行高也按实时节点的 `8px`/`normal` 约束覆盖。真实 token 校验、密码确认、提交和返回登录行为保持不变。
+
+| 验收项 | 当前证据 |
+|---|---|
+| 桌面视口 | `1440×900`，DPR `1.0000000149011612`，页面宽度 `1440` |
+| 卡片几何 | `x=490,y=166.2,w=460,h=567.6`；内容宽 `380px` |
+| 输入几何 | 两个输入 `y=376.6/467.8px`，均为 `380×50px` |
+| 强度/操作组 | 强度条 `y=571.8,h=6`；确认按钮组 `y=605.8,h=88` |
+| Figma 参考 | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/reset-password-page-latest.png` |
+| 浏览器 RGBA | `foodmate-ui/.qa/figma-pixel-acceptance/reset-password-page-browser-current-rgba.png` |
+| PNG diff | `differentRatio=99.13426%`、`meanAbsoluteError=1.46441`、`RMSE=10.02255`，保持 `DIFF_REVIEW` |
+| 行为回归 | `AuthPages.test.tsx`：`13/13`；`npm run typecheck` 通过；触及文件 Prettier 通过 |
+
+- [x] 字段、强度条和提交操作已按 Figma 层级拆分，页面无横向溢出。
+- [x] 前端保持空值密码输入和 token 缺失保护；真实模式仍调用既有 `confirmPasswordReset`，不伪造成功响应。
+- [ ] 该画板仍不能标记 `PASS`：Figma 静态示例值与交互页面 placeholder 状态不同，自动 diff 和完整人工复核门槛尚未关闭。
+- [ ] iconfont 实体资源继续为 `BLOCKED`，本轮未添加虚构字体包、Unicode 或 CSS 映射。

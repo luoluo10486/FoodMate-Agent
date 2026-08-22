@@ -102,6 +102,37 @@ class ModelRouterTests(TestCase):
         self.assertEqual(Decimal("0.000014"), attempts[0].cost_cny)
         self.assertEqual("siliconflow-2026-07-29", attempts[0].price_version)
 
+    def test_governed_route_does_not_read_environment_tier_or_expand_fallback(self):
+        provider = FakeProvider("governed")
+        router = ModelRouter(
+            {
+                "FOODMATE_MODEL_TIER_STANDARD": "wrong:environment-model",
+                "FOODMATE_MODEL_FALLBACK_ENABLED": "true",
+            },
+            lambda _: provider,
+        )
+
+        _, attempts = router.invoke(
+            ModelRequest("composer", "hello"),
+            "standard",
+            ("economy",),
+            governed_route={
+                "route_version": "route-2",
+                "provider_code": "governed",
+                "model_name": "chat-2",
+                "price_version": "price-2",
+                "input_price_per_million": "2",
+                "output_price_per_million": "4",
+                "budget_policy_version": "budget-2",
+            },
+        )
+
+        self.assertEqual([("chat-2", "composer")], provider.calls)
+        self.assertEqual("price-2", attempts[0].price_version)
+        self.assertEqual("route-2", attempts[0].route_version)
+        self.assertEqual("budget-2", attempts[0].budget_policy_version)
+        self.assertEqual(Decimal("0.000014"), attempts[0].cost_cny)
+
     def test_cached_input_price_is_audited_separately(self):
         provider = FakeProvider("cloud_primary", response=ModelResponse("ok", 100, 50, "request-1", 40))
         router = ModelRouter({

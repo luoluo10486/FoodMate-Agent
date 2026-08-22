@@ -850,6 +850,25 @@
   line-height: normal;
 }
 
+.authPage-reset .authForm {
+  display: contents;
+}
+
+.authPage-reset .authHeading {
+  gap: 8px;
+}
+
+.authPage-reset .authFieldLabel {
+  line-height: normal;
+}
+
+.resetFields {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .authBackLink {
   width: fit-content;
   height: auto;

@@ -758,6 +758,9 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
     candidate = DeterministicComposer().compose(content, route, context, mode)
     router = model_router or ModelRouter()
     tier = router.tier_for("composer", route.complexity, route.risk_level, mode)
+    governed_route = options.get("model_snapshot")
+    if not isinstance(governed_route, dict):
+        governed_route = None
     deadline_at = command.get("deadline_at")
     composer_timeout = _model_timeout_seconds("COMPOSER", 45.0)
     try:
@@ -770,6 +773,7 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
             ),
             tier,
             router.fallback_tiers_for(tier),
+            governed_route=governed_route,
         )
     except ModelProviderError:
         # 不能静默伪造云模型回答；上层会把该失败写为可观测终态。
