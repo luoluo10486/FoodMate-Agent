@@ -1,6 +1,13 @@
 from unittest import TestCase
 
-from sql_planner import DeterministicSqlPlanner, SqlPlannerError, validate_candidate_sql
+from model_provider import ModelProviderError, ModelResponse
+from sql_planner import (
+    DeterministicSqlPlanner,
+    OpenAICompatibleSqlPlanner,
+    SqlPlannerError,
+    planner_from_environment,
+    validate_candidate_sql,
+)
 
 
 class DeterministicSqlPlannerTests(TestCase):
@@ -37,3 +44,39 @@ class DeterministicSqlPlannerTests(TestCase):
             validate_candidate_sql("DELETE FROM food_logs LIMIT 1")
         with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_LIMIT_REQUIRED"):
             validate_candidate_sql("SELECT meal_time FROM food_logs")
+
+
+class OpenAICompatibleSqlPlannerTests(TestCase):
+    class Provider:
+        def __init__(self, content):
+            self.content = content
+
+        def complete(self, _model, _request):
+            return ModelResponse(self.content, 12, 10)
+
+    def test_local_mode_validates_shared_structured_plan(self):
+        planner = OpenAICompatibleSqlPlanner(
+            self.Provider(
+                '{"status":"ready","intent":"nutrition_summary",'
+                '"time_range":{"kind":"relative","days":"7","timezone":"Asia/Shanghai"},'
+                '"metrics":["protein_g"],"dimensions":["meal_time"],"filters":{},'
+                '"candidate_sql":"SELECT meal_time FROM food_logs LIMIT 500","missing_slots":[]}'
+            ),
+            "local-model",
+        )
+
+        plan = planner.plan("最近7天蛋白质摄入")
+
+        self.assertEqual("local", plan.planner_mode)
+        self.assertEqual("ready", plan.status)
+        self.assertEqual(("protein_g",), plan.metrics)
+
+    def test_missing_local_configuration_fails_without_stub_fallback(self):
+        with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_CONFIG_MISSING"):
+            planner_from_environment({"FOODMATE_SQL_PLANNER_MODE": "local"})
+
+    def test_invalid_model_json_fails_closed(self):
+        planner = OpenAICompatibleSqlPlanner(self.Provider("not-json"), "local-model")
+
+        with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_RESPONSE_INVALID"):
+            planner.plan("最近7天蛋白质摄入")
