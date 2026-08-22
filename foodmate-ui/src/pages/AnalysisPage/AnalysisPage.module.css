@@ -24,6 +24,10 @@
   gap: 16px;
 }
 
+.figmaFilterRow .filters {
+  width: auto;
+}
+
 .stateFilterRow .filters,
 .stateFilterRow .exportButton {
   opacity: 0.6;
@@ -485,19 +489,20 @@
 }
 
 .errorCard {
-  min-height: 450px;
+  min-height: 440px;
   align-content: center;
   justify-items: center;
+  gap: 24px;
   padding: 120px 24px;
 }
 
 .errorStateIcon {
-  color: #d67676;
+  color: #ff665d;
   background: #ffe9e9;
 }
 
 .reloadButton {
-  height: 44px;
+  height: 40px;
   padding: 12px 32px;
   border-radius: 12px;
   color: var(--fm-ink);

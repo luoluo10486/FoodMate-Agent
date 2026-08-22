@@ -232,6 +232,7 @@ export function AnalysisPage() {
   const realHasNoData = Boolean(realData && realData.total_items === 0);
   const realState = realLoading ? 'loading' : realError ? 'error' : realHasNoData ? 'empty' : 'default';
   const visibleState = isRealMode ? realState : analysisState;
+  const showAdvancedFilters = visibleState === 'default';
 
   const exportCsv = () => {
     setNotice('分析报告已排队，完成后可下载 CSV。');
@@ -260,7 +261,9 @@ export function AnalysisPage() {
     >
       <div className={styles.page}>
         <section className={styles.analysisBody} aria-label="摄入分析">
-          <header className={`${styles.filterRow} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}>
+          <header
+            className={`${styles.filterRow} ${isFigmaFixture ? styles.figmaFilterRow : ''} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}
+          >
             <div className={styles.filters} role="tablist" aria-label="分析范围">
               {(isRealMode ? ranges.filter((item) => item.key !== '90d') : ranges).map((item) => (
                 <Button
@@ -276,24 +279,28 @@ export function AnalysisPage() {
                   {item.label}
                 </Button>
               ))}
-              <Button
-                className={styles.filterPill}
-                variant="ghost"
-                type="button"
-                onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
-                disabled={isRealMode || visibleState === 'loading' || visibleState === 'error'}
-              >
-                自定义范围
-              </Button>
-              <Button
-                className={styles.filterPill}
-                variant="ghost"
-                type="button"
-                onClick={() => setNotice('当前分析覆盖全部餐次。')}
-                disabled={isRealMode || visibleState === 'loading' || visibleState === 'error'}
-              >
-                全部餐次
-              </Button>
+              {showAdvancedFilters ? (
+                <>
+                  <Button
+                    className={styles.filterPill}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
+                    disabled={isRealMode}
+                  >
+                    自定义范围
+                  </Button>
+                  <Button
+                    className={styles.filterPill}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setNotice('当前分析覆盖全部餐次。')}
+                    disabled={isRealMode}
+                  >
+                    全部餐次
+                  </Button>
+                </>
+              ) : null}
             </div>
             <Button
               className={styles.exportButton}

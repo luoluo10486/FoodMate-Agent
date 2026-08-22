@@ -552,3 +552,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
 - [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=400092`、差异比例 `27.1330%`、`MAE=2.9698`、`RMSE=14.6906`、最大通道差异 `234`；机器结果锚点为 `figma-105-diff-results.json#agent-sse-reconnecting`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；重连提示宽度、位置、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+
+## 69. 2026-08-23 摄入分析错误态当前画板收口
+
+- [x] `692:2139` `/analysis?state=error` 已重新读取当前 Figma 画板，并保存 `recaptured-figma/intake-analysis-error-current.png`；浏览器证据为 `recaptured/intake-analysis-error-browser-current.jpg` 和 RGBA 归一化 PNG。
+- [x] 页面错误态不再显示 Figma 未包含的“自定义范围”和“全部餐次”控件；筛选容器收口为内容宽度，错误卡片高度、内部间距、重载按钮高度和警告色按当前 Figma 结构调整。
+- [x] 浏览器实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体 `loaded`、根节点无横向溢出、文字越界 `0`；前端左上角红黄绿窗口装饰点仍为 `0`，Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸结果：`differentPixels=177158`、差异比例 `12.0143%`、`MAE=1.5468`、`RMSE=12.2186`、最大通道差异 `230`；独立结果见 `intake-analysis-error-current-diff.json`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，剩余差异主要为头像、侧栏/图标光栅化和字体渲染；不能标记像素级 `PASS`。iconfont 继续为 `BLOCKED`。

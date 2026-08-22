@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-08-23",
+  "tool": "scripts/png-diff.mjs",
+  "capture": {
+    "viewport": "1440x1024",
+    "dpr": 1.0000000149011612,
+    "fonts": "loaded",
+    "textOverflow": 0,
+    "layoutOverflow": 0
+  },
+  "results": {
+    "intake-analysis-error": {
+      "status": "COMPARED",
+      "width": 1440,
+      "height": 1024,
+      "pixelCount": 1474560,
+      "differentPixels": 177158,
+      "differentRatio": 0.12014295789930556,
+      "meanAbsoluteError": 1.5467569986979166,
+      "rmse": 12.21863361117841,
+      "maxChannelDelta": 230
+    }
+  }
+}
