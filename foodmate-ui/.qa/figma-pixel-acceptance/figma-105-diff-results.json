@@ -656,10 +656,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 517865,
-      "differentRatio": 0.3511996799045139,
-      "meanAbsoluteError": 4.806561957465278,
-      "rmse": 21.578578343694492,
+      "differentPixels": 500939,
+      "differentRatio": 0.33972100151909723,
+      "meanAbsoluteError": 4.147115749782986,
+      "rmse": 19.364399270476873,
       "maxChannelDelta": 255
     },
     "agent-chat-history-page-3": {
