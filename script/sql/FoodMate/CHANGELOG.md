@@ -1,5 +1,11 @@
 # FoodMate 数据库变更说明
 
+## 2026-08-23 SQL 配套状态矩阵复核
+
+- 更新 SQL 根 README 和 `migration/README.md`，明确 V2-V25 的 validation/rollback 配套现状。
+- V3-V4、V7-V12 保持只读复核边界；不为历史版本生成宽泛 `DROP`、`DELETE` 或 `TRUNCATE` 回滚脚本。
+- 本轮只更新文档和执行台账，未执行迁移、校验、回滚或数据清理。
+
 ## 2026-08-15 M1-5 USDA foodPortions 单位换算 seed
 
 - 人工执行 `seed/V2__nutrition_usda_portion_seed.sql`，补充 5 条有 USDA FoodData Central `foodPortions` 证据的食材级单位换算规则：米饭、鸡胸肉、熟鸡蛋、三文鱼和苹果。

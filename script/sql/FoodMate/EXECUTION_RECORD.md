@@ -551,3 +551,17 @@
 | 未执行范围 | 真实 embedding/云模型、应用镜像启动、吞吐/延迟/积压压测、组件重启、ACK 丢失、重复投递故障矩阵、SSE 故障恢复、备份恢复、真实清理和生产环境继续暂缓 |
 | 工作树保护 | 仅提交 8 个 Java 业务文件；用户已有 UI/Figma、`tmp` 和 Python 缓存改动未暂存 |
 | 结论 | M2/M3 核心代码规范收口和业务门禁具备可复核证据；后置性能、故障、生产和不可逆删除范围保持未完成 |
+
+## D8 生产 Java 规范与 SQL 配套矩阵复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 07:51-08:00（Asia/Shanghai） |
+| 代码规范修复 | 收紧生产源码泛化异常捕获；补齐 ZIP `IOException` 处理、JSON 协议错误分类和 RocketMQ 合约错误分类；生产源码 `catch (Exception/Throwable)` 扫描为 0 |
+| 导入规范修复 | 移除 Shared、Application、Infrastructure、API、Bootstrap 生产源码中的通配符 import；MyBatis 注解统一为显式导入 |
+| Java 业务门禁 | `mvnw.cmd -pl foodmate-shared,foodmate-application,foodmate-infra,foodmate-api,foodmate-bootstrap -am test -DskipTests=false`：BUILD SUCCESS；Shared 12/12、Application 157/157、Infrastructure 71/71（11 skipped）、API 59/59、Bootstrap 58/58（37 skipped） |
+| 格式门禁 | `mvnw.cmd spotless:apply` 通过；随后编译与测试通过 |
+| SQL 文档 | 更新 SQL 根 README 和 `migration/README.md`，增加 V2-V25 配套文件矩阵，明确历史 V3-V12 不补危险反向删除；未执行迁移、validation、rollback、truncate 或数据清理 |
+| 数据边界 | 未修改 PostgreSQL、Redis、RocketMQ、MinIO、Milvus 中的业务数据；用户已有 UI/Figma、`tmp` 和 Python 缓存未暂存 |
+| 未执行范围 | 性能压测、组件重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、应用 Docker 镜像和生产环境继续暂缓 |
+| 结论 | Java 业务门禁和当前可执行规范子集通过；SQL 历史配套状态可追溯；不将后置性能、故障恢复或生产项标记为完成 |
