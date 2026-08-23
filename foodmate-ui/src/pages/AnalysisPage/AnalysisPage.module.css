@@ -429,7 +429,7 @@
 
 .emptyChartArea {
   display: grid;
-  min-height: 320px;
+  min-height: 308px;
   gap: 20px;
   align-content: center;
   justify-items: center;
@@ -437,6 +437,14 @@
   border-radius: 12px;
   background: var(--fm-bg-soft);
   text-align: center;
+}
+
+.emptyChartArea .stateCopy p {
+  line-height: 17px;
+}
+
+.emptyChartArea .recordButton {
+  height: 37px;
 }
 
 .emptyStateIcon,

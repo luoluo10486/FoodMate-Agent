@@ -719,3 +719,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 当前浏览器截图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-2026-08-23.jpg`，RGBA 证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-current-rgba.png`；同尺寸 diff 为 `16.6444% / MAE 1.8523 / RMSE 13.0926 / maxChannelDelta 233`，已同步独立 diff 和 `figma-105-diff-results.json#intake-analysis-empty`。
 - [x] `AnalysisPage.test.tsx` 定向测试 `4/4`、`npm run typecheck`、构建、目标文件 Prettier 和 `git diff --check` 通过。
 - [ ] 该画板继续保持 `DIFF_REVIEW`：图表空态区域当前仍为 `320px` 高，Figma 目标为 `308px`；当前 in-app 浏览器 DPR 为 `1.25`，不能关闭 DPR 1 门禁，也不能标记像素级 `PASS`。iconfont 继续为 `BLOCKED`。
+
+## 84. 2026-08-23 摄入分析空态图表区域高度与内容几何对齐
+
+- [x] 重新读取 Figma 节点 `692:2026` 与子节点 `692:2129`、`692:2131`、`692:2132`、`692:2134`、`692:2137`，确认图表卡从全局 `y=288px` 开始，空态区域为 `1066×308px`，内边距 `60px`，图标 `64×64px`，说明组 `47px`，操作按钮 `118×37px`，两处内容间距均为 `20px`。
+- [x] 前端仅在空态区域将说明正文行高调整为 `17px`、记录按钮调整为 `37px`，使 `.emptyChartArea` 的实际浏览器盒从 `314px` 收口到 Figma 的 `308px`；真实分析模式、错误态和业务状态圆点未改变。
+- [x] 内置浏览器端点本轮不可用，使用 Chromium headless fallback 固定 `1440×1024`、DPR `1`、字体 `loaded` 完成复核；空态区域实测 `1066×308px`，页面无横向溢出，前端左上角红黄绿窗口装饰候选为 `0`，Figma 设计稿未修改。
+- [x] 新截图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-308-final.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=82885`、差异比例 `5.6210%`、`MAE=1.5111`、`RMSE=13.0804`、最大通道差异 `204`，结果已同步到独立 diff、`figma-105-mapping.json` 和 `figma-105-diff-results.json#intake-analysis-empty`。
+- [x] `AnalysisPage.test.tsx` 定向测试 `4/4`、`npm run typecheck`、`npm run build`、目标 CSS Prettier 检查和 `git diff --check` 均通过。
+- [ ] 该画板仍保持 `DIFF_REVIEW`，剩余头像、字体和光栅化差异不满足像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
