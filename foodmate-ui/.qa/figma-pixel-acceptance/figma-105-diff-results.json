@@ -821,10 +821,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1416597,
-      "differentRatio": 0.9606913248697917,
-      "meanAbsoluteError": 22.085814921061196,
-      "rmse": 38.602241906487464,
+      "differentPixels": 1202480,
+      "differentRatio": 0.8154839409722222,
+      "meanAbsoluteError": 4.521943155924479,
+      "rmse": 16.203307336680325,
       "maxChannelDelta": 234
     },
     "profile-privacy-deletion-success": {

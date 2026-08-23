@@ -162,6 +162,21 @@ describe('ProfilePage', () => {
     expect(screen.queryByRole('heading', { name: '导出文件已过期' })).not.toBeInTheDocument();
   });
 
+  it('renders and dismisses the Figma deletion submitting fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-deletion-submitting');
+
+    expect(screen.getByRole('heading', { name: '正在注销账号' })).toBeInTheDocument();
+    expect(screen.getByText('正在禁用账号并撤销会话，后台清理已排队。')).toBeInTheDocument();
+    expect(screen.getByText('提交中 · request_id: req_delete_91ba')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(screen.queryByRole('heading', { name: '正在注销账号' })).not.toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

@@ -352,7 +352,6 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
                               : '确认后账号会立即禁用，全部登录会话将被撤销，并开始后台清理个人资料、饮食记录、记忆和知识库数据。';
   const progress =
     state === 'basic-avatar-uploading' ||
-    state === 'privacy-deletion-submitting' ||
     state === 'security-password-submitting' ||
     state === 'privacy-export-running';
   const isLogoutConfirmation = state === 'security-logout-confirm';
@@ -360,6 +359,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
   const isExportQueued = state === 'privacy-export-queued';
   const isExportRunning = state === 'privacy-export-running';
   const isExportExpired = state === 'privacy-export-expired';
+  const isDeletionSubmitting = state === 'privacy-deletion-submitting';
   return (
     <div
       className={cn(
@@ -370,6 +370,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
         isExportQueued ? styles.fixtureOverlayExportQueued : undefined,
         isExportRunning ? styles.fixtureOverlayExportRunning : undefined,
         isExportExpired ? styles.fixtureOverlayExportExpired : undefined,
+        isDeletionSubmitting ? styles.fixtureOverlayDeletionSubmitting : undefined,
       )}
       role="presentation"
     >
@@ -382,6 +383,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
           isExportQueued ? styles.fixtureModalExportQueued : undefined,
           isExportRunning ? styles.fixtureModalExportRunning : undefined,
           isExportExpired ? styles.fixtureModalExportExpired : undefined,
+          isDeletionSubmitting ? styles.fixtureModalDeletionSubmitting : undefined,
         )}
         role="alert"
         aria-live="polite"
@@ -421,6 +423,21 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
               重新创建导出
             </Button>
             <Button className={styles.fixtureExportExpiredClose} variant="ghost" aria-label="关闭" onClick={onDismiss}>
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isDeletionSubmitting ? (
+          <>
+            <span className={styles.fixtureDeletionSubmittingAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureDeletionSubmittingTitle}>{title}</h2>
+            <p className={styles.fixtureDeletionSubmittingDetail}>正在禁用账号并撤销会话，后台清理已排队。</p>
+            <p className={styles.fixtureDeletionSubmittingStatus}>提交中 · request_id: req_delete_91ba</p>
+            <Button
+              className={styles.fixtureDeletionSubmittingClose}
+              variant="ghost"
+              aria-label="关闭"
+              onClick={onDismiss}
+            >
               <X aria-hidden="true" />
             </Button>
           </>

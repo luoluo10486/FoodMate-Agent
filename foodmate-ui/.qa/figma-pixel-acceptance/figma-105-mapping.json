@@ -3300,11 +3300,11 @@
       "queryState": "state=privacy-deletion-submitting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.8227925618489583; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow, no progress bar, and no status/close overlap. Automatic PNG diff is 0.8154839409722222; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3329,8 +3329,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Account-deletion submission semantics exist, but the dialog geometry, progress treatment, page composition, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Desktop and mobile captures preserve the 560x250 account-deletion submission card, orange treatment, request identifier, close action, and no-progress-bar state. Page composition and remaining shell/rasterization differences remain; retain DIFF_REVIEW."
       }
     },
     {
