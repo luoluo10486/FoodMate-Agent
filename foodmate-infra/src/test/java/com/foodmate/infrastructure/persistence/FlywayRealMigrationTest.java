@@ -15,8 +15,9 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.flywaydb.core.Flyway;
@@ -232,7 +233,9 @@ class FlywayRealMigrationTest {
         int workers = 2;
         CountDownLatch ready = new CountDownLatch(workers);
         CountDownLatch start = new CountDownLatch(1);
-        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        ExecutorService executor =
+                new ThreadPoolExecutor(
+                        workers, workers, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         try {
             List<Future<Integer>> results =
                     java.util.stream.IntStream.range(0, workers)
