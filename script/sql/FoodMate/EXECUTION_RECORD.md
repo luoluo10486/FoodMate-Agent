@@ -816,3 +816,15 @@
 | SQL 目录 | `migration` V2-V26 共 25 个增量脚本，`validation` 18 个，`rollback` 18 个；V3-V12 历史缺失配套仍按 README 矩阵说明，不新增危险删除脚本，不执行迁移或校验写操作。 |
 | 数据边界 | 未执行迁移、validation、rollback、truncate、数据库硬删除、备份恢复或宽泛清理；没有调用真实云模型/embedding，也未执行性能压测或故障矩阵。 |
 | 结论 | M2-1/M2-2/M2-3 与 M3 当前业务代码及业务测试门禁保持通过；性能、重启、ACK/重复消息、SSE 故障恢复、真实外部服务、生产部署和不可逆清理继续后置。 |
+
+## D29 全量功能版门禁与工作区收口（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Java 全量验证 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `166/166`、Infrastructure `81`（17 skipped）、API `61/61`、Bootstrap `58`（37 skipped）；Spotless、ArchUnit、编译和 Spring Boot repackage 通过。 |
+| Alibaba profile | `mvnw.cmd -Palibaba-code-style verify -DskipTests`：六个模块 Checkstyle 均为 `0 violations`。该 profile 是项目内可执行子集，不替代人工完整手册审查。 |
+| Python | 使用项目 `agent-runtime\\.venv` 执行 pytest：`116 passed、1 skipped、2 warnings`；真实云集成保持显式跳过。 |
+| 前端 | 稳定参数下 Vitest `37` 个测试文件、`190/190` 通过；`npm.cmd run build`（含 typecheck 和 Vite）通过，转换 `2010` 个模块。默认并行模式的两个管理页超时在单 worker、15 秒门禁下全部通过，未修改其测试超时配置。 |
+| 工作区与临时文件 | 用户已有聊天页/QA 变更已由提交 `c28a4bc fix(聊天): 对齐SSE重连状态与验收证据` 保留；阿里手册临时 PDF `tmp/pdfs` 已清理，当前 Git 工作树干净。 |
+| 数据与暂缓边界 | 未执行迁移、validation、rollback、truncate、备份恢复、数据库硬删除、性能压测、依赖重启、ACK/重复消息故障注入或真实云模型/embedding 调用。 |
+| 结论 | 当前业务功能、测试、Java 格式/架构/代码规范、Python 运行时和前端构建门禁均可复核；M1-6 性能/故障类门禁及 M3 生产运维项继续后置。 |
