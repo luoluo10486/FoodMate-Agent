@@ -11,6 +11,7 @@ import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -33,6 +34,7 @@ public class AuthController {
     private final String mailFrom;
     private final String webBaseUrl;
 
+    @Autowired
     public AuthController(
             UserAccountService service,
             @Value("${foodmate.security.cookie-secure:true}") boolean secureCookie,
