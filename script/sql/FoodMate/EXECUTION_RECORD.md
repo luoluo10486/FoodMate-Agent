@@ -625,3 +625,17 @@
 | Local 验证 | `FOODMATE_RAG_MODE=local`、`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`、隔离集合 `foodmate_knowledge_codex_docker_local_20260823`；批次 `349737110476951552` 完成，Milvus 实际创建 64 维集合并返回引用。未调用真实 embedding API。 |
 | 失败与清理 | 只有 Markdown heading 的首轮输入按规则三次失败为 `RAG_EMPTY_DOCUMENT`；有效正文批次成功。测试文档已软删除，3 个 MinIO 对象、Redis stub 索引字段/完成事实和隔离 Milvus 集合已精确清理；未执行数据库硬删除。 |
 | 未执行 | 性能/吞吐、积压、组件重启、ACK 丢失、重复消息、SSE 故障恢复、真实云服务、备份恢复和生产环境仍按用户要求暂缓。 |
+
+## D14 全量业务门禁、规范与 Docker 证据同步（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Java 全量门禁 | `mvnw.cmd clean verify`：BUILD SUCCESS；Shared `12/12`、Application `159/159`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit、编译和 Spring Boot repackage 通过。 |
+| Java 规范门禁 | `mvnw.cmd -Palibaba-code-style verify -DskipTests` 通过；Spotless 通过，Checkstyle `0 violations`。生产源码泛化 `catch (Exception/Throwable)`、通配符 import、`System.out/err`、`printStackTrace` 和 `MAX(id)+1` 扫描均为 0。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`114 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用付费模型或真实 embedding。 |
+| 前端门禁 | `foodmate-ui` 的 `npm run typecheck`、`npm run build` 通过；用户已有 UI/Figma/QA 改动未纳入本轮文档提交。 |
+| SQL 组织复核 | SQL 根 README 和 `migration/README.md` 已记录 V2-V25 配套文件矩阵；未执行迁移、validation、rollback、truncate、备份恢复或数据库硬删除。 |
+| Docker 配置与 readiness | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；`foodmate` `/actuator/health/readiness` 和 `agent-runtime` `/foodmate/internal/health/ready` 均 HTTP 200，应用容器与 PostgreSQL、Redis、MinIO、RocketMQ、Milvus 依赖保持 healthy。 |
+| M2-1 业务证据 | Docker stub 使用 Redis 确定性索引，Docker local 使用 deterministic embedding 与实际 64 维 Milvus 集合；两种模式均完成上传、索引、发布、检索和 AgentRun 引用路径。真实 embedding、性能/积压、组件重启、ACK 丢失、重复消息和 SSE 故障恢复仍暂缓。 |
+| 工作树保护 | 仅计划范围文档和执行台账进入本轮提交；用户已有 UI/Figma/QA、`tmp` 与 Python `__pycache__` 改动未暂存。 |
+| 结论 | 当前功能版业务代码、业务测试、Java 可执行规范子集和 Docker 应用 readiness 均有可复核证据；后置性能、故障、生产和不可逆清理范围保持未完成。 |

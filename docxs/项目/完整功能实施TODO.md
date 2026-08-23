@@ -13,7 +13,7 @@
 - [x] Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result：成功、失败 `SQL_EXECUTION_FAILED` 和重复 Proposal 幂等已验证。
 - [x] Proposal Inbox claim lease：超过 5 分钟的 `claimed` 记录可回收，避免旧失败消息造成消费者饥饿。
 - [x] 浏览器真实登录、会话、消息、RocketMQ command/event、Java PostgreSQL Inbox、最终 SSE E2E 已通过；恢复入口也已完成一次 Python 重启后的跨进程验证。
-- [x] Python deterministic Runtime、Eval Gate、Proposal/Result 回注和 Java Tool Gateway 的本地真实跨进程链路已通过；生产 RAG 和完整业务 Tool 仍不属于本轮已完成范围。
+- [x] Python deterministic Runtime、知识索引 Worker、Eval Gate、Proposal/Result 回注和 Java Tool Gateway 的本地真实跨进程链路已通过；生产 RAG 和完整业务 Tool 仍不属于本轮已完成范围。
 - [x] 本地双 JVM 子项已复验：`script/local/m1-6-dual-jvm.ps1` 启动 `18080/18081` 两个独立 Java JVM，共享 PostgreSQL 完成认证会话读取；最近一次 160/160 成功、错误率 0%、吞吐 51.538 req/s、P50/P95/P99 为 17.107/57.937/94.523 ms，并完成 Java 重启后的 PostgreSQL 回读。
 - [x] 本地依赖恢复子项已验证：Python readiness HTTP 200，Redis checkpoint、Redis、RocketMQ event/proposal producer、command/result consumer 均 ready；Redis AOF 探针在容器重启后保留，RocketMQ NameServer/Broker/Proxy 重启后 healthy 且 Topic/group 初始化成功。
 - [ ] 生产级长压、多实例 Agent 业务吞吐、队列积压/重复执行、PostgreSQL 进程重启，以及 Outbox/Inbox ACK 丢失、租约接管和 SSE 故障恢复仍待执行。
@@ -231,7 +231,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] 完成 stub/local 向量与关键词检索、metadata 权限过滤、引用返回、索引失败手动重试和下线可见性同步的核心实现与业务测试。
 - [x] 将 RAG 引用展示接入前端，支持 run.completed 安全引用和可展开引用块；无命中时不编造引用。
 - [x] 完成文档格式、基础恶意文件/来源/PII/索引成本策略的代码门禁与稳定错误码。
-- [x] 完成 deterministic 本地依赖下 Java -> RocketMQ -> Python -> Redis/Milvus -> Java 的上传、索引、发布、检索和 SSE 引用联调；Docker 应用镜像启动、真实云 embedding、性能与故障矩阵按当前决策后置，不作为本轮业务门禁。
+- [x] 完成 deterministic 本地依赖下 Java -> RocketMQ -> Python -> Redis/Milvus -> Java 的上传、索引、发布、检索和 SSE 引用联调，并已在 Docker `foodmate`/`agent-runtime` 应用容器中复验 stub 与 local deterministic 两种业务路径；真实云 embedding、性能与故障矩阵按当前决策后置，不作为本轮业务门禁。
 
 风险：未授权文档泄露、过时引用、索引任务堆积和存储成本。控制方式：权限元数据、版本化、队列监控、配额和数据保留策略。
 
