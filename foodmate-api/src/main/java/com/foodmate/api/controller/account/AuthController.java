@@ -10,6 +10,7 @@ import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -22,33 +23,35 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** HTTP authentication endpoints and password-reset delivery. */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final UserAccountService service;
     private final boolean secureCookie;
     private final JavaMailSender mailSender;
+    private final String mailFrom;
+    private final String webBaseUrl;
 
-    @Value("${spring.mail.username:}")
-    private String mailFrom;
-
-    @Value("${foodmate.web.base-url:http://localhost:5173}")
-    private String webBaseUrl;
-
-    @org.springframework.beans.factory.annotation.Autowired
     public AuthController(
             UserAccountService service,
             @Value("${foodmate.security.cookie-secure:true}") boolean secureCookie,
-            org.springframework.beans.factory.ObjectProvider<JavaMailSender> mailProvider) {
+            ObjectProvider<JavaMailSender> mailProvider,
+            @Value("${spring.mail.username:}") String mailFrom,
+            @Value("${foodmate.web.base-url:http://localhost:5173}") String webBaseUrl) {
         this.service = service;
         this.secureCookie = secureCookie;
         this.mailSender = mailProvider.getIfAvailable();
+        this.mailFrom = mailFrom;
+        this.webBaseUrl = webBaseUrl;
     }
 
     public AuthController(UserAccountService service, boolean secureCookie) {
         this.service = service;
         this.secureCookie = secureCookie;
         this.mailSender = null;
+        this.mailFrom = "";
+        this.webBaseUrl = "http://localhost:5173";
     }
 
     @PostMapping("/register")
