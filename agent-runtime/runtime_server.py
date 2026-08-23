@@ -1,6 +1,7 @@
 """FoodMate Agent Runtime V1, dependency-free local implementation."""
 
 import json
+import logging
 import os
 import threading
 import urllib.error
@@ -8,7 +9,6 @@ import urllib.request
 import base64
 import hashlib
 import uuid
-import traceback
 import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,6 +16,8 @@ from runtime_env import load_project_env
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 load_project_env()
+
+LOGGER = logging.getLogger("foodmate.agent-runtime")
 
 from agent_core import DeterministicPlanner, DeterministicRouter, InMemoryCheckpoint, run_deterministic, split_answer
 from eval.metrics import EvalMetrics, RuntimeMetrics
@@ -263,7 +265,10 @@ def _notify_java_runtime_recovered():
     except Exception as error:
         # Startup must remain available when Java is temporarily restarting; the next startup
         # notification or the scheduled Java scan will retry the reconciliation.
-        print(f"runtime recovery notification unavailable: {type(error).__name__}", flush=True)
+        LOGGER.warning(
+            "runtime recovery notification unavailable error_type=%s",
+            type(error).__name__,
+        )
 
 
 def _b64(value):
@@ -651,13 +656,17 @@ def execute(command):
         return
     except Exception as error:
         # 未预期异常也必须留下终态事件，避免 Java/前端永久停在 routed。
-        print(f"runtime execution failed run_id={command.get('run_id')} error={type(error).__name__}: {error}", flush=True)
-        traceback.print_exc()
+        # 只记录稳定错误类型，不把异常文本、Prompt 或业务载荷写入日志。
+        LOGGER.error(
+            "runtime execution failed run_id=%s error_type=%s",
+            command.get("run_id"),
+            type(error).__name__,
+        )
         try:
             emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": "RUNTIME_EXECUTION_FAILED", "retryable": False})
             _runtime_metrics.record("dispatch", "failed", "execution_error", int((time.monotonic() - started) * 1000))
         except Exception:
-            traceback.print_exc()
+            LOGGER.error("runtime failure event emission failed error_type=%s", type(error).__name__)
 
 
 def _attach_public_citations(command: dict) -> dict:
