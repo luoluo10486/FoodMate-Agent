@@ -1306,33 +1306,67 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     if (state === 'budget-limit') {
       return (
-        <div className={styles.fixtureCardWrap}>
-          <Card className={styles.fixtureCard}>
-            <Alert variant="warning" className={styles.fixtureAlert}>
-              <AlertTriangle aria-hidden="true" />
-              <AlertTitle>已达到预算上限</AlertTitle>
-              <AlertDescription>
+        <>
+          <div className={styles.fixtureAssistantRow}>
+            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <p className={styles.fixtureBudgetIntro}>
+              我已在后台调用历史数据解析服务。此分析需要读取超长数据块，将会消耗较多计算令牌。
+            </p>
+          </div>
+          <div className={`${styles.fixtureAssistantRow} ${styles.fixtureBudgetRowWrap}`}>
+            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <Card className={`${styles.fixtureCard} ${styles.fixtureBudgetCard}`}>
+              <div className={styles.fixtureBudgetTitle}>
+                <AlertTriangle aria-hidden="true" />
+                <h2>已达到预算上限</h2>
+              </div>
+              <p className={styles.fixtureBudgetDescription}>
                 本次会话已使用 50,000 tokens（单次会话预算上限）。为了保证资源分配合理及避免异常资费产生，你可以：
-              </AlertDescription>
-            </Alert>
-            <div className={styles.fixtureChoiceList}>
-              <span>● 追加预算继续当前会话</span>
-              <span>● 结束当前会话</span>
-            </div>
-            <div className={styles.fixtureBudgetRow}>
-              <span>Token 用量 (100%)</span>
-              <strong>预计费用: $0.15</strong>
-            </div>
-            <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void extendBudget()}>
-                追加 20,000 tokens
-              </Button>
-              <Button disabled={action === 'pending'} variant="ghost" onClick={() => void endBudgetSession()}>
-                结束会话
-              </Button>
-            </div>
-          </Card>
-        </div>
+              </p>
+              <div className={styles.fixtureChoiceList}>
+                <span>
+                  <i aria-hidden="true" />
+                  <strong>追加预算继续当前会话</strong>
+                </span>
+                <span>
+                  <i aria-hidden="true" />
+                  开始新会话（之前的分析进度将会重置）
+                </span>
+              </div>
+              <div className={styles.fixtureBudgetRow}>
+                <span>Token 用量 (100%)</span>
+                <strong>预计费用: $0.15</strong>
+              </div>
+              <div
+                aria-label="预算用量 100%"
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={100}
+                className={styles.fixtureBudgetProgress}
+                role="progressbar"
+              >
+                <span />
+              </div>
+              <div className={styles.fixtureActions}>
+                <Button
+                  className={styles.fixtureBudgetPrimaryButton}
+                  disabled={action === 'pending'}
+                  onClick={() => void extendBudget()}
+                >
+                  追加 20,000 tokens
+                </Button>
+                <Button
+                  className={styles.fixtureBudgetSecondaryButton}
+                  disabled={action === 'pending'}
+                  variant="ghost"
+                  onClick={() => void endBudgetSession()}
+                >
+                  结束会话
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </>
       );
     }
     if (state === 'tool-failed-retryable') {

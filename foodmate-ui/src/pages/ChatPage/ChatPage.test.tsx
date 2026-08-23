@@ -221,7 +221,9 @@ describe('ChatPage Agent remaining states', () => {
   it('renders budget limit choices and keeps the current Run action explicit', () => {
     renderState('budget-limit');
     expect(screen.getByRole('heading', { name: '已达到预算上限' })).toBeInTheDocument();
+    expect(screen.getByText(/我已在后台调用历史数据解析服务/)).toBeInTheDocument();
     expect(screen.getByText('Token 用量 (100%)')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: '预算用量 100%' })).toHaveAttribute('aria-valuenow', '100');
     fireEvent.click(screen.getByRole('button', { name: '追加 20,000 tokens' }));
     expect(screen.getByRole('status')).toHaveTextContent('当前 Run');
   });

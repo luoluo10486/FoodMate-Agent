@@ -1057,10 +1057,12 @@
       "browserViewport": "1440x1024",
       "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-current.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-current.png",
+      "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-390x844-current.png",
+      "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; budget facts and continuation actions exist, but the card geometry and status color treatment differ. PNG diff is 25.3484% / MAE 3.7123 / RMSE 18.7204; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop Figma and browser PNGs are both 1440x1024; mobile browser PNG is 390x844. The received Agent explanation, paired avatars, narrow budget card, choice panel, 100% progress bar, projected cost, and continuation actions are present. PNG diff is 9.9195% / MAE 3.3263 / RMSE 19.4425; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1086,7 +1088,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures contain the budget amount, utilization, projected cost, and continuation actions. Card geometry, status styling, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
+        "conclusion": "Current Figma and browser captures contain the budget amount, utilization, projected cost, and continuation actions. The frontend now includes the received Agent explanation, paired avatars, narrow budget card, choice panel, and progress bar. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
       }
     },
     {
