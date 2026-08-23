@@ -72,6 +72,8 @@ public interface RuntimeEventRepository {
 
     RunOwner lockOwner(long runId);
 
+    int lockMessageSequence(long sessionId);
+
     int nextMessageSequence(long sessionId);
 
     void insertAssistant(

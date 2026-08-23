@@ -80,6 +80,8 @@ public interface UserAccountRepository {
 
     List<SearchResult> search(long userId, String query, int limit, int offset);
 
+    int lockMessageSequence(long sessionId);
+
     int nextSequence(long sessionId);
 
     void insertMessage(

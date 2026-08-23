@@ -122,6 +122,10 @@ public interface V1RuntimeEventMapper {
     RunOwner lockOwner(long runId);
 
     @Select(
+            "WITH advisory_lock AS (SELECT pg_advisory_xact_lock(#{sessionId})) SELECT 0 FROM advisory_lock")
+    int lockMessageSequence(long sessionId);
+
+    @Select(
             "SELECT COALESCE(MAX(sequence_no),0)+1 FROM messages WHERE session_id=#{sessionId} AND is_deleted=FALSE")
     int nextMessageSequence(long sessionId);
 

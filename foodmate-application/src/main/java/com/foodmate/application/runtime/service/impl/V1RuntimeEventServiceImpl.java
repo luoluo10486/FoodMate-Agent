@@ -455,6 +455,7 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         if (store.assistantExists(runId)) return;
         RunOwner owner = store.lockOwner(runId);
         if (owner == null) return;
+        store.lockMessageSequence(owner.sessionId());
         int sequence = store.nextMessageSequence(owner.sessionId());
         store.insertAssistant(ids.nextId(), runId, owner, text, json(result), sequence);
         store.touchSession(owner.sessionId());

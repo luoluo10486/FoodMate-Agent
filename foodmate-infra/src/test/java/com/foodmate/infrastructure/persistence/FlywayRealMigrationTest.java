@@ -2,6 +2,7 @@ package com.foodmate.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -10,6 +11,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -119,6 +128,143 @@ class FlywayRealMigrationTest {
         assertTrue(indexes.contains("idx_knowledge_documents_tenant_status"), indexes.toString());
     }
 
+    @Test
+    void databaseEnforcesActiveAccountUniquenessAndAllowsSoftDeletedReuse() throws SQLException {
+        migrateSchema();
+        long firstUserId = nextTestId();
+        String username = "db_user_" + UUID.randomUUID().toString().replace("-", "");
+        String email = username + "@example.com";
+        try (Connection connection = openConnection()) {
+            insertUser(connection, firstUserId, username, email);
+
+            SQLException duplicateUsername =
+                    assertThrows(
+                            SQLException.class,
+                            () -> insertUser(connection, nextTestId(), username, "other-" + email));
+            assertEquals("23505", duplicateUsername.getSQLState());
+
+            SQLException duplicateEmail =
+                    assertThrows(
+                            SQLException.class,
+                            () -> insertUser(connection, nextTestId(), "other_" + username, email));
+            assertEquals("23505", duplicateEmail.getSQLState());
+
+            try (var update =
+                    connection.prepareStatement(
+                            "UPDATE users SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP WHERE user_id=?")) {
+                update.setLong(1, firstUserId);
+                assertEquals(1, update.executeUpdate());
+            }
+            assertDoesNotThrow(
+                    () -> insertUser(connection, nextTestId(), username, email),
+                    "逻辑删除后的账号应允许按唯一索引复用用户名和邮箱");
+        }
+    }
+
+    @Test
+    void databaseRevocationRemovesAuthenticationSessionFromActiveSet() throws SQLException {
+        migrateSchema();
+        long userId = nextTestId();
+        long authSessionId = nextTestId();
+        try (Connection connection = openConnection()) {
+            insertUser(
+                    connection,
+                    userId,
+                    "revoke_" + UUID.randomUUID().toString().replace("-", ""),
+                    UUID.randomUUID() + "@example.com");
+            try (var insert =
+                    connection.prepareStatement(
+                            "INSERT INTO user_auth_sessions(auth_session_id,user_id,session_token_hash,csrf_token_hash,expires_at,created_by) VALUES (?,?,?,?,CURRENT_TIMESTAMP+INTERVAL '1 day',?)")) {
+                insert.setLong(1, authSessionId);
+                insert.setLong(2, userId);
+                insert.setString(3, "session-hash-" + authSessionId);
+                insert.setString(4, "csrf-hash-" + authSessionId);
+                insert.setLong(5, userId);
+                insert.executeUpdate();
+            }
+            try (var revoke =
+                    connection.prepareStatement(
+                            "UPDATE user_auth_sessions SET revoked_at=CURRENT_TIMESTAMP WHERE user_id=? AND revoked_at IS NULL")) {
+                revoke.setLong(1, userId);
+                assertEquals(1, revoke.executeUpdate());
+            }
+            try (var active =
+                            connection.prepareStatement(
+                                    "SELECT COUNT(*) FROM user_auth_sessions WHERE user_id=? AND revoked_at IS NULL AND is_deleted=FALSE");
+                    var revoked =
+                            connection.prepareStatement(
+                                    "SELECT revoked_at IS NOT NULL FROM user_auth_sessions WHERE auth_session_id=?")) {
+                active.setLong(1, userId);
+                revoked.setLong(1, authSessionId);
+                try (ResultSet activeRows = active.executeQuery()) {
+                    activeRows.next();
+                    assertEquals(0, activeRows.getInt(1));
+                }
+                try (ResultSet revokedRow = revoked.executeQuery()) {
+                    revokedRow.next();
+                    assertTrue(revokedRow.getBoolean(1));
+                }
+            }
+        }
+    }
+
+    @Test
+    void databaseSerializesMessageSequenceAllocationAcrossTransactions() throws Exception {
+        migrateSchema();
+        long userId = nextTestId();
+        long sessionId = nextTestId();
+        try (Connection setup = openConnection()) {
+            insertUser(
+                    setup,
+                    userId,
+                    "sequence_" + UUID.randomUUID().toString().replace("-", ""),
+                    UUID.randomUUID() + "@example.com");
+            try (var insert =
+                    setup.prepareStatement(
+                            "INSERT INTO sessions(session_id,user_id,title,mode) VALUES (?,?,?, 'chat')")) {
+                insert.setLong(1, sessionId);
+                insert.setLong(2, userId);
+                insert.setString(3, "sequence test");
+                insert.executeUpdate();
+            }
+        }
+
+        int workers = 2;
+        CountDownLatch ready = new CountDownLatch(workers);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        try {
+            List<Future<Integer>> results =
+                    java.util.stream.IntStream.range(0, workers)
+                            .mapToObj(
+                                    ignored ->
+                                            executor.submit(
+                                                    () ->
+                                                            insertMessageWithLockedSequence(
+                                                                    sessionId, userId, ready,
+                                                                    start)))
+                            .toList();
+            assertTrue(ready.await(5, TimeUnit.SECONDS), "两个事务都应进入并发屏障");
+            start.countDown();
+            List<Integer> sequences = results.stream().map(this::getResult).sorted().toList();
+            assertEquals(List.of(1, 2), sequences);
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+        try (Connection connection = openConnection();
+                var query =
+                        connection.prepareStatement(
+                                "SELECT COUNT(*),MAX(sequence_no) FROM messages WHERE session_id=? AND is_deleted=FALSE")) {
+            query.setLong(1, sessionId);
+            try (ResultSet rows = query.executeQuery()) {
+                rows.next();
+                assertEquals(2, rows.getInt(1));
+                assertEquals(2, rows.getInt(2));
+            }
+        }
+    }
+
     // ── Core tables list ─────────────────────────────────────────────────
 
     private static final List<String> CORE_TABLES =
@@ -191,4 +337,87 @@ class FlywayRealMigrationTest {
         }
         return indexes;
     }
+
+    private void migrateSchema() {
+        Flyway.configure()
+                .dataSource(jdbcUrl, username, password)
+                .locations("filesystem:../script/sql/FoodMate/baseline")
+                .load()
+                .migrate();
+    }
+
+    private Connection openConnection() throws SQLException {
+        return DriverManager.getConnection(jdbcUrl, username, password);
+    }
+
+    private void insertUser(Connection connection, long userId, String username, String email)
+            throws SQLException {
+        try (var insert =
+                connection.prepareStatement(
+                        "INSERT INTO users(user_id,user_no,username,email,password_hash,nickname) VALUES (?,?,?,?,?,?)")) {
+            insert.setLong(1, userId);
+            insert.setString(2, "DB" + userId);
+            insert.setString(3, username);
+            insert.setString(4, email);
+            insert.setString(5, "test-password-hash");
+            insert.setString(6, "database test");
+            insert.executeUpdate();
+        }
+    }
+
+    private int insertMessageWithLockedSequence(
+            long sessionId, long userId, CountDownLatch ready, CountDownLatch start) {
+        try (Connection connection = openConnection()) {
+            connection.setAutoCommit(false);
+            ready.countDown();
+            assertTrue(start.await(5, TimeUnit.SECONDS), "并发事务应收到开始信号");
+            try (var lock =
+                    connection.prepareStatement(
+                            "WITH advisory_lock AS (SELECT pg_advisory_xact_lock(?)) SELECT 0 FROM advisory_lock")) {
+                lock.setLong(1, sessionId);
+                lock.executeQuery().close();
+            }
+            int sequence;
+            try (var next =
+                    connection.prepareStatement(
+                            "SELECT COALESCE(MAX(sequence_no),0)+1 FROM messages WHERE session_id=? AND is_deleted=FALSE")) {
+                next.setLong(1, sessionId);
+                try (ResultSet row = next.executeQuery()) {
+                    row.next();
+                    sequence = row.getInt(1);
+                }
+            }
+            try (var insert =
+                    connection.prepareStatement(
+                            "INSERT INTO messages(message_id,session_id,role,content,sequence_no,created_by) VALUES (?,?, 'user',?,?,?)")) {
+                insert.setLong(1, nextTestId());
+                insert.setLong(2, sessionId);
+                insert.setString(3, "concurrent message");
+                insert.setInt(4, sequence);
+                insert.setLong(5, userId);
+                insert.executeUpdate();
+            }
+            connection.commit();
+            return sequence;
+        } catch (Exception exception) {
+            throw new IllegalStateException("数据库消息序号并发测试失败", exception);
+        }
+    }
+
+    private int getResult(Future<Integer> result) {
+        try {
+            return result.get(10, TimeUnit.SECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("等待数据库并发测试结果被中断", exception);
+        } catch (ExecutionException | java.util.concurrent.TimeoutException exception) {
+            throw new IllegalStateException("数据库并发测试未收敛", exception);
+        }
+    }
+
+    private static long nextTestId() {
+        return TEST_ID.incrementAndGet();
+    }
+
+    private static final AtomicLong TEST_ID = new AtomicLong(9_000_000_000_000L);
 }

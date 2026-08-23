@@ -568,6 +568,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         return addMessage(userId, sessionId, role, content, structuredPayload, null);
     }
 
+    @Transactional
     public synchronized MessageRecord addMessage(
             long userId,
             long sessionId,
@@ -581,6 +582,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         requireText(content, "content");
         if (content.length() > 10000)
             throw new IllegalArgumentException("content must be at most 10000 characters");
+        if (store != null) store.lockMessageSequence(sessionId);
         int sequence = nextSequence(sessionId);
         long messageId = ids.nextId();
         String payload =

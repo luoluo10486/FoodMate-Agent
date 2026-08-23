@@ -151,6 +151,10 @@ public interface UserAccountMapper {
     List<SearchResult> search(long userId, String query, int limit, int offset);
 
     @Select(
+            "WITH advisory_lock AS (SELECT pg_advisory_xact_lock(#{sessionId})) SELECT 0 FROM advisory_lock")
+    int lockMessageSequence(long sessionId);
+
+    @Select(
             "SELECT COALESCE(MAX(sequence_no),0)+1 FROM messages WHERE session_id=#{sessionId} AND is_deleted=FALSE")
     int nextSequence(long sessionId);
 
