@@ -788,3 +788,18 @@
 | 数据与工作区 | 未执行迁移、数据库写入、truncate、备份恢复或运行时故障注入；用户已有 UI/Figma/QA 改动未暂存、未回滚。 |
 | 暂缓范围 | 性能压测、吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、staging/production、备份恢复、发布回滚和不可逆清理继续暂缓。 |
 | 结论 | 认证控制器 Spring 注入问题已修复，当前 Java 业务测试、格式检查、架构检查和 Alibaba 规范门禁通过；环境依赖型测试仍按现有开关跳过。 |
+
+## D27 Docker M2-1 stub 索引闭环与可见性验证（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/business-database-contracts`；Docker Compose `.env`；Java `foodmate`、Python `foodmate-agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO、Milvus 均 healthy；Java `/actuator/health/readiness` 和 Python `/foodmate/internal/health/ready` 均 HTTP 200。 |
+| Docker 修复 | `docker/rocketmq/init-topics.sh` 移除 `grep -q` 管道早退，并将 consumer group 输出落到临时文件后校验；RocketMQ 初始化容器最终退出码 `0`，知识索引/结果/可见性 Topic 和 consumer group 创建成功。 |
+| 配置边界 | `FOODMATE_RAG_MODE=stub`、`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`；仅使用 Redis 确定性索引，不读取 API Key，不连接 Milvus 写入，不调用付费服务。 |
+| 上传与索引 | 管理员批次 `349866183727517696` 上传 `README.md`；条目 `349866185271021569`、文档 `349866185271021568`；批次 `completed`，条目 `indexed`，`attempt_count=1`，解析生成 7 个 PostgreSQL chunk，索引 Outbox 为 `published`，Redis stub 共享索引键已产生。 |
+| 发布与检索 | 显式发布后，普通用户 `POST /api/knowledge-base/search` 查询 `Agent Runtime` 返回 2 条安全 citations；引用不含对象存储地址。 |
+| AgentRun | 普通用户创建真实 `/api/chat/runs`，Run `349867538139582464` 通过 RocketMQ 完成；事件序号连续 `1..7`，`run.completed` 包含 2 条 citations，来源 ID 同时出现在 context 事件。 |
+| 可见性门禁 | 依次调用 disable、restore、publish、delete；检索引用数分别为 `0`、`0`、`2`、`0`。恢复仅回到 `draft`，未自动发布；5 条可见性 Outbox 均为 `published`，文档最终为 `visibility=deleted,is_deleted=true`。 |
+| 审计与数据边界 | 本轮文档的管理员写操作产生 5 条 `operation_audits`；仅通过正式删除接口软删除本轮文档，保留 PostgreSQL chunk、Outbox、Redis 去重/索引事实以维持审计和可追溯性。未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理。 |
+| 暂缓范围 | 性能吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、真实 embedding、staging/production 和发布回滚继续暂缓。 |
+| 结论 | M2-1 Docker `local-stub` 业务主路径取得直接证据：上传、RocketMQ 索引、Java 结果回写、Redis 检索、显式发布、AgentRun 引用、下线/恢复/删除可见性门禁均通过；后置性能与故障类门禁不因此标记完成。 |
