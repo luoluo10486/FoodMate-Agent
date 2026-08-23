@@ -725,3 +725,14 @@
 | 数据边界 | 未执行迁移、validation、rollback、truncate、备份恢复、数据库硬删除或宽泛清理；未新增测试业务数据。现有用户 UI/Figma/QA、Python 缓存和 `tmp` 改动未主动清理。 |
 | 暂缓范围 | 性能压测、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、staging/production、备份恢复、发布回滚和不可逆硬删除继续暂缓。 |
 | 结论 | 当前本地功能版业务测试、Java 规范门禁、前端构建和 Docker 配置状态均可复核；后置性能、故障、真实外部服务和生产项不标记为完成。 |
+
+## D22 管理仪表盘安全摘要收口（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Git 提交 | `a805a87 修复(admin): 脱敏后台运行摘要` |
+| 代码范围 | 管理仪表盘 SQL 审计仅返回 `query_hash` 摘要；知识文档仅返回 `source_name/source_type`，不返回原始 SQL 或对象存储 `storage_key`。 |
+| 业务验证 | `mvnw.cmd -pl foodmate-infra -am '-Dtest=AdminDashboardMapperContractTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`：`1/1` 通过；契约测试同时拒绝原始 SQL 和对象 key 投影。 |
+| 数据边界 | 未执行迁移、SQL 写入、truncate、备份恢复、硬删除或清理现有数据；未触碰用户已有 UI/Figma/QA、Python 缓存和 `tmp` 改动。 |
+| 未执行范围 | 性能压测、组件重启、ACK 丢失、重复消息、SSE 故障恢复、真实云模型/embedding、生产价格审计和生产只读账号隔离继续后置。 |
+| 结论 | 管理端安全摘要业务契约已收口；生产安全与运维门禁不由本地 Mapper 测试替代。 |

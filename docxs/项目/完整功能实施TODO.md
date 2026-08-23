@@ -184,7 +184,7 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 当前无人审核时，`request_review` 返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。
 - [x] 普通缺参补充创建 continuation Run，旧 Run 进入 `superseded`，并完成 V5、Java 事务、SSE 和前端状态映射。
 - [x] 工具审批和预算追加按原 Run + 新 `dispatch_id + attempt` 处理，并完成预算确认前端交互与恢复测试；预算追加已接入 Redis 准入。当前跨进程 Proposal 主要覆盖只读 SQL，通用写工具审批仍属于后续业务阶段。
-- [ ] 完成结构化 Trace、预算与 Eval 指标、脱敏策略和用户反馈入口；不得保存 Chain-of-Thought、完整 Prompt 或默认原始模型响应。
+- [x] 完成结构化 Trace、预算与 Eval 指标、脱敏策略和用户反馈入口；当前以本地 Run/ToolCall/SQLAudit/ModelUsage 关联、低基数 Runtime/Eval 指标、统一脱敏审计和结构化反馈业务测试为证据，不保存 Chain-of-Thought、完整 Prompt 或默认原始模型响应。生产统一指标系统和长期告警仍后置。
 - [x] 只允许 Python 产生 Tool/SQL Proposal；Java Tool Gateway 不向 Python 暴露 PostgreSQL 业务库凭据。
 - [x] Java 已接入独立 Proposal consumer、只读 SQL Guard、审计和 Result producer；`runtime_tool_proposal_inbox` 固化 `proposal_id + request_hash` 幂等事实。
 - [x] Python Result consumer 已接入 Redis 幂等 Inbox；Java command RocketMQ 真实传输 E2E 已通过。
