@@ -712,3 +712,16 @@
 | 数据与工作区 | 未修改或清理用户已有 UI/Figma/QA、Python `__pycache__` 和 `tmp` 改动；未新增业务数据、迁移或宽泛清理。 |
 | 暂缓范围 | 性能压测、吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、staging/production、备份恢复、发布回滚和不可逆硬删除继续暂缓。 |
 | 结论 | 当前功能版 Java、Python、前端业务门禁、Docker 配置/readiness 和 M2-1 deterministic 业务闭环证据齐全；后置性能、故障、真实外部服务和生产项不标记为完成。 |
+
+## D21 公共契约注释与业务门禁复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | `foodmate-shared` 的 `EventInbox` 补充类、方法和结果枚举的行为注释；Spotless 格式已对齐。未新增业务逻辑、迁移或运行时配置。 |
+| Java 业务验证 | `mvnw.cmd clean verify`：BUILD SUCCESS；Shared `12/12`、Application `165/165`、Infrastructure `76`（14 skipped）、API `61/61`、Bootstrap `58`（37 skipped）；编译、单元测试、ArchUnit、Spotless 和 Spring Boot repackage 通过。 |
+| Python 业务验证 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`116 passed、1 skipped、1 warning`；使用 `PYTHONDONTWRITEBYTECODE=1`，未调用真实模型或 embedding。 |
+| Java 规范验证 | `mvnw.cmd -Palibaba-code-style verify '-DskipTests'`：六个模块 Checkstyle 均为 `0 violations`；生产源码泛化异常捕获、标准输出、堆栈打印和 `MAX(id)+1` 扫描均为 0。 |
+| 前端与 Docker | `foodmate-ui` 的 `npm.cmd run typecheck` 和 `npm.cmd run build` 通过（Vite `2010 modules transformed`）；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过，当前 foodmate、agent-runtime、PostgreSQL、Redis、MinIO、RocketMQ 和 Milvus 容器均 healthy。 |
+| 数据边界 | 未执行迁移、validation、rollback、truncate、备份恢复、数据库硬删除或宽泛清理；未新增测试业务数据。现有用户 UI/Figma/QA、Python 缓存和 `tmp` 改动未主动清理。 |
+| 暂缓范围 | 性能压测、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、staging/production、备份恢复、发布回滚和不可逆硬删除继续暂缓。 |
+| 结论 | 当前本地功能版业务测试、Java 规范门禁、前端构建和 Docker 配置状态均可复核；后置性能、故障、真实外部服务和生产项不标记为完成。 |
