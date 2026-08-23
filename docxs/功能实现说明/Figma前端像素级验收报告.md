@@ -703,3 +703,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测计划卡主列高度为 `85px`，与 Figma `692:2750` 的 `85px` 一致；三张卡文字行盒均无溢出，页面无横向溢出。
 - [x] 最新同尺寸 PNG diff：`differentPixels=347138`、差异比例 `23.5418%`、`MAE=3.5356`、`RMSE=18.2830`、最大通道差异 `234`；结果已更新到 `meal-plan-list-current-diff.json` 和 `figma-105-diff-results.json#meal-plan-list`。
 - [ ] 卡片总高度当前为 `134.6px`，Figma 节点为 `133px`，剩余约 `1.6px` 来自边框布局处理；画板继续 `DIFF_REVIEW`，不能标记 `PASS`。
+
+## 83. 2026-08-23 摄入分析空态指标卡高度对齐
+
+- [x] 重新读取 Figma 节点 `692:2026`，确认三张空态指标卡目标高度为 `100px`；前端仅对 Figma fixture 的分析区域增加作用域，将指标容器和三张卡从 `107px` 对齐为 `100px`，真实模式和其他分析状态不受影响。
+- [x] 浏览器实测三张指标卡均为 `100px`，图表卡从原 `y=295px` 调整为 `y=288px`，与 Figma `692:2129` 的位置一致；页面 `1440×1024` 无横向溢出，当前前端没有左上角红黄绿窗口装饰点，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 当前浏览器截图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-2026-08-23.jpg`，RGBA 证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-current-rgba.png`；同尺寸 diff 为 `16.6444% / MAE 1.8523 / RMSE 13.0926 / maxChannelDelta 233`，已同步独立 diff 和 `figma-105-diff-results.json#intake-analysis-empty`。
+- [x] `AnalysisPage.test.tsx` 定向测试 `4/4`、`npm run typecheck`、构建、目标文件 Prettier 和 `git diff --check` 通过。
+- [ ] 该画板继续保持 `DIFF_REVIEW`：图表空态区域当前仍为 `320px` 高，Figma 目标为 `308px`；当前 in-app 浏览器 DPR 为 `1.25`，不能关闭 DPR 1 门禁，也不能标记像素级 `PASS`。iconfont 继续为 `BLOCKED`。
