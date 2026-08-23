@@ -736,3 +736,18 @@
 | 数据边界 | 未执行迁移、SQL 写入、truncate、备份恢复、硬删除或清理现有数据；未触碰用户已有 UI/Figma/QA、Python 缓存和 `tmp` 改动。 |
 | 未执行范围 | 性能压测、组件重启、ACK 丢失、重复消息、SSE 故障恢复、真实云模型/embedding、生产价格审计和生产只读账号隔离继续后置。 |
 | 结论 | 管理端安全摘要业务契约已收口；生产安全与运维门禁不由本地 Mapper 测试替代。 |
+
+## D23 Docker M2-1 索引闭环与 AgentRun 引用复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | `codex/m2-remaining-business`；Docker Compose `.env`；Java `foodmate`、Python `foodmate-agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO、Milvus 均 healthy。Java readiness 和 Python `/foodmate/internal/health/ready` 均 HTTP 200。 |
+| 配置 | `FOODMATE_RAG_MODE=local`、`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`、64 维向量、隔离集合 `foodmate_knowledge_codex_chunks_20260823`；未读取真实 API Key，未调用付费服务。 |
+| 上传与解析 | 管理员批次 `349798831908458496` 上传 Markdown；`knowledge_import_items` 为 `indexed`，批次为 `completed`，共 21 个切片，`attempt_count=1`，模型版本 `deterministic-local-v1`。 |
+| Java Outbox/结果回写 | 索引 Outbox 状态为 `published`；结果回写同时更新条目、文档、批次和 `knowledge_chunks` 权威事实。批次 SSE 从游标 0 回放 `knowledge.index.indexed`、`knowledge.batch.progress` 两个事件。 |
+| Milvus | 隔离集合实际存在，`num_entities=21`，schema 的向量维度为 `64`；发布可见性 Outbox 状态为 `published`。 |
+| 检索与 AgentRun | 显式发布后公共检索返回安全引用；Docker AgentRun `349800593365143552` 完成，`run.completed` 含 2 条 citations，来源 ID 同时出现在 context 事件。用 `Last-Event-ID` 从中间事件回放可补发唯一 `run.completed` 终态。 |
+| 可见性门禁 | 文档下线后检索引用数为 `0`；恢复仅回到 `draft`，检索仍为 `0`；随后通过删除接口将本轮文档置为 `deleted`。 |
+| 清理与数据边界 | 本轮会话已通过业务删除接口软删除；知识文档、切片、Outbox、Redis/Milvus 去重或索引事实不做物理删除，避免破坏可追溯事实和其他历史数据。未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理。 |
+| 暂缓范围 | 性能吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复消息故障矩阵、真实 embedding、生产环境和发布回滚继续暂缓。 |
+| 结论 | M2-1 Docker `local` deterministic 业务闭环已取得可复核证据：上传、解析、索引 Outbox、RocketMQ Worker、Java 结果消费、Milvus 写入、显式发布、检索、AgentRun 引用和批次/Chat SSE 回放均通过；后置性能与故障门禁不因此标记完成。 |
