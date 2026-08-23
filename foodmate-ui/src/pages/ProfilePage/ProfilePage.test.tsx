@@ -146,6 +146,22 @@ describe('ProfilePage', () => {
     expect(screen.queryByRole('heading', { name: '正在生成数据导出' })).not.toBeInTheDocument();
   });
 
+  it('renders and dismisses the Figma export expired fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-export-expired');
+
+    expect(screen.getByRole('heading', { name: '导出文件已过期' })).toBeInTheDocument();
+    expect(screen.getByText('下载链接已过期，请重新创建导出任务。')).toBeInTheDocument();
+    expect(screen.getByText('状态: expired · export_id: exp_20260729_18')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新创建导出' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByText('状态：expired')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '重新创建导出' }));
+
+    expect(screen.queryByRole('heading', { name: '导出文件已过期' })).not.toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

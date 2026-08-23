@@ -359,6 +359,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
   const isDeleteConfirmation = state === 'privacy-delete-confirm';
   const isExportQueued = state === 'privacy-export-queued';
   const isExportRunning = state === 'privacy-export-running';
+  const isExportExpired = state === 'privacy-export-expired';
   return (
     <div
       className={cn(
@@ -368,6 +369,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
         isDeleteConfirmation ? styles.fixtureOverlayDelete : undefined,
         isExportQueued ? styles.fixtureOverlayExportQueued : undefined,
         isExportRunning ? styles.fixtureOverlayExportRunning : undefined,
+        isExportExpired ? styles.fixtureOverlayExportExpired : undefined,
       )}
       role="presentation"
     >
@@ -379,6 +381,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
           isDeleteConfirmation ? styles.fixtureModalDelete : undefined,
           isExportQueued ? styles.fixtureModalExportQueued : undefined,
           isExportRunning ? styles.fixtureModalExportRunning : undefined,
+          isExportExpired ? styles.fixtureModalExportExpired : undefined,
         )}
         role="alert"
         aria-live="polite"
@@ -405,6 +408,19 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
               状态: queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01
             </p>
             <Button className={styles.fixtureExportQueuedClose} variant="ghost" aria-label="关闭" onClick={onDismiss}>
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isExportExpired ? (
+          <>
+            <span className={styles.fixtureExportExpiredAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureExportExpiredTitle}>{title}</h2>
+            <p className={styles.fixtureExportExpiredDetail}>下载链接已过期，请重新创建导出任务。</p>
+            <p className={styles.fixtureExportExpiredStatus}>状态: expired · export_id: exp_20260729_18</p>
+            <Button className={styles.fixtureExportExpiredAction} variant="ghost" onClick={onDismiss}>
+              重新创建导出
+            </Button>
+            <Button className={styles.fixtureExportExpiredClose} variant="ghost" aria-label="关闭" onClick={onDismiss}>
               <X aria-hidden="true" />
             </Button>
           </>
@@ -467,7 +483,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
         ) : null}
         {state === 'security-password-failed' ||
         state === 'privacy-deletion-failed' ||
-        state === 'privacy-export-expired' ? (
+        (state === 'privacy-export-expired' && !isExportExpired) ? (
           <Button type="button" onClick={onDismiss}>
             重新创建
           </Button>

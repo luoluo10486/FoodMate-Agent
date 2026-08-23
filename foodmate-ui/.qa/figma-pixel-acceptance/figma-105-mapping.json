@@ -3256,11 +3256,11 @@
       "queryState": "state=privacy-export-expired",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-expired.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.3515692816840278; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow, and no status/action overlap. Automatic PNG diff is 0.4224039713541667; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3285,8 +3285,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Export-expired semantics exist, but the dialog geometry, content density, page composition, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Desktop and mobile captures preserve the expired-state semantics, orange visual treatment, close action, and recreate action without overlap. Privacy-page composition, content density, dialog boundary, and layout still differ from the current Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
