@@ -687,3 +687,14 @@
 | 业务验证 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q tests/test_runtime_server.py -p no:cacheprovider`：`44 passed、1 warning`；覆盖 150ms 间隔和非法配置。使用 `PYTHONDONTWRITEBYTECODE=1`，未新增缓存写入。 |
 | 未执行范围 | 未进行性能容量推断、生产长压、队列积压、组件重启、ACK 丢失或 SSE 故障矩阵；时间间隔测试只验证业务契约，不构成性能 SLO。 |
 | 结论 | 回答分片 150ms 配置能力与文档状态已对齐；该能力不再作为未完成业务项。 |
+
+## D19 V26 SQL 配套台账校正（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 12:16-12:18（Asia/Shanghai） |
+| Git 提交 | `a04e271 docs(sql): 对齐V26迁移配套台账` |
+| 文档范围 | SQL 根 README、migration README、CHANGELOG 和 M2 计划统一记录当前最高版本 V26；补充 `agent_feedback` 的 validation、只读 rollback precheck、数据安全边界和未执行说明。历史迁移文件未原地修改。 |
+| 静态业务验证 | `mvnw.cmd -pl foodmate-infra -am test '-Dtest=FlywayV26MigrationScriptTest,FlywayV16V17KnowledgeMigrationScriptTest,FlywayV25MigrationScriptTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：`6/6` 通过；覆盖 V16/V17、V25 和 V26 配套脚本。 |
+| 数据库边界 | 未执行 V26 或其他迁移、validation、rollback、truncate、备份恢复或数据清理；未改变目标 PostgreSQL 状态。 |
+| 结论 | SQL 目录当前版本说明与实际文件一致；V26 迁移仍需单独人工授权、备份和目标库校验后才可执行。 |
