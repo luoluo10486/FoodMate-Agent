@@ -639,3 +639,17 @@
 | M2-1 业务证据 | Docker stub 使用 Redis 确定性索引，Docker local 使用 deterministic embedding 与实际 64 维 Milvus 集合；两种模式均完成上传、索引、发布、检索和 AgentRun 引用路径。真实 embedding、性能/积压、组件重启、ACK 丢失、重复消息和 SSE 故障恢复仍暂缓。 |
 | 工作树保护 | 仅计划范围文档和执行台账进入本轮提交；用户已有 UI/Figma/QA、`tmp` 与 Python `__pycache__` 改动未暂存。 |
 | 结论 | 当前功能版业务代码、业务测试、Java 可执行规范子集和 Docker 应用 readiness 均有可复核证据；后置性能、故障、生产和不可逆清理范围保持未完成。 |
+
+## D15 结构化 Agent 反馈业务切片（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 分支与提交 | `codex/m2-remaining-business`；`2d5bd05 feat(feedback): 增加结构化Agent反馈入口` |
+| 代码范围 | 新增 V26 `agent_feedback` 迁移、validation 和只读 rollback precheck；Application 反馈服务与端口；PostgreSQL Mapper/适配器；`POST /api/agent-runs/{runId}/messages/{messageId}/feedback`；聊天页反馈组件和业务测试。 |
+| 业务规则 | 仅允许当前用户对已完成 AgentRun 的 assistant message 提交一次；负面反馈至少一个稳定原因；幂等键参数一致时重放既有事实；同一回答并发冲突不重复写入；高风险原因可标记高优先级审计。 |
+| 安全边界 | 反馈和审计不保存回答正文、Prompt、原始业务请求、密码、令牌或敏感内容；审计只保存关联 ID、结果、原因数量、幂等键和参数摘要。 |
+| Java 验证 | `mvnw.cmd -pl foodmate-infra -am "-Dtest=FlywayV26MigrationScriptTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：2/2；Application：3/3；API：2/2；`mvnw.cmd -Palibaba-code-style verify -DskipTests`：Spotless 通过、Checkstyle `0 violations`。 |
+| 前端验证 | `foodmate-ui` `npm run typecheck` 通过；`npm run test -- --run src/components/agent/AgentFeedback.test.tsx`：2/2；反馈组件 Prettier 检查通过。全量 Prettier 仍有既有 52 个文件格式问题，本轮未格式化无关文件。 |
+| 数据库边界 | 未执行 V26 目标数据库迁移、truncate、备份恢复或清理；rollback 文件仅为人工只读前置检查。 |
+| 未执行范围 | 不包含性能压测、组件重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/embedding、生产部署或不可逆删除。 |
+| 结论 | 结构化反馈代码与业务主路径测试完成；V26 迁移需按人工数据库流程另行执行并登记，不因本切片完成将 M1-6 或 M3 整体标记为完成。 |
