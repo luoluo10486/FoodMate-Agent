@@ -676,3 +676,14 @@
 | 数据边界 | 未执行迁移、真实业务数据写入、truncate、硬删除或缓存清理；用户已有 UI/Figma/QA、Python 缓存和 `tmp` 未暂存。 |
 | 未执行范围 | 性能压测、队列积压、组件重启、ACK 丢失、重复消息、SSE 故障恢复、真实云模型/embedding、备份恢复、生产部署和发布回滚继续暂缓。 |
 | 结论 | 长期记忆不再复制领域权威事实，稳定偏好/习惯仍可进入记忆候选；三层数据边界业务切片完成。 |
+
+## D18 回答分片时间调度状态校正（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 12:05-12:07（Asia/Shanghai） |
+| 既有实现 | `22499a1 feat(runtime): 增加回答分片间隔配置` 已实现 `FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS`（默认 150ms）和 `FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES`；本轮未重复修改 Runtime 代码。 |
+| 文档范围 | 将完整 TODO、配置指南、Runtime 架构和 M1-4 方案中的“尚未实现”描述校正为当前实际能力；明确 Eval 通过后才发布、按 UTF-8 字节切片、按分片间隔调度且不逐 Token 发布。 |
+| 业务验证 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q tests/test_runtime_server.py -p no:cacheprovider`：`44 passed、1 warning`；覆盖 150ms 间隔和非法配置。使用 `PYTHONDONTWRITEBYTECODE=1`，未新增缓存写入。 |
+| 未执行范围 | 未进行性能容量推断、生产长压、队列积压、组件重启、ACK 丢失或 SSE 故障矩阵；时间间隔测试只验证业务契约，不构成性能 SLO。 |
+| 结论 | 回答分片 150ms 配置能力与文档状态已对齐；该能力不再作为未完成业务项。 |

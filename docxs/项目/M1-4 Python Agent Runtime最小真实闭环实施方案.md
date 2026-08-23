@@ -180,7 +180,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 复杂、RAG 和高风险任务强制 LLM Judge；低风险任务默认 20% 抽样。
 - Eval 通过前候选正文只存受限服务端缓冲，不产生 `run.answer_stream`。
 - `request_review` 在无人审核条件下转安全降级，不交付被拦截候选答案。
-- Eval 通过后当前按 `FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES` 的 UTF-8 字节上限切分 `run.answer_stream`，默认 2048 字节；150ms 时间触发和逐 Token 发布尚未实现，不得在当前验收中写成已完成。
+- Eval 通过后按 `FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES` 的 UTF-8 字节上限切分 `run.answer_stream`，默认 2048 字节；相邻事件按 `FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS` 调度，默认 150ms，禁止逐 Token 发布。
 
 ### 5.8 模型适配与路由
 

@@ -180,7 +180,7 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 完成 Redis checkpoint 的 AOF 配置、CAS、TTL、加密和 Java 对账；`tool_wait/execution` 关键恢复点、Java 恢复入口和本地跨进程恢复已验证。
 - [x] 完成任务恢复执行器：Python 校验旧 dispatch、checkpoint version/digest、预算 revision、deadline 与已完成 invocation；Java 完成所有权/终态/取消/fencing 对账和跨进程本地 E2E。生产自动触发器和恢复指标仍待完成，详见[Python 智能体运行时设计](../架构/Python智能体运行时设计.md)。
 - [x] 建立确定性硬规则、LLM Judge、Prompt/评测版本、离线 golden 样例、回归评测和安全策略测试；Eval 通过前不得发送候选答案正文。
-- [ ] 实现可配置 150ms 时间触发的回答分片；当前只实现默认 2048 字节 UTF-8 分片，禁止逐 Token 发布 RocketMQ。
+- [x] 实现可配置 150ms 时间触发的回答分片：Eval 通过后按 UTF-8 字节上限切片，并按 `FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS`（默认 150ms）调度 `run.answer_stream`；不逐 Token 发布 RocketMQ。
 - [x] 当前无人审核时，`request_review` 返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。
 - [x] 普通缺参补充创建 continuation Run，旧 Run 进入 `superseded`，并完成 V5、Java 事务、SSE 和前端状态映射。
 - [x] 工具审批和预算追加按原 Run + 新 `dispatch_id + attempt` 处理，并完成预算确认前端交互与恢复测试；预算追加已接入 Redis 准入。当前跨进程 Proposal 主要覆盖只读 SQL，通用写工具审批仍属于后续业务阶段。
