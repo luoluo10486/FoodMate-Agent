@@ -566,3 +566,15 @@
 | 数据边界 | 未修改 PostgreSQL、Redis、RocketMQ、MinIO、Milvus 中的业务数据；用户已有 UI/Figma、`tmp` 和 Python 缓存未暂存 |
 | 未执行范围 | 性能压测、组件重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、应用 Docker 镜像和生产环境继续暂缓 |
 | 结论 | Java 业务门禁和当前可执行规范子集通过；SQL 历史配套状态可追溯；不将后置性能、故障恢复或生产项标记为完成 |
+
+## D9 最终业务门禁复跑（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Java | `mvnw.cmd verify`：BUILD SUCCESS；Shared `12/12`、Application `157/157`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）；Spotless、编译、ArchUnit 和 Spring Boot repackage 通过 |
+| Python | `agent-runtime/.venv/Scripts/python.exe -m pytest -q`：`113 passed、1 skipped、2 warnings`；跳过项为显式真实云集成，未调用付费模型或真实 embedding |
+| Compose | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；未启动或重启应用容器及基础设施 |
+| 代码状态 | Java 规范提交 `8043f10`、SQL 矩阵提交 `e2a81a3`、计划证据提交 `b763a5f`、台账证据提交 `ea7cc1b` 已落库 |
+| 工作区保护 | UI/Figma/QA、`tmp` 和 Python `__pycache__` 改动仍未暂存；未执行迁移、truncate、宽泛删除、备份恢复或实际清理 |
+| 未执行范围 | 性能压测、组件重启、ACK 丢失、重复投递、SSE `Last-Event-ID` 故障矩阵、真实云服务、Docker 应用镜像和生产环境继续暂缓 |
+| 结论 | 当前功能版 Java/Python 业务门禁和可执行 Java 规范子集复跑通过；后置性能、故障恢复和生产强化不计入完成 |
