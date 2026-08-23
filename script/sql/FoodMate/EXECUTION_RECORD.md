@@ -671,7 +671,8 @@
 | 执行时间 | 2026-08-23 12:00-12:02（Asia/Shanghai） |
 | Git 提交 | `063e85d feat(记忆): 固化长期记忆三层数据边界` |
 | 代码范围 | Java 记忆候选增加允许类型白名单；拒绝饮食记录、餐食计划、周食谱、购物清单、Profile、营养目标等权威实体或字段，并拒绝过敏/医疗/诊断/处方等高影响健康事实；AgentRun Context 查询同步移除业务实体记忆类型。 |
-| 业务验证 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am test '-Dtest=MemoryCandidateServiceImplTest,FlywayMigrationScriptTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：MemoryCandidateServiceImplTest `4/4`、FlywayMigrationScriptTest `7/7` 通过；Spotless 通过，`git diff --check` 无错误。 |
+| 业务验证 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am test '-Dtest=MemoryCandidateServiceImplTest,FlywayMigrationScriptTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：MemoryCandidateServiceImplTest `4/4`、FlywayMigrationScriptTest `7/7` 通过；随后 `mvnw.cmd verify` 全量通过（Shared `12/12`、Application `164/164`、Infrastructure `73/73`，11 skipped、API `61/61`、Bootstrap `58/58`，37 skipped）；Spotless、ArchUnit、编译和 repackage 通过。 |
+| 规范门禁 | `mvnw.cmd -Palibaba-code-style verify -DskipTests` 通过，六个模块 Checkstyle 均为 `0 violations`；`git diff --check` 无错误。 |
 | 数据边界 | 未执行迁移、真实业务数据写入、truncate、硬删除或缓存清理；用户已有 UI/Figma/QA、Python 缓存和 `tmp` 未暂存。 |
 | 未执行范围 | 性能压测、队列积压、组件重启、ACK 丢失、重复消息、SSE 故障恢复、真实云模型/embedding、备份恢复、生产部署和发布回滚继续暂缓。 |
 | 结论 | 长期记忆不再复制领域权威事实，稳定偏好/习惯仍可进入记忆候选；三层数据边界业务切片完成。 |
