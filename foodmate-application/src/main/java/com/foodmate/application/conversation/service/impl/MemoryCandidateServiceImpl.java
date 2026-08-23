@@ -10,7 +10,9 @@ import com.foodmate.application.conversation.service.SessionSummaryService;
 import com.foodmate.shared.id.IdGenerator;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,54 @@ import org.springframework.transaction.annotation.Transactional;
 /** Java 权威校验并写入长期记忆候选；Python 只能提出候选，不能直接写业务库。 */
 @Service
 public class MemoryCandidateServiceImpl implements MemoryCandidateService {
+    private static final Set<String> ALLOWED_MEMORY_TYPES =
+            Set.of(
+                    "preference",
+                    "constraint",
+                    "routine",
+                    "plan",
+                    "cooking_skill",
+                    "budget_habit",
+                    "time_habit",
+                    "interaction_preference",
+                    "user_rule");
+    private static final List<String> RESERVED_ENTITY_TERMS =
+            List.of(
+                    "food_log",
+                    "foodlog",
+                    "meal_plan",
+                    "mealplan",
+                    "shopping_list",
+                    "shoppinglist",
+                    "weekly_recipe",
+                    "recipe_plan",
+                    "nutrition_target",
+                    "calorie_target",
+                    "protein_target",
+                    "user_profile",
+                    "profile",
+                    "饮食记录",
+                    "餐食计划",
+                    "购物清单",
+                    "周食谱",
+                    "食谱计划",
+                    "个人资料",
+                    "营养目标");
+    private static final List<String> HIGH_IMPACT_TERMS =
+            List.of(
+                    "allerg",
+                    "medical",
+                    "diagnos",
+                    "prescription",
+                    "medication",
+                    "clinical",
+                    "过敏",
+                    "医疗",
+                    "疾病",
+                    "诊断",
+                    "处方",
+                    "药物",
+                    "病史");
     private final MemoryRepository store;
     private final IdGenerator ids;
     private final SessionSummaryService summaries;
@@ -180,10 +230,22 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
     }
 
     private boolean allowed(MemoryCandidate candidate) {
-        String text = String.valueOf(candidate).toLowerCase();
-        // 医疗判断、预算确认和模型推测不能自动进入长期记忆。
-        return !text.matches(".*(诊断|处方|疾病|药物|医疗|预算|审批|推测|猜测|diagnos|prescription|medication).*")
-                && !candidate.sourceMessageIds().isEmpty();
+        if (candidate == null || candidate.sourceMessageIds().isEmpty()) return false;
+        String type = text(candidate.memoryType(), 32);
+        String key = text(candidate.memoryKey(), 64);
+        if (type == null || key == null) return false;
+        String normalizedType = type.toLowerCase(Locale.ROOT);
+        String searchable =
+                (normalizedType + " " + key + " " + String.valueOf(candidate.memoryValue()))
+                        .toLowerCase(Locale.ROOT);
+        // 权威业务事实必须留在领域表；高影响健康事实不能由模型候选自动升级。
+        return ALLOWED_MEMORY_TYPES.contains(normalizedType)
+                && !containsAny(searchable, RESERVED_ENTITY_TERMS)
+                && !containsAny(searchable, HIGH_IMPACT_TERMS);
+    }
+
+    private static boolean containsAny(String value, List<String> terms) {
+        return terms.stream().anyMatch(value::contains);
     }
 
     private static String text(Object value, int max) {

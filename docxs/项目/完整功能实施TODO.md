@@ -168,7 +168,7 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 将确定性文本摘要升级为结构化摘要：已输出 `goals`、`constraints`、`decisions`、`open_questions` 和 `source_message_ids`，并保留摘要版本、来源 digest 与 CAS；摘要模型和失败降级策略仍属于后续增强。
 - [x] 长期记忆读取已按用户归属、白名单类型、确认状态和有效期过滤，当前查询/注入上限为 8 条；按更细意图的检索排序仍属于后续增强。
 - [x] 建立最小记忆治理：计划型记忆已自动分配 7 天 TTL，临时型记忆已自动分配 24 小时 TTL，过期记录已从冲突判断和 Context 读取中排除；推断衰减、来源失效、用户遗忘、删除防再生及 active memory 上限配置化仍待完成。
-- [ ] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表，`user_memories` 不复制权威业务实体。
+- [x] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表；Java 记忆候选白名单拒绝权威实体类型/字段和高影响健康事实，Context 查询只读取允许的长期记忆类型。
 - [x] M1 不引入 `pgvector`；仅当结构化检索经 Eval 证明召回不足后作为可选增强评估。
 - [x] 删除或更正长期记忆后使相关摘要和 Context 引用失效；完整缓存传播和删除防再生仍属于后续增强。
 - [x] 为每次 Context 装配保存可审计来源 ID：Python 通过非终态 `run.context_assembled` 只回传 `message_id/summary_id/memory_id/citation_id`，Java 在同一事件事务写入统一审计；不保存 Chain-of-Thought、完整 Prompt 或正文。
