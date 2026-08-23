@@ -46,6 +46,12 @@ class AuthCookieMatrixTest {
                         .orElseThrow();
         assertThat(session).contains("Secure", "HttpOnly", "SameSite=Lax", "Path=/");
         assertThat(csrf).contains("Secure", "SameSite=Lax", "Path=/").doesNotContain("HttpOnly");
+        String refresh =
+                cookies.stream()
+                        .filter(value -> value.startsWith("foodmate_refresh="))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(refresh).contains("Secure", "HttpOnly", "SameSite=Lax", "Path=/");
     }
 
     @Test
@@ -102,7 +108,14 @@ class AuthCookieMatrixTest {
                         any(UserAccountService.SessionMetadata.class)))
                 .thenReturn(
                         new UserAccountService.AuthResult(
-                                1L, "alice", "user", "session-token", "csrf-token", EXPIRY));
+                                1L,
+                                "alice",
+                                "user",
+                                "session-token",
+                                "csrf-token",
+                                EXPIRY,
+                                "refresh-token",
+                                EXPIRY));
         return service;
     }
 }

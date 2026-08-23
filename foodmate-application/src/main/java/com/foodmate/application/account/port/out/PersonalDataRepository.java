@@ -26,6 +26,8 @@ public interface PersonalDataRepository {
 
     void revokeSessions(long userId);
 
+    void revokeRefreshTokens(long userId);
+
     ExportRow findExport(long userId, long jobId);
 
     int consumeExport(long userId, long jobId);

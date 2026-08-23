@@ -78,14 +78,22 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @CookieValue(value = "foodmate_session", required = false) String sessionToken) {
-        service.logout(sessionToken);
+            @CookieValue(value = "foodmate_session", required = false) String sessionToken,
+            @CookieValue(value = "foodmate_refresh", required = false) String refreshToken) {
+        service.logout(sessionToken, refreshToken);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_session", true).toString())
                 .header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_csrf", false).toString())
                 .header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_access", true).toString())
                 .header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_refresh", true).toString())
                 .body(ApiResponse.success(null, TraceContextHolder.currentOrNew()));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthResponse>> refresh(
+            jakarta.servlet.http.HttpServletRequest request,
+            @CookieValue(value = "foodmate_refresh", required = false) String refreshToken) {
+        return response(service.refresh(refreshToken, metadata(request)));
     }
 
     @PostMapping("/password-reset/request")
@@ -147,16 +155,35 @@ public class AuthController {
         AuthResponse body =
                 new AuthResponse(
                         result.userId(), result.username(), result.role(), result.expiresAt());
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.SET_COOKIE,
-                        cookie("foodmate_session", result.sessionToken(), result.expiresAt(), true)
-                                .toString())
-                .header(
-                        HttpHeaders.SET_COOKIE,
-                        cookie("foodmate_csrf", result.csrfToken(), result.expiresAt(), false)
-                                .toString())
-                .body(ApiResponse.success(body, TraceContextHolder.currentOrNew()));
+        var response =
+                ResponseEntity.ok()
+                        .header(
+                                HttpHeaders.SET_COOKIE,
+                                cookie(
+                                                "foodmate_session",
+                                                result.sessionToken(),
+                                                result.expiresAt(),
+                                                true)
+                                        .toString())
+                        .header(
+                                HttpHeaders.SET_COOKIE,
+                                cookie(
+                                                "foodmate_csrf",
+                                                result.csrfToken(),
+                                                result.expiresAt(),
+                                                false)
+                                        .toString());
+        if (result.refreshToken() != null && !result.refreshToken().isBlank())
+            response =
+                    response.header(
+                            HttpHeaders.SET_COOKIE,
+                            cookie(
+                                            "foodmate_refresh",
+                                            result.refreshToken(),
+                                            result.refreshExpiresAt(),
+                                            true)
+                                    .toString());
+        return response.body(ApiResponse.success(body, TraceContextHolder.currentOrNew()));
     }
 
     private static UserAccountService.SessionMetadata metadata(

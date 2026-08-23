@@ -51,6 +51,10 @@ public interface PersonalDataMapper {
             "UPDATE user_auth_sessions SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND revoked_at IS NULL")
     void revokeSessions(long userId);
 
+    @Update(
+            "UPDATE auth_refresh_tokens SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND revoked_at IS NULL AND is_deleted=FALSE")
+    void revokeRefreshTokens(long userId);
+
     @Select(
             "SELECT export_job_id AS id,status,expires_at AS expiresAt,completed_at AS completedAt,download_consumed_at AS consumedAt,failure_code AS failureCode FROM data_export_jobs WHERE export_job_id=#{jobId} AND user_id=#{userId} AND is_deleted=FALSE")
     ExportRow findExport(long userId, long jobId);

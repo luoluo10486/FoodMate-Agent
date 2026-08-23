@@ -22,6 +22,10 @@ public interface UserAccountService {
 
     void logout(String sessionToken);
 
+    void logout(String sessionToken, String refreshToken);
+
+    AuthResult refresh(String refreshToken, SessionMetadata metadata);
+
     void changePassword(long userId, String currentPassword, String newPassword);
 
     void requireCurrentPassword(long userId, String currentPassword);
@@ -92,7 +96,19 @@ public interface UserAccountService {
             String role,
             String sessionToken,
             String csrfToken,
-            Instant expiresAt) {}
+            Instant expiresAt,
+            String refreshToken,
+            Instant refreshExpiresAt) {
+        public AuthResult(
+                long userId,
+                String username,
+                String role,
+                String sessionToken,
+                String csrfToken,
+                Instant expiresAt) {
+            this(userId, username, role, sessionToken, csrfToken, expiresAt, null, null);
+        }
+    }
 
     record SessionMetadata(String userAgent, String ipAddress) {
         public static final SessionMetadata EMPTY = new SessionMetadata(null, null);

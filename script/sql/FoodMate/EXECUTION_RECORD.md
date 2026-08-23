@@ -828,3 +828,16 @@
 | 工作区与临时文件 | 用户已有聊天页/QA 变更已由提交 `c28a4bc fix(聊天): 对齐SSE重连状态与验收证据` 保留；阿里手册临时 PDF `tmp/pdfs` 已清理，当前 Git 工作树干净。 |
 | 数据与暂缓边界 | 未执行迁移、validation、rollback、truncate、备份恢复、数据库硬删除、性能压测、依赖重启、ACK/重复消息故障注入或真实云模型/embedding 调用。 |
 | 结论 | 当前业务功能、测试、Java 格式/架构/代码规范、Python 运行时和前端构建门禁均可复核；M1-6 性能/故障类门禁及 M3 生产运维项继续后置。 |
+
+## D30 Refresh Token 业务路径接入与轮换验证（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | 接入已有 V1 `auth_refresh_tokens` 表：Java application/infrastructure 增加 refresh token 端口和 PostgreSQL 原子 claim；登录/注册设置 HttpOnly refresh Cookie；`POST /api/auth/refresh` 轮换 session、CSRF 和 refresh Cookie；注销、改密、密码重置、账号注销和管理员撤销全部会话联动撤销 refresh token；前端 API Client 对普通 API 401 做一次共享刷新后重试。 |
+| 安全边界 | 数据库只保存 token hash、过期、撤销、轮换来源和设备摘要；明文 refresh token 不进入 JSON、日志或 localStorage。Refresh endpoint 不要求旧 session 的 CSRF，但强制同源；缺失、过期或已消费 token 返回 `AUTH_REFRESH_TOKEN_INVALID`。 |
+| Java 业务测试 | `mvnw.cmd -pl foodmate-api -am test '-Dtest=AuthCookieMatrixTest,P1AccountControllerTest,AdminManagementControllerTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：`11/11` 通过；随后最终认证用例复跑 `AuthCookieMatrixTest,P1AccountControllerTest` 为 `9/9`；覆盖 Cookie 属性、明文 token 不进 JSON、轮换后旧 token 拒绝、注销撤销、缺失 token 稳定错误和管理员相关上下文。 |
+| 前端业务测试 | `npm.cmd test -- --run`：`38` 个测试文件、`192/192` 通过；`npm.cmd run typecheck` 通过；新增 401 刷新重试和 refresh endpoint 不递归测试。 |
+| 全量 Java 门禁 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `166/166`、Infrastructure `81`（17 skipped）、API `64/64`、Bootstrap `58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| 数据边界 | 未新增迁移，未执行迁移、truncate、备份恢复、数据库硬删除或生产数据库写入；V1 表和索引作为现有契约使用。工作树中用户已有 Planning/QA 文件未暂存、未回滚。 |
+| 暂缓范围 | 未进行真实 PostgreSQL refresh HTTP 联调、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障矩阵、真实云模型/embedding、staging/production、发布回滚和不可逆清理。 |
+| 结论 | 刷新令牌核心业务代码、API 契约、前端恢复行为和业务测试已完成；头像写路径独立验收、M1-6 性能/故障类门禁及 M3 生产运维项保持未完成。 |

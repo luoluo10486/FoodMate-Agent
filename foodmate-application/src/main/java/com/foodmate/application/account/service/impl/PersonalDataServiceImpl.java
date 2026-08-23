@@ -134,6 +134,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
         store.insertDeletionJob(id, userId);
         store.disableUser(userId);
         store.revokeSessions(userId);
+        store.revokeRefreshTokens(userId);
         record(
                 userId,
                 "user",
