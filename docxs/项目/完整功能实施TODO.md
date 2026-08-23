@@ -171,7 +171,7 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [ ] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表，`user_memories` 不复制权威业务实体。
 - [x] M1 不引入 `pgvector`；仅当结构化检索经 Eval 证明召回不足后作为可选增强评估。
 - [x] 删除或更正长期记忆后使相关摘要和 Context 引用失效；完整缓存传播和删除防再生仍属于后续增强。
-- [ ] 为每次 Context 装配保存可审计来源 ID：`message_id/summary_id/memory_id/citation_id`，但不得保存 Chain-of-Thought 或完整 Prompt。
+- [x] 为每次 Context 装配保存可审计来源 ID：Python 通过非终态 `run.context_assembled` 只回传 `message_id/summary_id/memory_id/citation_id`，Java 在同一事件事务写入统一审计；不保存 Chain-of-Thought、完整 Prompt 或正文。
 - [x] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。当前已接入 Lua/ZSET lease，未引入进程内 semaphore。
 - [ ] 完成生产级优先队列、permit lease、aging、防饥饿和 Redis 故障关闭；当前已实现有限 priority + FIFO aging 基础和协调不可用 503，仍缺 Redis 故障注入与长期防饥饿验证。
 - [x] 完成 queue、execution、node、waiting_user、cancel drain 超时，Run 接受时固化 `TimeoutSnapshot`，取消或超时后可靠释放 permit。当前已实现 queue/execution 扫描和终态释放，node/cancel drain 的独立执行器与 waiting_user 专用 deadline 仍需强化。

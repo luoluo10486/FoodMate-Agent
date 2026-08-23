@@ -29,7 +29,7 @@ class RuntimeContractTests(unittest.TestCase):
         command = {"run_id": "1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
         with patch.object(runtime_server, "emit", side_effect=lambda *args: events.append(args[3])):
             runtime_server.execute(command)
-        self.assertEqual(["run.accepted", "run.routed", "run.model_usage", "run.eval_decided", "run.answer_stream", "run.completed"], events)
+        self.assertEqual(["run.accepted", "run.routed", "run.context_assembled", "run.model_usage", "run.eval_decided", "run.answer_stream", "run.completed"], events)
 
     def test_emit_bounds_event_id_to_postgres_contract(self):
         published = []
@@ -135,14 +135,50 @@ class RuntimeContractTests(unittest.TestCase):
         ):
             runtime_server.execute(command)
         self.assertEqual(
-            ["run.accepted", "run.routed", "run.checkpoint_saved", "run.eval_decided", "run.clarification_requested"],
+            ["run.accepted", "run.routed", "run.context_assembled", "run.checkpoint_saved", "run.eval_decided", "run.clarification_requested"],
             [event[0] for event in events],
         )
-        self.assertEqual(1, events[2][1]["checkpoint_version"])
-        self.assertTrue(events[2][1]["checkpoint_digest"].startswith("sha256:"))
+        self.assertEqual(1, events[3][1]["checkpoint_version"])
+        self.assertTrue(events[3][1]["checkpoint_digest"].startswith("sha256:"))
         checkpoint = runtime_server._checkpoint.load("waiting-run:waiting-dispatch")
         self.assertIsNotNone(checkpoint)
         self.assertEqual("execution", checkpoint[1]["current_node"])
+
+    def test_context_assembly_event_contains_only_authorized_source_ids(self):
+        events = []
+        command = {
+            "run_id": "context-run",
+            "dispatch_id": "context-dispatch",
+            "deadline_at": "x",
+            "attempt": 1,
+            "message": {"message_id": "message-current", "content": "hello"},
+            "authorized_context": {
+                "recent_messages": [{"message_id": "message-1", "content": "old"}],
+                "session_summary": {"summary_id": "summary-1", "summary_text": "private text"},
+                "long_term_memories": [{"memory_id": "memory-1", "memory_value": "private value"}],
+                "citations": [{"citation_id": "citation-1", "snippet": "private snippet"}],
+            },
+        }
+        with patch.object(
+            runtime_server,
+            "emit",
+            side_effect=lambda *args: events.append((args[3], args[4] if len(args) > 4 else {})),
+        ), patch.object(runtime_server, "_attach_public_citations", side_effect=lambda value: value):
+            runtime_server.execute(command)
+
+        context_event = next(payload for event, payload in events if event == "run.context_assembled")
+        self.assertEqual(
+            {
+                "message_id": ["message-1", "message-current"],
+                "summary_id": ["summary-1"],
+                "memory_id": ["memory-1"],
+                "citation_id": ["citation-1"],
+            },
+            context_event["source_ids"],
+        )
+        self.assertNotIn("private text", json.dumps(context_event))
+        self.assertNotIn("private value", json.dumps(context_event))
+        self.assertNotIn("private snippet", json.dumps(context_event))
 
     def test_budget_thresholds_and_utf8_chunking(self):
         budget = BudgetSnapshot(max_total_tokens=100, max_cost_cny=1)

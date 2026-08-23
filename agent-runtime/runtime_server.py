@@ -93,6 +93,18 @@ def _record_provider_failure(error: ModelProviderError, elapsed_ms: int) -> None
     _eval_metrics.record("degrade", reason, elapsed_ms)
 
 
+def _context_source_payload(context) -> dict[str, object]:
+    """Expose source identifiers only; context text remains Java-authorized data."""
+    source_ids: dict[str, list[str]] = {}
+    for source_type in ("message_id", "summary_id", "memory_id", "citation_id"):
+        source_ids[source_type] = [
+            str(value)[:128]
+            for value in context.sources.get(source_type, ())
+            if str(value).strip()
+        ][:16]
+    return {"source_ids": source_ids}
+
+
 def _eval_payload(execution) -> dict[str, object]:
     """Expose the quality-gate fact without retaining the candidate answer or prompt."""
     return {
@@ -445,6 +457,19 @@ def execute(command):
         execution_command["_checkpoint_key"] = (
             str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
         )
+
+        def observe_context(context) -> None:
+            nonlocal next_sequence
+            emit(
+                command,
+                prefix + f"-context-{next_sequence}",
+                next_sequence,
+                "run.context_assembled",
+                _context_source_payload(context),
+            )
+            next_sequence += 1
+
+        execution_command["_context_observer"] = observe_context
         execution = run_deterministic(execution_command, _checkpoint)
         all_results: list[dict] = []
         while execution.proposals:
@@ -517,6 +542,7 @@ def execute(command):
             if query_result and query_result.get("query_plan"):
                 authorized["database_query_plan"] = query_result["query_plan"]
             resumed["authorized_context"] = authorized
+            resumed["_context_observer"] = observe_context
             follow_up = run_deterministic(resumed, _checkpoint)
             follow_up.model_attempts = execution.model_attempts + follow_up.model_attempts
             follow_up.usage.tokens += execution.usage.tokens

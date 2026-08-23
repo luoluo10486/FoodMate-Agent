@@ -12,7 +12,7 @@ import math
 import os
 import time
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
 from proposal_protocol import Proposal, validate_proposal
@@ -663,7 +663,12 @@ class AgentExecution:
     proposals: list[dict[str, Any]] = field(default_factory=list)
 
 
-def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | None = None, model_router: ModelRouter | None = None) -> AgentExecution:
+def run_deterministic(
+    command: dict[str, Any],
+    checkpoint: InMemoryCheckpoint | None = None,
+    model_router: ModelRouter | None = None,
+    context_observer: Callable[[Context], None] | None = None,
+) -> AgentExecution:
     # Runtime execution state must not overwrite the resumable tool-wait checkpoint.
     # Direct callers keep the historical key; the RocketMQ path supplies a private
     # state key and leaves the recovery key to checkpoint boundary writes.
@@ -680,6 +685,9 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
         int(options.get("context_max_recent_messages", 8)),
         int(options.get("context_max_tokens", os.getenv("FOODMATE_AGENT_CONTEXT_MAX_TOKENS", "12000"))),
     ).build(command, route)
+    observer = context_observer or command.get("_context_observer")
+    if callable(observer):
+        observer(context)
     plan = DeterministicPlanner().plan(route)
     graph = WorkflowGraph(BudgetSnapshot.from_command(command).max_total_steps)
     graph.enter("router")

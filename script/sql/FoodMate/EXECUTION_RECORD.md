@@ -578,3 +578,14 @@
 | 工作区保护 | UI/Figma/QA、`tmp` 和 Python `__pycache__` 改动仍未暂存；未执行迁移、truncate、宽泛删除、备份恢复或实际清理 |
 | 未执行范围 | 性能压测、组件重启、ACK 丢失、重复投递、SSE `Last-Event-ID` 故障矩阵、真实云服务、Docker 应用镜像和生产环境继续暂缓 |
 | 结论 | 当前功能版 Java/Python 业务门禁和可执行 Java 规范子集复跑通过；后置性能、故障恢复和生产强化不计入完成 |
+
+## D10 Context 来源 ID 审计业务切片（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | Python ContextBuilder 增加受控观察回调；Runtime 发布非终态 `run.context_assembled`，payload 仅包含 `message_id/summary_id/memory_id/citation_id`；Java 接受并通过统一 `OperationAuditService` 写入 `agent_run.context.assembled`，不保存正文、Prompt 或 Chain-of-Thought |
+| Java 验证 | `mvnw.cmd -pl foodmate-application -am '-Dtest=V1RuntimeContextAuditTest,RuntimeEventMessageProcessorTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`：9/9 通过；覆盖来源 ID、事件投影和审计失败时阻止事件落库 |
+| Python 验证 | `agent-runtime/.venv/Scripts/python.exe -m pytest -q tests/test_runtime_server.py`：42/42 通过；覆盖正常、澄清、工具等待、恢复和来源脱敏路径 |
+| 格式 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 通过；新增/修改 Java 文件已格式化 |
+| 数据边界 | 未执行迁移、清库、truncate、真实模型/embedding、性能压测或组件故障注入；用户已有 UI/Figma、`tmp` 和 Python 缓存改动未暂存 |
+| 结论 | Context 来源 ID 已具备业务级可审计闭环；生产 Trace 聚合、预算/Eval 指标平台和用户反馈入口仍属于后续切片，不因本项完成而标记完成；已创建独立功能提交 |

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.common.service.AgentOperationMetrics;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.conversation.service.MemoryCandidateService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository;
@@ -15,10 +16,13 @@ import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1RunEvent;
 import com.foodmate.shared.runtime.enums.DispatchState;
 import com.foodmate.shared.runtime.enums.RunStatus;
+import com.foodmate.shared.trace.TraceContext;
+import com.foodmate.shared.trace.TraceContextHolder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +36,7 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
     private final AgentAdmissionService admission;
     private final MemoryCandidateService memories;
     private final AgentOperationMetrics metrics;
+    private final OperationAuditService audit;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     private final Map<String, List<V1RunEvent>> memoryEvents = new HashMap<>();
     private final Map<String, Long> memorySequence = new HashMap<>();
@@ -53,7 +58,16 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
             IdGenerator ids,
             ObjectProvider<AgentAdmissionService> admissionProvider,
             ObjectProvider<MemoryCandidateService> memoryProvider) {
-        this(storeProvider, ids, admissionProvider, memoryProvider, null);
+        this(storeProvider, ids, admissionProvider, memoryProvider, null, null);
+    }
+
+    public V1RuntimeEventServiceImpl(
+            ObjectProvider<RuntimeEventRepository> storeProvider,
+            IdGenerator ids,
+            ObjectProvider<AgentAdmissionService> admissionProvider,
+            ObjectProvider<MemoryCandidateService> memoryProvider,
+            ObjectProvider<AgentOperationMetrics> metricsProvider) {
+        this(storeProvider, ids, admissionProvider, memoryProvider, metricsProvider, null);
     }
 
     @Autowired
@@ -62,12 +76,14 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
             IdGenerator ids,
             ObjectProvider<AgentAdmissionService> admissionProvider,
             ObjectProvider<MemoryCandidateService> memoryProvider,
-            ObjectProvider<AgentOperationMetrics> metricsProvider) {
+            ObjectProvider<AgentOperationMetrics> metricsProvider,
+            ObjectProvider<OperationAuditService> auditProvider) {
         this.store = storeProvider.getIfAvailable();
         this.ids = ids;
         this.admission = admissionProvider == null ? null : admissionProvider.getIfAvailable();
         this.memories = memoryProvider == null ? null : memoryProvider.getIfAvailable();
         this.metrics = metricsProvider == null ? null : metricsProvider.getIfAvailable();
+        this.audit = auditProvider == null ? null : auditProvider.getIfAvailable();
     }
 
     @Transactional
@@ -117,6 +133,7 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         String status = statusFor(event);
         boolean changesRunStatus = !"unchanged".equals(status);
         JsonNode projectedPayload = visibleCitations(event.payload());
+        auditContextAssembly(event, runId, projectedPayload);
         String payload = json(projectedPayload);
         store.insertEvent(ids.nextId(), runId, event, payload);
         if ("run.model_usage".equals(event.eventType())) persistModelUsage(runId, event);
@@ -339,7 +356,8 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
             case "run.cancel_acknowledged",
                     "run.model_usage",
                     "run.checkpoint_saved",
-                    "run.eval_decided" ->
+                    "run.eval_decided",
+                    "run.context_assembled" ->
                     "unchanged";
             default ->
                     throw new com.foodmate.shared.runtime.RuntimeException(
@@ -357,6 +375,47 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
     private static boolean isTerminal(String status) {
         if ("unchanged".equals(status)) return false;
         return RunStatus.fromCode(status).isTerminal();
+    }
+
+    private void auditContextAssembly(V1RunEvent event, long runId, JsonNode payload) {
+        if (audit == null || !"run.context_assembled".equals(event.eventType())) return;
+        RunOwner owner = store.lockOwner(runId);
+        if (owner == null)
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_STATE_CONFLICT", "run owner is missing");
+        TraceContextHolder.runWith(
+                TraceContext.of(event.requestId(), event.traceId()),
+                () ->
+                        audit.record(
+                                owner.userId(),
+                                "agent_run",
+                                Long.toString(runId),
+                                "agent_run.context.assembled",
+                                "success",
+                                null,
+                                null,
+                                null,
+                                Map.of(
+                                        "context_source_message_ids",
+                                                sourceIds(payload, "message_id"),
+                                        "context_source_summary_ids",
+                                                sourceIds(payload, "summary_id"),
+                                        "context_source_memory_ids",
+                                                sourceIds(payload, "memory_id"),
+                                        "context_source_citation_ids",
+                                                sourceIds(payload, "citation_id"))));
+    }
+
+    private String sourceIds(JsonNode payload, String sourceType) {
+        JsonNode values = payload.path("source_ids").path(sourceType);
+        if (!values.isArray()) return "";
+        StringJoiner result = new StringJoiner(",");
+        for (JsonNode value : values) {
+            if (!value.isTextual() || value.asText().isBlank()) continue;
+            String id = value.asText();
+            result.add(id.substring(0, Math.min(id.length(), 128)));
+        }
+        return result.toString();
     }
 
     private void persistModelUsage(long runId, V1RunEvent event) {
