@@ -653,3 +653,13 @@
 | 数据库边界 | 未执行 V26 目标数据库迁移、truncate、备份恢复或清理；rollback 文件仅为人工只读前置检查。 |
 | 未执行范围 | 不包含性能压测、组件重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/embedding、生产部署或不可逆删除。 |
 | 结论 | 结构化反馈代码与业务主路径测试完成；V26 迁移需按人工数据库流程另行执行并登记，不因本切片完成将 M1-6 或 M3 整体标记为完成。 |
+
+## D16 反馈模块边界修复与全量 Java 门禁（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 修复提交 | `e0e6d5b fix(feedback): 隔离API与持久化视图依赖`；API 改为依赖 Application Service 的 `FeedbackResult`，不再引用 `port.out` 持久化视图。 |
+| 全量验证 | `mvnw.cmd verify`：BUILD SUCCESS；Shared `12/12`、Application `162/162`、Infrastructure `73/73`（11 skipped）、API `61/61`、Bootstrap `58/58`（37 skipped）；ArchUnit、Spotless、编译和 Spring Boot repackage 通过。 |
+| 失败与修正 | 首次全量验证发现 ArchUnit 拒绝 Controller 直接依赖 `AgentFeedbackRepository.FeedbackView`；已提取 Application Service 返回契约，并将幂等重放测试改为逐字段断言。 |
+| 数据与运行边界 | 未执行 V26 迁移、真实 PostgreSQL 写入、性能压测、组件重启、ACK 丢失、重复投递或 SSE 故障恢复；用户已有 UI/Figma/QA、Python 缓存和 `tmp` 未提交。 |
+| 结论 | 反馈业务代码通过全量 Java 业务门禁，模块依赖边界符合 ArchUnit；数据库迁移和后置运维测试仍未完成。 |
