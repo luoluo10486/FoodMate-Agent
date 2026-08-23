@@ -8,7 +8,6 @@ import {
   CircleSlash,
   LoaderCircle,
   MessageCircle,
-  RefreshCw,
   Search,
   XCircle,
   X,
@@ -203,6 +202,8 @@ type ChatSurfaceProps = {
   profileIdOverride?: string;
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
+  statusForStrip?: AgentDisplayStatus;
+  statusVisualState?: 'user-cancelled';
   pageOverlay?: ReactNode;
   sidebarFixture?: {
     sessions: SessionSummary[];
@@ -230,6 +231,8 @@ function ChatSurface({
   profileIdOverride,
   showKnowledgeTopNav,
   designChat,
+  statusForStrip,
+  statusVisualState,
   pageOverlay,
   sidebarFixture,
 }: ChatSurfaceProps) {
@@ -250,7 +253,12 @@ function ChatSurface({
       <div className={`${styles.page} ${designChat ? styles.designChatPage : ''}`}>
         <section className={styles.workspace}>
           <div className={styles.center}>
-            <AgentStatusStrip status={run.status} failedStep={run.failedStep} preserveTones={designChat} />
+            <AgentStatusStrip
+              status={statusForStrip ?? run.status}
+              failedStep={run.failedStep}
+              preserveTones={designChat}
+              visualState={statusVisualState}
+            />
             <div className={styles.messages} ref={messagesRef}>
               {children}
             </div>
@@ -1423,7 +1431,9 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
                 </AlertDescription>
               </Alert>
               <div className={styles.fixtureSafetyResponse}>
-                <p className={styles.fixtureSafetyIntro}>由于无法连接到本地营养配方数据库，以下为您推荐基础低钠食谱：</p>
+                <p className={styles.fixtureSafetyIntro}>
+                  由于无法连接到本地营养配方数据库，以下为您推荐基础低钠食谱：
+                </p>
                 <div className={styles.fixtureSafetyDetails}>
                   <p>1. **清蒸鳕鱼配西兰花**（预计钠含量：120mg）</p>
                   <p>2. **香草烤鸡胸肉配糙米饭**（预计钠含量：150mg）</p>
@@ -1439,21 +1449,19 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     if (state === 'user-cancelled') {
       return (
         <div className={styles.fixtureCancelledWrap}>
-          <p className={styles.fixtureAssistantText}>
-            正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...
-          </p>
+          <div className={styles.fixtureCancelledAssistantRow}>
+            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <div className={styles.fixtureCancelledAssistantBody}>
+              <p className={styles.fixtureAssistantText}>
+                正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...
+              </p>
+            </div>
+          </div>
           <div className={styles.fixtureCancelledNotice}>
-            <CircleSlash aria-hidden="true" />
+            <img src="/assets/figma/agent-chat/cancel-slash.svg" alt="" />
             <span>用户已取消此次运行 · 2:16 PM</span>
           </div>
           <p className={styles.fixtureCenteredText}>你可以重新提问或开始新的对话</p>
-          <Button
-            variant="outline"
-            onClick={() => report('restarted', '已准备重新开始；真实运行需要由后端创建新的 Run。')}
-          >
-            <RefreshCw aria-hidden="true" />
-            重新开始提问
-          </Button>
         </div>
       );
     }
@@ -1479,10 +1487,14 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       input={input}
       running={state === 'sse-reconnecting'}
       disabled={state === 'budget-limit' || state === 'sse-reconnecting'}
+      statusForStrip={state === 'user-cancelled' ? 'planning' : undefined}
+      statusVisualState={state === 'user-cancelled' ? 'user-cancelled' : undefined}
       onChange={setInput}
       onSend={() => {
         if (state === 'safety-degraded' && input.trim())
           setActionMessage('已保留追问入口；真实模式下将由当前 Run 继续处理。');
+        if (state === 'user-cancelled' && input.trim())
+          report('restarted', '已准备重新开始；真实运行需要由后端创建新的 Run。');
       }}
       onStop={() => setActionMessage('取消状态会保留已接收文本，真实取消请求需要绑定具体 run_id。')}
       placeholder={
@@ -1492,7 +1504,9 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
             ? '追加预算以继续当前会话...'
             : state === 'sse-reconnecting'
               ? '等待重新连接...'
-              : '追问或添加自定义指令...'
+              : state === 'user-cancelled'
+                ? '重新开始提问...'
+                : '追问或添加自定义指令...'
       }
       showTrace={false}
       designChat

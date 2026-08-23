@@ -255,7 +255,17 @@ describe('ChatPage Agent remaining states', () => {
     renderState('user-cancelled');
     expect(screen.getByText(/用户已取消此次运行/)).toBeInTheDocument();
     expect(screen.queryByText(/运行失败/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '重新开始提问' }));
+    const statusItems = screen.getAllByRole('listitem').map((item) => item.textContent);
+    expect(statusItems).toContain('Planning●');
+    expect(statusItems).toContain('Retrieving○');
+    expect(statusItems).toContain('Executing○');
+    expect(statusItems).toContain('Composing○');
+    expect(
+      screen.getByText('正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...'),
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('重新开始提问...')).toBeEnabled();
+    fireEvent.change(screen.getByPlaceholderText('重新开始提问...'), { target: { value: '重新开始' } });
+    fireEvent.click(screen.getByRole('button', { name: '发送消息' }));
     expect(screen.getByRole('status')).toHaveTextContent('新的 Run');
   });
 

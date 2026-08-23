@@ -78,6 +78,16 @@
   color: #ff6b68;
 }
 
+.cancelledActive {
+  background: #fff6e2;
+  color: #c79654;
+}
+
+.cancelledPending {
+  background: rgba(107, 114, 128, 0.08);
+  color: #6b7280;
+}
+
 @media (max-width: 720px) {
   .strip {
     gap: 8px;
