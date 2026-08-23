@@ -111,6 +111,11 @@ foodmate:
       plan-validator: true
   audit:
     enabled: true
+  agent:
+    feedback:
+      enabled: ${FOODMATE_AGENT_FEEDBACK_ENABLED:true}
+      comment-max-length: ${FOODMATE_AGENT_FEEDBACK_COMMENT_MAX_LENGTH:1000}
+      audit-high-risk-enabled: ${FOODMATE_AGENT_FEEDBACK_AUDIT_HIGH_RISK_ENABLED:true}
 
 mybatis-plus:
   global-config:
