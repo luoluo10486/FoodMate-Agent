@@ -491,10 +491,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 177158,
-      "differentRatio": 0.12014295789930556,
-      "meanAbsoluteError": 1.5467569986979166,
-      "rmse": 12.21863361117841,
+      "differentPixels": 177280,
+      "differentRatio": 0.12022569444444445,
+      "meanAbsoluteError": 1.2603878445095487,
+      "rmse": 10.408203902812934,
       "maxChannelDelta": 230
     },
     "meal-plan-list": {

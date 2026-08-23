@@ -1990,7 +1990,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: error state hides the non-Figma advanced filters, uses the Figma error-card spacing/button dimensions, and keeps the retry action. PNG diff is 12.0143% / MAE 1.5468 / RMSE 12.2186; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: error state hides the non-Figma advanced filters, uses the Figma error-card spacing/button dimensions, and keeps the retry action. Sidebar fixture navigation icons are 16px and no desktop window controls are rendered. PNG diff is 12.0226% / MAE 1.2604 / RMSE 10.4082; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",

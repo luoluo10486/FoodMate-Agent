@@ -47,6 +47,13 @@
   margin-top: 4px;
 }
 
+.figmaFixture .sideLink svg,
+.figmaFixture .sideButton svg,
+.figmaFixture :global(.sidebar-session-section-title) svg {
+  width: 16px;
+  height: 16px;
+}
+
 .withRail {
   grid-template-columns: 260px minmax(0, 1fr) 320px;
 }
