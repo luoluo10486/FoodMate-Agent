@@ -113,7 +113,15 @@ class AgentFeedbackServiceImplTest {
                         new AgentFeedbackService.SubmitCommand(
                                 true, List.of(), null, "feedback-1"));
 
-        assertEquals(previous, result);
+        assertEquals(previous.feedbackId(), result.feedbackId());
+        assertEquals(previous.userId(), result.userId());
+        assertEquals(previous.runId(), result.runId());
+        assertEquals(previous.messageId(), result.messageId());
+        assertEquals(previous.helpful(), result.helpful());
+        assertEquals(previous.reasonCodes(), result.reasonCodes());
+        assertEquals(previous.highRisk(), result.highRisk());
+        assertEquals(previous.idempotencyKey(), result.idempotencyKey());
+        assertEquals(previous.parametersDigest(), result.parametersDigest());
     }
 
     private static AgentFeedbackService service(

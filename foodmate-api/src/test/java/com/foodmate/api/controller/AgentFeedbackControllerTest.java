@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.foodmate.api.advice.GlobalExceptionHandler;
 import com.foodmate.api.controller.runtime.AgentFeedbackController;
 import com.foodmate.application.account.service.UserAccountService;
-import com.foodmate.application.runtime.port.out.AgentFeedbackRepository;
 import com.foodmate.application.runtime.service.AgentFeedbackService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +47,7 @@ class AgentFeedbackControllerTest {
     void authenticatesAndPassesStructuredFeedback() throws Exception {
         when(feedback.submit(anyLong(), anyLong(), anyLong(), any()))
                 .thenReturn(
-                        new AgentFeedbackRepository.FeedbackView(
+                        new AgentFeedbackService.FeedbackResult(
                                 100L,
                                 7L,
                                 42L,

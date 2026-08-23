@@ -4,7 +4,6 @@ import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
 import com.foodmate.api.request.runtime.AgentFeedbackRequest;
 import com.foodmate.api.response.runtime.AgentFeedbackResponse;
 import com.foodmate.application.account.service.UserAccountService;
-import com.foodmate.application.runtime.port.out.AgentFeedbackRepository.FeedbackView;
 import com.foodmate.application.runtime.service.AgentFeedbackService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
@@ -36,7 +35,7 @@ public class AgentFeedbackController extends AuthenticatedControllerSupport {
             HttpServletRequest request,
             @Valid @RequestBody AgentFeedbackRequest body) {
         long userId = user(request).userId();
-        FeedbackView result =
+        AgentFeedbackService.FeedbackResult result =
                 feedback.submit(
                         userId,
                         runId,
@@ -49,7 +48,7 @@ public class AgentFeedbackController extends AuthenticatedControllerSupport {
         return ApiResponse.success(map(result), TraceContextHolder.currentOrNew());
     }
 
-    private AgentFeedbackResponse map(FeedbackView value) {
+    private AgentFeedbackResponse map(AgentFeedbackService.FeedbackResult value) {
         return new AgentFeedbackResponse(
                 Long.toString(value.feedbackId()),
                 Long.toString(value.runId()),

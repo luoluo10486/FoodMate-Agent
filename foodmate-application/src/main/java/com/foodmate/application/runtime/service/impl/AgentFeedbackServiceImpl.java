@@ -64,7 +64,7 @@ public class AgentFeedbackServiceImpl implements AgentFeedbackService {
 
     @Transactional
     @Override
-    public FeedbackView submit(long userId, long runId, long messageId, SubmitCommand command) {
+    public FeedbackResult submit(long userId, long runId, long messageId, SubmitCommand command) {
         if (!enabled) throw new BusinessException(ErrorCode.AGENT_FEEDBACK_DISABLED);
         if (store == null || ids == null)
             throw new BusinessException(ErrorCode.COORDINATION_UNAVAILABLE, "反馈存储暂不可用");
@@ -73,7 +73,7 @@ public class AgentFeedbackServiceImpl implements AgentFeedbackService {
         if (previous != null) {
             if (!previous.parametersDigest().equals(validated.parametersDigest()))
                 throw new BusinessException(ErrorCode.AGENT_FEEDBACK_CONFLICT, "反馈幂等键参数不一致");
-            return previous;
+            return result(previous);
         }
         FeedbackTarget target = store.target(userId, runId, messageId);
         if (target == null)
@@ -103,7 +103,7 @@ public class AgentFeedbackServiceImpl implements AgentFeedbackService {
                                 validated.parametersDigest()));
         if (inserted != 1) {
             FeedbackView concurrent = store.findByMessage(userId, runId, messageId);
-            if (concurrent != null) return concurrent;
+            if (concurrent != null) return result(concurrent);
             throw new BusinessException(ErrorCode.AGENT_FEEDBACK_CONFLICT, "反馈提交冲突");
         }
         if (audit != null) {
@@ -126,7 +126,7 @@ public class AgentFeedbackServiceImpl implements AgentFeedbackService {
                                             ? "high"
                                             : "normal"));
         }
-        return new FeedbackView(
+        return new FeedbackResult(
                 feedbackId,
                 userId,
                 runId,
@@ -136,6 +136,19 @@ public class AgentFeedbackServiceImpl implements AgentFeedbackService {
                 validated.highRisk(),
                 validated.idempotencyKey(),
                 validated.parametersDigest());
+    }
+
+    private FeedbackResult result(FeedbackView value) {
+        return new FeedbackResult(
+                value.feedbackId(),
+                value.userId(),
+                value.runId(),
+                value.messageId(),
+                value.helpful(),
+                value.reasonCodes(),
+                value.highRisk(),
+                value.idempotencyKey(),
+                value.parametersDigest());
     }
 
     private ValidatedCommand validate(SubmitCommand command) {
