@@ -698,3 +698,17 @@
 | 静态业务验证 | `mvnw.cmd -pl foodmate-infra -am test '-Dtest=FlywayV26MigrationScriptTest,FlywayV16V17KnowledgeMigrationScriptTest,FlywayV25MigrationScriptTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：`6/6` 通过；覆盖 V16/V17、V25 和 V26 配套脚本。 |
 | 数据库边界 | 未执行 V26 或其他迁移、validation、rollback、truncate、备份恢复或数据清理；未改变目标 PostgreSQL 状态。 |
 | 结论 | SQL 目录当前版本说明与实际文件一致；V26 迁移仍需单独人工授权、备份和目标库校验后才可执行。 |
+
+## D20 最终业务门禁与前端构建（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 前端 | 在 `foodmate-ui` 执行 `npm.cmd run build`：TypeScript 两套配置检查通过，Vite 生产构建通过（2010 modules transformed）。未将用户已有 UI/Figma/QA 改动纳入本轮提交。 |
+| Java | 复用本轮已登记的 `mvnw.cmd clean verify` 结果：BUILD SUCCESS；Shared `12/12`、Application `164/164`、Infrastructure `73/73`（11 skipped）、API `61/61`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit、编译和 repackage 通过。 |
+| Java 规范 | 复用本轮已登记的 `mvnw.cmd -Palibaba-code-style verify -DskipTests` 结果：六个模块 Checkstyle 均为 `0 violations`；通配符 import、泛化 `catch (Exception/Throwable)`、`System.out/err`、`printStackTrace` 和 `MAX(id)+1` 扫描为 0。 |
+| Python | 复用本轮已登记的项目 `.venv` pytest 结果：`116 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用付费模型或真实 embedding。 |
+| Docker | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；Java `/actuator/health/readiness` 和 Python `/foodmate/internal/health/ready` 均已登记 HTTP 200，应用及 PostgreSQL、Redis、MinIO、RocketMQ、Milvus 依赖保持 healthy。 |
+| PostgreSQL | 只读核验已登记：当前数据库未执行迁移；`flyway_schema_history`、`agent_feedback` 不存在，`knowledge_import_jobs`、`knowledge_index_outbox` 存在；未执行 truncate、备份恢复或硬删除。 |
+| 数据与工作区 | 未修改或清理用户已有 UI/Figma/QA、Python `__pycache__` 和 `tmp` 改动；未新增业务数据、迁移或宽泛清理。 |
+| 暂缓范围 | 性能压测、吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、staging/production、备份恢复、发布回滚和不可逆硬删除继续暂缓。 |
+| 结论 | 当前功能版 Java、Python、前端业务门禁、Docker 配置/readiness 和 M2-1 deterministic 业务闭环证据齐全；后置性能、故障、真实外部服务和生产项不标记为完成。 |
