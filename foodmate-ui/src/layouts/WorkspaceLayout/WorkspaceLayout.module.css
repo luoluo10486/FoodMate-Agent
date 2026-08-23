@@ -43,8 +43,23 @@
 }
 
 .figmaFixture :global(.sidebar-session-pagination) {
+  width: 212px;
   height: 22px;
   margin-top: 4px;
+  font-family: var(--fm-font);
+  font-size: 10px;
+  line-height: 13px;
+}
+
+.figmaFixture :global(.sidebar-session-pagination) > span {
+  width: 22px;
+  line-height: 13px;
+  text-align: center;
+}
+
+.figmaFixture :global(.sidebar-session-pagination) svg {
+  width: 8px;
+  height: 14px;
 }
 
 .figmaFixture .sideLink svg,

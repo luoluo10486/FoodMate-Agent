@@ -19,4 +19,18 @@ describe('WorkspaceLayout shell controls', () => {
     expect(screen.getByRole('button', { name: '通知' })).toHaveClass('inline-flex');
     expect(screen.getByRole('button', { name: '梁同学' })).toHaveClass('inline-flex');
   });
+
+  it('renders the Figma fixture pagination as a compact control', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout sidebarFixture={{ sessions: [], currentPage: 1 }}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('.sidebar-session-pagination')).toBeInTheDocument();
+    expect(container.querySelectorAll('.sidebar-session-pagination svg')).toHaveLength(2);
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+  });
 });
