@@ -803,3 +803,16 @@
 | 审计与数据边界 | 本轮文档的管理员写操作产生 5 条 `operation_audits`；仅通过正式删除接口软删除本轮文档，保留 PostgreSQL chunk、Outbox、Redis 去重/索引事实以维持审计和可追溯性。未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理。 |
 | 暂缓范围 | 性能吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、真实 embedding、staging/production 和发布回滚继续暂缓。 |
 | 结论 | M2-1 Docker `local-stub` 业务主路径取得直接证据：上传、RocketMQ 索引、Java 结果回写、Redis 检索、显式发布、AgentRun 引用、下线/恢复/删除可见性门禁均通过；后置性能与故障类门禁不因此标记完成。 |
+
+## D28 业务契约注释、导入规范与功能版门禁复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Git 提交 | `af294f3 fix(规范): 消除测试源码通配符导入`；`60ba6f4 规范(知识库): 补充跨模块契约注释`。用户已有 `foodmate-ui` CSS/TSX、QA 截图和 `tmp` 未暂存、未回滚。 |
+| 代码规范 | 测试源码通配符 import 扫描为 `0`；生产源码控制台输出、堆栈打印、泛化异常捕获和 `MAX(id)+1` 扫描保持 `0`。受影响模块 Spotless check 和 Java 编译通过。 |
+| Java 业务验证 | 知识库索引/检索/上传、DLQ 重放、保留治理和管理控制器定向测试共 `56` 个通过：Application `39`、Infrastructure `9`、API `8`；未开启本地依赖 E2E 的测试仍按开关跳过。 |
+| Python 业务验证 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`116 passed、1 skipped、2 warnings`；跳过项为显式真实云集成，未调用真实模型或 embedding。 |
+| Docker 验证 | 使用临时显式环境变量执行 `docker compose -f docker/compose.yml config --quiet`，结果为 `COMPOSE_CONFIG_OK`；foodmate、agent-runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 相关容器均 healthy。 |
+| SQL 目录 | `migration` V2-V26 共 25 个增量脚本，`validation` 18 个，`rollback` 18 个；V3-V12 历史缺失配套仍按 README 矩阵说明，不新增危险删除脚本，不执行迁移或校验写操作。 |
+| 数据边界 | 未执行迁移、validation、rollback、truncate、数据库硬删除、备份恢复或宽泛清理；没有调用真实云模型/embedding，也未执行性能压测或故障矩阵。 |
+| 结论 | M2-1/M2-2/M2-3 与 M3 当前业务代码及业务测试门禁保持通过；性能、重启、ACK/重复消息、SSE 故障恢复、真实外部服务、生产部署和不可逆清理继续后置。 |
