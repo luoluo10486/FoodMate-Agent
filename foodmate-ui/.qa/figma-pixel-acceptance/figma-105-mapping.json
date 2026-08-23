@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-08-18",
+    "capturedAt": "2026-08-23",
     "figmaMcp": "get_metadata"
   },
   "acceptanceRules": {
@@ -175,12 +175,12 @@
       "frontendRoute": "/analysis",
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/intake-analysis-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: intake-analysis semantics exist, but chart rendering, text density, card geometry, typography, and visual treatment differ.",
+      "evidenceNote": "Manual visual review completed: current Figma reference includes the session list and data-quality panel; the frontend shell geometry was rechecked, but icon treatment, font rasterization, and the main content visual treatment still differ.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -205,8 +205,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Intake-analysis semantics exist, but chart rendering, text density, card geometry, typography, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "侧栏窗口占位、账户停靠区和 Figma fixture 顶栏已完成当前版本几何复核；图标、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -219,8 +219,8 @@
       "frontendRoute": "/planning",
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/meal-planning-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-v2-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -967,12 +967,12 @@
       "frontendRoute": "/chat",
       "queryState": "state=awaiting-clarification",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-awaiting-clarification.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-awaiting-clarification-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-awaiting-clarification",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: state hierarchy aligns, but option labels are abbreviated relative to the Figma guidance copy.",
+      "evidenceNote": "Current Figma and browser evidence reviewed; visual differences remain in avatar treatment and rendering.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -997,8 +997,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Clarification state layout aligns, but the option labels omit the detailed Figma guidance copy and avatar treatment differs; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures match the clarification hierarchy and option labels. Avatar treatment and remaining font/icon rasterization differences are visible; retain DIFF_REVIEW."
       }
     },
     {
@@ -1011,12 +1011,12 @@
       "frontendRoute": "/chat",
       "queryState": "state=write-confirmation",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-write-confirmation.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-write-confirmation",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: the confirmation data and actions exist, but the card geometry and visual treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; confirmation data and actions exist, but the card geometry and visual treatment differ. PNG diff is 25.7218% / MAE 2.9444 / RMSE 16.2155; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1041,8 +1041,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Confirmation fields, source, assumptions, and actions are present. Card geometry, border, and action styling differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures contain the confirmation fields, source, assumptions, and actions. Card geometry, border, action styling, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -1055,12 +1055,14 @@
       "frontendRoute": "/chat",
       "queryState": "state=budget-limit",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-current.png",
+      "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-390x844-current.png",
+      "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: budget facts and actions exist, but the card geometry and status color treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: desktop Figma and browser PNGs are both 1440x1024; mobile browser PNG is 390x844. The received Agent explanation, paired avatars, narrow budget card, choice panel, 100% progress bar, projected cost, and continuation actions are present. PNG diff is 9.9195% / MAE 3.3263 / RMSE 19.4425; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1085,8 +1087,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Budget amount, utilization, projected cost, and continuation actions are present. Card geometry and status styling differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures contain the budget amount, utilization, projected cost, and continuation actions. The frontend now includes the received Agent explanation, paired avatars, narrow budget card, choice panel, and progress bar. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
       }
     },
     {
@@ -1143,12 +1145,14 @@
       "frontendRoute": "/chat",
       "queryState": "state=tool-failed-retryable",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-tool-failed-retryable.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-tool-failed-retryable-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-current.png",
+      "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-390x844-current.png",
+      "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: retry and skip actions are present, but alert-panel geometry and color treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: desktop Figma and browser PNGs are both 1440x1024; mobile browser PNG is 390x844. Retryable failure text, error code, retry and skip actions exist; the Agent avatar, failed process marker, alert-panel color, and button geometry were aligned. PNG diff is 13.4686% / MAE 2.6270 / RMSE 17.0862; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1173,8 +1177,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Retryable failure text and actions are present. Alert-panel geometry, color, and avatar treatment differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures contain the retryable failure text, error code, retry action, and skip action. The frontend now includes the left Agent avatar and failed process marker and uses the Figma alert treatment. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
       }
     },
     {
@@ -1187,12 +1191,14 @@
       "frontendRoute": "/chat",
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-safety-degraded-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current.png",
+      "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-390x844-current.png",
+      "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: safety wording is present, but warning-card hierarchy and visual treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: desktop Figma and browser PNGs are both 1440x1024; mobile browser PNG is 390x844. The avatar status label, compact safety warning bar, bounded response bubble, personal-condition limitation, and follow-up entry are present. PNG diff is 9.1837% / MAE 2.8734 / RMSE 17.6865; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1217,8 +1223,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Safety degradation and bounded-result text are present. Warning-card hierarchy, typography, and avatar treatment differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures contain the safety warning, bounded data scope, personal-condition limitation, and follow-up entry. The frontend now uses the Figma warning hierarchy, avatar status label, and bounded response bubble. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
       }
     },
     {
@@ -1231,12 +1237,12 @@
       "frontendRoute": "/chat",
       "queryState": "state=user-cancelled",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-user-cancelled-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: cancellation is distinguished from failure, but post-cancel action layout differs.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; partial text, cancellation reason, non-failure status, and restart action exist, but post-cancel action layout differs. PNG diff is 18.5095% / MAE 2.3318 / RMSE 14.4348; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1261,8 +1267,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Cancellation preserves partial content and is not represented as failure. The restart action and surrounding layout differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures preserve partial content, distinguish user cancellation from failure, and expose restart. Post-cancel action layout, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -1275,12 +1281,12 @@
       "frontendRoute": "/chat",
       "queryState": "state=sse-reconnecting",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-sse-reconnecting-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: reconnect count and refresh guidance are present, but notice geometry and placement differ.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; reconnect count, retained text, disabled composer, and refresh guidance exist, but notice geometry and placement differ. PNG diff is 27.1330% / MAE 2.9698 / RMSE 14.6906; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1305,8 +1311,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Reconnect attempt count, retained text, and refresh guidance are present. Reconnect notice width, placement, and avatar treatment differ from Figma; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current Figma and browser captures contain reconnect attempt count, retained text, disabled composer, and refresh guidance. Reconnect notice width, placement, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -1891,12 +1897,12 @@
       "frontendRoute": "/analysis",
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/intake-analysis-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-loading-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: intake-analysis loading semantics exist, but skeleton structure, chart container geometry, navigation context, and visual treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: loading metric cards now use the Figma 126px card geometry and matching 32px/16px skeleton sizes; remaining navigation, avatar, typography, and rasterization differences keep DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1921,8 +1927,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Intake-analysis loading semantics exist, but skeleton structure, chart container geometry, navigation context, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "The current browser capture matches the Figma loading metric-card height and skeleton geometry. Navigation context, avatar treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -1935,20 +1941,20 @@
       "frontendRoute": "/analysis",
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/intake-analysis-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-empty-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-chart-card-fixed.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: insufficient-data semantics exist, but chart empty-state geometry, iconography, copy density, navigation context, and visual treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: Figma outer chart card is 1116x391px with a 1068x308px empty chart region. The browser fixture now matches the outer card and inner region by drawing the border inside the box model. The frontend has no top-left window decoration candidates and business status dots remain. Fonts are loaded and the browser viewport is 1440x1024; retain DIFF_REVIEW for remaining whole-page visual differences.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -1962,11 +1968,17 @@
         "overflowCount": 0,
         "overflow": []
       },
+      "windowDecorationCheck": {
+        "status": "PASS",
+        "candidateCount": 0,
+        "scope": "frontend top-left only",
+        "businessStatusDotsPreserved": true
+      },
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Insufficient-data semantics exist, but chart empty-state geometry, iconography, copy density, navigation context, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "The Chromium fallback capture matches the Figma empty-state structure, metric-card height, chart-card y-position, 308px chart region, copy hierarchy, action dimensions, and chart-column asset. The frontend top-left window decoration candidate count is 0; business status dots are preserved. Avatar treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -1979,12 +1991,12 @@
       "frontendRoute": "/analysis",
       "queryState": "state=error",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/intake-analysis-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-error-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: intake-analysis error semantics and retry action exist, but container geometry, iconography, navigation context, and button treatment differ.",
+      "evidenceNote": "2026-08-23 recapture: error state hides the non-Figma advanced filters, uses the Figma error-card spacing/button dimensions, and keeps the retry action. Sidebar fixture navigation icons are 16px and no desktop window controls are rendered. PNG diff is 12.0226% / MAE 1.2604 / RMSE 10.4082; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2009,8 +2021,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Intake-analysis error semantics and retry action exist, but container geometry, iconography, navigation context, and button treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "The current browser capture matches the Figma error-state structure, filter set, card spacing, retry button height, and warning color more closely. Sidebar/avatar/icon rasterization and remaining typography differences remain; retain DIFF_REVIEW."
       }
     },
     {
@@ -2024,19 +2036,19 @@
       "queryState": "state=list",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-list.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-list-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: plan-list semantics exist, but card count, details, lower guidance content, density, and visual treatment differ.",
+      "evidenceNote": "2026-08-23 recapture after aligning the header action, card layout, card text row boxes, exact 133px card heights, and the 80x32px plan action buttons; the fixture still renders all three Figma plan cards and preserves the Figma-sourced topbar avatar. The in-app browser reported DPR 1.25, so the required DPR 1 gate remains open and the result stays DIFF_REVIEW.",
       "geometryCheck": {
-        "status": "PASS",
+        "status": "REVIEW",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -2053,8 +2065,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Plan-list semantics exist, but card count, details, lower guidance content, density, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "The current browser capture shows all three plan cards, the Figma single-text '+ 新建膳食计划' action, the corrected no-gap card layout, Figma-aligned text row boxes, and exact 133px card heights. Remaining shell, details, density, and typography/icon rasterization differences remain; the in-app browser DPR was 1.25 rather than the required 1, so retain DIFF_REVIEW."
       }
     },
     {
@@ -2640,11 +2652,11 @@
       "queryState": "state=history-page-2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-2-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-2-browser-2026-08-23-space-mono-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-23 recapture after restoring the Figma-specified Space Mono assistant text: 1440x1024, fonts loaded, body has no overflow, DPR 1.0000000149011612, and PNG diff is complete. The frontend top-left window decoration candidate count is 0; business status dots remain. Visual differences remain, so retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2669,8 +2681,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "History page 2 is represented by the browser fixture, but its compact summary card replaces the Figma conversation, source treatment, confirmation controls, and Trace steps; avatar, typography, colors, and geometry differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "The current fixture includes the Figma conversation, Space Mono assistant response, source treatment, confirmation controls, and Trace steps. The frontend intentionally omits the three window-control dots and uses the registered default avatar policy; visible rendering differences remain. The capture is retained as DIFF_REVIEW because automatic pixel differences remain."
       }
     },
     {
@@ -2684,11 +2696,11 @@
       "queryState": "state=history-page-3",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-3.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-3-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-3-browser-2026-08-23-space-mono-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-3",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-23 recapture after restoring the Figma-specified Space Mono assistant text: 1440x1024, fonts loaded, body has no overflow, DPR 1.0000000149011612, and PNG diff is complete. The frontend top-left window decoration candidate count is 0; business status dots remain. Visual differences remain, so retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2713,8 +2725,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "History page 3 is represented by the browser fixture, but its compact summary card omits the Figma assistant response, source, confirmation controls, and Trace steps; avatar, typography, colors, and geometry differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "The current fixture includes the Figma conversation, Space Mono assistant response, source treatment, confirmation controls, and Trace steps. The frontend intentionally omits the three window-control dots and uses the registered default avatar policy; visible rendering differences remain. The capture is retained as DIFF_REVIEW because automatic pixel differences remain."
       }
     },
     {
@@ -2728,11 +2740,11 @@
       "queryState": "state=search-results",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-search-results.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-search-results-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-search-results-browser-2026-08-23-space-mono-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-search-results",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff, geometry, text, and visual review are complete; visual differences remain.",
+      "evidenceNote": "2026-08-23 recapture after aligning the Figma search result list: 1440x1024, fonts loaded, body has no overflow, DPR 1.0000000149011612, search clear control count 0, and frontend top-left window decoration candidate count 0. Business status dots remain; visual differences remain, so retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2757,8 +2769,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Search query and result summary are represented, but the browser fixture omits the Figma response composition, source row, confirmation controls, and Trace steps; search-state styling, avatar, colors, and geometry differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "The current fixture includes the Figma search query, eight result rows, assistant response, source treatment, confirmation controls, and Trace steps. The frontend intentionally omits the three window-control dots and uses the registered default avatar policy; visible rendering differences remain. The capture is retained as DIFF_REVIEW because automatic pixel differences remain."
       }
     },
     {
@@ -3212,11 +3224,11 @@
       "queryState": "state=privacy-export-running",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-running.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.35830552842881946; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow, and no status/progress overlap. Automatic PNG diff is 0.4224039713541667; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3241,8 +3253,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Export-running progress semantics exist, but the privacy-page composition, content density, progress presentation, dialog boundary, color, and layout differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Desktop and mobile captures preserve the export-running semantics and the mobile state/progress geometry is clear. Privacy-page composition, content density, dialog boundary, color, and layout still differ from the current Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3256,11 +3268,11 @@
       "queryState": "state=privacy-export-expired",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-expired.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-expired-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.3515692816840278; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow, and no status/action overlap. Automatic PNG diff is 0.4224039713541667; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3285,8 +3297,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Export-expired semantics exist, but the dialog geometry, content density, page composition, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Desktop and mobile captures preserve the expired-state semantics, orange visual treatment, close action, and recreate action without overlap. Privacy-page composition, content density, dialog boundary, and layout still differ from the current Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
@@ -3300,11 +3312,11 @@
       "queryState": "state=privacy-deletion-submitting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-deletion-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-submitting-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.8227925618489583; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow, no progress bar, and no status/close overlap. Automatic PNG diff is 0.8154839409722222; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3329,8 +3341,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Account-deletion submission semantics exist, but the dialog geometry, progress treatment, page composition, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Desktop and mobile captures preserve the 560x250 account-deletion submission card, orange treatment, request identifier, close action, and no-progress-bar state. Page composition and remaining shell/rasterization differences remain; retain DIFF_REVIEW."
       }
     },
     {
@@ -3348,7 +3360,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-success-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.3486395941840278; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow. Desktop modal is 560x250; mobile modal is 358.4x250. Automatic PNG diff is 0.4215006510416667 (MAE 3.2027547200520834, RMSE 13.938602202073788); retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3374,7 +3386,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-22",
-        "conclusion": "Account-deletion success semantics exist, but the dialog geometry, supporting detail, page composition, and visual treatment differ. Retain DIFF_REVIEW."
+        "conclusion": "Desktop and mobile captures preserve the 560x250 desktop card, responsive 358.4x250 mobile card, green success treatment, request identifier, close action, and no-progress-bar state. Page composition and remaining shell/rasterization differences remain; retain DIFF_REVIEW."
       }
     },
     {
@@ -3392,7 +3404,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-failed-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.35199924045138886; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow. Desktop modal is 600x280; mobile modal is 358.4x280. Automatic PNG diff is 0.3417270236545139 (MAE 2.6096450805664064, RMSE 14.443899945160718); retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3417,8 +3429,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Account-deletion failure semantics exist, but the dialog geometry, error treatment, page composition, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Desktop and mobile captures preserve the 600x280 desktop error card, responsive 358.4x280 mobile card, red error treatment, error code, request identifier, retry action, and no-progress-bar state. Page composition and remaining shell/rasterization differences remain; retain DIFF_REVIEW."
       }
     },
     {

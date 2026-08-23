@@ -1,4 +1,4 @@
-import { Send, Square } from 'lucide-react';
+import { SendHorizontal, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import styles from './Composer.module.css';
@@ -65,7 +65,7 @@ export function Composer({
           data-state={running ? 'running' : 'idle'}
           onClick={handleSubmit}
         >
-          {running ? <Square /> : <Send />}
+          {running ? <Square /> : <SendHorizontal />}
         </Button>
       </div>
     </footer>

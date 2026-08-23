@@ -1,5 +1,6 @@
 package com.foodmate.application.runtime.messaging;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.common.service.AgentOperationMetrics;
 import com.foodmate.application.runtime.port.out.OutboxRepository;
@@ -80,7 +81,7 @@ public class RuntimeDispatchPublisher {
                             metrics.count(transport, "dispatch", "success", "delivered");
                     }
                 }
-            } catch (Exception exception) {
+            } catch (JsonProcessingException | RuntimeException exception) {
                 store.markFailed(row.id(), safeMessage(exception));
                 if (metrics != null) metrics.count(transport, "dispatch", "failed", "relay_error");
             } finally {

@@ -271,6 +271,26 @@ class RocketMqKnowledgeResultPublisher:
         self.producer.shutdown()
 
 
+class RocketMqKnowledgePurgeResultPublisher:
+    """Publishes only vector purge outcomes, never source bytes or object keys."""
+    def __init__(self, producer=None, topic=None):
+        self.topic = topic or os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_PURGE_RESULT", "foodmate-knowledge-purge-result-v1")
+        self.producer = producer or Producer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), topics=[self.topic])
+        if producer is None:
+            _startup_client_with_timeout(self.producer, "knowledge-purge-result-producer", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
+
+    def publish(self, result: dict):
+        message = Message()
+        message.topic = self.topic
+        message.body = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        message.keys = str(result["task_id"])
+        message.add_property("foodmate_message_type", "KnowledgePurgeResult")
+        return self.producer.send(message)
+
+    def close(self):
+        self.producer.shutdown()
+
+
 class _CommandListener(MessageListener):
     def __init__(self, inbox: RedisCommandInbox, execute: Callable[[dict], None], metrics=None):
         self.inbox = inbox

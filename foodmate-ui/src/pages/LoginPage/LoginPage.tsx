@@ -1,14 +1,4 @@
-import {
-  AlertCircle,
-  AlertTriangle,
-  Eye,
-  EyeOff,
-  Info,
-  Leaf,
-  LoaderCircle,
-  LockKeyhole,
-  UserRound,
-} from 'lucide-react';
+import { EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useRef } from 'react';
 import type { FormEvent } from 'react';
@@ -36,6 +26,42 @@ type LoginState =
   | 'account-disabled'
   | 'service-unavailable';
 
+function loginAsset(state: LoginState, name: 'user' | 'lock' | 'eye' | 'line') {
+  const suffix =
+    state === 'submitting'
+      ? '-submitting'
+      : state === 'field-error'
+        ? '-field-error'
+        : state === 'credential-error'
+          ? '-credential-error'
+          : state === 'account-locked'
+            ? '-account-locked'
+            : state === 'account-disabled'
+              ? '-account-disabled'
+              : state === 'service-unavailable'
+                ? '-service-unavailable'
+                : '';
+  return `/assets/figma/auth/foodmate-login${suffix}-${name}.svg`;
+}
+
+function loginLeafAsset(state: LoginState) {
+  if (state === 'submitting') return '/assets/figma/auth/foodmate-login-submitting-leaf.svg';
+  if (state === 'field-error') return '/assets/figma/auth/foodmate-login-field-error-leaf.svg';
+  if (state === 'credential-error') return '/assets/figma/auth/foodmate-login-credential-error-leaf.svg';
+  if (state === 'account-locked') return '/assets/figma/auth/foodmate-login-account-locked-leaf.svg';
+  if (state === 'account-disabled') return '/assets/figma/auth/foodmate-login-account-disabled-leaf.svg';
+  if (state === 'service-unavailable') return '/assets/figma/auth/foodmate-login-service-unavailable-leaf.svg';
+  return '/assets/figma/auth/foodmate-leaf.svg';
+}
+
+function loginAlertAsset(state: LoginState) {
+  if (state === 'credential-error') return '/assets/figma/auth/foodmate-login-credential-error-alert.svg';
+  if (state === 'account-locked') return '/assets/figma/auth/foodmate-login-account-locked-alert.svg';
+  if (state === 'account-disabled') return '/assets/figma/auth/foodmate-login-account-disabled-alert.svg';
+  if (state === 'service-unavailable') return '/assets/figma/auth/foodmate-login-service-unavailable-info.svg';
+  return undefined;
+}
+
 const loginStates = new Set<LoginState>([
   'default',
   'submitting',
@@ -62,7 +88,7 @@ function LoginBrand({ state }: { state: LoginState }) {
         <span className={styles.logoPlaceholder} aria-hidden="true" data-login-motion="logo" data-node-id="660:212" />
       ) : (
         <span className={styles.loginMark} aria-hidden="true" data-login-motion="logo">
-          <Leaf />
+          <img src={loginLeafAsset(state)} alt="" />
         </span>
       )}
       <span className={styles.wordmark} data-login-motion="wordmark" data-node-id="647:236">
@@ -82,7 +108,13 @@ export function LoginPage() {
   const state = requestedState && loginStates.has(requestedState) ? requestedState : 'default';
   const [submitting, setSubmitting] = useState(false);
   const visualState: LoginState = state === 'default' && submitting ? 'submitting' : state;
-  const [loginValues, setLoginValues] = useState<LoginValues>(defaults);
+  const [loginValues, setLoginValues] = useState<LoginValues>(() => {
+    if (state === 'submitting') return { ...defaults, username: 'alex@foodmate.com', password: 'password' };
+    if (state === 'credential-error') return { ...defaults, username: 'wrong@foodmate.com', password: 'password' };
+    if (state === 'account-locked') return { ...defaults, username: 'locked@foodmate.com', password: 'password' };
+    if (state === 'account-disabled') return { ...defaults, username: 'disabled@foodmate.com', password: 'password' };
+    return defaults;
+  });
   const [showPassword, setShowPassword] = useState(false);
 
   useGSAP(
@@ -130,7 +162,10 @@ export function LoginPage() {
   };
 
   return (
-    <main className={`${styles.authPage} ${styles['authPage-login']}`} ref={pageRef}>
+    <main
+      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : state === 'field-error' ? styles.authPageLoginFieldError : state === 'credential-error' ? styles.authPageLoginCredentialError : state === 'account-locked' ? styles.authPageLoginAccountLocked : state === 'account-disabled' ? styles.authPageLoginAccountDisabled : state === 'service-unavailable' ? styles.authPageLoginServiceUnavailable : ''}`}
+      ref={pageRef}
+    >
       <div className={styles.authDiagonal} aria-hidden="true" data-login-motion="diagonal" />
       <section className={styles.authCard} aria-label="欢迎回来">
         <div className={styles.brand}>
@@ -156,13 +191,13 @@ export function LoginPage() {
         <form className={styles.form} onSubmit={handleLogin}>
           {state === 'credential-error' ? (
             <div className={`${styles.loginAlert} ${styles.loginAlertError}`} role="alert">
-              <AlertCircle aria-hidden="true" />
+              <img src={loginAlertAsset(state)} alt="" aria-hidden="true" />
               <strong>邮箱或密码错误，请重试</strong>
             </div>
           ) : null}
           {state === 'account-locked' ? (
             <div className={`${styles.loginAlert} ${styles.loginAlertWarning}`} role="alert">
-              <AlertTriangle aria-hidden="true" />
+              <img src={loginAlertAsset(state)} alt="" aria-hidden="true" />
               <div>
                 <strong>账号已锁定</strong>
                 <span>由于多次登录失败，你的账号已被暂时锁定。请 30 分钟后重试或联系客服。</span>
@@ -171,7 +206,7 @@ export function LoginPage() {
           ) : null}
           {state === 'account-disabled' ? (
             <div className={`${styles.loginAlert} ${styles.loginAlertError}`} role="alert">
-              <AlertCircle aria-hidden="true" />
+              <img src={loginAlertAsset(state)} alt="" aria-hidden="true" />
               <div>
                 <strong>账号已禁用</strong>
                 <span>你的账号已被管理员禁用。如有疑问，请联系客服支持。</span>
@@ -183,7 +218,7 @@ export function LoginPage() {
           ) : null}
           {state === 'service-unavailable' ? (
             <div className={`${styles.loginAlert} ${styles.loginAlertInfo}`} role="alert">
-              <Info aria-hidden="true" />
+              <img src={loginAlertAsset(state)} alt="" aria-hidden="true" />
               <div>
                 <strong>服务暂时不可用</strong>
                 <span>系统维护中，请稍后再试。</span>
@@ -216,7 +251,7 @@ export function LoginPage() {
                           : '邮箱地址'
                 }
                 aria-label="邮箱地址"
-                leadingIcon={<UserRound aria-hidden="true" />}
+                leadingIcon={<img src={loginAsset(visualState, 'user')} alt="" />}
                 value={loginValues.username}
                 required
                 onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
@@ -237,7 +272,7 @@ export function LoginPage() {
                       : '密码'
                 }
                 aria-label="密码"
-                leadingIcon={<LockKeyhole aria-hidden="true" />}
+                leadingIcon={<img src={loginAsset(visualState, 'lock')} alt="" />}
                 trailingAction={
                   <Button
                     className={styles.passwordToggle}
@@ -247,7 +282,7 @@ export function LoginPage() {
                     aria-label={showPassword ? '隐藏密码' : '显示密码'}
                     onClick={() => setShowPassword((value) => !value)}
                   >
-                    {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                    {showPassword ? <EyeOff aria-hidden="true" /> : <img src={loginAsset(visualState, 'eye')} alt="" />}
                   </Button>
                 }
                 value={loginValues.password}
@@ -279,7 +314,12 @@ export function LoginPage() {
           >
             {visualState === 'submitting' ? (
               <>
-                <LoaderCircle className={styles.loginSpinner} aria-hidden="true" />
+                <img
+                  className={styles.loginSpinner}
+                  src="/assets/figma/auth/foodmate-login-loader.svg"
+                  alt=""
+                  aria-hidden="true"
+                />
                 登录中...
               </>
             ) : visualState === 'account-locked' ? (
@@ -296,7 +336,9 @@ export function LoginPage() {
 
         <div className={styles.actions}>
           <div className={styles.divider} aria-hidden="true" data-login-motion="divider">
+            <img src={loginAsset(visualState, 'line')} alt="" />
             <span>或者</span>
+            <img src={loginAsset(visualState, 'line')} alt="" />
           </div>
           <div className={styles.signupRow} data-login-motion="signup">
             <span className={styles.signupPrompt}>没有账号？</span>

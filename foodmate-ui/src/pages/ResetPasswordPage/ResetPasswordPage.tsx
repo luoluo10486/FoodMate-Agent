@@ -9,14 +9,18 @@ import styles from '../LoginPage/LoginPage.module.css';
 
 type ResetValues = { password: string; confirmPassword: string };
 
+const emptyResetValues: ResetValues = { password: '', confirmPassword: '' };
+const figmaResetValues: ResetValues = { password: 'StrongPass99', confirmPassword: 'StrongPass99' };
+
 export function ResetPasswordPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
-  const [values, setValues] = useState<ResetValues>({ password: '', confirmPassword: '' });
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
+  const [values, setValues] = useState<ResetValues>(() => (isRealMode ? emptyResetValues : figmaResetValues));
   const [submitting, setSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(() => !isRealMode);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -43,7 +47,7 @@ export function ResetPasswordPage() {
   return (
     <AuthShell variant="reset">
       <AuthCard className={styles.resetCard}>
-        <AuthBrand title="重置密码" subtitle="请输入你的新密码" />
+        <AuthBrand title="重置密码" subtitle="请输入你的新密码" iconSrc="/assets/figma/auth/foodmate-reset-leaf.svg" />
         <form className={styles.authForm} onSubmit={submit}>
           <div className={styles.resetFields} data-node-id="680:318">
             <PasswordField
@@ -51,6 +55,8 @@ export function ResetPasswordPage() {
               name="password"
               autoComplete="new-password"
               placeholder="StrongPass99"
+              leadingIconSrc="/assets/figma/auth/foodmate-reset-lock.svg"
+              visibleIconSrc="/assets/figma/auth/foodmate-reset-eye.svg"
               value={values.password}
               show={showPassword}
               onToggle={() => setShowPassword((current) => !current)}
@@ -61,6 +67,8 @@ export function ResetPasswordPage() {
               name="confirmPassword"
               autoComplete="new-password"
               placeholder="StrongPass99"
+              leadingIconSrc="/assets/figma/auth/foodmate-reset-lock.svg"
+              visibleIconSrc="/assets/figma/auth/foodmate-reset-eye.svg"
               value={values.confirmPassword}
               show={showConfirmPassword}
               onToggle={() => setShowConfirmPassword((current) => !current)}

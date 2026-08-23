@@ -350,7 +350,7 @@ Java 的 AgentRunBudgetDefaults 读取 Run 预算环境变量并在发送命令�
 
 ### 12.3 回答事件
 
-Eval 通过后才生成 run.answer_stream。当前代码按 FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES 以 UTF-8 字节上限切片，默认 2048 字节；当前未实现 150ms 时间阈值和逐 Token 发布，不能把时间阈值写成已实现能力。
+Eval 通过后才生成 run.answer_stream。当前代码按 FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES 以 UTF-8 字节上限切片，默认 2048 字节；相邻分片按 FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS 调度，默认 150ms，禁止逐 Token 发布。
 
 ### 12.4 SQL Agent
 

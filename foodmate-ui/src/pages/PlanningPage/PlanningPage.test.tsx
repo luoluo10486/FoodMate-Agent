@@ -80,7 +80,8 @@ describe('PlanningPage', () => {
     renderPage('/planning?state=list');
 
     expect(screen.getByText('夏日减脂轻食计划')).toBeInTheDocument();
-    expect(screen.queryByText('高蛋白增肌能量餐')).not.toBeInTheDocument();
+    expect(screen.getByText('高蛋白增肌能量餐')).toBeInTheDocument();
+    expect(screen.getByText('抗炎生酮低碳饮食')).toBeInTheDocument();
     const draftTab = screen.getByRole('tab', { name: '草稿箱' });
     expect(draftTab).toHaveClass('inline-flex');
     await user.click(draftTab);
@@ -88,7 +89,7 @@ describe('PlanningPage', () => {
     expect(screen.queryByText('夏日减脂轻食计划')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: '进行中' }));
-    await user.click(screen.getByRole('button', { name: '进入计划' }));
+    await user.click(screen.getAllByRole('button', { name: '进入计划' })[0]);
     expect(screen.getByRole('heading', { name: '增肌计划 v3' })).toBeInTheDocument();
   });
 

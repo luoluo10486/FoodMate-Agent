@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.coordination.redis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
@@ -69,6 +70,21 @@ class M14AdmissionConcurrencyE2ETest {
     }
 
     @Test
+    void userLimitCountsRunsWhenRunsShareOneSession() {
+        AgentAdmissionService service = service(3, 2, 2, 30, 5);
+        assertEquals(
+                AgentAdmissionService.State.ACTIVE,
+                service.admit("m14-same-session-1", 9150, 150).state());
+        assertEquals(
+                AgentAdmissionService.State.ACTIVE,
+                service.admit("m14-same-session-2", 9150, 150).state());
+        assertEquals(
+                AgentAdmissionService.State.QUEUED,
+                service.admit("m14-same-session-3", 9150, 150).state());
+        assertEquals(2L, redis.opsForZSet().zCard("foodmate:agent:admission:active:user:9150"));
+    }
+
+    @Test
     void expiredLeaseDoesNotKeepUserSlotOccupied() throws InterruptedException {
         AgentAdmissionService shortLeaseA = service(100, 1, 2, 1, 5);
         AgentAdmissionService shortLeaseB = service(100, 1, 2, 1, 5);
@@ -81,6 +97,31 @@ class M14AdmissionConcurrencyE2ETest {
         assertEquals(
                 AgentAdmissionService.State.ACTIVE,
                 shortLeaseB.admit("m14-renewed-" + UUID.randomUUID(), expiredUser, 22).state());
+    }
+
+    @Test
+    void expiredLeaseCannotBeRenewedOrReportedActive() throws InterruptedException {
+        AgentAdmissionService shortLease = service(1, 1, 2, 1, 5);
+        String runId = "m14-renew-expired-" + UUID.randomUUID();
+        assertEquals(AgentAdmissionService.State.ACTIVE, shortLease.admit(runId, 9250, 25).state());
+        Thread.sleep(2200);
+        shortLease.renewActiveLeases();
+        assertFalse(shortLease.isActive(runId));
+        assertEquals(
+                AgentAdmissionService.State.ACTIVE,
+                shortLease.admit("m14-renewed-after-expiry", 9251, 26).state());
+    }
+
+    @Test
+    void expiredRunCanReacquireItsPermitBeforeRedisHashExpiry() throws InterruptedException {
+        AgentAdmissionService shortLease = service(1, 1, 1, 1, 5);
+        String runId = "m14-reacquire-expired-" + UUID.randomUUID();
+        assertEquals(AgentAdmissionService.State.ACTIVE, shortLease.admit(runId, 9260, 27).state());
+        Thread.sleep(2200);
+        assertEquals(AgentAdmissionService.State.ACTIVE, shortLease.admit(runId, 9260, 27).state());
+        assertEquals(
+                AgentAdmissionService.State.QUEUED,
+                shortLease.admit("m14-reacquire-competitor", 9261, 28).state());
     }
 
     @Test

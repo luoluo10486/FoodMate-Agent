@@ -1,5 +1,6 @@
 package com.foodmate.application.runtime.processor;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.common.service.AgentOperationMetrics;
 import com.foodmate.application.runtime.messaging.MessageProperties;
@@ -126,7 +127,7 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                         proposalId,
                         published == null ? null : published.messageId(),
                         published == null ? null : "confirmed");
-            } catch (Exception publishFailure) {
+            } catch (RuntimeException publishFailure) {
                 log.warn(
                         "Proposal result publish failed: proposal_id={}, error_type={}, message={}",
                         proposalId,
@@ -135,9 +136,15 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
                 return MqConsumeDecision.RETRY;
             }
             return MqConsumeDecision.ACK;
+        } catch (JsonProcessingException exception) {
+            log.warn(
+                    "Proposal message contract is invalid, rejecting: error_type={}, message={}",
+                    exception.getClass().getSimpleName(),
+                    exception.getMessage());
+            return MqConsumeDecision.REJECT;
         } catch (IllegalArgumentException exception) {
             return MqConsumeDecision.REJECT;
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             if (metrics != null) metrics.count("rocketmq", "result", "failed", "consumer_error");
             log.warn(
                     "Proposal processing failed, will retry: proposal_id={}, error_type={}, message={}",
@@ -151,7 +158,7 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
     private String safeId(String body) {
         try {
             return mapper.readTree(body).path("proposal_id").asText("unknown");
-        } catch (Exception ignored) {
+        } catch (JsonProcessingException ignored) {
             return "unknown";
         }
     }

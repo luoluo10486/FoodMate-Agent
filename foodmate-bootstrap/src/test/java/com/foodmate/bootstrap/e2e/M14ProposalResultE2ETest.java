@@ -68,15 +68,19 @@ class M14ProposalResultE2ETest {
                                 "run_id",
                                 Long.toString(runId),
                                 "proposal_type",
-                                "sql_read",
+                                "tool",
                                 "request_hash",
                                 requestHash,
                                 "requires_confirmation",
                                 false,
+                                "tool_name",
+                                "database_query",
+                                "input",
+                                databaseQueryInput("SELECT meal_type FROM food_logs"),
                                 "payload",
                                 Map.of(
                                         "statement",
-                                        "SELECT 1",
+                                        "SELECT meal_type FROM food_logs",
                                         "invocation_id",
                                         "invocation-" + proposalId)));
 
@@ -163,15 +167,19 @@ class M14ProposalResultE2ETest {
                                 "run_id",
                                 Long.toString(runId),
                                 "proposal_type",
-                                "sql_read",
+                                "tool",
                                 "request_hash",
                                 requestHash,
                                 "requires_confirmation",
                                 false,
+                                "tool_name",
+                                "database_query",
+                                "input",
+                                databaseQueryInput("SELECT 1 / 0 AS value"),
                                 "payload",
                                 Map.of(
                                         "statement",
-                                        "SELECT * FROM table_that_does_not_exist",
+                                        "SELECT 1 / 0 AS value",
                                         "invocation_id",
                                         "invocation-" + proposalId)));
         CountDownLatch received = new CountDownLatch(1);
@@ -237,5 +245,25 @@ class M14ProposalResultE2ETest {
         } finally {
             resultConsumer.close();
         }
+    }
+
+    private static Map<String, Object> databaseQueryInput(String statement) {
+        return Map.of(
+                "intent",
+                "nutrition_summary",
+                "time_range",
+                Map.of("kind", "relative", "days", "7"),
+                "metrics",
+                java.util.List.of("protein_g"),
+                "dimensions",
+                java.util.List.of("meal_type"),
+                "filters",
+                Map.of(),
+                "candidate_sql",
+                statement,
+                "planner_mode",
+                "stub",
+                "planner_version",
+                "v1");
     }
 }

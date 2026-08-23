@@ -1,10 +1,15 @@
-import { Eye, EyeOff, Leaf, LockKeyhole, Mail, UserRound } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import styles from '../LoginPage/LoginPage.module.css';
 
 export type AuthVariant = 'login' | 'register' | 'forgot' | 'reset' | 'token';
+
+const fieldIconSources = {
+  user: '/assets/figma/auth/foodmate-register-user.svg',
+  mail: '/assets/figma/auth/foodmate-register-mail.svg',
+} as const;
 
 export function AuthShell({ variant, children }: { variant: AuthVariant; children: ReactNode }) {
   return (
@@ -23,16 +28,22 @@ export function AuthBrand({
   title,
   subtitle,
   mark = 'leaf',
+  iconSrc,
 }: {
   title: string;
   subtitle: string;
   mark?: 'leaf' | 'utensils';
+  iconSrc?: string;
 }) {
+  const resolvedIconSrc =
+    iconSrc ??
+    (mark === 'utensils' ? '/assets/figma/auth/foodmate-fork-knife.svg' : '/assets/figma/auth/foodmate-leaf.svg');
+
   return (
     <header className={styles.authHeader}>
       <div className={styles.authBrand} data-node-id="680:220">
         <span className={styles.authMark} aria-hidden="true">
-          {mark === 'utensils' ? <img src="/assets/figma/auth/foodmate-fork-knife.svg" alt="" /> : <Leaf />}
+          <img src={resolvedIconSrc} alt="" />
         </span>
         <span className={styles.authWordmark}>
           <span>Food</span>
@@ -55,6 +66,7 @@ type AuthFieldProps = {
   type?: 'text' | 'email';
   autoComplete?: string;
   leadingIcon?: 'user' | 'mail';
+  leadingIconSrc?: string;
   required?: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
@@ -67,11 +79,12 @@ export function AuthField({
   type = 'text',
   autoComplete,
   leadingIcon,
+  leadingIconSrc,
   required = true,
   onChange,
 }: AuthFieldProps) {
-  const icon =
-    leadingIcon === 'mail' ? <Mail aria-hidden="true" /> : leadingIcon === 'user' ? <UserRound /> : undefined;
+  const iconSource = leadingIconSrc ?? (leadingIcon ? fieldIconSources[leadingIcon] : undefined);
+  const icon = iconSource ? <img src={iconSource} alt="" /> : undefined;
 
   return (
     <label className={styles.authField}>
@@ -97,6 +110,8 @@ type PasswordFieldProps = {
   value: string;
   placeholder?: string;
   autoComplete?: string;
+  leadingIconSrc?: string;
+  visibleIconSrc?: string;
   show: boolean;
   onToggle: () => void;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -108,6 +123,8 @@ export function PasswordField({
   value,
   placeholder,
   autoComplete,
+  leadingIconSrc = '/assets/figma/auth/foodmate-register-lock.svg',
+  visibleIconSrc = '/assets/figma/auth/foodmate-register-eye.svg',
   show,
   onToggle,
   onChange,
@@ -121,7 +138,7 @@ export function PasswordField({
         type={show ? 'text' : 'password'}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        leadingIcon={<LockKeyhole aria-hidden="true" />}
+        leadingIcon={<img src={leadingIconSrc} alt="" />}
         trailingAction={
           <Button
             variant="ghost"
@@ -131,7 +148,7 @@ export function PasswordField({
             aria-label={show ? `隐藏${label}` : `显示${label}`}
             onClick={onToggle}
           >
-            {show ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+            {show ? <img src={visibleIconSrc} alt="" /> : <Eye aria-hidden="true" />}
           </Button>
         }
         value={value}

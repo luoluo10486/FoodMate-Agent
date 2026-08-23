@@ -1,10 +1,15 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.*;
+import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.MemoryContextRow;
+import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.RecentMessageRow;
+import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.SummarySnapshot;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface AgentRunCommandMapper {
@@ -29,7 +34,7 @@ public interface AgentRunCommandMapper {
     SummarySnapshot summary(long sessionId);
 
     @Select(
-            "SELECT memory_id::text AS memoryId,memory_type AS memoryType,memory_key AS memoryKey,memory_value::text AS memoryValue,confidence,scope FROM user_memories WHERE user_id=#{userId} AND is_deleted=FALSE AND confirmation_status='confirmed' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND memory_type IN ('preference','constraint','routine','plan','meal_plan','recipe_plan','weekly_recipe') ORDER BY updated_at DESC LIMIT 8")
+            "SELECT memory_id::text AS memoryId,memory_type AS memoryType,memory_key AS memoryKey,memory_value::text AS memoryValue,confidence,scope FROM user_memories WHERE user_id=#{userId} AND is_deleted=FALSE AND confirmation_status='confirmed' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND memory_type IN ('preference','constraint','routine','plan','cooking_skill','budget_habit','time_habit','interaction_preference','user_rule') ORDER BY updated_at DESC LIMIT 8")
     List<MemoryContextRow> memories(long userId);
 
     @Insert(

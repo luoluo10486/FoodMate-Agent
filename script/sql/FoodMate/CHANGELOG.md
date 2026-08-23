@@ -1,5 +1,17 @@
 # FoodMate 数据库变更说明
 
+## 2026-08-23 V26 结构化 Agent 反馈配套登记
+
+- V26 `agent_feedback` 迁移、validation 和只读 rollback precheck 已纳入 SQL 目录；该迁移不由 Java 启动自动执行。
+- 反馈表只保存关联 ID、稳定原因代码、幂等键、参数摘要和高风险标记，不保存回答正文、Prompt、原始请求、令牌或敏感内容。
+- 本轮只登记文件配套关系，未执行 V26 迁移、validation、rollback、truncate、备份恢复或数据清理；实际状态以 `EXECUTION_RECORD.md` 为准。
+
+## 2026-08-23 SQL 配套状态矩阵复核
+
+- 更新 SQL 根 README 和 `migration/README.md`，明确 V2-V26 的 validation/rollback 配套现状。
+- V3-V4、V7-V12 保持只读复核边界；不为历史版本生成宽泛 `DROP`、`DELETE` 或 `TRUNCATE` 回滚脚本。
+- 本轮只更新文档和执行台账，未执行迁移、校验、回滚或数据清理。
+
 ## 2026-08-15 M1-5 USDA foodPortions 单位换算 seed
 
 - 人工执行 `seed/V2__nutrition_usda_portion_seed.sql`，补充 5 条有 USDA FoodData Central `foodPortions` 证据的食材级单位换算规则：米饭、鸡胸肉、熟鸡蛋、三文鱼和苹果。

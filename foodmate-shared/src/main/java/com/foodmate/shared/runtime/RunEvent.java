@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.time.Instant;
 import java.util.Objects;
 
+/** Legacy runtime event retained for compatibility with the string Run gateway. */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RunEvent(
         String eventId,

@@ -8,7 +8,7 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Callable
 
-from knowledge_rag import MilvusIndex, OpenAICompatibleEmbedder, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, chunk_markdown, parse_document, safe_object_key
+from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
 
 
 class _MemoryCompletionStore:
@@ -45,7 +45,7 @@ class KnowledgeIndexWorker:
         # In-memory dependencies are only for isolated unit tests. The runtime path
         # constructs the worker without an object_reader and therefore always uses Redis.
         self.stub = stub_index or (RedisStubIndex() if self.settings.mode == "stub" and object_reader is None else StubIndex() if self.settings.mode == "stub" else None)
-        self.embedder = embedder or (OpenAICompatibleEmbedder(self.settings) if self.settings.mode == "local" else None)
+        self.embedder = embedder or (build_local_embedder(self.settings) if self.settings.mode == "local" else None)
         self.milvus = milvus_index or (MilvusIndex(self.settings) if self.settings.mode == "local" else None)
         self.completed = completed_store or (self._completed_store() if object_reader is None else _MemoryCompletionStore())
 
@@ -86,6 +86,8 @@ class KnowledgeIndexWorker:
             filename, content = self._read_document(prefix)
             text = parse_document(filename, content)
             chunks = [replace(chunk, visibility="draft", current_version=True) for chunk in chunk_markdown(text, document_id, version)]
+            if not chunks:
+                raise RagError("RAG_EMPTY_DOCUMENT", "document contains no indexable chunks")
             title = payload.get("title") or filename
             token_count = sum(_estimate_tokens(chunk.text) for chunk in chunks)
             cost_amount = _cost_amount(self.settings, token_count)
@@ -99,7 +101,28 @@ class KnowledgeIndexWorker:
                 self.stub.upsert(title, chunks)
             else:
                 self.milvus.upsert(title, chunks, self.embedder.embed([chunk.text for chunk in chunks]))
-            result = {"item_id": item_id, "document_id": document_id, "version": version, "status": "indexed", "chunk_count": len(chunks), "mode": self.settings.mode, "model_version": self.settings.embedding_model if self.embedder else "deterministic-stub", "token_count": token_count, "cost_amount": str(cost_amount), "price_version": self.settings.price_version or None, "attempt": attempt}
+            result = {
+                "item_id": item_id,
+                "document_id": document_id,
+                "version": version,
+                "status": "indexed",
+                "chunk_count": len(chunks),
+                "chunks": [
+                    {
+                        "chunk_no": chunk.sequence,
+                        "embedding_id": chunk.embedding_id,
+                        "section_path": chunk.section_path,
+                        "text": chunk.text,
+                    }
+                    for chunk in chunks
+                ],
+                "mode": self.settings.mode,
+                "model_version": self.settings.embedding_model if self.embedder else "deterministic-stub",
+                "token_count": token_count,
+                "cost_amount": str(cost_amount),
+                "price_version": self.settings.price_version or None,
+                "attempt": attempt,
+            }
             self._mark_completed(key, result)
         except RagError as error:
             if "budget_reserved" in locals() and budget_reserved:
@@ -127,6 +150,56 @@ class KnowledgeIndexWorker:
             self.milvus.update_visibility(document_id, visibility, visibility == "deleted", current_version, version)
         elif self.stub:
             self.stub.update_visibility(document_id, visibility, current_version, version)
+
+    def handle_purge(self, payload: dict, result_publisher: Callable[[dict], None] | None = None) -> dict:
+        publish = result_publisher or self.result_publisher
+        task_id = str(payload.get("task_id", "")).strip()
+        document_id = str(payload.get("document_id", "")).strip()
+        version = str(payload.get("version", "")).strip()
+        try:
+            task_id_value = int(task_id)
+        except (TypeError, ValueError) as error:
+            raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge task id is invalid") from error
+        if task_id_value <= 0 or not document_id or not version:
+            raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge identifiers are required")
+        if payload.get("tenant_id", 0) != 0 or payload.get("scope", PUBLIC_SCOPE) != PUBLIC_SCOPE:
+            raise RagError("RAG_SCOPE_DENIED", "retention purge scope is not public")
+        key = ("purge", str(task_id_value), self.settings.mode)
+        completed = self._completion_summary(key)
+        if completed is not None:
+            completed_result = completed.get("result", {})
+            if (
+                completed_result.get("document_id") not in (None, document_id)
+                or completed_result.get("version") not in (None, version)
+            ):
+                raise RagError("RAG_PURGE_IDEMPOTENCY_CONFLICT", "retention purge task target conflicts with its completed fact")
+            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "succeeded", "duplicate": True}
+            publish(result)
+            return result
+        if not self._claim(key):
+            raise RagError("RAG_PURGE_IN_PROGRESS", "retention purge task is already being processed")
+        try:
+            if self.milvus:
+                self.milvus.delete_document(document_id, version)
+            elif self.stub:
+                self.stub.delete_document(document_id, version)
+            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "succeeded"}
+            self._mark_completed(key, result)
+        except RagError as error:
+            self._release(key)
+            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "failed", "error_code": error.code, "error_summary": str(error)[:256]}
+        except Exception:
+            self._release(key)
+            result = {
+                "task_id": task_id_value,
+                "document_id": document_id,
+                "version": version,
+                "status": "failed",
+                "error_code": "RAG_PURGE_EXECUTION_FAILED",
+                "error_summary": "retention purge backend execution failed",
+            }
+        publish(result)
+        return result
 
     def _read_document(self, prefix: str) -> tuple[str, bytes]:
         # The restricted MinIO identity may list only this fixed public-knowledge namespace.
@@ -170,7 +243,13 @@ class KnowledgeIndexWorker:
             return True
 
     def _mark_completed(self, key: tuple[str, str, str], result: dict) -> None:
-        self.completed.set(self._completion_key(key), json.dumps({"status": "completed", "result": {k: v for k, v in result.items() if k not in {"item_id", "document_id", "version", "attempt"}}}, ensure_ascii=False))
+        self.completed.set(
+            self._completion_key(key),
+            json.dumps(
+                {"status": "completed", "result": {k: v for k, v in result.items() if k != "attempt"}},
+                ensure_ascii=False,
+            ),
+        )
 
     def _release(self, key: tuple[str, str, str]) -> None:
         try:
@@ -247,11 +326,12 @@ def _cost_amount(settings: RagSettings, token_count: int) -> Decimal:
     return (Decimal(token_count) * settings.price_per_million_tokens / Decimal(1_000_000)).quantize(Decimal("0.00000001"))
 
 
-def start_rocketmq_worker() -> tuple[object, object]:
+def start_rocketmq_worker() -> tuple[object, object, object]:
     """Start dedicated index and visibility consumers, separate from AgentRun traffic."""
     from rocketmq import ClientConfiguration, ConsumeResult, Credentials, FilterExpression, MessageListener, PushConsumer
-    from mq_runtime import RocketMqKnowledgeResultPublisher, _startup_client_with_timeout
+    from mq_runtime import RocketMqKnowledgePurgeResultPublisher, RocketMqKnowledgeResultPublisher, _startup_client_with_timeout
     publisher = RocketMqKnowledgeResultPublisher()
+    purge_publisher = RocketMqKnowledgePurgeResultPublisher()
     worker = KnowledgeIndexWorker(result_publisher=publisher.publish)
     class Listener(MessageListener):
         def consume(self, message):
@@ -271,4 +351,16 @@ def start_rocketmq_worker() -> tuple[object, object]:
                 return ConsumeResult.FAILURE
     visibility_consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_VISIBILITY", "foodmate-python-knowledge-visibility-v1"), VisibilityListener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_VISIBILITY", "foodmate-knowledge-visibility-v1"): FilterExpression("*")}, consumption_thread_count=1)
     _startup_client_with_timeout(visibility_consumer, "knowledge-visibility", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
-    return consumer, visibility_consumer
+    class PurgeListener(MessageListener):
+        def consume(self, message):
+            try:
+                worker.handle_purge(
+                    json.loads(message.body.decode("utf-8")),
+                    result_publisher=purge_publisher.publish,
+                )
+                return ConsumeResult.SUCCESS
+            except Exception:
+                return ConsumeResult.FAILURE
+    purge_consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_PURGE", "foodmate-python-knowledge-purge-v1"), PurgeListener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_PURGE", "foodmate-knowledge-purge-v1"): FilterExpression("*")}, consumption_thread_count=1)
+    _startup_client_with_timeout(purge_consumer, "knowledge-purge", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
+    return consumer, visibility_consumer, purge_consumer

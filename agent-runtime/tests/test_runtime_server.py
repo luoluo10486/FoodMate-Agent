@@ -29,7 +29,21 @@ class RuntimeContractTests(unittest.TestCase):
         command = {"run_id": "1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
         with patch.object(runtime_server, "emit", side_effect=lambda *args: events.append(args[3])):
             runtime_server.execute(command)
-        self.assertEqual(["run.accepted", "run.routed", "run.model_usage", "run.eval_decided", "run.answer_stream", "run.completed"], events)
+        self.assertEqual(["run.accepted", "run.routed", "run.context_assembled", "run.model_usage", "run.eval_decided", "run.answer_stream", "run.completed"], events)
+
+    def test_emit_bounds_event_id_to_postgres_contract(self):
+        published = []
+        publisher = SimpleNamespace(publish=lambda event: published.append(event))
+        command = {"run_id": "1", "dispatch_id": "d1", "attempt": 1}
+        long_id = "d1-tool-started-" + "p" * 100
+        with patch.object(runtime_server, "_event_publisher", publisher):
+            runtime_server.emit(command, long_id, 4, "run.tool_started", {})
+            runtime_server.emit(command, long_id, 4, "run.tool_started", {})
+
+        self.assertEqual(2, len(published))
+        self.assertEqual(published[0]["event_id"], published[1]["event_id"])
+        self.assertLessEqual(len(published[0]["event_id"]), runtime_server.MAX_EVENT_ID_LENGTH)
+        self.assertNotEqual(long_id, published[0]["event_id"])
 
     def test_model_failure_still_has_contiguous_route_event(self):
         events = []
@@ -121,14 +135,50 @@ class RuntimeContractTests(unittest.TestCase):
         ):
             runtime_server.execute(command)
         self.assertEqual(
-            ["run.accepted", "run.routed", "run.checkpoint_saved", "run.eval_decided", "run.clarification_requested"],
+            ["run.accepted", "run.routed", "run.context_assembled", "run.checkpoint_saved", "run.eval_decided", "run.clarification_requested"],
             [event[0] for event in events],
         )
-        self.assertEqual(1, events[2][1]["checkpoint_version"])
-        self.assertTrue(events[2][1]["checkpoint_digest"].startswith("sha256:"))
+        self.assertEqual(1, events[3][1]["checkpoint_version"])
+        self.assertTrue(events[3][1]["checkpoint_digest"].startswith("sha256:"))
         checkpoint = runtime_server._checkpoint.load("waiting-run:waiting-dispatch")
         self.assertIsNotNone(checkpoint)
         self.assertEqual("execution", checkpoint[1]["current_node"])
+
+    def test_context_assembly_event_contains_only_authorized_source_ids(self):
+        events = []
+        command = {
+            "run_id": "context-run",
+            "dispatch_id": "context-dispatch",
+            "deadline_at": "x",
+            "attempt": 1,
+            "message": {"message_id": "message-current", "content": "hello"},
+            "authorized_context": {
+                "recent_messages": [{"message_id": "message-1", "content": "old"}],
+                "session_summary": {"summary_id": "summary-1", "summary_text": "private text"},
+                "long_term_memories": [{"memory_id": "memory-1", "memory_value": "private value"}],
+                "citations": [{"citation_id": "citation-1", "snippet": "private snippet"}],
+            },
+        }
+        with patch.object(
+            runtime_server,
+            "emit",
+            side_effect=lambda *args: events.append((args[3], args[4] if len(args) > 4 else {})),
+        ), patch.object(runtime_server, "_attach_public_citations", side_effect=lambda value: value):
+            runtime_server.execute(command)
+
+        context_event = next(payload for event, payload in events if event == "run.context_assembled")
+        self.assertEqual(
+            {
+                "message_id": ["message-1", "message-current"],
+                "summary_id": ["summary-1"],
+                "memory_id": ["memory-1"],
+                "citation_id": ["citation-1"],
+            },
+            context_event["source_ids"],
+        )
+        self.assertNotIn("private text", json.dumps(context_event))
+        self.assertNotIn("private value", json.dumps(context_event))
+        self.assertNotIn("private snippet", json.dumps(context_event))
 
     def test_budget_thresholds_and_utf8_chunking(self):
         budget = BudgetSnapshot(max_total_tokens=100, max_cost_cny=1)
@@ -137,6 +187,35 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual("partial", budget_mode(Usage(tokens=100), budget))
         chunks = split_answer("营养" * 10, 8)
         self.assertTrue(all(len(item.encode("utf-8")) <= 8 for item in chunks))
+
+    def test_answer_stream_uses_configured_interval_between_chunks(self):
+        emitted = []
+        with patch.dict(
+            runtime_server.os.environ,
+            {
+                "FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES": "4",
+                "FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS": "150",
+            },
+            clear=False,
+        ), patch.object(
+            runtime_server, "emit", side_effect=lambda *args: emitted.append(args[3])
+        ), patch.object(runtime_server.time, "sleep") as sleep:
+            next_sequence = runtime_server._emit_answer_chunks(
+                {"run_id": "stream-run"}, "dispatch", 3, "abcdefgh"
+            )
+
+        self.assertEqual(["run.answer_stream", "run.answer_stream"], emitted)
+        self.assertEqual(5, next_sequence)
+        sleep.assert_called_once_with(0.15)
+
+    def test_answer_stream_rejects_invalid_interval(self):
+        with patch.dict(
+            runtime_server.os.environ,
+            {"FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS": "-1"},
+            clear=False,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "RUNTIME_STREAM_CONFIG_INVALID"):
+                runtime_server._stream_chunk_interval_ms()
 
     def test_budget_policy_exposes_fixed_threshold_actions(self):
         budget = BudgetSnapshot(max_total_tokens=100, max_cost_cny=1, max_model_calls=12)
@@ -255,6 +334,7 @@ class RuntimeContractTests(unittest.TestCase):
             "invocation_id": proposal["payload"]["invocation_id"],
             "status": "succeeded",
             "rows": [{"days": 7, "from": "2026-08-15T00:00:00Z", "to": "2026-08-22T00:00:00Z"}],
+            "sql_audit_id": "time-audit-1",
         }
         second = run_deterministic(
             {
@@ -270,6 +350,54 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual("nutrition_summary", database["input"]["intent"])
         self.assertEqual(database["payload"]["statement"], database["input"]["candidate_sql"])
         validate_proposal(Proposal(**database))
+
+    def test_analysis_fallback_database_invocation_is_unique_per_run(self):
+        completed = {
+            "tool_name": "time_parser",
+            "invocation_id": "time-result",
+            "status": "succeeded",
+            "rows": [{"days": 7}],
+            "sql_audit_id": "time-audit-1",
+        }
+
+        def proposal_for(run_id):
+            execution = run_deterministic(
+                {
+                    "run_id": run_id,
+                    "dispatch_id": "dispatch-" + run_id,
+                    "message": {"content": "分析最近7天蛋白质摄入"},
+                    "authorized_context": {"tool_results": [completed]},
+                }
+            )
+            return execution.proposals[0]
+
+        first = proposal_for("analysis-run-1")
+        second = proposal_for("analysis-run-2")
+        self.assertEqual("database_query", first["tool_name"])
+        self.assertEqual("database_query", second["tool_name"])
+        self.assertNotEqual(first["proposal_id"], second["proposal_id"])
+        self.assertNotEqual(first["payload"]["invocation_id"], second["payload"]["invocation_id"])
+
+    def test_analysis_phrase_containing_record_is_not_routed_as_record(self):
+        execution = run_deterministic({
+            "run_id": "analysis-route",
+            "dispatch_id": "d1",
+            "message": {"content": "请分析最近7天的蛋白质摄入，并说明没有记录时应如何处理"},
+        })
+
+        self.assertEqual("analysis", execution.route.intent)
+        self.assertEqual(1, len(execution.proposals))
+        self.assertEqual("time_parser", execution.proposals[0]["tool_name"])
+
+    def test_record_route_without_authorized_writer_does_not_query_context_sql(self):
+        execution = run_deterministic({
+            "run_id": "record-route",
+            "dispatch_id": "d1",
+            "message": {"content": "记录我吃了早餐"},
+        })
+
+        self.assertEqual("record", execution.route.intent)
+        self.assertEqual([], execution.proposals)
 
     def test_analysis_without_time_range_stops_for_clarification(self):
         execution = run_deterministic({
@@ -351,7 +479,7 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual("run.completed", events[-1])
 
     def test_execute_supports_time_parser_then_database_query_rounds(self):
-        events, published, commands = [], [], []
+        events, event_ids, published, commands = [], [], [], []
         time_proposal = Proposal(
             "time-proposal",
             "r1",
@@ -423,11 +551,12 @@ class RuntimeContractTests(unittest.TestCase):
 
         command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
         with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store: commands.append(value) or executions[len(commands) - 1]), patch.object(
-            runtime_server, "emit", side_effect=lambda *args: events.append(args[3])
+            runtime_server, "emit", side_effect=lambda *args: (event_ids.append(args[1]), events.append(args[3]))
         ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
             runtime_server.execute(command)
 
         self.assertEqual([time_proposal, database_proposal], published)
+        self.assertEqual(len(event_ids), len(set(event_ids)))
         self.assertEqual(2, len(commands[2]["authorized_context"]["tool_results"]))
         self.assertEqual("database_query", commands[2]["authorized_context"]["tool_results"][1]["tool_name"])
         self.assertEqual("run.completed", events[-1])

@@ -45,6 +45,7 @@ export type Citation = {
 export type AgentRunView = {
   id: string;
   status: AgentDisplayStatus;
+  failedStep?: AgentDisplayStatus;
   intent: 'calculation' | 'record' | 'analysis' | 'planning' | 'knowledge_qna';
   toolsUsed: number;
   toolsTotal: number;

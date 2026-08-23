@@ -3,7 +3,6 @@ package com.foodmate.api.response.account;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
-
 import java.util.List;
 
 /** 统一管理查询响应；items 仅包含对应资源的安全摘要字段。 */

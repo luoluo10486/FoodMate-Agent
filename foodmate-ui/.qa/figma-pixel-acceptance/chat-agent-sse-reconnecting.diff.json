@@ -4,10 +4,10 @@
   "width": 1440,
   "height": 1024,
   "pixelCount": 1474560,
-  "differentPixels": 408217,
-  "differentRatio": 0.2768398708767361,
-  "meanAbsoluteError": 3.13912353515625,
-  "rmse": 15.31900212715812,
+  "differentPixels": 400092,
+  "differentRatio": 0.27132975260416664,
+  "meanAbsoluteError": 2.969762674967448,
+  "rmse": 14.690589669994846,
   "maxChannelDelta": 234,
-  "manualReview": "PENDING: automated diff completed; visual geometry and typography review remains open"
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: current Figma and browser captures contain reconnect count, retained text, disabled composer, and refresh guidance; reconnect notice width, placement, avatar treatment, and font/icon rasterization differ"
 }

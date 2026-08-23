@@ -4,6 +4,7 @@ import com.foodmate.shared.runtime.RunEvent;
 import java.time.Instant;
 import java.util.List;
 
+/** Persistence port for durable Run, dispatch, event, and ownership facts. */
 public interface RuntimeRepository {
     String dispatchFingerprint(String id);
 

@@ -1,10 +1,20 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.port.out.UserAccountRepository.*;
-import com.foodmate.application.account.service.UserAccountService.*;
+import com.foodmate.application.account.port.out.UserAccountRepository.AuthSessionRow;
+import com.foodmate.application.account.service.UserAccountService.AdminUserView;
+import com.foodmate.application.account.service.UserAccountService.AuthSessionView;
+import com.foodmate.application.account.service.UserAccountService.MessageRecord;
+import com.foodmate.application.account.service.UserAccountService.ProfileRecord;
+import com.foodmate.application.account.service.UserAccountService.ProfileUpdate;
+import com.foodmate.application.account.service.UserAccountService.SearchResult;
+import com.foodmate.application.account.service.UserAccountService.SessionRecord;
+import com.foodmate.application.account.service.UserAccountService.UserRecord;
 import java.time.Instant;
 import java.util.List;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface UserAccountMapper {
@@ -139,6 +149,10 @@ public interface UserAccountMapper {
     @Select(
             "SELECT s.session_id AS sessionId,s.title,LEFT(COALESCE(m.content,''),160) AS snippet FROM sessions s LEFT JOIN LATERAL (SELECT content FROM messages WHERE session_id=s.session_id AND is_deleted=FALSE AND content ILIKE CONCAT('%',#{query},'%') ORDER BY sequence_no LIMIT 1) m ON TRUE WHERE s.user_id=#{userId} AND s.is_deleted=FALSE AND (s.title ILIKE CONCAT('%',#{query},'%') OR m.content IS NOT NULL) ORDER BY COALESCE(s.last_message_at,s.created_at) DESC LIMIT #{limit} OFFSET #{offset}")
     List<SearchResult> search(long userId, String query, int limit, int offset);
+
+    @Select(
+            "WITH advisory_lock AS (SELECT pg_advisory_xact_lock(#{sessionId})) SELECT 0 FROM advisory_lock")
+    int lockMessageSequence(long sessionId);
 
     @Select(
             "SELECT COALESCE(MAX(sequence_no),0)+1 FROM messages WHERE session_id=#{sessionId} AND is_deleted=FALSE")

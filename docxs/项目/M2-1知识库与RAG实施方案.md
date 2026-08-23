@@ -1,18 +1,18 @@
 # M2-1 知识库与 RAG 实施方案
 
-状态：核心代码与定向业务测试已实现，等待本地真实业务闭环验收与契约收尾
+状态：deterministic 本地业务闭环已验收，生产强化与性能/故障验证后置
 
-对应路线图：[完整功能实施TODO.md](完整功能实施TODO.md) 的 M2-1；上位执行顺序见 [M2剩余功能执行计划.md](M2剩余功能执行计划.md)。数据和接口字段以 [数据库设计.md](../数据/数据库设计.md) 与 [接口与数据规范.md](../契约/接口与数据规范.md) 为准。当前已有 V16/V17、Java 知识投递骨架、Python 解析/Redis stub/Milvus adapter、管理批次入口和 AgentRun citation 代码；未完成真实本地业务链路前不得标为完成。
+对应路线图：[完整功能实施TODO.md](完整功能实施TODO.md) 的 M2-1；上位执行顺序见 [M2剩余功能执行计划.md](M2剩余功能执行计划.md)。数据和接口字段以 [数据库设计.md](../数据/数据库设计.md) 与 [接口与数据规范.md](../契约/接口与数据规范.md) 为准。V16/V17、Java 知识投递、Python 解析/Redis stub/Milvus adapter、管理批次入口和 AgentRun citation 已完成 deterministic 本地业务闭环；Docker 应用镜像、真实 embedding/云模型、性能和故障矩阵继续后置。
 
-## 当前实现状态（2026-08-22）
+## 当前实现状态（2026-08-23）
 
 | 能力 | 当前状态 | 剩余门槛 |
 |---|---|---|
-| 数据与任务 | V16/V17 已建立导入任务、索引/可见性 Outbox、结果 Inbox 和批次 SSE 基线 | 校验迁移实际执行、attempt 去重、手动重试和来源版本约束 |
-| Java 投递 | 已有索引/可见性 relay、结果消费、状态回写和管理 API | 用真实 PostgreSQL/RocketMQ 跑通三次重试、状态收敛和 SSE 回放 |
-| Python Worker | 已有四格式解析、Redis stub、Milvus 与 visibility 消费基线 | 验证跨实例 Redis 检索、embedding mock + Milvus 和失败关闭 |
-| Agent 引用 | RunCommand 已固定公共 scope，Runtime 可输出 citations，Java 有二次可见性过滤 | 完成上传 -> 发布 -> AgentRun -> SSE -> UI 的真实业务路径 |
-| 管理端 | 已有批次上传、轮询、重试和可见性 API 接入基线 | 完成离页恢复、状态动作和真实错误/空态验收 |
+| 数据与任务 | V16/V17 已建立导入任务、索引/可见性 Outbox、结果 Inbox 和批次 SSE；本地迁移与状态收敛已核验 | 生产级迁移编排和故障矩阵后置 |
+| Java 投递 | 索引/可见性 relay、结果消费、状态回写和管理 API 已在 PostgreSQL/RocketMQ 业务路径验证 | Docker 应用镜像启动和长期运行后置 |
+| Python Worker | 四格式解析、Redis stub、Milvus 与 visibility 消费已验证；stub Worker 实际完成 MinIO 读取和结果回写 | 真实 embedding provider 和 Milvus 生产强化后置 |
+| Agent 引用 | RunCommand 固定公共 scope，Runtime 输出 citations，Java 二次可见性过滤已验证 | 云模型、性能和组件故障验证后置 |
+| 管理端 | 批次上传、进度查询、SSE/重试、发布/下线/恢复和聊天引用已完成业务验收 | UI 视觉细节和生产发布治理后置 |
 
 当前 M2-1 完成门槛只要求业务正确性。吞吐、延迟、队列容量、依赖重启和组合故障测试统一后置。
 
@@ -119,19 +119,21 @@ User chat -> Java derives public_published scope -> RunCommand
 
 Java 创建 Run 时从权威身份派生 `tenant_id=0` 和 `knowledge_scope=public_published`，并在内部命令中下发。Python 对 Milvus 与关键词候选集先过滤：tenant、可见性、发布状态、索引状态、删除标记和当前版本；ACL 过滤不能留给 rerank 或模型判断。
 
-`local-stub` 实现稳定可重复的分块、确定性向量和关键词排序，用于无 API Key 的开发及核心业务测试。`local` 使用 provider/model/base URL/API Key 等环境配置创建 embedding client 并写入 embedding 模型/版本。两种模式共用 chunk、metadata、引用和结果 DTO，切换仅改变 adapter 配置。真实模式在提交任务前估算字符/Token，超过预算或超时不启动下一次尝试。
+`local-stub` 实现稳定可重复的分块、确定性向量和关键词排序，用于无 API Key 的开发及核心业务测试；它只写 Redis。`local` 通过显式 `FOODMATE_RAG_EMBEDDING_PROVIDER` 选择 deterministic 或 openai-compatible provider，并写入 Milvus。deterministic provider 在本地生成稳定向量，不访问外部服务；openai-compatible provider 才读取 endpoint/API Key。两种 provider 共用 chunk、metadata、引用和结果 DTO，切换仅改变 adapter 配置，禁止隐式回退。真实 provider 在提交任务前估算字符/Token，超过预算或超时不启动下一次尝试。
 
 分块采用配置化的字符/Token 上限和 overlap，保留 `section_path`、chunk 序号、文档版本、来源/授权 metadata。检索片段始终是 `untrusted_content`，不得作为系统指令执行；引用需随 Runtime Event 回传并由 Java 持久化/SSE 输出。
 
 ### 5.1 配置契约
 
-`local-stub` 固定使用 `FOODMATE_RAG_MODE=stub`，不读取真实 API Key，也不连接 Milvus。`local` 使用 `FOODMATE_RAG_MODE=local`，并要求以下配置完整，否则 Runtime readiness 降级且索引任务失败关闭：
+`local-stub` 固定使用 `FOODMATE_RAG_MODE=stub`，不读取真实 API Key，也不连接 Milvus。需要本地向量业务验证时使用 `FOODMATE_RAG_MODE=local` 和 `FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`；需要真实 embedding 时将 provider 明确改为 `openai-compatible`。local 两种 provider 都必须配置 Milvus、预算和价格版本，openai-compatible 额外要求 endpoint/API Key/model；任何缺失都失败关闭，不能回退到其他 provider：
 
 | 配置 | 含义 |
 |---|---|
-| `FOODMATE_RAG_EMBEDDING_BASE_URL` | OpenAI-compatible Embedding 服务根地址或完整 `/embeddings` 地址 |
-| `FOODMATE_RAG_EMBEDDING_API_KEY` | 仅环境变量注入的 API Key，不写日志/审计/响应 |
-| `FOODMATE_RAG_EMBEDDING_MODEL` | 模型名；同一 document version 的模型快照不可变 |
+| `FOODMATE_RAG_EMBEDDING_PROVIDER` | `deterministic`（本地无费用）或 `openai-compatible`（显式外部服务） |
+| `FOODMATE_RAG_EMBEDDING_BASE_URL` | openai-compatible 服务根地址或完整 `/embeddings` 地址；deterministic 留空 |
+| `FOODMATE_RAG_EMBEDDING_API_KEY` | 仅 openai-compatible 使用的环境变量 API Key，不写日志/审计/响应 |
+| `FOODMATE_RAG_EMBEDDING_MODEL` | 模型名；deterministic 默认 `deterministic-local-v1`，同一 document version 的模型快照不可变 |
+| `FOODMATE_RAG_DETERMINISTIC_DIMENSION` | deterministic 向量维度，`8-4096`；首次写入集合后以实际维度校验 |
 | `FOODMATE_RAG_MILVUS_URI` | Compose Milvus endpoint 或外部 endpoint |
 | `FOODMATE_RAG_MILVUS_COLLECTION` | 默认 `foodmate_knowledge_chunks`；stub 禁止使用此 collection |
 | `FOODMATE_RAG_INDEX_CONCURRENCY` | `1-8`，默认 `4` |

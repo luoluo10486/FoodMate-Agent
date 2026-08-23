@@ -42,6 +42,10 @@ public interface AdminOperationalQueryRepository {
 
     long countOperationAudits(Query query);
 
+    List<DlqRow> dlq(Query query);
+
+    long countDlq(Query query);
+
     record Query(
             String text,
             String status,
@@ -125,4 +129,19 @@ public interface AdminOperationalQueryRepository {
             String requestId,
             String traceId,
             Instant createdAt) {}
+
+    record DlqRow(
+            Long dlqId,
+            String consumerGroup,
+            String sourceTopic,
+            String messageId,
+            String runId,
+            String dispatchId,
+            String eventId,
+            Integer attempt,
+            Integer reconsumeTimes,
+            String errorCode,
+            String reconciliationState,
+            Instant firstSeenAt,
+            Instant reconciledAt) {}
 }

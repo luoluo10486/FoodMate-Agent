@@ -1,10 +1,16 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.RuntimeEventRepository.*;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.DispatchRow;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.EventRow;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.RunOwner;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.SseRow;
 import com.foodmate.shared.runtime.V1RunEvent;
 import java.math.BigDecimal;
 import java.util.List;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface V1RuntimeEventMapper {
@@ -114,6 +120,10 @@ public interface V1RuntimeEventMapper {
     @Select(
             "SELECT session_id AS sessionId,created_by AS userId FROM agent_runs WHERE agent_run_id=#{runId} FOR UPDATE")
     RunOwner lockOwner(long runId);
+
+    @Select(
+            "WITH advisory_lock AS (SELECT pg_advisory_xact_lock(#{sessionId})) SELECT 0 FROM advisory_lock")
+    int lockMessageSequence(long sessionId);
 
     @Select(
             "SELECT COALESCE(MAX(sequence_no),0)+1 FROM messages WHERE session_id=#{sessionId} AND is_deleted=FALSE")

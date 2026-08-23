@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.ToolGatewayPort.*;
+import com.foodmate.application.runtime.port.out.ToolGatewayPort.Audit;
+import com.foodmate.application.runtime.port.out.ToolGatewayPort.RunContext;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;

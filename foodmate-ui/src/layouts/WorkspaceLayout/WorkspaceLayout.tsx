@@ -217,14 +217,9 @@ export function WorkspaceLayout({
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''}`}
+        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${sidebarFixture && !showKnowledgeTopNav ? styles.figmaFixture : ''}`}
       >
         <aside className={styles.sidebar}>
-          <div className={styles.windowControls} aria-hidden="true">
-            <span className={styles.windowRed} />
-            <span className={styles.windowYellow} />
-            <span className={styles.windowGreen} />
-          </div>
           <div className={styles.sidebarBrand}>
             <BrandLogo showTagline />
           </div>
@@ -240,7 +235,7 @@ export function WorkspaceLayout({
               value={displayedSessionQuery}
               onChange={(event) => setSessionQuery(event.target.value)}
             />
-            {displayedSessionQuery ? (
+            {displayedSessionQuery && !designChat ? (
               <Button
                 className={styles.clearSearch}
                 variant="ghost"

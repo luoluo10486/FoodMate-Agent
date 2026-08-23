@@ -1,12 +1,14 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.foodmate.application.account.port.out.AdminAuditReportRepository;
 import com.foodmate.application.account.port.out.AdminDashboardRepository;
 import com.foodmate.application.account.port.out.AdminManagementRepository;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
 import com.foodmate.application.conversation.port.out.ConversationSummaryRepository;
 import com.foodmate.application.conversation.port.out.MemoryRepository;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
+import com.foodmate.application.retention.port.out.DataRetentionRepository;
 import com.foodmate.application.runtime.port.out.AdmissionReconciliationRepository;
 import com.foodmate.application.runtime.port.out.CancellationRepository;
 import com.foodmate.application.runtime.port.out.DeadLetterRepository;
@@ -19,13 +21,11 @@ import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository.ToolDefinition;
 import com.foodmate.application.runtime.service.ToolRegistryCatalog;
-
+import java.math.BigDecimal;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 /** 本地无数据 stub 的显式持久化适配器。 */
 @Configuration
@@ -178,6 +178,34 @@ public class LocalStubPersistenceConfig {
             public int resolve(long dlqId, String state, String note) {
                 throw unavailable();
             }
+
+            public ReplayCandidate findReplayCandidate(long dlqId) {
+                return null;
+            }
+
+            public ReplayOutbox findActiveReplay(long dlqId) {
+                return null;
+            }
+
+            public int insertReplay(ReplayRequest request) {
+                throw unavailable();
+            }
+
+            public List<ReplayOutbox> findPendingReplay(int limit) {
+                return List.of();
+            }
+
+            public int leaseReplay(long replayId, String owner) {
+                throw unavailable();
+            }
+
+            public int markReplayPublished(long replayId, String owner, String messageId) {
+                throw unavailable();
+            }
+
+            public void retryReplay(long replayId, String owner, String error) {
+                throw unavailable();
+            }
         };
     }
 
@@ -250,6 +278,39 @@ public class LocalStubPersistenceConfig {
 
             public int complete(String proposalId, String resultJson) {
                 return 1;
+            }
+        };
+    }
+
+    @Bean
+    AdminAuditReportRepository localAdminAuditReportRepository() {
+        return new AdminAuditReportRepository() {
+            public OperationAuditSummary operationAudits() {
+                return new OperationAuditSummary(0, 0, null);
+            }
+
+            public OutboxSummary runtimeDispatchOutbox(java.time.Instant staleBefore) {
+                return new OutboxSummary(0, 0, null);
+            }
+
+            public OutboxSummary knowledgeIndexOutbox(java.time.Instant staleBefore) {
+                return new OutboxSummary(0, 0, null);
+            }
+
+            public OutboxSummary knowledgeVisibilityOutbox(java.time.Instant staleBefore) {
+                return new OutboxSummary(0, 0, null);
+            }
+
+            public OutboxSummary agentRunSseOutbox(java.time.Instant staleBefore) {
+                return new OutboxSummary(0, 0, null);
+            }
+
+            public KnowledgeImportSummary knowledgeImports() {
+                return new KnowledgeImportSummary(0, 0, null);
+            }
+
+            public DlqSummary dlq() {
+                return new DlqSummary(0, 0, null);
             }
         };
     }
@@ -403,6 +464,88 @@ public class LocalStubPersistenceConfig {
     }
 
     @Bean
+    DataRetentionRepository localDataRetentionRepository() {
+        return new DataRetentionRepository() {
+            public Policy policy(String resourceType) {
+                return null;
+            }
+
+            public ResourceSnapshot resource(String resourceType, long resourceId) {
+                return null;
+            }
+
+            public PurgeRequest purgeRequest(long requestId) {
+                return null;
+            }
+
+            public PurgeRequest purgeRequestByIdempotency(long operatorId, String idempotencyKey) {
+                return null;
+            }
+
+            public PurgeRequest activePurgeRequest(String resourceType, long resourceId) {
+                return null;
+            }
+
+            public int insertPurgeRequest(NewPurgeRequest request) {
+                throw unavailable();
+            }
+
+            public int approvePurge(long requestId, long approverId, java.time.Instant approvedAt) {
+                throw unavailable();
+            }
+
+            public int insertPurgeTask(PurgeTask task) {
+                throw unavailable();
+            }
+
+            public java.util.List<PurgeTaskSnapshot> pendingTasks(int limit) {
+                return java.util.List.of();
+            }
+
+            public int leaseTask(long taskId, String owner, String resourceType, long resourceId) {
+                throw unavailable();
+            }
+
+            public int markTaskPublished(long taskId, String owner, String messageId) {
+                throw unavailable();
+            }
+
+            public int markTaskSucceeded(
+                    long taskId, String owner, String errorCode, String errorSummary) {
+                throw unavailable();
+            }
+
+            public void retryTask(
+                    long taskId, String owner, String errorCode, String errorSummary) {
+                throw unavailable();
+            }
+
+            public int applyTaskResult(
+                    long taskId, String status, String errorCode, String errorSummary) {
+                throw unavailable();
+            }
+
+            public void refreshPurgeRequest(long taskId) {}
+
+            public int insertHold(NewHold hold) {
+                throw unavailable();
+            }
+
+            public Hold activeHold(String resourceType, long resourceId) {
+                return null;
+            }
+
+            public Hold hold(long holdId) {
+                return null;
+            }
+
+            public int releaseHold(long holdId, long operatorId, java.time.Instant releasedAt) {
+                throw unavailable();
+            }
+        };
+    }
+
+    @Bean
     AdminDashboardRepository localAdminDashboardRepository() {
         return new AdminDashboardRepository() {
             public Overview overview() {
@@ -523,6 +666,14 @@ public class LocalStubPersistenceConfig {
             }
 
             public long countOperationAudits(Query query) {
+                return 0;
+            }
+
+            public List<DlqRow> dlq(Query query) {
+                return List.of();
+            }
+
+            public long countDlq(Query query) {
                 return 0;
             }
         };

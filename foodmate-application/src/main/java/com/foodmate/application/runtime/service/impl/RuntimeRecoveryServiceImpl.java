@@ -18,6 +18,7 @@ import com.foodmate.application.runtime.service.RuntimeRecoveryService.RecoveryC
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.enums.RunStatus;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -246,7 +247,7 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
                 result.add(item.asText());
             }
             return List.copyOf(result);
-        } catch (Exception exception) {
+        } catch (JsonProcessingException | IllegalArgumentException exception) {
             throw error("RECOVERY_CONTEXT_INVALID", "checkpoint invocation list is invalid");
         }
     }
@@ -261,7 +262,7 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
                 if (invocationId.isBlank())
                     throw new IllegalArgumentException("missing invocation id");
                 result.add(invocationId);
-            } catch (Exception exception) {
+            } catch (JsonProcessingException | IllegalArgumentException exception) {
                 throw error("RECOVERY_CONTEXT_INVALID", "completed Tool Result is invalid");
             }
         }
@@ -324,7 +325,7 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
                     + hex(
                             MessageDigest.getInstance("SHA-256")
                                     .digest(mapper.writeValueAsBytes(root)));
-        } catch (Exception exception) {
+        } catch (JsonProcessingException | NoSuchAlgorithmException exception) {
             throw error("RUNTIME_CONTRACT_INVALID", "cannot hash recovery payload");
         }
     }

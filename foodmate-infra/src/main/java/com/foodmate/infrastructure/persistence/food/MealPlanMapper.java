@@ -1,6 +1,10 @@
 package com.foodmate.infrastructure.persistence.food;
 
-import com.foodmate.application.food.port.out.MealPlanRepository.*;
+import com.foodmate.application.food.port.out.MealPlanRepository.PlanSnapshot;
+import com.foodmate.application.food.port.out.MealPlanRepository.PlanWrite;
+import com.foodmate.application.food.port.out.MealPlanRepository.ShoppingListSnapshot;
+import com.foodmate.application.food.port.out.MealPlanRepository.ShoppingListWrite;
+import com.foodmate.application.food.port.out.MealPlanRepository.UpdatePlanWrite;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;

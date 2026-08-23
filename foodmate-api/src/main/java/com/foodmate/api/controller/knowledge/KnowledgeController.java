@@ -14,10 +14,12 @@ import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledFuture;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,14 +31,18 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+/** Exposes administrator knowledge ingestion, lifecycle, progress, and SSE endpoints. */
 @RestController
 @RequestMapping("/api/admin")
 public class KnowledgeController extends AuthenticatedControllerSupport {
     private final KnowledgeService knowledge;
+    private final TaskScheduler taskScheduler;
 
-    public KnowledgeController(UserAccountService accounts, KnowledgeService knowledge) {
+    public KnowledgeController(
+            UserAccountService accounts, KnowledgeService knowledge, TaskScheduler taskScheduler) {
         super(accounts);
         this.knowledge = knowledge;
+        this.taskScheduler = taskScheduler;
     }
 
     @PostMapping(value = "/knowledge", consumes = "multipart/form-data")
@@ -181,31 +187,39 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
             HttpServletRequest request) {
         requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
         SseEmitter emitter = new SseEmitter(120_000L);
-        var executor = Executors.newSingleThreadScheduledExecutor();
         String headerCursor = request.getHeader("Last-Event-ID");
         long initialCursor = lastEventId == null ? parseEventId(headerCursor) : lastEventId;
         final long[] cursor = {Math.max(0, initialCursor)};
-        executor.scheduleWithFixedDelay(
+        java.util.concurrent.atomic.AtomicReference<ScheduledFuture<?>> taskReference =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        ScheduledFuture<?> task =
+                taskScheduler.scheduleWithFixedDelay(
+                        () -> {
+                            try {
+                                for (var event : knowledge.batchEvents(batchId, cursor[0])) {
+                                    emitter.send(
+                                            SseEmitter.event()
+                                                    .id(Long.toString(event.eventId()))
+                                                    .name(event.eventType())
+                                                    .data(event.payload()));
+                                    cursor[0] = event.eventId();
+                                }
+                            } catch (IOException | RuntimeException error) {
+                                emitter.completeWithError(error);
+                                ScheduledFuture<?> scheduled = taskReference.get();
+                                if (scheduled != null) scheduled.cancel(false);
+                            }
+                        },
+                        Instant.now(),
+                        Duration.ofMillis(300));
+        taskReference.set(task);
+        Runnable cancelTask =
                 () -> {
-                    try {
-                        for (var event : knowledge.batchEvents(batchId, cursor[0])) {
-                            emitter.send(
-                                    SseEmitter.event()
-                                            .id(Long.toString(event.eventId()))
-                                            .name(event.eventType())
-                                            .data(event.payload()));
-                            cursor[0] = event.eventId();
-                        }
-                    } catch (Exception error) {
-                        emitter.completeWithError(error);
-                        executor.shutdown();
-                    }
-                },
-                0,
-                300,
-                TimeUnit.MILLISECONDS);
-        emitter.onCompletion(executor::shutdown);
-        emitter.onTimeout(executor::shutdown);
+                    ScheduledFuture<?> scheduled = taskReference.get();
+                    if (scheduled != null) scheduled.cancel(false);
+                };
+        emitter.onCompletion(cancelTask);
+        emitter.onTimeout(cancelTask);
         return emitter;
     }
 

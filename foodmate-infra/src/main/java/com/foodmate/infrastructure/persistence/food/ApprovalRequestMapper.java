@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.persistence.food;
 
-import com.foodmate.application.food.port.out.ApprovalRequestRepository.*;
+import com.foodmate.application.food.port.out.ApprovalRequestRepository.ApprovalSnapshot;
+import com.foodmate.application.food.port.out.ApprovalRequestRepository.ApprovalWrite;
 import java.time.Instant;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;

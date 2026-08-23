@@ -12,7 +12,7 @@ import math
 import os
 import time
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
 from proposal_protocol import Proposal, validate_proposal
@@ -221,12 +221,15 @@ class DeterministicRouter:
         text = content.strip()
         lower = text.lower()
         risk = "high" if any(word in text for word in ("疾病", "诊断", "处方", "过敏反应")) else "low"
+        # Analysis questions often describe the absence of records. Match the
+        # requested operation before the noun "记录" so those questions do not
+        # enter the write-oriented route.
+        if any(word in text for word in ("分析", "营养", "蛋白质", "热量")):
+            return RouteDecision("analysis", "complex", risk)
         if any(word in text for word in ("记录", "吃了", "早餐", "午餐", "晚餐")):
             return RouteDecision("record", "complex" if len(text) > 60 else "simple", risk)
         if any(word in text for word in ("计划", "食谱", "购物清单")):
             return RouteDecision("planning", "complex", risk, ("days",) if "天" not in text else ())
-        if any(word in text for word in ("分析", "营养", "蛋白质", "热量")):
-            return RouteDecision("analysis", "complex", risk)
         return RouteDecision("knowledge_qna", "simple", risk)
 
 
@@ -519,7 +522,7 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
                 item
                 for item in reversed(tool_results)
                 if item.get("tool_name") == "database_query"
-                or item.get("sql_audit_id")
+                or (not item.get("tool_name") and item.get("sql_audit_id"))
             ),
             None,
         )
@@ -571,7 +574,13 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
         if time_result.get("status") != "succeeded":
             return []
         statement = str(plan.candidate_sql)
-        invocation_id = str(request.get("invocation_id") or "inv_" + hashlib.sha256(statement.encode("utf-8")).hexdigest()[:24])
+        invocation_id = str(
+            request.get("invocation_id")
+            or "inv_"
+            + hashlib.sha256(
+                (str(command["run_id"]) + ":" + statement).encode("utf-8")
+            ).hexdigest()[:24]
+        )
         input_plan = {
             "intent": plan.intent,
             "time_range": plan.time_range,
@@ -654,7 +663,12 @@ class AgentExecution:
     proposals: list[dict[str, Any]] = field(default_factory=list)
 
 
-def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | None = None, model_router: ModelRouter | None = None) -> AgentExecution:
+def run_deterministic(
+    command: dict[str, Any],
+    checkpoint: InMemoryCheckpoint | None = None,
+    model_router: ModelRouter | None = None,
+    context_observer: Callable[[Context], None] | None = None,
+) -> AgentExecution:
     # Runtime execution state must not overwrite the resumable tool-wait checkpoint.
     # Direct callers keep the historical key; the RocketMQ path supplies a private
     # state key and leaves the recovery key to checkpoint boundary writes.
@@ -671,6 +685,9 @@ def run_deterministic(command: dict[str, Any], checkpoint: InMemoryCheckpoint | 
         int(options.get("context_max_recent_messages", 8)),
         int(options.get("context_max_tokens", os.getenv("FOODMATE_AGENT_CONTEXT_MAX_TOKENS", "12000"))),
     ).build(command, route)
+    observer = context_observer or command.get("_context_observer")
+    if callable(observer):
+        observer(context)
     plan = DeterministicPlanner().plan(route)
     graph = WorkflowGraph(BudgetSnapshot.from_command(command).max_total_steps)
     graph.enter("router")

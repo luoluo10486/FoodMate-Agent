@@ -25,7 +25,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <span className="relative block w-full">
         {leadingIcon ? (
-          <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 [&>svg]:size-[18px] [&>svg]:text-[#6f7e89]">
+          <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 [&>img]:size-[18px] [&>svg]:size-[18px] [&>svg]:text-[#6f7e89]">
             {leadingIcon}
           </span>
         ) : null}

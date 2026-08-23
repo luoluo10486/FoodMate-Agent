@@ -4,10 +4,10 @@
   "width": 1440,
   "height": 1024,
   "pixelCount": 1474560,
-  "differentPixels": 384313,
-  "differentRatio": 0.2606289333767361,
-  "meanAbsoluteError": 3.8770731608072917,
-  "rmse": 19.20018646185014,
-  "maxChannelDelta": 240,
-  "manualReview": "PENDING: automated diff completed; visual geometry and typography review remains open"
+  "differentPixels": 146269,
+  "differentRatio": 0.09919501410590278,
+  "meanAbsoluteError": 3.3263085259331597,
+  "rmse": 19.44250030583415,
+  "maxChannelDelta": 237,
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: the frontend now includes the received Agent explanation, paired Agent avatars, narrow budget card, choice panel, full progress bar, and Figma-aligned continuation actions; residual differences remain in font/icon rasterization and surrounding workspace rendering"
 }

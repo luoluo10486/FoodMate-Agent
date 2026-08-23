@@ -19,16 +19,24 @@ type SidebarSessionListProps = {
 
 export function SidebarSessionList({ sessions, onAction, currentPage = 1 }: SidebarSessionListProps) {
   return (
-    <section className={styles.section}>
-      <NavLink className={({ isActive }) => `${styles.sectionTitle} ${isActive ? styles.active : ''}`} to="/chat">
+    <section className={`${styles.section} sidebar-session-section`}>
+      <NavLink
+        className={({ isActive }) =>
+          `${styles.sectionTitle} sidebar-session-section-title ${isActive ? styles.active : ''}`
+        }
+        to="/chat"
+      >
         <MessageCircle aria-hidden="true" />
         <span>Agent 对话</span>
       </NavLink>
-      <div className={styles.list}>
+      <div className={`${styles.list} sidebar-session-list`}>
         {sessions.map((session) => {
           const archived = (session.status as string) === 'archived';
           return (
-            <div className={`${styles.item} ${session.active ? styles.active : ''}`} key={session.id}>
+            <div
+              className={`${styles.item} sidebar-session-list-item ${session.active ? styles.active : ''}`}
+              key={session.id}
+            >
               <NavLink className={styles.itemLink} to={`/chat/${session.id}`}>
                 <span className={styles.dot} aria-hidden="true" />
                 <span className={styles.title}>{session.title}</span>
@@ -68,7 +76,7 @@ export function SidebarSessionList({ sessions, onAction, currentPage = 1 }: Side
           );
         })}
       </div>
-      <div className={styles.pagination} aria-label="会话分页">
+      <div className={`${styles.pagination} sidebar-session-pagination`} aria-label="会话分页">
         <Button variant="ghost" size="icon" aria-label="上一页" disabled type="button">
           <ChevronLeft aria-hidden="true" />
         </Button>

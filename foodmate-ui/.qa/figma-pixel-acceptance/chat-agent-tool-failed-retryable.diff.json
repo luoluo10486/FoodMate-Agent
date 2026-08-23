@@ -4,10 +4,10 @@
   "width": 1440,
   "height": 1024,
   "pixelCount": 1474560,
-  "differentPixels": 328294,
-  "differentRatio": 0.22263861762152778,
-  "meanAbsoluteError": 3.170729573567708,
-  "rmse": 16.47345330003616,
-  "maxChannelDelta": 245,
-  "manualReview": "PENDING: automated diff completed; visual geometry and typography review remains open"
+  "differentPixels": 198602,
+  "differentRatio": 0.13468560112847222,
+  "meanAbsoluteError": 2.627039591471354,
+  "rmse": 17.086151495986257,
+  "maxChannelDelta": 246,
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: the frontend now includes the Agent avatar, failed process marker, Figma alert color treatment, and compact retry/skip actions; residual differences remain in font/icon rasterization and surrounding workspace rendering"
 }

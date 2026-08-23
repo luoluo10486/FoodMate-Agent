@@ -223,7 +223,9 @@
 
 .planningBubble {
   display: flex;
-  width: fit-content;
+  width: 165px;
+  height: 160px;
+  box-sizing: border-box;
   max-width: 100%;
   flex-direction: column;
   gap: 16px;
@@ -231,6 +233,17 @@
   border: 1px solid #f4f6f5;
   border-radius: 16px 16px 16px 0;
   background: #fff;
+}
+
+.designChatPage :global(button[data-state='running']) {
+  background: #ff7576;
+}
+
+.designChatPage :global(button[data-state='running'] svg) {
+  width: 10px;
+  height: 10px;
+  fill: currentColor;
+  stroke-width: 0;
 }
 
 .planningTitle {
@@ -242,10 +255,10 @@
   line-height: 17px;
 }
 
-.planningTitle svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2;
+.planningLoader {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 .planningSteps {
@@ -373,11 +386,10 @@
   white-space: nowrap;
 }
 
-.executingTitle svg {
-  width: 18px;
-  height: 18px;
+.executingLoader {
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
-  stroke-width: 2;
 }
 
 .executingToolSteps {
@@ -402,11 +414,10 @@
   line-height: 16px;
 }
 
-.executingToolStep svg {
-  width: 14px;
-  height: 14px;
+.executingToolIcon {
+  width: 12px;
+  height: 12px;
   flex: 0 0 auto;
-  stroke-width: 2;
 }
 
 .executingToolStep span {
@@ -428,23 +439,9 @@
   color: #c79654;
 }
 
-.executingToolSteps .executingToolSteprunning svg {
-  animation: executing-spin 1.4s linear infinite;
-}
-
 .executingToolSteps .executingToolSteppending {
   color: #9ca3af;
   opacity: 0.58;
-}
-
-.executingToolSteps .executingToolSteppending svg {
-  color: #9ca3af;
-}
-
-@keyframes executing-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .awaitingUserMessage {
@@ -626,6 +623,11 @@
   background: var(--fm-bg-soft);
 }
 
+.assistant .messageText {
+  font-family: var(--fm-font-mono);
+  line-height: 1.5;
+}
+
 .assistantBody {
   display: flex;
   width: min(560px, calc(100% - 48px));
@@ -727,7 +729,7 @@
 }
 
 .inlineConfirmationOption + .inlineConfirmationOption {
-  margin-top: -4px;
+  margin-top: 8px;
 }
 
 .inlineConfirmationOption > [data-slot='radio-group-item'] {
@@ -860,7 +862,7 @@
 .traceTabs {
   display: flex;
   width: 100%;
-  height: 28px;
+  height: 26px;
   flex: 0 0 auto;
   gap: 8px;
   margin-top: 20px;
@@ -868,7 +870,7 @@
 
 .traceTabs button {
   min-width: 0;
-  height: 28px;
+  height: 26px;
   flex: 1 1 0;
   padding: 0 12px;
   border: 0;
@@ -922,7 +924,7 @@
 .traceStep {
   display: flex;
   width: 100%;
-  height: 40px;
+  height: 43px;
   align-items: center;
   justify-content: space-between;
   padding: 12px;
@@ -1131,7 +1133,16 @@
   gap: 6px;
 }
 
+.fixtureUserLine {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 .fixtureUserBubble {
+  min-width: 0;
   max-width: min(560px, calc(100% - 48px));
   padding: 16px;
   border-radius: 16px 16px 0;
@@ -1139,7 +1150,25 @@
   color: #333;
   font-size: 14px;
   line-height: 17px;
+  overflow-wrap: anywhere;
   text-align: left;
+}
+
+.fixtureUserAvatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--fm-color-avatar-surface);
+}
+
+.fixtureUserAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .fixtureMessageMeta {
@@ -1154,6 +1183,90 @@
   margin-left: 48px;
 }
 
+.fixtureAssistantRow {
+  display: flex;
+  width: min(608px, 100%);
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fixtureAgentAvatar {
+  display: block;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: #a6d997;
+}
+
+.fixtureAssistantRow .fixtureCard {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.fixtureBudgetIntro {
+  width: min(560px, calc(100% - 48px));
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #eef1ef;
+  border-radius: 16px 16px 16px 0;
+  background: #fff;
+  color: #333;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.fixtureBudgetRowWrap {
+  width: 334px;
+  margin-top: 0;
+}
+
+.fixtureBudgetRowWrap .fixtureBudgetCard {
+  flex: 0 0 286px;
+}
+
+.fixtureAssistantRow .fixtureBudgetCard {
+  gap: 12px;
+  padding: 20px 18px 20px 17px;
+  border-color: #c79654;
+  border-left-width: 3px;
+  border-radius: 0 16px 16px 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.fixtureAssistantRow .fixtureBudgetCard .fixtureBudgetRow {
+  padding-top: 8px;
+  border-top: 1px solid #eef1ef;
+}
+
+.fixtureBudgetTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fixtureBudgetTitle svg {
+  width: 16px;
+  height: 16px;
+  color: #c79654;
+}
+
+.fixtureBudgetTitle h2 {
+  margin: 0;
+  color: #c79654;
+  font-size: 14px;
+  line-height: 17px;
+}
+
+.fixtureBudgetDescription {
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 17px;
+}
+
 .fixtureCard {
   display: flex;
   min-width: 0;
@@ -1164,6 +1277,55 @@
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 6px 20px rgb(51 51 51 / 4%);
+}
+
+.fixtureFailureCard {
+  gap: 11px;
+  border-color: #ff6b68;
+  background: #fee8e8;
+  box-shadow: none;
+}
+
+.fixtureFailureCard .fixtureStatusTitle svg {
+  color: #ff6b68;
+}
+
+.fixtureFailureCard .fixtureStatusTitle h2,
+.fixtureFailureCard .fixtureErrorTitle {
+  color: #ff6b68;
+}
+
+.fixtureFailureCard .fixtureErrorTitle {
+  color: #333;
+}
+
+.fixtureFailureCard .fixtureParagraph {
+  color: #6b7280;
+}
+
+.fixtureFailureCard .fixtureActions button {
+  height: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 12px;
+}
+
+.fixtureFailureCard .fixtureRetryButton {
+  border: 0;
+  background: #ffdc97;
+  color: #876e45;
+  box-shadow: none;
+}
+
+.fixtureFailureCard .fixtureRetryButton:hover {
+  background: #f5cf87;
+}
+
+.fixtureFailureCard .fixtureSkipButton {
+  border-color: transparent;
+  background: #fff;
+  color: #333;
 }
 
 .fixtureCard h2,
@@ -1307,9 +1469,33 @@
 .fixtureChoiceList {
   display: grid;
   gap: 8px;
-  color: #876e45;
-  font-size: 12px;
-  line-height: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f4f6f5;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.fixtureChoiceList span {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.fixtureChoiceList i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: #6b7280;
+}
+
+.fixtureChoiceList strong {
+  color: #333;
+  font-weight: 700;
 }
 
 .fixtureBudgetRow {
@@ -1320,6 +1506,118 @@
 .fixtureBudgetRow strong {
   color: #333;
   font-weight: 600;
+}
+
+.fixtureBudgetProgress {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f4f6f5;
+}
+
+.fixtureBudgetProgress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: #c79654;
+}
+
+.fixtureBudgetCard .fixtureActions button {
+  height: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.fixtureBudgetPrimaryButton {
+  background: #c79654;
+  color: #fff;
+  box-shadow: none;
+}
+
+.fixtureBudgetPrimaryButton:hover {
+  background: #b98444;
+}
+
+.fixtureBudgetSecondaryButton {
+  color: #6b7280;
+}
+
+.fixtureSafetyBlock {
+  display: flex;
+  width: min(608px, 100%);
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fixtureSafetyTopRow {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fixtureSafetyIdentity {
+  display: flex;
+  width: 36px;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #c79654;
+  font-size: 9px;
+  line-height: 11px;
+  text-align: center;
+}
+
+.fixtureSafetyAlert {
+  display: grid;
+  min-width: 0;
+  height: 58px;
+  flex: 1 1 auto;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 3px 8px;
+  padding: 10px 12px;
+  border: 1px solid #c79654;
+  border-radius: 14px;
+  background: #fff6e2;
+  color: #876e45;
+}
+
+.fixtureSafetyAlert > svg {
+  grid-row: span 2;
+  width: 16px;
+  height: 16px;
+  color: #c79654;
+}
+
+.fixtureSafetyAlert h5 {
+  margin: 0;
+  color: #876e45;
+  font-size: 12px;
+  line-height: 15px;
+}
+
+.fixtureSafetyAlert div {
+  min-width: 0;
+  color: #876e45;
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.fixtureSafetyResponse {
+  display: flex;
+  width: calc(100% - 48px);
+  min-height: 125px;
+  margin-left: 48px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px 14px 14px 0;
+  background: #f4f6f5;
 }
 
 .fixtureCancelledWrap,
@@ -1456,6 +1754,10 @@
     width: calc(100% - 48px);
   }
 
+  .fixtureAssistantRow {
+    width: 100%;
+  }
+
   .fixtureCardHeader,
   .fixtureBudgetRow,
   .fixtureMeta {
@@ -1471,6 +1773,32 @@
 
   .fixtureDetails dd {
     text-align: left;
+  }
+
+  .fixtureBudgetIntro {
+    width: auto;
+    flex: 1 1 auto;
+    white-space: normal;
+  }
+
+  .fixtureBudgetRowWrap {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .fixtureBudgetRowWrap .fixtureBudgetCard {
+    flex: 1 1 auto;
+    width: calc(100% - 48px);
+    max-width: calc(100% - 48px);
+  }
+
+  .fixtureSafetyBlock {
+    width: 100%;
+  }
+
+  .fixtureSafetyResponse {
+    width: calc(100% - 48px);
+    min-height: 0;
   }
 }
 .fixtureAuxMessage {

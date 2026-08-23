@@ -1,13 +1,14 @@
 """FoodMate Agent Runtime V1, dependency-free local implementation."""
 
 import json
+import logging
 import os
 import threading
 import urllib.error
 import urllib.request
 import base64
+import hashlib
 import uuid
-import traceback
 import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,11 +17,13 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 load_project_env()
 
+LOGGER = logging.getLogger("foodmate.agent-runtime")
+
 from agent_core import DeterministicPlanner, DeterministicRouter, InMemoryCheckpoint, run_deterministic, split_answer
 from eval.metrics import EvalMetrics, RuntimeMetrics
 from model_provider import ModelProviderError
 from recovery_protocol import checkpoint_digest, validate_recovery_command
-from knowledge_rag import MilvusIndex, OpenAICompatibleEmbedder, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex
+from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, build_local_embedder
 
 JAVA_CALLBACK_URL = os.getenv("JAVA_CALLBACK_URL", "http://localhost:8080")
 CONTRACT_VERSION = os.getenv("FOODMATE_CONTRACT_VERSION", "v1")
@@ -40,6 +43,21 @@ _eval_metrics = EvalMetrics()
 _runtime_metrics = RuntimeMetrics()
 _runtime_started_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 _mq_runtime = None
+MAX_EVENT_ID_LENGTH = 64
+DEFAULT_STREAM_CHUNK_MAX_BYTES = 2048
+DEFAULT_STREAM_CHUNK_INTERVAL_MS = 150
+MAX_STREAM_CHUNK_INTERVAL_MS = 10000
+
+
+def _bounded_event_id(event_id: str) -> str:
+    """Keep the persisted event identifier within the V1 database contract."""
+    if len(event_id) <= MAX_EVENT_ID_LENGTH:
+        return event_id
+    digest = hashlib.sha256(event_id.encode("utf-8")).hexdigest()[:16]
+    prefix_length = MAX_EVENT_ID_LENGTH - len(digest) - 1
+    return event_id[:prefix_length] + "-" + digest
+
+
 def _new_checkpoint():
     # 本地默认内存后端；启用 Redis 时必须同时配置 checkpoint 加密密钥。
     if os.getenv("FOODMATE_AGENT_CHECKPOINT_BACKEND", "inmemory").lower() == "redis":
@@ -80,6 +98,18 @@ def _record_provider_failure(error: ModelProviderError, elapsed_ms: int) -> None
     _eval_metrics.record("degrade", reason, elapsed_ms)
 
 
+def _context_source_payload(context) -> dict[str, object]:
+    """Expose source identifiers only; context text remains Java-authorized data."""
+    source_ids: dict[str, list[str]] = {}
+    for source_type in ("message_id", "summary_id", "memory_id", "citation_id"):
+        source_ids[source_type] = [
+            str(value)[:128]
+            for value in context.sources.get(source_type, ())
+            if str(value).strip()
+        ][:16]
+    return {"source_ids": source_ids}
+
+
 def _eval_payload(execution) -> dict[str, object]:
     """Expose the quality-gate fact without retaining the candidate answer or prompt."""
     return {
@@ -88,6 +118,45 @@ def _eval_payload(execution) -> dict[str, object]:
         "score": getattr(execution.eval, "score", None),
         "evaluator_version": getattr(execution.eval, "evaluator_version", "deterministic-eval-v1"),
     }
+
+
+def _stream_chunk_interval_ms() -> int:
+    """读取回答事件间隔，避免把回答按模型 token 逐条发送到消息总线。"""
+    raw_value = os.getenv(
+        "FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS",
+        str(DEFAULT_STREAM_CHUNK_INTERVAL_MS),
+    ).strip()
+    try:
+        interval_ms = int(raw_value)
+    except ValueError as error:
+        raise RuntimeError("RUNTIME_STREAM_CONFIG_INVALID") from error
+    if interval_ms < 0 or interval_ms > MAX_STREAM_CHUNK_INTERVAL_MS:
+        raise RuntimeError("RUNTIME_STREAM_CONFIG_INVALID")
+    return interval_ms
+
+
+def _emit_answer_chunks(command: dict, prefix: str, next_sequence: int, answer: str) -> int:
+    """按字节上限和可配置时间间隔发布回答分片。"""
+    max_bytes = int(
+        os.getenv(
+            "FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES",
+            str(DEFAULT_STREAM_CHUNK_MAX_BYTES),
+        )
+    )
+    chunks = split_answer(answer, max_bytes)
+    interval_seconds = _stream_chunk_interval_ms() / 1000
+    for index, chunk in enumerate(chunks, start=1):
+        emit(
+            command,
+            prefix + f"-answer-{index}",
+            next_sequence,
+            "run.answer_stream",
+            {"text": chunk, "status": "evaluated"},
+        )
+        next_sequence += 1
+        if index < len(chunks) and interval_seconds > 0:
+            time.sleep(interval_seconds)
+    return next_sequence
 
 
 def _redis_client():
@@ -196,7 +265,10 @@ def _notify_java_runtime_recovered():
     except Exception as error:
         # Startup must remain available when Java is temporarily restarting; the next startup
         # notification or the scheduled Java scan will retry the reconciliation.
-        print(f"runtime recovery notification unavailable: {type(error).__name__}", flush=True)
+        LOGGER.warning(
+            "runtime recovery notification unavailable error_type=%s",
+            type(error).__name__,
+        )
 
 
 def _b64(value):
@@ -238,6 +310,7 @@ def _verify(token, issuer, audience, scope):
 
 def emit(command, event_id, sequence, event_type, payload=None):
     # Runtime 只回传协议事件，不直接写 FoodMate 业务表；状态投影由 Java 完成。
+    event_id = _bounded_event_id(event_id)
     request_id = "req_evt_" + uuid.uuid4().hex
     occurred_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     stable = {
@@ -431,6 +504,19 @@ def execute(command):
         execution_command["_checkpoint_key"] = (
             str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
         )
+
+        def observe_context(context) -> None:
+            nonlocal next_sequence
+            emit(
+                command,
+                prefix + f"-context-{next_sequence}",
+                next_sequence,
+                "run.context_assembled",
+                _context_source_payload(context),
+            )
+            next_sequence += 1
+
+        execution_command["_context_observer"] = observe_context
         execution = run_deterministic(execution_command, _checkpoint)
         all_results: list[dict] = []
         while execution.proposals:
@@ -445,7 +531,13 @@ def execute(command):
                     if item.get("invocation_id")
                 ],
             )
-            emit(command, prefix + "-checkpoint", next_sequence, "run.checkpoint_saved", checkpoint_payload)
+            emit(
+                command,
+                prefix + "-checkpoint-" + str(next_sequence),
+                next_sequence,
+                "run.checkpoint_saved",
+                checkpoint_payload,
+            )
             next_sequence += 1
             # 仅用于本地故障演练：暂停点让测试可以在 checkpoint 已落 Redis、Tool 尚未发送前终止进程。
             # 默认 0，不改变生产路径，也不把测试状态写入业务协议。
@@ -497,6 +589,7 @@ def execute(command):
             if query_result and query_result.get("query_plan"):
                 authorized["database_query_plan"] = query_result["query_plan"]
             resumed["authorized_context"] = authorized
+            resumed["_context_observer"] = observe_context
             follow_up = run_deterministic(resumed, _checkpoint)
             follow_up.model_attempts = execution.model_attempts + follow_up.model_attempts
             follow_up.usage.tokens += execution.usage.tokens
@@ -527,12 +620,7 @@ def execute(command):
             return
         answer = execution.answer
         if execution.eval.result == "pass":
-            stream_chunks = split_answer(answer, int(os.getenv("FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES", "2048")))
-        else:
-            stream_chunks = []
-        for index, chunk in enumerate(stream_chunks, start=1):
-            emit(command, prefix + f"-answer-{index}", next_sequence, "run.answer_stream", {"text": chunk, "status": "evaluated"})
-            next_sequence += 1
+            next_sequence = _emit_answer_chunks(command, prefix, next_sequence, answer)
         if command["run_id"] in _cancelled:
             emit(command, prefix + "-cancel-ack", next_sequence, "run.cancel_acknowledged", {"reason": "user_requested"})
             emit(command, prefix + "-cancelled", next_sequence + 1, "run.cancelled", {"reason": "user_requested"})
@@ -568,13 +656,17 @@ def execute(command):
         return
     except Exception as error:
         # 未预期异常也必须留下终态事件，避免 Java/前端永久停在 routed。
-        print(f"runtime execution failed run_id={command.get('run_id')} error={type(error).__name__}: {error}", flush=True)
-        traceback.print_exc()
+        # 只记录稳定错误类型，不把异常文本、Prompt 或业务载荷写入日志。
+        LOGGER.error(
+            "runtime execution failed run_id=%s error_type=%s",
+            command.get("run_id"),
+            type(error).__name__,
+        )
         try:
             emit(command, prefix + "-failed", next_sequence, "run.failed", {"code": "RUNTIME_EXECUTION_FAILED", "retryable": False})
             _runtime_metrics.record("dispatch", "failed", "execution_error", int((time.monotonic() - started) * 1000))
         except Exception:
-            traceback.print_exc()
+            LOGGER.error("runtime failure event emission failed error_type=%s", type(error).__name__)
 
 
 def _attach_public_citations(command: dict) -> dict:
@@ -599,7 +691,7 @@ def _search_public_knowledge(query: str):
         RedisStubIndex().search(query, PUBLIC_SCOPE)
         if settings.mode == "stub"
         else MilvusIndex(settings).search(
-            query, OpenAICompatibleEmbedder(settings), PUBLIC_SCOPE
+            query, build_local_embedder(settings), PUBLIC_SCOPE
         )
     )
 
@@ -751,7 +843,8 @@ if __name__ == "__main__":
         _notify_java_runtime_recovered()
         mq_runtime = _mq_runtime
     try:
-        ThreadingHTTPServer(("127.0.0.1", int(os.getenv("PORT", "9000"))), Handler).serve_forever()
+        bind_host = os.getenv("FOODMATE_BIND_HOST", "127.0.0.1")
+        ThreadingHTTPServer((bind_host, int(os.getenv("PORT", "9000"))), Handler).serve_forever()
     finally:
         if mq_runtime is not None:
             mq_runtime.close()

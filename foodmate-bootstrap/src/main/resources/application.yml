@@ -9,6 +9,12 @@ spring:
   jackson:
     time-zone: UTC
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      # Knowledge batches allow up to twenty 20 MiB files; keep the container limit
+      # aligned with the application-level validation instead of Tomcat's 1 MiB default.
+      max-file-size: ${FOODMATE_UPLOAD_MAX_FILE_SIZE:20MB}
+      max-request-size: ${FOODMATE_UPLOAD_MAX_REQUEST_SIZE:420MB}
   mail:
     host: ${MAIL_HOST:smtp.qq.com}
     port: ${MAIL_PORT:465}
@@ -105,6 +111,11 @@ foodmate:
       plan-validator: true
   audit:
     enabled: true
+  agent:
+    feedback:
+      enabled: ${FOODMATE_AGENT_FEEDBACK_ENABLED:true}
+      comment-max-length: ${FOODMATE_AGENT_FEEDBACK_COMMENT_MAX_LENGTH:1000}
+      audit-high-risk-enabled: ${FOODMATE_AGENT_FEEDBACK_AUDIT_HIGH_RISK_ENABLED:true}
 
 mybatis-plus:
   global-config:

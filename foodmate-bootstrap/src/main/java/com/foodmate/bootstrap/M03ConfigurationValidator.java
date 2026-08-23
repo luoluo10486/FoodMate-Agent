@@ -1,6 +1,7 @@
 package com.foodmate.bootstrap;
 
 import jakarta.annotation.PostConstruct;
+import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -78,7 +79,7 @@ public final class M03ConfigurationValidator {
         try {
             KeyFactory.getInstance("Ed25519")
                     .generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(value)));
-        } catch (Exception exception) {
+        } catch (GeneralSecurityException | IllegalArgumentException exception) {
             throw invalid("runtime private key format");
         }
     }
@@ -87,7 +88,7 @@ public final class M03ConfigurationValidator {
         try {
             KeyFactory.getInstance("Ed25519")
                     .generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(value)));
-        } catch (Exception exception) {
+        } catch (GeneralSecurityException | IllegalArgumentException exception) {
             throw invalid("runtime public key format");
         }
     }

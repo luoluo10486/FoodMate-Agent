@@ -15,6 +15,14 @@ type RegisterValues = {
   confirmPassword: string;
 };
 
+const emptyRegisterValues: RegisterValues = { username: '', email: '', password: '', confirmPassword: '' };
+const figmaRegisterValues: RegisterValues = {
+  username: '麦克斯',
+  email: 'max@foodmate.com',
+  password: 'Foodmate123',
+  confirmPassword: 'Foodmate123',
+};
+
 const rules = [
   { label: '至少 8 个字符', matches: (value: string) => value.length >= 8 },
   { label: '包含大写字母', matches: (value: string) => /[A-Z]/.test(value) },
@@ -24,9 +32,10 @@ const rules = [
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const [values, setValues] = useState<RegisterValues>({ username: '', email: '', password: '', confirmPassword: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
+  const [values, setValues] = useState<RegisterValues>(() => (isRealMode ? emptyRegisterValues : figmaRegisterValues));
+  const [showPassword, setShowPassword] = useState(() => !isRealMode);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
   const [submitting, setSubmitting] = useState(false);
 
   const update = (key: keyof RegisterValues) => (event: ChangeEvent<HTMLInputElement>) =>
@@ -101,7 +110,11 @@ export function RegisterPage() {
               const valid = rule.matches(values.password);
               return (
                 <span className={valid ? styles.passwordRuleValid : styles.passwordRule} key={rule.label}>
-                  <CheckCircle2 aria-hidden="true" />
+                  {valid ? (
+                    <img src="/assets/figma/auth/foodmate-register-check-circle.svg" alt="" />
+                  ) : (
+                    <CheckCircle2 aria-hidden="true" />
+                  )}
                   {rule.label}
                 </span>
               );

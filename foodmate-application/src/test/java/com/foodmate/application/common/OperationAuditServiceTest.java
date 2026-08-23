@@ -3,6 +3,9 @@ package com.foodmate.application.common;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,6 +45,30 @@ class OperationAuditServiceTest {
         assertFalse(captured.getValue().requestJson().contains("password"));
         assertFalse(captured.getValue().requestJson().contains("private"));
         assertTrue(captured.getValue().responseJson().contains("success"));
+    }
+
+    @Test
+    void completeSanitizesResponseSummaryBeforePersistence() {
+        OperationAuditPort store = mock(OperationAuditPort.class);
+        when(store.complete(anyLong(), anyString(), anyString())).thenReturn(1);
+        OperationAuditService service = new OperationAuditService(provider(store), () -> 123L);
+
+        service.complete(
+                7L,
+                "run-1",
+                "{\"resource_id\":42,\"revision\":3,\"status\":\"active\","
+                        + "\"notes\":\"private\",\"answer\":\"secret\","
+                        + "\"nested\":{\"api_key\":\"hidden\",\"safe\":true}}");
+
+        ArgumentCaptor<String> response = ArgumentCaptor.forClass(String.class);
+        verify(store).complete(eq(7L), eq("run-1"), response.capture());
+        assertTrue(response.getValue().contains("resource_id"));
+        assertTrue(response.getValue().contains("revision"));
+        assertTrue(response.getValue().contains("active"));
+        assertTrue(response.getValue().contains("safe"));
+        assertFalse(response.getValue().contains("private"));
+        assertFalse(response.getValue().contains("secret"));
+        assertFalse(response.getValue().contains("api_key"));
     }
 
     @SuppressWarnings("unchecked")

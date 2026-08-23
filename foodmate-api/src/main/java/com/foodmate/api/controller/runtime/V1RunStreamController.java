@@ -6,10 +6,12 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -23,11 +25,16 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping("/api/agent-runs")
 public class V1RunStreamController extends AuthenticatedControllerSupport {
     private final V1RuntimeEventService events;
+    private final TaskScheduler taskScheduler;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public V1RunStreamController(UserAccountService accounts, V1RuntimeEventService events) {
+    public V1RunStreamController(
+            UserAccountService accounts,
+            V1RuntimeEventService events,
+            TaskScheduler taskScheduler) {
         super(accounts);
         this.events = events;
+        this.taskScheduler = taskScheduler;
     }
 
     @GetMapping(value = "/{runId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -41,16 +48,11 @@ public class V1RunStreamController extends AuthenticatedControllerSupport {
         long after = events.cursorFor(runId, header == null ? query : header);
         SseEmitter emitter = new SseEmitter(120_000L);
         AtomicBoolean closed = new AtomicBoolean();
-        var executor =
-                Executors.newSingleThreadScheduledExecutor(
-                        runnable -> {
-                            Thread thread = new Thread(runnable, "foodmate-sse-" + runId);
-                            thread.setDaemon(true);
-                            return thread;
-                        });
         final long[] cursor = {after};
-        var task =
-                executor.scheduleWithFixedDelay(
+        java.util.concurrent.atomic.AtomicReference<ScheduledFuture<?>> taskReference =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        ScheduledFuture<?> task =
+                taskScheduler.scheduleWithFixedDelay(
                         () -> {
                             if (closed.get()) return;
                             try {
@@ -65,34 +67,35 @@ public class V1RunStreamController extends AuthenticatedControllerSupport {
                                     if (event.terminal()) {
                                         closed.set(true);
                                         emitter.complete();
-                                        executor.shutdown();
+                                        ScheduledFuture<?> scheduled = taskReference.get();
+                                        if (scheduled != null) scheduled.cancel(false);
                                         return;
                                     }
                                 }
                             } catch (IOException exception) {
                                 closed.set(true);
                                 emitter.completeWithError(exception);
-                                executor.shutdown();
+                                ScheduledFuture<?> scheduled = taskReference.get();
+                                if (scheduled != null) scheduled.cancel(false);
                             } catch (RuntimeException exception) {
                                 closed.set(true);
                                 emitter.completeWithError(exception);
-                                executor.shutdown();
+                                ScheduledFuture<?> scheduled = taskReference.get();
+                                if (scheduled != null) scheduled.cancel(false);
                             }
                         },
-                        0,
-                        200,
-                        TimeUnit.MILLISECONDS);
+                        Instant.now(),
+                        Duration.ofMillis(200));
+        taskReference.set(task);
         emitter.onCompletion(
                 () -> {
                     closed.set(true);
                     task.cancel(false);
-                    executor.shutdown();
                 });
         emitter.onTimeout(
                 () -> {
                     closed.set(true);
                     task.cancel(false);
-                    executor.shutdown();
                 });
         return emitter;
     }

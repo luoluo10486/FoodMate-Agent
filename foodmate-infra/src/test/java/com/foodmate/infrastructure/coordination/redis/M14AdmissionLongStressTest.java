@@ -13,7 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +32,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 /** Runs a configurable admission stress test against the Redis adapter. */
 @EnabledIfSystemProperty(named = "foodmate.redis-stress", matches = "true")
 class M14AdmissionLongStressTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(M14AdmissionLongStressTest.class);
     private LettuceConnectionFactory factory;
     private StringRedisTemplate redis;
 
@@ -58,7 +62,19 @@ class M14AdmissionLongStressTest {
 
         AgentAdmissionService instanceA = service();
         AgentAdmissionService instanceB = service();
-        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        ExecutorService executor =
+                new ThreadPoolExecutor(
+                        workers,
+                        workers,
+                        0L,
+                        TimeUnit.MILLISECONDS,
+                        new LinkedBlockingQueue<>(workers * 2),
+                        runnable -> {
+                            Thread thread = new Thread(runnable, "foodmate-admission-stress");
+                            thread.setDaemon(true);
+                            return thread;
+                        },
+                        new ThreadPoolExecutor.CallerRunsPolicy());
         CountDownLatch ready = new CountDownLatch(workers);
         CountDownLatch start = new CountDownLatch(1);
         long endNanos = System.nanoTime() + Duration.ofSeconds(seconds).toNanos();
@@ -149,8 +165,8 @@ class M14AdmissionLongStressTest {
 
         List<Long> ordered = new ArrayList<>(latencies);
         Collections.sort(ordered);
-        System.out.printf(
-                "M14_STRESS seconds=%d workers=%d operations=%d active_max=%d queued=%d capacity_rejected=%d p50_us=%d p95_us=%d p99_us=%d last_completion_age_ms=%d%n",
+        LOGGER.info(
+                "M14_STRESS seconds={} workers={} operations={} active_max={} queued={} capacity_rejected={} p50_us={} p95_us={} p99_us={} last_completion_age_ms={}",
                 seconds,
                 workers,
                 operations.sum(),

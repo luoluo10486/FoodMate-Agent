@@ -139,4 +139,20 @@ public interface AdminOperationalQueryService {
             String requestId,
             String traceId,
             Instant createdAt) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record Dlq(
+            Long dlqId,
+            String consumerGroup,
+            String sourceTopic,
+            String messageId,
+            String runId,
+            String dispatchId,
+            String eventId,
+            Integer attempt,
+            Integer reconsumeTimes,
+            String errorCode,
+            String reconciliationState,
+            Instant firstSeenAt,
+            Instant reconciledAt) {}
 }

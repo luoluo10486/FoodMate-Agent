@@ -1,9 +1,13 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.RuntimeRepository.*;
+import com.foodmate.application.runtime.port.out.RuntimeRepository.EventHead;
+import com.foodmate.application.runtime.port.out.RuntimeRepository.EventRow;
 import com.foodmate.shared.runtime.RunEvent;
 import java.util.List;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface RuntimeGatewayMapper {

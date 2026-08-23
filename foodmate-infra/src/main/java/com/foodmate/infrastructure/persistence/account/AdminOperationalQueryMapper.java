@@ -1,6 +1,16 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.*;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.DeletedRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.DlqRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.KnowledgeRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.OperationAuditRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.Query;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.RunRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.SqlAuditRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.ToolCallRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.ToolRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.UsageRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.UserRow;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -237,4 +247,27 @@ public interface AdminOperationalQueryMapper {
                     + " target_id ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and"
                     + " q.status != &quot;&quot;'> AND result=#{q.status}</if></script>")
     long countOperationAudits(@Param("q") Query query);
+
+    @Select(
+            "<script>SELECT dlq_id,consumer_group,source_topic,mq_message_id AS message_id,run_id,"
+                    + "dispatch_id,event_id,attempt,reconsume_times,error_code,reconciliation_state,"
+                    + "first_seen_at,reconciled_at FROM runtime_message_dlq WHERE 1=1<if test='q.text != null"
+                    + " and q.text != &quot;&quot;'> AND (consumer_group ILIKE CONCAT('%',#{q.text},'%') OR"
+                    + " source_topic ILIKE CONCAT('%',#{q.text},'%') OR run_id ILIKE CONCAT('%',#{q.text},'%')"
+                    + " OR error_code ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and"
+                    + " q.status != &quot;&quot;'> AND reconciliation_state=#{q.status}</if> ORDER BY <choose>"
+                    + "<when test=\"q.sort == 'reconciled_at'\">reconciled_at</when><when test=\"q.sort =="
+                    + " 'reconsume_times'\">reconsume_times</when><when test=\"q.sort == 'state'\">"
+                    + "reconciliation_state</when><otherwise>first_seen_at</otherwise></choose> <choose><when"
+                    + " test=\"q.direction == 'asc'\">ASC</when><otherwise>DESC</otherwise></choose>,dlq_id DESC"
+                    + " LIMIT #{q.limit} OFFSET #{q.offset}</script>")
+    List<DlqRow> dlq(@Param("q") Query query);
+
+    @Select(
+            "<script>SELECT COUNT(*) FROM runtime_message_dlq WHERE 1=1<if test='q.text != null and"
+                    + " q.text != &quot;&quot;'> AND (consumer_group ILIKE CONCAT('%',#{q.text},'%') OR"
+                    + " source_topic ILIKE CONCAT('%',#{q.text},'%') OR run_id ILIKE CONCAT('%',#{q.text},'%')"
+                    + " OR error_code ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and"
+                    + " q.status != &quot;&quot;'> AND reconciliation_state=#{q.status}</if></script>")
+    long countDlq(@Param("q") Query query);
 }

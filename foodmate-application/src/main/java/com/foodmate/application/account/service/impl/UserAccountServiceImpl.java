@@ -5,7 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.foodmate.application.account.port.out.UserAccountRepository;
 import com.foodmate.application.account.service.UserAccountService;
-import com.foodmate.application.account.service.UserAccountService.*;
+import com.foodmate.application.account.service.UserAccountService.AdminUserView;
+import com.foodmate.application.account.service.UserAccountService.AuthResult;
+import com.foodmate.application.account.service.UserAccountService.AuthSessionView;
+import com.foodmate.application.account.service.UserAccountService.MessageRecord;
+import com.foodmate.application.account.service.UserAccountService.PageResult;
+import com.foodmate.application.account.service.UserAccountService.ProfileRecord;
+import com.foodmate.application.account.service.UserAccountService.ProfileUpdate;
+import com.foodmate.application.account.service.UserAccountService.SearchResult;
+import com.foodmate.application.account.service.UserAccountService.SessionMetadata;
+import com.foodmate.application.account.service.UserAccountService.SessionRecord;
+import com.foodmate.application.account.service.UserAccountService.UserRecord;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.shared.account.enums.UserRole;
 import com.foodmate.shared.account.enums.UserStatus;
@@ -14,6 +24,7 @@ import com.foodmate.shared.conversation.enums.SessionMode;
 import com.foodmate.shared.conversation.enums.SessionStatus;
 import com.foodmate.shared.id.IdGenerator;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -557,6 +568,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         return addMessage(userId, sessionId, role, content, structuredPayload, null);
     }
 
+    @Transactional
     public synchronized MessageRecord addMessage(
             long userId,
             long sessionId,
@@ -570,6 +582,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         requireText(content, "content");
         if (content.length() > 10000)
             throw new IllegalArgumentException("content must be at most 10000 characters");
+        if (store != null) store.lockMessageSequence(sessionId);
         int sequence = nextSequence(sessionId);
         long messageId = ids.nextId();
         String payload =
@@ -705,7 +718,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                     + Base64.getEncoder().encodeToString(salt)
                     + "$"
                     + Base64.getEncoder().encodeToString(hash);
-        } catch (Exception exception) {
+        } catch (GeneralSecurityException exception) {
             throw new IllegalStateException("unable to hash password", exception);
         }
     }
@@ -718,12 +731,13 @@ public class UserAccountServiceImpl implements UserAccountService {
             byte[] expected = Base64.getDecoder().decode(parts[3]);
             return MessageDigest.isEqual(
                     expected, pbkdf2(password.toCharArray(), salt, Integer.parseInt(parts[1])));
-        } catch (Exception exception) {
+        } catch (GeneralSecurityException | IllegalArgumentException exception) {
             return false;
         }
     }
 
-    private byte[] pbkdf2(char[] password, byte[] salt, int iterations) throws Exception {
+    private byte[] pbkdf2(char[] password, byte[] salt, int iterations)
+            throws GeneralSecurityException {
         KeySpec spec = new PBEKeySpec(password, salt, iterations, 256);
         return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
                 .generateSecret(spec)

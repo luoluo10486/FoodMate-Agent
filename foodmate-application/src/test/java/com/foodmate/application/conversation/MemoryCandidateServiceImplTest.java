@@ -76,4 +76,54 @@ class MemoryCandidateServiceImplTest {
         verify(repository, org.mockito.Mockito.never()).insert(any());
         org.mockito.Mockito.verifyNoInteractions(summaries);
     }
+
+    @Test
+    void rejectsAuthoritativeMealPlanCandidate() throws Exception {
+        MemoryRepository repository = mock(MemoryRepository.class);
+        SessionSummaryService summaries = mock(SessionSummaryService.class);
+        when(repository.findRunOwner(42L)).thenReturn(7L);
+        MemoryCandidateServiceImpl service =
+                new MemoryCandidateServiceImpl(repository, () -> 99L, summaries);
+
+        service.persistFromCompletedRun(
+                42L,
+                new MemoryCandidateService.CompletedRunPayload(
+                        List.of(
+                                new MemoryCandidateService.MemoryCandidate(
+                                        "weekly_recipe",
+                                        "week-1",
+                                        mapper.readTree("{\"days\":7}"),
+                                        new BigDecimal("0.90"),
+                                        "conversation",
+                                        "user",
+                                        List.of("message-1")))));
+
+        verify(repository, org.mockito.Mockito.never()).insert(any());
+        org.mockito.Mockito.verifyNoInteractions(summaries);
+    }
+
+    @Test
+    void rejectsHighImpactHealthFactInCandidateValue() throws Exception {
+        MemoryRepository repository = mock(MemoryRepository.class);
+        SessionSummaryService summaries = mock(SessionSummaryService.class);
+        when(repository.findRunOwner(42L)).thenReturn(7L);
+        MemoryCandidateServiceImpl service =
+                new MemoryCandidateServiceImpl(repository, () -> 99L, summaries);
+
+        service.persistFromCompletedRun(
+                42L,
+                new MemoryCandidateService.CompletedRunPayload(
+                        List.of(
+                                new MemoryCandidateService.MemoryCandidate(
+                                        "constraint",
+                                        "diet_rule",
+                                        mapper.readTree("{\"text\":\"peanut allergy\"}"),
+                                        new BigDecimal("0.99"),
+                                        "conversation",
+                                        "user",
+                                        List.of("message-1")))));
+
+        verify(repository, org.mockito.Mockito.never()).insert(any());
+        org.mockito.Mockito.verifyNoInteractions(summaries);
+    }
 }

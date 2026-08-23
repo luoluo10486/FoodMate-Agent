@@ -79,4 +79,38 @@ class AdminOperationalQueryServiceImplTest {
         assertEquals("hash", row.queryHash());
         assertEquals("executed", row.result());
     }
+
+    @Test
+    void exposesDlqIdentityAndReconciliationWithoutPayload() {
+        when(store.dlq(any()))
+                .thenReturn(
+                        List.of(
+                                new AdminOperationalQueryRepository.DlqRow(
+                                        21L,
+                                        "foodmate-java-agent-event-v1",
+                                        "foodmate-agent-event-v1",
+                                        "mq-21",
+                                        "42",
+                                        "dispatch-42",
+                                        "event-42",
+                                        2,
+                                        8,
+                                        "RUNTIME_MESSAGE_DEAD_LETTERED",
+                                        "needs_attention",
+                                        null,
+                                        null)));
+        when(store.countDlq(any())).thenReturn(1L);
+
+        var result =
+                service.query(
+                        "dlq",
+                        new AdminOperationalQueryService.Request(
+                                1, 20, null, "needs_attention", null, "state", "asc"));
+
+        var row = (AdminOperationalQueryService.Dlq) result.items().getFirst();
+        assertEquals("mq-21", row.messageId());
+        assertEquals("needs_attention", row.reconciliationState());
+        assertEquals(8, row.reconsumeTimes());
+        verify(store).dlq(any());
+    }
 }

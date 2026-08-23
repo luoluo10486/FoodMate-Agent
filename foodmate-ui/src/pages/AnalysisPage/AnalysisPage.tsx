@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChartColumn } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,7 +77,7 @@ function LoadingMetrics() {
   ] as const;
 
   return (
-    <section className={styles.metrics} aria-label="分析摘要加载中" aria-busy="true">
+    <section className={`${styles.metrics} ${styles.loadingMetrics}`} aria-label="分析摘要加载中" aria-busy="true">
       {skeletons.map((item) => (
         <article className={styles.metricCard} key={item.label}>
           <span>{item.label}</span>
@@ -149,7 +148,11 @@ function EmptyAnalysis({
         <h2 id="empty-analysis-title">能量摄入与目标对比</h2>
         <div className={styles.emptyChartArea}>
           <div className={styles.emptyStateIcon}>
-            <ChartColumn aria-hidden="true" />
+            <img
+              src="/assets/figma/analysis/intake-analysis-empty-chart-column.svg"
+              alt=""
+              data-testid="empty-analysis-icon"
+            />
           </div>
           <div className={styles.stateCopy}>
             <h3>数据不足，无法生成分析</h3>
@@ -168,7 +171,12 @@ function ErrorAnalysis({ onReload, detail }: { onReload: () => void; detail?: st
   return (
     <section className={styles.errorCard} role="alert" aria-label="分析数据加载失败">
       <div className={styles.errorStateIcon}>
-        <AlertTriangle aria-hidden="true" />
+        <img
+          src="/assets/figma/analysis/intake-analysis-error-alert-triangle.svg"
+          alt=""
+          aria-hidden="true"
+          data-testid="analysis-error-icon"
+        />
       </div>
       <div className={styles.stateCopy}>
         <h3>分析数据加载失败</h3>
@@ -232,6 +240,7 @@ export function AnalysisPage() {
   const realHasNoData = Boolean(realData && realData.total_items === 0);
   const realState = realLoading ? 'loading' : realError ? 'error' : realHasNoData ? 'empty' : 'default';
   const visibleState = isRealMode ? realState : analysisState;
+  const showAdvancedFilters = visibleState === 'default';
 
   const exportCsv = () => {
     setNotice('分析报告已排队，完成后可下载 CSV。');
@@ -259,8 +268,13 @@ export function AnalysisPage() {
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       <div className={styles.page}>
-        <section className={styles.analysisBody} aria-label="摄入分析">
-          <header className={`${styles.filterRow} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}>
+        <section
+          className={`${styles.analysisBody} ${isFigmaFixture ? styles.figmaAnalysis : ''}`}
+          aria-label="摄入分析"
+        >
+          <header
+            className={`${styles.filterRow} ${isFigmaFixture ? styles.figmaFilterRow : ''} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}
+          >
             <div className={styles.filters} role="tablist" aria-label="分析范围">
               {(isRealMode ? ranges.filter((item) => item.key !== '90d') : ranges).map((item) => (
                 <Button
@@ -276,24 +290,28 @@ export function AnalysisPage() {
                   {item.label}
                 </Button>
               ))}
-              <Button
-                className={styles.filterPill}
-                variant="ghost"
-                type="button"
-                onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
-                disabled={isRealMode || visibleState === 'loading' || visibleState === 'error'}
-              >
-                自定义范围
-              </Button>
-              <Button
-                className={styles.filterPill}
-                variant="ghost"
-                type="button"
-                onClick={() => setNotice('当前分析覆盖全部餐次。')}
-                disabled={isRealMode || visibleState === 'loading' || visibleState === 'error'}
-              >
-                全部餐次
-              </Button>
+              {showAdvancedFilters ? (
+                <>
+                  <Button
+                    className={styles.filterPill}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
+                    disabled={isRealMode}
+                  >
+                    自定义范围
+                  </Button>
+                  <Button
+                    className={styles.filterPill}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setNotice('当前分析覆盖全部餐次。')}
+                    disabled={isRealMode}
+                  >
+                    全部餐次
+                  </Button>
+                </>
+              ) : null}
             </div>
             <Button
               className={styles.exportButton}

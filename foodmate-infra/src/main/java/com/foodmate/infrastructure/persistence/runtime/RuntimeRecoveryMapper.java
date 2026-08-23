@@ -1,6 +1,8 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.*;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.CheckpointFact;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryCandidate;
+import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.RecoveryRun;
 import java.time.Instant;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;

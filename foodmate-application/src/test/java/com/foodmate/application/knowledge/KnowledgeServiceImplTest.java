@@ -163,6 +163,33 @@ class KnowledgeServiceImplTest {
     }
 
     @Test
+    void uploadDatabaseFailureCompensatesTheNewObject() {
+        KnowledgeRepository repository = mock(KnowledgeRepository.class);
+        ObjectStoragePort storage = mock(ObjectStoragePort.class);
+        IdGenerator ids = mock(IdGenerator.class);
+        when(ids.nextId()).thenReturn(42L);
+        doThrow(new IllegalStateException("database unavailable"))
+                .when(repository)
+                .insertDocument(42L, "note.md", "knowledge/7/42-note.md", 7L);
+        KnowledgeServiceImpl service =
+                new KnowledgeServiceImpl(
+                        provider(repository), provider(storage), provider(ids), "foodmate-private");
+
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        service.upload(
+                                7L,
+                                "note.md",
+                                "text/markdown",
+                                5L,
+                                new ByteArrayInputStream("hello".getBytes()),
+                                "trace-1"));
+
+        verify(storage).delete("foodmate-private", "knowledge/7/42-note.md");
+    }
+
+    @Test
     void updateStatusRequiresExistingDocument() {
         KnowledgeRepository repository = mock(KnowledgeRepository.class);
         ObjectStoragePort storage = mock(ObjectStoragePort.class);

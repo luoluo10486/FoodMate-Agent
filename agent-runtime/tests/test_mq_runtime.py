@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest import TestCase
 
 sys.path.append(str(Path(__file__).parents[1]))
-from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisProposalOutbox, RedisResultInbox, RedisEventOutbox, RocketMqEventPublisher, RocketMqProposalPublisher, _CommandListener, _ResultListener, _startup_client_with_timeout
+from mq_runtime import RedisCheckpoint, RedisCommandInbox, RedisProposalOutbox, RedisResultInbox, RedisEventOutbox, RocketMqEventPublisher, RocketMqKnowledgePurgeResultPublisher, RocketMqKnowledgeResultPublisher, RocketMqProposalPublisher, _CommandListener, _ResultListener, _startup_client_with_timeout
 from proposal_protocol import Proposal
 from rocketmq import ConsumeResult
 
@@ -142,3 +142,19 @@ class MqRuntimeTests(TestCase):
         self.assertEqual([], redis_client.lists["test:outbox:proposal"])
         self.assertEqual("p1", producer.messages[0].properties["foodmate_proposal_id"])
         self.assertIn('"request_hash":"sha256:', producer.messages[0].body.decode())
+
+    def test_knowledge_result_publishers_use_separate_topics_and_contracts(self):
+        producer = FakeProducer()
+        index_publisher = RocketMqKnowledgeResultPublisher(producer, "foodmate-knowledge-index-result-v1")
+        purge_publisher = RocketMqKnowledgePurgeResultPublisher(producer, "foodmate-knowledge-purge-result-v1")
+
+        index_publisher.publish({"item_id": "item-1", "status": "indexed"})
+        purge_publisher.publish({"task_id": 91, "status": "succeeded"})
+
+        self.assertEqual(2, len(producer.messages))
+        self.assertEqual("foodmate-knowledge-index-result-v1", producer.messages[0].topic)
+        self.assertEqual("KnowledgeIndexResult", producer.messages[0].properties["foodmate_message_type"])
+        self.assertEqual({"item-1"}, producer.messages[0].keys)
+        self.assertEqual("foodmate-knowledge-purge-result-v1", producer.messages[1].topic)
+        self.assertEqual("KnowledgePurgeResult", producer.messages[1].properties["foodmate_message_type"])
+        self.assertEqual({"91"}, producer.messages[1].keys)

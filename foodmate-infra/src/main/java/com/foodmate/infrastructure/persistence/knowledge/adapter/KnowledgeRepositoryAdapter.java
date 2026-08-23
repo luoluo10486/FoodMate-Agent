@@ -5,9 +5,11 @@ import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.infrastructure.persistence.knowledge.KnowledgeMapper;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
+import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
+/** Adapts the application knowledge port to PostgreSQL persistence and shared audit storage. */
 @Repository
 @Profile("local")
 public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
@@ -198,7 +200,10 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                                     result.costAmount(),
                                     result.modelVersion())
                             == 1;
-            if (changed) mapper.markDocumentIndexed(result.documentId(), result.version());
+            if (changed) {
+                replaceKnowledgeChunks(result);
+                mapper.markDocumentIndexed(result.documentId(), result.version());
+            }
         } else {
             int attempt = Math.max(1, result.attempt());
             changed =
@@ -253,6 +258,24 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                         + ",\"failed_items\":"
                         + progress.failedItems()
                         + "}");
+    }
+
+    @Override
+    public void replaceKnowledgeChunks(IndexResult result) {
+        if (!"indexed".equals(result.status()) || result.chunks().isEmpty()) return;
+        mapper.softDeleteVersionChunks(result.documentId(), result.version());
+        List<KnowledgeMapper.KnowledgeChunkRow> rows =
+                result.chunks().stream()
+                        .map(
+                                chunk ->
+                                        new KnowledgeMapper.KnowledgeChunkRow(
+                                                ids.nextId(),
+                                                chunk.chunkNo(),
+                                                chunk.embeddingId(),
+                                                chunk.sectionPath(),
+                                                chunk.text()))
+                        .toList();
+        mapper.insertKnowledgeChunks(result.documentId(), result.version(), rows);
     }
 
     @Override

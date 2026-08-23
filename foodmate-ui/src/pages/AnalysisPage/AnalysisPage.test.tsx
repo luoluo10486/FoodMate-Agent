@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { AnalysisPage } from './AnalysisPage';
+import styles from './AnalysisPage.module.css';
 
 function LocationProbe() {
   const location = useLocation();
@@ -72,21 +73,32 @@ describe('AnalysisPage', () => {
 
   it('renders loading, empty, and error analysis states with recovery paths', async () => {
     const user = userEvent.setup();
-    const { unmount } = renderPage('/analysis?state=loading');
+    const loadingRender = renderPage('/analysis?state=loading');
     expect(screen.getByLabelText('分析摘要加载中')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByLabelText('分析摘要加载中')).toHaveClass(styles.loadingMetrics);
     expect(screen.getByLabelText('能量摄入分析加载中')).toBeInTheDocument();
     expect(screen.queryByText('1,940 kcal')).not.toBeInTheDocument();
-    unmount();
+    loadingRender.unmount();
 
-    renderPage('/analysis?state=empty');
+    const emptyRender = renderPage('/analysis?state=empty');
     expect(screen.getByText('数据不足，无法生成分析')).toBeInTheDocument();
     expect(screen.getByText('0 / 7 Days')).toBeInTheDocument();
+    expect(screen.getByTestId('empty-analysis-icon')).toHaveAttribute(
+      'src',
+      '/assets/figma/analysis/intake-analysis-empty-chart-column.svg',
+    );
     await user.click(screen.getByRole('button', { name: '去记录饮食' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/analysis?view=records');
-    unmount();
+    emptyRender.unmount();
 
     renderPage('/analysis?state=error');
     expect(screen.getByRole('alert', { name: '分析数据加载失败' })).toBeInTheDocument();
+    expect(screen.getByTestId('analysis-error-icon')).toHaveAttribute(
+      'src',
+      '/assets/figma/analysis/intake-analysis-error-alert-triangle.svg',
+    );
+    expect(screen.queryByRole('button', { name: '自定义范围' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '全部餐次' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '重新加载' }));
     expect(screen.getAllByText('1,940 kcal')).not.toHaveLength(0);
   });

@@ -1,4 +1,4 @@
-import { Check, CircleAlert, Download, MoreHorizontal, Plus, Printer, Sparkles, X } from 'lucide-react';
+import { Check, CircleAlert, Download, Menu, Plus, Printer, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -662,7 +662,11 @@ function PlanListView({
   const planCards: PlanCard[] = realPlans
     ? realPlans.map(realPlanCard)
     : plans.map((plan) => ({ ...plan, id: plan.name }));
-  const visiblePlans = planCards.filter((plan) => plan.statusTone === tab);
+  const visiblePlans = realPlans
+    ? planCards.filter((plan) => plan.statusTone === tab)
+    : tab === 'active'
+      ? planCards
+      : planCards.filter((plan) => plan.statusTone === tab);
 
   return (
     <div className={`${styles.flowPage} ${styles.listPage}`}>
@@ -671,10 +675,7 @@ function PlanListView({
           <h1>餐食规划</h1>
           <p>生成并管理您的个性化膳食计划</p>
         </div>
-        <FlowButton onClick={() => onNavigate('wizard-step1')}>
-          <Plus aria-hidden="true" />
-          新建膳食计划
-        </FlowButton>
+        <FlowButton onClick={() => onNavigate('wizard-step1')}>+ 新建膳食计划</FlowButton>
       </header>
       <div className={styles.listTabs} role="tablist" aria-label="计划状态">
         {[
@@ -726,7 +727,7 @@ function PlanListView({
                 type="button"
                 aria-label={`${plan.name}更多操作`}
               >
-                <MoreHorizontal aria-hidden="true" />
+                <Menu aria-hidden="true" />
               </Button>
             </div>
           </article>

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.time.Instant;
 import java.util.Objects;
 
+/** Legacy runtime command retained for compatibility with the string Run gateway. */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RunCommand(
         String dispatchId, String runId, String input, Instant deadlineAt, int attempt) {

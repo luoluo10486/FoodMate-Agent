@@ -4,12 +4,10 @@ import {
   AlertTriangle,
   CalendarDays,
   ChartColumn,
-  Check,
   CheckCircle2,
   CircleSlash,
   LoaderCircle,
   MessageCircle,
-  Minus,
   RefreshCw,
   Search,
   ShieldAlert,
@@ -28,6 +26,7 @@ import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { AgentStatusStrip } from '../../components/agent/AgentStatusStrip';
 import { CitationBlock } from '../../components/agent/CitationBlock';
+import { AgentFeedback } from '../../components/agent/AgentFeedback';
 import { ResultCard } from '../../components/agent/ResultCard';
 import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
@@ -54,6 +53,7 @@ type ChatMessage = {
   time: string;
   source?: string;
   wide?: boolean;
+  agentRunId?: string;
 };
 
 function displayRunStatus(status: string): AgentDisplayStatus {
@@ -248,10 +248,10 @@ function ChatSurface({
       sidebarAvatarSrc={sidebarAvatarSrc}
       topAvatarSrc={topAvatarSrc}
     >
-      <div className={styles.page}>
+      <div className={`${styles.page} ${designChat ? styles.designChatPage : ''}`}>
         <section className={styles.workspace}>
           <div className={styles.center}>
-            <AgentStatusStrip status={run.status} />
+            <AgentStatusStrip status={run.status} failedStep={run.failedStep} preserveTones={designChat} />
             <div className={styles.messages} ref={messagesRef}>
               {children}
             </div>
@@ -377,7 +377,9 @@ function EmptyChatPage() {
 }
 
 function PlanningStatePage() {
-  const userAvatar = resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
+  const planningAvatarSrc = '/assets/figma/planning/meal-plan-list-topbar-avatar.png';
+  const planningLoaderSrc = '/assets/figma/agent-chat/planning-loader.svg';
+  const planningSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const planningRun: AgentRunView = {
     id: 'run_planning_fixture',
     status: 'planning',
@@ -402,12 +404,20 @@ function PlanningStatePage() {
       onStop={() => undefined}
       placeholder="正在规划任务流程，请稍候..."
       showTrace={false}
+      avatarSrc={planningAvatarSrc}
+      sidebarAvatarSrc={planningAvatarSrc}
+      topAvatarSrc={planningAvatarSrc}
+      displayNameOverride="Anddy"
+      profileIdOverride="1234567"
+      showKnowledgeTopNav={false}
+      designChat
+      sidebarFixture={planningSidebar}
     >
       <article className={styles.planningUserMessage}>
         <div className={styles.planningUserLine}>
           <div className={styles.planningUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.planningUserAvatar} aria-hidden="true">
-            <img src={userAvatar} alt="" />
+            <img src={planningAvatarSrc} alt="" />
           </span>
         </div>
         <div className={styles.planningMessageMeta}>Anddy · 12:45 PM</div>
@@ -417,7 +427,7 @@ function PlanningStatePage() {
         <div className={styles.planningAssistantBody}>
           <div className={styles.planningBubble}>
             <div className={styles.planningTitle}>
-              <LoaderCircle aria-hidden="true" />
+              <img className={styles.planningLoader} src={planningLoaderSrc} alt="" />
               <strong>Planning...</strong>
             </div>
             <div className={styles.planningSteps}>
@@ -434,13 +444,26 @@ function PlanningStatePage() {
 }
 
 const executingToolSteps = [
-  { label: '向量索引检索 - 12ms ✓', status: 'success' as const, icon: Check },
-  { label: '数据库调用 - running...', status: 'running' as const, icon: LoaderCircle },
-  { label: '营养计算 - pending', status: 'pending' as const, icon: Minus },
+  {
+    label: '向量索引检索 - 12ms ✓',
+    status: 'success' as const,
+    iconSrc: '/assets/figma/agent-chat/tool-executing-check.svg',
+  },
+  {
+    label: '数据库调用 - running...',
+    status: 'running' as const,
+    iconSrc: '/assets/figma/agent-chat/tool-executing-loader-running.svg',
+  },
+  {
+    label: '营养计算 - pending',
+    status: 'pending' as const,
+    iconSrc: '/assets/figma/agent-chat/tool-executing-minus.svg',
+  },
 ];
 
 function ToolExecutingStatePage() {
-  const userAvatar = resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
+  const executingAvatarSrc = '/assets/figma/planning/meal-plan-list-topbar-avatar.png';
+  const executingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const executingRun: AgentRunView = {
     id: 'fst_trace_9821aa',
     status: 'executing_tools',
@@ -495,12 +518,20 @@ function ToolExecutingStatePage() {
       onSend={() => undefined}
       onStop={() => undefined}
       placeholder="正在运行数据计算工具..."
+      avatarSrc={executingAvatarSrc}
+      sidebarAvatarSrc={executingAvatarSrc}
+      topAvatarSrc={executingAvatarSrc}
+      displayNameOverride="Anddy"
+      profileIdOverride="1234567"
+      showKnowledgeTopNav={false}
+      designChat
+      sidebarFixture={executingSidebar}
     >
       <article className={styles.executingUserMessage}>
         <div className={styles.executingUserLine}>
           <div className={styles.executingUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.executingUserAvatar} aria-hidden="true">
-            <img src={userAvatar} alt="" />
+            <img src={executingAvatarSrc} alt="" />
           </span>
         </div>
         <div className={styles.executingMessageMeta}>Anddy · 12:45 PM</div>
@@ -510,18 +541,17 @@ function ToolExecutingStatePage() {
         <div className={styles.executingAssistantBody}>
           <div className={styles.executingBubble}>
             <div className={styles.executingTitle}>
-              <LoaderCircle aria-hidden="true" />
+              <img className={styles.executingLoader} src="/assets/figma/agent-chat/tool-executing-loader.svg" alt="" />
               <strong>Executing Tools...</strong>
             </div>
             <div className={styles.executingToolSteps}>
               {executingToolSteps.map((step) => {
-                const Icon = step.icon;
                 return (
                   <div
                     className={`${styles.executingToolStep} ${styles[`executingToolStep${step.status}`]}`}
                     key={step.label}
                   >
-                    <Icon aria-hidden="true" />
+                    <img className={styles.executingToolIcon} src={step.iconSrc} alt="" />
                     <span>{step.label}</span>
                   </div>
                 );
@@ -536,6 +566,7 @@ function ToolExecutingStatePage() {
 
 function AwaitingClarificationStatePage() {
   const awaitingMessageAvatarSrc = '/assets/figma/agent-chat/awaiting-clarification/message-avatar.png';
+  const awaitingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const awaitingRun: AgentRunView = {
     id: 'run_awaiting_clarification_fixture',
     status: 'planning',
@@ -566,6 +597,7 @@ function AwaitingClarificationStatePage() {
       placeholder="输入你的详细食物或份量，例如：150克野生三文鱼..."
       showKnowledgeTopNav={false}
       showTrace={false}
+      sidebarFixture={awaitingSidebar}
     >
       <article className={styles.awaitingUserMessage}>
         <div className={styles.awaitingUserLine}>
@@ -659,6 +691,7 @@ function fixtureRun(state: AgentFixtureState): AgentRunView {
   return {
     id: `fixture_${state}`,
     status,
+    failedStep: state === 'tool-failed-retryable' ? 'executing_tools' : undefined,
     intent: state === 'write-confirmation' ? 'record' : state === 'budget-limit' ? 'analysis' : 'planning',
     toolsUsed: state === 'sse-reconnecting' ? 2 : state === 'tool-failed-retryable' ? 2 : 6,
     toolsTotal: 6,
@@ -699,7 +732,12 @@ function historyFixture(
   const searchSessions: SessionSummary[] = [
     { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: true, status: 'completed' },
     { id: 'high-protein-breakfast', title: '高蛋白早餐建议', subtitle: '12:45', status: 'completed' },
-    ...baseSessions.slice(6),
+    { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', status: 'completed' },
+    { id: 'protein-supplement-history', title: '蛋白质补充方案', subtitle: '12:45', status: 'completed' },
+    { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', status: 'completed' },
+    { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', status: 'completed' },
+    { id: 'dinner-protein-history', title: '晚餐蛋白质补充', subtitle: '12:45', status: 'completed' },
+    { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', status: 'completed' },
   ];
   return {
     prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
@@ -708,7 +746,7 @@ function historyFixture(
     source: 'Source: USDA FoodData Central Ref #451992',
     run: {
       id: 'fst_trace_88192a',
-      status: 'completed',
+      status: 'executing_tools',
       intent: 'analysis',
       toolsUsed: 4,
       toolsTotal: 4,
@@ -802,6 +840,17 @@ function navigationFixture(): HistoryFixture {
           summary: '已生成可追溯回答',
         },
       ],
+    },
+  };
+}
+
+function redesignDefaultFixture(): HistoryFixture {
+  const fixture = historyFixture('history-page-2');
+  return {
+    ...fixture,
+    sidebar: {
+      ...fixture.sidebar,
+      currentPage: 1,
     },
   };
 }
@@ -962,17 +1011,19 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
   const isHistoryState = state === 'history-page-2' || state === 'history-page-3' || state === 'search-results';
   const isSessionOverlayState =
     state === 'session-actions' || state === 'renamed' || state === 'archived' || state === 'trash';
-  const isNavigationState =
-    state === 'redesign-default' || state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
+  const isRedesignDefault = state === 'redesign-default';
+  const isNavigationState = state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
   const history = isHistoryState
     ? historyFixture(state)
     : isSessionOverlayState
       ? historyFixture('search-results')
-      : isNavigationState
-        ? navigationFixture()
-        : isRunning
-          ? historyFixture('history-page-2')
-          : undefined;
+      : isRedesignDefault
+        ? redesignDefaultFixture()
+        : isNavigationState
+          ? navigationFixture()
+          : isRunning
+            ? historyFixture('history-page-2')
+            : undefined;
   const run = isRunning
     ? { ...(history?.run ?? fixtureRun('sse-reconnecting')), status: 'executing_tools' as const }
     : (history?.run ?? fixtureRun('tool-failed-retryable'));
@@ -1001,7 +1052,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       onChange={setInput}
       onSend={() => setNotice('已保留输入内容，等待当前会话继续处理。')}
       onStop={() => setNotice('已请求停止当前 Run；已接收文本会保留。')}
-      placeholder={isRunning ? '运行中，可停止…' : '追问或添加自定义指令…'}
+      placeholder={isRunning ? '运行中，可停止…' : '追问或添加自定义指令...'}
       designChat
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
@@ -1054,7 +1105,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               onCancel={() => setNotice('已保留本次分析，仅作为对话参考。')}
             />
           </MessageBubble>
-          {isRunning ? (
+          {isRunning || isRedesignDefault ? (
             <section className={styles.messageActions} aria-label="消息操作">
               <h2>消息操作</h2>
               <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
@@ -1104,6 +1155,19 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const approvalId = searchParams.get('approval_id');
   const runId = searchParams.get('run_id');
   const run = fixtureRun(state);
+  const isWriteConfirmation = state === 'write-confirmation';
+  const fixtureSidebar = isWriteConfirmation
+    ? { ...historyFixture('history-page-2').sidebar, currentPage: 1 }
+    : undefined;
+  const fixtureSidebarAvatarSrc = isWriteConfirmation
+    ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png'
+    : undefined;
+  const fixtureTopAvatarSrc = isWriteConfirmation
+    ? '/assets/figma/agent-chat/write-confirmation/topbar-avatar.png'
+    : undefined;
+  const fixtureMessageAvatarSrc = isWriteConfirmation
+    ? '/assets/figma/agent-chat/write-confirmation/message-avatar.png'
+    : undefined;
 
   const report = (nextAction: FixtureAction, message: string) => {
     setAction(nextAction);
@@ -1247,39 +1311,74 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     if (state === 'budget-limit') {
       return (
-        <div className={styles.fixtureCardWrap}>
-          <Card className={styles.fixtureCard}>
-            <Alert variant="warning" className={styles.fixtureAlert}>
-              <AlertTriangle aria-hidden="true" />
-              <AlertTitle>已达到预算上限</AlertTitle>
-              <AlertDescription>
+        <>
+          <div className={styles.fixtureAssistantRow}>
+            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <p className={styles.fixtureBudgetIntro}>
+              我已在后台调用历史数据解析服务。此分析需要读取超长数据块，将会消耗较多计算令牌。
+            </p>
+          </div>
+          <div className={`${styles.fixtureAssistantRow} ${styles.fixtureBudgetRowWrap}`}>
+            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <Card className={`${styles.fixtureCard} ${styles.fixtureBudgetCard}`}>
+              <div className={styles.fixtureBudgetTitle}>
+                <AlertTriangle aria-hidden="true" />
+                <h2>已达到预算上限</h2>
+              </div>
+              <p className={styles.fixtureBudgetDescription}>
                 本次会话已使用 50,000 tokens（单次会话预算上限）。为了保证资源分配合理及避免异常资费产生，你可以：
-              </AlertDescription>
-            </Alert>
-            <div className={styles.fixtureChoiceList}>
-              <span>● 追加预算继续当前会话</span>
-              <span>● 结束当前会话</span>
-            </div>
-            <div className={styles.fixtureBudgetRow}>
-              <span>Token 用量 (100%)</span>
-              <strong>预计费用: $0.15</strong>
-            </div>
-            <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void extendBudget()}>
-                追加 20,000 tokens
-              </Button>
-              <Button disabled={action === 'pending'} variant="ghost" onClick={() => void endBudgetSession()}>
-                结束会话
-              </Button>
-            </div>
-          </Card>
-        </div>
+              </p>
+              <div className={styles.fixtureChoiceList}>
+                <span>
+                  <i aria-hidden="true" />
+                  <strong>追加预算继续当前会话</strong>
+                </span>
+                <span>
+                  <i aria-hidden="true" />
+                  开始新会话（之前的分析进度将会重置）
+                </span>
+              </div>
+              <div className={styles.fixtureBudgetRow}>
+                <span>Token 用量 (100%)</span>
+                <strong>预计费用: $0.15</strong>
+              </div>
+              <div
+                aria-label="预算用量 100%"
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={100}
+                className={styles.fixtureBudgetProgress}
+                role="progressbar"
+              >
+                <span />
+              </div>
+              <div className={styles.fixtureActions}>
+                <Button
+                  className={styles.fixtureBudgetPrimaryButton}
+                  disabled={action === 'pending'}
+                  onClick={() => void extendBudget()}
+                >
+                  追加 20,000 tokens
+                </Button>
+                <Button
+                  className={styles.fixtureBudgetSecondaryButton}
+                  disabled={action === 'pending'}
+                  variant="ghost"
+                  onClick={() => void endBudgetSession()}
+                >
+                  结束会话
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </>
       );
     }
     if (state === 'tool-failed-retryable') {
       return (
-        <div className={styles.fixtureCardWrap}>
-          <Card className={styles.fixtureCard}>
+        <div className={styles.fixtureAssistantRow}>
+          <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+          <Card className={`${styles.fixtureCard} ${styles.fixtureFailureCard}`}>
             <div className={styles.fixtureStatusTitle}>
               <AlertTriangle aria-hidden="true" />
               <h2>工具执行失败</h2>
@@ -1289,11 +1388,15 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               向量索引检索服务暂时不可用。FoodMate 代理在尝试读取外部知识库时失去连接。
             </p>
             <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void retryFailedTool()}>
-                <RefreshCw aria-hidden="true" />
+              <Button
+                className={styles.fixtureRetryButton}
+                disabled={action === 'pending'}
+                onClick={() => void retryFailedTool()}
+              >
                 重试
               </Button>
               <Button
+                className={styles.fixtureSkipButton}
                 disabled={action === 'pending'}
                 variant="outline"
                 onClick={() => report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。')}
@@ -1307,19 +1410,21 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     if (state === 'safety-degraded') {
       return (
-        <div className={styles.fixtureCardWrap}>
-          <Card className={styles.fixtureCard}>
-            <div className={styles.fixtureStatusTitle}>
-              <ShieldAlert aria-hidden="true" />
-              <h2>安全降级</h2>
+        <div className={styles.fixtureSafetyBlock}>
+          <div className={styles.fixtureSafetyTopRow}>
+            <div className={styles.fixtureSafetyIdentity}>
+              <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+              <span>安全降级</span>
             </div>
-            <Alert variant="warning" className={styles.fixtureAlert}>
+            <Alert variant="warning" className={styles.fixtureSafetyAlert}>
               <ShieldAlert aria-hidden="true" />
               <AlertTitle>安全降级提示</AlertTitle>
               <AlertDescription>
                 由于部分工具不可用，以下回答基于有限数据生成，可能不够完整。建议稍后重试以获取完整分析。
               </AlertDescription>
             </Alert>
+          </div>
+          <div className={styles.fixtureSafetyResponse}>
             <p className={styles.fixtureParagraph}>由于无法连接到本地营养配方数据库，以下为您推荐基础低钠食谱：</p>
             <p className={styles.fixtureParagraph}>
               1. 清蒸鳕鱼配西兰花（预计钠含量：120mg）
@@ -1327,7 +1432,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               2. 香草烤鸡胸肉配糙米饭（预计钠含量：150mg）
             </p>
             <p className={styles.fixtureWarning}>注意：由于当前未结合您的个人高血压排除条件，请谨慎添加额外酱料。</p>
-          </Card>
+          </div>
         </div>
       );
     }
@@ -1394,20 +1499,30 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
+      sidebarAvatarSrc={fixtureSidebarAvatarSrc}
+      topAvatarSrc={fixtureTopAvatarSrc}
+      sidebarFixture={fixtureSidebar}
     >
       <article className={styles.fixtureUserMessage}>
-        <div className={styles.fixtureUserBubble}>
-          {state === 'write-confirmation'
-            ? '把刚才吃的三文鱼寿司记录到午餐里吧'
-            : state === 'budget-limit'
-              ? '帮我导出2023整年每个月的膳食结构趋势报告'
-              : state === 'tool-failed-retryable'
-                ? '查询我今天晚餐的热量'
-                : state === 'safety-degraded'
-                  ? '推荐一份低钠晚餐食谱'
-                  : state === 'user-cancelled'
-                    ? '生成下周的减脂餐食规划'
-                    : '推荐低GI的水果'}
+        <div className={styles.fixtureUserLine}>
+          <div className={styles.fixtureUserBubble}>
+            {state === 'write-confirmation'
+              ? '把刚才吃的三文鱼寿司记录到午餐里吧'
+              : state === 'budget-limit'
+                ? '帮我导出2023整年每个月的膳食结构趋势报告'
+                : state === 'tool-failed-retryable'
+                  ? '查询我今天晚餐的热量'
+                  : state === 'safety-degraded'
+                    ? '推荐一份低钠晚餐食谱'
+                    : state === 'user-cancelled'
+                      ? '生成下周的减脂餐食规划'
+                      : '推荐低GI的水果'}
+          </div>
+          {fixtureMessageAvatarSrc ? (
+            <span className={styles.fixtureUserAvatar} aria-hidden="true">
+              <img src={fixtureMessageAvatarSrc} alt="" />
+            </span>
+          ) : null}
         </div>
         <span className={styles.fixtureMessageMeta}>
           Anddy · {state === 'user-cancelled' ? '02:15 PM' : '12:45 PM'}
@@ -1435,6 +1550,7 @@ function RealChatPage() {
   const [citations, setCitations] = useState<AgentRunView['citations']>([]);
   const [runStatus, setRunStatus] = useState('idle');
   const [assistantText, setAssistantText] = useState('');
+  const [assistantMessageId, setAssistantMessageId] = useState<string>();
   const [error, setError] = useState<string>();
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
@@ -1447,6 +1563,7 @@ function RealChatPage() {
     setActiveRunId(undefined);
     setRunStatus('idle');
     setAssistantText('');
+    setAssistantMessageId(undefined);
     setBudgetConfirmation(false);
     setCheckpointAvailable(false);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
@@ -1491,6 +1608,14 @@ function RealChatPage() {
           setRunStatus('completed');
           setCheckpointAvailable(false);
           setAssistantText((current) => payload.answer ?? current);
+          if (sessionId) {
+            void loadSessionMessages(sessionId).then((rows) => {
+              const assistant = rows.find(
+                (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
+              );
+              setAssistantMessageId(assistant?.message_id);
+            });
+          }
           setCitations(
             (payload.citations ?? []).map((citation) => ({
               id: citation.citation_id,
@@ -1546,7 +1671,7 @@ function RealChatPage() {
       stream.close();
       streamRef.current = undefined;
     };
-  }, [activeRunId]);
+  }, [activeRunId, sessionId]);
 
   const send = async () => {
     const content = input.trim();
@@ -1592,6 +1717,7 @@ function RealChatPage() {
     content: message.content,
     time: message.created_at,
     source: undefined,
+    agentRunId: message.agent_run_id,
   }));
 
   return (
@@ -1637,10 +1763,26 @@ function RealChatPage() {
         </div>
       ) : null}
       {mappedMessages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+        <MessageBubble key={message.id} message={message}>
+          {message.role === 'assistant' && message.agentRunId ? (
+            <AgentFeedback runId={message.agentRunId} messageId={message.id} />
+          ) : null}
+        </MessageBubble>
       ))}
       {assistantText ? (
-        <MessageBubble message={{ id: 'assistant-stream', role: 'assistant', content: assistantText, time: '12:46' }} />
+        <MessageBubble
+          message={{
+            id: 'assistant-stream',
+            role: 'assistant',
+            content: assistantText,
+            time: '12:46',
+            agentRunId: activeRunId,
+          }}
+        >
+          {assistantMessageId && activeRunId ? (
+            <AgentFeedback runId={activeRunId} messageId={assistantMessageId} />
+          ) : null}
+        </MessageBubble>
       ) : null}
       {checkpointAvailable && activeRunId ? (
         <div className={styles.cardWrap}>

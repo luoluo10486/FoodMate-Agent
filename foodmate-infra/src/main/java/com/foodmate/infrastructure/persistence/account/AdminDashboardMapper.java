@@ -1,6 +1,14 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.port.out.AdminDashboardRepository.*;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.DeletedRow;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.KnowledgeRow;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.OperationAuditRow;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.Overview;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.RunRow;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.SqlAuditRow;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.ToolCallRow;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.ToolRow;
+import com.foodmate.application.account.port.out.AdminDashboardRepository.UsageRow;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
@@ -26,7 +34,7 @@ public interface AdminDashboardMapper {
     List<ToolCallRow> toolCalls();
 
     @Select(
-            "SELECT sql_audit_id,created_by AS actor,LEFT(COALESCE(sql_text,original_question),200) AS statement,status AS result,trace_id FROM sql_query_audits WHERE is_deleted=FALSE ORDER BY created_at DESC LIMIT 100")
+            "SELECT sql_audit_id,created_by AS actor,CONCAT('query_hash:',MD5(COALESCE(sql_text,original_question,''))) AS statement,status AS result,trace_id FROM sql_query_audits WHERE is_deleted=FALSE ORDER BY created_at DESC LIMIT 100")
     List<SqlAuditRow> sqlAudits();
 
     @Select(
@@ -38,7 +46,7 @@ public interface AdminDashboardMapper {
     List<UsageRow> usage();
 
     @Select(
-            "SELECT document_id,title,status,visibility,(SELECT COUNT(*) FROM knowledge_chunks c WHERE c.document_id=d.document_id AND c.is_deleted=FALSE) AS chunks,created_by AS owner,storage_key AS source,CASE WHEN status='indexed' THEN '100%' WHEN status='parsed' THEN '70%' ELSE '0%' END AS index_progress,updated_at FROM knowledge_documents d WHERE is_deleted=FALSE ORDER BY updated_at DESC LIMIT 100")
+            "SELECT document_id,title,status,visibility,(SELECT COUNT(*) FROM knowledge_chunks c WHERE c.document_id=d.document_id AND c.is_deleted=FALSE) AS chunks,created_by AS owner,COALESCE(source_name,source_type,'-') AS source,CASE WHEN status='indexed' THEN '100%' WHEN status='parsed' THEN '70%' ELSE '0%' END AS index_progress,updated_at FROM knowledge_documents d WHERE is_deleted=FALSE ORDER BY updated_at DESC LIMIT 100")
     List<KnowledgeRow> knowledge();
 
     @Select(

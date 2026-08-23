@@ -1,11 +1,19 @@
 package com.foodmate.application.common.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.foodmate.application.common.port.out.OperationAuditPort;
 import com.foodmate.application.common.port.out.OperationAuditPort.AuditRecord;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHolder;
-
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,12 +21,35 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.Map;
-import java.util.Objects;
-
 /** 业务层统一构造审计事实；原始业务内容不会进入审计 JSON。 */
 @Service
 public class OperationAuditService {
+    private static final int MAX_SUMMARY_DEPTH = 4;
+    private static final int MAX_SUMMARY_ARRAY_ITEMS = 16;
+    private static final int MAX_SUMMARY_STRING_LENGTH = 256;
+    private static final Set<String> SENSITIVE_KEYS =
+            Set.of(
+                    "password",
+                    "token",
+                    "secret",
+                    "api_key",
+                    "prompt",
+                    "answer",
+                    "content",
+                    "note",
+                    "notes",
+                    "comment",
+                    "items",
+                    "days_plan",
+                    "shopping_list",
+                    "raw_payload",
+                    "payload",
+                    "original_request",
+                    "request_body",
+                    "response_body",
+                    "object_key",
+                    "presigned_url");
+    private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
     private final OperationAuditPort store;
     private final IdGenerator ids;
     private final TransactionTemplate failureTransaction;
@@ -125,7 +156,7 @@ public class OperationAuditService {
     /** 完成带幂等键的业务审计。 */
     public void complete(long operatorId, String idempotencyKey, String responseJson) {
         if (store == null) return;
-        if (store.complete(operatorId, idempotencyKey, safeJson(responseJson)) != 1)
+        if (store.complete(operatorId, idempotencyKey, safeResponseJson(responseJson)) != 1)
             throw new IllegalStateException("operation audit completion was not persisted");
     }
 
@@ -137,7 +168,12 @@ public class OperationAuditService {
             String errorCode,
             String responseJson) {
         if (store == null) return;
-        if (store.transition(operatorId, idempotencyKey, result, errorCode, safeJson(responseJson))
+        if (store.transition(
+                        operatorId,
+                        idempotencyKey,
+                        result,
+                        errorCode,
+                        safeResponseJson(responseJson))
                 != 1)
             throw new IllegalStateException("operation audit transition was not persisted");
     }
@@ -187,8 +223,14 @@ public class OperationAuditService {
         return value;
     }
 
-    private static String safeJson(String value) {
-        return value == null || value.isBlank() ? "{}" : value;
+    private static String safeResponseJson(String value) {
+        if (value == null || value.isBlank()) return "{}";
+        try {
+            return JSON.writeValueAsString(sanitize(JSON.readTree(value), 0));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException(
+                    "operation audit response summary is invalid", exception);
+        }
     }
 
     private static String safeJson(Map<String, ?> metadata) {
@@ -209,15 +251,52 @@ public class OperationAuditService {
 
     private static boolean sensitive(String key) {
         String normalized = key.toLowerCase(java.util.Locale.ROOT);
-        return normalized.contains("password")
+        return SENSITIVE_KEYS.contains(normalized)
+                || normalized.contains("password")
                 || normalized.contains("token")
                 || normalized.contains("secret")
                 || normalized.contains("prompt")
                 || normalized.contains("answer")
                 || normalized.contains("content")
                 || normalized.contains("note")
-                || normalized.contains("request_body")
-                || normalized.contains("response_body");
+                || normalized.endsWith("_token")
+                || normalized.endsWith("_secret")
+                || normalized.endsWith("_password")
+                || normalized.endsWith("_api_key");
+    }
+
+    private static JsonNode sanitize(JsonNode value, int depth) {
+        if (value == null || value.isNull()) return JSON.nullNode();
+        if (depth >= MAX_SUMMARY_DEPTH) return TextNode.valueOf("[truncated]");
+        if (value.isObject()) {
+            ObjectNode result = JSON.createObjectNode();
+            value.fields()
+                    .forEachRemaining(
+                            entry -> {
+                                if (!sensitive(entry.getKey()))
+                                    result.set(
+                                            entry.getKey(), sanitize(entry.getValue(), depth + 1));
+                            });
+            return result;
+        }
+        if (value.isArray()) {
+            ArrayNode result = JSON.createArrayNode();
+            int count = 0;
+            for (JsonNode item : value) {
+                if (count++ >= MAX_SUMMARY_ARRAY_ITEMS) break;
+                result.add(sanitize(item, depth + 1));
+            }
+            return result;
+        }
+        if (value.isTextual())
+            return TextNode.valueOf(
+                    value.textValue()
+                            .substring(
+                                    0,
+                                    Math.min(
+                                            value.textValue().length(),
+                                            MAX_SUMMARY_STRING_LENGTH)));
+        return value;
     }
 
     private static String escape(String value) {

@@ -3,10 +3,17 @@ package com.foodmate.shared.runtime;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * In-memory compatibility guard for ordered runtime events.
+ *
+ * <p>The durable Java inbox performs the same checks against PostgreSQL. This small shared type
+ * keeps the legacy gateway contract deterministic in unit tests and compatibility adapters.
+ */
 public final class EventInbox {
     private final Map<String, String> fingerprints = new HashMap<>();
     private final Map<String, RunEvent> latest = new HashMap<>();
 
+    /** Accepts an event once and rejects conflicting, out-of-order, or gapped events. */
     public synchronized Result accept(RunEvent event) {
         String key = event.runId() + ":" + event.eventId();
         String fingerprint =
@@ -30,6 +37,7 @@ public final class EventInbox {
         return Result.ACCEPTED;
     }
 
+    /** Returns the latest accepted event for a run, or {@code null} when no event was accepted. */
     public synchronized RunEvent latest(String runId) {
         return latest.get(runId);
     }
@@ -49,6 +57,7 @@ public final class EventInbox {
         return new RuntimeException(code, code);
     }
 
+    /** Result of attempting to insert an event into the inbox. */
     public enum Result {
         ACCEPTED,
         DUPLICATE

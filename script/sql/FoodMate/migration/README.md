@@ -3,7 +3,7 @@
 本目录仅存放经评审、编号递增的人工执行增量 SQL，例如 `V2__add_runtime_outbox.sql`。
 
 - 不由 Java 启动自动扫描或执行。
-- 每个脚本必须同时提供对应的校验 SQL、回滚前置条件和变更说明。
+- 新增脚本必须同时提供对应的校验 SQL、回滚前置条件和变更说明；历史脚本的配套完整性以本文末尾矩阵为准。
 - 已执行脚本不得原地修改；修正必须创建新的递增版本。
 - 执行前先备份并记录数据库、执行人、时间、版本和校验结果。
 
@@ -34,3 +34,26 @@
 `V21__m1_model_governance_contract.sql`：增加供应商/模型目录、价格版本和预算策略，并为路由和模型用量事实补齐路由、价格与预算版本快照。治理表不保存 API Key、Secret 或可逆凭据；当前运行时没有匹配的数据库路由时仍使用显式配置的 deterministic/stub 默认快照。该脚本仅人工执行，不清理已有路由或用量；配套校验为 `validation/V21__m1_model_governance_contract_validation.sql`，回滚为 `rollback/R21__m1_model_governance_contract.sql`。
 
 `V22__m1_model_provider_revision.sql`：为供应商启停补齐乐观并发版本，已有供应商从 revision 1 开始。配套校验为 `validation/V22__m1_model_provider_revision_validation.sql`，回滚为 `rollback/R22__m1_model_provider_revision.sql`。
+
+`V23__m2_3_admin_export_jobs.sql`：管理员运营导出任务、受限资源枚举和一次性下载事实。导出内容必须来自已脱敏查询 DTO，不允许把原始 Prompt、令牌、对象存储凭据或完整业务请求写入导出文件。配套校验为 `validation/V23__m2_3_admin_export_jobs_validation.sql`，回滚为 `rollback/R23__m2_3_admin_export_jobs.sql`。
+
+`V24__m3_dlq_replay.sql`：DLQ 原始消息受限快照和管理员确认后的重放 Outbox。迁移只创建事实和索引，不自动重放消息。配套校验为 `validation/V24__m3_dlq_replay_validation.sql`，回滚为 `rollback/R24__m3_dlq_replay.sql`。
+
+`V25__m3_retention_governance.sql`：保留策略、法律冻结、清理请求和对象/向量/数据库任务。默认关闭硬删除，数据库清理必须等待对象存储和向量任务成功。配套校验为 `validation/V25__m3_retention_governance_validation.sql`，回滚为 `rollback/R25__m3_retention_governance.sql`。
+
+`V26__m1_4_agent_feedback.sql`：结构化 Agent 反馈事实，保存用户、Run、assistant message、稳定原因代码、幂等键、参数摘要和高风险标记；不保存回答正文、Prompt、原始请求、令牌或敏感内容。配套校验为 `validation/V26__m1_4_agent_feedback_validation.sql`，rollback 为只读前置检查 `rollback/R26__m1_4_agent_feedback_precheck.sql`，执行前必须人工确认反馈数据迁移与保留范围。
+
+## 配套文件矩阵
+
+| 版本 | validation | rollback | 处理边界 |
+|---|---|---|---|
+| V2 | 有 | 有 | 当前已登记的账户与隐私迁移 |
+| V3-V4 | 无 | 无 | 历史运行时结构；只读复核，不生成反向删除 |
+| V5-V6 | 无 | 有 | 仅使用已评审回滚前置条件；执行前必须确认数据范围 |
+| V7-V12 | 无 | 无 | 历史运行时、记忆和兼容结构；以数据库事实和新增迁移修正 |
+| V13-V25 | 有 | 有 | 当前目录约定，按版本保存 validation 和 rollback |
+| V26 | 有 | 有（只读前置检查） | 结构化 Agent 反馈；不提供未经人工确认的自动删除 |
+
+该矩阵描述文件现状，不代表任何迁移已在当前数据库执行。实际执行状态、validation 输出、失败与补偿必须以 `../EXECUTION_RECORD.md` 为准。历史版本若需补充校验，优先新增只读 SQL 文档；若需修复结构，创建更高版本迁移，不原地修改已执行脚本，不执行宽泛删除或 `TRUNCATE`。
+
+完整的人工执行顺序、备份要求、目录职责和台账要求见上级目录 `script/sql/FoodMate/README.md`。

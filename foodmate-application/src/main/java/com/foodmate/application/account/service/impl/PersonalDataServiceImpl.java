@@ -8,6 +8,7 @@ import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -80,7 +81,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                             "mime_type",
                             contentType == null ? "" : contentType));
             return new Avatar(id, key, contentType, size);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             failure(userId, "avatar", null, "account.avatar.upload", e);
             throw new IllegalStateException("avatar upload failed", e);
         }
@@ -94,7 +95,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
             for (String key : keys)
                 try {
                     storage.delete(bucket, key);
-                } catch (Exception ignored) {
+                } catch (RuntimeException ignored) {
                 }
         store.deleteAvatars(userId);
         store.clearAvatar(userId);
@@ -180,7 +181,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                     null,
                     Map.of());
             return url;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             failure(userId, "export_job", Long.toString(jobId), "account.data_export.consume", e);
             throw new IllegalStateException("download link unavailable", e);
         }
@@ -248,7 +249,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                     bytes.size(),
                     "application/zip");
             store.completeExport(jobId, key);
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             log.error("account export failed: jobId={}, userId={}", jobId, userId, e);
             store.failExport(jobId);
         }
@@ -266,7 +267,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                 try {
                     storage.delete(bucket, key);
                     deletedObjects++;
-                } catch (Exception exception) {
+                } catch (RuntimeException exception) {
                     objectDeleteFailure = exception.getMessage();
                 }
             }
@@ -279,7 +280,7 @@ public class PersonalDataServiceImpl implements PersonalDataService {
             store.softDeleteAvatars(userId);
             store.softDeleteExports(userId);
             store.completeDeletion(jobId, deletedObjects);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             String detail = e.getMessage() == null ? "unknown" : e.getMessage();
             String code =
                     ("DELETION_FAILED:" + detail)

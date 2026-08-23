@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, Search } from 'lucide-react';
+import { Download, Eye, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,7 +9,13 @@ import { Input as ShadcnInput } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AdminOnlyNotice } from './AdminComponents';
 import { adminOperationAuditRows, canViewAudit, statusTag } from './AdminShared';
-import { loadAdminOperationAudits } from '../../../services/adminService';
+import {
+  downloadAdminExport,
+  loadAdminExportStatus,
+  loadAdminOperationAudits,
+  requestAdminExport,
+  type AdminExportStatus,
+} from '../../../services/adminService';
 import styles from '../AdminPage.module.css';
 
 type AuditSource = {
@@ -194,6 +200,57 @@ export function OperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: num
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<AuditRecord>();
+  const [exportJob, setExportJob] = useState<AdminExportStatus>();
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportMessage, setExportMessage] = useState('');
+
+  const createExport = async () => {
+    setExportBusy(true);
+    setExportMessage('');
+    try {
+      const created = await requestAdminExport(
+        'operation-audits',
+        { query: query.trim() || undefined, status: resultFilter === 'all' ? undefined : resultFilter },
+        ['operator_id', 'action', 'target_type', 'target_id', 'result', 'request_id', 'trace_id', 'created_at'],
+      );
+      const status = await loadAdminExportStatus(created.export_job_id);
+      setExportJob(status);
+      setExportMessage(`导出任务 #${created.export_job_id} 已创建，当前状态：${status.status}`);
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : '导出任务创建失败');
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const refreshExport = async () => {
+    if (!exportJob) return;
+    setExportBusy(true);
+    try {
+      const status = await loadAdminExportStatus(exportJob.export_job_id);
+      setExportJob(status);
+      setExportMessage(`导出任务 #${status.export_job_id} 当前状态：${status.status}`);
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : '导出状态查询失败');
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const consumeExport = async () => {
+    if (!exportJob || exportJob.status !== 'completed') return;
+    setExportBusy(true);
+    try {
+      const result = await downloadAdminExport(exportJob.export_job_id);
+      window.open(result.download_url, '_blank', 'noopener,noreferrer');
+      setExportJob({ ...exportJob, download_consumed_at: new Date().toISOString() });
+      setExportMessage('下载链接已生成，下载资格已消费一次。');
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : '导出下载失败');
+    } finally {
+      setExportBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!isRealMode) return;
@@ -365,8 +422,33 @@ export function OperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: num
             <strong>操作审计记录</strong>
             <p>记录只读展示，包含请求摘要、前后状态和链路标识。</p>
           </div>
-          <Badge variant="outline">仅 admin / superadmin</Badge>
+          <div className={styles.auditTableActions}>
+            {isRealMode && canViewAudit ? (
+              <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void createExport()}>
+                <Download aria-hidden="true" />
+                导出当前结果
+              </Button>
+            ) : null}
+            <Badge variant="outline">仅 admin / superadmin</Badge>
+          </div>
         </div>
+        {isRealMode && exportMessage ? (
+          <div className={styles.auditExportStatus} role="status">
+            <span>{exportMessage}</span>
+            {exportJob && exportJob.status !== 'completed' && exportJob.status !== 'failed' ? (
+              <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void refreshExport()}>
+                <RefreshCw aria-hidden="true" />
+                检查状态
+              </Button>
+            ) : null}
+            {exportJob?.status === 'completed' && !exportJob.download_consumed_at ? (
+              <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void consumeExport()}>
+                <Download aria-hidden="true" />
+                下载 JSON
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {visibleRows.length ? (
           <DataTable
             className={styles.auditTableScroll}

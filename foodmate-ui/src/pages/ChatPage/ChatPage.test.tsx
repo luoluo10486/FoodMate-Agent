@@ -206,6 +206,14 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByRole('heading', { name: '确认写入以下记录' })).toBeInTheDocument();
     expect(screen.getByText('目标对象: 饮食记录')).toBeInTheDocument();
     expect(screen.getByText('来源: USDA FoodData Central')).toBeInTheDocument();
+    expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/agent-chat/write-confirmation/topbar-avatar.png"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/agent-chat/write-confirmation/message-avatar.png"]'),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '确认写入' }));
     expect(screen.getByRole('status')).toHaveTextContent('fixture 已记录确认动作');
   });
@@ -213,7 +221,9 @@ describe('ChatPage Agent remaining states', () => {
   it('renders budget limit choices and keeps the current Run action explicit', () => {
     renderState('budget-limit');
     expect(screen.getByRole('heading', { name: '已达到预算上限' })).toBeInTheDocument();
+    expect(screen.getByText(/我已在后台调用历史数据解析服务/)).toBeInTheDocument();
     expect(screen.getByText('Token 用量 (100%)')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: '预算用量 100%' })).toHaveAttribute('aria-valuenow', '100');
     fireEvent.click(screen.getByRole('button', { name: '追加 20,000 tokens' }));
     expect(screen.getByRole('status')).toHaveTextContent('当前 Run');
   });
@@ -222,13 +232,17 @@ describe('ChatPage Agent remaining states', () => {
     renderState('tool-failed-retryable');
     expect(screen.getByText('数据库查询超时 (错误码: TOOL_TIMEOUT_001)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureAgentAvatar"]')).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Executing×');
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Composing○');
     fireEvent.click(screen.getByRole('button', { name: '跳过此步骤' }));
     expect(screen.getByRole('status')).toHaveTextContent('后续结果会明确标注数据范围受限');
   });
 
   it('keeps degraded answers bounded and leaves the follow-up composer enabled', () => {
     renderState('safety-degraded');
-    expect(screen.getByRole('heading', { name: '安全降级' })).toBeInTheDocument();
+    expect(screen.getByText('安全降级', { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '安全降级提示' })).toBeInTheDocument();
     expect(screen.getByText(/未结合您的个人高血压排除条件/)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeEnabled();
   });
@@ -269,6 +283,14 @@ describe('ChatPage Figma history fixtures', () => {
     expect(screen.getByText('向量索引检索')).toBeInTheDocument();
     expect(screen.getByText(page)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('搜索会话...')).toHaveValue(searchValue);
+    if (state === 'search-results') {
+      expect(screen.getAllByText('蛋白质补充方案')).toHaveLength(2);
+      expect(screen.getAllByText('晚餐蛋白质补充')).toHaveLength(2);
+      expect(screen.getByText('高蛋白早餐建议')).toBeInTheDocument();
+      expect(screen.getByText('睡前加餐建议')).toBeInTheDocument();
+      expect(screen.getByText('早餐碳水搭配')).toBeInTheDocument();
+      expect(screen.getByText('低碳水饮食建议')).toBeInTheDocument();
+    }
   });
 
   it('uses the shadcn radio group for the meal log target', () => {
@@ -342,7 +364,17 @@ describe('ChatPage Figma session operation fixtures', () => {
 });
 
 describe('ChatPage Figma navigation fixtures', () => {
-  it.each(['redesign-default', 'nav-loading', 'nav-hover-preview', 'pagination'])(
+  it('renders the default redesign fixture with the Figma source copy and first history page', () => {
+    renderChatState('redesign-default');
+
+    expect(screen.getByText(/I have analyzed the typical values/)).toBeInTheDocument();
+    expect(screen.getByText('查询扩展')).toBeInTheDocument();
+    expect(screen.queryByText('查询扩展 (Query Expansion)')).not.toBeInTheDocument();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '消息操作' })).toBeInTheDocument();
+  });
+
+  it.each(['nav-loading', 'nav-hover-preview', 'pagination'])(
     '%s keeps the complete Figma conversation and trace',
     (state) => {
       renderChatState(state);

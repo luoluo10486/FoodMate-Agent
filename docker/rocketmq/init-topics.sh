@@ -19,7 +19,7 @@ for group in \
     retry_topic="%RETRY%${group}"
     echo "[foodmate] creating gRPC retry topic ${retry_topic}"
     "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$retry_topic" -r 1 -w 1 -p 6 -a +message.type=NORMAL || true
-    if ! "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "$retry_topic"; then
+    if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "$retry_topic"; then
         echo "[foodmate] gRPC retry topic ${retry_topic} is not visible" >&2
         exit 1
     fi
@@ -51,7 +51,7 @@ fi
 # 每个对象创建后都要回读校验，否则「初始化成功」会掩盖 Topic 根本不存在。
 echo "[foodmate] 创建 RocketMQ Proxy 系统 Topic DefaultHeartBeatSyncerTopic"
 "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "DefaultHeartBeatSyncerTopic" -r 1 -w 1 -p 6 -a +message.type=NORMAL || true
-if ! "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "DefaultHeartBeatSyncerTopic"; then
+if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "DefaultHeartBeatSyncerTopic"; then
     echo "[foodmate] Proxy 系统 Topic 初始化失败" >&2
     exit 1
 fi
@@ -63,13 +63,15 @@ for topic in \
     "${TOPIC_AGENT_RESULT:-foodmate-agent-result-v1}" \
     "${TOPIC_KNOWLEDGE_INDEX:-foodmate-knowledge-index-v1}" \
     "${TOPIC_KNOWLEDGE_INDEX_RESULT:-foodmate-knowledge-index-result-v1}" \
-    "${TOPIC_KNOWLEDGE_VISIBILITY:-foodmate-knowledge-visibility-v1}"; do
+    "${TOPIC_KNOWLEDGE_VISIBILITY:-foodmate-knowledge-visibility-v1}" \
+    "${TOPIC_KNOWLEDGE_PURGE:-foodmate-knowledge-purge-v1}" \
+    "${TOPIC_KNOWLEDGE_PURGE_RESULT:-foodmate-knowledge-purge-result-v1}"; do
     echo "[foodmate] 创建 Topic ${topic}"
     # 本地只有一个 Python Runtime 实例；固定单队列，避免 Python 5.x PushConsumer
     # 单实例只领取一个分配队列时，Producer 把消息随机写到未领取队列。
     "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$topic" -r "${TOPIC_QUEUE_COUNT:-1}" -w "${TOPIC_QUEUE_COUNT:-1}" -p 6 -a +message.type=NORMAL || true
     # Topic 名只允许 ^[%|a-zA-Z0-9_-]+$，点号会被 Broker 拒绝，因此契约使用连字符。
-    if ! "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "$topic"; then
+    if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "$topic"; then
         echo "[foodmate] Topic ${topic} 创建后不可见，初始化失败" >&2
         exit 1
     fi
@@ -90,6 +92,8 @@ for group in \
     "${GROUP_PYTHON_KNOWLEDGE_INDEX:-foodmate-python-knowledge-index-v1}" \
     "${GROUP_JAVA_KNOWLEDGE_INDEX_RESULT:-foodmate-java-knowledge-index-result-v1}" \
     "${GROUP_PYTHON_KNOWLEDGE_VISIBILITY:-foodmate-python-knowledge-visibility-v1}" \
+    "${GROUP_PYTHON_KNOWLEDGE_PURGE:-foodmate-python-knowledge-purge-v1}" \
+    "${GROUP_JAVA_KNOWLEDGE_PURGE_RESULT:-foodmate-java-knowledge-purge-result-v1}" \
     "${GROUP_SELFTEST:-foodmate-selftest-v1}"; do
     echo "[foodmate] 创建 consumer group ${group}"
     # RocketMQ 5.x 只有在消费者真正订阅后才建 %RETRY% Topic，因此不能用 topicList 回读；
@@ -99,7 +103,7 @@ for group in \
         # Proxy 的系统心跳主题必须广播给每个 Proxy 实例；-d 才是广播开关，-m 仅表示消费起点。
         broadcast="true"
     fi
-    if ! "$MQADMIN" updateSubGroup -n "$NAMESRV" -b "$BROKER" -g "$group" \
+    if ! timeout 30 "$MQADMIN" updateSubGroup -n "$NAMESRV" -b "$BROKER" -g "$group" \
         -s true -m false -d "$broadcast" -q 1 -w 1 2>&1 | grep -q "success"; then
         echo "[foodmate] consumer group ${group} 创建失败" >&2
         exit 1
@@ -107,5 +111,5 @@ for group in \
 done
 
 echo "[foodmate] 已就绪的 FoodMate Topic："
-"$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep '^foodmate-'
+timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep '^foodmate-'
 echo "[foodmate] RocketMQ 初始化完成"

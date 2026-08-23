@@ -1,6 +1,9 @@
 package com.foodmate.infrastructure.persistence.conversation;
 
-import com.foodmate.application.conversation.port.out.ConversationSummaryRepository.*;
+import com.foodmate.application.conversation.port.out.ConversationSummaryRepository.MessageSnapshot;
+import com.foodmate.application.conversation.port.out.ConversationSummaryRepository.NewSummary;
+import com.foodmate.application.conversation.port.out.ConversationSummaryRepository.SummarySnapshot;
+import com.foodmate.application.conversation.port.out.ConversationSummaryRepository.UpdatedSummary;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;

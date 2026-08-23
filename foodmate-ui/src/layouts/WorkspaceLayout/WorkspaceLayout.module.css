@@ -7,6 +7,68 @@
   background: var(--fm-bg);
 }
 
+/* Keep the Chat fixture's sidebar content at the Figma baseline without rendering desktop window controls. */
+.figmaFixture .sidebar {
+  padding-top: 52px;
+}
+
+.figmaFixture .primarySideNav {
+  margin-bottom: 4px;
+}
+
+.figmaFixture .primarySideNav .sideLink,
+.figmaFixture .secondarySideNav .sideLink,
+.figmaFixture .secondarySideNav .sideButton,
+.figmaFixture :global(.sidebar-session-section-title) {
+  min-height: 42px;
+}
+
+.figmaFixture :global(.sidebar-session-section) {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.figmaFixture :global(.sidebar-session-section-title) {
+  margin-bottom: 4px;
+}
+
+.figmaFixture :global(.sidebar-session-list-item) {
+  min-height: 32px;
+  height: 32px;
+}
+
+.figmaFixture :global(.sidebar-session-list) {
+  height: 285px;
+  box-sizing: border-box;
+}
+
+.figmaFixture :global(.sidebar-session-pagination) {
+  width: 212px;
+  height: 22px;
+  margin-top: 4px;
+  font-family: var(--fm-font);
+  font-size: 10px;
+  line-height: 13px;
+}
+
+.figmaFixture :global(.sidebar-session-pagination) > span {
+  width: 22px;
+  line-height: 13px;
+  text-align: center;
+}
+
+.figmaFixture :global(.sidebar-session-pagination) svg {
+  width: 8px;
+  height: 14px;
+}
+
+.figmaFixture .sideLink svg,
+.figmaFixture .sideButton svg,
+.figmaFixture :global(.sidebar-session-section-title) svg {
+  width: 16px;
+  height: 16px;
+}
+
 .withRail {
   grid-template-columns: 260px minmax(0, 1fr) 320px;
 }
@@ -34,30 +96,6 @@
   overflow: hidden;
   background: var(--fm-surface);
   border-right: 1px solid var(--fm-border);
-}
-
-.windowControls {
-  display: flex;
-  gap: 6px;
-  width: 52px;
-  height: 12px;
-  align-items: center;
-}
-
-.windowControls span {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.windowRed {
-  background: var(--fm-color-danger);
-}
-.windowYellow {
-  background: #ffd98b;
-}
-.windowGreen {
-  background: var(--fm-color-success);
 }
 
 .sidebarBrand {
@@ -231,7 +269,7 @@
 .accountDock {
   display: grid;
   flex: 0 0 auto;
-  gap: 10px;
+  gap: 16px;
   margin-top: auto;
 }
 
@@ -252,6 +290,8 @@
 }
 
 .collapseButton {
+  height: 28px;
+  min-height: 28px;
   font-weight: 400;
 }
 
@@ -265,6 +305,8 @@
 }
 
 .statusPill {
+  height: 38px;
+  min-height: 38px;
   color: var(--fm-green-dark);
   font-weight: 700;
 }
@@ -280,7 +322,7 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 0;
   color: inherit;
 }
 
@@ -392,6 +434,36 @@
   background: var(--fm-color-warning-surface);
 }
 
+@media (min-width: 1400px) {
+  .figmaFixture .topbar > :first-child {
+    flex: 0 0 136px;
+  }
+
+  .figmaFixture .nav {
+    flex: 0 0 auto;
+    gap: 16px;
+  }
+
+  .figmaFixture .topNavLink {
+    height: 33px;
+    padding-inline: 16px;
+  }
+
+  .figmaFixture .userActions {
+    gap: 16px;
+    margin-left: auto;
+  }
+
+  .figmaFixture .workspaceSearch,
+  .figmaFixture .workspaceSearch input {
+    height: 32px;
+  }
+
+  .figmaFixture .userButton {
+    width: 84px;
+  }
+}
+
 .moduleLabel {
   display: inline-flex;
   margin-left: 4px;
@@ -469,6 +541,7 @@
   width: 32px;
   height: 32px;
   font-size: 12px;
+  overflow: hidden;
 }
 
 .notice {
@@ -635,6 +708,32 @@
 }
 
 @media (min-width: 1400px) {
+  .designChat.withRail .topbar {
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .designChat.withRail .topbar > :first-child {
+    flex: 0 0 136px;
+  }
+
+  .designChat.withRail .nav {
+    flex: 0 0 auto;
+    gap: 16px;
+    margin-left: 24px;
+  }
+
+  .designChat.withRail .topNavLink {
+    flex: 0 0 auto;
+    padding-inline: 16px;
+  }
+
+  .designChat.withRail .userActions {
+    flex: 0 0 auto;
+    gap: 16px;
+    margin-left: 0;
+  }
+
   .withWideRail .topbar {
     gap: 0;
   }

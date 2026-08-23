@@ -166,6 +166,7 @@ const figmaProfileUser: AuthUser = {
   id: '1234567',
   username: 'anddy_operator_9',
   displayName: 'Anddy',
+  avatarUrl: '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
   role: 'operator',
   status: 'active',
   email: 'anddy@foodmate.io',
@@ -335,9 +336,9 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
               : state === 'security-password-failed'
                 ? '当前密码不正确或服务暂不可用，请重新填写。错误码：PASSWORD_UPDATE_FAILED · request_id: req_pwd_8d10'
                 : state === 'privacy-export-queued'
-                  ? '任务已创建，后台整理完成后提供一次性下载。状态：queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01'
+                  ? '任务已创建，后台整理完成后提供一次性下载。状态: queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01'
                   : state === 'privacy-export-running'
-                    ? '正在脱敏并打包数据，完成后会显示一次性下载入口。状态：running · 已处理 68% · export_id: exp_20260731_01'
+                    ? '正在脱敏并打包数据，完成后会显示一次性下载入口。状态: running · 已处理 68% · export_id: exp_20260731_01'
                     : state === 'privacy-export-expired'
                       ? '下载链接已过期，请重新创建导出任务。状态：expired · export_id: exp_20260729_18'
                       : state === 'privacy-deletion-submitting'
@@ -347,42 +348,188 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
                           : state === 'privacy-deletion-failed'
                             ? '清理任务失败，账号状态保持不变，请重新创建。错误码：ACCOUNT_DELETION_FAILED · request_id: req_delete_b721'
                             : state === 'security-logout-confirm'
-                              ? '这将退出当前设备以外的 2 个活跃会话。当前设备会保留登录状态。'
+                              ? '这将退出除当前设备以外的 2 个活跃会话。当前设备会保留登录状态，最近的运行和审计记录不会被删除。'
                               : '确认后账号会立即禁用，全部登录会话将被撤销，并开始后台清理个人资料、饮食记录、记忆和知识库数据。';
   const progress =
     state === 'basic-avatar-uploading' ||
-    state === 'privacy-deletion-submitting' ||
     state === 'security-password-submitting' ||
     state === 'privacy-export-running';
+  const isLogoutConfirmation = state === 'security-logout-confirm';
+  const isDeleteConfirmation = state === 'privacy-delete-confirm';
+  const isExportQueued = state === 'privacy-export-queued';
+  const isExportRunning = state === 'privacy-export-running';
+  const isExportExpired = state === 'privacy-export-expired';
+  const isDeletionSubmitting = state === 'privacy-deletion-submitting';
+  const isDeletionSuccess = state === 'privacy-deletion-success';
+  const isDeletionFailed = state === 'privacy-deletion-failed';
   return (
-    <div className={`${styles.fixtureOverlay} ${isSuccess ? styles.fixtureOverlaySuccess : ''}`} role="presentation">
+    <div
+      className={cn(
+        styles.fixtureOverlay,
+        isSuccess ? styles.fixtureOverlaySuccess : undefined,
+        isLogoutConfirmation ? styles.fixtureOverlayLogout : undefined,
+        isDeleteConfirmation ? styles.fixtureOverlayDelete : undefined,
+        isExportQueued ? styles.fixtureOverlayExportQueued : undefined,
+        isExportRunning ? styles.fixtureOverlayExportRunning : undefined,
+        isExportExpired ? styles.fixtureOverlayExportExpired : undefined,
+        isDeletionSubmitting ? styles.fixtureOverlayDeletionSubmitting : undefined,
+        isDeletionFailed ? styles.fixtureOverlayDeletionFailed : undefined,
+      )}
+      role="presentation"
+    >
       <section
-        className={`${styles.fixtureModal} ${isError ? styles.fixtureModalError : ''}`}
+        className={cn(
+          styles.fixtureModal,
+          isError ? styles.fixtureModalError : undefined,
+          isLogoutConfirmation ? styles.fixtureModalLogout : undefined,
+          isDeleteConfirmation ? styles.fixtureModalDelete : undefined,
+          isExportQueued ? styles.fixtureModalExportQueued : undefined,
+          isExportRunning ? styles.fixtureModalExportRunning : undefined,
+          isExportExpired ? styles.fixtureModalExportExpired : undefined,
+          isDeletionSubmitting ? styles.fixtureModalDeletionSubmitting : undefined,
+          isDeletionSuccess ? styles.fixtureModalDeletionSuccess : undefined,
+          isDeletionFailed ? styles.fixtureModalDeletionFailed : undefined,
+        )}
         role="alert"
         aria-live="polite"
       >
-        <h2>{title}</h2>
-        <p>{detail}</p>
-        {progress ? (
-          <span className={styles.fixtureProgress}>
-            <i />
-          </span>
-        ) : null}
-        {state === 'privacy-delete-confirm' ||
-        state === 'security-logout-confirm' ||
-        state === 'basic-unsaved-leave-confirmation' ? (
+        {isExportRunning ? (
+          <>
+            <span className={styles.fixtureExportRunningAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureExportRunningTitle}>{title}</h2>
+            <p className={styles.fixtureExportRunningDetail}>正在脱敏并打包数据，完成后会显示一次性下载入口。</p>
+            <p className={styles.fixtureExportRunningStatus}>状态: running · 已处理 68% · export_id: exp_20260731_01</p>
+            <span className={styles.fixtureExportRunningProgress} aria-label="数据导出进度 68%">
+              <i />
+            </span>
+            <Button className={styles.fixtureExportQueuedClose} variant="ghost" aria-label="关闭" onClick={onDismiss}>
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isExportQueued ? (
+          <>
+            <span className={styles.fixtureExportQueuedAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureExportQueuedTitle}>{title}</h2>
+            <p className={styles.fixtureExportQueuedDetail}>任务已创建，后台整理完成后提供一次性下载。</p>
+            <p className={styles.fixtureExportQueuedStatus}>
+              状态: queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01
+            </p>
+            <Button className={styles.fixtureExportQueuedClose} variant="ghost" aria-label="关闭" onClick={onDismiss}>
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isExportExpired ? (
+          <>
+            <span className={styles.fixtureExportExpiredAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureExportExpiredTitle}>{title}</h2>
+            <p className={styles.fixtureExportExpiredDetail}>下载链接已过期，请重新创建导出任务。</p>
+            <p className={styles.fixtureExportExpiredStatus}>状态: expired · export_id: exp_20260729_18</p>
+            <Button className={styles.fixtureExportExpiredAction} variant="ghost" onClick={onDismiss}>
+              重新创建导出
+            </Button>
+            <Button className={styles.fixtureExportExpiredClose} variant="ghost" aria-label="关闭" onClick={onDismiss}>
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isDeletionSubmitting ? (
+          <>
+            <span className={styles.fixtureDeletionSubmittingAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureDeletionSubmittingTitle}>{title}</h2>
+            <p className={styles.fixtureDeletionSubmittingDetail}>正在禁用账号并撤销会话，后台清理已排队。</p>
+            <p className={styles.fixtureDeletionSubmittingStatus}>提交中 · request_id: req_delete_91ba</p>
+            <Button
+              className={styles.fixtureDeletionSubmittingClose}
+              variant="ghost"
+              aria-label="关闭"
+              onClick={onDismiss}
+            >
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isDeletionSuccess ? (
+          <>
+            <span className={styles.fixtureDeletionSuccessAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureDeletionSuccessTitle}>{title}</h2>
+            <p className={styles.fixtureDeletionSuccessDetail}>账号已禁用，全部会话已撤销，后台清理任务已创建。</p>
+            <p className={styles.fixtureDeletionSuccessStatus}>完成 · request_id: req_delete_91ba</p>
+            <Button
+              className={styles.fixtureDeletionSuccessClose}
+              variant="ghost"
+              aria-label="关闭"
+              onClick={onDismiss}
+            >
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isDeletionFailed ? (
+          <>
+            <h2 className={styles.fixtureDeletionFailedTitle}>{title}</h2>
+            <p className={styles.fixtureDeletionFailedDetail}>清理任务失败，账号状态保持不变，请重新创建。</p>
+            <p className={styles.fixtureDeletionFailedStatus}>
+              错误码: ACCOUNT_DELETION_FAILED · request_id: req_delete_b721
+            </p>
+            <Button className={styles.fixtureDeletionFailedAction} variant="ghost" onClick={onDismiss}>
+              重新创建注销请求
+            </Button>
+          </>
+        ) : isDeleteConfirmation ? (
+          <>
+            <p className={styles.fixtureDeleteEyebrow}>DANGER ZONE · CONFIRM</p>
+            <h2 className={styles.fixtureDeleteTitle}>{title}</h2>
+            <p className={styles.fixtureDeleteDetail}>{detail}</p>
+            <p className={styles.fixtureDeleteSecondary}>请先导出需要保留的数据；取消或失败不会改变现有数据。</p>
+            <label className={styles.fixtureDeleteLabel}>
+              输入 DELETE 继续
+              <Input className={styles.fixtureDeleteInput} defaultValue="DELETE" aria-label="输入 DELETE 继续" />
+            </label>
+            <div className={styles.fixtureDeleteActions}>
+              <Button className={styles.fixtureDeleteCancel} variant="outline" onClick={onDismiss}>
+                取消
+              </Button>
+              <Button className={styles.fixtureDeleteConfirm} variant="default" onClick={onDismiss}>
+                确认注销
+              </Button>
+            </div>
+          </>
+        ) : isLogoutConfirmation ? (
+          <>
+            <p className={styles.fixtureLogoutEyebrow}>SECURITY · CONFIRM</p>
+            <h2 className={styles.fixtureLogoutTitle}>{title}</h2>
+            <p className={styles.fixtureLogoutDetail}>{detail}</p>
+            <p className={styles.fixtureLogoutTargets}>将退出：iPhone 15 Pro · iOS App；Google Chrome · Windows 11</p>
+          </>
+        ) : (
+          <>
+            <h2>{title}</h2>
+            <p>{detail}</p>
+            {progress ? (
+              <span className={styles.fixtureProgress}>
+                <i />
+              </span>
+            ) : null}
+          </>
+        )}
+        {state === 'basic-unsaved-leave-confirmation' ? (
           <div className={styles.fixtureModalActions}>
             <Button variant="outline" onClick={onDismiss}>
               取消
             </Button>
-            <Button variant={state === 'privacy-delete-confirm' ? 'destructive' : 'default'} onClick={onDismiss}>
-              {state === 'basic-unsaved-leave-confirmation' ? '放弃并离开' : '确认继续'}
+            <Button variant="default" onClick={onDismiss}>
+              放弃并离开
             </Button>
           </div>
         ) : null}
-        {state === 'security-password-failed' ||
-        state === 'privacy-deletion-failed' ||
-        state === 'privacy-export-expired' ? (
+        {isLogoutConfirmation ? (
+          <div className={styles.fixtureLogoutActions}>
+            <Button className={styles.fixtureLogoutCancel} variant="outline" onClick={onDismiss}>
+              取消
+            </Button>
+            <Button className={styles.fixtureLogoutConfirm} variant="default" onClick={onDismiss}>
+              确认退出
+            </Button>
+          </div>
+        ) : null}
+        {state === 'security-password-failed' || (state === 'privacy-export-expired' && !isExportExpired) ? (
           <Button type="button" onClick={onDismiss}>
             重新创建
           </Button>
@@ -1835,18 +1982,18 @@ export function ProfilePage() {
       : fixtureState === 'memories-empty'
         ? 'memories'
         : (baseFigmaState ?? getTab(location.pathname));
-  const isFigmaFixture = Boolean(baseFigmaState);
+  const isFigmaFixture = Boolean(baseFigmaState || fixtureState);
   const displayedUser = isFigmaFixture ? figmaProfileUser : authUser;
   return (
     <WorkspaceLayout
       activeModule="profile"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      profileActiveTab={baseFigmaState}
+      profileActiveTab={isFigmaFixture ? activeTab : undefined}
       sidebarAvatarSrc={
         isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
       }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      topAvatarSrc={isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       pageOverlay={
         fixtureState ? <ProfileFixtureOverlay state={fixtureState} onDismiss={() => navigate('/profile')} /> : null

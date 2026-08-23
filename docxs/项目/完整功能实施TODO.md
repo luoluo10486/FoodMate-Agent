@@ -4,7 +4,7 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## 当前复核状态（2026-08-15）
+## 当前复核状态（2026-08-23）
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
 
@@ -13,7 +13,7 @@
 - [x] Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result：成功、失败 `SQL_EXECUTION_FAILED` 和重复 Proposal 幂等已验证。
 - [x] Proposal Inbox claim lease：超过 5 分钟的 `claimed` 记录可回收，避免旧失败消息造成消费者饥饿。
 - [x] 浏览器真实登录、会话、消息、RocketMQ command/event、Java PostgreSQL Inbox、最终 SSE E2E 已通过；恢复入口也已完成一次 Python 重启后的跨进程验证。
-- [x] Python deterministic Runtime、Eval Gate、Proposal/Result 回注和 Java Tool Gateway 的本地真实跨进程链路已通过；生产 RAG 和完整业务 Tool 仍不属于本轮已完成范围。
+- [x] Python deterministic Runtime、知识索引 Worker、Eval Gate、Proposal/Result 回注和 Java Tool Gateway 的本地真实跨进程链路已通过；生产 RAG 和完整业务 Tool 仍不属于本轮已完成范围。
 - [x] 本地双 JVM 子项已复验：`script/local/m1-6-dual-jvm.ps1` 启动 `18080/18081` 两个独立 Java JVM，共享 PostgreSQL 完成认证会话读取；最近一次 160/160 成功、错误率 0%、吞吐 51.538 req/s、P50/P95/P99 为 17.107/57.937/94.523 ms，并完成 Java 重启后的 PostgreSQL 回读。
 - [x] 本地依赖恢复子项已验证：Python readiness HTTP 200，Redis checkpoint、Redis、RocketMQ event/proposal producer、command/result consumer 均 ready；Redis AOF 探针在容器重启后保留，RocketMQ NameServer/Broker/Proxy 重启后 healthy 且 Topic/group 初始化成功。
 - [ ] 生产级长压、多实例 Agent 业务吞吐、队列积压/重复执行、PostgreSQL 进程重启，以及 Outbox/Inbox ACK 丢失、租约接管和 SSE 故障恢复仍待执行。
@@ -23,6 +23,9 @@
 - [x] 本地 PostgreSQL 已存在 V13/V14/V15 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。营养 seed V1 已人工导入 5 条 approved USDA 数据，seed V2 已人工导入 5 条 approved USDA foodPortions 规则并通过校验；未覆盖的单位仍不推断。
 - [x] M1-5 Java 写确认扩展已实现：`food_log_writer` 支持 create/update/delete/restore，确认状态支持 rejected/failed/superseded，Tool Gateway 校验工具名/type 并映射结果状态；Java 定向测试覆盖拒绝、失败回滚记录、supersede 和三种资源写操作。
 - [x] 完成 M1-5 写确认扩展的真实 HTTP/MQ 跨进程回归：HTTP 与 RocketMQ 各 11 个用例通过，覆盖 rejected、failed 回滚与失败审计、superseded、update/delete/restore、revision 冲突、成功 Proposal 幂等重放，以及官方 foodPortions 换算 matched/pending 和数据库快照断言；每个用例使用随机用户、Session、AgentRun、Proposal 和幂等键隔离。
+- [x] M2-1/M2-2/M2-3 业务范围已完成：公共知识库 deterministic 上传/索引/发布/检索/引用、只读 SQL Agent 多轮闭环、管理后台真实查询/写操作/模型治理和受控脱敏导出均已有代码与业务测试证据；真实云服务、性能和故障验证不属于当前完成门槛。
+- [x] M3 业务治理代码切片已完成：运营审计快照、DLQ 安全摘要/人工重放契约、保留策略、legal hold、审批、对象/向量清理、失败补偿和受控数据库清理已具备定向业务测试；`hard_delete_enabled=false` 默认关闭。
+- [ ] M3 真实依赖清理、数据库不可逆硬删除、生产压测、漏洞扫描、密钥轮换、渗透测试、备份恢复、发布回滚和生产告警仍未执行；不得用本地单元测试替代这些证据。
 
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
 
@@ -59,12 +62,12 @@
 - PostgreSQL FoodMate 已执行基线及 V2-V6 追加迁移；账号、会话、消息、continuation、预算基础结构与 MQ 运行时表均已用于真实联调。
 - Java 已实现账号、认证会话、会话、消息、AgentRun、dispatch outbox、事件 inbox、取消和 SSE。
 - Python agent-runtime 已实现 V1 Service JWT、RocketMQ command/event/proposal/result、Redis Inbox/Outbox、固定 Workflow、模型适配、Eval Gate、预算、checkpoint 和确定性默认 provider；M1-3 HTTP 回调仅保留兼容和契约测试用途。
-- 前端真实模式已接入认证、会话、消息、AgentRun SSE 和取消；知识库检索、管理端批次上传/进度/重试、聊天引用、饮食记录、营养分析、餐食规划和主要运营页面已有 real 业务路径。知识库跨运行时真实闭环、SQL Agent 真实数据库联调和生产强化仍未完成。
+- 前端真实模式已接入认证、会话、消息、AgentRun SSE 和取消；知识库检索、管理端批次上传/进度/重试、聊天引用、饮食记录、营养分析、餐食规划和主要运营页面已有 real 业务路径。M2-1 deterministic 知识库跨运行时业务闭环和 M2-2 SQL Agent 真实本地数据库联调已完成；生产强化仍未完成。
 
 当前不能宣称完成的部分：
 
 - Python Runtime 的 Router、Planner、Tool Proposal、Result 回注、Eval 和恢复闭环已具备本地实现与验证；生产 RAG、完整业务 Tool/SQL 场景、云模型长时间稳定性和生产级治理仍未形成完整闭环。
-- 业务知识库的 Java/Python 核心索引、stub/local 检索、可见性和前端引用已实现并通过业务测试；真实 Docker 跨运行时上传/索引/发布/引用、统一生产可观测性、账单审计和发布流程仍未形成完整闭环。
+- 业务知识库的 Java/Python 核心索引、stub/local 检索、可见性和前端引用已实现并通过业务测试；deterministic 本地依赖下的上传/索引/发布/引用闭环已验证。真实云 embedding、统一生产可观测性、账单审计和发布流程仍未形成生产闭环。
 
 ## 4. 里程碑与发布门槛
 
@@ -165,10 +168,10 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 将确定性文本摘要升级为结构化摘要：已输出 `goals`、`constraints`、`decisions`、`open_questions` 和 `source_message_ids`，并保留摘要版本、来源 digest 与 CAS；摘要模型和失败降级策略仍属于后续增强。
 - [x] 长期记忆读取已按用户归属、白名单类型、确认状态和有效期过滤，当前查询/注入上限为 8 条；按更细意图的检索排序仍属于后续增强。
 - [x] 建立最小记忆治理：计划型记忆已自动分配 7 天 TTL，临时型记忆已自动分配 24 小时 TTL，过期记录已从冲突判断和 Context 读取中排除；推断衰减、来源失效、用户遗忘、删除防再生及 active memory 上限配置化仍待完成。
-- [ ] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表，`user_memories` 不复制权威业务实体。
+- [x] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表；Java 记忆候选白名单拒绝权威实体类型/字段和高影响健康事实，Context 查询只读取允许的长期记忆类型。
 - [x] M1 不引入 `pgvector`；仅当结构化检索经 Eval 证明召回不足后作为可选增强评估。
 - [x] 删除或更正长期记忆后使相关摘要和 Context 引用失效；完整缓存传播和删除防再生仍属于后续增强。
-- [ ] 为每次 Context 装配保存可审计来源 ID：`message_id/summary_id/memory_id/citation_id`，但不得保存 Chain-of-Thought 或完整 Prompt。
+- [x] 为每次 Context 装配保存可审计来源 ID：Python 通过非终态 `run.context_assembled` 只回传 `message_id/summary_id/memory_id/citation_id`，Java 在同一事件事务写入统一审计；不保存 Chain-of-Thought、完整 Prompt 或正文。
 - [x] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。当前已接入 Lua/ZSET lease，未引入进程内 semaphore。
 - [ ] 完成生产级优先队列、permit lease、aging、防饥饿和 Redis 故障关闭；当前已实现有限 priority + FIFO aging 基础和协调不可用 503，仍缺 Redis 故障注入与长期防饥饿验证。
 - [x] 完成 queue、execution、node、waiting_user、cancel drain 超时，Run 接受时固化 `TimeoutSnapshot`，取消或超时后可靠释放 permit。当前已实现 queue/execution 扫描和终态释放，node/cancel drain 的独立执行器与 waiting_user 专用 deadline 仍需强化。
@@ -177,11 +180,11 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 完成 Redis checkpoint 的 AOF 配置、CAS、TTL、加密和 Java 对账；`tool_wait/execution` 关键恢复点、Java 恢复入口和本地跨进程恢复已验证。
 - [x] 完成任务恢复执行器：Python 校验旧 dispatch、checkpoint version/digest、预算 revision、deadline 与已完成 invocation；Java 完成所有权/终态/取消/fencing 对账和跨进程本地 E2E。生产自动触发器和恢复指标仍待完成，详见[Python 智能体运行时设计](../架构/Python智能体运行时设计.md)。
 - [x] 建立确定性硬规则、LLM Judge、Prompt/评测版本、离线 golden 样例、回归评测和安全策略测试；Eval 通过前不得发送候选答案正文。
-- [ ] 实现可配置 150ms 时间触发的回答分片；当前只实现默认 2048 字节 UTF-8 分片，禁止逐 Token 发布 RocketMQ。
+- [x] 实现可配置 150ms 时间触发的回答分片：Eval 通过后按 UTF-8 字节上限切片，并按 `FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS`（默认 150ms）调度 `run.answer_stream`；不逐 Token 发布 RocketMQ。
 - [x] 当前无人审核时，`request_review` 返回安全降级答案并记录原因，不新增虚假的 `waiting_review`。
 - [x] 普通缺参补充创建 continuation Run，旧 Run 进入 `superseded`，并完成 V5、Java 事务、SSE 和前端状态映射。
 - [x] 工具审批和预算追加按原 Run + 新 `dispatch_id + attempt` 处理，并完成预算确认前端交互与恢复测试；预算追加已接入 Redis 准入。当前跨进程 Proposal 主要覆盖只读 SQL，通用写工具审批仍属于后续业务阶段。
-- [ ] 完成结构化 Trace、预算与 Eval 指标、脱敏策略和用户反馈入口；不得保存 Chain-of-Thought、完整 Prompt 或默认原始模型响应。
+- [x] 完成结构化 Trace、预算与 Eval 指标、脱敏策略和用户反馈入口；当前以本地 Run/ToolCall/SQLAudit/ModelUsage 关联、低基数 Runtime/Eval 指标、统一脱敏审计和结构化反馈业务测试为证据，不保存 Chain-of-Thought、完整 Prompt 或默认原始模型响应。生产统一指标系统和长期告警仍后置。
 - [x] 只允许 Python 产生 Tool/SQL Proposal；Java Tool Gateway 不向 Python 暴露 PostgreSQL 业务库凭据。
 - [x] Java 已接入独立 Proposal consumer、只读 SQL Guard、审计和 Result producer；`runtime_tool_proposal_inbox` 固化 `proposal_id + request_hash` 幂等事实。
 - [x] Python Result consumer 已接入 Redis 幂等 Inbox；Java command RocketMQ 真实传输 E2E 已通过。
@@ -228,7 +231,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] 完成 stub/local 向量与关键词检索、metadata 权限过滤、引用返回、索引失败手动重试和下线可见性同步的核心实现与业务测试。
 - [x] 将 RAG 引用展示接入前端，支持 run.completed 安全引用和可展开引用块；无命中时不编造引用。
 - [x] 完成文档格式、基础恶意文件/来源/PII/索引成本策略的代码门禁与稳定错误码。
-- [ ] 完成真实 Docker Java -> RocketMQ -> Python -> Redis/Milvus -> Java 的上传、索引、发布、检索和 SSE 引用联调；该项按当前决策后置，不作为本轮业务门禁。
+- [x] 完成 deterministic 本地依赖下 Java -> RocketMQ -> Python -> Redis/Milvus -> Java 的上传、索引、发布、检索和 SSE 引用联调，并已在 Docker `foodmate`/`agent-runtime` 应用容器中复验 stub 与 local deterministic 两种业务路径；真实云 embedding、性能与故障矩阵按当前决策后置，不作为本轮业务门禁。
 
 风险：未授权文档泄露、过时引用、索引任务堆积和存储成本。控制方式：权限元数据、版本化、队列监控、配额和数据保留策略。
 
@@ -238,7 +241,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] 完成 Proposal -> Policy -> Confirm -> Execute -> Audit 的 Java 受控执行链路。
 - [x] 实现只读 SQL Guard：AST 解析、单语句、只读、schema/字段白名单、敏感字段遮蔽、用户过滤、行数与超时限制。
 - [x] 实现 SQL 审计、结果脱敏、错误分类、攻击样例和越权回归测试。
-- [ ] 完成真实 Java/Python/PostgreSQL SQL Agent 跨运行时联调；当前只要求业务代码和契约测试通过，真实依赖联调后置。
+- [x] 完成 deterministic Java/Python/PostgreSQL/RocketMQ SQL Agent 跨运行时业务联调；`time_parser -> database_query -> Composer` 多轮 Run、SQL 审计、空数据语义和事件连续性已验证。真实云模型稳定性和性能/故障门禁后置。
 
 边界：Python 只能提议，不能访问数据源账号或绕过 Java Policy；SQL Agent 不允许任何写操作。
 
@@ -247,14 +250,14 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 - [x] 用真实接口替换用户、AgentRun、工具、知识库、审计、软删除资源和模型用量页面 mock；真实 Trace 明细缺少后端契约时明确显示空态。
 - [x] 实现分页、筛选、权限、状态变更、审计追踪和高危操作二次确认。
 - [x] 实现模型供应商、模型路由、预算、配额、成本汇总和阈值状态提示；不建设生产告警平台。
-- [ ] 为管理员/运营人员增加最小权限、操作留痕和导出控制。
+- [x] 为管理员/运营人员增加最小权限、操作留痕和导出控制；管理员导出资源/字段白名单、幂等、过期和一次性下载均已接入，superadmin 才可导出高敏资源。
 
 ## 8. M3：生产强化版
 
 - [ ] 完成接口、SSE、模型调用、数据库和队列的生产压测与容量基线（本地双 JVM 基线属于 M1-6，生产压测后置）。
 - [ ] 完成依赖漏洞扫描、密钥轮换、权限审计、渗透测试和安全事件预案。
 - [ ] 后置：完成数据库备份恢复、跨环境迁移、灾难恢复和发布回滚演练；当前明确不做数据库备份。
-- [ ] 完成数据保留/硬删除任务、失败重试、死信处理和定期审计。
+- [x] 完成数据保留策略、legal hold、审批、对象/向量清理任务、失败重试、DLQ 安全摘要/人工重放契约和实时审计快照代码及业务测试；数据库硬删除默认关闭，实际删除与生产演练后置。
 - [ ] 完成浏览器兼容性、可访问性、移动 Web 适配和性能优化。
 
 ## 9. 跨阶段质量门禁

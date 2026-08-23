@@ -8,12 +8,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.BudgetExtensionRepository;
-import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.*;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.DispatchResult;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.ExistingExtension;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.PreviousDispatch;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.RunRow;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.Snapshot;
 import com.foodmate.application.runtime.service.BudgetExtensionService;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.enums.RunStatus;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -268,7 +273,7 @@ public class BudgetExtensionServiceImpl implements BudgetExtensionService {
             root.remove("request_hash");
             byte[] bytes = mapper.writeValueAsBytes(root);
             return "sha256:" + hex(MessageDigest.getInstance("SHA-256").digest(bytes));
-        } catch (Exception exception) {
+        } catch (JsonProcessingException | NoSuchAlgorithmException exception) {
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_CONTRACT_INVALID", "cannot hash dispatch payload");
         }

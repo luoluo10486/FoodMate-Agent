@@ -1,5 +1,6 @@
 package com.foodmate.infrastructure.messaging.rocketmq;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.shared.runtime.RuntimeException;
@@ -91,7 +92,9 @@ public final class V1RocketMqRuntimeClient implements RuntimeClientPort, AutoClo
             throw new RuntimeException("RUNTIME_UNAVAILABLE", "publish interrupted");
         } catch (MQClientException | MQBrokerException | RemotingException exception) {
             throw new RuntimeException("RUNTIME_UNAVAILABLE", safeMessage(exception));
-        } catch (Exception exception) {
+        } catch (JsonProcessingException exception) {
+            throw new RuntimeException("RUNTIME_CONTRACT_INVALID", safeMessage(exception));
+        } catch (java.lang.RuntimeException exception) {
             throw new RuntimeException("RUNTIME_CONTRACT_INVALID", safeMessage(exception));
         }
     }

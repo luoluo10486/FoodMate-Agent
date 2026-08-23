@@ -3,7 +3,7 @@ from io import BytesIO
 from unittest import TestCase
 import zipfile
 
-from knowledge_rag import (KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, chunk_markdown, parse_document, safe_object_key)
+from knowledge_rag import (DeterministicEmbedder, KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key)
 
 
 class _HashPipeline:
@@ -44,6 +44,7 @@ class _MilvusClient:
         ]
         self.filters = []
         self.upserts = []
+        self.deletes = []
 
     def has_collection(self, _collection):
         return True
@@ -54,6 +55,33 @@ class _MilvusClient:
 
     def upsert(self, **kwargs):
         self.upserts.append(kwargs["data"])
+
+    def delete(self, **kwargs):
+        self.deletes.append(kwargs)
+
+
+class _VectorMilvusClient:
+    def __init__(self, dimension=None):
+        self.dimension = dimension
+        self.created = []
+        self.upserts = []
+        self.flushed = []
+
+    def has_collection(self, _collection):
+        return self.dimension is not None
+
+    def create_collection(self, *args, **kwargs):
+        self.dimension = kwargs["dimension"]
+        self.created.append((args, kwargs))
+
+    def describe_collection(self, _collection):
+        return {"fields": [{"name": "vector", "params": {"dim": self.dimension}}]}
+
+    def upsert(self, **kwargs):
+        self.upserts.append(kwargs["data"])
+
+    def flush(self, **kwargs):
+        self.flushed.append(kwargs["collection_name"])
 
 
 class MilvusIndexTests(TestCase):
@@ -67,6 +95,54 @@ class MilvusIndexTests(TestCase):
         self.assertEqual(['document_id == "d1" and version == "v1"'], index.client.filters)
         self.assertEqual("published", index.client.upserts[0][0]["visibility"])
         self.assertEqual("v1", index.client.upserts[0][0]["version"])
+
+    def test_upsert_initializes_collection_from_actual_vector_dimension(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="deterministic",
+            milvus_uri="http://milvus",
+            milvus_collection="public_knowledge",
+            deterministic_dimension=12,
+        )
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _VectorMilvusClient()
+        index.collection = settings.milvus_collection
+        embedder = DeterministicEmbedder(settings)
+        chunks = [KnowledgeChunk("emb-1", "d1", "v1", 0, "Guide", "protein recovery")]
+
+        index.upsert("Guide", chunks, embedder.embed([chunks[0].text]))
+
+        self.assertEqual(12, index.client.created[0][1]["dimension"])
+        self.assertEqual(12, len(index.client.upserts[0][0]["vector"]))
+        self.assertEqual("public_published", index.client.upserts[0][0]["scope"])
+        self.assertEqual(["public_knowledge"], index.client.flushed)
+
+    def test_upsert_rejects_existing_collection_dimension_mismatch(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="deterministic",
+            milvus_uri="http://milvus",
+            milvus_collection="public_knowledge",
+            deterministic_dimension=12,
+        )
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _VectorMilvusClient(dimension=8)
+        index.collection = settings.milvus_collection
+
+        with self.assertRaisesRegex(RagError, "does not match") as raised:
+            index.upsert("Guide", [KnowledgeChunk("emb-1", "d1", "v1", 0, "", "protein")], [[0.1] * 12])
+
+        self.assertEqual("RAG_MILVUS_DIMENSION_MISMATCH", raised.exception.code)
+
+    def test_delete_is_limited_to_document_version(self):
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _MilvusClient()
+        index.collection = "public_knowledge"
+
+        index.delete_document("d1", "v1")
+
+        self.assertEqual(["old"], index.client.deletes[0]["ids"])
+        self.assertIn('document_id == "d1" and version == "v1"', index.client.filters)
 
 
 class RedisStubIndexTests(TestCase):
@@ -115,6 +191,57 @@ class RagSettingsTests(TestCase):
         })
         self.assertEqual(4, settings.index_concurrency)
 
+    def test_local_deterministic_provider_needs_no_real_embedding_credentials(self):
+        settings = RagSettings.from_environment({
+            "FOODMATE_RAG_MODE": "local",
+            "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+            "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+            "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+            "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+            "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+            "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+            "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+            "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+            "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+        })
+
+        self.assertEqual("deterministic", settings.embedding_provider)
+        self.assertEqual("deterministic-local-v1", settings.embedding_model)
+        self.assertIsInstance(build_local_embedder(settings), DeterministicEmbedder)
+
+    def test_openai_provider_still_fails_closed_without_api_key(self):
+        with self.assertRaisesRegex(RagError, "incomplete") as raised:
+            RagSettings.from_environment({
+                "FOODMATE_RAG_MODE": "local",
+                "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+                "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+                "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+            })
+        self.assertEqual("RAG_EMBEDDING_BASE_URL_MISSING", raised.exception.code)
+
+
+class DeterministicEmbedderTests(TestCase):
+    def test_vectors_are_stable_non_zero_and_have_configured_dimension(self):
+        settings = RagSettings(mode="local", embedding_provider="deterministic", deterministic_dimension=16)
+        embedder = DeterministicEmbedder(settings)
+
+        first = embedder.embed(["Protein supports recovery.", "Protein supports recovery."])
+
+        self.assertEqual(first[0], first[1])
+        self.assertEqual(16, len(first[0]))
+        self.assertGreater(sum(item * item for item in first[0]), 0)
+
+    def test_provider_mismatch_does_not_silently_fallback(self):
+        settings = RagSettings(mode="local", embedding_provider="openai-compatible")
+
+        with self.assertRaisesRegex(RagError, "explicit local provider"):
+            DeterministicEmbedder(settings)
+
 
 class StubIndexTests(TestCase):
     def test_public_filter_citation_limit_and_determinism(self):
@@ -124,6 +251,21 @@ class StubIndexTests(TestCase):
         self.assertLessEqual(len(citations), 2)
         self.assertEqual("Nutrition guide", citations[0].title)
         self.assertFalse(hasattr(citations[0], "storage_key"))
+
+    def test_stub_search_matches_chinese_phrases_without_spaces(self):
+        index = StubIndex()
+        index.upsert(
+            "Public guide",
+            chunk_markdown(
+                "# 饮食指南\n低盐饮食应查看每份食物的钠含量。",
+                "cn-1",
+                "v1",
+            ),
+        )
+
+        citations = index.search("低盐饮食 钠含量")
+
+        self.assertEqual(["cn-1"], [item.document_id for item in citations])
 
     def test_object_key_cannot_escape_knowledge_namespace(self):
         self.assertEqual("knowledge/1/a.txt", safe_object_key("knowledge/1/a.txt"))

@@ -48,6 +48,163 @@ describe('ProfilePage', () => {
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
     expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
+    );
+    expect(screen.getByRole('button', { name: 'Anddy' }).querySelector('img')).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
+    );
+  });
+
+  it('renders the Figma logout confirmation fixture with the target devices', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=security-logout-confirm');
+
+    expect(screen.getByRole('heading', { name: '退出其他设备？' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '这将退出除当前设备以外的 2 个活跃会话。当前设备会保留登录状态，最近的运行和审计记录不会被删除。',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('将退出：iPhone 15 Pro · iOS App；Google Chrome · Windows 11')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认退出' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '确认继续' })).not.toBeInTheDocument();
+    expect(screen.getByText('Anddy')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '安全与设备' })).toHaveAttribute('aria-current', 'page');
+
+    await user.click(screen.getByRole('button', { name: '确认退出' }));
+
+    expect(screen.queryByRole('heading', { name: '退出其他设备？' })).not.toBeInTheDocument();
+  });
+
+  it('renders the Figma account deletion confirmation fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-delete-confirm');
+
+    expect(screen.getByText('DANGER ZONE · CONFIRM')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '确认注销 FoodMate 账号' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '确认后账号会立即禁用，全部登录会话将被撤销，并开始后台清理个人资料、饮食记录、记忆和知识库数据。',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('请先导出需要保留的数据；取消或失败不会改变现有数据。')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '输入 DELETE 继续' })).toHaveValue('DELETE');
+    expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认注销' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '确认继续' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '取消' }));
+
+    expect(screen.queryByRole('heading', { name: '确认注销 FoodMate 账号' })).not.toBeInTheDocument();
+  });
+
+  it('dismisses the account deletion fixture from the confirm action', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-delete-confirm');
+
+    await user.click(screen.getByRole('button', { name: '确认注销' }));
+
+    expect(screen.queryByRole('heading', { name: '确认注销 FoodMate 账号' })).not.toBeInTheDocument();
+  });
+
+  it('renders and dismisses the Figma export queued fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-export-queued');
+
+    expect(screen.getByRole('heading', { name: '数据导出已排队' })).toBeInTheDocument();
+    expect(screen.getByText('任务已创建，后台整理完成后提供一次性下载。')).toBeInTheDocument();
+    expect(screen.getByText('状态: queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByText('状态：queued')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(screen.queryByRole('heading', { name: '数据导出已排队' })).not.toBeInTheDocument();
+  });
+
+  it('renders and dismisses the Figma export running fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-export-running');
+
+    expect(screen.getByRole('heading', { name: '正在生成数据导出' })).toBeInTheDocument();
+    expect(screen.getByText('正在脱敏并打包数据，完成后会显示一次性下载入口。')).toBeInTheDocument();
+    expect(screen.getByText('状态: running · 已处理 68% · export_id: exp_20260731_01')).toBeInTheDocument();
+    expect(screen.getByLabelText('数据导出进度 68%')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByText('状态：running')).not.toBeInTheDocument();
+
+    const status = screen.getByText('状态: running · 已处理 68% · export_id: exp_20260731_01');
+    const progress = screen.getByLabelText('数据导出进度 68%');
+    expect(status).not.toHaveStyle({ marginTop: '24px' });
+    expect(progress).toHaveAttribute('aria-label', '数据导出进度 68%');
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(screen.queryByRole('heading', { name: '正在生成数据导出' })).not.toBeInTheDocument();
+  });
+
+  it('renders and dismisses the Figma export expired fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-export-expired');
+
+    expect(screen.getByRole('heading', { name: '导出文件已过期' })).toBeInTheDocument();
+    expect(screen.getByText('下载链接已过期，请重新创建导出任务。')).toBeInTheDocument();
+    expect(screen.getByText('状态: expired · export_id: exp_20260729_18')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新创建导出' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByText('状态：expired')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '重新创建导出' }));
+
+    expect(screen.queryByRole('heading', { name: '导出文件已过期' })).not.toBeInTheDocument();
+  });
+
+  it('renders and dismisses the Figma deletion submitting fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-deletion-submitting');
+
+    expect(screen.getByRole('heading', { name: '正在注销账号' })).toBeInTheDocument();
+    expect(screen.getByText('正在禁用账号并撤销会话，后台清理已排队。')).toBeInTheDocument();
+    expect(screen.getByText('提交中 · request_id: req_delete_91ba')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(screen.queryByRole('heading', { name: '正在注销账号' })).not.toBeInTheDocument();
+  });
+
+  it('renders and dismisses the Figma deletion success fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-deletion-success');
+
+    expect(screen.getByRole('heading', { name: '账号已注销' })).toBeInTheDocument();
+    expect(screen.getByText('账号已禁用，全部会话已撤销，后台清理任务已创建。')).toBeInTheDocument();
+    expect(screen.getByText('完成 · request_id: req_delete_91ba')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByText('完成 · request_id: req_delete_91ba。')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(screen.queryByRole('heading', { name: '账号已注销' })).not.toBeInTheDocument();
+  });
+
+  it('renders and dismisses the Figma deletion failure fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-deletion-failed');
+
+    expect(screen.getByRole('heading', { name: '账号注销失败' })).toBeInTheDocument();
+    expect(screen.getByText('清理任务失败，账号状态保持不变，请重新创建。')).toBeInTheDocument();
+    expect(screen.getByText('错误码: ACCOUNT_DELETION_FAILED · request_id: req_delete_b721')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新创建注销请求' })).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '重新创建注销请求' }));
+
+    expect(screen.queryByRole('heading', { name: '账号注销失败' })).not.toBeInTheDocument();
   });
 
   it('edits profile fields and manages allergens before saving', async () => {

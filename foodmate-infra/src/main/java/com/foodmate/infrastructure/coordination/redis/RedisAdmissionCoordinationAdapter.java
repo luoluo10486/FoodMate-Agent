@@ -25,12 +25,26 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
             redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
             redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now)
             for _, queued_run in ipairs(redis.call('ZRANGE', KEYS[4], 0, -1)) do
-              if redis.call('EXISTS', 'foodmate:agent:admission:permit:' .. queued_run) == 0 then
+              local queued_permit = 'foodmate:agent:admission:permit:' .. queued_run
+              local queued_until = redis.call('HGET', queued_permit, 'queue_until')
+              if queued_until == false or tonumber(queued_until) <= (now * 1000) then
                 redis.call('ZREM', KEYS[4], queued_run)
+                redis.call('DEL', queued_permit)
               end
             end
             local existing = redis.call('HGET', KEYS[3], 'state')
-            if existing == 'active' or existing == 'queued' then return existing end
+            if existing == 'active' then
+              local active_until = redis.call('ZSCORE', KEYS[1], ARGV[1])
+              if active_until and tonumber(active_until) > now then return existing end
+              redis.call('ZREM', KEYS[1], ARGV[1])
+              redis.call('ZREM', KEYS[2], ARGV[1])
+              redis.call('DEL', KEYS[3])
+            elseif existing == 'queued' then
+              local queued_until = redis.call('HGET', KEYS[3], 'queue_until')
+              if queued_until and tonumber(queued_until) > (now * 1000) then return existing end
+              redis.call('ZREM', KEYS[4], ARGV[1])
+              redis.call('DEL', KEYS[3])
+            end
             local global_limit = tonumber(ARGV[6])
             local user_limit = tonumber(ARGV[7])
             local queue_limit = tonumber(ARGV[8])
@@ -38,14 +52,16 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
             local global_active = redis.call('ZCARD', KEYS[1])
             if global_active < global_limit and user_active < user_limit then
               redis.call('ZADD', KEYS[1], lease_until, ARGV[1])
-              redis.call('ZADD', KEYS[2], lease_until, ARGV[2])
+              -- Count each active run separately. Session IDs are metadata and must not
+              -- collapse two runs from one session into one user-capacity member.
+              redis.call('ZADD', KEYS[2], lease_until, ARGV[1])
               redis.call('HSET', KEYS[3], 'state', 'active', 'user_id', ARGV[3], 'session_id', ARGV[2], 'run_id', ARGV[1])
               redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[5]) * 1000)
               return 'active'
             end
             if redis.call('ZCARD', KEYS[4]) >= queue_limit then return 'capacity' end
             redis.call('ZADD', KEYS[4], now - (tonumber(ARGV[10]) * 5), ARGV[1])
-            redis.call('HSET', KEYS[3], 'state', 'queued', 'user_id', ARGV[3], 'session_id', ARGV[2], 'run_id', ARGV[1])
+            redis.call('HSET', KEYS[3], 'state', 'queued', 'user_id', ARGV[3], 'session_id', ARGV[2], 'run_id', ARGV[1], 'queue_until', (now * 1000) + tonumber(ARGV[9]))
             redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[9]))
             return 'queued'
             """,
@@ -58,20 +74,30 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
             redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
             redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now)
             for _, queued_run in ipairs(redis.call('ZRANGE', KEYS[4], 0, -1)) do
-              if redis.call('EXISTS', 'foodmate:agent:admission:permit:' .. queued_run) == 0 then
+              local queued_permit = 'foodmate:agent:admission:permit:' .. queued_run
+              local queued_until = redis.call('HGET', queued_permit, 'queue_until')
+              if queued_until == false or tonumber(queued_until) <= (now * 1000) then
                 redis.call('ZREM', KEYS[4], queued_run)
+                redis.call('DEL', queued_permit)
               end
             end
             local state = redis.call('HGET', KEYS[3], 'state')
             if state ~= 'queued' then return 'none' end
+            local queued_until = redis.call('HGET', KEYS[3], 'queue_until')
+            if not queued_until or tonumber(queued_until) <= (now * 1000) then
+              redis.call('ZREM', KEYS[4], ARGV[5])
+              redis.call('DEL', KEYS[3])
+              return 'expired'
+            end
             if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[2]) then return 'waiting' end
             local user_key = KEYS[2]
             if redis.call('ZCARD', user_key) >= tonumber(ARGV[3]) then return 'waiting' end
             local lease_until = now + tonumber(ARGV[4])
             redis.call('ZREM', KEYS[4], ARGV[5])
             redis.call('ZADD', KEYS[1], lease_until, ARGV[5])
-            redis.call('ZADD', user_key, lease_until, ARGV[6])
+            redis.call('ZADD', user_key, lease_until, ARGV[5])
             redis.call('HSET', KEYS[3], 'state', 'active')
+            redis.call('HDEL', KEYS[3], 'queue_until')
             redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[4]) * 1000)
             return 'active'
             """,
@@ -82,8 +108,16 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
                     """
             local state = redis.call('HGET', KEYS[3], 'state')
             if not state then return 0 end
+            local active_until = redis.call('ZSCORE', KEYS[1], ARGV[1])
+            if state == 'active' and (not active_until or tonumber(active_until) <= tonumber(ARGV[2])) then
+              redis.call('ZREM', KEYS[1], ARGV[1])
+              redis.call('ZREM', KEYS[2], ARGV[1])
+              redis.call('ZREM', KEYS[4], ARGV[1])
+              redis.call('DEL', KEYS[3])
+              return 0
+            end
             redis.call('ZREM', KEYS[1], ARGV[1])
-            redis.call('ZREM', KEYS[2], redis.call('HGET', KEYS[3], 'session_id'))
+            redis.call('ZREM', KEYS[2], ARGV[1])
             redis.call('ZREM', KEYS[4], ARGV[1])
             redis.call('DEL', KEYS[3])
             return 1
@@ -95,11 +129,34 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
                     """
             local state = redis.call('HGET', KEYS[3], 'state')
             if state ~= 'active' then return 0 end
+            local active_until = redis.call('ZSCORE', KEYS[1], ARGV[1])
+            if not active_until or tonumber(active_until) <= tonumber(ARGV[2]) then
+              redis.call('ZREM', KEYS[1], ARGV[1])
+              redis.call('ZREM', KEYS[2], ARGV[1])
+              redis.call('DEL', KEYS[3])
+              return 0
+            end
             local lease_until = tonumber(ARGV[2]) + tonumber(ARGV[3])
             redis.call('ZADD', KEYS[1], lease_until, ARGV[1])
-            redis.call('ZADD', KEYS[2], lease_until, redis.call('HGET', KEYS[3], 'session_id'))
+            redis.call('ZADD', KEYS[2], lease_until, ARGV[1])
             redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[4]))
             return 1
+            """,
+                    Long.class);
+
+    private static final DefaultRedisScript<Long> IS_ACTIVE =
+            new DefaultRedisScript<>(
+                    """
+            local state = redis.call('HGET', KEYS[1], 'state')
+            local active_until = redis.call('ZSCORE', KEYS[2], ARGV[1])
+            if state == 'active' and active_until and tonumber(active_until) > tonumber(ARGV[2]) then return 1 end
+            if state == 'active' then
+              redis.call('ZREM', KEYS[2], ARGV[1])
+              local user_id = redis.call('HGET', KEYS[1], 'user_id')
+              if user_id then redis.call('ZREM', 'foodmate:agent:admission:active:user:' .. user_id, ARGV[1]) end
+              redis.call('DEL', KEYS[1])
+            end
+            return 0
             """,
                     Long.class);
 
@@ -157,7 +214,8 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
                                     userKey(Long.parseLong(user.toString())),
                                     permitKey(request.runId()),
                                     QUEUE_KEY),
-                            request.runId());
+                            request.runId(),
+                            Long.toString(request.now().toEpochMilli() / 1000));
             if (released == null || released == 0) return List.of();
 
             List<String> promoted = new ArrayList<>();
@@ -165,8 +223,7 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
                     redis.opsForZSet().range(QUEUE_KEY, 0, request.maxCandidates() - 1)) {
                 Map<Object, Object> permit = redis.opsForHash().entries(permitKey(queuedRun));
                 Object queuedUser = permit.get("user_id");
-                Object session = permit.get("session_id");
-                if (queuedUser == null || session == null) continue;
+                if (queuedUser == null) continue;
                 String result =
                         redis.execute(
                                 PROMOTE,
@@ -179,8 +236,7 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
                                 Integer.toString(request.globalLimit()),
                                 Integer.toString(request.userLimit()),
                                 Long.toString(request.lease().toSeconds()),
-                                queuedRun,
-                                session.toString());
+                                queuedRun);
                 if ("active".equals(result)) promoted.add(queuedRun);
             }
             return promoted;
@@ -216,8 +272,13 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
     @Override
     public boolean isActive(String runId) {
         try {
-            Object state = redis.opsForHash().get(permitKey(runId), "state");
-            return "active".equals(state == null ? null : state.toString());
+            Long active =
+                    redis.execute(
+                            IS_ACTIVE,
+                            List.of(permitKey(runId), GLOBAL_KEY),
+                            runId,
+                            Long.toString(System.currentTimeMillis() / 1000));
+            return active != null && active == 1L;
         } catch (RuntimeException exception) {
             throw coordinationFailure(exception);
         }
