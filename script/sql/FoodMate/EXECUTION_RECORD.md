@@ -557,6 +557,7 @@
 | 项目 | 结果 |
 |---|---|
 | 执行时间 | 2026-08-23 07:51-08:00（Asia/Shanghai） |
+| Git 提交 | `8043f10 规范(java): 收紧异常边界并显式化生产导入`；`e2a81a3 docs(sql): 补齐迁移配套状态说明`；计划证据追加 `b763a5f docs(计划): 记录规范与SQL收口证据` |
 | 代码规范修复 | 收紧生产源码泛化异常捕获；补齐 ZIP `IOException` 处理、JSON 协议错误分类和 RocketMQ 合约错误分类；生产源码 `catch (Exception/Throwable)` 扫描为 0 |
 | 导入规范修复 | 移除 Shared、Application、Infrastructure、API、Bootstrap 生产源码中的通配符 import；MyBatis 注解统一为显式导入 |
 | Java 业务门禁 | `mvnw.cmd -pl foodmate-shared,foodmate-application,foodmate-infra,foodmate-api,foodmate-bootstrap -am test -DskipTests=false`：BUILD SUCCESS；Shared 12/12、Application 157/157、Infrastructure 71/71（11 skipped）、API 59/59、Bootstrap 58/58（37 skipped） |
