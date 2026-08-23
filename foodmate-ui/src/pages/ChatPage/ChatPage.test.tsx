@@ -283,6 +283,14 @@ describe('ChatPage Figma history fixtures', () => {
     expect(screen.getByText('向量索引检索')).toBeInTheDocument();
     expect(screen.getByText(page)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('搜索会话...')).toHaveValue(searchValue);
+    if (state === 'search-results') {
+      expect(screen.getAllByText('蛋白质补充方案')).toHaveLength(2);
+      expect(screen.getAllByText('晚餐蛋白质补充')).toHaveLength(2);
+      expect(screen.getByText('高蛋白早餐建议')).toBeInTheDocument();
+      expect(screen.getByText('睡前加餐建议')).toBeInTheDocument();
+      expect(screen.getByText('早餐碳水搭配')).toBeInTheDocument();
+      expect(screen.getByText('低碳水饮食建议')).toBeInTheDocument();
+    }
   });
 
   it('uses the shadcn radio group for the meal log target', () => {

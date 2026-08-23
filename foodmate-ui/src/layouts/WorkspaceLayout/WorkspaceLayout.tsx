@@ -235,7 +235,7 @@ export function WorkspaceLayout({
               value={displayedSessionQuery}
               onChange={(event) => setSessionQuery(event.target.value)}
             />
-            {displayedSessionQuery ? (
+            {displayedSessionQuery && !designChat ? (
               <Button
                 className={styles.clearSearch}
                 variant="ghost"

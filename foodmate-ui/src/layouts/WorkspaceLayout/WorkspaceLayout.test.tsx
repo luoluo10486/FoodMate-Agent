@@ -33,4 +33,17 @@ describe('WorkspaceLayout shell controls', () => {
     expect(container.querySelectorAll('.sidebar-session-pagination svg')).toHaveLength(2);
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
   });
+
+  it('omits the search clear control from the Figma fixture shell', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout designChat sidebarFixture={{ sessions: [], searchValue: '高蛋白' }}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByPlaceholderText('搜索会话...')).toHaveValue('高蛋白');
+    expect(screen.queryByRole('button', { name: '清除会话搜索' })).not.toBeInTheDocument();
+  });
 });

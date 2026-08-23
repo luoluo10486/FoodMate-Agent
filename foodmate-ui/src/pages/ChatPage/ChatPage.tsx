@@ -732,7 +732,12 @@ function historyFixture(
   const searchSessions: SessionSummary[] = [
     { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: true, status: 'completed' },
     { id: 'high-protein-breakfast', title: '高蛋白早餐建议', subtitle: '12:45', status: 'completed' },
-    ...baseSessions.slice(6),
+    { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', status: 'completed' },
+    { id: 'protein-supplement-history', title: '蛋白质补充方案', subtitle: '12:45', status: 'completed' },
+    { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', status: 'completed' },
+    { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', status: 'completed' },
+    { id: 'dinner-protein-history', title: '晚餐蛋白质补充', subtitle: '12:45', status: 'completed' },
+    { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', status: 'completed' },
   ];
   return {
     prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
