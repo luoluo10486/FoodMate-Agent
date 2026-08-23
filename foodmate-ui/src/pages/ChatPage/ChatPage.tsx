@@ -1174,7 +1174,9 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     : undefined;
   const fixtureMessageAvatarSrc = isWriteConfirmation
     ? '/assets/figma/agent-chat/write-confirmation/message-avatar.png'
-    : undefined;
+    : state === 'sse-reconnecting'
+      ? DEFAULT_AVATARS.male
+      : undefined;
 
   const report = (nextAction: FixtureAction, message: string) => {
     setAction(nextAction);
@@ -1467,15 +1469,24 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     return (
       <div className={styles.fixtureReconnectWrap}>
-        <p className={styles.fixtureAssistantText}>正在查询水果数据库，提取符合低生糖指数（GI &lt; 55）的食材列表...</p>
-        <div className={styles.fixtureReconnectNotice}>
-          <LoaderCircle aria-hidden="true" />
-          <div>
-            <strong>连接已中断，正在重新连接...</strong>
-            <span>第 2 次重连尝试 (最多 5 次)</span>
+        <div className={styles.fixtureReconnectAssistantRow}>
+          <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+          <div className={styles.fixtureReconnectAssistantBody}>
+            <p className={styles.fixtureAssistantText}>
+              正在查询水果数据库，提取符合低生糖指数（GI &lt; 55）的食材列表...
+            </p>
           </div>
         </div>
-        <p className={styles.fixtureCenteredText}>如果持续失败，请刷新页面</p>
+        <div className={styles.fixtureReconnectBottom}>
+          <div className={styles.fixtureReconnectNotice}>
+            <img src="/assets/figma/agent-chat/tool-executing-loader-running.svg" alt="" />
+            <div>
+              <strong>连接已中断，正在重新连接...</strong>
+              <span>第 2 次重连尝试 (最多 5 次)</span>
+            </div>
+          </div>
+          <p className={styles.fixtureCenteredText}>如果持续失败，请刷新页面</p>
+        </div>
       </div>
     );
   })();

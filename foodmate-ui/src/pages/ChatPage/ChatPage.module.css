@@ -1665,11 +1665,14 @@
 
 .fixtureReconnectWrap {
   display: flex;
-  width: min(560px, calc(100% - 48px));
-  margin-left: 48px;
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  margin-left: 0;
+  flex: 1 1 auto;
   flex-direction: column;
   align-items: flex-start;
-  gap: 20px;
+  gap: 0;
 }
 
 .fixtureAssistantText {
@@ -1702,6 +1705,33 @@
   line-height: normal;
 }
 
+.fixtureReconnectAssistantRow {
+  display: flex;
+  width: min(608px, 100%);
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fixtureReconnectAssistantBody {
+  width: min(560px, calc(100% - 48px));
+  min-width: 0;
+}
+
+.fixtureReconnectAssistantBody .fixtureAssistantText {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fixtureReconnectBottom {
+  position: absolute;
+  right: -8px;
+  bottom: -32px;
+  left: -8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .fixtureCancelledNotice,
 .fixtureReconnectNotice {
   display: flex;
@@ -1718,7 +1748,8 @@
 
 .fixtureCancelledNotice svg,
 .fixtureCancelledNotice img,
-.fixtureReconnectNotice svg {
+.fixtureReconnectNotice svg,
+.fixtureReconnectNotice img {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
@@ -1744,6 +1775,10 @@
 }
 
 .fixtureReconnectNotice {
+  box-sizing: border-box;
+  height: 66px;
+  padding: 15px 16px;
+  border: 1px solid #ffda93;
   background: #fff6e2;
   color: #876e45;
 }
@@ -1753,14 +1788,23 @@
   animation: executing-spin 1.4s linear infinite;
 }
 
+.fixtureReconnectNotice img {
+  width: 16px;
+  height: 16px;
+}
+
 .fixtureReconnectNotice div {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .fixtureReconnectNotice strong {
   color: #876e45;
   font-size: 13px;
+}
+
+.fixtureReconnectBottom .fixtureCenteredText {
+  line-height: 14px;
 }
 
 .fixtureCenteredText {
@@ -1839,6 +1883,15 @@
 
   .fixtureCancelledAssistantBody {
     width: calc(100% - 48px);
+  }
+
+  .fixtureReconnectAssistantBody {
+    width: calc(100% - 48px);
+  }
+
+  .fixtureReconnectBottom {
+    right: 0;
+    left: 0;
   }
 
   .fixtureCardHeader,

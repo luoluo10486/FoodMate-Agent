@@ -623,8 +623,9 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；“第 2 次重连尝试 (最多 5 次)”和刷新提示均存在。
 - [x] Composer 在重连期间保持禁用，已显示的查询文本保留；真实 SSE 使用 `Last-Event-ID` 和 `sse_event_id` 去重，终态完成/失败/取消/取代后关闭连接，达到上限进入稳定错误状态。
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
-- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=400092`、差异比例 `27.1330%`、`MAE=2.9698`、`RMSE=14.6906`、最大通道差异 `234`；机器结果锚点为 `figma-105-diff-results.json#agent-sse-reconnecting`。
-- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；重连提示宽度、位置、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+- [x] 本次按 Figma 收口重连状态结构：补齐 Agent 头像、`560px` 回答气泡、`1132×66px` 全宽重连提示带，并使用已登记的 Figma loader SVG；前端左上角窗口装饰点仍为 `0`，Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=388529`、差异比例 `26.3488%`、`MAE=2.6880`、`RMSE=15.2945`、最大通道差异 `244`；机器结果锚点为 `figma-105-diff-results.json#agent-sse-reconnecting`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；工作区壳层、头像和字体光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
 
 ## 69. 2026-08-23 摄入分析错误态当前画板收口
 

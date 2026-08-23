@@ -1242,7 +1242,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; partial text, cancellation reason, non-failure status, and restart action exist, but post-cancel action layout differs. PNG diff is 18.5095% / MAE 2.3318 / RMSE 14.4348; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; partial text, cancellation reason, non-failure status, and restart action exist. PNG diff is 17.9155% / MAE 2.5663 / RMSE 15.4846; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1286,7 +1286,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; reconnect count, retained text, disabled composer, and refresh guidance exist, but notice geometry and placement differ. PNG diff is 27.1330% / MAE 2.9698 / RMSE 14.6906; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; reconnect count, retained text, disabled composer, refresh guidance, Agent avatar, 560px answer bubble, and full-width reconnect band are present. PNG diff is 26.3488% / MAE 2.6880 / RMSE 15.2945; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1312,7 +1312,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures contain reconnect attempt count, retained text, disabled composer, and refresh guidance. Reconnect notice width, placement, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
+        "conclusion": "Current Figma and browser captures contain reconnect attempt count, retained text, disabled composer, refresh guidance, Agent avatar, 560px answer bubble, and full-width reconnect band. Workspace and font rasterization differences remain; retain DIFF_REVIEW."
       }
     },
     {

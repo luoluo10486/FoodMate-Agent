@@ -304,22 +304,22 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 272934,
-      "differentRatio": 0.18509521484375,
-      "meanAbsoluteError": 2.3317916870117186,
-      "rmse": 14.434767356859172,
-      "maxChannelDelta": 235
+      "differentPixels": 264175,
+      "differentRatio": 0.17915513780381945,
+      "meanAbsoluteError": 2.566317070855035,
+      "rmse": 15.484618596721635,
+      "maxChannelDelta": 244
     },
     "agent-sse-reconnecting": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 400092,
-      "differentRatio": 0.27132975260416664,
-      "meanAbsoluteError": 2.969762674967448,
-      "rmse": 14.690589669994846,
-      "maxChannelDelta": 234
+      "differentPixels": 388529,
+      "differentRatio": 0.26348809136284723,
+      "meanAbsoluteError": 2.6880452473958334,
+      "rmse": 15.294532134594567,
+      "maxChannelDelta": 244
     },
     "agent-chat-redesign-default": {
       "status": "COMPARED",

@@ -274,6 +274,16 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();
+    expect(document.querySelector('[class*="fixtureReconnectAssistantRow"]')).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureReconnectBottom"]')).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureReconnectNotice"] img')).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/tool-executing-loader-running.svg',
+    );
+    expect(document.querySelector('[class*="fixtureUserAvatar"] img')).toHaveAttribute(
+      'src',
+      '/assets/avatars/default-male.svg',
+    );
   });
 });
 
