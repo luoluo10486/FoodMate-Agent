@@ -589,3 +589,15 @@
 | 格式 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 通过；新增/修改 Java 文件已格式化 |
 | 数据边界 | 未执行迁移、清库、truncate、真实模型/embedding、性能压测或组件故障注入；用户已有 UI/Figma、`tmp` 和 Python 缓存改动未暂存 |
 | 结论 | Context 来源 ID 已具备业务级可审计闭环；生产 Trace 聚合、预算/Eval 指标平台和用户反馈入口仍属于后续切片，不因本项完成而标记完成；已创建独立功能提交 |
+
+## D11 M2-1 联调资源清理与终态核验（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；使用项目 `agent-runtime\\.venv` 的 `pymilvus` 客户端访问本地 Milvus `http://127.0.0.1:19530`。 |
+| 进程清理 | 宿主 Java `18080` 与 Python Runtime `19000` 已停止；复核时两个端口均无监听进程。 |
+| Milvus 清理命令 | `agent-runtime\\.venv\\Scripts\\python.exe -c "...MilvusClient...drop_collection('foodmate_knowledge_codex_20260823')..."`；清理前目标集合存在，清理后集合列表仅保留其他 3 个集合。 |
+| 保留范围 | `foodmate_knowledge_codex_audit_20260823`、`foodmate_knowledge_codex_m22_20260823`、`foodmate_knowledge_chunks` 未删除；未操作 Milvus 命名卷。 |
+| 依赖状态 | PostgreSQL、Redis、MinIO、RocketMQ NameServer/Broker/Proxy、Milvus 及其依赖容器保持 healthy；未执行 `docker compose down -v`。 |
+| 数据边界 | 未执行 PostgreSQL 迁移、truncate、备份恢复、数据库硬删除或宽泛数据清理；用户已有 UI/Figma、`tmp` 和 Python 缓存改动未暂存。 |
+| 结论 | 本轮 M2-1 真实 deterministic 业务证据对应的运行进程和隔离集合已清理；业务代码、核心业务测试和执行证据保持有效，Docker 应用镜像、真实云服务、性能压测、组件重启、ACK 丢失、重复投递和 SSE 故障矩阵继续暂缓。 |
