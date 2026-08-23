@@ -776,3 +776,15 @@
 | 可见性清理 | 文档 `349815171083931648`、`349815899194134528` 均通过正式 `POST /api/admin/knowledge-documents/{id}/delete` 软删除；两条可见性 Outbox 已为 `published`，当前公共已发布可检索文档数量为 `0`。 |
 | 数据边界 | 未执行 truncate、数据库硬删除、迁移、备份恢复或宽泛清理；知识切片、Outbox、Redis/Milvus 去重事实保留以维持审计和可追溯性；临时恢复用于 SSE 归属校验的测试账号已还原为禁用。 |
 | 结论 | M2-1 本地 deterministic AgentRun 引用和 Chat 兼容 SSE `Last-Event-ID` 业务回放已取得直接 HTTP 证据；性能、重启、ACK 丢失、重复消息故障矩阵和真实外部服务仍按当前决策暂缓。 |
+
+## D26 认证构造器注入修复与代码门禁复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 失败与修正 | 首次 `mvnw.cmd verify` 因 `AuthController` 存在两个构造器且未标记 Spring 注入构造器，API Spring 测试上下文出现 `No default constructor found`；已在主构造器补充 `@Autowired`，保留测试用简化构造器。首次失败另因该文件补丁换行格式混用，已使用 Spotless 自动修复。 |
+| 定向验证 | `mvnw.cmd -pl foodmate-api -am '-Dtest=AuthCookieMatrixTest,P1AccountControllerTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`：`6/6` 通过。 |
+| 全量 Java | 修复后 `mvnw.cmd verify`：BUILD SUCCESS；Shared `12/12`、Application `166/166`、Infrastructure `81/81`（17 skipped）、API `61/61`、Bootstrap `58/58`（37 skipped）；编译、Spotless、ArchUnit、Spring Boot repackage 通过。 |
+| 代码规范 | `mvnw.cmd -Palibaba-code-style verify '-DskipTests'`：六个模块 Checkstyle 均为 `0 violations`。 |
+| 数据与工作区 | 未执行迁移、数据库写入、truncate、备份恢复或运行时故障注入；用户已有 UI/Figma/QA 改动未暂存、未回滚。 |
+| 暂缓范围 | 性能压测、吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、staging/production、备份恢复、发布回滚和不可逆清理继续暂缓。 |
+| 结论 | 认证控制器 Spring 注入问题已修复，当前 Java 业务测试、格式检查、架构检查和 Alibaba 规范门禁通过；环境依赖型测试仍按现有开关跳过。 |
