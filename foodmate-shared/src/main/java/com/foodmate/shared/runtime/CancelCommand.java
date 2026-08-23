@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.time.Instant;
 import java.util.Objects;
 
+/** Command envelope used to cancel a non-versioned Runtime run. */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record CancelCommand(String cancelId, String runId, String reason, Instant deadlineAt) {
     public CancelCommand {

@@ -30,6 +30,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Compatibility HTTP facade that routes legacy chat Runs to durable V1 persistence when present.
+ */
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {

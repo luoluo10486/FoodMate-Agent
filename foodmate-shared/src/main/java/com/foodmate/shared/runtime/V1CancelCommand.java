@@ -3,6 +3,7 @@ package com.foodmate.shared.runtime;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 
+/** Versioned Java-to-Python cancellation envelope. */
 public record V1CancelCommand(
         @JsonProperty("schema_version") String schemaVersion,
         @JsonProperty("run_id") String runId,

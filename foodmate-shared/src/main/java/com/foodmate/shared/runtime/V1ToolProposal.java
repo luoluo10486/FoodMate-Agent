@@ -15,6 +15,7 @@ public record V1ToolProposal(
         @JsonProperty("confirmation_ref") String confirmationRef,
         JsonNode input,
         Payload payload) {
+    /** Safe structured payload for a tool proposal; it never carries credentials. */
     public record Payload(
             String statement,
             @JsonProperty("invocation_id") String invocationId,

@@ -5,6 +5,7 @@ import com.foodmate.shared.id.SnowflakeIdGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Assembles shared runtime infrastructure independent of the selected transport. */
 @Configuration
 public class CoreConfiguration {
     @Bean

@@ -24,20 +24,24 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class KnowledgeControllerTest {
     private UserAccountService accounts;
     private KnowledgeService knowledge;
+    private TaskScheduler taskScheduler;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         accounts = Mockito.mock(UserAccountService.class);
         knowledge = Mockito.mock(KnowledgeService.class);
+        taskScheduler = Mockito.mock(TaskScheduler.class);
         mvc =
-                MockMvcBuilders.standaloneSetup(new KnowledgeController(accounts, knowledge))
+                MockMvcBuilders.standaloneSetup(
+                                new KnowledgeController(accounts, knowledge, taskScheduler))
                         .setControllerAdvice(new GlobalExceptionHandler())
                         .addFilters(new TraceContextFilter())
                         .build();

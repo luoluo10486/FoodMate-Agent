@@ -11,16 +11,21 @@ import com.foodmate.application.runtime.service.RuntimeGatewayService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 class RunStreamControllerTest {
     private final RuntimeGatewayService gateway = mock(RuntimeGatewayService.class);
     private final UserAccountService accounts = mock(UserAccountService.class);
     private final V1RuntimeEventService events = mock(V1RuntimeEventService.class);
+    private final TaskScheduler scheduler = mock(TaskScheduler.class);
 
     @Test
     void chatStreamRoutesNumericV1RunToDurableReplayService() {
@@ -38,9 +43,20 @@ class RunStreamControllerTest {
                                 "active"));
         when(events.cursorFor(runId, "sse_5")).thenReturn(5L);
         when(events.sseEvents(runId, 5L)).thenReturn(List.of());
+        ScheduledFuture<?> scheduled = mock(ScheduledFuture.class);
+        org.mockito.Mockito.doAnswer(
+                        invocation -> {
+                            invocation.getArgument(0, Runnable.class).run();
+                            return scheduled;
+                        })
+                .when(scheduler)
+                .scheduleWithFixedDelay(
+                        org.mockito.ArgumentMatchers.any(Runnable.class),
+                        org.mockito.ArgumentMatchers.any(Instant.class),
+                        org.mockito.ArgumentMatchers.any(Duration.class));
 
         RunStreamController controller =
-                new RunStreamController(gateway, provider(accounts), provider(events));
+                new RunStreamController(gateway, provider(accounts), provider(events), scheduler);
         HttpServletRequest request = authenticatedRequest();
 
         SseEmitter emitter = controller.stream(runId, "sse_5", null, request);
