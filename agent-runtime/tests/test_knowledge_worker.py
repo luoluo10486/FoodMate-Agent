@@ -29,6 +29,8 @@ class KnowledgeIndexWorkerTests(TestCase):
         self.assertEqual("indexed", first["status"])
         self.assertTrue(second["duplicate"])
         self.assertEqual(first["chunk_count"], second["chunk_count"])
+        self.assertEqual(first["chunk_count"], len(first["chunks"]))
+        self.assertEqual("emb_", first["chunks"][0]["embedding_id"][:4])
         self.assertEqual(2, len(published))
 
     def test_completion_claim_uses_nx_and_does_not_overwrite_processing(self):

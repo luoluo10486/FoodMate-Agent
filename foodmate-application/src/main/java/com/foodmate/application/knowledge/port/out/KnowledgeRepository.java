@@ -75,6 +75,11 @@ public interface KnowledgeRepository {
     /** Applies one index result idempotently and updates the batch read model. */
     void applyIndexResult(IndexResult result, String payloadHash);
 
+    /** Replaces the current version's authoritative chunk facts in the same transaction. */
+    default void replaceKnowledgeChunks(IndexResult result) {
+        // Local stub persistence does not own a database chunk table.
+    }
+
     JobView job(long jobId);
 
     java.util.List<ItemView> jobItems(long jobId);
@@ -101,7 +106,40 @@ public interface KnowledgeRepository {
             int attempt,
             long tokenCount,
             java.math.BigDecimal costAmount,
-            String modelVersion) {}
+            String modelVersion,
+            java.util.List<IndexChunk> chunks) {
+        public IndexResult(
+                long itemId,
+                long documentId,
+                String version,
+                String status,
+                int chunkCount,
+                String errorCode,
+                int attempt,
+                long tokenCount,
+                java.math.BigDecimal costAmount,
+                String modelVersion) {
+            this(
+                    itemId,
+                    documentId,
+                    version,
+                    status,
+                    chunkCount,
+                    errorCode,
+                    attempt,
+                    tokenCount,
+                    costAmount,
+                    modelVersion,
+                    java.util.List.of());
+        }
+
+        public IndexResult {
+            chunks = chunks == null ? java.util.List.of() : java.util.List.copyOf(chunks);
+        }
+    }
+
+    /** Safe, bounded chunk facts returned by the Runtime index worker. */
+    record IndexChunk(int chunkNo, String embeddingId, String sectionPath, String text) {}
 
     record JobView(long jobId, String status, int totalItems, int indexedItems, int failedItems) {}
 

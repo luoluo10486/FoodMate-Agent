@@ -14,6 +14,7 @@ import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.infrastructure.persistence.knowledge.adapter.KnowledgeRepositoryAdapter;
 import com.foodmate.shared.id.IdGenerator;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class KnowledgeRepositoryAdapterTest {
@@ -55,6 +56,43 @@ class KnowledgeRepositoryAdapterTest {
                 .insertJobEvent(eq(900L), eq(77L), eq(11L), eq("knowledge.index.indexed"), any());
         verify(mapper)
                 .insertJobEvent(eq(901L), eq(77L), eq(11L), eq("knowledge.batch.progress"), any());
+    }
+
+    @Test
+    void indexedResultReplacesChunkFactsBeforeMarkingDocumentIndexed() {
+        when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
+        when(mapper.resultPayloadHash(11L, "v1", 1)).thenReturn(null);
+        when(mapper.insertResultInbox(11L, "v1", 1, "sha256:chunks")).thenReturn(1);
+        when(mapper.markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1"))
+                .thenReturn(1);
+        when(mapper.jobIdForItem(11L)).thenReturn(77L);
+        when(mapper.job(77L))
+                .thenReturn(new KnowledgeRepository.JobView(77L, "completed", 1, 1, 0));
+        when(ids.nextId()).thenReturn(700L, 701L, 702L);
+
+        adapter.applyIndexResult(
+                new KnowledgeRepository.IndexResult(
+                        11L,
+                        12L,
+                        "v1",
+                        "indexed",
+                        1,
+                        null,
+                        1,
+                        3L,
+                        BigDecimal.ZERO,
+                        "stub-v1",
+                        List.of(
+                                new KnowledgeRepository.IndexChunk(
+                                        0, "emb-1", "Guide", "Protein guide"))),
+                "sha256:chunks");
+
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(mapper);
+        inOrder.verify(mapper)
+                .markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1");
+        inOrder.verify(mapper).softDeleteVersionChunks(12L, "v1");
+        inOrder.verify(mapper).insertKnowledgeChunks(eq(12L), eq("v1"), any());
+        verify(mapper).markDocumentIndexed(12L, "v1");
     }
 
     @Test

@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.stereotype.Service;
 
 /** Consumes Python indexing results and applies them to the Java-owned knowledge state. */
@@ -35,6 +37,7 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
             long tokenCount = node.path("token_count").asLong(0);
             String errorCode = node.path("error_code").asText(null);
             String modelVersion = node.path("model_version").asText(null);
+            List<KnowledgeRepository.IndexChunk> chunks = parseChunks(node.path("chunks"));
             if (!("indexed".equals(status) || "index_failed".equals(status))
                     || itemId <= 0
                     || documentId <= 0
@@ -44,7 +47,11 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                     || chunkCount < 0
                     || tokenCount < 0
                     || ("indexed".equals(status)
-                            && (modelVersion == null || modelVersion.isBlank()))
+                            && (modelVersion == null
+                                    || modelVersion.isBlank()
+                                    || chunkCount == 0
+                                    || chunks.size() != chunkCount))
+                    || ("index_failed".equals(status) && !chunks.isEmpty())
                     || ("index_failed".equals(status)
                             && (errorCode == null || errorCode.isBlank())))
                 return MqConsumeDecision.REJECT;
@@ -61,7 +68,8 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                             attempt,
                             tokenCount,
                             costAmount,
-                            modelVersion),
+                            modelVersion,
+                            chunks),
                     hash(body));
             return MqConsumeDecision.ACK;
         } catch (com.fasterxml.jackson.core.JsonProcessingException
@@ -70,6 +78,26 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
         } catch (RuntimeException error) {
             return MqConsumeDecision.RETRY;
         }
+    }
+
+    private List<KnowledgeRepository.IndexChunk> parseChunks(JsonNode value) {
+        if (!value.isArray() || value.size() > 1024) return List.of();
+        List<KnowledgeRepository.IndexChunk> chunks = new ArrayList<>();
+        for (int index = 0; index < value.size(); index++) {
+            JsonNode chunk = value.get(index);
+            int chunkNo = chunk.path("chunk_no").asInt(-1);
+            String embeddingId = chunk.path("embedding_id").asText("").trim();
+            String sectionPath = chunk.path("section_path").asText("");
+            String text = chunk.path("text").asText("");
+            if (chunkNo != index
+                    || embeddingId.isBlank()
+                    || embeddingId.length() > 128
+                    || sectionPath.length() > 255
+                    || text.isBlank()
+                    || text.length() > 900) return List.of();
+            chunks.add(new KnowledgeRepository.IndexChunk(chunkNo, embeddingId, sectionPath, text));
+        }
+        return List.copyOf(chunks);
     }
 
     private String hash(String body) {

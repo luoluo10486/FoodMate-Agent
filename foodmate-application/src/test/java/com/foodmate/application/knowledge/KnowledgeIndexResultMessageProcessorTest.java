@@ -24,7 +24,8 @@ class KnowledgeIndexResultMessageProcessorTest {
     void indexedResultIsAcceptedWithSafeIndexSummary() {
         String body =
                 "{\"item_id\":11,\"document_id\":12,\"version\":\"2026-08\","
-                        + "\"status\":\"indexed\",\"chunk_count\":4,\"attempt\":2,"
+                        + "\"status\":\"indexed\",\"chunk_count\":1,\"attempt\":2,"
+                        + "\"chunks\":[{\"chunk_no\":0,\"embedding_id\":\"emb-1\",\"section_path\":\"Guide\",\"text\":\"Protein guide\"}],"
                         + "\"token_count\":123,\"cost_amount\":\"0.12\",\"model_version\":\"stub-v1\"}";
 
         assertEquals(MqConsumeDecision.ACK, processor.handle(body, context()));
@@ -39,6 +40,8 @@ class KnowledgeIndexResultMessageProcessorTest {
         assertEquals(123L, result.getValue().tokenCount());
         assertEquals("0.12", result.getValue().costAmount().toPlainString());
         assertEquals("stub-v1", result.getValue().modelVersion());
+        assertEquals(1, result.getValue().chunks().size());
+        assertEquals("emb-1", result.getValue().chunks().get(0).embeddingId());
     }
 
     @Test
@@ -56,6 +59,17 @@ class KnowledgeIndexResultMessageProcessorTest {
                                 + "\"status\":\"index_failed\",\"attempt\":4,"
                                 + "\"error_code\":\"RAG_FAILED\"}",
                         context()));
+        verifyNoInteractions(delivery);
+    }
+
+    @Test
+    void indexedResultWithoutChunkFactsIsRejected() {
+        String body =
+                "{\"item_id\":11,\"document_id\":12,\"version\":\"v1\","
+                        + "\"status\":\"indexed\",\"chunk_count\":1,\"attempt\":1,"
+                        + "\"token_count\":1,\"model_version\":\"stub-v1\"}";
+
+        assertEquals(MqConsumeDecision.REJECT, processor.handle(body, context()));
         verifyNoInteractions(delivery);
     }
 

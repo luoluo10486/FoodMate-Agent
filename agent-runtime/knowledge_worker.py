@@ -101,7 +101,28 @@ class KnowledgeIndexWorker:
                 self.stub.upsert(title, chunks)
             else:
                 self.milvus.upsert(title, chunks, self.embedder.embed([chunk.text for chunk in chunks]))
-            result = {"item_id": item_id, "document_id": document_id, "version": version, "status": "indexed", "chunk_count": len(chunks), "mode": self.settings.mode, "model_version": self.settings.embedding_model if self.embedder else "deterministic-stub", "token_count": token_count, "cost_amount": str(cost_amount), "price_version": self.settings.price_version or None, "attempt": attempt}
+            result = {
+                "item_id": item_id,
+                "document_id": document_id,
+                "version": version,
+                "status": "indexed",
+                "chunk_count": len(chunks),
+                "chunks": [
+                    {
+                        "chunk_no": chunk.sequence,
+                        "embedding_id": chunk.embedding_id,
+                        "section_path": chunk.section_path,
+                        "text": chunk.text,
+                    }
+                    for chunk in chunks
+                ],
+                "mode": self.settings.mode,
+                "model_version": self.settings.embedding_model if self.embedder else "deterministic-stub",
+                "token_count": token_count,
+                "cost_amount": str(cost_amount),
+                "price_version": self.settings.price_version or None,
+                "attempt": attempt,
+            }
             self._mark_completed(key, result)
         except RagError as error:
             if "budget_reserved" in locals() and budget_reserved:

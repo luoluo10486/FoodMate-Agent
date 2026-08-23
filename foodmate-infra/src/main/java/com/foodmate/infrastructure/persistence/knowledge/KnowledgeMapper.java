@@ -172,6 +172,18 @@ public interface KnowledgeMapper {
             @Param("documentId") long documentId, @Param("version") String version);
 
     @Update(
+            "UPDATE knowledge_chunks SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND document_version=#{version} AND is_deleted=FALSE")
+    void softDeleteVersionChunks(
+            @Param("documentId") long documentId, @Param("version") String version);
+
+    @Insert(
+            "<script>INSERT INTO knowledge_chunks(chunk_id,document_id,chunk_no,chunk_text,section_path,version,embedding_id,document_version,acl_metadata,metadata_json,created_at,updated_at,is_deleted) VALUES <foreach collection='chunks' item='chunk' separator=','>(#{chunk.chunkId},#{documentId},#{chunk.chunkNo},#{chunk.text},#{chunk.sectionPath},#{version},#{chunk.embeddingId},#{version},CAST('{\"tenant_id\":0,\"scope\":\"public_published\"}' AS jsonb),'{}'::jsonb,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,FALSE)</foreach> ON CONFLICT (document_id,chunk_no) WHERE is_deleted=FALSE DO UPDATE SET chunk_text=EXCLUDED.chunk_text,section_path=EXCLUDED.section_path,version=EXCLUDED.version,embedding_id=EXCLUDED.embedding_id,document_version=EXCLUDED.document_version,acl_metadata=EXCLUDED.acl_metadata,metadata_json=EXCLUDED.metadata_json,updated_at=CURRENT_TIMESTAMP,is_deleted=FALSE,deleted_at=NULL</script>")
+    void insertKnowledgeChunks(
+            @Param("documentId") long documentId,
+            @Param("version") String version,
+            @Param("chunks") java.util.List<KnowledgeChunkRow> chunks);
+
+    @Update(
             "UPDATE knowledge_import_items i SET index_status=CASE WHEN #{attempt}>=3 THEN 'index_failed' ELSE 'pending' END,attempt_count=GREATEST(i.attempt_count,LEAST(3,#{attempt})),error_code=#{errorCode},error_summary=#{errorSummary},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
     int markItemFailed(
             @Param("itemId") long itemId,
@@ -225,4 +237,7 @@ public interface KnowledgeMapper {
     @org.apache.ibatis.annotations.Delete(
             "DELETE FROM knowledge_index_result_inbox WHERE item_id=#{itemId}")
     void deleteResultInbox(long itemId);
+
+    record KnowledgeChunkRow(
+            long chunkId, int chunkNo, String embeddingId, String sectionPath, String text) {}
 }
