@@ -728,3 +728,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新截图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-308-final.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=82885`、差异比例 `5.6210%`、`MAE=1.5111`、`RMSE=13.0804`、最大通道差异 `204`，结果已同步到独立 diff、`figma-105-mapping.json` 和 `figma-105-diff-results.json#intake-analysis-empty`。
 - [x] `AnalysisPage.test.tsx` 定向测试 `4/4`、`npm run typecheck`、`npm run build`、目标 CSS Prettier 检查和 `git diff --check` 均通过。
 - [ ] 该画板仍保持 `DIFF_REVIEW`，剩余头像、字体和光栅化差异不满足像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
+## 85. 2026-08-23 摄入分析空态图表卡外框盒模型对齐
+
+- [x] 重新读取 Figma 节点 `692:2129` 与 `692:2131`，确认外层图表卡为 `1116×391px`，内部空态区域为 `1068×308px`；Figma 的 1px 描边不改变这两个布局尺寸。
+- [x] 前端仅将 `.emptyChartCard` 的外描边改为等效 `inset` 描边，保留边框视觉但不让 CSS border 占用内容盒；`.errorCard` 明确保留原有 border，避免错误态发生范围外变化。
+- [x] 浏览器实测图表卡为 `1116×391px`，空态区域为 `1068×308px`，字体为 `loaded`，页面无横向溢出；前端左上角红黄绿窗口装饰候选为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 新截图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-browser-chart-card-fixed.png`；独立 diff 为 `14.7590% / MAE 1.4407 / RMSE 11.4045 / 最大通道差异 233`，结果登记在 `intake-analysis-empty-chart-card-fixed-diff.json` 和 `figma-105-diff-results.json#intake-analysis-empty`。
+- [ ] 当前浏览器 DPR 为 `1.25`，DPR 1 门禁未通过；该画板继续保持 `DIFF_REVIEW`，不标记像素级 `PASS`，105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。

@@ -480,11 +480,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 82885,
-      "differentRatio": 0.05620998806423611,
-      "meanAbsoluteError": 1.5111104329427083,
-      "rmse": 13.080417653193948,
-      "maxChannelDelta": 204
+      "differentPixels": 217631,
+      "differentRatio": 0.14759046766493056,
+      "meanAbsoluteError": 1.4406892564561633,
+      "rmse": 11.404542024841975,
+      "maxChannelDelta": 233
     },
     "intake-analysis-error": {
       "status": "COMPARED",

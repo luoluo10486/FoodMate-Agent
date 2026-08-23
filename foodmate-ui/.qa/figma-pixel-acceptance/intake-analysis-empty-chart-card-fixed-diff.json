@@ -1,0 +1,25 @@
+{
+  "status": "COMPARED",
+  "tool": "scripts/png-diff.mjs",
+  "expected": "recaptured-figma/intake-analysis-empty-current.png",
+  "actual": "recaptured/intake-analysis-empty-browser-chart-card-fixed.png",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 217631,
+  "differentRatio": 0.14759046766493056,
+  "meanAbsoluteError": 1.4406892564561633,
+  "rmse": 11.404542024841975,
+  "maxChannelDelta": 233,
+  "conclusion": "DIFF_REVIEW",
+  "geometryCheck": {
+    "viewport": "1440x1024",
+    "dpr": 1.25,
+    "fonts": "loaded",
+    "chartCard": "1116x391",
+    "emptyChartArea": "1068x308",
+    "topLeftWindowDecorationCandidates": 0,
+    "businessStatusDotsPreserved": 9
+  },
+  "manualReview": "Chart-card box geometry matches Figma. Remaining whole-page visual differences are retained as DIFF_REVIEW; this evidence does not qualify the artboard for PASS."
+}
