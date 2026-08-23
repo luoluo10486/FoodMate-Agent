@@ -110,6 +110,21 @@ describe('ProfilePage', () => {
     expect(screen.queryByRole('heading', { name: '确认注销 FoodMate 账号' })).not.toBeInTheDocument();
   });
 
+  it('renders and dismisses the Figma export queued fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-export-queued');
+
+    expect(screen.getByRole('heading', { name: '数据导出已排队' })).toBeInTheDocument();
+    expect(screen.getByText('任务已创建，后台整理完成后提供一次性下载。')).toBeInTheDocument();
+    expect(screen.getByText('状态: queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByText('状态：queued')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(screen.queryByRole('heading', { name: '数据导出已排队' })).not.toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

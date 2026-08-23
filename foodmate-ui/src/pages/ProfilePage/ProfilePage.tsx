@@ -336,7 +336,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
               : state === 'security-password-failed'
                 ? '当前密码不正确或服务暂不可用，请重新填写。错误码：PASSWORD_UPDATE_FAILED · request_id: req_pwd_8d10'
                 : state === 'privacy-export-queued'
-                  ? '任务已创建，后台整理完成后提供一次性下载。状态：queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01'
+                  ? '任务已创建，后台整理完成后提供一次性下载。状态: queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01'
                   : state === 'privacy-export-running'
                     ? '正在脱敏并打包数据，完成后会显示一次性下载入口。状态：running · 已处理 68% · export_id: exp_20260731_01'
                     : state === 'privacy-export-expired'
@@ -357,6 +357,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
     state === 'privacy-export-running';
   const isLogoutConfirmation = state === 'security-logout-confirm';
   const isDeleteConfirmation = state === 'privacy-delete-confirm';
+  const isExportQueued = state === 'privacy-export-queued';
   return (
     <div
       className={cn(
@@ -364,6 +365,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
         isSuccess ? styles.fixtureOverlaySuccess : undefined,
         isLogoutConfirmation ? styles.fixtureOverlayLogout : undefined,
         isDeleteConfirmation ? styles.fixtureOverlayDelete : undefined,
+        isExportQueued ? styles.fixtureOverlayExportQueued : undefined,
       )}
       role="presentation"
     >
@@ -373,11 +375,24 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
           isError ? styles.fixtureModalError : undefined,
           isLogoutConfirmation ? styles.fixtureModalLogout : undefined,
           isDeleteConfirmation ? styles.fixtureModalDelete : undefined,
+          isExportQueued ? styles.fixtureModalExportQueued : undefined,
         )}
         role="alert"
         aria-live="polite"
       >
-        {isDeleteConfirmation ? (
+        {isExportQueued ? (
+          <>
+            <span className={styles.fixtureExportQueuedAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureExportQueuedTitle}>{title}</h2>
+            <p className={styles.fixtureExportQueuedDetail}>任务已创建，后台整理完成后提供一次性下载。</p>
+            <p className={styles.fixtureExportQueuedStatus}>
+              状态: queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01
+            </p>
+            <Button className={styles.fixtureExportQueuedClose} variant="ghost" aria-label="关闭" onClick={onDismiss}>
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isDeleteConfirmation ? (
           <>
             <p className={styles.fixtureDeleteEyebrow}>DANGER ZONE · CONFIRM</p>
             <h2 className={styles.fixtureDeleteTitle}>{title}</h2>

@@ -1606,6 +1606,11 @@
   background: rgb(31 20 18 / 18%);
 }
 
+.fixtureOverlayExportQueued {
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 72%);
+}
+
 .fixtureModal {
   position: absolute;
   top: 300px;
@@ -1645,6 +1650,21 @@
   border-color: #f2b8a3;
   border-radius: 18px;
   background: #fffcfa;
+  overflow: hidden;
+  transform: none;
+}
+
+.fixtureModalExportQueued {
+  top: 300px;
+  left: 290px;
+  width: 600px;
+  height: 260px;
+  min-height: 0;
+  padding: 0;
+  border-color: rgb(128 224 230 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
   overflow: hidden;
   transform: none;
 }
@@ -1834,6 +1854,79 @@
   color: #fff;
 }
 
+.fixtureExportQueuedAccent {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 260px;
+  border-radius: 3px;
+  background: rgb(128 224 230 / 90%);
+}
+
+.fixtureExportQueuedTitle,
+.fixtureExportQueuedDetail,
+.fixtureExportQueuedStatus {
+  position: absolute;
+  left: 31px;
+  width: 520px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  text-align: left;
+}
+
+.fixtureModal h2.fixtureExportQueuedTitle {
+  top: 31px;
+  color: #5da9b2;
+  font-size: 22px;
+  line-height: 28px;
+}
+
+.fixtureModal p.fixtureExportQueuedDetail {
+  top: 85px;
+  color: rgb(107 114 128 / 86%);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.fixtureModal p.fixtureExportQueuedStatus {
+  top: 149px;
+  color: rgb(93 169 178 / 72%);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.fixtureExportQueuedClose {
+  position: absolute;
+  top: 13px;
+  left: 555px;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgb(128 224 230 / 24%);
+  border-radius: 14px;
+  background: #e7fafb;
+  color: rgb(93 169 178 / 90%);
+  box-shadow: none;
+}
+
+.fixtureExportQueuedClose:hover,
+.fixtureExportQueuedClose:focus-visible {
+  background: #d9f4f6;
+  color: #5da9b2;
+}
+
+.fixtureExportQueuedClose svg {
+  width: 18px;
+  height: 18px;
+}
+
 .fixtureLogoutActions {
   position: absolute;
   top: 273px;
@@ -1983,6 +2076,16 @@
     padding: 24px;
     transform: translateY(-50%);
   }
+  .fixtureOverlayExportQueued {
+    inset: 0;
+  }
+  .fixtureModalExportQueued {
+    top: 50%;
+    left: 16px;
+    width: calc(100% - 32px);
+    height: 260px;
+    transform: translateY(-50%);
+  }
   .fixtureLogoutEyebrow,
   .fixtureLogoutTitle,
   .fixtureLogoutDetail,
@@ -2032,6 +2135,19 @@
     top: auto;
     bottom: 24px;
     right: 24px;
+    left: auto;
+  }
+  .fixtureExportQueuedTitle,
+  .fixtureExportQueuedDetail,
+  .fixtureExportQueuedStatus {
+    left: 24px;
+    width: calc(100% - 48px);
+  }
+  .fixtureExportQueuedStatus {
+    line-height: 20px;
+  }
+  .fixtureExportQueuedClose {
+    right: 13px;
     left: auto;
   }
   .fixturePanel {
