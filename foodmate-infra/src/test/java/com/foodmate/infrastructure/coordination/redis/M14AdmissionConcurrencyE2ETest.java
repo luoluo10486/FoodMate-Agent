@@ -69,6 +69,21 @@ class M14AdmissionConcurrencyE2ETest {
     }
 
     @Test
+    void userLimitCountsRunsWhenRunsShareOneSession() {
+        AgentAdmissionService service = service(3, 2, 2, 30, 5);
+        assertEquals(
+                AgentAdmissionService.State.ACTIVE,
+                service.admit("m14-same-session-1", 9150, 150).state());
+        assertEquals(
+                AgentAdmissionService.State.ACTIVE,
+                service.admit("m14-same-session-2", 9150, 150).state());
+        assertEquals(
+                AgentAdmissionService.State.QUEUED,
+                service.admit("m14-same-session-3", 9150, 150).state());
+        assertEquals(2L, redis.opsForZSet().zCard("foodmate:agent:admission:active:user:9150"));
+    }
+
+    @Test
     void expiredLeaseDoesNotKeepUserSlotOccupied() throws InterruptedException {
         AgentAdmissionService shortLeaseA = service(100, 1, 2, 1, 5);
         AgentAdmissionService shortLeaseB = service(100, 1, 2, 1, 5);

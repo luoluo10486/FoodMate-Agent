@@ -38,7 +38,9 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
             local global_active = redis.call('ZCARD', KEYS[1])
             if global_active < global_limit and user_active < user_limit then
               redis.call('ZADD', KEYS[1], lease_until, ARGV[1])
-              redis.call('ZADD', KEYS[2], lease_until, ARGV[2])
+              -- Count each active run separately. Session IDs are metadata and must not
+              -- collapse two runs from one session into one user-capacity member.
+              redis.call('ZADD', KEYS[2], lease_until, ARGV[1])
               redis.call('HSET', KEYS[3], 'state', 'active', 'user_id', ARGV[3], 'session_id', ARGV[2], 'run_id', ARGV[1])
               redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[5]) * 1000)
               return 'active'
@@ -70,7 +72,7 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
             local lease_until = now + tonumber(ARGV[4])
             redis.call('ZREM', KEYS[4], ARGV[5])
             redis.call('ZADD', KEYS[1], lease_until, ARGV[5])
-            redis.call('ZADD', user_key, lease_until, ARGV[6])
+            redis.call('ZADD', user_key, lease_until, ARGV[5])
             redis.call('HSET', KEYS[3], 'state', 'active')
             redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[4]) * 1000)
             return 'active'
@@ -83,7 +85,7 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
             local state = redis.call('HGET', KEYS[3], 'state')
             if not state then return 0 end
             redis.call('ZREM', KEYS[1], ARGV[1])
-            redis.call('ZREM', KEYS[2], redis.call('HGET', KEYS[3], 'session_id'))
+            redis.call('ZREM', KEYS[2], ARGV[1])
             redis.call('ZREM', KEYS[4], ARGV[1])
             redis.call('DEL', KEYS[3])
             return 1
@@ -97,7 +99,7 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
             if state ~= 'active' then return 0 end
             local lease_until = tonumber(ARGV[2]) + tonumber(ARGV[3])
             redis.call('ZADD', KEYS[1], lease_until, ARGV[1])
-            redis.call('ZADD', KEYS[2], lease_until, redis.call('HGET', KEYS[3], 'session_id'))
+            redis.call('ZADD', KEYS[2], lease_until, ARGV[1])
             redis.call('PEXPIRE', KEYS[3], tonumber(ARGV[4]))
             return 1
             """,
@@ -165,8 +167,7 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
                     redis.opsForZSet().range(QUEUE_KEY, 0, request.maxCandidates() - 1)) {
                 Map<Object, Object> permit = redis.opsForHash().entries(permitKey(queuedRun));
                 Object queuedUser = permit.get("user_id");
-                Object session = permit.get("session_id");
-                if (queuedUser == null || session == null) continue;
+                if (queuedUser == null) continue;
                 String result =
                         redis.execute(
                                 PROMOTE,
@@ -179,8 +180,7 @@ public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordin
                                 Integer.toString(request.globalLimit()),
                                 Integer.toString(request.userLimit()),
                                 Long.toString(request.lease().toSeconds()),
-                                queuedRun,
-                                session.toString());
+                                queuedRun);
                 if ("active".equals(result)) promoted.add(queuedRun);
             }
             return promoted;
