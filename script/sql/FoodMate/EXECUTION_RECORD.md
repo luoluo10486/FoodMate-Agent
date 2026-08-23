@@ -751,3 +751,17 @@
 | 清理与数据边界 | 本轮会话已通过业务删除接口软删除；知识文档、切片、Outbox、Redis/Milvus 去重或索引事实不做物理删除，避免破坏可追溯事实和其他历史数据。未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理。 |
 | 暂缓范围 | 性能吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复消息故障矩阵、真实 embedding、生产环境和发布回滚继续暂缓。 |
 | 结论 | M2-1 Docker `local` deterministic 业务闭环已取得可复核证据：上传、解析、索引 Outbox、RocketMQ Worker、Java 结果消费、Milvus 写入、显式发布、检索、AgentRun 引用和批次/Chat SSE 回放均通过；后置性能与故障门禁不因此标记完成。 |
+
+## D24 当前分支最终业务门禁复跑（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 分支 | `codex/m2-remaining-business`；本轮未新增业务代码，未改变数据库状态 |
+| Java | `mvnw.cmd verify`：BUILD SUCCESS；Shared `12/12`、Application `166/166`、Infrastructure `81/81`（17 skipped）、API `61/61`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit、编译和 Spring Boot repackage 通过 |
+| Python | 使用项目 `agent-runtime\\.venv` 执行全量 pytest：`116 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用真实模型或 embedding |
+| 前端 | Vitest `37` 个测试文件、`189 passed`；`npm.cmd run typecheck` 通过；`npm.cmd run build` 通过，Vite 转换 `2010` 个模块 |
+| 前端规范提示 | `npm.cmd run lint` 未作为业务门禁通过：仓库既有 CRLF/Prettier 规则产生 `10675 warnings`，`0 errors`；本轮未全仓格式化，避免覆盖用户 UI/Figma 改动 |
+| 工作树保护 | 用户已有 UI/Figma/QA、Python `__pycache__`、`tmp` 和未提交 Chat CSS 差异均未暂存、未回滚 |
+| 数据边界 | 未执行迁移、truncate、备份恢复、数据库硬删除、组件重启、消息重放或真实云服务调用 |
+| 暂缓范围 | 性能压测、吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障恢复、真实 embedding、staging/production、发布回滚和不可逆清理继续暂缓 |
+| 结论 | 当前功能版业务代码和业务测试门禁通过；M1-6/M3 的生产强化与真实依赖故障证据不因本轮复跑标记完成 |
