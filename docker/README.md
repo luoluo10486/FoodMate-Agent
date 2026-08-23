@@ -44,7 +44,7 @@ Java 容器使用 `local` profile，Python 容器默认使用 Redis-backed `stub
 
 ```powershell
 Invoke-WebRequest http://localhost:8080/actuator/health/readiness
-Invoke-WebRequest http://localhost:9000/foodmate/internal/health/ready
+Invoke-WebRequest http://localhost:9002/foodmate/internal/health/ready
 ```
 
 Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。本地 Compose 已将四档 Agent 模型路由锁定为 `deterministic:local`，避免宿主机 `.env` 中的云模型配置被应用容器继承；这些设置只用于本地业务验证，不代表真实模型联调已经完成。

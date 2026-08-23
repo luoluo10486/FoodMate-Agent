@@ -614,3 +614,14 @@
 | 数据边界 | 未执行迁移、truncate、备份恢复、数据库硬删除、组件重启、消息重放或真实云服务调用；未启动 Docker 应用镜像。 |
 | Git | `42c051b 修复(测试): 补齐聊天流测试调度器`；用户已有 UI/Figma、`tmp` 和 Python 缓存改动未暂存。 |
 | 结论 | 当前代码和业务测试门禁通过；性能压测、依赖重启、ACK 丢失、重复投递、SSE 故障恢复、真实云服务、生产部署和不可逆清理仍后置。 |
+
+## D13 Docker 应用容器与 M2-1 双模式业务闭环（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Docker 构建/启动 | `docker compose --env-file .env -f docker/compose.yml up -d --build foodmate agent-runtime` 成功；Java `foodmate` 和 Python `agent-runtime` 均在容器内运行。由于 MinIO 使用宿主 `9000`，Runtime 宿主映射修正为 `9002:9000`；RocketMQ 初始化 CLI 增加 30 秒超时。 |
+| Readiness | Java `/actuator/health/readiness` HTTP 200；Python `/foodmate/internal/health/ready` HTTP 200，Redis 与 RocketMQ 协调依赖均 ready。 |
+| Stub 验证 | 批次 `349734074186731520` 完成索引，发布后检索返回 1 条引用；Run `349734865958080512` 经 RocketMQ 完成，`run.completed` 和 `Last-Event-ID: 6` 回放均包含同一安全引用；文档下线及恢复为 `draft` 后检索为空。 |
+| Local 验证 | `FOODMATE_RAG_MODE=local`、`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`、隔离集合 `foodmate_knowledge_codex_docker_local_20260823`；批次 `349737110476951552` 完成，Milvus 实际创建 64 维集合并返回引用。未调用真实 embedding API。 |
+| 失败与清理 | 只有 Markdown heading 的首轮输入按规则三次失败为 `RAG_EMPTY_DOCUMENT`；有效正文批次成功。测试文档已软删除，3 个 MinIO 对象、Redis stub 索引字段/完成事实和隔离 Milvus 集合已精确清理；未执行数据库硬删除。 |
+| 未执行 | 性能/吞吐、积压、组件重启、ACK 丢失、重复消息、SSE 故障恢复、真实云服务、备份恢复和生产环境仍按用户要求暂缓。 |
