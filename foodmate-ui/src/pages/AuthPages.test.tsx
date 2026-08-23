@@ -174,6 +174,35 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: '账号不可用' })).toHaveProperty('disabled', true);
   });
 
+  it('uses the Figma service-unavailable info banner and recovery action', () => {
+    renderAuth('/login?state=service-unavailable');
+
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-service-unavailable-leaf.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-service-unavailable-info.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-service-unavailable-user.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-service-unavailable-lock.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="/assets/figma/auth/foodmate-login-service-unavailable-eye.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('img[src="/assets/figma/auth/foodmate-login-service-unavailable-line.svg"]'),
+    ).toHaveLength(2);
+    expect(screen.getByLabelText('邮箱地址')).toHaveAttribute('placeholder', '邮箱地址');
+    expect(screen.getByLabelText('密码')).toHaveAttribute('placeholder', '密码');
+    expect(screen.getByRole('alert')).toHaveTextContent('服务暂时不可用');
+    expect(screen.getByRole('alert')).toHaveTextContent('系统维护中，请稍后再试。');
+    expect(screen.getByRole('button', { name: '刷新页面' })).toHaveClass('loginAlertAction');
+    expect(screen.getByRole('button', { name: '系统维护中' })).toHaveProperty('disabled', true);
+  });
+
   it('routes login recovery and registration actions to independent Figma pages', async () => {
     const user = userEvent.setup();
     renderAuth('/login');
