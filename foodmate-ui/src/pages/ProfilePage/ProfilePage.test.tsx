@@ -177,6 +177,21 @@ describe('ProfilePage', () => {
     expect(screen.queryByRole('heading', { name: '正在注销账号' })).not.toBeInTheDocument();
   });
 
+  it('renders and dismisses the Figma deletion success fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-deletion-success');
+
+    expect(screen.getByRole('heading', { name: '账号已注销' })).toBeInTheDocument();
+    expect(screen.getByText('账号已禁用，全部会话已撤销，后台清理任务已创建。')).toBeInTheDocument();
+    expect(screen.getByText('完成 · request_id: req_delete_91ba')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByText('完成 · request_id: req_delete_91ba。')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(screen.queryByRole('heading', { name: '账号已注销' })).not.toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

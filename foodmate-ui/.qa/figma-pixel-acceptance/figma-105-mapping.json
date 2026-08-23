@@ -3348,7 +3348,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-deletion-success-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.3486395941840278; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow. Desktop modal is 560x250; mobile modal is 358.4x250. Automatic PNG diff is 0.4215006510416667 (MAE 3.2027547200520834, RMSE 13.938602202073788); retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3374,7 +3374,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-22",
-        "conclusion": "Account-deletion success semantics exist, but the dialog geometry, supporting detail, page composition, and visual treatment differ. Retain DIFF_REVIEW."
+        "conclusion": "Desktop and mobile captures preserve the 560x250 desktop card, responsive 358.4x250 mobile card, green success treatment, request identifier, close action, and no-progress-bar state. Page composition and remaining shell/rasterization differences remain; retain DIFF_REVIEW."
       }
     },
     {

@@ -1729,6 +1729,21 @@
   transform: none;
 }
 
+.fixtureModalDeletionSuccess {
+  top: 310px;
+  left: 310px;
+  width: 560px;
+  height: 250px;
+  min-height: 0;
+  padding: 0;
+  border-color: rgb(166 217 151 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+  overflow: hidden;
+  transform: none;
+}
+
 .fixtureModal h2 {
   margin: 0;
   color: #4777e9;
@@ -2232,6 +2247,82 @@
   height: 18px;
 }
 
+.fixtureDeletionSuccessAccent {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 250px;
+  border-radius: 3px;
+  background: rgb(166 217 151 / 90%);
+}
+
+.fixtureDeletionSuccessTitle,
+.fixtureDeletionSuccessDetail,
+.fixtureDeletionSuccessStatus {
+  position: absolute;
+  left: 31px;
+  width: 490px;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  text-align: left;
+}
+
+.fixtureModal h2.fixtureDeletionSuccessTitle {
+  top: 31px;
+  color: #89b27c;
+  font-size: 22px;
+  line-height: 28px;
+}
+
+.fixtureModal p.fixtureDeletionSuccessDetail {
+  top: 85px;
+  margin: 0;
+  color: rgb(107 114 128 / 86%);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.fixtureModal p.fixtureDeletionSuccessStatus {
+  top: 144px;
+  margin: 0;
+  color: rgb(137 178 124 / 72%);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.fixtureDeletionSuccessClose {
+  position: absolute;
+  top: 13px;
+  left: 515px;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgb(166 217 151 / 24%);
+  border-radius: 14px;
+  background: #ecf7ed;
+  color: rgb(137 178 124 / 90%);
+  margin-top: 0;
+  box-shadow: none;
+}
+
+.fixtureDeletionSuccessClose:hover,
+.fixtureDeletionSuccessClose:focus-visible {
+  background: #e0f1e2;
+  color: #89b27c;
+}
+
+.fixtureDeletionSuccessClose svg {
+  width: 18px;
+  height: 18px;
+}
+
 .fixtureLogoutActions {
   position: absolute;
   top: 273px;
@@ -2322,7 +2413,8 @@
 .fixtureModal > .fixtureExportQueuedClose,
 .fixtureModal > .fixtureExportExpiredAction,
 .fixtureModal > .fixtureExportExpiredClose,
-.fixtureModal > .fixtureDeletionSubmittingClose {
+.fixtureModal > .fixtureDeletionSubmittingClose,
+.fixtureModal > .fixtureDeletionSuccessClose {
   margin-top: 0;
 }
 
@@ -2416,6 +2508,13 @@
     transform: translateY(-50%);
   }
   .fixtureModalDeletionSubmitting {
+    top: 50%;
+    left: 16px;
+    width: calc(100% - 32px);
+    height: 250px;
+    transform: translateY(-50%);
+  }
+  .fixtureModalDeletionSuccess {
     top: 50%;
     left: 16px;
     width: calc(100% - 32px);
@@ -2527,6 +2626,19 @@
     line-height: 20px;
   }
   .fixtureDeletionSubmittingClose {
+    right: 13px;
+    left: auto;
+  }
+  .fixtureDeletionSuccessTitle,
+  .fixtureDeletionSuccessDetail,
+  .fixtureDeletionSuccessStatus {
+    left: 24px;
+    width: calc(100% - 48px);
+  }
+  .fixtureDeletionSuccessStatus {
+    line-height: 20px;
+  }
+  .fixtureDeletionSuccessClose {
     right: 13px;
     left: auto;
   }

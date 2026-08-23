@@ -360,6 +360,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
   const isExportRunning = state === 'privacy-export-running';
   const isExportExpired = state === 'privacy-export-expired';
   const isDeletionSubmitting = state === 'privacy-deletion-submitting';
+  const isDeletionSuccess = state === 'privacy-deletion-success';
   return (
     <div
       className={cn(
@@ -384,6 +385,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
           isExportRunning ? styles.fixtureModalExportRunning : undefined,
           isExportExpired ? styles.fixtureModalExportExpired : undefined,
           isDeletionSubmitting ? styles.fixtureModalDeletionSubmitting : undefined,
+          isDeletionSuccess ? styles.fixtureModalDeletionSuccess : undefined,
         )}
         role="alert"
         aria-live="polite"
@@ -434,6 +436,21 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
             <p className={styles.fixtureDeletionSubmittingStatus}>提交中 · request_id: req_delete_91ba</p>
             <Button
               className={styles.fixtureDeletionSubmittingClose}
+              variant="ghost"
+              aria-label="关闭"
+              onClick={onDismiss}
+            >
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isDeletionSuccess ? (
+          <>
+            <span className={styles.fixtureDeletionSuccessAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureDeletionSuccessTitle}>{title}</h2>
+            <p className={styles.fixtureDeletionSuccessDetail}>账号已禁用，全部会话已撤销，后台清理任务已创建。</p>
+            <p className={styles.fixtureDeletionSuccessStatus}>完成 · request_id: req_delete_91ba</p>
+            <Button
+              className={styles.fixtureDeletionSuccessClose}
               variant="ghost"
               aria-label="关闭"
               onClick={onDismiss}
