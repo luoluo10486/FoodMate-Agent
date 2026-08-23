@@ -192,6 +192,21 @@ describe('ProfilePage', () => {
     expect(screen.queryByRole('heading', { name: '账号已注销' })).not.toBeInTheDocument();
   });
 
+  it('renders and dismisses the Figma deletion failure fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-deletion-failed');
+
+    expect(screen.getByRole('heading', { name: '账号注销失败' })).toBeInTheDocument();
+    expect(screen.getByText('清理任务失败，账号状态保持不变，请重新创建。')).toBeInTheDocument();
+    expect(screen.getByText('错误码: ACCOUNT_DELETION_FAILED · request_id: req_delete_b721')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新创建注销请求' })).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '重新创建注销请求' }));
+
+    expect(screen.queryByRole('heading', { name: '账号注销失败' })).not.toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

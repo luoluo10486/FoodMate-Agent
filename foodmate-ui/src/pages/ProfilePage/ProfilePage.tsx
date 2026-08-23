@@ -361,6 +361,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
   const isExportExpired = state === 'privacy-export-expired';
   const isDeletionSubmitting = state === 'privacy-deletion-submitting';
   const isDeletionSuccess = state === 'privacy-deletion-success';
+  const isDeletionFailed = state === 'privacy-deletion-failed';
   return (
     <div
       className={cn(
@@ -372,6 +373,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
         isExportRunning ? styles.fixtureOverlayExportRunning : undefined,
         isExportExpired ? styles.fixtureOverlayExportExpired : undefined,
         isDeletionSubmitting ? styles.fixtureOverlayDeletionSubmitting : undefined,
+        isDeletionFailed ? styles.fixtureOverlayDeletionFailed : undefined,
       )}
       role="presentation"
     >
@@ -386,6 +388,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
           isExportExpired ? styles.fixtureModalExportExpired : undefined,
           isDeletionSubmitting ? styles.fixtureModalDeletionSubmitting : undefined,
           isDeletionSuccess ? styles.fixtureModalDeletionSuccess : undefined,
+          isDeletionFailed ? styles.fixtureModalDeletionFailed : undefined,
         )}
         role="alert"
         aria-live="polite"
@@ -458,6 +461,17 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
               <X aria-hidden="true" />
             </Button>
           </>
+        ) : isDeletionFailed ? (
+          <>
+            <h2 className={styles.fixtureDeletionFailedTitle}>{title}</h2>
+            <p className={styles.fixtureDeletionFailedDetail}>清理任务失败，账号状态保持不变，请重新创建。</p>
+            <p className={styles.fixtureDeletionFailedStatus}>
+              错误码: ACCOUNT_DELETION_FAILED · request_id: req_delete_b721
+            </p>
+            <Button className={styles.fixtureDeletionFailedAction} variant="ghost" onClick={onDismiss}>
+              重新创建注销请求
+            </Button>
+          </>
         ) : isDeleteConfirmation ? (
           <>
             <p className={styles.fixtureDeleteEyebrow}>DANGER ZONE · CONFIRM</p>
@@ -515,9 +529,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
             </Button>
           </div>
         ) : null}
-        {state === 'security-password-failed' ||
-        state === 'privacy-deletion-failed' ||
-        (state === 'privacy-export-expired' && !isExportExpired) ? (
+        {state === 'security-password-failed' || (state === 'privacy-export-expired' && !isExportExpired) ? (
           <Button type="button" onClick={onDismiss}>
             重新创建
           </Button>
