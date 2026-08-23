@@ -1,4 +1,4 @@
-import { CircleAlert, Plus, RotateCcw, Utensils } from 'lucide-react';
+import { CircleAlert, Info, Plus, RotateCcw, UtensilsCrossed } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -243,18 +243,22 @@ function PlanningFeedbackView({ kind, onPrimary, onSecondary }: PlanningFeedback
     >
       <section className={`${styles.feedbackCard} ${isError ? styles.feedbackCardError : styles.feedbackCardEmpty}`}>
         <div className={`${styles.feedbackIcon} ${isError ? styles.feedbackIconError : ''}`} aria-hidden="true">
-          {isError ? <CircleAlert /> : <Utensils />}
+          {isError ? <CircleAlert /> : <UtensilsCrossed />}
         </div>
-        <h1>{isError ? '规划方案加载失败' : '暂无周餐食规划'}</h1>
-        <p>
-          {isError
-            ? '由于网络连接中断或云端模型服务异常，暂时无法加载您在 FoodMate 上的餐食规划日程。'
-            : 'FoodMate 还没有为您生成本周的科学减脂/增肌饮食方案。即刻告诉 AI 助手您的膳食目标，一键生成健康食谱。'}
-        </p>
+        <div className={styles.feedbackCopy}>
+          <h1>{isError ? '规划方案加载失败' : '暂无周餐食规划'}</h1>
+          <p>
+            {isError
+              ? '由于网络连接中断或云端模型服务异常，暂时无法加载您在 FoodMate 上的餐食规划日程。'
+              : 'FoodMate 还没有为您生成本周的科学减脂/增肌饮食方案。即刻告诉 AI 助手您的膳食目标，一键生成健康食谱。'}
+          </p>
+        </div>
         {isError ? <span className={styles.errorCode}>错误代码: GATEWAY_TIMEOUT (504)</span> : null}
         <div className={styles.feedbackActions}>
           <Button className={styles.feedbackPrimary} onClick={onPrimary}>
-            {isError ? <RotateCcw aria-hidden="true" /> : <Plus aria-hidden="true" />}
+            <span className={styles.feedbackPrimaryIcon}>
+              {isError ? <RotateCcw aria-hidden="true" /> : <Plus aria-hidden="true" />}
+            </span>
             {isError ? '重新加载' : '创建首个规划方案'}
           </Button>
           {onSecondary ? (
@@ -267,10 +271,15 @@ function PlanningFeedbackView({ kind, onPrimary, onSecondary }: PlanningFeedback
       <p className={styles.feedbackHint}>
         {isError ? (
           <>
-            仍有疑问？请联系 <span>系统客服支持</span>
+            仍有疑问？请联系 <span className={styles.feedbackHintSupport}>系统客服支持</span>
           </>
         ) : (
-          '提示：可在"饮食记录"中快速上传日常用餐，数据越准确规划越懂你'
+          <>
+            <Info aria-hidden="true" />
+            <span className={styles.feedbackHintText}>
+              提示：可在"饮食记录"中快速上传日常用餐，数据越准确规划越懂你
+            </span>
+          </>
         )}
       </p>
     </div>
