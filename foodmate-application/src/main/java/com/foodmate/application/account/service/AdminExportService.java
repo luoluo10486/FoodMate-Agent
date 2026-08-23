@@ -1,5 +1,6 @@
 package com.foodmate.application.account.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -301,7 +302,7 @@ public class AdminExportService {
                             fields,
                             mapper.getTypeFactory()
                                     .constructCollectionType(List.class, String.class)));
-        } catch (Exception exception) {
+        } catch (JsonProcessingException | IllegalArgumentException exception) {
             throw new IllegalStateException("admin export filters are invalid", exception);
         }
     }
@@ -427,7 +428,7 @@ public class AdminExportService {
             throw new BusinessException(ErrorCode.CONFLICT, "导出幂等请求正在处理或已失败");
         try {
             return new Created(mapper.readTree(responseJson).path("export_job_id").asLong(0));
-        } catch (Exception exception) {
+        } catch (JsonProcessingException | IllegalArgumentException exception) {
             throw new IllegalStateException(
                     "admin export idempotency response is invalid", exception);
         }

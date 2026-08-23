@@ -205,7 +205,7 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
                                             .data(event.payload()));
                             cursor[0] = event.eventId();
                         }
-                    } catch (Exception error) {
+                    } catch (IOException | RuntimeException error) {
                         emitter.completeWithError(error);
                         executor.shutdown();
                     }

@@ -9,6 +9,7 @@ import com.foodmate.shared.conversation.enums.MessageRole;
 import com.foodmate.shared.id.IdGenerator;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -144,7 +145,7 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
         try {
             return MessageDigest.getInstance("SHA-256")
                     .digest(text.getBytes(StandardCharsets.UTF_8));
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
     }

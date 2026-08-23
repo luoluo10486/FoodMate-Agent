@@ -62,7 +62,7 @@ public final class RocketMqMessagePublisher implements MessagePublisherPort {
             throw new RuntimeException("RUNTIME_UNAVAILABLE", "publish interrupted");
         } catch (MQClientException | MQBrokerException | RemotingException exception) {
             throw new RuntimeException("RUNTIME_UNAVAILABLE", safeMessage(exception));
-        } catch (Exception exception) {
+        } catch (java.lang.RuntimeException exception) {
             throw new RuntimeException("RUNTIME_CONTRACT_INVALID", safeMessage(exception));
         }
     }

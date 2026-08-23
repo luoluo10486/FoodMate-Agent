@@ -1,8 +1,14 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.port.out.PersonalDataRepository.*;
+import com.foodmate.application.account.port.out.PersonalDataRepository.ExportProfileRow;
+import com.foodmate.application.account.port.out.PersonalDataRepository.ExportRow;
+import com.foodmate.application.account.port.out.PersonalDataRepository.ExportSessionRow;
+import com.foodmate.application.account.port.out.PersonalDataRepository.ExportUserData;
 import java.util.List;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface PersonalDataMapper {

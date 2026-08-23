@@ -7,8 +7,17 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
 import io.minio.http.Method;
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +36,16 @@ public final class MinioObjectStorageAdapter implements ObjectStoragePort {
             if (!client.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
                 client.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
             }
-        } catch (Exception exception) {
+        } catch (ErrorResponseException
+                | InsufficientDataException
+                | InternalException
+                | InvalidKeyException
+                | InvalidResponseException
+                | IOException
+                | NoSuchAlgorithmException
+                | ServerException
+                | XmlParserException
+                | RuntimeException exception) {
             throw storageFailure("unable to ensure object storage bucket", exception);
         }
     }
@@ -39,7 +57,16 @@ public final class MinioObjectStorageAdapter implements ObjectStoragePort {
                     PutObjectArgs.builder().bucket(bucket).object(key).stream(input, size, -1)
                             .contentType(contentType)
                             .build());
-        } catch (Exception exception) {
+        } catch (ErrorResponseException
+                | InsufficientDataException
+                | InternalException
+                | InvalidKeyException
+                | InvalidResponseException
+                | IOException
+                | NoSuchAlgorithmException
+                | ServerException
+                | XmlParserException
+                | RuntimeException exception) {
             throw storageFailure("unable to put object " + key, exception);
         }
     }
@@ -48,7 +75,16 @@ public final class MinioObjectStorageAdapter implements ObjectStoragePort {
     public void delete(String bucket, String key) {
         try {
             client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(key).build());
-        } catch (Exception exception) {
+        } catch (ErrorResponseException
+                | InsufficientDataException
+                | InternalException
+                | InvalidKeyException
+                | InvalidResponseException
+                | IOException
+                | NoSuchAlgorithmException
+                | ServerException
+                | XmlParserException
+                | RuntimeException exception) {
             throw storageFailure("unable to delete object " + key, exception);
         }
     }
@@ -63,7 +99,16 @@ public final class MinioObjectStorageAdapter implements ObjectStoragePort {
                             .object(key)
                             .expiry(Math.toIntExact(expiry.toSeconds()))
                             .build());
-        } catch (Exception exception) {
+        } catch (ErrorResponseException
+                | InsufficientDataException
+                | InternalException
+                | InvalidKeyException
+                | InvalidResponseException
+                | IOException
+                | NoSuchAlgorithmException
+                | ServerException
+                | XmlParserException
+                | RuntimeException exception) {
             throw storageFailure("unable to create object download URL", exception);
         }
     }

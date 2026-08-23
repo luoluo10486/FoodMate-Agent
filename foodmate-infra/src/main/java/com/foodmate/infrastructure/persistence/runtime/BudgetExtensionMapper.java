@@ -1,9 +1,16 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.*;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.DispatchResult;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.ExistingExtension;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.PreviousDispatch;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.RunRow;
+import com.foodmate.application.runtime.port.out.BudgetExtensionRepository.Snapshot;
 import java.math.BigDecimal;
 import java.time.Instant;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface BudgetExtensionMapper {

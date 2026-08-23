@@ -1,5 +1,6 @@
 package com.foodmate.application.runtime.processor;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler;
@@ -10,6 +11,7 @@ import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1RunEvent;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -47,7 +49,7 @@ public class RuntimeEventMessageProcessor implements MqMessageHandler {
         V1RunEvent event;
         try {
             event = mapper.readValue(body, V1RunEvent.class);
-        } catch (Exception exception) {
+        } catch (JsonProcessingException exception) {
             // 还没拿到可信 run_id，属于 PreRunProtocolError：审计成功后丢弃，审计失败则重试。
             return recordProtocolError(context, body, "RUNTIME_CONTRACT_INVALID")
                     ? MqConsumeDecision.REJECT
@@ -93,7 +95,7 @@ public class RuntimeEventMessageProcessor implements MqMessageHandler {
                                                     : context.messageKey())
                                     .put("reconsume_times", context.reconsumeTimes())));
             return true;
-        } catch (Exception exception) {
+        } catch (JsonProcessingException | RuntimeException exception) {
             // 消息本身无法修复，但审计事实不能静默丢失；交给 Broker 重试并最终进入 DLQ。
             return false;
         }
@@ -107,7 +109,7 @@ public class RuntimeEventMessageProcessor implements MqMessageHandler {
             StringBuilder result = new StringBuilder("sha256:");
             for (byte item : hash) result.append(String.format("%02x", item));
             return result.toString();
-        } catch (Exception exception) {
+        } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(exception);
         }
     }

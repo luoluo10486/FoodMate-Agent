@@ -1,10 +1,16 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.RuntimeEventRepository.*;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.DispatchRow;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.EventRow;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.RunOwner;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.SseRow;
 import com.foodmate.shared.runtime.V1RunEvent;
 import java.math.BigDecimal;
 import java.util.List;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface V1RuntimeEventMapper {

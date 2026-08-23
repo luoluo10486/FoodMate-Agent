@@ -1,6 +1,10 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.DeadLetterRepository.*;
+import com.foodmate.application.runtime.port.out.DeadLetterRepository.DlqEntry;
+import com.foodmate.application.runtime.port.out.DeadLetterRepository.DlqMessage;
+import com.foodmate.application.runtime.port.out.DeadLetterRepository.ReplayCandidate;
+import com.foodmate.application.runtime.port.out.DeadLetterRepository.ReplayOutbox;
+import com.foodmate.application.runtime.port.out.DeadLetterRepository.ReplayRequest;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;

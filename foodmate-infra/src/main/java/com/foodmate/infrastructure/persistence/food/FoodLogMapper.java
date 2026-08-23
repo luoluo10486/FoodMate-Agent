@@ -1,6 +1,11 @@
 package com.foodmate.infrastructure.persistence.food;
 
-import com.foodmate.application.food.port.out.FoodLogRepository.*;
+import com.foodmate.application.food.port.out.FoodLogRepository.FoodLogItemSnapshot;
+import com.foodmate.application.food.port.out.FoodLogRepository.FoodLogItemWrite;
+import com.foodmate.application.food.port.out.FoodLogRepository.FoodLogWrite;
+import com.foodmate.application.food.port.out.FoodLogRepository.NutritionFoodLookup;
+import com.foodmate.application.food.port.out.FoodLogRepository.UnitConversionLookup;
+import com.foodmate.application.food.port.out.FoodLogRepository.UpdateFoodLogWrite;
 import java.time.Instant;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;

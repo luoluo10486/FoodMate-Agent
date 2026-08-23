@@ -1,6 +1,8 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.CancellationRepository.*;
+import com.foodmate.application.runtime.port.out.CancellationRepository.ActiveDispatch;
+import com.foodmate.application.runtime.port.out.CancellationRepository.NewCancellation;
+import com.foodmate.application.runtime.port.out.CancellationRepository.PendingCancellation;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;

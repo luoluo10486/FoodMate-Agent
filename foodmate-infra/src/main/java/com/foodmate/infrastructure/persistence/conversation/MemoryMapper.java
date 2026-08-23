@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.persistence.conversation;
 
-import com.foodmate.application.conversation.port.out.MemoryRepository.*;
+import com.foodmate.application.conversation.port.out.MemoryRepository.MemorySnapshot;
+import com.foodmate.application.conversation.port.out.MemoryRepository.NewMemory;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;

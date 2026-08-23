@@ -1,9 +1,11 @@
 package com.foodmate.shared.security;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -52,7 +54,7 @@ public final class ServiceJwt {
             signature.initSign(key);
             signature.update(unsigned.getBytes(StandardCharsets.US_ASCII));
             return unsigned + "." + ENCODER.encodeToString(signature.sign());
-        } catch (Exception exception) {
+        } catch (GeneralSecurityException | IllegalArgumentException exception) {
             throw new IllegalStateException("unable to sign service JWT", exception);
         }
     }
@@ -88,7 +90,9 @@ public final class ServiceJwt {
                     || claims.path("jti").asText().isBlank()) throw invalid();
         } catch (IllegalStateException exception) {
             throw exception;
-        } catch (Exception exception) {
+        } catch (GeneralSecurityException
+                | JsonProcessingException
+                | IllegalArgumentException exception) {
             throw invalid();
         }
     }
@@ -96,7 +100,7 @@ public final class ServiceJwt {
     private static String encoded(JsonNode value) {
         try {
             return ENCODER.encodeToString(JSON.writeValueAsBytes(value));
-        } catch (Exception exception) {
+        } catch (JsonProcessingException exception) {
             throw new IllegalStateException(exception);
         }
     }

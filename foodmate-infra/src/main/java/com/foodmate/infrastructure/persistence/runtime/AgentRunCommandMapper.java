@@ -1,10 +1,15 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
-import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.*;
+import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.MemoryContextRow;
+import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.RecentMessageRow;
+import com.foodmate.application.runtime.port.out.AgentRunCommandRepository.SummarySnapshot;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface AgentRunCommandMapper {

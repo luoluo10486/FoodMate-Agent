@@ -1,6 +1,16 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.*;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.DeletedRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.DlqRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.KnowledgeRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.OperationAuditRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.Query;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.RunRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.SqlAuditRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.ToolCallRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.ToolRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.UsageRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.UserRow;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

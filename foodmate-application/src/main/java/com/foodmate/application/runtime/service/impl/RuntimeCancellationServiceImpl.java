@@ -9,6 +9,7 @@ import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.V1CancelCommand;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -142,7 +143,7 @@ public class RuntimeCancellationServiceImpl implements RuntimeCancellationServic
                         pending.id(),
                         response.messageId() == null ? "http" : "rocketmq",
                         response.messageId());
-            } catch (Exception exception) {
+            } catch (RuntimeException exception) {
                 // Runtime 暂时不可用时保留 requested，下一轮定时任务使用同一取消记录重试。
             }
         }
@@ -163,7 +164,7 @@ public class RuntimeCancellationServiceImpl implements RuntimeCancellationServic
                     + hex(
                             MessageDigest.getInstance("SHA-256")
                                     .digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
     }

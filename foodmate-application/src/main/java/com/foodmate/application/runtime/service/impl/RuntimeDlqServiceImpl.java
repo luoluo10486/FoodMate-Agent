@@ -1,5 +1,6 @@
 package com.foodmate.application.runtime.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
@@ -74,7 +75,7 @@ public class RuntimeDlqServiceImpl implements RuntimeDlqService {
                             properties.get("foodmate_last_error"),
                             envelope(body),
                             body));
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             // 归档失败也不重投：DLQ 消息重投只会让同一条消息反复占用消费位。
             // 消息仍留在 Broker 的 DLQ Topic 中，可由人工 mqadmin 排查。
             return MqConsumeDecision.ACK;
@@ -136,10 +137,10 @@ public class RuntimeDlqServiceImpl implements RuntimeDlqService {
             // 原文可能不是合法 JSON（正是它进 DLQ 的原因），包一层保证列类型合法。
             mapper.readTree(body);
             return body;
-        } catch (Exception exception) {
+        } catch (JsonProcessingException exception) {
             try {
                 return mapper.writeValueAsString(mapper.createObjectNode().put("raw", body));
-            } catch (Exception nested) {
+            } catch (JsonProcessingException nested) {
                 return "{}";
             }
         }

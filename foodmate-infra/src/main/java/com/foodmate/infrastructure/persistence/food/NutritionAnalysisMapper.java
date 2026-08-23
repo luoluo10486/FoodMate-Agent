@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.persistence.food;
 
-import com.foodmate.application.food.port.out.NutritionAnalysisRepository.*;
+import com.foodmate.application.food.port.out.NutritionAnalysisRepository.NutrientAggregate;
+import com.foodmate.application.food.port.out.NutritionAnalysisRepository.Targets;
 import java.time.Instant;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;

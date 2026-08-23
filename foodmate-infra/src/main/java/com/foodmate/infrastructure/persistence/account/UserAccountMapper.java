@@ -1,10 +1,20 @@
 package com.foodmate.infrastructure.persistence.account;
 
-import com.foodmate.application.account.port.out.UserAccountRepository.*;
-import com.foodmate.application.account.service.UserAccountService.*;
+import com.foodmate.application.account.port.out.UserAccountRepository.AuthSessionRow;
+import com.foodmate.application.account.service.UserAccountService.AdminUserView;
+import com.foodmate.application.account.service.UserAccountService.AuthSessionView;
+import com.foodmate.application.account.service.UserAccountService.MessageRecord;
+import com.foodmate.application.account.service.UserAccountService.ProfileRecord;
+import com.foodmate.application.account.service.UserAccountService.ProfileUpdate;
+import com.foodmate.application.account.service.UserAccountService.SearchResult;
+import com.foodmate.application.account.service.UserAccountService.SessionRecord;
+import com.foodmate.application.account.service.UserAccountService.UserRecord;
 import java.time.Instant;
 import java.util.List;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface UserAccountMapper {
