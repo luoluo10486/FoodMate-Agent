@@ -601,3 +601,16 @@
 | 依赖状态 | PostgreSQL、Redis、MinIO、RocketMQ NameServer/Broker/Proxy、Milvus 及其依赖容器保持 healthy；未执行 `docker compose down -v`。 |
 | 数据边界 | 未执行 PostgreSQL 迁移、truncate、备份恢复、数据库硬删除或宽泛数据清理；用户已有 UI/Figma、`tmp` 和 Python 缓存改动未暂存。 |
 | 结论 | 本轮 M2-1 真实 deterministic 业务证据对应的运行进程和隔离集合已清理；业务代码、核心业务测试和执行证据保持有效，Docker 应用镜像、真实云服务、性能压测、组件重启、ACK 丢失、重复投递和 SSE 故障矩阵继续暂缓。 |
+
+## D12 最终业务门禁复跑与测试上下文修复（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-08-23 09:05-09:14（Asia/Shanghai） |
+| Java | `mvnw.cmd clean verify`：BUILD SUCCESS；Shared `12/12`、Application `159/159`、Infrastructure `71/71`（11 skipped）、API `59/59`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit、编译和 repackage 通过。 |
+| Python | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`114 passed、1 skipped、1 warning`；跳过项为显式真实云集成。 |
+| 首次失败与修复 | 首次 Maven 复跑发现 API `ChatControllerTest` 因 `RunStreamController` 新增共享 `TaskScheduler` 依赖而无法加载测试上下文；补充 `@MockitoBean TaskScheduler` 后定向测试 `2/2` 通过，随后全量 Maven 通过。 |
+| Docker | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；现有 PostgreSQL、Redis、MinIO、RocketMQ NameServer/Broker/Proxy、Milvus 及依赖容器均为 healthy。 |
+| 数据边界 | 未执行迁移、truncate、备份恢复、数据库硬删除、组件重启、消息重放或真实云服务调用；未启动 Docker 应用镜像。 |
+| Git | `42c051b 修复(测试): 补齐聊天流测试调度器`；用户已有 UI/Figma、`tmp` 和 Python 缓存改动未暂存。 |
+| 结论 | 当前代码和业务测试门禁通过；性能压测、依赖重启、ACK 丢失、重复投递、SSE 故障恢复、真实云服务、生产部署和不可逆清理仍后置。 |
