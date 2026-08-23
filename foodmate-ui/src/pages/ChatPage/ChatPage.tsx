@@ -1405,19 +1405,21 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     if (state === 'safety-degraded') {
       return (
-        <div className={styles.fixtureCardWrap}>
-          <Card className={styles.fixtureCard}>
-            <div className={styles.fixtureStatusTitle}>
-              <ShieldAlert aria-hidden="true" />
-              <h2>安全降级</h2>
+        <div className={styles.fixtureSafetyBlock}>
+          <div className={styles.fixtureSafetyTopRow}>
+            <div className={styles.fixtureSafetyIdentity}>
+              <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+              <span>安全降级</span>
             </div>
-            <Alert variant="warning" className={styles.fixtureAlert}>
+            <Alert variant="warning" className={styles.fixtureSafetyAlert}>
               <ShieldAlert aria-hidden="true" />
               <AlertTitle>安全降级提示</AlertTitle>
               <AlertDescription>
                 由于部分工具不可用，以下回答基于有限数据生成，可能不够完整。建议稍后重试以获取完整分析。
               </AlertDescription>
             </Alert>
+          </div>
+          <div className={styles.fixtureSafetyResponse}>
             <p className={styles.fixtureParagraph}>由于无法连接到本地营养配方数据库，以下为您推荐基础低钠食谱：</p>
             <p className={styles.fixtureParagraph}>
               1. 清蒸鳕鱼配西兰花（预计钠含量：120mg）
@@ -1425,7 +1427,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               2. 香草烤鸡胸肉配糙米饭（预计钠含量：150mg）
             </p>
             <p className={styles.fixtureWarning}>注意：由于当前未结合您的个人高血压排除条件，请谨慎添加额外酱料。</p>
-          </Card>
+          </div>
         </div>
       );
     }

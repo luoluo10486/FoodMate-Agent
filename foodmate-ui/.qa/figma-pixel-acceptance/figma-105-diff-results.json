@@ -293,11 +293,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 377335,
-      "differentRatio": 0.2558966742621528,
-      "meanAbsoluteError": 3.349892849392361,
-      "rmse": 16.785769483584392,
-      "maxChannelDelta": 249
+      "differentPixels": 135419,
+      "differentRatio": 0.09183688693576389,
+      "meanAbsoluteError": 2.8733783298068576,
+      "rmse": 17.6865136855922,
+      "maxChannelDelta": 250
     },
     "agent-user-cancelled": {
       "status": "COMPARED",

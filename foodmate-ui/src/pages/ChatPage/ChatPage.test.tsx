@@ -241,7 +241,8 @@ describe('ChatPage Agent remaining states', () => {
 
   it('keeps degraded answers bounded and leaves the follow-up composer enabled', () => {
     renderState('safety-degraded');
-    expect(screen.getByRole('heading', { name: '安全降级' })).toBeInTheDocument();
+    expect(screen.getByText('安全降级', { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '安全降级提示' })).toBeInTheDocument();
     expect(screen.getByText(/未结合您的个人高血压排除条件/)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeEnabled();
   });
