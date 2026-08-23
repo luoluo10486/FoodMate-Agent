@@ -1,6 +1,8 @@
 package com.foodmate.application.knowledge.port.out;
 
 import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
+import java.math.BigDecimal;
+import java.util.List;
 
 /** Knowledge persistence and operation-audit contract owned by the knowledge use cases. */
 public interface KnowledgeRepository {
@@ -40,6 +42,7 @@ public interface KnowledgeRepository {
     /** Applies a document visibility transition in the authoritative store. */
     int updateVisibility(long documentId, String visibility, long operatorId);
 
+    /** Reads the authoritative document version used by lifecycle commands. */
     DocumentView document(long documentId);
 
     /** Rechecks the authoritative PostgreSQL visibility and version gate. */
@@ -51,13 +54,15 @@ public interface KnowledgeRepository {
     void insertVisibilityOutbox(long outboxId, long documentId, String payload);
 
     /** Reads pending index messages eligible for leasing. */
-    java.util.List<OutboxRow> pendingIndexOutbox(int limit);
+    List<OutboxRow> pendingIndexOutbox(int limit);
 
     /** Reads pending visibility messages eligible for leasing. */
-    java.util.List<OutboxRow> pendingVisibilityOutbox(int limit);
+    List<OutboxRow> pendingVisibilityOutbox(int limit);
 
+    /** Claims one index message for a bounded publication lease. */
     int leaseIndexOutbox(long outboxId, String owner);
 
+    /** Claims one visibility message for a bounded publication lease. */
     int leaseVisibilityOutbox(long outboxId, String owner);
 
     /** Records a successful index publication owned by the lease holder. */
@@ -80,20 +85,28 @@ public interface KnowledgeRepository {
         // Local stub persistence does not own a database chunk table.
     }
 
+    /** Reads batch-level progress. */
     JobView job(long jobId);
 
-    java.util.List<ItemView> jobItems(long jobId);
+    /** Reads file-level progress for a batch. */
+    List<ItemView> jobItems(long jobId);
 
-    java.util.List<JobEvent> jobEvents(long jobId, long afterEventId);
+    /** Reads batch events after a resumable SSE cursor. */
+    List<JobEvent> jobEvents(long jobId, long afterEventId);
 
+    /** Finds the owning batch for an imported file item. */
     long jobIdForItem(long itemId);
 
+    /** Persists one replayable batch progress event. */
     void insertJobEvent(long eventId, long jobId, Long itemId, String eventType, String payload);
 
+    /** Resets one failed item and creates its next index outbox fact. */
     int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload);
 
+    /** A durable message eligible for publication. */
     record OutboxRow(long outboxId, long itemOrDocumentId, String topic, String payload) {}
 
+    /** Authoritative document version state. */
     record DocumentView(long documentId, String version, boolean currentVersion) {}
 
     record IndexResult(
@@ -105,9 +118,9 @@ public interface KnowledgeRepository {
             String errorCode,
             int attempt,
             long tokenCount,
-            java.math.BigDecimal costAmount,
+            BigDecimal costAmount,
             String modelVersion,
-            java.util.List<IndexChunk> chunks) {
+            List<IndexChunk> chunks) {
         public IndexResult(
                 long itemId,
                 long documentId,
@@ -117,7 +130,7 @@ public interface KnowledgeRepository {
                 String errorCode,
                 int attempt,
                 long tokenCount,
-                java.math.BigDecimal costAmount,
+                BigDecimal costAmount,
                 String modelVersion) {
             this(
                     itemId,
@@ -130,19 +143,21 @@ public interface KnowledgeRepository {
                     tokenCount,
                     costAmount,
                     modelVersion,
-                    java.util.List.of());
+                    List.of());
         }
 
         public IndexResult {
-            chunks = chunks == null ? java.util.List.of() : java.util.List.copyOf(chunks);
+            chunks = chunks == null ? List.of() : List.copyOf(chunks);
         }
     }
 
     /** Safe, bounded chunk facts returned by the Runtime index worker. */
     record IndexChunk(int chunkNo, String embeddingId, String sectionPath, String text) {}
 
+    /** Batch-level progress projection. */
     record JobView(long jobId, String status, int totalItems, int indexedItems, int failedItems) {}
 
+    /** File-level upload and indexing progress projection. */
     record ItemView(
             long itemId,
             long documentId,
@@ -152,8 +167,10 @@ public interface KnowledgeRepository {
             int attempts,
             String errorCode) {}
 
+    /** Resumable batch progress event. */
     record JobEvent(long eventId, String eventType, String payload) {}
 
+    /** Sanitized import batch metadata owned by the application boundary. */
     record ImportJob(
             long jobId,
             long operatorId,
@@ -165,6 +182,7 @@ public interface KnowledgeRepository {
             String licenseNotice,
             String traceId) {}
 
+    /** Sanitized imported file metadata; file contents stay in object storage. */
     record ImportItem(
             long itemId,
             long jobId,
@@ -173,6 +191,7 @@ public interface KnowledgeRepository {
             String contentType,
             long size) {}
 
+    /** Minimal operation audit fact without business payload contents. */
     record Audit(
             long id,
             long operatorId,

@@ -3,6 +3,7 @@ package com.foodmate.infrastructure.persistence.retention.adapter;
 import com.foodmate.application.retention.port.out.DataRetentionRepository;
 import com.foodmate.infrastructure.persistence.retention.DataRetentionMapper;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
@@ -57,7 +58,7 @@ public class DataRetentionRepositoryAdapter implements DataRetentionRepository {
     }
 
     @Override
-    public java.util.List<PurgeTaskSnapshot> pendingTasks(int limit) {
+    public List<PurgeTaskSnapshot> pendingTasks(int limit) {
         return mapper.pendingTasks(limit);
     }
 
