@@ -841,3 +841,17 @@
 | 数据边界 | 未新增迁移，未执行迁移、truncate、备份恢复、数据库硬删除或生产数据库写入；V1 表和索引作为现有契约使用。工作树中用户已有 Planning/QA 文件未暂存、未回滚。 |
 | 暂缓范围 | 未进行真实 PostgreSQL refresh HTTP 联调、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障矩阵、真实云模型/embedding、staging/production、发布回滚和不可逆清理。 |
 | 结论 | 刷新令牌核心业务代码、API 契约、前端恢复行为和业务测试已完成；头像写路径独立验收、M1-6 性能/故障类门禁及 M3 生产运维项保持未完成。 |
+
+## D31 头像安全写路径与补偿验收（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/business-database-contracts`；Java 21；项目 `foodmate-ui` Node 依赖；未调用真实 MinIO、云模型或生产服务。 |
+| 代码范围 | 头像上传增加 PNG/JPEG/WebP 实际签名、解码、尺寸、像素、字节数和路径穿越校验；对象键不再包含原始文件名；保存尺寸、原始文件名和 SHA-256 摘要；数据库/统一审计失败时补偿删除新对象；新增独立头像下载失败错误码；头像响应不暴露对象存储键。 |
+| Java 定向测试 | `mvnw.cmd -pl foodmate-application -am test '-Dtest=PersonalDataServiceImplTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：`5/5` 通过，覆盖合法 PNG、伪造 MIME、数据库失败补偿删除、对象删除失败关闭和下载错误码。 |
+| Java API/全量测试 | 头像相关账户 API 定向测试此前 `6/6` 通过；本轮 `mvnw.cmd verify`：BUILD SUCCESS；Shared `12/12`、Application `171/171`、Infrastructure `81`（17 skipped）、API `64/64`、Bootstrap `58`（37 skipped）；Spotless、ArchUnit、编译和 Spring Boot repackage 通过。 |
+| 前端业务测试 | `npm.cmd test -- --run`：`38` 个测试文件、`192/192` 通过；前端头像响应类型和当前用户头像路径类型变更未引入业务回归。 |
+| 失败记录 | 首次定向 Maven 命令因 PowerShell 未引用 `-D...=...` 被解析为非法生命周期阶段，未启动测试；改用项目既有引号写法后 `5/5` 通过。该命令行问题不属于代码失败。 |
+| 数据与工作树边界 | 未执行迁移、truncate、备份恢复、数据库硬删除、真实 MinIO E2E 或宽泛清理；用户已有 Planning/QA 文件及其他未纳入本轮的改动未暂存、未回滚。 |
+| 暂缓范围 | 性能压测、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障矩阵、真实云模型/embedding、staging/production、发布回滚和不可逆清理继续暂缓。 |
+| 结论 | 头像安全业务写路径、对象补偿、统一审计失败记录、稳定资源路径和前端契约已通过业务门禁；真实对象存储联调及性能/故障类门禁不因本轮标记完成。 |

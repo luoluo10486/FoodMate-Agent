@@ -44,7 +44,8 @@ public class UserController extends AuthenticatedControllerSupport {
                         user.email(),
                         user.nickname(),
                         user.role(),
-                        user.status()),
+                        user.status(),
+                        personal == null ? null : personal.avatarResourceUrl(user.userId())),
                 TraceContextHolder.currentOrNew());
     }
 
@@ -114,11 +115,6 @@ public class UserController extends AuthenticatedControllerSupport {
                             org.springframework.web.multipart.MultipartFile file)
                     throws java.io.IOException {
         if (personal == null) throw new IllegalStateException("personal data unavailable");
-        if (file.isEmpty()
-                || file.getSize() > 2 * 1024 * 1024
-                || !java.util.Set.of("image/png", "image/jpeg", "image/webp")
-                        .contains(file.getContentType()))
-            throw new IllegalArgumentException("unsupported avatar");
         return ApiResponse.success(
                 personal.uploadAvatar(
                         user(request).userId(),
@@ -127,6 +123,17 @@ public class UserController extends AuthenticatedControllerSupport {
                         file.getSize(),
                         file.getInputStream()),
                 TraceContextHolder.currentOrNew());
+    }
+
+    @GetMapping("/avatar")
+    public org.springframework.http.ResponseEntity<Void> avatar(
+            jakarta.servlet.http.HttpServletRequest request) {
+        if (personal == null) throw new IllegalStateException("personal data unavailable");
+        String url = personal.avatarDownloadUrl(user(request).userId());
+        return org.springframework.http.ResponseEntity.status(
+                        org.springframework.http.HttpStatus.FOUND)
+                .location(java.net.URI.create(url))
+                .build();
     }
 
     @DeleteMapping("/avatar")

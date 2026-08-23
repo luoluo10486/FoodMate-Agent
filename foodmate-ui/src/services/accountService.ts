@@ -64,7 +64,12 @@ export const revokeAllAuthSessions = () => api<void>('/api/users/me/sessions/rev
 export const uploadAvatar = (file: File) => {
   const form = new FormData();
   form.append('file', file);
-  return api<{ storage_key: string }>('/api/users/me/avatar', { method: 'POST', body: form });
+  return api<{
+    avatar_asset_id: number;
+    avatar_url: string;
+    mime_type: string;
+    size_bytes: number;
+  }>('/api/users/me/avatar', { method: 'POST', body: form });
 };
 export const deleteAvatar = () => api<void>('/api/users/me/avatar', { method: 'DELETE' });
 export const requestDataExport = () => api<{ export_job_id: number }>('/api/users/me/export', { method: 'POST' });

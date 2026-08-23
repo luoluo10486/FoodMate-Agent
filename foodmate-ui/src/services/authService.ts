@@ -11,6 +11,7 @@ type CurrentUserResponse = {
   nickname?: string;
   role: string;
   status: AuthUser['status'];
+  avatar_url?: string;
 };
 
 export function csrfToken(): string | undefined {
@@ -42,6 +43,7 @@ function toAuthUser(data: AuthResponse | CurrentUserResponse): AuthUser {
     email: 'email' in data ? data.email : mockAuthUser.email,
     role: data.role as AuthUser['role'],
     status: 'status' in data ? data.status : 'active',
+    avatarUrl: 'avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl,
   };
 }
 

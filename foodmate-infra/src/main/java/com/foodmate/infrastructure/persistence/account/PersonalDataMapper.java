@@ -1,5 +1,6 @@
 package com.foodmate.infrastructure.persistence.account;
 
+import com.foodmate.application.account.port.out.PersonalDataRepository.AvatarRow;
 import com.foodmate.application.account.port.out.PersonalDataRepository.ExportProfileRow;
 import com.foodmate.application.account.port.out.PersonalDataRepository.ExportRow;
 import com.foodmate.application.account.port.out.PersonalDataRepository.ExportSessionRow;
@@ -17,15 +18,33 @@ public interface PersonalDataMapper {
     void replaceAvatars(long userId);
 
     @Insert(
-            "INSERT INTO user_avatar_assets(avatar_asset_id,user_id,storage_key,url,mime_type,size_bytes,status,created_by) VALUES (#{id},#{userId},#{key},NULL,#{mime},#{size},'active',#{userId})")
-    void insertAvatar(long id, long userId, String key, String mime, long size);
+            "INSERT INTO user_avatar_assets(avatar_asset_id,user_id,storage_key,url,mime_type,size_bytes,width,height,original_filename,content_sha256,status,created_by) VALUES (#{id},#{userId},#{key},#{url},#{mime},#{size},#{width},#{height},#{originalFilename},#{contentSha256},'active',#{userId})")
+    void insertAvatar(
+            long id,
+            long userId,
+            String key,
+            String url,
+            String mime,
+            long size,
+            int width,
+            int height,
+            String originalFilename,
+            String contentSha256);
 
     @Update("UPDATE users SET avatar_url=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId}")
     void clearAvatar(long userId);
 
+    @Update(
+            "UPDATE users SET avatar_url=#{url},updated_at=CURRENT_TIMESTAMP,updated_by=#{userId} WHERE user_id=#{userId} AND is_deleted=FALSE")
+    void setAvatarUrl(long userId, String url);
+
     @Select(
             "SELECT storage_key FROM user_avatar_assets WHERE user_id=#{userId} AND status='active' AND is_deleted=FALSE")
     List<String> activeAvatarKeys(long userId);
+
+    @Select(
+            "SELECT avatar_asset_id AS avatarAssetId,storage_key AS storageKey,mime_type AS mimeType FROM user_avatar_assets WHERE user_id=#{userId} AND status='active' AND is_deleted=FALSE ORDER BY created_at DESC LIMIT 1")
+    AvatarRow activeAvatar(long userId);
 
     @Update(
             "UPDATE user_avatar_assets SET status='deleted',is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,deleted_by=#{userId},updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND status='active'")
