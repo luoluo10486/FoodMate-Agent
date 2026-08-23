@@ -73,6 +73,11 @@
   color: var(--fm-green-dark);
 }
 
+.failed {
+  background: rgba(255, 107, 104, 0.14);
+  color: #ff6b68;
+}
+
 @media (max-width: 720px) {
   .strip {
     gap: 8px;

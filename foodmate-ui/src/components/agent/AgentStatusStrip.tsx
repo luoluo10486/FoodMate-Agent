@@ -25,25 +25,32 @@ const statusIndex: Record<AgentDisplayStatus, number> = {
 type AgentStatusStripProps = {
   status: AgentDisplayStatus;
   preserveTones?: boolean;
+  failedStep?: AgentDisplayStatus;
 };
 
-export function AgentStatusStrip({ status, preserveTones = false }: AgentStatusStripProps) {
+export function AgentStatusStrip({ status, preserveTones = false, failedStep }: AgentStatusStripProps) {
   const currentIndex = statusIndex[status];
+  const failedIndex = failedStep ? statusIndex[failedStep] : -1;
   return (
     <section className={styles.strip} aria-label="Agent 运行状态">
       <strong className={styles.label}>代理流程：</strong>
       <div className={styles.steps} role="list">
         {steps.map((step, index) => {
-          const completed = currentIndex > index || status === 'completed';
-          const active = currentIndex === index && !completed;
+          const failed = status === 'failed' && failedIndex === index;
+          const completed = failed
+            ? false
+            : failedIndex >= 0
+              ? index < failedIndex
+              : currentIndex > index || status === 'completed';
+          const active = !failed && currentIndex === index && !completed;
           return (
             <span
-              className={`${styles.step} ${styles[step.tone]} ${completed && !preserveTones ? styles.completed : ''} ${active ? styles.active : ''}`}
+              className={`${styles.step} ${styles[step.tone]} ${completed && !preserveTones ? styles.completed : ''} ${active ? styles.active : ''} ${failed ? styles.failed : ''}`}
               key={step.key}
               role="listitem"
             >
               {step.label}
-              <small aria-hidden="true">{completed ? '✓' : active ? '●' : '○'}</small>
+              <small aria-hidden="true">{failed ? '×' : completed ? '✓' : active ? '●' : '○'}</small>
             </span>
           );
         })}

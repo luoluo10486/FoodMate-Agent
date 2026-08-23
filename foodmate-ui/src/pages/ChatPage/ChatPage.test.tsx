@@ -230,6 +230,9 @@ describe('ChatPage Agent remaining states', () => {
     renderState('tool-failed-retryable');
     expect(screen.getByText('数据库查询超时 (错误码: TOOL_TIMEOUT_001)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureAgentAvatar"]')).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Executing×');
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Composing○');
     fireEvent.click(screen.getByRole('button', { name: '跳过此步骤' }));
     expect(screen.getByRole('status')).toHaveTextContent('后续结果会明确标注数据范围受限');
   });

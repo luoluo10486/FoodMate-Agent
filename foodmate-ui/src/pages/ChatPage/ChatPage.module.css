@@ -1185,6 +1185,27 @@
   margin-left: 48px;
 }
 
+.fixtureAssistantRow {
+  display: flex;
+  width: min(608px, 100%);
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fixtureAgentAvatar {
+  display: block;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: #a6d997;
+}
+
+.fixtureAssistantRow .fixtureCard {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .fixtureCard {
   display: flex;
   min-width: 0;
@@ -1195,6 +1216,55 @@
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 6px 20px rgb(51 51 51 / 4%);
+}
+
+.fixtureFailureCard {
+  gap: 11px;
+  border-color: #ff6b68;
+  background: #fee8e8;
+  box-shadow: none;
+}
+
+.fixtureFailureCard .fixtureStatusTitle svg {
+  color: #ff6b68;
+}
+
+.fixtureFailureCard .fixtureStatusTitle h2,
+.fixtureFailureCard .fixtureErrorTitle {
+  color: #ff6b68;
+}
+
+.fixtureFailureCard .fixtureErrorTitle {
+  color: #333;
+}
+
+.fixtureFailureCard .fixtureParagraph {
+  color: #6b7280;
+}
+
+.fixtureFailureCard .fixtureActions button {
+  height: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 12px;
+}
+
+.fixtureFailureCard .fixtureRetryButton {
+  border: 0;
+  background: #ffdc97;
+  color: #876e45;
+  box-shadow: none;
+}
+
+.fixtureFailureCard .fixtureRetryButton:hover {
+  background: #f5cf87;
+}
+
+.fixtureFailureCard .fixtureSkipButton {
+  border-color: transparent;
+  background: #fff;
+  color: #333;
 }
 
 .fixtureCard h2,
@@ -1480,6 +1550,7 @@
 
 @media (max-width: 720px) {
   .fixtureCardWrap,
+  .fixtureAssistantRow,
   .fixtureCancelledWrap,
   .fixtureReconnectWrap,
   .fixtureActionMessage,

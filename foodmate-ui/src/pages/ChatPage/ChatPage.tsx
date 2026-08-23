@@ -26,6 +26,7 @@ import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { Composer } from '../../components/workspace/Composer';
 import { AgentStatusStrip } from '../../components/agent/AgentStatusStrip';
 import { CitationBlock } from '../../components/agent/CitationBlock';
+import { AgentFeedback } from '../../components/agent/AgentFeedback';
 import { ResultCard } from '../../components/agent/ResultCard';
 import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
@@ -52,6 +53,7 @@ type ChatMessage = {
   time: string;
   source?: string;
   wide?: boolean;
+  agentRunId?: string;
 };
 
 function displayRunStatus(status: string): AgentDisplayStatus {
@@ -249,7 +251,7 @@ function ChatSurface({
       <div className={`${styles.page} ${designChat ? styles.designChatPage : ''}`}>
         <section className={styles.workspace}>
           <div className={styles.center}>
-            <AgentStatusStrip status={run.status} preserveTones={designChat} />
+            <AgentStatusStrip status={run.status} failedStep={run.failedStep} preserveTones={designChat} />
             <div className={styles.messages} ref={messagesRef}>
               {children}
             </div>
@@ -689,6 +691,7 @@ function fixtureRun(state: AgentFixtureState): AgentRunView {
   return {
     id: `fixture_${state}`,
     status,
+    failedStep: state === 'tool-failed-retryable' ? 'executing_tools' : undefined,
     intent: state === 'write-confirmation' ? 'record' : state === 'budget-limit' ? 'analysis' : 'planning',
     toolsUsed: state === 'sse-reconnecting' ? 2 : state === 'tool-failed-retryable' ? 2 : 6,
     toolsTotal: 6,
@@ -1334,8 +1337,9 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     if (state === 'tool-failed-retryable') {
       return (
-        <div className={styles.fixtureCardWrap}>
-          <Card className={styles.fixtureCard}>
+        <div className={styles.fixtureAssistantRow}>
+          <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+          <Card className={`${styles.fixtureCard} ${styles.fixtureFailureCard}`}>
             <div className={styles.fixtureStatusTitle}>
               <AlertTriangle aria-hidden="true" />
               <h2>工具执行失败</h2>
@@ -1345,11 +1349,15 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               向量索引检索服务暂时不可用。FoodMate 代理在尝试读取外部知识库时失去连接。
             </p>
             <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void retryFailedTool()}>
-                <RefreshCw aria-hidden="true" />
+              <Button
+                className={styles.fixtureRetryButton}
+                disabled={action === 'pending'}
+                onClick={() => void retryFailedTool()}
+              >
                 重试
               </Button>
               <Button
+                className={styles.fixtureSkipButton}
                 disabled={action === 'pending'}
                 variant="outline"
                 onClick={() => report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。')}
@@ -1501,6 +1509,7 @@ function RealChatPage() {
   const [citations, setCitations] = useState<AgentRunView['citations']>([]);
   const [runStatus, setRunStatus] = useState('idle');
   const [assistantText, setAssistantText] = useState('');
+  const [assistantMessageId, setAssistantMessageId] = useState<string>();
   const [error, setError] = useState<string>();
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
@@ -1513,6 +1522,7 @@ function RealChatPage() {
     setActiveRunId(undefined);
     setRunStatus('idle');
     setAssistantText('');
+    setAssistantMessageId(undefined);
     setBudgetConfirmation(false);
     setCheckpointAvailable(false);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
@@ -1557,6 +1567,14 @@ function RealChatPage() {
           setRunStatus('completed');
           setCheckpointAvailable(false);
           setAssistantText((current) => payload.answer ?? current);
+          if (sessionId) {
+            void loadSessionMessages(sessionId).then((rows) => {
+              const assistant = rows.find(
+                (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
+              );
+              setAssistantMessageId(assistant?.message_id);
+            });
+          }
           setCitations(
             (payload.citations ?? []).map((citation) => ({
               id: citation.citation_id,
@@ -1612,7 +1630,7 @@ function RealChatPage() {
       stream.close();
       streamRef.current = undefined;
     };
-  }, [activeRunId]);
+  }, [activeRunId, sessionId]);
 
   const send = async () => {
     const content = input.trim();
@@ -1658,6 +1676,7 @@ function RealChatPage() {
     content: message.content,
     time: message.created_at,
     source: undefined,
+    agentRunId: message.agent_run_id,
   }));
 
   return (
@@ -1703,10 +1722,26 @@ function RealChatPage() {
         </div>
       ) : null}
       {mappedMessages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+        <MessageBubble key={message.id} message={message}>
+          {message.role === 'assistant' && message.agentRunId ? (
+            <AgentFeedback runId={message.agentRunId} messageId={message.id} />
+          ) : null}
+        </MessageBubble>
       ))}
       {assistantText ? (
-        <MessageBubble message={{ id: 'assistant-stream', role: 'assistant', content: assistantText, time: '12:46' }} />
+        <MessageBubble
+          message={{
+            id: 'assistant-stream',
+            role: 'assistant',
+            content: assistantText,
+            time: '12:46',
+            agentRunId: activeRunId,
+          }}
+        >
+          {assistantMessageId && activeRunId ? (
+            <AgentFeedback runId={activeRunId} messageId={assistantMessageId} />
+          ) : null}
+        </MessageBubble>
       ) : null}
       {checkpointAvailable && activeRunId ? (
         <div className={styles.cardWrap}>

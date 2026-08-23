@@ -1145,10 +1145,12 @@
       "browserViewport": "1440x1024",
       "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-tool-failed-retryable-current.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-current.png",
+      "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-390x844-current.png",
+      "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; retryable failure text, error code, retry and skip actions exist, but alert-panel geometry and color treatment differ. PNG diff is 21.6768% / MAE 3.0042 / RMSE 15.9168; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop Figma and browser PNGs are both 1440x1024; mobile browser PNG is 390x844. Retryable failure text, error code, retry and skip actions exist; the Agent avatar, failed process marker, alert-panel color, and button geometry were aligned. PNG diff is 13.4686% / MAE 2.6270 / RMSE 17.0862; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1174,7 +1176,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures contain the retryable failure text, error code, retry action, and skip action. Alert-panel geometry, color, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
+        "conclusion": "Current Figma and browser captures contain the retryable failure text, error code, retry action, and skip action. The frontend now includes the left Agent avatar and failed process marker and uses the Figma alert treatment. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
       }
     },
     {
