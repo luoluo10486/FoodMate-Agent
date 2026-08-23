@@ -450,7 +450,8 @@
 
 .emptyStateIcon svg,
 .emptyStateIcon img,
-.errorStateIcon svg {
+.errorStateIcon svg,
+.errorStateIcon img {
   width: 32px;
   height: 32px;
 }

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -172,7 +171,12 @@ function ErrorAnalysis({ onReload, detail }: { onReload: () => void; detail?: st
   return (
     <section className={styles.errorCard} role="alert" aria-label="分析数据加载失败">
       <div className={styles.errorStateIcon}>
-        <AlertTriangle aria-hidden="true" />
+        <img
+          src="/assets/figma/analysis/intake-analysis-error-alert-triangle.svg"
+          alt=""
+          aria-hidden="true"
+          data-testid="analysis-error-icon"
+        />
       </div>
       <div className={styles.stateCopy}>
         <h3>分析数据加载失败</h3>

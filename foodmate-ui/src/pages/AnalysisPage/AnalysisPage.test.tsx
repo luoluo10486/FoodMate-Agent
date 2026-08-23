@@ -93,6 +93,10 @@ describe('AnalysisPage', () => {
 
     renderPage('/analysis?state=error');
     expect(screen.getByRole('alert', { name: '分析数据加载失败' })).toBeInTheDocument();
+    expect(screen.getByTestId('analysis-error-icon')).toHaveAttribute(
+      'src',
+      '/assets/figma/analysis/intake-analysis-error-alert-triangle.svg',
+    );
     expect(screen.queryByRole('button', { name: '自定义范围' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '全部餐次' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '重新加载' }));
