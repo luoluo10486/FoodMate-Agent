@@ -356,12 +356,14 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
     state === 'security-password-submitting' ||
     state === 'privacy-export-running';
   const isLogoutConfirmation = state === 'security-logout-confirm';
+  const isDeleteConfirmation = state === 'privacy-delete-confirm';
   return (
     <div
       className={cn(
         styles.fixtureOverlay,
         isSuccess ? styles.fixtureOverlaySuccess : undefined,
         isLogoutConfirmation ? styles.fixtureOverlayLogout : undefined,
+        isDeleteConfirmation ? styles.fixtureOverlayDelete : undefined,
       )}
       role="presentation"
     >
@@ -370,11 +372,31 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
           styles.fixtureModal,
           isError ? styles.fixtureModalError : undefined,
           isLogoutConfirmation ? styles.fixtureModalLogout : undefined,
+          isDeleteConfirmation ? styles.fixtureModalDelete : undefined,
         )}
         role="alert"
         aria-live="polite"
       >
-        {isLogoutConfirmation ? (
+        {isDeleteConfirmation ? (
+          <>
+            <p className={styles.fixtureDeleteEyebrow}>DANGER ZONE · CONFIRM</p>
+            <h2 className={styles.fixtureDeleteTitle}>{title}</h2>
+            <p className={styles.fixtureDeleteDetail}>{detail}</p>
+            <p className={styles.fixtureDeleteSecondary}>请先导出需要保留的数据；取消或失败不会改变现有数据。</p>
+            <label className={styles.fixtureDeleteLabel}>
+              输入 DELETE 继续
+              <Input className={styles.fixtureDeleteInput} defaultValue="DELETE" aria-label="输入 DELETE 继续" />
+            </label>
+            <div className={styles.fixtureDeleteActions}>
+              <Button className={styles.fixtureDeleteCancel} variant="outline" onClick={onDismiss}>
+                取消
+              </Button>
+              <Button className={styles.fixtureDeleteConfirm} variant="default" onClick={onDismiss}>
+                确认注销
+              </Button>
+            </div>
+          </>
+        ) : isLogoutConfirmation ? (
           <>
             <p className={styles.fixtureLogoutEyebrow}>SECURITY · CONFIRM</p>
             <h2 className={styles.fixtureLogoutTitle}>{title}</h2>
@@ -392,13 +414,13 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
             ) : null}
           </>
         )}
-        {state === 'privacy-delete-confirm' || state === 'basic-unsaved-leave-confirmation' ? (
+        {state === 'basic-unsaved-leave-confirmation' ? (
           <div className={styles.fixtureModalActions}>
             <Button variant="outline" onClick={onDismiss}>
               取消
             </Button>
-            <Button variant={state === 'privacy-delete-confirm' ? 'destructive' : 'default'} onClick={onDismiss}>
-              {state === 'basic-unsaved-leave-confirmation' ? '放弃并离开' : '确认继续'}
+            <Button variant="default" onClick={onDismiss}>
+              放弃并离开
             </Button>
           </div>
         ) : null}

@@ -79,6 +79,37 @@ describe('ProfilePage', () => {
     expect(screen.queryByRole('heading', { name: '退出其他设备？' })).not.toBeInTheDocument();
   });
 
+  it('renders the Figma account deletion confirmation fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-delete-confirm');
+
+    expect(screen.getByText('DANGER ZONE · CONFIRM')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '确认注销 FoodMate 账号' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '确认后账号会立即禁用，全部登录会话将被撤销，并开始后台清理个人资料、饮食记录、记忆和知识库数据。',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('请先导出需要保留的数据；取消或失败不会改变现有数据。')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '输入 DELETE 继续' })).toHaveValue('DELETE');
+    expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认注销' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '确认继续' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '取消' }));
+
+    expect(screen.queryByRole('heading', { name: '确认注销 FoodMate 账号' })).not.toBeInTheDocument();
+  });
+
+  it('dismisses the account deletion fixture from the confirm action', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-delete-confirm');
+
+    await user.click(screen.getByRole('button', { name: '确认注销' }));
+
+    expect(screen.queryByRole('heading', { name: '确认注销 FoodMate 账号' })).not.toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

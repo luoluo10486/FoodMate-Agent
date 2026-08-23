@@ -1601,6 +1601,11 @@
   background: rgb(20 41 31 / 16%);
 }
 
+.fixtureOverlayDelete {
+  inset: 68px 0 0 260px;
+  background: rgb(31 20 18 / 18%);
+}
+
 .fixtureModal {
   position: absolute;
   top: 300px;
@@ -1626,6 +1631,20 @@
   border-color: #d1e8d9;
   border-radius: 18px;
   background: #fcfffc;
+  overflow: hidden;
+  transform: none;
+}
+
+.fixtureModalDelete {
+  top: 152px;
+  left: 220px;
+  width: 680px;
+  height: 430px;
+  min-height: 0;
+  padding: 0;
+  border-color: #f2b8a3;
+  border-radius: 18px;
+  background: #fffcfa;
   overflow: hidden;
   transform: none;
 }
@@ -1689,6 +1708,130 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 24px;
+}
+
+.fixtureDeleteEyebrow,
+.fixtureDeleteTitle,
+.fixtureDeleteDetail,
+.fixtureDeleteSecondary,
+.fixtureDeleteLabel {
+  position: absolute;
+  left: 31px;
+  width: 616px;
+  margin: 0;
+  font-family: var(--font-ui);
+  text-align: left;
+}
+
+.fixtureModal p.fixtureDeleteEyebrow {
+  top: 27px;
+  color: #c75242;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.fixtureModal h2.fixtureDeleteTitle {
+  top: 61px;
+  color: #4d211a;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 30px;
+}
+
+.fixtureModal p.fixtureDeleteDetail {
+  top: 107px;
+  color: #66473d;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.fixtureModal p.fixtureDeleteSecondary {
+  top: 175px;
+  color: #996b5e;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.fixtureDeleteLabel {
+  top: 215px;
+  color: #66473d;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.fixtureDeleteInput {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  width: 616px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 15px;
+  border-color: #e8b2a1;
+  border-radius: 10px;
+  background: #fff;
+  color: #4d332e;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  box-shadow: none;
+}
+
+.fixtureDeleteInput:focus-visible {
+  border-color: #db614f;
+  box-shadow: 0 0 0 2px rgb(219 97 79 / 18%);
+}
+
+.fixtureDeleteActions {
+  position: absolute;
+  top: 367px;
+  left: 391px;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.fixtureDeleteCancel,
+.fixtureDeleteConfirm {
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  box-shadow: none;
+}
+
+.fixtureDeleteCancel {
+  width: 112px;
+  background: #f5f5f0;
+  color: #474038;
+}
+
+.fixtureDeleteCancel:hover,
+.fixtureDeleteCancel:focus-visible {
+  background: #eeeee7;
+  color: #474038;
+}
+
+.fixtureDeleteConfirm {
+  width: 176px;
+  background: #db614f;
+  color: #fff;
+}
+
+.fixtureDeleteConfirm:hover,
+.fixtureDeleteConfirm:focus-visible {
+  background: #c75242;
+  color: #fff;
 }
 
 .fixtureLogoutActions {
@@ -1828,6 +1971,18 @@
     height: 350px;
     transform: translateY(-50%);
   }
+  .fixtureOverlayDelete {
+    inset: 0;
+  }
+  .fixtureModalDelete {
+    top: 50%;
+    left: 16px;
+    width: calc(100% - 32px);
+    height: 520px;
+    min-height: 520px;
+    padding: 24px;
+    transform: translateY(-50%);
+  }
   .fixtureLogoutEyebrow,
   .fixtureLogoutTitle,
   .fixtureLogoutDetail,
@@ -1836,6 +1991,46 @@
     width: calc(100% - 48px);
   }
   .fixtureLogoutActions {
+    right: 24px;
+    left: auto;
+  }
+  .fixtureDeleteEyebrow,
+  .fixtureDeleteTitle,
+  .fixtureDeleteDetail,
+  .fixtureDeleteSecondary,
+  .fixtureDeleteLabel {
+    position: static;
+    top: auto;
+    left: 24px;
+    width: 100%;
+    margin: 0;
+  }
+  .fixtureModal p.fixtureDeleteEyebrow {
+    margin-bottom: 16px;
+  }
+  .fixtureModal h2.fixtureDeleteTitle {
+    margin-bottom: 16px;
+  }
+  .fixtureModal p.fixtureDeleteDetail {
+    margin-bottom: 12px;
+    line-height: 24px;
+  }
+  .fixtureModal p.fixtureDeleteSecondary {
+    margin-bottom: 16px;
+    line-height: 22px;
+  }
+  .fixtureDeleteLabel {
+    display: grid;
+    gap: 8px;
+    line-height: 18px;
+  }
+  .fixtureDeleteInput {
+    position: static;
+    width: 100%;
+  }
+  .fixtureDeleteActions {
+    top: auto;
+    bottom: 24px;
     right: 24px;
     left: auto;
   }

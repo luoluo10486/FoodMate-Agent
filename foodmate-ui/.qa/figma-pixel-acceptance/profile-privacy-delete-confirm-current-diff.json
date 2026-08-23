@@ -1,0 +1,31 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 1141589,
+  "differentRatio": 0.7741895887586806,
+  "meanAbsoluteError": 4.1267088148329,
+  "rmse": 19.302477015409,
+  "maxChannelDelta": 244,
+  "conclusion": "DIFF_REVIEW",
+  "runtime": {
+    "viewport": "1440x1024",
+    "dpr": 1.25,
+    "fonts": "loaded",
+    "bodyOverflow": false,
+    "topLeftWindowDots": 0,
+    "card": "680x430",
+    "input": "616x42",
+    "actions": "112x40 + 176x40"
+  },
+  "mobileRuntime": {
+    "viewport": "390x844",
+    "dpr": 1,
+    "fonts": "loaded",
+    "bodyOverflow": false,
+    "textOverlap": false,
+    "card": "358.4x520",
+    "input": "308.8x42"
+  }
+}
