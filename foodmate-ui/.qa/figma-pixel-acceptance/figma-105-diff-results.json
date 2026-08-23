@@ -502,11 +502,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 347138,
-      "differentRatio": 0.23541802300347223,
-      "meanAbsoluteError": 3.5355539957682294,
-      "rmse": 18.28299852897504,
-      "maxChannelDelta": 236
+      "differentPixels": 545675,
+      "differentRatio": 0.3700595431857639,
+      "meanAbsoluteError": 4.404136657714844,
+      "rmse": 20.969823791025526,
+      "maxChannelDelta": 245
     },
     "meal-plan-wizard-step1": {
       "status": "COMPARED",
@@ -799,10 +799,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1420729,
-      "differentRatio": 0.9634935167100694,
-      "meanAbsoluteError": 53.85719401041667,
-      "rmse": 65.92293178075678,
+      "differentPixels": 622860,
+      "differentRatio": 0.4224039713541667,
+      "meanAbsoluteError": 3.6365676879882813,
+      "rmse": 15.839029753069124,
       "maxChannelDelta": 255
     },
     "profile-privacy-export-expired": {

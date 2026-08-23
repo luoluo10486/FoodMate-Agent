@@ -1611,6 +1611,11 @@
   background: rgb(255 255 255 / 72%);
 }
 
+.fixtureOverlayExportRunning {
+  inset: 0 0 0 260px;
+  background: rgb(255 255 255 / 72%);
+}
+
 .fixtureModal {
   position: absolute;
   top: 300px;
@@ -1659,6 +1664,21 @@
   left: 290px;
   width: 600px;
   height: 260px;
+  min-height: 0;
+  padding: 0;
+  border-color: rgb(128 224 230 / 34%);
+  border-radius: 18px;
+  background: #f4f6f5;
+  box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
+  overflow: hidden;
+  transform: none;
+}
+
+.fixtureModalExportRunning {
+  top: 290px;
+  left: 290px;
+  width: 600px;
+  height: 280px;
   min-height: 0;
   padding: 0;
   border-color: rgb(128 224 230 / 34%);
@@ -1885,6 +1905,7 @@
 
 .fixtureModal p.fixtureExportQueuedDetail {
   top: 85px;
+  margin: 0;
   color: rgb(107 114 128 / 86%);
   font-size: 15px;
   line-height: 22px;
@@ -1892,6 +1913,7 @@
 
 .fixtureModal p.fixtureExportQueuedStatus {
   top: 149px;
+  margin: 0;
   color: rgb(93 169 178 / 72%);
   font-family: var(--font-mono);
   font-size: 14px;
@@ -1925,6 +1947,70 @@
 .fixtureExportQueuedClose svg {
   width: 18px;
   height: 18px;
+}
+
+.fixtureExportRunningAccent {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 280px;
+  border-radius: 3px;
+  background: rgb(128 224 230 / 90%);
+}
+
+.fixtureExportRunningTitle,
+.fixtureExportRunningDetail,
+.fixtureExportRunningStatus {
+  position: absolute;
+  left: 31px;
+  width: 520px;
+  margin: 0;
+  color: #333;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  text-align: left;
+}
+
+.fixtureModal h2.fixtureExportRunningTitle {
+  top: 31px;
+  font-size: 22px;
+  line-height: 28px;
+}
+
+.fixtureModal p.fixtureExportRunningDetail {
+  top: 85px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.fixtureModal p.fixtureExportRunningStatus {
+  top: 144px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.fixtureExportRunningProgress {
+  position: absolute;
+  top: 184px;
+  left: 31px;
+  display: block;
+  width: 536px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #e5ebf0;
+}
+
+.fixtureExportRunningProgress i {
+  display: block;
+  width: 68%;
+  height: 100%;
+  border-radius: inherit;
+  background: #80e0e6;
 }
 
 .fixtureLogoutActions {
@@ -2086,6 +2172,16 @@
     height: 260px;
     transform: translateY(-50%);
   }
+  .fixtureOverlayExportRunning {
+    inset: 0;
+  }
+  .fixtureModalExportRunning {
+    top: 50%;
+    left: 16px;
+    width: calc(100% - 32px);
+    height: 280px;
+    transform: translateY(-50%);
+  }
   .fixtureLogoutEyebrow,
   .fixtureLogoutTitle,
   .fixtureLogoutDetail,
@@ -2149,6 +2245,20 @@
   .fixtureExportQueuedClose {
     right: 13px;
     left: auto;
+  }
+  .fixtureExportRunningTitle,
+  .fixtureExportRunningDetail,
+  .fixtureExportRunningStatus {
+    left: 24px;
+    width: calc(100% - 48px);
+  }
+  .fixtureExportRunningStatus {
+    line-height: 20px;
+  }
+  .fixtureExportRunningProgress {
+    left: 24px;
+    top: 196px;
+    width: calc(100% - 48px);
   }
   .fixturePanel {
     inset: 0;

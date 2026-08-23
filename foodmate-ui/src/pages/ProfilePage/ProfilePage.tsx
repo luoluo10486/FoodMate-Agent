@@ -338,7 +338,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
                 : state === 'privacy-export-queued'
                   ? '任务已创建，后台整理完成后提供一次性下载。状态: queued · 预计等待 1-2 分钟 · export_id: exp_20260731_01'
                   : state === 'privacy-export-running'
-                    ? '正在脱敏并打包数据，完成后会显示一次性下载入口。状态：running · 已处理 68% · export_id: exp_20260731_01'
+                    ? '正在脱敏并打包数据，完成后会显示一次性下载入口。状态: running · 已处理 68% · export_id: exp_20260731_01'
                     : state === 'privacy-export-expired'
                       ? '下载链接已过期，请重新创建导出任务。状态：expired · export_id: exp_20260729_18'
                       : state === 'privacy-deletion-submitting'
@@ -358,6 +358,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
   const isLogoutConfirmation = state === 'security-logout-confirm';
   const isDeleteConfirmation = state === 'privacy-delete-confirm';
   const isExportQueued = state === 'privacy-export-queued';
+  const isExportRunning = state === 'privacy-export-running';
   return (
     <div
       className={cn(
@@ -366,6 +367,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
         isLogoutConfirmation ? styles.fixtureOverlayLogout : undefined,
         isDeleteConfirmation ? styles.fixtureOverlayDelete : undefined,
         isExportQueued ? styles.fixtureOverlayExportQueued : undefined,
+        isExportRunning ? styles.fixtureOverlayExportRunning : undefined,
       )}
       role="presentation"
     >
@@ -376,11 +378,25 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
           isLogoutConfirmation ? styles.fixtureModalLogout : undefined,
           isDeleteConfirmation ? styles.fixtureModalDelete : undefined,
           isExportQueued ? styles.fixtureModalExportQueued : undefined,
+          isExportRunning ? styles.fixtureModalExportRunning : undefined,
         )}
         role="alert"
         aria-live="polite"
       >
-        {isExportQueued ? (
+        {isExportRunning ? (
+          <>
+            <span className={styles.fixtureExportRunningAccent} aria-hidden="true" />
+            <h2 className={styles.fixtureExportRunningTitle}>{title}</h2>
+            <p className={styles.fixtureExportRunningDetail}>正在脱敏并打包数据，完成后会显示一次性下载入口。</p>
+            <p className={styles.fixtureExportRunningStatus}>状态: running · 已处理 68% · export_id: exp_20260731_01</p>
+            <span className={styles.fixtureExportRunningProgress} aria-label="数据导出进度 68%">
+              <i />
+            </span>
+            <Button className={styles.fixtureExportQueuedClose} variant="ghost" aria-label="关闭" onClick={onDismiss}>
+              <X aria-hidden="true" />
+            </Button>
+          </>
+        ) : isExportQueued ? (
           <>
             <span className={styles.fixtureExportQueuedAccent} aria-hidden="true" />
             <h2 className={styles.fixtureExportQueuedTitle}>{title}</h2>

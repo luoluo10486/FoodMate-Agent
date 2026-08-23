@@ -125,6 +125,27 @@ describe('ProfilePage', () => {
     expect(screen.queryByRole('heading', { name: '数据导出已排队' })).not.toBeInTheDocument();
   });
 
+  it('renders and dismisses the Figma export running fixture', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=privacy-export-running');
+
+    expect(screen.getByRole('heading', { name: '正在生成数据导出' })).toBeInTheDocument();
+    expect(screen.getByText('正在脱敏并打包数据，完成后会显示一次性下载入口。')).toBeInTheDocument();
+    expect(screen.getByText('状态: running · 已处理 68% · export_id: exp_20260731_01')).toBeInTheDocument();
+    expect(screen.getByLabelText('数据导出进度 68%')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    expect(screen.queryByText('状态：running')).not.toBeInTheDocument();
+
+    const status = screen.getByText('状态: running · 已处理 68% · export_id: exp_20260731_01');
+    const progress = screen.getByLabelText('数据导出进度 68%');
+    expect(status).not.toHaveStyle({ marginTop: '24px' });
+    expect(progress).toHaveAttribute('aria-label', '数据导出进度 68%');
+
+    await user.click(screen.getByRole('button', { name: '关闭' }));
+
+    expect(screen.queryByRole('heading', { name: '正在生成数据导出' })).not.toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

@@ -2028,7 +2028,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture after changing the header action to the Figma single text node '+ 新建膳食计划', removing the extra 24px gap from the plan-card flex container, and aligning the card text row boxes: the fixture still renders all three Figma plan cards, uses the Figma-sourced planning topbar avatar with circular clipping, aligns the lifecycle panel to the Figma x/y/size geometry, uses the Figma-specified 16px action gap and 36px action buttons, and applies the Noto Sans SC panel typography plus Figma status-badge text styles. The current card content column measures 932.8px, the main content height is 85px, and the card height is 134.6px versus the Figma 133px node; the latest screenshot produced 23.5418% pixel difference. The in-app browser reported DPR 1.25, so the required DPR 1 gate remains open and the result stays DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture after aligning the header action, card layout, card text row boxes, exact 133px card heights, and the 80x32px plan action buttons; the fixture still renders all three Figma plan cards and preserves the Figma-sourced topbar avatar. The in-app browser reported DPR 1.25, so the required DPR 1 gate remains open and the result stays DIFF_REVIEW.",
       "geometryCheck": {
         "status": "REVIEW",
         "expectedViewport": "1440x1024",
@@ -2054,7 +2054,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-23",
-        "conclusion": "The current browser capture shows all three plan cards, the Figma single-text '+ 新建膳食计划' action, the corrected no-gap card layout, and Figma-aligned text row boxes. The remaining 1.6px card-height difference, details, density, and typography/icon rasterization differences remain; the in-app browser DPR was 1.25 rather than the required 1, so retain DIFF_REVIEW."
+        "conclusion": "The current browser capture shows all three plan cards, the Figma single-text '+ 新建膳食计划' action, the corrected no-gap card layout, Figma-aligned text row boxes, and exact 133px card heights. Remaining shell, details, density, and typography/icon rasterization differences remain; the in-app browser DPR was 1.25 rather than the required 1, so retain DIFF_REVIEW."
       }
     },
     {
@@ -3212,11 +3212,11 @@
       "queryState": "state=privacy-export-running",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-privacy-export-running.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-browser-current-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/recaptured/profile-privacy-export-running-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no root overflow. Automatic PNG diff is 0.35830552842881946; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop 1440x1024 and mobile 390x844, fonts loaded, DPR 1.0000000149011612, no root overflow, and no status/progress overlap. Automatic PNG diff is 0.4224039713541667; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3241,8 +3241,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Export-running progress semantics exist, but the privacy-page composition, content density, progress presentation, dialog boundary, color, and layout differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Desktop and mobile captures preserve the export-running semantics and the mobile state/progress geometry is clear. Privacy-page composition, content density, dialog boundary, color, and layout still differ from the current Figma reference. Retain DIFF_REVIEW."
       }
     },
     {
