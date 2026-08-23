@@ -58,6 +58,27 @@ describe('ProfilePage', () => {
     );
   });
 
+  it('renders the Figma logout confirmation fixture with the target devices', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=security-logout-confirm');
+
+    expect(screen.getByRole('heading', { name: '退出其他设备？' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '这将退出除当前设备以外的 2 个活跃会话。当前设备会保留登录状态，最近的运行和审计记录不会被删除。',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('将退出：iPhone 15 Pro · iOS App；Google Chrome · Windows 11')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认退出' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '确认继续' })).not.toBeInTheDocument();
+    expect(screen.getByText('Anddy')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '安全与设备' })).toHaveAttribute('aria-current', 'page');
+
+    await user.click(screen.getByRole('button', { name: '确认退出' }));
+
+    expect(screen.queryByRole('heading', { name: '退出其他设备？' })).not.toBeInTheDocument();
+  });
+
   it('edits profile fields and manages allergens before saving', async () => {
     const user = userEvent.setup();
     renderPage('/profile');

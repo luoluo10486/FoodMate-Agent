@@ -348,36 +348,67 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
                           : state === 'privacy-deletion-failed'
                             ? '清理任务失败，账号状态保持不变，请重新创建。错误码：ACCOUNT_DELETION_FAILED · request_id: req_delete_b721'
                             : state === 'security-logout-confirm'
-                              ? '这将退出当前设备以外的 2 个活跃会话。当前设备会保留登录状态。'
+                              ? '这将退出除当前设备以外的 2 个活跃会话。当前设备会保留登录状态，最近的运行和审计记录不会被删除。'
                               : '确认后账号会立即禁用，全部登录会话将被撤销，并开始后台清理个人资料、饮食记录、记忆和知识库数据。';
   const progress =
     state === 'basic-avatar-uploading' ||
     state === 'privacy-deletion-submitting' ||
     state === 'security-password-submitting' ||
     state === 'privacy-export-running';
+  const isLogoutConfirmation = state === 'security-logout-confirm';
   return (
-    <div className={`${styles.fixtureOverlay} ${isSuccess ? styles.fixtureOverlaySuccess : ''}`} role="presentation">
+    <div
+      className={cn(
+        styles.fixtureOverlay,
+        isSuccess ? styles.fixtureOverlaySuccess : undefined,
+        isLogoutConfirmation ? styles.fixtureOverlayLogout : undefined,
+      )}
+      role="presentation"
+    >
       <section
-        className={`${styles.fixtureModal} ${isError ? styles.fixtureModalError : ''}`}
+        className={cn(
+          styles.fixtureModal,
+          isError ? styles.fixtureModalError : undefined,
+          isLogoutConfirmation ? styles.fixtureModalLogout : undefined,
+        )}
         role="alert"
         aria-live="polite"
       >
-        <h2>{title}</h2>
-        <p>{detail}</p>
-        {progress ? (
-          <span className={styles.fixtureProgress}>
-            <i />
-          </span>
-        ) : null}
-        {state === 'privacy-delete-confirm' ||
-        state === 'security-logout-confirm' ||
-        state === 'basic-unsaved-leave-confirmation' ? (
+        {isLogoutConfirmation ? (
+          <>
+            <p className={styles.fixtureLogoutEyebrow}>SECURITY · CONFIRM</p>
+            <h2 className={styles.fixtureLogoutTitle}>{title}</h2>
+            <p className={styles.fixtureLogoutDetail}>{detail}</p>
+            <p className={styles.fixtureLogoutTargets}>将退出：iPhone 15 Pro · iOS App；Google Chrome · Windows 11</p>
+          </>
+        ) : (
+          <>
+            <h2>{title}</h2>
+            <p>{detail}</p>
+            {progress ? (
+              <span className={styles.fixtureProgress}>
+                <i />
+              </span>
+            ) : null}
+          </>
+        )}
+        {state === 'privacy-delete-confirm' || state === 'basic-unsaved-leave-confirmation' ? (
           <div className={styles.fixtureModalActions}>
             <Button variant="outline" onClick={onDismiss}>
               取消
             </Button>
             <Button variant={state === 'privacy-delete-confirm' ? 'destructive' : 'default'} onClick={onDismiss}>
               {state === 'basic-unsaved-leave-confirmation' ? '放弃并离开' : '确认继续'}
+            </Button>
+          </div>
+        ) : null}
+        {isLogoutConfirmation ? (
+          <div className={styles.fixtureLogoutActions}>
+            <Button className={styles.fixtureLogoutCancel} variant="outline" onClick={onDismiss}>
+              取消
+            </Button>
+            <Button className={styles.fixtureLogoutConfirm} variant="default" onClick={onDismiss}>
+              确认退出
             </Button>
           </div>
         ) : null}
@@ -1836,14 +1867,14 @@ export function ProfilePage() {
       : fixtureState === 'memories-empty'
         ? 'memories'
         : (baseFigmaState ?? getTab(location.pathname));
-  const isFigmaFixture = Boolean(baseFigmaState);
+  const isFigmaFixture = Boolean(baseFigmaState || fixtureState);
   const displayedUser = isFigmaFixture ? figmaProfileUser : authUser;
   return (
     <WorkspaceLayout
       activeModule="profile"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      profileActiveTab={baseFigmaState}
+      profileActiveTab={isFigmaFixture ? activeTab : undefined}
       sidebarAvatarSrc={
         isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
       }
