@@ -120,6 +120,11 @@
   height: 107px;
 }
 
+.figmaAnalysis .metrics,
+.figmaAnalysis .metricCard {
+  height: 100px;
+}
+
 .loadingMetrics {
   height: 126px;
 }

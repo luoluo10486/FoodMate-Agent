@@ -268,7 +268,10 @@ export function AnalysisPage() {
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       <div className={styles.page}>
-        <section className={styles.analysisBody} aria-label="摄入分析">
+        <section
+          className={`${styles.analysisBody} ${isFigmaFixture ? styles.figmaAnalysis : ''}`}
+          aria-label="摄入分析"
+        >
           <header
             className={`${styles.filterRow} ${isFigmaFixture ? styles.figmaFilterRow : ''} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}
           >
