@@ -10,6 +10,8 @@ M1-4 currently uses a provider-neutral model boundary. By default it selects `de
 
 Complex requests run an independent `eval` call before answer streaming. Low-risk requests use stable sampling. Set `FOODMATE_AGENT_CHECKPOINT_BACKEND=redis` and provide `FOODMATE_AGENT_CHECKPOINT_ENCRYPTION_KEY` to enable the Redis CAS checkpoint backend; the local default remains `inmemory` for tests.
 
+Answer events use UTF-8 byte-limited chunks (`FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES`, default `2048`) and a configurable interval between chunks (`FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS`, default `150`). The interval is applied between complete `run.answer_stream` events; the runtime never publishes one RocketMQ message per model token. Set the interval to `0` only for deterministic unit tests or an explicitly chosen local integration profile.
+
 M2-1 RAG has two explicit local paths. `FOODMATE_RAG_MODE=stub` uses the shared Redis deterministic keyword index and does not connect to Milvus or read embedding credentials. `FOODMATE_RAG_MODE=local` writes vectors to Milvus; set `FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic` for a stable in-process vector provider without a paid API, or set it to `openai-compatible` and provide the endpoint, API key, model, budgets, and price version. A missing real-provider setting fails closed and never falls back to another provider.
 
 Offline Eval regression cases live in `eval/golden_cases.json` and are checked by `tests/test_golden_eval.py`. The rubric asserts routing, risk policy, Eval outcome, required answer fragments, and model-call scenes. Run `python -m pytest -q` from `agent-runtime`; this suite does not require a model credential and keeps the local Judge stub.

@@ -42,6 +42,9 @@ _runtime_metrics = RuntimeMetrics()
 _runtime_started_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 _mq_runtime = None
 MAX_EVENT_ID_LENGTH = 64
+DEFAULT_STREAM_CHUNK_MAX_BYTES = 2048
+DEFAULT_STREAM_CHUNK_INTERVAL_MS = 150
+MAX_STREAM_CHUNK_INTERVAL_MS = 10000
 
 
 def _bounded_event_id(event_id: str) -> str:
@@ -113,6 +116,45 @@ def _eval_payload(execution) -> dict[str, object]:
         "score": getattr(execution.eval, "score", None),
         "evaluator_version": getattr(execution.eval, "evaluator_version", "deterministic-eval-v1"),
     }
+
+
+def _stream_chunk_interval_ms() -> int:
+    """读取回答事件间隔，避免把回答按模型 token 逐条发送到消息总线。"""
+    raw_value = os.getenv(
+        "FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS",
+        str(DEFAULT_STREAM_CHUNK_INTERVAL_MS),
+    ).strip()
+    try:
+        interval_ms = int(raw_value)
+    except ValueError as error:
+        raise RuntimeError("RUNTIME_STREAM_CONFIG_INVALID") from error
+    if interval_ms < 0 or interval_ms > MAX_STREAM_CHUNK_INTERVAL_MS:
+        raise RuntimeError("RUNTIME_STREAM_CONFIG_INVALID")
+    return interval_ms
+
+
+def _emit_answer_chunks(command: dict, prefix: str, next_sequence: int, answer: str) -> int:
+    """按字节上限和可配置时间间隔发布回答分片。"""
+    max_bytes = int(
+        os.getenv(
+            "FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES",
+            str(DEFAULT_STREAM_CHUNK_MAX_BYTES),
+        )
+    )
+    chunks = split_answer(answer, max_bytes)
+    interval_seconds = _stream_chunk_interval_ms() / 1000
+    for index, chunk in enumerate(chunks, start=1):
+        emit(
+            command,
+            prefix + f"-answer-{index}",
+            next_sequence,
+            "run.answer_stream",
+            {"text": chunk, "status": "evaluated"},
+        )
+        next_sequence += 1
+        if index < len(chunks) and interval_seconds > 0:
+            time.sleep(interval_seconds)
+    return next_sequence
 
 
 def _redis_client():
@@ -573,12 +615,7 @@ def execute(command):
             return
         answer = execution.answer
         if execution.eval.result == "pass":
-            stream_chunks = split_answer(answer, int(os.getenv("FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES", "2048")))
-        else:
-            stream_chunks = []
-        for index, chunk in enumerate(stream_chunks, start=1):
-            emit(command, prefix + f"-answer-{index}", next_sequence, "run.answer_stream", {"text": chunk, "status": "evaluated"})
-            next_sequence += 1
+            next_sequence = _emit_answer_chunks(command, prefix, next_sequence, answer)
         if command["run_id"] in _cancelled:
             emit(command, prefix + "-cancel-ack", next_sequence, "run.cancel_acknowledged", {"reason": "user_requested"})
             emit(command, prefix + "-cancelled", next_sequence + 1, "run.cancelled", {"reason": "user_requested"})

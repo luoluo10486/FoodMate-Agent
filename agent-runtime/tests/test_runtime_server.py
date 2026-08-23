@@ -188,6 +188,35 @@ class RuntimeContractTests(unittest.TestCase):
         chunks = split_answer("营养" * 10, 8)
         self.assertTrue(all(len(item.encode("utf-8")) <= 8 for item in chunks))
 
+    def test_answer_stream_uses_configured_interval_between_chunks(self):
+        emitted = []
+        with patch.dict(
+            runtime_server.os.environ,
+            {
+                "FOODMATE_AGENT_STREAM_CHUNK_MAX_BYTES": "4",
+                "FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS": "150",
+            },
+            clear=False,
+        ), patch.object(
+            runtime_server, "emit", side_effect=lambda *args: emitted.append(args[3])
+        ), patch.object(runtime_server.time, "sleep") as sleep:
+            next_sequence = runtime_server._emit_answer_chunks(
+                {"run_id": "stream-run"}, "dispatch", 3, "abcdefgh"
+            )
+
+        self.assertEqual(["run.answer_stream", "run.answer_stream"], emitted)
+        self.assertEqual(5, next_sequence)
+        sleep.assert_called_once_with(0.15)
+
+    def test_answer_stream_rejects_invalid_interval(self):
+        with patch.dict(
+            runtime_server.os.environ,
+            {"FOODMATE_AGENT_STREAM_CHUNK_INTERVAL_MS": "-1"},
+            clear=False,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "RUNTIME_STREAM_CONFIG_INVALID"):
+                runtime_server._stream_chunk_interval_ms()
+
     def test_budget_policy_exposes_fixed_threshold_actions(self):
         budget = BudgetSnapshot(max_total_tokens=100, max_cost_cny=1, max_model_calls=12)
         self.assertTrue(budget_policy(Usage(tokens=69), budget).allow_reflection)
