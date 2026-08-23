@@ -765,3 +765,14 @@
 | 数据边界 | 未执行迁移、truncate、备份恢复、数据库硬删除、组件重启、消息重放或真实云服务调用 |
 | 暂缓范围 | 性能压测、吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障恢复、真实 embedding、staging/production、发布回滚和不可逆清理继续暂缓 |
 | 结论 | 当前功能版业务代码和业务测试门禁通过；M1-6/M3 的生产强化与真实依赖故障证据不因本轮复跑标记完成 |
+
+## D25 M2-1 AgentRun HTTP SSE 回放与测试数据清理（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Docker Compose `foodmate`；Java `127.0.0.1:8080`；使用本轮随机账号和既有完成 Run `349815929648975872`，未调用真实模型或 embedding 服务。 |
+| SSE 验证 | `GET /api/chat/runs/349815929648975872/stream` 携带 `Last-Event-ID: 6` 返回 HTTP 200；仅回放 1 个 `run.completed`，稳定事件 ID 为 `sse_349815932530462720`，无重复终态；payload 含安全 `citations`，不含对象存储地址。 |
+| PostgreSQL 事实 | Run 状态为 `completed`；7 个 `runtime_event_inbox_v2` 事件均为 `applied`；`run.completed` 的 `citation_count=1`；dispatch 为 `delivered`，RocketMQ dispatch outbox 为 `published`。 |
+| 可见性清理 | 文档 `349815171083931648`、`349815899194134528` 均通过正式 `POST /api/admin/knowledge-documents/{id}/delete` 软删除；两条可见性 Outbox 已为 `published`，当前公共已发布可检索文档数量为 `0`。 |
+| 数据边界 | 未执行 truncate、数据库硬删除、迁移、备份恢复或宽泛清理；知识切片、Outbox、Redis/Milvus 去重事实保留以维持审计和可追溯性；临时恢复用于 SSE 归属校验的测试账号已还原为禁用。 |
+| 结论 | M2-1 本地 deterministic AgentRun 引用和 Chat 兼容 SSE `Last-Event-ID` 业务回放已取得直接 HTTP 证据；性能、重启、ACK 丢失、重复消息故障矩阵和真实外部服务仍按当前决策暂缓。 |
