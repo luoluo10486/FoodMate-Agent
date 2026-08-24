@@ -4,14 +4,17 @@ import java.util.List;
 
 /** Authenticated public knowledge search use case. */
 public interface KnowledgeSearchService {
+    /** Searches the public, published knowledge scope for the authenticated user. */
     SearchResult search(String query);
 
+    /** Bounded citation results exposed by the application layer. */
     record SearchResult(List<Citation> citations) {
         public SearchResult {
             citations = citations == null ? List.of() : List.copyOf(citations);
         }
     }
 
+    /** Citation metadata without storage keys or full source content. */
     record Citation(
             long documentId,
             String citationId,

@@ -271,7 +271,15 @@
   font-family: var(--fm-font);
   font-size: 22px;
   font-weight: 900;
-  line-height: normal;
+  line-height: 26px;
+}
+
+.feedbackCopy {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .feedbackCard p {
@@ -300,7 +308,7 @@
 }
 
 .feedbackActions button {
-  height: 44px;
+  height: 42px;
   padding: 12px 24px;
   border-radius: 12px;
   font-family: var(--fm-font);
@@ -309,12 +317,23 @@
 }
 
 .feedbackPrimary svg {
+  width: 12px;
+  height: 12px;
+}
+
+.feedbackPrimaryIcon {
+  display: grid;
   width: 16px;
   height: 16px;
+  flex: 0 0 16px;
+  place-items: center;
 }
 
 .feedbackCardEmpty {
-  gap: 20px;
+  height: 368px;
+  gap: 24px;
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--fm-border), 0 12px 12px rgb(0 0 0 / 2%);
 }
 
 .feedbackCardEmpty .feedbackIcon {
@@ -346,17 +365,33 @@
 }
 
 .feedbackHint {
-  margin: 20px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 28px 0 0;
   color: var(--fm-muted);
   font-family: var(--fm-font);
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 16px;
   text-align: center;
 }
 
-.feedbackHint span {
+.feedbackHint svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--fm-orange);
+  stroke-width: 2;
+}
+
+.feedbackHintSupport {
   color: #89b27c;
   font-weight: 700;
+}
+
+.feedbackHintText {
+  width: 390px;
+  white-space: nowrap;
 }
 
 .planMain {

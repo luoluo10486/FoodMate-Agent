@@ -42,7 +42,9 @@ public class AdminManagementRepositoryAdapter implements AdminManagementReposito
     @Override
     public RevokeResult revokeSessions(long userId, long operatorId, long revision) {
         if (mapper.bumpUserRevision(userId, operatorId, revision) != 1) return null;
-        return new RevokeResult(mapper.revokeSessions(userId, operatorId), revision + 1);
+        int revoked = mapper.revokeSessions(userId, operatorId);
+        mapper.revokeRefreshTokens(userId, operatorId);
+        return new RevokeResult(revoked, revision + 1);
     }
 
     @Override

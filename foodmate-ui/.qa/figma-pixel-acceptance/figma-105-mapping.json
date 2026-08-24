@@ -1192,13 +1192,13 @@
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
       "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-safety-degraded-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current-rgba.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: desktop Figma and browser PNGs are both 1440x1024; mobile browser PNG is 390x844. The avatar status label, compact safety warning bar, bounded response bubble, personal-condition limitation, and follow-up entry are present. PNG diff is 9.1837% / MAE 2.8734 / RMSE 17.6865; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: desktop Figma and browser PNGs are both 1440x1024; mobile browser PNG is 390x844. The avatar status label, compact safety warning bar, bounded response bubble, personal-condition limitation, and follow-up entry are present. PNG diff is 19.8384% / MAE 2.9192 / RMSE 16.6107; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1242,7 +1242,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; partial text, cancellation reason, non-failure status, and restart action exist, but post-cancel action layout differs. PNG diff is 18.5095% / MAE 2.3318 / RMSE 14.4348; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; partial text, cancellation reason, non-failure status, and restart action exist. PNG diff is 17.9155% / MAE 2.5663 / RMSE 15.4846; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1286,7 +1286,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; reconnect count, retained text, disabled composer, and refresh guidance exist, but notice geometry and placement differ. PNG diff is 27.1330% / MAE 2.9698 / RMSE 14.6906; retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-23 recapture: current Figma and browser PNGs are both 1440x1024; reconnect count, retained text, disabled composer, refresh guidance, Agent avatar, 560px answer bubble, and full-width reconnect band are present. PNG diff is 26.3488% / MAE 2.6880 / RMSE 15.2945; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1312,7 +1312,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures contain reconnect attempt count, retained text, disabled composer, and refresh guidance. Reconnect notice width, placement, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
+        "conclusion": "Current Figma and browser captures contain reconnect attempt count, retained text, disabled composer, refresh guidance, Agent avatar, 560px answer bubble, and full-width reconnect band. Workspace and font rasterization differences remain; retain DIFF_REVIEW."
       }
     },
     {
@@ -1809,12 +1809,12 @@
       "frontendRoute": "/planning",
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/meal-planning-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-empty-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-empty-figma-live.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-empty-browser-current.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: empty-plan semantics exist, but empty-card placement, iconography, typography, and navigation density differ.",
+      "evidenceNote": "Current live Figma and browser PNG diff is recorded; retain DIFF_REVIEW for remaining shell, avatar, icon and rasterization differences.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1839,8 +1839,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Empty-plan semantics exist, but empty-card placement, iconography, typography, and navigation density differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-23",
+        "conclusion": "Current empty-card geometry and hint row align with the live Figma node; iconography, typography, avatar and shell rasterization still differ. Retain DIFF_REVIEW."
       }
     },
     {

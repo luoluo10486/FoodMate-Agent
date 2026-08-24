@@ -29,6 +29,7 @@ public class CsrfProtectionFilter extends OncePerRequestFilter {
             Set.of(
                     "/api/auth/login",
                     "/api/auth/register",
+                    "/api/auth/refresh",
                     "/api/auth/password-reset/request",
                     "/api/auth/password-reset/confirm");
     private final ObjectProvider<UserAccountService> accounts;
@@ -47,6 +48,8 @@ public class CsrfProtectionFilter extends OncePerRequestFilter {
                 || SAFE_METHODS.contains(request.getMethod())
                 || !request.getRequestURI().startsWith("/api/")
                 || PUBLIC_PATHS.contains(request.getRequestURI())) {
+            if (service != null && "/api/auth/refresh".equals(request.getRequestURI()))
+                requireSameOrigin(request);
             chain.doFilter(request, response);
             return;
         }

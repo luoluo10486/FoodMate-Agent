@@ -59,6 +59,7 @@ class P1AccountControllerTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.data.session_expires_at").exists())
                         .andExpect(jsonPath("$.data.access_token").doesNotExist())
+                        .andExpect(jsonPath("$.data.refresh_token").doesNotExist())
                         .andReturn()
                         .getResponse();
         var sessionCookie = login.getCookie("foodmate_session");
@@ -113,6 +114,78 @@ class P1AccountControllerTest {
                                 .content("{\"title\":\"test\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code", is("FORBIDDEN")));
+    }
+
+    @Test
+    void rotatesRefreshCookieAndRejectsTheConsumedToken() throws Exception {
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"username\":\"refresh-user\",\"email\":\"refresh@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk());
+        var login =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                "{\"username_or_email\":\"refresh-user\",\"password\":\"password123\"}"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse();
+        var oldRefresh = login.getCookie("foodmate_refresh");
+
+        var rotated =
+                mockMvc.perform(post("/api/auth/refresh").cookie(oldRefresh))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse();
+        var newRefresh = rotated.getCookie("foodmate_refresh");
+        org.junit.jupiter.api.Assertions.assertNotNull(newRefresh);
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                oldRefresh.getValue(), newRefresh.getValue());
+
+        mockMvc.perform(post("/api/auth/refresh").cookie(oldRefresh))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code", is("AUTH_REFRESH_TOKEN_INVALID")));
+    }
+
+    @Test
+    void logoutRevokesThePresentedRefreshToken() throws Exception {
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"username\":\"logout-refresh\",\"email\":\"logout-refresh@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk());
+        var login =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                "{\"username_or_email\":\"logout-refresh\",\"password\":\"password123\"}"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse();
+        var session = login.getCookie("foodmate_session");
+        var csrf = login.getCookie("foodmate_csrf");
+        var refresh = login.getCookie("foodmate_refresh");
+
+        mockMvc.perform(
+                        post("/api/auth/logout")
+                                .cookie(session, csrf, refresh)
+                                .header("X-CSRF-Token", csrf.getValue()))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/auth/refresh").cookie(refresh))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code", is("AUTH_REFRESH_TOKEN_INVALID")));
+    }
+
+    @Test
+    void missingRefreshCookieUsesStableUnauthorizedError() throws Exception {
+        mockMvc.perform(post("/api/auth/refresh"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code", is("AUTH_REFRESH_TOKEN_INVALID")));
     }
 
     @Test

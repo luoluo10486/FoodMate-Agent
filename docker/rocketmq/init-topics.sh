@@ -19,15 +19,12 @@ for group in \
     retry_topic="%RETRY%${group}"
     echo "[foodmate] creating gRPC retry topic ${retry_topic}"
     "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$retry_topic" -r 1 -w 1 -p 6 -a +message.type=NORMAL || true
-    if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "$retry_topic"; then
+    if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -x "$retry_topic" >/dev/null; then
         echo "[foodmate] gRPC retry topic ${retry_topic} is not visible" >&2
         exit 1
     fi
 done
 
-
-# mqadmin 默认 JVM 参数偏大，本地限制到 256m。
-export JAVA_OPT_EXT="-Xms256m -Xmx256m -Xmn128m"
 
 echo "[foodmate] 等待 Broker ${BROKER} 就绪 ..."
 i=0
@@ -51,7 +48,7 @@ fi
 # 每个对象创建后都要回读校验，否则「初始化成功」会掩盖 Topic 根本不存在。
 echo "[foodmate] 创建 RocketMQ Proxy 系统 Topic DefaultHeartBeatSyncerTopic"
 "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "DefaultHeartBeatSyncerTopic" -r 1 -w 1 -p 6 -a +message.type=NORMAL || true
-if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "DefaultHeartBeatSyncerTopic"; then
+if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -x "DefaultHeartBeatSyncerTopic" >/dev/null; then
     echo "[foodmate] Proxy 系统 Topic 初始化失败" >&2
     exit 1
 fi
@@ -71,7 +68,7 @@ for topic in \
     # 单实例只领取一个分配队列时，Producer 把消息随机写到未领取队列。
     "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$topic" -r "${TOPIC_QUEUE_COUNT:-1}" -w "${TOPIC_QUEUE_COUNT:-1}" -p 6 -a +message.type=NORMAL || true
     # Topic 名只允许 ^[%|a-zA-Z0-9_-]+$，点号会被 Broker 拒绝，因此契约使用连字符。
-    if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -qx "$topic"; then
+    if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -x "$topic" >/dev/null; then
         echo "[foodmate] Topic ${topic} 创建后不可见，初始化失败" >&2
         exit 1
     fi
@@ -103,11 +100,19 @@ for group in \
         # Proxy 的系统心跳主题必须广播给每个 Proxy 实例；-d 才是广播开关，-m 仅表示消费起点。
         broadcast="true"
     fi
+    group_output=$(mktemp)
     if ! timeout 30 "$MQADMIN" updateSubGroup -n "$NAMESRV" -b "$BROKER" -g "$group" \
-        -s true -m false -d "$broadcast" -q 1 -w 1 2>&1 | grep -q "success"; then
+        -s true -m false -d "$broadcast" -q 1 -w 1 >"$group_output" 2>&1; then
+        rm -f "$group_output"
+        echo "[foodmate] consumer group ${group} 创建命令失败" >&2
+        exit 1
+    fi
+    if ! grep "success" "$group_output" >/dev/null; then
+        rm -f "$group_output"
         echo "[foodmate] consumer group ${group} 创建失败" >&2
         exit 1
     fi
+    rm -f "$group_output"
 done
 
 echo "[foodmate] 已就绪的 FoodMate Topic："

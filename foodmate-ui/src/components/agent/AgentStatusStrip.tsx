@@ -26,9 +26,10 @@ type AgentStatusStripProps = {
   status: AgentDisplayStatus;
   preserveTones?: boolean;
   failedStep?: AgentDisplayStatus;
+  visualState?: 'user-cancelled';
 };
 
-export function AgentStatusStrip({ status, preserveTones = false, failedStep }: AgentStatusStripProps) {
+export function AgentStatusStrip({ status, preserveTones = false, failedStep, visualState }: AgentStatusStripProps) {
   const currentIndex = statusIndex[status];
   const failedIndex = failedStep ? statusIndex[failedStep] : -1;
   return (
@@ -43,9 +44,11 @@ export function AgentStatusStrip({ status, preserveTones = false, failedStep }: 
               ? index < failedIndex
               : currentIndex > index || status === 'completed';
           const active = !failed && currentIndex === index && !completed;
+          const visualTone =
+            visualState === 'user-cancelled' ? (index === 0 ? styles.cancelledActive : styles.cancelledPending) : '';
           return (
             <span
-              className={`${styles.step} ${styles[step.tone]} ${completed && !preserveTones ? styles.completed : ''} ${active ? styles.active : ''} ${failed ? styles.failed : ''}`}
+              className={`${styles.step} ${styles[step.tone]} ${completed && !preserveTones ? styles.completed : ''} ${active ? styles.active : ''} ${failed ? styles.failed : ''} ${visualTone}`}
               key={step.key}
               role="listitem"
             >

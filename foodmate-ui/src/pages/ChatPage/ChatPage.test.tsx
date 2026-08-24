@@ -242,8 +242,12 @@ describe('ChatPage Agent remaining states', () => {
   it('keeps degraded answers bounded and leaves the follow-up composer enabled', () => {
     renderState('safety-degraded');
     expect(screen.getByText('安全降级', { exact: true })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '安全降级提示' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '⚠️ 安全降级提示' })).toBeInTheDocument();
+    expect(screen.getByText('Anddy · 01:30 PM')).toBeInTheDocument();
+    expect(screen.getByText('Fustat-v2 Agent · 1:31 PM')).toBeInTheDocument();
+    expect(screen.getByText(/\*\*清蒸鳕鱼配西兰花\*\*/)).toBeInTheDocument();
     expect(screen.getByText(/未结合您的个人高血压排除条件/)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('由于部分工具不可用');
     expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeEnabled();
   });
 
@@ -251,7 +255,17 @@ describe('ChatPage Agent remaining states', () => {
     renderState('user-cancelled');
     expect(screen.getByText(/用户已取消此次运行/)).toBeInTheDocument();
     expect(screen.queryByText(/运行失败/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '重新开始提问' }));
+    const statusItems = screen.getAllByRole('listitem').map((item) => item.textContent);
+    expect(statusItems).toContain('Planning●');
+    expect(statusItems).toContain('Retrieving○');
+    expect(statusItems).toContain('Executing○');
+    expect(statusItems).toContain('Composing○');
+    expect(
+      screen.getByText('正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...'),
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('重新开始提问...')).toBeEnabled();
+    fireEvent.change(screen.getByPlaceholderText('重新开始提问...'), { target: { value: '重新开始' } });
+    fireEvent.click(screen.getByRole('button', { name: '发送消息' }));
     expect(screen.getByRole('status')).toHaveTextContent('新的 Run');
   });
 
@@ -260,6 +274,16 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();
+    expect(document.querySelector('[class*="fixtureReconnectAssistantRow"]')).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureReconnectBottom"]')).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureReconnectNotice"] img')).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/tool-executing-loader-running.svg',
+    );
+    expect(document.querySelector('[class*="fixtureUserAvatar"] img')).toHaveAttribute(
+      'src',
+      '/assets/avatars/default-male.svg',
+    );
   });
 });
 

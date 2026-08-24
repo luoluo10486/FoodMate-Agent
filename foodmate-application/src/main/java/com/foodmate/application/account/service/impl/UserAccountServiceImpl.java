@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.foodmate.application.account.port.out.UserAccountRepository;
+import com.foodmate.application.account.port.out.UserAccountRepository.RefreshTokenRow;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.account.service.UserAccountService.AdminUserView;
 import com.foodmate.application.account.service.UserAccountService.AuthResult;
@@ -49,7 +50,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserAccountServiceImpl implements UserAccountService {
     private static final int PASSWORD_ITERATIONS = 120_000;
-    private static final long AUTH_SESSION_SECONDS = 2_592_000;
+    private static final long AUTH_SESSION_SECONDS = 1_800;
+    private static final long REFRESH_TOKEN_SECONDS = 604_800;
 
     private final UserAccountRepository store;
     private final IdGenerator ids;
@@ -58,6 +60,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     private final SecureRandom random = new SecureRandom();
     private final Map<Long, UserRecord> users = new HashMap<>();
     private final Map<String, AuthSessionRecord> authSessions = new HashMap<>();
+    private final Map<String, RefreshTokenRecord> refreshTokens = new HashMap<>();
     private final Map<Long, ProfileRecord> profiles = new HashMap<>();
     private final Map<Long, SessionRecord> sessions = new HashMap<>();
     private final Map<Long, List<MessageRecord>> messages = new HashMap<>();
@@ -84,6 +87,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         return register(username, email, password, nickname, SessionMetadata.EMPTY);
     }
 
+    @Transactional
     public synchronized AuthResult register(
             String username,
             String email,
@@ -101,7 +105,8 @@ public class UserAccountServiceImpl implements UserAccountService {
             store.insertUser(
                     userId, "U" + userId, username, email, hashPassword(password), nickname);
             store.insertProfile(ids.nextId(), userId, nickname);
-            AuthResult result = issueSession(userId, username, UserRole.USER.code(), metadata);
+            AuthResult result =
+                    issueSession(userId, username, UserRole.USER.code(), metadata, null);
             audit(userId, "user", Long.toString(userId), "user.register");
             return result;
         }
@@ -128,7 +133,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                 new ProfileRecord(
                         userId, nickname, null, null, null, null, null, null, null, null, "[]",
                         "[]", "{}"));
-        AuthResult result = issueSession(userId, username, UserRole.USER.code(), metadata);
+        AuthResult result = issueSession(userId, username, UserRole.USER.code(), metadata, null);
         audit(userId, "user", Long.toString(userId), "user.register");
         return result;
     }
@@ -137,6 +142,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         return login(usernameOrEmail, password, SessionMetadata.EMPTY);
     }
 
+    @Transactional
     public synchronized AuthResult login(
             String usernameOrEmail, String password, SessionMetadata metadata) {
         requireText(usernameOrEmail, "username");
@@ -149,11 +155,47 @@ public class UserAccountServiceImpl implements UserAccountService {
                     com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_LOCKED);
         if (!verifyPassword(password, user.passwordHash())) throw invalidCredentials();
         if (store != null) store.markLogin(user.userId());
-        return issueSession(user.userId(), user.username(), user.role(), metadata);
+        return issueSession(user.userId(), user.username(), user.role(), metadata, null);
     }
 
     public synchronized void logout(String sessionToken) {
+        logout(sessionToken, null);
+    }
+
+    @Transactional
+    public synchronized void logout(String sessionToken, String refreshToken) {
         if (sessionToken != null && !sessionToken.isBlank()) revokeSession(sha256(sessionToken));
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            String hash = sha256(refreshToken);
+            if (store != null) store.revokeRefreshToken(hash);
+            RefreshTokenRecord current = refreshTokens.get(hash);
+            if (current != null)
+                refreshTokens.put(
+                        hash,
+                        new RefreshTokenRecord(
+                                current.refreshTokenId(),
+                                current.userId(),
+                                current.expiresAt(),
+                                Instant.now()));
+        }
+    }
+
+    @Transactional
+    public synchronized AuthResult refresh(String refreshToken, SessionMetadata metadata) {
+        if (refreshToken == null || refreshToken.isBlank()) throw refreshTokenInvalid();
+        String hash = sha256(refreshToken);
+        RefreshTokenRow row =
+                store == null ? claimRefreshToken(hash) : store.consumeRefreshToken(hash);
+        if (row == null) throw refreshTokenInvalid();
+        UserRecord user = getUser(row.userId()).orElseThrow(UserAccountServiceImpl::authRequired);
+        if (!UserStatus.ACTIVE.code().equals(user.status()))
+            throw new com.foodmate.shared.error.BusinessException(
+                    UserStatus.DISABLED.code().equals(user.status())
+                            ? com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_DISABLED
+                            : com.foodmate.shared.error.ErrorCode.AUTH_ACCOUNT_LOCKED);
+        SessionMetadata actual = metadata == null ? SessionMetadata.EMPTY : metadata;
+        return issueSession(
+                user.userId(), user.username(), user.role(), actual, row.refreshTokenId());
     }
 
     @Transactional
@@ -165,6 +207,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         if (store != null) {
             store.changePassword(userId, hashPassword(newPassword));
             store.revokeAll(userId);
+            store.revokeAllRefreshTokens(userId);
         } else {
             users.put(
                     userId,
@@ -186,6 +229,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                                             value.expiresAt(),
                                             Instant.now())
                                     : value);
+            revokeInMemoryRefreshTokens(userId);
         }
         audit(userId, "user", Long.toString(userId), "user.password.change");
     }
@@ -238,8 +282,10 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Transactional
     public synchronized void revokeAllAuthSessions(long userId) {
-        if (store != null) store.revokeAll(userId);
-        else
+        if (store != null) {
+            store.revokeAll(userId);
+            store.revokeAllRefreshTokens(userId);
+        } else
             authSessions.replaceAll(
                     (key, value) ->
                             value.userId() == userId
@@ -250,6 +296,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                                             value.expiresAt(),
                                             Instant.now())
                                     : value);
+        revokeInMemoryRefreshTokens(userId);
         audit(userId, "user_session", Long.toString(userId), "user.sessions.revoke_all");
     }
 
@@ -264,6 +311,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         return raw;
     }
 
+    @Transactional
     public synchronized void resetPassword(String token, String newPassword) {
         validatePassword(newPassword);
         if (store == null) throw notFound("password reset is unavailable");
@@ -636,7 +684,12 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     private AuthResult issueSession(
-            long userId, String username, String role, SessionMetadata metadata) {
+            long userId,
+            String username,
+            String role,
+            SessionMetadata metadata,
+            Long rotatedFromTokenId) {
+        SessionMetadata actual = metadata == null ? SessionMetadata.EMPTY : metadata;
         String sessionToken = randomToken();
         String csrfToken = randomToken();
         String sessionHash = sha256(sessionToken);
@@ -649,11 +702,64 @@ public class UserAccountServiceImpl implements UserAccountService {
                     userId,
                     sessionHash,
                     record.csrfTokenHash(),
-                    metadata.userAgent(),
-                    metadata.ipAddress(),
+                    actual.userAgent(),
+                    actual.ipAddress(),
                     expiresAt);
         if (store == null) authSessions.put(sessionHash, record);
-        return new AuthResult(userId, username, role, sessionToken, csrfToken, expiresAt);
+        String refreshToken = randomToken();
+        String refreshHash = sha256(refreshToken);
+        Instant refreshExpiresAt = Instant.now().plusSeconds(REFRESH_TOKEN_SECONDS);
+        long refreshTokenId = ids.nextId();
+        if (store != null)
+            store.insertRefreshToken(
+                    refreshTokenId,
+                    userId,
+                    refreshHash,
+                    null,
+                    actual.userAgent(),
+                    actual.ipAddress(),
+                    refreshExpiresAt,
+                    rotatedFromTokenId);
+        else
+            refreshTokens.put(
+                    refreshHash,
+                    new RefreshTokenRecord(refreshTokenId, userId, refreshExpiresAt, null));
+        return new AuthResult(
+                userId,
+                username,
+                role,
+                sessionToken,
+                csrfToken,
+                expiresAt,
+                refreshToken,
+                refreshExpiresAt);
+    }
+
+    private RefreshTokenRow claimRefreshToken(String hash) {
+        RefreshTokenRecord current = refreshTokens.get(hash);
+        if (current == null
+                || current.revokedAt() != null
+                || current.expiresAt().isBefore(Instant.now())) return null;
+        refreshTokens.put(
+                hash,
+                new RefreshTokenRecord(
+                        current.refreshTokenId(),
+                        current.userId(),
+                        current.expiresAt(),
+                        Instant.now()));
+        return new RefreshTokenRow(current.refreshTokenId(), current.userId(), null, null, null);
+    }
+
+    private void revokeInMemoryRefreshTokens(long userId) {
+        refreshTokens.replaceAll(
+                (key, value) ->
+                        value.userId() == userId
+                                ? new RefreshTokenRecord(
+                                        value.refreshTokenId(),
+                                        value.userId(),
+                                        value.expiresAt(),
+                                        Instant.now())
+                                : value);
     }
 
     private Optional<UserRecord> findUser(String value) {
@@ -775,6 +881,11 @@ public class UserAccountServiceImpl implements UserAccountService {
                 com.foodmate.shared.error.ErrorCode.AUTH_REQUIRED);
     }
 
+    private static com.foodmate.shared.error.BusinessException refreshTokenInvalid() {
+        return new com.foodmate.shared.error.BusinessException(
+                com.foodmate.shared.error.ErrorCode.AUTH_REFRESH_TOKEN_INVALID);
+    }
+
     private static com.foodmate.shared.error.BusinessException conflict(String message) {
         return new com.foodmate.shared.error.BusinessException(
                 com.foodmate.shared.error.ErrorCode.CONFLICT, message);
@@ -791,4 +902,7 @@ public class UserAccountServiceImpl implements UserAccountService {
             String csrfTokenHash,
             Instant expiresAt,
             Instant revokedAt) {}
+
+    private record RefreshTokenRecord(
+            long refreshTokenId, long userId, Instant expiresAt, Instant revokedAt) {}
 }

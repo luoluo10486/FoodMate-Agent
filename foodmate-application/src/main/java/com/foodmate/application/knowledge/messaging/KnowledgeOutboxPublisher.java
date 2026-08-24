@@ -27,6 +27,7 @@ public class KnowledgeOutboxPublisher {
         this.rocketMq = "rocketmq".equals(transport);
     }
 
+    /** Publishes a bounded batch of committed knowledge outbox facts. */
     @Scheduled(fixedDelayString = "${foodmate.knowledge.outbox-poll-ms:500}")
     public void publish() {
         if (!rocketMq || publisher == null) return;

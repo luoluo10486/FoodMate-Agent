@@ -1566,68 +1566,113 @@
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+}
+
+.fixtureSafetyLabel {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #fff6e2;
   color: #c79654;
-  font-size: 9px;
-  line-height: 11px;
-  text-align: center;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 10px;
+  white-space: nowrap;
 }
 
 .fixtureSafetyAlert {
-  display: grid;
+  display: flex;
   min-width: 0;
   height: 58px;
   flex: 1 1 auto;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 3px 8px;
-  padding: 10px 12px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
   border: 1px solid #c79654;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #fff6e2;
-  color: #876e45;
-}
-
-.fixtureSafetyAlert > svg {
-  grid-row: span 2;
-  width: 16px;
-  height: 16px;
   color: #c79654;
 }
 
 .fixtureSafetyAlert h5 {
   margin: 0;
-  color: #876e45;
-  font-size: 12px;
-  line-height: 15px;
+  color: #c79654;
+  font-size: 13px;
+  line-height: normal;
 }
 
 .fixtureSafetyAlert div {
   min-width: 0;
-  color: #876e45;
-  font-size: 11px;
-  line-height: 15px;
+  color: #c79654;
+  font-size: 12px;
+  line-height: normal;
+}
+
+.fixtureSafetyBody {
+  display: flex;
+  width: min(560px, calc(100% - 48px));
+  flex-direction: column;
+  gap: 6px;
 }
 
 .fixtureSafetyResponse {
   display: flex;
-  width: calc(100% - 48px);
-  min-height: 125px;
-  margin-left: 48px;
+  width: 100%;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   padding: 16px;
-  border-radius: 14px 14px 14px 0;
+  border: 1px solid #f4f6f5;
+  border-radius: 16px;
   background: #f4f6f5;
 }
 
-.fixtureCancelledWrap,
-.fixtureReconnectWrap {
+.fixtureSafetyIntro {
+  margin: 0;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.fixtureSafetyDetails {
+  width: 100%;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fixtureSafetyDetails p {
+  margin: 0;
+}
+
+.fixtureSafetyMeta {
+  margin: 0;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.fixtureCancelledWrap {
   display: flex;
-  width: min(560px, calc(100% - 48px));
-  margin-left: 48px;
+  width: min(608px, 100%);
+  margin-left: 0;
   flex-direction: column;
   align-items: flex-start;
-  gap: 20px;
+  gap: 24px;
+}
+
+.fixtureReconnectWrap {
+  display: flex;
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  margin-left: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
 
 .fixtureAssistantText {
@@ -1638,6 +1683,53 @@
   color: #333;
   font-size: 14px;
   line-height: 20px;
+}
+
+.fixtureCancelledAssistantRow {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 12px;
+  opacity: 0.4;
+}
+
+.fixtureCancelledAssistantBody {
+  width: min(560px, calc(100% - 48px));
+  min-width: 0;
+}
+
+.fixtureCancelledAssistantBody .fixtureAssistantText {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 16px;
+  line-height: normal;
+}
+
+.fixtureReconnectAssistantRow {
+  display: flex;
+  width: min(608px, 100%);
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fixtureReconnectAssistantBody {
+  width: min(560px, calc(100% - 48px));
+  min-width: 0;
+}
+
+.fixtureReconnectAssistantBody .fixtureAssistantText {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fixtureReconnectBottom {
+  position: absolute;
+  right: -8px;
+  bottom: -32px;
+  left: -8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .fixtureCancelledNotice,
@@ -1655,7 +1747,9 @@
 }
 
 .fixtureCancelledNotice svg,
-.fixtureReconnectNotice svg {
+.fixtureCancelledNotice img,
+.fixtureReconnectNotice svg,
+.fixtureReconnectNotice img {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
@@ -1665,7 +1759,26 @@
   color: #a95a55;
 }
 
+.fixtureCancelledNotice {
+  align-self: center;
+  width: auto;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  line-height: normal;
+}
+
+.fixtureCancelledNotice img {
+  width: 14px;
+  height: 14px;
+}
+
 .fixtureReconnectNotice {
+  box-sizing: border-box;
+  height: 66px;
+  padding: 15px 16px;
+  border: 1px solid #ffda93;
   background: #fff6e2;
   color: #876e45;
 }
@@ -1675,9 +1788,14 @@
   animation: executing-spin 1.4s linear infinite;
 }
 
+.fixtureReconnectNotice img {
+  width: 16px;
+  height: 16px;
+}
+
 .fixtureReconnectNotice div {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .fixtureReconnectNotice strong {
@@ -1685,16 +1803,17 @@
   font-size: 13px;
 }
 
+.fixtureReconnectBottom .fixtureCenteredText {
+  line-height: 14px;
+}
+
 .fixtureCenteredText {
   width: 100%;
   margin: 0;
   color: #6b7280;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: normal;
   text-align: center;
-}
-
-.fixtureCancelledWrap > button {
-  align-self: center;
 }
 
 .fixtureActionMessage {
@@ -1758,6 +1877,23 @@
     width: 100%;
   }
 
+  .fixtureCancelledWrap {
+    width: 100%;
+  }
+
+  .fixtureCancelledAssistantBody {
+    width: calc(100% - 48px);
+  }
+
+  .fixtureReconnectAssistantBody {
+    width: calc(100% - 48px);
+  }
+
+  .fixtureReconnectBottom {
+    right: 0;
+    left: 0;
+  }
+
   .fixtureCardHeader,
   .fixtureBudgetRow,
   .fixtureMeta {
@@ -1796,9 +1932,8 @@
     width: 100%;
   }
 
-  .fixtureSafetyResponse {
+  .fixtureSafetyBody {
     width: calc(100% - 48px);
-    min-height: 0;
   }
 }
 .fixtureAuxMessage {

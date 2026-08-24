@@ -600,12 +600,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 ## 66. 2026-08-23 Agent Safety Degraded 当前画板证据复核
 
-- [x] `687:1563` `/chat?state=safety-degraded` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-safety-degraded-current.png`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current.png`。
+- [x] `687:1563` `/chat?state=safety-degraded` 已重新读取实时 Figma 画板并保存当前参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-safety-degraded-current.png`；浏览器原始截图为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current.png`，用于 diff 的 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current-rgba.png`。
 - [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；安全降级警告、有限数据说明、个人高血压条件未完整应用提示和追问入口均存在。
 - [x] 追问输入保持可用；页面明确说明结果基于有限数据，未把降级结果包装成完整分析或完整引用。
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
-- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=377335`、差异比例 `25.5897%`、`MAE=3.3499`、`RMSE=16.7858`、最大通道差异 `249`；机器结果锚点为 `figma-105-diff-results.json#agent-safety-degraded`。
-- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；告警层级、卡片几何、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+- [x] 本次按 Figma 结构完成安全降级局部对齐：警告卡使用 `⚠️ 安全降级提示` 文本层级，助手状态标签、`560×58` 警告卡、`560×125.1` 回答卡、灰色受限说明和 `Fustat-v2 Agent · 1:31 PM` 时间戳均已复核；用户消息时间为 `Anddy · 01:30 PM`。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=292529`、差异比例 `19.8383925%`、`MAE=2.9192213`、`RMSE=16.6107335`、最大通道差异 `249`；机器结果锚点为 `figma-105-diff-results.json#agent-safety-degraded`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；周边工作区、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
 
 ## 67. 2026-08-23 Agent User Cancelled 当前画板证据复核
 
@@ -622,8 +623,9 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器运行时实测视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`、`document` 和 `body` 均无横向溢出、文字越界 `0`；“第 2 次重连尝试 (最多 5 次)”和刷新提示均存在。
 - [x] Composer 在重连期间保持禁用，已显示的查询文本保留；真实 SSE 使用 `Last-Event-ID` 和 `sse_event_id` 去重，终态完成/失败/取消/取代后关闭连接，达到上限进入稳定错误状态。
 - [x] 前端左上角红、黄、绿窗口装饰点数量为 `0`；Figma 设计稿未修改。
-- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=400092`、差异比例 `27.1330%`、`MAE=2.9698`、`RMSE=14.6906`、最大通道差异 `234`；机器结果锚点为 `figma-105-diff-results.json#agent-sse-reconnecting`。
-- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；重连提示宽度、位置、头像和字体/图标光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
+- [x] 本次按 Figma 收口重连状态结构：补齐 Agent 头像、`560px` 回答气泡、`1132×66px` 全宽重连提示带，并使用已登记的 Figma loader SVG；前端左上角窗口装饰点仍为 `0`，Figma 设计稿未修改。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=388529`、差异比例 `26.3488%`、`MAE=2.6880`、`RMSE=15.2945`、最大通道差异 `244`；机器结果锚点为 `figma-105-diff-results.json#agent-sse-reconnecting`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；工作区壳层、头像和字体光栅化仍存在可见差异。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 UNMAPPED / 0 SIZE_MISMATCH / 0 PASS`，iconfont 继续为 `BLOCKED`。
 
 ## 69. 2026-08-23 摄入分析错误态当前画板收口
 
@@ -785,3 +787,21 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新浏览器 PNG 证据为 `agent-chat-search-results-browser-2026-08-23-space-mono-rgba.png`；`scripts/png-diff.mjs` 结果为差异比例 `33.98051%`、`MAE=4.15039`、`RMSE=19.39200`、最大通道差异 `255`，已同步 `figma-105-mapping.json`、`figma-105-diff-results.json#agent-chat-search-results` 和独立 diff JSON。
 - [x] `ChatPage.test.tsx` 与 `WorkspaceLayout.test.tsx` 定向测试 `28/28`，相关 TypeScript/TSX Prettier 检查通过。
 - [ ] 该画板继续保持 `DIFF_REVIEW`；整页壳层、头像、图标和光栅化差异仍未满足像素级 `PASS`，iconfont 继续为 `BLOCKED`。
+
+## 10. 本轮餐食规划空态实时验收
+
+2026-08-23 重新从实时 Figma 节点 `692:2446` 获取 `1440×1024` PNG。仓库中较早的 `docxs/设计/figma-png/meal-planning-empty.png` 与当前实时文件不是同一版基线，本轮不使用旧 PNG 作为该画板的最新差异依据；实时证据登记为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-empty-figma-live.png`。
+
+| 项目 | 结果 |
+|---|---|
+| 前端入口 | `/planning?state=empty` |
+| 卡片几何 | `x=590,y=340,width=520,height=368` |
+| Figma 子节点对应 | 图标 `100×100`、文案组 `424×82`、按钮 `192×42`、提示行 `412×16` |
+| 浏览器证据 | `meal-planning-empty-browser-current.jpg` / `meal-planning-empty-browser-current.png` |
+| 视口 / DPR | `1440×1024` / `1.0000000149011612` |
+| 页面溢出 | `body.scrollWidth <= innerWidth`，通过 |
+| 前端左上角窗口装饰点 | `0`；Figma 设计稿未修改，业务状态圆点保留 |
+| PNG diff | `13.2758% / MAE 1.2768 / RMSE 10.0411 / maxChannelDelta 244` |
+| 结论 | `DIFF_REVIEW` |
+
+本轮只调整前端空态卡片结构、间距、按钮图标容器和提示信息图标；真实计划接口、Figma 文件、iconfont 资源和其它页面不在本次修改范围。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。

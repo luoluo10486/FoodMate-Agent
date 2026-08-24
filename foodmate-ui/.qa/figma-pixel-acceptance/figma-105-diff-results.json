@@ -293,33 +293,33 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 135419,
-      "differentRatio": 0.09183688693576389,
-      "meanAbsoluteError": 2.8733783298068576,
-      "rmse": 17.6865136855922,
-      "maxChannelDelta": 250
+      "differentPixels": 292529,
+      "differentRatio": 0.19838392469618055,
+      "meanAbsoluteError": 2.9192213270399305,
+      "rmse": 16.610733475888047,
+      "maxChannelDelta": 249
     },
     "agent-user-cancelled": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 272934,
-      "differentRatio": 0.18509521484375,
-      "meanAbsoluteError": 2.3317916870117186,
-      "rmse": 14.434767356859172,
-      "maxChannelDelta": 235
+      "differentPixels": 264175,
+      "differentRatio": 0.17915513780381945,
+      "meanAbsoluteError": 2.566317070855035,
+      "rmse": 15.484618596721635,
+      "maxChannelDelta": 244
     },
     "agent-sse-reconnecting": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 400092,
-      "differentRatio": 0.27132975260416664,
-      "meanAbsoluteError": 2.969762674967448,
-      "rmse": 14.690589669994846,
-      "maxChannelDelta": 234
+      "differentPixels": 388529,
+      "differentRatio": 0.26348809136284723,
+      "meanAbsoluteError": 2.6880452473958334,
+      "rmse": 15.294532134594567,
+      "maxChannelDelta": 244
     },
     "agent-chat-redesign-default": {
       "status": "COMPARED",
@@ -447,11 +447,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 275892,
-      "differentRatio": 0.18710123697916667,
-      "meanAbsoluteError": 3.8243099636501734,
-      "rmse": 20.662830251013652,
-      "maxChannelDelta": 255
+      "differentPixels": 195759,
+      "differentRatio": 0.132757568359375,
+      "meanAbsoluteError": 1.2768052842881945,
+      "rmse": 10.041104604099312,
+      "maxChannelDelta": 244
     },
     "meal-planning-error": {
       "status": "COMPARED",

@@ -10,6 +10,8 @@ import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -22,33 +24,36 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** HTTP authentication endpoints and password-reset delivery. */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final UserAccountService service;
     private final boolean secureCookie;
     private final JavaMailSender mailSender;
+    private final String mailFrom;
+    private final String webBaseUrl;
 
-    @Value("${spring.mail.username:}")
-    private String mailFrom;
-
-    @Value("${foodmate.web.base-url:http://localhost:5173}")
-    private String webBaseUrl;
-
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public AuthController(
             UserAccountService service,
             @Value("${foodmate.security.cookie-secure:true}") boolean secureCookie,
-            org.springframework.beans.factory.ObjectProvider<JavaMailSender> mailProvider) {
+            ObjectProvider<JavaMailSender> mailProvider,
+            @Value("${spring.mail.username:}") String mailFrom,
+            @Value("${foodmate.web.base-url:http://localhost:5173}") String webBaseUrl) {
         this.service = service;
         this.secureCookie = secureCookie;
         this.mailSender = mailProvider.getIfAvailable();
+        this.mailFrom = mailFrom;
+        this.webBaseUrl = webBaseUrl;
     }
 
     public AuthController(UserAccountService service, boolean secureCookie) {
         this.service = service;
         this.secureCookie = secureCookie;
         this.mailSender = null;
+        this.mailFrom = "";
+        this.webBaseUrl = "http://localhost:5173";
     }
 
     @PostMapping("/register")
@@ -73,14 +78,22 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @CookieValue(value = "foodmate_session", required = false) String sessionToken) {
-        service.logout(sessionToken);
+            @CookieValue(value = "foodmate_session", required = false) String sessionToken,
+            @CookieValue(value = "foodmate_refresh", required = false) String refreshToken) {
+        service.logout(sessionToken, refreshToken);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_session", true).toString())
                 .header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_csrf", false).toString())
                 .header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_access", true).toString())
                 .header(HttpHeaders.SET_COOKIE, expiredCookie("foodmate_refresh", true).toString())
                 .body(ApiResponse.success(null, TraceContextHolder.currentOrNew()));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthResponse>> refresh(
+            jakarta.servlet.http.HttpServletRequest request,
+            @CookieValue(value = "foodmate_refresh", required = false) String refreshToken) {
+        return response(service.refresh(refreshToken, metadata(request)));
     }
 
     @PostMapping("/password-reset/request")
@@ -142,16 +155,35 @@ public class AuthController {
         AuthResponse body =
                 new AuthResponse(
                         result.userId(), result.username(), result.role(), result.expiresAt());
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.SET_COOKIE,
-                        cookie("foodmate_session", result.sessionToken(), result.expiresAt(), true)
-                                .toString())
-                .header(
-                        HttpHeaders.SET_COOKIE,
-                        cookie("foodmate_csrf", result.csrfToken(), result.expiresAt(), false)
-                                .toString())
-                .body(ApiResponse.success(body, TraceContextHolder.currentOrNew()));
+        var response =
+                ResponseEntity.ok()
+                        .header(
+                                HttpHeaders.SET_COOKIE,
+                                cookie(
+                                                "foodmate_session",
+                                                result.sessionToken(),
+                                                result.expiresAt(),
+                                                true)
+                                        .toString())
+                        .header(
+                                HttpHeaders.SET_COOKIE,
+                                cookie(
+                                                "foodmate_csrf",
+                                                result.csrfToken(),
+                                                result.expiresAt(),
+                                                false)
+                                        .toString());
+        if (result.refreshToken() != null && !result.refreshToken().isBlank())
+            response =
+                    response.header(
+                            HttpHeaders.SET_COOKIE,
+                            cookie(
+                                            "foodmate_refresh",
+                                            result.refreshToken(),
+                                            result.refreshExpiresAt(),
+                                            true)
+                                    .toString());
+        return response.body(ApiResponse.success(body, TraceContextHolder.currentOrNew()));
     }
 
     private static UserAccountService.SessionMetadata metadata(

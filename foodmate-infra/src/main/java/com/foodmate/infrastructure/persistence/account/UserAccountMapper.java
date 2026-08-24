@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.persistence.account;
 
 import com.foodmate.application.account.port.out.UserAccountRepository.AuthSessionRow;
+import com.foodmate.application.account.port.out.UserAccountRepository.RefreshTokenRow;
 import com.foodmate.application.account.service.UserAccountService.AdminUserView;
 import com.foodmate.application.account.service.UserAccountService.AuthSessionView;
 import com.foodmate.application.account.service.UserAccountService.MessageRecord;
@@ -42,6 +43,30 @@ public interface UserAccountMapper {
     @Update(
             "UPDATE user_auth_sessions SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND revoked_at IS NULL")
     void revokeAll(long userId);
+
+    @Update(
+            "UPDATE auth_refresh_tokens SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND revoked_at IS NULL AND is_deleted=FALSE")
+    void revokeAllRefreshTokens(long userId);
+
+    @Insert(
+            "INSERT INTO auth_refresh_tokens(refresh_token_id,user_id,token_hash,device_id,user_agent,ip_address,expires_at,rotated_from_token_id,created_by,updated_by) VALUES (#{id},#{userId},#{tokenHash},#{deviceId},#{userAgent},#{ipAddress},#{expiresAt},#{rotatedFromTokenId},#{userId},#{userId})")
+    void insertRefreshToken(
+            long id,
+            long userId,
+            String tokenHash,
+            String deviceId,
+            String userAgent,
+            String ipAddress,
+            Instant expiresAt,
+            Long rotatedFromTokenId);
+
+    @Select(
+            "WITH claimed AS (UPDATE auth_refresh_tokens SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE token_hash=#{tokenHash} AND is_deleted=FALSE AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP RETURNING refresh_token_id,user_id,device_id,user_agent,ip_address) SELECT refresh_token_id AS refreshTokenId,user_id AS userId,device_id AS deviceId,user_agent AS userAgent,ip_address AS ipAddress FROM claimed")
+    RefreshTokenRow consumeRefreshToken(String tokenHash);
+
+    @Update(
+            "UPDATE auth_refresh_tokens SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE token_hash=#{tokenHash} AND revoked_at IS NULL AND is_deleted=FALSE")
+    void revokeRefreshToken(String tokenHash);
 
     @Select(
             "SELECT auth_session_id AS authSessionId,device_id AS deviceId,user_agent AS userAgent,ip_address AS ipAddress,expires_at AS expiresAt,last_seen_at AS lastSeenAt,created_at AS createdAt,revoked_at AS revokedAt FROM user_auth_sessions WHERE user_id=#{userId} AND is_deleted=FALSE ORDER BY last_seen_at DESC")

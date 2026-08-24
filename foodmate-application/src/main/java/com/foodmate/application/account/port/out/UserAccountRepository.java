@@ -26,6 +26,22 @@ public interface UserAccountRepository {
 
     void revokeAll(long userId);
 
+    void revokeAllRefreshTokens(long userId);
+
+    void insertRefreshToken(
+            long id,
+            long userId,
+            String tokenHash,
+            String deviceId,
+            String userAgent,
+            String ipAddress,
+            Instant expiresAt,
+            Long rotatedFromTokenId);
+
+    RefreshTokenRow consumeRefreshToken(String tokenHash);
+
+    void revokeRefreshToken(String tokenHash);
+
     List<AuthSessionView> authSessions(long userId);
 
     List<AdminUserView> adminUsers();
@@ -115,4 +131,11 @@ public interface UserAccountRepository {
 
     record AuthSessionRow(
             long userId, String csrfTokenHash, Instant expiresAt, Instant revokedAt) {}
+
+    record RefreshTokenRow(
+            long refreshTokenId,
+            long userId,
+            String deviceId,
+            String userAgent,
+            String ipAddress) {}
 }

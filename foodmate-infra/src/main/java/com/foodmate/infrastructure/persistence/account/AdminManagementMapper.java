@@ -58,6 +58,10 @@ public interface AdminManagementMapper {
     int revokeSessions(@Param("userId") long userId, @Param("operatorId") long operatorId);
 
     @Update(
+            "UPDATE auth_refresh_tokens SET revoked_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId} WHERE user_id=#{userId} AND revoked_at IS NULL AND is_deleted=FALSE")
+    void revokeRefreshTokens(@Param("userId") long userId, @Param("operatorId") long operatorId);
+
+    @Update(
             "UPDATE users SET"
                     + " updated_at=CURRENT_TIMESTAMP,updated_by=#{operatorId},revision=revision+1 WHERE"
                     + " user_id=#{userId} AND is_deleted=FALSE AND revision=#{revision}")

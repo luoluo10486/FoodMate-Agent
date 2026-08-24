@@ -776,3 +776,82 @@
 | 可见性清理 | 文档 `349815171083931648`、`349815899194134528` 均通过正式 `POST /api/admin/knowledge-documents/{id}/delete` 软删除；两条可见性 Outbox 已为 `published`，当前公共已发布可检索文档数量为 `0`。 |
 | 数据边界 | 未执行 truncate、数据库硬删除、迁移、备份恢复或宽泛清理；知识切片、Outbox、Redis/Milvus 去重事实保留以维持审计和可追溯性；临时恢复用于 SSE 归属校验的测试账号已还原为禁用。 |
 | 结论 | M2-1 本地 deterministic AgentRun 引用和 Chat 兼容 SSE `Last-Event-ID` 业务回放已取得直接 HTTP 证据；性能、重启、ACK 丢失、重复消息故障矩阵和真实外部服务仍按当前决策暂缓。 |
+
+## D26 认证构造器注入修复与代码门禁复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 失败与修正 | 首次 `mvnw.cmd verify` 因 `AuthController` 存在两个构造器且未标记 Spring 注入构造器，API Spring 测试上下文出现 `No default constructor found`；已在主构造器补充 `@Autowired`，保留测试用简化构造器。首次失败另因该文件补丁换行格式混用，已使用 Spotless 自动修复。 |
+| 定向验证 | `mvnw.cmd -pl foodmate-api -am '-Dtest=AuthCookieMatrixTest,P1AccountControllerTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`：`6/6` 通过。 |
+| 全量 Java | 修复后 `mvnw.cmd verify`：BUILD SUCCESS；Shared `12/12`、Application `166/166`、Infrastructure `81/81`（17 skipped）、API `61/61`、Bootstrap `58/58`（37 skipped）；编译、Spotless、ArchUnit、Spring Boot repackage 通过。 |
+| 代码规范 | `mvnw.cmd -Palibaba-code-style verify '-DskipTests'`：六个模块 Checkstyle 均为 `0 violations`。 |
+| 数据与工作区 | 未执行迁移、数据库写入、truncate、备份恢复或运行时故障注入；用户已有 UI/Figma/QA 改动未暂存、未回滚。 |
+| 暂缓范围 | 性能压测、吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递、SSE 故障恢复、真实云模型/Embedding、staging/production、备份恢复、发布回滚和不可逆清理继续暂缓。 |
+| 结论 | 认证控制器 Spring 注入问题已修复，当前 Java 业务测试、格式检查、架构检查和 Alibaba 规范门禁通过；环境依赖型测试仍按现有开关跳过。 |
+
+## D27 Docker M2-1 stub 索引闭环与可见性验证（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/business-database-contracts`；Docker Compose `.env`；Java `foodmate`、Python `foodmate-agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO、Milvus 均 healthy；Java `/actuator/health/readiness` 和 Python `/foodmate/internal/health/ready` 均 HTTP 200。 |
+| Docker 修复 | `docker/rocketmq/init-topics.sh` 移除 `grep -q` 管道早退，并将 consumer group 输出落到临时文件后校验；RocketMQ 初始化容器最终退出码 `0`，知识索引/结果/可见性 Topic 和 consumer group 创建成功。 |
+| 配置边界 | `FOODMATE_RAG_MODE=stub`、`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`；仅使用 Redis 确定性索引，不读取 API Key，不连接 Milvus 写入，不调用付费服务。 |
+| 上传与索引 | 管理员批次 `349866183727517696` 上传 `README.md`；条目 `349866185271021569`、文档 `349866185271021568`；批次 `completed`，条目 `indexed`，`attempt_count=1`，解析生成 7 个 PostgreSQL chunk，索引 Outbox 为 `published`，Redis stub 共享索引键已产生。 |
+| 发布与检索 | 显式发布后，普通用户 `POST /api/knowledge-base/search` 查询 `Agent Runtime` 返回 2 条安全 citations；引用不含对象存储地址。 |
+| AgentRun | 普通用户创建真实 `/api/chat/runs`，Run `349867538139582464` 通过 RocketMQ 完成；事件序号连续 `1..7`，`run.completed` 包含 2 条 citations，来源 ID 同时出现在 context 事件。 |
+| 可见性门禁 | 依次调用 disable、restore、publish、delete；检索引用数分别为 `0`、`0`、`2`、`0`。恢复仅回到 `draft`，未自动发布；5 条可见性 Outbox 均为 `published`，文档最终为 `visibility=deleted,is_deleted=true`。 |
+| 审计与数据边界 | 本轮文档的管理员写操作产生 5 条 `operation_audits`；仅通过正式删除接口软删除本轮文档，保留 PostgreSQL chunk、Outbox、Redis 去重/索引事实以维持审计和可追溯性。未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理。 |
+| 暂缓范围 | 性能吞吐/延迟/积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障矩阵、真实 embedding、staging/production 和发布回滚继续暂缓。 |
+| 结论 | M2-1 Docker `local-stub` 业务主路径取得直接证据：上传、RocketMQ 索引、Java 结果回写、Redis 检索、显式发布、AgentRun 引用、下线/恢复/删除可见性门禁均通过；后置性能与故障类门禁不因此标记完成。 |
+
+## D28 业务契约注释、导入规范与功能版门禁复核（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Git 提交 | `af294f3 fix(规范): 消除测试源码通配符导入`；`60ba6f4 规范(知识库): 补充跨模块契约注释`。用户已有 `foodmate-ui` CSS/TSX、QA 截图和 `tmp` 未暂存、未回滚。 |
+| 代码规范 | 测试源码通配符 import 扫描为 `0`；生产源码控制台输出、堆栈打印、泛化异常捕获和 `MAX(id)+1` 扫描保持 `0`。受影响模块 Spotless check 和 Java 编译通过。 |
+| Java 业务验证 | 知识库索引/检索/上传、DLQ 重放、保留治理和管理控制器定向测试共 `56` 个通过：Application `39`、Infrastructure `9`、API `8`；未开启本地依赖 E2E 的测试仍按开关跳过。 |
+| Python 业务验证 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`116 passed、1 skipped、2 warnings`；跳过项为显式真实云集成，未调用真实模型或 embedding。 |
+| Docker 验证 | 使用临时显式环境变量执行 `docker compose -f docker/compose.yml config --quiet`，结果为 `COMPOSE_CONFIG_OK`；foodmate、agent-runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 相关容器均 healthy。 |
+| SQL 目录 | `migration` V2-V26 共 25 个增量脚本，`validation` 18 个，`rollback` 18 个；V3-V12 历史缺失配套仍按 README 矩阵说明，不新增危险删除脚本，不执行迁移或校验写操作。 |
+| 数据边界 | 未执行迁移、validation、rollback、truncate、数据库硬删除、备份恢复或宽泛清理；没有调用真实云模型/embedding，也未执行性能压测或故障矩阵。 |
+| 结论 | M2-1/M2-2/M2-3 与 M3 当前业务代码及业务测试门禁保持通过；性能、重启、ACK/重复消息、SSE 故障恢复、真实外部服务、生产部署和不可逆清理继续后置。 |
+
+## D29 全量功能版门禁与工作区收口（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| Java 全量验证 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `166/166`、Infrastructure `81`（17 skipped）、API `61/61`、Bootstrap `58`（37 skipped）；Spotless、ArchUnit、编译和 Spring Boot repackage 通过。 |
+| Alibaba profile | `mvnw.cmd -Palibaba-code-style verify -DskipTests`：六个模块 Checkstyle 均为 `0 violations`。该 profile 是项目内可执行子集，不替代人工完整手册审查。 |
+| Python | 使用项目 `agent-runtime\\.venv` 执行 pytest：`116 passed、1 skipped、2 warnings`；真实云集成保持显式跳过。 |
+| 前端 | 稳定参数下 Vitest `37` 个测试文件、`190/190` 通过；`npm.cmd run build`（含 typecheck 和 Vite）通过，转换 `2010` 个模块。默认并行模式的两个管理页超时在单 worker、15 秒门禁下全部通过，未修改其测试超时配置。 |
+| 工作区与临时文件 | 用户已有聊天页/QA 变更已由提交 `c28a4bc fix(聊天): 对齐SSE重连状态与验收证据` 保留；阿里手册临时 PDF `tmp/pdfs` 已清理，当前 Git 工作树干净。 |
+| 数据与暂缓边界 | 未执行迁移、validation、rollback、truncate、备份恢复、数据库硬删除、性能压测、依赖重启、ACK/重复消息故障注入或真实云模型/embedding 调用。 |
+| 结论 | 当前业务功能、测试、Java 格式/架构/代码规范、Python 运行时和前端构建门禁均可复核；M1-6 性能/故障类门禁及 M3 生产运维项继续后置。 |
+
+## D30 Refresh Token 业务路径接入与轮换验证（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | 接入已有 V1 `auth_refresh_tokens` 表：Java application/infrastructure 增加 refresh token 端口和 PostgreSQL 原子 claim；登录/注册设置 HttpOnly refresh Cookie；`POST /api/auth/refresh` 轮换 session、CSRF 和 refresh Cookie；注销、改密、密码重置、账号注销和管理员撤销全部会话联动撤销 refresh token；前端 API Client 对普通 API 401 做一次共享刷新后重试。 |
+| 安全边界 | 数据库只保存 token hash、过期、撤销、轮换来源和设备摘要；明文 refresh token 不进入 JSON、日志或 localStorage。Refresh endpoint 不要求旧 session 的 CSRF，但强制同源；缺失、过期或已消费 token 返回 `AUTH_REFRESH_TOKEN_INVALID`。 |
+| Java 业务测试 | `mvnw.cmd -pl foodmate-api -am test '-Dtest=AuthCookieMatrixTest,P1AccountControllerTest,AdminManagementControllerTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：`11/11` 通过；随后最终认证用例复跑 `AuthCookieMatrixTest,P1AccountControllerTest` 为 `9/9`；覆盖 Cookie 属性、明文 token 不进 JSON、轮换后旧 token 拒绝、注销撤销、缺失 token 稳定错误和管理员相关上下文。 |
+| 前端业务测试 | `npm.cmd test -- --run`：`38` 个测试文件、`192/192` 通过；`npm.cmd run typecheck` 通过；新增 401 刷新重试和 refresh endpoint 不递归测试。 |
+| 全量 Java 门禁 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `166/166`、Infrastructure `81`（17 skipped）、API `64/64`、Bootstrap `58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| 数据边界 | 未新增迁移，未执行迁移、truncate、备份恢复、数据库硬删除或生产数据库写入；V1 表和索引作为现有契约使用。工作树中用户已有 Planning/QA 文件未暂存、未回滚。 |
+| 暂缓范围 | 未进行真实 PostgreSQL refresh HTTP 联调、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障矩阵、真实云模型/embedding、staging/production、发布回滚和不可逆清理。 |
+| 结论 | 刷新令牌核心业务代码、API 契约、前端恢复行为和业务测试已完成；头像写路径独立验收、M1-6 性能/故障类门禁及 M3 生产运维项保持未完成。 |
+
+## D31 头像安全写路径与补偿验收（2026-08-23）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/business-database-contracts`；Java 21；项目 `foodmate-ui` Node 依赖；未调用真实 MinIO、云模型或生产服务。 |
+| 代码范围 | 头像上传增加 PNG/JPEG/WebP 实际签名、解码、尺寸、像素、字节数和路径穿越校验；对象键不再包含原始文件名；保存尺寸、原始文件名和 SHA-256 摘要；数据库/统一审计失败时补偿删除新对象；新增独立头像下载失败错误码；头像响应不暴露对象存储键。 |
+| Java 定向测试 | `mvnw.cmd -pl foodmate-application -am test '-Dtest=PersonalDataServiceImplTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：`5/5` 通过，覆盖合法 PNG、伪造 MIME、数据库失败补偿删除、对象删除失败关闭和下载错误码。 |
+| Java API/全量测试 | 头像相关账户 API 定向测试此前 `6/6` 通过；本轮 `mvnw.cmd verify`：BUILD SUCCESS；Shared `12/12`、Application `171/171`、Infrastructure `81`（17 skipped）、API `64/64`、Bootstrap `58`（37 skipped）；Spotless、ArchUnit、编译和 Spring Boot repackage 通过。 |
+| 前端业务测试 | `npm.cmd test -- --run`：`38` 个测试文件、`192/192` 通过；前端头像响应类型和当前用户头像路径类型变更未引入业务回归。 |
+| 失败记录 | 首次定向 Maven 命令因 PowerShell 未引用 `-D...=...` 被解析为非法生命周期阶段，未启动测试；改用项目既有引号写法后 `5/5` 通过。该命令行问题不属于代码失败。 |
+| 数据与工作树边界 | 未执行迁移、truncate、备份恢复、数据库硬删除、真实 MinIO E2E 或宽泛清理；用户已有 Planning/QA 文件及其他未纳入本轮的改动未暂存、未回滚。 |
+| 暂缓范围 | 性能压测、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障矩阵、真实云模型/embedding、staging/production、发布回滚和不可逆清理继续暂缓。 |
+| 结论 | 头像安全业务写路径、对象补偿、统一审计失败记录、稳定资源路径和前端契约已通过业务门禁；真实对象存储联调及性能/故障类门禁不因本轮标记完成。 |

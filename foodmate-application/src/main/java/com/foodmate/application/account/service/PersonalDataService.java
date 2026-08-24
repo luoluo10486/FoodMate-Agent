@@ -1,5 +1,7 @@
 package com.foodmate.application.account.service;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.io.InputStream;
 import java.time.Instant;
 
@@ -10,6 +12,10 @@ public interface PersonalDataService {
 
     void deleteAvatar(long userId);
 
+    String avatarResourceUrl(long userId);
+
+    String avatarDownloadUrl(long userId);
+
     long requestExport(long userId);
 
     long requestDeletion(long userId);
@@ -18,7 +24,8 @@ public interface PersonalDataService {
 
     String consumeExport(long userId, long jobId);
 
-    record Avatar(long avatarAssetId, String storageKey, String mimeType, long sizeBytes) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record Avatar(long avatarAssetId, String avatarUrl, String mimeType, long sizeBytes) {}
 
     record ExportJob(
             long exportJobId,

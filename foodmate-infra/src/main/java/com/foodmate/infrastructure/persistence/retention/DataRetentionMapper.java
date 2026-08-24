@@ -2,6 +2,7 @@ package com.foodmate.infrastructure.persistence.retention;
 
 import com.foodmate.application.retention.port.out.DataRetentionRepository;
 import java.time.Instant;
+import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -51,8 +52,7 @@ public interface DataRetentionMapper {
 
     @Select(
             "SELECT t.task_id AS taskId,t.request_id AS requestId,r.resource_type AS resourceType,r.resource_id AS resourceId,t.task_type AS taskType,t.topic,t.target_ref::text AS targetRef,t.status,p.hard_delete_enabled AS hardDeleteEnabled FROM data_purge_tasks t JOIN data_purge_requests r ON r.request_id=t.request_id JOIN data_retention_policies p ON p.policy_id=r.policy_id WHERE t.next_attempt_at<=CURRENT_TIMESTAMP AND ((t.status='pending') OR (t.status='leased' AND t.lease_until<CURRENT_TIMESTAMP)) AND (t.task_type<>'database' OR NOT EXISTS (SELECT 1 FROM data_purge_tasks prerequisite WHERE prerequisite.request_id=t.request_id AND prerequisite.task_type IN ('object_storage','vector_index') AND prerequisite.status<>'succeeded')) ORDER BY t.created_at LIMIT #{limit}")
-    java.util.List<DataRetentionRepository.PurgeTaskSnapshot> pendingTasks(
-            @Param("limit") int limit);
+    List<DataRetentionRepository.PurgeTaskSnapshot> pendingTasks(@Param("limit") int limit);
 
     @Update(
             "UPDATE data_purge_tasks SET status='leased',owner_token=#{owner},lease_until=CURRENT_TIMESTAMP+INTERVAL '30 seconds',attempt_count=attempt_count+1,updated_at=CURRENT_TIMESTAMP WHERE task_id=#{taskId} AND ((status='pending' AND next_attempt_at<=CURRENT_TIMESTAMP) OR (status='leased' AND lease_until<CURRENT_TIMESTAMP)) AND NOT EXISTS (SELECT 1 FROM data_legal_holds h WHERE h.resource_type=#{resourceType} AND h.resource_id=#{resourceId} AND h.status='active')")

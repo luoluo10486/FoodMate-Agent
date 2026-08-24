@@ -8,11 +8,25 @@ import java.util.List;
 public interface PersonalDataRepository {
     void replaceAvatars(long userId);
 
-    void insertAvatar(long id, long userId, String key, String mime, long size);
+    void insertAvatar(
+            long id,
+            long userId,
+            String key,
+            String url,
+            String mime,
+            long size,
+            int width,
+            int height,
+            String originalFilename,
+            String contentSha256);
 
     void clearAvatar(long userId);
 
+    void setAvatarUrl(long userId, String url);
+
     List<String> activeAvatarKeys(long userId);
+
+    AvatarRow activeAvatar(long userId);
 
     void deleteAvatars(long userId);
 
@@ -25,6 +39,8 @@ public interface PersonalDataRepository {
     void disableUser(long userId);
 
     void revokeSessions(long userId);
+
+    void revokeRefreshTokens(long userId);
 
     ExportRow findExport(long userId, long jobId);
 
@@ -71,6 +87,8 @@ public interface PersonalDataRepository {
     void completeDeletion(long jobId, long count);
 
     void failDeletion(long jobId, String code);
+
+    record AvatarRow(long avatarAssetId, String storageKey, String mimeType) {}
 
     record ExportRow(
             long id,
