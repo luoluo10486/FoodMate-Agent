@@ -867,3 +867,15 @@
 | 代码范围 | 收口 Composer 无效 props、管理/业务页面数据订阅 effect 的规则提示和依赖、无效导入/变量；未暂存用户已有 `PlanningPage` CSS、Figma/QA JSON 和截图。 |
 | 数据边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或真实云服务调用。 |
 | 结论 | 当前前端业务质量门禁通过；性能、故障恢复、真实外部服务和生产环境门禁继续按项目决策后置。 |
+
+## D33 当前分支全量业务门禁复跑（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/final-business-quality`；Java 21、项目 `agent-runtime\\.venv`；未调用真实云模型或付费 Embedding。 |
+| Java 全量验证 | `.\mvnw.cmd verify`：`BUILD SUCCESS`；Shared `12/12`、Application `171/171`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Alibaba 规范 | `.\mvnw.cmd -Palibaba-code-style verify -DskipTests`：六个模块 Checkstyle 均 `0 violations`。 |
+| Python 业务测试 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`116 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用付费服务。 |
+| 前端业务测试 | D32 已记录：lint、typecheck、Vitest `192/192` 和 Vite build 均通过。 |
+| 数据与运行边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作。 |
+| 结论 | 当前分支业务代码、Java/Python/前端业务门禁及 Java Alibaba 可执行规范子集均通过；真实依赖故障、性能、生产安全和不可逆清理继续后置。 |
