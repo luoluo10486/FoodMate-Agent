@@ -11,12 +11,7 @@
     "dpr": 1,
     "animation": "disabled for capture",
     "dynamicTime": "fixed",
-    "passRequires": [
-      "automated diff",
-      "geometry check",
-      "text check",
-      "manual visual review"
-    ],
+    "passRequires": ["automated diff", "geometry check", "text check", "manual visual review"],
     "statusSemantics": {
       "SIZE_MISMATCH": "Viewport dimensions differ",
       "UNMAPPED": "Route or evidence is missing",
@@ -1854,12 +1849,12 @@
       "frontendRoute": "/planning",
       "queryState": "state=error",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/meal-planning-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-figma-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: load-error semantics and retry action exist, but card geometry, typography, navigation density, and visual treatment differ.",
+      "evidenceNote": "2026-08-26 recapture after aligning the live Figma error card geometry, 0.06 error icon surface, 13px error-code line height, inset border, and 18px action line height; remaining shell, avatar, icon, and rasterization differences keep DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1884,8 +1879,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Load-error semantics and retry action exist, but card geometry, typography, navigation density, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the error card geometry and hierarchy are aligned; shell, avatar, icon, and rasterization differences remain. Retain DIFF_REVIEW."
       }
     },
     {

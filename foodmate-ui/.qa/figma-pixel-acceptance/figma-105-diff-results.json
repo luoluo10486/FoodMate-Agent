@@ -1,9 +1,7 @@
 {
   "generatedAt": "2026-08-23",
   "updatedAt": "2026-08-26",
-  "updatedResults": [
-    "meal-planning-loading"
-  ],
+  "updatedResults": ["meal-planning-loading"],
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -462,11 +460,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 272465,
-      "differentRatio": 0.1847771538628472,
-      "meanAbsoluteError": 3.2011483086480035,
-      "rmse": 18.544618178774634,
-      "maxChannelDelta": 239
+      "differentPixels": 194992,
+      "differentRatio": 0.13223741319444443,
+      "meanAbsoluteError": 1.2329416910807292,
+      "rmse": 9.919029727915557,
+      "maxChannelDelta": 244
     },
     "intake-analysis-loading": {
       "status": "COMPARED",
@@ -671,10 +669,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-        "differentPixels": 500939,
-        "differentRatio": 0.33972100151909723,
-        "meanAbsoluteError": 4.14716050889757,
-        "rmse": 19.364515234745557,
+      "differentPixels": 500939,
+      "differentRatio": 0.33972100151909723,
+      "meanAbsoluteError": 4.14716050889757,
+      "rmse": 19.364515234745557,
       "maxChannelDelta": 255
     },
     "agent-chat-search-results": {
@@ -682,10 +680,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-        "differentPixels": 501063,
-        "differentRatio": 0.3398050944010417,
-        "meanAbsoluteError": 4.1503929985894095,
-        "rmse": 19.39200210619958,
+      "differentPixels": 501063,
+      "differentRatio": 0.3398050944010417,
+      "meanAbsoluteError": 4.1503929985894095,
+      "rmse": 19.39200210619958,
       "maxChannelDelta": 255
     },
     "admin-knowledge-uploading": {

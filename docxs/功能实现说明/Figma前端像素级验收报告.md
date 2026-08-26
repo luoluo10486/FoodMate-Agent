@@ -101,15 +101,23 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 |---|---|---|---|---|---|
 | Loading | `692:2256` | `/planning?state=loading` | `meal-planning-loading-figma-live-2026-08-26.png` | `meal-planning-loading-browser-current-2026-08-26.jpg` / `meal-planning-loading-browser-current-2026-08-26-rgba.png` | `DIFF_REVIEW` |
 | Empty | `692:2446` | `/planning?state=empty` | `meal-planning-empty-figma.png` | `meal-planning-empty-browser-stable.png` / `meal-planning-empty-browser-stable-rgba.png` | `DIFF_REVIEW` |
-| Error | `692:2542` | `/planning?state=error` | `meal-planning-error-figma.png` | `meal-planning-error-browser-stable.png` / `meal-planning-error-browser-stable-rgba.png` | `DIFF_REVIEW` |
+| Error | `692:2542` | `/planning?state=error` | `meal-planning-error-figma-live-2026-08-26.png` | `meal-planning-error-browser-current-2026-08-26-rgba.png` | `DIFF_REVIEW` |
 
 | 状态 | 尺寸 | 差异比例 | RMSE | 结论 |
 |---|---:|---:|---:|---|
 | Loading | 1440×1024 | 18.1852% | 9.65195 | `DIFF_REVIEW` |
 | Empty | 1440×1024 | 16.98% | 16.88 | `DIFF_REVIEW` |
-| Error | 1440×1024 | 17.81% | 16.50 | `DIFF_REVIEW` |
+| Error | 1440×1024 | 13.2237% | 9.91903 | `DIFF_REVIEW` |
 
 三个状态均确认 `document.body.scrollWidth === window.innerWidth`。Empty 的“创建首个规划方案”已实际进入 `/chat?prompt=请为我创建本周餐食规划`；Error 的“重新加载”已实际恢复 `/planning` 默认态。这些是前端状态交互证据，不等价于真实计划数据、生成任务或后端错误闭环。
+
+## 12. 2026-08-26 餐食规划错误态实时 Figma 几何收口
+
+- [x] 重新读取实时 Figma 节点 `692:2542` 与元数据，确认主区为 `1180px`、顶部栏为 `68px`、错误卡片为 `520×417px`，内边距 `48px`，图标容器 `100×100px`，错误图标背景为 `rgba(255,117,118,0.06)`。
+- [x] 前端 `/planning?state=error` 仅收口错误态：卡片改为等效 `inset` 描边避免边框占用尺寸，错误码行高对齐到 `13px`，操作文字行高对齐到 `18px`，未改变空态、真实模式或 Figma 文件。
+- [x] 浏览器实测 `1440×1024`、DPR `1.0000000149011612`、字体已加载、无横向溢出；卡片为 `x=590,y=315.5,width=520,height=417`，错误图标为 `100×100`，前端左上角红黄绿窗口控制点为 `0`，业务状态点保留。
+- [x] 使用实时 Figma PNG `meal-planning-error-figma-live-2026-08-26.png` 与浏览器 RGBA PNG `meal-planning-error-browser-current-2026-08-26-rgba.png` 运行 `scripts/png-diff.mjs`：差异比例 `13.2237%`、`MAE=1.23294`、`RMSE=9.91903`、最大通道差异 `244`。
+- [ ] 该画板仍为 `DIFF_REVIEW`：错误卡片局部几何和层级已对齐，但整页壳层、头像、图标和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`。
 
 ## 9. 餐食规划流程状态补充验收
 

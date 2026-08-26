@@ -299,7 +299,7 @@
 }
 
 .feedbackIconError {
-  background: rgba(255, 117, 118, 0.1);
+  background: rgba(255, 117, 118, 0.06);
   color: #ff7576;
 }
 
@@ -371,7 +371,29 @@
   height: 368px;
   gap: 24px;
   border: 0;
-  box-shadow: inset 0 0 0 1px var(--fm-border), 0 12px 12px rgb(0 0 0 / 2%);
+  box-shadow:
+    inset 0 0 0 1px var(--fm-border),
+    0 12px 12px rgb(0 0 0 / 2%);
+}
+
+.feedbackCardError {
+  border: 0;
+  box-shadow:
+    inset 0 0 0 1px var(--fm-border),
+    0 12px 12px rgb(0 0 0 / 2%);
+}
+
+.feedbackCardError .errorCode {
+  line-height: 13px;
+}
+
+.feedbackCardError .feedbackActions button {
+  line-height: 18px;
+}
+
+.feedbackCardError .feedbackSecondary {
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--fm-border);
 }
 
 .feedbackCardEmpty .feedbackIcon {
