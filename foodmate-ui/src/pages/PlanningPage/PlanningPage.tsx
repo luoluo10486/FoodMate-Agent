@@ -189,8 +189,11 @@ function PlanLoadingView() {
         <section className={styles.loadingSchedule}>
           <span className={`${styles.skeleton} ${styles.loadingSectionTitle}`} />
           <div className={styles.loadingDays}>
+            <span className={styles.loadingDaySpacer} aria-hidden="true" />
             {days.map((day) => (
-              <span className={`${styles.skeleton} ${styles.loadingDay}`} key={day.key} />
+              <span className={styles.loadingDay} key={day.key}>
+                <span className={`${styles.skeleton} ${styles.loadingDaySkeleton}`} />
+              </span>
             ))}
           </div>
           {['早餐', '午餐', '晚餐'].map((label) => (
@@ -211,7 +214,10 @@ function PlanLoadingView() {
         <span className={`${styles.skeleton} ${styles.loadingSidebarTitle}`} />
         <div className={styles.loadingChecks}>
           {Array.from({ length: 4 }, (_, index) => (
-            <span className={`${styles.skeleton} ${styles.loadingCheck}`} key={index} />
+            <span className={styles.loadingCheck} key={index}>
+              <span className={`${styles.skeleton} ${styles.loadingCheckLabel}`} />
+              <span className={`${styles.skeleton} ${styles.loadingCheckBadge}`} />
+            </span>
           ))}
         </div>
         <div className={styles.loadingDivider} />
@@ -290,10 +296,13 @@ function DefaultPlanningView({ plan }: { plan?: MealPlan }) {
   const schedule = plan ? realSchedule(plan) : { days, rows: mealRows };
   const [activeDay, setActiveDay] = useState<DayKey>(plan ? (schedule.days[0]?.key ?? '0') : '14');
   const [notice, setNotice] = useState('');
+  const firstDayKey = plan ? (schedule.days[0]?.key ?? '0') : '14';
 
   useEffect(() => {
-    setActiveDay(plan ? (schedule.days[0]?.key ?? '0') : '14');
-  }, [plan?.meal_plan_id]);
+    // Reset the selected day when the authoritative plan schedule changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveDay(firstDayKey);
+  }, [firstDayKey]);
 
   const announce = (message: string) => setNotice(message);
   const planName = plan ? plan.plan_name?.trim() || '餐食计划' : '增肌计划 v3';
@@ -518,6 +527,8 @@ export function PlanningPage() {
   useEffect(() => {
     if (!isRealMode) return;
     let cancelled = false;
+    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     loadMealPlans()
       .then((value) => {
@@ -545,6 +556,8 @@ export function PlanningPage() {
 
   useEffect(() => {
     if (!isRealMode || !selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved') {
+      // The effect clears stale data when the selected plan is no longer eligible for this subscription.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRealShoppingList(undefined);
       setRealShoppingLoading(false);
       return;
@@ -564,7 +577,7 @@ export function PlanningPage() {
     return () => {
       cancelled = true;
     };
-  }, [isRealMode, selectedPlan?.meal_plan_id, selectedPlan?.deleted, selectedPlan?.status]);
+  }, [isRealMode, selectedPlan]);
   const isFigmaFixture = !isRealMode && (requestedView === 'v2' || view !== 'default');
 
   const navigatePlanningView = (nextView: MealPlanningFlowView | 'default') => {

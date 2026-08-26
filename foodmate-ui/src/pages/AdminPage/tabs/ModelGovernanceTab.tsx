@@ -64,6 +64,8 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
   }, [isReal]);
 
   useEffect(() => {
+    // Refresh is an external data subscription whose initial state is intentionally set by the loader.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh, refreshNonce]);
 

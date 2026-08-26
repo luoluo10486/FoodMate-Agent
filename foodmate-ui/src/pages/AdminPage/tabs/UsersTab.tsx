@@ -34,7 +34,6 @@ import {
   type UserRow,
   adminUserBusinessSessionRows,
   adminUserOperationHistoryRows,
-  adminUserRows,
   adminUserSessionRows,
   canAccessAdmin,
   canManage,
@@ -378,7 +377,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
 
       <aside className={styles.usersDetailColumn}>
         {selectedUser ? (
-          <UserDetailCard user={selectedUser} onAction={onAction} onRevoke={() => revokeSessions(selectedUser)} />
+          <UserDetailCard user={selectedUser} onRevoke={() => revokeSessions(selectedUser)} />
         ) : (
           <Card className={styles.userDetailCard}>
             <div className={styles.emptyState}>
@@ -508,15 +507,7 @@ function UserStatusTag({ status }: { status: string }) {
   return <span className={`${styles.userStatusTag} ${styles[`userStatus${status}`]}`}>{label}</span>;
 }
 
-function UserDetailCard({
-  user,
-  onAction,
-  onRevoke,
-}: {
-  user: AdminUserView;
-  onAction: (payload: AdminActionPayload) => void;
-  onRevoke: () => void;
-}) {
+function UserDetailCard({ user, onRevoke }: { user: AdminUserView; onRevoke: () => void }) {
   const sessions = isMockMode ? adminUserSessionRows.filter((item) => item.userId === user.userId) : [];
   const businessSessions = isMockMode ? adminUserBusinessSessionRows.filter((item) => item.userId === user.userId) : [];
   const operationHistory = isMockMode

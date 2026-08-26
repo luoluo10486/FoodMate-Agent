@@ -268,10 +268,6 @@ function ChatSurface({
           value={input}
           running={running}
           disabled={disabled}
-          toolsUsed={run.toolsUsed}
-          toolsTotal={run.toolsTotal}
-          agentsUsed={run.agentsUsed}
-          agentsTotal={run.agentsTotal}
           placeholder={placeholder}
           onChange={onChange}
           onSend={onSend}
@@ -370,10 +366,6 @@ function EmptyChatPage() {
         <Composer
           value={input}
           placeholder="输入消息或添加自定义指令..."
-          toolsUsed={0}
-          toolsTotal={6}
-          agentsUsed={0}
-          agentsTotal={1}
           onChange={setInput}
           onSend={send}
           onStop={() => undefined}
@@ -1585,6 +1577,8 @@ function RealChatPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // Reset state when the route changes; the following stream subscription owns these values.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveRunId(undefined);
     setRunStatus('idle');
     setAssistantText('');
@@ -1619,6 +1613,8 @@ function RealChatPage() {
 
   useEffect(() => {
     if (!activeRunId) return undefined;
+    // The stream subscription establishes the queued state before receiving runtime events.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRunStatus('queued');
     setAssistantText('');
     const stream = openAgentRunStream(

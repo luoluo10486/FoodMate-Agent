@@ -21,10 +21,6 @@ function renderComposer({
         value={value}
         running={running}
         disabled={disabled}
-        toolsUsed={0}
-        toolsTotal={6}
-        agentsUsed={0}
-        agentsTotal={1}
         onChange={setValue}
         onSend={onSend}
         onStop={onStop}

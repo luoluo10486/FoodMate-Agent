@@ -79,7 +79,6 @@ describe('AdminOperationStatus', () => {
   });
 
   it('shows the operator no-permission banner and a dismissible success banner', async () => {
-    const user = userEvent.setup();
     const { rerender } = renderStatus('no-permission');
 
     expect(screen.getByRole('alert')).toHaveTextContent('Operator');

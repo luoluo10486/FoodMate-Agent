@@ -244,6 +244,8 @@ export function DietRecordsPage() {
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
+    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
     const window = dayWindow(selectedDate);
