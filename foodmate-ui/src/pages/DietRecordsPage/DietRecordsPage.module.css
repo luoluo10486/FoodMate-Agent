@@ -448,6 +448,17 @@
   line-height: 17px;
 }
 
+.figmaErrorStatePanel {
+  height: 457px;
+  min-height: 457px;
+  padding-top: 120px;
+  padding-bottom: 120px;
+}
+
+.figmaErrorStatePanel .stateCopy p {
+  line-height: 17px;
+}
+
 .stateAction {
   height: 42px;
   padding: 0 24px;
@@ -868,5 +879,12 @@
   .figmaEmptyStatePanel {
     height: auto;
     min-height: 300px;
+  }
+
+  .figmaErrorStatePanel {
+    height: auto;
+    min-height: 300px;
+    padding-top: 56px;
+    padding-bottom: 56px;
   }
 }

@@ -2361,7 +2361,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/analysis?state=error",
+      "url": "/analysis?view=records&state=error",
       "viewport": {
         "height": 1024,
         "width": 1440

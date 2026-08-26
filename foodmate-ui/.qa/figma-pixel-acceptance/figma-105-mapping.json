@@ -1714,14 +1714,14 @@
         "height": 1024
       },
       "frontendRoute": "/analysis",
-      "queryState": "state=error",
+      "queryState": "view=records&state=error",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-error-browser-current-rgba.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/diet-records-error-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-error-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/diet-records-current-diff.json#diet-records-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no text or layout overflow; automatic diff ratio 0.18699137369791666. Retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-26 recapture after aligning the error-state panel to live Figma geometry (1116x457px), vertical padding (120px), copy line-height (17px), icon position, and action position; fonts loaded, DPR 1.0000000149011612, no text or layout overflow. Automatic diff ratio 0.11939900716145833. Retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1746,8 +1746,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture capture retains retry action, Figma identity and three-session navigation. Automated diff remains 18.70%; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the error-state panel, icon, copy, and retry action geometry are aligned. Shell identity, avatar, icon treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {

@@ -473,7 +473,11 @@ export function DietRecordsPage() {
               </div>
             </section>
           ) : visibleState === 'error' ? (
-            <section className={styles.statePanel} aria-label="饮食记录加载失败" role="alert">
+            <section
+              className={`${styles.statePanel} ${isFigmaFixture ? styles.figmaErrorStatePanel : ''}`}
+              aria-label="饮食记录加载失败"
+              role="alert"
+            >
               <div className={`${styles.stateIcon} ${styles.stateIconError}`}>
                 <AlertTriangle aria-hidden="true" />
               </div>

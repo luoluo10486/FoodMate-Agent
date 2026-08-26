@@ -36,11 +36,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 275730,
-      "differentRatio": 0.18699137369791666,
-      "meanAbsoluteError": 3.2224497477213543,
-      "rmse": 20.12634241696051,
-      "maxChannelDelta": 247
+      "differentPixels": 176061,
+      "differentRatio": 0.11939900716145833,
+      "meanAbsoluteError": 1.3800957573784722,
+      "rmse": 11.406570967944083,
+      "maxChannelDelta": 230
     }
   }
 }

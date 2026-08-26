@@ -843,3 +843,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测字体已加载、页面无横向溢出、文字越界为 `0`、DPR `1.0000000149011612`；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
 - [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-empty-live-2026-08-26.png` 和 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-empty-browser-current-2026-08-26-rgba.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=217516`、差异比例 `14.7512%`、`MAE=1.63114`、`RMSE=12.22059`、最大通道差异 `230`，独立结果为 `diet-records-current-diff.json`。
 - [ ] 当前画板继续保持 `DIFF_REVIEW`：工作区壳层、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+## 91. 2026-08-26 饮食记录 Error 实时 Figma 几何收口
+
+- [x] 重新读取实时 Figma 节点 `692:1685`，前端入口为 `/analysis?view=records&state=error`；Figma 与浏览器视口均为 `1440×1024`。
+- [x] 按当前 Figma 结构收口 Error fixture：错误面板为 `1116×457px`，垂直内边距为 `120px`，图标容器为 `80×80px`，文案组为 `144×47px`，重载按钮为 `132×42px`；副文案行高调整为 `17px`。
+- [x] 浏览器实测字体已加载、页面无横向溢出、文字越界为 `0`、DPR `1.0000000149011612`；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-error-live-2026-08-26.png` 和 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-error-browser-current-2026-08-26-rgba.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=176061`、差异比例 `11.9399%`、`MAE=1.38010`、`RMSE=11.40657`、最大通道差异 `230`，独立结果为 `diet-records-current-diff.json`。
+- [ ] 当前画板继续保持 `DIFF_REVIEW`：工作区壳层、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
