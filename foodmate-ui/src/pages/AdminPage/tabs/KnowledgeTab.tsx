@@ -22,7 +22,6 @@ import {
   streamKnowledgeBatch,
   updateKnowledgeStatus,
   uploadKnowledgeBatch,
-  uploadKnowledgeDocument,
 } from '../../../services/adminService';
 
 const figmaKnowledgeRows: KnowledgeRow[] = [
@@ -116,6 +115,8 @@ export function KnowledgeSection({
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
+    // The effect owns the request lifecycle, so loading/error reset belongs to this subscription boundary.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
     loadAdminDashboard()

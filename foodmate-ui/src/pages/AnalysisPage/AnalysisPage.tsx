@@ -93,13 +93,21 @@ function LoadingAnalysis() {
   return (
     <>
       <LoadingMetrics />
-      <section className={styles.chartCard} aria-label="能量摄入分析加载中" aria-busy="true">
+      <section
+        className={`${styles.chartCard} ${styles.loadingChartCard}`}
+        aria-label="能量摄入分析加载中"
+        aria-busy="true"
+      >
         <h2>能量摄入与目标对比</h2>
         <div className={styles.loadingChartArea}>
           <Skeleton className={styles.loadingChartSkeleton} />
         </div>
       </section>
-      <section className={styles.insightCard} aria-label="营养洞察加载中" aria-busy="true">
+      <section
+        className={`${styles.insightCard} ${styles.loadingInsightCard}`}
+        aria-label="营养洞察加载中"
+        aria-busy="true"
+      >
         <h2>营养洞察（由 Agent 生成）</h2>
         <div className={styles.loadingInsightList}>
           {Array.from({ length: 3 }, (_, index) => (
@@ -208,6 +216,8 @@ export function AnalysisPage() {
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
+    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
     loadNutritionAnalysis(realRange)

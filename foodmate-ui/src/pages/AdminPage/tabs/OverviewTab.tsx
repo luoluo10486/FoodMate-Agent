@@ -114,6 +114,8 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
+    // The effect owns the request lifecycle, so clearing the previous error starts a new subscription.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError('');
     Promise.all([
       loadAdminDashboard(),

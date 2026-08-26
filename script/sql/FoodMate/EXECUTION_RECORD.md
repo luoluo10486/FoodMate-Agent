@@ -855,3 +855,91 @@
 | 数据与工作树边界 | 未执行迁移、truncate、备份恢复、数据库硬删除、真实 MinIO E2E 或宽泛清理；用户已有 Planning/QA 文件及其他未纳入本轮的改动未暂存、未回滚。 |
 | 暂缓范围 | 性能压测、吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障矩阵、真实云模型/embedding、staging/production、发布回滚和不可逆清理继续暂缓。 |
 | 结论 | 头像安全业务写路径、对象补偿、统一审计失败记录、稳定资源路径和前端契约已通过业务门禁；真实对象存储联调及性能/故障类门禁不因本轮标记完成。 |
+
+## D32 前端业务质量门禁复核（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | `foodmate-ui`；Node 依赖使用项目现有安装；未调用真实云模型、Embedding 或外部生产服务。 |
+| Git 提交 | `9a33bec fix(前端): 收口业务代码质量门禁`。 |
+| 代码质量 | `npm.cmd run lint`：退出码 `0`，无 ESLint 错误或未使用禁用指令；Prettier `endOfLine` 调整为 `auto`，避免对现有 LF/CRLF 文件进行全仓换行改写。 |
+| 业务测试 | `npm.cmd test -- --run`：38 个测试文件、`192/192` 通过。 |
+| 类型与构建 | `npm.cmd run typecheck` 通过；`npm.cmd run build` 通过，Vite 转换 `2010` 个模块。 |
+| 代码范围 | 收口 Composer 无效 props、管理/业务页面数据订阅 effect 的规则提示和依赖、无效导入/变量；未暂存用户已有 `PlanningPage` CSS、Figma/QA JSON 和截图。 |
+| 数据边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或真实云服务调用。 |
+| 结论 | 当前前端业务质量门禁通过；性能、故障恢复、真实外部服务和生产环境门禁继续按项目决策后置。 |
+
+## D33 当前分支全量业务门禁复跑（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/final-business-quality`；Java 21、项目 `agent-runtime\\.venv`；未调用真实云模型或付费 Embedding。 |
+| Git 提交 | `2e83e7b docs(门禁): 同步前端业务验证状态`、`bae0d2e docs(执行记录): 登记全量业务门禁复跑`。 |
+| Java 全量验证 | `.\mvnw.cmd verify`：`BUILD SUCCESS`；Shared `12/12`、Application `171/171`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Alibaba 规范 | `.\mvnw.cmd -Palibaba-code-style verify -DskipTests`：六个模块 Checkstyle 均 `0 violations`。 |
+| Python 业务测试 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`116 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用付费服务。 |
+| 前端业务测试 | D32 已记录：lint、typecheck、Vitest `192/192` 和 Vite build 均通过。 |
+| 数据与运行边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作。 |
+| 结论 | 当前分支业务代码、Java/Python/前端业务门禁及 Java Alibaba 可执行规范子集均通过；真实依赖故障、性能、生产安全和不可逆清理继续后置。 |
+
+## D34 本地依赖业务主路径回归（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/final-business-quality`；Java 21；Docker Engine `28.5.1`；未调用真实云模型或付费 Embedding。 |
+| 依赖状态 | PostgreSQL 容器此前停止，本轮执行 `docker compose --env-file .env -f docker/compose.yml up -d postgres` 后恢复为 `healthy`；foodmate、agent-runtime、Redis、MinIO、RocketMQ NameServer/Broker/Proxy 保持 healthy。 |
+| HTTP 业务回归 | `.\mvnw.cmd -pl foodmate-bootstrap -am test "-Dfoodmate.local-http-e2e=true" "-Dtest=M15FoodLogWriterHttpE2ETest" "-Dsurefire.failIfNoSpecifiedTests=false"`：`11/11` 通过，0 失败、0 错误。 |
+| RocketMQ 业务回归 | `.\mvnw.cmd -pl foodmate-bootstrap -am test "-Dfoodmate.local-mq-e2e=true" "-Dtest=M15FoodLogWriterProposalResultE2ETest" "-Dsurefire.failIfNoSpecifiedTests=false"`：`11/11` 通过，0 失败、0 错误；覆盖 Proposal/Result 消息主路径。 |
+| 数据边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测或故障注入；未清理现有本地数据。 |
+| 暂缓范围 | Docker 流量统计、组件重启矩阵、ACK 丢失、重复投递故障注入、SSE 故障恢复、真实云模型/embedding、staging/production、发布回滚和不可逆清理继续暂缓。 |
+| 结论 | PostgreSQL 恢复后，HTTP 与 RocketMQ 两条 `food_log_writer` 业务主路径均取得真实本地依赖回归证据；该证据不扩大 M1-6 性能与故障类门禁范围。 |
+
+## D35 项目产品与实现入口状态收口（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/final-business-quality`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Git 提交 | `1969e22 docs(项目): 对齐产品与实现入口状态`；仅更新产品范围/需求、Agent 架构、双运行时契约、后端现状、前端实现入口和前端实现清单 7 个文档。 |
+| 文档对齐 | M2-1 公共知识库 deterministic 上传/索引/发布/检索/引用、M2-2 deterministic Tool/SQL 和 M2-3 管理核心切片按现有代码与业务证据登记；真实云服务、生产长稳、性能和故障门禁明确保留为后置范围。 |
+| 文档校验 | 上述 7 个文档执行 `git diff --check`，无空白错误；未修改用户已有前端/Figma/QA 文件。 |
+| 业务门禁依据 | 沿用 D32-D34：Java `verify`、Python `116 passed/1 skipped`、前端 `192/192` 及 lint/typecheck/build 通过，HTTP/MQ `food_log_writer` 各 `11/11` 通过。 |
+| 数据与运行边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作。 |
+| 结论 | 产品、架构、契约和实现入口已与当前 deterministic 本地业务状态一致；未将 deterministic 证据扩展为真实云、性能、故障恢复或生产完成。 |
+
+## D36 历史状态文档口径修正（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/final-business-quality`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Git 提交 | `9a0fbac docs(项目): 标注历史状态与当前闭环`；更新 MVP 主链路状态和 V2 双运行时迁移设计 2 个历史入口。 |
+| 文档修正 | 更新主链路状态日期与 M2-1/M2-2/M2-3 当前 deterministic 业务闭环；将 V2 设计中的旧 Tool/SQL 判断明确标注为原始维护基线历史事实。 |
+| 文档校验 | 两个文档执行 `git diff --check`，无空白错误；全量复核文档与执行记录执行 `git diff --check`，无错误。 |
+| 数据与运行边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有 Figma/QA 和前端修改未暂存、未回滚。 |
+| 结论 | 历史设计入口已明确与当前实现状态的时间边界；当前业务代码、测试与后置生产范围保持可追溯。 |
+
+## D37 运行时异常处理与业务门禁复核（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/final-business-quality`；Java 21；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码提交 | `b3a089d fix(运行时): 补齐异常日志与代码规范`；仅修改 `RuntimeGatewayServiceImpl`，为监听器、超时取消和事件载荷解析异常补充结构化日志，补齐匿名实现 `@Override`、显式类型导入和控制语句大括号。 |
+| 定向验证 | `.\mvnw.cmd --% -pl foodmate-application -am -Dtest=RuntimeGatewayServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`：`5/5` 通过。首次未带 `-am` 的命令因未构建 reactor 依赖导致共享类型缺失，已使用正确命令重跑成功。 |
+| Java 全量验证 | `.\mvnw.cmd verify`：`BUILD SUCCESS`；Shared `12/12`、Application `171/171`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Alibaba 规范 | `.\mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及六个模块均 `0 Checkstyle violations`。未使用默认 sun_checks 结果作为项目门禁。 |
+| 只读审查 | 生产 Java 超长行共 `313` 条，主要来自既有 MyBatis SQL 注解；数字解析、反射查找中的 `ignored` 捕获属于预期控制流，未扩大为无关重构。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| Python 业务验证 | `.\agent-runtime\.venv\Scripts\python.exe -m pytest -q`：`116 passed、1 skipped、2 warnings`；跳过项为显式真实云集成，未调用真实模型或 Embedding。 |
+| Docker 验证 | `docker compose --env-file .env -f docker/compose.yml config --quiet`：`COMPOSE_CONFIG_OK`；Java、Python、PostgreSQL、Redis、RocketMQ NameServer/Broker/Proxy、MinIO、Milvus 及其依赖当前均 healthy。 |
+| 结论 | 运行时高置信度规范问题已修复并通过业务门禁；M2-1 deterministic 本地闭环沿用 D27/D34 直接证据，性能、故障恢复和真实外部服务继续后置。 |
+
+## D38 运行时控制语句规范收尾（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/final-business-quality`；Java 21；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码范围 | `RuntimeGatewayServiceImpl` 为事件 JDBC 分派、运行状态校验、监听器移除和事件发布等 5 处单行控制语句补齐大括号；未改变业务逻辑。 |
+| 格式化 | `.\mvnw.cmd spotless:apply`：BUILD SUCCESS；Application 仅本次 Java 文件被格式化，其余模块无变更。 |
+| 定向测试 | `.\mvnw.cmd -pl foodmate-application -am -Dtest=RuntimeGatewayServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`：`5/5` 通过，0 失败、0 错误。首次未带 `-am` 的命令因未构建 reactor 依赖导致共享类型缺失，已使用正确命令重跑成功；另一次 PowerShell 参数未引用导致 Maven 将参数误识别为生命周期阶段，均不属于代码失败。 |
+| Alibaba 规范 | `.\mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及五个 Java 模块均 `0 Checkstyle violations`，BUILD SUCCESS。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | 运行时本轮控制语句规范收尾已通过定向业务测试、Spotless 和 Alibaba Checkstyle；性能、故障恢复、真实外部服务和生产门禁继续后置。 |

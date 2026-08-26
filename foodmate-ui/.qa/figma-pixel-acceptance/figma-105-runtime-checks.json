@@ -358,7 +358,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/analysis?state=loading",
+      "url": "/analysis?view=records&state=loading",
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -1463,7 +1463,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/analysis?state=empty",
+      "url": "/analysis?view=records&state=empty",
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -2361,7 +2361,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/analysis?state=error",
+      "url": "/analysis?view=records&state=error",
       "viewport": {
         "height": 1024,
         "width": 1440

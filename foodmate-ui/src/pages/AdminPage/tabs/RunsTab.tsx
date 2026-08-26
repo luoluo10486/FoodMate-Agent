@@ -503,6 +503,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   useEffect(() => {
     if (!isRealMode) return;
     let mounted = true;
+    // The effect owns the request lifecycle, so clearing the previous error starts a new subscription.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError('');
     Promise.all([
       loadAdminQuery<AdminQueryRun>('runs'),
@@ -603,15 +605,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     () =>
       dashboard.dlq.filter((row) =>
         matchesCommon(
-          [
-            row.dlqId,
-            row.consumerGroup,
-            row.sourceTopic,
-            row.messageId,
-            row.runId,
-            row.dispatchId,
-            row.eventId,
-          ],
+          [row.dlqId, row.consumerGroup, row.sourceTopic, row.messageId, row.runId, row.dispatchId, row.eventId],
           row.reconciliationState,
           row.errorCode,
           normalizedQuery,

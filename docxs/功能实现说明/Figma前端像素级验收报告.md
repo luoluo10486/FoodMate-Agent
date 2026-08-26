@@ -99,17 +99,25 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 | 状态 | Figma 节点 | 前端入口 | Figma 证据 | 浏览器证据 | 结果 |
 |---|---|---|---|---|---|
-| Loading | `692:2256` | `/planning?state=loading` | `meal-planning-loading-figma.png` | `meal-planning-loading-browser-stable.png` / `meal-planning-loading-browser-stable-rgba.png` | `DIFF_REVIEW` |
+| Loading | `692:2256` | `/planning?state=loading` | `meal-planning-loading-figma-live-2026-08-26.png` | `meal-planning-loading-browser-current-2026-08-26.jpg` / `meal-planning-loading-browser-current-2026-08-26-rgba.png` | `DIFF_REVIEW` |
 | Empty | `692:2446` | `/planning?state=empty` | `meal-planning-empty-figma.png` | `meal-planning-empty-browser-stable.png` / `meal-planning-empty-browser-stable-rgba.png` | `DIFF_REVIEW` |
-| Error | `692:2542` | `/planning?state=error` | `meal-planning-error-figma.png` | `meal-planning-error-browser-stable.png` / `meal-planning-error-browser-stable-rgba.png` | `DIFF_REVIEW` |
+| Error | `692:2542` | `/planning?state=error` | `meal-planning-error-figma-live-2026-08-26.png` | `meal-planning-error-browser-current-2026-08-26-rgba.png` | `DIFF_REVIEW` |
 
 | 状态 | 尺寸 | 差异比例 | RMSE | 结论 |
 |---|---:|---:|---:|---|
-| Loading | 1440×1024 | 26.74% | 13.19 | `DIFF_REVIEW` |
+| Loading | 1440×1024 | 18.1852% | 9.65195 | `DIFF_REVIEW` |
 | Empty | 1440×1024 | 16.98% | 16.88 | `DIFF_REVIEW` |
-| Error | 1440×1024 | 17.81% | 16.50 | `DIFF_REVIEW` |
+| Error | 1440×1024 | 13.2237% | 9.91903 | `DIFF_REVIEW` |
 
 三个状态均确认 `document.body.scrollWidth === window.innerWidth`。Empty 的“创建首个规划方案”已实际进入 `/chat?prompt=请为我创建本周餐食规划`；Error 的“重新加载”已实际恢复 `/planning` 默认态。这些是前端状态交互证据，不等价于真实计划数据、生成任务或后端错误闭环。
+
+## 12. 2026-08-26 餐食规划错误态实时 Figma 几何收口
+
+- [x] 重新读取实时 Figma 节点 `692:2542` 与元数据，确认主区为 `1180px`、顶部栏为 `68px`、错误卡片为 `520×417px`，内边距 `48px`，图标容器 `100×100px`，错误图标背景为 `rgba(255,117,118,0.06)`。
+- [x] 前端 `/planning?state=error` 仅收口错误态：卡片改为等效 `inset` 描边避免边框占用尺寸，错误码行高对齐到 `13px`，操作文字行高对齐到 `18px`，未改变空态、真实模式或 Figma 文件。
+- [x] 浏览器实测 `1440×1024`、DPR `1.0000000149011612`、字体已加载、无横向溢出；卡片为 `x=590,y=315.5,width=520,height=417`，错误图标为 `100×100`，前端左上角红黄绿窗口控制点为 `0`，业务状态点保留。
+- [x] 使用实时 Figma PNG `meal-planning-error-figma-live-2026-08-26.png` 与浏览器 RGBA PNG `meal-planning-error-browser-current-2026-08-26-rgba.png` 运行 `scripts/png-diff.mjs`：差异比例 `13.2237%`、`MAE=1.23294`、`RMSE=9.91903`、最大通道差异 `244`。
+- [ ] 该画板仍为 `DIFF_REVIEW`：错误卡片局部几何和层级已对齐，但整页壳层、头像、图标和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`。
 
 ## 9. 餐食规划流程状态补充验收
 
@@ -805,3 +813,40 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | 结论 | `DIFF_REVIEW` |
 
 本轮只调整前端空态卡片结构、间距、按钮图标容器和提示信息图标；真实计划接口、Figma 文件、iconfont 资源和其它页面不在本次修改范围。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 11. 2026-08-26 餐食规划 Loading 实时 Figma 几何收口
+
+- [x] 重新读取实时 Figma 节点 `692:2256` 和完整截图；确认画板为 `1440×1024`，主计划区为 `840px`、右栏为 `340px`，loading banner 为 `776×102px`，日期骨架卡为 `123.2×40px`，餐食骨架卡为 `123.2×74px`，右栏约束行分别为 `292×44px`。
+- [x] 前端 `/planning?state=loading` 只调整 loading fixture：摘要、日期骨架卡、餐食骨架条、右栏约束骨架、购物清单骨架的颜色、尺寸、间距和渐变均按实时节点回读值实现；真实计划加载和接口逻辑未改变。
+- [x] 浏览器实测 `1440×1024`、DPR `1.0000000149011612`、字体已加载、页面无横向溢出；主区/右栏关键坐标与 Figma 对齐。前端左上角红黄绿窗口控制点检测为 `0`，没有删除会话状态点、购物清单复选框或其它业务圆点；Figma 设计稿未修改。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png`、`meal-planning-loading-browser-current-2026-08-26.jpg` 和 `meal-planning-loading-browser-current-2026-08-26-rgba.png`；同尺寸 `scripts/png-diff.mjs` 结果为差异比例 `18.1852%`、`MAE=1.19237`、`RMSE=9.65195`、最大通道差异 `244`，已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json#meal-planning-loading`。
+- [x] `PlanningPage.test.tsx` 定向测试 `8/8`、`npm run typecheck` 和 `git diff --check` 通过；当前改动仍只属于该 loading 小点。
+- [ ] 该画板继续保持 `DIFF_REVIEW`，剩余整页壳层、头像、图标、字体和光栅化差异不满足像素级 `PASS`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+## 88. 2026-08-26 摄入分析 Loading 实时 Figma 结构收口
+
+- [x] 重新读取实时 Figma 节点 `692:1901`，前端入口为 `/analysis?state=loading`；画板与浏览器视口均为 `1440×1024`。
+- [x] 按当前 Figma 结构收口 Loading 专属几何：指标区 `126px`，图表卡 `303px`（`y=314px`），图表骨架 `1068×160px`，洞察卡 `217px`（`y=641px`），洞察骨架列表 `1068×74px`；指标、图表和洞察外框使用等效内描边，不改变布局盒尺寸。
+- [x] 浏览器实测字体已加载、页面无横向溢出、文字越界为 `0`；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-figma-live-2026-08-26.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current-2026-08-26.jpg` 和 RGBA PNG；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=433106`、差异比例 `29.3719%`、`MAE=1.38677`、`RMSE=9.60788`、最大通道差异 `230`，独立结果为 `intake-analysis-loading-current-diff.json`。
+- [ ] 当前画板继续保持 `DIFF_REVIEW`：导航上下文、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+## 89. 2026-08-26 饮食记录 Loading 实时 Figma 结构收口
+
+- [x] 重新读取实时 Figma 节点 `692:1427`，前端入口为 `/analysis?view=records&state=loading`；Figma 与浏览器视口均为 `1440×1024`。
+- [x] 按当前 Figma 结构收口 Loading fixture：指标区为 `1116×80px`，指标骨架为 `80×16px` 与 `120×24px`，四张指标卡间距为 `16px`；餐次容器与指标区间距为 `24px`，两张餐次卡分别为 `1116×118px` 和 `1116×168px`，餐次内容骨架为 `42px` 行高、`8px` 行间距。
+- [x] 浏览器实测字体已加载、页面无横向溢出、`1440×1024` 视口和 DPR `1.0000000149011612` 均通过；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-loading-live-2026-08-26.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-loading-browser-current-2026-08-26.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=228793`、差异比例 `15.5160%`、`MAE=1.33810`、`RMSE=11.19032`、最大通道差异 `230`，独立结果为 `diet-records-current-diff.json`。
+- [ ] 当前画板继续保持 `DIFF_REVIEW`：工作区壳层、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+## 90. 2026-08-26 饮食记录 Empty 实时 Figma 几何收口
+
+- [x] 重新读取实时 Figma 节点 `692:1556`，前端入口为 `/analysis?view=records&state=empty`；Figma 与浏览器视口均为 `1440×1024`。
+- [x] 按当前 Figma 结构收口 Empty fixture：营养指标卡为 `267×88px`，空态面板为 `1116×377px`，图标容器为 `80×80px`，文案组为 `182×47px`，按钮为 `132×42px`；副文案行高调整为 `17px`。
+- [x] 浏览器实测字体已加载、页面无横向溢出、文字越界为 `0`、DPR `1.0000000149011612`；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-empty-live-2026-08-26.png` 和 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-empty-browser-current-2026-08-26-rgba.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=217516`、差异比例 `14.7512%`、`MAE=1.63114`、`RMSE=12.22059`、最大通道差异 `230`，独立结果为 `diet-records-current-diff.json`。
+- [ ] 当前画板继续保持 `DIFF_REVIEW`：工作区壳层、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+## 91. 2026-08-26 饮食记录 Error 实时 Figma 几何收口
+
+- [x] 重新读取实时 Figma 节点 `692:1685`，前端入口为 `/analysis?view=records&state=error`；Figma 与浏览器视口均为 `1440×1024`。
+- [x] 按当前 Figma 结构收口 Error fixture：错误面板为 `1116×457px`，垂直内边距为 `120px`，图标容器为 `80×80px`，文案组为 `144×47px`，重载按钮为 `132×42px`；副文案行高调整为 `17px`。
+- [x] 浏览器实测字体已加载、页面无横向溢出、文字越界为 `0`、DPR `1.0000000149011612`；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-error-live-2026-08-26.png` 和 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-error-browser-current-2026-08-26-rgba.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=176061`、差异比例 `11.9399%`、`MAE=1.38010`、`RMSE=11.40657`、最大通道差异 `230`，独立结果为 `diet-records-current-diff.json`。
+- [ ] 当前画板继续保持 `DIFF_REVIEW`：工作区壳层、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。

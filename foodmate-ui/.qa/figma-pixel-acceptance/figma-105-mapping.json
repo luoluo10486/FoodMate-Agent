@@ -11,12 +11,7 @@
     "dpr": 1,
     "animation": "disabled for capture",
     "dynamicTime": "fixed",
-    "passRequires": [
-      "automated diff",
-      "geometry check",
-      "text check",
-      "manual visual review"
-    ],
+    "passRequires": ["automated diff", "geometry check", "text check", "manual visual review"],
     "statusSemantics": {
       "SIZE_MISMATCH": "Viewport dimensions differ",
       "UNMAPPED": "Route or evidence is missing",
@@ -1499,7 +1494,7 @@
         "height": 1024
       },
       "frontendRoute": "/",
-      "queryState": "view=records&state=loading",
+      "queryState": "state=loading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/workspace-home-loading.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-loading-browser.png",
@@ -1631,14 +1626,14 @@
         "height": 1024
       },
       "frontendRoute": "/analysis",
-      "queryState": "state=loading",
+      "queryState": "view=records&state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-loading-browser-current-rgba.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/diet-records-loading-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-loading-browser-current-2026-08-26.png",
       "diffJson": ".qa/figma-pixel-acceptance/diet-records-current-diff.json#diet-records-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no text or layout overflow; automatic diff ratio 0.2635274251302083. Retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-26 recapture after aligning the live Figma loading metrics (80px), meal-card group spacing (24px), meal-card heights (118px and 168px), skeleton rows (42px with 8px gap), and inset padding; remaining shell, avatar, icon, typography, and rasterization differences keep DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1663,8 +1658,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture capture retains skeleton semantics and Figma identity/navigation fixture. Automated diff remains 26.35%; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the loading metrics and meal skeleton geometry are aligned. Shell identity, avatar, icon treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -1675,14 +1670,14 @@
         "height": 1024
       },
       "frontendRoute": "/analysis",
-      "queryState": "state=empty",
+      "queryState": "view=records&state=empty",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-empty-browser-current-rgba.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/diet-records-empty-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-empty-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/diet-records-current-diff.json#diet-records-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no text or layout overflow; automatic diff ratio 0.16022203233506943. Retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-26 recapture after aligning the empty-state panel to live Figma geometry (1116x377px), copy line-height (17px), icon position, and action position; fonts loaded, DPR 1.0000000149011612, no text or layout overflow. Automatic diff ratio 0.1475124782986111. Retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1707,8 +1702,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture capture retains zero metrics, empty-record action, Figma identity and three-session navigation. Automated diff remains 16.02%; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the empty-state panel, icon, copy, and action geometry are aligned. Shell identity, avatar, icon treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -1719,14 +1714,14 @@
         "height": 1024
       },
       "frontendRoute": "/analysis",
-      "queryState": "state=error",
+      "queryState": "view=records&state=error",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-error-browser-current-rgba.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/diet-records-error-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-error-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/diet-records-current-diff.json#diet-records-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no text or layout overflow; automatic diff ratio 0.18699137369791666. Retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-26 recapture after aligning the error-state panel to live Figma geometry (1116x457px), vertical padding (120px), copy line-height (17px), icon position, and action position; fonts loaded, DPR 1.0000000149011612, no text or layout overflow. Automatic diff ratio 0.11939900716145833. Retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1751,8 +1746,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture capture retains retry action, Figma identity and three-session navigation. Automated diff remains 18.70%; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the error-state panel, icon, copy, and retry action geometry are aligned. Shell identity, avatar, icon treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {
@@ -1765,12 +1760,13 @@
       "frontendRoute": "/planning",
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/meal-planning-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-loading-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-loading-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: loading semantics exist, but skeleton geometry, navigation content, and side-panel treatment differ.",
+      "evidenceNote": "2026-08-26 复核：主区与右栏骨架几何已按实时 Figma 节点对齐，前端左上角未渲染窗口三色点；PNG diff 仍存在视觉差异，保留 DIFF_REVIEW。",
+      "lastVerifiedAt": "2026-08-26",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1795,8 +1791,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Loading semantics exist, but skeleton geometry, navigation content, and side-panel treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Loading semantics and primary geometry are aligned with the live Figma node. The frontend intentionally omits the Figma window-control dots; remaining raster and shell differences require DIFF_REVIEW."
       }
     },
     {
@@ -1853,12 +1849,12 @@
       "frontendRoute": "/planning",
       "queryState": "state=error",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/meal-planning-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-figma-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: load-error semantics and retry action exist, but card geometry, typography, navigation density, and visual treatment differ.",
+      "evidenceNote": "2026-08-26 recapture after aligning the live Figma error card geometry, 0.06 error icon surface, 13px error-code line height, inset border, and 18px action line height; remaining shell, avatar, icon, and rasterization differences keep DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1883,8 +1879,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Load-error semantics and retry action exist, but card geometry, typography, navigation density, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the error card geometry and hierarchy are aligned; shell, avatar, icon, and rasterization differences remain. Retain DIFF_REVIEW."
       }
     },
     {
@@ -1897,12 +1893,12 @@
       "frontendRoute": "/analysis",
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-loading-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current-rgba.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-figma-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: loading metric cards now use the Figma 126px card geometry and matching 32px/16px skeleton sizes; remaining navigation, avatar, typography, and rasterization differences keep DIFF_REVIEW.",
+      "evidenceNote": "2026-08-26 recapture after aligning the live Figma loading metrics (126px), chart card (303px at y=314), chart skeleton (1068x160), insight card (217px at y=641), inset borders, and insight skeleton geometry; remaining navigation, avatar, icon, typography, and rasterization differences keep DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1927,8 +1923,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "The current browser capture matches the Figma loading metric-card height and skeleton geometry. Navigation context, avatar treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the loading metric, chart, insight, and skeleton geometry are aligned. Navigation context, avatar, icon treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {

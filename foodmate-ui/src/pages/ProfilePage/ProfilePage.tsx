@@ -1827,6 +1827,8 @@ function RealMemoriesTab() {
   };
 
   useEffect(() => {
+    // Initial refresh is the subscription boundary for the real memory list.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, []);
 

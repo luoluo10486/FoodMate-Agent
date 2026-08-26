@@ -2,13 +2,13 @@
 
 版本：v1.1 实现对齐基线
 
-维护基线：2026-08-01
+维护基线：2026-08-26
 
 对应架构：[架构总览](./架构总览.md)、[Agent 运行架构](./Agent运行架构.md)、[Java 控制面工程设计](./Java控制面工程设计.md)
 
 对应契约：[双运行时内部契约 V1](../契约/双运行时内部契约V1.md)、[智能体行为与工具协议](../契约/智能体行为与工具协议.md)
 
-文档定位：本文同时记录 Python Agent Runtime 的工程边界、当前实现结构和未来扩展方向。当前实现已经包含固定 Workflow、Router、Planner、Execution、Step Validator、Reflector、Composer、Eval、预算、Proposal/Result、Redis checkpoint 和 RocketMQ 适配；RAG 目前只有授权上下文边界和扩展位置，生产检索、完整业务 Tool/SQL 场景和生产级治理仍是后续能力。Workflow 节点、在线 Eval Gate、循环预算和退回矩阵以[Agent 运行架构](./Agent运行架构.md)为架构依据，实际完成状态以本文当前实现对齐小节和 M1-4 实现说明为准。
+文档定位：本文同时记录 Python Agent Runtime 的工程边界、当前实现结构和未来扩展方向。当前实现已经包含固定 Workflow、Router、Planner、Execution、Step Validator、Reflector、Composer、Eval、预算、Proposal/Result、Redis checkpoint、RocketMQ 适配以及公共知识库 RAG；RAG 的本地 deterministic stub、确定性 Milvus、PDF/DOCX/Markdown/TXT 安全解析、索引 Worker、可见性过滤和安全引用均已有业务测试或 Docker 业务证据。真实云模型/embedding 长稳、生产规模和生产级治理仍是后续能力。Workflow 节点、在线 Eval Gate、循环预算和退回矩阵以[Agent 运行架构](./Agent运行架构.md)为架构依据，实际完成状态以本文当前实现对齐小节和执行记录为准。
 
 ## 当前实现对齐基线（2026-08-01）
 
@@ -22,10 +22,12 @@
 - Redis Inbox/Outbox、CAS/TTL/可选加密 checkpoint、RocketMQ command/event/proposal/result、Tool/SQL Result 回注、Java 恢复入口和本地浏览器 SSE 闭环已有验证。
 - 最近 8 条原始消息、摘要更新、过期长期记忆过滤、记忆候选协议和来源元数据已经接入；Python 不持有 FoodMate PostgreSQL 业务凭据。
 - Eval Gate 已在正文发布前执行，运行时发布 `run.eval_decided` 元数据事件；Judge schema/provider/分数失败和高风险无人审核路径均 fail-closed 到安全降级。
+- 公共知识库 RAG 已实现：`knowledge_worker.py` 负责安全解析、确定性分块、索引结果和可见性消息；`knowledge_rag.py` 提供 Redis stub、确定性 local embedding、OpenAI-compatible embedding 与 Milvus 适配器。检索固定为 `tenant_id=0`、`public_published`、已发布、已索引、当前版本和未删除文档。
+- AgentRun 会从 Java 授权上下文读取固定 `knowledge_scope=public_published`，自动检索最多 12 个候选并输出受数量和文档贡献上限约束的安全 citations；引用只含标题、版本、章节路径、chunk ID 和片段，不含对象存储信息。
 
 ### 尚未完成的发布级能力
 
-- 生产 RAG 检索、完整业务 Tool/SQL 场景和统一生产 Trace/指标系统仍未完成。
+- 生产 RAG 的真实云 embedding 长稳、索引容量和统一生产 Trace/指标系统仍未完成；本地 deterministic RAG 不等价于生产级检索质量结论。
 - 生产资源上的长时间压力、容量 P95/P99、队列防饥饿、多 Java 实例业务流量和进程级故障恢复指标仍未形成结论。
 - 真实云模型长时间重复稳定性、正式供应商价格核准、账单抽样对账和成本异常告警仍未完成。
 - 生产 Eval 还需要固定 Prompt/模型/价格版本、人工 reviewed calibration、统一指标存储和告警；本地 Golden/pytest 只构成回归基线。
@@ -368,4 +370,4 @@ Python 只消费脱敏、版本化 Schema Catalog，生成 SqlProposal 并等待
 6. 恢复测试：checkpoint 恢复前与 Java 对账，不重复 Tool/SQL 副作用。
 7. Evaluation 回归：固定数据集、Prompt 版本、结构化输出和引用准确性。
 
-本地闭环完成标准是当前 `runtime_server.py` 能在项目虚拟环境中启动，Python 测试通过，并与 Java 完成 dispatch、事件、proposal、取消、恢复和错误闭环。生产完成还必须额外满足本节“尚未完成的发布级能力”；未来迁移到 FastAPI/Pydantic 后仍需保持同一契约。
+本地闭环完成标准是当前 `runtime_server.py` 能在项目虚拟环境中启动，Python 测试通过，并与 Java 完成 dispatch、事件、proposal、取消、恢复、错误和公共知识引用闭环。生产完成还必须额外满足本节“尚未完成的发布级能力”；未来迁移到 FastAPI/Pydantic 后仍需保持同一契约。

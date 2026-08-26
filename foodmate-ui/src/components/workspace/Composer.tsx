@@ -8,10 +8,6 @@ type ComposerProps = {
   placeholder?: string;
   running?: boolean;
   disabled?: boolean;
-  toolsUsed: number;
-  toolsTotal: number;
-  agentsUsed: number;
-  agentsTotal: number;
   onChange?: (value: string) => void;
   onSend?: () => void;
   onStop?: () => void;
@@ -22,10 +18,6 @@ export function Composer({
   placeholder = '让 FoodMate 计算、分析、记录或规划...',
   running = false,
   disabled = false,
-  toolsUsed,
-  toolsTotal,
-  agentsUsed,
-  agentsTotal,
   onChange,
   onSend,
   onStop,

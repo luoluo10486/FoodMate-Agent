@@ -244,6 +244,8 @@ export function DietRecordsPage() {
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
+    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
     const window = dayWindow(selectedDate);
@@ -434,7 +436,11 @@ export function DietRecordsPage() {
           </header>
 
           {visibleState === 'loading' ? (
-            <section className={styles.loadingContent} aria-label="饮食记录加载中" aria-busy="true">
+            <section
+              className={`${styles.loadingContent} ${isFigmaFixture ? styles.figmaLoadingContent : ''}`}
+              aria-label="饮食记录加载中"
+              aria-busy="true"
+            >
               <div className={styles.loadingMetrics}>
                 {Array.from({ length: 4 }, (_, index) => (
                   <div className={styles.loadingMetric} key={index}>
@@ -444,24 +450,34 @@ export function DietRecordsPage() {
                   </div>
                 ))}
               </div>
-              <div className={styles.loadingMeal}>
-                <div className={styles.loadingMealHeader}>
-                  <span />
-                  <i />
+              <div className={styles.loadingMeals}>
+                <div className={styles.loadingMeal}>
+                  <div className={styles.loadingMealHeader}>
+                    <span />
+                    <i />
+                  </div>
+                  <div className={styles.loadingMealRows}>
+                    <strong />
+                  </div>
                 </div>
-                <strong />
-              </div>
-              <div className={styles.loadingMeal}>
-                <div className={styles.loadingMealHeader}>
-                  <span />
-                  <i />
+                <div className={`${styles.loadingMeal} ${styles.loadingMealDouble}`}>
+                  <div className={styles.loadingMealHeader}>
+                    <span />
+                    <i />
+                  </div>
+                  <div className={styles.loadingMealRows}>
+                    <strong />
+                    <strong />
+                  </div>
                 </div>
-                <strong />
-                <strong />
               </div>
             </section>
           ) : visibleState === 'error' ? (
-            <section className={styles.statePanel} aria-label="饮食记录加载失败" role="alert">
+            <section
+              className={`${styles.statePanel} ${isFigmaFixture ? styles.figmaErrorStatePanel : ''}`}
+              aria-label="饮食记录加载失败"
+              role="alert"
+            >
               <div className={`${styles.stateIcon} ${styles.stateIconError}`}>
                 <AlertTriangle aria-hidden="true" />
               </div>
@@ -493,7 +509,10 @@ export function DietRecordsPage() {
               </section>
 
               {visibleState === 'empty' ? (
-                <section className={styles.statePanel} aria-label="今天还没有饮食记录">
+                <section
+                  className={`${styles.statePanel} ${isFigmaFixture ? styles.figmaEmptyStatePanel : ''}`}
+                  aria-label="今天还没有饮食记录"
+                >
                   <div className={`${styles.stateIcon} ${styles.stateIconEmpty}`}>
                     <Utensils aria-hidden="true" />
                   </div>
