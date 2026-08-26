@@ -9,6 +9,8 @@ import com.foodmate.application.runtime.port.out.RuntimeGatewayPort;
 import com.foodmate.application.runtime.port.out.RuntimeRepository;
 import com.foodmate.application.runtime.service.RuntimeGatewayService;
 import com.foodmate.shared.conversation.enums.MessageRole;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.EventInbox;
 import com.foodmate.shared.runtime.RunCommand;
@@ -23,16 +25,19 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
+    private static final Logger log = LoggerFactory.getLogger(RuntimeGatewayServiceImpl.class);
     private final Map<String, String> dispatches = new HashMap<>();
     private final Map<String, String> cancels = new HashMap<>();
     private final Map<String, Status> statuses = new HashMap<>();
-    private final Map<String, java.util.List<RunEvent>> eventHistory = new HashMap<>();
+    private final Map<String, List<RunEvent>> eventHistory = new HashMap<>();
     private final Map<String, List<Consumer<RunEvent>>> listeners = new HashMap<>();
     private final EventInbox inbox = new EventInbox();
     private final RuntimeRepository store;
@@ -54,10 +59,12 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
         this.store = null;
         this.gatewayClient =
                 new RuntimeGatewayPort() {
+                    @Override
                     public Response dispatch(RunCommand command) {
                         return new Response(202, "{}");
                     }
 
+                    @Override
                     public Response cancel(CancelCommand command) {
                         return new Response(202, "{}");
                     }
@@ -77,8 +84,9 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
 
     @Override
     public synchronized CommandResult dispatch(RunCommand command) {
-        if (command.deadlineAt().isBefore(Instant.now()))
+        if (command.deadlineAt().isBefore(Instant.now())) {
             throw new RuntimeException("RUNTIME_DEADLINE_EXCEEDED", "dispatch deadline exceeded");
+        }
         requireRuntimeAvailable();
         String fingerprint =
                 command.runId()
@@ -93,28 +101,33 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
             result = dispatchJdbc(command, fingerprint);
         } else {
             String previous = dispatches.putIfAbsent(command.dispatchId(), fingerprint);
-            if (previous != null && !previous.equals(fingerprint))
+            if (previous != null && !previous.equals(fingerprint)) {
                 throw new IdempotencyConflict("RUNTIME_DISPATCH_IDEMPOTENCY_CONFLICT");
-            if (previous != null)
+            }
+            if (previous != null) {
                 return new CommandResult(
                         command.dispatchId(),
                         command.runId(),
                         statuses.getOrDefault(command.runId(), Status.DISPATCHED),
                         true);
+            }
             statuses.putIfAbsent(command.runId(), Status.DISPATCHED);
             result =
                     new CommandResult(
                             command.dispatchId(), command.runId(), Status.DISPATCHED, false);
         }
-        if (!result.duplicate() && gatewayClient != null) gatewayClient.dispatch(command);
+        if (!result.duplicate() && gatewayClient != null) {
+            gatewayClient.dispatch(command);
+        }
         scheduleTimeout(command);
         return result;
     }
 
     @Override
     public synchronized CommandResult cancel(CancelCommand command) {
-        if (command.deadlineAt().isBefore(Instant.now()))
+        if (command.deadlineAt().isBefore(Instant.now())) {
             throw new RuntimeException("RUNTIME_DEADLINE_EXCEEDED", "cancel deadline exceeded");
+        }
         requireRuntimeAvailable();
         String fingerprint = command.runId() + "|" + command.reason() + "|" + command.deadlineAt();
         if (store != null) {
@@ -122,14 +135,19 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
             if (!result.duplicate()
                     && gatewayClient != null
                     && result.status() != Status.SUCCEEDED
-                    && result.status() != Status.FAILED) gatewayClient.cancel(command);
+                    && result.status() != Status.FAILED) {
+                gatewayClient.cancel(command);
+            }
             return result;
         }
         String previous = cancels.putIfAbsent(command.cancelId(), fingerprint);
-        if (previous != null && !previous.equals(fingerprint))
+        if (previous != null && !previous.equals(fingerprint)) {
             throw new IdempotencyConflict("RUNTIME_CANCEL_IDEMPOTENCY_CONFLICT");
+        }
         Status current = statuses.get(command.runId());
-        if (current == null) throw new IllegalArgumentException("runId does not exist");
+        if (current == null) {
+            throw new IllegalArgumentException("runId does not exist");
+        }
         if (previous == null && current != Status.SUCCEEDED && current != Status.FAILED) {
             statuses.put(command.runId(), Status.CANCELED);
             updateAgentStatus(command.runId(), AgentStatus.CANCELLED, null);
@@ -145,7 +163,9 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
                     .computeIfAbsent(command.runId(), ignored -> new ArrayList<>())
                     .add(canceled);
             publish(canceled);
-            if (gatewayClient != null) gatewayClient.cancel(command);
+            if (gatewayClient != null) {
+                gatewayClient.cancel(command);
+            }
         }
         return new CommandResult(
                 command.cancelId(),
@@ -157,15 +177,14 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     @Override
     public synchronized EventResult event(RunEvent event) {
         if (store != null) return eventJdbc(event);
-        if (!statuses.containsKey(event.runId()))
+        if (!statuses.containsKey(event.runId())) {
             throw new IllegalArgumentException("runId does not exist");
+        }
         EventInbox.Result result = inbox.accept(event);
         if (result == EventInbox.Result.ACCEPTED) {
             statuses.put(event.runId(), toStatus(event.state()));
             updateAgentStatus(event.runId(), toAgentStatus(event.state()), event.payload());
-            eventHistory
-                    .computeIfAbsent(event.runId(), ignored -> new java.util.ArrayList<>())
-                    .add(event);
+            eventHistory.computeIfAbsent(event.runId(), ignored -> new ArrayList<>()).add(event);
             publish(event);
             persistAssistantAnswer(event);
         }
@@ -229,27 +248,31 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     public synchronized void requireRunOwner(String runId, long userId) {
         RunContext context = runContexts.get(runId);
         if (context != null) {
-            if (context.userId() != userId)
-                throw new com.foodmate.shared.error.BusinessException(
-                        com.foodmate.shared.error.ErrorCode.FORBIDDEN);
+            if (context.userId() != userId) {
+                throw new BusinessException(ErrorCode.FORBIDDEN);
+            }
             return;
         }
         if (store != null && runId.matches("\\d+")) {
             Long owner = store.owner(Long.parseLong(runId));
-            if (owner != null && owner == userId) return;
+            if (owner != null && owner == userId) {
+                return;
+            }
         }
-        throw new com.foodmate.shared.error.BusinessException(
-                com.foodmate.shared.error.ErrorCode.FORBIDDEN);
+        throw new BusinessException(ErrorCode.FORBIDDEN);
     }
 
     /** 注册监听器，并先回放指定序号之后的事件，再接收实时事件。 */
     @Override
     public synchronized void subscribe(
             String runId, long afterSequence, Consumer<RunEvent> listener) {
-        if (!statuses.containsKey(runId) && store == null && !runExistsJdbc(runId))
+        if (!statuses.containsKey(runId) && store == null && !runExistsJdbc(runId)) {
             throw new IllegalArgumentException("runId does not exist");
+        }
         for (RunEvent event : events(runId))
-            if (event.eventSeq() > afterSequence) listener.accept(event);
+            if (event.eventSeq() > afterSequence) {
+                listener.accept(event);
+            }
         listeners.computeIfAbsent(runId, ignored -> new ArrayList<>()).add(listener);
     }
 
@@ -268,7 +291,11 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
         for (Consumer<RunEvent> listener : List.copyOf(current)) {
             try {
                 listener.accept(event);
-            } catch (RuntimeException ignored) {
+            } catch (RuntimeException exception) {
+                log.warn(
+                        "runtime event listener failed and was removed: runId={}",
+                        event.runId(),
+                        exception);
                 current.remove(listener);
             }
         }
@@ -302,7 +329,9 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
             if (current == null
                     || current == Status.SUCCEEDED
                     || current == Status.FAILED
-                    || current == Status.CANCELED) return;
+                    || current == Status.CANCELED) {
+                return;
+            }
         }
         try {
             cancel(
@@ -311,7 +340,12 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
                             command.runId(),
                             "deadline_exceeded",
                             Instant.now().plusSeconds(30)));
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "runtime timeout cancellation failed: runId={}, dispatchId={}",
+                    command.runId(),
+                    command.dispatchId(),
+                    exception);
         }
     }
 
@@ -322,8 +356,9 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     private CommandResult dispatchJdbc(RunCommand command, String fingerprint) {
         String old = store.dispatchFingerprint(command.dispatchId());
         if (old != null) {
-            if (!old.equals(fingerprint))
+            if (!old.equals(fingerprint)) {
                 throw new IdempotencyConflict("RUNTIME_DISPATCH_IDEMPOTENCY_CONFLICT");
+            }
             return new CommandResult(
                     command.dispatchId(), command.runId(), statusJdbc(command.runId()), true);
         }
@@ -335,13 +370,16 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     private CommandResult cancelJdbc(CancelCommand command, String fingerprint) {
         String old = store.cancelFingerprint(command.cancelId());
         if (old != null) {
-            if (!old.equals(fingerprint))
+            if (!old.equals(fingerprint)) {
                 throw new IdempotencyConflict("RUNTIME_CANCEL_IDEMPOTENCY_CONFLICT");
+            }
             return new CommandResult(
                     command.cancelId(), command.runId(), statusJdbc(command.runId()), true);
         }
         Status current = statusJdbc(command.runId());
-        if (current == null) throw new IllegalArgumentException("runId does not exist");
+        if (current == null) {
+            throw new IllegalArgumentException("runId does not exist");
+        }
         store.insertCancel(command.cancelId(), command.runId(), fingerprint);
         if (current != Status.SUCCEEDED && current != Status.FAILED) {
             store.updateStatus(command.runId(), Status.CANCELED.name());
@@ -354,23 +392,28 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
         String fingerprint =
                 event.eventSeq() + "|" + event.state() + "|" + String.valueOf(event.payload());
         Status current = statusJdbc(event.runId());
-        if (current == null) throw new IllegalArgumentException("runId does not exist");
+        if (current == null) {
+            throw new IllegalArgumentException("runId does not exist");
+        }
         String known = store.eventFingerprint(event.runId(), event.eventId());
         if (known != null) {
-            if (!fingerprint.equals(known))
+            if (!fingerprint.equals(known)) {
                 throw new RuntimeException(
                         "RUNTIME_EVENT_IDEMPOTENCY_CONFLICT", "event fingerprint conflict");
+            }
             return new EventResult(event.eventId(), event.runId(), current, true);
         }
         RuntimeRepository.EventHead latest = store.latestEvent(event.runId());
         if (latest != null) {
             long previousSeq = latest.seq();
             RunEvent.State previous = RunEvent.State.valueOf(latest.state());
-            if (event.eventSeq() <= previousSeq)
+            if (event.eventSeq() <= previousSeq) {
                 throw new RuntimeException(
                         "RUNTIME_EVENT_OUT_OF_ORDER", "event sequence out of order");
-            if (event.eventSeq() > previousSeq + 1)
+            }
+            if (event.eventSeq() > previousSeq + 1) {
                 throw new RuntimeException("RUNTIME_EVENT_GAP", "event sequence gap");
+            }
             if ((previous == RunEvent.State.DISPATCHED && event.state() != RunEvent.State.RUNNING)
                     || (previous == RunEvent.State.RUNNING && !terminal(event.state())))
                 throw new RuntimeException("RUNTIME_STATE_CONFLICT", "invalid state transition");
@@ -384,12 +427,16 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     }
 
     private void persistAssistantAnswer(RunEvent event) {
-        if (accounts == null || !terminal(event.state()) || event.payload() == null) return;
+        if (accounts == null || !terminal(event.state()) || event.payload() == null) {
+            return;
+        }
         JsonNode payload = objectMapper.valueToTree(event.payload());
-        if (!payload.isObject()) return;
+        if (!payload.isObject()) {
+            return;
+        }
         JsonNode answer = payload.get("answer");
         RunContext context = runContexts.get(event.runId());
-        if (answer != null && !answer.isNull() && context != null)
+        if (answer != null && !answer.isNull() && context != null) {
             accounts.addMessage(
                     context.userId(),
                     context.sessionId(),
@@ -397,6 +444,7 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
                     answer.asText(),
                     payload,
                     context.agentRunId());
+        }
     }
 
     private void updateAgentStatus(String runId, AgentStatus status, Object payload) {
@@ -418,7 +466,9 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     }
 
     private AgentStatus agentStatus(String runId) {
-        if (agentStatuses.containsKey(runId)) return agentStatuses.get(runId);
+        if (agentStatuses.containsKey(runId)) {
+            return agentStatuses.get(runId);
+        }
         if (store != null && runId.matches("\\d+")) {
             String value = store.agentStatus(Long.parseLong(runId));
             return value == null ? null : AgentStatus.from(value);
@@ -444,6 +494,8 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
         try {
             return objectMapper.readTree(payload);
         } catch (JsonProcessingException exception) {
+            log.warn(
+                    "runtime event payload could not be decoded; returning raw payload", exception);
             return payload;
         }
     }
