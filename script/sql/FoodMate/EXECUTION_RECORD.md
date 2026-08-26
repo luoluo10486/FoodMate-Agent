@@ -881,3 +881,15 @@
 | 前端业务测试 | D32 已记录：lint、typecheck、Vitest `192/192` 和 Vite build 均通过。 |
 | 数据与运行边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作。 |
 | 结论 | 当前分支业务代码、Java/Python/前端业务门禁及 Java Alibaba 可执行规范子集均通过；真实依赖故障、性能、生产安全和不可逆清理继续后置。 |
+
+## D34 本地依赖业务主路径回归（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/final-business-quality`；Java 21；Docker Engine `28.5.1`；未调用真实云模型或付费 Embedding。 |
+| 依赖状态 | PostgreSQL 容器此前停止，本轮执行 `docker compose --env-file .env -f docker/compose.yml up -d postgres` 后恢复为 `healthy`；foodmate、agent-runtime、Redis、MinIO、RocketMQ NameServer/Broker/Proxy 保持 healthy。 |
+| HTTP 业务回归 | `.\mvnw.cmd -pl foodmate-bootstrap -am test "-Dfoodmate.local-http-e2e=true" "-Dtest=M15FoodLogWriterHttpE2ETest" "-Dsurefire.failIfNoSpecifiedTests=false"`：`11/11` 通过，0 失败、0 错误。 |
+| RocketMQ 业务回归 | `.\mvnw.cmd -pl foodmate-bootstrap -am test "-Dfoodmate.local-mq-e2e=true" "-Dtest=M15FoodLogWriterProposalResultE2ETest" "-Dsurefire.failIfNoSpecifiedTests=false"`：`11/11` 通过，0 失败、0 错误；覆盖 Proposal/Result 消息主路径。 |
+| 数据边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测或故障注入；未清理现有本地数据。 |
+| 暂缓范围 | Docker 流量统计、组件重启矩阵、ACK 丢失、重复投递故障注入、SSE 故障恢复、真实云模型/embedding、staging/production、发布回滚和不可逆清理继续暂缓。 |
+| 结论 | PostgreSQL 恢复后，HTTP 与 RocketMQ 两条 `food_log_writer` 业务主路径均取得真实本地依赖回归证据；该证据不扩大 M1-6 性能与故障类门禁范围。 |
