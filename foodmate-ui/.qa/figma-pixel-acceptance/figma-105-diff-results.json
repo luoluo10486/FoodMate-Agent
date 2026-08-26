@@ -1,5 +1,9 @@
 {
   "generatedAt": "2026-08-23",
+  "updatedAt": "2026-08-26",
+  "updatedResults": [
+    "meal-planning-loading"
+  ],
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -436,11 +440,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 437891,
-      "differentRatio": 0.2969638400607639,
-      "meanAbsoluteError": 3.3798875596788194,
-      "rmse": 17.070938422131228,
-      "maxChannelDelta": 255
+      "differentPixels": 268151,
+      "differentRatio": 0.1818515353732639,
+      "meanAbsoluteError": 1.1923697577582466,
+      "rmse": 9.651953635279922,
+      "maxChannelDelta": 244
     },
     "meal-planning-empty": {
       "status": "COMPARED",

@@ -1765,12 +1765,13 @@
       "frontendRoute": "/planning",
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/meal-planning-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-loading-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-loading-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Manual visual review completed: loading semantics exist, but skeleton geometry, navigation content, and side-panel treatment differ.",
+      "evidenceNote": "2026-08-26 复核：主区与右栏骨架几何已按实时 Figma 节点对齐，前端左上角未渲染窗口三色点；PNG diff 仍存在视觉差异，保留 DIFF_REVIEW。",
+      "lastVerifiedAt": "2026-08-26",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1795,8 +1796,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Loading semantics exist, but skeleton geometry, navigation content, and side-panel treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Loading semantics and primary geometry are aligned with the live Figma node. The frontend intentionally omits the Figma window-control dots; remaining raster and shell differences require DIFF_REVIEW."
       }
     },
     {

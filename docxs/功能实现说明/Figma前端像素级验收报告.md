@@ -99,13 +99,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 | 状态 | Figma 节点 | 前端入口 | Figma 证据 | 浏览器证据 | 结果 |
 |---|---|---|---|---|---|
-| Loading | `692:2256` | `/planning?state=loading` | `meal-planning-loading-figma.png` | `meal-planning-loading-browser-stable.png` / `meal-planning-loading-browser-stable-rgba.png` | `DIFF_REVIEW` |
+| Loading | `692:2256` | `/planning?state=loading` | `meal-planning-loading-figma-live-2026-08-26.png` | `meal-planning-loading-browser-current-2026-08-26.jpg` / `meal-planning-loading-browser-current-2026-08-26-rgba.png` | `DIFF_REVIEW` |
 | Empty | `692:2446` | `/planning?state=empty` | `meal-planning-empty-figma.png` | `meal-planning-empty-browser-stable.png` / `meal-planning-empty-browser-stable-rgba.png` | `DIFF_REVIEW` |
 | Error | `692:2542` | `/planning?state=error` | `meal-planning-error-figma.png` | `meal-planning-error-browser-stable.png` / `meal-planning-error-browser-stable-rgba.png` | `DIFF_REVIEW` |
 
 | 状态 | 尺寸 | 差异比例 | RMSE | 结论 |
 |---|---:|---:|---:|---|
-| Loading | 1440×1024 | 26.74% | 13.19 | `DIFF_REVIEW` |
+| Loading | 1440×1024 | 18.1852% | 9.65195 | `DIFF_REVIEW` |
 | Empty | 1440×1024 | 16.98% | 16.88 | `DIFF_REVIEW` |
 | Error | 1440×1024 | 17.81% | 16.50 | `DIFF_REVIEW` |
 
@@ -805,3 +805,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | 结论 | `DIFF_REVIEW` |
 
 本轮只调整前端空态卡片结构、间距、按钮图标容器和提示信息图标；真实计划接口、Figma 文件、iconfont 资源和其它页面不在本次修改范围。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 11. 2026-08-26 餐食规划 Loading 实时 Figma 几何收口
+
+- [x] 重新读取实时 Figma 节点 `692:2256` 和完整截图；确认画板为 `1440×1024`，主计划区为 `840px`、右栏为 `340px`，loading banner 为 `776×102px`，日期骨架卡为 `123.2×40px`，餐食骨架卡为 `123.2×74px`，右栏约束行分别为 `292×44px`。
+- [x] 前端 `/planning?state=loading` 只调整 loading fixture：摘要、日期骨架卡、餐食骨架条、右栏约束骨架、购物清单骨架的颜色、尺寸、间距和渐变均按实时节点回读值实现；真实计划加载和接口逻辑未改变。
+- [x] 浏览器实测 `1440×1024`、DPR `1.0000000149011612`、字体已加载、页面无横向溢出；主区/右栏关键坐标与 Figma 对齐。前端左上角红黄绿窗口控制点检测为 `0`，没有删除会话状态点、购物清单复选框或其它业务圆点；Figma 设计稿未修改。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png`、`meal-planning-loading-browser-current-2026-08-26.jpg` 和 `meal-planning-loading-browser-current-2026-08-26-rgba.png`；同尺寸 `scripts/png-diff.mjs` 结果为差异比例 `18.1852%`、`MAE=1.19237`、`RMSE=9.65195`、最大通道差异 `244`，已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json#meal-planning-loading`。
+- [x] `PlanningPage.test.tsx` 定向测试 `8/8`、`npm run typecheck` 和 `git diff --check` 通过；当前改动仍只属于该 loading 小点。
+- [ ] 该画板继续保持 `DIFF_REVIEW`，剩余整页壳层、头像、图标、字体和光栅化差异不满足像素级 `PASS`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
