@@ -1893,12 +1893,12 @@
       "frontendRoute": "/analysis",
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-loading-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current-rgba.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-figma-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current-2026-08-26-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-23 recapture: loading metric cards now use the Figma 126px card geometry and matching 32px/16px skeleton sizes; remaining navigation, avatar, typography, and rasterization differences keep DIFF_REVIEW.",
+      "evidenceNote": "2026-08-26 recapture after aligning the live Figma loading metrics (126px), chart card (303px at y=314), chart skeleton (1068x160), insight card (217px at y=641), inset borders, and insight skeleton geometry; remaining navigation, avatar, icon, typography, and rasterization differences keep DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1923,8 +1923,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "The current browser capture matches the Figma loading metric-card height and skeleton geometry. Navigation context, avatar treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the loading metric, chart, insight, and skeleton geometry are aligned. Navigation context, avatar, icon treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {

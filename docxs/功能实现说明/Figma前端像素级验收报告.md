@@ -822,3 +822,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png`、`meal-planning-loading-browser-current-2026-08-26.jpg` 和 `meal-planning-loading-browser-current-2026-08-26-rgba.png`；同尺寸 `scripts/png-diff.mjs` 结果为差异比例 `18.1852%`、`MAE=1.19237`、`RMSE=9.65195`、最大通道差异 `244`，已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json#meal-planning-loading`。
 - [x] `PlanningPage.test.tsx` 定向测试 `8/8`、`npm run typecheck` 和 `git diff --check` 通过；当前改动仍只属于该 loading 小点。
 - [ ] 该画板继续保持 `DIFF_REVIEW`，剩余整页壳层、头像、图标、字体和光栅化差异不满足像素级 `PASS`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+## 88. 2026-08-26 摄入分析 Loading 实时 Figma 结构收口
+
+- [x] 重新读取实时 Figma 节点 `692:1901`，前端入口为 `/analysis?state=loading`；画板与浏览器视口均为 `1440×1024`。
+- [x] 按当前 Figma 结构收口 Loading 专属几何：指标区 `126px`，图表卡 `303px`（`y=314px`），图表骨架 `1068×160px`，洞察卡 `217px`（`y=641px`），洞察骨架列表 `1068×74px`；指标、图表和洞察外框使用等效内描边，不改变布局盒尺寸。
+- [x] 浏览器实测字体已加载、页面无横向溢出、文字越界为 `0`；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-figma-live-2026-08-26.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-browser-current-2026-08-26.jpg` 和 RGBA PNG；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=433106`、差异比例 `29.3719%`、`MAE=1.38677`、`RMSE=9.60788`、最大通道差异 `230`，独立结果为 `intake-analysis-loading-current-diff.json`。
+- [ ] 当前画板继续保持 `DIFF_REVIEW`：导航上下文、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。

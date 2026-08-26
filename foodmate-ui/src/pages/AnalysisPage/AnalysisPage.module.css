@@ -129,6 +129,15 @@
   height: 126px;
 }
 
+.figmaAnalysis .loadingMetrics {
+  height: 126px;
+}
+
+.figmaAnalysis .loadingMetrics .metricCard {
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--fm-border);
+}
+
 .loadingMetrics .metricCard {
   height: 126px;
 }
@@ -352,6 +361,17 @@
 
 .insightCard {
   min-height: 219px;
+}
+
+.figmaAnalysis .loadingChartCard,
+.figmaAnalysis .loadingInsightCard {
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--fm-border);
+}
+
+.loadingInsightCard {
+  height: 217px;
+  min-height: 217px;
 }
 
 .loadingInsightList {
