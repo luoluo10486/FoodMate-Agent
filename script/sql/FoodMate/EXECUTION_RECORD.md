@@ -861,6 +861,7 @@
 | 项目 | 结果 |
 |---|---|
 | 执行环境 | `foodmate-ui`；Node 依赖使用项目现有安装；未调用真实云模型、Embedding 或外部生产服务。 |
+| Git 提交 | `9a33bec fix(前端): 收口业务代码质量门禁`。 |
 | 代码质量 | `npm.cmd run lint`：退出码 `0`，无 ESLint 错误或未使用禁用指令；Prettier `endOfLine` 调整为 `auto`，避免对现有 LF/CRLF 文件进行全仓换行改写。 |
 | 业务测试 | `npm.cmd test -- --run`：38 个测试文件、`192/192` 通过。 |
 | 类型与构建 | `npm.cmd run typecheck` 通过；`npm.cmd run build` 通过，Vite 转换 `2010` 个模块。 |
@@ -873,6 +874,7 @@
 | 项目 | 结果 |
 |---|---|
 | 执行环境 | 分支 `codex/final-business-quality`；Java 21、项目 `agent-runtime\\.venv`；未调用真实云模型或付费 Embedding。 |
+| Git 提交 | `2e83e7b docs(门禁): 同步前端业务验证状态`、`bae0d2e docs(执行记录): 登记全量业务门禁复跑`。 |
 | Java 全量验证 | `.\mvnw.cmd verify`：`BUILD SUCCESS`；Shared `12/12`、Application `171/171`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
 | Alibaba 规范 | `.\mvnw.cmd -Palibaba-code-style verify -DskipTests`：六个模块 Checkstyle 均 `0 violations`。 |
 | Python 业务测试 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`116 passed、1 skipped、1 warning`；跳过项为显式真实云集成，未调用付费服务。 |
