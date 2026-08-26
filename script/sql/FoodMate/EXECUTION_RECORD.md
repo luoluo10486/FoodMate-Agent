@@ -931,3 +931,15 @@
 | Python 业务验证 | `.\agent-runtime\.venv\Scripts\python.exe -m pytest -q`：`116 passed、1 skipped、2 warnings`；跳过项为显式真实云集成，未调用真实模型或 Embedding。 |
 | Docker 验证 | `docker compose --env-file .env -f docker/compose.yml config --quiet`：`COMPOSE_CONFIG_OK`；Java、Python、PostgreSQL、Redis、RocketMQ NameServer/Broker/Proxy、MinIO、Milvus 及其依赖当前均 healthy。 |
 | 结论 | 运行时高置信度规范问题已修复并通过业务门禁；M2-1 deterministic 本地闭环沿用 D27/D34 直接证据，性能、故障恢复和真实外部服务继续后置。 |
+
+## D38 运行时控制语句规范收尾（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/final-business-quality`；Java 21；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码范围 | `RuntimeGatewayServiceImpl` 为事件 JDBC 分派、运行状态校验、监听器移除和事件发布等 5 处单行控制语句补齐大括号；未改变业务逻辑。 |
+| 格式化 | `.\mvnw.cmd spotless:apply`：BUILD SUCCESS；Application 仅本次 Java 文件被格式化，其余模块无变更。 |
+| 定向测试 | `.\mvnw.cmd -pl foodmate-application -am -Dtest=RuntimeGatewayServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`：`5/5` 通过，0 失败、0 错误。首次未带 `-am` 的命令因未构建 reactor 依赖导致共享类型缺失，已使用正确命令重跑成功；另一次 PowerShell 参数未引用导致 Maven 将参数误识别为生命周期阶段，均不属于代码失败。 |
+| Alibaba 规范 | `.\mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及五个 Java 模块均 `0 Checkstyle violations`，BUILD SUCCESS。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | 运行时本轮控制语句规范收尾已通过定向业务测试、Spotless 和 Alibaba Checkstyle；性能、故障恢复、真实外部服务和生产门禁继续后置。 |

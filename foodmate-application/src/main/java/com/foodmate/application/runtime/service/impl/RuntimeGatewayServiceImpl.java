@@ -176,7 +176,9 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
 
     @Override
     public synchronized EventResult event(RunEvent event) {
-        if (store != null) return eventJdbc(event);
+        if (store != null) {
+            return eventJdbc(event);
+        }
         if (!statuses.containsKey(event.runId())) {
             throw new IllegalArgumentException("runId does not exist");
         }
@@ -199,7 +201,9 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     public synchronized java.util.List<RunEvent> events(String runId) {
         if (store == null)
             return java.util.List.copyOf(eventHistory.getOrDefault(runId, java.util.List.of()));
-        if (statusJdbc(runId) == null) throw new IllegalArgumentException("runId does not exist");
+        if (statusJdbc(runId) == null) {
+            throw new IllegalArgumentException("runId does not exist");
+        }
         return store.events(runId).stream()
                 .map(
                         row ->
@@ -216,7 +220,9 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     @Override
     public synchronized StatusResult status(String runId) {
         Status status = store == null ? statuses.get(runId) : statusJdbc(runId);
-        if (status == null) throw new IllegalArgumentException("runId does not exist");
+        if (status == null) {
+            throw new IllegalArgumentException("runId does not exist");
+        }
         return new StatusResult(runId, status, agentStatus(runId));
     }
 
@@ -281,13 +287,17 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
         List<Consumer<RunEvent>> current = listeners.get(runId);
         if (current != null) {
             current.remove(listener);
-            if (current.isEmpty()) listeners.remove(runId);
+            if (current.isEmpty()) {
+                listeners.remove(runId);
+            }
         }
     }
 
     private void publish(RunEvent event) {
         List<Consumer<RunEvent>> current = listeners.get(event.runId());
-        if (current == null) return;
+        if (current == null) {
+            return;
+        }
         for (Consumer<RunEvent> listener : List.copyOf(current)) {
             try {
                 listener.accept(event);
