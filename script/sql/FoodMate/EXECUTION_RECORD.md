@@ -916,3 +916,16 @@
 | 文档校验 | 两个文档执行 `git diff --check`，无空白错误；全量复核文档与执行记录执行 `git diff --check`，无错误。 |
 | 数据与运行边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有 Figma/QA 和前端修改未暂存、未回滚。 |
 | 结论 | 历史设计入口已明确与当前实现状态的时间边界；当前业务代码、测试与后置生产范围保持可追溯。 |
+
+## D37 运行时异常处理与业务门禁复核（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/final-business-quality`；Java 21；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码提交 | `b3a089d fix(运行时): 补齐异常日志与代码规范`；仅修改 `RuntimeGatewayServiceImpl`，为监听器、超时取消和事件载荷解析异常补充结构化日志，补齐匿名实现 `@Override`、显式类型导入和控制语句大括号。 |
+| 定向验证 | `.\mvnw.cmd --% -pl foodmate-application -am -Dtest=RuntimeGatewayServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`：`5/5` 通过。首次未带 `-am` 的命令因未构建 reactor 依赖导致共享类型缺失，已使用正确命令重跑成功。 |
+| Java 全量验证 | `.\mvnw.cmd verify`：`BUILD SUCCESS`；Shared `12/12`、Application `171/171`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Alibaba 规范 | `.\mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及六个模块均 `0 Checkstyle violations`。未使用默认 sun_checks 结果作为项目门禁。 |
+| 只读审查 | 生产 Java 超长行共 `313` 条，主要来自既有 MyBatis SQL 注解；数字解析、反射查找中的 `ignored` 捕获属于预期控制流，未扩大为无关重构。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | 运行时高置信度规范问题已修复并通过业务门禁；M2-1 deterministic 本地闭环沿用 D27/D34 直接证据，性能、故障恢复和真实外部服务继续后置。 |
