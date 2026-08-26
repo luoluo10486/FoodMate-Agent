@@ -893,3 +893,15 @@
 | 数据边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测或故障注入；未清理现有本地数据。 |
 | 暂缓范围 | Docker 流量统计、组件重启矩阵、ACK 丢失、重复投递故障注入、SSE 故障恢复、真实云模型/embedding、staging/production、发布回滚和不可逆清理继续暂缓。 |
 | 结论 | PostgreSQL 恢复后，HTTP 与 RocketMQ 两条 `food_log_writer` 业务主路径均取得真实本地依赖回归证据；该证据不扩大 M1-6 性能与故障类门禁范围。 |
+
+## D35 项目产品与实现入口状态收口（2026-08-26）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 分支 `codex/final-business-quality`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Git 提交 | `1969e22 docs(项目): 对齐产品与实现入口状态`；仅更新产品范围/需求、Agent 架构、双运行时契约、后端现状、前端实现入口和前端实现清单 7 个文档。 |
+| 文档对齐 | M2-1 公共知识库 deterministic 上传/索引/发布/检索/引用、M2-2 deterministic Tool/SQL 和 M2-3 管理核心切片按现有代码与业务证据登记；真实云服务、生产长稳、性能和故障门禁明确保留为后置范围。 |
+| 文档校验 | 上述 7 个文档执行 `git diff --check`，无空白错误；未修改用户已有前端/Figma/QA 文件。 |
+| 业务门禁依据 | 沿用 D32-D34：Java `verify`、Python `116 passed/1 skipped`、前端 `192/192` 及 lint/typecheck/build 通过，HTTP/MQ `food_log_writer` 各 `11/11` 通过。 |
+| 数据与运行边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作。 |
+| 结论 | 产品、架构、契约和实现入口已与当前 deterministic 本地业务状态一致；未将 deterministic 证据扩展为真实云、性能、故障恢复或生产完成。 |
