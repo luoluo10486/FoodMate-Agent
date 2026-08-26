@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-08-23",
   "updatedAt": "2026-08-26",
-  "updatedResults": ["intake-analysis-loading"],
+  "updatedResults": ["diet-records-loading", "intake-analysis-loading"],
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -405,11 +405,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 843635,
-      "differentRatio": 0.5721266004774306,
-      "meanAbsoluteError": 4.7007363213433155,
-      "rmse": 17.370848747546095,
-      "maxChannelDelta": 255
+      "differentPixels": 228793,
+      "differentRatio": 0.15516018337673612,
+      "meanAbsoluteError": 1.3380969577365451,
+      "rmse": 11.190322589998916,
+      "maxChannelDelta": 230
     },
     "diet-records-empty": {
       "status": "COMPARED",

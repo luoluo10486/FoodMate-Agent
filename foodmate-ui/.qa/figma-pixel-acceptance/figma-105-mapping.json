@@ -1494,7 +1494,7 @@
         "height": 1024
       },
       "frontendRoute": "/",
-      "queryState": "view=records&state=loading",
+      "queryState": "state=loading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/workspace-home-loading.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-loading-browser.png",
@@ -1626,14 +1626,14 @@
         "height": 1024
       },
       "frontendRoute": "/analysis",
-      "queryState": "state=loading",
+      "queryState": "view=records&state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/diet-records-loading-browser-current-rgba.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/diet-records-loading-live-2026-08-26.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-loading-browser-current-2026-08-26.png",
       "diffJson": ".qa/figma-pixel-acceptance/diet-records-current-diff.json#diet-records-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-22 recapture: 1440x1024, fonts loaded, DPR 1.0000000149011612, no text or layout overflow; automatic diff ratio 0.2635274251302083. Retain DIFF_REVIEW.",
+      "evidenceNote": "2026-08-26 recapture after aligning the live Figma loading metrics (80px), meal-card group spacing (24px), meal-card heights (118px and 168px), skeleton rows (42px with 8px gap), and inset padding; remaining shell, avatar, icon, typography, and rasterization differences keep DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1658,8 +1658,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture capture retains skeleton semantics and Figma identity/navigation fixture. Automated diff remains 26.35%; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-26",
+        "conclusion": "Live Figma and browser screenshots confirm the loading metrics and meal skeleton geometry are aligned. Shell identity, avatar, icon treatment, typography, and rasterization still differ; retain DIFF_REVIEW."
       }
     },
     {
