@@ -505,7 +505,10 @@ export function DietRecordsPage() {
               </section>
 
               {visibleState === 'empty' ? (
-                <section className={styles.statePanel} aria-label="今天还没有饮食记录">
+                <section
+                  className={`${styles.statePanel} ${isFigmaFixture ? styles.figmaEmptyStatePanel : ''}`}
+                  aria-label="今天还没有饮食记录"
+                >
                   <div className={`${styles.stateIcon} ${styles.stateIconEmpty}`}>
                     <Utensils aria-hidden="true" />
                   </div>

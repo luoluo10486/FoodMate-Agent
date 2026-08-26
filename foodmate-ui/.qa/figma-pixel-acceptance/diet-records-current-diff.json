@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22",
+  "generatedAt": "2026-08-26",
   "tool": "scripts/png-diff.mjs",
   "capture": {
     "viewport": "1440x1024",
@@ -25,11 +25,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 236257,
-      "differentRatio": 0.16022203233506943,
-      "meanAbsoluteError": 2.5943389892578126,
-      "rmse": 16.148160293087166,
-      "maxChannelDelta": 247
+      "differentPixels": 217516,
+      "differentRatio": 0.1475124782986111,
+      "meanAbsoluteError": 1.631137932671441,
+      "rmse": 12.220593209416155,
+      "maxChannelDelta": 230
     },
     "diet-records-error": {
       "status": "COMPARED",
