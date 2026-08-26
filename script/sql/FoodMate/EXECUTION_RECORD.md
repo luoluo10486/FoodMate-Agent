@@ -928,4 +928,6 @@
 | Alibaba 规范 | `.\mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及六个模块均 `0 Checkstyle violations`。未使用默认 sun_checks 结果作为项目门禁。 |
 | 只读审查 | 生产 Java 超长行共 `313` 条，主要来自既有 MyBatis SQL 注解；数字解析、反射查找中的 `ignored` 捕获属于预期控制流，未扩大为无关重构。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| Python 业务验证 | `.\agent-runtime\.venv\Scripts\python.exe -m pytest -q`：`116 passed、1 skipped、2 warnings`；跳过项为显式真实云集成，未调用真实模型或 Embedding。 |
+| Docker 验证 | `docker compose --env-file .env -f docker/compose.yml config --quiet`：`COMPOSE_CONFIG_OK`；Java、Python、PostgreSQL、Redis、RocketMQ NameServer/Broker/Proxy、MinIO、Milvus 及其依赖当前均 healthy。 |
 | 结论 | 运行时高置信度规范问题已修复并通过业务门禁；M2-1 deterministic 本地闭环沿用 D27/D34 直接证据，性能、故障恢复和真实外部服务继续后置。 |
