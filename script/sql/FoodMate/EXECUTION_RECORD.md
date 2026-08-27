@@ -1089,3 +1089,17 @@
 | 质量校验 | `mvnw.cmd --% -pl foodmate-application spotless:apply` 与 `git diff --check` 通过。首次直接执行 application 模块未带 `-am`，因本地 Shared 依赖未在 classpath 导致 Maven 编译失败；随后使用 reactor `-am` 命令成功完成验证，该参数问题不是代码测试失败。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | 知识库业务写命令的失败审计覆盖已补齐，且不改变既有成功路径和补偿行为；M1-6 整体仍不宣称完成，吞吐、队列、重启、故障恢复和生产治理按当前决策继续后置。 |
+
+## D51 阿里 Java 规范与功能版门禁复核（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；官方手册来自 [alibaba/p3c](https://github.com/alibaba/p3c) 的《Java 开发手册（黄山版）》；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 规范复核 | 已读取手册 55 页；生产源码无字段注入、通配符 import、`System.out/err`、`printStackTrace`、泛化 `catch (Exception/Throwable)` 或 `MAX(id)+1`。`com.foodmate.shared.runtime.RuntimeException` 是携带稳定错误码的自定义协议异常，不属于无语义的 JDK `RuntimeException` 直接使用。 |
+| Java 规范门禁 | `mvnw.cmd -Palibaba-code-style -DskipTests verify`：根项目及五个 Java 模块 Checkstyle 均 `0 violations`；Spotless、编译和 Spring Boot repackage 通过。 |
+| Java 业务门禁 | `mvnw.cmd clean verify`：Shared `12/12`、Application `195/195`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped），BUILD SUCCESS；环境依赖型测试按既有开关跳过。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`116 passed、1 skipped、1 warning`；跳过项为显式真实外部服务，不调用付费模型或真实 Embedding。 |
+| 前端业务门禁 | `npm.cmd test -- --run`：38 个测试文件、194/194 通过；`npm.cmd run typecheck` 和 `npm.cmd run build` 通过，Vite 转换 2010 个模块。`npm.cmd run lint` 未通过，但仅有用户现有 `HomePage.tsx` 与 `AnalysisPage.tsx` 各 1 条 Prettier CRLF warning、0 errors；本轮未修改或暂存这些用户改动。 |
+| SQL 与数据边界 | SQL 迁移/validation/rollback 目录未修改；未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理。仅清理本轮创建的临时官方手册文件和浅克隆目录。 |
+| 暂缓边界 | 不将本轮业务门禁扩展为吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障恢复、真实云服务、生产部署或生产强化证据；M1-6 和 M3 后置范围保持未完成。 |
+| 结论 | 当前功能版 Java/Python/前端业务测试、Java 21 可执行规范子集和安全扫描均有可复核结果；前端 lint 的两条用户现有格式 warning 需在其 UI 修改收口时一并处理，不影响本轮业务测试通过结论。 |
