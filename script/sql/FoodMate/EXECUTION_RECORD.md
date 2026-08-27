@@ -1064,3 +1064,15 @@
 | 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 与 `git diff --check` 通过。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | Agent 反馈业务写操作具备成功/失败统一审计证据；不将业务测试结果扩展为生产质量或性能结论。 |
+
+## D49 统一业务审计失败路径总门禁（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 全量 Java 业务验证 | `mvnw.cmd -pl foodmate-application -am test`：Application `190/190`、Shared `12/12`，0 失败、0 错误；`mvnw.cmd clean verify`：Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped），构建成功。 |
+| 格式与规范 | `spotless:check`/`spotless:apply`、`git diff --check` 通过；`mvnw.cmd --% -Palibaba-code-style verify -DskipTests` 根项目及五个 Java 模块均 `0 Checkstyle violations`。 |
+| 架构扫描 | `rg` 复核显示 `operation_audits` 的写入只存在于 `foodmate-infra` 统一适配器；业务 application 模块只依赖 `OperationAuditService`，未直接写表。 |
+| 覆盖结论 | 账户、个人数据、AgentRun、Agent 反馈，以及此前已收口的 Knowledge/Approval/FoodLog/MealPlan/Memory/预算/取消/恢复写操作均具备统一成功/失败审计入口；协议错误、事件拒绝、SQL 查询和 Outbox/Inbox 技术状态仍保持专用审计。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；工作树中用户已有前端/Figma/QA 改动未暂存、未回滚。 |
+| 结论 | 本轮统一业务审计失败路径收口及 Java 业务门禁完成；M1-6 整体仍不宣称完成，吞吐、队列、重启、故障恢复和生产治理按当前决策继续后置。 |
