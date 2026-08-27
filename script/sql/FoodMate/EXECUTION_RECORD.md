@@ -1001,3 +1001,14 @@
 | 格式校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply`：`BUILD SUCCESS`；未修改用户已有前端/Figma/QA 文件。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作。 |
 | 结论 | 长期记忆业务写操作保留成功审计并补齐失败审计；定向业务测试和 Java 格式校验通过，完整门禁待相关切片收口后统一复跑。 |
+
+## D44 密码重置审计闭环（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码范围 | 密码重置成功统一记录 `user.password.change`；无效/过期 token 和存储异常记录失败审计；审计不保存密码、token 或密码摘要。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am "-Dtest=UserAccountServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`2/2` 通过。 |
+| 格式校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply`：`BUILD SUCCESS`；未修改用户已有前端/Figma/QA 文件。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作。 |
+| 结论 | 密码重置的成功和失败业务事实均进入统一审计；定向测试与格式校验通过，完整门禁待相关切片收口后统一复跑。 |

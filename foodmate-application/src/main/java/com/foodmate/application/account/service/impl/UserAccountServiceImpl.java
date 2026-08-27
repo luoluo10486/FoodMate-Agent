@@ -23,6 +23,8 @@ import com.foodmate.shared.account.enums.UserStatus;
 import com.foodmate.shared.conversation.enums.MessageRole;
 import com.foodmate.shared.conversation.enums.SessionMode;
 import com.foodmate.shared.conversation.enums.SessionStatus;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -313,14 +315,26 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Transactional
     public synchronized void resetPassword(String token, String newPassword) {
-        validatePassword(newPassword);
-        if (store == null) throw notFound("password reset is unavailable");
-        String hash = sha256(token);
-        Long userId = store.resetTokenUser(hash);
-        if (userId == null) throw notFound("invalid or expired reset token");
-        store.changePassword(userId, hashPassword(newPassword));
-        store.consumeResetToken(hash);
-        revokeAllAuthSessions(userId);
+        Long userId = null;
+        try {
+            validatePassword(newPassword);
+            if (store == null) throw notFound("password reset is unavailable");
+            String hash = sha256(token);
+            userId = store.resetTokenUser(hash);
+            if (userId == null) throw notFound("invalid or expired reset token");
+            store.changePassword(userId, hashPassword(newPassword));
+            store.consumeResetToken(hash);
+            revokeAllAuthSessions(userId);
+            audit(userId, "user", Long.toString(userId), "user.password.change");
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "user",
+                    userId == null ? null : Long.toString(userId),
+                    "user.password.change",
+                    exception);
+            throw exception;
+        }
     }
 
     public synchronized UserRecord requireSessionUser(String sessionToken) {
@@ -663,6 +677,31 @@ public class UserAccountServiceImpl implements UserAccountService {
         if (audit != null)
             audit.record(
                     userId, targetType, targetId, action, "success", null, null, null, Map.of());
+    }
+
+    private void failure(
+            Long operatorId,
+            String targetType,
+            String targetId,
+            String action,
+            RuntimeException exception) {
+        if (audit != null)
+            audit.recordFailure(
+                    operatorId,
+                    targetType,
+                    targetId,
+                    action,
+                    "failed",
+                    errorCode(exception),
+                    null,
+                    null,
+                    Map.of("exception_type", exception.getClass().getSimpleName()));
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        return exception instanceof BusinessException businessException
+                ? businessException.errorCode().code()
+                : ErrorCode.INTERNAL_ERROR.code();
     }
 
     private String emailReference(String email) {
