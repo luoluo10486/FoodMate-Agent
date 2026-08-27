@@ -760,6 +760,12 @@
   line-height: 20px;
 }
 
+.entryActions button + button::before {
+  margin-right: 12px;
+  color: #40914d;
+  content: '·';
+}
+
 .entryNote {
   color: #8c968f !important;
   font-size: 12px !important;
