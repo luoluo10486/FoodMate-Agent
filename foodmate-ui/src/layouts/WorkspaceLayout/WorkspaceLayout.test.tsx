@@ -78,4 +78,17 @@ describe('WorkspaceLayout shell controls', () => {
     expect(topbarMark).not.toHaveTextContent('F');
     expect(sidebarMark).toHaveTextContent('F');
   });
+
+  it('does not render desktop window controls in the Figma fixture shell', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout showKnowledgeTopNav={false} sidebarFixture={{ sessions: [] }}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(container.innerHTML).not.toMatch(/window-controls|traffic-light|#ff3b30|#ffcc00|#34c759/i);
+  });
 });
