@@ -967,3 +967,14 @@
 | Alibaba 规范 | `mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及五个 Java 模块均 `0 Checkstyle violations`。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | 饮食记录和餐食计划的业务审计写入入口已统一到 application 层服务，幂等重放与事务测试通过；真实性能、故障恢复和生产门禁继续后置。 |
+
+## D41 FoodLog 失败审计闭环（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码范围 | FoodLog create/update/delete/restore 捕获业务失败；已占用审计在事务回滚后独立记录 `failed` 事实，未占用幂等键的参数/资源拒绝也通过 `OperationAuditService` 记录；竞争中的既有幂等事实不覆盖。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am -Dtest=FoodLogServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`：`13/13` 通过，0 失败、0 错误；覆盖失败前后两类审计路径。 |
+| 格式校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply`：`BUILD SUCCESS`。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | FoodLog 业务失败不会静默丢失审计事实；本项定向业务测试与格式校验通过，完整 Java 门禁待本轮相关改动收口后统一复跑。 |

@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -81,6 +82,61 @@ class FoodLogServiceImplTest {
         assertEquals(first, replay);
         verify(repository).insertFoodLog(any());
         verify(repository).insertItem(any());
+    }
+
+    @Test
+    void invalidCreateRecordsFailureAudit() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        OperationAuditService audit = auditService();
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L), audit);
+
+        assertThrows(
+                BusinessException.class,
+                () ->
+                        service.create(
+                                7L,
+                                new FoodLogService.CreateCommand(
+                                        null,
+                                        null,
+                                        MEAL_TIME,
+                                        MealType.LUNCH,
+                                        null,
+                                        "invalid-create",
+                                        List.of())));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("food_log"),
+                        isNull(),
+                        eq("food_log.create"),
+                        eq("failed"),
+                        eq("INVALID_ARGUMENT"),
+                        isNull(),
+                        eq("invalid-create"),
+                        any());
+    }
+
+    @Test
+    void failedCreateRecordsIndependentFailureAudit() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.insertFoodLog(any())).thenReturn(0);
+        OperationAuditService audit = auditService();
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L), audit);
+
+        assertThrows(BusinessException.class, () -> service.create(7L, command("failed-create")));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("food_log"),
+                        eq("100"),
+                        eq("food_log.create"),
+                        eq("failed"),
+                        eq("CONFLICT"),
+                        anyString(),
+                        eq("failed-create"),
+                        any());
     }
 
     @Test
