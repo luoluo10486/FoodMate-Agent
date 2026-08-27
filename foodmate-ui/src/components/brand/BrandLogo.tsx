@@ -4,16 +4,22 @@ type BrandLogoProps = {
   size?: 'small' | 'compact' | 'hero';
   showWordmark?: boolean;
   showTagline?: boolean;
+  showMarkLetter?: boolean;
 };
 
-export function FoodMateMark({ className }: { className?: string }) {
-  return <span className={`${styles.mark} ${className ?? ''}`}>F</span>;
+export function FoodMateMark({ className, showLetter = true }: { className?: string; showLetter?: boolean }) {
+  return <span className={`${styles.mark} ${className ?? ''}`}>{showLetter ? 'F' : null}</span>;
 }
 
-export function BrandLogo({ size = 'small', showWordmark = true, showTagline = false }: BrandLogoProps) {
+export function BrandLogo({
+  size = 'small',
+  showWordmark = true,
+  showTagline = false,
+  showMarkLetter = true,
+}: BrandLogoProps) {
   return (
     <div className={`${styles.brand} ${styles[size]}`}>
-      <FoodMateMark className={styles.mark} />
+      <FoodMateMark className={styles.mark} showLetter={showMarkLetter} />
       {showWordmark ? (
         <div className={styles.copy}>
           <div className={styles.wordmark}>FoodMate</div>

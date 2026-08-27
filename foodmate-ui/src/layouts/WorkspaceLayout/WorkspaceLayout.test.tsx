@@ -46,4 +46,36 @@ describe('WorkspaceLayout shell controls', () => {
     expect(screen.getByPlaceholderText('搜索会话...')).toHaveValue('高蛋白');
     expect(screen.queryByRole('button', { name: '清除会话搜索' })).not.toBeInTheDocument();
   });
+
+  it('hides only the Figma fixture topbar mark letter', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout designChat showKnowledgeTopNav={false} sidebarFixture={{ sessions: [] }}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const topbarMark = container.querySelector('main header .brand > span');
+    const sidebarMark = container.querySelector('aside .brand > span');
+    expect(topbarMark).toBeInTheDocument();
+    expect(topbarMark).not.toHaveTextContent('F');
+    expect(sidebarMark).toHaveTextContent('F');
+  });
+
+  it('hides the design chat topbar mark letter without a sidebar fixture', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/chat?state=figma-v2']}>
+        <WorkspaceLayout designChat showKnowledgeTopNav={false}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const topbarMark = container.querySelector('main header .brand > span');
+    const sidebarMark = container.querySelector('aside .brand > span');
+    expect(topbarMark).toBeInTheDocument();
+    expect(topbarMark).not.toHaveTextContent('F');
+    expect(sidebarMark).toHaveTextContent('F');
+  });
 });
