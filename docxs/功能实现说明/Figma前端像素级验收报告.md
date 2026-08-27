@@ -885,6 +885,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-trace-background-browser-2026-08-27.png`，Figma 参考为 `docxs/设计/figma-png/agent-chat-v2.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=525213`、差异比例 `35.6183%`、`MAE=5.00323`、`RMSE=22.95874`、最大通道差异 `239`，继续登记为 `DIFF_REVIEW`。
 - [ ] 页面仍存在头像、图标光栅化和其他浏览器渲染差异；本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面迁移或 iconfont 实体资源登记，iconfont 继续为 `BLOCKED`。
 
+## 100. 2026-08-27 Agent Chat 窗口控制占位与侧栏基线收口
+
+- [x] 依据 Figma 节点 `640:428`，前端继续不渲染左上角红、黄、绿窗口装饰点，同时在设计 fixture 侧栏保留其 `12px` 顶部占位；品牌、新建任务和会话搜索框实测起点分别为 `y=52/104/161`。
+- [x] 仅修改 `designChat` 作用域，普通页面和业务状态圆点不受影响；浏览器实测三色窗口装饰候选为 `0`，视口 `1440×1024`、DPR `1`、禁用动画，Figma 设计稿未修改。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-sidebar-baseline-browser-2026-08-27.png`，Figma 参考为 `docxs/设计/figma-png/agent-chat-v2.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=509690`、差异比例 `34.5656%`、`MAE=4.61398`、`RMSE=21.70300`、最大通道差异 `239`，继续登记为 `DIFF_REVIEW`。
+- [ ] 头像、图标光栅化和其他浏览器渲染差异仍存在；本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面迁移或 iconfont 实体资源登记，iconfont 继续为 `BLOCKED`。
+
 ## 95. 2026-08-27 Intake Analysis 洞察颜色与窗口装饰复核
 
 - [x] 重新读取 Figma 节点 `640:773`，确认第三条营养洞察圆点使用 `#80E0E6`；前端 `.insightOrange` 已改用语义变量 `--fm-color-info-strong`，运行时计算值为 `rgb(128, 224, 230)`。

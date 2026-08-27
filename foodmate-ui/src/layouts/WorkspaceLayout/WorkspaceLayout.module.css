@@ -7,8 +7,12 @@
   background: var(--fm-bg);
 }
 
-/* Keep the Chat fixture's sidebar content at the Figma baseline without rendering desktop window controls. */
+/* Keep design fixtures at the Figma baseline without rendering desktop window controls. */
 .figmaFixture .sidebar {
+  padding-top: 52px;
+}
+
+.designChat .sidebar {
   padding-top: 52px;
 }
 
