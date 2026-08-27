@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any, Callable
@@ -221,6 +222,10 @@ class DeterministicRouter:
         text = content.strip()
         lower = text.lower()
         risk = "high" if any(word in text for word in ("疾病", "诊断", "处方", "过敏反应")) else "low"
+        if re.fullmatch(r"[0-9\s.+\-*/%()]+", text) or (
+            "计算" in text and any(character.isdigit() for character in text)
+        ):
+            return RouteDecision("calculation", "complex", risk)
         # Analysis questions often describe the absence of records. Match the
         # requested operation before the noun "记录" so those questions do not
         # enter the write-oriented route.
@@ -362,6 +367,10 @@ class DeterministicComposer:
             analysis = self._compose_analysis(context, budget_mode)
             if analysis is not None:
                 return analysis
+        if route.intent == "calculation" and context.tool_results:
+            calculation = self._compose_calculation(context, budget_mode)
+            if calculation is not None:
+                return calculation
         prefix = "节省模式：" if budget_mode in {"economy", "partial"} else ""
         recent = len(context.messages)
         tool_note = ""
@@ -369,6 +378,23 @@ class DeterministicComposer:
             tool_note = f"已回注 {len(context.tool_results)} 个 Java 工具结果。"
         evidence_note = f"已检索到 {len(context.sources['citation_id'])} 条公共知识库证据。" if context.sources["citation_id"] else ""
         return f"{prefix}已完成{route.intent}请求的受控分析，已读取当前会话中的 {recent} 条有效消息。{tool_note}{evidence_note}"
+
+    @staticmethod
+    def _compose_calculation(context: Context, budget_mode: str) -> str | None:
+        result = next(
+            (item for item in reversed(context.tool_results) if item.get("tool_name") == "calculator"),
+            None,
+        )
+        if result is None:
+            return None
+        prefix = "节省模式：" if budget_mode in {"economy", "partial"} else ""
+        if result.get("status") != "succeeded":
+            return f"{prefix}计算未完成，工具状态：{result.get('error_code') or 'CALCULATOR_FAILED'}。"
+        row = (result.get("rows") or [{}])[0]
+        return (
+            f"{prefix}计算结果：{row.get('result')}。"
+            f"计算式：{row.get('formula') or '已授权表达式'}。"
+        )
 
     @staticmethod
     def _compose_analysis(context: Context, budget_mode: str) -> str | None:
@@ -503,6 +529,46 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
             proposal["payload"], proposal["requires_confirmation"], proposal["request_hash"],
             proposal.get("tool_name"), proposal.get("confirmation_ref"), proposal.get("input"),
         ))
+        return [proposal]
+    if route.intent == "calculation":
+        completed = next(
+            (item for item in reversed(tool_results) if item.get("tool_name") == "calculator"),
+            None,
+        )
+        if completed is not None:
+            return []
+        request = authorized.get("calculator_request")
+        expression = request.get("expression") if isinstance(request, dict) else None
+        content = str((command.get("message") or {}).get("content", "")).strip()
+        if not isinstance(expression, str) or not expression.strip():
+            expression = content if re.fullmatch(r"[0-9\s.+\-*/%()]+", content) else None
+        if not expression or len(expression) > 256:
+            return []
+        invocation_id = str(
+            (request or {}).get("invocation_id")
+            if isinstance(request, dict)
+            else ""
+        )
+        if not invocation_id:
+            invocation_id = "calc_" + hashlib.sha256(
+                (str(command["run_id"]) + ":" + expression).encode("utf-8")
+            ).hexdigest()[:24]
+        proposal = Proposal(
+            proposal_id="prop_" + invocation_id,
+            run_id=str(command["run_id"]),
+            proposal_type="tool",
+            schema_version="v1",
+            payload={
+                "statement": "",
+                "invocation_id": invocation_id,
+                "idempotency_key": "calc_"
+                + hashlib.sha256((str(command["run_id"]) + expression).encode("utf-8")).hexdigest()[:32],
+            },
+            requires_confirmation=False,
+            tool_name="calculator",
+            input={"expression": expression},
+        ).as_dict()
+        validate_proposal(Proposal(**proposal))
         return [proposal]
     request = authorized.get("sql_read_request") or {}
     if not isinstance(request, dict) or not request.get("statement") or route.intent not in {"record", "analysis"}:

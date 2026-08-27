@@ -90,9 +90,20 @@ def validate_proposal(proposal: Proposal) -> None:
                 raise ValueError("TIME_PARSER_INPUT_INVALID")
             if not isinstance(timezone, str) or not timezone.strip() or len(timezone) > 64:
                 raise ValueError("TIME_PARSER_INPUT_INVALID")
+        elif proposal.tool_name == "calculator":
+            if proposal.requires_confirmation or not isinstance(proposal.input, dict):
+                raise ValueError("CALCULATOR_INPUT_INVALID")
+            expression = proposal.input.get("expression")
+            if not isinstance(expression, str) or not expression.strip() or len(expression) > 256:
+                raise ValueError("CALCULATOR_INPUT_INVALID")
+        elif proposal.tool_name == "plan_validator":
+            if proposal.requires_confirmation or not isinstance(proposal.input, dict):
+                raise ValueError("PLAN_VALIDATOR_INPUT_INVALID")
+            if not isinstance(proposal.input.get("plan"), dict):
+                raise ValueError("PLAN_VALIDATOR_INPUT_INVALID")
         elif proposal.tool_name != "food_log_writer":
             raise ValueError("TOOL_NAME_NOT_ALLOWED")
-        if proposal.tool_name in {"database_query", "time_parser"}:
+        if proposal.tool_name in {"database_query", "time_parser", "calculator", "plan_validator"}:
             return
         if not proposal.confirmation_ref:
             raise ValueError("TOOL_CONFIRMATION_REF_REQUIRED")
