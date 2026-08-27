@@ -26,7 +26,7 @@
 }
 .sectionTitle.active {
   color: var(--fm-orange);
-  background: var(--fm-color-warning-surface);
+  background: var(--fm-fixture-sidebar-active-surface, var(--fm-color-warning-surface));
 }
 .sectionTitle.active svg {
   color: var(--fm-orange);
@@ -61,7 +61,7 @@
 
 .item:hover,
 .active {
-  background: var(--fm-color-warning-surface);
+  background: var(--fm-fixture-session-active-surface, var(--fm-color-warning-surface));
 }
 
 .itemLink {
