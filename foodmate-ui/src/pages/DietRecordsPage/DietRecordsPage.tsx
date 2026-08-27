@@ -599,7 +599,7 @@ export function DietRecordsPage() {
           </section>
         ) : null}
 
-        {visibleState === 'default' && !isRealMode && !isFigmaFixture ? (
+        {visibleState === 'default' && !isRealMode ? (
           <section className={styles.entryDetail} aria-label="记录详情">
             <h2>记录详情 · 待确认记录可在这里补充后保存</h2>
             <p>蓝莓燕麦粥 · 早餐 · 08:30 · 估算值</p>

@@ -67,7 +67,7 @@ describe('DietRecordsPage', () => {
     const user = userEvent.setup();
     renderPage('/analysis?view=records&state=v2');
 
-    expect(screen.queryByRole('heading', { name: '记录详情 · 待确认记录可在这里补充后保存' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '记录详情 · 待确认记录可在这里补充后保存' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '记录一餐' }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
