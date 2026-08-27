@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import com.foodmate.application.runtime.port.out.AgentFeedbackRepository;
 import com.foodmate.application.runtime.service.AgentFeedbackService;
 import com.foodmate.application.runtime.service.impl.AgentFeedbackServiceImpl;
 import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -61,7 +63,8 @@ class AgentFeedbackServiceImplTest {
     @Test
     void rejectsNegativeFeedbackWithoutReason() {
         AgentFeedbackRepository store = mock(AgentFeedbackRepository.class);
-        AgentFeedbackService service = service(store, mock(OperationAuditService.class));
+        OperationAuditService audit = mock(OperationAuditService.class);
+        AgentFeedbackService service = service(store, audit);
 
         assertThrows(
                 BusinessException.class,
@@ -72,6 +75,52 @@ class AgentFeedbackServiceImplTest {
                                 99L,
                                 new AgentFeedbackService.SubmitCommand(
                                         false, List.of(), null, "feedback-1")));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("agent_feedback"),
+                        eq("99"),
+                        eq("agent.feedback.submit"),
+                        eq("failed"),
+                        eq(ErrorCode.AGENT_FEEDBACK_INVALID.code()),
+                        eq(null),
+                        eq(null),
+                        any());
+    }
+
+    @Test
+    void persistenceFailureRecordsSafeAudit() {
+        AgentFeedbackRepository store = mock(AgentFeedbackRepository.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        when(store.target(7L, 42L, 99L))
+                .thenReturn(
+                        new AgentFeedbackRepository.FeedbackTarget(
+                                42L, 99L, "trace-1", null, null, null, null));
+        doThrow(new IllegalStateException("database unavailable")).when(store).insert(any());
+        AgentFeedbackService service = service(store, audit);
+
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        service.submit(
+                                7L,
+                                42L,
+                                99L,
+                                new AgentFeedbackService.SubmitCommand(
+                                        true, List.of(), "private feedback", "feedback-1")));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("agent_feedback"),
+                        eq("99"),
+                        eq("agent.feedback.submit"),
+                        eq("failed"),
+                        eq(ErrorCode.INTERNAL_ERROR.code()),
+                        eq(null),
+                        eq(null),
+                        any());
     }
 
     @Test

@@ -208,12 +208,7 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('来源: USDA FoodData Central')).toBeInTheDocument();
     expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
-    expect(
-      document.querySelector('img[src="/assets/figma/agent-chat/write-confirmation/topbar-avatar.png"]'),
-    ).toBeInTheDocument();
-    expect(
-      document.querySelector('img[src="/assets/figma/agent-chat/write-confirmation/message-avatar.png"]'),
-    ).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '确认写入' }));
     expect(screen.getByRole('status')).toHaveTextContent('fixture 已记录确认动作');
   });
@@ -328,6 +323,12 @@ describe('ChatPage Figma history fixtures', () => {
     fireEvent.click(referenceOnly);
     expect(referenceOnly).toBeChecked();
     expect(addToLunch).not.toBeChecked();
+  });
+
+  it('keeps the pagination fixture on the first page', () => {
+    renderChatState('pagination');
+
+    expect(screen.getByLabelText('会话分页')).toHaveTextContent('1 / 3');
   });
 });
 

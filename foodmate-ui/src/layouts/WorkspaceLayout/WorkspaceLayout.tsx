@@ -326,7 +326,7 @@ export function WorkspaceLayout({
         </aside>
         <main className={styles.main}>
           <header className={styles.topbar}>
-            <BrandLogo size="compact" />
+            <BrandLogo size="compact" showMarkLetter={showKnowledgeTopNav || (!sidebarFixture && !designChat)} />
             <nav className={styles.nav} aria-label={activeModule === 'profile' ? '个人中心导航' : '主导航'}>
               {activeModule === 'profile' ? (
                 profileActiveTab ? (

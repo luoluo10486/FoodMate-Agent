@@ -48,13 +48,10 @@ describe('ProfilePage', () => {
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
     expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute(
-      'src',
-      '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
-    );
+    expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute('src', '/assets/avatars/default-male.svg');
     expect(screen.getByRole('button', { name: 'Anddy' }).querySelector('img')).toHaveAttribute(
       'src',
-      '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
+      '/assets/avatars/default-male.svg',
     );
   });
 

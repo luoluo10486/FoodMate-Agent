@@ -99,28 +99,4 @@ public class MealPlanRepositoryAdapter implements MealPlanRepository {
     public ShoppingListSnapshot findOwnedShoppingList(long userId, long mealPlanId) {
         return mapper.findOwnedShoppingList(userId, mealPlanId);
     }
-
-    @Override
-    public int reserveAudit(AuditWrite audit) {
-        return this.audit.reserve(
-                new OperationAuditPort.AuditRecord(
-                        audit.operationAuditId(),
-                        audit.operatorId(),
-                        audit.requestId(),
-                        audit.traceId(),
-                        audit.targetType(),
-                        audit.targetId(),
-                        audit.action(),
-                        "pending",
-                        null,
-                        "{}",
-                        audit.responseJson(),
-                        audit.parametersDigest(),
-                        audit.idempotencyKey()));
-    }
-
-    @Override
-    public int completeAudit(long operatorId, String idempotencyKey, String responseJson) {
-        return audit.complete(operatorId, idempotencyKey, responseJson);
-    }
 }

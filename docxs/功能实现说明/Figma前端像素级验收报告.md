@@ -1,6 +1,6 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-23
+更新时间：2026-08-27
 
 ## 1. 结论
 
@@ -836,6 +836,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测字体已加载、页面无横向溢出、`1440×1024` 视口和 DPR `1.0000000149011612` 均通过；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
 - [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-loading-live-2026-08-26.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-loading-browser-current-2026-08-26.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=228793`、差异比例 `15.5160%`、`MAE=1.33810`、`RMSE=11.19032`、最大通道差异 `230`，独立结果为 `diet-records-current-diff.json`。
 - [ ] 当前画板继续保持 `DIFF_REVIEW`：工作区壳层、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
 ## 90. 2026-08-26 饮食记录 Empty 实时 Figma 几何收口
 
 - [x] 重新读取实时 Figma 节点 `692:1556`，前端入口为 `/analysis?view=records&state=empty`；Figma 与浏览器视口均为 `1440×1024`。
@@ -850,3 +851,79 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测字体已加载、页面无横向溢出、文字越界为 `0`、DPR `1.0000000149011612`；前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
 - [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-error-live-2026-08-26.png` 和 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-error-browser-current-2026-08-26-rgba.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=176061`、差异比例 `11.9399%`、`MAE=1.38010`、`RMSE=11.40657`、最大通道差异 `230`，独立结果为 `diet-records-current-diff.json`。
 - [ ] 当前画板继续保持 `DIFF_REVIEW`：工作区壳层、头像、图标、字体和浏览器光栅化仍存在可见差异，不能标记像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
+## 92. 2026-08-27 Meal Planning 餐食卡长标题显示收口
+
+- [x] 重新读取实时 Figma 节点 `640:901` 的餐食卡文字配置：长英文菜名使用 `13px`、单行、隐藏溢出和 `ellipsis`，前端已按该规则修正；Figma 设计稿未修改。
+- [x] `/planning?state=v2` 浏览器实测餐食卡长标题均为 `13px`、`white-space: nowrap`、`overflow: hidden`、`text-overflow: ellipsis`；页面字体状态为 `loaded`，前端左上角红黄绿窗口装饰点为 `0`，业务状态圆点保留。
+- [x] 补充证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-browser-meal-title-2026-08-27.png` 与 `meal-planning-v2-meal-title-2026-08-27-diff.json`；同尺寸 PNG diff 为 `348604` 个差异像素、`23.6412%`、`MAE=2.47720`、`RMSE=13.87382`、最大通道差异 `234`，相较此前 `23.8253%` 有所下降。
+- [x] `PlanningPage.test.tsx` 定向测试 `8/8` 通过；本轮全量 `npm run test` 为 `38` 个测试文件、`192/192`，`npm run format:check`、`npm run typecheck`、`npm run build` 和 `git diff --check` 均通过。
+- [ ] 补充截图实际 DPR 为 `1.25`，不满足 DPR 1 门禁；因此主映射仍保持 `DIFF_REVIEW`，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 93. 2026-08-27 Agent Chat 顶栏品牌方块与窗口装饰复核
+
+- [x] 重新读取 Figma 节点 `640:428`：侧栏品牌标记为 `36×36px` 并显示 `F`，顶栏品牌方块为 `28×28px` 的空白绿色方块；Figma 画板中的 `window-controls` 仅作为设计参考，前端不实现该三色窗口装饰。
+- [x] 前端 `BrandLogo` 增加字母显示控制，`designChat` 且隐藏知识库顶部导航时只隐藏顶栏 `F`；侧栏品牌标记继续显示 `F`，普通页面不改变原有品牌行为。
+- [x] 浏览器实测 `/chat?state=figma-v2`：视口 `1440×1024`、DPR `1.0000000149011612`、字体 `loaded`、根节点无横向溢出；顶栏品牌方块为 `28×28px` 且文本为空，侧栏品牌标记为 `36×36px` 且文本为 `F`。
+- [x] 左上角红、黄、绿窗口装饰候选数量为 `0`；业务会话状态圆点保留，Figma 设计稿未修改。
+- [x] 新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-brand-mark-browser-2026-08-27.png`，Figma 参考为 `docxs/设计/figma-png/agent-chat-v2.png`；`scripts/png-diff.mjs` 结果为 `differentPixels=644755`、差异比例 `43.7252%`、`MAE=5.20864`、`RMSE=22.10895`、最大通道差异 `255`，继续登记为 `DIFF_REVIEW`。
+- [x] 105 画板证据重新生成后仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，自动 diff 输入 `105`；本条只更新 `agent-chat-v2` 的浏览器证据映射。
+- [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
+- [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 98. 2026-08-27 Agent Chat 助手正文排版收口
+
+- [x] 重新读取 Figma 节点 `640:428`，确认助手正文使用 `Noto Sans SC Regular 14px`；前端仅对 `/chat?state=figma-v2` 的助手正文解除通用 `Space Mono` 覆盖，来源行和 Trace 数值仍保留设计稿指定的 Space Mono。
+- [x] headless Chromium 使用 `1440×1024`、DPR `1`、禁用动画；浏览器实测助手正文由字体修正前的三行收口为 Figma 的两行，消息操作区保持 `x=292、y=543、w=796、h=150`；左上角红黄绿窗口装饰候选为 `0`，Figma 设计稿未修改。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-font-browser-2026-08-27.png`，Figma 参考为 `docxs/设计/figma-png/agent-chat-v2.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=525211`、差异比例 `35.6182%`、`MAE=5.03448`、`RMSE=23.05043`、最大通道差异 `239`，继续登记为 `DIFF_REVIEW`。
+- [ ] 头像资产、图标光栅化和浏览器渲染仍有可见差异；本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面迁移或 iconfont 实体资源登记，iconfont 继续为 `BLOCKED`。
+
+## 99. 2026-08-27 Agent Chat Trace 卡片状态样式收口
+
+- [x] 依据 Figma 节点 `640:428` 的 Trace 四张卡结构，保留状态条中的 `Executing ●`，但移除前端通用 running 工具在设计 fixture 中额外添加的橙色外框；其他运行态页面不改变。
+- [x] `TraceRail` 增加明确的 `designTracePanel` 作用域，浏览器实测最后一张 Trace 卡的 computed border 为透明；视口 `1440×1024`、DPR `1`、禁用动画，左上角红黄绿窗口装饰候选为 `0`，Figma 设计稿未修改。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-trace-background-browser-2026-08-27.png`，Figma 参考为 `docxs/设计/figma-png/agent-chat-v2.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=525213`、差异比例 `35.6183%`、`MAE=5.00323`、`RMSE=22.95874`、最大通道差异 `239`，继续登记为 `DIFF_REVIEW`。
+- [ ] 页面仍存在头像、图标光栅化和其他浏览器渲染差异；本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面迁移或 iconfont 实体资源登记，iconfont 继续为 `BLOCKED`。
+
+## 100. 2026-08-27 Agent Chat 窗口控制占位与侧栏基线收口
+
+- [x] 依据 Figma 节点 `640:428`，前端继续不渲染左上角红、黄、绿窗口装饰点，同时在设计 fixture 侧栏保留其 `12px` 顶部占位；品牌、新建任务和会话搜索框实测起点分别为 `y=52/104/161`。
+- [x] 仅修改 `designChat` 作用域，普通页面和业务状态圆点不受影响；浏览器实测三色窗口装饰候选为 `0`，视口 `1440×1024`、DPR `1`、禁用动画，Figma 设计稿未修改。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-sidebar-baseline-browser-2026-08-27.png`，Figma 参考为 `docxs/设计/figma-png/agent-chat-v2.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=509690`、差异比例 `34.5656%`、`MAE=4.61398`、`RMSE=21.70300`、最大通道差异 `239`，继续登记为 `DIFF_REVIEW`。
+- [ ] 头像、图标光栅化和其他浏览器渲染差异仍存在；本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面迁移或 iconfont 实体资源登记，iconfont 继续为 `BLOCKED`。
+
+## 95. 2026-08-27 Intake Analysis 洞察颜色与窗口装饰复核
+
+- [x] 重新读取 Figma 节点 `640:773`，确认第三条营养洞察圆点使用 `#80E0E6`；前端 `.insightOrange` 已改用语义变量 `--fm-color-info-strong`，运行时计算值为 `rgb(128, 224, 230)`。
+- [x] 浏览器 headless fallback 使用 `1440×1024`、DPR `1`、字体 `loaded`；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿未修改，业务状态圆点保留。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-color-dpr1.png`，Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png`；`scripts/png-diff.mjs` 结果为 `differentPixels=205554`、差异比例 `13.9400%`、`MAE=3.52169`、`RMSE=19.53109`、最大通道差异 `211`，已同步 105 画板映射和汇总结果。
+- [x] `AnalysisPage.test.tsx` 定向测试 `4/4`、`npm run typecheck`、浏览器运行时颜色检查和 `git diff --check` 通过；目标 CSS 文件仍有既存 Prettier 格式提示，本次未扩大格式化范围。
+- [ ] 当前画板继续保持 `DIFF_REVIEW`，不能将局部颜色修正等同于整页像素级 `PASS`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全量页面视觉迁移和 iconfont 实体登记仍未完成。
+
+## 96. 2026-08-27 Intake Analysis 默认态垂直节奏复核
+
+- [x] 依据 Figma 节点 `640:773`，仅对 `/analysis?state=v2` 默认态摘要区启用 `107px` 高度；Empty 仍为 `100px`，Loading 仍为 `126px`，Error 不显示摘要区。
+- [x] headless Chromium 使用 `1440×1024`、DPR `1`、字体加载完成；浏览器实测摘要区 `y=164,h=107`，趋势卡 `y=295,h=303`，洞察卡 `y=622,h=219`，数据质量面板 `y=873,h=140`，根节点无横向溢出。
+- [x] 四种分析状态的前端左上角红、黄、绿窗口装饰候选数量均为 `0`；业务状态圆点保留，Figma 设计稿未修改。
+- [x] 当前浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-default-height-2026-08-27-dpr1.png`，Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=123089`、差异比例 `8.3475%`、`MAE=2.82908`、`RMSE=17.57882`、最大通道差异 `211`。
+- [x] 当前结果已同步 `figma-105-mapping.json` 和 `figma-105-diff-results.json`；相比上一份 `13.9400%` 证据有所改善，但图标、字体渲染和主体视觉处理仍有差异，画板继续为 `DIFF_REVIEW`。
+- [ ] 本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面视觉迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 97. 2026-08-27 Workspace Home 状态说明文案复核
+
+- [x] 依据 Figma 节点 `640:256`，将 `/?state=figma-v2` 的状态说明从“待处理事项提醒 / 预算通知”修正为“待处理事项覆盖 / 预算追加”，与设计稿可见文案一致。
+- [x] 工作台首页定向测试 `2/2` 通过；headless Chromium 使用 `1440×1024`、DPR `1`、禁用动画，页面无横向溢出。
+- [x] 前端左上角红、黄、绿窗口装饰候选为 `0`；顶栏绿色品牌方块保持空白，侧栏品牌字母和业务状态圆点未删除，Figma 设计稿未修改。
+- [x] 当前浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/workspace-home-v2-browser-dpr1-motionoff-2026-08-27.png`；与 `recaptured-figma/workspace-home-v2-figma.png` 的同尺寸 diff 为 `differentPixels=393796`、差异比例 `26.7060%`、`MAE=3.62688`、`RMSE=18.43240`、最大通道差异 `254`。
+- [x] 已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json`；该画板仍为 `DIFF_REVIEW`，没有将单条文案修正标记为像素级 `PASS`。
+- [ ] 本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面视觉迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 94. 2026-08-27 Meal Planning 顶栏品牌标记 fixture 边界修正
+
+- [x] 重新读取 Figma 节点 `692:2662`：规划列表顶栏绿色品牌方块为 `28×28px` 空白方块，侧栏品牌标记为 `36×36px` 并显示 `F`；Figma 画板中的 `window-controls` 仍只作为设计参考，前端不实现三色窗口装饰。
+- [x] 修正 `WorkspaceLayout` 的 fixture 判断：规划页通过 `sidebarFixture`、Chat 页通过 `designChat`，二者在隐藏知识库顶部导航时都隐藏顶栏 `F`；普通页面和侧栏品牌标记不受影响。
+- [x] 浏览器实测 `/planning?state=list`：视口 `1440×1024`、DPR `1.0000000149011612`、字体 `loaded`、根节点无横向溢出；顶栏方块为 `28×28px` 且文本为空，侧栏标记为 `36×36px` 且文本为 `F`，左上角红黄绿窗口装饰候选为 `0`。
+- [x] 新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-plan-list-brand-mark-browser-2026-08-27.png`，Figma 参考为 `docxs/设计/figma-png/meal-plan-list.png`；`scripts/png-diff.mjs` 结果为 `differentPixels=546504`、差异比例 `37.0622%`、`MAE=4.25977`、`RMSE=20.45833`、最大通道差异 `245`，继续登记为 `DIFF_REVIEW`。
+- [x] 105 画板映射已指向本次规划列表证据，汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，自动 diff 输入 `105`。
+- [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
+- [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。

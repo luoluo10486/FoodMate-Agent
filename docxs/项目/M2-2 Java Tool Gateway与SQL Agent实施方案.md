@@ -1,10 +1,10 @@
 # M2-2 Java Tool Gateway 与 SQL Agent 实施方案
 
-更新时间：2026-08-23
+更新时间：2026-08-27
 状态：核心代码、业务测试和本地真实数据库/运行时联调已完成；性能与故障门禁后置
 上位计划：[M2剩余功能执行计划.md](M2剩余功能执行计划.md)
 
-## 当前实现状态（2026-08-23）
+## 当前实现状态（2026-08-27）
 
 | 范围 | 状态 | 证据边界 |
 |---|---|---|
@@ -14,6 +14,8 @@
 | 分析 AgentRun | 本地业务闭环已验证 | 在本地 PostgreSQL/RocketMQ 和宿主 Java/Python 上完成 `time_parser -> database_query -> Composer` 多轮 AgentRun；SQL 审计、事件序列和终态已断言 |
 
 当前 M2-2 的业务范围已完成。本地联调使用 deterministic Planner/Composer 和随机隔离测试数据，验证了真实 PostgreSQL 数据查询、Java/Python/RocketMQ 跨运行时回写、SQL 审计、空数据语义和多轮事件连续性；不包含真实云模型稳定性、性能压测或故障矩阵。
+
+当前功能版门禁复核：Java Application `200/200`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）通过；Python `.venv` 为 `124 passed、1 skipped、2 warnings`。带历史日期的执行证据保留原样，最新轮次和跳过边界见 [EXECUTION_RECORD.md](../../script/sql/FoodMate/EXECUTION_RECORD.md)。
 
 ## 2026-08-23 业务收尾证据
 

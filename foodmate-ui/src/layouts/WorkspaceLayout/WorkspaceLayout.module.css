@@ -7,8 +7,18 @@
   background: var(--fm-bg);
 }
 
-/* Keep the Chat fixture's sidebar content at the Figma baseline without rendering desktop window controls. */
+/* Keep design fixtures at the Figma baseline without rendering desktop window controls. */
+.figmaFixture {
+  --fm-fixture-sidebar-active-surface: #fdf6ef;
+  --fm-fixture-session-active-surface: #fffdf5;
+  --fm-fixture-top-nav-active-surface: #fffefa;
+}
+
 .figmaFixture .sidebar {
+  padding-top: 52px;
+}
+
+.designChat .sidebar {
   padding-top: 52px;
 }
 
@@ -248,7 +258,7 @@
 }
 
 .sideLink.active {
-  background: var(--fm-color-warning-surface);
+  background: var(--fm-fixture-sidebar-active-surface, var(--fm-color-warning-surface));
   color: var(--fm-orange);
 }
 .sideLink svg,
@@ -431,7 +441,7 @@
 .topNavLink.active,
 .topNavActive {
   color: var(--fm-orange);
-  background: var(--fm-color-warning-surface);
+  background: var(--fm-fixture-top-nav-active-surface, var(--fm-color-warning-surface));
 }
 
 @media (min-width: 1400px) {

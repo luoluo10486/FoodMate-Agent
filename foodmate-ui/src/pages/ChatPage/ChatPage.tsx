@@ -113,10 +113,10 @@ function MessageBubble({ message, children }: { message: ChatMessage; children?:
   );
 }
 
-function TraceRail({ run }: { run: AgentRunView }) {
+function TraceRail({ run, designChat = false }: { run: AgentRunView; designChat?: boolean }) {
   const [tab, setTab] = useState<'steps' | 'json'>('steps');
   return (
-    <aside className={styles.tracePanel} aria-label="运行轨迹">
+    <aside className={`${styles.tracePanel} ${designChat ? styles.designTracePanel : ''}`} aria-label="运行轨迹">
       <div className={styles.traceTitle}>运行轨迹</div>
       <span className={styles.srOnly}>工具与引用</span>
       <Tabs value={tab} onValueChange={(value) => setTab(value as 'steps' | 'json')}>
@@ -244,7 +244,7 @@ function ChatSurface({
       displayNameOverride={displayNameOverride}
       profileIdOverride={profileIdOverride}
       pageOverlay={pageOverlay}
-      rightRail={showTrace ? <TraceRail run={run} /> : undefined}
+      rightRail={showTrace ? <TraceRail run={run} designChat={designChat} /> : undefined}
       sidebarFixture={sidebarFixture}
       showKnowledgeTopNav={showKnowledgeTopNav}
       sidebarAvatarSrc={sidebarAvatarSrc}
@@ -376,7 +376,7 @@ function EmptyChatPage() {
 }
 
 function PlanningStatePage() {
-  const planningAvatarSrc = '/assets/figma/planning/meal-plan-list-topbar-avatar.png';
+  const planningAvatarSrc = DEFAULT_AVATARS.male;
   const planningLoaderSrc = '/assets/figma/agent-chat/planning-loader.svg';
   const planningSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const planningRun: AgentRunView = {
@@ -461,7 +461,7 @@ const executingToolSteps = [
 ];
 
 function ToolExecutingStatePage() {
-  const executingAvatarSrc = '/assets/figma/planning/meal-plan-list-topbar-avatar.png';
+  const executingAvatarSrc = DEFAULT_AVATARS.male;
   const executingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const executingRun: AgentRunView = {
     id: 'fst_trace_9821aa',
@@ -564,7 +564,7 @@ function ToolExecutingStatePage() {
 }
 
 function AwaitingClarificationStatePage() {
-  const awaitingMessageAvatarSrc = '/assets/figma/agent-chat/awaiting-clarification/message-avatar.png';
+  const awaitingMessageAvatarSrc = DEFAULT_AVATARS.male;
   const awaitingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const awaitingRun: AgentRunView = {
     id: 'run_awaiting_clarification_fixture',
@@ -588,8 +588,8 @@ function AwaitingClarificationStatePage() {
       designChat
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
-      sidebarAvatarSrc="/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png"
-      topAvatarSrc="/assets/figma/agent-chat/awaiting-clarification/topbar-avatar.png"
+      sidebarAvatarSrc={DEFAULT_AVATARS.male}
+      topAvatarSrc={DEFAULT_AVATARS.male}
       onChange={() => undefined}
       onSend={() => undefined}
       onStop={() => undefined}
@@ -799,6 +799,10 @@ function navigationFixture(): HistoryFixture {
   const fixture = historyFixture('history-page-2');
   return {
     ...fixture,
+    sidebar: {
+      ...fixture.sidebar,
+      currentPage: 1,
+    },
     prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
     response:
       '我已为您分析了野生三文鱼（150克）和熟藜麦（100克）的标准营养价值。它们一共可提供大约 38 克的优质蛋白质。',
@@ -1158,14 +1162,10 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const fixtureSidebar = isWriteConfirmation
     ? { ...historyFixture('history-page-2').sidebar, currentPage: 1 }
     : undefined;
-  const fixtureSidebarAvatarSrc = isWriteConfirmation
-    ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png'
-    : undefined;
-  const fixtureTopAvatarSrc = isWriteConfirmation
-    ? '/assets/figma/agent-chat/write-confirmation/topbar-avatar.png'
-    : undefined;
+  const fixtureSidebarAvatarSrc = isWriteConfirmation ? DEFAULT_AVATARS.male : undefined;
+  const fixtureTopAvatarSrc = isWriteConfirmation ? DEFAULT_AVATARS.male : undefined;
   const fixtureMessageAvatarSrc = isWriteConfirmation
-    ? '/assets/figma/agent-chat/write-confirmation/message-avatar.png'
+    ? DEFAULT_AVATARS.male
     : state === 'sse-reconnecting'
       ? DEFAULT_AVATARS.male
       : undefined;

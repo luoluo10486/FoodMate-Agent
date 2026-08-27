@@ -9,7 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.foodmate.application.common.port.out.OperationAuditPort;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.infrastructure.persistence.knowledge.adapter.KnowledgeRepositoryAdapter;
 import com.foodmate.shared.id.IdGenerator;
@@ -19,10 +18,8 @@ import org.junit.jupiter.api.Test;
 
 class KnowledgeRepositoryAdapterTest {
     private final KnowledgeMapper mapper = org.mockito.Mockito.mock(KnowledgeMapper.class);
-    private final OperationAuditPort audit = org.mockito.Mockito.mock(OperationAuditPort.class);
     private final IdGenerator ids = org.mockito.Mockito.mock(IdGenerator.class);
-    private final KnowledgeRepositoryAdapter adapter =
-            new KnowledgeRepositoryAdapter(mapper, audit, ids);
+    private final KnowledgeRepositoryAdapter adapter = new KnowledgeRepositoryAdapter(mapper, ids);
 
     @Test
     void indexedResultUpdatesAuthorityAndCreatesOneProgressEvent() {

@@ -7,6 +7,8 @@ import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.conversation.port.out.MemoryRepository;
 import com.foodmate.application.conversation.service.MemoryCandidateService;
 import com.foodmate.application.conversation.service.SessionSummaryService;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
 import java.math.BigDecimal;
 import java.util.List;
@@ -100,43 +102,48 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
         if (candidates.isEmpty()) return;
         Long userId = store.findRunOwner(runId);
         if (userId == null) return;
-        boolean persisted = false;
-        for (MemoryCandidate candidate : candidates) {
-            if (!allowed(candidate)) continue;
-            String type = text(candidate.memoryType(), 32);
-            String key = text(candidate.memoryKey(), 64);
-            String scope = text(candidate.scope(), 32);
-            BigDecimal confidence = candidate.confidence();
-            if (type == null
-                    || key == null
-                    || confidence == null
-                    || confidence.signum() < 0
-                    || confidence.compareTo(BigDecimal.ONE) > 0) continue;
-            String candidateJson = json(candidate.memoryValue());
-            boolean conflict = store.hasDifferentValue(userId, type, key, candidateJson);
-            store.insert(
-                    new MemoryRepository.NewMemory(
-                            ids.nextId(),
-                            userId,
-                            type,
-                            key,
-                            candidateJson,
-                            confidence,
-                            text(candidate.source(), 32),
-                            scope,
-                            conflict ? "conflict" : "confirmed"));
-            persisted = true;
-        }
-        if (persisted) {
-            summaries.invalidateForUser(userId);
-            record(
-                    userId,
-                    "memory",
-                    Long.toString(runId),
-                    "memory.candidate.persist",
-                    "success",
-                    null,
-                    Map.of("candidate_count", candidates.size()));
+        try {
+            boolean persisted = false;
+            for (MemoryCandidate candidate : candidates) {
+                if (!allowed(candidate)) continue;
+                String type = text(candidate.memoryType(), 32);
+                String key = text(candidate.memoryKey(), 64);
+                String scope = text(candidate.scope(), 32);
+                BigDecimal confidence = candidate.confidence();
+                if (type == null
+                        || key == null
+                        || confidence == null
+                        || confidence.signum() < 0
+                        || confidence.compareTo(BigDecimal.ONE) > 0) continue;
+                String candidateJson = json(candidate.memoryValue());
+                boolean conflict = store.hasDifferentValue(userId, type, key, candidateJson);
+                store.insert(
+                        new MemoryRepository.NewMemory(
+                                ids.nextId(),
+                                userId,
+                                type,
+                                key,
+                                candidateJson,
+                                confidence,
+                                text(candidate.source(), 32),
+                                scope,
+                                conflict ? "conflict" : "confirmed"));
+                persisted = true;
+            }
+            if (persisted) {
+                summaries.invalidateForUser(userId);
+                record(
+                        userId,
+                        "memory",
+                        Long.toString(runId),
+                        "memory.candidate.persist",
+                        "success",
+                        null,
+                        Map.of("candidate_count", candidates.size()));
+            }
+        } catch (RuntimeException exception) {
+            failure(userId, "memory", Long.toString(runId), "memory.candidate.persist", exception);
+            throw exception;
         }
     }
 
@@ -152,56 +159,71 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
     @Transactional
     @Override
     public MemoryView update(long userId, long memoryId, String memoryValue, String scope) {
-        requireOwned(userId, memoryId);
-        int changed =
-                store.updateOwned(
-                        userId, memoryId, memoryValue == null ? "{}" : memoryValue, scope);
-        if (changed != 1) throw new IllegalArgumentException("memory not found");
-        summaries.invalidateForUser(userId);
-        record(
-                userId,
-                "memory",
-                Long.toString(memoryId),
-                "memory.update",
-                "success",
-                null,
-                Map.of("scope", scope == null ? "" : scope));
-        return get(userId, memoryId);
+        try {
+            requireOwned(userId, memoryId);
+            int changed =
+                    store.updateOwned(
+                            userId, memoryId, memoryValue == null ? "{}" : memoryValue, scope);
+            if (changed != 1) throw new IllegalArgumentException("memory not found");
+            summaries.invalidateForUser(userId);
+            record(
+                    userId,
+                    "memory",
+                    Long.toString(memoryId),
+                    "memory.update",
+                    "success",
+                    null,
+                    Map.of("scope", scope == null ? "" : scope));
+            return get(userId, memoryId);
+        } catch (RuntimeException exception) {
+            failure(userId, "memory", Long.toString(memoryId), "memory.update", exception);
+            throw exception;
+        }
     }
 
     /** 逻辑删除记忆，避免破坏运行审计和历史上下文来源。 */
     @Transactional
     @Override
     public void delete(long userId, long memoryId) {
-        requireOwned(userId, memoryId);
-        store.softDeleteOwned(userId, memoryId);
-        summaries.invalidateForUser(userId);
-        record(
-                userId,
-                "memory",
-                Long.toString(memoryId),
-                "memory.delete",
-                "success",
-                null,
-                Map.of());
+        try {
+            requireOwned(userId, memoryId);
+            store.softDeleteOwned(userId, memoryId);
+            summaries.invalidateForUser(userId);
+            record(
+                    userId,
+                    "memory",
+                    Long.toString(memoryId),
+                    "memory.delete",
+                    "success",
+                    null,
+                    Map.of());
+        } catch (RuntimeException exception) {
+            failure(userId, "memory", Long.toString(memoryId), "memory.delete", exception);
+            throw exception;
+        }
     }
 
     /** 用户明确确认同一 key 的冲突记忆后，才允许它参与后续 Context 装配。 */
     @Transactional
     @Override
     public MemoryView confirm(long userId, long memoryId) {
-        requireOwned(userId, memoryId);
-        store.confirmOwned(userId, memoryId);
-        summaries.invalidateForUser(userId);
-        record(
-                userId,
-                "memory",
-                Long.toString(memoryId),
-                "memory.confirm",
-                "success",
-                null,
-                Map.of());
-        return get(userId, memoryId);
+        try {
+            requireOwned(userId, memoryId);
+            store.confirmOwned(userId, memoryId);
+            summaries.invalidateForUser(userId);
+            record(
+                    userId,
+                    "memory",
+                    Long.toString(memoryId),
+                    "memory.confirm",
+                    "success",
+                    null,
+                    Map.of());
+            return get(userId, memoryId);
+        } catch (RuntimeException exception) {
+            failure(userId, "memory", Long.toString(memoryId), "memory.confirm", exception);
+            throw exception;
+        }
     }
 
     private void record(
@@ -215,6 +237,31 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
         if (audit != null)
             audit.record(
                     userId, targetType, targetId, action, result, errorCode, null, null, metadata);
+    }
+
+    private void failure(
+            long userId,
+            String targetType,
+            String targetId,
+            String action,
+            RuntimeException exception) {
+        if (audit != null)
+            audit.recordFailure(
+                    userId,
+                    targetType,
+                    targetId,
+                    action,
+                    "failed",
+                    errorCode(exception),
+                    null,
+                    null,
+                    Map.of("exception_type", exception.getClass().getSimpleName()));
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        return exception instanceof BusinessException businessException
+                ? businessException.errorCode().code()
+                : ErrorCode.INTERNAL_ERROR.code();
     }
 
     private MemoryView get(long userId, long memoryId) {

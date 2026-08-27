@@ -1,6 +1,5 @@
 package com.foodmate.infrastructure.persistence.food.adapter;
 
-import com.foodmate.application.common.port.out.OperationAuditPort;
 import com.foodmate.application.food.port.out.ApprovalRequestRepository;
 import com.foodmate.infrastructure.persistence.food.ApprovalRequestMapper;
 import java.time.Instant;
@@ -13,12 +12,9 @@ import org.springframework.stereotype.Repository;
 @Profile("local")
 public class ApprovalRequestRepositoryAdapter implements ApprovalRequestRepository {
     private final ApprovalRequestMapper mapper;
-    private final OperationAuditPort audit;
 
-    public ApprovalRequestRepositoryAdapter(
-            ApprovalRequestMapper mapper, OperationAuditPort audit) {
+    public ApprovalRequestRepositoryAdapter(ApprovalRequestMapper mapper) {
         this.mapper = mapper;
-        this.audit = audit;
     }
 
     @Override
@@ -89,24 +85,5 @@ public class ApprovalRequestRepositoryAdapter implements ApprovalRequestReposito
     public int updateExecutedResource(
             long userId, long approvalRequestId, long resourceId, Instant now) {
         return mapper.updateExecutedResource(userId, approvalRequestId, resourceId, now);
-    }
-
-    @Override
-    public int insertAudit(AuditWrite audit) {
-        return this.audit.insert(
-                new OperationAuditPort.AuditRecord(
-                        audit.operationAuditId(),
-                        audit.userId(),
-                        audit.requestId(),
-                        audit.traceId(),
-                        audit.targetType(),
-                        audit.targetId(),
-                        audit.action(),
-                        "success",
-                        null,
-                        "{}",
-                        audit.responseJson(),
-                        audit.parametersDigest(),
-                        audit.idempotencyKey()));
     }
 }

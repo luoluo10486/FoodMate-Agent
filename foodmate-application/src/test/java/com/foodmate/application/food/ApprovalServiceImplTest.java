@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.ApprovalRequestRepository;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.food.service.FoodLogService;
@@ -30,11 +31,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.springframework.beans.factory.ObjectProvider;
 
 class ApprovalServiceImplTest {
     private static final Instant FUTURE = Instant.now().plusSeconds(3600);
     private static final Instant PAST = Instant.parse("2026-08-12T11:00:00Z");
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    private final OperationAuditService audit = mock(OperationAuditService.class);
 
     @AfterEach
     void clearTrace() {
@@ -73,7 +76,7 @@ class ApprovalServiceImplTest {
 
         assertEquals(first, replay);
         verify(repository).insert(any());
-        verify(repository, org.mockito.Mockito.times(1)).insertAudit(any());
+        verifyAuditRecorded();
     }
 
     @Test
@@ -108,7 +111,6 @@ class ApprovalServiceImplTest {
 
         assertEquals(ErrorCode.CONFLICT, exception.errorCode());
         verify(repository, never()).insert(any());
-        verify(repository, never()).insertAudit(any());
     }
 
     @Test
@@ -129,7 +131,7 @@ class ApprovalServiceImplTest {
 
         assertEquals("confirmed", result.status());
         verify(repository).markConfirmed(eq(7L), eq(100L), any());
-        verify(repository).insertAudit(any());
+        verifyAuditRecorded();
     }
 
     @Test
@@ -186,7 +188,7 @@ class ApprovalServiceImplTest {
         order.verify(repository).markExecuted(eq(7L), eq(100L), any());
         order.verify(plans).save(eq(7L), eq(55L), org.mockito.ArgumentMatchers.startsWith("plan_"));
         verify(plans).save(eq(7L), eq(55L), org.mockito.ArgumentMatchers.startsWith("plan_"));
-        verify(repository).insertAudit(any());
+        verifyAuditRecorded();
     }
 
     @Test
@@ -267,7 +269,9 @@ class ApprovalServiceImplTest {
                         org.mockito.Mockito.mock(MealPlanService.class),
                         foods,
                         ids(101L),
-                        mapper);
+                        mapper,
+                        null,
+                        provider(audit));
 
         BusinessException exception =
                 assertThrows(
@@ -292,7 +296,9 @@ class ApprovalServiceImplTest {
                         org.mockito.Mockito.mock(MealPlanService.class),
                         foods,
                         ids(101L, 102L),
-                        mapper);
+                        mapper,
+                        null,
+                        provider(audit));
         ObjectNode parameters =
                 JsonNodeFactory.instance
                         .objectNode()
@@ -383,7 +389,7 @@ class ApprovalServiceImplTest {
         assertEquals("rejected", first.status());
         assertEquals(first, replay);
         verify(repository).markRejected(eq(7L), eq(100L), any());
-        verify(repository).insertAudit(any());
+        verifyAuditRecorded();
     }
 
     @Test
@@ -438,7 +444,13 @@ class ApprovalServiceImplTest {
         ObjectNode parameters = foodInput();
         ApprovalService service =
                 new ApprovalServiceImpl(
-                        repository, mock(MealPlanService.class), foods, ids(101L, 102L), mapper);
+                        repository,
+                        mock(MealPlanService.class),
+                        foods,
+                        ids(101L, 102L),
+                        mapper,
+                        null,
+                        provider(audit));
         String digest = service.parametersDigest("create", "food_log", null, parameters);
         ApprovalRequestRepository.ApprovalSnapshot confirmed =
                 snapshot(
@@ -468,7 +480,7 @@ class ApprovalServiceImplTest {
                 () -> service.executeForAgent(7L, 42L, 100L, "food-key", parameters));
 
         verify(repository).markFailed(eq(7L), eq(100L), any());
-        verify(repository).insertAudit(any());
+        verifyAuditRecorded();
         verify(repository, never())
                 .updateExecutedResource(any(Long.class), any(Long.class), any(Long.class), any());
     }
@@ -483,7 +495,9 @@ class ApprovalServiceImplTest {
                         mock(MealPlanService.class),
                         foods,
                         ids(101L, 102L, 103L),
-                        mapper);
+                        mapper,
+                        null,
+                        provider(audit));
 
         ObjectNode update = foodUpdateParameters(3L);
         executeFoodOperation(repository, service, foods, "update", update, 501L, "update-key");
@@ -547,7 +561,29 @@ class ApprovalServiceImplTest {
     private ApprovalService service(
             ApprovalRequestRepository repository, MealPlanService plans, IdGenerator ids) {
         TraceContextHolder.set(TraceContext.of("req_test", "trace_test"));
-        return new ApprovalServiceImpl(repository, plans, ids, mapper);
+        return new ApprovalServiceImpl(repository, plans, null, ids, mapper, null, provider(audit));
+    }
+
+    private void verifyAuditRecorded() {
+        verify(audit)
+                .record(
+                        any(TraceContext.class),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ObjectProvider<OperationAuditService> provider(OperationAuditService value) {
+        ObjectProvider<OperationAuditService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(value);
+        return provider;
     }
 
     private ApprovalService.ProposalCommand command(ObjectNode parameters) {

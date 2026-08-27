@@ -23,6 +23,8 @@ import com.foodmate.shared.account.enums.UserStatus;
 import com.foodmate.shared.conversation.enums.MessageRole;
 import com.foodmate.shared.conversation.enums.SessionMode;
 import com.foodmate.shared.conversation.enums.SessionStatus;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -94,48 +96,54 @@ public class UserAccountServiceImpl implements UserAccountService {
             String password,
             String nickname,
             SessionMetadata metadata) {
-        requireText(username, "username");
-        requireText(email, "email");
-        validatePassword(password);
-        if (store != null) {
-            if (store.userExists(username, email)) {
+        try {
+            requireText(username, "username");
+            requireText(email, "email");
+            validatePassword(password);
+            if (store != null) {
+                if (store.userExists(username, email)) {
+                    throw conflict("username or email already exists");
+                }
+                long userId = ids.nextId();
+                store.insertUser(
+                        userId, "U" + userId, username, email, hashPassword(password), nickname);
+                store.insertProfile(ids.nextId(), userId, nickname);
+                AuthResult result =
+                        issueSession(userId, username, UserRole.USER.code(), metadata, null);
+                audit(userId, "user", Long.toString(userId), "user.register");
+                return result;
+            }
+            if (users.values().stream()
+                    .anyMatch(
+                            user ->
+                                    user.username().equalsIgnoreCase(username)
+                                            || user.email().equalsIgnoreCase(email))) {
                 throw conflict("username or email already exists");
             }
             long userId = ids.nextId();
-            store.insertUser(
-                    userId, "U" + userId, username, email, hashPassword(password), nickname);
-            store.insertProfile(ids.nextId(), userId, nickname);
+            users.put(
+                    userId,
+                    new UserRecord(
+                            userId,
+                            username,
+                            email,
+                            hashPassword(password),
+                            nickname,
+                            UserRole.USER.code(),
+                            UserStatus.ACTIVE.code()));
+            profiles.put(
+                    userId,
+                    new ProfileRecord(
+                            userId, nickname, null, null, null, null, null, null, null, null, "[]",
+                            "[]", "{}"));
             AuthResult result =
                     issueSession(userId, username, UserRole.USER.code(), metadata, null);
             audit(userId, "user", Long.toString(userId), "user.register");
             return result;
+        } catch (RuntimeException exception) {
+            failure(null, "user", null, "user.register", exception);
+            throw exception;
         }
-        if (users.values().stream()
-                .anyMatch(
-                        user ->
-                                user.username().equalsIgnoreCase(username)
-                                        || user.email().equalsIgnoreCase(email))) {
-            throw conflict("username or email already exists");
-        }
-        long userId = ids.nextId();
-        users.put(
-                userId,
-                new UserRecord(
-                        userId,
-                        username,
-                        email,
-                        hashPassword(password),
-                        nickname,
-                        UserRole.USER.code(),
-                        UserStatus.ACTIVE.code()));
-        profiles.put(
-                userId,
-                new ProfileRecord(
-                        userId, nickname, null, null, null, null, null, null, null, null, "[]",
-                        "[]", "{}"));
-        AuthResult result = issueSession(userId, username, UserRole.USER.code(), metadata, null);
-        audit(userId, "user", Long.toString(userId), "user.register");
-        return result;
     }
 
     public synchronized AuthResult login(String usernameOrEmail, String password) {
@@ -201,37 +209,42 @@ public class UserAccountServiceImpl implements UserAccountService {
     @Transactional
     public synchronized void changePassword(
             long userId, String currentPassword, String newPassword) {
-        validatePassword(newPassword);
-        UserRecord user = getUser(userId).orElseThrow(UserAccountServiceImpl::authRequired);
-        if (!verifyPassword(currentPassword, user.passwordHash())) throw invalidCredentials();
-        if (store != null) {
-            store.changePassword(userId, hashPassword(newPassword));
-            store.revokeAll(userId);
-            store.revokeAllRefreshTokens(userId);
-        } else {
-            users.put(
-                    userId,
-                    new UserRecord(
-                            user.userId(),
-                            user.username(),
-                            user.email(),
-                            hashPassword(newPassword),
-                            user.nickname(),
-                            user.role(),
-                            user.status()));
-            authSessions.replaceAll(
-                    (key, value) ->
-                            value.userId() == userId
-                                    ? new AuthSessionRecord(
-                                            value.userId(),
-                                            value.sessionTokenHash(),
-                                            value.csrfTokenHash(),
-                                            value.expiresAt(),
-                                            Instant.now())
-                                    : value);
-            revokeInMemoryRefreshTokens(userId);
+        try {
+            validatePassword(newPassword);
+            UserRecord user = getUser(userId).orElseThrow(UserAccountServiceImpl::authRequired);
+            if (!verifyPassword(currentPassword, user.passwordHash())) throw invalidCredentials();
+            if (store != null) {
+                store.changePassword(userId, hashPassword(newPassword));
+                store.revokeAll(userId);
+                store.revokeAllRefreshTokens(userId);
+            } else {
+                users.put(
+                        userId,
+                        new UserRecord(
+                                user.userId(),
+                                user.username(),
+                                user.email(),
+                                hashPassword(newPassword),
+                                user.nickname(),
+                                user.role(),
+                                user.status()));
+                authSessions.replaceAll(
+                        (key, value) ->
+                                value.userId() == userId
+                                        ? new AuthSessionRecord(
+                                                value.userId(),
+                                                value.sessionTokenHash(),
+                                                value.csrfTokenHash(),
+                                                value.expiresAt(),
+                                                Instant.now())
+                                        : value);
+                revokeInMemoryRefreshTokens(userId);
+            }
+            audit(userId, "user", Long.toString(userId), "user.password.change");
+        } catch (RuntimeException exception) {
+            failure(userId, "user", Long.toString(userId), "user.password.change", exception);
+            throw exception;
         }
-        audit(userId, "user", Long.toString(userId), "user.password.change");
     }
 
     public synchronized void requireCurrentPassword(long userId, String currentPassword) {
@@ -276,28 +289,48 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Transactional
     public synchronized void revokeAuthSession(long userId, long authSessionId) {
-        if (store != null) store.revoke(userId, authSessionId);
-        audit(userId, "user_session", Long.toString(authSessionId), "user.session.revoke");
+        try {
+            if (store != null) store.revoke(userId, authSessionId);
+            audit(userId, "user_session", Long.toString(authSessionId), "user.session.revoke");
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "user_session",
+                    Long.toString(authSessionId),
+                    "user.session.revoke",
+                    exception);
+            throw exception;
+        }
     }
 
     @Transactional
     public synchronized void revokeAllAuthSessions(long userId) {
-        if (store != null) {
-            store.revokeAll(userId);
-            store.revokeAllRefreshTokens(userId);
-        } else
-            authSessions.replaceAll(
-                    (key, value) ->
-                            value.userId() == userId
-                                    ? new AuthSessionRecord(
-                                            value.userId(),
-                                            value.sessionTokenHash(),
-                                            value.csrfTokenHash(),
-                                            value.expiresAt(),
-                                            Instant.now())
-                                    : value);
-        revokeInMemoryRefreshTokens(userId);
-        audit(userId, "user_session", Long.toString(userId), "user.sessions.revoke_all");
+        try {
+            if (store != null) {
+                store.revokeAll(userId);
+                store.revokeAllRefreshTokens(userId);
+            } else
+                authSessions.replaceAll(
+                        (key, value) ->
+                                value.userId() == userId
+                                        ? new AuthSessionRecord(
+                                                value.userId(),
+                                                value.sessionTokenHash(),
+                                                value.csrfTokenHash(),
+                                                value.expiresAt(),
+                                                Instant.now())
+                                        : value);
+            revokeInMemoryRefreshTokens(userId);
+            audit(userId, "user_session", Long.toString(userId), "user.sessions.revoke_all");
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "user_session",
+                    Long.toString(userId),
+                    "user.sessions.revoke_all",
+                    exception);
+            throw exception;
+        }
     }
 
     public synchronized String createPasswordResetToken(String email) {
@@ -313,14 +346,26 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Transactional
     public synchronized void resetPassword(String token, String newPassword) {
-        validatePassword(newPassword);
-        if (store == null) throw notFound("password reset is unavailable");
-        String hash = sha256(token);
-        Long userId = store.resetTokenUser(hash);
-        if (userId == null) throw notFound("invalid or expired reset token");
-        store.changePassword(userId, hashPassword(newPassword));
-        store.consumeResetToken(hash);
-        revokeAllAuthSessions(userId);
+        Long userId = null;
+        try {
+            validatePassword(newPassword);
+            if (store == null) throw notFound("password reset is unavailable");
+            String hash = sha256(token);
+            userId = store.resetTokenUser(hash);
+            if (userId == null) throw notFound("invalid or expired reset token");
+            store.changePassword(userId, hashPassword(newPassword));
+            store.consumeResetToken(hash);
+            revokeAllAuthSessions(userId);
+            audit(userId, "user", Long.toString(userId), "user.password.change");
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "user",
+                    userId == null ? null : Long.toString(userId),
+                    "user.password.change",
+                    exception);
+            throw exception;
+        }
     }
 
     public synchronized UserRecord requireSessionUser(String sessionToken) {
@@ -368,39 +413,60 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Transactional
     public synchronized ProfileRecord updateProfile(long userId, ProfileUpdate update) {
-        if (store == null) {
-            ProfileRecord current = profiles.getOrDefault(userId, profile(userId));
-            ProfileRecord next = current.with(update);
-            profiles.put(userId, next);
+        try {
+            if (store == null) {
+                ProfileRecord current = profiles.getOrDefault(userId, profile(userId));
+                ProfileRecord next = current.with(update);
+                profiles.put(userId, next);
+                audit(userId, "profile", Long.toString(userId), "profile.update");
+                return next;
+            }
+            store.ensureProfile(ids.nextId(), userId);
+            store.updateProfile(userId, update);
+            ProfileRecord result = profile(userId);
             audit(userId, "profile", Long.toString(userId), "profile.update");
-            return next;
+            return result;
+        } catch (RuntimeException exception) {
+            failure(userId, "profile", Long.toString(userId), "profile.update", exception);
+            throw exception;
         }
-        store.ensureProfile(ids.nextId(), userId);
-        store.updateProfile(userId, update);
-        ProfileRecord result = profile(userId);
-        audit(userId, "profile", Long.toString(userId), "profile.update");
-        return result;
     }
 
     @Transactional
     public synchronized SessionRecord createSession(long userId, String title, String mode) {
-        String actualMode = mode == null || mode.isBlank() ? SessionMode.AGENT.code() : mode;
-        if (!List.of(SessionMode.AGENT.code(), SessionMode.CHAT.code()).contains(actualMode))
-            throw new IllegalArgumentException("mode must be agent or chat");
-        String actualTitle = title == null || title.isBlank() ? "新会话" : title.trim();
-        if (actualTitle.length() > 255)
-            throw new IllegalArgumentException("title must be at most 255 characters");
-        long id = ids.nextId();
-        if (store != null) {
-            // 当前 V1 为单租户运行模式；数据库仍要求显式写入 tenant_id，不能依赖不存在的列默认值。
-            store.insertSession(id, userId, actualTitle, actualMode);
+        Long sessionId = null;
+        try {
+            String actualMode = mode == null || mode.isBlank() ? SessionMode.AGENT.code() : mode;
+            if (!List.of(SessionMode.AGENT.code(), SessionMode.CHAT.code()).contains(actualMode))
+                throw new IllegalArgumentException("mode must be agent or chat");
+            String actualTitle = title == null || title.isBlank() ? "新会话" : title.trim();
+            if (actualTitle.length() > 255)
+                throw new IllegalArgumentException("title must be at most 255 characters");
+            sessionId = ids.nextId();
+            if (store != null) {
+                // 当前 V1 为单租户运行模式；数据库仍要求显式写入 tenant_id，不能依赖不存在的列默认值。
+                store.insertSession(sessionId, userId, actualTitle, actualMode);
+            }
+            SessionRecord record =
+                    new SessionRecord(
+                            sessionId,
+                            userId,
+                            actualTitle,
+                            actualMode,
+                            SessionStatus.ACTIVE.code(),
+                            null);
+            if (store == null) sessions.put(sessionId, record);
+            audit(userId, "session", Long.toString(sessionId), "session.create");
+            return record;
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "session",
+                    sessionId == null ? null : Long.toString(sessionId),
+                    "session.create",
+                    exception);
+            throw exception;
         }
-        SessionRecord record =
-                new SessionRecord(
-                        id, userId, actualTitle, actualMode, SessionStatus.ACTIVE.code(), null);
-        if (store == null) sessions.put(id, record);
-        audit(userId, "session", Long.toString(id), "session.create");
-        return record;
     }
 
     public synchronized List<SessionRecord> listSessions(long userId) {
@@ -462,49 +528,74 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Transactional
     public synchronized void renameSession(long userId, long sessionId, String title) {
-        requireText(title, "title");
-        String actual = title.trim();
-        if (actual.length() > 255)
-            throw new IllegalArgumentException("title must be at most 255 characters");
-        requireSession(userId, sessionId);
-        if (store != null) store.renameSession(userId, sessionId, actual);
-        sessions.computeIfPresent(sessionId, (key, value) -> value.withTitle(actual));
-        audit(userId, "session", Long.toString(sessionId), "session.rename");
+        try {
+            requireText(title, "title");
+            String actual = title.trim();
+            if (actual.length() > 255)
+                throw new IllegalArgumentException("title must be at most 255 characters");
+            requireSession(userId, sessionId);
+            if (store != null) store.renameSession(userId, sessionId, actual);
+            sessions.computeIfPresent(sessionId, (key, value) -> value.withTitle(actual));
+            audit(userId, "session", Long.toString(sessionId), "session.rename");
+        } catch (RuntimeException exception) {
+            failure(userId, "session", Long.toString(sessionId), "session.rename", exception);
+            throw exception;
+        }
     }
 
     @Transactional
     public synchronized void setSessionStatus(long userId, long sessionId, String status) {
-        if (!List.of(SessionStatus.ACTIVE.code(), SessionStatus.ARCHIVED.code()).contains(status))
-            throw new IllegalArgumentException("invalid session status");
-        requireSession(userId, sessionId);
-        if (store != null) store.setSessionStatus(userId, sessionId, status);
-        sessions.computeIfPresent(sessionId, (key, value) -> value.withStatus(status));
-        audit(userId, "session", Long.toString(sessionId), "session.status.update");
+        try {
+            if (!List.of(SessionStatus.ACTIVE.code(), SessionStatus.ARCHIVED.code())
+                    .contains(status)) throw new IllegalArgumentException("invalid session status");
+            requireSession(userId, sessionId);
+            if (store != null) store.setSessionStatus(userId, sessionId, status);
+            sessions.computeIfPresent(sessionId, (key, value) -> value.withStatus(status));
+            audit(userId, "session", Long.toString(sessionId), "session.status.update");
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "session",
+                    Long.toString(sessionId),
+                    "session.status.update",
+                    exception);
+            throw exception;
+        }
     }
 
     @Transactional
     public synchronized void deleteSession(long userId, long sessionId) {
-        requireSession(userId, sessionId);
-        if (store != null) store.deleteSession(userId, sessionId);
-        sessions.computeIfPresent(
-                sessionId, (key, value) -> value.withStatus(SessionStatus.DELETED.code()));
-        audit(userId, "session", Long.toString(sessionId), "session.delete");
+        try {
+            requireSession(userId, sessionId);
+            if (store != null) store.deleteSession(userId, sessionId);
+            sessions.computeIfPresent(
+                    sessionId, (key, value) -> value.withStatus(SessionStatus.DELETED.code()));
+            audit(userId, "session", Long.toString(sessionId), "session.delete");
+        } catch (RuntimeException exception) {
+            failure(userId, "session", Long.toString(sessionId), "session.delete", exception);
+            throw exception;
+        }
     }
 
     @Transactional
     public synchronized void restoreSession(long userId, long sessionId) {
-        if (store != null) {
-            int changed = store.restoreSession(userId, sessionId);
-            if (changed != 1) throw notFound("session not found or restore period expired");
-        } else {
-            SessionRecord session = sessions.get(sessionId);
-            if (session == null
-                    || session.userId() != userId
-                    || !SessionStatus.DELETED.code().equals(session.status()))
-                throw notFound("session not found or restore period expired");
-            sessions.put(sessionId, session.withStatus(SessionStatus.ACTIVE.code()));
+        try {
+            if (store != null) {
+                int changed = store.restoreSession(userId, sessionId);
+                if (changed != 1) throw notFound("session not found or restore period expired");
+            } else {
+                SessionRecord session = sessions.get(sessionId);
+                if (session == null
+                        || session.userId() != userId
+                        || !SessionStatus.DELETED.code().equals(session.status()))
+                    throw notFound("session not found or restore period expired");
+                sessions.put(sessionId, session.withStatus(SessionStatus.ACTIVE.code()));
+            }
+            audit(userId, "session", Long.toString(sessionId), "session.restore");
+        } catch (RuntimeException exception) {
+            failure(userId, "session", Long.toString(sessionId), "session.restore", exception);
+            throw exception;
         }
-        audit(userId, "session", Long.toString(sessionId), "session.restore");
     }
 
     public synchronized List<MessageRecord> listMessages(long userId, long sessionId) {
@@ -534,59 +625,69 @@ public class UserAccountServiceImpl implements UserAccountService {
     @Transactional
     public synchronized MessageRecord updateMessage(
             long userId, long sessionId, long messageId, String content) {
-        requireSession(userId, sessionId);
-        requireText(content, "content");
-        if (content.length() > 10000)
-            throw new IllegalArgumentException("content must be at most 10000 characters");
-        if (store != null) {
-            int changed = store.updateMessage(userId, sessionId, messageId, content);
-            if (changed != 1) throw notFound("message not found");
-            MessageRecord updated = store.message(messageId);
-            if (updated == null) throw notFound("message not found");
-            audit(userId, "message", Long.toString(messageId), "message.update");
-            return updated;
-        }
-        List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
-        for (int i = 0; i < records.size(); i++) {
-            MessageRecord current = records.get(i);
-            if (current.messageId() == messageId
-                    && MessageRole.USER.code().equals(current.role())) {
-                MessageRecord updated =
-                        new MessageRecord(
-                                current.messageId(),
-                                current.sessionId(),
-                                current.agentRunId(),
-                                current.role(),
-                                content,
-                                current.structuredPayload(),
-                                current.sequenceNo(),
-                                current.createdAt());
-                records.set(i, updated);
+        try {
+            requireSession(userId, sessionId);
+            requireText(content, "content");
+            if (content.length() > 10000)
+                throw new IllegalArgumentException("content must be at most 10000 characters");
+            if (store != null) {
+                int changed = store.updateMessage(userId, sessionId, messageId, content);
+                if (changed != 1) throw notFound("message not found");
+                MessageRecord updated = store.message(messageId);
+                if (updated == null) throw notFound("message not found");
                 audit(userId, "message", Long.toString(messageId), "message.update");
                 return updated;
             }
+            List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
+            for (int i = 0; i < records.size(); i++) {
+                MessageRecord current = records.get(i);
+                if (current.messageId() == messageId
+                        && MessageRole.USER.code().equals(current.role())) {
+                    MessageRecord updated =
+                            new MessageRecord(
+                                    current.messageId(),
+                                    current.sessionId(),
+                                    current.agentRunId(),
+                                    current.role(),
+                                    content,
+                                    current.structuredPayload(),
+                                    current.sequenceNo(),
+                                    current.createdAt());
+                    records.set(i, updated);
+                    audit(userId, "message", Long.toString(messageId), "message.update");
+                    return updated;
+                }
+            }
+            throw notFound("message not found");
+        } catch (RuntimeException exception) {
+            failure(userId, "message", Long.toString(messageId), "message.update", exception);
+            throw exception;
         }
-        throw notFound("message not found");
     }
 
     /** 逻辑删除用户消息；sequence_no 不复用，保证历史事件和摘要来源仍可审计。 */
     @Transactional
     public synchronized void deleteMessage(long userId, long sessionId, long messageId) {
-        requireSession(userId, sessionId);
-        if (store != null) {
-            int changed = store.deleteMessage(userId, sessionId, messageId);
-            if (changed != 1) throw notFound("message not found");
+        try {
+            requireSession(userId, sessionId);
+            if (store != null) {
+                int changed = store.deleteMessage(userId, sessionId, messageId);
+                if (changed != 1) throw notFound("message not found");
+                audit(userId, "message", Long.toString(messageId), "message.delete");
+                return;
+            }
+            List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
+            boolean removed =
+                    records.removeIf(
+                            item ->
+                                    item.messageId() == messageId
+                                            && MessageRole.USER.code().equals(item.role()));
+            if (!removed) throw notFound("message not found");
             audit(userId, "message", Long.toString(messageId), "message.delete");
-            return;
+        } catch (RuntimeException exception) {
+            failure(userId, "message", Long.toString(messageId), "message.delete", exception);
+            throw exception;
         }
-        List<MessageRecord> records = messages.getOrDefault(sessionId, List.of());
-        boolean removed =
-                records.removeIf(
-                        item ->
-                                item.messageId() == messageId
-                                        && MessageRole.USER.code().equals(item.role()));
-        if (!removed) throw notFound("message not found");
-        audit(userId, "message", Long.toString(messageId), "message.delete");
     }
 
     public synchronized List<SearchResult> searchSessions(
@@ -624,45 +725,82 @@ public class UserAccountServiceImpl implements UserAccountService {
             String content,
             Object structuredPayload,
             Long agentRunId) {
-        requireSession(userId, sessionId);
-        if (!MessageRole.USER.code().equals(role))
-            throw new IllegalArgumentException("only user messages are accepted in M1-2");
-        requireText(content, "content");
-        if (content.length() > 10000)
-            throw new IllegalArgumentException("content must be at most 10000 characters");
-        if (store != null) store.lockMessageSequence(sessionId);
-        int sequence = nextSequence(sessionId);
-        long messageId = ids.nextId();
-        String payload =
-                json(
-                        structuredPayload == null
-                                ? JsonNodeFactory.instance.objectNode()
-                                : structuredPayload);
-        if (store != null) {
-            store.insertMessage(
-                    messageId, sessionId, agentRunId, role, content, payload, sequence, userId);
-            store.touchSession(sessionId);
+        Long messageId = null;
+        try {
+            requireSession(userId, sessionId);
+            if (!MessageRole.USER.code().equals(role))
+                throw new IllegalArgumentException("only user messages are accepted in M1-2");
+            requireText(content, "content");
+            if (content.length() > 10000)
+                throw new IllegalArgumentException("content must be at most 10000 characters");
+            if (store != null) store.lockMessageSequence(sessionId);
+            int sequence = nextSequence(sessionId);
+            messageId = ids.nextId();
+            String payload =
+                    json(
+                            structuredPayload == null
+                                    ? JsonNodeFactory.instance.objectNode()
+                                    : structuredPayload);
+            if (store != null) {
+                store.insertMessage(
+                        messageId, sessionId, agentRunId, role, content, payload, sequence, userId);
+                store.touchSession(sessionId);
+            }
+            MessageRecord record =
+                    new MessageRecord(
+                            messageId,
+                            sessionId,
+                            agentRunId,
+                            role,
+                            content,
+                            payload,
+                            sequence,
+                            Instant.now());
+            if (store == null)
+                messages.computeIfAbsent(sessionId, ignored -> new ArrayList<>()).add(record);
+            audit(userId, "message", Long.toString(messageId), "message.create");
+            return record;
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "message",
+                    messageId == null ? null : Long.toString(messageId),
+                    "message.create",
+                    exception);
+            throw exception;
         }
-        MessageRecord record =
-                new MessageRecord(
-                        messageId,
-                        sessionId,
-                        agentRunId,
-                        role,
-                        content,
-                        payload,
-                        sequence,
-                        Instant.now());
-        if (store == null)
-            messages.computeIfAbsent(sessionId, ignored -> new ArrayList<>()).add(record);
-        audit(userId, "message", Long.toString(messageId), "message.create");
-        return record;
     }
 
     private void audit(long userId, String targetType, String targetId, String action) {
         if (audit != null)
             audit.record(
                     userId, targetType, targetId, action, "success", null, null, null, Map.of());
+    }
+
+    private void failure(
+            Long operatorId,
+            String targetType,
+            String targetId,
+            String action,
+            RuntimeException exception) {
+        if (audit != null)
+            audit.recordFailure(
+                    operatorId,
+                    targetType,
+                    targetId,
+                    action,
+                    "failed",
+                    errorCode(exception),
+                    null,
+                    null,
+                    Map.of("exception_type", exception.getClass().getSimpleName()));
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        if (exception instanceof BusinessException businessException)
+            return businessException.errorCode().code();
+        if (exception instanceof IllegalArgumentException) return ErrorCode.INVALID_ARGUMENT.code();
+        return ErrorCode.INTERNAL_ERROR.code();
     }
 
     private String emailReference(String email) {

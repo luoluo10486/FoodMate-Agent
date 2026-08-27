@@ -4,7 +4,7 @@ import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
 import java.math.BigDecimal;
 import java.util.List;
 
-/** Knowledge persistence and operation-audit contract owned by the knowledge use cases. */
+/** Knowledge persistence contract owned by the knowledge use cases. */
 public interface KnowledgeRepository {
     /** Persists the initial document fact before indexing begins. */
     void insertDocument(long documentId, String title, String storageKey, long operatorId);
@@ -20,12 +20,6 @@ public interface KnowledgeRepository {
 
     /** Applies an allowed document lifecycle transition. */
     int updateStatus(long documentId, KnowledgeDocumentStatus status, long operatorId);
-
-    /** Allocates an audit identifier from the shared ID generator boundary. */
-    long nextAuditId();
-
-    /** Persists a knowledge operation audit fact in the current transaction. */
-    void insertAudit(Audit audit);
 
     /** Persists an import job fact. */
     void insertImportJob(ImportJob job);
@@ -190,13 +184,4 @@ public interface KnowledgeRepository {
             String filename,
             String contentType,
             long size) {}
-
-    /** Minimal operation audit fact without business payload contents. */
-    record Audit(
-            long id,
-            long operatorId,
-            String traceId,
-            String targetType,
-            String targetId,
-            String action) {}
 }

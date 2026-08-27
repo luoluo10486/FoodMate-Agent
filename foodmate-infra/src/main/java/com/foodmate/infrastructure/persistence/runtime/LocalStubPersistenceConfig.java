@@ -384,12 +384,6 @@ public class LocalStubPersistenceConfig {
                 return 0;
             }
 
-            public long nextAuditId() {
-                return 1;
-            }
-
-            public void insertAudit(Audit audit) {}
-
             public void insertImportJob(ImportJob job) {}
 
             public ImportJob findImportJob(long operatorId, String idempotencyKey) {

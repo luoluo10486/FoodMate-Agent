@@ -2,14 +2,13 @@ package com.foodmate.application.food.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.FoodLogRepository;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.food.enums.MealType;
 import com.foodmate.shared.id.IdGenerator;
-import com.foodmate.shared.trace.TraceContext;
-import com.foodmate.shared.trace.TraceContextHolder;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.MessageDigest;
@@ -18,9 +17,13 @@ import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /** Java 权威饮食记录写入用例；手工页面和后续 Agent 工具必须复用此服务。 */
 @Service
@@ -31,123 +34,167 @@ public class FoodLogServiceImpl implements FoodLogService {
 
     private final FoodLogRepository store;
     private final IdGenerator ids;
+    private final OperationAuditService audit;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
-    public FoodLogServiceImpl(FoodLogRepository store, IdGenerator ids) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public FoodLogServiceImpl(
+            FoodLogRepository store, IdGenerator ids, OperationAuditService audit) {
         this.store = store;
         this.ids = ids;
+        this.audit = Objects.requireNonNull(audit, "OperationAuditService is required");
     }
 
     @Transactional
     @Override
     public FoodLogView create(long userId, CreateCommand command) {
-        validateCreate(userId, command);
-        String key = requireIdempotencyKey(command.idempotencyKey());
-        String digest = digest(command);
-        FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
-        if (previous != null) {
-            return replayOrConflict(userId, key, digest);
-        }
+        String key = command == null ? null : command.idempotencyKey();
+        String digest = null;
+        String targetId = null;
+        boolean reservationAttempted = false;
+        boolean reserved = false;
+        try {
+            validateCreate(userId, command);
+            key = requireIdempotencyKey(command.idempotencyKey());
+            digest = digest(command);
+            FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) return replayOrConflict(userId, key, digest);
 
-        long foodLogId = ids.nextId();
-        if (store.reserveAudit(audit(userId, key, digest, "food_log.create", foodLogId, null)) != 1)
-            return replayOrConflict(userId, key, digest);
-        if (store.insertFoodLog(
-                        new FoodLogRepository.FoodLogWrite(
-                                foodLogId,
-                                userId,
-                                command.sessionId(),
-                                command.agentRunId(),
-                                command.mealTime(),
-                                command.mealType().code(),
-                                command.notes(),
-                                command.source(),
-                                key,
-                                1))
-                != 1) {
-            throw new BusinessException(ErrorCode.CONFLICT, "饮食记录关联资源不存在");
+            long foodLogId = ids.nextId();
+            targetId = Long.toString(foodLogId);
+            reservationAttempted = true;
+            if (reserveAudit(userId, key, digest, "food_log.create", foodLogId) != 1)
+                return replayOrConflict(userId, key, digest);
+            reserved = true;
+            if (store.insertFoodLog(
+                            new FoodLogRepository.FoodLogWrite(
+                                    foodLogId,
+                                    userId,
+                                    command.sessionId(),
+                                    command.agentRunId(),
+                                    command.mealTime(),
+                                    command.mealType().code(),
+                                    command.notes(),
+                                    command.source(),
+                                    key,
+                                    1))
+                    != 1) {
+                throw new BusinessException(ErrorCode.CONFLICT, "饮食记录关联资源不存在");
+            }
+            for (int i = 0; i < command.items().size(); i++) {
+                ItemCommand item = command.items().get(i);
+                FoodLogRepository.FoodLogItemWrite nutrition =
+                        nutrition(item, foodLogId, i, userId);
+                store.insertItem(
+                        new FoodLogRepository.FoodLogItemWrite(
+                                ids.nextId(),
+                                nutrition.foodLogId(),
+                                nutrition.itemOrder(),
+                                nutrition.rawName(),
+                                nutrition.amount(),
+                                nutrition.unit(),
+                                nutrition.userId(),
+                                nutrition.nutritionFoodId(),
+                                nutrition.normalizedAmount(),
+                                nutrition.normalizedUnit(),
+                                nutrition.conversionId(),
+                                nutrition.caloriesKcal(),
+                                nutrition.proteinG(),
+                                nutrition.fatG(),
+                                nutrition.carbsG(),
+                                nutrition.nutritionStatus(),
+                                nutrition.nutritionSource(),
+                                nutrition.nutritionVersion()));
+            }
+            FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
+            completeAudit(userId, key, auditSummary(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    targetId,
+                    "food_log.create",
+                    key,
+                    digest,
+                    reservationAttempted,
+                    reserved,
+                    exception);
+            throw exception;
         }
-        for (int i = 0; i < command.items().size(); i++) {
-            ItemCommand item = command.items().get(i);
-            FoodLogRepository.FoodLogItemWrite nutrition = nutrition(item, foodLogId, i, userId);
-            store.insertItem(
-                    new FoodLogRepository.FoodLogItemWrite(
-                            ids.nextId(),
-                            nutrition.foodLogId(),
-                            nutrition.itemOrder(),
-                            nutrition.rawName(),
-                            nutrition.amount(),
-                            nutrition.unit(),
-                            nutrition.userId(),
-                            nutrition.nutritionFoodId(),
-                            nutrition.normalizedAmount(),
-                            nutrition.normalizedUnit(),
-                            nutrition.conversionId(),
-                            nutrition.caloriesKcal(),
-                            nutrition.proteinG(),
-                            nutrition.fatG(),
-                            nutrition.carbsG(),
-                            nutrition.nutritionStatus(),
-                            nutrition.nutritionSource(),
-                            nutrition.nutritionVersion()));
-        }
-        FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, auditSummary(result));
-        return result;
     }
 
     @Transactional
     @Override
     public FoodLogView update(long userId, long foodLogId, long revision, UpdateCommand command) {
-        validateUpdate(command);
-        String key = requireIdempotencyKey(command.idempotencyKey());
-        String digest = digest(command, foodLogId, revision);
-        FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
-        if (previous != null) return replayOrConflict(userId, key, digest);
+        String key = command == null ? null : command.idempotencyKey();
+        String digest = null;
+        boolean reservationAttempted = false;
+        boolean reserved = false;
+        try {
+            validateUpdate(command);
+            key = requireIdempotencyKey(command.idempotencyKey());
+            digest = digest(command, foodLogId, revision);
+            FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) return replayOrConflict(userId, key, digest);
 
-        FoodLogRepository.FoodLogSnapshot current = requireSnapshot(userId, foodLogId, false);
-        requireRevision(current, revision);
-        if (store.reserveAudit(audit(userId, key, digest, "food_log.update", foodLogId, null)) != 1)
-            return replayOrConflict(userId, key, digest);
-        if (store.updateFoodLog(
-                        new FoodLogRepository.UpdateFoodLogWrite(
-                                userId,
-                                foodLogId,
-                                revision,
-                                command.mealTime(),
-                                command.mealType().code(),
-                                command.notes()))
-                != 1) {
-            throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
+            FoodLogRepository.FoodLogSnapshot current = requireSnapshot(userId, foodLogId, false);
+            requireRevision(current, revision);
+            reservationAttempted = true;
+            if (reserveAudit(userId, key, digest, "food_log.update", foodLogId) != 1)
+                return replayOrConflict(userId, key, digest);
+            reserved = true;
+            if (store.updateFoodLog(
+                            new FoodLogRepository.UpdateFoodLogWrite(
+                                    userId,
+                                    foodLogId,
+                                    revision,
+                                    command.mealTime(),
+                                    command.mealType().code(),
+                                    command.notes()))
+                    != 1) {
+                throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
+            }
+            store.softDeleteItems(userId, foodLogId);
+            for (int i = 0; i < command.items().size(); i++) {
+                ItemCommand item = command.items().get(i);
+                FoodLogRepository.FoodLogItemWrite nutrition =
+                        nutrition(item, foodLogId, i, userId);
+                store.insertItem(
+                        new FoodLogRepository.FoodLogItemWrite(
+                                ids.nextId(),
+                                nutrition.foodLogId(),
+                                nutrition.itemOrder(),
+                                nutrition.rawName(),
+                                nutrition.amount(),
+                                nutrition.unit(),
+                                nutrition.userId(),
+                                nutrition.nutritionFoodId(),
+                                nutrition.normalizedAmount(),
+                                nutrition.normalizedUnit(),
+                                nutrition.conversionId(),
+                                nutrition.caloriesKcal(),
+                                nutrition.proteinG(),
+                                nutrition.fatG(),
+                                nutrition.carbsG(),
+                                nutrition.nutritionStatus(),
+                                nutrition.nutritionSource(),
+                                nutrition.nutritionVersion()));
+            }
+            FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
+            completeAudit(userId, key, auditSummary(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(foodLogId),
+                    "food_log.update",
+                    key,
+                    digest,
+                    reservationAttempted,
+                    reserved,
+                    exception);
+            throw exception;
         }
-        store.softDeleteItems(userId, foodLogId);
-        for (int i = 0; i < command.items().size(); i++) {
-            ItemCommand item = command.items().get(i);
-            FoodLogRepository.FoodLogItemWrite nutrition = nutrition(item, foodLogId, i, userId);
-            store.insertItem(
-                    new FoodLogRepository.FoodLogItemWrite(
-                            ids.nextId(),
-                            nutrition.foodLogId(),
-                            nutrition.itemOrder(),
-                            nutrition.rawName(),
-                            nutrition.amount(),
-                            nutrition.unit(),
-                            nutrition.userId(),
-                            nutrition.nutritionFoodId(),
-                            nutrition.normalizedAmount(),
-                            nutrition.normalizedUnit(),
-                            nutrition.conversionId(),
-                            nutrition.caloriesKcal(),
-                            nutrition.proteinG(),
-                            nutrition.fatG(),
-                            nutrition.carbsG(),
-                            nutrition.nutritionStatus(),
-                            nutrition.nutritionSource(),
-                            nutrition.nutritionVersion()));
-        }
-        FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, auditSummary(result));
-        return result;
     }
 
     @Override
@@ -162,40 +209,78 @@ public class FoodLogServiceImpl implements FoodLogService {
     @Transactional
     @Override
     public void delete(long userId, long foodLogId, long revision, String idempotencyKey) {
-        String key = requireIdempotencyKey(idempotencyKey);
-        String digest = digest("delete", foodLogId, revision);
-        FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
-        if (previous != null) {
-            replayVoidOrConflict(previous, digest);
-            return;
+        String key = idempotencyKey;
+        String digest = null;
+        boolean reservationAttempted = false;
+        boolean reserved = false;
+        try {
+            key = requireIdempotencyKey(idempotencyKey);
+            digest = digest("delete", foodLogId, revision);
+            FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) {
+                replayVoidOrConflict(previous, digest);
+                return;
+            }
+            FoodLogRepository.FoodLogSnapshot current = requireSnapshot(userId, foodLogId, false);
+            requireRevision(current, revision);
+            reservationAttempted = true;
+            if (reserveAudit(userId, key, digest, "food_log.delete", foodLogId) != 1)
+                throw concurrentIdempotencyConflict(userId, key, digest);
+            reserved = true;
+            if (store.softDelete(userId, foodLogId, revision) != 1)
+                throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
+            completeAudit(userId, key, "{}");
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(foodLogId),
+                    "food_log.delete",
+                    key,
+                    digest,
+                    reservationAttempted,
+                    reserved,
+                    exception);
+            throw exception;
         }
-        FoodLogRepository.FoodLogSnapshot current = requireSnapshot(userId, foodLogId, false);
-        requireRevision(current, revision);
-        if (store.reserveAudit(audit(userId, key, digest, "food_log.delete", foodLogId, null)) != 1)
-            throw concurrentIdempotencyConflict(userId, key, digest);
-        if (store.softDelete(userId, foodLogId, revision) != 1)
-            throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
-        store.completeAudit(userId, key, "{}");
     }
 
     @Transactional
     @Override
     public FoodLogView restore(long userId, long foodLogId, long revision, String idempotencyKey) {
-        String key = requireIdempotencyKey(idempotencyKey);
-        String digest = digest("restore", foodLogId, revision);
-        FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
-        if (previous != null) return replayOrConflict(userId, key, digest);
-        FoodLogRepository.FoodLogSnapshot current = store.findOwned(userId, foodLogId, true);
-        if (current == null || !current.deleted())
-            throw new BusinessException(ErrorCode.NOT_FOUND, "饮食记录不存在");
-        requireRevision(current, revision);
-        if (store.reserveAudit(audit(userId, key, digest, "food_log.restore", foodLogId, null))
-                != 1) return replayOrConflict(userId, key, digest);
-        if (store.restore(userId, foodLogId, revision) != 1)
-            throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
-        FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, auditSummary(result));
-        return result;
+        String key = idempotencyKey;
+        String digest = null;
+        boolean reservationAttempted = false;
+        boolean reserved = false;
+        try {
+            key = requireIdempotencyKey(idempotencyKey);
+            digest = digest("restore", foodLogId, revision);
+            FoodLogRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) return replayOrConflict(userId, key, digest);
+            FoodLogRepository.FoodLogSnapshot current = store.findOwned(userId, foodLogId, true);
+            if (current == null || !current.deleted())
+                throw new BusinessException(ErrorCode.NOT_FOUND, "饮食记录不存在");
+            requireRevision(current, revision);
+            reservationAttempted = true;
+            if (reserveAudit(userId, key, digest, "food_log.restore", foodLogId) != 1)
+                return replayOrConflict(userId, key, digest);
+            reserved = true;
+            if (store.restore(userId, foodLogId, revision) != 1)
+                throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
+            FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
+            completeAudit(userId, key, auditSummary(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(foodLogId),
+                    "food_log.restore",
+                    key,
+                    digest,
+                    reservationAttempted,
+                    reserved,
+                    exception);
+            throw exception;
+        }
     }
 
     private void validateCreate(long userId, CreateCommand command) {
@@ -344,25 +429,82 @@ public class FoodLogServiceImpl implements FoodLogService {
         };
     }
 
-    private FoodLogRepository.AuditWrite audit(
+    private int reserveAudit(
+            long userId, String key, String digest, String action, long foodLogId) {
+        return audit.reserve(
+                userId, "food_log", Long.toString(foodLogId), action, digest, key, Map.of());
+    }
+
+    private void completeAudit(long userId, String key, String responseJson) {
+        audit.complete(userId, key, responseJson);
+    }
+
+    private void recordFailureIfNeeded(
             long userId,
+            String targetId,
+            String action,
             String key,
             String digest,
-            String action,
-            long foodLogId,
-            FoodLogView response) {
-        TraceContext trace = TraceContextHolder.currentOrNew();
-        return new FoodLogRepository.AuditWrite(
-                ids.nextId(),
+            boolean reservationAttempted,
+            boolean reserved,
+            RuntimeException exception) {
+        if (userId <= 0
+                || key == null
+                || key.isBlank()
+                || key.length() > MAX_IDEMPOTENCY_KEY_LENGTH) return;
+        if (reserved) {
+            recordFailureAfterRollback(userId, targetId, action, key, digest, exception);
+            return;
+        }
+        if (reservationAttempted || store.findIdempotency(userId, key) != null) return;
+        audit.recordFailure(
                 userId,
-                trace.requestId(),
-                trace.traceId(),
                 "food_log",
-                Long.toString(foodLogId),
+                targetId,
                 action,
+                "failed",
+                errorCode(exception),
                 digest,
                 key,
-                response == null ? "{}" : auditSummary(response));
+                Map.of("failure", action));
+    }
+
+    private void recordFailureAfterRollback(
+            long userId,
+            String targetId,
+            String action,
+            String key,
+            String digest,
+            RuntimeException exception) {
+        Runnable record =
+                () ->
+                        audit.recordFailure(
+                                userId,
+                                "food_log",
+                                targetId,
+                                action,
+                                "failed",
+                                errorCode(exception),
+                                digest,
+                                key,
+                                Map.of("failure", action));
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            record.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status == STATUS_ROLLED_BACK) record.run();
+                    }
+                });
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        return exception instanceof BusinessException businessException
+                ? businessException.errorCode().code()
+                : ErrorCode.INTERNAL_ERROR.code();
     }
 
     private FoodLogRepository.FoodLogSnapshot requireSnapshot(

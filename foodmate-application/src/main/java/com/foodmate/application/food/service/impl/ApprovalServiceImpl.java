@@ -66,7 +66,6 @@ public class ApprovalServiceImpl implements ApprovalService {
         this(store, plans, foods, ids, mapper, null, null);
     }
 
-    @Autowired
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
             MealPlanService plans,
@@ -77,6 +76,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         this(store, plans, foods, ids, mapper, transactionManager, null);
     }
 
+    @Autowired
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
             MealPlanService plans,
@@ -532,18 +532,18 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     private void audit(
             long id, long userId, TraceContext trace, String action, String digest, String key) {
-        store.insertAudit(
-                new ApprovalRequestRepository.AuditWrite(
-                        ids.nextId(),
-                        userId,
-                        trace.requestId(),
-                        trace.traceId(),
-                        "approval_request",
-                        Long.toString(id),
-                        action,
-                        digest,
-                        key,
-                        "{}"));
+        if (auditService == null) return;
+        auditService.record(
+                trace,
+                userId,
+                "approval_request",
+                Long.toString(id),
+                action,
+                "success",
+                null,
+                digest,
+                key,
+                Map.of());
     }
 
     private static String errorCode(RuntimeException exception) {

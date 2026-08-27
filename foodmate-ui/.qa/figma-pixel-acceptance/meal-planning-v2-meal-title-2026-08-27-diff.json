@@ -1,0 +1,15 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 348604,
+  "differentRatio": 0.23641221788194444,
+  "meanAbsoluteError": 2.477200147840712,
+  "rmse": 13.87382282689546,
+  "maxChannelDelta": 234,
+  "expected": "recaptured-figma/meal-planning-v2-current.png",
+  "actual": "recaptured/meal-planning-v2-browser-meal-title-2026-08-27.png",
+  "dpr": 1.25,
+  "conclusion": "DIFF_REVIEW"
+}

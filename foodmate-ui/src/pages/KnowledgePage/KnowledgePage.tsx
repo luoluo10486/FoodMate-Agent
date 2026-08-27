@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DEFAULT_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { searchKnowledge, type KnowledgeCitation } from '../../services/knowledgeService';
 import type { SessionSummary } from '../../types/session';
@@ -235,10 +236,8 @@ export function KnowledgePage() {
       activeModule="knowledge"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={
-        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
-      }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       pageOverlay={
         displayedState !== 'default' ? (

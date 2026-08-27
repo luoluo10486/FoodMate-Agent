@@ -6,13 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.MealPlanRepository;
 import com.foodmate.application.food.service.MealPlanService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
-import com.foodmate.shared.trace.TraceContext;
-import com.foodmate.shared.trace.TraceContextHolder;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
@@ -24,10 +23,14 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /** 餐食计划应用服务；计划内容可以来自模型，但状态和校验由 Java 决定。 */
 @Service
@@ -38,48 +41,66 @@ public class MealPlanServiceImpl implements MealPlanService {
     private final MealPlanRepository store;
     private final IdGenerator ids;
     private final ObjectMapper mapper;
+    private final OperationAuditService audit;
 
-    public MealPlanServiceImpl(MealPlanRepository store, IdGenerator ids, ObjectMapper mapper) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public MealPlanServiceImpl(
+            MealPlanRepository store,
+            IdGenerator ids,
+            ObjectMapper mapper,
+            OperationAuditService audit) {
         this.store = store;
         this.ids = ids;
         this.mapper = mapper.copy().findAndRegisterModules();
+        this.audit = Objects.requireNonNull(audit, "OperationAuditService is required");
     }
 
     @Override
     @Transactional
     public PlanView create(long userId, CreateCommand command) {
-        validateInput(userId, command);
-        String key = optionalIdempotencyKey(command.idempotencyKey());
-        String digest = digest("create", command);
-        long id = ids.nextId();
-        if (key != null) {
-            MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
-            if (previous != null) return replayOrConflict(userId, key, digest);
-            reserveAudit(userId, key, digest, "meal_plan.create", id, null);
+        String key = command == null ? null : command.idempotencyKey();
+        String digest = null;
+        String targetId = null;
+        AuditAttempt attempt = new AuditAttempt();
+        try {
+            validateInput(userId, command);
+            key = optionalIdempotencyKey(command.idempotencyKey());
+            digest = digest("create", command);
+            long id = ids.nextId();
+            targetId = Long.toString(id);
+            if (key != null) {
+                MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+                if (previous != null) return replayOrConflict(userId, key, digest);
+                reserveAudit(userId, key, digest, "meal_plan.create", id, attempt);
+            }
+            JsonNode constraints = constraints(command);
+            JsonNode validation = validation(command);
+            if (store.insertPlan(
+                            new MealPlanRepository.PlanWrite(
+                                    id,
+                                    userId,
+                                    command.sessionId(),
+                                    command.planName(),
+                                    command.days(),
+                                    command.budget(),
+                                    json(constraints),
+                                    json(command.daysPlan()),
+                                    json(validation),
+                                    "draft",
+                                    key,
+                                    1))
+                    != 1) {
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划写入失败");
+            }
+            PlanView result =
+                    view(key == null ? requirePlan(userId, id) : requirePlan(userId, id, false));
+            if (key != null) completeAudit(userId, key, auditSummary(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId, targetId, "meal_plan.create", key, digest, attempt, exception);
+            throw exception;
         }
-        JsonNode constraints = constraints(command);
-        JsonNode validation = validation(command);
-        if (store.insertPlan(
-                        new MealPlanRepository.PlanWrite(
-                                id,
-                                userId,
-                                command.sessionId(),
-                                command.planName(),
-                                command.days(),
-                                command.budget(),
-                                json(constraints),
-                                json(command.daysPlan()),
-                                json(validation),
-                                "draft",
-                                key,
-                                1))
-                != 1) {
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划写入失败");
-        }
-        PlanView result =
-                view(key == null ? requirePlan(userId, id) : requirePlan(userId, id, false));
-        if (key != null) store.completeAudit(userId, key, auditSummary(result));
-        return result;
     }
 
     @Override
@@ -95,34 +116,49 @@ public class MealPlanServiceImpl implements MealPlanService {
     @Override
     @Transactional
     public PlanView update(long userId, long mealPlanId, long revision, UpdateCommand command) {
-        validateUpdate(command);
-        String key = requireIdempotencyKey(command.idempotencyKey());
-        String digest = digest("update", mealPlanId, revision, command);
-        MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
-        if (previous != null) return replayOrConflict(userId, key, digest);
-        MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, false);
-        requireRevision(current, revision);
-        reserveAudit(userId, key, digest, "meal_plan.update", mealPlanId, null);
-        JsonNode constraints = constraints(command);
-        JsonNode validation = validation(command);
-        if (store.updatePlan(
-                        new MealPlanRepository.UpdatePlanWrite(
-                                userId,
-                                mealPlanId,
-                                revision,
-                                command.planName(),
-                                command.days(),
-                                command.budget(),
-                                json(constraints),
-                                json(command.daysPlan()),
-                                json(validation)))
-                != 1) {
-            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
+        String key = command == null ? null : command.idempotencyKey();
+        String digest = null;
+        AuditAttempt attempt = new AuditAttempt();
+        try {
+            validateUpdate(command);
+            key = requireIdempotencyKey(command.idempotencyKey());
+            digest = digest("update", mealPlanId, revision, command);
+            MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) return replayOrConflict(userId, key, digest);
+            MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, false);
+            requireRevision(current, revision);
+            reserveAudit(userId, key, digest, "meal_plan.update", mealPlanId, attempt);
+            JsonNode constraints = constraints(command);
+            JsonNode validation = validation(command);
+            if (store.updatePlan(
+                            new MealPlanRepository.UpdatePlanWrite(
+                                    userId,
+                                    mealPlanId,
+                                    revision,
+                                    command.planName(),
+                                    command.days(),
+                                    command.budget(),
+                                    json(constraints),
+                                    json(command.daysPlan()),
+                                    json(validation)))
+                    != 1) {
+                throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
+            }
+            store.softDeleteShoppingList(userId, mealPlanId);
+            PlanView result = view(requirePlan(userId, mealPlanId, false));
+            completeAudit(userId, key, auditSummary(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(mealPlanId),
+                    "meal_plan.update",
+                    key,
+                    digest,
+                    attempt,
+                    exception);
+            throw exception;
         }
-        store.softDeleteShoppingList(userId, mealPlanId);
-        PlanView result = view(requirePlan(userId, mealPlanId, false));
-        store.completeAudit(userId, key, auditSummary(result));
-        return result;
     }
 
     @Override
@@ -151,38 +187,52 @@ public class MealPlanServiceImpl implements MealPlanService {
             Long expectedRevision,
             String idempotencyKey,
             boolean legacyRepositoryPath) {
-        MealPlanRepository.PlanSnapshot plan =
-                legacyRepositoryPath
-                        ? requirePlan(userId, mealPlanId)
-                        : requirePlan(userId, mealPlanId, false);
-        long revision = expectedRevision == null ? plan.revision() : expectedRevision;
-        if (expectedRevision != null) requireRevision(plan, expectedRevision);
-        String digest = digest("validate", mealPlanId, revision);
-        if (idempotencyKey != null) {
-            MealPlanRepository.IdempotencyRecord previous =
-                    store.findIdempotency(userId, idempotencyKey);
-            if (previous != null) return replayOrConflict(userId, idempotencyKey, digest);
-            reserveAudit(userId, idempotencyKey, digest, "meal_plan.validate", mealPlanId, null);
+        String digest = null;
+        AuditAttempt attempt = new AuditAttempt();
+        try {
+            MealPlanRepository.PlanSnapshot plan =
+                    legacyRepositoryPath
+                            ? requirePlan(userId, mealPlanId)
+                            : requirePlan(userId, mealPlanId, false);
+            long revision = expectedRevision == null ? plan.revision() : expectedRevision;
+            if (expectedRevision != null) requireRevision(plan, expectedRevision);
+            digest = digest("validate", mealPlanId, revision);
+            if (idempotencyKey != null) {
+                MealPlanRepository.IdempotencyRecord previous =
+                        store.findIdempotency(userId, idempotencyKey);
+                if (previous != null) return replayOrConflict(userId, idempotencyKey, digest);
+                reserveAudit(
+                        userId, idempotencyKey, digest, "meal_plan.validate", mealPlanId, attempt);
+            }
+            if (!"draft".equals(plan.status()) && !"validated".equals(plan.status()))
+                throw new BusinessException(ErrorCode.CONFLICT, "只有 draft 或 validated 计划可以校验");
+            CreateCommand command = command(plan);
+            JsonNode validation = validation(command);
+            String status = validation.get("valid").asBoolean() ? "validated" : "draft";
+            int updated =
+                    legacyRepositoryPath
+                            ? store.updatePlanStatus(userId, mealPlanId, status, json(validation))
+                            : store.updatePlanStatus(
+                                    userId, mealPlanId, revision, status, json(validation));
+            if (updated != 1) throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
+            PlanView result =
+                    view(
+                            legacyRepositoryPath
+                                    ? requirePlan(userId, mealPlanId)
+                                    : requirePlan(userId, mealPlanId, false));
+            if (idempotencyKey != null) completeAudit(userId, idempotencyKey, auditSummary(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(mealPlanId),
+                    "meal_plan.validate",
+                    idempotencyKey,
+                    digest,
+                    attempt,
+                    exception);
+            throw exception;
         }
-        if (!"draft".equals(plan.status()) && !"validated".equals(plan.status()))
-            throw new BusinessException(ErrorCode.CONFLICT, "只有 draft 或 validated 计划可以校验");
-        CreateCommand command = command(plan);
-        JsonNode validation = validation(command);
-        String status = validation.get("valid").asBoolean() ? "validated" : "draft";
-        int updated =
-                legacyRepositoryPath
-                        ? store.updatePlanStatus(userId, mealPlanId, status, json(validation))
-                        : store.updatePlanStatus(
-                                userId, mealPlanId, revision, status, json(validation));
-        if (updated != 1) throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
-        PlanView result =
-                view(
-                        legacyRepositoryPath
-                                ? requirePlan(userId, mealPlanId)
-                                : requirePlan(userId, mealPlanId, false));
-        if (idempotencyKey != null)
-            store.completeAudit(userId, idempotencyKey, auditSummary(result));
-        return result;
     }
 
     @Override
@@ -210,38 +260,52 @@ public class MealPlanServiceImpl implements MealPlanService {
             Long expectedRevision,
             String idempotencyKey,
             boolean legacyRepositoryPath) {
-        MealPlanRepository.PlanSnapshot plan =
-                legacyRepositoryPath
-                        ? requirePlan(userId, mealPlanId)
-                        : requirePlan(userId, mealPlanId, false);
-        long revision = expectedRevision == null ? plan.revision() : expectedRevision;
-        if (expectedRevision != null) requireRevision(plan, expectedRevision);
-        String digest = digest("save", mealPlanId, revision);
-        if (idempotencyKey != null) {
-            MealPlanRepository.IdempotencyRecord previous =
-                    store.findIdempotency(userId, idempotencyKey);
-            if (previous != null) return replayOrConflict(userId, idempotencyKey, digest);
-            reserveAudit(userId, idempotencyKey, digest, "meal_plan.save", mealPlanId, null);
+        String digest = null;
+        AuditAttempt attempt = new AuditAttempt();
+        try {
+            MealPlanRepository.PlanSnapshot plan =
+                    legacyRepositoryPath
+                            ? requirePlan(userId, mealPlanId)
+                            : requirePlan(userId, mealPlanId, false);
+            long revision = expectedRevision == null ? plan.revision() : expectedRevision;
+            if (expectedRevision != null) requireRevision(plan, expectedRevision);
+            digest = digest("save", mealPlanId, revision);
+            if (idempotencyKey != null) {
+                MealPlanRepository.IdempotencyRecord previous =
+                        store.findIdempotency(userId, idempotencyKey);
+                if (previous != null) return replayOrConflict(userId, idempotencyKey, digest);
+                reserveAudit(userId, idempotencyKey, digest, "meal_plan.save", mealPlanId, attempt);
+            }
+            if (!"validated".equals(plan.status()))
+                throw new BusinessException(ErrorCode.CONFLICT, "只有 validated 计划可以保存");
+            JsonNode validation = read(plan.validationJson());
+            if (!validation.path("valid").asBoolean(false))
+                throw new BusinessException(ErrorCode.CONFLICT, "餐食计划校验未通过");
+            int updated =
+                    legacyRepositoryPath
+                            ? store.updatePlanStatus(
+                                    userId, mealPlanId, "saved", plan.validationJson())
+                            : store.updatePlanStatus(
+                                    userId, mealPlanId, revision, "saved", plan.validationJson());
+            if (updated != 1) throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
+            PlanView result =
+                    view(
+                            legacyRepositoryPath
+                                    ? requirePlan(userId, mealPlanId)
+                                    : requirePlan(userId, mealPlanId, false));
+            if (idempotencyKey != null) completeAudit(userId, idempotencyKey, auditSummary(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(mealPlanId),
+                    "meal_plan.save",
+                    idempotencyKey,
+                    digest,
+                    attempt,
+                    exception);
+            throw exception;
         }
-        if (!"validated".equals(plan.status()))
-            throw new BusinessException(ErrorCode.CONFLICT, "只有 validated 计划可以保存");
-        JsonNode validation = read(plan.validationJson());
-        if (!validation.path("valid").asBoolean(false))
-            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划校验未通过");
-        int updated =
-                legacyRepositoryPath
-                        ? store.updatePlanStatus(userId, mealPlanId, "saved", plan.validationJson())
-                        : store.updatePlanStatus(
-                                userId, mealPlanId, revision, "saved", plan.validationJson());
-        if (updated != 1) throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
-        PlanView result =
-                view(
-                        legacyRepositoryPath
-                                ? requirePlan(userId, mealPlanId)
-                                : requirePlan(userId, mealPlanId, false));
-        if (idempotencyKey != null)
-            store.completeAudit(userId, idempotencyKey, auditSummary(result));
-        return result;
     }
 
     @Override
@@ -264,38 +328,69 @@ public class MealPlanServiceImpl implements MealPlanService {
     @Override
     @Transactional
     public void delete(long userId, long mealPlanId, long revision, String idempotencyKey) {
-        String key = requireIdempotencyKey(idempotencyKey);
-        String digest = digest("delete", mealPlanId, revision);
-        MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
-        if (previous != null) {
-            replayVoidOrConflict(previous, digest);
-            return;
+        String key = idempotencyKey;
+        String digest = null;
+        AuditAttempt attempt = new AuditAttempt();
+        try {
+            key = requireIdempotencyKey(idempotencyKey);
+            digest = digest("delete", mealPlanId, revision);
+            MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) {
+                replayVoidOrConflict(previous, digest);
+                return;
+            }
+            MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, false);
+            requireRevision(current, revision);
+            reserveAudit(userId, key, digest, "meal_plan.delete", mealPlanId, attempt);
+            if (store.softDelete(userId, mealPlanId, revision) != 1)
+                throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
+            store.softDeleteShoppingList(userId, mealPlanId);
+            completeAudit(userId, key, "{}");
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(mealPlanId),
+                    "meal_plan.delete",
+                    key,
+                    digest,
+                    attempt,
+                    exception);
+            throw exception;
         }
-        MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, false);
-        requireRevision(current, revision);
-        reserveAudit(userId, key, digest, "meal_plan.delete", mealPlanId, null);
-        if (store.softDelete(userId, mealPlanId, revision) != 1)
-            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
-        store.softDeleteShoppingList(userId, mealPlanId);
-        store.completeAudit(userId, key, "{}");
     }
 
     @Override
     @Transactional
     public PlanView restore(long userId, long mealPlanId, long revision, String idempotencyKey) {
-        String key = requireIdempotencyKey(idempotencyKey);
-        String digest = digest("restore", mealPlanId, revision);
-        MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
-        if (previous != null) return replayOrConflict(userId, key, digest);
-        MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, true);
-        if (!current.deleted()) throw new BusinessException(ErrorCode.NOT_FOUND, "餐食计划不存在");
-        requireRevision(current, revision);
-        reserveAudit(userId, key, digest, "meal_plan.restore", mealPlanId, null);
-        if (store.restore(userId, mealPlanId, revision) != 1)
-            throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
-        PlanView result = view(requirePlan(userId, mealPlanId, false));
-        store.completeAudit(userId, key, auditSummary(result));
-        return result;
+        String key = idempotencyKey;
+        String digest = null;
+        AuditAttempt attempt = new AuditAttempt();
+        try {
+            key = requireIdempotencyKey(idempotencyKey);
+            digest = digest("restore", mealPlanId, revision);
+            MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) return replayOrConflict(userId, key, digest);
+            MealPlanRepository.PlanSnapshot current = store.findOwnedPlan(userId, mealPlanId, true);
+            if (current == null || !current.deleted())
+                throw new BusinessException(ErrorCode.NOT_FOUND, "餐食计划不存在");
+            requireRevision(current, revision);
+            reserveAudit(userId, key, digest, "meal_plan.restore", mealPlanId, attempt);
+            if (store.restore(userId, mealPlanId, revision) != 1)
+                throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
+            PlanView result = view(requirePlan(userId, mealPlanId, false));
+            completeAudit(userId, key, auditSummary(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(mealPlanId),
+                    "meal_plan.restore",
+                    key,
+                    digest,
+                    attempt,
+                    exception);
+            throw exception;
+        }
     }
 
     private void validateInput(long userId, CreateCommand command) {
@@ -567,23 +662,96 @@ public class MealPlanServiceImpl implements MealPlanService {
             String digest,
             String action,
             long mealPlanId,
-            PlanView response) {
-        TraceContext trace = TraceContextHolder.currentOrNew();
-        if (store.reserveAudit(
-                        new MealPlanRepository.AuditWrite(
-                                ids.nextId(),
-                                userId,
-                                trace.requestId(),
-                                trace.traceId(),
-                                "meal_plan",
-                                Long.toString(mealPlanId),
-                                action,
-                                digest,
-                                key,
-                                response == null ? "{}" : json(response)))
+            AuditAttempt attempt) {
+        attempt.reservationAttempted = true;
+        if (audit.reserve(
+                        userId,
+                        "meal_plan",
+                        Long.toString(mealPlanId),
+                        action,
+                        digest,
+                        key,
+                        Map.of())
                 != 1) {
             throw new BusinessException(ErrorCode.CONFLICT, "幂等请求已被其他请求占用");
         }
+        attempt.reserved = true;
+    }
+
+    private void completeAudit(long userId, String key, String responseJson) {
+        audit.complete(userId, key, responseJson);
+    }
+
+    private void recordFailureIfNeeded(
+            long userId,
+            String targetId,
+            String action,
+            String key,
+            String digest,
+            AuditAttempt attempt,
+            RuntimeException exception) {
+        if (userId <= 0
+                || key == null
+                || key.isBlank()
+                || key.length() > MAX_IDEMPOTENCY_KEY_LENGTH) return;
+        if (attempt.reserved) {
+            recordFailureAfterRollback(userId, targetId, action, key, digest, exception);
+            return;
+        }
+        if (attempt.reservationAttempted || store.findIdempotency(userId, key) != null) return;
+        audit.recordFailure(
+                userId,
+                "meal_plan",
+                targetId,
+                action,
+                "failed",
+                errorCode(exception),
+                digest,
+                key,
+                Map.of("failure", action));
+    }
+
+    private void recordFailureAfterRollback(
+            long userId,
+            String targetId,
+            String action,
+            String key,
+            String digest,
+            RuntimeException exception) {
+        Runnable record =
+                () ->
+                        audit.recordFailure(
+                                userId,
+                                "meal_plan",
+                                targetId,
+                                action,
+                                "failed",
+                                errorCode(exception),
+                                digest,
+                                key,
+                                Map.of("failure", action));
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            record.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status == STATUS_ROLLED_BACK) record.run();
+                    }
+                });
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        return exception instanceof BusinessException businessException
+                ? businessException.errorCode().code()
+                : ErrorCode.INTERNAL_ERROR.code();
+    }
+
+    private static final class AuditAttempt {
+        private boolean reservationAttempted;
+        private boolean reserved;
     }
 
     private static void requireSameDigest(

@@ -80,30 +80,6 @@ public class FoodLogRepositoryAdapter implements FoodLogRepository {
     }
 
     @Override
-    public int reserveAudit(AuditWrite audit) {
-        return this.audit.reserve(
-                new OperationAuditPort.AuditRecord(
-                        audit.operationAuditId(),
-                        audit.operatorId(),
-                        audit.requestId(),
-                        audit.traceId(),
-                        audit.targetType(),
-                        audit.targetId(),
-                        audit.action(),
-                        "pending",
-                        null,
-                        "{}",
-                        audit.responseJson(),
-                        audit.parametersDigest(),
-                        audit.idempotencyKey()));
-    }
-
-    @Override
-    public int completeAudit(long operatorId, String idempotencyKey, String responseJson) {
-        return audit.complete(operatorId, idempotencyKey, responseJson);
-    }
-
-    @Override
     public List<FoodLogSnapshot> findVisible(
             long userId, java.time.Instant from, java.time.Instant to) {
         return mapper.findVisible(userId, from, to).stream().map(this::withItems).toList();

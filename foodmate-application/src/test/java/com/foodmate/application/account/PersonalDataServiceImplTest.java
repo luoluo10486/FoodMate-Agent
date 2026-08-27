@@ -51,6 +51,70 @@ class PersonalDataServiceImplTest {
     }
 
     @Test
+    void exportRequestFailureRecordsAudit() {
+        when(ids.nextId()).thenReturn(101L);
+        doThrow(new IllegalStateException("database unavailable"))
+                .when(store)
+                .insertExportJob(101L, 7L);
+
+        assertThrows(IllegalStateException.class, () -> service.requestExport(7L));
+
+        verify(audit)
+                .recordFailure(
+                        Mockito.eq(7L),
+                        Mockito.eq("export_job"),
+                        Mockito.eq("101"),
+                        Mockito.eq("account.data_export.request"),
+                        Mockito.eq("failed"),
+                        Mockito.eq(ErrorCode.INTERNAL_ERROR.code()),
+                        Mockito.isNull(),
+                        Mockito.isNull(),
+                        Mockito.anyMap());
+    }
+
+    @Test
+    void duplicateDeletionRequestRecordsConflictAudit() {
+        when(store.activeDeletionJobs(7L)).thenReturn(1);
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.requestDeletion(7L));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        verify(audit)
+                .recordFailure(
+                        Mockito.eq(7L),
+                        Mockito.eq("user"),
+                        Mockito.eq("7"),
+                        Mockito.eq("account.deletion.request"),
+                        Mockito.eq("failed"),
+                        Mockito.eq(ErrorCode.CONFLICT.code()),
+                        Mockito.isNull(),
+                        Mockito.isNull(),
+                        Mockito.anyMap());
+    }
+
+    @Test
+    void unavailableExportRecordsConflictAudit() {
+        when(store.consumeExport(7L, 99L)).thenReturn(0);
+
+        BusinessException exception =
+                assertThrows(BusinessException.class, () -> service.consumeExport(7L, 99L));
+
+        assertEquals(ErrorCode.CONFLICT, exception.errorCode());
+        verify(audit)
+                .recordFailure(
+                        Mockito.eq(7L),
+                        Mockito.eq("export_job"),
+                        Mockito.eq("99"),
+                        Mockito.eq("account.data_export.consume"),
+                        Mockito.eq("failed"),
+                        Mockito.eq(ErrorCode.CONFLICT.code()),
+                        Mockito.isNull(),
+                        Mockito.isNull(),
+                        Mockito.anyMap());
+    }
+
+    @Test
     void uploadsDecodedPngAndDoesNotReturnPrivateObjectKey() {
         byte[] image = onePixelPng();
         when(ids.nextId()).thenReturn(101L);

@@ -4,7 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -12,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.FoodLogRepository;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.application.food.service.impl.FoodLogServiceImpl;
@@ -44,15 +48,21 @@ class FoodLogServiceImplTest {
                                         ? null
                                         : new FoodLogRepository.IdempotencyRecord(
                                                 digest[0], "success", response[0]));
+        OperationAuditService audit = auditService();
         doAnswer(
                         invocation -> {
-                            digest[0] =
-                                    ((FoodLogRepository.AuditWrite) invocation.getArgument(0))
-                                            .parametersDigest();
+                            digest[0] = invocation.getArgument(4);
                             return 1;
                         })
-                .when(repository)
-                .reserveAudit(any());
+                .when(audit)
+                .reserve(
+                        anyLong(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any());
         when(repository.insertFoodLog(any())).thenReturn(1);
         when(repository.findOwned(7L, 100L, false)).thenReturn(snapshot);
         doAnswer(
@@ -60,10 +70,10 @@ class FoodLogServiceImplTest {
                             response[0] = invocation.getArgument(2);
                             return 1;
                         })
-                .when(repository)
-                .completeAudit(eq(7L), eq("create-1"), any());
+                .when(audit)
+                .complete(eq(7L), eq("create-1"), any());
 
-        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L));
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L), audit);
         FoodLogService.CreateCommand command = command("create-1");
 
         FoodLogService.FoodLogView first = service.create(7L, command);
@@ -75,17 +85,72 @@ class FoodLogServiceImplTest {
     }
 
     @Test
+    void invalidCreateRecordsFailureAudit() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        OperationAuditService audit = auditService();
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L), audit);
+
+        assertThrows(
+                BusinessException.class,
+                () ->
+                        service.create(
+                                7L,
+                                new FoodLogService.CreateCommand(
+                                        null,
+                                        null,
+                                        MEAL_TIME,
+                                        MealType.LUNCH,
+                                        null,
+                                        "invalid-create",
+                                        List.of())));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("food_log"),
+                        isNull(),
+                        eq("food_log.create"),
+                        eq("failed"),
+                        eq("INVALID_ARGUMENT"),
+                        isNull(),
+                        eq("invalid-create"),
+                        any());
+    }
+
+    @Test
+    void failedCreateRecordsIndependentFailureAudit() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.insertFoodLog(any())).thenReturn(0);
+        OperationAuditService audit = auditService();
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L), audit);
+
+        assertThrows(BusinessException.class, () -> service.create(7L, command("failed-create")));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("food_log"),
+                        eq("100"),
+                        eq("food_log.create"),
+                        eq("failed"),
+                        eq("CONFLICT"),
+                        anyString(),
+                        eq("failed-create"),
+                        any());
+    }
+
+    @Test
     void auditCompletionStoresOnlyFoodLogSummary() throws Exception {
         FoodLogRepository repository = mock(FoodLogRepository.class);
-        when(repository.reserveAudit(any())).thenReturn(1);
         when(repository.insertFoodLog(any())).thenReturn(1);
         when(repository.findOwned(7L, 100L, false)).thenReturn(snapshot(false, 1));
-        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L));
+        OperationAuditService audit = auditService();
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L), audit);
 
         service.create(7L, command("audit-summary"));
 
         var response = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(repository).completeAudit(eq(7L), eq("audit-summary"), response.capture());
+        verify(audit).complete(eq(7L), eq("audit-summary"), response.capture());
         var summary = mapper.readTree(response.getValue());
         assertEquals(100L, summary.path("resource_id").asLong());
         assertEquals(1L, summary.path("revision").asLong());
@@ -99,21 +164,20 @@ class FoodLogServiceImplTest {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         when(repository.findIdempotency(7L, "same-key"))
                 .thenReturn(new FoodLogRepository.IdempotencyRecord("different", "success", "{}"));
-        FoodLogService service = new FoodLogServiceImpl(repository, () -> 100L);
+        FoodLogService service = service(repository, () -> 100L);
 
         BusinessException exception =
                 assertThrows(
                         BusinessException.class, () -> service.create(7L, command("same-key")));
 
         assertEquals(ErrorCode.CONFLICT, exception.errorCode());
-        verify(repository, never()).reserveAudit(any());
     }
 
     @Test
     void rejectsSourceContextOwnedByAnotherUser() {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         when(repository.sessionOwned(7L, 55L)).thenReturn(false);
-        FoodLogService service = new FoodLogServiceImpl(repository, () -> 100L);
+        FoodLogService service = service(repository, () -> 100L);
 
         BusinessException exception =
                 assertThrows(
@@ -135,7 +199,6 @@ class FoodLogServiceImplTest {
                                                                 "g")))));
 
         assertEquals(ErrorCode.NOT_FOUND, exception.errorCode());
-        verify(repository, never()).reserveAudit(any());
     }
 
     @Test
@@ -154,9 +217,8 @@ class FoodLogServiceImplTest {
                                 "test-reviewed-source",
                                 "test-v1"));
         when(repository.insertFoodLog(any())).thenReturn(1);
-        when(repository.reserveAudit(any())).thenReturn(1);
         when(repository.findOwned(7L, 100L, false)).thenReturn(snapshotWithEmptyItems());
-        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L));
+        FoodLogService service = service(repository, ids(100L, 101L, 102L));
 
         service.create(7L, command("nutrition-1"));
 
@@ -185,9 +247,8 @@ class FoodLogServiceImplTest {
                                 "test-reviewed-source",
                                 "test-v1"));
         when(repository.insertFoodLog(any())).thenReturn(1);
-        when(repository.reserveAudit(any())).thenReturn(1);
         when(repository.findOwned(7L, 100L, false)).thenReturn(snapshotWithEmptyItems());
-        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L));
+        FoodLogService service = service(repository, ids(100L, 101L, 102L));
 
         service.create(
                 7L,
@@ -231,9 +292,8 @@ class FoodLogServiceImplTest {
                                 "USDA FoodData Central API foodPortions",
                                 "SR Legacy 2019-04-01 FDC-168880 portion-1"));
         when(repository.insertFoodLog(any())).thenReturn(1);
-        when(repository.reserveAudit(any())).thenReturn(1);
         when(repository.findOwned(7L, 100L, false)).thenReturn(snapshotWithEmptyItems());
-        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L));
+        FoodLogService service = service(repository, ids(100L, 101L, 102L));
 
         service.create(
                 7L,
@@ -266,7 +326,6 @@ class FoodLogServiceImplTest {
         when(repository.findIdempotency(7L, "update-1")).thenReturn(null);
         when(repository.findOwned(7L, 100L, false))
                 .thenReturn(snapshot(false, 1), snapshot(false, 2));
-        when(repository.reserveAudit(any())).thenReturn(1);
         when(repository.updateFoodLog(any())).thenReturn(1);
         when(repository.softDeleteItems(7L, 100L)).thenReturn(1);
         when(repository.findNutritionFood("rice"))
@@ -282,7 +341,8 @@ class FoodLogServiceImplTest {
                                 "test-reviewed-source",
                                 "test-v1"));
 
-        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L));
+        OperationAuditService audit = auditService();
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L, 102L), audit);
         FoodLogService.FoodLogView result =
                 service.update(
                         7L,
@@ -301,7 +361,7 @@ class FoodLogServiceImplTest {
         verify(repository).updateFoodLog(any());
         verify(repository).softDeleteItems(7L, 100L);
         verify(repository).insertItem(any());
-        verify(repository).completeAudit(eq(7L), eq("update-1"), any());
+        verify(audit).complete(eq(7L), eq("update-1"), any());
     }
 
     @Test
@@ -309,7 +369,7 @@ class FoodLogServiceImplTest {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         when(repository.findIdempotency(7L, "update-2")).thenReturn(null);
         when(repository.findOwned(7L, 100L, false)).thenReturn(snapshot(false, 2));
-        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L));
+        FoodLogService service = service(repository, ids(100L));
 
         BusinessException exception =
                 assertThrows(
@@ -340,7 +400,7 @@ class FoodLogServiceImplTest {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         when(repository.findIdempotency(7L, "delete-1"))
                 .thenReturn(new FoodLogRepository.IdempotencyRecord(null, "pending", "{}"));
-        FoodLogService service = new FoodLogServiceImpl(repository, () -> 100L);
+        FoodLogService service = service(repository, () -> 100L);
 
         BusinessException exception =
                 assertThrows(
@@ -364,17 +424,23 @@ class FoodLogServiceImplTest {
                                         : new FoodLogRepository.IdempotencyRecord(
                                                 digest[0], "success", "{}"));
         when(repository.findOwned(7L, 100L, false)).thenReturn(snapshot);
+        OperationAuditService audit = auditService();
         doAnswer(
                         invocation -> {
-                            digest[0] =
-                                    ((FoodLogRepository.AuditWrite) invocation.getArgument(0))
-                                            .parametersDigest();
+                            digest[0] = invocation.getArgument(4);
                             return 1;
                         })
-                .when(repository)
-                .reserveAudit(any());
+                .when(audit)
+                .reserve(
+                        anyLong(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any());
         when(repository.softDelete(7L, 100L, 1L)).thenReturn(1);
-        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L));
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L, 101L), audit);
 
         service.delete(7L, 100L, 1L, "delete-2");
         service.delete(7L, 100L, 1L, "delete-2");
@@ -442,5 +508,23 @@ class FoodLogServiceImplTest {
     private IdGenerator ids(long... values) {
         AtomicInteger index = new AtomicInteger();
         return () -> values[index.getAndIncrement() % values.length];
+    }
+
+    private FoodLogService service(FoodLogRepository repository, IdGenerator ids) {
+        return new FoodLogServiceImpl(repository, ids, auditService());
+    }
+
+    private OperationAuditService auditService() {
+        OperationAuditService audit = mock(OperationAuditService.class);
+        when(audit.reserve(
+                        anyLong(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any()))
+                .thenReturn(1);
+        return audit;
     }
 }

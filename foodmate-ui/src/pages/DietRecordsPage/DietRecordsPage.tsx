@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { DEFAULT_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { createFoodLog, deleteFoodLog, loadFoodLogs, type FoodLog } from '../../services/foodLogService';
 import type { SessionSummary } from '../../types/session';
@@ -373,10 +374,8 @@ export function DietRecordsPage() {
       activeModule="records"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={
-        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
-      }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
@@ -583,7 +582,7 @@ export function DietRecordsPage() {
           )}
         </section>
 
-        {visibleState === 'default' ? (
+        {visibleState === 'default' && !isFigmaFixture ? (
           <section className={styles.recordsActions} aria-label="饮食记录操作">
             <Button className={styles.logMealButton} type="button" onClick={() => openFoodDialog('breakfast')}>
               记录一餐
@@ -601,9 +600,9 @@ export function DietRecordsPage() {
 
         {visibleState === 'default' && !isRealMode ? (
           <section className={styles.entryDetail} aria-label="记录详情">
-            <h2>记录详情 · 待确认记录可在这里补充后保存</h2>
-            <p>蓝莓燕麦粥 · 早餐 · 08:30 · 估算值</p>
-            <p>份量 350 | 单位 g | 热量 420 kcal | 蛋白质 18 g | 来源 USDA | 估算状态 待确认</p>
+            <h2>{'记录详情  ·  待确认记录可在这里补充后保存'}</h2>
+            <p>{'蓝莓燕麦粥  ·  早餐  ·  08:30  ·  估算值'}</p>
+            <p>{'份量  350  |  单位  g  |  热量  420 kcal  |  蛋白质  18 g  |  来源  USDA  |  估算状态  待确认'}</p>
             <div className={styles.entryActions}>
               <Button variant="ghost" type="button" onClick={() => setNotice('已打开自然语言记录入口。')}>
                 记录一餐（自然语言）
