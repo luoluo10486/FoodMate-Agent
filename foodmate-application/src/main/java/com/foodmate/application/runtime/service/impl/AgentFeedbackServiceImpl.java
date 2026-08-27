@@ -65,6 +65,29 @@ public class AgentFeedbackServiceImpl implements AgentFeedbackService {
     @Transactional
     @Override
     public FeedbackResult submit(long userId, long runId, long messageId, SubmitCommand command) {
+        try {
+            return submitInternal(userId, runId, messageId, command);
+        } catch (RuntimeException exception) {
+            if (audit != null)
+                audit.recordFailure(
+                        userId,
+                        "agent_feedback",
+                        Long.toString(messageId),
+                        "agent.feedback.submit",
+                        "failed",
+                        errorCode(exception),
+                        null,
+                        null,
+                        Map.of(
+                                "run_id", Long.toString(runId),
+                                "message_id", Long.toString(messageId),
+                                "exception_type", exception.getClass().getSimpleName()));
+            throw exception;
+        }
+    }
+
+    private FeedbackResult submitInternal(
+            long userId, long runId, long messageId, SubmitCommand command) {
         if (!enabled) throw new BusinessException(ErrorCode.AGENT_FEEDBACK_DISABLED);
         if (store == null || ids == null)
             throw new BusinessException(ErrorCode.COORDINATION_UNAVAILABLE, "反馈存储暂不可用");
@@ -136,6 +159,13 @@ public class AgentFeedbackServiceImpl implements AgentFeedbackService {
                 validated.highRisk(),
                 validated.idempotencyKey(),
                 validated.parametersDigest());
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        if (exception instanceof BusinessException businessException)
+            return businessException.errorCode().code();
+        if (exception instanceof IllegalArgumentException) return ErrorCode.INVALID_ARGUMENT.code();
+        return ErrorCode.INTERNAL_ERROR.code();
     }
 
     private FeedbackResult result(FeedbackView value) {
