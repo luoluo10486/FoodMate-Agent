@@ -1142,3 +1142,15 @@
 | 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:check` 通过；`mvnw.cmd -pl foodmate-application -am -P alibaba-code-style verify -DskipTests` 通过，相关模块 Checkstyle `0 violations`；`git diff --check` 通过。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | calculator 与 plan_validator 的确定性业务路径、Python 提案路径和统一工具执行审计修正已取得可复核证据；M1-6 的吞吐、队列、重启、故障恢复和生产治理仍按当前决策后置。 |
+
+## D55 功能版全量业务门禁复核（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Java 全量门禁 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `200/200`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）；编译、Spotless、ArchUnit、测试和 Spring Boot repackage 通过。 |
+| Python 业务门禁 | 使用项目 `agent-runtime\.venv\Scripts\python.exe -m pytest -q`：`124 passed、1 skipped、2 warnings`；跳过项为显式真实外部服务，未调用真实模型或 embedding。 |
+| 前端业务门禁 | `npm.cmd run lint`、`npm.cmd run typecheck`、`npm.cmd test -- --run`（38 个测试文件、`194/194`）和 `npm.cmd run build` 全部通过；未修改用户现有页面差异。 |
+| 失败与补偿记录 | 首次 `clean verify` 在 Bootstrap 发现既有测试支持文件混合换行并由 Spotless 拒绝；单独执行 Bootstrap Spotless 后仅统一换行，Git 内容 hash 未变化，再次 `clean verify` 成功。该格式修正未产生独立提交。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | 当前功能版 Java、Python、前端业务门禁和本轮工具切片均有实际通过证据；不据此宣称 M1-6 性能/故障恢复或生产强化完成。 |
