@@ -96,7 +96,7 @@ public final class ToolRegistryCatalog {
                         true,
                         true,
                         "{\"plan\":{\"type\":\"object\"}}",
-                        "{\"status\":{\"type\":\"string\"},\"issues\":{\"type\":\"array\"}}"),
+                        "{\"valid\":{\"type\":\"boolean\"},\"status\":{\"type\":\"string\"},\"issues\":{\"type\":\"array\"},\"warnings\":{\"type\":\"array\"},\"nutrition_summary\":{\"type\":\"object\"},\"budget_summary\":{\"type\":\"object\"}}"),
                 definition(
                         720007L,
                         "meal_plan.save_plan",

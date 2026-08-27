@@ -86,6 +86,22 @@ class ToolPolicyGatewayServiceTest {
     }
 
     @Test
+    void planValidatorReturnsConstraintIssuesWithoutWritingThePlan() {
+        ToolRegistryService registry = registryWith("plan_validator");
+        var plan = object().put("people", 1).put("days", 1).put("budget", 5);
+        plan.putArray("days_plan").addObject().putObject("breakfast").put("cost", 6);
+        var input = object().set("plan", plan);
+        when(store.runExists(42L)).thenReturn(true);
+
+        var result = gateway(registry).execute(toolProposal("plan_validator", input));
+
+        assertEquals("failed", result.status());
+        assertEquals("PLAN_CONSTRAINTS_UNSATISFIED", result.errorCode());
+        assertEquals("invalid", result.rows().getFirst().path("status").asText());
+        verify(store).audit(any(ToolGatewayPort.Audit.class));
+    }
+
+    @Test
     void disabledRegistryToolIsRejectedWithStableCode() {
         var definition =
                 ToolRegistryCatalog.defaults().stream()

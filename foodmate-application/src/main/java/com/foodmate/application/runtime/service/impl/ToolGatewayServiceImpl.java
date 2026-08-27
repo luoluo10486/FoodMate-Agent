@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.service.CalculatorEvaluator;
+import com.foodmate.application.runtime.service.PlanValidator;
 import com.foodmate.application.runtime.service.SqlQueryGuard;
 import com.foodmate.application.runtime.service.SqlQueryPlanValidator;
 import com.foodmate.application.runtime.service.SqlSchemaCatalogService;
@@ -149,7 +150,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     && !"time_parser".equals(tool.name())
                     && !"food_log_writer".equals(tool.name())
                     && !"meal_plan.save_plan".equals(tool.name())
-                    && !"calculator".equals(tool.name()))
+                    && !"calculator".equals(tool.name())
+                    && !"plan_validator".equals(tool.name()))
                 return reject(proposalId, "TOOL_EXECUTOR_UNAVAILABLE");
         }
         if (registry == null) {
@@ -159,7 +161,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     && !"database_query".equals(proposal.toolName())
                     && !"time_parser".equals(proposal.toolName())
                     && !"food_log_writer".equals(proposal.toolName())
-                    && !"calculator".equals(proposal.toolName()))
+                    && !"calculator".equals(proposal.toolName())
+                    && !"plan_validator".equals(proposal.toolName()))
                 return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
             if ("sql_read".equals(type)
                     && proposal.toolName() != null
@@ -176,6 +179,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             return executeTimeParser(proposalId, runId, invocationId, proposal.input());
         if ("tool".equals(type) && "calculator".equals(proposal.toolName()))
             return executeCalculator(proposalId, runId, invocationId, proposal.input());
+        if ("tool".equals(type) && "plan_validator".equals(proposal.toolName()))
+            return executePlanValidator(proposalId, runId, invocationId, proposal.input());
         if ("tool".equals(type) && "database_query".equals(proposal.toolName())) {
             String planError = SqlQueryPlanValidator.validate(proposal.input(), statement);
             if (planError != null) return reject(proposalId, planError);
@@ -416,6 +421,35 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 List.of(row),
                 Long.toString(auditId),
                 "calculator");
+    }
+
+    private ProposalResult executePlanValidator(
+            String proposalId, String runId, String invocationId, JsonNode input) {
+        long numericRunId;
+        try {
+            numericRunId = Long.parseLong(runId);
+        } catch (NumberFormatException exception) {
+            return reject(proposalId, "RUN_ID_INVALID");
+        }
+        if (!store.runExists(numericRunId)) return reject(proposalId, "RUN_NOT_FOUND");
+        JsonNode plan = input == null ? null : input.get("plan");
+        PlanValidator.Validation validation = PlanValidator.evaluate(plan);
+        String errorCode = validation.valid() ? null : "PLAN_CONSTRAINTS_UNSATISFIED";
+        long auditId =
+                auditTool(
+                        numericRunId,
+                        "plan_validator",
+                        validation.valid() ? "executed" : "rejected",
+                        errorCode,
+                        plan == null ? null : plan.toString());
+        return toolResult(
+                proposalId,
+                runId,
+                validation.valid() ? "succeeded" : "failed",
+                errorCode,
+                List.of(validation.asJson()),
+                Long.toString(auditId),
+                "plan_validator");
     }
 
     private long auditTool(
