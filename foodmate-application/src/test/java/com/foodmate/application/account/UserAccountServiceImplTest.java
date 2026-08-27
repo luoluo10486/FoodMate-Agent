@@ -2,9 +2,11 @@ package com.foodmate.application.account;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,6 +21,112 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 class UserAccountServiceImplTest {
+    @Test
+    void registrationFailureRecordsSafeAudit() {
+        UserAccountRepository repository = mock(UserAccountRepository.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        when(repository.userExists("new-user", "new@example.com")).thenReturn(false);
+        doThrow(new IllegalStateException("database unavailable"))
+                .when(repository)
+                .insertUser(anyLong(), anyString(), anyString(), anyString(), anyString(), any());
+        UserAccountServiceImpl service = service(repository, audit);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.register("new-user", "new@example.com", "password123", "New"));
+
+        verify(audit)
+                .recordFailure(
+                        isNull(),
+                        eq("user"),
+                        isNull(),
+                        eq("user.register"),
+                        eq("failed"),
+                        eq(ErrorCode.INTERNAL_ERROR.code()),
+                        isNull(),
+                        isNull(),
+                        any());
+    }
+
+    @Test
+    void profileFailureRecordsAudit() {
+        UserAccountRepository repository = mock(UserAccountRepository.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        doThrow(new IllegalStateException("database unavailable"))
+                .when(repository)
+                .updateProfile(eq(7L), any());
+        UserAccountServiceImpl service = service(repository, audit);
+
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        service.updateProfile(
+                                7L,
+                                new com.foodmate.application.account.service.UserAccountService
+                                        .ProfileUpdate(
+                                        "New", null, null, null, null, null, null, null)));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("profile"),
+                        eq("7"),
+                        eq("profile.update"),
+                        eq("failed"),
+                        eq(ErrorCode.INTERNAL_ERROR.code()),
+                        isNull(),
+                        isNull(),
+                        any());
+    }
+
+    @Test
+    void sessionCreationFailureRecordsAudit() {
+        UserAccountRepository repository = mock(UserAccountRepository.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        doThrow(new IllegalStateException("database unavailable"))
+                .when(repository)
+                .insertSession(anyLong(), eq(7L), anyString(), anyString());
+        UserAccountServiceImpl service = service(repository, audit);
+
+        assertThrows(
+                IllegalStateException.class, () -> service.createSession(7L, "Session", "chat"));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("session"),
+                        eq("100"),
+                        eq("session.create"),
+                        eq("failed"),
+                        eq(ErrorCode.INTERNAL_ERROR.code()),
+                        isNull(),
+                        isNull(),
+                        any());
+    }
+
+    @Test
+    void invalidPasswordChangeRecordsAuditWithoutPasswordData() {
+        UserAccountRepository repository = mock(UserAccountRepository.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        UserAccountServiceImpl service = service(repository, audit);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.changePassword(7L, "current-password", "short"));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("user"),
+                        eq("7"),
+                        eq("user.password.change"),
+                        eq("failed"),
+                        eq(ErrorCode.INVALID_ARGUMENT.code()),
+                        isNull(),
+                        isNull(),
+                        any());
+    }
+
     @Test
     void resetPasswordRecordsPasswordChangeAudit() {
         UserAccountRepository repository = mock(UserAccountRepository.class);
