@@ -1116,3 +1116,16 @@
 | Python 门禁 | 沿用本轮已通过结果：`agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`116 passed、1 skipped、1 warning`；跳过项为显式真实外部服务。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理；仅清理本轮下载的手册浅克隆、PDF 渲染图和提取文本。吞吐压测、队列积压、组件重启、ACK/重复消息故障注入、SSE 故障恢复、真实云服务和生产部署继续后置。 |
 | 结论 | 用户指定的 v1.3.0 手册已完成可追溯核对；当前功能版业务门禁通过，前端 lint 两条格式 warning 已收口。该证据不扩大 M1-6/M3 的后置性能、故障和生产完成范围。 |
+
+## D53 M14/M15 业务回归与统一审计收口（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；Docker Compose 依赖已恢复并保持 healthy；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 业务回归 | M14 本地业务 E2E `10/10` 通过；M15 HTTP `11/11` 通过；M15 RocketMQ `11/11` 通过；`ApprovalServiceImplTest` `14/14` 通过。覆盖 Proposal/Confirm/Reject/Failed/Superseded、food_log_writer 业务写入、消息主路径和幂等回归。 |
+| 缺陷修复 | `cb3dc68 fix(审批): 注入统一审计并校正失败回归`：修复 `ApprovalServiceImpl` Spring 构造注入，确保审批终态及 food_log 失败事实通过统一审计入口落库；失败回归断言改为验证 `food_log.* failed` 审计存在。 |
+| 环境隔离 | HTTP E2E 期间暂时停止并随后恢复 Docker `foodmate` 容器，避免宿主机测试 JVM 与容器 JVM 使用相同 Snowflake `workerId=1` 造成主键冲突；该措施属于测试环境隔离，不计入 Java 故障恢复矩阵。 |
+| 其他门禁 | `mvnw.cmd -pl foodmate-application -am spotless:check`：BUILD SUCCESS；Python 既有业务门禁 `116 passed、1 skipped、1 warning`；前端 lint、typecheck、38 个测试文件 `194/194` 和 build 均通过；当前 Docker 服务均 healthy。 |
+| 数据边界 | 本轮 E2E 仅生成随机命名空间的 `m15*` 测试数据，未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理；用户已有 UI/Figma/QA 改动未暂存、未回滚。 |
+| 暂缓范围 | Docker-backed 流量统计、吞吐/延迟/队列积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障注入、SSE Last-Event-ID 故障恢复、真实云服务、staging/production 和发布回滚继续暂缓。 |
+| 结论 | M14/M15 业务主路径、审批统一审计修复和受影响 Java 格式校验已取得可复核结果；该记录不将业务回归扩展为 M1-6 故障/性能门禁完成证据。 |
