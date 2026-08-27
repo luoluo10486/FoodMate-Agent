@@ -799,6 +799,10 @@ function navigationFixture(): HistoryFixture {
   const fixture = historyFixture('history-page-2');
   return {
     ...fixture,
+    sidebar: {
+      ...fixture.sidebar,
+      currentPage: 1,
+    },
     prompt: '我午餐吃了一些野生三文鱼和藜麦，但我不确定具体的蛋白质含量。',
     response:
       '我已为您分析了野生三文鱼（150克）和熟藜麦（100克）的标准营养价值。它们一共可提供大约 38 克的优质蛋白质。',

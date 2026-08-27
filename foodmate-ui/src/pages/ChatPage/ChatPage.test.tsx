@@ -329,6 +329,12 @@ describe('ChatPage Figma history fixtures', () => {
     expect(referenceOnly).toBeChecked();
     expect(addToLunch).not.toBeChecked();
   });
+
+  it('keeps the pagination fixture on the first page', () => {
+    renderChatState('pagination');
+
+    expect(screen.getByLabelText('会话分页')).toHaveTextContent('1 / 3');
+  });
 });
 
 describe('ChatPage Figma session operation fixtures', () => {
