@@ -990,3 +990,14 @@
 | 格式校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply`：`BUILD SUCCESS`；`git diff --check` 无错误。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | MealPlan 业务失败审计与 FoodLog 保持一致；定向、相关模块和完整 Java 门禁均通过，Alibaba Checkstyle 为 `0 violations`；真实性能、故障恢复和生产门禁继续后置。 |
+
+## D43 记忆候选失败审计闭环（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码范围 | Memory candidate 持久化、memory update/delete/confirm 异常统一写入 `failed` 审计；失败摘要仅保留异常类型、稳定错误码和关联 Run/Memory ID，不保存记忆值。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am "-Dtest=MemoryCandidateServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`6/6` 通过，覆盖候选持久化和用户记忆更新失败审计。 |
+| 格式校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply`：`BUILD SUCCESS`；未修改用户已有前端/Figma/QA 文件。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作。 |
+| 结论 | 长期记忆业务写操作保留成功审计并补齐失败审计；定向业务测试和 Java 格式校验通过，完整门禁待相关切片收口后统一复跑。 |

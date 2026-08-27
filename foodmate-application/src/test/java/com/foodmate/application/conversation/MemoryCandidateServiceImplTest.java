@@ -1,12 +1,17 @@
 package com.foodmate.application.conversation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.conversation.port.out.MemoryRepository;
 import com.foodmate.application.conversation.service.MemoryCandidateService;
 import com.foodmate.application.conversation.service.SessionSummaryService;
@@ -16,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
 
 class MemoryCandidateServiceImplTest {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -78,6 +84,69 @@ class MemoryCandidateServiceImplTest {
     }
 
     @Test
+    void failedCandidatePersistenceRecordsFailureAudit() throws Exception {
+        MemoryRepository repository = mock(MemoryRepository.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        SessionSummaryService summaries = mock(SessionSummaryService.class);
+        when(repository.findRunOwner(42L)).thenReturn(7L);
+        doThrow(new IllegalStateException("database unavailable")).when(repository).insert(any());
+        MemoryCandidateServiceImpl service = service(repository, summaries, audit);
+
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        service.persistFromCompletedRun(
+                                42L,
+                                new MemoryCandidateService.CompletedRunPayload(
+                                        List.of(
+                                                new MemoryCandidateService.MemoryCandidate(
+                                                        "preference",
+                                                        "diet",
+                                                        mapper.readTree("{\"value\":\"low-salt\"}"),
+                                                        new BigDecimal("0.90"),
+                                                        "conversation",
+                                                        "user",
+                                                        List.of("message-1"))))));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("memory"),
+                        eq("42"),
+                        eq("memory.candidate.persist"),
+                        eq("failed"),
+                        eq("INTERNAL_ERROR"),
+                        isNull(),
+                        isNull(),
+                        any());
+    }
+
+    @Test
+    void failedMemoryUpdateRecordsFailureAudit() {
+        MemoryRepository repository = mock(MemoryRepository.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        SessionSummaryService summaries = mock(SessionSummaryService.class);
+        when(repository.existsOwned(7L, 99L)).thenReturn(true);
+        when(repository.updateOwned(7L, 99L, "{}", "user"))
+                .thenThrow(new IllegalStateException("database unavailable"));
+        MemoryCandidateServiceImpl service = service(repository, summaries, audit);
+
+        assertThrows(IllegalStateException.class, () -> service.update(7L, 99L, null, "user"));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("memory"),
+                        eq("99"),
+                        eq("memory.update"),
+                        eq("failed"),
+                        eq("INTERNAL_ERROR"),
+                        isNull(),
+                        isNull(),
+                        any());
+    }
+
+    @Test
     void rejectsAuthoritativeMealPlanCandidate() throws Exception {
         MemoryRepository repository = mock(MemoryRepository.class);
         SessionSummaryService summaries = mock(SessionSummaryService.class);
@@ -125,5 +194,14 @@ class MemoryCandidateServiceImplTest {
 
         verify(repository, org.mockito.Mockito.never()).insert(any());
         org.mockito.Mockito.verifyNoInteractions(summaries);
+    }
+
+    private MemoryCandidateServiceImpl service(
+            MemoryRepository repository,
+            SessionSummaryService summaries,
+            OperationAuditService audit) {
+        ObjectProvider<OperationAuditService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(audit);
+        return new MemoryCandidateServiceImpl(repository, () -> 99L, summaries, provider);
     }
 }
