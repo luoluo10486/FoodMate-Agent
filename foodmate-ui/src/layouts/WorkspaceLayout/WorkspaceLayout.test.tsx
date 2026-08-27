@@ -50,7 +50,7 @@ describe('WorkspaceLayout shell controls', () => {
   it('hides only the Figma fixture topbar mark letter', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>
-        <WorkspaceLayout designChat showKnowledgeTopNav={false} sidebarFixture={{ sessions: [] }}>
+        <WorkspaceLayout showKnowledgeTopNav={false} sidebarFixture={{ sessions: [] }}>
           <div>页面内容</div>
         </WorkspaceLayout>
       </MemoryRouter>,

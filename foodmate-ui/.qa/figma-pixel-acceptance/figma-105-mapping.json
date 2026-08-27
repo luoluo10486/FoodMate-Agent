@@ -2047,7 +2047,7 @@
       "queryState": "state=list",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-list.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-list-browser-current-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-list-brand-mark-browser-2026-08-27.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",

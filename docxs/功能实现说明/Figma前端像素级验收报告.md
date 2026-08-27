@@ -870,3 +870,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 105 画板证据重新生成后仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，自动 diff 输入 `105`；本条只更新 `agent-chat-v2` 的浏览器证据映射。
 - [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
 - [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 94. 2026-08-27 Meal Planning 顶栏品牌标记 fixture 边界修正
+
+- [x] 重新读取 Figma 节点 `692:2662`：规划列表顶栏绿色品牌方块为 `28×28px` 空白方块，侧栏品牌标记为 `36×36px` 并显示 `F`；Figma 画板中的 `window-controls` 仍只作为设计参考，前端不实现三色窗口装饰。
+- [x] 修正 `WorkspaceLayout` 的 fixture 判断：规划页通过 `sidebarFixture`、Chat 页通过 `designChat`，二者在隐藏知识库顶部导航时都隐藏顶栏 `F`；普通页面和侧栏品牌标记不受影响。
+- [x] 浏览器实测 `/planning?state=list`：视口 `1440×1024`、DPR `1.0000000149011612`、字体 `loaded`、根节点无横向溢出；顶栏方块为 `28×28px` 且文本为空，侧栏标记为 `36×36px` 且文本为 `F`，左上角红黄绿窗口装饰候选为 `0`。
+- [x] 新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-plan-list-brand-mark-browser-2026-08-27.png`，Figma 参考为 `docxs/设计/figma-png/meal-plan-list.png`；`scripts/png-diff.mjs` 结果为 `differentPixels=546504`、差异比例 `37.0622%`、`MAE=4.25977`、`RMSE=20.45833`、最大通道差异 `245`，继续登记为 `DIFF_REVIEW`。
+- [x] 105 画板映射已指向本次规划列表证据，汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，自动 diff 输入 `105`。
+- [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
+- [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
