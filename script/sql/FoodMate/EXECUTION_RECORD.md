@@ -943,3 +943,14 @@
 | Alibaba 规范 | `.\mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及五个 Java 模块均 `0 Checkstyle violations`，BUILD SUCCESS。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | 运行时本轮控制语句规范收尾已通过定向业务测试、Spotless 和 Alibaba Checkstyle；性能、故障恢复、真实外部服务和生产门禁继续后置。 |
+
+## D39 统一业务审计契约收口（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码范围 | Knowledge 与 Approval application 业务服务统一调用 `OperationAuditService`；移除两个 Repository 的旧 `insertAudit`/`nextAuditId` 契约及适配器实现；增加显式 `TraceContext` 审计重载，保留业务命令原始 request/trace 标识。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am -Dtest=OperationAuditServiceTest,KnowledgeServiceImplTest,KnowledgeUploadValidationTest,ApprovalServiceImplTest,KnowledgeRepositoryAdapterTest -Dsurefire.failIfNoSpecifiedTests=false test`：Application `27/27`、Infrastructure `6/6`，0 失败、0 错误。 |
+| 格式与规范 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am spotless:apply` 成功；`mvnw.cmd -Palibaba-code-style verify -DskipTests` 成功，根项目及各 Java 模块 Checkstyle 均 `0 violations`；`git diff --check` 无错误。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；工作期间出现的用户已有前端 QA 修改未暂存、未回滚。 |
+| 结论 | Knowledge/Approval 业务审计入口已收敛到统一 application 服务，测试和 Java 规范门禁通过；真实依赖、性能、故障恢复和生产门禁继续后置。 |

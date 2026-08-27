@@ -3,7 +3,7 @@ package com.foodmate.application.food.port.out;
 import java.time.Instant;
 import java.util.List;
 
-/** 写操作确认事实和审计持久化端口。 */
+/** 写操作确认事实持久化端口。 */
 public interface ApprovalRequestRepository {
     ApprovalSnapshot findOwned(long userId, long approvalRequestId);
 
@@ -39,8 +39,6 @@ public interface ApprovalRequestRepository {
 
     int updateExecutedResource(long userId, long approvalRequestId, long resourceId, Instant now);
 
-    int insertAudit(AuditWrite audit);
-
     record ApprovalWrite(
             long approvalRequestId,
             long userId,
@@ -71,16 +69,4 @@ public interface ApprovalRequestRepository {
             Instant expiresAt,
             Instant confirmedAt,
             Instant executedAt) {}
-
-    record AuditWrite(
-            long operationAuditId,
-            long userId,
-            String requestId,
-            String traceId,
-            String targetType,
-            String targetId,
-            String action,
-            String parametersDigest,
-            String idempotencyKey,
-            String responseJson) {}
 }

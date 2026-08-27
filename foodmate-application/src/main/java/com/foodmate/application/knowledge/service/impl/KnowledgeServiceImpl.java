@@ -1,10 +1,13 @@
 package com.foodmate.application.knowledge.service.impl;
 
 import com.foodmate.application.common.port.out.ObjectStoragePort;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.application.knowledge.service.KnowledgeService;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
+import com.foodmate.shared.trace.TraceContext;
+import com.foodmate.shared.trace.TraceContextHolder;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,9 +15,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,16 +43,28 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     private final ObjectStoragePort storage;
     private final IdGenerator ids;
     private final String bucket;
+    private final OperationAuditService audit;
 
     public KnowledgeServiceImpl(
             ObjectProvider<KnowledgeRepository> store,
             ObjectProvider<ObjectStoragePort> storage,
             ObjectProvider<IdGenerator> ids,
             @Value("${foodmate.storage.bucket:foodmate-private}") String bucket) {
+        this(store, storage, ids, bucket, null);
+    }
+
+    @Autowired
+    public KnowledgeServiceImpl(
+            ObjectProvider<KnowledgeRepository> store,
+            ObjectProvider<ObjectStoragePort> storage,
+            ObjectProvider<IdGenerator> ids,
+            @Value("${foodmate.storage.bucket:foodmate-private}") String bucket,
+            ObjectProvider<OperationAuditService> auditProvider) {
         this.store = store.getIfAvailable();
         this.storage = storage.getIfAvailable();
         this.ids = ids.getIfAvailable();
         this.bucket = bucket;
+        this.audit = auditProvider == null ? null : auditProvider.getIfAvailable();
     }
 
     @Transactional
@@ -264,14 +281,23 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     }
 
     private void audit(long operatorId, String traceId, String action, String documentId) {
-        store.insertAudit(
-                new KnowledgeRepository.Audit(
-                        store.nextAuditId(),
-                        operatorId,
-                        traceId,
-                        "knowledge_document",
-                        documentId,
-                        action));
+        if (audit == null) return;
+        TraceContext current = TraceContextHolder.currentOrNew();
+        audit.record(
+                new TraceContext(
+                        current.requestId(),
+                        traceId == null ? current.traceId() : traceId,
+                        current.sessionId(),
+                        current.agentRunId()),
+                operatorId,
+                "knowledge_document",
+                documentId,
+                action,
+                "success",
+                null,
+                null,
+                null,
+                Map.of());
     }
 
     private void requireAvailable() {

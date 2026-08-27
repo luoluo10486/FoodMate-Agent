@@ -1,5 +1,6 @@
 package com.foodmate.application.common;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,12 +15,37 @@ import com.foodmate.application.common.port.out.OperationAuditPort;
 import com.foodmate.application.common.port.out.OperationAuditPort.AuditRecord;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.shared.id.IdGenerator;
+import com.foodmate.shared.trace.TraceContext;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 
 class OperationAuditServiceTest {
+    @Test
+    void recordPreservesExplicitCommandTraceContext() {
+        OperationAuditPort store = mock(OperationAuditPort.class);
+        when(store.insert(any())).thenReturn(1);
+        OperationAuditService service = new OperationAuditService(provider(store), () -> 123L);
+
+        service.record(
+                TraceContext.of("req-command", "trace-command"),
+                7L,
+                "knowledge_document",
+                "42",
+                "knowledge.upload",
+                "success",
+                null,
+                null,
+                null,
+                Map.of());
+
+        ArgumentCaptor<AuditRecord> captured = ArgumentCaptor.forClass(AuditRecord.class);
+        verify(store).insert(captured.capture());
+        assertEquals("req-command", captured.getValue().requestId());
+        assertEquals("trace-command", captured.getValue().traceId());
+    }
+
     @Test
     void recordRemovesSensitiveMetadataAndKeepsOnlySafeSummary() {
         OperationAuditPort store = mock(OperationAuditPort.class);

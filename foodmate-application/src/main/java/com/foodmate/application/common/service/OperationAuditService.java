@@ -91,16 +91,41 @@ public class OperationAuditService {
             String parametersDigest,
             String idempotencyKey,
             Map<String, ?> metadata) {
+        record(
+                TraceContextHolder.currentOrNew(),
+                operatorId,
+                targetType,
+                targetId,
+                action,
+                result,
+                errorCode,
+                parametersDigest,
+                idempotencyKey,
+                metadata);
+    }
+
+    /** Writes an audit fact with the trace context that owns the business command. */
+    public void record(
+            TraceContext trace,
+            Long operatorId,
+            String targetType,
+            String targetId,
+            String action,
+            String result,
+            String errorCode,
+            String parametersDigest,
+            String idempotencyKey,
+            Map<String, ?> metadata) {
         if (store == null) return;
-        TraceContext trace = TraceContextHolder.currentOrNew();
+        TraceContext effectiveTrace = trace == null ? TraceContextHolder.currentOrNew() : trace;
         String safeMetadata = safeJson(metadata);
         int inserted =
                 store.insert(
                         new AuditRecord(
                                 ids.nextId(),
                                 operatorId,
-                                trace.requestId(),
-                                trace.traceId(),
+                                effectiveTrace.requestId(),
+                                effectiveTrace.traceId(),
                                 required(targetType, "targetType"),
                                 targetId,
                                 required(action, "action"),

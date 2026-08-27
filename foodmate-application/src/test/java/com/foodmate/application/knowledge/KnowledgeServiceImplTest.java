@@ -12,11 +12,13 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.foodmate.application.common.port.out.ObjectStoragePort;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.application.knowledge.service.KnowledgeService;
 import com.foodmate.application.knowledge.service.impl.KnowledgeServiceImpl;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
+import com.foodmate.shared.trace.TraceContext;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import org.junit.jupiter.api.Test;
@@ -115,10 +117,15 @@ class KnowledgeServiceImplTest {
         KnowledgeRepository repository = mock(KnowledgeRepository.class);
         ObjectStoragePort storage = mock(ObjectStoragePort.class);
         IdGenerator ids = mock(IdGenerator.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
         when(ids.nextId()).thenReturn(42L);
         KnowledgeServiceImpl service =
                 new KnowledgeServiceImpl(
-                        provider(repository), provider(storage), provider(ids), "foodmate-private");
+                        provider(repository),
+                        provider(storage),
+                        provider(ids),
+                        "foodmate-private",
+                        provider(audit));
         InputStream input = new ByteArrayInputStream("hello".getBytes());
 
         assertEquals(42L, service.upload(7L, "note.md", "text/markdown", 5L, input, "trace-1"));
@@ -132,7 +139,18 @@ class KnowledgeServiceImplTest {
                         eq(5L),
                         eq("text/markdown"));
         verify(repository).insertDocument(42L, "note.md", "knowledge/7/42-note.md", 7L);
-        verify(repository).insertAudit(any(KnowledgeRepository.Audit.class));
+        verify(audit)
+                .record(
+                        any(TraceContext.class),
+                        eq(7L),
+                        eq("knowledge_document"),
+                        eq("42"),
+                        eq("knowledge.upload"),
+                        eq("success"),
+                        any(),
+                        any(),
+                        any(),
+                        any());
     }
 
     @Test
@@ -204,8 +222,6 @@ class KnowledgeServiceImplTest {
                 () -> service.updateStatus(42L, KnowledgeDocumentStatus.INDEXED, 7L, "trace-1"));
 
         verify(repository).updateStatus(42L, KnowledgeDocumentStatus.INDEXED, 7L);
-        verify(repository, org.mockito.Mockito.never())
-                .insertAudit(any(KnowledgeRepository.Audit.class));
     }
 
     @Test
