@@ -1154,3 +1154,17 @@
 | 失败与补偿记录 | 首次 `clean verify` 在 Bootstrap 发现既有测试支持文件混合换行并由 Spotless 拒绝；单独执行 Bootstrap Spotless 后仅统一换行，Git 内容 hash 未变化，再次 `clean verify` 成功。该格式修正未产生独立提交。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | 当前功能版 Java、Python、前端业务门禁和本轮工具切片均有实际通过证据；不据此宣称 M1-6 性能/故障恢复或生产强化完成。 |
+
+## D56 当前源码 Docker 应用恢复与业务门禁复核（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Docker 构建 | `docker compose --env-file .env -f docker/compose.yml up -d --build foodmate agent-runtime` 成功；当前源码构建的 `foodmate-foodmate` 与 `foodmate-agent-runtime` 镜像均完成导出并启动。RocketMQ 初始化容器最终退出码 `0`，Topic/consumer group 初始化完成。 |
+| Docker readiness | `docker compose --env-file .env -f docker/compose.yml ps` 显示 Java `foodmate`、Python `agent-runtime`、PostgreSQL、Redis、MinIO、RocketMQ NameServer/Broker/Proxy、Milvus 及其依赖均 healthy；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过。 |
+| 应用 readiness | Java `http://localhost:8080/actuator/health/readiness` HTTP `200`、状态 `UP`；Python `http://localhost:9002/foodmate/internal/health/ready` HTTP `200`，评估 `10/10` 通过，活动 dispatch 与 result waiter 均为 `0`。 |
+| Docker 业务回归 | 当前源码重建前已在停止旧应用容器、隔离同一 consumer group 后完成 `M15FoodLogWriterProposalResultE2ETest` `11/11`；覆盖真实 RocketMQ Proposal/Result、PostgreSQL 写入、失败审计、终态和幂等回归。首次旧镜像与宿主测试 JVM 同时运行时出现预期审计数量为 `1`、实际为 `0` 的竞争干扰，已定位为旧镜像共享 consumer group，不作为业务代码失败。 |
+| Python 业务门禁 | 项目环境 `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`124 passed、1 skipped、1 warning`；跳过项为显式真实外部服务，未调用付费模型或真实 Embedding。 |
+| 前端业务门禁 | `npm.cmd run typecheck` 通过；`npm.cmd test -- --run`：38 个测试文件、`196/196` 通过；`npm.cmd run build` 通过并转换 2010 个模块。`npm.cmd run lint` 仅因既有 `ChatPage`、`PlanningPage` 文件的 31 条 Prettier CRLF warning 退出，0 errors；本轮未修改、未暂存这些 UI 文件。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK 丢失、重复投递故障注入或 SSE 故障恢复；本轮只使用既有本地 Docker 服务和随机测试命名空间，未删除数据卷。用户已有 UI/Figma/QA 改动未暂存、未回滚。 |
+| 结论 | 当前源码 Docker 应用已恢复并通过 readiness，Java/Python/前端业务主路径门禁保持通过；lint 的既有换行 warning 和 M1-6 性能/故障恢复范围不扩大为本轮完成项。 |
