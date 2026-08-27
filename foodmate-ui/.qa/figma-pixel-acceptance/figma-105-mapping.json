@@ -44,7 +44,7 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-browser-converted.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-browser-dpr1-motionoff-2026-08-27.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "MINOR_RENDERING_DIFF_CONFIRMED",
@@ -74,7 +74,7 @@
         "status": "MINOR_RENDERING_DIFF_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-18",
-        "conclusion": "Refreshed Figma and browser captures have matching viewport and page structure. Visible differences remain in icon rendering, avatar treatment, and browser JPEG-to-PNG text edges; retain DIFF_REVIEW."
+        "conclusion": "已按 Figma 节点 640:256 对齐工作台状态说明中的‘覆盖’和‘预算追加’文案；顶栏品牌方块保持空白，前端左上角红黄绿窗口装饰点未渲染。图标、头像、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
       }
     },
     {

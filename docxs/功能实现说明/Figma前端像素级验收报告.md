@@ -888,6 +888,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 当前结果已同步 `figma-105-mapping.json` 和 `figma-105-diff-results.json`；相比上一份 `13.9400%` 证据有所改善，但图标、字体渲染和主体视觉处理仍有差异，画板继续为 `DIFF_REVIEW`。
 - [ ] 本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面视觉迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
 
+## 97. 2026-08-27 Workspace Home 状态说明文案复核
+
+- [x] 依据 Figma 节点 `640:256`，将 `/?state=figma-v2` 的状态说明从“待处理事项提醒 / 预算通知”修正为“待处理事项覆盖 / 预算追加”，与设计稿可见文案一致。
+- [x] 工作台首页定向测试 `2/2` 通过；headless Chromium 使用 `1440×1024`、DPR `1`、禁用动画，页面无横向溢出。
+- [x] 前端左上角红、黄、绿窗口装饰候选为 `0`；顶栏绿色品牌方块保持空白，侧栏品牌字母和业务状态圆点未删除，Figma 设计稿未修改。
+- [x] 当前浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/workspace-home-v2-browser-dpr1-motionoff-2026-08-27.png`；与 `recaptured-figma/workspace-home-v2-figma.png` 的同尺寸 diff 为 `differentPixels=393796`、差异比例 `26.7060%`、`MAE=3.62688`、`RMSE=18.43240`、最大通道差异 `254`。
+- [x] 已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json`；该画板仍为 `DIFF_REVIEW`，没有将单条文案修正标记为像素级 `PASS`。
+- [ ] 本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面视觉迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
 ## 94. 2026-08-27 Meal Planning 顶栏品牌标记 fixture 边界修正
 
 - [x] 重新读取 Figma 节点 `692:2662`：规划列表顶栏绿色品牌方块为 `28×28px` 空白方块，侧栏品牌标记为 `36×36px` 并显示 `F`；Figma 画板中的 `window-controls` 仍只作为设计参考，前端不实现三色窗口装饰。
