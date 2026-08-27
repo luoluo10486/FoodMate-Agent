@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
+import com.foodmate.application.runtime.service.CalculatorEvaluator;
 import com.foodmate.application.runtime.service.SqlQueryGuard;
 import com.foodmate.application.runtime.service.SqlQueryPlanValidator;
 import com.foodmate.application.runtime.service.SqlSchemaCatalogService;
@@ -14,8 +15,13 @@ import com.foodmate.application.runtime.service.ToolRegistryService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -142,7 +148,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     && !"database_query".equals(tool.name())
                     && !"time_parser".equals(tool.name())
                     && !"food_log_writer".equals(tool.name())
-                    && !"meal_plan.save_plan".equals(tool.name()))
+                    && !"meal_plan.save_plan".equals(tool.name())
+                    && !"calculator".equals(tool.name()))
                 return reject(proposalId, "TOOL_EXECUTOR_UNAVAILABLE");
         }
         if (registry == null) {
@@ -151,7 +158,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             if ("tool".equals(type)
                     && !"database_query".equals(proposal.toolName())
                     && !"time_parser".equals(proposal.toolName())
-                    && !"food_log_writer".equals(proposal.toolName()))
+                    && !"food_log_writer".equals(proposal.toolName())
+                    && !"calculator".equals(proposal.toolName()))
                 return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
             if ("sql_read".equals(type)
                     && proposal.toolName() != null
@@ -166,6 +174,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     proposal, proposalId, runId, invocationId, "meal_plan.save_plan");
         if ("tool".equals(type) && "time_parser".equals(proposal.toolName()))
             return executeTimeParser(proposalId, runId, invocationId, proposal.input());
+        if ("tool".equals(type) && "calculator".equals(proposal.toolName()))
+            return executeCalculator(proposalId, runId, invocationId, proposal.input());
         if ("tool".equals(type) && "database_query".equals(proposal.toolName())) {
             String planError = SqlQueryPlanValidator.validate(proposal.input(), statement);
             if (planError != null) return reject(proposalId, planError);
@@ -368,6 +378,90 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 rows == null ? List.of() : rows,
                 auditId,
                 "time_parser");
+    }
+
+    private ProposalResult executeCalculator(
+            String proposalId, String runId, String invocationId, JsonNode input) {
+        String expression = input == null ? null : text(input.path("expression").asText(null));
+        long numericRunId;
+        try {
+            numericRunId = Long.parseLong(runId);
+        } catch (NumberFormatException exception) {
+            return reject(proposalId, "RUN_ID_INVALID");
+        }
+        if (!store.runExists(numericRunId)) return reject(proposalId, "RUN_NOT_FOUND");
+        CalculatorEvaluator.Evaluation evaluation = CalculatorEvaluator.evaluate(expression);
+        ObjectNode row = mapper.createObjectNode();
+        if (!evaluation.succeeded()) {
+            auditTool(numericRunId, "calculator", "rejected", evaluation.errorCode(), expression);
+            return toolResult(
+                    proposalId,
+                    runId,
+                    "failed",
+                    evaluation.errorCode(),
+                    List.of(),
+                    null,
+                    "calculator");
+        }
+        BigDecimal value = evaluation.value();
+        row.put("result", value);
+        row.put("formula", expression.trim());
+        row.putArray("warnings");
+        long auditId = auditTool(numericRunId, "calculator", "executed", null, expression);
+        return toolResult(
+                proposalId,
+                runId,
+                "succeeded",
+                null,
+                List.of(row),
+                Long.toString(auditId),
+                "calculator");
+    }
+
+    private long auditTool(
+            long runId, String toolName, String status, String reason, String sensitiveInput) {
+        long auditId = ids.nextId();
+        store.audit(
+                new ToolGatewayPort.Audit(
+                        auditId,
+                        runId,
+                        toolName + ":" + digest(sensitiveInput),
+                        status,
+                        null,
+                        reason,
+                        0,
+                        "tool:" + toolName));
+        return auditId;
+    }
+
+    private String digest(String value) {
+        if (value == null) return "none";
+        try {
+            return HexFormat.of()
+                    .formatHex(
+                            MessageDigest.getInstance("SHA-256")
+                                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+    }
+
+    private ProposalResult toolResult(
+            String proposalId,
+            String runId,
+            String status,
+            String errorCode,
+            List<JsonNode> rows,
+            String auditId,
+            String toolName) {
+        return new ProposalResult(
+                proposalId,
+                runId,
+                status,
+                errorCode,
+                rows == null ? List.of() : rows,
+                auditId,
+                toolName);
     }
 
     /** 执行最小 sql_read Proposal；无数据库时明确返回不可用，不回退到进程内伪造数据。 */

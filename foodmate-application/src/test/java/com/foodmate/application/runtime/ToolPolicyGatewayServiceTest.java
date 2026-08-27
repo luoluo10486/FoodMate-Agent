@@ -1,7 +1,9 @@
 package com.foodmate.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -70,13 +72,17 @@ class ToolPolicyGatewayServiceTest {
     }
 
     @Test
-    void registeredToolWithoutExecutorHasExplicitUnavailableResult() {
+    void calculatorUsesTheRegisteredDeterministicExecutor() {
         ToolRegistryService registry = registryWith("calculator");
         var input = object().put("expression", "1 + 1");
+        when(store.runExists(42L)).thenReturn(true);
 
         var result = gateway(registry).execute(toolProposal("calculator", input));
 
-        assertEquals("TOOL_EXECUTOR_UNAVAILABLE", result.errorCode());
+        assertEquals("succeeded", result.status());
+        assertEquals("2", result.rows().getFirst().path("result").asText());
+        assertEquals("calculator", result.toolName());
+        verify(store).audit(any(ToolGatewayPort.Audit.class));
     }
 
     @Test
