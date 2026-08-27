@@ -371,6 +371,10 @@ class DeterministicComposer:
             calculation = self._compose_calculation(context, budget_mode)
             if calculation is not None:
                 return calculation
+        if route.intent == "planning" and context.tool_results:
+            validation = self._compose_plan_validation(context, budget_mode)
+            if validation is not None:
+                return validation
         prefix = "节省模式：" if budget_mode in {"economy", "partial"} else ""
         recent = len(context.messages)
         tool_note = ""
@@ -394,6 +398,29 @@ class DeterministicComposer:
         return (
             f"{prefix}计算结果：{row.get('result')}。"
             f"计算式：{row.get('formula') or '已授权表达式'}。"
+        )
+
+    @staticmethod
+    def _compose_plan_validation(context: Context, budget_mode: str) -> str | None:
+        result = next(
+            (
+                item
+                for item in reversed(context.tool_results)
+                if item.get("tool_name") == "plan_validator"
+            ),
+            None,
+        )
+        if result is None:
+            return None
+        prefix = "节省模式：" if budget_mode in {"economy", "partial"} else ""
+        row = (result.get("rows") or [{}])[0]
+        issues = row.get("issues") or []
+        if result.get("status") == "succeeded" and row.get("valid") is True:
+            return f"{prefix}餐食计划校验通过，未发现阻断问题。"
+        issue_text = "；".join(str(issue) for issue in issues[:8])
+        return (
+            f"{prefix}餐食计划校验未通过："
+            f"{issue_text or result.get('error_code') or 'PLAN_VALIDATION_FAILED'}。"
         )
 
     @staticmethod
@@ -567,6 +594,43 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
             requires_confirmation=False,
             tool_name="calculator",
             input={"expression": expression},
+        ).as_dict()
+        validate_proposal(Proposal(**proposal))
+        return [proposal]
+    if route.intent == "planning":
+        completed = next(
+            (
+                item
+                for item in reversed(tool_results)
+                if item.get("tool_name") == "plan_validator"
+            ),
+            None,
+        )
+        if completed is not None:
+            return []
+        request = authorized.get("plan_validator_request")
+        plan = request.get("plan") if isinstance(request, dict) else None
+        if not isinstance(plan, dict):
+            return []
+        invocation_id = str(request.get("invocation_id") or "")
+        if not invocation_id:
+            invocation_id = "plan_validate_" + hashlib.sha256(
+                (str(command["run_id"]) + ":" + json.dumps(plan, ensure_ascii=False, sort_keys=True)).encode("utf-8")
+            ).hexdigest()[:24]
+        proposal = Proposal(
+            proposal_id="prop_" + invocation_id,
+            run_id=str(command["run_id"]),
+            proposal_type="tool",
+            schema_version="v1",
+            payload={
+                "statement": "",
+                "invocation_id": invocation_id,
+                "idempotency_key": "plan_validate_"
+                + hashlib.sha256((str(command["run_id"]) + invocation_id).encode("utf-8")).hexdigest()[:32],
+            },
+            requires_confirmation=False,
+            tool_name="plan_validator",
+            input={"plan": plan},
         ).as_dict()
         validate_proposal(Proposal(**proposal))
         return [proposal]
