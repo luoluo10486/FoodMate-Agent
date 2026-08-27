@@ -583,7 +583,7 @@
 }
 
 .insightOrange {
-  background: #73d4df;
+  background: var(--fm-color-info-strong);
 }
 
 .insightActions {

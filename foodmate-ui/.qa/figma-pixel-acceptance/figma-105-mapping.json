@@ -176,7 +176,7 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-color-dpr1.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -186,7 +186,7 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -205,8 +205,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "侧栏窗口占位、账户停靠区和 Figma fixture 顶栏已完成当前版本几何复核；图标、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-08-27",
+        "conclusion": "已复核当前 Figma fixture 的第三条营养洞察圆点为 #80E0E6，前端运行时颜色一致；顶部红黄绿窗口装饰点未渲染，业务状态圆点保留。图标、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
       }
     },
     {

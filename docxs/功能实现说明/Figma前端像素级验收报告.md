@@ -1,6 +1,6 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-23
+更新时间：2026-08-27
 
 ## 1. 结论
 
@@ -870,6 +870,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 105 画板证据重新生成后仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，自动 diff 输入 `105`；本条只更新 `agent-chat-v2` 的浏览器证据映射。
 - [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
 - [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 95. 2026-08-27 Intake Analysis 洞察颜色与窗口装饰复核
+
+- [x] 重新读取 Figma 节点 `640:773`，确认第三条营养洞察圆点使用 `#80E0E6`；前端 `.insightOrange` 已改用语义变量 `--fm-color-info-strong`，运行时计算值为 `rgb(128, 224, 230)`。
+- [x] 浏览器 headless fallback 使用 `1440×1024`、DPR `1`、字体 `loaded`；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿未修改，业务状态圆点保留。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-color-dpr1.png`，Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png`；`scripts/png-diff.mjs` 结果为 `differentPixels=205554`、差异比例 `13.9400%`、`MAE=3.52169`、`RMSE=19.53109`、最大通道差异 `211`，已同步 105 画板映射和汇总结果。
+- [x] `AnalysisPage.test.tsx` 定向测试 `4/4`、`npm run typecheck`、浏览器运行时颜色检查和 `git diff --check` 通过；目标 CSS 文件仍有既存 Prettier 格式提示，本次未扩大格式化范围。
+- [ ] 当前画板继续保持 `DIFF_REVIEW`，不能将局部颜色修正等同于整页像素级 `PASS`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全量页面视觉迁移和 iconfont 实体登记仍未完成。
 
 ## 94. 2026-08-27 Meal Planning 顶栏品牌标记 fixture 边界修正
 
