@@ -74,6 +74,31 @@ class OperationAuditServiceTest {
     }
 
     @Test
+    void recordFailurePreservesExplicitCommandTraceContext() {
+        OperationAuditPort store = mock(OperationAuditPort.class);
+        when(store.insert(any())).thenReturn(1);
+        OperationAuditService service = new OperationAuditService(provider(store), () -> 123L);
+
+        service.recordFailure(
+                TraceContext.of("req-failed", "trace-failed"),
+                7L,
+                "knowledge_document",
+                "42",
+                "knowledge.upload",
+                "failed",
+                "INTERNAL_ERROR",
+                null,
+                null,
+                Map.of("exception_type", "IllegalStateException"));
+
+        ArgumentCaptor<AuditRecord> captured = ArgumentCaptor.forClass(AuditRecord.class);
+        verify(store).insert(captured.capture());
+        assertEquals("req-failed", captured.getValue().requestId());
+        assertEquals("trace-failed", captured.getValue().traceId());
+        assertEquals("INTERNAL_ERROR", captured.getValue().errorCode());
+    }
+
+    @Test
     void completeSanitizesResponseSummaryBeforePersistence() {
         OperationAuditPort store = mock(OperationAuditPort.class);
         when(store.complete(anyLong(), anyString(), anyString())).thenReturn(1);

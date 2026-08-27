@@ -4,6 +4,8 @@ import com.foodmate.application.common.port.out.ObjectStoragePort;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.application.knowledge.service.KnowledgeService;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
 import com.foodmate.shared.trace.TraceContext;
@@ -75,17 +77,18 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             long size,
             InputStream input,
             String traceId) {
-        requireAvailable();
-        long documentId = ids.nextId();
-        String key =
-                "knowledge/"
-                        + operatorId
-                        + "/"
-                        + documentId
-                        + "-"
-                        + filename.replaceAll("[^A-Za-z0-9._-]", "_");
+        long documentId = 0;
         boolean objectWriteStarted = false;
         try {
+            requireAvailable();
+            documentId = ids.nextId();
+            String key =
+                    "knowledge/"
+                            + operatorId
+                            + "/"
+                            + documentId
+                            + "-"
+                            + filename.replaceAll("[^A-Za-z0-9._-]", "_");
             storage.ensureBucket(bucket);
             objectWriteStarted = true;
             storage.put(
@@ -98,6 +101,17 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             audit(operatorId, traceId, "knowledge.upload", Long.toString(documentId));
             return documentId;
         } catch (RuntimeException exception) {
+            String key =
+                    documentId > 0
+                            ? "knowledge/"
+                                    + operatorId
+                                    + "/"
+                                    + documentId
+                                    + "-"
+                                    + (filename == null
+                                            ? ""
+                                            : filename.replaceAll("[^A-Za-z0-9._-]", "_"))
+                            : null;
             if (objectWriteStarted) {
                 try {
                     storage.delete(bucket, key);
@@ -105,44 +119,50 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                     exception.addSuppressed(cleanupFailure);
                 }
             }
-            throw new IllegalStateException("knowledge upload failed", exception);
+            IllegalStateException failure =
+                    new IllegalStateException("knowledge upload failed", exception);
+            failure(operatorId, traceId, "knowledge.upload", id(documentId), exception);
+            throw failure;
         }
     }
 
     @Override
     @Transactional
     public long uploadBatch(long operatorId, ImportBatch batch, String traceId) {
-        requireAvailable();
-        validateBatch(batch);
-        KnowledgeRepository.ImportJob existing =
-                store.findImportJob(operatorId, batch.idempotencyKey());
-        if (existing != null) {
-            if (!sameBatch(existing, batch))
-                throw new IllegalArgumentException("knowledge import idempotency key conflict");
-            return existing.jobId();
-        }
-        List<ValidatedFile> validatedFiles =
-                batch.files().stream()
-                        .map(file -> validateFile(file, safeFilename(file.filename())))
-                        .toList();
-        long jobId = ids.nextId();
-        String mode =
-                System.getenv().getOrDefault("FOODMATE_RAG_MODE", "stub").toLowerCase(Locale.ROOT);
-        if (!mode.equals("stub") && !mode.equals("local"))
-            throw new IllegalArgumentException("invalid RAG mode");
-        store.insertImportJob(
-                new KnowledgeRepository.ImportJob(
-                        jobId,
-                        operatorId,
-                        batch.idempotencyKey(),
-                        mode,
-                        batch.sourceType(),
-                        batch.sourceName(),
-                        batch.sourceVersion(),
-                        batch.licenseNotice(),
-                        traceId));
+        long jobId = 0;
         List<String> uploadedKeys = new ArrayList<>();
         try {
+            requireAvailable();
+            validateBatch(batch);
+            KnowledgeRepository.ImportJob existing =
+                    store.findImportJob(operatorId, batch.idempotencyKey());
+            if (existing != null) {
+                if (!sameBatch(existing, batch))
+                    throw new IllegalArgumentException("knowledge import idempotency key conflict");
+                return existing.jobId();
+            }
+            List<ValidatedFile> validatedFiles =
+                    batch.files().stream()
+                            .map(file -> validateFile(file, safeFilename(file.filename())))
+                            .toList();
+            jobId = ids.nextId();
+            String mode =
+                    System.getenv()
+                            .getOrDefault("FOODMATE_RAG_MODE", "stub")
+                            .toLowerCase(Locale.ROOT);
+            if (!mode.equals("stub") && !mode.equals("local"))
+                throw new IllegalArgumentException("invalid RAG mode");
+            store.insertImportJob(
+                    new KnowledgeRepository.ImportJob(
+                            jobId,
+                            operatorId,
+                            batch.idempotencyKey(),
+                            mode,
+                            batch.sourceType(),
+                            batch.sourceName(),
+                            batch.sourceVersion(),
+                            batch.licenseNotice(),
+                            traceId));
             storage.ensureBucket(bucket);
             for (int index = 0; index < batch.files().size(); index++) {
                 ImportFile file = batch.files().get(index);
@@ -199,48 +219,67 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                     exception.addSuppressed(cleanupFailure);
                 }
             }
-            throw new IllegalStateException("knowledge import batch failed", exception);
+            if (jobId == 0 && uploadedKeys.isEmpty()) {
+                failure(operatorId, traceId, "knowledge.import_batch.create", null, exception);
+                throw exception;
+            }
+            IllegalStateException failure =
+                    new IllegalStateException("knowledge import batch failed", exception);
+            failure(operatorId, traceId, "knowledge.import_batch.create", id(jobId), exception);
+            throw failure;
         }
     }
 
     @Transactional
     public void updateStatus(
             long documentId, KnowledgeDocumentStatus status, long operatorId, String traceId) {
-        requireAvailable();
-        if (status == null) throw new IllegalArgumentException("invalid document status");
-        if (store.updateStatus(documentId, status, operatorId) != 1)
-            throw new IllegalArgumentException("document not found");
-        audit(operatorId, traceId, "knowledge.status.update", Long.toString(documentId));
+        try {
+            requireAvailable();
+            if (status == null) throw new IllegalArgumentException("invalid document status");
+            if (store.updateStatus(documentId, status, operatorId) != 1)
+                throw new IllegalArgumentException("document not found");
+            audit(operatorId, traceId, "knowledge.status.update", Long.toString(documentId));
+        } catch (RuntimeException exception) {
+            failure(operatorId, traceId, "knowledge.status.update", id(documentId), exception);
+            throw exception;
+        }
     }
 
     @Override
     @Transactional
     public void changeVisibility(
             long documentId, String visibility, long operatorId, String traceId) {
-        requireAvailable();
-        if (!("published".equals(visibility)
-                || "disabled".equals(visibility)
-                || "deleted".equals(visibility)
-                || "draft".equals(visibility)))
-            throw new IllegalArgumentException("invalid knowledge visibility");
-        KnowledgeRepository.DocumentView document = store.document(documentId);
-        if (document == null) throw new IllegalArgumentException("knowledge document not found");
-        if (store.updateVisibility(documentId, visibility, operatorId) != 1)
-            throw new IllegalArgumentException(
-                    "knowledge document is not eligible for visibility change");
-        store.insertVisibilityOutbox(
-                ids.nextId(),
-                documentId,
-                "{\"document_id\":"
-                        + documentId
-                        + ",\"visibility\":\""
-                        + visibility
-                        + "\",\"tenant_id\":0,\"scope\":\"public_published\",\"version\":\""
-                        + jsonString(document.version())
-                        + "\",\"current_version\":"
-                        + document.currentVersion()
-                        + "}");
-        audit(operatorId, traceId, "knowledge.visibility." + visibility, Long.toString(documentId));
+        String action = "knowledge.visibility." + (visibility == null ? "unknown" : visibility);
+        try {
+            requireAvailable();
+            if (!("published".equals(visibility)
+                    || "disabled".equals(visibility)
+                    || "deleted".equals(visibility)
+                    || "draft".equals(visibility)))
+                throw new IllegalArgumentException("invalid knowledge visibility");
+            KnowledgeRepository.DocumentView document = store.document(documentId);
+            if (document == null)
+                throw new IllegalArgumentException("knowledge document not found");
+            if (store.updateVisibility(documentId, visibility, operatorId) != 1)
+                throw new IllegalArgumentException(
+                        "knowledge document is not eligible for visibility change");
+            store.insertVisibilityOutbox(
+                    ids.nextId(),
+                    documentId,
+                    "{\"document_id\":"
+                            + documentId
+                            + ",\"visibility\":\""
+                            + visibility
+                            + "\",\"tenant_id\":0,\"scope\":\"public_published\",\"version\":\""
+                            + jsonString(document.version())
+                            + "\",\"current_version\":"
+                            + document.currentVersion()
+                            + "}");
+            audit(operatorId, traceId, action, Long.toString(documentId));
+        } catch (RuntimeException exception) {
+            failure(operatorId, traceId, action, id(documentId), exception);
+            throw exception;
+        }
     }
 
     @Override
@@ -266,29 +305,33 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Override
     @Transactional
     public void retryItem(long batchId, long documentId, long operatorId, String traceId) {
-        BatchDetail detail = batch(batchId);
-        KnowledgeRepository.ItemView item =
-                detail.items().stream()
-                        .filter(value -> value.documentId() == documentId)
-                        .findFirst()
-                        .orElseThrow(
-                                () ->
-                                        new IllegalArgumentException(
-                                                "knowledge document is not part of this batch"));
-        if (store.retryItem(item.itemId(), batchId, operatorId, ids.nextId(), "{}") != 1)
-            throw new IllegalArgumentException("knowledge import item is not retryable");
-        audit(operatorId, traceId, "knowledge.import_item.retry", Long.toString(item.documentId()));
+        try {
+            BatchDetail detail = batch(batchId);
+            KnowledgeRepository.ItemView item =
+                    detail.items().stream()
+                            .filter(value -> value.documentId() == documentId)
+                            .findFirst()
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalArgumentException(
+                                                    "knowledge document is not part of this batch"));
+            if (store.retryItem(item.itemId(), batchId, operatorId, ids.nextId(), "{}") != 1)
+                throw new IllegalArgumentException("knowledge import item is not retryable");
+            audit(
+                    operatorId,
+                    traceId,
+                    "knowledge.import_item.retry",
+                    Long.toString(item.documentId()));
+        } catch (RuntimeException exception) {
+            failure(operatorId, traceId, "knowledge.import_item.retry", id(documentId), exception);
+            throw exception;
+        }
     }
 
     private void audit(long operatorId, String traceId, String action, String documentId) {
         if (audit == null) return;
-        TraceContext current = TraceContextHolder.currentOrNew();
         audit.record(
-                new TraceContext(
-                        current.requestId(),
-                        traceId == null ? current.traceId() : traceId,
-                        current.sessionId(),
-                        current.agentRunId()),
+                trace(traceId),
                 operatorId,
                 "knowledge_document",
                 documentId,
@@ -298,6 +341,46 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 null,
                 null,
                 Map.of());
+    }
+
+    private void failure(
+            long operatorId,
+            String traceId,
+            String action,
+            String documentId,
+            RuntimeException exception) {
+        if (audit == null) return;
+        audit.recordFailure(
+                trace(traceId),
+                operatorId,
+                "knowledge_document",
+                documentId,
+                action,
+                "failed",
+                errorCode(exception),
+                null,
+                null,
+                Map.of("exception_type", exception.getClass().getSimpleName()));
+    }
+
+    private TraceContext trace(String traceId) {
+        TraceContext current = TraceContextHolder.currentOrNew();
+        return new TraceContext(
+                current.requestId(),
+                traceId == null ? current.traceId() : traceId,
+                current.sessionId(),
+                current.agentRunId());
+    }
+
+    private String id(long value) {
+        return value > 0 ? Long.toString(value) : null;
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        if (exception instanceof BusinessException businessException)
+            return businessException.errorCode().code();
+        if (exception instanceof IllegalArgumentException) return ErrorCode.INVALID_ARGUMENT.code();
+        return ErrorCode.INTERNAL_ERROR.code();
     }
 
     private void requireAvailable() {

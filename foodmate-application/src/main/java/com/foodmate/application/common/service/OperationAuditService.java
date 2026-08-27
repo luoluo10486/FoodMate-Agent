@@ -214,9 +214,35 @@ public class OperationAuditService {
             String parametersDigest,
             String idempotencyKey,
             Map<String, ?> metadata) {
+        recordFailure(
+                TraceContextHolder.currentOrNew(),
+                operatorId,
+                targetType,
+                targetId,
+                action,
+                result,
+                errorCode,
+                parametersDigest,
+                idempotencyKey,
+                metadata);
+    }
+
+    /** Records failure with the trace context that owns the failed command. */
+    public void recordFailure(
+            TraceContext trace,
+            Long operatorId,
+            String targetType,
+            String targetId,
+            String action,
+            String result,
+            String errorCode,
+            String parametersDigest,
+            String idempotencyKey,
+            Map<String, ?> metadata) {
         if (store == null) return;
         if (failureTransaction == null) {
             record(
+                    trace,
                     operatorId,
                     targetType,
                     targetId,
@@ -231,6 +257,7 @@ public class OperationAuditService {
         failureTransaction.executeWithoutResult(
                 ignored ->
                         record(
+                                trace,
                                 operatorId,
                                 targetType,
                                 targetId,
