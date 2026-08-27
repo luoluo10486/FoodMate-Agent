@@ -66,7 +66,6 @@ public class ApprovalServiceImpl implements ApprovalService {
         this(store, plans, foods, ids, mapper, null, null);
     }
 
-    @Autowired
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
             MealPlanService plans,
@@ -77,6 +76,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         this(store, plans, foods, ids, mapper, transactionManager, null);
     }
 
+    @Autowired
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
             MealPlanService plans,

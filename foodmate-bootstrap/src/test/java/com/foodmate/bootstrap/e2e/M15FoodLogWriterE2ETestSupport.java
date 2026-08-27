@@ -172,7 +172,7 @@ abstract class M15FoodLogWriterE2ETestSupport {
         assertFoodLog(base.foodLogId(), 2, false, "external update wins");
         assertAudit(fixture.userId(), proposal.approvalRequestId(), "approval.failed", 1);
         assertAudit(fixture.userId(), proposal.approvalRequestId(), "approval.execute", 0);
-        assertFoodAudit(fixture.userId(), key, "food_log.update", 0);
+        assertFoodAudit(fixture.userId(), key, "food_log.update", 1);
     }
 
     protected void runSuperseded(ProposalSubmitter submitter) throws Exception {
@@ -286,7 +286,7 @@ abstract class M15FoodLogWriterE2ETestSupport {
         assertApprovalStatus(proposal.approvalRequestId(), "failed");
         assertFoodLog(base.foodLogId(), 2, true, "M1-5 base food log");
         assertAudit(fixture.userId(), proposal.approvalRequestId(), "approval.failed", 1);
-        assertFoodAudit(fixture.userId(), key, "food_log.restore", 0);
+        assertFoodAudit(fixture.userId(), key, "food_log.restore", 1);
     }
 
     protected void runIdempotentReplay(ProposalSubmitter submitter) throws Exception {
