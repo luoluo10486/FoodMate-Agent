@@ -59,6 +59,13 @@ describe('PlanningPage', () => {
     ].forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
   });
 
+  it('renders all four planning constraint statuses', () => {
+    renderPage('/planning?state=v2');
+
+    expect(screen.getAllByText('Pass ✓')).toHaveLength(3);
+    expect(screen.getByText('Review ✗')).toBeInTheDocument();
+  });
+
   it('renders loading, empty, and error states with their recovery paths', async () => {
     const user = userEvent.setup();
     const { unmount } = renderPage('/planning?state=loading');
