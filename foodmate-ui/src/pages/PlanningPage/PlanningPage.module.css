@@ -686,7 +686,7 @@
   color: var(--fm-ink);
   font-size: 13px;
   font-weight: 700;
-  line-height: normal;
+  line-height: 16px;
   overflow-wrap: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
