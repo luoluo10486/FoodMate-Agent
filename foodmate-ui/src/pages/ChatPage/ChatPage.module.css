@@ -628,6 +628,12 @@
   line-height: 1.5;
 }
 
+/* Figma agent-chat-v2 uses Noto Sans SC for the assistant body; keep the
+   monospace treatment scoped to source and trace text instead. */
+.designChatPage .assistant .messageText {
+  font-family: var(--fm-font);
+}
+
 .assistantBody {
   display: flex;
   width: min(560px, calc(100% - 48px));

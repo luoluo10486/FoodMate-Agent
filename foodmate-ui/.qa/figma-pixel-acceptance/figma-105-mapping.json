@@ -11,12 +11,7 @@
     "dpr": 1,
     "animation": "disabled for capture",
     "dynamicTime": "fixed",
-    "passRequires": [
-      "automated diff",
-      "geometry check",
-      "text check",
-      "manual visual review"
-    ],
+    "passRequires": ["automated diff", "geometry check", "text check", "manual visual review"],
     "statusSemantics": {
       "SIZE_MISMATCH": "Viewport dimensions differ",
       "UNMAPPED": "Route or evidence is missing",
@@ -88,7 +83,7 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/agent-chat-v2-brand-mark-browser-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-font-browser-2026-08-27.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -117,8 +112,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "The refreshed browser fixture matches the Figma layout and content hierarchy. Avatar assets and browser JPEG-to-PNG capture edges remain visibly different; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-27",
+        "conclusion": "The refreshed browser fixture uses the Figma assistant-body font and preserves the layout/content hierarchy. Avatar assets, icon rasterization, and remaining browser rendering differences are still visible; retain DIFF_REVIEW."
       }
     },
     {
