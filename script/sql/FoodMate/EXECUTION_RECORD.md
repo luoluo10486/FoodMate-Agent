@@ -1168,3 +1168,16 @@
 | 前端业务门禁 | `npm.cmd run typecheck` 通过；`npm.cmd test -- --run`：38 个测试文件、`196/196` 通过；`npm.cmd run build` 通过并转换 2010 个模块。`npm.cmd run lint` 仅因既有 `ChatPage`、`PlanningPage` 文件的 31 条 Prettier CRLF warning 退出，0 errors；本轮未修改、未暂存这些 UI 文件。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK 丢失、重复投递故障注入或 SSE 故障恢复；本轮只使用既有本地 Docker 服务和随机测试命名空间，未删除数据卷。用户已有 UI/Figma/QA 改动未暂存、未回滚。 |
 | 结论 | 当前源码 Docker 应用已恢复并通过 readiness，Java/Python/前端业务主路径门禁保持通过；lint 的既有换行 warning 和 M1-6 性能/故障恢复范围不扩大为本轮完成项。 |
+
+## D57 功能版门禁最终复跑与状态文档同步（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；本轮未调用真实云模型、付费 Embedding 或生产服务。 |
+| Java 业务门禁 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `200/200`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）；编译、测试、Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Python 业务门禁 | 项目 `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`124 passed、1 skipped、2 warnings`；跳过项为显式真实外部服务，未调用真实模型或 Embedding。 |
+| 前端业务门禁 | `npm.cmd run lint`、`npm.cmd run typecheck`、`npm.cmd test -- --run` 和 `npm.cmd run build` 均通过；Vitest 为 38 个测试文件、`196/196`，Vite 转换 2010 个模块。 |
+| Java 规范与架构扫描 | `mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及五个模块 Checkstyle 均 `0 violations`；生产源码未发现泛化异常捕获、通配符 import、标准输出/堆栈打印、`MAX(id)+1`，application/api/bootstrap 未直接写 `operation_audits`。消息序号和预算扩展序号的 `MAX(...)` 查询分别受 PostgreSQL advisory lock、`FOR UPDATE` 事务锁保护，不属于主键 ID 生成。 |
+| 文档收口 | 同步 M2-1/M2-2/M2-3、M2 总计划、总 TODO、路线图、产品文档、测试策略、README 和本地开发指南的当前日期/门禁数字；带历史日期的执行证据保留原样。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复；用户已有前端/Figma/QA 改动未暂存、未回滚。 |
+| 结论 | 当前功能版业务代码与测试门禁保持通过；M1-6 的吞吐/积压、完整故障恢复和生产强化仍按既定决策后置，不据此标记完成。 |

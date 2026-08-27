@@ -2,17 +2,19 @@
 
 状态：deterministic 本地业务闭环已验收，生产强化与性能/故障验证后置
 
-对应路线图：[完整功能实施TODO.md](完整功能实施TODO.md) 的 M2-1；上位执行顺序见 [M2剩余功能执行计划.md](M2剩余功能执行计划.md)。数据和接口字段以 [数据库设计.md](../数据/数据库设计.md) 与 [接口与数据规范.md](../契约/接口与数据规范.md) 为准。V16/V17、Java 知识投递、Python 解析/Redis stub/Milvus adapter、管理批次入口和 AgentRun citation 已完成 deterministic 本地业务闭环；Docker 应用镜像、真实 embedding/云模型、性能和故障矩阵继续后置。
+对应路线图：[完整功能实施TODO.md](完整功能实施TODO.md) 的 M2-1；上位执行顺序见 [M2剩余功能执行计划.md](M2剩余功能执行计划.md)。数据和接口字段以 [数据库设计.md](../数据/数据库设计.md) 与 [接口与数据规范.md](../契约/接口与数据规范.md) 为准。V16/V17、Java 知识投递、Python 解析/Redis stub/Milvus adapter、管理批次入口和 AgentRun citation 已完成 deterministic 本地业务闭环，Docker 应用容器的 stub/local deterministic 业务复验也已完成；真实 embedding/云模型、性能和故障矩阵继续后置。
 
-## 当前实现状态（2026-08-23）
+## 当前实现状态（2026-08-27）
 
 | 能力 | 当前状态 | 剩余门槛 |
 |---|---|---|
 | 数据与任务 | V16/V17 已建立导入任务、索引/可见性 Outbox、结果 Inbox 和批次 SSE；本地迁移与状态收敛已核验 | 生产级迁移编排和故障矩阵后置 |
-| Java 投递 | 索引/可见性 relay、结果消费、状态回写和管理 API 已在 PostgreSQL/RocketMQ 业务路径验证 | Docker 应用镜像启动和长期运行后置 |
+| Java 投递 | 索引/可见性 relay、结果消费、状态回写和管理 API 已在 PostgreSQL/RocketMQ 业务路径验证 | Docker 应用容器启动和业务复验已完成，长期运行与生产化编排后置 |
 | Python Worker | 四格式解析、Redis stub、Milvus 与 visibility 消费已验证；stub Worker 实际完成 MinIO 读取和结果回写 | 真实 embedding provider 和 Milvus 生产强化后置 |
 | Agent 引用 | RunCommand 固定公共 scope，Runtime 输出 citations，Java 二次可见性过滤已验证 | 云模型、性能和组件故障验证后置 |
 | 管理端 | 批次上传、进度查询、SSE/重试、发布/下线/恢复和聊天引用已完成业务验收 | UI 视觉细节和生产发布治理后置 |
+
+2026-08-27 当前业务门禁复核：Java 全量 `clean verify` 的 Application `200/200`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）通过；Python `.venv` 为 `124 passed、1 skipped、2 warnings`；前端 38 个测试文件 `196/196`，lint/typecheck/build 通过。上述结果只证明功能版业务正确性，不扩大为真实云服务、性能或故障恢复门禁。
 
 当前 M2-1 完成门槛只要求业务正确性。吞吐、延迟、队列容量、依赖重启和组合故障测试统一后置。
 

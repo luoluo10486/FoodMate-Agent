@@ -97,7 +97,7 @@ npm run dev
 - Agent 运行路径已支持 `run.eval_decided`、预算、checkpoint、continuation、追问和审批确认；写入仍由 Java 授权和执行，Python/模型不直连业务库。
 - M1-6 已完成本地 Actuator/metrics 配置回归、Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启恢复、双 JVM 有界读取和 Java 重启回读；生产故障矩阵和容量门禁仍待目标环境执行。
 - M2-1 已在 Docker 应用容器中复验 `local-stub` Redis 索引和 local deterministic Milvus 路径，覆盖批次上传、RocketMQ 索引、结果回写、显式发布/下线/恢复、用户检索、AgentRun 引用和批次 SSE；未调用真实付费服务。
-- Python 本地 pytest 当前记录为 `124 passed、1 skipped、1 warning`，前端独立回归为 `38` 个测试文件、`196/196`，typecheck/build 已通过；这些结果不等于生产人工校准、统一指标系统或长期稳定性结论。
+- Python 本地 pytest 当前记录为 `124 passed、1 skipped、2 warnings`，前端独立回归为 `38` 个测试文件、`196/196`，lint/typecheck/build 已通过；这些结果不等于生产人工校准、统一指标系统或长期稳定性结论。
 
 ## M1-5 / M1-6 收尾边界
 
