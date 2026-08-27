@@ -1012,3 +1012,16 @@
 | 格式校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply`：`BUILD SUCCESS`；未修改用户已有前端/Figma/QA 文件。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作。 |
 | 结论 | 密码重置的成功和失败业务事实均进入统一审计；定向测试与格式校验通过，完整门禁待相关切片收口后统一复跑。 |
+
+## D45 账户业务失败审计收口（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Git 提交 | `99bc15b fix(审计): 补齐账户业务失败审计`。 |
+| 代码范围 | 注册、密码修改、资料修改、会话创建/重命名/状态/删除/恢复、认证会话撤销、消息创建/修改/删除的异常路径统一记录 `failed` 审计；成功路径继续复用统一 `OperationAuditService`。 |
+| 安全边界 | 失败审计只记录操作者、目标、action、稳定错误码、异常类型和必要关联 ID；不记录密码、令牌、消息正文或资料内容。非法参数映射为 `INVALID_ARGUMENT`，其他未分类异常映射为 `INTERNAL_ERROR`。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am "-Dtest=UserAccountServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`6/6` 通过，覆盖注册、资料、会话和密码失败审计。 |
+| 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 与 `git diff --check` 通过。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | 账户核心业务写操作具备成功/失败统一审计证据；M1-6 性能、故障恢复和生产门禁仍不因本切片改变。 |
