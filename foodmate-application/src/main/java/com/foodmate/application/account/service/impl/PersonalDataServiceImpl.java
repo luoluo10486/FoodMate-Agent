@@ -337,39 +337,64 @@ public class PersonalDataServiceImpl implements PersonalDataService {
 
     @Transactional
     public long requestExport(long userId) {
-        if (store == null) throw new IllegalStateException("export unavailable");
-        long id = ids.nextId();
-        store.insertExportJob(id, userId);
-        record(
-                userId,
-                "export_job",
-                Long.toString(id),
-                "account.data_export.request",
-                "success",
-                null,
-                Map.of());
-        return id;
+        Long id = null;
+        try {
+            if (store == null) throw new IllegalStateException("export unavailable");
+            id = ids.nextId();
+            store.insertExportJob(id, userId);
+            record(
+                    userId,
+                    "export_job",
+                    Long.toString(id),
+                    "account.data_export.request",
+                    "success",
+                    null,
+                    Map.of());
+            return id;
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "export_job",
+                    id == null ? null : Long.toString(id),
+                    "account.data_export.request",
+                    errorCode(exception),
+                    exception);
+            throw exception;
+        }
     }
 
     @Transactional
     public long requestDeletion(long userId) {
-        if (store == null) throw new IllegalStateException("account deletion unavailable");
-        if (store.activeDeletionJobs(userId) > 0)
-            throw new BusinessException(ErrorCode.CONFLICT, "account deletion already requested");
-        long id = ids.nextId();
-        store.insertDeletionJob(id, userId);
-        store.disableUser(userId);
-        store.revokeSessions(userId);
-        store.revokeRefreshTokens(userId);
-        record(
-                userId,
-                "user",
-                Long.toString(userId),
-                "account.deletion.request",
-                "success",
-                null,
-                Map.of());
-        return id;
+        Long id = null;
+        try {
+            if (store == null) throw new IllegalStateException("account deletion unavailable");
+            if (store.activeDeletionJobs(userId) > 0)
+                throw new BusinessException(
+                        ErrorCode.CONFLICT, "account deletion already requested");
+            id = ids.nextId();
+            store.insertDeletionJob(id, userId);
+            store.disableUser(userId);
+            store.revokeSessions(userId);
+            store.revokeRefreshTokens(userId);
+            record(
+                    userId,
+                    "user",
+                    Long.toString(userId),
+                    "account.deletion.request",
+                    "success",
+                    null,
+                    Map.of());
+            return id;
+        } catch (RuntimeException exception) {
+            failure(
+                    userId,
+                    "user",
+                    Long.toString(userId),
+                    "account.deletion.request",
+                    errorCode(exception),
+                    exception);
+            throw exception;
+        }
     }
 
     public ExportJob exportJob(long userId, long jobId) {
@@ -391,13 +416,14 @@ public class PersonalDataServiceImpl implements PersonalDataService {
 
     @Transactional
     public String consumeExport(long userId, long jobId) {
-        if (store == null || storage == null) throw new IllegalStateException("export unavailable");
-        int updated = store.consumeExport(userId, jobId);
-        if (updated != 1)
-            throw new BusinessException(
-                    ErrorCode.CONFLICT, "export is unavailable, expired, or already consumed");
-        String key = store.exportObjectKey(jobId);
         try {
+            if (store == null || storage == null)
+                throw new IllegalStateException("export unavailable");
+            int updated = store.consumeExport(userId, jobId);
+            if (updated != 1)
+                throw new BusinessException(
+                        ErrorCode.CONFLICT, "export is unavailable, expired, or already consumed");
+            String key = store.exportObjectKey(jobId);
             String url = storage.presignedGet(bucket, key, Duration.ofMinutes(10));
             record(
                     userId,
@@ -414,8 +440,9 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                     "export_job",
                     Long.toString(jobId),
                     "account.data_export.consume",
-                    "PERSONAL_DATA_OPERATION_FAILED",
+                    errorCode(e),
                     e);
+            if (e instanceof BusinessException) throw e;
             throw new IllegalStateException("download link unavailable", e);
         }
     }
@@ -451,6 +478,12 @@ public class PersonalDataServiceImpl implements PersonalDataService {
                     null,
                     null,
                     Map.of("exception_type", exception.getClass().getSimpleName()));
+    }
+
+    private static String errorCode(RuntimeException exception) {
+        return exception instanceof BusinessException businessException
+                ? businessException.errorCode().code()
+                : ErrorCode.INTERNAL_ERROR.code();
     }
 
     @org.springframework.scheduling.annotation.Scheduled(
