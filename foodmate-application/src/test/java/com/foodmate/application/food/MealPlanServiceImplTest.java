@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,6 +83,67 @@ class MealPlanServiceImplTest {
         assertEquals(1, mapper.readTree(plan.getValue().validationJson()).get("errors").size());
         verify(repository, never())
                 .updatePlanStatus(any(Long.class), any(Long.class), eq("validated"), any());
+    }
+
+    @Test
+    void invalidCreateRecordsFailureAudit() {
+        MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
+        OperationAuditService audit = auditService();
+        MealPlanService service = new MealPlanServiceImpl(repository, ids(100L), mapper, audit);
+
+        assertThrows(
+                BusinessException.class,
+                () ->
+                        service.create(
+                                7L,
+                                new MealPlanService.CreateCommand(
+                                        null,
+                                        "无效计划",
+                                        0,
+                                        1,
+                                        new BigDecimal("300.00"),
+                                        2000,
+                                        100,
+                                        List.of(),
+                                        List.of(),
+                                        validDaysPlan(),
+                                        "invalid-create")));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("meal_plan"),
+                        isNull(),
+                        eq("meal_plan.create"),
+                        eq("failed"),
+                        eq("INVALID_ARGUMENT"),
+                        isNull(),
+                        eq("invalid-create"),
+                        any());
+    }
+
+    @Test
+    void failedCreateRecordsIndependentFailureAudit() {
+        MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
+        when(repository.insertPlan(any())).thenReturn(0);
+        OperationAuditService audit = auditService();
+        MealPlanService service = new MealPlanServiceImpl(repository, ids(100L), mapper, audit);
+
+        assertThrows(
+                BusinessException.class,
+                () -> service.create(7L, commandWithKey("failed-create", validDaysPlan())));
+
+        verify(audit)
+                .recordFailure(
+                        eq(7L),
+                        eq("meal_plan"),
+                        eq("100"),
+                        eq("meal_plan.create"),
+                        eq("failed"),
+                        eq("INTERNAL_ERROR"),
+                        anyString(),
+                        eq("failed-create"),
+                        any());
     }
 
     @Test
@@ -162,6 +224,21 @@ class MealPlanServiceImplTest {
 
     private MealPlanService.CreateCommand command(ArrayNode daysPlan) {
         return commandWithPlan(List.of(), List.of(), daysPlan);
+    }
+
+    private MealPlanService.CreateCommand commandWithKey(String key, ArrayNode daysPlan) {
+        return new MealPlanService.CreateCommand(
+                null,
+                "一周计划",
+                2,
+                1,
+                new BigDecimal("300.00"),
+                2000,
+                100,
+                List.of(),
+                List.of(),
+                daysPlan,
+                key);
     }
 
     private MealPlanService.CreateCommand commandWithPlan(

@@ -978,3 +978,15 @@
 | 格式校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply`：`BUILD SUCCESS`。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | FoodLog 业务失败不会静默丢失审计事实；本项定向业务测试与格式校验通过，完整 Java 门禁待本轮相关改动收口后统一复跑。 |
+
+## D42 MealPlan 失败审计闭环（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码范围 | MealPlan create/update/validate/save/delete/restore 统一跟踪审计占用状态；参数/资源拒绝写 `failed` 审计；已占用审计在事务回滚后通过独立事务记录失败事实；并发占用不覆盖既有幂等事实。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am "-Dtest=MealPlanServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`9/9` 通过，新增参数拒绝和计划写入失败审计覆盖。 |
+| 相关模块测试 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am test`：Application `176/176`、Infrastructure `81/81`（17 skipped），0 失败、0 错误。 |
+| 格式校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply`：`BUILD SUCCESS`；`git diff --check` 无错误。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | MealPlan 业务失败审计与 FoodLog 保持一致；定向、相关模块和完整 Java 门禁均通过，Alibaba Checkstyle 为 `0 violations`；真实性能、故障恢复和生产门禁继续后置。 |
