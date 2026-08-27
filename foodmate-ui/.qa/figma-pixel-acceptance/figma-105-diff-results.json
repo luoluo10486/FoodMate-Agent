@@ -29,11 +29,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 969531,
-      "differentRatio": 0.6575052897135417,
-      "meanAbsoluteError": 6.924323187934028,
-      "rmse": 25.028740329370223,
-      "maxChannelDelta": 255
+      "differentPixels": 539335,
+      "differentRatio": 0.3657599555121528,
+      "meanAbsoluteError": 2.8026021321614585,
+      "rmse": 15.908837488311086,
+      "maxChannelDelta": 234
     },
     "intake-analysis-v2": {
       "status": "COMPARED",
@@ -42,7 +42,7 @@
       "pixelCount": 1474560,
       "differentPixels": 123089,
       "differentRatio": 0.08347507052951389,
-      "meanAbsoluteError": 2.829081895616319,
+      "meanAbsoluteError": 2.8290818956163193,
       "rmse": 17.578819922606275,
       "maxChannelDelta": 211
     },

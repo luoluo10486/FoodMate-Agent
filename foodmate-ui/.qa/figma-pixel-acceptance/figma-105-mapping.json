@@ -11,7 +11,12 @@
     "dpr": 1,
     "animation": "disabled for capture",
     "dynamicTime": "fixed",
-    "passRequires": ["automated diff", "geometry check", "text check", "manual visual review"],
+    "passRequires": [
+      "automated diff",
+      "geometry check",
+      "text check",
+      "manual visual review"
+    ],
     "statusSemantics": {
       "SIZE_MISMATCH": "Viewport dimensions differ",
       "UNMAPPED": "Route or evidence is missing",
@@ -126,8 +131,8 @@
       "frontendRoute": "/analysis",
       "queryState": "view=records&state=v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-browser-spacing-2026-08-27.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -156,8 +161,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Diet-record semantics exist, but metric cards, meal-list composition, typography, avatar, and visual treatment differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-27",
+        "conclusion": "Live Figma structure and page geometry are aligned after removing the duplicate fixture action bar; font rendering, icon implementation, avatar asset, and remaining visual differences require further review. Retain DIFF_REVIEW."
       }
     },
     {
