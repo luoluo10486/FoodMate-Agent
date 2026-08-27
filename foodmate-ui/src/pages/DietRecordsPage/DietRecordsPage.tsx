@@ -583,7 +583,7 @@ export function DietRecordsPage() {
           )}
         </section>
 
-        {visibleState === 'default' ? (
+        {visibleState === 'default' && !isFigmaFixture ? (
           <section className={styles.recordsActions} aria-label="饮食记录操作">
             <Button className={styles.logMealButton} type="button" onClick={() => openFoodDialog('breakfast')}>
               记录一餐
