@@ -1025,3 +1025,16 @@
 | 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 与 `git diff --check` 通过。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | 账户核心业务写操作具备成功/失败统一审计证据；M1-6 性能、故障恢复和生产门禁仍不因本切片改变。 |
+
+## D46 AgentRun 创建与续接失败审计收口（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Git 提交 | `a3e467e fix(审计): 补齐 AgentRun 创建失败审计`。 |
+| 代码范围 | AgentRun 创建事务的消息、Run、预算、dispatch、Outbox、准入或审计失败统一记录 `agent_run.create/failed`；等待用户续接时父 Run `superseded` 冲突或写入失败单独记录 `agent_run.superseded/failed`。 |
+| 安全边界 | 审计仅保存用户/Run/Session 关联 ID、稳定运行时错误码、状态关联和异常类型；不保存消息正文、Prompt、完整 command 或 payload。运行时协议错误保留原稳定错误码。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am "-Dtest=AgentRunCommandServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`2/2` 通过，覆盖创建失败和父 Run `RUNTIME_STATE_CONFLICT`。 |
+| 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 与 `git diff --check` 通过。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | AgentRun 创建与父 Run 续接失败均有可追踪统一审计事实；本地业务测试通过，不扩展为消息故障恢复或性能证据。 |
