@@ -652,7 +652,7 @@
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
-  line-height: 1;
+  line-height: 16px;
   white-space: nowrap;
 }
 
