@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { DEFAULT_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { createFoodLog, deleteFoodLog, loadFoodLogs, type FoodLog } from '../../services/foodLogService';
 import type { SessionSummary } from '../../types/session';
@@ -373,10 +374,8 @@ export function DietRecordsPage() {
       activeModule="records"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={
-        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
-      }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >

@@ -16,6 +16,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { DEFAULT_AVATARS } from '../../lib/avatar';
 import { getAuthUser } from '../../services/authService';
 import { getHomeSessions, getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
 import type { SessionSummary } from '../../types/session';
@@ -175,10 +176,8 @@ export function HomePage() {
       activeModule="home"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={
-        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
-      }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/workspace/home-topbar-avatar.png' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >

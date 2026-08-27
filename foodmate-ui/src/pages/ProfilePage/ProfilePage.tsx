@@ -35,7 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { getDefaultAvatarForGender } from '@/lib/avatar';
+import { DEFAULT_AVATARS, getDefaultAvatarForGender } from '@/lib/avatar';
 import { getAuthUser, logout } from '@/services/authService';
 import {
   changePassword,
@@ -166,7 +166,7 @@ const figmaProfileUser: AuthUser = {
   id: '1234567',
   username: 'anddy_operator_9',
   displayName: 'Anddy',
-  avatarUrl: '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png',
+  avatarUrl: '',
   role: 'operator',
   status: 'active',
   email: 'anddy@foodmate.io',
@@ -1992,10 +1992,8 @@ export function ProfilePage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       profileActiveTab={isFigmaFixture ? activeTab : undefined}
-      sidebarAvatarSrc={
-        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
-      }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       pageOverlay={
         fixtureState ? <ProfileFixtureOverlay state={fixtureState} onDismiss={() => navigate('/profile')} /> : null

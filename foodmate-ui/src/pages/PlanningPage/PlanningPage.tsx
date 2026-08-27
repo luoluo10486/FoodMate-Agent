@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { DEFAULT_AVATARS } from '../../lib/avatar';
 import type { SessionSummary } from '../../types/session';
 import {
   createMealPlan,
@@ -678,10 +679,8 @@ export function PlanningPage() {
       rightRailWidth={view === 'default' && (!isRealMode || selectedPlan) ? 340 : undefined}
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={
-        isFigmaFixture ? '/assets/figma/agent-chat/awaiting-clarification/sidebar-avatar.png' : undefined
-      }
-      topAvatarSrc={isFigmaFixture ? '/assets/figma/planning/meal-plan-list-topbar-avatar.png' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
