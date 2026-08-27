@@ -1103,3 +1103,16 @@
 | SQL 与数据边界 | SQL 迁移/validation/rollback 目录未修改；未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理。仅清理本轮创建的临时官方手册文件和浅克隆目录。 |
 | 暂缓边界 | 不将本轮业务门禁扩展为吞吐/延迟/积压、组件重启、ACK 丢失、重复投递、SSE 故障恢复、真实云服务、生产部署或生产强化证据；M1-6 和 M3 后置范围保持未完成。 |
 | 结论 | 当前功能版 Java/Python/前端业务测试、Java 21 可执行规范子集和安全扫描均有可复核结果；前端 lint 的两条用户现有格式 warning 需在其 UI 修改收口时一并处理，不影响本轮业务测试通过结论。 |
+
+## D52 指定阿里 Java 手册 v1.3.0 与功能版门禁复核（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 手册来源 | 用户指定的 GitHub 仓库文件《阿里巴巴Java开发手册终极版 v1.3.0》；仓库 API 文件大小 `1056487` 字节，Git blob SHA `e6ed0c529f1f5ab8041388e60dcd28bb0d9dfdc7`，PDF 共 39 页；已渲染并目视检查封面、目录和正文页。 |
+| 规范复核范围 | 复核命名/常量/格式、OOP/集合/并发、控制语句、注释、异常日志、单元测试、安全、SQL/ORM 和工程分层条款。当前生产源码未发现字段注入、通配符 import、`System.out/err`、`printStackTrace`、`MAX(id)+1` 或无稳定语义的 JDK `catch (Exception/Throwable)`；统一审计写入仍只有 `foodmate-infra` 适配器。 |
+| Java 门禁 | 沿用本轮已通过结果：`mvnw.cmd clean verify` 的 Shared `12/12`、Application `195/195`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped），BUILD SUCCESS；Alibaba Checkstyle 根项目及五个模块均 `0 violations`。 |
+| 前端门禁 | 对 `AnalysisPage.tsx`、`HomePage.tsx` 执行 Prettier 格式修复后，`npm.cmd run lint`、`npm.cmd run typecheck`、`npm.cmd test -- --run`（38 个测试文件、194/194）和 `npm.cmd run build` 全部通过。用户已有 `ChatPage.module.css` 修改保持未暂存、未回滚。 |
+| Python 门禁 | 沿用本轮已通过结果：`agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`116 passed、1 skipped、1 warning`；跳过项为显式真实外部服务。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理；仅清理本轮下载的手册浅克隆、PDF 渲染图和提取文本。吞吐压测、队列积压、组件重启、ACK/重复消息故障注入、SSE 故障恢复、真实云服务和生产部署继续后置。 |
+| 结论 | 用户指定的 v1.3.0 手册已完成可追溯核对；当前功能版业务门禁通过，前端 lint 两条格式 warning 已收口。该证据不扩大 M1-6/M3 的后置性能、故障和生产完成范围。 |
