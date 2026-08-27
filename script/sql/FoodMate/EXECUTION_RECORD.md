@@ -1051,3 +1051,16 @@
 | 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 与 `git diff --check` 通过。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | 个人数据导出/注销业务请求具备失败审计证据；后台异步任务技术状态仍遵循专用任务记录，不与申请审计重复。 |
+
+## D48 Agent 反馈失败审计收口（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Git 提交 | `6c829eb fix(审计): 补齐 Agent 反馈失败审计`。 |
+| 代码范围 | 反馈功能关闭、参数校验、目标不存在、重复提交/幂等冲突和反馈持久化异常统一记录 `agent.feedback.submit/failed`；成功反馈继续记录结构化安全摘要。 |
+| 安全边界 | 失败审计只记录用户/Run/消息关联 ID、稳定错误码和异常类型；不记录反馈评论、回答正文、Prompt、幂等参数原文或模型载荷。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am "-Dtest=AgentFeedbackServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`4/4` 通过，覆盖校验失败和持久化失败审计。 |
+| 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 与 `git diff --check` 通过。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | Agent 反馈业务写操作具备成功/失败统一审计证据；不将业务测试结果扩展为生产质量或性能结论。 |
