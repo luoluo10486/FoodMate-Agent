@@ -125,6 +125,11 @@
   height: 100px;
 }
 
+.figmaDefault .metrics,
+.figmaDefault .metricCard {
+  height: 107px;
+}
+
 .loadingMetrics {
   height: 126px;
 }

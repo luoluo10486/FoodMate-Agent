@@ -279,7 +279,7 @@ export function AnalysisPage() {
     >
       <div className={styles.page}>
         <section
-          className={`${styles.analysisBody} ${isFigmaFixture ? styles.figmaAnalysis : ''}`}
+          className={`${styles.analysisBody} ${isFigmaFixture ? styles.figmaAnalysis : ''} ${isFigmaFixture && visibleState === 'default' ? styles.figmaDefault : ''}`}
           aria-label="摄入分析"
         >
           <header

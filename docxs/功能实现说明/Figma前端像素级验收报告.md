@@ -879,6 +879,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `AnalysisPage.test.tsx` 定向测试 `4/4`、`npm run typecheck`、浏览器运行时颜色检查和 `git diff --check` 通过；目标 CSS 文件仍有既存 Prettier 格式提示，本次未扩大格式化范围。
 - [ ] 当前画板继续保持 `DIFF_REVIEW`，不能将局部颜色修正等同于整页像素级 `PASS`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全量页面视觉迁移和 iconfont 实体登记仍未完成。
 
+## 96. 2026-08-27 Intake Analysis 默认态垂直节奏复核
+
+- [x] 依据 Figma 节点 `640:773`，仅对 `/analysis?state=v2` 默认态摘要区启用 `107px` 高度；Empty 仍为 `100px`，Loading 仍为 `126px`，Error 不显示摘要区。
+- [x] headless Chromium 使用 `1440×1024`、DPR `1`、字体加载完成；浏览器实测摘要区 `y=164,h=107`，趋势卡 `y=295,h=303`，洞察卡 `y=622,h=219`，数据质量面板 `y=873,h=140`，根节点无横向溢出。
+- [x] 四种分析状态的前端左上角红、黄、绿窗口装饰候选数量均为 `0`；业务状态圆点保留，Figma 设计稿未修改。
+- [x] 当前浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-default-height-2026-08-27-dpr1.png`，Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=123089`、差异比例 `8.3475%`、`MAE=2.82908`、`RMSE=17.57882`、最大通道差异 `211`。
+- [x] 当前结果已同步 `figma-105-mapping.json` 和 `figma-105-diff-results.json`；相比上一份 `13.9400%` 证据有所改善，但图标、字体渲染和主体视觉处理仍有差异，画板继续为 `DIFF_REVIEW`。
+- [ ] 本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面视觉迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
 ## 94. 2026-08-27 Meal Planning 顶栏品牌标记 fixture 边界修正
 
 - [x] 重新读取 Figma 节点 `692:2662`：规划列表顶栏绿色品牌方块为 `28×28px` 空白方块，侧栏品牌标记为 `36×36px` 并显示 `F`；Figma 画板中的 `window-controls` 仍只作为设计参考，前端不实现三色窗口装饰。
