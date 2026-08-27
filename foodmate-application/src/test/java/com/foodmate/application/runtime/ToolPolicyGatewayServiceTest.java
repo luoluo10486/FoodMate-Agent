@@ -2,12 +2,14 @@ package com.foodmate.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
 import com.foodmate.application.runtime.service.ToolGatewayService;
@@ -22,12 +24,14 @@ import org.junit.jupiter.api.Test;
 class ToolPolicyGatewayServiceTest {
     private final ToolGatewayPort store = mock(ToolGatewayPort.class);
     private final ToolRegistryRepository registryStore = mock(ToolRegistryRepository.class);
+    private final OperationAuditService audit = mock(OperationAuditService.class);
     private final IdGenerator ids = () -> 99L;
 
     @Test
     void resolvesDatabaseQueryFromSqlReadAndDoesNotRequireConfirmation() {
         ToolRegistryService registry = registryWith("database_query");
         when(store.runExists(42L)).thenReturn(true);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
         when(store.executeRead("SELECT 1"))
                 .thenReturn(List.of(JsonNodeFactory.instance.objectNode().put("value", 1)));
 
@@ -76,13 +80,24 @@ class ToolPolicyGatewayServiceTest {
         ToolRegistryService registry = registryWith("calculator");
         var input = object().put("expression", "1 + 1");
         when(store.runExists(42L)).thenReturn(true);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
 
         var result = gateway(registry).execute(toolProposal("calculator", input));
 
         assertEquals("succeeded", result.status());
         assertEquals("2", result.rows().getFirst().path("result").asText());
         assertEquals("calculator", result.toolName());
-        verify(store).audit(any(ToolGatewayPort.Audit.class));
+        verify(audit)
+                .record(
+                        eq(7L),
+                        eq("agent_tool"),
+                        eq("42"),
+                        eq("tool.calculator.execute"),
+                        eq("success"),
+                        org.mockito.ArgumentMatchers.isNull(),
+                        any(String.class),
+                        org.mockito.ArgumentMatchers.isNull(),
+                        any());
     }
 
     @Test
@@ -92,13 +107,24 @@ class ToolPolicyGatewayServiceTest {
         plan.putArray("days_plan").addObject().putObject("breakfast").put("cost", 6);
         var input = object().set("plan", plan);
         when(store.runExists(42L)).thenReturn(true);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
 
         var result = gateway(registry).execute(toolProposal("plan_validator", input));
 
         assertEquals("failed", result.status());
         assertEquals("PLAN_CONSTRAINTS_UNSATISFIED", result.errorCode());
         assertEquals("invalid", result.rows().getFirst().path("status").asText());
-        verify(store).audit(any(ToolGatewayPort.Audit.class));
+        verify(audit)
+                .record(
+                        eq(7L),
+                        eq("agent_tool"),
+                        eq("42"),
+                        eq("tool.plan_validator.execute"),
+                        eq("failed"),
+                        eq("PLAN_CONSTRAINTS_UNSATISFIED"),
+                        any(String.class),
+                        org.mockito.ArgumentMatchers.isNull(),
+                        any());
     }
 
     @Test
@@ -140,7 +166,10 @@ class ToolPolicyGatewayServiceTest {
                 ids,
                 (com.foodmate.application.food.service.ApprovalService) null,
                 new com.fasterxml.jackson.databind.ObjectMapper(),
-                registry);
+                registry,
+                null,
+                null,
+                audit);
     }
 
     private ToolRegistryService registry() {

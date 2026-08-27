@@ -3,6 +3,7 @@ package com.foodmate.application.runtime.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.service.CalculatorEvaluator;
@@ -43,6 +44,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
     private final ToolRegistryService registry;
     private final SqlQueryGuard sqlGuard;
     private final SqlSchemaCatalogService catalogService;
+    private final OperationAuditService operationAudit;
 
     public ToolGatewayServiceImpl(ToolGatewayPort store, IdGenerator ids) {
         this(
@@ -50,6 +52,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 ids,
                 (ApprovalService) null,
                 new ObjectMapper().findAndRegisterModules(),
+                null,
                 null,
                 null,
                 null);
@@ -63,8 +66,17 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             ObjectMapper mapper,
             ToolRegistryService registry,
             SqlQueryGuard sqlGuard,
-            SqlSchemaCatalogService catalogService) {
-        this(store, ids, approvals.getIfAvailable(), mapper, registry, sqlGuard, catalogService);
+            SqlSchemaCatalogService catalogService,
+            ObjectProvider<OperationAuditService> operationAudit) {
+        this(
+                store,
+                ids,
+                approvals.getIfAvailable(),
+                mapper,
+                registry,
+                sqlGuard,
+                catalogService,
+                operationAudit == null ? null : operationAudit.getIfAvailable());
     }
 
     public ToolGatewayServiceImpl(
@@ -92,6 +104,18 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             ToolRegistryService registry,
             SqlQueryGuard sqlGuard,
             SqlSchemaCatalogService catalogService) {
+        this(store, ids, approvals, mapper, registry, sqlGuard, catalogService, null);
+    }
+
+    public ToolGatewayServiceImpl(
+            ToolGatewayPort store,
+            IdGenerator ids,
+            ApprovalService approvals,
+            ObjectMapper mapper,
+            ToolRegistryService registry,
+            SqlQueryGuard sqlGuard,
+            SqlSchemaCatalogService catalogService,
+            OperationAuditService operationAudit) {
         this.store = store;
         this.ids = ids;
         this.approvals = approvals;
@@ -99,6 +123,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         this.registry = registry;
         this.sqlGuard = sqlGuard;
         this.catalogService = catalogService;
+        this.operationAudit = operationAudit;
     }
 
     @Override
@@ -398,7 +423,13 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         CalculatorEvaluator.Evaluation evaluation = CalculatorEvaluator.evaluate(expression);
         ObjectNode row = mapper.createObjectNode();
         if (!evaluation.succeeded()) {
-            auditTool(numericRunId, "calculator", "rejected", evaluation.errorCode(), expression);
+            auditTool(
+                    numericRunId,
+                    invocationId,
+                    "calculator",
+                    "failed",
+                    evaluation.errorCode(),
+                    expression);
             return toolResult(
                     proposalId,
                     runId,
@@ -412,15 +443,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         row.put("result", value);
         row.put("formula", expression.trim());
         row.putArray("warnings");
-        long auditId = auditTool(numericRunId, "calculator", "executed", null, expression);
-        return toolResult(
-                proposalId,
-                runId,
-                "succeeded",
-                null,
-                List.of(row),
-                Long.toString(auditId),
-                "calculator");
+        auditTool(numericRunId, invocationId, "calculator", "success", null, expression);
+        return toolResult(proposalId, runId, "succeeded", null, List.of(row), null, "calculator");
     }
 
     private ProposalResult executePlanValidator(
@@ -435,37 +459,42 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         JsonNode plan = input == null ? null : input.get("plan");
         PlanValidator.Validation validation = PlanValidator.evaluate(plan);
         String errorCode = validation.valid() ? null : "PLAN_CONSTRAINTS_UNSATISFIED";
-        long auditId =
-                auditTool(
-                        numericRunId,
-                        "plan_validator",
-                        validation.valid() ? "executed" : "rejected",
-                        errorCode,
-                        plan == null ? null : plan.toString());
+        auditTool(
+                numericRunId,
+                invocationId,
+                "plan_validator",
+                validation.valid() ? "success" : "failed",
+                errorCode,
+                plan == null ? null : plan.toString());
         return toolResult(
                 proposalId,
                 runId,
                 validation.valid() ? "succeeded" : "failed",
                 errorCode,
                 List.of(validation.asJson()),
-                Long.toString(auditId),
+                null,
                 "plan_validator");
     }
 
-    private long auditTool(
-            long runId, String toolName, String status, String reason, String sensitiveInput) {
-        long auditId = ids.nextId();
-        store.audit(
-                new ToolGatewayPort.Audit(
-                        auditId,
-                        runId,
-                        toolName + ":" + digest(sensitiveInput),
-                        status,
-                        null,
-                        reason,
-                        0,
-                        "tool:" + toolName));
-        return auditId;
+    private void auditTool(
+            long runId,
+            String invocationId,
+            String toolName,
+            String result,
+            String errorCode,
+            String sensitiveInput) {
+        if (operationAudit == null) return;
+        ToolGatewayPort.RunContext context = store.runContext(runId);
+        operationAudit.record(
+                context == null ? null : context.userId(),
+                "agent_tool",
+                Long.toString(runId),
+                "tool." + toolName + ".execute",
+                result,
+                errorCode,
+                digest(sensitiveInput),
+                null,
+                java.util.Map.of("invocation_id", invocationId));
     }
 
     private String digest(String value) {
