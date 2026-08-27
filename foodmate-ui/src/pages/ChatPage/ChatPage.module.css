@@ -634,6 +634,10 @@
   font-family: var(--fm-font);
 }
 
+.designTracePanel .traceStepActive {
+  border-color: transparent;
+}
+
 .assistantBody {
   display: flex;
   width: min(560px, calc(100% - 48px));

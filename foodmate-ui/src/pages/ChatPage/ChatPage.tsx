@@ -113,10 +113,10 @@ function MessageBubble({ message, children }: { message: ChatMessage; children?:
   );
 }
 
-function TraceRail({ run }: { run: AgentRunView }) {
+function TraceRail({ run, designChat = false }: { run: AgentRunView; designChat?: boolean }) {
   const [tab, setTab] = useState<'steps' | 'json'>('steps');
   return (
-    <aside className={styles.tracePanel} aria-label="运行轨迹">
+    <aside className={`${styles.tracePanel} ${designChat ? styles.designTracePanel : ''}`} aria-label="运行轨迹">
       <div className={styles.traceTitle}>运行轨迹</div>
       <span className={styles.srOnly}>工具与引用</span>
       <Tabs value={tab} onValueChange={(value) => setTab(value as 'steps' | 'json')}>
@@ -244,7 +244,7 @@ function ChatSurface({
       displayNameOverride={displayNameOverride}
       profileIdOverride={profileIdOverride}
       pageOverlay={pageOverlay}
-      rightRail={showTrace ? <TraceRail run={run} /> : undefined}
+      rightRail={showTrace ? <TraceRail run={run} designChat={designChat} /> : undefined}
       sidebarFixture={sidebarFixture}
       showKnowledgeTopNav={showKnowledgeTopNav}
       sidebarAvatarSrc={sidebarAvatarSrc}
