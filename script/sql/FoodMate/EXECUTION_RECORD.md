@@ -1129,3 +1129,16 @@
 | 数据边界 | 本轮 E2E 仅生成随机命名空间的 `m15*` 测试数据，未执行迁移、truncate、数据库硬删除、备份恢复或宽泛清理；用户已有 UI/Figma/QA 改动未暂存、未回滚。 |
 | 暂缓范围 | Docker-backed 流量统计、吞吐/延迟/队列积压、Java/Python/PostgreSQL/Redis/RocketMQ 重启、ACK 丢失、重复投递故障注入、SSE Last-Event-ID 故障恢复、真实云服务、staging/production 和发布回滚继续暂缓。 |
 | 结论 | M14/M15 业务主路径、审批统一审计修复和受影响 Java 格式校验已取得可复核结果；该记录不将业务回归扩展为 M1-6 故障/性能门禁完成证据。 |
+
+## D54 calculator/plan_validator 工具业务切片与统一审计修正（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Git 提交 | `8ac3a36`、`9419754`、`616e155`、`037cab2` 完成 calculator/plan_validator 的 Java 执行器和 Python Proposal/Composer 路径；`74f49bd fix(审计): 将工具执行审计收敛到统一入口` 修正工具执行审计适配。 |
+| 代码范围 | Java calculator 使用有界表达式解析器，支持括号、四则运算、取余、小数和一元正负号，并拒绝代码片段、除零、超长表达式和超大结果；Java plan_validator 只读校验人数、天数、三餐、预算、营养目标、过敏原和忌口；Python 只从 Java 授权上下文生成 Proposal，Composer 只使用 Java 结果。 |
+| 审计与安全 | calculator/plan_validator 成功与失败终态通过 `OperationAuditService` 记录；输入只保留 SHA-256 摘要和 invocation 关联，不保存表达式、计划内容或 Prompt。SQL 查询继续使用专用 `sql_query_audits`，未与业务审计重复写入。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am "-Dtest=ToolPolicyGatewayServiceTest,ToolGatewayServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`ToolGatewayServiceTest` `14/14`、`ToolPolicyGatewayServiceTest` `7/7`，共 `21/21` 通过。 |
+| 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:check` 通过；`mvnw.cmd -pl foodmate-application -am -P alibaba-code-style verify -DskipTests` 通过，相关模块 Checkstyle `0 violations`；`git diff --check` 通过。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | calculator 与 plan_validator 的确定性业务路径、Python 提案路径和统一工具执行审计修正已取得可复核证据；M1-6 的吞吐、队列、重启、故障恢复和生产治理仍按当前决策后置。 |
