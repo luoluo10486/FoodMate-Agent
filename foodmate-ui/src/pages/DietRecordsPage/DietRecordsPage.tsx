@@ -601,9 +601,9 @@ export function DietRecordsPage() {
 
         {visibleState === 'default' && !isRealMode ? (
           <section className={styles.entryDetail} aria-label="记录详情">
-            <h2>记录详情 · 待确认记录可在这里补充后保存</h2>
-            <p>蓝莓燕麦粥 · 早餐 · 08:30 · 估算值</p>
-            <p>份量 350 | 单位 g | 热量 420 kcal | 蛋白质 18 g | 来源 USDA | 估算状态 待确认</p>
+            <h2>{'记录详情  ·  待确认记录可在这里补充后保存'}</h2>
+            <p>{'蓝莓燕麦粥  ·  早餐  ·  08:30  ·  估算值'}</p>
+            <p>{'份量  350  |  单位  g  |  热量  420 kcal  |  蛋白质  18 g  |  来源  USDA  |  估算状态  待确认'}</p>
             <div className={styles.entryActions}>
               <Button variant="ghost" type="button" onClick={() => setNotice('已打开自然语言记录入口。')}>
                 记录一餐（自然语言）
