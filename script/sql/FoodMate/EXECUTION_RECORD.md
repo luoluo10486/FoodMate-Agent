@@ -1038,3 +1038,16 @@
 | 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 与 `git diff --check` 通过。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | AgentRun 创建与父 Run 续接失败均有可追踪统一审计事实；本地业务测试通过，不扩展为消息故障恢复或性能证据。 |
+
+## D47 个人数据请求失败审计收口（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Git 提交 | `7e74d3f fix(审计): 补齐个人数据请求失败审计`。 |
+| 代码范围 | 数据导出申请、账户注销申请和导出消费的数据库不可用、重复申请、过期/已消费状态及对象存储失败统一记录 `failed` 审计；既有头像安全与补偿审计保持不变。 |
+| 安全边界 | 失败审计仅保存操作者、导出任务/用户目标、action、稳定错误码和异常类型；不保存导出对象键、预签名地址、账户内容或对象存储凭据。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-application -am "-Dtest=PersonalDataServiceImplTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`8/8` 通过，覆盖导出申请、注销冲突和导出消费冲突。 |
+| 质量校验 | `mvnw.cmd -pl foodmate-application -am spotless:apply` 与 `git diff --check` 通过。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | 个人数据导出/注销业务请求具备失败审计证据；后台异步任务技术状态仍遵循专用任务记录，不与申请审计重复。 |
