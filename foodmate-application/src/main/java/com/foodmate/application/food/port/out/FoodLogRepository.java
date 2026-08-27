@@ -33,10 +33,6 @@ public interface FoodLogRepository {
 
     int restore(long userId, long foodLogId, long revision);
 
-    int reserveAudit(AuditWrite audit);
-
-    int completeAudit(long operatorId, String idempotencyKey, String responseJson);
-
     record FoodLogWrite(
             long foodLogId,
             long userId,
@@ -152,16 +148,4 @@ public interface FoodLogRepository {
             BigDecimal carbsG) {}
 
     record IdempotencyRecord(String parametersDigest, String result, String responseJson) {}
-
-    record AuditWrite(
-            long operationAuditId,
-            long operatorId,
-            String requestId,
-            String traceId,
-            String targetType,
-            String targetId,
-            String action,
-            String parametersDigest,
-            String idempotencyKey,
-            String responseJson) {}
 }

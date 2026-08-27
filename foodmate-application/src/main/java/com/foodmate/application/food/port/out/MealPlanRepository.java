@@ -35,10 +35,6 @@ public interface MealPlanRepository {
 
     int softDeleteShoppingList(long userId, long mealPlanId);
 
-    int reserveAudit(AuditWrite audit);
-
-    int completeAudit(long operatorId, String idempotencyKey, String responseJson);
-
     int insertShoppingList(ShoppingListWrite list);
 
     ShoppingListSnapshot findOwnedShoppingList(long userId, long mealPlanId);
@@ -155,16 +151,4 @@ public interface MealPlanRepository {
             Instant updatedAt) {}
 
     record IdempotencyRecord(String parametersDigest, String result, String responseJson) {}
-
-    record AuditWrite(
-            long operationAuditId,
-            long operatorId,
-            String requestId,
-            String traceId,
-            String targetType,
-            String targetId,
-            String action,
-            String parametersDigest,
-            String idempotencyKey,
-            String responseJson) {}
 }

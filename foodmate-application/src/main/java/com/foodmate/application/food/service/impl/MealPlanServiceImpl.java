@@ -6,13 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.MealPlanRepository;
 import com.foodmate.application.food.service.MealPlanService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
-import com.foodmate.shared.trace.TraceContext;
-import com.foodmate.shared.trace.TraceContextHolder;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +23,7 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -38,11 +38,18 @@ public class MealPlanServiceImpl implements MealPlanService {
     private final MealPlanRepository store;
     private final IdGenerator ids;
     private final ObjectMapper mapper;
+    private final OperationAuditService audit;
 
-    public MealPlanServiceImpl(MealPlanRepository store, IdGenerator ids, ObjectMapper mapper) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public MealPlanServiceImpl(
+            MealPlanRepository store,
+            IdGenerator ids,
+            ObjectMapper mapper,
+            OperationAuditService audit) {
         this.store = store;
         this.ids = ids;
         this.mapper = mapper.copy().findAndRegisterModules();
+        this.audit = java.util.Objects.requireNonNull(audit, "OperationAuditService is required");
     }
 
     @Override
@@ -55,7 +62,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         if (key != null) {
             MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
             if (previous != null) return replayOrConflict(userId, key, digest);
-            reserveAudit(userId, key, digest, "meal_plan.create", id, null);
+            reserveAudit(userId, key, digest, "meal_plan.create", id);
         }
         JsonNode constraints = constraints(command);
         JsonNode validation = validation(command);
@@ -78,7 +85,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         }
         PlanView result =
                 view(key == null ? requirePlan(userId, id) : requirePlan(userId, id, false));
-        if (key != null) store.completeAudit(userId, key, auditSummary(result));
+        if (key != null) completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -102,7 +109,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         if (previous != null) return replayOrConflict(userId, key, digest);
         MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, false);
         requireRevision(current, revision);
-        reserveAudit(userId, key, digest, "meal_plan.update", mealPlanId, null);
+        reserveAudit(userId, key, digest, "meal_plan.update", mealPlanId);
         JsonNode constraints = constraints(command);
         JsonNode validation = validation(command);
         if (store.updatePlan(
@@ -121,7 +128,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         }
         store.softDeleteShoppingList(userId, mealPlanId);
         PlanView result = view(requirePlan(userId, mealPlanId, false));
-        store.completeAudit(userId, key, auditSummary(result));
+        completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -162,7 +169,7 @@ public class MealPlanServiceImpl implements MealPlanService {
             MealPlanRepository.IdempotencyRecord previous =
                     store.findIdempotency(userId, idempotencyKey);
             if (previous != null) return replayOrConflict(userId, idempotencyKey, digest);
-            reserveAudit(userId, idempotencyKey, digest, "meal_plan.validate", mealPlanId, null);
+            reserveAudit(userId, idempotencyKey, digest, "meal_plan.validate", mealPlanId);
         }
         if (!"draft".equals(plan.status()) && !"validated".equals(plan.status()))
             throw new BusinessException(ErrorCode.CONFLICT, "只有 draft 或 validated 计划可以校验");
@@ -180,8 +187,7 @@ public class MealPlanServiceImpl implements MealPlanService {
                         legacyRepositoryPath
                                 ? requirePlan(userId, mealPlanId)
                                 : requirePlan(userId, mealPlanId, false));
-        if (idempotencyKey != null)
-            store.completeAudit(userId, idempotencyKey, auditSummary(result));
+        if (idempotencyKey != null) completeAudit(userId, idempotencyKey, auditSummary(result));
         return result;
     }
 
@@ -221,7 +227,7 @@ public class MealPlanServiceImpl implements MealPlanService {
             MealPlanRepository.IdempotencyRecord previous =
                     store.findIdempotency(userId, idempotencyKey);
             if (previous != null) return replayOrConflict(userId, idempotencyKey, digest);
-            reserveAudit(userId, idempotencyKey, digest, "meal_plan.save", mealPlanId, null);
+            reserveAudit(userId, idempotencyKey, digest, "meal_plan.save", mealPlanId);
         }
         if (!"validated".equals(plan.status()))
             throw new BusinessException(ErrorCode.CONFLICT, "只有 validated 计划可以保存");
@@ -239,8 +245,7 @@ public class MealPlanServiceImpl implements MealPlanService {
                         legacyRepositoryPath
                                 ? requirePlan(userId, mealPlanId)
                                 : requirePlan(userId, mealPlanId, false));
-        if (idempotencyKey != null)
-            store.completeAudit(userId, idempotencyKey, auditSummary(result));
+        if (idempotencyKey != null) completeAudit(userId, idempotencyKey, auditSummary(result));
         return result;
     }
 
@@ -273,11 +278,11 @@ public class MealPlanServiceImpl implements MealPlanService {
         }
         MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, false);
         requireRevision(current, revision);
-        reserveAudit(userId, key, digest, "meal_plan.delete", mealPlanId, null);
+        reserveAudit(userId, key, digest, "meal_plan.delete", mealPlanId);
         if (store.softDelete(userId, mealPlanId, revision) != 1)
             throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
         store.softDeleteShoppingList(userId, mealPlanId);
-        store.completeAudit(userId, key, "{}");
+        completeAudit(userId, key, "{}");
     }
 
     @Override
@@ -290,11 +295,11 @@ public class MealPlanServiceImpl implements MealPlanService {
         MealPlanRepository.PlanSnapshot current = requirePlan(userId, mealPlanId, true);
         if (!current.deleted()) throw new BusinessException(ErrorCode.NOT_FOUND, "餐食计划不存在");
         requireRevision(current, revision);
-        reserveAudit(userId, key, digest, "meal_plan.restore", mealPlanId, null);
+        reserveAudit(userId, key, digest, "meal_plan.restore", mealPlanId);
         if (store.restore(userId, mealPlanId, revision) != 1)
             throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
         PlanView result = view(requirePlan(userId, mealPlanId, false));
-        store.completeAudit(userId, key, auditSummary(result));
+        completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -562,28 +567,22 @@ public class MealPlanServiceImpl implements MealPlanService {
     }
 
     private void reserveAudit(
-            long userId,
-            String key,
-            String digest,
-            String action,
-            long mealPlanId,
-            PlanView response) {
-        TraceContext trace = TraceContextHolder.currentOrNew();
-        if (store.reserveAudit(
-                        new MealPlanRepository.AuditWrite(
-                                ids.nextId(),
-                                userId,
-                                trace.requestId(),
-                                trace.traceId(),
-                                "meal_plan",
-                                Long.toString(mealPlanId),
-                                action,
-                                digest,
-                                key,
-                                response == null ? "{}" : json(response)))
+            long userId, String key, String digest, String action, long mealPlanId) {
+        if (audit.reserve(
+                        userId,
+                        "meal_plan",
+                        Long.toString(mealPlanId),
+                        action,
+                        digest,
+                        key,
+                        Map.of())
                 != 1) {
             throw new BusinessException(ErrorCode.CONFLICT, "幂等请求已被其他请求占用");
         }
+    }
+
+    private void completeAudit(long userId, String key, String responseJson) {
+        audit.complete(userId, key, responseJson);
     }
 
     private static void requireSameDigest(

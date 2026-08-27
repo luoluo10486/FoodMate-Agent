@@ -954,3 +954,16 @@
 | 格式与规范 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am spotless:apply` 成功；`mvnw.cmd -Palibaba-code-style verify -DskipTests` 成功，根项目及各 Java 模块 Checkstyle 均 `0 violations`；`git diff --check` 无错误。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；工作期间出现的用户已有前端 QA 修改未暂存、未回滚。 |
 | 结论 | Knowledge/Approval 业务审计入口已收敛到统一 application 服务，测试和 Java 规范门禁通过；真实依赖、性能、故障恢复和生产门禁继续后置。 |
+
+## D40 饮食业务统一审计契约收口（2026-08-27）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-quality-followup`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码范围 | FoodLog/MealPlan application 服务改为直接调用 `OperationAuditService`；移除两个业务 Repository 的 `reserveAudit`、`completeAudit` 和 `AuditWrite` 写入契约；适配器仅保留幂等事实只读查询。 |
+| 定向业务测试 | `mvnw.cmd -pl foodmate-application -am -Dtest=FoodLogServiceImplTest,MealPlanServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`：`18/18` 通过，0 失败、0 错误。 |
+| 相关模块测试 | `mvnw.cmd -pl foodmate-infra -am test`：Application `172/172`、Infrastructure `81/81`（17 skipped），0 失败、0 错误。 |
+| Java 全量验证 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `172/172`、Infrastructure `81`（17 skipped）、API `64/64`、Bootstrap `58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Alibaba 规范 | `mvnw.cmd --% -Palibaba-code-style verify -DskipTests`：根项目及五个 Java 模块均 `0 Checkstyle violations`。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
+| 结论 | 饮食记录和餐食计划的业务审计写入入口已统一到 application 层服务，幂等重放与事务测试通过；真实性能、故障恢复和生产门禁继续后置。 |

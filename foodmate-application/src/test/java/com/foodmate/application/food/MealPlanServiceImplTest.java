@@ -3,6 +3,8 @@ package com.foodmate.application.food;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -12,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.MealPlanRepository;
 import com.foodmate.application.food.service.MealPlanService;
 import com.foodmate.application.food.service.impl.MealPlanServiceImpl;
@@ -36,7 +39,7 @@ class MealPlanServiceImplTest {
         when(repository.findOwnedPlan(7L, 100L))
                 .thenReturn(plan("draft"))
                 .thenReturn(plan("validated"));
-        MealPlanService service = new MealPlanServiceImpl(repository, ids(100L), mapper);
+        MealPlanService service = service(repository, ids(100L));
 
         MealPlanService.PlanView created = service.create(7L, command(validDaysPlan()));
         MealPlanService.PlanView validated = service.validate(7L, 100L);
@@ -50,7 +53,7 @@ class MealPlanServiceImplTest {
     void listsOwnedPlansAndPreservesDeletedState() {
         MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
         when(repository.findOwnedPlans(7L, true)).thenReturn(List.of(plan("saved", 2, false)));
-        MealPlanService service = new MealPlanServiceImpl(repository, ids(100L), mapper);
+        MealPlanService service = service(repository, ids(100L));
 
         List<MealPlanService.PlanView> result = service.list(7L);
 
@@ -66,7 +69,7 @@ class MealPlanServiceImplTest {
         MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
         when(repository.insertPlan(any())).thenReturn(1);
         when(repository.findOwnedPlan(7L, 100L)).thenReturn(plan("draft"));
-        MealPlanService service = new MealPlanServiceImpl(repository, ids(100L), mapper);
+        MealPlanService service = service(repository, ids(100L));
 
         service.create(7L, commandWithPlan(List.of("花生"), List.of(), validDaysPlan("花生酱")));
 
@@ -85,7 +88,7 @@ class MealPlanServiceImplTest {
     void saveRequiresValidatedPlan() {
         MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
         when(repository.findOwnedPlan(7L, 100L)).thenReturn(plan("draft"));
-        MealPlanService service = new MealPlanServiceImpl(repository, ids(100L), mapper);
+        MealPlanService service = service(repository, ids(100L));
 
         BusinessException exception =
                 assertThrows(BusinessException.class, () -> service.save(7L, 100L));
@@ -111,7 +114,7 @@ class MealPlanServiceImplTest {
                                 NOW,
                                 NOW));
         when(repository.insertShoppingList(any())).thenReturn(1);
-        MealPlanService service = new MealPlanServiceImpl(repository, ids(200L), mapper);
+        MealPlanService service = service(repository, ids(200L));
 
         MealPlanService.ShoppingListView view = service.shoppingList(7L, 100L);
 
@@ -127,10 +130,10 @@ class MealPlanServiceImplTest {
         when(repository.findOwnedPlan(7L, 100L, false))
                 .thenReturn(plan("saved", 2, false))
                 .thenReturn(plan("draft", 3, false));
-        when(repository.reserveAudit(any())).thenReturn(1);
         when(repository.updatePlan(any())).thenReturn(1);
         when(repository.softDeleteShoppingList(7L, 100L)).thenReturn(1);
-        MealPlanService service = new MealPlanServiceImpl(repository, ids(300L), mapper);
+        OperationAuditService audit = auditService();
+        MealPlanService service = new MealPlanServiceImpl(repository, ids(300L), mapper, audit);
 
         MealPlanService.PlanView result =
                 service.update(7L, 100L, 2L, updateCommand("plan-update-1"));
@@ -138,7 +141,7 @@ class MealPlanServiceImplTest {
         assertEquals("draft", result.status());
         verify(repository).updatePlan(any(MealPlanRepository.UpdatePlanWrite.class));
         verify(repository).softDeleteShoppingList(7L, 100L);
-        verify(repository).completeAudit(eq(7L), eq("plan-update-1"), any());
+        verify(audit).complete(eq(7L), eq("plan-update-1"), any());
     }
 
     @Test
@@ -146,7 +149,7 @@ class MealPlanServiceImplTest {
         MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
         when(repository.findIdempotency(7L, "plan-delete-1")).thenReturn(null);
         when(repository.findOwnedPlan(7L, 100L, false)).thenReturn(plan("saved", 3, false));
-        MealPlanService service = new MealPlanServiceImpl(repository, ids(300L), mapper);
+        MealPlanService service = service(repository, ids(300L));
 
         BusinessException exception =
                 assertThrows(
@@ -154,7 +157,6 @@ class MealPlanServiceImplTest {
                         () -> service.delete(7L, 100L, 2L, "plan-delete-1"));
 
         assertEquals(ErrorCode.CONFLICT, exception.errorCode());
-        verify(repository, never()).reserveAudit(any());
         verify(repository, never()).softDelete(any(Long.class), any(Long.class), any(Long.class));
     }
 
@@ -242,5 +244,23 @@ class MealPlanServiceImplTest {
                 return values[Math.min(index++, values.length - 1)];
             }
         };
+    }
+
+    private MealPlanService service(MealPlanRepository repository, IdGenerator ids) {
+        return new MealPlanServiceImpl(repository, ids, mapper, auditService());
+    }
+
+    private OperationAuditService auditService() {
+        OperationAuditService audit = org.mockito.Mockito.mock(OperationAuditService.class);
+        when(audit.reserve(
+                        anyLong(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any()))
+                .thenReturn(1);
+        return audit;
     }
 }

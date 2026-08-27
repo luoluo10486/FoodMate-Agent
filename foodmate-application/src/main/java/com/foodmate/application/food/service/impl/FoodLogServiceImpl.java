@@ -2,14 +2,13 @@ package com.foodmate.application.food.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.FoodLogRepository;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.food.enums.MealType;
 import com.foodmate.shared.id.IdGenerator;
-import com.foodmate.shared.trace.TraceContext;
-import com.foodmate.shared.trace.TraceContextHolder;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.MessageDigest;
@@ -18,6 +17,7 @@ import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,11 +31,15 @@ public class FoodLogServiceImpl implements FoodLogService {
 
     private final FoodLogRepository store;
     private final IdGenerator ids;
+    private final OperationAuditService audit;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
-    public FoodLogServiceImpl(FoodLogRepository store, IdGenerator ids) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public FoodLogServiceImpl(
+            FoodLogRepository store, IdGenerator ids, OperationAuditService audit) {
         this.store = store;
         this.ids = ids;
+        this.audit = java.util.Objects.requireNonNull(audit, "OperationAuditService is required");
     }
 
     @Transactional
@@ -50,7 +54,7 @@ public class FoodLogServiceImpl implements FoodLogService {
         }
 
         long foodLogId = ids.nextId();
-        if (store.reserveAudit(audit(userId, key, digest, "food_log.create", foodLogId, null)) != 1)
+        if (reserveAudit(userId, key, digest, "food_log.create", foodLogId) != 1)
             return replayOrConflict(userId, key, digest);
         if (store.insertFoodLog(
                         new FoodLogRepository.FoodLogWrite(
@@ -92,7 +96,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                             nutrition.nutritionVersion()));
         }
         FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, auditSummary(result));
+        completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -107,7 +111,7 @@ public class FoodLogServiceImpl implements FoodLogService {
 
         FoodLogRepository.FoodLogSnapshot current = requireSnapshot(userId, foodLogId, false);
         requireRevision(current, revision);
-        if (store.reserveAudit(audit(userId, key, digest, "food_log.update", foodLogId, null)) != 1)
+        if (reserveAudit(userId, key, digest, "food_log.update", foodLogId) != 1)
             return replayOrConflict(userId, key, digest);
         if (store.updateFoodLog(
                         new FoodLogRepository.UpdateFoodLogWrite(
@@ -146,7 +150,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                             nutrition.nutritionVersion()));
         }
         FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, auditSummary(result));
+        completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -171,11 +175,11 @@ public class FoodLogServiceImpl implements FoodLogService {
         }
         FoodLogRepository.FoodLogSnapshot current = requireSnapshot(userId, foodLogId, false);
         requireRevision(current, revision);
-        if (store.reserveAudit(audit(userId, key, digest, "food_log.delete", foodLogId, null)) != 1)
+        if (reserveAudit(userId, key, digest, "food_log.delete", foodLogId) != 1)
             throw concurrentIdempotencyConflict(userId, key, digest);
         if (store.softDelete(userId, foodLogId, revision) != 1)
             throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
-        store.completeAudit(userId, key, "{}");
+        completeAudit(userId, key, "{}");
     }
 
     @Transactional
@@ -189,12 +193,12 @@ public class FoodLogServiceImpl implements FoodLogService {
         if (current == null || !current.deleted())
             throw new BusinessException(ErrorCode.NOT_FOUND, "饮食记录不存在");
         requireRevision(current, revision);
-        if (store.reserveAudit(audit(userId, key, digest, "food_log.restore", foodLogId, null))
-                != 1) return replayOrConflict(userId, key, digest);
+        if (reserveAudit(userId, key, digest, "food_log.restore", foodLogId) != 1)
+            return replayOrConflict(userId, key, digest);
         if (store.restore(userId, foodLogId, revision) != 1)
             throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
         FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
-        store.completeAudit(userId, key, auditSummary(result));
+        completeAudit(userId, key, auditSummary(result));
         return result;
     }
 
@@ -344,25 +348,14 @@ public class FoodLogServiceImpl implements FoodLogService {
         };
     }
 
-    private FoodLogRepository.AuditWrite audit(
-            long userId,
-            String key,
-            String digest,
-            String action,
-            long foodLogId,
-            FoodLogView response) {
-        TraceContext trace = TraceContextHolder.currentOrNew();
-        return new FoodLogRepository.AuditWrite(
-                ids.nextId(),
-                userId,
-                trace.requestId(),
-                trace.traceId(),
-                "food_log",
-                Long.toString(foodLogId),
-                action,
-                digest,
-                key,
-                response == null ? "{}" : auditSummary(response));
+    private int reserveAudit(
+            long userId, String key, String digest, String action, long foodLogId) {
+        return audit.reserve(
+                userId, "food_log", Long.toString(foodLogId), action, digest, key, Map.of());
+    }
+
+    private void completeAudit(long userId, String key, String responseJson) {
+        audit.complete(userId, key, responseJson);
     }
 
     private FoodLogRepository.FoodLogSnapshot requireSnapshot(
