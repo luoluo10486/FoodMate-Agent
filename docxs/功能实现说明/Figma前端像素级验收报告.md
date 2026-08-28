@@ -1065,3 +1065,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实时复核 `/?state=figma-v2`：当前视口 `1280×720`、DPR `1.25`；“活跃会话”实测 `458.4×305px`，“待确认队列”实测 `458.4×228px`，页面无横向溢出，左上角红黄绿窗口装饰候选数量为 `0`。
 - [x] Workspace Home 定向测试 `3/3`、`npm run typecheck`、`npm run build` 和 `git diff --check` 通过。
 - [ ] 本条只证明 Workspace Home 局部几何收口；当前浏览器不是 Figma 要求的 `1440×1024 / DPR 1`，整页自动 diff 仍为 `DIFF_REVIEW`，不标记像素级 `PASS`。105 张画板汇总、shadcn 全量视觉迁移和 iconfont 实体资源登记状态不变。
+
+## 112. 2026-08-29 Workspace Home Dashboard 内部间距收口
+
+- [x] 依据 Figma 节点 `640:256` 实时元数据，确认 Dashboard 面板内边距为 `24px`，标题行高为 `22px`，标题到列表间距为 `16px`，列表项高度为 `65px`。
+- [x] 修正 Workspace Home Dashboard CSS：面板桌面外框明确为 `305px`，待确认队列明确为 `228px`；移动端两者恢复自适应高度，避免固定桌面尺寸影响窄视口。
+- [x] 浏览器实时复核 `/?state=figma-v2`：当前视口 `1280×720`、DPR `1.25`；活跃会话面板实测 `458.4×305px`，待确认队列实测 `458.4×228px`，标题行高 `22px`，列表项高度 `65px`，页面无横向溢出，左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] Workspace Home 定向测试 `3/3`、`npm run typecheck`、`npm run build` 和 `git diff --check` 通过。
+- [ ] 本条只证明 Dashboard 局部几何收口；当前浏览器不是 Figma 要求的 `1440×1024 / DPR 1`，整页自动 diff 仍为 `DIFF_REVIEW`，不标记像素级 `PASS`。105 张画板汇总、shadcn 全量视觉迁移和 iconfont 实体资源登记状态不变。
