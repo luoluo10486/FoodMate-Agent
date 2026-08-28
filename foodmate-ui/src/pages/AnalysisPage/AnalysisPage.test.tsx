@@ -82,6 +82,8 @@ describe('AnalysisPage', () => {
     expect(fixtureShell).toHaveClass(styles.figmaAnalysis);
     expect(fixtureChart).toHaveClass(styles.chartCard);
     expect(fixtureInsight).toHaveClass(styles.insightCard);
+    expect(screen.getByRole('button', { name: '让 Agent 解读' })).toHaveClass(styles.figmaInsightActionPrimary);
+    expect(screen.getByRole('button', { name: '基于分析制定计划' })).toHaveClass(styles.figmaInsightActionSecondary);
 
     fixtureRender.unmount();
     renderPage('/analysis');

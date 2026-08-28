@@ -641,6 +641,19 @@
   color: #ffffff;
 }
 
+.figmaAnalysis .figmaInsightActionPrimary,
+.figmaAnalysis .figmaInsightActionSecondary {
+  box-sizing: border-box;
+}
+
+.figmaAnalysis .figmaInsightActionPrimary {
+  width: 121px;
+}
+
+.figmaAnalysis .figmaInsightActionSecondary {
+  width: 144px;
+}
+
 .qualityPanel {
   display: grid;
   width: min(1116px, calc(100% - 64px));

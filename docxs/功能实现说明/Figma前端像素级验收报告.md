@@ -1006,6 +1006,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `AnalysisPage` 定向测试 `5/5`、浏览器几何检查、截图格式归一化、`png-diff.mjs` 和窗口装饰源码/运行时检查均已执行；Figma 设计稿未修改。
 - [ ] 本小点只收口趋势卡内容区边界，不代表该画板或 105 张画板达到像素级 `PASS`；整页字体、图标和其他视觉差异仍需复核，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
 
+## 116. 2026-08-29 Intake Analysis 洞察操作按钮几何收口
+
+- [x] 重新读取实时 Figma 节点 `640:895` 及子节点 `640:896/640:898`，确认“让 Agent 解读”目标为 `121×37px`、“基于分析制定计划”目标为 `144×37px`，两者间距为 `12px`。
+- [x] 前端仅在 Figma fixture 作用域为两个按钮增加 `box-sizing: border-box` 和明确宽度；真实模式保持原有自适应按钮尺寸与交互。
+- [x] 浏览器实测 `/analysis?state=v2`：第一按钮 `121×37px`、第二按钮 `144×37px`、间距 `12px`；视口 `1440×1024`、DPR `1.0000000149`、字体已加载、页面无横向溢出，左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] 新增原始浏览器帧 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-insight-buttons-2026-08-29.jpg`、PNG `intake-analysis-v2-browser-insight-buttons-2026-08-29.png` 和独立 diff `intake-analysis-v2-insight-buttons-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=406120`、差异比例 `27.5418%`、`MAE=2.49371`、`RMSE=14.13255`、最大通道差异 `234`，结论继续为 `DIFF_REVIEW`。
+- [x] `AnalysisPage` 定向测试 `5/5`、`npm run typecheck`、浏览器几何检查、截图格式归一化、`png-diff.mjs` 和 `git diff --check` 均通过；Figma 设计稿未修改。
+- [ ] 本小点只收口洞察操作按钮几何，不代表该画板或 105 张画板达到像素级 `PASS`；整页字体、图标和其他视觉差异仍需复核，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
 ## 107. 2026-08-28 Agent Tool Failed Retryable 当前版本验收
 
 - [x] 重新读取 Figma 节点 `687:1439`，确认侧栏窗口控制区域只提供 `y=24~36` 的顶部占位，品牌、新建任务、会话搜索和工作区导航目标起点为 `y=52/104/161/217`；前端仅移除左上角红、黄、绿窗口控制点，保留该占位，业务状态圆点不受影响。

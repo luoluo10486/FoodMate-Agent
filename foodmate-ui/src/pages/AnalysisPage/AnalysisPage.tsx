@@ -476,12 +476,16 @@ export function AnalysisPage() {
               </div>
               <div className={styles.insightActions}>
                 <Button
-                  className={styles.interpretButton}
+                  className={`${styles.interpretButton} ${styles.figmaInsightActionPrimary}`}
                   onClick={() => navigate('/chat/protein-review?prompt=请解读这份摄入分析')}
                 >
                   让 Agent 解读
                 </Button>
-                <Button variant="outline" onClick={() => navigate('/planning')}>
+                <Button
+                  className={styles.figmaInsightActionSecondary}
+                  variant="outline"
+                  onClick={() => navigate('/planning')}
+                >
                   基于分析制定计划
                 </Button>
               </div>
