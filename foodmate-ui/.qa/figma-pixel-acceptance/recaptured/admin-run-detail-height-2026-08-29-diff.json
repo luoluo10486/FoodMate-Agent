@@ -1,0 +1,28 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 375726,
+  "differentRatio": 0.25480550130208335,
+  "meanAbsoluteError": 2.793518575032552,
+  "rmse": 15.535897817378459,
+  "maxChannelDelta": 230,
+  "expected": "recaptured/admin-run-detail-figma-live-2026-08-29.png",
+  "actual": "recaptured/admin-run-detail-height-browser-2026-08-29-rgba.png",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "geometry": {
+    "toolbar": "1132x34 at y=88",
+    "table": "1132x87 at y=146",
+    "tracePanel": "1132x162 at y=257",
+    "traceCards": "4 x 261x87",
+    "detailPanel": "1132x300 at y=454",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据 Figma 节点 986:3 将 Run Detail 详情面板从浏览器 y=443 对齐到 y=454；仅修改前端，未修改 Figma。",
+  "conclusion": "DIFF_REVIEW"
+}

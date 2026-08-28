@@ -887,11 +887,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 717807,
-      "differentRatio": 0.4867940266927083,
-      "meanAbsoluteError": 3.60447998046875,
-      "rmse": 18.02719272839113,
-      "maxChannelDelta": 240
+      "differentPixels": 375726,
+      "differentRatio": 0.25480550130208335,
+      "meanAbsoluteError": 2.793518575032552,
+      "rmse": 15.535897817378459,
+      "maxChannelDelta": 230
     },
     "admin-tool-calls": {
       "status": "COMPARED",

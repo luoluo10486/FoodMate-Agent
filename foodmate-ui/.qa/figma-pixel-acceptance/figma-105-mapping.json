@@ -3661,12 +3661,12 @@
       "frontendRoute": "/admin",
       "queryState": "state=run-detail",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/admin-run-detail.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-browser-current.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-run-detail",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-run-detail-figma-live-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-height-browser-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-height-2026-08-29-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-08-29 独立 diff 已更新；Run Detail 详情面板依据 Figma 节点 986:3 从浏览器 y=443 对齐到 y=454，整页视觉差异仍需复核",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3691,9 +3691,38 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Run table, filters, execution timeline, download control, and the Figma Run 详情字段 panel are represented. Shell typography, sidebar identity, spacing, and remaining visual differences are still present; retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-29",
+        "conclusion": "Run table, filters, execution timeline, download control and Run detail fields remain represented. The shared event panel and Run detail panel now match the Figma geometry targets; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-run-detail-figma-live-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-height-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-run-detail-height-2026-08-29-diff.json",
+          "visualChange": "依据 Figma 节点 986:3 将 Run Detail 详情面板从浏览器 y=443 对齐到 y=454；仅修改前端，未修改 Figma。",
+          "diff": {
+            "differentPixels": 375726,
+            "differentRatio": 0.25480550130208335,
+            "meanAbsoluteError": 2.793518575032552,
+            "rmse": 15.535897817378459,
+            "maxChannelDelta": 230
+          },
+          "geometry": {
+            "viewport": "1440x1024",
+            "dpr": 1.0000000149011612,
+            "fonts": "loaded",
+            "toolbar": "1132x34 at y=88",
+            "table": "1132x87 at y=146",
+            "tracePanel": "1132x162 at y=257",
+            "traceCards": "4 x 261x87",
+            "detailPanel": "1132x300 at y=454",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "conclusion": "DIFF_REVIEW"
+        }
+      ]
     },
     {
       "figmaNodeId": "797:359",
