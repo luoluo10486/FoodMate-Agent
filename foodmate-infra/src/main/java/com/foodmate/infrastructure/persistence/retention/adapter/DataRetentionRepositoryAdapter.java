@@ -1,6 +1,7 @@
 package com.foodmate.infrastructure.persistence.retention.adapter;
 
 import com.foodmate.application.retention.port.out.DataRetentionRepository;
+import com.foodmate.application.retention.port.out.DataRetentionRepository.PurgeTaskState;
 import com.foodmate.infrastructure.persistence.retention.DataRetentionMapper;
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +41,11 @@ public class DataRetentionRepositoryAdapter implements DataRetentionRepository {
     @Override
     public PurgeRequest activePurgeRequest(String resourceType, long resourceId) {
         return mapper.activePurgeRequest(resourceType, resourceId);
+    }
+
+    @Override
+    public List<PurgeTaskState> purgeTaskStates(long requestId) {
+        return mapper.purgeTaskStates(requestId);
     }
 
     @Override

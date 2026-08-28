@@ -35,6 +35,11 @@ public interface DataRetentionMapper {
     DataRetentionRepository.PurgeRequest activePurgeRequest(
             @Param("resourceType") String resourceType, @Param("resourceId") long resourceId);
 
+    @Select(
+            "SELECT task_type AS taskType,status,attempt_count AS attemptCount,last_error_code AS lastErrorCode FROM data_purge_tasks WHERE request_id=#{requestId} ORDER BY task_type")
+    List<DataRetentionRepository.PurgeTaskState> purgeTaskStates(
+            @Param("requestId") long requestId);
+
     @Insert(
             "INSERT INTO data_purge_requests(request_id,resource_type,resource_id,policy_id,requested_by,idempotency_key,deleted_at_snapshot,eligible_at) VALUES(#{request.requestId},#{request.resourceType},#{request.resourceId},#{request.policyId},#{request.requestedBy},#{request.idempotencyKey},#{request.deletedAt},#{request.eligibleAt}) ON CONFLICT DO NOTHING")
     int insertPurgeRequest(@Param("request") DataRetentionRepository.NewPurgeRequest request);

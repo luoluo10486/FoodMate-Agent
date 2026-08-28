@@ -19,6 +19,9 @@ public interface DataRetentionRepository {
     /** Finds an active purge request that already covers a resource. */
     PurgeRequest activePurgeRequest(String resourceType, long resourceId);
 
+    /** Reads non-sensitive task state for an operator-facing purge preflight. */
+    java.util.List<PurgeTaskState> purgeTaskStates(long requestId);
+
     /** Creates a purge request without deleting any resource data. */
     int insertPurgeRequest(NewPurgeRequest request);
 
@@ -112,6 +115,9 @@ public interface DataRetentionRepository {
             String targetRef,
             String status,
             boolean hardDeleteEnabled) {}
+
+    /** Safe task state; target references and storage details never cross this boundary. */
+    record PurgeTaskState(String taskType, String status, int attemptCount, String lastErrorCode) {}
 
     record Hold(
             long holdId,

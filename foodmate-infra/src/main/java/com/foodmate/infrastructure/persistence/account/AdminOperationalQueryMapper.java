@@ -10,6 +10,7 @@ import com.foodmate.application.account.port.out.AdminOperationalQueryRepository
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.ToolCallRow;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.ToolRow;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.TraceRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.TraceSpanRow;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.UsageRow;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.UserRow;
 import java.util.List;

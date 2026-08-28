@@ -1,7 +1,9 @@
 package com.foodmate.application.retention;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -17,6 +19,7 @@ import com.foodmate.shared.error.BusinessException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -183,6 +186,49 @@ class DataRetentionServiceImplTest {
         assertEquals("approved", result.status());
         assertEquals(3, result.taskCount());
         verify(store, Mockito.times(3)).insertPurgeTask(any());
+    }
+
+    @Test
+    void preflightReturnsSafeBlockersAndNeverReturnsTaskTargets() {
+        when(store.policy("knowledge_document"))
+                .thenReturn(
+                        new DataRetentionRepository.Policy(
+                                1L, "knowledge_document", 30, false, "p-v1"));
+        when(store.purgeRequest(901L))
+                .thenReturn(
+                        new DataRetentionRepository.PurgeRequest(
+                                901L,
+                                "knowledge_document",
+                                42L,
+                                1L,
+                                7L,
+                                "approved",
+                                NOW.minusSeconds(1),
+                                8L,
+                                NOW.minusSeconds(1),
+                                3));
+        when(store.purgeTaskStates(901L))
+                .thenReturn(
+                        List.of(
+                                new DataRetentionRepository.PurgeTaskState(
+                                        "database", "pending", 0, null),
+                                new DataRetentionRepository.PurgeTaskState(
+                                        "object_storage", "pending", 0, null),
+                                new DataRetentionRepository.PurgeTaskState(
+                                        "vector_index", "pending", 0, null)));
+        when(store.activeHold("knowledge_document", 42L)).thenReturn(null);
+
+        DataRetentionService.PurgePreflight result = service.getPreflight(901L);
+
+        assertTrue(result.policyFound());
+        assertFalse(result.hardDeleteEnabled());
+        assertTrue(result.resourceSoftDeleted());
+        assertTrue(result.retentionElapsed());
+        assertTrue(result.taskContractValid());
+        assertFalse(result.readyToExecute());
+        assertTrue(result.blockers().contains("RETENTION_HARD_DELETE_DISABLED"));
+        assertEquals(3, result.tasks().size());
+        assertFalse(result.tasks().toString().contains("knowledge/public/42"));
     }
 
     private DataRetentionService.PurgeCommand purgeCommand(String key) {

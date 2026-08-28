@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 
 /** Governance workflow for retention and purge plans; it does not delete data itself. */
 public interface DataRetentionService {
@@ -17,6 +18,9 @@ public interface DataRetentionService {
     HoldResult releaseHold(long holdId, ReleaseCommand command);
 
     PurgeResult getPurge(long requestId);
+
+    /** Returns a non-destructive, safe-to-display execution preflight. */
+    PurgePreflight getPreflight(long requestId);
 
     static String purgeConfirmationDigest(String resourceType, long resourceId) {
         return sha256("retention.purge|" + resourceType + "|" + resourceId + "|1");
@@ -82,6 +86,23 @@ public interface DataRetentionService {
 
     record HoldResult(
             long holdId, String status, String resourceType, long resourceId, String reasonCode) {}
+
+    record PurgePreflight(
+            long requestId,
+            String status,
+            String resourceType,
+            long resourceId,
+            boolean policyFound,
+            boolean hardDeleteEnabled,
+            boolean resourceSoftDeleted,
+            boolean retentionElapsed,
+            boolean legalHoldClear,
+            boolean taskContractValid,
+            boolean readyToExecute,
+            List<PurgeTaskState> tasks,
+            List<String> blockers) {}
+
+    record PurgeTaskState(String taskType, String status, int attemptCount, String lastErrorCode) {}
 
     private static String sha256(String value) {
         try {

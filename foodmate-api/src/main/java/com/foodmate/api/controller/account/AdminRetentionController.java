@@ -4,6 +4,7 @@ import com.foodmate.api.request.account.RetentionApprovalRequest;
 import com.foodmate.api.request.account.RetentionHoldRequest;
 import com.foodmate.api.request.account.RetentionPurgeRequest;
 import com.foodmate.api.response.account.RetentionHoldResponse;
+import com.foodmate.api.response.account.RetentionPurgePreflightResponse;
 import com.foodmate.api.response.account.RetentionPurgeResponse;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.retention.service.DataRetentionService;
@@ -55,6 +56,13 @@ public class AdminRetentionController extends AuthenticatedControllerSupport {
             @PathVariable long requestId, HttpServletRequest request) {
         requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.OPERATOR);
         return ok(RetentionPurgeResponse.from(retention.getPurge(requestId)));
+    }
+
+    @GetMapping("/purge-requests/{requestId}/preflight")
+    public ApiResponse<RetentionPurgePreflightResponse> preflight(
+            @PathVariable long requestId, HttpServletRequest request) {
+        requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.OPERATOR);
+        return ok(RetentionPurgePreflightResponse.from(retention.getPreflight(requestId)));
     }
 
     @PostMapping("/purge-requests/{requestId}/approve")

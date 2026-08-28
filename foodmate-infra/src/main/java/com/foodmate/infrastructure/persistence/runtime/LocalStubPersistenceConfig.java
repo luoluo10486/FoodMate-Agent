@@ -480,6 +480,11 @@ public class LocalStubPersistenceConfig {
                 return null;
             }
 
+            public java.util.List<DataRetentionRepository.PurgeTaskState> purgeTaskStates(
+                    long requestId) {
+                return java.util.List.of();
+            }
+
             public int insertPurgeRequest(NewPurgeRequest request) {
                 throw unavailable();
             }
@@ -613,6 +618,14 @@ public class LocalStubPersistenceConfig {
 
             public long countTraces(Query query) {
                 return 0;
+            }
+
+            public TraceRow traceById(String traceId) {
+                return null;
+            }
+
+            public List<TraceSpanRow> traceSpans(String traceId) {
+                return List.of();
             }
 
             public List<ToolCallRow> toolCalls(Query query) {
