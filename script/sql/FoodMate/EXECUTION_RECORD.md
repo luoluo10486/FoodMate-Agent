@@ -1205,3 +1205,16 @@
 | Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`124 passed、1 skipped、2 warnings`；跳过项为显式真实外部服务测试。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复；用户已有分析页改动和 UI 验收图片未暂存、未回滚。 |
 | 结论 | 饮食记录 real 业务主路径与周视图日期修复取得可复核业务门禁结果；M1-6 性能、完整故障恢复和生产强化仍保持后置。 |
+
+## D60 local RAG Worker readiness gate 与业务门禁复核（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；默认 Docker 配置为 `FOODMATE_RAG_MODE=stub`；未读取真实 API Key，未调用真实云模型或付费 embedding。 |
+| 代码与提交 | `17306d9 修复知识索引本地启动门禁`；local 模式在启动索引/可见性消费者前等待 Milvus `/healthz`，默认从 `19530` 推导 `9091/healthz`，可用 `FOODMATE_RAG_MILVUS_HEALTH_URL` 覆盖；stub 模式直接跳过探测。 |
+| Python 业务测试 | `PYTHONDONTWRITEBYTECODE=1 .\\agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`126 passed、1 skipped、2 warnings`。新增 stub bypass 与 local health probe 定向用例包含在结果内。 |
+| 前端业务测试 | `foodmate-ui` 的 `npm.cmd test -- --run`：38 个测试文件、`201/201` 通过；`npm.cmd run build`（含 typecheck）通过，Vite 转换 2010 个模块。 |
+| Docker 配置与容器 smoke | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；已有 `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO、Milvus 及依赖容器保持 healthy。使用现有已安装依赖的 Agent 镜像挂载当前源码：stub 输出 `STUB_READY_GATE_BYPASSED`；local 输出 `LOCAL_MILVUS_READY_GATE_PASSED`，并在容器网络内访问 `http://milvus:9091/healthz` 成功。 |
+| Docker 构建记录 | `docker compose --env-file .env -f docker/compose.yml up -d --build agent-runtime` 在 `pip install .` 的构建隔离阶段因访问 `pypi.org` 的 TLS/网络错误失败，未将该次命令记为新镜像构建成功；原运行容器未被删除，readiness 保持正常。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；未新增业务数据。 |
+| 结论 | local Worker 的启动顺序门禁已通过代码、定向 pytest 和容器网络 smoke 验证；stub 不受 Milvus 依赖影响。Docker 镜像完整重建仍受外部 PyPI TLS/网络条件阻断，需在网络恢复后重新执行；M1-6 性能/故障类门禁继续后置。 |
