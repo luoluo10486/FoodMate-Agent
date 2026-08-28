@@ -1016,6 +1016,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] ChatPage 状态回归确认部分文本、取消提示和重新开始输入框存在，且页面正文不包含“运行失败”；机器检查与人工复核均已更新，结论继续为 `DIFF_REVIEW`。
 - [ ] 整页壳层、字体光栅化、图标及其他组合差异仍存在；该画板不能标记像素级 `PASS`。shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
 
+## 110. 2026-08-28 Agent SSE Reconnecting 当前版本验收
+
+- [x] 对应 Figma 节点 `687:1803` 的 `/chat?state=sse-reconnecting` fixture 保留已显示文本，展示第 `2/5` 次重连、等待重连状态和持续失败后的刷新提示；输入框保持禁用。
+- [x] 浏览器当前版本在 `1440×1024` 视口下实测字体已加载、`scrollWidth=clientWidth=1440`、窗口控制候选数量为 `0`；Figma 设计稿中的红黄绿装饰点未写入前端，业务状态圆点保留。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-browser-2026-08-28.png`，Figma 参考为 `docxs/设计/figma-png/agent-sse-reconnecting.png`；独立 diff 为 `differentPixels=384243`、差异比例 `26.0581%`、`MAE=2.98683`、`RMSE=15.58692`、最大通道差异 `248`，见 `agent-sse-reconnecting-current-diff-2026-08-28.json`。
+- [x] ChatPage 状态回归确认重连文案、重连次数、刷新提示、保留文本和禁用输入框存在；机器检查与人工复核均已更新，结论继续为 `DIFF_REVIEW`。
+- [ ] 整页壳层、字体光栅化、图标及其他组合差异仍存在；该画板不能标记像素级 `PASS`。shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
+
 ## 106. 2026-08-28 Agent 完成态引用与蛋白质指标收口
 
 - [x] 依据 Figma 节点 `687:1306`，为 `/chat?state=completed-with-citations` 增加独立完成态 fixture：完成响应、蛋白质指标卡、两条数据源引用和无 Trace 的完成态布局。
