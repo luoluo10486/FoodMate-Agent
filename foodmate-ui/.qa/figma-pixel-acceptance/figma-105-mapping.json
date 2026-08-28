@@ -261,7 +261,25 @@
         "dprPass": false,
         "visualChange": "Figma 餐食卡长英文标题规则已映射为 13px、单行、隐藏溢出和省略号；仅修改前端，未修改 Figma。",
         "conclusion": "Supplemental evidence only; the primary mapping remains DIFF_REVIEW because this capture does not satisfy the DPR 1 gate."
-      }
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-28",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-banner-geometry-browser-2026-08-28-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/meal-planning-v2-banner-geometry-2026-08-28-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "dprPass": false,
+          "geometryEvidence": {
+            "planBanner": "776x97",
+            "actionButtons": "88x37",
+            "bodyHorizontalOverflow": false,
+            "fonts": "loaded"
+          },
+          "visualChange": "按 Figma 节点 640:901 将计划横幅描边改为等效内描边，并将重新生成、保存计划按钮固定为 88x37px；仅修改前端，未修改 Figma。",
+          "conclusion": "Supplemental evidence only; actual DPR is 1.25 and the whole artboard still has visible differences, so retain DIFF_REVIEW."
+        }
+      ]
     },
     {
       "figmaNodeId": "647:214",

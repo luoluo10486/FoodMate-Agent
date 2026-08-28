@@ -947,3 +947,12 @@
 - [x] Figma fixture 错误卡片使用等效内描边，实测 `1116×440px`，图标容器 `64×64px`，描述 `238×17px`，按钮 `x=790,y=443`；前端左上角窗口装饰候选为 `0`，业务状态点保留，Figma 未修改。
 - [x] 同尺寸 diff 为 `12.8468% / MAE 2.00587 / RMSE 14.19979`，证据路径为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser-reload-button-2026-08-28-rgba.png`，状态继续为 `DIFF_REVIEW`。
 - [ ] in-app 浏览器实际 DPR 为 `1.25`，DPR 1 门禁和整页像素 `PASS` 仍未完成；iconfont 实体资源继续为 `BLOCKED`。
+
+## 47. 2026-08-28 餐食规划默认页计划横幅几何收口
+
+- [x] 依据实时 Figma 节点 `640:901` 核对计划横幅尺寸为 `776×97px`，重新生成和保存计划按钮尺寸均为 `88×37px`；前端仅调整 `PlanningPage.module.css`，未修改 Figma 设计稿。
+- [x] 横幅描边改用等效内描边，避免普通 `border` 改变内容盒尺寸；两个操作按钮增加固定宽度和 `box-sizing`，浏览器实测横幅 `776×97px`、按钮均为 `88×37px`。
+- [x] 浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-banner-geometry-browser-2026-08-28.png`，RGBA 归一化证据用于 diff；字体已加载，页面无横向溢出。
+- [x] 与 `recaptured-figma/meal-planning-v2-current.png` 的同尺寸 diff 为 `344235` 个差异像素、`23.3449%`、`MAE=2.40089`、`RMSE=13.73352`、最大通道差异 `234`，独立结果见 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-banner-geometry-2026-08-28-diff.json`。
+- [x] 前端左上角红、黄、绿窗口装饰候选仍为 `0`，没有需要删除的对应代码；业务状态圆点保留，Figma 设计稿不改。
+- [ ] 当前采集实际 DPR 为 `1.25`，本条为补充几何证据，不能关闭该画板的 DPR 1 门禁或整页像素 `PASS`；105 张画板仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全量逐页迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。

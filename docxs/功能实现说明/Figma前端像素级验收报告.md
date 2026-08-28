@@ -974,6 +974,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口控制点及 `window-controls` 均为 `0`；业务状态圆点保留，Figma 设计稿保持只读。
 - [ ] 105 张画板汇总继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；shadcn 全量页面迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
 
+## 105. 2026-08-28 餐食规划默认页计划横幅几何验收
+
+- [x] Figma 节点 `640:901` 的计划横幅按实时元数据核对为 `776×97px`，两个操作按钮均为 `88×37px`；前端使用等效内描边保留边框视觉，同时避免边框参与内容盒尺寸计算。
+- [x] 浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-banner-geometry-browser-2026-08-28.png`，RGBA 归一化证据为同名 `-rgba.png`；视口 `1440×1024`，字体已加载，页面无横向溢出。
+- [x] 浏览器实测横幅 `776×97px`，重新生成按钮 `88×37px`，保存计划按钮 `88×37px`；前端左上角红黄绿窗口装饰候选为 `0`，Figma 设计稿保持只读。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=344235`、差异比例 `23.3449%`、`MAE=2.40089`、`RMSE=13.73352`、最大通道差异 `234`；独立结果见 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-banner-geometry-2026-08-28-diff.json`，并已登记到 105 画板映射的 `additionalVisualEvidence`。
+- [ ] 当前浏览器采集实际 DPR 为 `1.25`，该记录只证明局部几何修正，不满足 DPR 1 和整页人工复核门禁；`meal-planning-v2` 以及 105 张画板继续保持 `DIFF_REVIEW`，不能标记 `PASS`。
+
 ## 97. 2026-08-27 Workspace Home 状态说明文案复核
 
 - [x] 依据 Figma 节点 `640:256`，将 `/?state=figma-v2` 的状态说明从“待处理事项提醒 / 预算通知”修正为“待处理事项覆盖 / 预算追加”，与设计稿可见文案一致。
