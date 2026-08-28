@@ -76,7 +76,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；2026-08-22 Chat 历史页当前版本复核因 in-app 浏览器实际 DPR 为 `1.25`，更新后的运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=102/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；后续 in-app 浏览器实际 DPR 为 `1.25` 的当前版本复核，运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=101/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 
@@ -991,6 +991,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测横幅 `776×97px`，重新生成按钮 `88×37px`，保存计划按钮 `88×37px`；前端左上角红黄绿窗口装饰候选为 `0`，Figma 设计稿保持只读。
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=344235`、差异比例 `23.3449%`、`MAE=2.40089`、`RMSE=13.73352`、最大通道差异 `234`；独立结果见 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-banner-geometry-2026-08-28-diff.json`，并已登记到 105 画板映射的 `additionalVisualEvidence`。
 - [ ] 当前浏览器采集实际 DPR 为 `1.25`，该记录只证明局部几何修正，不满足 DPR 1 和整页人工复核门禁；`meal-planning-v2` 以及 105 张画板继续保持 `DIFF_REVIEW`，不能标记 `PASS`。
+
+## 107. 2026-08-28 Agent Tool Failed Retryable 当前版本验收
+
+- [x] 重新读取 Figma 节点 `687:1439`，确认侧栏窗口控制区域只提供 `y=24~36` 的顶部占位，品牌、新建任务、会话搜索和工作区导航目标起点为 `y=52/104/161/217`；前端仅移除左上角红、黄、绿窗口控制点，保留该占位，业务状态圆点不受影响。
+- [x] 浏览器当前版本实测视口 `1440×1024`、字体已加载、无横向溢出、窗口控制候选数量为 `0`；Agent 头像 `x=292,y=237,w=36,h=36`，失败卡片 `x=340,y=237,w=560,h=160.6`，与 Figma 目标位置和主体宽度一致。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-2026-08-28.png`，Figma 参考为 `docxs/设计/figma-png/agent-tool-failed-retryable.png`；独立 diff 为 `differentPixels=360281`、差异比例 `24.4331%`、`MAE=3.03221`、`RMSE=16.25115`、最大通道差异 `253`，见 `agent-tool-failed-retryable-current-diff.json`。
+- [x] 交互回归保留“重试”和“跳过此步骤”两个入口，且仅在 `retryable` fixture 中显示重试；定向 ChatPage 测试与全量前端门禁已通过。
+- [ ] 本次采集实际 DPR 为 `1.25`，因此运行时 `dprPass=false`；整页壳层、字体光栅化、图标及其他组合差异仍存在，画板继续为 `DIFF_REVIEW`，不能标记 `PASS`。shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
 
 ## 106. 2026-08-28 Agent 完成态引用与蛋白质指标收口
 

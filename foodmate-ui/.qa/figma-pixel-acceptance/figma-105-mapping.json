@@ -1174,10 +1174,8 @@
       "queryState": "state=tool-failed-retryable",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-tool-failed-retryable.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-current.png",
-      "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-390x844-current.png",
-      "mobileBrowserViewport": "390x844",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-2026-08-28.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -1186,9 +1184,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -1205,8 +1203,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures contain the retryable failure text, error code, retry action, and skip action. The frontend now includes the left Agent avatar and failed process marker and uses the Figma alert treatment. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-28",
+        "conclusion": "The current browser capture contains the retryable failure text, error code, retry action, skip action, left Agent avatar and failed process marker. Sidebar/window-control spacing matches the Figma baseline after removing only the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; the capture DPR is 1.25, so retain DIFF_REVIEW."
       }
     },
     {
@@ -4708,7 +4706,7 @@
     "summary": {
       "total": 105,
       "viewportPass": 105,
-      "dprPass": 105,
+      "dprPass": 101,
       "geometryPass": 105,
       "textPass": 105,
       "textReview": 0,
