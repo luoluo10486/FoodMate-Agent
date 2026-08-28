@@ -1154,6 +1154,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 定向 Admin 测试 `8/8` 通过；实时 Figma 参考图与浏览器 RGBA PNG 的 PNG diff 为 `differentPixels=311840`、差异比例 `21.1480%`、`MAE=2.85604`、`RMSE=17.03777`、最大通道差异 `230`。证据和 105 画板映射已同步。
 - [ ] 侧栏身份、图标光栅化、字体和其他整页组合差异仍存在；该画板继续为 `DIFF_REVIEW`，不能标记像素级 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
 
+## 125. 2026-08-29 Admin Trace 事件面板几何收口
+
+- [x] 依据实时 Figma 节点 `797:621`、`797:732`、`986:25`，仅修改前端 `AdminPage.module.css`：工具栏收口为 `34px`，运行表收口为 `1132×87px`，Trace 事件面板收口为 `1132×162px`，四张事件卡均为 `261×87px`，详情面板对齐到 `y=454`；未修改 Figma 设计稿。
+- [x] 浏览器视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`；Trace 事件面板为 `y=257.28`、`1132×162px`，四张卡位置为 `x=304/581/858/1135`、`261×87px`，详情面板为 `y=454.08`、`1132×300px`；页面无横向或纵向溢出，左上角窗口装饰候选数量为 `0`。
+- [x] 最新 Figma PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png`，浏览器 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-height-browser-2026-08-29-rgba.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-height-2026-08-29-diff.json`；结果为 `differentPixels=366520`、差异比例 `24.8562%`、`MAE=2.743037`、`RMSE=15.440114`、最大通道差异 `230`。
+- [ ] 事件面板局部几何已收口，但侧栏身份、图标处理、字体和其它整页渲染差异仍存在；该画板继续为 `DIFF_REVIEW`，不能标记 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移未完成，iconfont 继续为 `BLOCKED`。
+
 ## 124. 2026-08-29 Admin SQL Audit 详情面板垂直位置收口
 
 - [x] 依据实时 Figma 节点 `797:490` 与详情字段节点 `986:18`，仅修改前端 `AdminPage`：新增 SQL Audit 专属说明面板样式，将详情面板从浏览器 `y=656.4` 对齐到目标 `y=674`；未修改 Figma 设计稿，也未删除业务状态圆点。

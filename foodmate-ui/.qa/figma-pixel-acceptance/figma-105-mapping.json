@@ -3844,12 +3844,12 @@
       "frontendRoute": "/admin",
       "queryState": "state=trace",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/admin-trace.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-browser-current.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-trace",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-height-browser-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-trace-height-2026-08-29-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-08-29 独立 diff 已更新；Trace 事件面板依据实时 Figma 节点 797:732 收口为 162px，详情字段面板保持 Figma y=454 目标，整页视觉差异仍需复核",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3874,9 +3874,38 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current browser contains the Figma Trace filters, run table, four event timeline cards, refresh control, log-download action and Trace detail fields. Shell identity, icon treatment, typography, spacing and other visual differences remain; retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-29",
+        "conclusion": "Trace filters, run table, four event timeline cards, refresh control, log-download action and Trace detail fields remain represented. The event panel, cards and detail panel now match the Figma geometry targets; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-height-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-trace-height-2026-08-29-diff.json",
+          "visualChange": "依据 Figma 节点 797:732 将 Trace 事件面板收口为 162px、四张事件卡收口为 261x87px，并将详情面板对齐到 y=454；仅修改前端，未修改 Figma。",
+          "diff": {
+            "differentPixels": 366520,
+            "differentRatio": 0.2485622829861111,
+            "meanAbsoluteError": 2.7430372450086806,
+            "rmse": 15.44011424688348,
+            "maxChannelDelta": 230
+          },
+          "geometry": {
+            "viewport": "1440x1024",
+            "dpr": 1.0000000149011612,
+            "fonts": "loaded",
+            "toolbar": "1132x34 at y=88",
+            "table": "1132x87 at y=146",
+            "tracePanel": "1132x162 at y=257",
+            "traceCards": "4 x 261x87",
+            "detailPanel": "1132x300 at y=454",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "conclusion": "DIFF_REVIEW"
+        }
+      ]
     },
     {
       "figmaNodeId": "801:215",

@@ -920,11 +920,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 713352,
-      "differentRatio": 0.4837727864583333,
-      "meanAbsoluteError": 3.532003953721788,
-      "rmse": 17.870831400814176,
-      "maxChannelDelta": 240
+      "differentPixels": 366520,
+      "differentRatio": 0.2485622829861111,
+      "meanAbsoluteError": 2.7430372450086806,
+      "rmse": 15.44011424688348,
+      "maxChannelDelta": 230
     },
     "admin-user-detail": {
       "status": "COMPARED",
