@@ -1776,12 +1776,12 @@
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-loading-browser-current-2026-08-26-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-loading-browser-radius-2026-08-28-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
-      "lastVerifiedAt": "2026-08-26",
+      "lastVerifiedAt": "2026-08-28",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1806,8 +1806,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-26",
-        "conclusion": "Loading semantics and primary geometry are aligned with the live Figma node. The frontend intentionally omits the Figma window-control dots; remaining raster and shell differences require DIFF_REVIEW."
+        "reviewedAt": "2026-08-28",
+        "conclusion": "Loading semantics and primary geometry are aligned with the live Figma node. The title and action skeleton radii now match the node; the frontend intentionally omits the Figma window-control dots. Remaining avatar, shell, icon and raster differences require DIFF_REVIEW."
       }
     },
     {

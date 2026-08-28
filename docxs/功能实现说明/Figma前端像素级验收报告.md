@@ -1,6 +1,6 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-27
+更新时间：2026-08-28
 
 ## 1. 结论
 
@@ -819,9 +819,16 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 重新读取实时 Figma 节点 `692:2256` 和完整截图；确认画板为 `1440×1024`，主计划区为 `840px`、右栏为 `340px`，loading banner 为 `776×102px`，日期骨架卡为 `123.2×40px`，餐食骨架卡为 `123.2×74px`，右栏约束行分别为 `292×44px`。
 - [x] 前端 `/planning?state=loading` 只调整 loading fixture：摘要、日期骨架卡、餐食骨架条、右栏约束骨架、购物清单骨架的颜色、尺寸、间距和渐变均按实时节点回读值实现；真实计划加载和接口逻辑未改变。
 - [x] 浏览器实测 `1440×1024`、DPR `1.0000000149011612`、字体已加载、页面无横向溢出；主区/右栏关键坐标与 Figma 对齐。前端左上角红黄绿窗口控制点检测为 `0`，没有删除会话状态点、购物清单复选框或其它业务圆点；Figma 设计稿未修改。
-- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png`、`meal-planning-loading-browser-current-2026-08-26.jpg` 和 `meal-planning-loading-browser-current-2026-08-26-rgba.png`；同尺寸 `scripts/png-diff.mjs` 结果为差异比例 `18.1852%`、`MAE=1.19237`、`RMSE=9.65195`、最大通道差异 `244`，已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json#meal-planning-loading`。
-- [x] `PlanningPage.test.tsx` 定向测试 `8/8`、`npm run typecheck` 和 `git diff --check` 通过；当前改动仍只属于该 loading 小点。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-loading-browser-radius-2026-08-28.jpg` 和 RGBA PNG；同尺寸 `scripts/png-diff.mjs` 结果为差异比例 `18.0048%`、`MAE=1.15954`、`RMSE=9.74272`、最大通道差异 `232`，已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json#meal-planning-loading`。
+- [x] `PlanningPage.test.tsx` 定向测试 `9/9`、`npm run format:check` 和 `git diff --check` 通过；本次代码改动已由提交 `686bb9e` 独立提交。
 - [ ] 该画板继续保持 `DIFF_REVIEW`，剩余整页壳层、头像、图标、字体和光栅化差异不满足像素级 `PASS`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
+## 104. 2026-08-28 Meal Planning Loading 骨架圆角收口
+
+- [x] 根据实时 Figma 节点 `692:2256` 的子节点 `692:2341`、`692:2346` 和 `692:2347`，将前端 Loading 标题骨架圆角从 `4px` 修正为 `6px`，两个顶部操作骨架圆角从 `4px` 修正为 `12px`。
+- [x] 浏览器实测 `/planning?state=loading` 为 `1440×1024`、DPR `1.0000000149011612`、字体加载完成、无横向溢出；标题圆角为 `6px`，两个操作骨架圆角均为 `12px`；左上角红黄绿窗口控制点为 `0`，Figma 设计稿未修改。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-loading-browser-radius-2026-08-28.jpg` 及 RGBA PNG；同尺寸 diff 为 `differentPixels=265491`、差异比例 `18.0048%`、`MAE=1.15954`、`RMSE=9.74272`、最大通道差异 `232`。
+- [ ] 该局部修正减少了像素差异，但整页仍有头像、壳层、图标和浏览器光栅化差异，继续保持 `DIFF_REVIEW`，不标记为 `PASS`。
 ## 88. 2026-08-26 摄入分析 Loading 实时 Figma 结构收口
 
 - [x] 重新读取实时 Figma 节点 `692:1901`，前端入口为 `/analysis?state=loading`；画板与浏览器视口均为 `1440×1024`。
