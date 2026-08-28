@@ -531,6 +531,10 @@
   line-height: 20px;
 }
 
+.stateCopy .errorDescription {
+  line-height: 17px;
+}
+
 .recordButton {
   height: 40px;
   padding: 10px 24px;

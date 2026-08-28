@@ -189,7 +189,7 @@ function ErrorAnalysis({ onReload, detail }: { onReload: () => void; detail?: st
       </div>
       <div className={styles.stateCopy}>
         <h3>分析数据加载失败</h3>
-        <p>获取营养趋势数据时出错，请稍后重试</p>
+        <p className={styles.errorDescription}>获取营养趋势数据时出错，请稍后重试</p>
         {detail ? <p>{detail}</p> : null}
       </div>
       <Button className={styles.reloadButton} variant="outline" onClick={onReload}>

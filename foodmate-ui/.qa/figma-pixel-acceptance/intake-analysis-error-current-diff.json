@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-23",
+  "generatedAt": "2026-08-28",
   "tool": "scripts/png-diff.mjs",
   "capture": {
     "viewport": "1440x1024",
-    "dpr": 1.0000000149011612,
+    "dpr": 1.25,
     "fonts": "loaded",
     "textOverflow": 0,
     "layoutOverflow": 0
@@ -14,11 +14,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 177280,
-      "differentRatio": 0.12022569444444445,
-      "meanAbsoluteError": 1.2603878445095487,
-      "rmse": 10.408203902812934,
-      "maxChannelDelta": 230
+      "differentPixels": 191076,
+      "differentRatio": 0.12958170572916666,
+      "meanAbsoluteError": 2.0684326171875,
+      "rmse": 14.510052688681744,
+      "maxChannelDelta": 255
     }
   }
 }

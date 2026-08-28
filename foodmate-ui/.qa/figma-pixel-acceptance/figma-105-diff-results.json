@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27",
+  "generatedAt": "2026-08-28",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -491,10 +491,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 194160,
-      "differentRatio": 0.13167317708333334,
-      "meanAbsoluteError": 2.1311876085069446,
-      "rmse": 14.642230548396654,
+      "differentPixels": 191076,
+      "differentRatio": 0.12958170572916666,
+      "meanAbsoluteError": 2.0684326171875,
+      "rmse": 14.510052688681744,
       "maxChannelDelta": 255
     },
     "meal-plan-list": {

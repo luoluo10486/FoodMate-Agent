@@ -918,6 +918,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `AnalysisPage` 定向测试、类型检查、截图转换和 `png-diff.mjs` 均已执行；该项只收口筛选容器几何，不能将整页差异结果改写为像素级 `PASS`。
 - [ ] `intake-analysis-v2` 继续保持 `DIFF_REVIEW`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全量视觉迁移和 iconfont 实体登记仍未完成。
 
+## 102. 2026-08-28 摄入分析错误态描述行盒收口
+
+- [x] 重新读取实时 Figma 节点 `692:2139`，确认错误态描述节点 `692:2237` 的目标行盒为 `17px`；前端仅给错误态主描述增加 `.stateCopy .errorDescription { line-height: 17px; }`，不改变真实模式附加错误详情。
+- [x] 浏览器复测 `/analysis?state=error`：错误描述为 `238×17px`，错误卡片为 `1116×440.6px`，图标容器为 `64×64px`，页面无横向溢出，字体状态为 `loaded`；前端左上角红黄绿窗口装饰候选数量为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 本次证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser-error-description-2026-08-28-rgba.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=191076`、差异比例 `12.9582%`、`MAE=2.06843`、`RMSE=14.51005`、最大通道差异 `255`，独立结果见 `intake-analysis-error-current-diff.json`。
+- [x] `AnalysisPage` 定向测试 `4/4`、`npm run typecheck`、截图转换、`png-diff.mjs` 和 105 画板映射重生成均已执行；本次 in-app 浏览器实际 DPR 为 `1.25`，因此该画板的 DPR 1 门禁保持未通过。
+- [ ] 该画板继续保持 `DIFF_REVIEW`，剩余按钮高度、头像、侧栏/图标光栅化和字体渲染差异仍需后续逐点处理；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
 ## 97. 2026-08-27 Workspace Home 状态说明文案复核
 
 - [x] 依据 Figma 节点 `640:256`，将 `/?state=figma-v2` 的状态说明从“待处理事项提醒 / 预算通知”修正为“待处理事项覆盖 / 预算追加”，与设计稿可见文案一致。
