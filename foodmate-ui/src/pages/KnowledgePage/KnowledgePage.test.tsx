@@ -67,11 +67,13 @@ describe('KnowledgePage', () => {
   });
 
   it('uses the Figma shell fixture for knowledge states', () => {
-    renderPage('/knowledge?state=empty');
+    const { container } = renderPage('/knowledge?state=empty');
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('没有找到相关内容');
+    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(container.innerHTML).not.toMatch(/window-controls|traffic-light|#ff3b30|#ffcc00|#34c759/i);
   });
 
   it('recovers from search and source availability errors', async () => {

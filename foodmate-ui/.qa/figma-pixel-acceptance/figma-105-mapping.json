@@ -3530,7 +3530,7 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/user-knowledge-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-browser-dpr1-2026-08-29.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3560,7 +3560,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-22",
-        "conclusion": "Figma-aligned empty card geometry, badge, and accent are present. Broad shell, sidebar, avatar, and typography differences remain in the screenshot diff; retain DIFF_REVIEW."
+        "conclusion": "Figma-aligned empty card geometry, badge, and accent are present. The frontend does not render the Figma-only red, yellow, and green window controls; business status dots remain. Broad shell, sidebar, avatar, and typography differences remain in the screenshot diff; retain DIFF_REVIEW."
       }
     },
     {

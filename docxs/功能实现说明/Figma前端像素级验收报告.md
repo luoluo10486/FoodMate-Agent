@@ -1121,3 +1121,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测约束行位置为 `y=54/111/168/225`、高度 `45px`；购物清单分组位置为 `y=348/446`、高度 `86px`；字体已加载，页面无横向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`，会话状态圆点保留；Figma 设计稿未修改。
 - [x] 新增浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-right-rail-inset-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-right-rail-inset-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=341860`、差异比例 `23.1839%`、`MAE=2.24425`、`RMSE=12.93822`、最大通道差异 `234`。
 - [ ] 当前浏览器采集实际 DPR 为 `1.25`，DPR 1 门禁未通过；该局部修正不关闭 `meal-planning-v2` 或 105 张画板的像素级 `PASS`，主画板继续保持 `DIFF_REVIEW`。
+
+## 120. 2026-08-29 Knowledge 空态前端窗口装饰复核
+
+- [x] 重新复核 Figma 节点 `795:786` 与 `/knowledge?state=empty`：Figma 画板保留左上角红、黄、绿窗口装饰，前端不渲染该设计参考内容；会话状态圆点属于业务状态，继续保留。
+- [x] 浏览器使用 `1440×1024`、DPR `1.0000000149`、字体已加载；空态卡片实测 `x=570,y=320,width=560,height=220`，与 Figma 目标一致，页面无横向溢出。
+- [x] 新增前端回归断言，确认该知识库 fixture 不包含 `window-controls`、`traffic-light` 或三色窗口控制标记；Figma 设计稿未修改。
+- [x] 最新浏览器 PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-browser-dpr1-2026-08-29.png`；同尺寸 `scripts/png-diff.mjs` 结果为 `differentPixels=325786`、差异比例 `22.0938%`、`MAE=2.30524`、`RMSE=13.80022`、最大通道差异 `244`，结论继续为 `DIFF_REVIEW`。
+- [ ] 本小点只确认并固化前端去除设计稿窗口装饰的行为，不代表该画板或 105 张画板达到像素级 `PASS`；整页壳层、头像、图标和文字光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
