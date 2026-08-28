@@ -14,6 +14,7 @@ class DataRetentionDatabasePurgeAdapterTest {
     void knowledgeDocumentChildrenAreRemovedBeforeTheSoftDeletedDocument() {
         DataRetentionDatabasePurgeMapper mapper =
                 Mockito.mock(DataRetentionDatabasePurgeMapper.class);
+        Mockito.when(mapper.knowledgeDocumentPurgeAllowed(42L)).thenReturn(1);
         DataRetentionDatabasePurgeAdapter adapter = new DataRetentionDatabasePurgeAdapter(mapper);
 
         adapter.purge("knowledge_document", 42L);
@@ -32,6 +33,7 @@ class DataRetentionDatabasePurgeAdapterTest {
     void exportJobPurgeIsBoundToSoftDeletedRows() {
         DataRetentionDatabasePurgeMapper mapper =
                 Mockito.mock(DataRetentionDatabasePurgeMapper.class);
+        Mockito.when(mapper.adminExportJobPurgeAllowed(77L)).thenReturn(1);
         DataRetentionDatabasePurgeAdapter adapter = new DataRetentionDatabasePurgeAdapter(mapper);
 
         adapter.purge("admin_export_job", 77L);
@@ -46,5 +48,16 @@ class DataRetentionDatabasePurgeAdapterTest {
                         Mockito.mock(DataRetentionDatabasePurgeMapper.class));
 
         assertThrows(IllegalArgumentException.class, () -> adapter.purge("users", 1L));
+    }
+
+    @Test
+    void knowledgeDocumentGuardBlocksDeletionWhenPolicyOrHoldIsUnsafe() {
+        DataRetentionDatabasePurgeMapper mapper =
+                Mockito.mock(DataRetentionDatabasePurgeMapper.class);
+        Mockito.when(mapper.knowledgeDocumentPurgeAllowed(42L)).thenReturn(0);
+        DataRetentionDatabasePurgeAdapter adapter = new DataRetentionDatabasePurgeAdapter(mapper);
+
+        assertThrows(IllegalStateException.class, () -> adapter.purge("knowledge_document", 42L));
+        Mockito.verify(mapper, Mockito.never()).deleteKnowledgeDocument(42L);
     }
 }

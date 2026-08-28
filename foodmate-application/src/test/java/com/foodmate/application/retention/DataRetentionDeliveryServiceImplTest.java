@@ -32,4 +32,15 @@ class DataRetentionDeliveryServiceImplTest {
 
         verify(store, never()).refreshPurgeRequest(103L);
     }
+
+    @Test
+    void retryRefreshesRequestSoTerminalTaskFailureConverges() {
+        DataRetentionRepository store = Mockito.mock(DataRetentionRepository.class);
+        DataRetentionDeliveryServiceImpl service = new DataRetentionDeliveryServiceImpl(store);
+
+        service.retry(104L, "owner-1", "RETENTION_TASK_FAILED", "storage unavailable");
+
+        verify(store).retryTask(104L, "owner-1", "RETENTION_TASK_FAILED", "storage unavailable");
+        verify(store).refreshPurgeRequest(104L);
+    }
 }

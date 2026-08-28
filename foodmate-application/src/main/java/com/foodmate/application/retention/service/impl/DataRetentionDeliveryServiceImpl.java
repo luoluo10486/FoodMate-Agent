@@ -37,8 +37,11 @@ public class DataRetentionDeliveryServiceImpl implements DataRetentionDeliverySe
     }
 
     @Override
+    @Transactional
     public void retry(long taskId, String owner, String errorCode, String errorSummary) {
         store.retryTask(taskId, owner, errorCode, errorSummary);
+        // A terminal task failure must be reflected on the parent request immediately.
+        store.refreshPurgeRequest(taskId);
     }
 
     @Override
