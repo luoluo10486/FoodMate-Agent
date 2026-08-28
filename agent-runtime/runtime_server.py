@@ -31,6 +31,8 @@ JWT_ENABLED = os.getenv("FOODMATE_SERVICE_JWT_ENABLED", "true").lower() == "true
 PYTHON_PRIVATE_KEY = os.getenv("FOODMATE_PYTHON_PRIVATE_KEY", "")
 PYTHON_KID = os.getenv("FOODMATE_PYTHON_KID", "")
 JAVA_PUBLIC_KEY = os.getenv("FOODMATE_JAVA_PUBLIC_KEY", "")
+JAVA_PUBLIC_KEYS = os.getenv("FOODMATE_JAVA_PUBLIC_KEYS", "")
+JAVA_PUBLIC_KEY_KID = os.getenv("FOODMATE_JAVA_PUBLIC_KEY_KID", "")
 STATE_FILE = os.getenv("FOODMATE_RUNTIME_STATE_FILE", "")
 _cancelled: set[str] = set()
 _dispatches: dict[str, dict] = {}
@@ -293,19 +295,44 @@ def _sign(issuer, audience, scope):
 def _verify(token, issuer, audience, scope):
     if not JWT_ENABLED:
         return True
-    if not JAVA_PUBLIC_KEY:
+    public_keys = _public_key_ring()
+    if not public_keys:
         return False
     try:
         header, payload, signature = token.split(".")
         header_json = json.loads(_decode(header))
         claims = json.loads(_decode(payload))
-        if header_json.get("alg") != "EdDSA" or not header_json.get("kid"):
+        kid = header_json.get("kid")
+        if header_json.get("alg") != "EdDSA" or header_json.get("typ") != "JWT" or not kid:
             return False
-        key = serialization.load_der_public_key(base64.b64decode(JAVA_PUBLIC_KEY))
+        key_value = public_keys.get(kid) or public_keys.get("*")
+        if not key_value:
+            return False
+        key = serialization.load_der_public_key(base64.b64decode(key_value))
         key.verify(_decode(signature), f"{header}.{payload}".encode("ascii"))
         return claims.get("iss") == issuer and claims.get("aud") == audience and scope in claims.get("scope", "").split() and claims.get("exp", 0) > int(datetime.now(timezone.utc).timestamp()) and bool(claims.get("jti"))
     except Exception:
         return False
+
+
+def _public_key_ring() -> dict[str, str]:
+    """Load the Java verification key ring, retaining legacy single-key support."""
+    entries = JAVA_PUBLIC_KEYS.strip()
+    result: dict[str, str] = {}
+    if entries:
+        for entry in entries.replace(";", ",").split(","):
+            value = entry.strip()
+            if "=" not in value:
+                return {}
+            kid, key = value.split("=", 1)
+            kid, key = kid.strip(), key.strip()
+            if not kid or not key or kid in result:
+                return {}
+            result[kid] = key
+        return result
+    if JAVA_PUBLIC_KEY.strip():
+        result[JAVA_PUBLIC_KEY_KID.strip() or "*"] = JAVA_PUBLIC_KEY.strip()
+    return result
 
 
 def emit(command, event_id, sequence, event_type, payload=None):

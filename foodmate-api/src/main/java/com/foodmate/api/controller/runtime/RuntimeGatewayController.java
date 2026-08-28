@@ -11,6 +11,7 @@ import com.foodmate.shared.runtime.V1RunEvent;
 import com.foodmate.shared.security.ServiceJwt;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
+import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,8 +24,8 @@ public class RuntimeGatewayController {
     private final RuntimeGatewayService service;
     private final String contractVersion;
     private final boolean jwtEnabled;
-    private final String javaPublicKey;
-    private final String pythonPublicKey;
+    private final Map<String, String> javaPublicKeys;
+    private final Map<String, String> pythonPublicKeys;
     private final V1RuntimeEventService v1Events;
     private final RuntimeCheckpointRecoveryReconciler recoveryReconciler;
 
@@ -34,13 +35,20 @@ public class RuntimeGatewayController {
             @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
             @Value("${foodmate.runtime.service-jwt.java-public-key:}") String javaPublicKey,
             @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey,
+            @Value("${foodmate.runtime.service-jwt.java-public-keys:}") String javaPublicKeyRing,
+            @Value("${foodmate.runtime.service-jwt.python-public-keys:}")
+                    String pythonPublicKeyRing,
+            @Value("${foodmate.runtime.service-jwt.java-kid:}") String javaKid,
+            @Value("${foodmate.runtime.service-jwt.python-kid:}") String pythonKid,
             ObjectProvider<V1RuntimeEventService> eventProvider,
             ObjectProvider<RuntimeCheckpointRecoveryReconciler> recoveryProvider) {
         this.service = service;
         this.contractVersion = contractVersion;
         this.jwtEnabled = jwtEnabled;
-        this.javaPublicKey = javaPublicKey;
-        this.pythonPublicKey = pythonPublicKey;
+        this.javaPublicKeys =
+                ServiceJwt.parsePublicKeyRing(javaPublicKeyRing, javaKid, javaPublicKey);
+        this.pythonPublicKeys =
+                ServiceJwt.parsePublicKeyRing(pythonPublicKeyRing, pythonKid, pythonPublicKey);
         this.v1Events = eventProvider.getIfAvailable();
         this.recoveryReconciler = recoveryProvider.getIfAvailable();
     }
@@ -54,7 +62,7 @@ public class RuntimeGatewayController {
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_CONTRACT_INVALID", "V1 contract header is required");
         authenticate(
-                authorization, version, "foodmate-agent-runtime", pythonPublicKey, "agent:event");
+                authorization, version, "foodmate-agent-runtime", pythonPublicKeys, "agent:event");
         if (v1Events == null)
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_UNAVAILABLE", "V1 event service is not configured");
@@ -70,7 +78,7 @@ public class RuntimeGatewayController {
                 authorization,
                 version,
                 "foodmate-control-plane",
-                javaPublicKey,
+                javaPublicKeys,
                 "runtime:dispatch");
         return ApiResponse.success(service.dispatch(command), TraceContextHolder.currentOrNew());
     }
@@ -81,7 +89,7 @@ public class RuntimeGatewayController {
             @RequestHeader(value = "X-Contract-Version", required = false) String version,
             @Valid @RequestBody CancelCommand command) {
         authenticate(
-                authorization, version, "foodmate-control-plane", javaPublicKey, "runtime:cancel");
+                authorization, version, "foodmate-control-plane", javaPublicKeys, "runtime:cancel");
         return ApiResponse.success(service.cancel(command), TraceContextHolder.currentOrNew());
     }
 
@@ -91,7 +99,11 @@ public class RuntimeGatewayController {
             @RequestHeader(value = "X-Contract-Version", required = false) String version,
             @Valid @RequestBody RunEvent event) {
         authenticate(
-                authorization, version, "foodmate-agent-runtime", pythonPublicKey, "runtime:event");
+                authorization,
+                version,
+                "foodmate-agent-runtime",
+                pythonPublicKeys,
+                "runtime:event");
         return ApiResponse.success(service.event(event), TraceContextHolder.currentOrNew());
     }
 
@@ -104,7 +116,7 @@ public class RuntimeGatewayController {
                 authorization,
                 version,
                 "foodmate-agent-runtime",
-                pythonPublicKey,
+                pythonPublicKeys,
                 "runtime:recovery");
         if (recoveryReconciler == null)
             throw new com.foodmate.shared.runtime.RuntimeException(
@@ -114,7 +126,11 @@ public class RuntimeGatewayController {
     }
 
     private void authenticate(
-            String authorization, String version, String issuer, String publicKey, String scope) {
+            String authorization,
+            String version,
+            String issuer,
+            Map<String, String> publicKeys,
+            String scope) {
         if (version != null && !contractVersion.equals(version))
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_CONTRACT_INVALID", "unsupported runtime contract version");
@@ -123,12 +139,16 @@ public class RuntimeGatewayController {
         if (!jwtEnabled
                 || authorization == null
                 || !authorization.startsWith("Bearer ")
-                || publicKey.isBlank())
+                || publicKeys.isEmpty())
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_AUTH_INVALID", "service JWT is required");
         try {
             ServiceJwt.verify(
-                    authorization.substring(7), publicKey, issuer, "foodmate-control-plane", scope);
+                    authorization.substring(7),
+                    publicKeys,
+                    issuer,
+                    "foodmate-control-plane",
+                    scope);
         } catch (IllegalStateException exception) {
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_AUTH_INVALID", "invalid service JWT");

@@ -6,6 +6,7 @@ import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.security.ServiceJwt;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,17 +19,21 @@ public class RuntimeProposalController {
     private final ToolGatewayService gateway;
     private final String contractVersion;
     private final boolean jwtEnabled;
-    private final String pythonPublicKey;
+    private final Map<String, String> pythonPublicKeys;
 
     public RuntimeProposalController(
             ToolGatewayService gateway,
             @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
             @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
-            @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey) {
+            @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey,
+            @Value("${foodmate.runtime.service-jwt.python-public-keys:}")
+                    String pythonPublicKeyRing,
+            @Value("${foodmate.runtime.service-jwt.python-kid:}") String pythonKid) {
         this.gateway = gateway;
         this.contractVersion = contractVersion;
         this.jwtEnabled = jwtEnabled;
-        this.pythonPublicKey = pythonPublicKey;
+        this.pythonPublicKeys =
+                ServiceJwt.parsePublicKeyRing(pythonPublicKeyRing, pythonKid, pythonPublicKey);
     }
 
     @PostMapping("/foodmate/internal/v1/proposals")
@@ -64,14 +69,14 @@ public class RuntimeProposalController {
         if (!jwtEnabled
                 || authorization == null
                 || !authorization.startsWith("Bearer ")
-                || pythonPublicKey.isBlank()) {
+                || pythonPublicKeys.isEmpty()) {
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_AUTH_INVALID", "service JWT is required");
         }
         try {
             ServiceJwt.verify(
                     authorization.substring(7),
-                    pythonPublicKey,
+                    pythonPublicKeys,
                     "foodmate-agent-runtime",
                     "foodmate-control-plane",
                     "runtime:proposal");

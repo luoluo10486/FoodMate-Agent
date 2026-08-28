@@ -4,7 +4,7 @@ Python owns agent execution only. Business data, authorization decisions, and wr
 
 Run locally with `python runtime_server.py`. The service listens on `127.0.0.1:9000` by default and exposes `/foodmate/internal/health/live`, `/foodmate/internal/health/ready`, V1 dispatch, and cancel endpoints.
 
-Required service configuration: `JAVA_CALLBACK_URL`, `FOODMATE_CONTRACT_VERSION`, `FOODMATE_SERVICE_JWT_ENABLED`, `FOODMATE_PYTHON_PRIVATE_KEY`, `FOODMATE_PYTHON_KID`, and `FOODMATE_JAVA_PUBLIC_KEY`. Python does not receive PostgreSQL business credentials.
+Required service configuration: `JAVA_CALLBACK_URL`, `FOODMATE_CONTRACT_VERSION`, `FOODMATE_SERVICE_JWT_ENABLED`, `FOODMATE_PYTHON_PRIVATE_KEY`, `FOODMATE_PYTHON_KID`, and either the legacy `FOODMATE_JAVA_PUBLIC_KEY` or the rotating `FOODMATE_JAVA_PUBLIC_KEYS` (`kid=base64-x509-public-key` entries). Python does not receive PostgreSQL business credentials. During rotation, add the new key before switching the signer and remove the old key only after its token TTL and in-flight request window have elapsed.
 
 M1-4 currently uses a provider-neutral model boundary. By default it selects `deterministic:local`, emits `run.model_usage` and then an independent `run.eval_decided` gate fact before evaluated answer events, and does not make a cloud request. A real model uses `FOODMATE_MODEL_TIER_<HIGH|STANDARD|ECONOMY|EVAL>=provider_id:model_name` plus `FOODMATE_MODEL_PROVIDER_<PROVIDER_ID>_BASE_URL` and `..._API_KEY`. Any number of OpenAI Chat Completions compatible endpoints can be configured; actual provider credentials are intentionally not stored in this repository.
 
