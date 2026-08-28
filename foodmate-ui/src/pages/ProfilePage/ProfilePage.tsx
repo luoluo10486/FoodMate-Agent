@@ -1984,7 +1984,7 @@ export function ProfilePage() {
       : fixtureState === 'memories-empty'
         ? 'memories'
         : (baseFigmaState ?? getTab(location.pathname));
-  const isFigmaFixture = Boolean(baseFigmaState || fixtureState);
+  const isFigmaFixture = !realMode || Boolean(baseFigmaState || fixtureState);
   const displayedUser = isFigmaFixture ? figmaProfileUser : authUser;
   return (
     <WorkspaceLayout

@@ -880,6 +880,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
 - [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
 
+## 107. 2026-08-28 Profile Basic 默认入口 fixture 收口
+
+- [x] 重新读取实时 Figma 节点 `806:1119`；Figma 设计稿包含左上角红、黄、绿窗口装饰点，但前端 `WorkspaceLayout` 不渲染该内容，设计稿保持不变。
+- [x] mock 模式直接访问 `/profile` 现在使用 Figma 默认账号与资料：`Anddy`、`anddy_operator_9`、`1234567`、`180cm`、`78kg`、`精益增肌`、`2500 kcal`、`150g protein`、`花生` 和 `乳糖`；`?state=basic` 仍作为显式 fixture 入口，real 模式无 query 时继续使用真实用户。
+- [x] 浏览器实测 `/profile`：视口 `1440×1024`、DPR `1.25`、字体已加载、页面无横向溢出、左上角窗口装饰候选数量为 `0`；业务会话状态圆点保留，未修改 Figma 设计稿。
+- [x] 新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/profile-basic-figma-live-2026-08-28.png`、`profile-basic-default-browser-2026-08-28.jpg` 和 `profile-basic-default-browser-2026-08-28-rgba.png`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/profile-basic-default-fixture-2026-08-28-diff.json`，同尺寸结果为 `67.8905% / MAE 4.87625 / RMSE 21.40682 / maxChannelDelta 244`。
+- [ ] Profile Basic 继续保持 `DIFF_REVIEW`：实际截图 DPR 为 `1.25`，且仍存在头像、字体、壳层与页面细节差异；本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面视觉迁移或 iconfont `BLOCKED`。
+
 ## 106. 2026-08-28 餐食规划列表通知按钮样式与窗口装饰复核
 
 - [x] 依据实时 Figma 节点 `692:2662` 的顶栏通知按钮节点 `692:2729`，仅在 `/planning?state=list` 的 Figma fixture 作用域将通知按钮收口为 `36×36px`、白色背景、`1px #f4f6f5` 边框和 `18px` 圆角；空态、加载态、错误态、普通页面和真实模式不受影响。
