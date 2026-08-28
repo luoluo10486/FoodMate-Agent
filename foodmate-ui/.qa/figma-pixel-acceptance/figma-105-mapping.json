@@ -1821,7 +1821,7 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-empty-figma-live.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-planning-empty-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-empty-icon-background-2026-08-28.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1850,8 +1850,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "Current empty-card geometry and hint row align with the live Figma node; iconography, typography, avatar and shell rasterization still differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-28",
+        "conclusion": "Current empty-card geometry and hint row align with the live Figma node; the empty-state icon background now matches #EBF7ED. Iconography, typography, avatar and shell rasterization still differ. Retain DIFF_REVIEW."
       }
     },
     {
