@@ -2046,14 +2046,14 @@
       "frontendRoute": "/planning",
       "queryState": "state=list",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/meal-plan-list.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-notification-2026-08-28.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-plan-list-live-2026-08-28.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-tabs-geometry-2026-08-28-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
-        "status": "REVIEW",
+        "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
@@ -2077,7 +2077,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture shows all three plan cards and the Figma list structure. The notification control is 36x36px with a white fill, #f4f6f5 border, and 18px radius; the frontend contains no red, yellow, or green window-control dots. Remaining shell, details, density, and typography/icon rasterization differences remain, so retain DIFF_REVIEW."
+        "conclusion": "The current browser capture shows all three plan cards and the Figma list structure. The title group is 50px high, the tab container is 45px high, and the three cards begin at y=243/392/541 with 1116x133px geometry. The notification control is 36x36px with a white fill, #f4f6f5 border, and 18px radius; the frontend contains no red, yellow, or green window-control dots. Remaining shell, details, density, and typography/icon rasterization differences remain, so retain DIFF_REVIEW."
       }
     },
     {

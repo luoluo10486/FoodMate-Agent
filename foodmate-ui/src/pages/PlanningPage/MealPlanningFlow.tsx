@@ -677,7 +677,7 @@ function PlanListView({
         </div>
         <FlowButton onClick={() => onNavigate('wizard-step1')}>+ 新建膳食计划</FlowButton>
       </header>
-      <div className={styles.listTabs} role="tablist" aria-label="计划状态">
+      <div className={styles.listTabs} role="tablist" aria-label="计划状态" data-figma-role="planning-list-tabs">
         {[
           ['active', '进行中'],
           ['draft', '草稿箱'],
@@ -689,6 +689,7 @@ function PlanListView({
             key={key}
             type="button"
             role="tab"
+            data-figma-role="planning-list-tab"
             aria-selected={tab === key}
             onClick={() => setTab(key as typeof tab)}
           >

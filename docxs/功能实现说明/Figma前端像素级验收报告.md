@@ -965,6 +965,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `AnalysisPage` 定向测试 `4/4`、`npm run typecheck`、截图转换、`png-diff.mjs` 和 105 画板映射重生成均已执行；前端左上角红黄绿窗口装饰候选数量为 `0`，业务状态圆点保留，Figma 设计稿未修改。
 - [ ] 本次 in-app 浏览器实际 DPR 为 `1.25`，DPR 1 门禁仍未通过；该画板继续为 `DIFF_REVIEW`，头像、侧栏/图标光栅化和字体渲染差异仍需后续逐点处理。
 
+## 104. 2026-08-28 餐食规划列表 Tab 垂直几何验收
+
+- [x] 验收节点为实时 Figma `692:2662`，路由为 `/planning?state=list`，基线与浏览器视口均为 `1440×1024`；Figma PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-plan-list-live-2026-08-28.png`，浏览器 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-plan-list-tabs-geometry-2026-08-28-rgba.png`。
+- [x] 前端标题组、Tab 容器和计划卡几何实测分别为 `x=292,y=100,h=50`、`x=292,y=174,h=45`、卡片起点 `y=243/392/541` 与尺寸 `1116×133px`；字体已加载、页面无横向溢出、DPR 为 `1.0000000149011612`。
+- [x] 自动 diff 为 `321004/1474560` 个差异像素，差异比例 `21.7695%`，`MAE=2.40082`，`RMSE=13.86524`，最大通道差异 `232`；结果锚点为 `figma-105-diff-results.json#meal-plan-list`，独立结果为 `meal-plan-list-current-diff.json`。
+- [x] 自动几何与文字检查通过；人工复核确认列表结构和三张卡片存在，但壳层、内容密度、字体及图标光栅化仍有差异，因此结论保持 `DIFF_REVIEW`，不能标记 `PASS`。
+- [x] 前端左上角红、黄、绿窗口控制点及 `window-controls` 均为 `0`；业务状态圆点保留，Figma 设计稿保持只读。
+- [ ] 105 张画板汇总继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；shadcn 全量页面迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
+
 ## 97. 2026-08-27 Workspace Home 状态说明文案复核
 
 - [x] 依据 Figma 节点 `640:256`，将 `/?state=figma-v2` 的状态说明从“待处理事项提醒 / 预算通知”修正为“待处理事项覆盖 / 预算追加”，与设计稿可见文案一致。
