@@ -3574,8 +3574,8 @@
       "queryState": "state=search-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/user-knowledge-search-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-search-failed-browser-current.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-search-failed",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-search-failed-browser-dpr1-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-search-failed-current-diff-2026-08-29.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -3603,7 +3603,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
+        "reviewedAt": "2026-08-29",
         "conclusion": "Figma-aligned error card geometry and visual treatment are present. Broad shell, sidebar, avatar, and typography differences remain in the screenshot diff; retain DIFF_REVIEW."
       }
     },

@@ -372,6 +372,7 @@
     },
     "user-knowledge-search-failed": {
       "artboardName": "user-knowledge-search-failed",
+      "recapturedAt": "2026-08-29",
       "body": {
         "clientHeight": 1024,
         "clientWidth": 1440,
@@ -391,7 +392,25 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "stateCard": {
+        "x": 550,
+        "y": 300,
+        "width": 600,
+        "height": 260,
+        "status": {
+          "width": 174,
+          "height": 24,
+          "display": "block"
+        },
+        "accent": {
+          "width": 6,
+          "display": "block",
+          "backgroundColor": "rgba(214, 118, 118, 0.9)"
+        }
+      },
+      "windowControls": 0,
+      "overflowCount": 0
     },
     "token-used": {
       "artboardName": "token-used",

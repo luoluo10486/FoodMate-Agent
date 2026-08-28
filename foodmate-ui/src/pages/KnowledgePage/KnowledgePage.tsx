@@ -422,7 +422,7 @@ function KnowledgeStateCard({
       action: '清除筛选',
     },
     'search-failed': {
-      status: 'ERROR · SEARCH UNAVAILABLE',
+      status: 'ERROR · RETRY AVAILABLE',
       title: '检索失败',
       body: '知识库服务暂时不可用，当前没有返回结果。请稍后重试。',
       detail: '错误码: KB_SEARCH_UNAVAILABLE · request_id: req_kb_73e2',
