@@ -1214,6 +1214,7 @@
 | 代码与提交 | `17306d9 修复知识索引本地启动门禁`；local 模式在启动索引/可见性消费者前等待 Milvus `/healthz`，默认从 `19530` 推导 `9091/healthz`，可用 `FOODMATE_RAG_MILVUS_HEALTH_URL` 覆盖；stub 模式直接跳过探测。 |
 | Python 业务测试 | `PYTHONDONTWRITEBYTECODE=1 .\\agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`126 passed、1 skipped、2 warnings`。新增 stub bypass 与 local health probe 定向用例包含在结果内。 |
 | 前端业务测试 | `foodmate-ui` 的 `npm.cmd test -- --run`：38 个测试文件、`201/201` 通过；`npm.cmd run build`（含 typecheck）通过，Vite 转换 2010 个模块。 |
+| Java 业务门禁 | `mvnw.cmd clean verify`：BUILD SUCCESS；Shared `12/12`、Application `201/201`、Infrastructure `83/83`（19 skipped）、API `65/65`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
 | Docker 配置与容器 smoke | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；已有 `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO、Milvus 及依赖容器保持 healthy。使用现有已安装依赖的 Agent 镜像挂载当前源码：stub 输出 `STUB_READY_GATE_BYPASSED`；local 输出 `LOCAL_MILVUS_READY_GATE_PASSED`，并在容器网络内访问 `http://milvus:9091/healthz` 成功。 |
 | Docker 构建记录 | `docker compose --env-file .env -f docker/compose.yml up -d --build agent-runtime` 在 `pip install .` 的构建隔离阶段因访问 `pypi.org` 的 TLS/网络错误失败，未将该次命令记为新镜像构建成功；原运行容器未被删除，readiness 保持正常。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；未新增业务数据。 |
