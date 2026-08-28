@@ -53,6 +53,8 @@ describe('AnalysisPage', () => {
     const user = userEvent.setup();
     renderPage('/analysis?state=v2');
 
+    expect(screen.getByLabelText('摄入分析')).toHaveClass(styles.figmaDefault);
+    expect(screen.getByRole('tablist')).toHaveClass(styles.filters);
     expect(screen.getByRole('button', { name: '自定义范围' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '全部餐次' })).toBeInTheDocument();
     [

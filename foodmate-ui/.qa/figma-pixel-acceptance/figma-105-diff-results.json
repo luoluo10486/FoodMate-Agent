@@ -40,11 +40,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 123089,
-      "differentRatio": 0.08347507052951389,
-      "meanAbsoluteError": 2.8290818956163193,
-      "rmse": 17.578819922606275,
-      "maxChannelDelta": 211
+      "differentPixels": 392790,
+      "differentRatio": 0.2663777669270833,
+      "meanAbsoluteError": 2.959154086642795,
+      "rmse": 16.41814905693315,
+      "maxChannelDelta": 234
     },
     "meal-planning-v2": {
       "status": "COMPARED",

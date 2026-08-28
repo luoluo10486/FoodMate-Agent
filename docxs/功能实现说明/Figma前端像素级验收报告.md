@@ -909,6 +909,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 当前结果已同步 `figma-105-mapping.json` 和 `figma-105-diff-results.json`；相比上一份 `13.9400%` 证据有所改善，但图标、字体渲染和主体视觉处理仍有差异，画板继续为 `DIFF_REVIEW`。
 - [ ] 本小点不关闭 105 张画板像素级 `PASS`、shadcn 全页面视觉迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
 
+## 101. 2026-08-28 摄入分析默认态筛选容器宽度收口
+
+- [x] 重新读取实时 Figma 节点 `640:773`，确认默认态筛选容器目标尺寸为 `384×40px`；loading、empty、error 状态仍按各自三项筛选结构保留原有宽度。
+- [x] 前端仅在 `/analysis?state=v2` 的 `.figmaDefault` 作用域将筛选容器固定为 `384px`，不影响真实模式或其他分析状态；浏览器实测位置为 `x=292,y=100,width=384,height=40`。
+- [x] 浏览器使用 `1440×1024`、DPR `1`、字体状态 `loaded`；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿未修改，业务状态圆点保留。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-filter-width-2026-08-28.png`，独立 diff 为 `differentPixels=392790`、差异比例 `26.6378%`、`MAE=2.95915`、`RMSE=16.41815`、最大通道差异 `234`；结果已同步到 `figma-105-mapping.json` 和 `figma-105-diff-results.json#intake-analysis-v2`。
+- [x] `AnalysisPage` 定向测试、类型检查、截图转换和 `png-diff.mjs` 均已执行；该项只收口筛选容器几何，不能将整页差异结果改写为像素级 `PASS`。
+- [ ] `intake-analysis-v2` 继续保持 `DIFF_REVIEW`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全量视觉迁移和 iconfont 实体登记仍未完成。
+
 ## 97. 2026-08-27 Workspace Home 状态说明文案复核
 
 - [x] 依据 Figma 节点 `640:256`，将 `/?state=figma-v2` 的状态说明从“待处理事项提醒 / 预算通知”修正为“待处理事项覆盖 / 预算追加”，与设计稿可见文案一致。

@@ -130,6 +130,10 @@
   height: 107px;
 }
 
+.figmaDefault .filters {
+  width: 384px;
+}
+
 .loadingMetrics {
   height: 126px;
 }
