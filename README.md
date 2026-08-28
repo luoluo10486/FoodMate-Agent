@@ -1,5 +1,18 @@
 # FoodMate
 
+## Security checks
+
+Run the local high-confidence secret and repository hygiene check with:
+
+```powershell
+.\script\security\security-scan.ps1
+```
+
+Optional dependency checks are explicit because they may need network access and vulnerability
+databases: add `-RunNpmAudit`, `-RunPythonAudit`, or `-RunMavenDependencyCheck`. Use `-Strict` in a
+CI/security gate so missing scanners are failures. Never put real provider keys in the repository;
+use an ignored `.env` file or the runtime secret store.
+
 FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent 产品。它不提供医疗诊断、治疗、处方或紧急健康决策；涉及高风险健康判断时，系统应安全降级并提示用户咨询医生或注册营养师。
 
 ## 项目架构

@@ -19,8 +19,13 @@ def _cloud_environment() -> dict[str, str] | None:
     primary_key = _env("FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY", _env("FOODMATE_MODEL_PROVIDER_CLOUD_A_API_KEY"))
     backup_base = _env("FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_BASE_URL", _env("FOODMATE_MODEL_PROVIDER_CLOUD_B_BASE_URL"))
     backup_key = _env("FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_API_KEY", _env("FOODMATE_MODEL_PROVIDER_CLOUD_B_API_KEY"))
-    if not all((primary_base, primary_key, backup_base, backup_key)):
+    if not all((primary_base, primary_key)):
         return None
+    standard_tier = _env(
+        "FOODMATE_MODEL_TIER_STANDARD",
+        "cloud_primary:" + _env("FOODMATE_MODEL_CLOUD_PRIMARY_MODEL", "chat-model"),
+    )
+    eval_tier = _env("FOODMATE_MODEL_TIER_EVAL", standard_tier)
     return {
         "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_BASE_URL": primary_base,
         "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY": primary_key,
@@ -31,9 +36,9 @@ def _cloud_environment() -> dict[str, str] | None:
         "FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_API_KEY": backup_key,
         "FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_INPUT_CNY_PER_MILLION_TOKENS": _env("FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_INPUT_CNY_PER_MILLION_TOKENS", "0"),
         "FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_OUTPUT_CNY_PER_MILLION_TOKENS": _env("FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_OUTPUT_CNY_PER_MILLION_TOKENS", "0"),
-        "FOODMATE_MODEL_TIER_STANDARD": "cloud_primary:" + _env("FOODMATE_MODEL_CLOUD_PRIMARY_MODEL", "chat-model"),
-        "FOODMATE_MODEL_TIER_EVAL": "cloud_backup:" + _env("FOODMATE_MODEL_CLOUD_EVAL_MODEL", "judge-model"),
-        "FOODMATE_MODEL_FALLBACK_ENABLED": "true",
+        "FOODMATE_MODEL_TIER_STANDARD": standard_tier,
+        "FOODMATE_MODEL_TIER_EVAL": eval_tier,
+        "FOODMATE_MODEL_FALLBACK_ENABLED": "true" if backup_base and backup_key else "false",
         "FOODMATE_MODEL_FALLBACK_STANDARD": "eval",
     }
 
@@ -44,7 +49,7 @@ def test_real_primary_and_eval_provider_contract():
         pytest.skip("真实云联调需要显式设置 FOODMATE_RUN_REAL_CLOUD_TESTS=true")
     environment = _cloud_environment()
     if environment is None:
-        pytest.skip("真实云联调需要 primary/backup BASE_URL 和 API_KEY")
+        pytest.skip("真实云联调需要 primary BASE_URL 和 API_KEY")
 
     router = ModelRouter(environment)
     response, attempts = router.invoke(
