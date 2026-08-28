@@ -14,6 +14,12 @@
   --fm-fixture-top-nav-active-surface: #fffefa;
 }
 
+/* Keep the Figma fixture rail at its 340px canvas boundary without letting the divider consume layout space. */
+.figmaFixture .rightRail {
+  border-left: 0;
+  box-shadow: inset 1px 0 0 var(--fm-border);
+}
+
 .figmaFixture .sidebar {
   padding-top: 52px;
 }
