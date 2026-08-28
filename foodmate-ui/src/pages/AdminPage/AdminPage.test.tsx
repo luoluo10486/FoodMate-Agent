@@ -38,7 +38,7 @@ describe('AdminPage overview', () => {
       '模型用量',
       '知识库管理',
       '工具注册表',
-      '软删除资源',
+      '删除资源',
       '操作审计',
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('AdminPage overview', () => {
     view.unmount();
     view = renderAdmin('/admin?state=deleted-resources');
     expect(screen.getByText('存档数据保护规范与合规通告')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '软删除资源' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: '删除资源' })).toHaveAttribute('aria-current', 'page');
 
     view.unmount();
     view = renderAdmin('/admin?state=user-detail');

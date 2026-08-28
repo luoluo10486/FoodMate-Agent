@@ -110,7 +110,7 @@ export const adminNavItems: Array<{ key: string; path: string; label: string; ic
     { key: 'usage', path: '/admin/usage', label: '模型用量', icon: <Database /> },
     { key: 'knowledge', path: '/admin/knowledge', label: '知识库管理', icon: <BookOpen /> },
     { key: 'registry', path: '/admin/tools?tab=registry', label: '工具注册表', icon: <PackageCheck /> },
-    { key: 'deleted', path: '/admin/deleted', label: '软删除资源', icon: <Archive />, adminOnly: true },
+    { key: 'deleted', path: '/admin/deleted', label: '删除资源', icon: <Archive />, adminOnly: true },
     { key: 'audit', path: '/admin?view=audit', label: '操作审计', icon: <ShieldCheck />, adminOnly: true },
   ];
 
@@ -143,7 +143,7 @@ export const sectionMeta: Record<string, { title: string; description: string; t
     tag: 'Governance',
   },
   knowledge: { title: '知识库', description: '管理知识库文档、解析状态、索引进度和下线恢复。', tag: 'Knowledge' },
-  deleted: { title: '软删除资源', description: '查看已删除业务资源，并由 admin 执行恢复操作。', tag: 'Recovery' },
+  deleted: { title: '删除资源', description: '查看已删除业务资源，并由 admin 执行恢复操作。', tag: 'Recovery' },
   audit: {
     title: '操作审计',
     description: '按动作、目标、结果和请求链路查询管理操作，并查看不可变审计详情。',

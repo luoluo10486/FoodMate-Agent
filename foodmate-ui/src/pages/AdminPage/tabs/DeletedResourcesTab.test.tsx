@@ -28,7 +28,7 @@ describe('Admin deleted resources', () => {
     expect(screen.getByText('rec_77218')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '复制 doc_88291' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '查看详情' })).toHaveLength(4);
-    expect(screen.getByRole('link', { name: '软删除资源' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: '删除资源' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('filters by resource type and archive owner query', async () => {

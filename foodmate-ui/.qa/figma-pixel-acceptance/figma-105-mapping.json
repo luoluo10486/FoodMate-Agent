@@ -2474,7 +2474,7 @@
       "queryState": "state=deleted-resources",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-deleted-resources.png",
-      "browserPng": ".qa/figma-pixel-acceptance/admin-deleted-resources-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-nav-copy-browser-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-deleted-resources",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -2503,9 +2503,27 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Deleted-resources page is substantially represented, but browser uses different identity/avatar, table row geometry, truncation, typography, icons, and visual density. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-29",
+        "conclusion": "导航项已按 Figma 对齐为‘删除资源’，前端未渲染左上角红黄绿窗口装饰点；身份头像、表格行高、文字截断、字体、图标和视觉密度仍存在差异，保留 DIFF_REVIEW。"
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-29",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-nav-copy-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-deleted-resources-nav-copy-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "dprPass": true,
+          "geometryEvidence": {
+            "bodyHorizontalOverflow": false,
+            "fonts": "loaded",
+            "windowControlsCandidates": 0,
+            "activeNavigationLabel": "删除资源"
+          },
+          "visualChange": "依据 Figma 节点 692:4104，将管理后台导航项从‘软删除资源’修正为‘删除资源’；未修改 Figma 设计稿。",
+          "conclusion": "导航文案和前端窗口装饰边界已复核；整页仍存在视觉差异，保留 DIFF_REVIEW。"
+        }
+      ]
     },
     {
       "figmaNodeId": "692:4319",

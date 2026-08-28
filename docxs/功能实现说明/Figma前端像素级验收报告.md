@@ -1181,3 +1181,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器在 `1440×1024`、DPR `1.0000000149011612`、字体加载完成条件下实测：筛选行 `692×32px at x=284,y=88`，搜索 `187×32px`，两个选择器 `107×32px`，日期筛选 `191×32px`，重置按钮 `52×32px`，用户表 `692×278px at x=284,y=144`，详情面板 `420×912px at x=996,y=88`；页面无横向或纵向溢出，左上角窗口装饰候选数量为 `0`。
 - [x] 最新浏览器 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-user-detail-filter-aligned-browser-2026-08-29-rgba.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-user-detail-filter-aligned-2026-08-29-diff.json`；结果为 `differentPixels=330836`、差异比例 `22.4363%`、`MAE=3.276996`、`RMSE=17.607226`、最大通道差异 `233`，相较修正前 `29.3546%` 的结果有所改善。
 - [x] Admin 定向测试 `8/8` 通过；几何收口已验证，但侧栏身份、图标、字体、头像和其它整页渲染差异仍存在，因此该画板继续为 `DIFF_REVIEW`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移未完成，iconfont 继续为 `BLOCKED`。
+
+## 128. 2026-08-29 Admin Deleted Resources 导航文案与窗口装饰复核
+
+- [x] 依据实时 Figma 节点 `692:4104`，将管理后台活动导航项从“软删除资源”修正为 Figma 中的“删除资源”；仅修改前端 `AdminShared.tsx` 和对应测试，未修改 Figma 设计稿。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149`、字体加载完成条件下复核活动导航文案为“删除资源”，页面无横向溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，品牌标识和业务权限状态圆点保留。
+- [x] 新增浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-nav-copy-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-deleted-resources-nav-copy-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=401129`、差异比例 `27.2033%`、`MAE=4.14668`、`RMSE=21.24401`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
+- [x] Deleted Resources 定向测试 `11/11` 通过；`npm run typecheck`、`npm run build` 和 `git diff --check` 通过。
+- [ ] 本小点只收口导航文案和窗口装饰复核，不代表该画板或 105 张画板达到像素级 `PASS`；头像、整页表格密度、字体和图标光栅化仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
