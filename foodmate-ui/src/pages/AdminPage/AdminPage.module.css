@@ -2926,6 +2926,7 @@
 
 .usersResetFilter {
   justify-self: end;
+  height: 32px;
   padding: 0;
   border: 0;
   background: transparent;

@@ -3947,11 +3947,11 @@
       "queryState": "state=user-detail",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-user-detail.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-browser-current.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-user-detail",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-filter-aligned-browser-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-filter-aligned-2026-08-29-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-08-29 独立 diff 已更新；筛选行中的重置筛选按钮固定为 32px 后，所有筛选控件与 Figma y=88 基线对齐，整页视觉差异仍需复核",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3976,8 +3976,39 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Current browser contains the user table, detail panel, five tabs including 业务会话, high-risk action controls and the Figma 用户详情 Tab guidance panel. Shell identity, panel width, selected-row treatment, typography, avatar, spacing and pagination placement still differ; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-29",
+        "conclusion": "The user table, detail panel, five tabs including 业务会话, high-risk action controls and the Figma 用户详情 Tab guidance panel remain represented. The filter row now aligns to the Figma y=88 baseline after fixing the reset button height; shell identity, icons, typography, avatar and other full-page differences remain, so retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "figmaPng": "docxs/设计/figma-png/admin-user-detail.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-filter-aligned-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-user-detail-filter-aligned-2026-08-29-diff.json",
+          "visualChange": "将 User Detail 筛选行的重置筛选按钮从继承的 40px 高度固定为 Figma 目标 32px，使搜索、角色、状态、日期和重置控件共同位于 y=88。",
+          "diff": {
+            "differentPixels": 330836,
+            "differentRatio": 0.2243625217013889,
+            "meanAbsoluteError": 3.2769956800672744,
+            "rmse": 17.607226484383762,
+            "maxChannelDelta": 233
+          },
+          "geometry": {
+            "viewport": "1440x1024",
+            "dpr": 1.0000000149011612,
+            "fonts": "loaded",
+            "filters": "692x32 at y=88",
+            "search": "187x32 at x=284,y=88",
+            "selects": "107x32 at x=483/602,y=88",
+            "date": "191x32 at x=721,y=88",
+            "reset": "52x32 at x=924,y=88",
+            "table": "692x278 at x=284,y=144",
+            "detailPanel": "420x912 at x=996,y=88",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "conclusion": "DIFF_REVIEW"
+        }
       }
     },
     {
