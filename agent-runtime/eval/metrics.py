@@ -72,6 +72,27 @@ class EvalMetrics:
 class RuntimeMetrics:
     """Bounded operational counters for local Agent traffic and recovery drills."""
 
+    _ALLOWED_OPERATIONS = frozenset(
+        {"dispatch", "event", "result", "proposal", "sse_replay", "knowledge_index", "visibility", "purge"}
+    )
+    _ALLOWED_RESULTS = frozenset(
+        {"success", "failed", "duplicate", "accepted", "rejected", "retry", "completed", "timeout"}
+    )
+    _ALLOWED_REASONS = frozenset(
+        {
+            "completed",
+            "contract",
+            "consumer_error",
+            "execution_error",
+            "http",
+            "received",
+            "redis_inbox",
+            "rocketmq",
+            "timeout",
+        }
+    )
+    _ALLOWED_QUEUE_NAMES = frozenset({"active_dispatches", "result_waiters"})
+
     def __init__(self, max_latency_samples: int = 10_000):
         self._lock = threading.Lock()
         self._max_latency_samples = max_latency_samples
@@ -82,9 +103,9 @@ class RuntimeMetrics:
     def record(
         self, operation: str, result: str, reason: str = "none", latency_ms: int | None = None
     ) -> None:
-        operation = self._tag(operation)
-        result = self._tag(result)
-        reason = self._tag(reason)
+        operation = self._tag(operation, self._ALLOWED_OPERATIONS)
+        result = self._tag(result, self._ALLOWED_RESULTS)
+        reason = self._tag(reason, self._ALLOWED_REASONS)
         with self._lock:
             bucket = self._operations.setdefault(operation, {"total": 0})
             bucket["total"] += 1
@@ -98,7 +119,7 @@ class RuntimeMetrics:
 
     def queue_depth(self, name: str, value: int) -> None:
         with self._lock:
-            self._queues[self._tag(name)] = max(0, int(value))
+            self._queues[self._tag(name, self._ALLOWED_QUEUE_NAMES)] = max(0, int(value))
 
     def snapshot(self) -> dict[str, object]:
         with self._lock:
@@ -119,9 +140,9 @@ class RuntimeMetrics:
         }
 
     @staticmethod
-    def _tag(value: str) -> str:
+    def _tag(value: str, allowed: frozenset[str]) -> str:
         normalized = str(value or "unknown").strip().lower().replace(" ", "_")
-        return normalized[:64] or "unknown"
+        return normalized if normalized in allowed else "other"
 
     @staticmethod
     def _percentile(values: list[int], quantile: float) -> int | None:
