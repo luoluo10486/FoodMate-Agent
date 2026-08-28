@@ -1,6 +1,7 @@
 package com.foodmate.api.controller.account;
 
 import com.foodmate.api.response.account.AdminOperationalQueryResponse;
+import com.foodmate.api.response.account.AdminTraceDetailResponse;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.account.enums.UserRole;
@@ -44,6 +45,15 @@ public class AdminOperationalQueryController extends AuthenticatedControllerSupp
                                 page, size, query, status, visibility, sort, direction));
         return ApiResponse.success(
                 AdminOperationalQueryResponse.from(resource, result),
+                TraceContextHolder.currentOrNew());
+    }
+
+    @GetMapping("/traces/{traceId}")
+    public ApiResponse<AdminTraceDetailResponse> traceDetail(
+            HttpServletRequest request, @PathVariable String traceId) {
+        requireAnyRole(request, UserRole.ADMIN, UserRole.OPERATOR, UserRole.SUPERADMIN);
+        return ApiResponse.success(
+                AdminTraceDetailResponse.from(queries.traceDetail(traceId)),
                 TraceContextHolder.currentOrNew());
     }
 }

@@ -11,6 +11,9 @@ import java.util.Locale;
 public interface AdminOperationalQueryService {
     Page<?> query(String resource, Request request);
 
+    /** Returns a redacted, authoritative span view for one trace. */
+    TraceDetail traceDetail(String traceId);
+
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record Request(
             int page,
@@ -77,6 +80,22 @@ public interface AdminOperationalQueryService {
             Long spanCount,
             String rootService,
             String errorCode) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record TraceDetail(Trace summary, List<TraceSpan> spans) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record TraceSpan(
+            String spanId,
+            String spanType,
+            String name,
+            String service,
+            String status,
+            Instant startedAt,
+            Instant finishedAt,
+            BigDecimal durationMs,
+            String errorCode,
+            Long sequenceNo) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record User(Long userId, String username, String role, String status, String emailRef) {}

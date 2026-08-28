@@ -3,6 +3,8 @@ package com.foodmate.application.account.service.impl;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.Query;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -86,6 +88,22 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
         };
     }
 
+    @Override
+    public TraceDetail traceDetail(String traceId) {
+        String normalizedTraceId = normalizeTraceId(traceId);
+        AdminOperationalQueryRepository.TraceRow summary = store.traceById(normalizedTraceId);
+        if (summary == null) throw new BusinessException(ErrorCode.NOT_FOUND, "trace not found");
+        return new TraceDetail(
+                trace(summary),
+                store.traceSpans(normalizedTraceId).stream().map(this::traceSpan).toList());
+    }
+
+    private static String normalizeTraceId(String traceId) {
+        if (traceId == null || traceId.isBlank() || traceId.length() > 64)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "trace id is invalid");
+        return traceId.trim();
+    }
+
     private Query toQuery(String resource, Request request) {
         String sort = request.sort();
         if (sort == null) sort = defaultSort(resource);
@@ -159,6 +177,20 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                 row.spanCount(),
                 row.rootService(),
                 row.errorCode());
+    }
+
+    private TraceSpan traceSpan(AdminOperationalQueryRepository.TraceSpanRow row) {
+        return new TraceSpan(
+                row.spanId(),
+                row.spanType(),
+                row.name(),
+                row.service(),
+                row.status(),
+                row.startedAt(),
+                row.finishedAt(),
+                row.durationMs(),
+                row.errorCode(),
+                row.sequenceNo());
     }
 
     private ToolCall toolCall(AdminOperationalQueryRepository.ToolCallRow row) {

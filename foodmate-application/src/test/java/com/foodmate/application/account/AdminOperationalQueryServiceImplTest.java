@@ -146,4 +146,52 @@ class AdminOperationalQueryServiceImplTest {
         assertEquals("foodmate-java", row.rootService());
         verify(store).traces(any());
     }
+
+    @Test
+    void mapsAuthoritativeTraceSpansWithoutPayloads() {
+        when(store.traceById("trace-detail"))
+                .thenReturn(
+                        new AdminOperationalQueryRepository.TraceRow(
+                                "trace-detail",
+                                42L,
+                                "java.control-plane -> python.agent-runtime",
+                                "completed",
+                                Instant.parse("2026-08-28T00:00:00Z"),
+                                new BigDecimal("18.5"),
+                                2L,
+                                "foodmate-java",
+                                null));
+        when(store.traceSpans("trace-detail"))
+                .thenReturn(
+                        List.of(
+                                new AdminOperationalQueryRepository.TraceSpanRow(
+                                        "event-1",
+                                        "runtime_event",
+                                        "run.completed",
+                                        "python.agent-runtime",
+                                        "success",
+                                        Instant.parse("2026-08-28T00:00:00Z"),
+                                        Instant.parse("2026-08-28T00:00:00.010Z"),
+                                        new BigDecimal("10"),
+                                        null,
+                                        4L)));
+
+        var result = service.traceDetail("trace-detail");
+
+        assertEquals("trace-detail", result.summary().traceId());
+        assertEquals(1, result.spans().size());
+        assertEquals("run.completed", result.spans().getFirst().name());
+        assertEquals("runtime_event", result.spans().getFirst().spanType());
+        verify(store).traceById("trace-detail");
+        verify(store).traceSpans("trace-detail");
+    }
+
+    @Test
+    void returnsNotFoundForUnknownTraceDetail() {
+        when(store.traceById("missing-trace")).thenReturn(null);
+
+        assertThrows(
+                com.foodmate.shared.error.BusinessException.class,
+                () -> service.traceDetail("missing-trace"));
+    }
 }

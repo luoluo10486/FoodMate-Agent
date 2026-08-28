@@ -30,6 +30,7 @@ import {
   statusTag,
 } from './AdminShared';
 import {
+  loadAdminTraceDetail,
   loadAdminQuery,
   type AdminRunRow,
   type AdminQueryRun,
@@ -38,6 +39,7 @@ import {
   type AdminQuerySqlAudit,
   type AdminQueryToolCall,
   type AdminSqlAuditRow,
+  type AdminTraceDetail,
   type AdminToolCallRow,
   type AdminTraceRow,
 } from '../../../services/adminService';
@@ -258,11 +260,15 @@ function DetailValue({ label, value, copy = false }: { label: string; value?: st
 function RunDetailSheet({
   selection,
   dashboard,
+  traceDetail,
+  traceDetailLoading,
   onClose,
   onSelect,
 }: {
   selection?: DetailSelection;
   dashboard: DashboardState;
+  traceDetail?: AdminTraceDetail;
+  traceDetailLoading: boolean;
   onClose: () => void;
   onSelect: (selection: DetailSelection) => void;
 }) {
@@ -452,14 +458,36 @@ function RunDetailSheet({
                   <h3 className={styles.detailSectionHeading}>
                     <Timer aria-hidden="true" /> 链路节点
                   </h3>
-                  <ol className={styles.traceSteps}>
-                    {selection.row.entry.split(' -> ').map((step, index) => (
-                      <li key={`${step}-${index}`}>
-                        <span>{index + 1}</span>
-                        <code>{step}</code>
-                      </li>
-                    ))}
-                  </ol>
+                  {traceDetailLoading ? (
+                    <p className={styles.detailMuted}>正在加载链路明细...</p>
+                  ) : traceDetail?.spans.length ? (
+                    <ol className={styles.traceSteps}>
+                      {traceDetail.spans.map((span, index) => (
+                        <li key={`${span.span_id}-${span.sequence_no ?? index}`}>
+                          <span>{index + 1}</span>
+                          <div>
+                            <code>{span.name}</code>
+                            <small>
+                              {span.service} · {span.span_type} · {span.status} ·{' '}
+                              {formatDuration(Number(span.duration_ms ?? 0))}
+                              {span.error_code ? ` · ${span.error_code}` : ''}
+                            </small>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : !isRealMode ? (
+                    <ol className={styles.traceSteps}>
+                      {selection.row.entry.split(' -> ').map((step, index) => (
+                        <li key={`${step}-${index}`}>
+                          <span>{index + 1}</span>
+                          <code>{step}</code>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className={styles.detailMuted}>该 Trace 没有可展示的明细节点。</p>
+                  )}
                 </section>
                 {relatedRun ? (
                   <Button
@@ -492,9 +520,7 @@ function DataPlaceholder({ filtered, tab, error }: { filtered: boolean; tab: Gov
     : error
       ? error
       : isRealMode
-        ? tab === 'traces'
-          ? '当前管理仪表盘契约尚未接入 Trace 明细，页面不会伪造链路数据。'
-          : '当前接口没有返回该类记录。'
+        ? '当前接口没有返回该类记录。'
         : 'mock 数据集中没有可展示的记录。';
   return (
     <div className={styles.runEmptyState} role="status">
@@ -513,6 +539,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [resultFilter, setResultFilter] = useState('all');
   const [errorFilter, setErrorFilter] = useState('');
   const [selection, setSelection] = useState<DetailSelection>();
+  const [traceDetail, setTraceDetail] = useState<AdminTraceDetail>();
+  const [traceDetailLoading, setTraceDetailLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   const activeTab = tabFromSearch(searchParams);
 
@@ -549,6 +577,30 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
       mounted = false;
     };
   }, [refreshNonce]);
+
+  useEffect(() => {
+    if (!isRealMode || selection?.type !== 'trace' || selection.row.traceId === '-') {
+      setTraceDetail(undefined);
+      setTraceDetailLoading(false);
+      return;
+    }
+    let mounted = true;
+    setTraceDetail(undefined);
+    setTraceDetailLoading(true);
+    loadAdminTraceDetail(selection.row.traceId)
+      .then((detail) => {
+        if (mounted) setTraceDetail(detail);
+      })
+      .catch(() => {
+        if (mounted) setTraceDetail(undefined);
+      })
+      .finally(() => {
+        if (mounted) setTraceDetailLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [selection]);
 
   const normalizedQuery = query.trim().toLowerCase();
   const normalizedError = errorFilter.trim().toLowerCase();
@@ -901,6 +953,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
         dashboard={dashboard}
         onClose={() => setSelection(undefined)}
         onSelect={setSelection}
+        traceDetail={traceDetail}
+        traceDetailLoading={traceDetailLoading}
       />
     </>
   );

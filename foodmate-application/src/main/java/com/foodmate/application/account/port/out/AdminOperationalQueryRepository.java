@@ -18,6 +18,10 @@ public interface AdminOperationalQueryRepository {
 
     long countTraces(Query query);
 
+    TraceRow traceById(String traceId);
+
+    List<TraceSpanRow> traceSpans(String traceId);
+
     List<ToolCallRow> toolCalls(Query query);
 
     long countToolCalls(Query query);
@@ -80,6 +84,18 @@ public interface AdminOperationalQueryRepository {
             Long spanCount,
             String rootService,
             String errorCode) {}
+
+    record TraceSpanRow(
+            String spanId,
+            String spanType,
+            String name,
+            String service,
+            String status,
+            Instant startedAt,
+            Instant finishedAt,
+            BigDecimal durationMs,
+            String errorCode,
+            Long sequenceNo) {}
 
     record ToolCallRow(
             Long toolCallId,

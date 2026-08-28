@@ -170,6 +170,49 @@ class AdminOperationalQueryControllerTest {
         verify(queries).query(eq("traces"), any(AdminOperationalQueryService.Request.class));
     }
 
+    @Test
+    void operatorCanReadRedactedTraceDetail() throws Exception {
+        when(accounts.requireSessionUser("operator-session")).thenReturn(user("operator"));
+        when(queries.traceDetail("trace-detail"))
+                .thenReturn(
+                        new AdminOperationalQueryService.TraceDetail(
+                                new AdminOperationalQueryService.Trace(
+                                        "trace-detail",
+                                        42L,
+                                        "java.control-plane -> python.agent-runtime",
+                                        "completed",
+                                        java.time.Instant.parse("2026-08-28T00:00:00Z"),
+                                        new java.math.BigDecimal("10.0"),
+                                        1L,
+                                        "foodmate-java",
+                                        null),
+                                List.of(
+                                        new AdminOperationalQueryService.TraceSpan(
+                                                "event-1",
+                                                "runtime_event",
+                                                "run.completed",
+                                                "python.agent-runtime",
+                                                "success",
+                                                java.time.Instant.parse("2026-08-28T00:00:00Z"),
+                                                java.time.Instant.parse("2026-08-28T00:00:00.010Z"),
+                                                new java.math.BigDecimal("10"),
+                                                null,
+                                                4L))));
+
+        mvc.perform(
+                        get("/api/admin/queries/traces/trace-detail")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "operator-session")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.summary.trace_id", is("trace-detail")))
+                .andExpect(jsonPath("$.data.spans[0].span_type", is("runtime_event")))
+                .andExpect(jsonPath("$.data.spans[0].name", is("run.completed")))
+                .andExpect(jsonPath("$.data.spans[0].payload_json").doesNotExist());
+
+        verify(queries).traceDetail("trace-detail");
+    }
+
     private UserAccountService.UserRecord user(String role) {
         return new UserAccountService.UserRecord(
                 2L, role, role + "@example.com", "hash", role, role, "active");
