@@ -1218,10 +1218,10 @@
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-current-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-2026-08-28.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-current-diff-2026-08-28.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -1249,8 +1249,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures contain the safety warning, bounded data scope, personal-condition limitation, and follow-up entry. The frontend now uses the Figma warning hierarchy, avatar status label, and bounded response bubble. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-28",
+        "conclusion": "The current browser capture contains the safety warning, bounded data scope, personal-condition limitation and enabled follow-up entry. The frontend retains the Figma warning hierarchy and does not render the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
       }
     },
     {

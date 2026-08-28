@@ -1000,6 +1000,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 交互回归保留“重试”和“跳过此步骤”两个入口，且仅在 `retryable` fixture 中显示重试；定向 ChatPage 测试与全量前端门禁已通过。
 - [ ] 本次采集实际 DPR 为 `1.25`，因此运行时 `dprPass=false`；整页壳层、字体光栅化、图标及其他组合差异仍存在，画板继续为 `DIFF_REVIEW`，不能标记 `PASS`。shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
 
+## 108. 2026-08-28 Agent Safety Degraded 当前版本验收
+
+- [x] 对应 Figma 节点 `687:1563` 的 `/chat?state=safety-degraded` fixture 保留安全降级警告、有限数据范围、个人条件未完整应用提示和可继续追问入口；降级结果未包装为完整分析或完整引用。
+- [x] 浏览器当前版本在 `1440×1024` 视口下实测字体已加载、`scrollWidth=clientWidth=1440`、窗口控制候选数量为 `0`；Figma 设计稿中的红黄绿装饰点未写入前端，业务状态圆点保留。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-2026-08-28.png`，Figma 参考为 `docxs/设计/figma-png/agent-safety-degraded.png`；独立 diff 为 `differentPixels=378158`、差异比例 `25.6455%`、`MAE=3.35588`、`RMSE=16.78875`、最大通道差异 `255`，见 `agent-safety-degraded-current-diff-2026-08-28.json`。
+- [x] ChatPage 状态回归保留降级文案和启用的追问输入框；机器检查与人工复核均已更新，结论继续为 `DIFF_REVIEW`。
+- [ ] 当前捕获实际 DPR 为 `1.0000000149`，但整页壳层、字体光栅化、图标和组合内容仍存在差异；该画板不能标记像素级 `PASS`。shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
+
 ## 106. 2026-08-28 Agent 完成态引用与蛋白质指标收口
 
 - [x] 依据 Figma 节点 `687:1306`，为 `/chat?state=completed-with-citations` 增加独立完成态 fixture：完成响应、蛋白质指标卡、两条数据源引用和无 Trace 的完成态布局。
