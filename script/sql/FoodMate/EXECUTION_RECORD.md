@@ -1155,6 +1155,18 @@
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端/Figma/QA 修改未暂存、未回滚。 |
 | 结论 | 当前功能版 Java、Python、前端业务门禁和本轮工具切片均有实际通过证据；不据此宣称 M1-6 性能/故障恢复或生产强化完成。 |
 
+## D58 真实 PostgreSQL 全迁移与业务幂等约束验证（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；Testcontainers 启动隔离的 PostgreSQL `16-alpine`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-infra -am -Ddocker.available=true -Dtest=BusinessIdempotencyRealMigrationTest -Dsurefire.failIfNoSpecifiedTests=false test`；随后执行 `mvnw.cmd --% -pl foodmate-infra -am spotless:check`。 |
+| 迁移验证 | 当前 baseline + migration 共 26 个版本在空数据库真实执行成功；第二次 `flyway.migrate()` 执行 `0` 个迁移，证明重复执行为 no-op。V12 的已存在列和 V18/V19 的事务提示为 PostgreSQL/Flyway 的非失败 warning。 |
+| 幂等验证 | `food_logs`、`meal_plans`、`approval_requests` 和 `operation_audits` 的重复业务事实均返回 PostgreSQL SQLState `23505`；最终每类测试用户业务事实均保持 1 条，无额外写入。 |
+| 质量门禁 | 定向测试 `2/2` 通过；Infrastructure 及上游 reactor 构建成功；Spotless `check` 通过；新增测试已提交为 `85fb2e6 test(数据库):补齐业务幂等写入验证`。 |
+| 数据与暂缓边界 | 只使用隔离 Testcontainers 数据库，未连接或修改现有 FoodMate 数据；未执行迁移到现有库、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复。 |
+| 结论 | M0-2 中并发消息序号、账号唯一性、会话撤销和业务幂等写入的数据库级测试均已有证据；M1-6 性能、完整故障矩阵和 M3 生产强化仍保持后置。 |
+
 ## D56 当前源码 Docker 应用恢复与业务门禁复核（2026-08-27）
 
 | 项目 | 结果 |
