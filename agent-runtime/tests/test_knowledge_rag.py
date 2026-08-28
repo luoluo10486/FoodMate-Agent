@@ -237,7 +237,7 @@ class RagSettingsTests(TestCase):
                     "FOODMATE_RAG_EMBEDDING_BASE_URL": "http://embedding/v1",
                     "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
                     "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
-                    "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge_" + profile,
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge_" + profile.replace("-", "_").replace(".", "_"),
                     "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1",
                     "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "1",
                     "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
@@ -262,6 +262,24 @@ class RagSettingsTests(TestCase):
                 }
             )
         self.assertEqual("RAG_EMBEDDING_PROFILE_MISMATCH", raised.exception.code)
+
+    def test_local_rejects_milvus_collection_names_unsupported_by_milvus(self):
+        with self.assertRaisesRegex(RagError, "collection name") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+                    "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "knowledge.v1",
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                    "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                    "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+                    "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+                    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+                    "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+                }
+            )
+        self.assertEqual("RAG_MILVUS_COLLECTION_INVALID", raised.exception.code)
 
 
 class DeterministicEmbedderTests(TestCase):

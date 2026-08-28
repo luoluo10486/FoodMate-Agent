@@ -37,6 +37,7 @@ _CHINA_ID = re.compile(
     r"(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])"
     r"(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)"
 )
+_MILVUS_COLLECTION = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,254}$")
 
 EMBEDDING_PROFILES = {
     "bge-m3": "BAAI/bge-m3",
@@ -115,6 +116,11 @@ class RagSettings:
             price_version=env.get("FOODMATE_RAG_PRICE_VERSION", "").strip(),
             embedding_profile=profile,
         )
+        if settings.milvus_collection and not _MILVUS_COLLECTION.fullmatch(settings.milvus_collection):
+            raise RagError(
+                "RAG_MILVUS_COLLECTION_INVALID",
+                "Milvus collection name must contain only letters, numbers, and underscores",
+            )
         if mode == "local":
             if provider == "openai-compatible":
                 for code, value in {
