@@ -56,7 +56,7 @@
 | Meal Planning | `640:901` | 1440×1024 | 23.83% | 16.80 | `DIFF_REVIEW` |
 | Admin Overview | `995:977` | 1440×1024 | 33.57% | 19.58 | `DIFF_REVIEW` |
 | Admin Tool Registry | `692:3847` | 1440×1024 | 21.43% | 18.84 | `DIFF_REVIEW` |
-| Admin Deleted Resources | `692:4104` | 1440×1024 | 79.34% | 21.09 | `DIFF_REVIEW` |
+| Admin Deleted Resources | `692:4104` | 1440×1024 | 26.04% | 17.05 | `DIFF_REVIEW` |
 | User Knowledge Empty | `795:786` | 1440×1024 | 21.91% | 12.25 | `DIFF_REVIEW` |
 | User Knowledge Default | `795:838` | 1180×1024 主区域 | 70.62% | 143.65 | `DIFF_REVIEW` |
 | User Knowledge Search Failed | `795:968` | 1440×1024 | 35.24% | 16.58 | `DIFF_REVIEW` |
@@ -1189,3 +1189,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-nav-copy-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-deleted-resources-nav-copy-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=401129`、差异比例 `27.2033%`、`MAE=4.14668`、`RMSE=21.24401`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
 - [x] Deleted Resources 定向测试 `11/11` 通过；`npm run typecheck`、`npm run build` 和 `git diff --check` 通过。
 - [ ] 本小点只收口导航文案和窗口装饰复核，不代表该画板或 105 张画板达到像素级 `PASS`；头像、整页表格密度、字体和图标光栅化仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 129. 2026-08-29 Admin Deleted Resources 表格行高与内描边收口
+
+- [x] 依据实时 Figma 节点 `692:4205`、`692:4215`、`692:4216`、`692:4236`、`692:4256`、`692:4276`，将删除者列内容宽度恢复为 `120px`，使 `anddy_operator_9` 按设计稿换行；表格数据行实测为 `70px / 58px / 70px / 58px`，与 Figma 一致。
+- [x] 仅修改前端 `AdminPage.module.css`：表格外框和行分隔线改用内描边，保持 `1116×304px` 表格容器、`1116×48px` 表头以及操作列布局；未修改 Figma 设计稿，也未删除业务状态圆点。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149011612`、字体加载完成条件下复核：页面无横向溢出，前端左上角红、黄、绿窗口装饰候选数量为 `0`，表格容器为 `1116×304px`，删除者内容宽度为 `120px`。
+- [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-table-row-height-browser-2026-08-29.jpg`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-table-row-height-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-deleted-resources-table-row-height-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=383969`、差异比例 `26.0396%`、`MAE=3.10932`、`RMSE=17.05253`、最大通道差异 `230`，相较前一份 `27.2033%` 的 MAE/RMSE 有所改善。
+- [x] `DeletedResourcesTab.test.tsx` 与 `AdminPage.test.tsx` 定向测试 `11/11` 通过，`npm run typecheck` 和 `git diff --check` 通过；目标 CSS 的 Prettier 检查仍有既有格式提示，未扩大格式化范围。
+- [ ] 本小点只完成删除资源表格局部几何收口；该画板和 105 张画板仍为 `DIFF_REVIEW`，不代表像素级 `PASS`，身份头像、字体、图标、shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

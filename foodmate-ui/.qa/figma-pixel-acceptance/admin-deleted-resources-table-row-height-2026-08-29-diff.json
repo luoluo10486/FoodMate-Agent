@@ -1,0 +1,19 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 383969,
+  "differentRatio": 0.26039564344618055,
+  "meanAbsoluteError": 3.1093165079752603,
+  "rmse": 17.052531863127527,
+  "maxChannelDelta": 230,
+  "acceptanceStatus": "DIFF_REVIEW",
+  "evidence": {
+    "viewport": "1440x1024",
+    "dpr": 1.0000000149011612,
+    "geometry": "PASS",
+    "text": "PASS",
+    "manualReview": "VISUAL_DIFFERENCES_CONFIRMED"
+  }
+}

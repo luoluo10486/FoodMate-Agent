@@ -11,12 +11,7 @@
     "dpr": 1,
     "animation": "disabled for capture",
     "dynamicTime": "fixed",
-    "passRequires": [
-      "automated diff",
-      "geometry check",
-      "text check",
-      "manual visual review"
-    ],
+    "passRequires": ["automated diff", "geometry check", "text check", "manual visual review"],
     "statusSemantics": {
       "SIZE_MISMATCH": "Viewport dimensions differ",
       "UNMAPPED": "Route or evidence is missing",
@@ -2474,7 +2469,7 @@
       "queryState": "state=deleted-resources",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-deleted-resources.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-nav-copy-browser-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-table-row-height-browser-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-deleted-resources",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -2504,7 +2499,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "导航项已按 Figma 对齐为‘删除资源’，前端未渲染左上角红黄绿窗口装饰点；身份头像、表格行高、文字截断、字体、图标和视觉密度仍存在差异，保留 DIFF_REVIEW。"
+        "conclusion": "导航项已按 Figma 对齐为‘删除资源’，前端未渲染左上角红黄绿窗口装饰点；表格行高和删除者列换行已收口，身份头像、文字截断、字体、图标和视觉密度仍存在差异，保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
@@ -2522,6 +2517,25 @@
           },
           "visualChange": "依据 Figma 节点 692:4104，将管理后台导航项从‘软删除资源’修正为‘删除资源’；未修改 Figma 设计稿。",
           "conclusion": "导航文案和前端窗口装饰边界已复核；整页仍存在视觉差异，保留 DIFF_REVIEW。"
+        },
+        {
+          "capturedAt": "2026-08-29",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-table-row-height-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-deleted-resources-table-row-height-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "dprPass": true,
+          "geometryEvidence": {
+            "bodyHorizontalOverflow": false,
+            "fonts": "loaded",
+            "windowControlsCandidates": 0,
+            "tableContainer": "1116x304",
+            "tableHeader": "1116x48",
+            "dataRowHeights": [70, 58, 70, 58],
+            "deletedByContentWidth": 120
+          },
+          "visualChange": "依据 Figma 节点 692:4205、692:4215、692:4216、692:4236、692:4256、692:4276，将删除者列内容宽度恢复为 120px，并将表格行分隔线与外框改为内描边，收口数据行高度和表格容器尺寸；未修改 Figma 设计稿。",
+          "conclusion": "表格容器、表头、四行数据高度、删除者换行和操作列边界已复核；整页仍存在头像、字体、图标和其它组合视觉差异，保留 DIFF_REVIEW。"
         }
       ]
     },

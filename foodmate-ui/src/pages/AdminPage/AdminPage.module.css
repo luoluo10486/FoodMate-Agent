@@ -2047,10 +2047,10 @@
   height: 304px;
   flex: 0 0 auto;
   overflow: hidden;
-  border: 1px solid #f4f6f5;
+  border: 0;
   border-radius: 16px;
   background: #ffffff;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px #f4f6f5;
 }
 
 .deletedTableScroll {
@@ -2068,8 +2068,8 @@
 }
 
 .deletedTable {
-  width: 1114px;
-  min-width: 1114px;
+  width: 1116px;
+  min-width: 1116px;
   table-layout: fixed;
   border-collapse: collapse;
   color: #333333;
@@ -2093,6 +2093,10 @@
   white-space: nowrap;
 }
 
+.deletedTable :global(thead tr) {
+  border-bottom: 0;
+}
+
 .deletedTable :global(td) {
   height: 58px;
   color: #333333;
@@ -2103,8 +2107,12 @@
 
 .deletedTable :global(tbody tr) {
   height: 58px;
-  border-bottom: 1px solid #f4f6f5;
+  border-bottom: 0;
   background: #ffffff;
+}
+
+.deletedTable :global(tbody tr:not(:last-child) td) {
+  box-shadow: inset 0 -1px #f4f6f5;
 }
 
 .deletedTable :global(tbody tr:hover) {
@@ -2134,6 +2142,7 @@
 .deletedTable :global(th:nth-child(5)),
 .deletedTable :global(td:nth-child(5)) {
   width: 136px;
+  padding-right: 0;
   white-space: normal;
 }
 
