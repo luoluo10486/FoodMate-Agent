@@ -38,6 +38,11 @@ _CHINA_ID = re.compile(
     r"(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)"
 )
 
+EMBEDDING_PROFILES = {
+    "bge-m3": "BAAI/bge-m3",
+    "qwen3-embedding-0.6b": "Qwen/Qwen3-Embedding-0.6B",
+}
+
 
 @dataclass(frozen=True)
 class RagSettings:
@@ -57,6 +62,7 @@ class RagSettings:
     daily_cost_limit: Decimal | None = None
     price_per_million_tokens: Decimal | None = None
     price_version: str = ""
+    embedding_profile: str = ""
 
     @classmethod
     def from_environment(cls, environment: dict[str, str] | None = None) -> "RagSettings":
@@ -67,6 +73,9 @@ class RagSettings:
         provider = env.get("FOODMATE_RAG_EMBEDDING_PROVIDER", "openai-compatible").strip().lower()
         if provider not in {"openai-compatible", "deterministic"}:
             raise RagError("RAG_EMBEDDING_PROVIDER_INVALID", "embedding provider is invalid")
+        profile = env.get("FOODMATE_RAG_EMBEDDING_PROFILE", "").strip().lower()
+        if profile and profile not in EMBEDDING_PROFILES:
+            raise RagError("RAG_EMBEDDING_PROFILE_INVALID", "embedding profile is invalid")
         concurrency = _integer(env.get("FOODMATE_RAG_INDEX_CONCURRENCY", "4"), "RAG_INDEX_CONCURRENCY_INVALID")
         if not 1 <= concurrency <= 8:
             raise RagError("RAG_INDEX_CONCURRENCY_INVALID", "index concurrency must be between 1 and 8")
@@ -79,6 +88,14 @@ class RagSettings:
         embedding_model = env.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip()
         if provider == "deterministic" and not embedding_model:
             embedding_model = "deterministic-local-v1"
+        if profile:
+            profile_model = EMBEDDING_PROFILES[profile]
+            if embedding_model and embedding_model != profile_model:
+                raise RagError(
+                    "RAG_EMBEDDING_PROFILE_MISMATCH",
+                    "embedding profile and model do not match",
+                )
+            embedding_model = profile_model
         settings = cls(
             mode=mode,
             embedding_provider=provider,
@@ -96,6 +113,7 @@ class RagSettings:
             daily_cost_limit=_optional_decimal(env.get("FOODMATE_RAG_DAILY_COST_LIMIT", "")),
             price_per_million_tokens=_optional_decimal(env.get("FOODMATE_RAG_PRICE_PER_MILLION_TOKENS", "")),
             price_version=env.get("FOODMATE_RAG_PRICE_VERSION", "").strip(),
+            embedding_profile=profile,
         )
         if mode == "local":
             if provider == "openai-compatible":
@@ -352,6 +370,8 @@ class OpenAICompatibleEmbedder:
         self.settings = settings
 
     def embed(self, inputs: list[str]) -> list[list[float]]:
+        if not inputs or any(not isinstance(value, str) or not value.strip() for value in inputs):
+            raise RagError("RAG_EMBEDDING_INVALID_INPUT", "embedding input must not be empty")
         request = urllib.request.Request(
             self._url(), data=json.dumps({"model": self.settings.embedding_model, "input": inputs}).encode("utf-8"), method="POST",
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.settings.embedding_api_key},
@@ -364,7 +384,16 @@ class OpenAICompatibleEmbedder:
         except (urllib.error.URLError, TimeoutError) as error:
             raise RagError("RAG_EMBEDDING_UNAVAILABLE", "embedding endpoint is unavailable") from error
         try:
-            vectors = [list(map(float, item["embedding"])) for item in payload["data"]]
+            data = payload["data"]
+            if not isinstance(data, list):
+                raise TypeError("embedding data must be a list")
+            indexed = []
+            for position, item in enumerate(data):
+                index = int(item.get("index", position))
+                indexed.append((index, item["embedding"]))
+            if sorted(index for index, _ in indexed) != list(range(len(inputs))):
+                raise ValueError("embedding indexes are not a complete sequence")
+            vectors = [list(map(float, vector)) for _, vector in sorted(indexed)]
         except (KeyError, TypeError, ValueError) as error:
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
         if len(vectors) != len(inputs) or not vectors or any(not vector or not all(math.isfinite(item) for item in vector) for vector in vectors):

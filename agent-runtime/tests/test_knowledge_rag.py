@@ -224,6 +224,45 @@ class RagSettingsTests(TestCase):
             })
         self.assertEqual("RAG_EMBEDDING_BASE_URL_MISSING", raised.exception.code)
 
+    def test_supported_embedding_profiles_resolve_to_their_model(self):
+        for profile, model in (
+            ("bge-m3", "BAAI/bge-m3"),
+            ("qwen3-embedding-0.6b", "Qwen/Qwen3-Embedding-0.6B"),
+        ):
+            settings = RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_RAG_EMBEDDING_PROFILE": profile,
+                    "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                    "FOODMATE_RAG_EMBEDDING_BASE_URL": "http://embedding/v1",
+                    "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
+                    "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge_" + profile,
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1",
+                    "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "1",
+                    "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                    "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+                    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+                    "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+                }
+            )
+            self.assertEqual(profile, settings.embedding_profile)
+            self.assertEqual(model, settings.embedding_model)
+
+    def test_embedding_profile_rejects_a_different_explicit_model(self):
+        with self.assertRaisesRegex(RagError, "do not match") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3",
+                    "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                    "FOODMATE_RAG_EMBEDDING_BASE_URL": "http://embedding/v1",
+                    "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
+                    "FOODMATE_RAG_EMBEDDING_MODEL": "Qwen/Qwen3-Embedding-0.6B",
+                }
+            )
+        self.assertEqual("RAG_EMBEDDING_PROFILE_MISMATCH", raised.exception.code)
+
 
 class DeterministicEmbedderTests(TestCase):
     def test_vectors_are_stable_non_zero_and_have_configured_dimension(self):
