@@ -679,6 +679,7 @@ export function PlanningPage() {
       rightRailWidth={view === 'default' && (!isRealMode || selectedPlan) ? 340 : undefined}
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
+      topbarVariant={isFigmaFixture && view === 'list' ? 'planning-list' : undefined}
       sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       showKnowledgeTopNav={!isFigmaFixture}

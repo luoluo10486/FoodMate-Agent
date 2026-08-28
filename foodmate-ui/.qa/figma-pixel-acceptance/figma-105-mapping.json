@@ -2047,7 +2047,7 @@
       "queryState": "state=list",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-list.png",
-      "browserPng": ".qa/figma-pixel-acceptance/meal-plan-list-brand-mark-browser-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-notification-2026-08-28.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -2057,9 +2057,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.25,
+        "actualDpr": 1.0000000149011612,
         "viewportPass": true,
-        "dprPass": false,
+        "dprPass": true,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -2076,8 +2076,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "The current browser capture shows all three plan cards, the Figma single-text '+ 新建膳食计划' action, the corrected no-gap card layout, Figma-aligned text row boxes, and exact 133px card heights. Remaining shell, details, density, and typography/icon rasterization differences remain; the in-app browser DPR was 1.25 rather than the required 1, so retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-28",
+        "conclusion": "The current browser capture shows all three plan cards and the Figma list structure. The notification control is 36x36px with a white fill, #f4f6f5 border, and 18px radius; the frontend contains no red, yellow, or green window-control dots. Remaining shell, details, density, and typography/icon rasterization differences remain, so retain DIFF_REVIEW."
       }
     },
     {

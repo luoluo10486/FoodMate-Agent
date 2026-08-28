@@ -878,6 +878,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
 - [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
 
+## 106. 2026-08-28 餐食规划列表通知按钮样式与窗口装饰复核
+
+- [x] 依据实时 Figma 节点 `692:2662` 的顶栏通知按钮节点 `692:2729`，仅在 `/planning?state=list` 的 Figma fixture 作用域将通知按钮收口为 `36×36px`、白色背景、`1px #f4f6f5` 边框和 `18px` 圆角；空态、加载态、错误态、普通页面和真实模式不受影响。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149011612` 下实测按钮尺寸为 `36×36px`，背景为 `rgb(255,255,255)`，边框颜色为 `rgb(244,246,245)`，圆角为 `18px`；列表态和空态的前端红、黄、绿窗口控制点数量均为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-plan-list-notification-2026-08-28.png`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=544162`、差异比例 `36.9033%`、`MAE=4.23171`、`RMSE=20.50580`、最大通道差异 `255`，已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json#meal-plan-list`。
+- [x] `PlanningPage` 与 `WorkspaceLayout` 定向测试 `16/16` 通过，类型检查、相关文件 Prettier 检查、目标视口浏览器检查和 `git diff --check` 通过。
+- [ ] `meal-plan-list` 继续保持 `DIFF_REVIEW`：整页壳层、内容密度、字体和图标光栅化仍存在差异；105 张画板汇总继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面视觉迁移和 iconfont 实体登记仍未完成。
+
 ## 104. 2026-08-28 餐食规划空态图标底色收口
 
 - [x] 依据实时 Figma 节点 `692:2446` 的图标容器节点 `692:2529`，将前端 `/planning?state=empty` 空态图标底色从 `rgba(166,217,151,0.18)` 修正为设计稿精确值 `#EBF7ED`；仅修改前端，Figma 文件、错误态和真实模式未修改。

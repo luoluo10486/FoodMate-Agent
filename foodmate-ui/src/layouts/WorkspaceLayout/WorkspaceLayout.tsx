@@ -68,6 +68,7 @@ type WorkspaceLayoutProps = {
   profileActiveTab?: 'basic' | 'memories' | 'security' | 'privacy';
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
+  topbarVariant?: 'planning-list';
   sidebarFixture?: {
     sessions: SessionSummary[];
     searchValue?: string;
@@ -90,6 +91,7 @@ export function WorkspaceLayout({
   profileActiveTab,
   showKnowledgeTopNav = true,
   designChat = false,
+  topbarVariant,
   sidebarFixture,
   pageOverlay,
 }: WorkspaceLayoutProps) {
@@ -325,7 +327,10 @@ export function WorkspaceLayout({
           </div>
         </aside>
         <main className={styles.main}>
-          <header className={styles.topbar}>
+          <header
+            className={`${styles.topbar} ${topbarVariant === 'planning-list' ? styles.planningListTopbar : ''}`}
+            data-topbar-variant={topbarVariant}
+          >
             <BrandLogo size="compact" showMarkLetter={showKnowledgeTopNav || (!sidebarFixture && !designChat)} />
             <nav className={styles.nav} aria-label={activeModule === 'profile' ? '个人中心导航' : '主导航'}>
               {activeModule === 'profile' ? (
