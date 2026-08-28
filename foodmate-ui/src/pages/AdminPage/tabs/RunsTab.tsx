@@ -33,6 +33,7 @@ import {
   loadAdminQuery,
   type AdminRunRow,
   type AdminQueryRun,
+  type AdminQueryTrace,
   type AdminQueryDlq,
   type AdminQuerySqlAudit,
   type AdminQueryToolCall,
@@ -159,6 +160,21 @@ function queryToolCallRow(row: AdminQueryToolCall, index: number): AdminToolCall
     inputSummary: '-',
     outputSummary: '-',
     errorCode: '-',
+  };
+}
+
+function queryTraceRow(row: AdminQueryTrace, index: number): AdminTraceRow {
+  return {
+    key: `trace-${row.trace_id || index}`,
+    traceId: row.trace_id || '-',
+    runId: row.run_id == null ? undefined : String(row.run_id),
+    entry: row.entry || '-',
+    status: row.status || '-',
+    startedAt: row.started_at || '-',
+    durationMs: row.duration_ms == null ? 0 : Number(row.duration_ms),
+    spanCount: row.span_count ?? 0,
+    rootService: row.root_service || '-',
+    errorCode: row.error_code || '-',
   };
 }
 
@@ -510,15 +526,16 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
       loadAdminQuery<AdminQueryRun>('runs'),
       loadAdminQuery<AdminQueryToolCall>('tool-calls'),
       loadAdminQuery<AdminQuerySqlAudit>('sql-audits'),
+      loadAdminQuery<AdminQueryTrace>('traces'),
       loadAdminQuery<AdminQueryDlq>('dlq'),
     ])
-      .then(([runs, toolCalls, sqlAudits, dlq]) => {
+      .then(([runs, toolCalls, sqlAudits, traces, dlq]) => {
         if (mounted)
           setDashboard({
             runs: runs.items.map(queryRunRow),
             toolCalls: toolCalls.items.map(queryToolCallRow),
             sqlAudits: sqlAudits.items.map(querySqlAuditRow),
-            traces: [],
+            traces: traces.items.map(queryTraceRow),
             dlq: dlq.items.map(queryDlqRow),
           });
       })
@@ -858,7 +875,11 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             {filteredTraces.length ? (
               <DataTable className={styles.runTable} columns={traceColumns} data={filteredTraces} />
             ) : (
-              <DataPlaceholder filtered={Boolean(query || errorFilter || statusFilter !== 'all')} tab="traces" />
+              <DataPlaceholder
+                filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
+                tab="traces"
+                error={loadError}
+              />
             )}
           </TabsContent>
           <TabsContent value="dlq">

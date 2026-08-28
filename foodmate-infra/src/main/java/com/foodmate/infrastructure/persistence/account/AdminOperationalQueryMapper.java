@@ -9,6 +9,7 @@ import com.foodmate.application.account.port.out.AdminOperationalQueryRepository
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.SqlAuditRow;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.ToolCallRow;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.ToolRow;
+import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.TraceRow;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.UsageRow;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.UserRow;
 import java.util.List;
@@ -63,6 +64,36 @@ public interface AdminOperationalQueryMapper {
                     + " CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and q.status !="
                     + " &quot;&quot;'> AND r.status=#{q.status}</if></script>")
     long countRuns(@Param("q") Query query);
+
+    @Select(
+            "<script>SELECT r.trace_id, r.agent_run_id AS run_id, CONCAT_WS(' -> ', 'java.control-plane',"
+                    + " CASE WHEN EXISTS (SELECT 1 FROM runtime_event_inbox_v2 e WHERE e.agent_run_id=r.agent_run_id"
+                    + " AND e.event_type IN ('run.accepted','run.context_assembled','run.model_usage','run.completed'))"
+                    + " THEN 'python.agent-runtime' END, CASE WHEN EXISTS (SELECT 1 FROM tool_calls t WHERE"
+                    + " t.agent_run_id=r.agent_run_id AND t.is_deleted=FALSE) THEN 'tool' END, CASE WHEN EXISTS"
+                    + " (SELECT 1 FROM model_usage_logs m WHERE m.trace_id=r.trace_id AND m.is_deleted=FALSE) THEN"
+                    + " 'model' END, CASE WHEN EXISTS (SELECT 1 FROM agent_run_sse_outbox s WHERE"
+                    + " s.agent_run_id=r.agent_run_id) THEN 'sse' END) AS entry, r.status, r.created_at AS started_at,"
+                    + " EXTRACT(EPOCH FROM (r.updated_at-r.created_at))*1000 AS duration_ms,"
+                    + " 1 + (SELECT COUNT(*) FROM tool_calls t WHERE t.agent_run_id=r.agent_run_id AND t.is_deleted=FALSE)"
+                    + " + (SELECT COUNT(*) FROM model_usage_logs m WHERE m.trace_id=r.trace_id AND m.is_deleted=FALSE)"
+                    + " AS span_count, 'foodmate-java' AS root_service, r.error_code FROM agent_runs r WHERE"
+                    + " r.is_deleted=FALSE AND NULLIF(BTRIM(r.trace_id),'') IS NOT NULL<if test='q.text != null and"
+                    + " q.text != &quot;&quot;'> AND (r.trace_id ILIKE CONCAT('%',#{q.text},'%') OR CAST(r.agent_run_id AS"
+                    + " TEXT) ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and q.status != &quot;&quot;'>"
+                    + " AND r.status=#{q.status}</if> ORDER BY <choose><when test=\"q.sort == 'duration_ms'\">"
+                    + " duration_ms</when><when test=\"q.sort == 'status'\">r.status</when><otherwise>r.created_at"
+                    + "</otherwise></choose> <choose><when test=\"q.direction == 'asc'\">ASC</when><otherwise>DESC"
+                    + "</otherwise></choose>,r.agent_run_id DESC LIMIT #{q.limit} OFFSET #{q.offset}</script>")
+    List<TraceRow> traces(@Param("q") Query query);
+
+    @Select(
+            "<script>SELECT COUNT(*) FROM agent_runs r WHERE r.is_deleted=FALSE AND NULLIF(BTRIM(r.trace_id),'')"
+                    + " IS NOT NULL<if test='q.text != null and q.text != &quot;&quot;'> AND (r.trace_id ILIKE"
+                    + " CONCAT('%',#{q.text},'%') OR CAST(r.agent_run_id AS TEXT) ILIKE CONCAT('%',#{q.text},'%'))"
+                    + "</if><if test='q.status != null and q.status != &quot;&quot;'> AND r.status=#{q.status}</if>"
+                    + "</script>")
+    long countTraces(@Param("q") Query query);
 
     @Select(
             "<script>SELECT tool_call_id,agent_run_id,tool_name,status,latency_ms,trace_id FROM"

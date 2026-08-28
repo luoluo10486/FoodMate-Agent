@@ -14,6 +14,10 @@ public interface AdminOperationalQueryRepository {
 
     long countRuns(Query query);
 
+    List<TraceRow> traces(Query query);
+
+    long countTraces(Query query);
+
     List<ToolCallRow> toolCalls(Query query);
 
     long countToolCalls(Query query);
@@ -65,6 +69,17 @@ public interface AdminOperationalQueryRepository {
             String traceId,
             BigDecimal durationMs,
             String actorRef) {}
+
+    record TraceRow(
+            String traceId,
+            Long runId,
+            String entry,
+            String status,
+            Instant startedAt,
+            BigDecimal durationMs,
+            Long spanCount,
+            String rootService,
+            String errorCode) {}
 
     record ToolCallRow(
             Long toolCallId,

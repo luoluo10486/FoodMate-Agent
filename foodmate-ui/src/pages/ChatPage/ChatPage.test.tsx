@@ -201,6 +201,19 @@ describe('ChatPage Agent remaining states', () => {
     );
   };
 
+  it('renders the completed citation fixture without the trace rail', () => {
+    renderState('completed-with-citations');
+    expect(screen.getByText('分析我这周的蛋白质摄入')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '本周蛋白质摄入分析' })).toBeInTheDocument();
+    expect(screen.getByText('85g')).toBeInTheDocument();
+    expect(screen.getByText('78%')).toBeInTheDocument();
+    expect(screen.getByText('周三 62g')).toBeInTheDocument();
+    expect(screen.getByText('[1] USDA FoodData Central - Ref #4451002')).toBeInTheDocument();
+    expect(screen.getByText('[2] 用户饮食记录 2024-03-08~03-14')).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: '运行轨迹' })).not.toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
+  });
+
   it('renders write confirmation details and records confirm/cancel actions', () => {
     renderState('write-confirmation');
     expect(screen.getByRole('heading', { name: '确认写入以下记录' })).toBeInTheDocument();

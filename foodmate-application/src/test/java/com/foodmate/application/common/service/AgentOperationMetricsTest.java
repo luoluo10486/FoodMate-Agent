@@ -22,8 +22,7 @@ class AgentOperationMetricsTest {
 
         assertEquals(
                 1.0,
-                registry
-                        .get("foodmate.agent.operations")
+                registry.get("foodmate.agent.operations")
                         .tags(
                                 "transport",
                                 "rocketmq",

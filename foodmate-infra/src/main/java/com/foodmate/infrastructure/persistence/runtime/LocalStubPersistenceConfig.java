@@ -607,6 +607,14 @@ public class LocalStubPersistenceConfig {
                 return 0;
             }
 
+            public List<TraceRow> traces(Query query) {
+                return List.of();
+            }
+
+            public long countTraces(Query query) {
+                return 0;
+            }
+
             public List<ToolCallRow> toolCalls(Query query) {
                 return List.of();
             }

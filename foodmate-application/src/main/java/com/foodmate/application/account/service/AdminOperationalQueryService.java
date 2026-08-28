@@ -67,6 +67,18 @@ public interface AdminOperationalQueryService {
             String actorRef) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record Trace(
+            String traceId,
+            Long runId,
+            String entry,
+            String status,
+            Instant startedAt,
+            BigDecimal durationMs,
+            Long spanCount,
+            String rootService,
+            String errorCode) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record User(Long userId, String username, String role, String status, String emailRef) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)

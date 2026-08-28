@@ -441,6 +441,18 @@ export type AdminQueryRun = {
   actor_ref: string;
 };
 
+export type AdminQueryTrace = {
+  trace_id: string;
+  run_id: number | null;
+  entry: string;
+  status: string;
+  started_at: string | null;
+  duration_ms: number | string | null;
+  span_count: number | null;
+  root_service: string;
+  error_code: string | null;
+};
+
 export type AdminQueryToolCall = {
   tool_call_id: number | null;
   agent_run_id: number | null;

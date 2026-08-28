@@ -80,9 +80,18 @@ function formatMessageTime(value: string) {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 
-function MessageBubble({ message, children }: { message: ChatMessage; children?: ReactNode }) {
+function MessageBubble({
+  message,
+  children,
+  userAvatarSrc,
+}: {
+  message: ChatMessage;
+  children?: ReactNode;
+  userAvatarSrc?: string;
+}) {
   const isUser = message.role === 'user';
-  const userAvatar = resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
+  const userAvatar =
+    userAvatarSrc ?? resolveAvatarUrl(getAuthUser().avatarUrl, getAuthUser().gender) ?? DEFAULT_AVATARS.male;
   return (
     <article className={`${styles.message} ${isUser ? styles.user : styles.assistant}`}>
       {isUser ? (
@@ -202,6 +211,7 @@ type ChatSurfaceProps = {
   profileIdOverride?: string;
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
+  pageVariant?: 'completed-citations';
   statusForStrip?: AgentDisplayStatus;
   statusVisualState?: 'user-cancelled';
   pageOverlay?: ReactNode;
@@ -231,6 +241,7 @@ function ChatSurface({
   profileIdOverride,
   showKnowledgeTopNav,
   designChat,
+  pageVariant,
   statusForStrip,
   statusVisualState,
   pageOverlay,
@@ -250,7 +261,9 @@ function ChatSurface({
       sidebarAvatarSrc={sidebarAvatarSrc}
       topAvatarSrc={topAvatarSrc}
     >
-      <div className={`${styles.page} ${designChat ? styles.designChatPage : ''}`}>
+      <div
+        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''}`}
+      >
         <section className={styles.workspace}>
           <div className={styles.center}>
             <AgentStatusStrip
@@ -704,7 +717,7 @@ function fixtureRun(state: AgentFixtureState): AgentRunView {
 type HistoryFixture = {
   prompt: string;
   response: string;
-  source: string;
+  source?: string;
   run: AgentRunView;
   sidebar: {
     sessions: SessionSummary[];
@@ -856,6 +869,74 @@ function redesignDefaultFixture(): HistoryFixture {
       currentPage: 1,
     },
   };
+}
+
+function completedCitationsFixture(): HistoryFixture {
+  const fixture = historyFixture('history-page-2');
+  return {
+    ...fixture,
+    prompt: '分析我这周的蛋白质摄入',
+    response:
+      '我已对你本周的饮食记录进行了完整分析。整体来看，你的蛋白质摄入表现健康，有明显的规律性，但在周末略有下滑。',
+    source: undefined,
+    run: {
+      ...fixture.run,
+      id: 'fixture_completed_with_citations',
+      status: 'completed',
+      intent: 'analysis',
+      toolsUsed: 4,
+      toolsTotal: 4,
+      citations: [
+        {
+          id: '4451002',
+          title: 'USDA FoodData Central - Ref #4451002',
+          snippet: '标准食物营养数据',
+          source: 'USDA FoodData Central',
+        },
+        {
+          id: 'meal-log-2024-03-08',
+          title: '用户饮食记录 2024-03-08~03-14',
+          snippet: '本周饮食记录',
+          source: 'FoodMate 饮食记录',
+        },
+      ],
+    },
+    sidebar: {
+      ...fixture.sidebar,
+      currentPage: 1,
+    },
+  };
+}
+
+function ProteinAnalysisCard() {
+  return (
+    <>
+      <section className={styles.completedAnalysisCard} aria-label="本周蛋白质摄入分析">
+        <h2>本周蛋白质摄入分析</h2>
+        <div className={styles.completedMetricGrid}>
+          <div>
+            <span>日均摄入</span>
+            <strong>85g</strong>
+          </div>
+          <div>
+            <span>目标达成率</span>
+            <strong>78%</strong>
+          </div>
+          <div>
+            <span>最低日</span>
+            <strong>周三 62g</strong>
+          </div>
+        </div>
+      </section>
+      <div className={styles.completedCitations} aria-label="数据源引用">
+        <strong>数据源引用：</strong>
+        <div className={styles.completedCitationList}>
+          <span>[1] USDA FoodData Central - Ref #4451002</span>
+          <span>[2] 用户饮食记录 2024-03-08~03-14</span>
+        </div>
+      </div>
+    </>
+  );
 }
 
 type SessionOverlayState = Extract<ChatAuxState, 'session-actions' | 'renamed' | 'archived' | 'trash'>;
@@ -1011,22 +1092,25 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
   const [notice, setNotice] = useState('');
   const [sessionOverlayVisible, setSessionOverlayVisible] = useState(true);
   const isRunning = state === 'running-stop';
+  const isCompletedCitations = state === 'completed-with-citations';
   const isHistoryState = state === 'history-page-2' || state === 'history-page-3' || state === 'search-results';
   const isSessionOverlayState =
     state === 'session-actions' || state === 'renamed' || state === 'archived' || state === 'trash';
   const isRedesignDefault = state === 'redesign-default';
   const isNavigationState = state === 'nav-loading' || state === 'nav-hover-preview' || state === 'pagination';
-  const history = isHistoryState
-    ? historyFixture(state)
-    : isSessionOverlayState
-      ? historyFixture('search-results')
-      : isRedesignDefault
-        ? redesignDefaultFixture()
-        : isNavigationState
-          ? navigationFixture()
-          : isRunning
-            ? historyFixture('history-page-2')
-            : undefined;
+  const history = isCompletedCitations
+    ? completedCitationsFixture()
+    : isHistoryState
+      ? historyFixture(state)
+      : isSessionOverlayState
+        ? historyFixture('search-results')
+        : isRedesignDefault
+          ? redesignDefaultFixture()
+          : isNavigationState
+            ? navigationFixture()
+            : isRunning
+              ? historyFixture('history-page-2')
+              : undefined;
   const run = isRunning
     ? { ...(history?.run ?? fixtureRun('sse-reconnecting')), status: 'executing_tools' as const }
     : (history?.run ?? fixtureRun('tool-failed-retryable'));
@@ -1056,10 +1140,14 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       onSend={() => setNotice('已保留输入内容，等待当前会话继续处理。')}
       onStop={() => setNotice('已请求停止当前 Run；已接收文本会保留。')}
       placeholder={isRunning ? '运行中，可停止…' : '追问或添加自定义指令...'}
+      showTrace={!isCompletedCitations}
       designChat
+      pageVariant={isCompletedCitations ? 'completed-citations' : undefined}
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
+      sidebarAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
+      topAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
       pageOverlay={
         isSessionOverlayState && sessionOverlayVisible ? (
           <SessionStateOverlay
@@ -1092,6 +1180,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               time: '12:45',
               wide: isNavigationState,
             }}
+            userAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
           />
           <MessageBubble
             message={{
@@ -1103,10 +1192,14 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               wide: isNavigationState,
             }}
           >
-            <InlineConfirmationCard
-              onConfirm={() => setNotice('fixture 已记录写入确认；未调用任何后端写入接口。')}
-              onCancel={() => setNotice('已保留本次分析，仅作为对话参考。')}
-            />
+            {isCompletedCitations ? (
+              <ProteinAnalysisCard />
+            ) : (
+              <InlineConfirmationCard
+                onConfirm={() => setNotice('fixture 已记录写入确认；未调用任何后端写入接口。')}
+                onCancel={() => setNotice('已保留本次分析，仅作为对话参考。')}
+              />
+            )}
           </MessageBubble>
           {isRunning || isRedesignDefault ? (
             <section className={styles.messageActions} aria-label="消息操作">

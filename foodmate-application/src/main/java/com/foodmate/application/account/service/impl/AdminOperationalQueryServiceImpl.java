@@ -13,6 +13,7 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
     private static final Set<String> RESOURCES =
             Set.of(
                     "runs",
+                    "traces",
                     "users",
                     "tool-calls",
                     "sql-audits",
@@ -44,6 +45,8 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
             case "users" ->
                     page(store.users(query), store.countUsers(query), safeRequest, this::user);
             case "runs" -> page(store.runs(query), store.countRuns(query), safeRequest, this::run);
+            case "traces" ->
+                    page(store.traces(query), store.countTraces(query), safeRequest, this::trace);
             case "tool-calls" ->
                     page(
                             store.toolCalls(query),
@@ -111,6 +114,7 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
         return switch (resource) {
             case "users" -> Set.of("created_at", "username", "status");
             case "runs" -> Set.of("created_at", "duration_ms", "status");
+            case "traces" -> Set.of("started_at", "duration_ms", "status");
             case "tool-calls" -> Set.of("created_at", "latency_ms", "status");
             case "sql-audits" -> Set.of("created_at", "latency_ms", "status");
             case "tools" -> Set.of("name", "updated_at", "status");
@@ -142,6 +146,19 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
 
     private User user(AdminOperationalQueryRepository.UserRow row) {
         return new User(row.userId(), row.username(), row.role(), row.status(), row.emailRef());
+    }
+
+    private Trace trace(AdminOperationalQueryRepository.TraceRow row) {
+        return new Trace(
+                row.traceId(),
+                row.runId(),
+                row.entry(),
+                row.status(),
+                row.startedAt(),
+                row.durationMs(),
+                row.spanCount(),
+                row.rootService(),
+                row.errorCode());
     }
 
     private ToolCall toolCall(AdminOperationalQueryRepository.ToolCallRow row) {

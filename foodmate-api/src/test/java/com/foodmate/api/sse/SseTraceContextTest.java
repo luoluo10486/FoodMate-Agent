@@ -29,8 +29,7 @@ class SseTraceContextTest {
                 SseTraceContext.capture(
                         () -> {
                             observed.set(TraceContextHolder.current());
-                            observedRequestId.set(
-                                    MDC.get(TraceContextHolder.REQUEST_ID_MDC_KEY));
+                            observedRequestId.set(MDC.get(TraceContextHolder.REQUEST_ID_MDC_KEY));
                         });
 
         TraceContextHolder.clear();

@@ -133,6 +133,43 @@ class AdminOperationalQueryControllerTest {
         verify(queries).query(eq("dlq"), any(AdminOperationalQueryService.Request.class));
     }
 
+    @Test
+    void operatorCanReadTraceSummary() throws Exception {
+        when(accounts.requireSessionUser("operator-session")).thenReturn(user("operator"));
+        doReturn(
+                        new AdminOperationalQueryService.Page<AdminOperationalQueryService.Trace>(
+                                List.of(
+                                        new AdminOperationalQueryService.Trace(
+                                                "trace-1",
+                                                42L,
+                                                "java.control-plane -> python.agent-runtime",
+                                                "completed",
+                                                java.time.Instant.parse("2026-08-28T00:00:00Z"),
+                                                new java.math.BigDecimal("10.0"),
+                                                2L,
+                                                "foodmate-java",
+                                                null)),
+                                1,
+                                1,
+                                20))
+                .when(queries)
+                .query(eq("traces"), any(AdminOperationalQueryService.Request.class));
+
+        mvc.perform(
+                        get("/api/admin/queries/traces")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "operator-session")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.resource", is("traces")))
+                .andExpect(jsonPath("$.data.items[0].trace_id", is("trace-1")))
+                .andExpect(jsonPath("$.data.items[0].span_count", is(2)))
+                .andExpect(jsonPath("$.data.items[0].root_service", is("foodmate-java")))
+                .andExpect(jsonPath("$.data.items[0].raw_payload_json").doesNotExist());
+
+        verify(queries).query(eq("traces"), any(AdminOperationalQueryService.Request.class));
+    }
+
     private UserAccountService.UserRecord user(String role) {
         return new UserAccountService.UserRecord(
                 2L, role, role + "@example.com", "hash", role, role, "active");

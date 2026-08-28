@@ -246,6 +246,14 @@
   stroke-width: 0;
 }
 
+.completedCitationsPage .user .messageBubble {
+  width: 186px;
+  min-width: 186px;
+  max-width: 186px;
+  box-sizing: border-box;
+  color: #333;
+}
+
 .planningTitle {
   display: flex;
   align-items: center;
@@ -1141,6 +1149,99 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
+}
+
+.completedAnalysisCard {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #f4f6f5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.completedAnalysisCard h2 {
+  margin: 0;
+  color: #333;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.completedMetricGrid {
+  display: flex;
+  width: 100%;
+  gap: 16px;
+}
+
+.completedMetricGrid > div {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.completedMetricGrid span {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 13px;
+}
+
+.completedMetricGrid strong {
+  color: #333;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 24px;
+}
+
+.completedMetricGrid > div:nth-child(2) strong {
+  color: #89b27c;
+}
+
+.completedMetricGrid > div:nth-child(3) strong {
+  color: #c79654;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 17px;
+}
+
+.completedCitations {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.completedCitations > strong {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 14px;
+}
+
+.completedCitationList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.completedCitationList span {
+  display: inline-flex;
+  min-height: 22px;
+  box-sizing: border-box;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid #f4f6f5;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  font-size: 11px;
+  line-height: 13px;
+  white-space: nowrap;
 }
 
 .fixtureUserLine {
