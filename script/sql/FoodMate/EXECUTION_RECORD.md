@@ -1233,3 +1233,17 @@
 | Docker | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；现有 PostgreSQL、Redis、MinIO、RocketMQ、Milvus 及应用容器均 healthy。Docker `agent-runtime` 完整重建仍受 PyPI TLS/网络错误阻断，未伪造为成功。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端视觉改动未暂存、未回滚。 |
 | 结论 | 功能版 Java/Python/前端业务门禁和当前可执行的 Alibaba 规范子集均通过；不可逆硬删除、真实依赖清理、性能/故障矩阵、生产安全与部署演练继续后置。 |
+
+## D62 SiliconFlow 真实 Chat 与双 Embedding smoke（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；API Key 仅通过当前进程环境变量传入，未写入仓库、日志或执行记录。 |
+| 服务发现 | SiliconFlow `https://api.siliconflow.cn/v1/models` HTTP 成功；目标模型 `BAAI/bge-m3`、`Qwen/Qwen3-Embedding-0.6B` 和 `deepseek-ai/DeepSeek-V4-Flash` 均可见。 |
+| Embedding 验证 | `FOODMATE_RUN_REAL_EMBEDDING_TESTS=true .\\agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q agent-runtime/tests/test_real_embedding_integration.py`：`1 passed`；同一测试分别请求两个模型，均返回 1 个、1024 维浮点向量。 |
+| Chat 验证 | `FOODMATE_RUN_REAL_CLOUD_TESTS=true`，primary/eval 显式使用 `cloud_primary:deepseek-ai/DeepSeek-V4-Flash`，执行 `agent-runtime/tests/test_real_cloud_integration.py`：`1 passed`；真实 Chat 和独立评测请求均返回非空内容、provider request ID 和 usage。 |
+| 代码修正 | 真实云测试现在尊重显式 `FOODMATE_MODEL_TIER_STANDARD/EVAL`，只配置 SiliconFlow primary 也可执行；离线 pytest 默认仍隔离为 deterministic。新增安全扫描脚本默认 secret scan：`secret_scan_hits=0`、`tracked_env_files=0`、`security_scan_status=passed`。 |
+| 依赖扫描 | `security-scan.ps1 -RunNpmAudit` 未发现可判定漏洞；当前 npm registry `registry.npmmirror.com` 的 advisory endpoint 返回 `404/[NOT_IMPLEMENTED]`，脚本将其记录为 skipped，不伪造为通过的漏洞结论。Python `pip-audit` 尚未安装，OWASP dependency-check 未执行。 |
+| 数据与边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产服务；真实调用是单次 smoke，不代表云模型长稳、价格审计、账单对账或生产容量完成。 |
+| Git 提交 | `2cbab19 test(runtime): verify real cloud provider configuration safely`。 |
+| 结论 | SiliconFlow 真实 Chat 与两个 Embedding 的最小调用合同已取得可复核证据；真实云长期稳定性、正式价格/账单审计和生产强化保持未完成。 |

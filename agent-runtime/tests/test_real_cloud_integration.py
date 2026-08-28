@@ -8,6 +8,7 @@ import os
 import pytest
 
 from model_provider import ModelRequest, ModelRouter
+from runtime_env import load_project_env
 
 
 def _env(name: str, fallback: str = "") -> str:
@@ -15,6 +16,7 @@ def _env(name: str, fallback: str = "") -> str:
 
 
 def _cloud_environment() -> dict[str, str] | None:
+    load_project_env()
     primary_base = _env("FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_BASE_URL", _env("FOODMATE_MODEL_PROVIDER_CLOUD_A_BASE_URL"))
     primary_key = _env("FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY", _env("FOODMATE_MODEL_PROVIDER_CLOUD_A_API_KEY"))
     backup_base = _env("FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_BASE_URL", _env("FOODMATE_MODEL_PROVIDER_CLOUD_B_BASE_URL"))
