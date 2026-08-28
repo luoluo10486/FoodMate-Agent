@@ -2102,12 +2102,12 @@
       "frontendRoute": "/planning",
       "queryState": "state=list",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-plan-list-live-2026-08-28.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-tabs-geometry-2026-08-28-rgba.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-plan-list-live-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-create-button-browser-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; create-button geometry check passed; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2132,8 +2132,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture shows all three plan cards and the Figma list structure. The title group is 50px high, the tab container is 45px high, and the three cards begin at y=243/392/541 with 1116x133px geometry. The notification control is 36x36px with a white fill, #f4f6f5 border, and 18px radius; the frontend contains no red, yellow, or green window-control dots. Remaining shell, details, density, and typography/icon rasterization differences remain, so retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-29",
+        "conclusion": "The current browser capture shows all three plan cards and the Figma list structure. The create-plan control is 128x37px at x=1280,y=106.5 with 14px bold text and 17px line height, matching the Figma node target; the frontend contains no red, yellow, or green window-control dots. Remaining shell, details, density, and typography/icon rasterization differences remain, so retain DIFF_REVIEW."
       }
     },
     {

@@ -1098,3 +1098,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测视口为 `1440×1024`、DPR `1.0000000149`，详情面板实测尺寸为 `1116×220px`，页面无横向溢出，左上角红黄绿窗口装饰候选数量为 `0`。
 - [x] Diet Records 定向测试 `10/10` 通过；本次修改未增加或删除业务交互，不改变真实模式接口行为。
 - [ ] 本条只证明详情面板局部几何收口；整页自动 diff 仍为 `DIFF_REVIEW`，不能标记像素级 `PASS`。105 张画板汇总、shadcn 全页面视觉迁移和 iconfont 实体资源登记状态不变。
+
+## 117. 2026-08-29 Meal Planning 列表创建按钮几何收口
+
+- [x] 重新读取实时 Figma 节点 `692:2662`，确认列表页“+ 新建膳食计划”节点目标尺寸为 `128×37px`；仅修改前端 `MealPlanningFlow.module.css`，未修改 Figma 设计稿。
+- [x] `/planning?state=list` 浏览器实测按钮位置为 `x=1280,y=106.5`，尺寸为 `128×37px`，字体为 `14px / 700 / 17px`；视口为 `1440×1024`，无横向溢出，字体已加载。
+- [x] 前端源码和运行时均未发现左上角红、黄、绿窗口装饰点；侧栏会话状态圆点属于业务状态，继续保留。
+- [x] 最新 Figma PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-plan-list-live-2026-08-29.png`，浏览器 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-plan-list-create-button-browser-2026-08-29-rgba.png`；`scripts/png-diff.mjs` 结果为 `differentPixels=319327`、差异比例 `21.6557%`、`MAE=2.38728`、`RMSE=13.83342`、最大通道差异 `232`，结论继续为 `DIFF_REVIEW`。
+- [ ] 本小点只收口列表创建按钮几何，不代表该画板或 105 张画板达到像素级 `PASS`；整页壳层、内容密度、字体和图标光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
