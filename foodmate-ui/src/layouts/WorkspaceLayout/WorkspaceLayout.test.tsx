@@ -77,6 +77,8 @@ describe('WorkspaceLayout shell controls', () => {
     expect(topbarMark).toBeInTheDocument();
     expect(topbarMark).not.toHaveTextContent('F');
     expect(sidebarMark).toHaveTextContent('F');
+    expect(container.firstElementChild).toHaveClass('designChat');
+    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
   });
 
   it('allows a page to hide only the topbar mark letter while keeping its top navigation', () => {

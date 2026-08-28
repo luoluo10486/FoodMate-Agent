@@ -22,6 +22,12 @@
   padding-top: 52px;
 }
 
+/* Figma node 879:353 uses the warning color as a low-opacity selection wash. */
+.designChat {
+  --fm-fixture-sidebar-active-surface: rgba(199, 150, 84, 0.08);
+  --fm-fixture-session-active-surface: rgba(255, 246, 226, 0.2);
+}
+
 .figmaFixture .primarySideNav {
   margin-bottom: 4px;
 }
