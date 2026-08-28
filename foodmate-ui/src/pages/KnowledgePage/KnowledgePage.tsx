@@ -148,7 +148,7 @@ export function KnowledgePage() {
     sourceResults.find((item) => item.title === selectedResultTitle) ??
     sourceResults[0] ??
     (!isRealMode ? knowledgeResults[0] : undefined);
-  const isFigmaFixture = !isRealMode && knowledgeState !== 'default';
+  const isFigmaFixture = !isRealMode;
 
   const visibleResults = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

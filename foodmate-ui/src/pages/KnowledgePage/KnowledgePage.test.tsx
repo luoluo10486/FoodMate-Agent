@@ -43,6 +43,15 @@ describe('KnowledgePage', () => {
     expect(screen.queryByText('运动后最佳蛋白质吸收窗口期')).not.toBeInTheDocument();
   });
 
+  it('uses the Figma shell fixture for the default page', () => {
+    renderPage('/knowledge?state=default');
+
+    expect(screen.getByRole('button', { name: 'Anddy' })).toBeInTheDocument();
+    expect(screen.getByText('Anddy 的工作区')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /每周饮食微调/ })).toBeInTheDocument();
+    expect(screen.queryByText('梁同学')).not.toBeInTheDocument();
+  });
+
   it('recovers from an empty result state by clearing the search', async () => {
     const user = userEvent.setup();
     renderPage();
