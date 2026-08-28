@@ -880,6 +880,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
 - [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
 
+## 113. 2026-08-29 Agent Chat 侧栏选中态颜色核验
+
+- [x] 依据实时 Figma 节点 `879:353` 和 `879:361`，将 `designChat` 前端壳层的“Agent 对话”选中态设为 `rgba(199,150,84,0.08)`，当前会话条目选中态设为 `rgba(255,246,226,0.2)`；普通页面选中态不受影响，Figma 设计稿未修改。
+- [x] `/chat?state=figma-v2` 运行时核验确认两项计算颜色与 Figma 节点一致，字体状态为 `loaded`，页面无横向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`。
+- [ ] 本次浏览器连接实际提供的视口为 `1280×720`、DPR `1.25`，未生成可用于 Figma `1440×1024` 像素级门禁的正式 PNG diff；本条仅记录颜色和窗口装饰点的运行时证据，不改变 `agent-chat-v2` 的 `DIFF_REVIEW` 结论。
+
 ## 107. 2026-08-28 Profile Basic 默认入口 fixture 收口
 
 - [x] 重新读取实时 Figma 节点 `806:1119`；Figma 设计稿包含左上角红、黄、绿窗口装饰点，但前端 `WorkspaceLayout` 不渲染该内容，设计稿保持不变。
