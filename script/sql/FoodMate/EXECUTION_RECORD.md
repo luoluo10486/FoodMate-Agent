@@ -1219,3 +1219,17 @@
 | Docker 构建记录 | `docker compose --env-file .env -f docker/compose.yml up -d --build agent-runtime` 在 `pip install .` 的构建隔离阶段因访问 `pypi.org` 的 TLS/网络错误失败，未将该次命令记为新镜像构建成功；原运行容器未被删除，readiness 保持正常。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；未新增业务数据。 |
 | 结论 | local Worker 的启动顺序门禁已通过代码、定向 pytest 和容器网络 smoke 验证；stub 不受 Milvus 依赖影响。Docker 镜像完整重建仍受外部 PyPI TLS/网络条件阻断，需在网络恢复后重新执行；M1-6 性能/故障类门禁继续后置。 |
+
+## D61 全项目代码规范与业务门禁最终复核（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Java 规范 | `mvnw.cmd --% -Palibaba-code-style verify -DskipTests` 通过；根项目及 Shared、Application、Infrastructure、API、Bootstrap 均为 Checkstyle `0 violations`，Spotless 通过。生产源码扫描未发现泛化异常捕获、通配符 import、控制台输出、`Executors` 工厂或 `MAX(id)+1` 主键生成；application/api/bootstrap 未直接写 `operation_audits`。 |
+| SQL 组织 | `baseline/migration/validation/rollback/seed` 分层保持一致；V3-V12 历史配套文件缺失范围已在 SQL README 与执行台账说明，本轮未改写已执行迁移、未补危险 rollback。 |
+| Java 业务门禁 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `201/201`、Infrastructure `83/83`（19 skipped）、API `65/65`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Python 业务门禁 | `PYTHONDONTWRITEBYTECODE=1 .\\agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`126 passed、1 skipped、2 warnings`；跳过项为显式真实外部服务测试。 |
+| 前端业务门禁 | `foodmate-ui` `npm.cmd test -- --run`：38 个测试文件、`201/201` 通过；`npm.cmd run typecheck` 与 `npm.cmd run build` 通过，Vite 转换 2010 个模块。 |
+| Docker | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；现有 PostgreSQL、Redis、MinIO、RocketMQ、Milvus 及应用容器均 healthy。Docker `agent-runtime` 完整重建仍受 PyPI TLS/网络错误阻断，未伪造为成功。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端视觉改动未暂存、未回滚。 |
+| 结论 | 功能版 Java/Python/前端业务门禁和当前可执行的 Alibaba 规范子集均通过；不可逆硬删除、真实依赖清理、性能/故障矩阵、生产安全与部署演练继续后置。 |
