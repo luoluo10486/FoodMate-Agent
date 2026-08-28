@@ -619,6 +619,26 @@
   gap: 16px;
 }
 
+.iconAction,
+.removeButton {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fm-muted);
+  cursor: pointer;
+}
+
+.iconAction:hover {
+  color: var(--fm-ink);
+}
+
 .macroTags {
   gap: 4px;
 }
@@ -664,9 +684,54 @@
   color: #e56d70;
 }
 
+.iconAction svg,
 .removeButton svg {
   width: 16px;
   height: 16px;
+}
+
+.weekDay {
+  display: grid;
+  gap: 12px;
+}
+
+.weekDayHeader {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.weekDayHeader h2,
+.weekDayHeader span,
+.weekDayEmpty {
+  margin: 0;
+  font-family: var(--fm-font);
+}
+
+.weekDayHeader h2 {
+  color: var(--fm-ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.weekDayHeader span {
+  color: var(--fm-green-dark);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.weekDayEmpty {
+  padding: 12px 16px;
+  border: 1px dashed var(--fm-border);
+  border-radius: 12px;
+  color: var(--fm-muted);
+  font-size: 13px;
+  line-height: 18px;
 }
 
 .entryDetail {
@@ -722,10 +787,106 @@
   color: var(--fm-ink);
 }
 
+.deletedButton {
+  min-width: 132px;
+  height: 40px;
+  border-color: var(--fm-border);
+  border-radius: 8px;
+  color: var(--fm-ink);
+  font-family: var(--fm-font);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.deletedButton svg {
+  width: 16px;
+  height: 16px;
+}
+
 .analyzeDayButton:hover,
 .analyzeDayButton:focus-visible {
   background: var(--fm-bg-soft);
   color: var(--fm-ink);
+}
+
+.deletedPanel {
+  display: grid;
+  gap: 16px;
+  width: min(1116px, calc(100% - 64px));
+  margin: 0 32px 32px;
+  padding: 20px;
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  background: var(--fm-surface);
+}
+
+.deletedHeader,
+.deletedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.deletedHeader h2,
+.deletedHeader p,
+.deletedRow strong,
+.deletedRow span {
+  margin: 0;
+  font-family: var(--fm-font);
+}
+
+.deletedHeader h2 {
+  color: var(--fm-ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.deletedHeader p,
+.deletedRow span,
+.deletedState {
+  color: var(--fm-muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.deletedHeader svg {
+  width: 18px;
+  height: 18px;
+  color: var(--fm-muted);
+}
+
+.deletedList {
+  display: grid;
+  gap: 8px;
+}
+
+.deletedRow {
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--fm-bg-soft);
+}
+
+.deletedRow > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.deletedRow strong {
+  overflow: hidden;
+  color: var(--fm-ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deletedState {
+  margin: 0;
 }
 
 .entryDetail h2,
@@ -875,6 +1036,22 @@
     width: 100%;
     height: auto;
     flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .deletedPanel {
+    width: calc(100% - 32px);
+    margin: 0 16px 24px;
+    padding: 16px;
+  }
+
+  .deletedRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .deletedRow button {
+    align-self: flex-start;
   }
 
   .statePanel {

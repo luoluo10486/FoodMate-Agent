@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createFoodLog, deleteFoodLog, loadFoodLogs } from './foodLogService';
+import {
+  createFoodLog,
+  deleteFoodLog,
+  loadDeletedFoodLogs,
+  loadFoodLogs,
+  restoreFoodLog,
+  updateFoodLog,
+} from './foodLogService';
 
 describe('foodLogService', () => {
   beforeEach(() => {
@@ -29,7 +36,13 @@ describe('foodLogService', () => {
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ success: true, data: { food_log_id: '12' } }), { status: 200 }),
       )
-      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: true, data: { food_log_id: '12' } }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: true, data: { food_log_id: '12' } }), { status: 200 }),
+      );
     vi.stubGlobal('fetch', fetchMock);
 
     await createFoodLog({
@@ -38,7 +51,27 @@ describe('foodLogService', () => {
       items: [{ raw_name: '燕麦', amount: 1, unit: '份' }],
     });
     await deleteFoodLog('12', 2);
+    await updateFoodLog('12', 2, {
+      meal_time: '2026-08-22T08:00:00Z',
+      meal_type: 'breakfast',
+      items: [{ raw_name: '燕麦', amount: 2, unit: '份' }],
+    });
+    await restoreFoodLog('12', 3);
     expect(new Headers(fetchMock.mock.calls[0][1].headers).get('Idempotency-Key')).toMatch(/^food-log-create-/);
     expect(new Headers(fetchMock.mock.calls[1][1].headers).get('Idempotency-Key')).toMatch(/^food-log-delete-/);
+    expect(new Headers(fetchMock.mock.calls[2][1].headers).get('Idempotency-Key')).toMatch(/^food-log-update-/);
+    expect(new Headers(fetchMock.mock.calls[3][1].headers).get('Idempotency-Key')).toMatch(/^food-log-restore-/);
+  });
+
+  it("loads the authenticated user's deleted records endpoint", async () => {
+    const data = [{ food_log_id: '12', deleted: true }];
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(loadDeletedFoodLogs()).resolves.toEqual(data);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/food-logs/deleted',
+      expect.objectContaining({ method: 'GET', credentials: 'include' }),
+    );
   });
 });

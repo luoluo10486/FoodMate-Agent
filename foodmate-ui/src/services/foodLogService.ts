@@ -24,7 +24,7 @@ export type FoodLog = {
   items: FoodLogItem[];
 };
 
-type CreateFoodLogRequest = {
+export type FoodLogWriteRequest = {
   meal_time: string;
   meal_type: FoodLog['meal_type'];
   notes?: string;
@@ -35,10 +35,22 @@ export async function loadFoodLogs(from: string, to: string): Promise<FoodLog[]>
   return apiRequest<FoodLog[]>(`/api/food-logs?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
 }
 
-export async function createFoodLog(request: CreateFoodLogRequest): Promise<FoodLog> {
+export async function createFoodLog(request: FoodLogWriteRequest): Promise<FoodLog> {
   return apiRequest<FoodLog>('/api/food-logs', {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey('food-log-create') },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function updateFoodLog(
+  foodLogId: string,
+  revision: number,
+  request: FoodLogWriteRequest,
+): Promise<FoodLog> {
+  return apiRequest<FoodLog>(`/api/food-logs/${encodeURIComponent(foodLogId)}?revision=${revision}`, {
+    method: 'PATCH',
+    headers: { 'Idempotency-Key': idempotencyKey('food-log-update') },
     body: JSON.stringify(request),
   });
 }
@@ -47,6 +59,17 @@ export async function deleteFoodLog(foodLogId: string, revision: number): Promis
   await apiRequest<void>(`/api/food-logs/${encodeURIComponent(foodLogId)}?revision=${revision}`, {
     method: 'DELETE',
     headers: { 'Idempotency-Key': idempotencyKey('food-log-delete') },
+  });
+}
+
+export async function loadDeletedFoodLogs(): Promise<FoodLog[]> {
+  return apiRequest<FoodLog[]>('/api/food-logs/deleted');
+}
+
+export async function restoreFoodLog(foodLogId: string, revision: number): Promise<FoodLog> {
+  return apiRequest<FoodLog>(`/api/food-logs/${encodeURIComponent(foodLogId)}/restore?revision=${revision}`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey('food-log-restore') },
   });
 }
 
