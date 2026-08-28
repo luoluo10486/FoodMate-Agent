@@ -16,6 +16,7 @@ import com.foodmate.shared.runtime.EventInbox;
 import com.foodmate.shared.runtime.RunCommand;
 import com.foodmate.shared.runtime.RunEvent;
 import com.foodmate.shared.runtime.RuntimeException;
+import com.foodmate.shared.trace.TraceContextHolder;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -322,7 +323,8 @@ public class RuntimeGatewayServiceImpl implements RuntimeGatewayService {
     private void scheduleTimeout(RunCommand command) {
         long delay =
                 Math.max(1, command.deadlineAt().toEpochMilli() - Instant.now().toEpochMilli());
-        timeoutExecutor.schedule(() -> timeout(command), delay, TimeUnit.MILLISECONDS);
+        timeoutExecutor.schedule(
+                TraceContextHolder.capture(() -> timeout(command)), delay, TimeUnit.MILLISECONDS);
     }
 
     @Override

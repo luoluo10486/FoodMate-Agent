@@ -6,6 +6,9 @@ import com.foodmate.shared.runtime.CancelCommand;
 import com.foodmate.shared.runtime.RunCommand;
 import com.foodmate.shared.runtime.RuntimeException;
 import com.foodmate.shared.security.ServiceJwt;
+import com.foodmate.shared.trace.TraceContext;
+import com.foodmate.shared.trace.TraceContextHeaders;
+import com.foodmate.shared.trace.TraceContextHolder;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -57,11 +60,15 @@ public final class HttpGatewayClient implements RuntimeGatewayPort {
 
     private RuntimeGatewayPort.Response send(String path, Object body, String operation) {
         try {
+            TraceContext context = TraceContextHolder.currentOrNew();
             HttpRequest.Builder builder =
                     HttpRequest.newBuilder(base.resolve(path))
                             .timeout(timeout)
                             .header("Content-Type", "application/json")
-                            .header("X-Contract-Version", contractVersion);
+                            .header("X-Contract-Version", contractVersion)
+                            .header("X-Request-Id", context.requestId())
+                            .header("X-Trace-Id", context.traceId())
+                            .header("traceparent", TraceContextHeaders.traceparent(context));
             if (privateKey.isBlank() || kid.isBlank())
                 throw new RuntimeException(
                         "RUNTIME_UNAVAILABLE", "runtime service JWT is not configured");

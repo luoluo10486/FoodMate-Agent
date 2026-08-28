@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.knowledge.port.out.KnowledgeSearchPort;
 import com.foodmate.shared.runtime.RuntimeException;
 import com.foodmate.shared.security.ServiceJwt;
+import com.foodmate.shared.trace.TraceContext;
+import com.foodmate.shared.trace.TraceContextHeaders;
+import com.foodmate.shared.trace.TraceContextHolder;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,7 +16,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /** HTTP adapter for the Runtime-owned public knowledge index. */
 public final class V1HttpKnowledgeSearchClient implements KnowledgeSearchPort {
@@ -53,15 +55,15 @@ public final class V1HttpKnowledgeSearchClient implements KnowledgeSearchPort {
         if (!PUBLIC_SCOPE.equals(knowledgeScope))
             throw new RuntimeException("RAG_SCOPE_DENIED", "only public knowledge is searchable");
         try {
+            TraceContext context = TraceContextHolder.currentOrNew();
             HttpRequest.Builder builder =
                     HttpRequest.newBuilder(base.resolve("/foodmate/internal/v1/knowledge/search"))
                             .timeout(timeout)
                             .header("Content-Type", "application/json")
                             .header("X-Contract-Version", contractVersion)
-                            .header(
-                                    "X-Request-Id",
-                                    "req_knowledge_"
-                                            + UUID.randomUUID().toString().replace("-", ""));
+                            .header("X-Request-Id", context.requestId())
+                            .header("X-Trace-Id", context.traceId())
+                            .header("traceparent", TraceContextHeaders.traceparent(context));
             if (jwtEnabled) {
                 if (privateKey.isBlank() || kid.isBlank())
                     throw new RuntimeException(

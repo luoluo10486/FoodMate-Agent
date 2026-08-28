@@ -2,6 +2,7 @@ package com.foodmate.api.controller.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
+import com.foodmate.api.sse.SseTraceContext;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,37 +54,38 @@ public class V1RunStreamController extends AuthenticatedControllerSupport {
                 new java.util.concurrent.atomic.AtomicReference<>();
         ScheduledFuture<?> task =
                 taskScheduler.scheduleWithFixedDelay(
-                        () -> {
-                            if (closed.get()) return;
-                            try {
-                                for (var event : events.sseEvents(runId, cursor[0])) {
-                                    // 发送成功后才推进内存游标；断线时仍可从数据库游标重新补发。
-                                    emitter.send(
-                                            SseEmitter.event()
-                                                    .id(event.sseEventId())
-                                                    .name(event.eventType())
-                                                    .data(event.payload()));
-                                    cursor[0] = event.streamSeq();
-                                    if (event.terminal()) {
+                        SseTraceContext.capture(
+                                () -> {
+                                    if (closed.get()) return;
+                                    try {
+                                        for (var event : events.sseEvents(runId, cursor[0])) {
+                                            // 发送成功后才推进内存游标；断线时仍可从数据库游标重新补发。
+                                            emitter.send(
+                                                    SseEmitter.event()
+                                                            .id(event.sseEventId())
+                                                            .name(event.eventType())
+                                                            .data(event.payload()));
+                                            cursor[0] = event.streamSeq();
+                                            if (event.terminal()) {
+                                                closed.set(true);
+                                                emitter.complete();
+                                                ScheduledFuture<?> scheduled = taskReference.get();
+                                                if (scheduled != null) scheduled.cancel(false);
+                                                return;
+                                            }
+                                        }
+                                    } catch (IOException exception) {
                                         closed.set(true);
-                                        emitter.complete();
+                                        emitter.completeWithError(exception);
                                         ScheduledFuture<?> scheduled = taskReference.get();
                                         if (scheduled != null) scheduled.cancel(false);
-                                        return;
+                                    } catch (RuntimeException exception) {
+                                        closed.set(true);
+                                        emitter.completeWithError(exception);
+                                        ScheduledFuture<?> scheduled = taskReference.get();
+                                        if (scheduled != null) scheduled.cancel(false);
                                     }
-                                }
-                            } catch (IOException exception) {
-                                closed.set(true);
-                                emitter.completeWithError(exception);
-                                ScheduledFuture<?> scheduled = taskReference.get();
-                                if (scheduled != null) scheduled.cancel(false);
-                            } catch (RuntimeException exception) {
-                                closed.set(true);
-                                emitter.completeWithError(exception);
-                                ScheduledFuture<?> scheduled = taskReference.get();
-                                if (scheduled != null) scheduled.cancel(false);
-                            }
-                        },
+                                }),
                         Instant.now(),
                         Duration.ofMillis(200));
         taskReference.set(task);

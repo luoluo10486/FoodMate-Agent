@@ -6,6 +6,7 @@ import com.foodmate.api.response.account.StatusUpdateResponse;
 import com.foodmate.api.response.knowledge.DocumentUploadResponse;
 import com.foodmate.api.response.knowledge.KnowledgeUploadBatchDetailResponse;
 import com.foodmate.api.response.knowledge.KnowledgeUploadBatchResponse;
+import com.foodmate.api.sse.SseTraceContext;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.knowledge.service.KnowledgeService;
 import com.foodmate.shared.account.enums.UserRole;
@@ -194,22 +195,24 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
                 new java.util.concurrent.atomic.AtomicReference<>();
         ScheduledFuture<?> task =
                 taskScheduler.scheduleWithFixedDelay(
-                        () -> {
-                            try {
-                                for (var event : knowledge.batchEvents(batchId, cursor[0])) {
-                                    emitter.send(
-                                            SseEmitter.event()
-                                                    .id(Long.toString(event.eventId()))
-                                                    .name(event.eventType())
-                                                    .data(event.payload()));
-                                    cursor[0] = event.eventId();
-                                }
-                            } catch (IOException | RuntimeException error) {
-                                emitter.completeWithError(error);
-                                ScheduledFuture<?> scheduled = taskReference.get();
-                                if (scheduled != null) scheduled.cancel(false);
-                            }
-                        },
+                        SseTraceContext.capture(
+                                () -> {
+                                    try {
+                                        for (var event :
+                                                knowledge.batchEvents(batchId, cursor[0])) {
+                                            emitter.send(
+                                                    SseEmitter.event()
+                                                            .id(Long.toString(event.eventId()))
+                                                            .name(event.eventType())
+                                                            .data(event.payload()));
+                                            cursor[0] = event.eventId();
+                                        }
+                                    } catch (IOException | RuntimeException error) {
+                                        emitter.completeWithError(error);
+                                        ScheduledFuture<?> scheduled = taskReference.get();
+                                        if (scheduled != null) scheduled.cancel(false);
+                                    }
+                                }),
                         Instant.now(),
                         Duration.ofMillis(300));
         taskReference.set(task);
