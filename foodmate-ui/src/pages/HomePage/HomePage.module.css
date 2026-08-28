@@ -286,6 +286,11 @@
   background: var(--fm-surface);
 }
 
+.pendingPanel {
+  align-self: start;
+  min-height: 228px;
+}
+
 .panelHeader h2,
 .statusPanel h2 {
   margin: 0;
@@ -492,6 +497,10 @@
     margin-top: 24px;
   }
   .panel {
+    min-height: auto;
+  }
+
+  .pendingPanel {
     min-height: auto;
   }
   .statusPanel {

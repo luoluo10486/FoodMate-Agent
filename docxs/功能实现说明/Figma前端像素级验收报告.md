@@ -1057,3 +1057,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 105 画板映射已指向本次规划列表证据，汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，自动 diff 输入 `105`。
 - [x] `WorkspaceLayout` 定向测试 `5/5`、类型检查和本次涉及文件的 Prettier 检查通过。
 - [ ] 本条不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 111. 2026-08-29 Workspace Home 待确认队列面板高度收口
+
+- [x] 重新读取 Figma 节点 `640:256` 的实时元数据，确认“活跃会话”面板为 `546×305px`，“待确认队列”面板为 `546×228px`；前端此前因两个面板共用 `min-height: 305px` 将右侧面板错误拉伸。
+- [x] 为 Workspace Home 的“待确认队列”增加独立几何约束：桌面端 `min-height: 228px` 且在网格行内顶端对齐；移动端恢复自然高度，避免窄视口内容被固定尺寸限制。
+- [x] 浏览器实时复核 `/?state=figma-v2`：当前视口 `1280×720`、DPR `1.25`；“活跃会话”实测 `458.4×305px`，“待确认队列”实测 `458.4×228px`，页面无横向溢出，左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] Workspace Home 定向测试 `3/3`、`npm run typecheck`、`npm run build` 和 `git diff --check` 通过。
+- [ ] 本条只证明 Workspace Home 局部几何收口；当前浏览器不是 Figma 要求的 `1440×1024 / DPR 1`，整页自动 diff 仍为 `DIFF_REVIEW`，不标记像素级 `PASS`。105 张画板汇总、shadcn 全量视觉迁移和 iconfont 实体资源登记状态不变。
