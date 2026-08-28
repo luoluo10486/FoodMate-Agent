@@ -3618,8 +3618,8 @@
       "queryState": "state=source-unavailable",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/user-knowledge-source-unavailable.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-source-unavailable-browser-current.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-source-unavailable",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-source-unavailable-browser-dpr1-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-source-unavailable-current-diff-2026-08-29.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -3647,7 +3647,7 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
+        "reviewedAt": "2026-08-29",
         "conclusion": "Figma-aligned partial-access card geometry and visual treatment are present. Broad shell, sidebar, avatar, and typography differences remain in the screenshot diff; retain DIFF_REVIEW."
       }
     },

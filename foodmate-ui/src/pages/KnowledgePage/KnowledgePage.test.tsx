@@ -87,6 +87,7 @@ describe('KnowledgePage', () => {
     unmount();
     renderPage('/knowledge');
     await user.click(screen.getByRole('button', { name: '打开原始来源' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('PARTIAL ACCESS');
     expect(screen.getByRole('alert')).toHaveTextContent('来源暂时不可访问');
     await user.click(screen.getByRole('button', { name: '稍后重试' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

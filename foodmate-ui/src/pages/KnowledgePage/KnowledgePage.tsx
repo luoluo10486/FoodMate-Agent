@@ -429,7 +429,7 @@ function KnowledgeStateCard({
       action: '重新检索',
     },
     'source-unavailable': {
-      status: 'PARTIAL · SOURCE UNAVAILABLE',
+      status: 'PARTIAL ACCESS',
       title: '来源暂时不可访问',
       body: '当前结果仍可查看匹配片段，但原始来源暂时无法打开。',
       detail: '来源状态: unavailable · 已保留引用与文档 ID',

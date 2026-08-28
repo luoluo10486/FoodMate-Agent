@@ -60,7 +60,7 @@
 | User Knowledge Empty | `795:786` | 1440×1024 | 21.91% | 12.25 | `DIFF_REVIEW` |
 | User Knowledge Default | `795:838` | 1180×1024 主区域 | 70.62% | 143.65 | `DIFF_REVIEW` |
 | User Knowledge Search Failed | `795:968` | 1440×1024 | 35.24% | 16.58 | `DIFF_REVIEW` |
-| User Knowledge Source Unavailable | `795:1151` | 1440×1024 | 22.62% | 12.83 | `DIFF_REVIEW` |
+| User Knowledge Source Unavailable | `795:1151` | 1440×1024 | 35.16% | 16.95 | `DIFF_REVIEW` |
 | Profile Basic | `806:1119` | 1440×1024 | 67.46% | 20.74 | `DIFF_REVIEW` |
 | Profile Memories | `806:1281` | 1440×1024 | 50.35% | 23.05 | `DIFF_REVIEW` |
 | Profile Security | `806:1445` | 1440×1024 | 60.25% | 19.68 | `DIFF_REVIEW` |
@@ -1121,6 +1121,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器实测约束行位置为 `y=54/111/168/225`、高度 `45px`；购物清单分组位置为 `y=348/446`、高度 `86px`；字体已加载，页面无横向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`，会话状态圆点保留；Figma 设计稿未修改。
 - [x] 新增浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-right-rail-inset-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-right-rail-inset-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=341860`、差异比例 `23.1839%`、`MAE=2.24425`、`RMSE=12.93822`、最大通道差异 `234`。
 - [ ] 当前浏览器采集实际 DPR 为 `1.25`，DPR 1 门禁未通过；该局部修正不关闭 `meal-planning-v2` 或 105 张画板的像素级 `PASS`，主画板继续保持 `DIFF_REVIEW`。
+
+## 122. 2026-08-29 Knowledge 来源不可用状态视觉收口
+
+- [x] 依据 Figma 节点 `795:1151`，恢复 `/knowledge?state=source-unavailable` 的 `6px` 橙色左侧状态条、`PARTIAL ACCESS` 标签、橙色标题、`600×260` 卡片圆角和状态层背景；Figma 设计稿未修改。
+- [x] 浏览器实测视口 `1440×1024`、DPR `1.0000000149`；卡片位置为 `x=550,y=300`、尺寸 `600×260`，状态标签为 `174×24`，左上角窗口装饰候选数量为 `0`，页面无横向溢出。
+- [x] `KnowledgePage` 定向测试 `6/6` 通过；“稍后重试”仍可清除状态，`search-failed` 和真实模式检索逻辑未改变。
+- [x] 最新浏览器 RGBA 证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/user-knowledge-source-unavailable-browser-dpr1-2026-08-29-rgba.png`；独立 diff 为 `35.1598% / MAE 3.94340 / RMSE 16.95234 / maxChannelDelta 255`，结论继续为 `DIFF_REVIEW`。
+- [ ] 整页壳层、头像、字体光栅化、图标和其他组合差异仍存在；本小点不代表该画板或 105 张画板达到像素级 `PASS`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
 
 ## 121. 2026-08-29 Knowledge 检索失败状态视觉收口
 

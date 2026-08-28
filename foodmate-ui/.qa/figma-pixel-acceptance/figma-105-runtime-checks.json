@@ -575,6 +575,7 @@
     },
     "user-knowledge-source-unavailable": {
       "artboardName": "user-knowledge-source-unavailable",
+      "recapturedAt": "2026-08-29",
       "body": {
         "clientHeight": 1024,
         "clientWidth": 1440,
@@ -594,7 +595,25 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "stateCard": {
+        "x": 550,
+        "y": 300,
+        "width": 600,
+        "height": 260,
+        "status": {
+          "width": 174,
+          "height": 24,
+          "display": "block"
+        },
+        "accent": {
+          "width": 6,
+          "display": "block",
+          "backgroundColor": "rgba(199, 150, 84, 0.9)"
+        }
+      },
+      "windowControls": 0,
+      "overflowCount": 0
     },
     "profile-security-logout-confirm": {
       "artboardName": "profile-security-logout-confirm",
