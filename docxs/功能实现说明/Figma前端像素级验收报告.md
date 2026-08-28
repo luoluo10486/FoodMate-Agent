@@ -141,11 +141,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 | 状态 | Figma 证据 | 浏览器证据 | 结果 |
 |---|---|---|---|
-| 默认态 | `user-knowledge-default-figma-latest.png` | `user-knowledge-default-browser-rgba.png` | `DIFF_REVIEW` |
+| 默认态 | `recaptured/user-knowledge-default-fixture-figma-white-2026-08-28.png` | `recaptured/user-knowledge-default-fixture-browser-content-2026-08-28.png` | `DIFF_REVIEW` |
 | 检索失败 | `user-knowledge-search-failed-figma-latest.png` | `user-knowledge-search-failed-browser-full-rgba.png` | `DIFF_REVIEW` |
 | 来源不可用 | `user-knowledge-source-unavailable-figma-latest.png` | `user-knowledge-source-unavailable-browser-full-rgba.png` | `DIFF_REVIEW` |
 
-默认态 Figma 节点本身是主区域 `1180×1024`，因此浏览器证据按 `x=260` 裁剪后比较；两个状态画板使用完整 `1440×1024` 截图。三组结果均使用 `scripts/png-diff.mjs`，没有将视觉接近写成 `PASS`。状态层的半透明遮罩、色条、状态标签、标题、技术字段和重试入口均已通过截图人工复核。
+默认态 Figma 节点本身是主区域 `1180×1024`，因此浏览器证据按 `x=260` 裁剪后比较；本轮重新采集的默认态完整浏览器视口为 `1440×1024`、DPR `1.25`，顶栏品牌块为空、侧栏品牌块保留 `F`，窗口装饰点数量为 `0`。Figma 参考图先合成白底，再使用 `scripts/png-diff.mjs` 比较，结果为 `49.8610% / MAE 3.2238 / RMSE 14.1849`，仍为 `DIFF_REVIEW`，不满足 DPR 1 的 `PASS` 门禁。两个状态画板使用完整 `1440×1024` 截图；三组结果均没有将视觉接近写成 `PASS`。状态层的半透明遮罩、色条、状态标签、标题、技术字段和重试入口均已通过截图人工复核。
+
+本轮默认态 fixture 收口的独立证据为 `foodmate-ui/.qa/figma-pixel-acceptance/user-knowledge-default-fixture-2026-08-28-diff.json`，对应原始浏览器截图、内容区裁剪图、Figma 原始 PNG 和白底归一化 PNG。默认态现在固定使用 Figma 示例账号 `Anddy / 1234567` 与会话列表；真实模式仍不启用 fixture 覆盖。
 
 本轮只补齐前端状态映射和像素差异证据，不代表真实 RAG 检索、文档导入、ACL 过滤、引用详情接口或 iconfont 实体资源已经完成。
 

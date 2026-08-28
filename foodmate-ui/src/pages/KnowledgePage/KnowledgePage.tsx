@@ -239,6 +239,7 @@ export function KnowledgePage() {
       sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
+      topbarShowMarkLetter={!isFigmaFixture}
       pageOverlay={
         displayedState !== 'default' ? (
           <KnowledgeStateCard

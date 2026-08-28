@@ -956,3 +956,11 @@
 - [x] 与 `recaptured-figma/meal-planning-v2-current.png` 的同尺寸 diff 为 `344235` 个差异像素、`23.3449%`、`MAE=2.40089`、`RMSE=13.73352`、最大通道差异 `234`，独立结果见 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-banner-geometry-2026-08-28-diff.json`。
 - [x] 前端左上角红、黄、绿窗口装饰候选仍为 `0`，没有需要删除的对应代码；业务状态圆点保留，Figma 设计稿不改。
 - [ ] 当前采集实际 DPR 为 `1.25`，本条为补充几何证据，不能关闭该画板的 DPR 1 门禁或整页像素 `PASS`；105 张画板仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全量逐页迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
+
+## 48. 2026-08-28 Knowledge 默认态 fixture 与顶栏品牌块收口
+
+- [x] Knowledge 默认态 mock/Figma fixture 已固定使用 Figma 示例账号 `Anddy / 1234567`、默认会话列表和默认头像；真实模式不改变，仍只使用后端返回的用户与会话数据。
+- [x] 按实时 Figma 节点 `795:838` 核对顶栏品牌块为空、侧栏品牌标记保留 `F`；新增 `WorkspaceLayout.topbarShowMarkLetter`，Knowledge fixture 只隐藏顶栏字母，不关闭知识库顶部导航。
+- [x] 浏览器 `1440×1024` 实测无页面级横向溢出；顶栏知识库链接存在，左上角红、黄、绿窗口装饰候选为 `0`，没有修改 Figma 设计稿，也没有删除业务状态圆点。
+- [x] 已登记独立 Figma/浏览器截图、内容区裁剪图、白底归一化图和 diff JSON；同尺寸内容区 diff 为 `49.8610% / MAE 3.2238 / RMSE 14.1849`，结论保持 `DIFF_REVIEW`。
+- [x] Knowledge、WorkspaceLayout 定向测试共 `3` 个测试文件、`16/16` 通过；DPR `1.25` 不满足严格 DPR 1 门禁，因此不能将本项标记为像素级 `PASS`。
