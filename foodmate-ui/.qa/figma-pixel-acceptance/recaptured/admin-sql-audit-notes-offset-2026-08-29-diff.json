@@ -1,0 +1,26 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 289598,
+  "differentRatio": 0.19639621310763888,
+  "meanAbsoluteError": 2.52068600124783,
+  "rmse": 16.064298153908876,
+  "maxChannelDelta": 230,
+  "expected": "recaptured/admin-sql-audit-figma-live-2026-08-29.png",
+  "actual": "recaptured/admin-sql-audit-notes-offset-browser-2026-08-29-rgba.png",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "geometry": {
+    "table": "1132x87",
+    "payloadCard": "1132x321.4",
+    "detailPanel": "1132x250 at y=674",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据 Figma 节点 986:18 将 SQL Audit 详情面板从浏览器 y=656.4 对齐到 y=674；仅修改前端，未修改 Figma。",
+  "conclusion": "DIFF_REVIEW"
+}

@@ -302,7 +302,7 @@ function SqlAuditFixture() {
         </p>
       </section>
 
-      <aside className={styles.governanceNotes} aria-label="SQL Audit 筛选与详情">
+      <aside className={`${styles.governanceNotes} ${styles.sqlAuditNotes}`} aria-label="SQL Audit 筛选与详情">
         <h2>SQL Audit · 筛选与详情</h2>
         <p>筛选：时间范围 · 用户 / Run · 工具组件 · 风险等级 · 执行结果 · 仅看失败</p>
         <p>列表字段：audit_id · run_id · tool_name · query_hash · 执行时间 · 耗时 · 状态 · 风险等级</p>

@@ -909,11 +909,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 867314,
-      "differentRatio": 0.5881849500868056,
-      "meanAbsoluteError": 29.712828572591146,
-      "rmse": 77.55994564457362,
-      "maxChannelDelta": 241
+      "differentPixels": 289598,
+      "differentRatio": 0.19639621310763888,
+      "meanAbsoluteError": 2.52068600124783,
+      "rmse": 16.064298153908876,
+      "maxChannelDelta": 230
     },
     "admin-trace": {
       "status": "COMPARED",

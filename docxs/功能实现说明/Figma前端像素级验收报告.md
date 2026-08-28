@@ -1153,3 +1153,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端左上角红、黄、绿窗口装饰候选数量为 `0`；侧栏权限状态圆点保留，Figma 设计稿未修改。
 - [x] 定向 Admin 测试 `8/8` 通过；实时 Figma 参考图与浏览器 RGBA PNG 的 PNG diff 为 `differentPixels=311840`、差异比例 `21.1480%`、`MAE=2.85604`、`RMSE=17.03777`、最大通道差异 `230`。证据和 105 画板映射已同步。
 - [ ] 侧栏身份、图标光栅化、字体和其他整页组合差异仍存在；该画板继续为 `DIFF_REVIEW`，不能标记像素级 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 124. 2026-08-29 Admin SQL Audit 详情面板垂直位置收口
+
+- [x] 依据实时 Figma 节点 `797:490` 与详情字段节点 `986:18`，仅修改前端 `AdminPage`：新增 SQL Audit 专属说明面板样式，将详情面板从浏览器 `y=656.4` 对齐到目标 `y=674`；未修改 Figma 设计稿，也未删除业务状态圆点。
+- [x] 浏览器视口为 `1440×1024`、DPR `1.0000000149011612`、字体状态为 `loaded`；调用表为 `1132×87px`，Payload 卡片为 `1132×321.4px`，SQL Audit 详情面板为 `1132×250px`，位于 `y=674`；页面无横向或纵向溢出，左上角窗口装饰候选数量为 `0`。
+- [x] 最新 Figma PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-figma-live-2026-08-29.png`，浏览器 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-notes-offset-browser-2026-08-29-rgba.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-notes-offset-2026-08-29-diff.json`；结果为 `differentPixels=289598`、差异比例 `19.6396%`、`MAE=2.520686`、`RMSE=16.064298`、最大通道差异 `230`。
+- [ ] 局部几何已收口，但侧栏身份、图标处理、字体和其它整页渲染差异仍存在；该画板继续为 `DIFF_REVIEW`，不能标记 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移未完成，iconfont 继续为 `BLOCKED`。

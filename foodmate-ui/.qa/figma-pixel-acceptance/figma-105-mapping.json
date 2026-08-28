@@ -3773,12 +3773,12 @@
       "frontendRoute": "/admin",
       "queryState": "state=sql-audit",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/admin-sql-audit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-browser-current.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-sql-audit",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-figma-live-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-notes-offset-browser-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-notes-offset-2026-08-29-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-08-29 独立 diff 已更新；详情面板依据 Figma 节点 986:18 从浏览器 y=656.4 对齐到 y=674，整页视觉差异仍需复核",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3803,9 +3803,36 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current browser contains the Figma SQL Audit tabs, tool and risk filters, call summary table, masked payload and SQL Audit detail fields. Shell identity, icon treatment, typography, spacing and other visual differences remain; retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-29",
+        "conclusion": "SQL Audit tabs, filters, call summary table, masked payload and detail fields remain represented. The detail panel now matches the Figma y=674 geometry target and the browser has no page overflow; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-figma-live-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-notes-offset-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-notes-offset-2026-08-29-diff.json",
+          "visualChange": "依据 Figma 节点 986:18 将 SQL Audit 详情面板从浏览器 y=656.4 对齐到 y=674；仅修改前端，未修改 Figma。",
+          "diff": {
+            "differentPixels": 289598,
+            "differentRatio": 0.19639621310763888,
+            "meanAbsoluteError": 2.52068600124783,
+            "rmse": 16.064298153908876,
+            "maxChannelDelta": 230
+          },
+          "geometry": {
+            "viewport": "1440x1024",
+            "dpr": 1.0000000149011612,
+            "fonts": "loaded",
+            "table": "1132x87",
+            "payloadCard": "1132x321.4",
+            "detailPanel": "1132x250 at y=674",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "conclusion": "DIFF_REVIEW"
+        }
+      ]
     },
     {
       "figmaNodeId": "797:621",

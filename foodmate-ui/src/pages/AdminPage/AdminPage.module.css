@@ -4986,6 +4986,10 @@
   background: #fcfcfa;
 }
 
+.sqlAuditNotes {
+  transform: translateY(17.6px);
+}
+
 .governanceNotes h2,
 .governanceNotes p {
   margin: 0;
