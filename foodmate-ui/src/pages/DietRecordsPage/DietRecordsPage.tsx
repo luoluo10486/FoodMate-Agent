@@ -300,6 +300,7 @@ export function DietRecordsPage() {
   const [dialogMealId, setDialogMealId] = useState<MealSection['id']>();
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
   const [editingLogId, setEditingLogId] = useState<string>();
+  const [dialogDate, setDialogDate] = useState(selectedDate);
   const [foodName, setFoodName] = useState('');
   const [foodAmount, setFoodAmount] = useState('1');
   const [foodUnit, setFoodUnit] = useState('份');
@@ -340,10 +341,11 @@ export function DietRecordsPage() {
   const selectedMeal = useMemo(() => meals.find((meal) => meal.id === dialogMealId), [dialogMealId, meals]);
   const weekDays = useMemo(() => mapWeekLogs(realLogs, selectedDate), [realLogs, selectedDate]);
 
-  const openFoodDialog = (mealId: MealSection['id']) => {
+  const openFoodDialog = (mealId: MealSection['id'], date = selectedDate) => {
     setDialogMode('create');
     setEditingLogId(undefined);
     setDialogMealId(mealId);
+    setDialogDate(date);
     setFoodName('');
     setFoodAmount('1');
     setFoodUnit('份');
@@ -405,7 +407,7 @@ export function DietRecordsPage() {
         return;
       }
       void createFoodLog({
-        meal_time: new Date(selectedDate).toISOString(),
+        meal_time: new Date(dialogDate).toISOString(),
         meal_type: dialogMealId,
         items: [{ raw_name: name, amount, unit }],
       })
@@ -508,7 +510,7 @@ export function DietRecordsPage() {
     : recordsState;
   const recordMetrics = isRealMode ? realMetrics(realLogs) : recordsState === 'empty' ? emptyMetrics : metrics;
 
-  const renderMealCard = (meal: MealSection) => (
+  const renderMealCard = (meal: MealSection, date = selectedDate) => (
     <article className={styles.mealCard} key={meal.id}>
       <header className={styles.mealHeader}>
         <div className={styles.mealHeading}>
@@ -517,7 +519,12 @@ export function DietRecordsPage() {
           </h2>
           <span>{meal.time}</span>
         </div>
-        <Button className={styles.addFoodButton} variant="ghost" type="button" onClick={() => openFoodDialog(meal.id)}>
+        <Button
+          className={styles.addFoodButton}
+          variant="ghost"
+          type="button"
+          onClick={() => openFoodDialog(meal.id, date)}
+        >
           + 添加食物
         </Button>
       </header>
@@ -735,13 +742,13 @@ export function DietRecordsPage() {
                             <span>{sameLocalDate(day.date, new Date()) ? '今天' : ''}</span>
                           </header>
                           {day.meals.length > 0 ? (
-                            day.meals.map(renderMealCard)
+                            day.meals.map((meal) => renderMealCard(meal, day.date))
                           ) : (
                             <p className={styles.weekDayEmpty}>暂无记录</p>
                           )}
                         </section>
                       ))
-                    : meals.map(renderMealCard)}
+                    : meals.map((meal) => renderMealCard(meal, selectedDate))}
                 </section>
               )}
             </>
