@@ -992,6 +992,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=344235`、差异比例 `23.3449%`、`MAE=2.40089`、`RMSE=13.73352`、最大通道差异 `234`；独立结果见 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-banner-geometry-2026-08-28-diff.json`，并已登记到 105 画板映射的 `additionalVisualEvidence`。
 - [ ] 当前浏览器采集实际 DPR 为 `1.25`，该记录只证明局部几何修正，不满足 DPR 1 和整页人工复核门禁；`meal-planning-v2` 以及 105 张画板继续保持 `DIFF_REVIEW`，不能标记 `PASS`。
 
+## 106. 2026-08-28 Agent 完成态引用与蛋白质指标收口
+
+- [x] 依据 Figma 节点 `687:1306`，为 `/chat?state=completed-with-citations` 增加独立完成态 fixture：完成响应、蛋白质指标卡、两条数据源引用和无 Trace 的完成态布局。
+- [x] 完成态用户消息固定使用已登记的默认男头像；前端左上角红、黄、绿窗口装饰候选数量为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 浏览器实测视口 `1440×1024`、字体已加载、页面无横向溢出；用户气泡为 `186×49px`，指标卡宽度为 `528px`，引用标签数量为 `2`，Trace 数量为 `0`。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-completed-with-citations-browser-2026-08-28.png`，Figma 参考为 `docxs/设计/figma-png/agent-completed-with-citations.png`；独立 diff 为 `differentPixels=356152`、差异比例 `24.1531%`、`MAE=2.68472`、`RMSE=14.72847`、最大通道差异 `236`，见 `agent-completed-with-citations-current-diff.json`。
+- [x] 已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json`，并保留 `DIFF_REVIEW`；定向测试和类型检查待本轮最终门禁统一复核。
+- [ ] 整页壳层、字体光栅化、图标及其他组合差异仍存在，本小点不代表该画板或 105 张画板达到像素级 `PASS`；shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
+
 ## 97. 2026-08-27 Workspace Home 状态说明文案复核
 
 - [x] 依据 Figma 节点 `640:256`，将 `/?state=figma-v2` 的状态说明从“待处理事项提醒 / 预算通知”修正为“待处理事项覆盖 / 预算追加”，与设计稿可见文案一致。

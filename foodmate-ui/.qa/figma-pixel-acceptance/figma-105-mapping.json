@@ -1130,11 +1130,11 @@
       "queryState": "state=completed-with-citations",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-completed-with-citations.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-completed-with-citations-browser.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-completed-with-citations",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-completed-with-citations-browser-2026-08-28.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/agent-completed-with-citations-current-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-08-28 recapture: independent PNG diff is recorded at recaptured/agent-completed-with-citations-current-diff.json; retain DIFF_REVIEW.",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1159,8 +1159,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "The browser fixture has a completed response, but it does not reproduce the Figma protein metrics and citation-card composition; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-28",
+        "conclusion": "The browser fixture now includes the completed response, protein metrics card, citation labels and default male avatar. Whole-page shell, typography, icon rasterization and other composition differences remain; retain DIFF_REVIEW."
       }
     },
     {
