@@ -886,6 +886,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `PlanningPage.test.tsx` 定向测试 `9/9` 通过，类型检查和 `git diff --check` 通过；CSS 文件仍存在本次之前的 Prettier 格式提示，因此未将其写成格式检查全通过。
 - [ ] 该画板仍保持 `DIFF_REVIEW`：头像、图标形状、字体和壳层光栅化仍有差异；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
 
+## 105. 2026-08-28 餐食规划空态图标线条颜色收口
+
+- [x] 依据实时 Figma 节点 `692:2446` 导出的 `utensils-crossed` SVG，确认图标线条使用 `#89B27C`；前端 `/planning?state=empty` 仅将 `.feedbackIcon` 的语义颜色切换为 `--fm-color-success-strong`，Figma 文件、错误态和真实模式未修改。
+- [x] 浏览器实测 `1440×1024`、DPR `1.0000000149011612`、字体状态 `loaded`、页面无横向溢出；运行时图标颜色为 `rgb(137, 178, 124)`，背景为 `rgb(235, 247, 237)`，左上角红黄绿窗口控制点与 `window-controls` 均为 `0`。
+- [x] 新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-empty-icon-color-2026-08-28.png`，独立 diff 为 `meal-planning-empty-icon-color-2026-08-28-diff.json`；`scripts/png-diff.mjs` 结果为 `differentPixels=190697`、差异比例 `12.9325%`、`MAE=1.24022`、`RMSE=10.12595`、最大通道差异 `232`，较前一份 `12.9344%` 有改善。
+- [x] `PlanningPage.test.tsx` 定向测试 `9/9` 通过，类型检查、构建和 `git diff --check` 通过；CSS 文件仍存在本次之前的 Prettier 格式提示，因此未将其写成格式检查全通过。
+- [ ] 该画板仍保持 `DIFF_REVIEW`：图标形状、头像、字体和壳层光栅化仍有差异；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
 ## 98. 2026-08-27 Agent Chat 助手正文排版收口
 
 - [x] 重新读取 Figma 节点 `640:428`，确认助手正文使用 `Noto Sans SC Regular 14px`；前端仅对 `/chat?state=figma-v2` 的助手正文解除通用 `Space Mono` 覆盖，来源行和 Trace 数值仍保留设计稿指定的 Space Mono。

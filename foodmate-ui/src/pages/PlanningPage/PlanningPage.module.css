@@ -290,7 +290,7 @@
   place-items: center;
   border-radius: 50%;
   background: rgba(166, 217, 151, 0.18);
-  color: var(--fm-green-dark);
+  color: var(--fm-color-success-strong);
 }
 
 .feedbackIcon svg {

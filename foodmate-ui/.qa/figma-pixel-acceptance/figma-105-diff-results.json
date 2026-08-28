@@ -447,10 +447,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 190726,
-      "differentRatio": 0.12934434678819445,
-      "meanAbsoluteError": 1.2412267049153647,
-      "rmse": 10.12834902033727,
+      "differentPixels": 190697,
+      "differentRatio": 0.12932467990451388,
+      "meanAbsoluteError": 1.240224372016059,
+      "rmse": 10.125952279476904,
       "maxChannelDelta": 232
     },
     "meal-planning-error": {
