@@ -1106,3 +1106,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 前端源码和运行时均未发现左上角红、黄、绿窗口装饰点；侧栏会话状态圆点属于业务状态，继续保留。
 - [x] 最新 Figma PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-plan-list-live-2026-08-29.png`，浏览器 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-plan-list-create-button-browser-2026-08-29-rgba.png`；`scripts/png-diff.mjs` 结果为 `differentPixels=319327`、差异比例 `21.6557%`、`MAE=2.38728`、`RMSE=13.83342`、最大通道差异 `232`，结论继续为 `DIFF_REVIEW`。
 - [ ] 本小点只收口列表创建按钮几何，不代表该画板或 105 张画板达到像素级 `PASS`；整页壳层、内容密度、字体和图标光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 118. 2026-08-29 Meal Planning 列表 Tab 水平间距收口
+
+- [x] 重新读取实时 Figma 节点 `692:2662`，确认三个列表 Tab 的目标位置为 `x=292/374/456`，每项宽度 `74px`，水平间距为 `8px`；仅修改前端 `MealPlanningFlow.module.css`，未修改 Figma 设计稿。
+- [x] `/planning?state=list` 浏览器在 `1440×1024 / DPR 1` 下实测三个 Tab 位置为 `x=292/374/456`、高度 `33px`，字体已加载且无页面横向溢出。
+- [x] 前端源码和运行时均未发现左上角红、黄、绿窗口装饰点；会话状态圆点属于业务状态，继续保留。
+- [x] 最新浏览器 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-plan-list-tabs-gap-browser-2026-08-29-rgba.png`；同尺寸 `scripts/png-diff.mjs` 结果为 `differentPixels=319709`、差异比例 `21.6817%`、`MAE=2.37253`、`RMSE=13.77192`、最大通道差异 `232`，结论继续为 `DIFF_REVIEW`。
+- [ ] 本小点只收口 Tab 水平间距，不代表该画板或 105 张画板达到像素级 `PASS`；整页壳层、内容密度、字体和图标光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

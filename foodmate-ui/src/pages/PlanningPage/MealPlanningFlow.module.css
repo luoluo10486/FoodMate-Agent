@@ -109,7 +109,7 @@
 .listTabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   padding-bottom: 11.2px;
   border-bottom: 1px solid #f4f6f5;
 }

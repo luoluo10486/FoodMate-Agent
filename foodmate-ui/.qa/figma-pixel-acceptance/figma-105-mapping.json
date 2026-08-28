@@ -2103,7 +2103,7 @@
       "queryState": "state=list",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-plan-list-live-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-create-button-browser-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-plan-list-tabs-gap-browser-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-list",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -2133,7 +2133,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "The current browser capture shows all three plan cards and the Figma list structure. The create-plan control is 128x37px at x=1280,y=106.5 with 14px bold text and 17px line height, matching the Figma node target; the frontend contains no red, yellow, or green window-control dots. Remaining shell, details, density, and typography/icon rasterization differences remain, so retain DIFF_REVIEW."
+        "conclusion": "The current browser capture shows all three plan cards and the Figma list structure. The list tabs are positioned at x=292/374/456 with 8px gaps, matching the Figma tab frames; the frontend contains no red, yellow, or green window-control dots. Remaining shell, details, density, and typography/icon rasterization differences remain, so retain DIFF_REVIEW."
       }
     },
     {
