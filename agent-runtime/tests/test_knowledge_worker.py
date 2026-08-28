@@ -270,3 +270,42 @@ class KnowledgeIndexWorkerTests(TestCase):
 
         self.assertEqual(3, len(consumers))
         self.assertEqual(3, len(FakeConsumer.instances))
+
+    def test_stub_worker_start_does_not_probe_milvus(self):
+        from knowledge_worker import wait_for_milvus_ready
+
+        with patch("knowledge_worker.urlopen", side_effect=AssertionError("stub must not probe Milvus")):
+            wait_for_milvus_ready(RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))
+
+    def test_local_worker_waits_for_milvus_health_before_starting(self):
+        from knowledge_worker import wait_for_milvus_ready
+
+        settings = RagSettings.from_environment(
+            {
+                "FOODMATE_RAG_MODE": "local",
+                "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+                "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+                "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+                "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+                "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+            }
+        )
+
+        class ReadyResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+        with patch("knowledge_worker.urlopen", return_value=ReadyResponse()) as probe:
+            wait_for_milvus_ready(settings)
+
+        probe.assert_called_once()
+        self.assertEqual("http://milvus:9091/healthz", probe.call_args.args[0])

@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from decimal import Decimal
 from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Callable
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import urlopen
 
 from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
 
@@ -330,9 +333,11 @@ def start_rocketmq_worker() -> tuple[object, object, object]:
     """Start dedicated index and visibility consumers, separate from AgentRun traffic."""
     from rocketmq import ClientConfiguration, ConsumeResult, Credentials, FilterExpression, MessageListener, PushConsumer
     from mq_runtime import RocketMqKnowledgePurgeResultPublisher, RocketMqKnowledgeResultPublisher, _startup_client_with_timeout
+    settings = RagSettings.from_environment()
+    wait_for_milvus_ready(settings)
     publisher = RocketMqKnowledgeResultPublisher()
     purge_publisher = RocketMqKnowledgePurgeResultPublisher()
-    worker = KnowledgeIndexWorker(result_publisher=publisher.publish)
+    worker = KnowledgeIndexWorker(result_publisher=publisher.publish, settings=settings)
     class Listener(MessageListener):
         def consume(self, message):
             try:
@@ -364,3 +369,41 @@ def start_rocketmq_worker() -> tuple[object, object, object]:
     purge_consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_PURGE", "foodmate-python-knowledge-purge-v1"), PurgeListener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_PURGE", "foodmate-knowledge-purge-v1"): FilterExpression("*")}, consumption_thread_count=1)
     _startup_client_with_timeout(purge_consumer, "knowledge-purge", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
     return consumer, visibility_consumer, purge_consumer
+
+
+def wait_for_milvus_ready(settings: RagSettings) -> None:
+    """Keep local index consumers stopped until the configured Milvus is ready."""
+    if settings.mode != "local":
+        return
+    health_url = os.getenv("FOODMATE_RAG_MILVUS_HEALTH_URL", "").strip()
+    if not health_url:
+        health_url = _milvus_health_url(settings.milvus_uri)
+    try:
+        timeout = float(os.getenv("FOODMATE_RAG_MILVUS_READY_TIMEOUT_SECONDS", "60"))
+    except ValueError as error:
+        raise RagError("RAG_MILVUS_READY_TIMEOUT_INVALID", "Milvus readiness timeout is invalid") from error
+    if timeout <= 0:
+        raise RagError("RAG_MILVUS_READY_TIMEOUT_INVALID", "Milvus readiness timeout must be positive")
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            with urlopen(health_url, timeout=min(3.0, max(0.1, deadline - time.monotonic()))) as response:
+                if 200 <= response.status < 300:
+                    return
+        except OSError:
+            pass
+        if time.monotonic() >= deadline:
+            raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus did not become ready before the startup deadline")
+        time.sleep(min(1.0, max(0.05, deadline - time.monotonic())))
+
+
+def _milvus_health_url(uri: str) -> str:
+    """Map the SDK endpoint to Milvus standalone's HTTP health endpoint."""
+    parsed = urlsplit(uri)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise RagError("RAG_MILVUS_URI_INVALID", "Milvus URI must be an HTTP endpoint")
+    port = parsed.port
+    if port == 19530:
+        port = 9091
+    netloc = parsed.hostname if port is None else f"{parsed.hostname}:{port}"
+    return urlunsplit((parsed.scheme, netloc, "/healthz", "", ""))

@@ -66,6 +66,11 @@ docker compose --env-file .env -f docker/compose.yml up -d milvus
 `http://milvus:19530`；宿主机启动的 Java/Python 进程则使用
 `http://localhost:19530`。集合维度以首次生成的实际向量为准，已有集合维度不一致时会失败关闭。
 
+local 模式的 Python 索引消费者会在订阅索引 Topic 前探测 Milvus 的
+`/healthz`（默认从 `FOODMATE_RAG_MILVUS_URI` 的 `19530` 端口推导为 `9091`），
+直到 readiness 成功或达到 `FOODMATE_RAG_MILVUS_READY_TIMEOUT_SECONDS`；stub 模式不执行该探测。
+自定义探针地址时设置 `FOODMATE_RAG_MILVUS_HEALTH_URL`。
+
 Compose 还会把 local 模式所需的预算、价格版本和确定性向量维度传入
 `agent-runtime`。默认仍是 `stub`，因此不启动 Milvus 也不会连接它；切换到
 `local` 时必须显式启动 Milvus，并保持 collection 名称与隔离环境一致：
