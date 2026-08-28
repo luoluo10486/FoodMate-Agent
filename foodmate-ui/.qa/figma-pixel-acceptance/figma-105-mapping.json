@@ -1264,8 +1264,8 @@
       "queryState": "state=user-cancelled",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser-current.png",
-      "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser-2026-08-28.png",
+      "diffJson": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-current-diff-2026-08-28.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -1293,8 +1293,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures preserve partial content, distinguish user cancellation from failure, and expose restart. Post-cancel action layout, avatar treatment, and font/icon rasterization differ; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-28",
+        "conclusion": "The current browser capture preserves the partially received text, user cancellation reason and enabled restart entry, and does not present the state as a system failure. The frontend does not render the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
       }
     },
     {
