@@ -64,6 +64,11 @@ public class FoodLogController extends AuthenticatedControllerSupport {
         return ok(foods.list(user(request).userId(), from, to).stream().map(this::map).toList());
     }
 
+    @GetMapping("/deleted")
+    public ApiResponse<List<FoodLogResponse>> deleted(HttpServletRequest request) {
+        return ok(foods.listDeleted(user(request).userId()).stream().map(this::map).toList());
+    }
+
     @PatchMapping("/{foodLogId}")
     public ApiResponse<FoodLogResponse> update(
             HttpServletRequest request,

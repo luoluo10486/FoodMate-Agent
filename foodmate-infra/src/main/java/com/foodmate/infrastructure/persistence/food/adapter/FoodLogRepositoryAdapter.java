@@ -86,6 +86,11 @@ public class FoodLogRepositoryAdapter implements FoodLogRepository {
     }
 
     @Override
+    public List<FoodLogSnapshot> findDeleted(long userId) {
+        return mapper.findDeleted(userId).stream().map(this::withItems).toList();
+    }
+
+    @Override
     public FoodLogSnapshot findOwned(long userId, long foodLogId, boolean includeDeleted) {
         FoodLogMapper.FoodLogRow row = mapper.findOwned(userId, foodLogId, includeDeleted);
         return row == null ? null : withItems(row);

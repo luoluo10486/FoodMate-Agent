@@ -27,6 +27,8 @@ public interface FoodLogRepository {
 
     List<FoodLogSnapshot> findVisible(long userId, Instant from, Instant to);
 
+    List<FoodLogSnapshot> findDeleted(long userId);
+
     FoodLogSnapshot findOwned(long userId, long foodLogId, boolean includeDeleted);
 
     int softDelete(long userId, long foodLogId, long revision);

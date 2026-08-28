@@ -206,6 +206,11 @@ public class FoodLogServiceImpl implements FoodLogService {
         return store.findVisible(userId, from, to).stream().map(FoodLogServiceImpl::view).toList();
     }
 
+    @Override
+    public List<FoodLogView> listDeleted(long userId) {
+        return store.findDeleted(userId).stream().map(FoodLogServiceImpl::view).toList();
+    }
+
     @Transactional
     @Override
     public void delete(long userId, long foodLogId, long revision, String idempotencyKey) {

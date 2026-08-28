@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -83,6 +84,22 @@ class FoodLogControllerTest {
                 .andExpect(jsonPath("$.data.revision", is(1)));
 
         verify(foods).update(eq(7L), eq(100L), eq(1L), any(FoodLogService.UpdateCommand.class));
+    }
+
+    @Test
+    void listsDeletedFoodLogsForAuthenticatedUser() throws Exception {
+        when(accounts.requireSessionUser("session-1")).thenReturn(user(7L));
+        when(foods.listDeleted(7L)).thenReturn(List.of(view()));
+
+        mvc.perform(
+                        get("/api/food-logs/deleted")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "session-1")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].food_log_id", is("100")));
+
+        verify(foods).listDeleted(7L);
     }
 
     private UserAccountService.UserRecord user(long id) {
