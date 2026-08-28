@@ -1193,3 +1193,15 @@
 | 质量门禁 | 定向测试 `2/2` 通过；Infrastructure 及上游 reactor 构建成功；Spotless `check` 通过；新增测试已提交为 `85fb2e6 test(数据库):补齐业务幂等写入验证`。 |
 | 数据与暂缓边界 | 只使用隔离 Testcontainers 数据库，未连接或修改现有 FoodMate 数据；未执行迁移到现有库、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复。 |
 | 结论 | M0-2 中并发消息序号、账号唯一性、会话撤销和业务幂等写入的数据库级测试均已有证据；M1-6 性能、完整故障矩阵和 M3 生产强化仍保持后置。 |
+
+## D59 饮食记录真实业务闭环与前端周视图修复（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码与提交 | 新增 `GET /api/food-logs/deleted`；前端 real 模式接入饮食记录查询、编辑、软删除查询与恢复，增加日/周视图和份量/单位录入；修正周视图具体日期新增写入错误。提交为 `2b6184f`、`d27bf20`、`29a3057`。 |
+| Java 业务门禁 | 前置验证：Application `14/14`、API `3/3`、Spotless 通过；全量 `mvnw.cmd clean verify` 已通过。 |
+| 前端业务门禁 | 饮食记录定向测试 `7/7`、ESLint、Prettier、typecheck 和 build 通过；全量 Vitest `38` 个文件、`201/201` 通过。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`124 passed、1 skipped、2 warnings`；跳过项为显式真实外部服务测试。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复；用户已有分析页改动和 UI 验收图片未暂存、未回滚。 |
+| 结论 | 饮食记录 real 业务主路径与周视图日期修复取得可复核业务门禁结果；M1-6 性能、完整故障恢复和生产强化仍保持后置。 |
