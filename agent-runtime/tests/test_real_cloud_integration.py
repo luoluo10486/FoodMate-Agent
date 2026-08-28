@@ -65,7 +65,13 @@ def test_real_primary_and_eval_provider_contract():
     assert attempts[-1].cost_cny is not None
 
     eval_response, eval_attempts = router.invoke(
-        ModelRequest("eval", '{"answer":"测试答案","criteria":["可读"]}', max_output_tokens=64),
+        ModelRequest(
+            "eval",
+            '{"answer":"测试答案","criteria":["可读"]}',
+            max_output_tokens=128,
+            response_format={"type": "json_object"},
+            extra_body={"enable_thinking": False},
+        ),
         "eval",
     )
     assert eval_response.content.strip()
