@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28",
+  "generatedAt": "2026-08-29",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -898,11 +898,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 873719,
-      "differentRatio": 0.5925286187065972,
-      "meanAbsoluteError": 29.69620140923394,
-      "rmse": 77.53954170345031,
-      "maxChannelDelta": 241
+      "differentPixels": 311840,
+      "differentRatio": 0.2114800347222222,
+      "meanAbsoluteError": 2.85604248046875,
+      "rmse": 17.037765601116902,
+      "maxChannelDelta": 230
     },
     "admin-sql-audit": {
       "status": "COMPARED",

@@ -1145,3 +1145,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增前端回归断言，确认该知识库 fixture 不包含 `window-controls`、`traffic-light` 或三色窗口控制标记；Figma 设计稿未修改。
 - [x] 最新浏览器 PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-browser-dpr1-2026-08-29.png`；同尺寸 `scripts/png-diff.mjs` 结果为 `differentPixels=325786`、差异比例 `22.0938%`、`MAE=2.30524`、`RMSE=13.80022`、最大通道差异 `244`，结论继续为 `DIFF_REVIEW`。
 - [ ] 本小点只确认并固化前端去除设计稿窗口装饰的行为，不代表该画板或 105 张画板达到像素级 `PASS`；整页壳层、头像、图标和文字光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 123. 2026-08-29 Admin Tool Calls 表格行高收口
+
+- [x] 依据实时 Figma 节点 `797:359`、`797:453-462`，将 `/admin?state=tool-calls` 工具调用表收口为 `1132×87px`，表头 `38px`、数据行 `49px`；外描边改为不参与布局的 inset 描边，避免边框改变表格总高度。
+- [x] 浏览器实测视口 `1440×1024`、DPR `1.0000000149`、字体状态 `loaded`；表格 `1132×87px`，载荷卡片 `1132×321.4px`，说明面板 `1132×250px`，页面无横向或纵向溢出。
+- [x] 前端左上角红、黄、绿窗口装饰候选数量为 `0`；侧栏权限状态圆点保留，Figma 设计稿未修改。
+- [x] 定向 Admin 测试 `8/8` 通过；实时 Figma 参考图与浏览器 RGBA PNG 的 PNG diff 为 `differentPixels=311840`、差异比例 `21.1480%`、`MAE=2.85604`、`RMSE=17.03777`、最大通道差异 `230`。证据和 105 画板映射已同步。
+- [ ] 侧栏身份、图标光栅化、字体和其他整页组合差异仍存在；该画板继续为 `DIFF_REVIEW`，不能标记像素级 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
