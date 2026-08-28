@@ -998,6 +998,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=344235`、差异比例 `23.3449%`、`MAE=2.40089`、`RMSE=13.73352`、最大通道差异 `234`；独立结果见 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-banner-geometry-2026-08-28-diff.json`，并已登记到 105 画板映射的 `additionalVisualEvidence`。
 - [ ] 当前浏览器采集实际 DPR 为 `1.25`，该记录只证明局部几何修正，不满足 DPR 1 和整页人工复核门禁；`meal-planning-v2` 以及 105 张画板继续保持 `DIFF_REVIEW`，不能标记 `PASS`。
 
+## 115. 2026-08-29 Intake Analysis 趋势卡内容区边界收口
+
+- [x] 重新读取实时 Figma 节点 `640:773`，确认趋势卡目标为 `1116×303px`、图表内容区目标为 `1068×220px`、洞察卡目标为 `1116×219px`；前端仅在 Figma fixture 作用域将趋势卡和洞察卡外描边改为等效内描边，真实模式不受影响。
+- [x] 浏览器实测 `/analysis?state=v2`：视口 `1440×1024`、DPR `1.0000000149`、字体已加载、页面无横向溢出；趋势卡为 `1116×303px`，图表区为 `1068×220px`，洞察卡为 `1116×219px`，左上角红黄绿窗口装饰候选数量为 `0`，业务状态圆点保留。
+- [x] 新增原始浏览器帧 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-card-inset-2026-08-29.jpg`、RGBA PNG `intake-analysis-v2-browser-card-inset-2026-08-29.png` 和独立 diff `intake-analysis-v2-card-inset-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=406148`、差异比例 `27.5437%`、`MAE=2.49562`、`RMSE=14.13861`、最大通道差异 `234`，结论继续为 `DIFF_REVIEW`。
+- [x] `AnalysisPage` 定向测试 `5/5`、浏览器几何检查、截图格式归一化、`png-diff.mjs` 和窗口装饰源码/运行时检查均已执行；Figma 设计稿未修改。
+- [ ] 本小点只收口趋势卡内容区边界，不代表该画板或 105 张画板达到像素级 `PASS`；整页字体、图标和其他视觉差异仍需复核，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
 ## 107. 2026-08-28 Agent Tool Failed Retryable 当前版本验收
 
 - [x] 重新读取 Figma 节点 `687:1439`，确认侧栏窗口控制区域只提供 `y=24~36` 的顶部占位，品牌、新建任务、会话搜索和工作区导航目标起点为 `y=52/104/161/217`；前端仅移除左上角红、黄、绿窗口控制点，保留该占位，业务状态圆点不受影响。

@@ -176,7 +176,7 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-filter-width-2026-08-28.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-card-inset-2026-08-29.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -206,8 +206,29 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-27",
-        "conclusion": "已复核当前 Figma fixture 的第三条营养洞察圆点为 #80E0E6，前端运行时颜色一致；默认态摘要卡高度为 107px，趋势、洞察和质量面板的垂直位置已同步下移。顶部红黄绿窗口装饰点未渲染，业务状态圆点保留。图标、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
-      }
+        "conclusion": "已复核当前 Figma fixture 的第三条营养洞察圆点为 #80E0E6，前端运行时颜色一致；默认态摘要卡高度为 107px，趋势卡内容区已收口为 1068×220px，趋势、洞察和质量面板的垂直位置已同步下移。顶部红黄绿窗口装饰点未渲染，业务状态圆点保留。图标、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-29",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-card-inset-2026-08-29.png",
+          "browserJpg": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-card-inset-2026-08-29.jpg",
+          "diffJson": ".qa/figma-pixel-acceptance/intake-analysis-v2-card-inset-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "dprPass": true,
+          "geometryEvidence": {
+            "chartCard": "1116x303",
+            "chartArea": "1068x220",
+            "insightCard": "1116x219",
+            "bodyHorizontalOverflow": false,
+            "fonts": "loaded",
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "依据 Figma 节点 640:773，将 Figma fixture 的趋势卡和洞察卡描边改为等效内描边，释放内容区边框占用；真实模式不受影响。",
+          "conclusion": "Supplemental evidence confirms the target card content geometry; the whole artboard still has visible differences, so retain DIFF_REVIEW."
+        }
+      ]
     },
     {
       "figmaNodeId": "640:901",

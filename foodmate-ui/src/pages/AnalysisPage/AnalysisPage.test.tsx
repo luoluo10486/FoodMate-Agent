@@ -73,6 +73,21 @@ describe('AnalysisPage', () => {
     expect(screen.getByText('当前分析覆盖全部餐次。')).toBeInTheDocument();
   });
 
+  it('keeps Figma-only card treatment scoped to the fixture shell', () => {
+    const fixtureRender = renderPage('/analysis?state=v2');
+    const fixtureShell = screen.getByLabelText('摄入分析');
+    const fixtureChart = screen.getByText('能量摄入与目标对比').closest('section');
+    const fixtureInsight = screen.getByText('营养洞察（由 Agent 生成）').closest('section');
+
+    expect(fixtureShell).toHaveClass(styles.figmaAnalysis);
+    expect(fixtureChart).toHaveClass(styles.chartCard);
+    expect(fixtureInsight).toHaveClass(styles.insightCard);
+
+    fixtureRender.unmount();
+    renderPage('/analysis');
+    expect(screen.getByLabelText('摄入分析')).not.toHaveClass(styles.figmaAnalysis);
+  });
+
   it('renders loading, empty, and error analysis states with recovery paths', async () => {
     const user = userEvent.setup();
     const loadingRender = renderPage('/analysis?state=loading');

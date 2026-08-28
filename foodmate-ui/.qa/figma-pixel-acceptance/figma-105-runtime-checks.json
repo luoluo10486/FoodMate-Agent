@@ -196,6 +196,12 @@
         "x": 0,
         "y": 0
       },
+      "cardGeometry": {
+        "chartCard": { "width": 1116, "height": 303 },
+        "chartArea": { "width": 1068, "height": 220 },
+        "insightCard": { "width": 1116, "height": 219 }
+      },
+      "windowControlsCandidates": 0,
       "textOverflow": [],
       "url": "/analysis?state=v2",
       "viewport": {
