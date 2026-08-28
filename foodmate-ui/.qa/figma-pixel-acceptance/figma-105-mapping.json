@@ -2003,7 +2003,7 @@
       "queryState": "state=error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/intake-analysis-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser-error-description-2026-08-28-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser-reload-button-2026-08-28-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -2033,7 +2033,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture matches the Figma error-state structure, filter set, card spacing, 64px warning icon container, 17px description line box, and retry button geometry more closely. The in-app browser capture used DPR 1.25, so the DPR 1 gate remains open; sidebar/avatar/icon rasterization and remaining typography differences remain. Retain DIFF_REVIEW."
+        "conclusion": "The current browser capture matches the Figma error-state structure, filter set, card spacing, 64px warning icon container, 17px description line box, 120x41px retry button, and inset card boundary more closely. The in-app browser capture used DPR 1.25, so the DPR 1 gate remains open; sidebar/avatar/icon rasterization and remaining typography differences remain. Retain DIFF_REVIEW."
       }
     },
     {

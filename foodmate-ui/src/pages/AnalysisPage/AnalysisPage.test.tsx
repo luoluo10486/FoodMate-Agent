@@ -100,6 +100,7 @@ describe('AnalysisPage', () => {
       '/assets/figma/analysis/intake-analysis-error-alert-triangle.svg',
     );
     expect(screen.getByText('获取营养趋势数据时出错，请稍后重试')).toHaveClass(styles.errorDescription);
+    expect(screen.getByRole('button', { name: '重新加载' })).toHaveClass(styles.reloadButton);
     expect(screen.queryByRole('button', { name: '自定义范围' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '全部餐次' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '重新加载' }));

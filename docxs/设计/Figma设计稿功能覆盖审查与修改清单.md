@@ -940,3 +940,10 @@
 - [x] 浏览器 `1440×1024` 实测空态卡宽 `1116px`、内容区域 `1066.4×320px`；自动差异 `18.6046% / RMSE 15.8118`，继续保持 `DIFF_REVIEW`。
 - [x] 前端左上角红黄绿窗口装饰点核查结果为 `0`，不存在需要删除的对应代码；业务会话状态圆点保留，Figma 设计稿未修改。
 - [ ] 本项不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、后端闭环或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。
+
+## 46. 2026-08-28 摄入分析错误态重载按钮几何对齐
+
+- [x] Figma 节点 `692:2139` 的错误卡片重载按钮 `692:2238` 已核对为 `120×41px`，文本节点 `692:2239` 行盒为 `17px`；前端 Figma fixture 已按该尺寸实现。
+- [x] Figma fixture 错误卡片使用等效内描边，实测 `1116×440px`，图标容器 `64×64px`，描述 `238×17px`，按钮 `x=790,y=443`；前端左上角窗口装饰候选为 `0`，业务状态点保留，Figma 未修改。
+- [x] 同尺寸 diff 为 `12.8468% / MAE 2.00587 / RMSE 14.19979`，证据路径为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser-reload-button-2026-08-28-rgba.png`，状态继续为 `DIFF_REVIEW`。
+- [ ] in-app 浏览器实际 DPR 为 `1.25`，DPR 1 门禁和整页像素 `PASS` 仍未完成；iconfont 实体资源继续为 `BLOCKED`。

@@ -574,6 +574,17 @@
   font-weight: 700;
 }
 
+.figmaAnalysis .reloadButton {
+  width: 120px;
+  height: 41px;
+  line-height: 17px;
+}
+
+.figmaAnalysis .errorCard {
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--fm-border);
+}
+
 .insights {
   display: grid;
   gap: 12px;
