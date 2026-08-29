@@ -1489,3 +1489,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 有效浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/workspace-home-v2-no-status-panel-browser-2026-08-30-rgba.png`；原始浏览器捕获已按真实 JPEG 格式登记为同目录下的 `.jpg`，避免伪装为 PNG。Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma.png`，独立 diff 为 `workspace-home-v2-no-status-panel-2026-08-30-diff.json`。
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=554164`、差异比例 `37.5817%`、`MAE=3.236364`、`RMSE=17.110668`、最大通道差异 `253`；该画板继续保持 `DIFF_REVIEW`，没有将局部结构修正标记为像素级 `PASS`。
 - [ ] 本小点只移除 Figma 不存在的前端实现说明面板，不代表 Workspace Home、105 张画板或 shadcn 全页面迁移完成；iconfont 实体资源登记继续为 `BLOCKED`。
+
+## 161. 2026-08-30 Agent Write Confirmation 当前运行证据收口
+
+- [x] 重新启动前端并在 `1440×1024` 视口采集 `/chat?state=write-confirmation`；当前运行时确认写入卡片为 `305×319px`、位置为 `x=340,y=237`，详情区为 `265×168px`，与已登记 Figma 节点 `687:773` 的紧凑卡片结构一致。
+- [x] 真实浏览器截图不再使用旧的宽卡片证据；有效 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-compact-browser-2026-08-30-rgba.png`，原始捕获按 JPEG 格式登记为同目录下的 `.jpg`，Figma 参考保持 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-2026-08-29.png`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=247917`、差异比例 `16.8129%`、`MAE=1.844870`、`RMSE=13.046592`、最大通道差异 `232`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-write-confirmation-compact-2026-08-30-diff.json`，结论继续为 `DIFF_REVIEW`。
+- [ ] 本小点只更新当前前端运行证据并确认紧凑卡片几何，不代表 Agent Write Confirmation、105 张画板或 shadcn 全页面迁移达到像素级 `PASS`；iconfont 实体资源登记继续为 `BLOCKED`。

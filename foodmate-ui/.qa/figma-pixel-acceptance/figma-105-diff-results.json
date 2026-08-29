@@ -249,10 +249,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 250527,
-      "differentRatio": 0.16989949544270833,
-      "meanAbsoluteError": 1.8457022772894964,
-      "rmse": 13.046976261926144,
+      "differentPixels": 247917,
+      "differentRatio": 0.16812947591145833,
+      "meanAbsoluteError": 1.8448699951171874,
+      "rmse": 13.046592164162325,
       "maxChannelDelta": 232
     },
     "agent-budget-limit": {
