@@ -84,11 +84,11 @@ class DataRetentionDatabasePurgeRealIntegrationTest {
             PurgeResult first = adapter.purgeWithResult("knowledge_document", documentId);
             session.commit();
 
-            assertEquals(new PurgeResult("postgresql", 7, true), first);
+            assertEquals(new PurgeResult("postgresql", 8, true), first);
         }
 
         assertCountsAfterPurge(
-                documentId, itemId, requestId, objectTaskId, vectorTaskId, databaseTaskId);
+                documentId, itemId, jobId, requestId, objectTaskId, vectorTaskId, databaseTaskId);
 
         try (SqlSession session = openSession()) {
             DataRetentionDatabasePurgeAdapter adapter =
@@ -226,6 +226,7 @@ class DataRetentionDatabasePurgeRealIntegrationTest {
     private void assertCountsAfterPurge(
             long documentId,
             long itemId,
+            long jobId,
             long requestId,
             long objectTaskId,
             long vectorTaskId,
@@ -237,6 +238,7 @@ class DataRetentionDatabasePurgeRealIntegrationTest {
                                 "SELECT (SELECT COUNT(*) FROM knowledge_documents WHERE document_id=?),"
                                         + "(SELECT COUNT(*) FROM knowledge_chunks WHERE document_id=?),"
                                         + "(SELECT COUNT(*) FROM knowledge_import_items WHERE item_id=?),"
+                                        + "(SELECT COUNT(*) FROM knowledge_import_jobs WHERE job_id=?),"
                                         + "(SELECT COUNT(*) FROM knowledge_index_outbox WHERE item_id=?),"
                                         + "(SELECT COUNT(*) FROM knowledge_index_result_inbox WHERE item_id=?),"
                                         + "(SELECT COUNT(*) FROM knowledge_import_sse_outbox WHERE item_id=?),"
@@ -247,15 +249,16 @@ class DataRetentionDatabasePurgeRealIntegrationTest {
             query.setLong(1, documentId);
             query.setLong(2, documentId);
             query.setLong(3, itemId);
-            query.setLong(4, itemId);
+            query.setLong(4, jobId);
             query.setLong(5, itemId);
             query.setLong(6, itemId);
-            query.setLong(7, documentId);
-            query.setLong(8, objectTaskId);
-            query.setLong(9, vectorTaskId);
-            query.setLong(10, databaseTaskId);
-            query.setLong(11, requestId);
+            query.setLong(7, itemId);
+            query.setLong(8, documentId);
+            query.setLong(9, objectTaskId);
+            query.setLong(10, vectorTaskId);
+            query.setLong(11, databaseTaskId);
             query.setLong(12, requestId);
+            query.setLong(13, requestId);
             try (var rows = query.executeQuery()) {
                 rows.next();
                 assertEquals(0, rows.getInt(1));
@@ -265,9 +268,10 @@ class DataRetentionDatabasePurgeRealIntegrationTest {
                 assertEquals(0, rows.getInt(5));
                 assertEquals(0, rows.getInt(6));
                 assertEquals(0, rows.getInt(7));
-                assertEquals(1, rows.getInt(8));
-                assertEquals(3, rows.getInt(9));
-                assertEquals(1, rows.getInt(10));
+                assertEquals(0, rows.getInt(8));
+                assertEquals(1, rows.getInt(9));
+                assertEquals(3, rows.getInt(10));
+                assertEquals(1, rows.getInt(11));
             }
         }
     }

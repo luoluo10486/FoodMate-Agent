@@ -40,6 +40,7 @@ public class DataRetentionDatabasePurgeAdapter implements DataRetentionDatabaseP
 
     private PurgeResult purgeKnowledgeDocument(long documentId) {
         requireAllowed(mapper.knowledgeDocumentPurgeAllowed(documentId));
+        Long jobId = mapper.knowledgeImportJobId(documentId);
         int deleted = 0;
         deleted += mapper.deleteKnowledgeIndexResults(documentId);
         deleted += mapper.deleteKnowledgeIndexOutbox(documentId);
@@ -47,6 +48,7 @@ public class DataRetentionDatabasePurgeAdapter implements DataRetentionDatabaseP
         deleted += mapper.deleteKnowledgeChunks(documentId);
         deleted += mapper.deleteKnowledgeVisibilityOutbox(documentId);
         deleted += mapper.deleteKnowledgeImportItems(documentId);
+        if (jobId != null) deleted += mapper.deleteKnowledgeImportJobIfEmpty(jobId);
         deleted += mapper.deleteKnowledgeDocument(documentId);
         return new PurgeResult(
                 "postgresql", deleted, mapper.knowledgeDocumentExists(documentId) != 1);
