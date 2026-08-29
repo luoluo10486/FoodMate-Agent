@@ -1,10 +1,22 @@
 import { Eye } from 'lucide-react';
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ChangeEvent, CSSProperties, ReactNode } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import styles from '../LoginPage/LoginPage.module.css';
 
 export type AuthVariant = 'login' | 'register' | 'forgot' | 'reset' | 'token';
+
+export const authShellFigmaTokens = {
+  register: {
+    diagonal: '#c5f0d6',
+    accent: '#48c78e',
+  },
+} as const;
+
+type AuthShellStyle = CSSProperties & {
+  '--auth-diagonal'?: string;
+  '--auth-accent'?: string;
+};
 
 const fieldIconSources = {
   user: '/assets/figma/auth/foodmate-register-user.svg',
@@ -12,8 +24,16 @@ const fieldIconSources = {
 } as const;
 
 export function AuthShell({ variant, children }: { variant: AuthVariant; children: ReactNode }) {
+  const tokens = variant === 'register' ? authShellFigmaTokens.register : undefined;
+  const style = tokens
+    ? ({
+        '--auth-diagonal': tokens.diagonal,
+        '--auth-accent': tokens.accent,
+      } as AuthShellStyle)
+    : undefined;
+
   return (
-    <main className={`${styles.authPage} ${styles[`authPage-${variant}`]}`}>
+    <main className={`${styles.authPage} ${styles[`authPage-${variant}`]}`} style={style}>
       <div className={styles.authDiagonal} aria-hidden="true" />
       {children}
     </main>

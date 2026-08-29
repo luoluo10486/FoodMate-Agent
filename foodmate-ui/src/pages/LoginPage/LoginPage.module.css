@@ -1076,6 +1076,8 @@
   min-height: 100dvh;
   place-items: center;
   overflow: auto;
+  --auth-accent: var(--fm-color-success);
+  --auth-diagonal: var(--fm-auth-mint);
   background: var(--fm-auth-pink);
   color: var(--fm-auth-ink);
   isolation: isolate;
@@ -1250,18 +1252,18 @@
 }
 
 .authPage-register .authDiagonal {
-  background: #dfeedb;
+  background: var(--auth-diagonal);
 }
 
 .authPage-register .authPrimary {
-  border-color: #a6d997;
-  background: #a6d997;
+  border-color: var(--auth-accent);
+  background: var(--auth-accent);
 }
 
 .authPage-register .authPrimary:hover,
 .authPage-register .authPrimary:focus-visible {
-  border-color: #a6d997;
-  background: #a6d997;
+  border-color: var(--auth-accent);
+  background: var(--auth-accent);
 }
 
 .authCard {
@@ -1308,7 +1310,7 @@
   height: 40px;
   place-items: center;
   border-radius: 10px;
-  background: #a6d997;
+  background: var(--auth-accent);
   box-shadow: 0 4px 4px rgb(72 199 142 / 25%);
   color: #ffffff;
 }

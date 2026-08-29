@@ -1455,3 +1455,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器在 `1440×1024` 下实测操作栏为 `x=292,y=640,width=1116,height=48`；“记录一餐”为 `140×40`，“分析这一天”为 `164×40`；详情面板未渲染，页面无横向溢出，字体已加载，前端左上角红黄绿窗口装饰候选数量为 `0`。
 - [x] `DietRecordsPage` 定向测试为 `10/10`；浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-v2-action-bar-browser-2026-08-30-rgba.png`，独立 diff 为 `diet-records-v2-action-bar-2026-08-30-diff.json`。同尺寸 `png-diff.mjs` 结果为 `differentPixels=527661`、差异比例 `35.7843%`、`MAE=2.681890`、`RMSE=15.511048`、最大通道差异 `234`。
 - [ ] 当前采集实际 DPR 为 `1.25`，严格 DPR 1 门禁未通过；字体、图标、头像和周边工作台组合差异仍存在，结论保持 `DIFF_REVIEW`，不能标记像素级 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 157. 2026-08-30 注册页 Figma 色彩 Token 收口
+
+- [x] 依据 Figma 节点 `680:216`，将 `/register` 的斜切背景从前端 `#dfeedb` 收口为 `#c5f0d6`，并将品牌标记与主按钮从 `#a6d997` 收口为 `#48c78e`；通过 `AuthShell` 的语义变量传递，其他认证页面保持原有 Token，未修改 Figma 设计稿。
+- [x] 浏览器在 `1440×900`、DPR `1.0000000149011612`、字体 `loaded` 条件下验证：根节点 `1440×900`，认证卡片 `x=490,y=34.4,width=460,height=831.2`，内容宽 `380px`，首个输入框 `x=530,y=235.2,width=380,height=50`，无页面横向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] `AuthPages.test.tsx` 定向测试为 `21/21`；浏览器 RGBA 证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-rgba.png`，Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/register-page-2026-08-30-diff.json`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=1281714`、差异比例 `98.8977%`、`MAE=5.1327166`、`RMSE=12.1961723`、最大通道差异 `204`；该结果仍受浏览器截图 JPEG 转码和文字/图标光栅化影响，已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json#register-page`。
+- [ ] 注册画板继续保持 `DIFF_REVIEW`，本次只关闭可测量的 Figma 色彩 Token 差异，不代表整页像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

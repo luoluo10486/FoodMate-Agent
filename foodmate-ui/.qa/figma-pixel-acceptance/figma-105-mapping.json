@@ -465,12 +465,12 @@
       "frontendRoute": "/register",
       "queryState": null,
       "browserViewport": "1440x900",
-      "figmaPng": "docxs/设计/figma-png/register-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#register-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-08-30 registration color-token evidence is current; automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -495,9 +495,30 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Registration page differs visually from the Figma reference. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "Registration diagonal background, brand mark and primary action now use the Figma color tokens; geometry and font loading pass, while rasterization and remaining page pixels require continued DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "label": "注册页 Figma 色彩 Token 收口",
+          "capturedAt": "2026-08-30",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/register-page-2026-08-30-diff.json",
+          "viewport": "1440x900",
+          "actualDpr": 1.0000000149011612,
+          "geometry": {
+            "root": "1440x900",
+            "card": "x=490,y=34.4,width=460,height=831.2",
+            "contentWidth": 380,
+            "firstInput": "x=530,y=235.2,width=380,height=50",
+            "fonts": "loaded",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "注册页通过 AuthShell 语义变量使用 Figma 斜切背景 #c5f0d6 和强调色 #48c78e；仅修改前端，未修改 Figma 设计稿。"
+        }
+      ]
     },
     {
       "figmaNodeId": "680:275",
