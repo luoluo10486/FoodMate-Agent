@@ -29,10 +29,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 539335,
-      "differentRatio": 0.3657599555121528,
-      "meanAbsoluteError": 2.8026021321614585,
-      "rmse": 15.908837488311086,
+      "differentPixels": 527661,
+      "differentRatio": 0.357843017578125,
+      "meanAbsoluteError": 2.681890360514323,
+      "rmse": 15.511047959829156,
       "maxChannelDelta": 234
     },
     "intake-analysis-v2": {

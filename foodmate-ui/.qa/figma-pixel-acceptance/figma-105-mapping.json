@@ -183,7 +183,7 @@
       "queryState": "view=records&state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-27.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-browser-spacing-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-action-bar-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -193,9 +193,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -212,9 +212,29 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-27",
-        "conclusion": "Live Figma structure and page geometry are aligned after removing the duplicate fixture action bar; font rendering, icon implementation, avatar asset, and remaining visual differences require further review. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The Figma fixture now renders the two action buttons below the meal cards and no longer renders the extra record-detail panel. The action bar and button geometry align with the Figma reference, while font, icon, avatar and surrounding workspace differences remain. Retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-30",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-27.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-action-bar-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/diet-records-v2-action-bar-2026-08-30-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "visualChange": "依据 Figma 节点 640:588，让 diet-records-v2 默认 fixture 显示记录一餐/分析这一天操作栏，并隐藏 Figma 画板中不存在的额外记录详情面板；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "desktopActionBar": "x=292,y=640,width=1116,height=48",
+            "desktopLogMealButton": "x=292,y=644,width=140,height=40",
+            "desktopAnalyzeButton": "x=448,y=644,width=164,height=40",
+            "detailPanelRendered": false,
+            "bodyHorizontalOverflow": false,
+            "fonts": "loaded",
+            "windowControlsCandidates": 0
+          }
+        }
+      ]
     },
     {
       "figmaNodeId": "640:773",
