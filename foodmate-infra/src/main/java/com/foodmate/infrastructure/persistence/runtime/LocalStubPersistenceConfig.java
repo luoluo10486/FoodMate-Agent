@@ -505,6 +505,10 @@ public class LocalStubPersistenceConfig {
                 throw unavailable();
             }
 
+            public PurgeTaskContext purgeTaskContext(long taskId) {
+                throw unavailable();
+            }
+
             public int markTaskPublished(long taskId, String owner, String messageId) {
                 throw unavailable();
             }
@@ -521,6 +525,10 @@ public class LocalStubPersistenceConfig {
 
             public int applyTaskResult(
                     long taskId, String status, String errorCode, String errorSummary) {
+                throw unavailable();
+            }
+
+            public int insertPurgeTaskResult(PurgeTaskResult result) {
                 throw unavailable();
             }
 

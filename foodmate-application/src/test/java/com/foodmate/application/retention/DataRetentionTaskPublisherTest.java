@@ -64,7 +64,7 @@ class DataRetentionTaskPublisherTest {
         publisher.publishPending();
 
         verify(storage).delete("foodmate-private", "knowledge/public/42/guide.md");
-        verify(service).succeeded(eq(101L), anyString(), eq(""), eq(""));
+        verify(service).succeeded(any(DataRetentionDeliveryService.PurgeExecution.class));
     }
 
     @Test
@@ -172,6 +172,8 @@ class DataRetentionTaskPublisherTest {
                         true);
         when(service.pending(20)).thenReturn(List.of(task));
         when(service.lease(eq(105L), anyString(), eq("knowledge_document"), eq(42L))).thenReturn(1);
+        when(database.purgeWithResult("knowledge_document", 42L))
+                .thenReturn(new DataRetentionDatabasePurgePort.PurgeResult("postgresql", 7, true));
 
         DataRetentionTaskPublisher publisher =
                 new DataRetentionTaskPublisher(
@@ -185,8 +187,8 @@ class DataRetentionTaskPublisherTest {
 
         publisher.publishPending();
 
-        verify(database).purge("knowledge_document", 42L);
-        verify(service).succeeded(eq(105L), anyString(), eq(""), eq(""));
+        verify(database).purgeWithResult("knowledge_document", 42L);
+        verify(service).succeeded(any(DataRetentionDeliveryService.PurgeExecution.class));
     }
 
     @Test

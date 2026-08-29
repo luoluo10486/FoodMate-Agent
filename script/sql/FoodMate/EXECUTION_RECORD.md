@@ -1247,3 +1247,16 @@
 | 数据与边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产服务；真实调用是单次 smoke，不代表云模型长稳、价格审计、账单对账或生产容量完成。 |
 | Git 提交 | `2cbab19 test(runtime): verify real cloud provider configuration safely`。 |
 | 结论 | SiliconFlow 真实 Chat 与两个 Embedding 的最小调用合同已取得可复核证据；真实云长期稳定性、正式价格/账单审计和生产强化保持未完成。 |
+
+## D63 M3 清理执行结果对账闭环定向验证（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；未连接现有业务数据库、未执行真实硬删除、未调用付费云服务。 |
+| 代码范围 | 清理结果台账 `data_purge_task_results`、PostgreSQL/MinIO/Redis/Milvus 删除后存在性验证、外部结果上下文校验、结果摘要幂等和数据库清理事务入口。 |
+| 执行命令 | `.\mvnw.cmd --% -pl foodmate-application,foodmate-infra -am -Dtest=DataRetentionDeliveryServiceImplTest,DataRetentionResultMessageProcessorTest,DataRetentionTaskPublisherTest,DataRetentionDatabasePurgeAdapterTest,FlywayV27MigrationScriptTest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| Java 结果 | Application `14/14`、Infrastructure `8/8` 通过；编译、定向业务测试和 V27 迁移脚本安全检查通过。 |
+| 关键断言 | 外部结果必须匹配任务不可变上下文；重复结果生成相同摘要且只触发一次状态收敛；数据库/对象存储结果记录删除数量并验证资源缺失；成功结果必须 `verified_absent=true`。 |
+| 规范检查 | 受影响 Java 模块已执行 `spotless:apply`；`git diff --check` 通过；新增/修改类级注释已使用中文。 |
+| 数据与暂缓边界 | 未执行 V27 到现有数据库的迁移、truncate、真实数据库硬删除、备份恢复、组件重启、性能压测或故障注入；V27 rollback 仍为只读前置检查。 |
+| 结论 | M3 清理结果对账和失败关闭校验具备定向业务证据；真实环境执行、备份恢复和生产强化仍未完成，不能据此标记整个 M3 完成。 |

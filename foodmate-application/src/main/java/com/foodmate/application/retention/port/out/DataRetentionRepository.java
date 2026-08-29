@@ -37,6 +37,9 @@ public interface DataRetentionRepository {
     /** Claims one purge task for a worker. */
     int leaseTask(long taskId, String owner, String resourceType, long resourceId);
 
+    /** Reads the immutable task context used to validate an external result. */
+    PurgeTaskContext purgeTaskContext(long taskId);
+
     /** Records publication of a purge task message. */
     int markTaskPublished(long taskId, String owner, String messageId);
 
@@ -48,6 +51,9 @@ public interface DataRetentionRepository {
 
     /** Applies a worker result idempotently and refreshes the request state. */
     int applyTaskResult(long taskId, String status, String errorCode, String errorSummary);
+
+    /** Persists one safe cleanup execution fact before changing task state. */
+    int insertPurgeTaskResult(PurgeTaskResult result);
 
     /** Recomputes a purge request from its task states. */
     void refreshPurgeRequest(long taskId);
@@ -115,6 +121,33 @@ public interface DataRetentionRepository {
             String targetRef,
             String status,
             boolean hardDeleteEnabled) {}
+
+    record PurgeTaskContext(
+            long taskId,
+            long requestId,
+            String resourceType,
+            long resourceId,
+            String taskType,
+            String version,
+            int attemptCount) {}
+
+    /** Result ledger row; it intentionally excludes object keys and vector payloads. */
+    record PurgeTaskResult(
+            long resultId,
+            long taskId,
+            long requestId,
+            String resourceType,
+            long resourceId,
+            String taskType,
+            String version,
+            String status,
+            String backend,
+            int deletedCount,
+            boolean verifiedAbsent,
+            String messageId,
+            String resultDigest,
+            String errorCode,
+            String errorSummary) {}
 
     /** Safe task state; target references and storage details never cross this boundary. */
     record PurgeTaskState(String taskType, String status, int attemptCount, String lastErrorCode) {}

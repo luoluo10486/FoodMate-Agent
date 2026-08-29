@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Executes only approved external cleanup steps when the explicit local switch is enabled. */
+/** 仅在显式开启本地开关后执行已批准的外部清理步骤。 */
 @Component
 public class DataRetentionTaskPublisher {
     private final DataRetentionDeliveryService service;
@@ -45,7 +45,7 @@ public class DataRetentionTaskPublisher {
                 bucket);
     }
 
-    /** Constructor used by business tests that provide a database purge port directly. */
+    /** 供直接提供数据库清理端口的业务测试使用的构造方法。 */
     public DataRetentionTaskPublisher(
             DataRetentionDeliveryService service,
             ObjectProvider<ObjectStoragePort> storage,
@@ -112,8 +112,19 @@ public class DataRetentionTaskPublisher {
         if (databasePurge == null) {
             throw new IllegalStateException("database purge is unavailable");
         }
-        databasePurge.purge(task.resourceType(), task.resourceId());
-        service.succeeded(task.taskId(), owner, "", "");
+        DataRetentionDatabasePurgePort.PurgeResult result =
+                databasePurge.purgeWithResult(task.resourceType(), task.resourceId());
+        if (result == null || !result.verifiedAbsent()) {
+            throw new IllegalStateException("database purge could not verify resource absence");
+        }
+        service.succeeded(
+                new DataRetentionDeliveryService.PurgeExecution(
+                        task.taskId(),
+                        owner,
+                        version(task),
+                        result.backend(),
+                        result.deletedCount(),
+                        true));
     }
 
     private void executeObjectDelete(PurgeTaskSnapshot task, String owner) {
@@ -122,8 +133,16 @@ public class DataRetentionTaskPublisher {
         if (!bucket.equals(target.path("bucket").asText())
                 || !safeObjectKey(target.path("key").asText()))
             throw new IllegalArgumentException("retention object target is invalid");
+        String key = target.path("key").asText();
+        boolean existed = storage.exists(bucket, key);
         storage.delete(bucket, target.path("key").asText());
-        service.succeeded(task.taskId(), owner, "", "");
+        if (storage.exists(bucket, key)) {
+            throw new IllegalStateException(
+                    "object storage purge could not verify resource absence");
+        }
+        service.succeeded(
+                new DataRetentionDeliveryService.PurgeExecution(
+                        task.taskId(), owner, version(task), "minio", existed ? 1 : 0, true));
     }
 
     private void publishVectorDelete(PurgeTaskSnapshot task, String owner) {
@@ -162,6 +181,11 @@ public class DataRetentionTaskPublisher {
                 && !value.contains("..")
                 && !value.contains("\\")
                 && value.matches("[A-Za-z0-9._/-]+");
+    }
+
+    private String version(PurgeTaskSnapshot task) {
+        JsonNode target = parseTarget(task.targetRef());
+        return target.path("version").asText("");
     }
 
     private static String safeMessage(Exception exception) {

@@ -7,6 +7,7 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.StatObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
 import io.minio.errors.InternalException;
@@ -21,7 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import org.springframework.stereotype.Component;
 
-/** MinIO implementation of the application object storage port. */
+/** 应用层对象存储端口的 MinIO 实现。 */
 @Component
 public final class MinioObjectStorageAdapter implements ObjectStoragePort {
     private final MinioClient client;
@@ -86,6 +87,32 @@ public final class MinioObjectStorageAdapter implements ObjectStoragePort {
                 | XmlParserException
                 | RuntimeException exception) {
             throw storageFailure("unable to delete object " + key, exception);
+        }
+    }
+
+    @Override
+    public boolean exists(String bucket, String key) {
+        try {
+            client.statObject(StatObjectArgs.builder().bucket(bucket).object(key).build());
+            return true;
+        } catch (ErrorResponseException exception) {
+            String code = exception.errorResponse().code();
+            if ("NoSuchKey".equals(code)
+                    || "NoSuchObject".equals(code)
+                    || "NotFound".equals(code)) {
+                return false;
+            }
+            throw storageFailure("unable to verify object existence", exception);
+        } catch (InsufficientDataException
+                | InternalException
+                | InvalidKeyException
+                | InvalidResponseException
+                | IOException
+                | NoSuchAlgorithmException
+                | ServerException
+                | XmlParserException
+                | RuntimeException exception) {
+            throw storageFailure("unable to verify object existence", exception);
         }
     }
 
