@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 
-import com.foodmate.infrastructure.persistence.retention.adapter.DataRetentionDatabasePurgeAdapter;
 import com.foodmate.application.retention.port.out.DataRetentionDatabasePurgePort.PurgeResult;
+import com.foodmate.infrastructure.persistence.retention.adapter.DataRetentionDatabasePurgeAdapter;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;

@@ -10,7 +10,13 @@ import org.junit.jupiter.api.Test;
 /** 校验 V5 常见食材目录和 USDA 份量规则的来源与幂等边界。 */
 class NutritionCommonV5SeedScriptTest {
     private static final Path SEED =
-            Path.of("..", "script", "sql", "FoodMate", "seed", "V5__nutrition_usda_common_foods_seed.sql");
+            Path.of(
+                    "..",
+                    "script",
+                    "sql",
+                    "FoodMate",
+                    "seed",
+                    "V5__nutrition_usda_common_foods_seed.sql");
     private static final Path VALIDATION =
             Path.of(
                     "..",
