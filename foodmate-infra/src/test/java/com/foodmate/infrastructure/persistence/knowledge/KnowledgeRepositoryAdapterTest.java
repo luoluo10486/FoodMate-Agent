@@ -134,7 +134,6 @@ class KnowledgeRepositoryAdapterTest {
     @Test
     void manualRetryResetsAuthorityAndEmitsReplayableProgressFacts() {
         when(mapper.resetItem(11L, 77L)).thenReturn(1);
-        when(mapper.requeueIndexOutbox(11L, 1, 0, null)).thenReturn(1);
         when(mapper.job(77L)).thenReturn(new KnowledgeRepository.JobView(77L, "indexing", 1, 0, 0));
         when(ids.nextId()).thenReturn(901L, 902L);
 
@@ -142,6 +141,7 @@ class KnowledgeRepositoryAdapterTest {
                 1, adapter.retryItem(11L, 77L, 7L, 903L, "{}"));
 
         verify(mapper).deleteResultInbox(11L);
+        verify(mapper).insertIndexOutbox(903L, 11L, "{}");
         verify(mapper).refreshJob(11L);
         verify(mapper)
                 .insertJobEvent(eq(901L), eq(77L), eq(11L), eq("knowledge.index.retry"), any());

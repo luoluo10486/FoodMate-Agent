@@ -290,8 +290,7 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
         int changed = mapper.resetItem(itemId, jobId);
         if (changed == 1) {
             mapper.deleteResultInbox(itemId);
-            if (mapper.requeueIndexOutbox(itemId, 1, 0, null) != 1)
-                throw new IllegalStateException("knowledge index outbox is missing");
+            mapper.insertIndexOutbox(outboxId, itemId, payload);
             mapper.refreshJob(itemId);
             mapper.insertJobEvent(
                     ids.nextId(),

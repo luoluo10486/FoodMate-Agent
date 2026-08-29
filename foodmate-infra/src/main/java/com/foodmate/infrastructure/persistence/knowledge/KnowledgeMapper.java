@@ -65,7 +65,7 @@ public interface KnowledgeMapper {
             @Param("size") long size);
 
     @Insert(
-            "INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) VALUES(#{outboxId},#{itemId},'foodmate-knowledge-index-v1',CAST(#{payload} AS jsonb))")
+            "INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) VALUES(#{outboxId},#{itemId},'foodmate-knowledge-index-v1',CASE WHEN CAST(#{payload} AS jsonb)='{}'::jsonb THEN COALESCE((SELECT payload_json FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' ORDER BY outbox_id DESC LIMIT 1),CAST(#{payload} AS jsonb)) ELSE CAST(#{payload} AS jsonb) END)")
     void insertIndexOutbox(
             @Param("outboxId") long outboxId,
             @Param("itemId") long itemId,
