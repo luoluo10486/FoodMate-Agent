@@ -28,7 +28,7 @@ describe('HomePage session cards', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/chat/week-plan');
   });
 
-  it('renders the Figma workspace shell fixture', () => {
+  it('renders the Figma workspace shell without the Chat session list', () => {
     render(
       <MemoryRouter initialEntries={['/?state=figma-v2']}>
         <Routes>
@@ -38,7 +38,8 @@ describe('HomePage session cards', () => {
     );
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
-    expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
+    expect(screen.queryByText('早餐奶昔配方')).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: '搜索会话...' })).not.toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', { name: '主导航' })).queryByRole('link', { name: '知识库' }),
     ).toBeNull();

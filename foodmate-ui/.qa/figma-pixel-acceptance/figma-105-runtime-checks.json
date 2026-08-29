@@ -1807,6 +1807,14 @@
       },
       "textOverflow": [],
       "url": "/?state=figma-v2",
+      "figmaSidebar": {
+        "sessionSearch": false,
+        "sessionItems": 0,
+        "sessionPagination": false,
+        "agentConversationLink": true,
+        "windowControls": false,
+        "trafficLightColors": 0
+      },
       "viewport": {
         "height": 1024,
         "width": 1440

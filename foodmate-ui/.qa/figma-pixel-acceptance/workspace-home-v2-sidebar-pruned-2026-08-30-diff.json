@@ -1,0 +1,32 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "640:256",
+  "artboardName": "workspace-home-v2",
+  "frontendRoute": "/?state=figma-v2",
+  "figmaPng": "recaptured-figma/workspace-home-v2-figma.png",
+  "browserPng": "recaptured/workspace-home-v2-sidebar-pruned-browser-2026-08-30-rgba.png",
+  "browserCapture": "recaptured/workspace-home-v2-sidebar-pruned-browser-2026-08-30.jpg",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "differentPixels": 550655,
+  "pixelCount": 1474560,
+  "differentRatio": 0.3734368218315972,
+  "meanAbsoluteError": 3.9269012451171874,
+  "rmse": 19.640692382955876,
+  "maxChannelDelta": 253,
+  "geometry": {
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "sessionSearch": false,
+    "sessionItems": 0,
+    "sessionPagination": false,
+    "agentConversationLink": true,
+    "windowControls": false,
+    "trafficLightColors": 0
+  },
+  "conclusion": "DIFF_REVIEW",
+  "visualChange": "依据 Figma 节点 640:256，首页仅保留 Agent 对话入口，隐藏不属于该画板的会话搜索、会话历史列表和分页；仅修改前端，未修改 Figma。",
+  "generatedBy": "scripts/png-diff.mjs",
+  "generatedAt": "2026-08-30"
+}

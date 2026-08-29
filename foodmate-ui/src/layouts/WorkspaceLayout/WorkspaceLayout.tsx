@@ -70,6 +70,7 @@ type WorkspaceLayoutProps = {
   topbarShowMarkLetter?: boolean;
   designChat?: boolean;
   topbarVariant?: 'planning-list';
+  hideSessionHistory?: boolean;
   sidebarFixture?: {
     sessions: SessionSummary[];
     searchValue?: string;
@@ -94,6 +95,7 @@ export function WorkspaceLayout({
   topbarShowMarkLetter = true,
   designChat = false,
   topbarVariant,
+  hideSessionHistory = false,
   sidebarFixture,
   pageOverlay,
 }: WorkspaceLayoutProps) {
@@ -231,27 +233,29 @@ export function WorkspaceLayout({
             <Plus aria-hidden="true" />
             <span>新建任务</span>
           </Button>
-          <div className={styles.searchWrap}>
-            <Search className={styles.searchIcon} aria-hidden="true" />
-            <Input
-              className={styles.search}
-              placeholder="搜索会话..."
-              value={displayedSessionQuery}
-              onChange={(event) => setSessionQuery(event.target.value)}
-            />
-            {displayedSessionQuery && !designChat ? (
-              <Button
-                className={styles.clearSearch}
-                variant="ghost"
-                size="icon"
-                type="button"
-                aria-label="清除会话搜索"
-                onClick={() => setSessionQuery('')}
-              >
-                <X aria-hidden="true" />
-              </Button>
-            ) : null}
-          </div>
+          {!hideSessionHistory ? (
+            <div className={styles.searchWrap}>
+              <Search className={styles.searchIcon} aria-hidden="true" />
+              <Input
+                className={styles.search}
+                placeholder="搜索会话..."
+                value={displayedSessionQuery}
+                onChange={(event) => setSessionQuery(event.target.value)}
+              />
+              {displayedSessionQuery && !designChat ? (
+                <Button
+                  className={styles.clearSearch}
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  aria-label="清除会话搜索"
+                  onClick={() => setSessionQuery('')}
+                >
+                  <X aria-hidden="true" />
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
           <div className={styles.sessionTools}>
             <nav className={styles.primarySideNav} aria-label="工作区导航">
               <NavLink className={sideLink} to={ROUTES.HOME} end>
@@ -262,6 +266,7 @@ export function WorkspaceLayout({
             <SidebarSessionList
               currentPage={sidebarFixture?.currentPage}
               sessions={displayedSessions}
+              showHistory={!hideSessionHistory}
               onAction={sidebarFixture ? undefined : handleSessionAction}
             />
             {realMode ? (

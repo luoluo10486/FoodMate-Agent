@@ -19,7 +19,6 @@ import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { DEFAULT_AVATARS } from '../../lib/avatar';
 import { getAuthUser } from '../../services/authService';
 import { getHomeSessions, getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
-import type { SessionSummary } from '../../types/session';
 import styles from './HomePage.module.css';
 
 const metricCards = [
@@ -40,18 +39,6 @@ const pendingItems = [
 ];
 
 type HomeState = 'default' | 'loading' | 'empty' | 'error' | 'input-states';
-
-const figmaSidebarSessions: SessionSummary[] = [
-  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
-  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
-  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
-  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
-  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
-  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
-  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
-  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
-  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
-];
 
 function getHomeState(value: string | null): HomeState {
   return value === 'loading' || value === 'empty' || value === 'error' || value === 'input-states' ? value : 'default';
@@ -179,7 +166,7 @@ export function HomePage() {
       sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
-      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
+      hideSessionHistory={isFigmaFixture}
     >
       <div className={`${styles.page} fm-enter`}>
         <section className={styles.intro}>

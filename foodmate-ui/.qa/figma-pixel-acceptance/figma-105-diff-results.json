@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29",
+  "generatedAt": "2026-08-30",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -7,10 +7,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 554164,
-      "differentRatio": 0.37581651475694444,
-      "meanAbsoluteError": 3.2363638983832463,
-      "rmse": 17.110668487658913,
+      "differentPixels": 550655,
+      "differentRatio": 0.3734368218315972,
+      "meanAbsoluteError": 3.9269012451171874,
+      "rmse": 19.640692382955876,
       "maxChannelDelta": 253
     },
     "agent-chat-v2": {

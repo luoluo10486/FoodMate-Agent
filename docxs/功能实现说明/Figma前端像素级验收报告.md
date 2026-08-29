@@ -1496,3 +1496,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 真实浏览器截图不再使用旧的宽卡片证据；有效 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-compact-browser-2026-08-30-rgba.png`，原始捕获按 JPEG 格式登记为同目录下的 `.jpg`，Figma 参考保持 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-2026-08-29.png`。
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=247917`、差异比例 `16.8129%`、`MAE=1.844870`、`RMSE=13.046592`、最大通道差异 `232`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-write-confirmation-compact-2026-08-30-diff.json`，结论继续为 `DIFF_REVIEW`。
 - [ ] 本小点只更新当前前端运行证据并确认紧凑卡片几何，不代表 Agent Write Confirmation、105 张画板或 shadcn 全页面迁移达到像素级 `PASS`；iconfont 实体资源登记继续为 `BLOCKED`。
+
+## 162. 2026-08-30 Workspace Home 侧栏结构收口
+
+- [x] 依据 Figma 节点 `640:256`，首页 Figma fixture 隐藏不属于该画板的会话搜索、会话历史列表和分页，仅保留“Agent 对话”入口；通过 `WorkspaceLayout.hideSessionHistory` 与 `SidebarSessionList.showHistory` 控制，真实模式会话历史行为不变。仅修改前端，未修改 Figma 设计稿。
+- [x] 首页与工作区定向测试共 `12/12` 通过；`1440×1024` 运行时确认 `sessionSearch=false`、`sessionItems=0`、`sessionPagination=false`、`agentConversationLink=true`、`windowControls=false`、`trafficLightColors=0`，`390×844` 结构检查同样无页面溢出。
+- [x] 有效浏览器 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-pruned-browser-2026-08-30-rgba.png`，原始浏览器捕获为真实 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-pruned-browser-2026-08-30.jpg`；移动端捕获为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-pruned-browser-390x844-2026-08-30.jpg`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=550655`、差异比例 `37.3437%`、`MAE=3.926901`、`RMSE=19.640692`、最大通道差异 `253`；映射、运行时检查和独立 diff JSON 已同步，结论继续为 `DIFF_REVIEW`。
+- [x] 前端生产源码全量检查没有发现左上角红、黄、绿窗口装饰节点或颜色标记；业务状态圆点不属于该装饰，保持不变。
+- [ ] 本小点只完成首页侧栏结构和证据格式收口，不代表 Workspace Home、105 张画板达到像素级 `PASS`，也不代表 shadcn 全页面迁移或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。
