@@ -1109,6 +1109,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 映射 JSON 和聚合 diff 已更新；重连态测试通过，最新采集实际 DPR 为 `1.25`，因此不满足严格 DPR 1 的像素 `PASS` 门禁。
 - [ ] 整页工作台壳层、头像、字体和图标光栅化仍存在差异；该画板不能标记像素级 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
 
+## 152. 2026-08-30 Agent SSE Reconnecting 告警颜色收口
+
+- [x] 依据 Figma 节点 `687:1803`，将 `/chat?state=sse-reconnecting` 重连提示带从通用告警颜色收口为 Figma 颜色：背景 `#FFEDD5`、描边 `#F97316`、标题和正文 `#C2410C`；仅修改前端，未修改 Figma 设计稿。
+- [x] 浏览器运行时验证提示带计算样式为 `rgb(255,237,213)`、`rgb(249,115,22)`、`rgb(194,65,12)`，提示带 `x=284,y=820,width=1132,height=66`；视口 `1440×1024`、字体已加载、页面无横向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`，业务状态圆点保留。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-warning-colors-browser-1440x1024-2026-08-30.png`，Figma 参考为 `docxs/设计/figma-png/agent-sse-reconnecting.png`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-sse-reconnecting-warning-colors-2026-08-30-diff.json`，`differentPixels=339487`、差异比例 `23.0229%`、`MAE=2.77881`、`RMSE=15.46246`、最大通道差异 `249`，较上一份时间文案证据的 `25.3231%` 有下降，结论继续为 `DIFF_REVIEW`。
+- [x] 映射 JSON 和聚合 diff 已更新；重连态行为测试、类型检查、生产构建和 `git diff --check` 将在本小点提交前重新验证。
+- [ ] 整页工作台壳层、头像、字体和图标光栅化仍存在差异；该画板不能标记像素级 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
+
 ## 110. 2026-08-28 Agent SSE Reconnecting 当前版本验收
 
 - [x] 对应 Figma 节点 `687:1803` 的 `/chat?state=sse-reconnecting` fixture 保留已显示文本，展示第 `2/5` 次重连、等待重连状态和持续失败后的刷新提示；输入框保持禁用。

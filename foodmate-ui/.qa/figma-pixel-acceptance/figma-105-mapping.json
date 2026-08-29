@@ -1427,11 +1427,11 @@
       "queryState": "state=sse-reconnecting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-time-aligned-browser-1440x1024-2026-08-30.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-warning-colors-browser-1440x1024-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; 2026-08-30 time-aligned evidence is recorded in additionalVisualEvidence; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; 2026-08-30 time and warning-color evidence is recorded in additionalVisualEvidence; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1474,6 +1474,20 @@
             "desktopNotice": "x=284,y=820,width=1132,height=66",
             "desktopCenteredText": "x=284,y=898,width=1132,height=14",
             "desktopComposer": "x=260,y=912,width=1180,height=112",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          }
+        },
+        {
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-warning-colors-browser-1440x1024-2026-08-30.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-sse-reconnecting-warning-colors-2026-08-30-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "visualChange": "依据 Figma 节点 687:1803，将重连提示带的背景、描边和文字颜色从通用告警样式收口为 Figma 的 #FFEDD5、#F97316 和 #C2410C；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "desktopNotice": "x=284,y=820,width=1132,height=66",
             "bodyOverflow": false,
             "windowControlsCandidates": 0
           }

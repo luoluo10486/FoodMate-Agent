@@ -1561,7 +1561,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
           </div>
         </div>
         <div className={styles.fixtureReconnectBottom}>
-          <div className={styles.fixtureReconnectNotice}>
+          <div className={`${styles.fixtureReconnectNotice} ${styles.fixtureReconnectNoticeFigma}`}>
             <img src="/assets/figma/agent-chat/tool-executing-loader-running.svg" alt="" />
             <div>
               <strong>连接已中断，正在重新连接...</strong>

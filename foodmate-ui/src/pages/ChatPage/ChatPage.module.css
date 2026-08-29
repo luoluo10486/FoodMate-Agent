@@ -2018,6 +2018,16 @@
   font-size: 13px;
 }
 
+.fixtureReconnectNoticeFigma {
+  border-color: #f97316;
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.fixtureReconnectNoticeFigma strong {
+  color: #c2410c;
+}
+
 .fixtureReconnectBottom .fixtureCenteredText {
   line-height: 14px;
 }
