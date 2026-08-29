@@ -277,6 +277,15 @@ class EmbeddingProvider(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class EmbeddingResult:
+    """Embedding 向量及供应商可选的用量事实。"""
+
+    vectors: list[list[float]]
+    token_count: int | None = None
+    provider_request_id: str | None = None
+
+
 def chunk_markdown(text: str, document_id: str, version: str, max_chars: int = 900) -> list[KnowledgeChunk]:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n").strip()
     if not normalized:
@@ -470,6 +479,9 @@ class OpenAICompatibleEmbedder:
         self.settings = settings
 
     def embed(self, inputs: list[str]) -> list[list[float]]:
+        return self.embed_with_usage(inputs).vectors
+
+    def embed_with_usage(self, inputs: list[str]) -> EmbeddingResult:
         if not inputs or any(not isinstance(value, str) or not value.strip() for value in inputs):
             raise RagError("RAG_EMBEDDING_INVALID_INPUT", "embedding input must not be empty")
         request = urllib.request.Request(
@@ -507,6 +519,8 @@ class OpenAICompatibleEmbedder:
             if sorted(index for index, _ in indexed) != list(range(len(inputs))):
                 raise ValueError("embedding indexes are not a complete sequence")
             vectors = [list(map(float, vector)) for _, vector in sorted(indexed)]
+            token_count = _embedding_token_count(payload.get("usage"))
+            provider_request_id = _optional_response_id(payload.get("id"))
         except (KeyError, TypeError, ValueError) as error:
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
         dimension = len(vectors[0]) if vectors else 0
@@ -521,10 +535,36 @@ class OpenAICompatibleEmbedder:
             )
         ):
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "embedding count or values are invalid")
-        return vectors
+        return EmbeddingResult(vectors, token_count, provider_request_id)
 
     def _url(self) -> str:
         return self.settings.embedding_base_url if self.settings.embedding_base_url.endswith("/embeddings") else self.settings.embedding_base_url.rstrip("/") + "/embeddings"
+
+
+def _embedding_token_count(usage: object) -> int | None:
+    """读取兼容接口的输入用量；供应商未返回 usage 时保留未知状态。"""
+    if usage is None:
+        return None
+    if not isinstance(usage, dict):
+        raise TypeError("embedding usage must be an object")
+    total = usage.get("total_tokens", usage.get("prompt_tokens"))
+    if total is None or isinstance(total, bool) or not isinstance(total, int) or total < 0:
+        raise ValueError("embedding usage token count is invalid")
+    prompt = usage.get("prompt_tokens")
+    if prompt is not None and (isinstance(prompt, bool) or not isinstance(prompt, int) or prompt < 0):
+        raise ValueError("embedding prompt token count is invalid")
+    if prompt is not None and total < prompt:
+        raise ValueError("embedding total token count is invalid")
+    return total
+
+
+def _optional_response_id(value: object) -> str | None:
+    """只接受短字符串请求标识，避免把异常响应内容带入业务事实。"""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip() or len(value) > 256:
+        raise ValueError("embedding response id is invalid")
+    return value.strip()
 
 
 class DeterministicEmbedder:

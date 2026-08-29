@@ -509,6 +509,36 @@ class OpenAICompatibleEmbedderTests(TestCase):
         self.assertEqual("Bearer test-key", request.headers["Authorization"])
 
     @patch("urllib.request.urlopen")
+    def test_reads_provider_usage_and_request_id_without_exposing_input(self, urlopen):
+        urlopen.return_value = self._Response(
+            {
+                "id": "embedding-request-1",
+                "data": [{"index": 0, "embedding": [1.0, 0.0]}],
+                "usage": {"prompt_tokens": 11, "total_tokens": 11},
+            }
+        )
+
+        result = OpenAICompatibleEmbedder(self._settings()).embed_with_usage(["first"])
+
+        self.assertEqual([[1.0, 0.0]], result.vectors)
+        self.assertEqual(11, result.token_count)
+        self.assertEqual("embedding-request-1", result.provider_request_id)
+
+    @patch("urllib.request.urlopen")
+    def test_rejects_malformed_provider_usage(self, urlopen):
+        urlopen.return_value = self._Response(
+            {
+                "data": [{"index": 0, "embedding": [1.0, 0.0]}],
+                "usage": {"prompt_tokens": "11"},
+            }
+        )
+
+        with self.assertRaisesRegex(RagError, "invalid embedding response") as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed_with_usage(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_INVALID_RESPONSE", raised.exception.code)
+
+    @patch("urllib.request.urlopen")
     def test_rejects_non_object_embedding_item(self, urlopen):
         urlopen.return_value = self._Response({"data": ["invalid"]})
 

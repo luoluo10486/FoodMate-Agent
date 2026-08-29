@@ -3,7 +3,7 @@ from types import ModuleType, SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
 from knowledge_worker import KnowledgeIndexWorker, _MemoryCompletionStore
-from knowledge_rag import DeletionResult, DeterministicEmbedder, RagError, RagSettings
+from knowledge_rag import DeletionResult, DeterministicEmbedder, EmbeddingResult, RagError, RagSettings
 
 
 class _VectorIndex:
@@ -20,6 +20,11 @@ class _VectorIndex:
     def delete_document(self, document_id, version):
         self.deleted.append((document_id, version))
         return DeletionResult("test", 1, True)
+
+
+class _UsageEmbedder:
+    def embed_with_usage(self, inputs):
+        return EmbeddingResult([[1.0, 0.0] for _ in inputs], 17, "embedding-request-1")
 
 class KnowledgeIndexWorkerTests(TestCase):
     def test_stub_indexes_one_document_once(self):
@@ -143,6 +148,47 @@ class KnowledgeIndexWorkerTests(TestCase):
         self.assertEqual("indexed", result["status"])
         self.assertEqual(1, len(index.rows))
         self.assertEqual(16, len(index.rows[0][2][0]))
+
+    def test_local_provider_usage_overrides_estimate_and_reconciles_budget(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="openai-compatible",
+            embedding_model="BAAI/bge-m3",
+            milvus_uri="http://milvus",
+            milvus_collection="knowledge",
+            batch_token_limit=100,
+            daily_token_limit=100,
+            batch_cost_limit=1,
+            daily_cost_limit=1,
+            price_per_million_tokens=2,
+            price_version="siliconflow-test-v1",
+        )
+        index = _VectorIndex()
+        published = []
+        worker = KnowledgeIndexWorker(
+            lambda _: ("guide.md", b"# Recovery\nProtein supports recovery."),
+            published.append,
+            settings,
+            completed_store=_MemoryCompletionStore(),
+            embedder=_UsageEmbedder(),
+            milvus_index=index,
+        )
+
+        result = worker.handle_index(
+            {
+                "item_id": "i-usage",
+                "document_id": "d-usage",
+                "version": "v1",
+                "mode": "local",
+            }
+        )
+
+        self.assertEqual("indexed", result["status"])
+        self.assertEqual(17, result["token_count"])
+        self.assertEqual("provider", result["usage_source"])
+        self.assertEqual("embedding-request-1", result["provider_request_id"])
+        self.assertEqual("0.00003400", result["cost_amount"])
+        self.assertEqual("17", worker.completed.get(worker._daily_key("tokens")))
 
     def test_visibility_requires_version_and_public_scope(self):
         worker = KnowledgeIndexWorker(lambda _: ("guide.md", b"Protein supports recovery."), settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))

@@ -11,7 +11,7 @@ from typing import Callable
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import urlopen
 
-from knowledge_rag import DeletionResult, MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
+from knowledge_rag import DeletionResult, EmbeddingResult, MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
 
 
 class _MemoryCompletionStore:
@@ -92,7 +92,8 @@ class KnowledgeIndexWorker:
             if not chunks:
                 raise RagError("RAG_EMPTY_DOCUMENT", "document contains no indexable chunks")
             title = payload.get("title") or filename
-            token_count = sum(_estimate_tokens(chunk.text) for chunk in chunks)
+            estimated_token_count = sum(_estimate_tokens(chunk.text) for chunk in chunks)
+            token_count = estimated_token_count
             cost_amount = _cost_amount(self.settings, token_count)
             if self.settings.batch_token_limit is not None and token_count > self.settings.batch_token_limit:
                 raise RagError("RAG_BATCH_TOKEN_LIMIT_EXCEEDED", "knowledge batch token budget exceeded")
@@ -100,10 +101,38 @@ class KnowledgeIndexWorker:
                 raise RagError("RAG_BATCH_COST_LIMIT_EXCEEDED", "knowledge batch cost budget exceeded")
             self._reserve_daily_budget(token_count, cost_amount)
             budget_reserved = True
+            embedding_result = None
             if self.stub:
                 self.stub.upsert(title, chunks)
             else:
-                self.milvus.upsert(title, chunks, self.embedder.embed([chunk.text for chunk in chunks]))
+                embedding_result = _embed_with_usage(
+                    self.embedder, [chunk.text for chunk in chunks]
+                )
+                provider_token_count = embedding_result.token_count
+                if provider_token_count is not None:
+                    provider_cost = _cost_amount(self.settings, provider_token_count)
+                    if (
+                        self.settings.batch_token_limit is not None
+                        and provider_token_count > self.settings.batch_token_limit
+                    ):
+                        raise RagError(
+                            "RAG_BATCH_TOKEN_LIMIT_EXCEEDED",
+                            "knowledge batch token budget exceeded",
+                        )
+                    if (
+                        self.settings.batch_cost_limit is not None
+                        and provider_cost > self.settings.batch_cost_limit
+                    ):
+                        raise RagError(
+                            "RAG_BATCH_COST_LIMIT_EXCEEDED",
+                            "knowledge batch cost budget exceeded",
+                        )
+                    self._reconcile_daily_budget(
+                        token_count, cost_amount, provider_token_count, provider_cost
+                    )
+                    token_count = provider_token_count
+                    cost_amount = provider_cost
+                self.milvus.upsert(title, chunks, embedding_result.vectors)
             result = {
                 "item_id": item_id,
                 "document_id": document_id,
@@ -122,10 +151,14 @@ class KnowledgeIndexWorker:
                 "mode": self.settings.mode,
                 "model_version": self.settings.embedding_model if self.embedder else "deterministic-stub",
                 "token_count": token_count,
+                "estimated_token_count": estimated_token_count,
+                "usage_source": "provider" if embedding_result and embedding_result.token_count is not None else "estimate",
                 "cost_amount": str(cost_amount),
                 "price_version": self.settings.price_version or None,
                 "attempt": attempt,
             }
+            if embedding_result and embedding_result.provider_request_id:
+                result["provider_request_id"] = embedding_result.provider_request_id
             self._mark_completed(key, result)
         except RagError as error:
             if "budget_reserved" in locals() and budget_reserved:
@@ -306,6 +339,50 @@ class KnowledgeIndexWorker:
         self._increment(self._daily_key("tokens"), -token_count)
         self._increment(self._daily_key("cost"), -int(cost_amount * Decimal("100000000")))
 
+    def _reconcile_daily_budget(
+        self,
+        reserved_token_count: int,
+        reserved_cost_amount: Decimal,
+        actual_token_count: int,
+        actual_cost_amount: Decimal,
+    ) -> None:
+        """将供应商 usage 与预估预留对齐，并在超限时完整回滚调整。"""
+        token_delta = actual_token_count - reserved_token_count
+        cost_delta = int(
+            (actual_cost_amount - reserved_cost_amount) * Decimal("100000000")
+        )
+        token_adjusted = False
+        cost_adjusted = False
+        try:
+            if token_delta:
+                token_total = self._increment(self._daily_key("tokens"), token_delta)
+                token_adjusted = True
+                if (
+                    self.settings.daily_token_limit is not None
+                    and token_total > self.settings.daily_token_limit
+                ):
+                    raise RagError(
+                        "RAG_DAILY_TOKEN_LIMIT_EXCEEDED",
+                        "daily knowledge token budget exceeded",
+                    )
+            if cost_delta:
+                cost_total = self._increment(self._daily_key("cost"), cost_delta)
+                cost_adjusted = True
+                if (
+                    self.settings.daily_cost_limit is not None
+                    and cost_total > int(self.settings.daily_cost_limit * Decimal("100000000"))
+                ):
+                    raise RagError(
+                        "RAG_DAILY_COST_LIMIT_EXCEEDED",
+                        "daily knowledge cost budget exceeded",
+                    )
+        except RagError:
+            if cost_adjusted:
+                self._increment(self._daily_key("cost"), -cost_delta)
+            if token_adjusted:
+                self._increment(self._daily_key("tokens"), -token_delta)
+            raise
+
     def _increment(self, key: str, amount: int) -> int:
         try:
             result = int(self.completed.incrby(key, amount))
@@ -352,6 +429,15 @@ def _cost_amount(settings: RagSettings, token_count: int) -> Decimal:
     if settings.price_per_million_tokens is None:
         return Decimal("0")
     return (Decimal(token_count) * settings.price_per_million_tokens / Decimal(1_000_000)).quantize(Decimal("0.00000001"))
+
+
+def _embed_with_usage(embedder, inputs: list[str]) -> EmbeddingResult:
+    """兼容旧 Embedder，同时优先使用供应商 usage 事实。"""
+    method = getattr(embedder, "embed_with_usage", None)
+    result = method(inputs) if callable(method) else EmbeddingResult(embedder.embed(inputs))
+    if not isinstance(result, EmbeddingResult):
+        raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "embedding provider returned an invalid result")
+    return result
 
 
 def start_rocketmq_worker() -> tuple[object, object, object]:
