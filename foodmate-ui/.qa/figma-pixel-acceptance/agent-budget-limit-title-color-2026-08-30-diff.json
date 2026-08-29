@@ -1,0 +1,28 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 283561,
+  "differentRatio": 0.19230211046006945,
+  "meanAbsoluteError": 2.5254058837890625,
+  "rmse": 15.468651324127611,
+  "maxChannelDelta": 237,
+  "expected": "recaptured-figma/agent-budget-limit-current-2026-08-29.png",
+  "actual": "recaptured/agent-budget-limit-title-color-browser-1440x1024-2026-08-30-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.0000000149011612,
+  "dprPass": true,
+  "geometry": {
+    "budgetCard": "x=340,y=314,width=286,height=289",
+    "budgetTitle": "color=rgb(199, 150, 84),lineHeight=17px",
+    "choicePanel": "x=359.4,y=431.8,width=245.8,height=60",
+    "budgetMeter": "x=359.4,y=507.8,width=245.8,height=27",
+    "primaryButton": "x=359.4,y=550.8,width=150,height=32",
+    "secondaryButton": "x=521.4,y=550.8,width=84,height=32",
+    "bodyOverflow": false,
+    "fonts": "loaded",
+    "windowControlsCandidates": 0
+  },
+  "conclusion": "DIFF_REVIEW"
+}

@@ -1366,7 +1366,7 @@
   color: #c79654;
 }
 
-.fixtureBudgetTitle h2 {
+.fixtureAssistantRow .fixtureBudgetCard .fixtureBudgetTitleText {
   margin: 0;
   color: #c79654;
   font-size: 14px;

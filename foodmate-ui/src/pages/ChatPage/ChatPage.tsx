@@ -1415,7 +1415,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
             <Card className={`${styles.fixtureCard} ${styles.fixtureBudgetCard}`}>
               <div className={styles.fixtureBudgetTitle}>
                 <AlertTriangle aria-hidden="true" />
-                <h2>已达到预算上限</h2>
+                <h2 className={styles.fixtureBudgetTitleText}>已达到预算上限</h2>
               </div>
               <p className={styles.fixtureBudgetDescription}>
                 本次会话已使用 50,000 tokens（单次会话预算上限）。为了保证资源分配合理及避免异常资费产生，你可以：

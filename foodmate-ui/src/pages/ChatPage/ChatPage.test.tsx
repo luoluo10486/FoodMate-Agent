@@ -11,6 +11,7 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { describe, it, expect } from 'vitest';
 import { ChatPage } from './ChatPage';
+import styles from './ChatPage.module.css';
 
 function renderChatState(state: string) {
   render(
@@ -234,7 +235,7 @@ describe('ChatPage Agent remaining states', () => {
 
   it('renders budget limit choices and keeps the current Run action explicit', () => {
     renderState('budget-limit');
-    expect(screen.getByRole('heading', { name: '已达到预算上限' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '已达到预算上限' })).toHaveClass(styles.fixtureBudgetTitleText);
     expect(screen.getByText(/我已在后台调用历史数据解析服务/)).toBeInTheDocument();
     expect(screen.getByText('Token 用量 (100%)')).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: '预算用量 100%' })).toHaveAttribute('aria-valuenow', '100');
