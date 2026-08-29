@@ -1340,3 +1340,14 @@
 | Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`154 passed、2 skipped、4 subtests passed`；通过 `PYTHONDONTWRITEBYTECODE=1` 避免重新生成字节码。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；真实云 smoke 等待轮换后的新凭据。 |
 | 结论 | Python 缓存清理、安全扫描和业务测试门禁取得本地证据；真实云调用、生产强化及暂缓的性能/故障验证仍不能标记完成。 |
+
+## D71 Retention 与营养目录 Java 业务门禁复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；Java 21；未连接生产或现有业务数据库，未执行不可逆清理。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-application,foodmate-infra,foodmate-api -am test -Dtest=DataRetentionDeliveryServiceImplTest,DataRetentionResultMessageProcessorTest,DataRetentionTaskPublisherTest,DataRetentionDatabasePurgeAdapterTest,FlywayV27MigrationScriptTest,NutritionCommonV5SeedScriptTest,NutritionSeedScriptTest,AdminRetentionControllerTest -Dsurefire.failIfNoSpecifiedTests=false`。 |
+| Java 结果 | Application `14/14`、Infrastructure `18/18`、API `4/4`，无失败。覆盖 retention 任务结果、对象/向量/数据库清理门禁、V27 脚本、营养 seed 和管理 API。 |
+| 规范结果 | `-Palibaba-code-style -DskipTests verify` 通过；受影响模块 Spotless clean，Shared/Application/Infrastructure/API Checkstyle 均为 `0 violations`。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；用户已有未提交改动未纳入本次提交。 |
+| 结论 | 当前 retention、营养 seed 与管理 API 的业务门禁和 Java 规范检查通过；真实硬删除、备份恢复及生产强化仍不能标记完成。 |
