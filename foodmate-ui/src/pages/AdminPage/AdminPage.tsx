@@ -210,7 +210,11 @@ function ToolCallsFixture() {
         </p>
       </section>
 
-      <aside className={styles.governanceNotes} aria-label="Tool Calls 筛选与详情">
+      <aside
+        className={`${styles.governanceNotes} ${styles.toolCallsNotes}`}
+        aria-label="Tool Calls 筛选与详情"
+        data-figma-role="admin-tool-calls-detail-fields"
+      >
         <h2>Tool Calls · 筛选与详情</h2>
         <p>筛选：时间范围 · 状态 · 工具名 · 风险等级 · 仅看失败 · 重试次数</p>
         <p>详情字段：call_id · run_id · 创建时间 · 完成时间 · 耗时 · 状态 · 重试次数 · 错误码</p>

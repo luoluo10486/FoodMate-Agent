@@ -5018,6 +5018,10 @@
   background: #fcfcfa;
 }
 
+.toolCallsNotes {
+  transform: translateY(17.6px);
+}
+
 .sqlAuditNotes {
   transform: translateY(17.6px);
 }

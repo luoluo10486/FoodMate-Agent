@@ -898,10 +898,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 311840,
-      "differentRatio": 0.2114800347222222,
-      "meanAbsoluteError": 2.85604248046875,
-      "rmse": 17.037765601116902,
+      "differentPixels": 286203,
+      "differentRatio": 0.19409383138020833,
+      "meanAbsoluteError": 2.4518747965494794,
+      "rmse": 15.818763352221882,
       "maxChannelDelta": 230
     },
     "admin-sql-audit": {

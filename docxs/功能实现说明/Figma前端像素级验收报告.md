@@ -1307,3 +1307,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 页面展示 `50,000 tokens`、`100%`、预计费用、追加预算和结束会话；fixture 追加动作继续明确当前 Run 语义，真实模式继续调用既有预算追加和取消接口；前端左上角红黄绿窗口装饰点数量为 `0`。
 - [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=280814`、差异比例 `19.0439%`、`MAE=2.626395`、`RMSE=15.964083`、最大通道差异 `237`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/chat-agent-budget-limit.diff.json`，汇总锚点为 `figma-105-diff-results.json#agent-budget-limit`。
 - [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；周边工作台、头像、图标和字体光栅化仍存在可见差异，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 136. 2026-08-29 Admin Tool Calls 说明面板位置对齐
+
+- [x] 依据实时 Figma 节点 `797:359`、`986:11`，将 `/admin?state=tool-calls` 的说明面板从浏览器 `y=656.4px` 对齐到 Figma 目标 `y=674px`，面板保持 `1132×250px`；仅修改前端，未修改 Figma。
+- [x] 浏览器实测 `1440×1024`、DPR `1.0000000149011612`、字体已加载、页面无横向或纵向溢出；工具调用表保持 `1132×87px`，payload 卡保持 `1132×321.4px`，左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] 独立证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-tool-calls-detail-spacing-browser-2026-08-29-rgba.png` 和 `admin-tool-calls-detail-spacing-2026-08-29-diff.json`；同尺寸 PNG diff 为 `19.4094% / MAE 2.451875 / RMSE 15.818763 / maxChannelDelta 230`，映射和聚合结果已更新。
+- [x] Admin 定向测试 `8/8`、`npm run typecheck` 和 `git diff --check` 通过；目标文件 Prettier 检查仍受文件原有格式问题影响，未扩大格式化范围。
+- [ ] 该画板及 105 张画板仍为 `DIFF_REVIEW`；侧栏身份、图标、字体和其他整页视觉差异仍需继续收口，iconfont 实体登记继续为 `BLOCKED`。

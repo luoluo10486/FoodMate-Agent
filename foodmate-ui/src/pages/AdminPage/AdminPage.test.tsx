@@ -126,6 +126,10 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('Arguments & System Schema (call_829c)')).toBeInTheDocument();
     expect(screen.getByText('策略：通过')).toBeInTheDocument();
     expect(document.body.textContent).toContain('SENSITIVE_USER_CREDENTIALS_MASKED');
+    expect(screen.getByRole('complementary', { name: 'Tool Calls 筛选与详情' })).toHaveAttribute(
+      'data-figma-role',
+      'admin-tool-calls-detail-fields',
+    );
 
     const search = screen.getByRole('textbox', { name: '搜索运行 ID' });
     await user.type(search, 'does-not-exist');

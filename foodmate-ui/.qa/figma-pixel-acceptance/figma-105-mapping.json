@@ -3780,7 +3780,7 @@
       "queryState": "state=tool-calls",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-tool-calls-figma-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-table-height-browser-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-detail-spacing-browser-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-tool-calls",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3810,7 +3810,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "依据实时 Figma 节点 797:359，工具调用表已收口为 1132x87px，表头 38px、数据行 49px；浏览器字体、视口、几何和文本检查通过，左上角红黄绿窗口装饰未渲染。侧栏身份、图标光栅化及整页其他组合差异仍存在，保留 DIFF_REVIEW。"
+        "conclusion": "依据实时 Figma 节点 797:359，工具调用表已收口为 1132x87px，表头 38px、数据行 49px；说明面板已由浏览器 y=656.4px 对齐到 Figma y=674px。浏览器字体、视口、几何和文本检查通过，左上角红黄绿窗口装饰未渲染。侧栏身份、图标光栅化及整页其他组合差异仍存在，保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
@@ -3833,6 +3833,33 @@
             "windowControlsCandidates": 0
           },
           "visualChange": "按 Figma 节点 797:453-462，将工具调用表数据行从 62px 收口为 49px，并将外描边改为不占布局的 inset 描边；仅修改前端，未修改 Figma。",
+          "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "capturedAt": "2026-08-29",
+          "referencePng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-tool-calls-figma-current.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-detail-spacing-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-tool-calls-detail-spacing-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "dprPass": true,
+          "geometryEvidence": {
+            "detailPanel": "1132x250 at y=674",
+            "table": "1132x87 at y=200",
+            "payloadCard": "1132x321.4 at y=311",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "fonts": "loaded",
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "依据实时 Figma 节点 986:11，将 Tool Calls 说明面板从浏览器 y=656.4px 对齐到目标 y=674px；仅修改前端，未修改 Figma。",
+          "diff": {
+            "differentPixels": 286203,
+            "differentRatio": 0.19409383138020833,
+            "meanAbsoluteError": 2.4518747965494794,
+            "rmse": 15.818763352221882,
+            "maxChannelDelta": 230
+          },
           "conclusion": "DIFF_REVIEW"
         }
       ]
