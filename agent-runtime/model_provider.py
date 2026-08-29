@@ -8,6 +8,7 @@ endpoint, key, or price in source code.
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 import urllib.error
@@ -17,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Callable
+from urllib.parse import urlsplit
 
 
 RETRYABLE_ERROR_CODES = frozenset({"MODEL_TIMEOUT", "MODEL_RATE_LIMIT", "MODEL_PROVIDER_UNAVAILABLE"})
@@ -133,13 +135,30 @@ class DeterministicModelProvider(ModelProvider):
 class OpenAICompatibleModelProvider(ModelProvider):
     """多个兼容云端点共用的协议适配器，端点与密钥只从环境变量读取。"""
 
-    def __init__(self, provider_code: str, base_url: str, api_key: str, timeout_seconds: float = 30):
+    def __init__(
+        self,
+        provider_code: str,
+        base_url: str,
+        api_key: str,
+        timeout_seconds: float | str = 30,
+    ):
         if not base_url or not api_key:
             raise ModelProviderError("MODEL_PROVIDER_UNAVAILABLE", "cloud provider is not configured")
+        endpoint = urlsplit(base_url.strip())
+        if (
+            endpoint.scheme not in {"http", "https"}
+            or not endpoint.hostname
+            or endpoint.username is not None
+            or endpoint.password is not None
+        ):
+            raise ModelProviderError(
+                "MODEL_PROVIDER_URL_INVALID",
+                "cloud provider endpoint must be an HTTP or HTTPS URL without credentials",
+            )
         self.provider_code = provider_code
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url.strip().rstrip("/")
         self.api_key = api_key
-        self.timeout_seconds = max(0.1, float(timeout_seconds))
+        self.timeout_seconds = _positive_timeout(timeout_seconds)
 
     def complete(self, model_name: str, request: ModelRequest) -> ModelResponse:
         body = {
@@ -168,21 +187,29 @@ class OpenAICompatibleModelProvider(ModelProvider):
             raise ModelProviderError("MODEL_PROVIDER_REJECTED", "provider rejected request") from error
         except (urllib.error.URLError, TimeoutError) as error:
             raise ModelProviderError("MODEL_TIMEOUT", "provider request timed out", True) from error
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ModelProviderError(
+                "MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid"
+            ) from error
         try:
+            if not isinstance(payload, dict):
+                raise TypeError("provider response must be an object")
             usage = payload.get("usage") or {}
-            content = str(payload["choices"][0]["message"]["content"])
+            content = payload["choices"][0]["message"]["content"]
+            if not isinstance(content, str):
+                raise TypeError("provider content must be text")
             input_tokens = int(usage.get("prompt_tokens", 0))
             output_tokens = int(usage.get("completion_tokens", 0))
             prompt_details = usage.get("prompt_tokens_details") or {}
             cached_input_tokens = int(prompt_details.get("cached_tokens", 0))
             return ModelResponse(content, input_tokens, output_tokens, payload.get("id"), cached_input_tokens)
-        except (KeyError, IndexError, TypeError, ValueError) as error:
+        except (AttributeError, KeyError, IndexError, TypeError, ValueError) as error:
             raise ModelProviderError("MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid") from error
 
     def _request_timeout(self, request: ModelRequest) -> float:
         """Return the smaller of provider, node and Run-level deadlines."""
         configured = request.timeout_seconds
-        timeout = self.timeout_seconds if configured is None else max(0.1, float(configured))
+        timeout = self.timeout_seconds if configured is None else _positive_timeout(configured)
         if not request.deadline_at:
             return timeout
         try:
@@ -367,7 +394,7 @@ class ModelRouter:
             provider_code,
             self.environment.get(prefix + "BASE_URL", ""),
             self.environment.get(prefix + "API_KEY", ""),
-            float(self.environment.get(prefix + "TIMEOUT_SECONDS", "30")),
+            self.environment.get(prefix + "TIMEOUT_SECONDS", "30"),
         )
 
     def _attempt(
@@ -504,3 +531,17 @@ def _decimal_or_none(value: object) -> Decimal | None:
     except (InvalidOperation, ValueError):
         return None
     return parsed if parsed.is_finite() and parsed >= 0 else None
+
+
+def _positive_timeout(value: object) -> float:
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError) as error:
+        raise ModelProviderError(
+            "MODEL_PROVIDER_TIMEOUT_INVALID", "provider timeout must be a positive number"
+        ) from error
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ModelProviderError(
+            "MODEL_PROVIDER_TIMEOUT_INVALID", "provider timeout must be a positive number"
+        )
+    return max(0.1, timeout)
