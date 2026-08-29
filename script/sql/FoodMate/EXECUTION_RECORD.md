@@ -1508,3 +1508,16 @@
 | Python 缓存 | 当前源码范围 `.pyc=0`、`__pycache__=0`；`agent-runtime\\.venv` 内第三方缓存为 `419` 个 `.pyc`、`62` 个目录，Git 已忽略；本轮删除操作被执行环境策略拒绝，未删除 `.venv` 内容。 |
 | 外部与暂缓边界 | 未读取或使用聊天中公开的旧 API Key，当前进程未配置轮换后的 Chat/Embedding 密钥，因此未调用 SiliconFlow；未执行性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复、生产监控部署、生产发布回滚或现有数据库不可逆清理。 |
 | 结论 | 云 smoke 已具备可审计的脱敏输出和安全入口；本地业务、隔离 M3、Java 规范及安全门禁有新鲜证据。真实云调用与生产强化仍需轮换凭据及对应外部环境证据，不能标记为完成。 |
+
+## D85 本地业务门禁与 Python 缓存边界复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/runtime-observability`；Python 使用 `agent-runtime\\.venv`；Java 21。 |
+| Python 业务门禁 | 在 `agent-runtime` 执行 `PYTHONDONTWRITEBYTECODE=1 .\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider`：`168 passed、2 skipped、6 subtests passed`。 |
+| Java 规范门禁 | `mvnw.cmd -B -ntp -Palibaba-code-style -DskipTests verify`：`BUILD SUCCESS`；Spotless 通过，Shared/Application/Infrastructure/API/Bootstrap Checkstyle 均为 `0 violations`。 |
+| 安全门禁 | `script\\security\\security-scan.ps1 -RunPythonAudit`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`、`security_scan_status=passed`。 |
+| Python 缓存 | 当前 `.pyc=419`、`__pycache__=62`，全部位于 `agent-runtime\\.venv` 第三方依赖；源码范围和 Git 跟踪均为 `0`。本轮删除操作受执行环境策略拒绝，未删除虚拟环境内容。 |
+| 外部服务边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow；真实 Chat 和 `BAAI/bge-m3`/`Qwen/Qwen3-Embedding-0.6B` smoke 仍需供应商控制台轮换后的新凭据。 |
+| 工作树与数据边界 | 未修改用户已有 UI/QA 改动；未执行迁移、truncate、业务数据删除、性能压测、组件重启、ACK/重复消息故障注入或生产操作。 |
+| 结论 | 当前业务测试、Java 规范和安全扫描门禁保持通过；虚拟环境 `.pyc` 属于可再生依赖缓存，不进入 Git。真实云联调及生产强化仍不能标记完成。 |
