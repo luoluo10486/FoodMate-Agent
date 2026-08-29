@@ -1294,7 +1294,7 @@
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-2026-08-28.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-horizontal-boundary-browser-1440x1024-2026-08-30-rgba.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
@@ -1325,8 +1325,16 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture contains the safety warning, bounded data scope, personal-condition limitation and enabled follow-up entry. The frontend retains the Figma warning hierarchy and does not render the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The current browser capture contains the safety warning, bounded data scope, personal-condition limitation and enabled follow-up entry. The safety content container is aligned to 612px while the warning and response regions remain 560px wide. The frontend retains the Figma warning hierarchy and does not render the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+      },
+      "contentGeometry": {
+        "desktopSafetyContainer": "x=292,width=612",
+        "desktopWarningBanner": "x=344,width=560",
+        "desktopResponse": "x=344,width=560",
+        "mobileContent": "x=64,width=295.2 at 390x844",
+        "bodyOverflow": false,
+        "windowControlsCandidates": 0
       }
     },
     {

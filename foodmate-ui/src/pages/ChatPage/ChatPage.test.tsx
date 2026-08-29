@@ -272,6 +272,7 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText(/\*\*清蒸鳕鱼配西兰花\*\*/)).toBeInTheDocument();
     expect(screen.getByText(/未结合您的个人高血压排除条件/)).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('由于部分工具不可用');
+    expect(document.querySelector('[class*="fixtureSafetyBody"]')).toHaveClass(styles.fixtureSafetyBodyAligned);
     expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeEnabled();
   });
 

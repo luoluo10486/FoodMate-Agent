@@ -1508,7 +1508,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
               <span className={styles.fixtureSafetyLabel}>安全降级</span>
             </div>
-            <div className={styles.fixtureSafetyBody}>
+            <div className={`${styles.fixtureSafetyBody} ${styles.fixtureSafetyBodyAligned}`}>
               <Alert variant="warning" className={styles.fixtureSafetyAlert}>
                 <AlertTitle>⚠️ 安全降级提示</AlertTitle>
                 <AlertDescription>

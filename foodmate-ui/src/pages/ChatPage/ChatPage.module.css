@@ -1743,7 +1743,7 @@
 
 .fixtureSafetyBlock {
   display: flex;
-  width: min(608px, 100%);
+  width: min(612px, 100%);
   flex-direction: column;
   gap: 6px;
 }
@@ -1810,6 +1810,10 @@
   width: min(560px, calc(100% - 48px));
   flex-direction: column;
   gap: 6px;
+}
+
+.fixtureSafetyBodyAligned {
+  margin-left: 4px;
 }
 
 .fixtureSafetyResponse {
@@ -2129,6 +2133,10 @@
 
   .fixtureSafetyBody {
     width: calc(100% - 48px);
+  }
+
+  .fixtureSafetyBodyAligned {
+    margin-left: 0;
   }
 }
 .fixtureAuxMessage {
