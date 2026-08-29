@@ -1357,3 +1357,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 实时 Figma PNG 与浏览器 RGBA PNG 尺寸均为 `1440×1024`；`png-diff.mjs` 结果为 `differentPixels=496400`、差异比例 `33.6643%`、`MAE=3.932245`、`RMSE=19.178615`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
 - [x] Admin 定向测试 `9/9` 通过；未将整页仍存在的字体、图标、侧栏身份、表格和其它组合差异误标为像素级 `PASS`。
 - [ ] 本小点只完成分析卡局部几何收口，不代表 105 张画板像素级 `PASS`、shadcn 全页面迁移或 iconfont 实体资源登记完成；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
+## 145. 2026-08-29 Admin Overview 主表列轨道收口
+
+- [x] 依据实时 Figma 节点 `995:1053`、`995:1085`，确认主表目标为 `1116×396px`，表头 `48px`、六条数据行各 `58px`；前端 `AdminPage.module.css` 已将表头和数据行列轨道统一为 `196px 96px 116px 116px 116px 156px 84px 84px 64px 88px`，未修改 Figma 设计稿。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149011612`、字体加载完成条件下复核，表格为 `1116×396px at x=292,y=346`，页面无横向或纵向溢出，前端左上角红、黄、绿窗口装饰候选数量为 `0`，业务状态圆点保留。
+- [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-table-columns-browser-2026-08-29.jpg`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-table-columns-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-overview-table-columns-2026-08-29-diff.json`；实时 Figma PNG 与浏览器 PNG 均为 `1440×1024`，`png-diff.mjs` 结果为 `differentPixels=495686`、差异比例 `33.6159%`、`MAE=4.139174`、`RMSE=19.694850`、最大通道差异 `230`。
+- [x] `figma-105-mapping.json` 的 Admin Overview 主证据已指向本次最新浏览器 PNG；分析卡高度和顶栏内边距证据继续保留在 `additionalVisualEvidence`，105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成主表列轨道局部几何收口，不代表 Admin Overview 或 105 张画板达到像素级 `PASS`；字体、图标、侧栏身份和其它整页组合差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

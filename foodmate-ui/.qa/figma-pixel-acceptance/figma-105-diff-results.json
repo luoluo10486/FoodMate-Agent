@@ -249,11 +249,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 446115,
-      "differentRatio": 0.3025410970052083,
-      "meanAbsoluteError": 3.726800706651476,
-      "rmse": 19.13957802993315,
-      "maxChannelDelta": 250
+      "differentPixels": 275551,
+      "differentRatio": 0.18686998155381945,
+      "meanAbsoluteError": 2.020593939887153,
+      "rmse": 13.143764127049653,
+      "maxChannelDelta": 232
     },
     "agent-budget-limit": {
       "status": "COMPARED",
@@ -282,11 +282,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 360281,
-      "differentRatio": 0.24433119032118056,
-      "meanAbsoluteError": 3.03220943874783,
-      "rmse": 16.251147550835334,
-      "maxChannelDelta": 253
+      "differentPixels": 296890,
+      "differentRatio": 0.20134141710069445,
+      "meanAbsoluteError": 2.2419528537326388,
+      "rmse": 14.730809108556462,
+      "maxChannelDelta": 245
     },
     "agent-safety-degraded": {
       "status": "COMPARED",
@@ -854,11 +854,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 325786,
-      "differentRatio": 0.2209377712673611,
-      "meanAbsoluteError": 2.3052444458007812,
-      "rmse": 13.800218777603964,
-      "maxChannelDelta": 244
+      "differentPixels": 378158,
+      "differentRatio": 0.2564548068576389,
+      "meanAbsoluteError": 3.355875990125868,
+      "rmse": 16.78874732703369,
+      "maxChannelDelta": 255
     },
     "user-knowledge-search-failed": {
       "status": "COMPARED",
@@ -931,11 +931,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 330836,
-      "differentRatio": 0.2243625217013889,
-      "meanAbsoluteError": 3.2769956800672744,
-      "rmse": 17.607226484383762,
-      "maxChannelDelta": 233
+      "differentPixels": 432415,
+      "differentRatio": 0.2932501898871528,
+      "meanAbsoluteError": 3.8740731133355033,
+      "rmse": 19.56556470411796,
+      "maxChannelDelta": 247
     },
     "agent-chat-session-actions": {
       "status": "COMPARED",
@@ -1041,10 +1041,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 496400,
-      "differentRatio": 0.3366427951388889,
-      "meanAbsoluteError": 3.932244873046875,
-      "rmse": 19.17861461697122,
+      "differentPixels": 495686,
+      "differentRatio": 0.33615858289930556,
+      "meanAbsoluteError": 4.139173889160157,
+      "rmse": 19.69484975398057,
       "maxChannelDelta": 230
     },
     "admin-model-usage": {

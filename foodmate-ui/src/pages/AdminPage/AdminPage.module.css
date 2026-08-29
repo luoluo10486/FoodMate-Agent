@@ -1169,7 +1169,7 @@
 
 .overviewTable :global(th:nth-child(1)),
 .overviewTable :global(td:nth-child(1)) {
-  width: 164px;
+  width: 196px;
 }
 .overviewTable :global(th:nth-child(2)),
 .overviewTable :global(td:nth-child(2)) {
@@ -1177,19 +1177,19 @@
 }
 .overviewTable :global(th:nth-child(3)),
 .overviewTable :global(td:nth-child(3)) {
-  width: 108px;
+  width: 116px;
 }
 .overviewTable :global(th:nth-child(4)),
 .overviewTable :global(td:nth-child(4)) {
-  width: 108px;
+  width: 116px;
 }
 .overviewTable :global(th:nth-child(5)),
 .overviewTable :global(td:nth-child(5)) {
-  width: 108px;
+  width: 116px;
 }
 .overviewTable :global(th:nth-child(6)),
 .overviewTable :global(td:nth-child(6)) {
-  width: 124px;
+  width: 156px;
 }
 .overviewTable :global(th:nth-child(7)),
 .overviewTable :global(td:nth-child(7)) {
@@ -1201,11 +1201,11 @@
 }
 .overviewTable :global(th:nth-child(9)),
 .overviewTable :global(td:nth-child(9)) {
-  width: 112px;
+  width: 64px;
 }
 .overviewTable :global(th:nth-child(10)),
 .overviewTable :global(td:nth-child(10)) {
-  width: 112px;
+  width: 88px;
 }
 
 .overviewTable :global(th:last-child),

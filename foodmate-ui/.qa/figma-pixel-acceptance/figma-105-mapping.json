@@ -4637,7 +4637,7 @@
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
       "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-height-browser-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-table-columns-browser-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4667,7 +4667,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "Admin overview content is substantially present; the desktop topbar uses the Figma 32px horizontal inset and the analytics-card inner height/cropping now follows the live Figma node. Table dimensions, typography, icon treatment, sidebar identity, and other composition differences remain. Retain DIFF_REVIEW."
+        "conclusion": "Admin overview content is substantially present; the desktop topbar, analytics-card inner height/cropping, and main table column tracks now follow the checked Figma nodes. Typography, icon treatment, sidebar identity, and other composition differences remain. Retain DIFF_REVIEW."
       },
       "additionalVisualEvidence": [
         {
@@ -4707,6 +4707,26 @@
             "windowControlsCandidates": 0
           },
           "visualChange": "依据实时 Figma 节点 1005:2、1005:3、1005:7、1005:11，将 Admin Overview 底部分析卡内卡高度从 148px 调整为 180px，并为外层分析卡补齐 hidden 裁切；仅修改前端，未修改 Figma，业务状态圆点保留。",
+          "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "capturedAt": "2026-08-29",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-table-columns-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-overview-table-columns-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "geometryEvidence": {
+            "table": "1116x396 at x=292,y=346",
+            "headerHeight": "48px",
+            "dataRows": "6 x 58px",
+            "gridTemplateColumns": "196px 96px 116px 116px 116px 156px 84px 84px 64px 88px",
+            "fonts": "loaded",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "依据实时 Figma 节点 995:1053、995:1085，将 Admin Overview 主表表头与数据行列轨道统一为 196/96/116/116/116/156/84/84/64/88px；仅修改前端，未修改 Figma，业务状态圆点保留。",
           "conclusion": "DIFF_REVIEW"
         }
       ]
