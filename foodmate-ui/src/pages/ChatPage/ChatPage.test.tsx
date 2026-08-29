@@ -423,6 +423,7 @@ describe('ChatPage Figma navigation fixtures', () => {
     expect(screen.queryByText('查询扩展 (Query Expansion)')).not.toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '消息操作' })).toBeInTheDocument();
+    expect(screen.getByText(/右侧面板：运行 · 工具 · 引用/)).toBeInTheDocument();
   });
 
   it.each(['nav-loading', 'nav-hover-preview', 'pagination'])(

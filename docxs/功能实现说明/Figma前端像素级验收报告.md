@@ -1315,3 +1315,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 独立证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-tool-calls-detail-spacing-browser-2026-08-29-rgba.png` 和 `admin-tool-calls-detail-spacing-2026-08-29-diff.json`；同尺寸 PNG diff 为 `19.4094% / MAE 2.451875 / RMSE 15.818763 / maxChannelDelta 230`，映射和聚合结果已更新。
 - [x] Admin 定向测试 `8/8`、`npm run typecheck` 和 `git diff --check` 通过；目标文件 Prettier 检查仍受文件原有格式问题影响，未扩大格式化范围。
 - [ ] 该画板及 105 张画板仍为 `DIFF_REVIEW`；侧栏身份、图标、字体和其他整页视觉差异仍需继续收口，iconfont 实体登记继续为 `BLOCKED`。
+
+## 140. 2026-08-29 Agent Chat 消息操作说明补充证据
+
+- [x] 重新核对 Figma 节点 `640:428` 与前端 Chat fixture：主 105 画板入口继续是 `/chat?state=figma-v2`；本次消息操作面板局部证据使用 `/chat?state=redesign-default`，两者没有混用。
+- [x] 前端消息操作面板从三行补齐为四行，新增右侧运行、工具、引用以及原始 JSON 默认折叠和敏感参数隐藏说明；定向测试已增加对应断言。
+- [x] Figma 参考图 `agent-chat-v2-figma-live-2026-08-29.png` 与浏览器图 `agent-chat-v2-message-actions-browser-2026-08-29.png` 均为 `1440×1024`；`png-diff.mjs` 结果为 `differentPixels=347426`、差异比例 `23.5613%`、`MAE=2.557491`、`RMSE=14.877245`、最大通道差异 `234`，独立结果为 `agent-chat-v2-message-actions-2026-08-29-diff.json`，保持 `DIFF_REVIEW`。
+- [x] 前端左上角红、黄、绿窗口装饰候选数量为 `0`；该项只核验前端，不修改 Figma，业务状态圆点继续保留。
+- [ ] 本补充证据不能关闭 `agent-chat-v2` 或 105 张画板的像素级 `PASS`；主映射仍以 `state=figma-v2` 为准，整体汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

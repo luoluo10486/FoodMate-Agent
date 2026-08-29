@@ -1,0 +1,25 @@
+{
+  "status": "DIFF_REVIEW",
+  "comparison": "COMPARED",
+  "figmaNodeId": "640:428",
+  "artboardName": "agent-chat-v2",
+  "frontendRoute": "/chat",
+  "queryState": "state=redesign-default",
+  "browserViewport": "1440x1024",
+  "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-figma-live-2026-08-29.png",
+  "browserPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-message-actions-browser-2026-08-29.png",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 347426,
+  "differentRatio": 0.23561333550347222,
+  "meanAbsoluteError": 2.5574908786349826,
+  "rmse": 14.877244562367737,
+  "maxChannelDelta": 234,
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: the message-actions panel now contains the four Figma-aligned guidance rows; shell identity, avatar treatment, typography, and icon rasterization still differ, so this supplemental evidence remains DIFF_REVIEW",
+  "windowControls": {
+    "frontendCandidateCount": 0,
+    "figmaReferencePreserved": true,
+    "businessStatusDotsPreserved": true
+  }
+}

@@ -119,7 +119,21 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-27",
         "conclusion": "The refreshed browser fixture preserves the Figma assistant-body font, removes the extra Trace active-step border, and restores the 12px top blank area reserved by the Figma window-control region without rendering the three dots. Avatar assets, icon rasterization, and remaining browser rendering differences are still visible; retain DIFF_REVIEW."
-      }
+      },
+      "supplementalEvidence": [
+        {
+          "label": "消息操作面板局部验收",
+          "figmaNodeId": "640:428",
+          "frontendRoute": "/chat",
+          "queryState": "state=redesign-default",
+          "browserViewport": "1440x1024",
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-figma-live-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-message-actions-browser-2026-08-29.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-chat-v2-message-actions-2026-08-29-diff.json",
+          "status": "DIFF_REVIEW",
+          "note": "同一 Figma 节点的局部补充证据；query 状态不同于主映射的 state=figma-v2，不替换主画板映射。"
+        }
+      ]
     },
     {
       "figmaNodeId": "640:588",

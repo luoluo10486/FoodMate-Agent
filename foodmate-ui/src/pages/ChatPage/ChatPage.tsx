@@ -1206,8 +1206,9 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
               <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
               <p className={styles.actionGreen}>
-                工具失败时显示重试；运行中发送按钮切换为停止；写入确认 / 预算追加仍需确认后继续。
+                工具失败时显示重试；运行中发送按钮切换停止；写入确认 / 预算追加仍需确认后继续。
               </p>
+              <p>右侧面板：运行 · 工具 · 引用 原始 JSON 默认折叠并隐藏敏感参数。</p>
             </section>
           ) : null}
         </>
