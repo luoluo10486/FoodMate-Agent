@@ -1445,52 +1445,74 @@
 }
 
 .fixtureFailureCard {
-  gap: 11px;
-  border-color: #ff6b68;
-  background: #fee8e8;
+  width: 560px;
+  height: 160px;
+  flex: 0 0 560px;
+  gap: 16px;
+  border-color: #ff7576;
+  border-radius: 16px;
+  background: #ffe9e9;
   box-shadow: none;
 }
 
 .fixtureFailureCard .fixtureStatusTitle svg {
-  color: #ff6b68;
+  color: #d67676;
 }
 
-.fixtureFailureCard .fixtureStatusTitle h2,
-.fixtureFailureCard .fixtureErrorTitle {
-  color: #ff6b68;
+.fixtureFailureCard .fixtureStatusTitle h2 {
+  color: #d67676;
+  font-size: 14px;
+  line-height: normal;
 }
 
 .fixtureFailureCard .fixtureErrorTitle {
   color: #333;
+  font-size: 13px;
+  line-height: normal;
+}
+
+.fixtureFailureDetails {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .fixtureFailureCard .fixtureParagraph {
   color: #6b7280;
+  font-size: 12px;
+  line-height: normal;
 }
 
 .fixtureFailureCard .fixtureActions button {
+  box-sizing: border-box;
   height: 32px;
   min-height: 32px;
   border-radius: 8px;
   padding: 0 16px;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: normal;
 }
 
 .fixtureFailureCard .fixtureRetryButton {
+  width: 58px;
   border: 0;
-  background: #ffdc97;
-  color: #876e45;
+  background: #ffda93;
+  color: #fff;
+  font-weight: 700;
   box-shadow: none;
 }
 
 .fixtureFailureCard .fixtureRetryButton:hover {
-  background: #f5cf87;
+  background: #f2cc86;
 }
 
 .fixtureFailureCard .fixtureSkipButton {
+  width: 97px;
   border-color: transparent;
   background: #fff;
   color: #333;
+  font-weight: 500;
 }
 
 .fixtureCard h2,

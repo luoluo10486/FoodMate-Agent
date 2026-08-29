@@ -1474,10 +1474,12 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               <AlertTriangle aria-hidden="true" />
               <h2>工具执行失败</h2>
             </div>
-            <strong className={styles.fixtureErrorTitle}>数据库查询超时 (错误码: TOOL_TIMEOUT_001)</strong>
-            <p className={styles.fixtureParagraph}>
-              向量索引检索服务暂时不可用。FoodMate 代理在尝试读取外部知识库时失去连接。
-            </p>
+            <div className={styles.fixtureFailureDetails}>
+              <strong className={styles.fixtureErrorTitle}>数据库查询超时 (错误码: TOOL_TIMEOUT_001)</strong>
+              <p className={styles.fixtureParagraph}>
+                向量索引检索服务暂时不可用。FoodMate 代理在尝试读取外部知识库时失去连接。
+              </p>
+            </div>
             <div className={styles.fixtureActions}>
               <Button
                 className={styles.fixtureRetryButton}

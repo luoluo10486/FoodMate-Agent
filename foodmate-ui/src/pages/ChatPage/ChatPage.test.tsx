@@ -244,6 +244,10 @@ describe('ChatPage Agent remaining states', () => {
     renderState('tool-failed-retryable');
     expect(screen.getByText('数据库查询超时 (错误码: TOOL_TIMEOUT_001)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureFailureDetails"]')).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureFailureCard"]')?.className).toContain('fixtureFailureCard');
+    expect(screen.getByRole('button', { name: '重试' }).className).toContain('fixtureRetryButton');
+    expect(screen.getByRole('button', { name: '跳过此步骤' }).className).toContain('fixtureSkipButton');
     expect(document.querySelector('[class*="fixtureAgentAvatar"]')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Executing×');
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Composing○');
