@@ -1494,3 +1494,17 @@
 | 验证 | RAG 定向测试 `42 passed、4 subtests passed`；Python 全量业务测试 `168 passed、2 skipped、6 subtests passed`；测试设置 `PYTHONDONTWRITEBYTECODE=1`。 |
 | 安全边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow，未修改业务数据库或 Docker 数据。 |
 | 结论 | SiliconFlow-compatible Embedding 的错误映射、配置失败关闭和协议 fixture 已实际纳入本地测试收集；真实 endpoint、模型维度和账单仍需轮换后的凭据与外部调用证据。 |
+
+## D84 真实云 smoke 证据出口与本地强化门禁复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；Python 使用 `agent-runtime\\.venv`；Java 21；Docker Server `28.5.1`。 |
+| Smoke 改动 | 提交 `3ce776a3`：真实 Chat/Embedding opt-in smoke 在成功时输出脱敏的 provider/model、场景、维度和延迟；PowerShell 入口使用 `-s`，不输出 API Key、请求正文或回答正文。 |
+| 无凭据回归 | 在 `agent-runtime` 执行 `tests/test_real_cloud_integration.py` 与 `tests/test_real_embedding_integration.py`：`2 skipped`，未发起网络请求；模型/RAG 定向回归为 `61 passed、6 subtests passed`。 |
+| M3 隔离验证 | `mvnw.cmd -B -ntp --% -pl foodmate-infra -am -Ddocker.available=true -Dtest=DataRetentionDatabasePurgeRealIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test`；临时 PostgreSQL 执行 28 个迁移，目标测试 `1/1` 通过，未连接现有业务库。 |
+| Java 规范 | `mvnw.cmd -B -ntp -Palibaba-code-style -DskipTests verify`；Spotless clean，Shared/Application/Infrastructure/API/Bootstrap Checkstyle 均为 `0 violations`。 |
+| 安全扫描 | `script\\security\\security-scan.ps1 -RunPythonAudit -RunNpmAudit`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`、`security_scan_status=passed`。 |
+| Python 缓存 | 当前源码范围 `.pyc=0`、`__pycache__=0`；`agent-runtime\\.venv` 内第三方缓存为 `419` 个 `.pyc`、`62` 个目录，Git 已忽略；本轮删除操作被执行环境策略拒绝，未删除 `.venv` 内容。 |
+| 外部与暂缓边界 | 未读取或使用聊天中公开的旧 API Key，当前进程未配置轮换后的 Chat/Embedding 密钥，因此未调用 SiliconFlow；未执行性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复、生产监控部署、生产发布回滚或现有数据库不可逆清理。 |
+| 结论 | 云 smoke 已具备可审计的脱敏输出和安全入口；本地业务、隔离 M3、Java 规范及安全门禁有新鲜证据。真实云调用与生产强化仍需轮换凭据及对应外部环境证据，不能标记为完成。 |
