@@ -18,7 +18,7 @@ import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-/** Applies the application-owned table and field allowlist to database catalog rows. */
+/** 将应用层维护的表和字段白名单应用到数据库 Catalog 行。 */
 @Service
 public class SqlSchemaCatalogServiceImpl implements SqlSchemaCatalogService {
     private static final Map<String, Scope> APPROVED_TABLES =

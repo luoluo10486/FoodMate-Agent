@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-/** Applies deterministic, side-effect-free business rules to a proposed meal plan. */
+/** 对待写入餐食计划应用确定性且无副作用的业务规则。 */
 public final class PlanValidator {
     private static final Set<String> REQUIRED_MEALS = Set.of("breakfast", "lunch", "dinner");
     private static final int MAX_DAYS = 31;

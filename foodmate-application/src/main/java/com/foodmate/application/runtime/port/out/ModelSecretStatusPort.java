@@ -1,6 +1,6 @@
 package com.foodmate.application.runtime.port.out;
 
-/** Reads only non-reversible provider secret status; secret material never crosses this port. */
+/** 仅读取不可逆的供应商密钥状态，密钥材料不得跨越此端口。 */
 public interface ModelSecretStatusPort {
     SecretStatus status(String providerCode);
 

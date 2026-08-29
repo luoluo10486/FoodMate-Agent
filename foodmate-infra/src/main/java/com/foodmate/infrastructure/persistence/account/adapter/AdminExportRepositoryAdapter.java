@@ -6,7 +6,7 @@ import com.foodmate.infrastructure.persistence.adapter.MapperRepositoryAdapter;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
-/** PostgreSQL adapter for administrator export jobs. */
+/** 管理员导出任务的 PostgreSQL 适配器。 */
 @Repository
 @Profile("local")
 public class AdminExportRepositoryAdapter extends MapperRepositoryAdapter<AdminExportRepository> {

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
 
-/** AgentRun lifecycle status persisted by the control plane. */
+/** 控制面持久化的 AgentRun 生命周期状态。 */
 public enum RunStatus {
     QUEUED("queued", false),
     ROUTED("routed", false),

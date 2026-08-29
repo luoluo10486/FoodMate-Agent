@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-/** Reads only active read-only datasource catalog rows; connection references never leave infra. */
+/** 仅读取活动只读数据源的 Catalog 行，连接引用不得离开基础设施层。 */
 @Mapper
 public interface SqlSchemaCatalogMapper {
     @Select(

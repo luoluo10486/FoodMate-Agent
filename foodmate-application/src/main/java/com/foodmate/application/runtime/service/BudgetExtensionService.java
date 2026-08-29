@@ -2,7 +2,7 @@ package com.foodmate.application.runtime.service;
 
 import java.math.BigDecimal;
 
-/** Extends a waiting run's budget after an explicit user confirmation. */
+/** 用户明确确认后，为等待中的 AgentRun 增加预算。 */
 public interface BudgetExtensionService {
     ExtensionResult confirm(
             long userId,

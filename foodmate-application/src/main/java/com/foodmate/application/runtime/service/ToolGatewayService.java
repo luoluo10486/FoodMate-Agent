@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
-/** Validates and executes the application-facing tool proposal contract. */
+/** 校验并执行面向应用层的工具提案契约。 */
 public interface ToolGatewayService {
     ProposalResult execute(ProposalCommand proposal);
 

@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/** PostgreSQL-backed model governance operations; no provider secret is accepted or returned. */
+/** 基于 PostgreSQL 的模型治理操作实现，不接收或返回供应商密钥。 */
 @Service
 public class ModelGovernanceAdminServiceImpl implements ModelGovernanceAdminService {
     private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 128;

@@ -2,7 +2,7 @@ package com.foodmate.application.runtime.service;
 
 import java.util.List;
 
-/** Parses and authorizes a SQL proposal before it can reach a JDBC executor. */
+/** 在 SQL 提案进入 JDBC 执行器前解析并授权。 */
 public interface SqlQueryGuard {
     GuardedQuery guard(
             String statement, SqlSchemaCatalogService.CatalogView catalog, long trustedUserId);

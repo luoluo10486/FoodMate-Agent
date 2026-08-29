@@ -1,6 +1,6 @@
 package com.foodmate.shared.runtime;
 
-/** Stable-code exception used when the Runtime protocol cannot be completed safely. */
+/** Runtime 协议无法安全完成时使用的稳定错误码异常。 */
 public class RuntimeException extends java.lang.RuntimeException {
     private final String code;
 

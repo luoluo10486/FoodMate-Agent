@@ -1,6 +1,6 @@
 package com.foodmate.application.runtime.port.out;
 
-/** Durable idempotency boundary for Runtime proposals received by Java. */
+/** Java 接收 Runtime 提案的持久化幂等边界。 */
 public interface InboxRepository {
     /** Claims a new proposal or verifies that a redelivery has the same request hash. */
     int claim(String proposalId, String requestHash, String payload);

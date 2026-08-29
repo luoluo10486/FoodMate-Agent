@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashSet;
 import java.util.Set;
 
-/** Validates the untrusted structured database_query proposal before SQL Guard. */
+/** 在 SQL 守卫前校验不可信的结构化 database_query 提案。 */
 public final class SqlQueryPlanValidator {
     private static final Set<String> ALLOWED_FIELDS =
             Set.of(

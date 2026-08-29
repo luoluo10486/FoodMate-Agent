@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-/** PostgreSQL authority used to reconcile a checkpoint before creating a new attempt. */
+/** 创建新尝试前用于对账 checkpoint 的 PostgreSQL 权威映射。 */
 @Mapper
 public interface RuntimeRecoveryMapper {
     @Select(

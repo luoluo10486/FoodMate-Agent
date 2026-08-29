@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-/** PostgreSQL read adapter for the versioned model governance snapshot. */
+/** 版本化模型治理快照的 PostgreSQL 读取映射。 */
 @Mapper
 public interface ModelGovernanceMapper {
     @Select(

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
-/** V1 Java -> Python tool result message. */
+/** V1 Java 到 Python 的工具结果消息。 */
 public record V1ToolResult(
         @JsonProperty("schema_version") String schemaVersion,
         @JsonProperty("proposal_id") String proposalId,

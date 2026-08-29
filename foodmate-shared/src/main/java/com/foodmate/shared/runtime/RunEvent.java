@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.time.Instant;
 import java.util.Objects;
 
-/** Legacy runtime event retained for compatibility with the string Run gateway. */
+/** 为兼容字符串 Run 网关而保留的旧版 Runtime 事件。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RunEvent(
         String eventId,

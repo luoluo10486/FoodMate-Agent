@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/** Resolves governed model metadata without ever handling provider secrets. */
+/** 解析模型治理元数据，始终不接触供应商密钥。 */
 @Service
 public class ModelGovernanceService {
     private final ModelGovernanceRepository store;

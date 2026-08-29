@@ -6,7 +6,7 @@ import com.foodmate.application.runtime.port.out.ModelGovernanceAdminRepository.
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/** Model governance use cases with superadmin, confirmation, revision and audit enforcement. */
+/** 强制 superadmin、确认、版本和审计约束的模型治理用例。 */
 public interface ModelGovernanceAdminService {
     GovernanceView view(UsageQuery query);
 

@@ -14,7 +14,7 @@ import com.foodmate.infrastructure.persistence.runtime.ModelGovernanceAdminMappe
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
-/** PostgreSQL adapter for model governance administration. */
+/** 模型治理管理功能的 PostgreSQL 适配器。 */
 @Repository
 @Profile("local")
 public class ModelGovernanceAdminRepositoryAdapter implements ModelGovernanceAdminRepository {

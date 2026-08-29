@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
-/** Redis implementation of distributed agent admission coordination. */
+/** 分布式 Agent 准入协调的 Redis 实现。 */
 @Component
 public final class RedisAdmissionCoordinationAdapter implements AdmissionCoordinationPort {
     private static final String PREFIX = "foodmate:agent:admission:";

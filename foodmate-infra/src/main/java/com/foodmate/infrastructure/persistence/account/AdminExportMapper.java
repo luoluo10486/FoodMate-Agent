@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-/** PostgreSQL persistence for bounded administrator export jobs. */
+/** 受限管理员导出任务的 PostgreSQL 持久化映射。 */
 @Mapper
 public interface AdminExportMapper {
     @Insert(

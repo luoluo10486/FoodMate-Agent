@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** Validates and manages long-term memory candidates. */
+/** 长期记忆候选的校验和管理服务。 */
 public interface MemoryCandidateService {
     void persistFromCompletedRun(long runId, CompletedRunPayload payload);
 

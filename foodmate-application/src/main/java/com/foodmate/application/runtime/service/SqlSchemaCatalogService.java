@@ -2,7 +2,7 @@ package com.foodmate.application.runtime.service;
 
 import java.util.List;
 
-/** Publishes the small, approved schema surface that SQL Agent may inspect. */
+/** 发布 SQL Agent 可以检查的精简已批准 Schema 范围。 */
 public interface SqlSchemaCatalogService {
     CatalogView current(long datasourceId);
 

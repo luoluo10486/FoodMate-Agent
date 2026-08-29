@@ -4,16 +4,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * In-memory compatibility guard for ordered runtime events.
+ * 有序 Runtime 事件的内存兼容守卫。
  *
- * <p>The durable Java inbox performs the same checks against PostgreSQL. This small shared type
- * keeps the legacy gateway contract deterministic in unit tests and compatibility adapters.
+ * <p>持久化 Java Inbox 会在 PostgreSQL 中执行相同校验。该共享类型用于让旧网关契约在单元 测试和兼容适配器中保持确定性。
  */
 public final class EventInbox {
     private final Map<String, String> fingerprints = new HashMap<>();
     private final Map<String, RunEvent> latest = new HashMap<>();
 
-    /** Accepts an event once and rejects conflicting, out-of-order, or gapped events. */
+    /** 接受一次事件，并拒绝冲突、乱序或存在间隔的事件。 */
     public synchronized Result accept(RunEvent event) {
         String key = event.runId() + ":" + event.eventId();
         String fingerprint =
@@ -37,7 +36,7 @@ public final class EventInbox {
         return Result.ACCEPTED;
     }
 
-    /** Returns the latest accepted event for a run, or {@code null} when no event was accepted. */
+    /** 返回 AgentRun 最近接受的事件；没有接受事件时返回 {@code null}。 */
     public synchronized RunEvent latest(String runId) {
         return latest.get(runId);
     }
@@ -57,7 +56,7 @@ public final class EventInbox {
         return new RuntimeException(code, code);
     }
 
-    /** Result of attempting to insert an event into the inbox. */
+    /** 向 Inbox 写入事件的结果。 */
     public enum Result {
         ACCEPTED,
         DUPLICATE

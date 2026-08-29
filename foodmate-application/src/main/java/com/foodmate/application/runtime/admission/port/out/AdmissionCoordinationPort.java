@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-/** Distributed admission coordination boundary for short-lived agent permits. */
+/** 短期 Agent 许可的分布式准入协调边界。 */
 public interface AdmissionCoordinationPort {
     AcquireResult acquire(AcquireRequest request);
 

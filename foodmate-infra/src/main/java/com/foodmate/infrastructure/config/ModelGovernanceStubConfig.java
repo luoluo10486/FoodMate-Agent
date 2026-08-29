@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-/** Empty governance store for local-stub; it never pretends that state was persisted. */
+/** local-stub 使用的空治理存储，不伪装为已持久化状态。 */
 @Configuration
 @Profile("local-stub")
 public class ModelGovernanceStubConfig {

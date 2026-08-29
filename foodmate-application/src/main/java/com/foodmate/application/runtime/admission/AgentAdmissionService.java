@@ -2,7 +2,7 @@ package com.foodmate.application.runtime.admission;
 
 import java.util.List;
 
-/** Coordinates short-lived Redis admission leases for agent runs. */
+/** 协调 AgentRun 的短期 Redis 准入租约。 */
 public interface AgentAdmissionService {
     Admission admit(String runId, long userId, long sessionId);
 

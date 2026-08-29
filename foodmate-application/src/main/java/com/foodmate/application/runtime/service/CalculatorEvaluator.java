@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 
-/** Evaluates a bounded arithmetic expression without invoking a scripting engine. */
+/** 在不调用脚本引擎的前提下计算受限算术表达式。 */
 public final class CalculatorEvaluator {
     private static final MathContext MATH_CONTEXT = new MathContext(34, RoundingMode.HALF_EVEN);
     private static final BigDecimal MAX_ABSOLUTE_VALUE = new BigDecimal("1000000000000");

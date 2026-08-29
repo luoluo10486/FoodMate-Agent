@@ -3,7 +3,7 @@ package com.foodmate.application.runtime.messaging;
 import java.util.List;
 import java.util.Objects;
 
-/** Immutable transport metadata without exposing a generic map in application contracts. */
+/** 不在应用契约中暴露通用 Map 的不可变传输元数据。 */
 public final class MessageProperties {
     private final List<Property> values;
 

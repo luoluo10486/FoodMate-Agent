@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** Persistence port for safe model governance reads and superadmin mutations. */
+/** 模型治理安全读取和 superadmin 变更的持久化端口。 */
 public interface ModelGovernanceAdminRepository {
     GovernanceState state(UsageQuery query);
 

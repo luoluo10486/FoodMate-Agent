@@ -16,7 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-/** HTTP implementation of the V1 runtime client port. */
+/** V1 Runtime 客户端端口的 HTTP 实现。 */
 public final class V1HttpRuntimeClient implements RuntimeClientPort {
     private final URI base;
     private final Duration timeout;

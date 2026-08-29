@@ -8,7 +8,7 @@ import com.foodmate.shared.runtime.RunEvent;
 import java.util.List;
 import java.util.function.Consumer;
 
-/** Coordinates runtime commands and events at the application boundary. */
+/** 在应用边界协调 Runtime 命令和事件。 */
 public interface RuntimeGatewayService {
     CommandResult dispatch(RunCommand command);
 

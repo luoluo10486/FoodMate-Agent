@@ -9,7 +9,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/** Application service for agent admission policy and permit lifecycle. */
+/** Agent 准入策略和许可生命周期的应用服务。 */
 @Service
 public class AgentAdmissionServiceImpl implements AgentAdmissionService {
     private final AdmissionCoordinationPort coordination;

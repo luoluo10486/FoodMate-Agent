@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
-/** Proposal topic consumer with durable idempotency and typed V1 wire messages. */
+/** 具备持久化幂等和强类型 V1 消息的提案 Topic 消费者。 */
 @Service
 @ConditionalOnBean(MessagePublisherPort.class)
 public class RuntimeProposalMessageProcessor implements MqMessageHandler {

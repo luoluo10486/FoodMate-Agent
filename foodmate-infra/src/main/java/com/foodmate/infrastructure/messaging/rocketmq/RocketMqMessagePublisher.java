@@ -14,7 +14,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
-/** RocketMQ adapter for application-level message publication. */
+/** 应用层消息发布的 RocketMQ 适配器。 */
 public final class RocketMqMessagePublisher implements MessagePublisherPort {
     private final DefaultMQProducer producer;
     private final RocketMqSettings settings;

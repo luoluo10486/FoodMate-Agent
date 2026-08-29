@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-/** Minimal Ed25519 service-to-service JWT implementation with strict claim validation. */
+/** 带严格声明校验的精简 Ed25519 服务间 JWT 实现。 */
 public final class ServiceJwt {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();

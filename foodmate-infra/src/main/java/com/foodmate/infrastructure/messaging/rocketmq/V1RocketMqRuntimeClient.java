@@ -17,7 +17,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
-/** RocketMQ implementation of the V1 runtime client port. */
+/** V1 Runtime 客户端端口的 RocketMQ 实现。 */
 public final class V1RocketMqRuntimeClient implements RuntimeClientPort, AutoCloseable {
     private final DefaultMQProducer producer;
     private final RocketMqSettings settings;

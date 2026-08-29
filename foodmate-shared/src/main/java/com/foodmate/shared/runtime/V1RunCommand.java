@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
-/** V1 Java to Python RunCommand envelope. */
+/** V1 Java 到 Python 的 RunCommand 命令信封。 */
 public record V1RunCommand(
         @JsonProperty("schema_version") String schemaVersion,
         @JsonProperty("run_id") String runId,
@@ -44,7 +44,7 @@ public record V1RunCommand(
             throw new IllegalArgumentException(name + " must not be blank");
     }
 
-    /** User message that initiated the Run. */
+    /** 触发 AgentRun 的用户消息。 */
     public record V1Message(
             @JsonProperty("message_id") String messageId,
             String content,
@@ -56,7 +56,7 @@ public record V1RunCommand(
         }
     }
 
-    /** Java-authorized context snapshot; Runtime cannot expand its scope. */
+    /** Java 授权的上下文快照，Runtime 不得扩大其范围。 */
     public record AuthorizedContext(
             @JsonProperty("session_id") String sessionId,
             String timezone,
@@ -73,14 +73,14 @@ public record V1RunCommand(
         }
     }
 
-    /** Recent conversation item included in the authorized context. */
+    /** 授权上下文中包含的近期会话项。 */
     public record RecentMessage(
             @JsonProperty("message_id") String messageId,
             String role,
             String content,
             @JsonProperty("sequence_no") Integer sequenceNo) {}
 
-    /** Previously persisted summary snapshot supplied to the Runtime. */
+    /** 提供给 Runtime 的历史持久化摘要快照。 */
     public record SessionSummary(
             @JsonProperty("summary_id") String summaryId,
             @JsonProperty("summary_text") String summaryText,
@@ -92,7 +92,7 @@ public record V1RunCommand(
             @JsonProperty("content_digest") String contentDigest,
             Integer version) {}
 
-    /** Confirmed long-term memory item allowed for this Run. */
+    /** 已确认且允许本次 AgentRun 使用的长期记忆项。 */
     public record MemoryContext(
             @JsonProperty("memory_id") String memoryId,
             @JsonProperty("memory_type") String memoryType,
@@ -101,13 +101,13 @@ public record V1RunCommand(
             BigDecimal confidence,
             String scope) {}
 
-    /** Optional Java-authorized read-only SQL request. */
+    /** 可选的 Java 授权只读 SQL 请求。 */
     public record SqlReadRequest(
             String statement,
             @JsonProperty("invocation_id") String invocationId,
             @JsonProperty("requires_confirmation") boolean requiresConfirmation) {}
 
-    /** Execution limits and immutable model facts for this attempt. */
+    /** 本次尝试的执行限制和不可变模型事实。 */
     public record RuntimeOptions(
             @JsonProperty("prompt_set_version") String promptSetVersion,
             @JsonProperty("max_steps") int maxSteps,
@@ -124,7 +124,7 @@ public record V1RunCommand(
         }
     }
 
-    /** Non-secret model routing facts frozen when the run is accepted. */
+    /** AgentRun 接受时固化的不含密钥的模型路由事实。 */
     public record ModelSnapshot(
             String scene,
             @JsonProperty("model_type") String modelType,
@@ -139,7 +139,7 @@ public record V1RunCommand(
             @JsonProperty("budget_policy_version") String budgetPolicyVersion,
             @JsonProperty("model_timeout_ms") int modelTimeoutMs) {}
 
-    /** Budget limits frozen for the current Run revision. */
+    /** 当前 AgentRun 版本固化的预算限制。 */
     public record BudgetSnapshot(
             @JsonProperty("max_total_tokens") int maxTotalTokens,
             @JsonProperty("max_cost_cny") BigDecimal maxCostCny,
@@ -155,7 +155,7 @@ public record V1RunCommand(
             int revision,
             @JsonProperty("config_version") String configVersion) {}
 
-    /** Canonical fields used to calculate the dispatch request hash. */
+    /** 用于计算派发请求哈希的规范字段。 */
     public record RequestHashInput(
             @JsonProperty("schema_version") String schemaVersion,
             @JsonProperty("run_id") String runId,
@@ -166,7 +166,7 @@ public record V1RunCommand(
             @JsonProperty("authorized_context") AuthorizedContext authorizedContext,
             @JsonProperty("runtime_options") RuntimeOptions runtimeOptions) {}
 
-    /** Previously completed facts used to resume an attempt idempotently. */
+    /** 用于幂等恢复本次尝试的历史完成事实。 */
     public record RecoveryContext(
             @JsonProperty("previous_dispatch_id") String previousDispatchId,
             @JsonProperty("previous_attempt") int previousAttempt,
