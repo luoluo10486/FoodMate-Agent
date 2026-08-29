@@ -1260,3 +1260,15 @@
 | 规范检查 | 受影响 Java 模块已执行 `spotless:apply`；`git diff --check` 通过；新增/修改类级注释已使用中文。 |
 | 数据与暂缓边界 | 未执行 V27 到现有数据库的迁移、truncate、真实数据库硬删除、备份恢复、组件重启、性能压测或故障注入；V27 rollback 仍为只读前置检查。 |
 | 结论 | M3 清理结果对账和失败关闭校验具备定向业务证据；真实环境执行、备份恢复和生产强化仍未完成，不能据此标记整个 M3 完成。 |
+
+## D64 真实隔离 PostgreSQL 全量迁移与业务幂等复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；Testcontainers 启动隔离 PostgreSQL `16-alpine`；未连接现有 FoodMate 数据库，未调用真实云服务。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-infra -am -Ddocker.available=true -Dtest=BusinessIdempotencyRealMigrationTest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| 迁移结果 | baseline 与 migration 共 27 个版本从空数据库执行成功，Flyway 当前版本为 `v27`；第二次 `flyway.migrate()` 执行 `0` 个迁移。V12/V13/V15/V16 的已存在对象提示是脚本的兼容性 warning，不影响迁移成功。 |
+| 幂等结果 | `food_logs`、`meal_plans`、`approval_requests` 和 `operation_audits` 的重复事实均被 PostgreSQL 以 SQLState `23505` 拒绝；每类测试事实最终保持 1 条。 |
+| 质量结果 | Infrastructure reactor 定向测试 `2/2` 通过；测试容器正常启动并由 Testcontainers 回收；本轮未修改用户已有前端、QA 或 NutritionSeedScript 改动。 |
+| 数据与暂缓边界 | 只使用隔离 Testcontainers 数据库；未执行现有库迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复。 |
+| 结论 | V27 已在真实 PostgreSQL 空库中取得可复核的迁移和业务幂等证据；M3 实际清理、备份恢复及生产强化仍需独立验证，不能据此宣称完成。 |
