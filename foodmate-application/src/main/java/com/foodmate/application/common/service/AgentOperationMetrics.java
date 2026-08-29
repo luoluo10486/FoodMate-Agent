@@ -10,14 +10,30 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
-/** Low-cardinality Agent operation metrics; identifiers are deliberately never metric tags. */
+/** 记录低基数 Agent 操作指标，业务标识不会进入指标标签。 */
 @Service
 public class AgentOperationMetrics {
     private static final Set<String> TRANSPORTS = Set.of("http", "rocketmq", "local");
     private static final Set<String> OPERATIONS =
-            Set.of("dispatch", "proposal", "result", "event", "sse_replay");
+            Set.of(
+                    "dispatch",
+                    "proposal",
+                    "result",
+                    "event",
+                    "sse_replay",
+                    "knowledge_index",
+                    "visibility",
+                    "purge");
     private static final Set<String> RESULTS =
-            Set.of("success", "failed", "duplicate", "rejected", "accepted", "retry", "terminal");
+            Set.of(
+                    "success",
+                    "failed",
+                    "duplicate",
+                    "redelivered",
+                    "rejected",
+                    "accepted",
+                    "retry",
+                    "terminal");
     private static final Set<String> REASONS =
             Set.of(
                     "published",
@@ -40,7 +56,19 @@ public class AgentOperationMetrics {
                     "checkpoint_saved",
                     "received",
                     "http",
-                    "rocketmq");
+                    "rocketmq",
+                    "leased",
+                    "retry",
+                    "redelivery",
+                    "duplicate",
+                    "replay",
+                    "knowledge_index",
+                    "visibility",
+                    "purge",
+                    "database",
+                    "object_storage",
+                    "vector_index",
+                    "relay");
     private final MeterRegistry registry;
     private final Map<String, AtomicLong> queueDepths = new ConcurrentHashMap<>();
 
