@@ -10,7 +10,6 @@ import os
 import pytest
 
 from knowledge_rag import OpenAICompatibleEmbedder, RagSettings
-from runtime_env import load_project_env
 
 
 _PROFILES = (
@@ -20,7 +19,6 @@ _PROFILES = (
 
 
 def _environment() -> dict[str, str] | None:
-    load_project_env()
     if os.environ.get("FOODMATE_RUN_REAL_EMBEDDING_TESTS", "false").lower() != "true":
         return None
     # Embedding credentials are intentionally independent from Chat credentials.
