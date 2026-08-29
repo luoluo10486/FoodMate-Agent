@@ -523,7 +523,15 @@ class OpenAICompatibleEmbedder:
         if not inputs or any(not isinstance(value, str) or not value.strip() for value in inputs):
             raise RagError("RAG_EMBEDDING_INVALID_INPUT", "embedding input must not be empty")
         request = urllib.request.Request(
-            self._url(), data=json.dumps({"model": self.settings.embedding_model, "input": inputs}).encode("utf-8"), method="POST",
+            self._url(),
+            data=json.dumps(
+                {
+                    "model": self.settings.embedding_model,
+                    "input": inputs,
+                    "encoding_format": "float",
+                }
+            ).encode("utf-8"),
+            method="POST",
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.settings.embedding_api_key},
         )
         try:

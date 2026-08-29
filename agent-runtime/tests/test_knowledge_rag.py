@@ -582,6 +582,7 @@ class OpenAICompatibleEmbedderTests(TestCase):
         self.assertEqual("https://api.siliconflow.cn/v1/embeddings", request.full_url)
         self.assertEqual("BAAI/bge-m3", body["model"])
         self.assertEqual(["first", "second"], body["input"])
+        self.assertEqual("float", body["encoding_format"])
         self.assertEqual([[1.0, 0.0], [0.0, 1.0]], vectors)
         self.assertEqual("Bearer test-key", request.headers["Authorization"])
 
