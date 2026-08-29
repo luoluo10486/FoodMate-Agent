@@ -85,7 +85,7 @@ docker compose --env-file .env -f docker/compose.yml up -d milvus foodmate agent
 
 切换真实 OpenAI-compatible embedding 时，将 provider 改为 `openai-compatible`，并显式配置 endpoint、API Key、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。当前只提供基础设施容器，Python/Java 应用仍按各自开发命令启动；Compose 不自动执行数据库迁移。
 
-SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_RAG_MILVUS_COLLECTION`；API Key 只放在被忽略的本地 `.env` 或 Secret Store，不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
+SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_RAG_MILVUS_COLLECTION`；Embedding 的 `FOODMATE_RAG_EMBEDDING_API_KEY` 必须在被忽略的本地 `.env` 或 Secret Store 中单独显式配置，不能从 Chat provider 变量继承，也不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
 
 ## RocketMQ
 
