@@ -1351,3 +1351,15 @@
 | 规范结果 | `-Palibaba-code-style -DskipTests verify` 通过；受影响模块 Spotless clean，Shared/Application/Infrastructure/API Checkstyle 均为 `0 violations`。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；用户已有未提交改动未纳入本次提交。 |
 | 结论 | 当前 retention、营养 seed 与管理 API 的业务门禁和 Java 规范检查通过；真实硬删除、备份恢复及生产强化仍不能标记完成。 |
+
+## D72 Python 缓存边界、双 PowerShell 扫描与 Java 注释复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；未使用对话中暴露的旧云凭据。 |
+| Python 业务门禁 | 在 `agent-runtime` 目录执行 `PYTHONDONTWRITEBYTECODE=1 .\\venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`154 passed、2 skipped、4 subtests passed`。 |
+| Python 缓存 | 项目源码范围 `.pyc/.pyo=0`、`__pycache__=0`、`.pytest_cache=0`；`agent-runtime\\.venv` 内依赖缓存 `419` 个文件和 `62` 个目录保留，并由 `.gitignore` 忽略，未删除虚拟环境。 |
+| 安全扫描 | `security-scan.ps1 -RunPythonAudit` 在 Windows PowerShell 5.1 与 PowerShell 7 均通过：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`。 |
+| 代码规范 | 目标 Java 公共类/接口说明已统一为中文，提交 `d80d8f8d`；安全扫描器 Shell 兼容修复提交 `125c9c5c`；application/infra 定向业务测试合计 `67` 个通过。 |
+| 数据与边界 | 未调用真实云服务、未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启或生产操作；未清理虚拟环境依赖缓存。 |
+| 结论 | 项目源码没有 Python 字节码残留；虚拟环境中的依赖缓存属于本地运行环境并保持隔离。安全扫描兼容两种 PowerShell，当前业务门禁通过；真实云与生产强化范围仍按既定边界执行。 |
