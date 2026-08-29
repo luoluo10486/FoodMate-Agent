@@ -1365,3 +1365,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-table-columns-browser-2026-08-29.jpg`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-table-columns-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-overview-table-columns-2026-08-29-diff.json`；实时 Figma PNG 与浏览器 PNG 均为 `1440×1024`，`png-diff.mjs` 结果为 `differentPixels=495686`、差异比例 `33.6159%`、`MAE=4.139174`、`RMSE=19.694850`、最大通道差异 `230`。
 - [x] `figma-105-mapping.json` 的 Admin Overview 主证据已指向本次最新浏览器 PNG；分析卡高度和顶栏内边距证据继续保留在 `additionalVisualEvidence`，105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成主表列轨道局部几何收口，不代表 Admin Overview 或 105 张画板达到像素级 `PASS`；字体、图标、侧栏身份和其它整页组合差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 146. 2026-08-29 Admin Overview 桌面表格滚动条收口
+
+- [x] 依据实时 Figma 节点 `995:1085`，确认桌面表格卡片目标为 `1116×396px`，前端将占用内容宽度的 1px 边框改为等效内描边；视觉边界仍为 `#f4f6f5`，未修改 Figma 设计稿。
+- [x] 严格浏览器视口 `1440×1024`、DPR `1.0000000149011612`、字体加载完成条件下，表格卡片保持 `1116×396px at x=292,y=266`，可视区与内容区均为 `1116px`，`scrollWidth === clientWidth`，设计稿不存在的桌面横向滚动条已消除；页面无横向或纵向溢出，左上角红、黄、绿窗口装饰候选数量为 `0`。
+- [x] `390×844` 窄视口复核通过：表格可视区约 `343px`、内容区 `1116px`，内部横向滚动仍保留，`body.clientWidth === body.scrollWidth === 390px`。
+- [x] 新增浏览器原始截图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-table-border-inset-browser-2026-08-29.png`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-table-border-inset-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-overview-table-border-inset-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=486020`、差异比例 `32.9603%`、`MAE=3.566176`、`RMSE=18.049821`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 的 Admin Overview 主证据已切换到本次最新 RGBA PNG，主表列轨道、分析卡高度和顶栏内边距仍保留在补充证据中；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只消除桌面表格非设计滚动条，不代表表格行高、Admin Overview 或 105 张画板达到像素级 `PASS`；当前表格行内容高度仍需按 Figma 的六条 `58px` 数据行继续收口，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
