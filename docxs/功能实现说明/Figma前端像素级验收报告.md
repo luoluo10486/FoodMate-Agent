@@ -1349,3 +1349,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 真实 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-topbar-padding-browser-2026-08-29.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/admin-overview-topbar-padding-2026-08-29-diff.json`；`png-diff.mjs` 结果为 `differentPixels=493936`、差异比例 `33.4972%`、`MAE=3.988667`、`RMSE=19.207800`、最大通道差异 `230`，MAE/RMSE 较旧证据改善，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步新的浏览器证据；Admin 定向测试 `9/9`、`npm run typecheck` 和 `git diff --check` 已通过。
 - [ ] 本小点只完成 Admin Overview 顶栏局部几何收口，不代表该画板或 105 张画板达到像素级 `PASS`；整页字体、图标、侧栏身份、表格/卡片和摘要区差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 144. 2026-08-29 Admin Overview 分析卡内卡高度与裁切收口
+
+- [x] 依据实时 Figma 节点 `1005:2`、`1005:3`、`1005:7`、`1005:11`，将前端底部三个分析内卡高度从 `148px` 调整为 `180px`，并为 `1116×180px` 外层分析卡补齐 `overflow: hidden` 裁切；未修改 Figma 设计稿，业务权限状态圆点保留。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149011612`、字体加载完成条件下实测外框 `1116×180px at x=292,y=766`，三个内卡高度均为 `180px`；页面无横向或纵向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] 实时 Figma PNG 与浏览器 RGBA PNG 尺寸均为 `1440×1024`；`png-diff.mjs` 结果为 `differentPixels=496400`、差异比例 `33.6643%`、`MAE=3.932245`、`RMSE=19.178615`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
+- [x] Admin 定向测试 `9/9` 通过；未将整页仍存在的字体、图标、侧栏身份、表格和其它组合差异误标为像素级 `PASS`。
+- [ ] 本小点只完成分析卡局部几何收口，不代表 105 张画板像素级 `PASS`、shadcn 全页面迁移或 iconfont 实体资源登记完成；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
