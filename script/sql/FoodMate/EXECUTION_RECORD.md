@@ -1363,3 +1363,25 @@
 | 代码规范 | 目标 Java 公共类/接口说明已统一为中文，提交 `d80d8f8d`；安全扫描器 Shell 兼容修复提交 `125c9c5c`；application/infra 定向业务测试合计 `67` 个通过。 |
 | 数据与边界 | 未调用真实云服务、未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启或生产操作；未清理虚拟环境依赖缓存。 |
 | 结论 | 项目源码没有 Python 字节码残留；虚拟环境中的依赖缓存属于本地运行环境并保持隔离。安全扫描兼容两种 PowerShell，当前业务门禁通过；真实云与生产强化范围仍按既定边界执行。 |
+
+## D73 隔离 PostgreSQL 硬删除与幂等重放复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；Testcontainers 临时 PostgreSQL `16-alpine`；未连接现有 `foodmate-postgres`，未使用云服务。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-infra -am -Ddocker.available=true -Dtest=DataRetentionDatabasePurgeRealIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| 迁移结果 | 空库真实执行 baseline 与 migration 共 28 个版本，Flyway 校验和迁移均成功；测试容器在 JVM 结束后由 Testcontainers 回收。 |
+| 删除结果 | 真实清理适配器按子表到父表顺序删除知识文档关联的结果 Inbox、索引/可见性 Outbox、批次事件、chunks、导入条目和文档，首次结果为 `backend=postgresql/deleted_count=7/verified_absent=true`。 |
+| 保留与重放 | `data_purge_requests`、`data_purge_tasks` 和 `data_purge_task_results` 保留；同一文档再次执行返回 `deleted_count=0/verified_absent=true`，无重复副作用。 |
+| Java 结果 | Infrastructure reactor `BUILD SUCCESS`；目标测试 `1/1` 通过，Failures/Errors/Skipped 均为 `0`。 |
+| 数据边界 | 未对现有数据库执行硬删除、truncate、迁移、备份恢复或宽泛清理；该结果只证明隔离测试库中的受控清理实现。 |
+
+## D74 Docker RAG 密钥命名空间轮换预检收口（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；未读取或使用聊天中公开的旧 API Key。 |
+| 代码与提交 | 轮换预检同时校验 `FOODMATE_RAG_*` 与 Compose 宿主侧 `FOODMATE_DOCKER_RAG_*`；Chat 与 Embedding 凭据按命名空间隔离。提交 `f01ddfe3`。 |
+| 执行命令 | `script\\security\\secret-rotation-check.tests.ps1`；`script\\security\\security-scan.ps1`。 |
+| 结果 | PowerShell 契约测试通过；安全扫描 `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`security_scan_status=passed`。 |
+| 数据边界 | 未写入密钥、未调用真实云服务、未修改业务数据库；真实 SiliconFlow smoke 需使用供应商控制台轮换后的新密钥。 |
