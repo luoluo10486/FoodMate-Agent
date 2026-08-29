@@ -221,6 +221,10 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('来源: USDA FoodData Central')).toBeInTheDocument();
     expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    const writeCard = document.querySelector('[class*="fixtureWriteCard"]');
+    expect(writeCard).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认写入' }).querySelector('svg')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '取消' }).querySelector('svg')).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '确认写入' }));
     expect(screen.getByRole('status')).toHaveTextContent('fixture 已记录确认动作');

@@ -1390,6 +1390,60 @@
   box-shadow: 0 6px 20px rgb(51 51 51 / 4%);
 }
 
+/* Figma node 687:883 is a compact 305x319 confirmation card. Keep this
+   fixture-specific geometry isolated from the wider Agent state cards. */
+.fixtureWriteCard {
+  width: 305px;
+  height: 319px;
+  flex: 0 0 305px;
+  padding: 20px;
+  padding-left: 16px;
+  border-color: #a6d997;
+  border-left-width: 4px;
+  border-radius: 16px 16px 16px 0;
+  box-shadow: none;
+}
+
+.fixtureWriteCard .fixtureDetails {
+  width: 265px;
+  height: 168px;
+  flex: 0 0 168px;
+}
+
+.fixtureWriteCard .fixtureMeta {
+  width: 265px;
+  height: 13px;
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+
+.fixtureWriteCard .fixtureActions button {
+  height: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.fixtureWriteCard .fixtureActions button:first-child {
+  background: #a6d997;
+  color: #fff;
+  box-shadow: none;
+}
+
+.fixtureWriteCard .fixtureActions button:first-child:hover {
+  background: #96d286;
+}
+
+.fixtureWriteCard .fixtureActions button:last-child {
+  width: 58px;
+  border: 1px solid #f4f6f5;
+  background: #fff;
+  color: #6b7280;
+}
+
 .fixtureFailureCard {
   gap: 11px;
   border-color: #ff6b68;

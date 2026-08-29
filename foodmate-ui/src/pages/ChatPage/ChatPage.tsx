@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   CalendarDays,
   ChartColumn,
-  CheckCircle2,
   CircleSlash,
   LoaderCircle,
   MessageCircle,
@@ -1362,7 +1361,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     if (state === 'write-confirmation') {
       return (
         <div className={styles.fixtureCardWrap}>
-          <Card className={styles.fixtureCard}>
+          <Card className={`${styles.fixtureCard} ${styles.fixtureWriteCard}`}>
             <div className={styles.fixtureCardHeader}>
               <h2>确认写入以下记录</h2>
               <span>目标对象: 饮食记录</span>
@@ -1391,11 +1390,9 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
             </div>
             <div className={styles.fixtureActions}>
               <Button disabled={action === 'pending'} onClick={() => void confirmWrite()}>
-                <CheckCircle2 aria-hidden="true" />
                 确认写入
               </Button>
               <Button disabled={action === 'pending'} variant="ghost" onClick={() => void cancelWrite()}>
-                <XCircle aria-hidden="true" />
                 取消
               </Button>
             </div>

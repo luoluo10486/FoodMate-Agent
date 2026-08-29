@@ -1290,3 +1290,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `figma-105-mapping.json` 和 `figma-105-diff-results.json` 已同步最新证据；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，本次没有将局部几何修正标记为像素级 `PASS`。
 - [x] Admin Trace 定向测试、JSON 解析、`npm run typecheck`、`npm run build` 和 `git diff --check` 已验证。
 - [ ] 本小点只完成 Run 记录表列轨道局部几何收口；侧栏身份、其它字体/图标和整页组合差异仍需继续处理，shadcn 全页面视觉迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 134. 2026-08-29 Agent Write Confirmation 最新视觉证据收口
+
+- [x] 依据实时 Figma 节点 `687:773`，将 `/chat?state=write-confirmation` 的映射切换到最新 Figma PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-2026-08-29.png` 和浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-browser-2026-08-29-rgba.png`；未修改 Figma 设计稿。
+- [x] 最新浏览器运行时为 `1440×1024`、DPR `1.0000000149011612`、字体状态 `loaded`、页面无横向溢出、文字越界 `0`；前端左上角红黄绿窗口装饰点数量为 `0`，业务状态圆点保持不变。
+- [x] 写入确认卡实测为 `305×319px`，详情区为 `265×168px`，来源/假设为单行 `265×13px`，操作按钮为 `84×32px` 与 `58×32px`；确认与取消按钮不引入 Figma 不存在的图标，真实模式接口逻辑保持不变。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=275551`、差异比例 `18.6870%`、`MAE=2.020594`、`RMSE=13.143764`、最大通道差异 `232`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/chat-agent-write-confirmation.diff.json`，汇总锚点为 `figma-105-diff-results.json#agent-write-confirmation`。
+- [x] `ChatPage` 定向测试 `27/27`、`npm run typecheck` 和 `git diff --check` 已通过；本项仅收口最新证据和局部卡片几何，不能标记像素级 `PASS`。
+- [ ] 该画板继续为 `DIFF_REVIEW`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
