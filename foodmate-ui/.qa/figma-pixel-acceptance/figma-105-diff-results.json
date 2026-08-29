@@ -172,11 +172,11 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 1295984,
-      "differentRatio": 0.9999876543209877,
-      "meanAbsoluteError": 14.146727044753087,
-      "rmse": 25.361588352726415,
-      "maxChannelDelta": 214
+      "differentPixels": 661829,
+      "differentRatio": 0.510670524691358,
+      "meanAbsoluteError": 0.43737654320987657,
+      "rmse": 2.3392289110192164,
+      "maxChannelDelta": 154
     },
     "token-expired": {
       "status": "COMPARED",

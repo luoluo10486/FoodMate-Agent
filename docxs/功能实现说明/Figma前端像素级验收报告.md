@@ -198,11 +198,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | 账号锁定 | 680:524 | /login?state=account-locked | login-account-locked-browser-rgba.png | DIFF_REVIEW |
 | 账号禁用 | 680:564 | /login?state=account-disabled | login-account-disabled-browser-rgba.png | DIFF_REVIEW |
 | 服务不可用 | 680:606 | /login?state=service-unavailable | login-service-unavailable-browser-rgba.png | DIFF_REVIEW |
-| Token 无效 | 680:738 | /token-status?state=invalid | token-invalid-browser-rgba.png | DIFF_REVIEW |
+| Token 无效 | 680:738 | /token-status?state=invalid | token-invalid-browser-current-2026-08-29-rgba.png | DIFF_REVIEW |
 | Token 过期 | 680:757 | /token-status?state=expired | token-expired-browser-rgba.png | DIFF_REVIEW |
 | Token 已使用 | 680:776 | /token-status?state=used | token-used-browser-rgba.png | DIFF_REVIEW |
 
-新增状态在 1440x900、DPR 1 的浏览器截图与 Figma PNG 上运行了 scripts/png-diff.mjs。结果全部保留 DIFF_REVIEW：登录默认 99.19% / RMSE 7.54；提交中 99.92% / 10.83；字段错误 99.98% / 18.92；凭证错误 99.52% / 20.53；账号锁定 100.00% / 31.18；账号禁用 99.99% / 14.02；服务不可用 99.99% / 13.41；Token 无效 99.99% / 9.39；Token 过期 99.99% / 9.67；Token 已使用 99.99% / 10.76。
+新增状态在 1440x900、DPR 1 的浏览器截图与 Figma PNG 上运行了 scripts/png-diff.mjs。结果全部保留 DIFF_REVIEW：登录默认 99.19% / RMSE 7.54；提交中 99.92% / 10.83；字段错误 99.98% / 18.92；凭证错误 99.52% / 20.53；账号锁定 100.00% / 31.18；账号禁用 99.99% / 14.02；服务不可用 99.99% / 13.41；Token 过期 99.99% / 9.67；Token 已使用 99.99% / 10.76。Token 无效的旧基线为 99.99% / RMSE 9.39，最新 2026-08-29 同尺寸证据已在第 52 节更新为 51.07% / RMSE 2.34。
 
 浏览器行为检查确认：字段错误和凭证错误保留可用登录按钮；提交中、账号锁定、账号禁用和服务不可用禁用登录按钮；Token 三态均能进入找回密码或返回登录。移动注册页的四个输入控件完整位于 390x844 视口内。
 
@@ -484,6 +484,26 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 使用 Figma 节点返回的真实 SVG 资产；标准按钮继续使用 shadcn `Button`。
 - [ ] 三态仍不能标记 `PASS`：自动 diff 仍存在差异，完整 105 画板人工视觉复核也未关闭。
 - [ ] iconfont 实体资源继续为 `BLOCKED`，本轮没有创建字体包、CSS/Unicode 映射或伪造许可证信息。
+
+## 52. 2026-08-29 Token 无效页斜线边界收口
+
+本轮重新读取 Figma 节点 `680:738` 的最新设计上下文和 `1440×900` PNG，并复测 `/token-status?state=invalid`。对照像素边界后确认 Figma 斜线在视口顶部的交点比共享认证背景多 `8px`；仅对 Token 页面覆盖层增加 `clip-path` 的 `calc(100% + 8px)`，没有改变登录、注册或其它认证状态，也没有修改 Figma。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点与视口 | `680:738`，`1440×900` |
+| 页面几何 | 卡片 `x=490,y=241.8,w=460,h=416.4`；内层 `380px`；背景根节点 `1440×900` |
+| Figma PNG | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-invalid-figma-current-2026-08-29.png` |
+| 浏览器 RGBA PNG | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-invalid-browser-current-2026-08-29-rgba.png` |
+| PNG diff | `differentPixels=661829`、差异比例 `51.0671%`、`MAE=0.437377`、`RMSE=2.339229`、最大通道差异 `154`；`DIFF_REVIEW` |
+| 运行时 | `1440×900`、DPR `1.0000000149011612`、字体已加载、无横向溢出 |
+| 回归 | Token/Auth/Workspace/Knowledge 定向测试 `38/38`；`npm run typecheck`、`npm run build`、`git diff --check` 通过 |
+| 窗口装饰检查 | 前端左上角红黄绿装饰候选数量 `0`；业务状态圆点保持不变 |
+
+- [x] Token 无效页背景斜线边界已按最新 Figma 像素测量收口。
+- [x] 105 画板映射已更新为本轮 Figma/浏览器证据；聚合状态仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本页仍不能标记 `PASS`：自动 diff 仍存在文本、图标和浏览器光栅化差异；本轮不以视觉接近替代像素级通过。
+- [ ] iconfont 实体资源继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
 
 ## 51. 2026-08-23 餐食规划列表默认态卡片复核
 
