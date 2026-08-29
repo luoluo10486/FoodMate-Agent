@@ -231,6 +231,25 @@ class RagSettingsTests(TestCase):
         self.assertEqual("deterministic-local-v1", settings.embedding_model)
         self.assertIsInstance(build_local_embedder(settings), DeterministicEmbedder)
 
+    def test_local_deterministic_provider_discards_real_embedding_credentials(self):
+        settings = RagSettings.from_environment({
+            "FOODMATE_RAG_MODE": "local",
+            "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+            "FOODMATE_RAG_EMBEDDING_BASE_URL": "https://embedding.example/v1",
+            "FOODMATE_RAG_EMBEDDING_API_KEY": "must-not-be-retained",
+            "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+            "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+            "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+            "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+            "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+            "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+            "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+            "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+        })
+
+        self.assertEqual("", settings.embedding_base_url)
+        self.assertEqual("", settings.embedding_api_key)
+
     def test_openai_provider_still_fails_closed_without_api_key(self):
         with self.assertRaisesRegex(RagError, "incomplete") as raised:
             RagSettings.from_environment({

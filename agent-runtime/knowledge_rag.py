@@ -134,6 +134,10 @@ class RagSettings:
             embedding_api_key = env.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip()
             milvus_uri = env.get("FOODMATE_RAG_MILVUS_URI", "").strip()
             milvus_collection = env.get("FOODMATE_RAG_MILVUS_COLLECTION", "").strip()
+            if provider == "deterministic":
+                # 确定性模式不保留任何付费 provider 凭据，避免后续适配器误用。
+                embedding_base_url = ""
+                embedding_api_key = ""
         settings = cls(
             mode=mode,
             embedding_provider=provider,
