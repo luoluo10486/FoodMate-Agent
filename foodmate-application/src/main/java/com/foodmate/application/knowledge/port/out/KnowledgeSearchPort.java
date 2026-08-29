@@ -4,17 +4,17 @@ import java.util.List;
 
 /** Runtime 所拥有的公共知识索引查询端口。 */
 public interface KnowledgeSearchPort {
-    /** Searches only the caller-approved knowledge scope. */
+    /** 仅检索调用方获准的知识范围。 */
     SearchResult search(String query, String knowledgeScope);
 
-    /** Bounded search results safe to expose to the Composer and API. */
+    /** 可安全提供给 Composer 和 API 的有界检索结果。 */
     record SearchResult(List<Citation> citations) {
         public SearchResult {
             citations = citations == null ? List.of() : List.copyOf(citations);
         }
     }
 
-    /** Safe citation metadata and bounded text excerpt. */
+    /** 安全引用元数据和有界文本片段。 */
     record Citation(
             long documentId,
             String citationId,

@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/** Retention governance; approval creates a plan but does not execute hard deletion. */
+/** 数据保留治理实现；审批只创建清理计划，不执行硬删除。 */
 @Service
 public class DataRetentionServiceImpl implements DataRetentionService {
     private static final String PURGE_ACTION = "retention.purge.request";
@@ -50,7 +50,7 @@ public class DataRetentionServiceImpl implements DataRetentionService {
     private final Clock clock;
     private final String bucket;
 
-    /** Compatibility constructor for application-only tests. */
+    /** 供仅依赖 application 模块的测试使用的兼容构造函数。 */
     public DataRetentionServiceImpl(
             DataRetentionRepository store, OperationAuditService audit, IdGenerator ids) {
         this(store, audit, ids, Clock.systemUTC(), "foodmate-private");

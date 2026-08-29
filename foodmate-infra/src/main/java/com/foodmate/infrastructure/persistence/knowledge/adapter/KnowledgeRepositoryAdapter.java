@@ -8,7 +8,7 @@ import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
-/** Adapts the application knowledge port to PostgreSQL persistence and shared audit storage. */
+/** 将 application 知识端口适配到 PostgreSQL 持久化和共享审计存储。 */
 @Repository
 @Profile("local")
 public class KnowledgeRepositoryAdapter implements KnowledgeRepository {

@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-/** MyBatis statements for Java-authoritative knowledge documents, jobs, and outboxes. */
+/** Java 权威知识文档、任务和 Outbox 的 MyBatis 语句。 */
 @Mapper
 public interface KnowledgeMapper {
     @Insert(

@@ -7,7 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 
-/** Governance workflow for retention and purge plans; it does not delete data itself. */
+/** 数据保留与清理计划的治理流程；本服务本身不直接删除数据。 */
 public interface DataRetentionService {
     PurgeResult requestPurge(PurgeCommand command);
 
@@ -19,7 +19,7 @@ public interface DataRetentionService {
 
     PurgeResult getPurge(long requestId);
 
-    /** Returns a non-destructive, safe-to-display execution preflight. */
+    /** 返回不产生副作用且可安全展示的执行前置检查结果。 */
     PurgePreflight getPreflight(long requestId);
 
     static String purgeConfirmationDigest(String resourceType, long resourceId) {
