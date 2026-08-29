@@ -15,3 +15,21 @@ class DockerComposeContractTests(TestCase):
         )
         self.assertIn("FOODMATE_DOCKER_MODEL_PRICE_AUDIT_REQUIRED=true", example)
         self.assertNotIn("FOODMATE_MODEL_PRICE_AUDIT_REQUIRED=false", example)
+
+    def test_rag_configuration_is_docker_scoped_including_embedding_secret(self):
+        compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "FOODMATE_RAG_MODE: ${FOODMATE_DOCKER_RAG_MODE:-stub}", compose
+        )
+        self.assertIn(
+            "FOODMATE_RAG_EMBEDDING_API_KEY: ${FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY:-}",
+            compose,
+        )
+        self.assertNotIn(
+            "FOODMATE_RAG_EMBEDDING_API_KEY: ${FOODMATE_RAG_EMBEDDING_API_KEY:-}",
+            compose,
+        )
+        self.assertIn("FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY=", example)
+        self.assertNotIn("FOODMATE_RAG_EMBEDDING_API_KEY=", example)

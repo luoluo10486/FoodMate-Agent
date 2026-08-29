@@ -53,10 +53,10 @@ Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配
 
 ## M2-1 RAG
 
-默认 `FOODMATE_RAG_MODE=stub`，只使用 Redis 隔离前缀保存确定性关键词索引，不连接 Milvus，也不读取 embedding API Key。
+默认 `FOODMATE_DOCKER_RAG_MODE=stub`，只使用 Redis 隔离前缀保存确定性关键词索引，不连接 Milvus，也不读取 embedding API Key。Docker Compose 宿主侧统一使用 `FOODMATE_DOCKER_RAG_*`，避免根目录 `.env` 中的非 Docker 配置意外进入容器。
 
-需要验证向量索引业务路径时，使用 `FOODMATE_RAG_MODE=local` 和
-`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`。此模式使用本地确定性向量并写入 Compose 的 Milvus：
+需要验证向量索引业务路径时，使用 `FOODMATE_DOCKER_RAG_MODE=local` 和
+`FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER=deterministic`。此模式使用本地确定性向量并写入 Compose 的 Milvus：
 
 ```powershell
 docker compose --env-file .env -f docker/compose.yml up -d milvus
@@ -76,16 +76,16 @@ Compose 还会把 local 模式所需的预算、价格版本和确定性向量�
 `local` 时必须显式启动 Milvus，并保持 collection 名称与隔离环境一致：
 
 ```powershell
-$env:FOODMATE_RAG_MODE = "local"
-$env:FOODMATE_RAG_EMBEDDING_PROVIDER = "deterministic"
-$env:FOODMATE_RAG_MILVUS_URI = "http://milvus:19530"
-$env:FOODMATE_RAG_MILVUS_COLLECTION = "foodmate_knowledge_chunks_local"
+$env:FOODMATE_DOCKER_RAG_MODE = "local"
+$env:FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER = "deterministic"
+$env:FOODMATE_DOCKER_RAG_MILVUS_URI = "http://milvus:19530"
+$env:FOODMATE_DOCKER_RAG_MILVUS_COLLECTION = "foodmate_knowledge_chunks_local"
 docker compose --env-file .env -f docker/compose.yml up -d milvus foodmate agent-runtime
 ```
 
-切换真实 OpenAI-compatible embedding 时，将 provider 改为 `openai-compatible`，并显式配置 endpoint、API Key、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。当前只提供基础设施容器，Python/Java 应用仍按各自开发命令启动；Compose 不自动执行数据库迁移。
+切换真实 OpenAI-compatible embedding 时，将 `FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER` 改为 `openai-compatible`，并显式配置 `FOODMATE_DOCKER_RAG_EMBEDDING_BASE_URL`、`FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY`、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。当前只提供基础设施容器，Python/Java 应用仍按各自开发命令启动；Compose 不自动执行数据库迁移。
 
-SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_RAG_MILVUS_COLLECTION`；Embedding 的 `FOODMATE_RAG_EMBEDDING_API_KEY` 必须在被忽略的本地 `.env` 或 Secret Store 中单独显式配置，不能从 Chat provider 变量继承，也不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
+SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_DOCKER_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_DOCKER_RAG_MILVUS_COLLECTION`；Embedding 的 `FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY` 必须在被忽略的本地 `.env` 或 Secret Store 中单独显式配置，不能从 Chat provider 变量继承，也不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
 
 ## RocketMQ
 
