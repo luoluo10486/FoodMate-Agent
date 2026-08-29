@@ -1198,3 +1198,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-table-row-height-browser-2026-08-29.jpg`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-deleted-resources-table-row-height-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-deleted-resources-table-row-height-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=383969`、差异比例 `26.0396%`、`MAE=3.10932`、`RMSE=17.05253`、最大通道差异 `230`，相较前一份 `27.2033%` 的 MAE/RMSE 有所改善。
 - [x] `DeletedResourcesTab.test.tsx` 与 `AdminPage.test.tsx` 定向测试 `11/11` 通过，`npm run typecheck` 和 `git diff --check` 通过；目标 CSS 的 Prettier 检查仍有既有格式提示，未扩大格式化范围。
 - [ ] 本小点只完成删除资源表格局部几何收口；该画板和 105 张画板仍为 `DIFF_REVIEW`，不代表像素级 `PASS`，身份头像、字体、图标、shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 130. 2026-08-29 Admin SQL Audit 风险筛选器列宽收口
+
+- [x] 重新读取实时 Figma 节点 `797:575`、`797:578`，确认筛选行目标为 `1132×32px`，风险筛选器为 `94×32px`、位于 `x=516`，搜索框为 `794×32px`、位于 `x=622`；仅修改前端 `AdminPage.tsx` 和 `AdminPage.module.css`，未修改 Figma 设计稿。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149011612`、字体加载完成条件下实测上述几何，页面无横向或纵向溢出；风险文案实际宽 `50.7px`、下拉图标约 `11.7×12px`，前端左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-risk-filter-browser-2026-08-29.jpg`、转换后的 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-risk-filter-browser-2026-08-29.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-sql-audit-risk-filter-2026-08-29-diff.json`；`png-diff.mjs` 结果为 `differentPixels=287694`、差异比例 `19.5105%`、`MAE=2.491523`、`RMSE=15.989531`、最大通道差异 `230`。
+- [x] Admin 定向测试 `11/11`、`npm run typecheck` 和 `git diff --check` 通过；本次确认的前端窗口装饰候选数量仍为 `0`，业务权限状态圆点不变。
+- [ ] 该小点只收口 SQL Audit 筛选行局部几何；画板和 105 张画板汇总仍为 `DIFF_REVIEW`，不标记像素级 `PASS`；shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

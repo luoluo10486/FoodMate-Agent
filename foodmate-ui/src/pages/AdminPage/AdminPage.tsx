@@ -237,7 +237,7 @@ function SqlAuditFixture() {
     <section className={styles.governanceSurface} aria-label="SQL 审计详情 fixture">
       <GovernanceTabs active="sql-audit" />
 
-      <div className={styles.governanceFilters} aria-label="SQL 审计筛选">
+      <div className={`${styles.governanceFilters} ${styles.sqlAuditFilters}`} aria-label="SQL 审计筛选">
         <span className={styles.governanceStaticFilter}>tool_name: query_usda</span>
         <Select defaultValue="high">
           <SelectTrigger className={styles.governanceRiskFilter} aria-label="SQL 风险筛选">

@@ -4798,6 +4798,10 @@
   height: 32px;
 }
 
+.sqlAuditFilters {
+  grid-template-columns: 220px 94px minmax(0, 1fr);
+}
+
 .governanceStaticFilter,
 .governanceSearch,
 .governanceRiskFilter {

@@ -3835,11 +3835,11 @@
       "queryState": "state=sql-audit",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-figma-live-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-notes-offset-browser-2026-08-29-rgba.png",
-      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-notes-offset-2026-08-29-diff.json",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-risk-filter-browser-2026-08-29.png",
+      "diffJson": ".qa/figma-pixel-acceptance/admin-sql-audit-risk-filter-2026-08-29-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-29 独立 diff 已更新；详情面板依据 Figma 节点 986:18 从浏览器 y=656.4 对齐到 y=674，整页视觉差异仍需复核",
+      "evidenceNote": "2026-08-29 独立 diff 已更新；SQL Audit 详情面板与风险筛选器依据 Figma 节点 986:18、797:578 完成局部几何收口，整页视觉差异仍需复核",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3865,7 +3865,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "SQL Audit tabs, filters, call summary table, masked payload and detail fields remain represented. The detail panel now matches the Figma y=674 geometry target and the browser has no page overflow; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
+        "conclusion": "SQL Audit tabs, filters, call summary table, masked payload and detail fields remain represented. The detail panel matches the Figma y=674 target and the risk filter/search row matches the 94px/794px geometry target; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
       },
       "additionalVisualEvidence": [
         {
@@ -3890,6 +3890,33 @@
             "bodyHorizontalOverflow": false,
             "bodyVerticalOverflow": false,
             "windowControlsCandidates": 0
+          },
+          "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "capturedAt": "2026-08-29",
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-figma-live-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-sql-audit-risk-filter-browser-2026-08-29.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-sql-audit-risk-filter-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "dprPass": true,
+          "geometryEvidence": {
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "fonts": "loaded",
+            "filterRow": "1132x32 at x=284,y=144",
+            "riskFilter": "94x32 at x=516,y=144",
+            "search": "794x32 at x=622,y=144",
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "依据 Figma 节点 797:575、797:578，将 SQL Audit 风险筛选器列宽从通用 136px 收口为 94px，使搜索框起点回到 x=622；仅修改前端，未修改 Figma。",
+          "diff": {
+            "differentPixels": 287694,
+            "differentRatio": 0.19510498046875,
+            "meanAbsoluteError": 2.4915234035915796,
+            "rmse": 15.989531085563728,
+            "maxChannelDelta": 230
           },
           "conclusion": "DIFF_REVIEW"
         }

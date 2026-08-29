@@ -1,0 +1,29 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 287694,
+  "differentRatio": 0.19510498046875,
+  "meanAbsoluteError": 2.4915234035915796,
+  "rmse": 15.989531085563728,
+  "maxChannelDelta": 230,
+  "expected": "recaptured/admin-sql-audit-figma-live-2026-08-29.png",
+  "actual": "recaptured/admin-sql-audit-risk-filter-browser-2026-08-29.png",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "geometry": {
+    "filterRow": "1132x32 at x=284,y=144",
+    "staticFilter": "220x32 at x=284,y=144",
+    "riskFilter": "94x32 at x=516,y=144",
+    "search": "794x32 at x=622,y=144",
+    "riskLabel": "50.7x16",
+    "riskChevron": "11.7x12",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据 Figma 节点 797:575、797:578，将 SQL Audit 风险筛选器列宽从通用 136px 收口为 94px，使搜索框起点回到 x=622；仅修改前端，未修改 Figma。",
+  "conclusion": "DIFF_REVIEW"
+}
