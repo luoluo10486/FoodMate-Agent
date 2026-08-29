@@ -100,6 +100,19 @@ def _record_provider_failure(error: ModelProviderError, elapsed_ms: int) -> None
     _eval_metrics.record("degrade", reason, elapsed_ms)
 
 
+def _record_model_attempts(attempts, transport: str | None = None) -> None:
+    """将模型调用写入固定标签的运行统计，不保留动态供应商标识。"""
+    for attempt in attempts:
+        result = "success" if attempt.status == "success" else "timeout" if attempt.status == "timeout" else "failed"
+        _runtime_metrics.record_model_attempt(
+            attempt.scene,
+            result,
+            attempt.error_code,
+            attempt.latency_ms,
+            transport,
+        )
+
+
 def _context_source_payload(context) -> dict[str, object]:
     """Expose source identifiers only; context text remains Java-authorized data."""
     source_ids: dict[str, list[str]] = {}
@@ -636,6 +649,7 @@ def execute(command):
                 "reason": "REQUIRED_PARAMETER_MISSING",
             })
             return
+        _record_model_attempts(execution.model_attempts)
         for index, attempt in enumerate(execution.model_attempts, start=1):
             emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
             next_sequence += 1
@@ -669,6 +683,7 @@ def execute(command):
         _runtime_metrics.record("dispatch", "success", "completed", int((time.monotonic() - started) * 1000))
     except ModelProviderError as error:
         # 模型失败也必须回到 Java 状态机，不能由 Runtime 静默吞掉。
+        _record_model_attempts(error.attempts)
         for index, attempt in enumerate(error.attempts, start=1):
             emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
             next_sequence += 1
@@ -739,6 +754,20 @@ def _citation_payload(citations) -> list[dict[str, str]]:
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/foodmate/internal/metrics":
+            if not self._authenticated():
+                self._json(401, {"code": "RUNTIME_AUTH_INVALID"})
+                return
+            self._json(
+                200,
+                {
+                    "contract_version": CONTRACT_VERSION,
+                    "started_at": _runtime_started_at,
+                    "eval": _eval_metrics.snapshot(),
+                    "runtime": _runtime_metrics.snapshot(),
+                },
+            )
+            return
         if self.path not in {"/foodmate/internal/health/live", "/foodmate/internal/health/ready"}:
             self.send_error(404)
             return
@@ -832,6 +861,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.path.endswith("/runs")
             else "runtime:knowledge-search"
             if self.path == "/foodmate/internal/v1/knowledge/search"
+            else "runtime:metrics"
+            if self.path == "/foodmate/internal/metrics"
             else "runtime:cancel"
         )
         return _verify(authorization[7:], "foodmate-control-plane", "foodmate-agent-runtime", required_scope)

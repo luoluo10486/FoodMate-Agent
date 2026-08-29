@@ -86,6 +86,33 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual("UP", payload["status"])
         self.assertEqual("disabled", payload["dependencies"]["redis"]["status"])
 
+    def test_metrics_endpoint_returns_only_aggregate_runtime_state(self):
+        handler = runtime_server.Handler.__new__(runtime_server.Handler)
+        responses = []
+        handler.path = "/foodmate/internal/metrics"
+        handler.headers = {}
+        handler._json = lambda status, payload: responses.append((status, payload))
+        with patch.object(runtime_server, "JWT_ENABLED", False), patch.object(
+            runtime_server._runtime_metrics,
+            "snapshot",
+            return_value={"operations": {"model": {"total": 1}}, "queues": {}},
+        ):
+            handler.do_GET()
+
+        self.assertEqual(200, responses[0][0])
+        self.assertEqual(1, responses[0][1]["runtime"]["operations"]["model"]["total"])
+        self.assertNotIn("run_id", responses[0][1])
+
+    def test_metrics_endpoint_requires_a_dedicated_service_scope(self):
+        handler = runtime_server.Handler.__new__(runtime_server.Handler)
+        handler.path = "/foodmate/internal/metrics"
+        handler.headers = {"Authorization": "Bearer token"}
+        with patch.object(runtime_server, "JWT_ENABLED", True), patch.object(
+            runtime_server, "_verify", return_value=False
+        ) as verify:
+            self.assertFalse(handler._authenticated())
+        self.assertEqual("runtime:metrics", verify.call_args.args[-1])
+
     def test_knowledge_search_endpoint_returns_safe_public_citations(self):
         handler = runtime_server.Handler.__new__(runtime_server.Handler)
         responses = []
