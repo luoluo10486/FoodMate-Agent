@@ -1319,3 +1319,13 @@
 | Python 缓存 | 源码与测试目录的 `.pyc/.pyo`、`__pycache__`、`.pytest_cache` 已清理；`.venv` 内部依赖缓存保留并由 `.gitignore` 忽略，不纳入版本库。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；未使用对话中暴露的旧凭据。 |
 | 结论 | 当前本地业务门禁和规范/秘密扫描通过；真实云调用需使用轮换后的新凭据，生产强化和暂缓验证仍不能标记完成。 |
+
+## D69 依赖漏洞扫描复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行命令 | `script\\security\\security-scan.ps1 -RunPythonAudit -RunNpmAudit`；并使用 `agent-runtime\\.venv\\Scripts\\python.exe -m pip_audit --local` 复核。 |
+| Python | `pip-audit` 报告 `No known vulnerabilities found`；项目自身 editable 包不在 PyPI，按工具提示跳过该包，不影响第三方依赖扫描结论。 |
+| npm | `package-lock.json` 存在，但当前 registry advisory endpoint 返回不可用，脚本记录 `npm audit: registry advisory endpoint unavailable` 并将该项标记为 skipped。 |
+| 秘密扫描 | `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`。 |
+| 结论 | Python 依赖和仓库秘密扫描有本地证据；npm advisory 服务恢复后需重新执行，OWASP dependency-check、渗透测试和生产安全验证仍未完成。 |
