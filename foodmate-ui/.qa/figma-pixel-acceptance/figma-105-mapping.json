@@ -875,9 +875,10 @@
       "frontendRoute": "/token-status",
       "queryState": "state=used",
       "browserViewport": "1440x900",
-      "figmaPng": "docxs/设计/figma-png/token-used.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-used-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-used-figma-current-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-used-browser-current-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-used",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/token-used-current-diff-2026-08-29.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -905,8 +906,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Used-token page differs visually from the Figma reference. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-29",
+        "conclusion": "Latest same-size Figma and browser captures match the page hierarchy, two-button action stack, and card geometry. Text/icon rasterization and remaining pixels require continued DIFF_REVIEW."
       }
     },
     {

@@ -200,7 +200,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | 服务不可用 | 680:606 | /login?state=service-unavailable | login-service-unavailable-browser-rgba.png | DIFF_REVIEW |
 | Token 无效 | 680:738 | /token-status?state=invalid | token-invalid-browser-current-2026-08-29-rgba.png | DIFF_REVIEW |
 | Token 过期 | 680:757 | /token-status?state=expired | token-expired-browser-rgba.png | DIFF_REVIEW |
-| Token 已使用 | 680:776 | /token-status?state=used | token-used-browser-rgba.png | DIFF_REVIEW |
+| Token 已使用 | 680:776 | /token-status?state=used | token-used-browser-current-2026-08-29-rgba.png | DIFF_REVIEW |
 
 新增状态在 1440x900、DPR 1 的浏览器截图与 Figma PNG 上运行了 scripts/png-diff.mjs。结果全部保留 DIFF_REVIEW：登录默认 99.19% / RMSE 7.54；提交中 99.92% / 10.83；字段错误 99.98% / 18.92；凭证错误 99.52% / 20.53；账号锁定 100.00% / 31.18；账号禁用 99.99% / 14.02；服务不可用 99.99% / 13.41；Token 过期 99.99% / 9.67；Token 已使用 99.99% / 10.76。Token 无效的旧基线为 99.99% / RMSE 9.39，最新 2026-08-29 同尺寸证据已在第 52 节更新为 51.07% / RMSE 2.34。
 
@@ -503,6 +503,26 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] Token 无效页背景斜线边界已按最新 Figma 像素测量收口。
 - [x] 105 画板映射已更新为本轮 Figma/浏览器证据；聚合状态仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本页仍不能标记 `PASS`：自动 diff 仍存在文本、图标和浏览器光栅化差异；本轮不以视觉接近替代像素级通过。
+- [ ] iconfont 实体资源继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
+
+## 136. 2026-08-29 Token 已使用页当前证据收口
+
+本轮重新读取 Figma 节点 `680:776` 并复测 `/token-status?state=used`。运行时确认该状态的两按钮操作组、信息图标状态层、卡片高度和已验证的共享斜线背景边界均符合当前设计稿结构；本轮没有新增源码改动，也没有修改 Figma。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点与视口 | `680:776`，`1440×900` |
+| 页面几何 | 卡片 `x=490,y=196.6,w=460,h=506.8`；内层 `380px`；两个操作按钮均 `380×52px`，间距 `16px` |
+| Figma PNG | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-used-figma-current-2026-08-29.png` |
+| 浏览器 RGBA PNG | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-used-browser-current-2026-08-29-rgba.png` |
+| PNG diff | `differentPixels=674374`、差异比例 `52.0350%`、`MAE=0.551200`、`RMSE=3.350627`、最大通道差异 `149`；`DIFF_REVIEW` |
+| 独立 diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-used-current-diff-2026-08-29.json` |
+| 运行时 | `1440×900`、DPR `1.0000000149011612`、字体已加载、无横向溢出 |
+| 状态行为 | 重新发送进入 `/forgot-password`；联系客服入口保留；返回登录进入 `/login`；未伪造客服或邮件结果 |
+
+- [x] Token 已使用页已完成最新设计稿读取、同尺寸浏览器截图、几何检查和 diff 登记。
+- [x] `figma-105-mapping.json` 保留完整 105 项字段，并将本状态指向最新证据；聚合状态仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本页仍不能标记 `PASS`：自动 diff 仍存在文本、图标和浏览器光栅化差异；不能用视觉接近替代像素级通过。
 - [ ] iconfont 实体资源继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
 
 ## 135. 2026-08-29 Token 过期页当前证据收口
