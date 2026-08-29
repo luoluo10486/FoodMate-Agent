@@ -1434,3 +1434,18 @@
 | 云服务边界 | 未调用 SiliconFlow；对话中公开的旧凭据不再使用。真实 Chat 和两个 Embedding smoke 需在供应商控制台轮换后，通过当前 PowerShell 进程显式注入新凭据。 |
 | 暂缓范围 | 未执行性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复、生产监控部署或现有数据库不可逆清理。 |
 | 结论 | 当前本地业务、隔离清理、Java 构建规范和秘密扫描均有本轮证据；真实云联调和生产强化仍不能标记完成。 |
+
+## D79 M1-6 业务入口与当前缓存边界复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；Docker Server `28.5.1`。 |
+| M1-6 入口 | `script\local\m1-6-traffic-recovery.tests.ps1`：`m1_6_traffic_contract=passed`；PowerShell 脚本解析通过。新增入口默认只做 readiness 预检，必须显式传入 `-ExecuteTraffic` 才会注册随机用户并执行 80% AgentRun、20% Proposal 业务路径。 |
+| M1-6 预检 | `m1-6-traffic-recovery.ps1 -WarmupSeconds 1 -SteadySeconds 1 -Workers 1`：Java readiness、Actuator metrics、Python readiness 和 PostgreSQL outbox 查询均可用；本轮未发业务流量、未重启容器、未注入故障。 |
+| Python 业务门禁 | 在 `agent-runtime` 目录执行 `PYTHONDONTWRITEBYTECODE=1 .\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`163 passed、2 skipped、4 subtests passed`。 |
+| Java 业务门禁 | `mvnw.cmd -B -ntp verify`：Shared `12`、Application `214`、Infrastructure `102`（20 skipped）、API `68`、Bootstrap `58`（37 skipped），无失败；Spotless 通过。 |
+| 安全门禁 | `security-scan.ps1`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`；`secret-rotation-check.tests.ps1` 通过。轮换脚本提示默认 Docker 环境未开启 JWT。 |
+| Python 缓存 | 当前 `agent-runtime` 范围 `.pyc=1434`，其中源码目录 `29`、`.venv` `1405`；全部未被 Git 跟踪，`.gitignore` 已覆盖。递归删除命令被当前环境策略阻止，本轮未删除缓存；后续测试继续使用 `PYTHONDONTWRITEBYTECODE=1`。 |
+| 云服务边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow Chat/Embedding；两个真实 Embedding profile 的 smoke 需在供应商控制台轮换后由当前 PowerShell 进程显式注入新密钥。 |
+| 暂缓边界 | 未执行 30 秒预热/120 秒稳态长时流量、组件重启、ACK/重复消息故障注入、SSE 断线恢复或生产操作；该入口提交为 `2f3b649c`。 |
+| 结论 | M1-6 本地业务入口、Python/Java 业务门禁和安全扫描有本轮证据；`.pyc` 仅为可再生缓存且当前未清理，真实云联调及性能/故障验证仍未完成。 |
