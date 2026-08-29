@@ -1460,3 +1460,15 @@
 | Python 业务门禁 | 设置 `PYTHONDONTWRITEBYTECODE=1` 后执行 `\.venv\Scripts\python.exe -m pytest -q`：`163 passed、2 skipped、4 subtests passed`。 |
 | 工作树保护 | 未修改用户已有 UI/QA 文件；未执行迁移、truncate、宽泛删除、生产操作或真实云调用。 |
 | 结论 | 项目源码无 Python 字节码残留；后续测试继续使用 `PYTHONDONTWRITEBYTECODE=1`，真实云 smoke 仍需供应商控制台轮换后的新凭据。 |
+
+## D81 当前分支 Java、Python 与安全门禁复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；Java 21；Python 使用 `agent-runtime\.venv`。 |
+| Python 业务门禁 | 设置 `PYTHONDONTWRITEBYTECODE=1` 后执行 `\.venv\Scripts\python.exe -m pytest -q`：`163 passed、2 skipped、4 subtests passed`。 |
+| Java 全量门禁 | 执行 `mvnw.cmd -B -ntp verify`：Shared `12/12`、Application `214/214`、Infrastructure `102`（20 skipped）、API `68/68`、Bootstrap `59`（37 skipped），最终 `BUILD SUCCESS`；Spotless 通过。 |
+| 安全扫描 | 执行 `script\security\security-scan.ps1 -RunPythonAudit`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`、`security_scan_status=passed`。 |
+| 外部服务边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow；真实 Chat 与两个 Embedding smoke 仍需控制台轮换后的新凭据。 |
+| 工作树保护 | 未修改用户已有 UI/QA 改动；未执行迁移、truncate、生产部署、性能压测、故障注入或不可逆清理。 |
+| 结论 | 当前业务代码、Java 规范和安全扫描门禁有新鲜证据；生产长稳、真实云联调及后置运维验证仍未完成。 |
