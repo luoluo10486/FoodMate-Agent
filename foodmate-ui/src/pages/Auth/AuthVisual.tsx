@@ -11,11 +11,19 @@ export const authShellFigmaTokens = {
     diagonal: '#c5f0d6',
     accent: '#48c78e',
   },
+  forgot: {
+    accent: '#48c78e',
+  },
 } as const;
 
 type AuthShellStyle = CSSProperties & {
   '--auth-diagonal'?: string;
   '--auth-accent'?: string;
+};
+
+type AuthShellTokens = {
+  diagonal?: string;
+  accent: string;
 };
 
 const fieldIconSources = {
@@ -24,7 +32,12 @@ const fieldIconSources = {
 } as const;
 
 export function AuthShell({ variant, children }: { variant: AuthVariant; children: ReactNode }) {
-  const tokens = variant === 'register' ? authShellFigmaTokens.register : undefined;
+  const tokens: AuthShellTokens | undefined =
+    variant === 'register'
+      ? authShellFigmaTokens.register
+      : variant === 'forgot'
+        ? authShellFigmaTokens.forgot
+        : undefined;
   const style = tokens
     ? ({
         '--auth-diagonal': tokens.diagonal,

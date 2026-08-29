@@ -1463,3 +1463,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `AuthPages.test.tsx` 定向测试为 `21/21`；浏览器 RGBA 证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-rgba.png`，Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/register-page-2026-08-30-diff.json`。
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=1281714`、差异比例 `98.8977%`、`MAE=5.1327166`、`RMSE=12.1961723`、最大通道差异 `204`；该结果仍受浏览器截图 JPEG 转码和文字/图标光栅化影响，已同步 `figma-105-mapping.json` 与 `figma-105-diff-results.json#register-page`。
 - [ ] 注册画板继续保持 `DIFF_REVIEW`，本次只关闭可测量的 Figma 色彩 Token 差异，不代表整页像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 158. 2026-08-30 找回密码页品牌强调色 Token 收口
+
+- [x] 依据 Figma 节点 `680:275`，将 `/forgot-password` 的品牌标记强调色通过 `AuthShell` 语义变量收口为 `#48c78e`；仅修改前端，未修改 Figma 设计稿，也未改变 Token 状态页的独立覆盖。
+- [x] `AuthPages.test.tsx` 新增找回密码页强调色回归断言，先验证 `1 failed / 21 passed`，实现后定向测试为 `22/22`；真实密码找回接口和成功提示交互保持不变。
+- [x] 浏览器在 `1440×900` 视口实测根节点 `1440×900`、字体状态 `loaded`、页面无横向溢出，`--auth-accent: #48c78e`，前端左上角 `window-controls`/`traffic-light` 候选数量为 `0`；实际浏览器 DPR 为 `1.25`，严格 DPR 1 门禁未通过。
+- [x] 浏览器原始捕获与转换后的 RGBA PNG 已登记：`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/forgot-password-page-browser-2026-08-30.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/forgot-password-page-browser-2026-08-30-rgba.png`；Figma 参考为 `docxs/设计/figma-png/forgot-password-page.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/forgot-password-page-2026-08-30-diff.json`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=1295141`、差异比例 `99.9337%`、`MAE=1.122291`、`RMSE=6.930499`、最大通道差异 `203`；映射和聚合 diff 已同步，结果继续为 `DIFF_REVIEW`。
+- [ ] 本小点只完成找回密码页品牌色 Token 收口，不代表该画板或 105 张画板达到像素级 `PASS`；DPR、字体/图标光栅化和整页视觉差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

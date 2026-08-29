@@ -314,6 +314,14 @@ describe('authentication pages', () => {
     expect(screen.getByRole('status')).toHaveTextContent('重置邮件请求已完成');
   });
 
+  it('uses the Figma accent token for the forgot-password brand mark', () => {
+    renderAuth('/forgot-password');
+
+    expect(screen.getByRole('main')).toHaveStyle({
+      '--auth-accent': '#48c78e',
+    });
+  });
+
   it('renders the reset-password strength contract and protects missing tokens', async () => {
     const user = userEvent.setup();
     renderAuth('/reset-password');

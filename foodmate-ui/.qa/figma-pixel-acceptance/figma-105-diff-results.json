@@ -84,11 +84,11 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 1295813,
-      "differentRatio": 0.9998557098765433,
-      "meanAbsoluteError": 3.0025385802469136,
-      "rmse": 17.035177769421793,
-      "maxChannelDelta": 231
+      "differentPixels": 1295141,
+      "differentRatio": 0.9993371913580247,
+      "meanAbsoluteError": 1.1222908950617283,
+      "rmse": 6.930499192600918,
+      "maxChannelDelta": 203
     },
     "reset-password-page": {
       "status": "COMPARED",
