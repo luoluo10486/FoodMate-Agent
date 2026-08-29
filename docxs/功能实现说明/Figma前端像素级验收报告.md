@@ -1513,3 +1513,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 主浏览器证据已切换为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-planning-window-controls-pruned-browser-2026-08-30-rgba.png`，原始 JPEG 为同目录下的 `agent-planning-window-controls-pruned-browser-2026-08-30.jpg`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-planning-window-controls-pruned-2026-08-30-diff.json`。
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=269822`、差异比例 `18.2985%`、`MAE=2.215929`、`RMSE=13.810469`、最大通道差异 `241`；相较旧证据 `19.0926% / RMSE 15.607428` 有改善，但结论继续为 `DIFF_REVIEW`。
 - [ ] 本小点只完成 Agent Planning 的当前证据和前端窗口装饰核验，不代表该画板或 105 张画板达到像素级 `PASS`；默认头像、图标和字体光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 164. 2026-08-30 Agent Tool Executing 当前前端截图与窗口装饰收口
+
+- [x] 依据 Figma 节点 `687:475`，重新采集 `/chat?state=tool-executing` 的当前前端页面；主区 `860px`、Trace 区 `320px`、工具执行卡 `x=340,y=237,width=181,height=250`、Composer `x=260,y=912,width=860,height=112`，页面无横向或纵向溢出。
+- [x] 当前浏览器截图确认左上角红、黄、绿窗口装饰点数量为 `0`；该检查只针对前端，未修改 Figma 设计稿，业务状态圆点和默认头像不作误删。
+- [x] 主浏览器证据已切换为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-tool-executing-window-controls-pruned-browser-2026-08-30-rgba.png`，原始 JPEG 为同目录下的 `agent-tool-executing-window-controls-pruned-browser-2026-08-30.jpg`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-tool-executing-window-controls-pruned-2026-08-30-diff.json`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=334780`、差异比例 `22.7037%`、`MAE=2.846537`、`RMSE=15.945549`、最大通道差异 `249`；相较旧证据 `23.4617% / RMSE 16.960477` 有改善，但结论继续为 `DIFF_REVIEW`。
+- [ ] 本小点只完成 Agent Tool Executing 的当前证据和前端窗口装饰核验，不代表该画板或 105 张画板达到像素级 `PASS`；默认头像、图标和字体光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

@@ -2014,6 +2014,38 @@
         "width": 1440
       }
     },
+    "agent-tool-executing": {
+      "artboardName": "agent-tool-executing",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=tool-executing",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "executingGeometry": {
+        "main": "x=260,width=860",
+        "tracePanel": "x=1120,width=320",
+        "userBubble": "x=812,y=145,width=228,height=49",
+        "executingBubble": "x=340,y=237,width=181,height=250",
+        "composer": "x=260,y=912,width=860,height=112"
+      },
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
     "admin-run-detail": {
       "artboardName": "admin-run-detail",
       "body": {
