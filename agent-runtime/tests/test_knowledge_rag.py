@@ -2,8 +2,9 @@ import json
 from io import BytesIO
 import urllib.error
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock
 from unittest.mock import Mock
+from unittest.mock import patch
 import zipfile
 
 from knowledge_rag import (DeterministicEmbedder, KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key)
@@ -439,7 +440,15 @@ class RagSettingsTests(TestCase):
         self.assertEqual("RAG_EMBEDDING_BASE_URL_MISSING", raised.exception.code)
 
 
-class OpenAICompatibleEmbedderTests(TestCase):
+class OpenAICompatibleEmbedderConfigurationTests(TestCase):
+    @staticmethod
+    def _response(body):
+        response = MagicMock()
+        response.read.return_value = body
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        return response
+
     def _settings(self):
         return RagSettings(
             mode="local",
@@ -450,8 +459,7 @@ class OpenAICompatibleEmbedderTests(TestCase):
         )
 
     def test_invalid_json_fails_closed(self):
-        response = Mock()
-        response.read.return_value = b"not-json"
+        response = self._response(b"not-json")
         with patch("urllib.request.urlopen", return_value=response):
             with self.assertRaisesRegex(RagError, "invalid embedding response") as raised:
                 OpenAICompatibleEmbedder(self._settings()).embed(["hello"])
@@ -464,8 +472,7 @@ class OpenAICompatibleEmbedderTests(TestCase):
         )
         for payload in payloads:
             with self.subTest(payload=payload):
-                response = Mock()
-                response.read.return_value = json.dumps(payload).encode("utf-8")
+                response = self._response(json.dumps(payload).encode("utf-8"))
                 with patch("urllib.request.urlopen", return_value=response):
                     with self.assertRaises(RagError) as raised:
                         OpenAICompatibleEmbedder(self._settings()).embed(["one", "two"])
