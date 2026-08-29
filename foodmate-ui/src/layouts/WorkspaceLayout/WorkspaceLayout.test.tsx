@@ -107,11 +107,16 @@ describe('WorkspaceLayout shell controls', () => {
     expect(shell).toBeInTheDocument();
     expect(activeSection).toBeInTheDocument();
     expect(activeSession).toBeInTheDocument();
-    const stylesheet = readFileSync(resolve(process.cwd(), 'src/layouts/WorkspaceLayout/WorkspaceLayout.module.css'), 'utf8');
+    const stylesheet = readFileSync(
+      resolve(process.cwd(), 'src/layouts/WorkspaceLayout/WorkspaceLayout.module.css'),
+      'utf8',
+    );
     expect(stylesheet).toContain('--fm-fixture-sidebar-active-surface: #fbf7f2;');
     expect(stylesheet).toContain('--fm-fixture-session-active-surface: #fffcf9;');
+    expect(stylesheet).toContain('--fm-fixture-top-nav-active-surface: #fffefc;');
     expect(stylesheet).not.toContain('--fm-fixture-sidebar-active-surface: rgba(199, 150, 84, 0.08);');
     expect(stylesheet).not.toContain('--fm-fixture-session-active-surface: rgba(255, 246, 226, 0.2);');
+    expect(stylesheet).not.toContain('--fm-fixture-top-nav-active-surface: #fffefa;');
   });
 
   it('allows a page to hide only the topbar mark letter while keeping its top navigation', () => {

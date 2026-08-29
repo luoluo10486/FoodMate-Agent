@@ -11,7 +11,7 @@
 .figmaFixture {
   --fm-fixture-sidebar-active-surface: #fdf6ef;
   --fm-fixture-session-active-surface: #fffdf5;
-  --fm-fixture-top-nav-active-surface: #fffefa;
+  --fm-fixture-top-nav-active-surface: #fffefc;
 }
 
 /* Keep the Figma fixture rail at its 340px canvas boundary without letting the divider consume layout space. */
@@ -32,6 +32,7 @@
 .designChat {
   --fm-fixture-sidebar-active-surface: #fbf7f2;
   --fm-fixture-session-active-surface: #fffcf9;
+  --fm-fixture-top-nav-active-surface: #fffefc;
 }
 
 .figmaFixture .primarySideNav {

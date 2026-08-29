@@ -88,11 +88,11 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-selection-surfaces-browser-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-top-nav-active-surface-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; 2026-08-30 selection-surface evidence is the current primary capture; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; 2026-08-30 top-navigation surface evidence is the current primary capture; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -117,8 +117,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-27",
-        "conclusion": "The refreshed browser fixture preserves the Figma assistant-body font, removes the extra Trace active-step border, and restores the 12px top blank area reserved by the Figma window-control region without rendering the three dots. Avatar assets, icon rasterization, and remaining browser rendering differences are still visible; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The refreshed browser fixture uses the Figma top-navigation active surface #FFFEFC, preserves the assistant-body font, and keeps the 12px top blank area without rendering the three dots. Avatar assets, icon rasterization, and remaining browser rendering differences are still visible; retain DIFF_REVIEW."
       },
       "supplementalEvidence": [
         {
@@ -151,6 +151,24 @@
             "windowControlsCandidates": 0
           },
           "note": "仅收口 Figma 节点 640:428 的侧栏 Agent 对话选中态和当前会话行背景色；DPR 为 1.25，整页仍保留 DIFF_REVIEW。"
+        },
+        {
+          "label": "顶部导航选中态颜色局部验收",
+          "figmaNodeId": "640:428",
+          "frontendRoute": "/chat",
+          "queryState": "state=figma-v2",
+          "browserViewport": "1440x1024",
+          "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-top-nav-active-surface-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-chat-v2-top-nav-active-surface-2026-08-30-diff.json",
+          "status": "DIFF_REVIEW",
+          "actualDpr": 1.25,
+          "geometry": {
+            "topNavActiveSurface": "rgb(255, 254, 252)",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "note": "仅收口 Figma 节点 640:428 的顶部工作台选中态背景色；浏览器实际颜色为 #FFFEFC，DPR 为 1.25，整页仍保留 DIFF_REVIEW。"
         }
       ]
     },
