@@ -1266,10 +1266,13 @@
 }
 
 .overviewErrorCode {
+  display: block;
   color: #333333;
   font-weight: 700;
+  width: 48px;
   overflow-wrap: anywhere;
-  white-space: nowrap;
+  line-height: 14px;
+  white-space: normal;
 }
 
 .copyButton {
