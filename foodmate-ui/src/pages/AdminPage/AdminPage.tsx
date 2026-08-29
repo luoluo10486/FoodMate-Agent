@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, FileWarning, LoaderCircle, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -836,7 +836,12 @@ export function AdminPage() {
                   if (isLocked) event.preventDefault();
                 }}
               >
-                {item.icon}
+                <span
+                  aria-hidden="true"
+                  className={styles.navIcon}
+                  data-figma-icon={item.key}
+                  style={{ '--admin-nav-icon': `url("${item.iconPath}")` } as CSSProperties}
+                />
                 <span>{item.label}</span>
               </Link>
             );

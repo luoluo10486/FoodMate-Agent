@@ -54,6 +54,29 @@ describe('AdminPage overview', () => {
     expect(document.body.innerHTML).not.toMatch(/#ff3b30|#ffcc00|#34c759/i);
   });
 
+  it('uses the registered Figma SVG asset for every admin navigation item', () => {
+    renderAdmin();
+
+    const icons = Array.from(document.querySelectorAll<HTMLElement>('[data-figma-icon]'));
+    expect(icons).toHaveLength(11);
+    expect(icons.map((icon) => icon.dataset.figmaIcon)).toEqual([
+      'overview',
+      'users',
+      'runs',
+      'tools',
+      'sql',
+      'trace',
+      'usage',
+      'knowledge',
+      'registry',
+      'deleted',
+      'audit',
+    ]);
+    expect(icons.every((icon) => icon.style.getPropertyValue('--admin-nav-icon').includes('/assets/figma/admin/navigation/'))).toBe(
+      true,
+    );
+  });
+
   it('filters the overview table by result and search query', async () => {
     const user = userEvent.setup();
     renderAdmin();

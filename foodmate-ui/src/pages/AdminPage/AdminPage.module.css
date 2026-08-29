@@ -113,12 +113,14 @@
     color 160ms ease;
 }
 
-.navButton svg {
+.navIcon {
+  display: block;
   flex: 0 0 auto;
   width: 18px;
   height: 18px;
-  color: var(--fm-ink);
-  stroke-width: 1.8;
+  background: currentColor;
+  -webkit-mask: var(--admin-nav-icon) center / contain no-repeat;
+  mask: var(--admin-nav-icon) center / contain no-repeat;
 }
 
 .navButton:hover,
@@ -4034,7 +4036,7 @@
   .adminLogoCopy,
   .adminTag,
   .workspaceLink,
-  .navButton span,
+  .navButton > span:last-child,
   .privilegeBox strong,
   .userMetadata {
     display: none;

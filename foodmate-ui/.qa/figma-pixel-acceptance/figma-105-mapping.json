@@ -4637,7 +4637,7 @@
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
       "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-table-row-height-browser-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-navigation-browser-2026-08-29.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4667,7 +4667,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "Admin overview content is substantially present; the desktop topbar, analytics-card inner height/cropping, main table column tracks, desktop table overflow behavior, and six 58px data rows now follow the checked Figma nodes. Typography, icon treatment, sidebar identity, and other composition differences remain. Retain DIFF_REVIEW."
+        "conclusion": "Admin overview content is substantially present; the desktop topbar, analytics-card inner height/cropping, main table column tracks, desktop table overflow behavior, six 58px data rows, and Figma navigation icon treatment now follow the checked Figma nodes. Typography, sidebar identity, and other composition differences remain. Retain DIFF_REVIEW."
       },
       "additionalVisualEvidence": [
         {
@@ -4771,6 +4771,28 @@
             "windowControlsCandidates": 0
           },
           "visualChange": "依据 Figma 节点 995:1053、995:1085，将 Admin Overview 主表六条数据行从 55px 调整为 58px，使 48px 表头加六条数据行精确达到 396px；仅修改前端，未修改 Figma，业务状态圆点保留。",
+          "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "capturedAt": "2026-08-29",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-navigation-browser-2026-08-29.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-overview-navigation-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "geometryEvidence": {
+            "sidebar": "260x1024 at x=0,y=0",
+            "navItems": 11,
+            "uniqueFigmaSvgAssets": 9,
+            "navIconSize": "11 x 18x18",
+            "mobile": "390x844: navigation icons remain 18x18; labels collapse without hiding icons",
+            "fonts": "loaded",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0,
+            "brokenImages": 0
+          },
+          "visualChange": "依据实时 Figma 节点 995:978、995:987、995:988-995:1031，将 Admin 侧栏导航从 Lucide 形状替换为 9 个可追溯的 Figma SVG 资产；SQL/模型用量与 Trace/工具注册表按设计稿复用对应资产。仅修改前端，未修改 Figma，业务权限状态圆点保留。",
           "conclusion": "DIFF_REVIEW"
         }
       ]

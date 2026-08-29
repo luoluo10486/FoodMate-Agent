@@ -1383,3 +1383,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 已登记浏览器原始 JPEG、RGBA PNG 和独立 diff JSON；同尺寸结果为 `differentPixels=472888`、差异比例 `32.0698%`、`MAE=2.946841`、`RMSE=15.766627`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json` 主证据、`figma-105-diff-results.json` 和运行时几何证据已同步；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成 Admin Overview 主表行高局部几何收口，不代表 Admin Overview 或 105 张画板达到像素级 `PASS`；整页字体、图标、侧栏身份等差异、shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 148. 2026-08-29 Admin Overview 侧栏导航图标资产收口
+
+- [x] 依据实时 Figma 节点 `995:977`、`995:978`、`995:987`、`995:988-995:1031`，确认侧栏导航使用 9 个唯一 `18×18` SVG 资产，并按设计稿复用关系覆盖 11 个导航项；Figma 设计稿未修改。
+- [x] 前端新增 `foodmate-ui/public/assets/figma/admin/navigation/` 下的 `overview.svg`、`users.svg`、`runs.svg`、`tools.svg`、`sql.svg`、`trace.svg`、`knowledge.svg`、`deleted.svg`、`audit.svg`；`SQL 审计/模型用量` 复用 `sql.svg`，`Trace/工具注册表` 复用 `trace.svg`。
+- [x] 浏览器在 `1440×1024` 与 `390×844`、DPR `1.0000000149011612`、字体加载完成条件下复核：11 个图标均为 `18×18`，移动端导航文字折叠但图标保持可见；页面无横向溢出，资源加载失败数为 `0`，左上角红黄绿窗口装饰候选数量为 `0`，业务权限状态圆点保留。
+- [x] 同尺寸 `png-diff.mjs` 结果为 `differentPixels=472595`、差异比例 `32.0499%`、`MAE=2.965224`、`RMSE=15.923452`、最大通道差异 `230`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/admin-overview-navigation-2026-08-29-diff.json`，浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-navigation-browser-2026-08-29.png`，画板继续为 `DIFF_REVIEW`。
+- [x] `AdminPage.test.tsx` `10/10`、`npm run typecheck`、`npm run build` 和 `git diff --check` 已验证；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成侧栏导航图标资产替换和移动端响应式修正，不代表 Admin Overview 或 105 张画板达到像素级 `PASS`；字体、侧栏身份和其它整页差异仍需继续收口，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

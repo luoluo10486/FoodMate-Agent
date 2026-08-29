@@ -1,16 +1,3 @@
-import type { ReactNode } from 'react';
-import {
-  Archive,
-  BookOpen,
-  CircleGauge,
-  CirclePlay,
-  Database,
-  GitBranch,
-  PackageCheck,
-  ShieldCheck,
-  UsersRound,
-  Wrench,
-} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { TableColumnProps } from '@/components/ui/data-table';
 import {
@@ -99,20 +86,82 @@ export type KnowledgeRow = (typeof adminKnowledgeRows)[number];
 export type DeletedRow = AdminDeletedRow;
 export type OperationAuditRow = (typeof adminOperationAuditRows)[number];
 
-export const adminNavItems: Array<{ key: string; path: string; label: string; icon: ReactNode; adminOnly?: boolean }> =
-  [
-    { key: 'overview', path: '/admin', label: '概览', icon: <CircleGauge /> },
-    { key: 'users', path: '/admin/users', label: '用户管理', icon: <UsersRound /> },
-    { key: 'runs', path: '/admin/runs', label: 'Agent 运行', icon: <CirclePlay /> },
-    { key: 'tools', path: '/admin/tools', label: '工具调用', icon: <Wrench /> },
-    { key: 'sql', path: '/admin/runs?tab=sql', label: 'SQL 审计', icon: <Database /> },
-    { key: 'trace', path: '/admin/runs?tab=trace', label: 'Trace', icon: <GitBranch /> },
-    { key: 'usage', path: '/admin/usage', label: '模型用量', icon: <Database /> },
-    { key: 'knowledge', path: '/admin/knowledge', label: '知识库管理', icon: <BookOpen /> },
-    { key: 'registry', path: '/admin/tools?tab=registry', label: '工具注册表', icon: <PackageCheck /> },
-    { key: 'deleted', path: '/admin/deleted', label: '删除资源', icon: <Archive />, adminOnly: true },
-    { key: 'audit', path: '/admin?view=audit', label: '操作审计', icon: <ShieldCheck />, adminOnly: true },
-  ];
+export const adminNavItems: Array<{
+  key: string;
+  path: string;
+  label: string;
+  iconPath: string;
+  adminOnly?: boolean;
+}> = [
+  {
+    key: 'overview',
+    path: '/admin',
+    label: '概览',
+    iconPath: '/assets/figma/admin/navigation/overview.svg',
+  },
+  {
+    key: 'users',
+    path: '/admin/users',
+    label: '用户管理',
+    iconPath: '/assets/figma/admin/navigation/users.svg',
+  },
+  {
+    key: 'runs',
+    path: '/admin/runs',
+    label: 'Agent 运行',
+    iconPath: '/assets/figma/admin/navigation/runs.svg',
+  },
+  {
+    key: 'tools',
+    path: '/admin/tools',
+    label: '工具调用',
+    iconPath: '/assets/figma/admin/navigation/tools.svg',
+  },
+  {
+    key: 'sql',
+    path: '/admin/runs?tab=sql',
+    label: 'SQL 审计',
+    iconPath: '/assets/figma/admin/navigation/sql.svg',
+  },
+  {
+    key: 'trace',
+    path: '/admin/runs?tab=trace',
+    label: 'Trace',
+    iconPath: '/assets/figma/admin/navigation/trace.svg',
+  },
+  {
+    key: 'usage',
+    path: '/admin/usage',
+    label: '模型用量',
+    iconPath: '/assets/figma/admin/navigation/sql.svg',
+  },
+  {
+    key: 'knowledge',
+    path: '/admin/knowledge',
+    label: '知识库管理',
+    iconPath: '/assets/figma/admin/navigation/knowledge.svg',
+  },
+  {
+    key: 'registry',
+    path: '/admin/tools?tab=registry',
+    label: '工具注册表',
+    iconPath: '/assets/figma/admin/navigation/trace.svg',
+  },
+  {
+    key: 'deleted',
+    path: '/admin/deleted',
+    label: '删除资源',
+    iconPath: '/assets/figma/admin/navigation/deleted.svg',
+    adminOnly: true,
+  },
+  {
+    key: 'audit',
+    path: '/admin?view=audit',
+    label: '操作审计',
+    iconPath: '/assets/figma/admin/navigation/audit.svg',
+    adminOnly: true,
+  },
+];
 
 export function isAdminNavItemActive(path: string, pathname: string, search: string) {
   const target = new URL(path, 'http://foodmate.local');
