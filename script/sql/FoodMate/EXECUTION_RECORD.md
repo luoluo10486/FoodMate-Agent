@@ -1307,3 +1307,15 @@
 | 缓存检查 | 项目范围 `*.pyc/*.pyo=0`、`__pycache__/.pytest_cache=0`；`.gitignore` 已忽略 Python 生成缓存。 |
 | 数据与边界 | 未写入 Milvus 业务数据，未执行索引批次、真实 AgentRun、性能压测或生产调用；本次只证明 SiliconFlow `/embeddings` 的协议和模型维度契约。对话中公开的 credential 不再复用，应在供应商控制台轮换。 |
 | 结论 | 两个指定 Embedding 模型的真实接口 smoke 通过；真实 RAG 全链路、长期稳定性、正式价格/账单审计和生产强化仍未完成。 |
+
+## D68 本地业务门禁与 Python 缓存清理复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；使用项目 `agent-runtime\\.venv`；未调用云服务或生产依赖。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`154 passed、2 skipped、4 subtests passed`；跳过项为显式外部服务测试。 |
+| Java 业务门禁 | `mvnw.cmd --% -pl foodmate-application,foodmate-infra,foodmate-api -am test`：Shared `12`、Application `211`、Infrastructure `96`（20 skipped）、API `68`，无失败。 |
+| 规范与安全 | `mvnw.cmd --% -Palibaba-code-style verify -DskipTests` 成功，所有 Java 模块 Checkstyle `0 violations`；Spotless 通过；安全扫描 `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`。 |
+| Python 缓存 | 源码与测试目录的 `.pyc/.pyo`、`__pycache__`、`.pytest_cache` 已清理；`.venv` 内部依赖缓存保留并由 `.gitignore` 忽略，不纳入版本库。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；未使用对话中暴露的旧凭据。 |
+| 结论 | 当前本地业务门禁和规范/秘密扫描通过；真实云调用需使用轮换后的新凭据，生产强化和暂缓验证仍不能标记完成。 |
