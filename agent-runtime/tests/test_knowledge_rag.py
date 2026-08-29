@@ -342,6 +342,25 @@ class RagSettingsTests(TestCase):
                     RagSettings.from_environment({**base, "FOODMATE_RAG_EMBEDDING_BASE_URL": endpoint})
                 self.assertEqual("RAG_EMBEDDING_BASE_URL_INVALID", raised.exception.code)
 
+    def test_real_embedding_configuration_does_not_reuse_chat_provider_credentials(self):
+        with self.assertRaisesRegex(RagError, "incomplete") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_BASE_URL": "https://chat.example/v1",
+                    "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY": "chat-key-must-not-be-used",
+                    "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                    "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                    "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                    "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+                    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+                    "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+                }
+            )
+        self.assertEqual("RAG_EMBEDDING_BASE_URL_MISSING", raised.exception.code)
+
 
 class OpenAICompatibleEmbedderTests(TestCase):
     def _settings(self):

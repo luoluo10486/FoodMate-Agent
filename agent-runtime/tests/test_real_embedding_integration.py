@@ -23,14 +23,10 @@ def _environment() -> dict[str, str] | None:
     load_project_env()
     if os.environ.get("FOODMATE_RUN_REAL_EMBEDDING_TESTS", "false").lower() != "true":
         return None
-    base_url = os.environ.get(
-        "FOODMATE_RAG_EMBEDDING_BASE_URL",
-        os.environ.get("FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_BASE_URL", ""),
-    ).strip()
-    api_key = os.environ.get(
-        "FOODMATE_RAG_EMBEDDING_API_KEY",
-        os.environ.get("FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY", ""),
-    ).strip()
+    # Embedding credentials are intentionally independent from Chat credentials.
+    # Never reuse a model-provider key for a different outbound contract.
+    base_url = os.environ.get("FOODMATE_RAG_EMBEDDING_BASE_URL", "").strip()
+    api_key = os.environ.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip()
     if not base_url or not api_key:
         return None
     return {"base_url": base_url, "api_key": api_key}
