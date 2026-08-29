@@ -1330,3 +1330,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-live-2026-08-29.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/intake-analysis-v2-live-2026-08-29-diff.json`；结果为 `differentPixels=406120`、差异比例 `27.5418%`、`MAE=2.49371`、`RMSE=14.13255`、最大通道差异 `234`。
 - [x] `AnalysisPage` 定向测试 `5/5`、`npm run typecheck`、PNG 格式检查、`png-diff.mjs`、105 画板映射重生成和 `git diff --check` 已通过；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿未修改。
 - [ ] 该画板仍为 `DIFF_REVIEW`，不能以截图尺寸和几何通过替代像素级 `PASS`；剩余差异主要涉及字体、图标、头像和整页光栅化，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 142. 2026-08-29 Meal Planning 最新 DPR1 证据登记
+
+- [x] 重新核对 Figma 节点 `640:901` 与当前 `/planning?state=v2` 前端；主映射切换到最新 `1440×1024` Figma 参考与 DPR1 浏览器 RGBA PNG，未修改 Figma 设计稿。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-browser-dpr1-2026-08-29-rgba.png`，Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-v2-current.png`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-live-2026-08-29-diff.json`，结果为 `differentPixels=344334`、差异比例 `23.3516%`、`MAE=2.40087`、`RMSE=13.73344`、最大通道差异 `234`。
+- [x] 已确认计划横幅 `776×97px`、两个操作按钮 `88×37px`、右栏边界 `x=1100,width=340px`、右栏内容 `x=1124,width=292px`；浏览器 PNG 与 Figma PNG 尺寸一致，前端左上角红、黄、绿窗口装饰候选为 `0`，业务状态圆点保留。
+- [x] `PlanningPage` 定向测试、PNG 尺寸/签名检查、`png-diff.mjs` 和 `git diff --check` 已执行；本次没有发现新的可证实 CSS 几何差异，因此没有盲目修改页面样式。
+- [ ] 该画板仍为 `DIFF_REVIEW`，不能因差异比例改善标记 `PASS`；字体、图标、头像及整页视觉差异仍需后续人工复核，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
