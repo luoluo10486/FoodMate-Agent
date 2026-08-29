@@ -501,7 +501,13 @@ class ModelRouter:
         in_raw = self.environment.get(model_prefix + "INPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "INPUT_CNY_PER_MILLION_TOKENS", "")).strip()
         out_raw = self.environment.get(model_prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", "")).strip()
         cached_raw = self.environment.get(model_prefix + "CACHED_INPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "CACHED_INPUT_CNY_PER_MILLION_TOKENS", "")).strip()
-        version = self.environment.get(model_prefix + "PRICE_VERSION", self.environment.get("FOODMATE_MODEL_PRICE_VERSION", "unconfigured")).strip() or "unconfigured"
+        version = self.environment.get(
+            model_prefix + "PRICE_VERSION",
+            self.environment.get(
+                provider_prefix + "PRICE_VERSION",
+                self.environment.get("FOODMATE_MODEL_PRICE_VERSION", "unconfigured"),
+            ),
+        ).strip() or "unconfigured"
         if not in_raw or not out_raw:
             return None, None, None, version
         try:

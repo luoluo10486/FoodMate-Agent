@@ -148,6 +148,19 @@ class ModelRouterTests(TestCase):
         self.assertEqual(Decimal("0.0001608"), attempts[0].cost_cny)
         self.assertEqual(40, attempts[0].cached_input_tokens)
 
+    def test_provider_price_version_is_used_when_model_version_is_absent(self):
+        provider = FakeProvider("siliconflow")
+        router = ModelRouter({
+            "FOODMATE_MODEL_TIER_STANDARD": "siliconflow:BAAI/bge-m3",
+            "FOODMATE_MODEL_PROVIDER_SILICONFLOW_INPUT_CNY_PER_MILLION_TOKENS": "1",
+            "FOODMATE_MODEL_PROVIDER_SILICONFLOW_OUTPUT_CNY_PER_MILLION_TOKENS": "2",
+            "FOODMATE_MODEL_PROVIDER_SILICONFLOW_PRICE_VERSION": "siliconflow-embedding-2026-08-29",
+        }, lambda _: provider)
+
+        _, attempts = router.invoke(ModelRequest("composer", "hello"), "standard")
+
+        self.assertEqual("siliconflow-embedding-2026-08-29", attempts[0].price_version)
+
 
 class _ProviderHandler(BaseHTTPRequestHandler):
     response_mode = "success"
