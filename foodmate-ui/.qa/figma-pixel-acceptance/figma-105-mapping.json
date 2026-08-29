@@ -190,7 +190,7 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-insight-buttons-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-live-2026-08-29.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",

@@ -1323,3 +1323,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] Figma 参考图 `agent-chat-v2-figma-live-2026-08-29.png` 与浏览器图 `agent-chat-v2-message-actions-browser-2026-08-29.png` 均为 `1440×1024`；`png-diff.mjs` 结果为 `differentPixels=347426`、差异比例 `23.5613%`、`MAE=2.557491`、`RMSE=14.877245`、最大通道差异 `234`，独立结果为 `agent-chat-v2-message-actions-2026-08-29-diff.json`，保持 `DIFF_REVIEW`。
 - [x] 前端左上角红、黄、绿窗口装饰候选数量为 `0`；该项只核验前端，不修改 Figma，业务状态圆点继续保留。
 - [ ] 本补充证据不能关闭 `agent-chat-v2` 或 105 张画板的像素级 `PASS`；主映射仍以 `state=figma-v2` 为准，整体汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 141. 2026-08-29 Intake Analysis 最新浏览器证据登记
+
+- [x] 将 `/analysis?state=v2` 的最新浏览器帧由 JPEG 字节规范化为真正的 RGBA PNG，并登记到 `figma-105-mapping.json`；Figma 节点为 `640:773`，两侧尺寸均为 `1440×1024`。
+- [x] 最新证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-live-2026-08-29.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/intake-analysis-v2-live-2026-08-29-diff.json`；结果为 `differentPixels=406120`、差异比例 `27.5418%`、`MAE=2.49371`、`RMSE=14.13255`、最大通道差异 `234`。
+- [x] `AnalysisPage` 定向测试 `5/5`、`npm run typecheck`、PNG 格式检查、`png-diff.mjs`、105 画板映射重生成和 `git diff --check` 已通过；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿未修改。
+- [ ] 该画板仍为 `DIFF_REVIEW`，不能以截图尺寸和几何通过替代像素级 `PASS`；剩余差异主要涉及字体、图标、头像和整页光栅化，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
