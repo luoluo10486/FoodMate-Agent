@@ -1441,3 +1441,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 已登记原始 JPEG、转换后的 PNG 和独立 diff：`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-top-nav-active-surface-browser-2026-08-30.jpg`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-top-nav-active-surface-browser-2026-08-30-rgba.png`、`foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-top-nav-active-surface-2026-08-30-diff.json`；`png-diff.mjs` 结果为 `differentPixels=598653`、差异比例 `40.5988%`、`MAE=4.608837`、`RMSE=20.508797`、最大通道差异 `255`，结论继续为 `DIFF_REVIEW`。
 - [x] `WorkspaceLayout.test.tsx` 定向测试 `8/8` 通过；顶部导航和页面 DOM 均确认不存在 `window-controls`、`traffic-light` 或红黄绿窗口装饰候选。
 - [ ] 本小点只完成顶部导航选中态颜色收口，不代表该画板或 105 张画板达到像素级 `PASS`；DPR 为 `1.25`，整页头像、字体、图标和光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 155. 2026-08-30 前端左上角窗口装饰核验
+
+- [x] 按用户要求只检查前端，不修改 Figma 设计稿；Figma 参考图中的红、黄、绿三色窗口点保持为设计来源内容，前端不复制该装饰。
+- [x] 对 `foodmate-ui` 生产源码与静态资源中的 `window-controls`、`traffic-light`、macOS 三色值和等价 RGB 值执行全量扫描，结果为 `NO_FRONTEND_PRODUCTION_WINDOW_DECORATION_MARKERS`。
+- [x] `/chat?state=figma-v2` 在 `1440×1024` 运行时检查 `windowControls=0`、`redYellowGreen=0`；现有 `WorkspaceLayout.test.tsx` 也断言不渲染窗口控制节点，业务状态圆点保持不变。
+- [ ] 当前没有可删除的前端左上角红黄绿装饰代码；本小点不影响 105 张画板 `DIFF_REVIEW`、shadcn 全页面迁移或 iconfont `BLOCKED` 状态。
