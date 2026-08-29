@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
 from typing import Iterable, Protocol
+from urllib.parse import urlsplit
 
 
 class RagError(RuntimeError):
@@ -97,6 +98,11 @@ class RagSettings:
             profile = env.get("FOODMATE_RAG_EMBEDDING_PROFILE", "").strip().lower()
             if profile and profile not in EMBEDDING_PROFILES:
                 raise RagError("RAG_EMBEDDING_PROFILE_INVALID", "embedding profile is invalid")
+            if profile and provider != "openai-compatible":
+                raise RagError(
+                    "RAG_EMBEDDING_PROFILE_PROVIDER_MISMATCH",
+                    "embedding profile requires the OpenAI-compatible provider",
+                )
             embedding_model = env.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip()
             if provider == "deterministic" and not embedding_model:
                 embedding_model = "deterministic-local-v1"
@@ -122,7 +128,10 @@ class RagSettings:
             milvus_collection=milvus_collection,
             deterministic_dimension=deterministic_dimension,
             index_concurrency=concurrency,
-            timeout_seconds=float(env.get("FOODMATE_RAG_ITEM_TIMEOUT_SECONDS", "20")),
+            timeout_seconds=_positive_float(
+                env.get("FOODMATE_RAG_ITEM_TIMEOUT_SECONDS", "20"),
+                "RAG_ITEM_TIMEOUT_INVALID",
+            ),
             batch_token_limit=_optional_integer(env.get("FOODMATE_RAG_BATCH_TOKEN_LIMIT", "")),
             daily_token_limit=_optional_integer(env.get("FOODMATE_RAG_DAILY_TOKEN_LIMIT", "")),
             batch_cost_limit=_optional_decimal(env.get("FOODMATE_RAG_BATCH_COST_LIMIT", "")),
@@ -145,6 +154,12 @@ class RagSettings:
                 }.items():
                     if not value:
                         raise RagError(code, "local RAG configuration is incomplete")
+                endpoint = urlsplit(settings.embedding_base_url)
+                if endpoint.scheme not in {"http", "https"} or not endpoint.hostname:
+                    raise RagError(
+                        "RAG_EMBEDDING_BASE_URL_INVALID",
+                        "embedding endpoint must be an HTTP or HTTPS URL",
+                    )
             required = {
                 "RAG_MILVUS_URI_MISSING": settings.milvus_uri,
                 "RAG_MILVUS_COLLECTION_MISSING": settings.milvus_collection,
@@ -158,6 +173,15 @@ class RagSettings:
             for code, value in required.items():
                 if value is None or value == "":
                     raise RagError(code, "local RAG configuration is incomplete")
+            if (
+                provider == "openai-compatible"
+                and settings.price_per_million_tokens is not None
+                and settings.price_per_million_tokens <= 0
+            ):
+                raise RagError(
+                    "RAG_PRICE_INVALID",
+                    "real embedding price must be greater than zero",
+                )
         return settings
 
 
@@ -169,7 +193,22 @@ def _integer(value: str, code: str) -> int:
 
 
 def _optional_integer(value: str) -> int | None:
-    return None if not value.strip() else _integer(value, "RAG_BUDGET_INVALID")
+    if not value.strip():
+        return None
+    parsed = _integer(value, "RAG_BUDGET_INVALID")
+    if parsed < 0:
+        raise RagError("RAG_BUDGET_INVALID", "budget must be non-negative")
+    return parsed
+
+
+def _positive_float(value: str, code: str) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as error:
+        raise RagError(code, "invalid positive number") from error
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise RagError(code, "value must be a positive finite number")
+    return parsed
 
 
 def _optional_decimal(value: str) -> Decimal | None:
@@ -435,6 +474,8 @@ class OpenAICompatibleEmbedder:
                 raise TypeError("embedding data must be a list")
             indexed = []
             for position, item in enumerate(data):
+                if not isinstance(item, dict):
+                    raise TypeError("embedding item must be an object")
                 index = int(item.get("index", position))
                 indexed.append((index, item["embedding"]))
             if sorted(index for index, _ in indexed) != list(range(len(inputs))):
