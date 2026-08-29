@@ -1317,6 +1317,7 @@
 
 .fixtureBudgetIntro {
   width: min(560px, calc(100% - 48px));
+  height: 53px;
   margin: 0;
   padding: 16px;
   border: 1px solid #eef1ef;
@@ -1324,7 +1325,7 @@
   background: #fff;
   color: #333;
   font-size: 13px;
-  line-height: 18px;
+  line-height: 21px;
   white-space: nowrap;
 }
 
@@ -1338,8 +1339,9 @@
 }
 
 .fixtureAssistantRow .fixtureBudgetCard {
-  gap: 12px;
-  padding: 20px 18px 20px 17px;
+  height: 289px;
+  gap: 16px;
+  padding: 20px 20px 20px 17px;
   border-color: #c79654;
   border-left-width: 3px;
   border-radius: 0 16px 16px 0;
@@ -1348,8 +1350,8 @@
 }
 
 .fixtureAssistantRow .fixtureBudgetCard .fixtureBudgetRow {
-  padding-top: 8px;
-  border-top: 1px solid #eef1ef;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .fixtureBudgetTitle {
@@ -1374,8 +1376,8 @@
 .fixtureBudgetDescription {
   margin: 0;
   color: #6b7280;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 13px;
+  line-height: 16px;
 }
 
 .fixtureCard {
@@ -1656,12 +1658,12 @@
 .fixtureChoiceList {
   display: grid;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 12px;
   border-radius: 8px;
   background: #f4f6f5;
   color: #6b7280;
-  font-size: 11px;
-  line-height: 15px;
+  font-size: 12px;
+  line-height: 14px;
 }
 
 .fixtureChoiceList span {
@@ -1670,24 +1672,14 @@
   gap: 6px;
 }
 
-.fixtureChoiceList i {
-  display: block;
-  width: 10px;
-  height: 10px;
-  flex: 0 0 auto;
-  margin-top: 2px;
-  border-radius: 50%;
-  background: #6b7280;
-}
-
 .fixtureChoiceList strong {
   color: #333;
   font-weight: 700;
 }
 
 .fixtureBudgetRow {
-  padding-top: 4px;
-  border-top: 1px solid #eef1ef;
+  height: 13px;
+  flex: 0 0 13px;
 }
 
 .fixtureBudgetRow strong {
@@ -1699,7 +1691,7 @@
   width: 100%;
   height: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #f4f6f5;
 }
 
@@ -1712,14 +1704,18 @@
 }
 
 .fixtureBudgetCard .fixtureActions button {
+  box-sizing: border-box;
   height: 32px;
   min-height: 32px;
   border-radius: 8px;
-  padding: 0 12px;
-  font-size: 12px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
 }
 
 .fixtureBudgetPrimaryButton {
+  width: 150px;
   background: #c79654;
   color: #fff;
   box-shadow: none;
@@ -1730,7 +1726,18 @@
 }
 
 .fixtureBudgetSecondaryButton {
+  width: 84px;
+  border: 1px solid #f4f6f5;
+  background: #fff;
   color: #6b7280;
+}
+
+.fixtureBudgetMeter {
+  display: flex;
+  width: 100%;
+  height: 27px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .fixtureSafetyBlock {

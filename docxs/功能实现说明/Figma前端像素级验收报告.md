@@ -1299,3 +1299,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=275551`、差异比例 `18.6870%`、`MAE=2.020594`、`RMSE=13.143764`、最大通道差异 `232`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/chat-agent-write-confirmation.diff.json`，汇总锚点为 `figma-105-diff-results.json#agent-write-confirmation`。
 - [x] `ChatPage` 定向测试 `27/27`、`npm run typecheck` 和 `git diff --check` 已通过；本项仅收口最新证据和局部卡片几何，不能标记像素级 `PASS`。
 - [ ] 该画板继续为 `DIFF_REVIEW`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
+
+## 135. 2026-08-29 Agent Budget Limit 最新视觉收口
+
+- [x] 实时读取 Figma 节点 `687:918` 并保存参考图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-current-2026-08-29.png`；浏览器在 `1440×1024`、DPR `1.0000000149011612`、字体 `loaded` 条件下保存 RGBA 证据 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-2026-08-29-rgba.png`。
+- [x] 预算卡局部几何已按 Figma 收口：卡片 `286×289px`，选择说明区 `246×60px`，Token 计量区 `246×27px`，进度条 `246×8px`，追加按钮 `150×32px`，结束按钮 `84×32px`；Figma 设计稿未修改。
+- [x] 页面展示 `50,000 tokens`、`100%`、预计费用、追加预算和结束会话；fixture 追加动作继续明确当前 Run 语义，真实模式继续调用既有预算追加和取消接口；前端左上角红黄绿窗口装饰点数量为 `0`。
+- [x] `scripts/png-diff.mjs` 同尺寸比较结果：`differentPixels=280814`、差异比例 `19.0439%`、`MAE=2.626395`、`RMSE=15.964083`、最大通道差异 `237`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/chat-agent-budget-limit.diff.json`，汇总锚点为 `figma-105-diff-results.json#agent-budget-limit`。
+- [ ] 本页继续保持 `DIFF_REVIEW`，不能标记 `PASS`；周边工作台、头像、图标和字体光栅化仍存在可见差异，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

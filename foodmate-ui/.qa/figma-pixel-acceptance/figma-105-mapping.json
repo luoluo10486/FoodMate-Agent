@@ -1145,8 +1145,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=budget-limit",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-current.png",
+      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-current-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-2026-08-29-rgba.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
@@ -1177,8 +1177,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures contain the budget amount, utilization, projected cost, and continuation actions. The frontend now includes the received Agent explanation, paired avatars, narrow budget card, choice panel, and progress bar. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-29",
+        "conclusion": "已按实时 Figma 节点 687:918 收口预算卡：卡片 286×289px、选择说明区 246×60px、Token 计量区 246×27px，追加和结束按钮分别为 150×32px 与 84×32px。浏览器截图满足 1440×1024、DPR 1、字体加载和无页面溢出；周边工作台、头像、图标和字体光栅化仍有差异，保留 DIFF_REVIEW。"
       }
     },
     {

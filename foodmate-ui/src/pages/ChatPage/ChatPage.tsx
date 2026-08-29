@@ -1421,27 +1421,25 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               </p>
               <div className={styles.fixtureChoiceList}>
                 <span>
-                  <i aria-hidden="true" />
-                  <strong>追加预算继续当前会话</strong>
+                  <strong>● 追加预算继续当前会话</strong>
                 </span>
-                <span>
-                  <i aria-hidden="true" />
-                  开始新会话（之前的分析进度将会重置）
-                </span>
+                <span>● 开始新会话 (之前的分析进度将会重置)</span>
               </div>
-              <div className={styles.fixtureBudgetRow}>
-                <span>Token 用量 (100%)</span>
-                <strong>预计费用: $0.15</strong>
-              </div>
-              <div
-                aria-label="预算用量 100%"
-                aria-valuemax={100}
-                aria-valuemin={0}
-                aria-valuenow={100}
-                className={styles.fixtureBudgetProgress}
-                role="progressbar"
-              >
-                <span />
+              <div className={styles.fixtureBudgetMeter}>
+                <div className={styles.fixtureBudgetRow}>
+                  <span>Token 用量 (100%)</span>
+                  <strong>预计费用: $0.15</strong>
+                </div>
+                <div
+                  aria-label="预算用量 100%"
+                  aria-valuemax={100}
+                  aria-valuemin={0}
+                  aria-valuenow={100}
+                  className={styles.fixtureBudgetProgress}
+                  role="progressbar"
+                >
+                  <span />
+                </div>
               </div>
               <div className={styles.fixtureActions}>
                 <Button

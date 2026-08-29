@@ -236,6 +236,11 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText(/我已在后台调用历史数据解析服务/)).toBeInTheDocument();
     expect(screen.getByText('Token 用量 (100%)')).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: '预算用量 100%' })).toHaveAttribute('aria-valuenow', '100');
+    expect(document.querySelector('[class*="fixtureBudgetMeter"]')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '追加 20,000 tokens' }).className).toContain(
+      'fixtureBudgetPrimaryButton',
+    );
+    expect(screen.getByRole('button', { name: '结束会话' }).className).toContain('fixtureBudgetSecondaryButton');
     fireEvent.click(screen.getByRole('button', { name: '追加 20,000 tokens' }));
     expect(screen.getByRole('status')).toHaveTextContent('当前 Run');
   });

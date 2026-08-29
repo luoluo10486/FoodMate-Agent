@@ -1,13 +1,28 @@
 {
+  "figmaNodeId": "687:918",
   "status": "DIFF_REVIEW",
   "comparison": "COMPARED",
   "width": 1440,
   "height": 1024,
   "pixelCount": 1474560,
-  "differentPixels": 146269,
-  "differentRatio": 0.09919501410590278,
-  "meanAbsoluteError": 3.3263085259331597,
-  "rmse": 19.44250030583415,
+  "differentPixels": 280814,
+  "differentRatio": 0.1904391818576389,
+  "meanAbsoluteError": 2.626395331488715,
+  "rmse": 15.96408250001466,
   "maxChannelDelta": 237,
-  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: the frontend now includes the received Agent explanation, paired Agent avatars, narrow budget card, choice panel, full progress bar, and Figma-aligned continuation actions; residual differences remain in font/icon rasterization and surrounding workspace rendering"
+  "runtime": {
+    "viewport": "1440x1024",
+    "dpr": 1.0000000149011612,
+    "fonts": "loaded",
+    "bodyOverflow": false,
+    "textOverflowCount": 0
+  },
+  "geometry": {
+    "budgetCard": "286x289",
+    "choicePanel": "246x60",
+    "budgetMeter": "246x27",
+    "primaryButton": "150x32",
+    "secondaryButton": "84x32"
+  },
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: the budget card geometry, choice panel, meter group, and action dimensions now match Figma node 687:918; residual differences remain in surrounding workspace rendering, avatar/icon treatment, and font rasterization"
 }
