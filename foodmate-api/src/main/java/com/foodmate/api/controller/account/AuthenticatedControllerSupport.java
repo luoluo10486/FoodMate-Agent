@@ -7,6 +7,7 @@ import com.foodmate.shared.error.ErrorCode;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
+/** 为需要登录的控制器提供当前用户解析和角色校验。 */
 public abstract class AuthenticatedControllerSupport {
     protected final UserAccountService accounts;
 

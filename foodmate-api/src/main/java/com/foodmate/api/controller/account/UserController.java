@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** 当前用户资料、头像、导出和注销接口。 */
 @RestController
 @RequestMapping("/api/users/me")
 public class UserController extends AuthenticatedControllerSupport {

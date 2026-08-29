@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Admin retention governance; approval is separate from any future purge executor. */
+/** 管理端数据保留治理接口；审批与后续清理执行器严格分离。 */
 @RestController
 @RequestMapping("/api/admin/data-retention")
 public class AdminRetentionController extends AuthenticatedControllerSupport {

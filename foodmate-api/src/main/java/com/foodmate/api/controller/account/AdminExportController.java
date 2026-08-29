@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Admin-only bounded export endpoints; payloads are already redacted by application queries. */
+/** 管理员受限数据导出接口；导出内容已由应用层查询完成脱敏。 */
 @RestController
 @RequestMapping("/api/admin/exports")
 public class AdminExportController extends AuthenticatedControllerSupport {

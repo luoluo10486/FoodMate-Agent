@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** HTTP authentication endpoints and password-reset delivery. */
+/** HTTP 认证、会话 Cookie 和密码重置投递接口。 */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

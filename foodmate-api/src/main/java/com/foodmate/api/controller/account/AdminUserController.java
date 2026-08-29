@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** 管理后台用户只读查询接口。 */
 @RestController
 @RequestMapping("/api/admin/users")
 public class AdminUserController extends AuthenticatedControllerSupport {
