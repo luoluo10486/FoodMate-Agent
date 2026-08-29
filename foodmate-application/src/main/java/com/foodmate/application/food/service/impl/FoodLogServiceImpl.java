@@ -424,11 +424,14 @@ public class FoodLogServiceImpl implements FoodLogService {
     private static String normalizeUnit(String value) {
         return switch (value.trim().toLowerCase(Locale.ROOT)) {
             case "克", "g" -> "g";
+            case "公斤", "千克", "kg" -> "kg";
+            case "毫克", "mg" -> "mg";
             case "毫升", "ml" -> "ml";
             case "杯" -> "cup";
             case "大号", "大个" -> "large";
             case "中号", "中等" -> "medium";
-            case "盎司" -> "oz";
+            case "盎司", "oz" -> "oz";
+            case "磅", "lb", "lbs" -> "lb";
             case "汤匙", "大匙" -> "tbsp";
             default -> value.trim().toLowerCase(Locale.ROOT);
         };
