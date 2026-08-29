@@ -89,7 +89,7 @@ Write-Output "database=$DatabaseName"
 Write-Output "host=$HostName"
 Write-Output "port=$Port"
 Write-Output "backup_file=$backupPath"
-Write-Output "restore_database=$($RestoreDatabaseName ?? '')"
+Write-Output "restore_database=$(if ($RestoreDatabaseName) { $RestoreDatabaseName } else { '' })"
 Write-Output "execute=$($Execute.ToString().ToLowerInvariant())"
 
 if (-not $Execute) {
@@ -100,6 +100,9 @@ if (-not $Execute) {
 Require-Command "pg_dump"
 Require-Command "psql"
 if ($RestoreDatabaseName) { Require-Command "createdb"; Require-Command "pg_restore" }
+if (Test-Path -LiteralPath $backupPath) {
+    throw "backup file already exists; refusing to overwrite or reuse it"
+}
 if (-not (Test-Path -LiteralPath $backupPath)) {
     if (-not $PSCmdlet.ShouldProcess($DatabaseName, "create PostgreSQL custom-format backup")) { exit 0 }
     Invoke-Pg "pg_dump" @(
