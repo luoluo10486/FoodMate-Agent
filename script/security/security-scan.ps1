@@ -11,6 +11,35 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $failures = [System.Collections.Generic.List[string]]::new()
 $skipped = [System.Collections.Generic.List[string]]::new()
 
+function ConvertTo-ProcessArgument([string]$Value) {
+    if ($null -eq $Value) { return '""' }
+    $builder = [System.Text.StringBuilder]::new()
+    [void]$builder.Append('"')
+    $backslashCount = 0
+    foreach ($character in $Value.ToCharArray()) {
+        if ($character -eq '\') {
+            $backslashCount++
+        } elseif ($character -eq '"') {
+            for ($index = 0; $index -lt (2 * $backslashCount + 1); $index++) {
+                [void]$builder.Append('\')
+            }
+            [void]$builder.Append('"')
+            $backslashCount = 0
+        } else {
+            for ($index = 0; $index -lt $backslashCount; $index++) {
+                [void]$builder.Append('\')
+            }
+            [void]$builder.Append($character)
+            $backslashCount = 0
+        }
+    }
+    for ($index = 0; $index -lt (2 * $backslashCount); $index++) {
+        [void]$builder.Append('\')
+    }
+    [void]$builder.Append('"')
+    return $builder.ToString()
+}
+
 function Invoke-ProcessText([string]$FilePath, [string[]]$Arguments) {
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $FilePath
@@ -19,7 +48,11 @@ function Invoke-ProcessText([string]$FilePath, [string[]]$Arguments) {
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
-    foreach ($argument in $Arguments) { [void]$startInfo.ArgumentList.Add($argument) }
+    if ($null -ne $startInfo.PSObject.Properties['ArgumentList']) {
+        foreach ($argument in $Arguments) { [void]$startInfo.ArgumentList.Add($argument) }
+    } else {
+        $startInfo.Arguments = (@($Arguments | ForEach-Object { ConvertTo-ProcessArgument $_ }) -join ' ')
+    }
     $process = [System.Diagnostics.Process]::new()
     $process.StartInfo = $startInfo
     [void]$process.Start()
@@ -40,9 +73,9 @@ function Get-ScannableWorktreeFiles([string]$Root, [string[]]$TrackedFiles) {
     )
     foreach ($relativePath in $TrackedFiles) { [void]$candidatePaths.Add($relativePath) }
 
-    $untrackedResult = Invoke-ProcessText "git.exe" @("ls-files", "--others", "--exclude-standard")
+    $untrackedResult = Invoke-ProcessText "git.exe" @("-c", "core.quotePath=false", "ls-files", "-z", "--others", "--exclude-standard")
     if ($untrackedResult.ExitCode -eq 0) {
-        foreach ($relativePath in ($untrackedResult.Stdout -split "`r?`n" | Where-Object { $_ })) {
+        foreach ($relativePath in ($untrackedResult.Stdout -split "`0" | Where-Object { $_ })) {
             [void]$candidatePaths.Add($relativePath)
         }
     }
@@ -70,11 +103,11 @@ function Get-ScannableWorktreeFiles([string]$Root, [string[]]$TrackedFiles) {
 
 Push-Location $repoRoot
 try {
-    $trackedResult = Invoke-ProcessText "git.exe" @("ls-files")
+    $trackedResult = Invoke-ProcessText "git.exe" @("-c", "core.quotePath=false", "ls-files", "-z")
     if ($trackedResult.ExitCode -ne 0) {
         throw "unable to enumerate tracked files"
     }
-    $trackedFiles = @($trackedResult.Stdout -split "`r?`n" | Where-Object { $_ })
+    $trackedFiles = @($trackedResult.Stdout -split "`0" | Where-Object { $_ })
 
     # These patterns intentionally target high-confidence credential formats only. Generic
     # words such as password/secret are too noisy for an executable repository gate.
@@ -160,8 +193,8 @@ try {
             if ($LASTEXITCODE -ne 0) {
                 $skipped.Add("Python audit: pip-audit is not installed in agent-runtime/.venv")
             } else {
-                & $python -m pip_audit --local --format json *> $null
-                if ($LASTEXITCODE -ne 0) {
+                $auditResult = Invoke-ProcessText $python @("-m", "pip_audit", "--local", "--format", "json")
+                if ($auditResult.ExitCode -ne 0) {
                     $failures.Add("pip-audit reported findings or could not complete")
                 }
             }
