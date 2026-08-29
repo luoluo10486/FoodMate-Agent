@@ -1529,3 +1529,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 主浏览器证据已切换为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30-rgba.png`，原始 JPEG 为同目录下的 `agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30.jpg`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-awaiting-clarification-window-controls-pruned-2026-08-30-diff.json`。
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=289019`、差异比例 `19.6004%`、`MAE=2.473502`、`RMSE=14.802080`、最大通道差异 `250`；当前证据用于替代过期截图，结论继续为 `DIFF_REVIEW`。
 - [ ] 本小点只完成 Agent Awaiting Clarification 的当前证据和前端窗口装饰核验，不代表该画板或 105 张画板达到像素级 `PASS`；默认头像、图标和字体光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 166. 2026-08-30 Agent Budget Limit 当前运行证据复核
+
+- [x] 重新打开 `/chat?state=budget-limit` 并在 `1440×1024` 视口采集当前前端；预算卡 `x=340,y=314,width=286,height=289`，选择说明区 `246×60px`，Token 计量区 `246×27px`，追加按钮 `150×32px`，结束按钮 `84×32px`。
+- [x] 页面展示 `50,000 tokens`、`100%`、预计费用、追加预算和结束会话；字体状态为 `loaded`，页面无横向或纵向溢出；前端左上角红、黄、绿窗口装饰候选为 `0`，业务状态圆点保持不变，Figma 设计稿未修改。
+- [x] 原始浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-budget-limit-current-browser-2026-08-30.jpg`，转换后的真实 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-budget-limit-current-browser-2026-08-30-rgba.png`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-budget-limit-current-browser-2026-08-30-diff.json`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=350748`、差异比例 `23.7866%`、`MAE=3.437230`、`RMSE=17.809802`、最大通道差异 `254`；实际浏览器 DPR 为 `1.25`，不满足严格 DPR 1 门禁，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成预算上限页当前运行证据复核，不代表该画板或 105 张画板达到像素级 `PASS`；周边工作台、头像、图标和字体光栅化仍有差异，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

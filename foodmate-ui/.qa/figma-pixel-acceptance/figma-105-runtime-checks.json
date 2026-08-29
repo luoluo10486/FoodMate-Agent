@@ -50,7 +50,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -60,6 +61,15 @@
       },
       "textOverflow": [],
       "url": "/chat?state=budget-limit",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "budgetGeometry": {
+        "budgetCard": "x=340,y=314,width=286,height=289",
+        "choicePanel": "x=359.4,y=431.8,width=245.8,height=60",
+        "budgetMeter": "x=359.4,y=507.8,width=245.8,height=27",
+        "primaryButton": "x=359.4,y=550.8,width=150,height=32",
+        "secondaryButton": "x=521.4,y=550.8,width=84,height=32"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440

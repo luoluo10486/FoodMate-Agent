@@ -1282,7 +1282,7 @@
       "queryState": "state=budget-limit",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-title-color-browser-1440x1024-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-current-browser-2026-08-30-rgba.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
@@ -1294,9 +1294,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -1314,7 +1314,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
-        "conclusion": "已按实时 Figma 节点 687:918 收口预算卡标题颜色：标题计算颜色为 #c79654，卡片 286×289px、选择说明区 246×60px、Token 计量区 246×27px，追加和结束按钮分别为 150×32px 与 84×32px。浏览器截图满足 1440×1024、DPR 1、字体加载和无页面溢出；周边工作台、头像、图标和字体光栅化仍有差异，保留 DIFF_REVIEW。"
+        "conclusion": "已按实时 Figma 节点 687:918 复核预算卡：标题计算颜色为 #c79654，卡片 286×289px、选择说明区 246×60px、Token 计量区 246×27px，追加和结束按钮分别为 150×32px 与 84×32px。当前浏览器截图为 1440×1024、字体已加载且页面无溢出，但实际 DPR 为 1.25，未满足严格 DPR 1 门禁；周边工作台、头像、图标和字体光栅化仍有差异，保留 DIFF_REVIEW。"
       }
     },
     {

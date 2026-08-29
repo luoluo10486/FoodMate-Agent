@@ -999,3 +999,10 @@
 - [x] 浏览器 `1440×1024` 实测助手行 `x=292,width=608`、气泡 `x=340,width=560`、提示条 `x=738.64,y=310,width=222.725,height=30`；`390×844` 下页面无横向溢出，左上角红黄绿窗口装饰候选均为 `0`，业务状态圆点保留。
 - [x] ChatPage 定向测试 `27/27` 通过；新证据已同步至 `figma-105-mapping.json`、`figma-105-diff-results.json` 和独立 diff JSON，结果改善为 `20.5685% / MAE 2.43150 / RMSE 14.50891`，但仍保持 `DIFF_REVIEW`。
 - [ ] 本项不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
+## 54. 2026-08-30 Agent Budget Limit 当前前端证据复核
+
+- [x] 对照 Figma 节点 `687:918` 复核 `/chat?state=budget-limit`；当前前端预算卡、选择说明区、Token 计量区和两个操作按钮的几何分别为 `286×289px`、`246×60px`、`246×27px`、`150×32px` / `84×32px`。
+- [x] 当前运行时确认 `50,000 tokens`、`100%`、预计费用、追加预算和结束会话均可见，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
+- [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `23.7866% / MAE 3.437230 / RMSE 17.809802 / maxChannelDelta 254`，实际 DPR `1.25` 不满足严格 DPR 1 门禁，因此继续记为 `DIFF_REVIEW`。
+- [ ] 本节只关闭预算上限页当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。

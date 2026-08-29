@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30",
+  "generatedAt": "2026-08-29",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -238,11 +238,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 289019,
-      "differentRatio": 0.19600355360243055,
-      "meanAbsoluteError": 2.4735015869140624,
-      "rmse": 14.802079816974864,
-      "maxChannelDelta": 250
+      "differentPixels": 221039,
+      "differentRatio": 0.14990166558159723,
+      "meanAbsoluteError": 1.6669297960069445,
+      "rmse": 12.442981759653593,
+      "maxChannelDelta": 246
     },
     "agent-write-confirmation": {
       "status": "COMPARED",
@@ -260,10 +260,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 351658,
-      "differentRatio": 0.23848334418402778,
-      "meanAbsoluteError": 3.4386844211154513,
-      "rmse": 17.80523276880368,
+      "differentPixels": 350748,
+      "differentRatio": 0.2378662109375,
+      "meanAbsoluteError": 3.4372299194335936,
+      "rmse": 17.809801889458026,
       "maxChannelDelta": 254
     },
     "agent-completed-with-citations": {
