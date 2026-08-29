@@ -2,6 +2,7 @@ import json
 from io import BytesIO
 from unittest import TestCase
 from unittest.mock import patch
+from unittest.mock import Mock
 import zipfile
 
 from knowledge_rag import (DeterministicEmbedder, KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key)
@@ -319,6 +320,60 @@ class RagSettingsTests(TestCase):
                 }
             )
         self.assertEqual("RAG_EMBEDDING_PROFILE_PROVIDER_MISMATCH", raised.exception.code)
+
+    def test_real_embedding_endpoint_rejects_embedded_credentials_or_query(self):
+        base = {
+            "FOODMATE_RAG_MODE": "local",
+            "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+            "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
+            "FOODMATE_RAG_EMBEDDING_MODEL": "BAAI/bge-m3",
+            "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+            "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+            "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+            "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+            "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+            "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+            "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+            "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+        }
+        for endpoint in ("https://user:password@embedding.example/v1", "https://embedding.example/v1?token=secret"):
+            with self.subTest(endpoint=endpoint):
+                with self.assertRaisesRegex(RagError, "without credentials") as raised:
+                    RagSettings.from_environment({**base, "FOODMATE_RAG_EMBEDDING_BASE_URL": endpoint})
+                self.assertEqual("RAG_EMBEDDING_BASE_URL_INVALID", raised.exception.code)
+
+
+class OpenAICompatibleEmbedderTests(TestCase):
+    def _settings(self):
+        return RagSettings(
+            mode="local",
+            embedding_provider="openai-compatible",
+            embedding_base_url="https://embedding.example/v1",
+            embedding_api_key="test-key",
+            embedding_model="BAAI/bge-m3",
+        )
+
+    def test_invalid_json_fails_closed(self):
+        response = Mock()
+        response.read.return_value = b"not-json"
+        with patch("urllib.request.urlopen", return_value=response):
+            with self.assertRaisesRegex(RagError, "invalid embedding response") as raised:
+                OpenAICompatibleEmbedder(self._settings()).embed(["hello"])
+        self.assertEqual("RAG_EMBEDDING_INVALID_RESPONSE", raised.exception.code)
+
+    def test_non_object_vector_and_mismatched_dimensions_fail_closed(self):
+        payloads = (
+            {"data": [{"index": 0, "embedding": "not-an-array"}]},
+            {"data": [{"index": 0, "embedding": [1.0]}, {"index": 1, "embedding": [1.0, 2.0]}]},
+        )
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                response = Mock()
+                response.read.return_value = json.dumps(payload).encode("utf-8")
+                with patch("urllib.request.urlopen", return_value=response):
+                    with self.assertRaises(RagError) as raised:
+                        OpenAICompatibleEmbedder(self._settings()).embed(["one", "two"])
+                self.assertEqual("RAG_EMBEDDING_INVALID_RESPONSE", raised.exception.code)
 
     def test_real_profile_rejects_zero_price(self):
         with self.assertRaisesRegex(RagError, "greater than zero") as raised:

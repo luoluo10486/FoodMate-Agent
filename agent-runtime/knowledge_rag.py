@@ -154,12 +154,9 @@ class RagSettings:
                 }.items():
                     if not value:
                         raise RagError(code, "local RAG configuration is incomplete")
-                endpoint = urlsplit(settings.embedding_base_url)
-                if endpoint.scheme not in {"http", "https"} or not endpoint.hostname:
-                    raise RagError(
-                        "RAG_EMBEDDING_BASE_URL_INVALID",
-                        "embedding endpoint must be an HTTP or HTTPS URL",
-                    )
+                _validate_http_endpoint(
+                    settings.embedding_base_url, "RAG_EMBEDDING_BASE_URL_INVALID"
+                )
             required = {
                 "RAG_MILVUS_URI_MISSING": settings.milvus_uri,
                 "RAG_MILVUS_COLLECTION_MISSING": settings.milvus_collection,
@@ -221,6 +218,23 @@ def _optional_decimal(value: str) -> Decimal | None:
     if not parsed.is_finite() or parsed < 0:
         raise RagError("RAG_BUDGET_INVALID", "budget must be non-negative")
     return parsed
+
+
+def _validate_http_endpoint(value: str, code: str) -> None:
+    """Reject non-HTTP endpoints and credentials embedded in a URL."""
+    endpoint = urlsplit(value)
+    if (
+        endpoint.scheme not in {"http", "https"}
+        or not endpoint.hostname
+        or endpoint.username is not None
+        or endpoint.password is not None
+        or endpoint.query
+        or endpoint.fragment
+    ):
+        raise RagError(
+            code,
+            "embedding endpoint must be an HTTP or HTTPS URL without credentials",
+        )
 
 
 @dataclass(frozen=True)
@@ -452,6 +466,7 @@ class OpenAICompatibleEmbedder:
     def __init__(self, settings: RagSettings):
         if settings.mode != "local" or settings.embedding_provider != "openai-compatible":
             raise RagError("RAG_EMBEDDING_PROVIDER_MISMATCH", "OpenAI-compatible embedder requires its explicit local provider")
+        _validate_http_endpoint(settings.embedding_base_url, "RAG_EMBEDDING_BASE_URL_INVALID")
         self.settings = settings
 
     def embed(self, inputs: list[str]) -> list[list[float]]:
@@ -463,12 +478,17 @@ class OpenAICompatibleEmbedder:
         )
         try:
             with urllib.request.urlopen(request, timeout=self.settings.timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+                raw_payload = response.read()
+            payload = json.loads(raw_payload.decode("utf-8"))
         except urllib.error.HTTPError as error:
             raise RagError("RAG_EMBEDDING_REJECTED", "embedding endpoint rejected request") from error
         except (urllib.error.URLError, TimeoutError) as error:
             raise RagError("RAG_EMBEDDING_UNAVAILABLE", "embedding endpoint is unavailable") from error
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
         try:
+            if not isinstance(payload, dict):
+                raise TypeError("embedding response must be an object")
             data = payload["data"]
             if not isinstance(data, list):
                 raise TypeError("embedding data must be a list")
@@ -476,14 +496,30 @@ class OpenAICompatibleEmbedder:
             for position, item in enumerate(data):
                 if not isinstance(item, dict):
                     raise TypeError("embedding item must be an object")
-                index = int(item.get("index", position))
-                indexed.append((index, item["embedding"]))
+                raw_index = item.get("index", position)
+                if isinstance(raw_index, bool):
+                    raise TypeError("embedding index must be an integer")
+                index = int(raw_index)
+                vector = item["embedding"]
+                if not isinstance(vector, (list, tuple)):
+                    raise TypeError("embedding vector must be an array")
+                indexed.append((index, vector))
             if sorted(index for index, _ in indexed) != list(range(len(inputs))):
                 raise ValueError("embedding indexes are not a complete sequence")
             vectors = [list(map(float, vector)) for _, vector in sorted(indexed)]
         except (KeyError, TypeError, ValueError) as error:
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
-        if len(vectors) != len(inputs) or not vectors or any(not vector or not all(math.isfinite(item) for item in vector) for vector in vectors):
+        dimension = len(vectors[0]) if vectors else 0
+        if (
+            len(vectors) != len(inputs)
+            or not vectors
+            or dimension == 0
+            or any(
+                len(vector) != dimension
+                or not all(math.isfinite(item) for item in vector)
+                for vector in vectors
+            )
+        ):
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "embedding count or values are invalid")
         return vectors
 
