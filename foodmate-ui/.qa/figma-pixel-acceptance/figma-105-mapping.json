@@ -785,7 +785,7 @@
       "frontendRoute": "/token-status",
       "queryState": "state=invalid",
       "browserViewport": "1440x900",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured/token-invalid-figma-current-2026-08-29.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-invalid-figma-current-2026-08-29.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-invalid-browser-current-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-invalid",
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/token-invalid-current-diff-2026-08-29.json",
@@ -830,9 +830,10 @@
       "frontendRoute": "/token-status",
       "queryState": "state=expired",
       "browserViewport": "1440x900",
-      "figmaPng": "docxs/设计/figma-png/token-expired.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-expired-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-expired-figma-current-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-expired-browser-current-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-expired",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/token-expired-current-diff-2026-08-29.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -860,8 +861,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Expired-token page differs visually from the Figma reference. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-29",
+        "conclusion": "Latest same-size Figma and browser captures match the page hierarchy and geometry. The shared diagonal boundary correction is active; text/icon rasterization and remaining pixels require continued DIFF_REVIEW."
       }
     },
     {

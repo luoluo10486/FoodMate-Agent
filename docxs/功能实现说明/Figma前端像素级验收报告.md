@@ -505,6 +505,26 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [ ] 本页仍不能标记 `PASS`：自动 diff 仍存在文本、图标和浏览器光栅化差异；本轮不以视觉接近替代像素级通过。
 - [ ] iconfont 实体资源继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
 
+## 135. 2026-08-29 Token 过期页当前证据收口
+
+本轮重新读取 Figma 节点 `680:757` 并复测 `/token-status?state=expired`。该状态与 Token 无效页共享认证壳层；运行时确认卡片和内层内容几何符合节点规格，已验证的 Token 页面斜线边界修正同时生效。本轮没有新增源码改动，也没有修改 Figma。
+
+| 验收项 | 当前证据 |
+|---|---|
+| Figma 节点与视口 | `680:757`，`1440×900` |
+| 页面几何 | 卡片 `x=490,y=241.8,w=460,h=416.4`；内层 `380px`；背景根节点 `1440×900` |
+| Figma PNG | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-expired-figma-current-2026-08-29.png` |
+| 浏览器 RGBA PNG | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-expired-browser-current-2026-08-29-rgba.png` |
+| PNG diff | `differentPixels=661762`、差异比例 `51.0619%`、`MAE=0.446812`、`RMSE=2.399694`、最大通道差异 `154`；`DIFF_REVIEW` |
+| 独立 diff JSON | `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-expired-current-diff-2026-08-29.json` |
+| 运行时 | `1440×900`、DPR `1.0000000149011612`、字体已加载、无横向溢出 |
+| 状态行为 | 重新发送重置邮件进入 `/forgot-password`；返回登录进入 `/login`；未伪造邮件投递结果 |
+
+- [x] Token 过期页已完成最新设计稿读取、同尺寸浏览器截图、几何检查和 diff 登记。
+- [x] `figma-105-mapping.json` 保留完整 105 项字段，并将本状态指向最新证据；聚合状态仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本页仍不能标记 `PASS`：自动 diff 仍存在文本、图标和浏览器光栅化差异；不能用视觉接近替代像素级通过。
+- [ ] iconfont 实体资源继续为 `BLOCKED`；本轮没有创建虚构字体包、Unicode 或 CSS 映射。
+
 ## 51. 2026-08-23 餐食规划列表默认态卡片复核
 
 本轮重新读取 Figma 节点 `692:2662`，并修正 `/planning?state=list` 前端 fixture 的默认展示规则。Figma 默认画板在“进行中”标签选中时仍同时呈现进行中、草稿和已归档三张计划卡；原实现只呈现进行中卡片，造成主内容区域与 Figma 不一致。当前实现默认展示三张卡，切换到“草稿箱”或“已归档”后继续按状态筛选；真实模式仍按服务端计划状态筛选。
