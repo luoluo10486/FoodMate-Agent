@@ -87,6 +87,17 @@ class _VectorMilvusClient:
         self.flushed.append(kwargs["collection_name"])
 
 
+class _IdentityMilvusClient(_VectorMilvusClient):
+    def __init__(self, fingerprint):
+        super().__init__(dimension=2)
+        self.rows = [{"embedding_id": "existing", "embedding_fingerprint": fingerprint}]
+        self.queries = []
+
+    def query(self, **kwargs):
+        self.queries.append(kwargs)
+        return [dict(row) for row in self.rows]
+
+
 class MilvusIndexTests(TestCase):
     def test_visibility_update_is_limited_to_document_version(self):
         index = MilvusIndex.__new__(MilvusIndex)
@@ -136,6 +147,29 @@ class MilvusIndexTests(TestCase):
             index.upsert("Guide", [KnowledgeChunk("emb-1", "d1", "v1", 0, "", "protein")], [[0.1] * 12])
 
         self.assertEqual("RAG_MILVUS_DIMENSION_MISMATCH", raised.exception.code)
+
+    def test_upsert_rejects_existing_collection_with_different_embedding_identity(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="openai-compatible",
+            embedding_profile="bge-m3",
+            embedding_model="BAAI/bge-m3",
+            milvus_uri="http://milvus",
+            milvus_collection="shared_knowledge",
+        )
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _IdentityMilvusClient("rag_different_model")
+        index.collection = settings.milvus_collection
+        index.index_fingerprint = settings.index_fingerprint
+
+        with self.assertRaisesRegex(RagError, "embedding identity") as raised:
+            index.upsert(
+                "Guide",
+                [KnowledgeChunk("emb-1", "d1", "v1", 0, "", "protein")],
+                [[0.1, 0.2]],
+            )
+
+        self.assertEqual("RAG_MILVUS_MODEL_MISMATCH", raised.exception.code)
 
     def test_delete_is_limited_to_document_version(self):
         index = MilvusIndex.__new__(MilvusIndex)

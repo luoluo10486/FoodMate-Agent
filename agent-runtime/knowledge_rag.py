@@ -82,6 +82,19 @@ class RagSettings:
         )
         return "idx_" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:32]
 
+    @property
+    def index_fingerprint(self) -> str:
+        """返回用于阻止 Milvus 混写的、不包含凭据的 embedding 身份。"""
+        identity = "\x1f".join(
+            (
+                self.mode,
+                self.embedding_provider,
+                self.embedding_profile,
+                self.embedding_model,
+            )
+        )
+        return "rag_" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:32]
+
     @classmethod
     def from_environment(cls, environment: dict[str, str] | None = None) -> "RagSettings":
         env = environment if environment is not None else os.environ
@@ -779,6 +792,7 @@ class MilvusIndex:
         except Exception as error:
             raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus is unavailable") from error
         self.collection = settings.milvus_collection
+        self.index_fingerprint = settings.index_fingerprint
 
     def _ensure_collection(self, dimension: int) -> None:
         try:
@@ -801,10 +815,42 @@ class MilvusIndex:
             actual = (vector or {}).get("params", {}).get("dim") or (vector or {}).get("params", {}).get("dimension")
             if actual is not None and int(actual) != dimension:
                 raise RagError("RAG_MILVUS_DIMENSION_MISMATCH", "Milvus vector dimension does not match embedding model")
+            self._verify_collection_identity()
         except RagError:
             raise
         except Exception as error:
             raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus collection is unavailable") from error
+
+    def _verify_collection_identity(self) -> None:
+        """拒绝把不同 embedding 模式或模型写入同一个已有 collection。"""
+        expected = getattr(self, "index_fingerprint", "")
+        if not expected:
+            return
+        try:
+            rows = self.client.query(
+                collection_name=self.collection,
+                filter="",
+                output_fields=["embedding_id", "embedding_fingerprint"],
+                limit=1,
+            )
+        except Exception as error:
+            raise RagError(
+                "RAG_MILVUS_METADATA_UNAVAILABLE",
+                "Milvus embedding identity metadata is unavailable",
+            ) from error
+        if not rows:
+            return
+        actual = str(rows[0].get("embedding_fingerprint", "")).strip()
+        if not actual:
+            raise RagError(
+                "RAG_MILVUS_MODEL_MISMATCH",
+                "Milvus collection has no embedding identity metadata",
+            )
+        if actual != expected:
+            raise RagError(
+                "RAG_MILVUS_MODEL_MISMATCH",
+                "Milvus collection embedding identity does not match the configured provider",
+            )
 
     def upsert(self, title: str, chunks: Iterable[KnowledgeChunk], vectors: list[list[float]]) -> None:
         chunks = list(chunks)
@@ -813,7 +859,7 @@ class MilvusIndex:
         self._ensure_collection(len(vectors[0]))
         rows = []
         for chunk, vector in zip(chunks, vectors, strict=True):
-            rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted, "current_version": chunk.current_version})
+            rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "embedding_fingerprint": getattr(self, "index_fingerprint", ""), "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted, "current_version": chunk.current_version})
         try:
             self.client.upsert(collection_name=self.collection, data=rows)
             self._flush()
@@ -827,7 +873,7 @@ class MilvusIndex:
             if not self.client.has_collection(self.collection):
                 return
             version_filter = "" if version is None else f' and version == "{_milvus_string(version)}"'
-            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{_milvus_string(document_id)}"{version_filter}', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted", "current_version"])
+            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{_milvus_string(document_id)}"{version_filter}', output_fields=["embedding_id", "vector", "embedding_fingerprint", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted", "current_version"])
             for row in rows:
                 row["visibility"] = visibility
                 row["deleted"] = deleted
@@ -871,13 +917,16 @@ class MilvusIndex:
         vectors = embedder.embed([query])
         self._ensure_collection(len(vectors[0]))
         try:
+            identity_filter = ""
+            if getattr(self, "index_fingerprint", ""):
+                identity_filter = f' and embedding_fingerprint == "{_milvus_string(self.index_fingerprint)}"'
             hits = self.client.search(
                 collection_name=self.collection,
                 data=vectors,
                 anns_field="vector",
-                filter='tenant_id == 0 and scope == "public_published" and visibility == "published" and indexed == true and deleted == false and current_version == true',
+                filter='tenant_id == 0 and scope == "public_published" and visibility == "published" and indexed == true and deleted == false and current_version == true' + identity_filter,
                 limit=12,
-                output_fields=["embedding_id", "document_id", "title", "version", "section_path", "text", "current_version"],
+                output_fields=["embedding_id", "document_id", "title", "version", "section_path", "text", "current_version", "embedding_fingerprint"],
             )[0]
         except Exception as error:
             raise RagError("RAG_MILVUS_SEARCH_FAILED", "Milvus search failed") from error
