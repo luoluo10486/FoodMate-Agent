@@ -1484,3 +1484,13 @@
 | 解释器校验 | `agent-runtime\\.venv\\Scripts\\python.exe -B --version` 返回 `Python 3.13.14`。 |
 | 安全边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow，未执行迁移、删除业务数据、生产操作或故障测试。 |
 | 结论 | `.pyc` 均为可再生缓存，当前已全部清理；后续 Python 测试继续设置 `PYTHONDONTWRITEBYTECODE=1`，真实云联调仍需轮换后的新凭据。 |
+
+## D83 恢复 RAG Embedding 错误测试覆盖（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 发现 | `agent-runtime/tests/test_knowledge_rag.py` 存在两个同名测试类，后定义覆盖前定义，导致一组 Embedding 配置和错误处理测试未被 pytest 收集。 |
+| 修复 | 重命名前一个测试类，并将其 HTTP fixture 改为支持上下文管理器的 `MagicMock`；未修改生产 Embedding 逻辑。提交 `8ec185c9`。 |
+| 验证 | RAG 定向测试 `42 passed、4 subtests passed`；Python 全量业务测试 `168 passed、2 skipped、6 subtests passed`；测试设置 `PYTHONDONTWRITEBYTECODE=1`。 |
+| 安全边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow，未修改业务数据库或 Docker 数据。 |
+| 结论 | SiliconFlow-compatible Embedding 的错误映射、配置失败关闭和协议 fixture 已实际纳入本地测试收集；真实 endpoint、模型维度和账单仍需轮换后的凭据与外部调用证据。 |
