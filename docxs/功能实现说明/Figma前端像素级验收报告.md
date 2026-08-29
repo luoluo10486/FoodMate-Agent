@@ -49,7 +49,7 @@
 
 | 页面/状态 | Figma 节点 | 尺寸 | 差异比例 | RMSE | 结论 |
 |---|---|---:|---:|---:|---|
-| Workspace Home | `640:256` | 1440×1024 | 42.26% | 20.09 | `DIFF_REVIEW` |
+| Workspace Home | `640:256` | 1440×1024 | 37.58% | 17.11 | `DIFF_REVIEW` |
 | Agent Chat | `640:428` | 1440×1024 | 40.60% | 20.51 | `DIFF_REVIEW` |
 | Diet Records | `640:588` | 1440×1024 | 37.94% | 17.38 | `DIFF_REVIEW` |
 | Intake Analysis | `640:773` | 1440×1024 | 28.07% | 18.50 | `DIFF_REVIEW` |
@@ -1481,3 +1481,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器原始捕获与转换后的 RGBA PNG 已登记：`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/reset-password-page-browser-2026-08-30.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/reset-password-page-browser-2026-08-30-rgba.png`；Figma 参考为 `docxs/设计/figma-png/reset-password-page.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/reset-password-page-2026-08-30-diff.json`。
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=1284884`、差异比例 `99.1423%`、`MAE=1.643792`、`RMSE=11.583254`、最大通道差异 `212`；映射和聚合 diff 已同步，结果继续为 `DIFF_REVIEW`。
 - [ ] 本小点只完成重置密码页品牌色 Token 收口，不代表该画板或 105 张画板达到像素级 `PASS`；DPR、字体/图标光栅化和整页视觉差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 160. 2026-08-30 Workspace Home 移除非设计说明面板
+
+- [x] 依据 Figma 节点 `640:256`，移除前端额外渲染的“任务入口与状态”实现说明面板；该面板不属于设计稿可见内容。活跃会话和待确认队列等业务内容保持不变，Figma 设计稿未修改。
+- [x] 浏览器定向测试 `4/4` 通过；`1440×1024` 截图的正文标题、快捷操作和指标卡仍存在，说明面板不存在，页面 `body` 与 `main` 均无横向溢出。
+- [x] 有效浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/workspace-home-v2-no-status-panel-browser-2026-08-30-rgba.png`；原始浏览器捕获已按真实 JPEG 格式登记为同目录下的 `.jpg`，避免伪装为 PNG。Figma 参考为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma.png`，独立 diff 为 `workspace-home-v2-no-status-panel-2026-08-30-diff.json`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=554164`、差异比例 `37.5817%`、`MAE=3.236364`、`RMSE=17.110668`、最大通道差异 `253`；该画板继续保持 `DIFF_REVIEW`，没有将局部结构修正标记为像素级 `PASS`。
+- [ ] 本小点只移除 Figma 不存在的前端实现说明面板，不代表 Workspace Home、105 张画板或 shadcn 全页面迁移完成；iconfont 实体资源登记继续为 `BLOCKED`。

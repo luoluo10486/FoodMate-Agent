@@ -55,4 +55,16 @@ describe('HomePage session cards', () => {
 
     expect(screen.getByRole('heading', { name: '待确认队列' }).closest('article')).toHaveClass('pendingPanel');
   });
+
+  it('does not render implementation notes that are absent from the Figma workspace artboard', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('heading', { name: '任务入口与状态' })).toBeNull();
+  });
 });

@@ -44,7 +44,7 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-browser-dpr1-motionoff-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-no-status-panel-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "MINOR_RENDERING_DIFF_CONFIRMED",
@@ -73,8 +73,8 @@
       "manualReview": {
         "status": "MINOR_RENDERING_DIFF_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "已按 Figma 节点 640:256 对齐工作台状态说明中的‘覆盖’和‘预算追加’文案；顶栏品牌方块保持空白，前端左上角红黄绿窗口装饰点未渲染。图标、头像、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-08-30",
+        "conclusion": "已按 Figma 节点 640:256 移除前端额外渲染的‘任务入口与状态’实现说明面板；顶栏品牌方块保持空白，前端左上角红黄绿窗口装饰点未渲染。图标、头像、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -92,7 +92,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; 2026-08-30 top-navigation surface evidence is the current primary capture; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -465,12 +465,12 @@
       "frontendRoute": "/register",
       "queryState": null,
       "browserViewport": "1440x900",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png",
+      "figmaPng": "docxs/设计/figma-png/register-page.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#register-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-30 registration color-token evidence is current; automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -535,7 +535,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#forgot-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-30 browser capture and independent PNG diff added; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -598,7 +598,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#reset-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-30 browser capture and independent PNG diff added; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -1262,7 +1262,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-          "conclusion": "The latest Figma and browser captures contain the confirmation fields, source, assumptions, and actions. The confirmation card geometry and details background now match the checked Figma frame; shell identity, avatar treatment, typography, and icon rasterization still differ, so retain DIFF_REVIEW."
+        "conclusion": "The latest Figma and browser captures contain the confirmation fields, source, assumptions, and actions. The confirmation card geometry and details background now match the checked Figma frame; shell identity, avatar treatment, typography, and icon rasterization still differ, so retain DIFF_REVIEW."
       }
     },
     {
@@ -1275,7 +1275,7 @@
       "frontendRoute": "/chat",
       "queryState": "state=budget-limit",
       "browserViewport": "1440x1024",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-current-2026-08-29.png",
+      "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-title-color-browser-1440x1024-2026-08-30-rgba.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
@@ -1365,7 +1365,7 @@
       "frontendRoute": "/chat",
       "queryState": "state=tool-failed-retryable",
       "browserViewport": "1440x1024",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-tool-failed-retryable-current.png",
+      "figmaPng": "docxs/设计/figma-png/agent-tool-failed-retryable.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
       "status": "DIFF_REVIEW",
@@ -1468,7 +1468,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; 2026-08-30 aligned evidence is recorded in additionalVisualEvidence; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1547,7 +1547,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; 2026-08-30 time and warning-color evidence is recorded in additionalVisualEvidence; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4829,7 +4829,7 @@
       "frontendRoute": "/admin",
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
+      "figmaPng": "docxs/设计/figma-png/admin-overview.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-navigation-browser-2026-08-29.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
