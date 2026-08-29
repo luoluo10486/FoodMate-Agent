@@ -97,14 +97,29 @@ class RagSettings:
                     "embedding profile and model do not match",
                 )
             embedding_model = profile_model
+        if mode == "stub":
+            # Stub is deliberately isolated from every paid or vector dependency.
+            # Do not even retain externally supplied credentials in process state.
+            provider = "deterministic"
+            profile = ""
+            embedding_base_url = ""
+            embedding_api_key = ""
+            embedding_model = "deterministic-local-v1"
+            milvus_uri = ""
+            milvus_collection = ""
+        else:
+            embedding_base_url = env.get("FOODMATE_RAG_EMBEDDING_BASE_URL", "").strip()
+            embedding_api_key = env.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip()
+            milvus_uri = env.get("FOODMATE_RAG_MILVUS_URI", "").strip()
+            milvus_collection = env.get("FOODMATE_RAG_MILVUS_COLLECTION", "").strip()
         settings = cls(
             mode=mode,
             embedding_provider=provider,
-            embedding_base_url=env.get("FOODMATE_RAG_EMBEDDING_BASE_URL", "").strip(),
-            embedding_api_key=env.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip(),
+            embedding_base_url=embedding_base_url,
+            embedding_api_key=embedding_api_key,
             embedding_model=embedding_model,
-            milvus_uri=env.get("FOODMATE_RAG_MILVUS_URI", "").strip(),
-            milvus_collection=env.get("FOODMATE_RAG_MILVUS_COLLECTION", "").strip(),
+            milvus_uri=milvus_uri,
+            milvus_collection=milvus_collection,
             deterministic_dimension=deterministic_dimension,
             index_concurrency=concurrency,
             timeout_seconds=float(env.get("FOODMATE_RAG_ITEM_TIMEOUT_SECONDS", "20")),

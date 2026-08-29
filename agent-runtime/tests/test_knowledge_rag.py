@@ -173,7 +173,26 @@ class RedisStubIndexTests(TestCase):
 
 class RagSettingsTests(TestCase):
     def test_stub_needs_no_secret_or_milvus(self):
-        self.assertEqual("stub", RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}).mode)
+        settings = RagSettings.from_environment(
+            {
+                "FOODMATE_RAG_MODE": "stub",
+                "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                "FOODMATE_RAG_EMBEDDING_BASE_URL": "https://embedding.example.test/v1",
+                "FOODMATE_RAG_EMBEDDING_API_KEY": "must-not-be-retained",
+                "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3",
+                "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                "FOODMATE_RAG_MILVUS_COLLECTION": "paid_vectors",
+            }
+        )
+
+        self.assertEqual("stub", settings.mode)
+        self.assertEqual("deterministic", settings.embedding_provider)
+        self.assertEqual("deterministic-local-v1", settings.embedding_model)
+        self.assertEqual("", settings.embedding_base_url)
+        self.assertEqual("", settings.embedding_api_key)
+        self.assertEqual("", settings.milvus_uri)
+        self.assertEqual("", settings.milvus_collection)
+        self.assertEqual("", settings.embedding_profile)
 
     def test_local_fails_closed_when_configuration_is_missing(self):
         with self.assertRaisesRegex(RagError, "incomplete") as raised:
