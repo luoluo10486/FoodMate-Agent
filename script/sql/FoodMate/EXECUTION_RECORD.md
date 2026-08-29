@@ -1285,3 +1285,14 @@
 | Java 结果 | Application `7/7`、Infrastructure `7/7` 通过；包含对象/向量/数据库任务业务测试和真实隔离 PostgreSQL 删除验证。 |
 | 数据与暂缓边界 | 未对现有库执行硬删除、truncate、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复；真实云服务未调用。 |
 | 结论 | M3 数据库清理的真实删除、结果保留和幂等重放已有隔离环境证据；现有生产数据清理、备份恢复和生产强化仍未完成。 |
+
+## D66 Python 依赖与仓库秘密扫描（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；使用项目环境 `agent-runtime\\.venv\\Scripts\\python.exe`；未调用云模型、Embedding 或生产服务。 |
+| 执行命令 | `script\\security\\security-scan.ps1 -RunPythonAudit` |
+| 扫描结果 | `secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`、`security_scan_status=passed`；`pip-audit --local` 未报告已知漏洞。 |
+| 扫描边界 | 秘密规则只匹配高置信度凭据格式；未把配置名、测试占位值或文档中的变量名误报为密钥。对话中曾公开的旧 API Key 未写入仓库，后续不再使用。 |
+| 数据与暂缓边界 | 未修改业务数据、未执行性能压测、组件重启、故障注入、备份恢复或生产部署；npm advisory/OWASP 扫描不在本轮命令中执行。 |
+| 结论 | Python 依赖和 Git 跟踪文件秘密扫描已有本地证据；完整生产安全流程、密钥轮换执行和渗透测试仍未完成。 |
