@@ -14,7 +14,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 
-/** Translates RocketMQ callbacks into the application message handler contract. */
+/** 将 RocketMQ 回调转换为 application 消息处理器契约。 */
 public final class RocketMqConsumerContainer implements AutoCloseable {
     private final DefaultMQPushConsumer consumer;
     private final String topic;

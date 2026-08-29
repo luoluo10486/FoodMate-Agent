@@ -11,7 +11,7 @@ import java.util.Locale;
 public interface AdminOperationalQueryService {
     Page<?> query(String resource, Request request);
 
-    /** Returns a redacted, authoritative span view for one trace. */
+    /** 返回一个 Trace 的脱敏权威跨度视图。 */
     TraceDetail traceDetail(String traceId);
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)

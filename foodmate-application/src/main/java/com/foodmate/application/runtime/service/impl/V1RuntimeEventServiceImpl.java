@@ -211,7 +211,7 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
                 .toList();
     }
 
-    /** Returns whether the run belongs to the V1 durable runtime or the in-memory test runtime. */
+    /** 返回 Run 是否属于 V1 持久化 Runtime，而不是内存测试 Runtime。 */
     @Override
     public synchronized boolean exists(String runId) {
         if (store == null) return memoryEvents.containsKey(runId);

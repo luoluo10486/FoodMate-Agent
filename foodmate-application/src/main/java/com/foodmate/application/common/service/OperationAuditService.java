@@ -54,7 +54,7 @@ public class OperationAuditService {
     private final IdGenerator ids;
     private final TransactionTemplate failureTransaction;
 
-    /** Compatibility constructor for unit tests and application-only callers. */
+    /** 供单元测试和仅依赖 application 模块的调用方使用的兼容构造函数。 */
     public OperationAuditService(
             ObjectProvider<OperationAuditPort> storeProvider, IdGenerator ids) {
         this(storeProvider, ids, null);
@@ -104,7 +104,7 @@ public class OperationAuditService {
                 metadata);
     }
 
-    /** Writes an audit fact with the trace context that owns the business command. */
+    /** 使用拥有业务命令的 Trace 上下文写入审计事实。 */
     public void record(
             TraceContext trace,
             Long operatorId,
@@ -203,7 +203,7 @@ public class OperationAuditService {
             throw new IllegalStateException("operation audit transition was not persisted");
     }
 
-    /** Records a rejection or failure after the caller's business transaction has rolled back. */
+    /** 在调用方业务事务回滚后记录拒绝或失败事实。 */
     public void recordFailure(
             Long operatorId,
             String targetType,
@@ -227,7 +227,7 @@ public class OperationAuditService {
                 metadata);
     }
 
-    /** Records failure with the trace context that owns the failed command. */
+    /** 使用拥有失败命令的 Trace 上下文记录失败事实。 */
     public void recordFailure(
             TraceContext trace,
             Long operatorId,

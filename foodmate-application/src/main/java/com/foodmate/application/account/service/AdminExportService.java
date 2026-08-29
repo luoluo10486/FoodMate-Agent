@@ -30,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/** Creates and processes small, redacted administrator export jobs. */
+/** 创建并处理小型、脱敏的管理员导出任务。 */
 @Service
 public class AdminExportService {
     private static final int MAX_ROWS = 100;

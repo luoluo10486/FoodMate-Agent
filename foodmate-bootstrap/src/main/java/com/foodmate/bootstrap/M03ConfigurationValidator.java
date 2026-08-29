@@ -12,7 +12,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
-/** Enforces the production and development configuration boundary without logging secrets. */
+/** 强制执行生产与开发配置边界，且不记录任何密钥。 */
 @Component
 public final class M03ConfigurationValidator {
     private final Environment environment;

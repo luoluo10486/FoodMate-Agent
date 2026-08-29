@@ -3,7 +3,7 @@ package com.foodmate.application.account.port.out;
 import java.time.Instant;
 import java.util.List;
 
-/** Persistence contract for bounded, redacted administrator exports. */
+/** 有界、脱敏管理员导出的持久化契约。 */
 public interface AdminExportRepository {
     int insertJob(
             long jobId, long operatorId, String resource, String filtersJson, String fieldsJson);

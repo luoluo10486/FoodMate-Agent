@@ -32,7 +32,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Creates a new dispatch attempt only after Java has reconciled the persisted Run facts. */
+/** 仅在 Java 完成持久化 Run 事实对账后创建新的派发尝试。 */
 @Service
 public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
     private final RuntimeRecoveryRepository store;
@@ -197,8 +197,8 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
     }
 
     /**
-     * Production trigger used by a confirmed tool/budget recovery: Java reads the durable
-     * checkpoint event instead of trusting a browser to reconstruct checkpoint metadata.
+     * 已确认的工具或预算恢复使用的正式触发入口：Java 读取持久化 checkpoint 事件，
+     * 不信任浏览器重建 checkpoint 元数据。
      */
     @Transactional
     @Override

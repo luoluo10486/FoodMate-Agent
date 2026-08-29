@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
 
-/** Reconciles an acknowledged checkpoint and creates a new runtime attempt. */
+/** 对已确认的 checkpoint 进行对账并创建新的 Runtime 尝试。 */
 public interface RuntimeRecoveryService {
     RecoveryResult recover(RecoveryCommand command);
 

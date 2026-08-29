@@ -24,7 +24,7 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
         this.service = service;
     }
 
-    /** Validates and idempotently applies one Python index result message. */
+    /** 校验并幂等应用一条 Python 索引结果消息。 */
     @Override
     public MqConsumeDecision handle(String body, MqMessageContext context) {
         try {

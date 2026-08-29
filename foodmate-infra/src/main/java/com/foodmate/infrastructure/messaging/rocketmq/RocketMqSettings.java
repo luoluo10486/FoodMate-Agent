@@ -2,7 +2,7 @@ package com.foodmate.infrastructure.messaging.rocketmq;
 
 import java.util.Objects;
 
-/** Validated RocketMQ transport configuration. */
+/** 经过校验的 RocketMQ 传输配置。 */
 public record RocketMqSettings(
         String nameServer,
         String commandTopic,
