@@ -1410,3 +1410,13 @@
 | V6 结果 | 新增/更新 75 条 `kg/mg/lb -> g` 精确质量换算；`mass_unit_conversion_seed_rows=75`；非法行、食材关联错误、规则形状错误均为 `0`。数据库按 `numeric(12,4)` 保存磅系数为 `453.5924`。 |
 | 代码验证 | `NutritionCommonV5SeedScriptTest` `4/4`、`NutritionSeedScriptTest` `9/9` 通过；受影响 Infrastructure Spotless 检查通过。提交 `c957a831` 包含 V5 长度契约，提交 `f3c2af41` 已补齐 V5/V6 的唯一索引冲突目标、磅系数精度校验和 validation 契约。 |
 | 数据边界 | 未执行 `TRUNCATE`、宽泛删除、迁移、数据库硬删除、备份恢复、性能压测、组件重启或生产操作；seed 可重复执行且未覆盖既有业务数据。 |
+
+## D77 本地 PostgreSQL 备份隔离恢复复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；运行中的 `foodmate-postgres` 容器；使用已有 `FoodMate_before_nutrition_20260830_033607.dump`；未连接生产环境。 |
+| 执行方式 | 通过 Docker 容器内 `pg_restore` 将备份恢复到随机命名的本地临时数据库 `FoodMateRecovery0761c13cee38`；未覆盖源数据库。 |
+| 恢复校验 | `pg_restore --exit-on-error --no-owner --no-privileges` 成功；只读 SQL 返回 `64` 张 public base table、`37` 个 `is_deleted` 列，数据库名与临时库一致。 |
+| 清理校验 | 恢复库和容器内 `/tmp/foodmate-recovery.dump` 均在 `finally` 清理；恢复库不存在性校验为 `true`；源 `FoodMate` 数据未执行删除或覆盖。 |
+| 结论 | 本地隔离备份恢复和清理流程取得实际证据；不等同于生产备份恢复、跨环境灾备、RPO/RTO 或发布回滚演练。 |
