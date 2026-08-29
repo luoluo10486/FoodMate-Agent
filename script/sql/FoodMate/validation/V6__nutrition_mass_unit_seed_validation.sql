@@ -48,5 +48,5 @@ WHERE conversion_id BETWEEN 530001 AND 530075
   AND (
       (source_unit = 'kg' AND multiplier <> 1000.000000)
       OR (source_unit = 'mg' AND multiplier <> 0.001000)
-      OR (source_unit = 'lb' AND multiplier <> 453.592370)
+      OR (source_unit = 'lb' AND multiplier <> 453.5924)
   );

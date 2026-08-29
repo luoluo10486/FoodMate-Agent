@@ -1398,3 +1398,15 @@
 | 安全门禁 | `script\\security\\security-scan.ps1`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`；`secret-rotation-check.tests.ps1` 通过。 |
 | Python 缓存边界 | `.pyc` 共 `419` 个，全部位于 `agent-runtime\\.venv` 第三方依赖缓存，约 `5.64 MB`；源码范围为 `0`，Git 跟踪为 `0`，由 `.gitignore` 忽略。未删除虚拟环境。 |
 | 未执行范围 | 未调用真实 SiliconFlow Chat/Embedding、未执行性能压测、组件重启、ACK/重复消息故障注入、备份恢复、生产监控部署或不可逆清理。真实云 smoke 需使用供应商控制台轮换后的新凭据。 |
+
+## D76 本地营养目录 V5/V6 实际执行与校验（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；运行中的 `foodmate-postgres` 容器；数据库 `FoodMate`；PostgreSQL `16.14`；未调用云服务。 |
+| 执行前置 | 备份 `FoodMate_before_nutrition_20260830_033607.dump`，大小 `1,341,380` bytes，SHA-256 `D4BB127B5E36227526CFD27EB71070CF62A1C230746260509702D1B21712D113`；备份位于 Git 忽略的 `script/sql/FoodMate/backups`。 |
+| 执行命令 | `Get-Content seed/V5__nutrition_usda_common_foods_seed.sql | docker exec -i foodmate-postgres psql -v ON_ERROR_STOP=1 -U postgres -d FoodMate`；同样方式执行 `seed/V6__nutrition_mass_unit_seed.sql`；随后执行对应 `validation/V5__nutrition_usda_common_foods_validation.sql` 和 `validation/V6__nutrition_mass_unit_seed_validation.sql`。 |
+| V5 结果 | 新增/更新 9 条常见食材和 9 条 USDA foodPortions 换算；`common_nutrition_seed_rows=9`、`common_unit_conversion_seed_rows=9`；非法行、食材关联错误均为 `0`。 |
+| V6 结果 | 新增/更新 75 条 `kg/mg/lb -> g` 精确质量换算；`mass_unit_conversion_seed_rows=75`；非法行、食材关联错误、规则形状错误均为 `0`。数据库按 `numeric(12,4)` 保存磅系数为 `453.5924`。 |
+| 代码验证 | `NutritionCommonV5SeedScriptTest` `4/4`、`NutritionSeedScriptTest` `9/9` 通过；受影响 Infrastructure Spotless 检查通过。提交 `c957a831` 包含 V5 长度契约；V6 部分唯一索引冲突目标、精度校验和契约测试的修正待本轮提交。 |
+| 数据边界 | 未执行 `TRUNCATE`、宽泛删除、迁移、数据库硬删除、备份恢复、性能压测、组件重启或生产操作；seed 可重复执行且未覆盖既有业务数据。 |

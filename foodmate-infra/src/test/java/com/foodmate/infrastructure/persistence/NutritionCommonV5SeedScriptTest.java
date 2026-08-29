@@ -55,6 +55,7 @@ class NutritionCommonV5SeedScriptTest {
         assertTrue(sql.contains("520017"));
         assertTrue(sql.contains("520025"));
         assertTrue(sql.contains("FDC-171971 portion-1 (3 oz=85g norm)"));
+        assertTrue(sql.contains("SR Legacy 2019-04-01 FDC-170457 portion-2"));
         assertTrue(sql.contains("ON CONFLICT (conversion_id) DO UPDATE"));
     }
 

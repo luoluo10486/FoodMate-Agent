@@ -42,7 +42,7 @@ SELECT
     'approved'
 FROM foods
 CROSS JOIN rules
-ON CONFLICT (nutrition_food_id, source_unit, target_unit) DO UPDATE SET
+ON CONFLICT (nutrition_food_id, source_unit, target_unit) WHERE is_deleted = FALSE DO UPDATE SET
     multiplier = EXCLUDED.multiplier,
     source_name = EXCLUDED.source_name,
     source_version = EXCLUDED.source_version,

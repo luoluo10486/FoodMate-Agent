@@ -173,7 +173,7 @@ class NutritionSeedScriptTest {
         assertTrue(sql.contains("530000 + ((foods.nutrition_food_id - 510001) * 3)"));
         assertTrue(
                 sql.contains(
-                        "ON CONFLICT (nutrition_food_id, source_unit, target_unit) DO UPDATE"));
+                        "ON CONFLICT (nutrition_food_id, source_unit, target_unit) WHERE is_deleted = FALSE DO UPDATE"));
     }
 
     @Test
@@ -184,6 +184,7 @@ class NutritionSeedScriptTest {
         assertTrue(sql.contains("mass_unit_conversion_food_mismatch_rows"));
         assertTrue(sql.contains("mass_unit_conversion_rule_shape_errors"));
         assertTrue(sql.contains("source_unit NOT IN ('kg', 'mg', 'lb')"));
+        assertTrue(sql.contains("source_unit = 'lb' AND multiplier <> 453.5924"));
         assertTrue(sql.contains("review_status <> 'approved'"));
     }
 }
