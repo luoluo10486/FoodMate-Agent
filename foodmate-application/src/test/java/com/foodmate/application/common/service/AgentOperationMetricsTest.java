@@ -37,7 +37,7 @@ class AgentOperationMetricsTest {
     }
 
     @Test
-    void exposesPendingAndLeasedQueueDepthWithFixedStateTags() {
+    void exposesPendingAndLeasedQueueDepthWithTheCommonLowCardinalityTags() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         ObjectProvider<MeterRegistry> provider = mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(registry);
@@ -54,8 +54,10 @@ class AgentOperationMetricsTest {
                                 "rocketmq",
                                 "operation",
                                 "knowledge_index",
-                                "state",
-                                "pending")
+                                "result",
+                                "pending",
+                                "reason",
+                                "queue_depth")
                         .gauge()
                         .value());
         assertEquals(
@@ -66,8 +68,35 @@ class AgentOperationMetricsTest {
                                 "rocketmq",
                                 "operation",
                                 "knowledge_index",
-                                "state",
-                                "leased")
+                                "result",
+                                "leased",
+                                "reason",
+                                "queue_depth")
+                        .gauge()
+                        .value());
+    }
+
+    @Test
+    void rejectsDynamicQueueStateAsAnOtherResultWithoutAddingAHighCardinalityTag() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ObjectProvider<MeterRegistry> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(registry);
+
+        AgentOperationMetrics metrics = new AgentOperationMetrics(provider);
+        metrics.queueDepth("rocketmq", "dispatch", "run-123", 7);
+
+        assertEquals(
+                7.0,
+                registry.get("foodmate.agent.queue.depth")
+                        .tags(
+                                "transport",
+                                "rocketmq",
+                                "operation",
+                                "dispatch",
+                                "result",
+                                "other",
+                                "reason",
+                                "queue_depth")
                         .gauge()
                         .value());
     }
