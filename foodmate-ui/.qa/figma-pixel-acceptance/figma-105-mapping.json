@@ -1193,7 +1193,8 @@
       "queryState": "state=awaiting-clarification",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-awaiting-clarification-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser-current-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30-rgba.png",
+      "browserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30.jpg",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-awaiting-clarification",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1222,8 +1223,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures match the clarification hierarchy and option labels. Avatar treatment and remaining font/icon rasterization differences are visible; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "已使用当前前端截图重新核对澄清层级、选项文案和可用 Composer；当前捕获不再包含 Figma 参考稿中的左上角红黄绿窗口点，默认头像和图标仍与 Figma 光栅存在差异，继续保留 DIFF_REVIEW。"
       }
     },
     {

@@ -1521,3 +1521,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 主浏览器证据已切换为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-tool-executing-window-controls-pruned-browser-2026-08-30-rgba.png`，原始 JPEG 为同目录下的 `agent-tool-executing-window-controls-pruned-browser-2026-08-30.jpg`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-tool-executing-window-controls-pruned-2026-08-30-diff.json`。
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=334780`、差异比例 `22.7037%`、`MAE=2.846537`、`RMSE=15.945549`、最大通道差异 `249`；相较旧证据 `23.4617% / RMSE 16.960477` 有改善，但结论继续为 `DIFF_REVIEW`。
 - [ ] 本小点只完成 Agent Tool Executing 的当前证据和前端窗口装饰核验，不代表该画板或 105 张画板达到像素级 `PASS`；默认头像、图标和字体光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 165. 2026-08-30 Agent Awaiting Clarification 当前前端截图与窗口装饰收口
+
+- [x] 依据 Figma 节点 `687:642`，重新采集 `/chat?state=awaiting-clarification` 的当前前端页面；主区 `1180px`、用户消息 `x=1216,y=145,width=144,height=49`、澄清助手行 `x=292,y=237,width=1116,height=193`、Composer `x=260,y=912,width=1180,height=112`，页面无横向或纵向溢出。
+- [x] 当前浏览器截图确认左上角红、黄、绿窗口装饰点数量为 `0`；该检查只针对前端，未修改 Figma 设计稿，业务状态圆点和默认头像不作误删。
+- [x] 主浏览器证据已切换为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30-rgba.png`，原始 JPEG 为同目录下的 `agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30.jpg`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-awaiting-clarification-window-controls-pruned-2026-08-30-diff.json`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=289019`、差异比例 `19.6004%`、`MAE=2.473502`、`RMSE=14.802080`、最大通道差异 `250`；当前证据用于替代过期截图，结论继续为 `DIFF_REVIEW`。
+- [ ] 本小点只完成 Agent Awaiting Clarification 的当前证据和前端窗口装饰核验，不代表该画板或 105 张画板达到像素级 `PASS`；默认头像、图标和字体光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

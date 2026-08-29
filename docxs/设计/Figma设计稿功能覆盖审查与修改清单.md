@@ -986,6 +986,13 @@
 - [x] 当前截图与同尺寸 Figma PNG 的 diff 为 `22.7037% / RMSE 15.945549`，仍为 `DIFF_REVIEW`；头像、图标和字体光栅化差异不能用几何通过替代。
 - [ ] 本节只关闭 Agent Tool Executing 的前端窗口装饰核验，不关闭 105 张画板像素级验收、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
 
+## 53. 2026-08-30 Agent Awaiting Clarification 前端窗口装饰核验
+
+- [x] 对照 Figma 节点 `687:642` 重新检查 `/chat?state=awaiting-clarification`；当前前端保留澄清卡、选项和可用 Composer，浏览器视口为 `1440×1024`，字体状态为 `loaded`。
+- [x] 前端运行时 `windowControls=0`、`trafficLightColors=0`，没有发现需要删除的左上角红黄绿窗口装饰代码；Figma 参考稿保持不变。
+- [x] 当前截图与同尺寸 Figma PNG 的 diff 为 `19.6004% / RMSE 14.802080`，仍为 `DIFF_REVIEW`；头像、图标和字体光栅化差异不能用几何通过替代。
+- [ ] 本节只关闭 Agent Awaiting Clarification 的前端窗口装饰核验，不关闭 105 张画板像素级验收、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
 ## 49. 2026-08-30 Agent User Cancelled 取消态前端几何收口
 
 - [x] 依据 Figma 节点 `687:1684`，取消态外层改为占满主对话内容区，提示条横向居中；助手行约束为 `608px`，助手气泡为 `560px`，提示条高度为 `30px`。只修改前端，未修改 Figma。

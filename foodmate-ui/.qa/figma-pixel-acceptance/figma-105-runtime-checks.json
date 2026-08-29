@@ -1370,6 +1370,15 @@
       },
       "textOverflow": [],
       "url": "/chat?state=awaiting-clarification",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "clarificationGeometry": {
+        "main": "x=260,width=1180",
+        "userBubble": "x=1216,y=145,width=144,height=49",
+        "assistantRow": "x=292,y=237,width=1116,height=193",
+        "assistantBody": "x=340,y=237,width=560,height=193",
+        "composer": "x=260,y=912,width=1180,height=112"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440

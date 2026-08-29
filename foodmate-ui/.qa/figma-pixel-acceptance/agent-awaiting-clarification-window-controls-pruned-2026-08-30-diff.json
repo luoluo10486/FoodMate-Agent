@@ -1,0 +1,32 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "687:642",
+  "artboardName": "agent-awaiting-clarification",
+  "frontendRoute": "/chat?state=awaiting-clarification",
+  "figmaPng": "../docxs/设计/figma-png/agent-awaiting-clarification.png",
+  "browserPng": "recaptured/agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30-rgba.png",
+  "browserCapture": "recaptured/agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30.jpg",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "differentPixels": 289019,
+  "pixelCount": 1474560,
+  "differentRatio": 0.19600355360243055,
+  "meanAbsoluteError": 2.4735015869140624,
+  "rmse": 14.802079816974864,
+  "maxChannelDelta": 250,
+  "geometry": {
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControls": 0,
+    "trafficLightColors": 0,
+    "main": "x=260,width=1180",
+    "assistantRow": "x=292,y=237,width=1116,height=193",
+    "assistantBody": "x=340,y=237,width=560,height=193",
+    "composer": "x=260,y=912,width=1180,height=112"
+  },
+  "conclusion": "DIFF_REVIEW",
+  "visualChange": "仅登记当前前端 agent-awaiting-clarification 截图；确认左上角红黄绿窗口装饰点未渲染，未修改 Figma 设计稿。",
+  "generatedBy": "scripts/png-diff.mjs",
+  "generatedAt": "2026-08-30"
+}
