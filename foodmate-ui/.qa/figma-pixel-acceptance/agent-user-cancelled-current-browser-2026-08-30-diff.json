@@ -1,0 +1,27 @@
+{
+  "status": "DIFF_REVIEW",
+  "comparison": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 302337,
+  "differentRatio": 0.205035400390625,
+  "meanAbsoluteError": 2.421602715386285,
+  "rmse": 14.507177127384058,
+  "maxChannelDelta": 249,
+  "expected": "../docxs/设计/figma-png/agent-user-cancelled.png",
+  "actual": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-current-browser-2026-08-30-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.0000000149011612,
+  "dprPass": true,
+  "fonts": "loaded",
+  "bodyOverflow": false,
+  "textOverflowCount": 0,
+  "windowControls": 0,
+  "trafficLightColors": 0,
+  "geometry": {
+    "assistantRow": "verified in current browser DOM",
+    "cancelledNotice": "verified in current browser DOM",
+    "composer": "verified in current browser DOM"
+  }
+}

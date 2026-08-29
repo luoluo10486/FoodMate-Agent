@@ -1556,3 +1556,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=375938`、差异比例 `25.4949%`、`MAE=3.213981`、`RMSE=16.377636`、最大通道差异 `255`；实际浏览器 DPR 为 `1.25`，不满足严格 DPR 1 门禁，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成安全降级页当前运行证据复核，不代表该画板或 105 张画板达到像素级 `PASS`；周边工作台、头像、图标和字体光栅化仍有差异，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 169. 2026-08-30 Agent User Cancelled 当前运行证据复核
+
+- [x] 重新打开 `/chat?state=user-cancelled` 并在 `1440×1024` 视口采集当前前端；页面保留已接收的部分文本、用户取消原因和重新开始入口，取消状态不显示为系统失败。
+- [x] 页面字体状态为 `loaded`，无横向或纵向溢出；前端左上角红、黄、绿窗口装饰候选为 `0`，业务状态圆点保持不变，Figma 设计稿未修改。
+- [x] 原始浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-current-browser-2026-08-30.jpg`，转换后的真实 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-current-browser-2026-08-30-rgba.png`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-user-cancelled-current-browser-2026-08-30-diff.json`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=302337`、差异比例 `20.5035%`、`MAE=2.421603`、`RMSE=14.507177`、最大通道差异 `249`；实际浏览器 DPR 为 `1.0000000149`，通过 DPR 门禁，但共享工作台、头像、字体和图标仍存在整页差异，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已切换到当前 RGBA 证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成用户取消态当前运行证据复核，不代表该画板或 105 张画板达到像素级 `PASS`；shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

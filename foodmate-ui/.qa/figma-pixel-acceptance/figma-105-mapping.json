@@ -1470,7 +1470,7 @@
       "queryState": "state=user-cancelled",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-1440x1024-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-current-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1500,7 +1500,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
-        "conclusion": "取消态已将主对话区外层扩展到 1116px，助手行保持 608px、气泡保持 560px，取消提示条按 Figma 对齐到 x=738.64、y=310、222.725x30px；移动端无页面级横向溢出，前端未渲染左上角红黄绿窗口控制点。整页仍存在字体、图标和共享工作台组合差异，继续保留 DIFF_REVIEW。"
+        "conclusion": "当前浏览器截图保留取消态已接收文本、取消原因和重新开始入口；页面视口为 1440×1024，字体已加载且无页面溢出，前端不渲染左上角红黄绿窗口装饰。与 Figma 的整页差异仍存在于共享工作台、头像、字体和图标光栅化，继续保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
