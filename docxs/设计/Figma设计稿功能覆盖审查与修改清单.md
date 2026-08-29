@@ -1006,3 +1006,10 @@
 - [x] 当前运行时确认 `50,000 tokens`、`100%`、预计费用、追加预算和结束会话均可见，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
 - [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `23.7866% / MAE 3.437230 / RMSE 17.809802 / maxChannelDelta 254`，实际 DPR `1.25` 不满足严格 DPR 1 门禁，因此继续记为 `DIFF_REVIEW`。
 - [ ] 本节只关闭预算上限页当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 55. 2026-08-30 Agent Tool Failed Retryable 当前前端证据复核
+
+- [x] 对照 Figma 节点 `687:1439` 复核 `/chat?state=tool-failed-retryable`；当前失败卡为 `560×160px`，说明区域为 `518.4×44px`，重试和跳过按钮为 `58×32px` / `97×32px`。
+- [x] 当前运行时确认工具超时、外部知识库不可用、错误码 `TOOL_TIMEOUT_001`、重试和跳过动作均可见，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
+- [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `24.3021% / MAE 3.098139 / RMSE 16.594073 / maxChannelDelta 253`，实际 DPR `1.25` 不满足严格 DPR 1 门禁，因此继续记为 `DIFF_REVIEW`。
+- [ ] 本节只关闭工具失败可重试页当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。

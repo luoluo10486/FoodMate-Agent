@@ -1538,3 +1538,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=350748`、差异比例 `23.7866%`、`MAE=3.437230`、`RMSE=17.809802`、最大通道差异 `254`；实际浏览器 DPR 为 `1.25`，不满足严格 DPR 1 门禁，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成预算上限页当前运行证据复核，不代表该画板或 105 张画板达到像素级 `PASS`；周边工作台、头像、图标和字体光栅化仍有差异，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 167. 2026-08-30 Agent Tool Failed Retryable 当前运行证据复核
+
+- [x] 重新打开 `/chat?state=tool-failed-retryable` 并在 `1440×1024` 视口采集当前前端；失败卡为 `x=340,y=237,width=560,height=160`，说明区域为 `x=360.8,y=293.8,width=518.4,height=44`，重试与跳过按钮分别为 `58×32px` 和 `97×32px`。
+- [x] 页面展示数据库查询超时、错误码 `TOOL_TIMEOUT_001`、外部知识库不可用原因，以及“重试”和“跳过此步骤”两个操作；字体状态为 `loaded`，页面无横向或纵向溢出；前端左上角红、黄、绿窗口装饰候选为 `0`，业务状态圆点保持不变，Figma 设计稿未修改。
+- [x] 原始浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-current-browser-2026-08-30.jpg`，转换后的真实 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-current-browser-2026-08-30-rgba.png`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-tool-failed-retryable-current-browser-2026-08-30-diff.json`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=358349`、差异比例 `24.3021%`、`MAE=3.098139`、`RMSE=16.594073`、最大通道差异 `253`；实际浏览器 DPR 为 `1.25`，不满足严格 DPR 1 门禁，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成工具失败可重试页当前运行证据复核，不代表该画板或 105 张画板达到像素级 `PASS`；周边工作台、头像、图标和字体光栅化仍有差异，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

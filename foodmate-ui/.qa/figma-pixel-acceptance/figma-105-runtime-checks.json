@@ -228,6 +228,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -237,6 +238,14 @@
       },
       "textOverflow": [],
       "url": "/chat?state=tool-failed-retryable",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "failureGeometry": {
+        "failureCard": "x=340,y=237,width=560,height=160",
+        "failureDetails": "x=360.8,y=293.8,width=518.4,height=44",
+        "retryButton": "x=360.8,y=353.8,width=58,height=32",
+        "skipButton": "x=430.8,y=353.8,width=97,height=32"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440
