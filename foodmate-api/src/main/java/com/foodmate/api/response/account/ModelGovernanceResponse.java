@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** Safe model governance response; provider credentials and raw prompts never enter this DTO. */
+/** 脱敏后的模型治理响应；不包含供应商凭据和原始 Prompt。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record ModelGovernanceResponse(
         List<Provider> providers,

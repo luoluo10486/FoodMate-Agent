@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+/** 管理后台概览统计响应。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record AdminDashboardResponse(
         List<Metric> overviewMetrics,

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.application.retention.service.DataRetentionService;
 import java.time.Instant;
 
+/** 数据清理请求创建响应。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RetentionPurgeResponse(
         long requestId,

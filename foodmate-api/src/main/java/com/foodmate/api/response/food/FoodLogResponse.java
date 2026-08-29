@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+/** 饮食记录响应。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record FoodLogResponse(
         String foodLogId,

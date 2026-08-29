@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** Redacted trace detail response; payloads and prompts are intentionally absent. */
+/** 脱敏后的 Trace 明细响应；不包含原始载荷和 Prompt。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record AdminTraceDetailResponse(
         AdminOperationalQueryService.Trace summary, List<Span> spans) {

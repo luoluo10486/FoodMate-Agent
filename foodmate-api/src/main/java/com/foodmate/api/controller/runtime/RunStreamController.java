@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** Provides the Chat SSE compatibility stream and delegates durable replay to the event service. */
+/** 提供 Chat SSE 兼容流，并将持久化回放委托给事件服务。 */
 @RestController
 public class RunStreamController {
     private final RuntimeGatewayService service;

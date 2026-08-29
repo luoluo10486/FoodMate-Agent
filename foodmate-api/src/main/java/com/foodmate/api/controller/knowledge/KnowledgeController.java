@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** Exposes administrator knowledge ingestion, lifecycle, progress, and SSE endpoints. */
+/** 提供管理端知识库导入、生命周期、进度和 SSE 接口。 */
 @RestController
 @RequestMapping("/api/admin")
 public class KnowledgeController extends AuthenticatedControllerSupport {

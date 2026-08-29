@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.application.retention.service.DataRetentionService;
 import java.util.List;
 
+/** 数据清理前置检查响应。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RetentionPurgePreflightResponse(
         long requestId,

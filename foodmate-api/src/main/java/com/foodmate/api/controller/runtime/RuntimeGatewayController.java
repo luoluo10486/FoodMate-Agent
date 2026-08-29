@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Python Runtime 回调 Java 的内部网关接口。 */
 @RestController
 public class RuntimeGatewayController {
     private final RuntimeGatewayService service;
