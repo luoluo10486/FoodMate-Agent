@@ -282,10 +282,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 359307,
-      "differentRatio": 0.243670654296875,
-      "meanAbsoluteError": 3.1080359564887154,
-      "rmse": 16.595585106517614,
+      "differentPixels": 358349,
+      "differentRatio": 0.2430209689670139,
+      "meanAbsoluteError": 3.098138597276476,
+      "rmse": 16.594073131964773,
       "maxChannelDelta": 253
     },
     "agent-safety-degraded": {
@@ -293,10 +293,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 376896,
-      "differentRatio": 0.25559895833333335,
-      "meanAbsoluteError": 3.2238778008355036,
-      "rmse": 16.379168046465868,
+      "differentPixels": 375938,
+      "differentRatio": 0.2549492730034722,
+      "meanAbsoluteError": 3.2139806111653644,
+      "rmse": 16.37763610794674,
       "maxChannelDelta": 255
     },
     "agent-user-cancelled": {

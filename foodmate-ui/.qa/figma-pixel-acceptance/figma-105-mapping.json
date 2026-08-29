@@ -1416,7 +1416,7 @@
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-horizontal-boundary-browser-1440x1024-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-current-browser-2026-08-30-rgba.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
@@ -1428,9 +1428,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -1448,7 +1448,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
-        "conclusion": "The current browser capture contains the safety warning, bounded data scope, personal-condition limitation and enabled follow-up entry. The safety content container is aligned to 612px while the warning and response regions remain 560px wide. The frontend retains the Figma warning hierarchy and does not render the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+        "conclusion": "当前浏览器截图包含安全警告、有限数据范围、个人条件限制和可继续追问入口；安全内容容器为 612px，警告与回答区域为 560px，保留 Figma 的警告层级且不渲染桌面窗口装饰。当前实际 DPR 为 1.25，未满足严格 DPR 1 门禁；字体、图标光栅化和周边工作台仍有差异，保留 DIFF_REVIEW。"
       },
       "contentGeometry": {
         "desktopSafetyContainer": "x=292,width=612",
