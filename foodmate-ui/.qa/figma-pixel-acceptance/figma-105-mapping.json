@@ -4637,7 +4637,7 @@
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
       "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-table-border-inset-browser-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-table-row-height-browser-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4667,7 +4667,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "Admin overview content is substantially present; the desktop topbar, analytics-card inner height/cropping, main table column tracks, and desktop table overflow behavior now follow the checked Figma nodes. Typography, icon treatment, sidebar identity, table row sizing, and other composition differences remain. Retain DIFF_REVIEW."
+        "conclusion": "Admin overview content is substantially present; the desktop topbar, analytics-card inner height/cropping, main table column tracks, desktop table overflow behavior, and six 58px data rows now follow the checked Figma nodes. Typography, icon treatment, sidebar identity, and other composition differences remain. Retain DIFF_REVIEW."
       },
       "additionalVisualEvidence": [
         {
@@ -4750,6 +4750,27 @@
             "mobile": "390x844: internal table scroll retained; body width 390px"
           },
           "visualChange": "依据实时 Figma 节点 995:1085，将 Admin Overview 表格卡片的占位边框改为等效内描边，保持 #f4f6f5 视觉边界与 1116x396px 外框尺寸，同时消除桌面 2px 盒模型溢出；仅修改前端，未修改 Figma，业务状态圆点保留。",
+          "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "capturedAt": "2026-08-29",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-table-row-height-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-overview-table-row-height-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "geometryEvidence": {
+            "table": "1116x396 at x=292,y=266.0256",
+            "headerHeight": "48px",
+            "dataRows": "6 x 58px",
+            "desktopBodyOverflow": false,
+            "desktopTableScrollWidth": 1116,
+            "desktopTableClientWidth": 1116,
+            "mobile": "390x844: 343px viewport, 1116px table content, internal horizontal scroll retained",
+            "fonts": "loaded",
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "依据 Figma 节点 995:1053、995:1085，将 Admin Overview 主表六条数据行从 55px 调整为 58px，使 48px 表头加六条数据行精确达到 396px；仅修改前端，未修改 Figma，业务状态圆点保留。",
           "conclusion": "DIFF_REVIEW"
         }
       ]

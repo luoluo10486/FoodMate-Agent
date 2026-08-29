@@ -1041,10 +1041,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 486020,
-      "differentRatio": 0.3296034071180556,
-      "meanAbsoluteError": 3.5661761813693578,
-      "rmse": 18.04982080766911,
+      "differentPixels": 472888,
+      "differentRatio": 0.3206976996527778,
+      "meanAbsoluteError": 2.946841091579861,
+      "rmse": 15.766627307759382,
       "maxChannelDelta": 230
     },
     "admin-model-usage": {

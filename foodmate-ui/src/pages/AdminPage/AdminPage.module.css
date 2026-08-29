@@ -1147,14 +1147,14 @@
 }
 
 .overviewTable :global(td) {
-  height: 55px;
+  height: 58px;
   color: #333333;
   font-size: 13px;
   line-height: 19px;
 }
 
 .overviewTable :global(tbody tr) {
-  height: 55px;
+  height: 58px;
   border-bottom: 1px solid #f4f6f5;
   background: #ffffff;
 }

@@ -1374,3 +1374,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增浏览器原始截图 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-table-border-inset-browser-2026-08-29.png`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-table-border-inset-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-overview-table-border-inset-2026-08-29-diff.json`；同尺寸结果为 `differentPixels=486020`、差异比例 `32.9603%`、`MAE=3.566176`、`RMSE=18.049821`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json` 的 Admin Overview 主证据已切换到本次最新 RGBA PNG，主表列轨道、分析卡高度和顶栏内边距仍保留在补充证据中；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只消除桌面表格非设计滚动条，不代表表格行高、Admin Overview 或 105 张画板达到像素级 `PASS`；当前表格行内容高度仍需按 Figma 的六条 `58px` 数据行继续收口，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 147. 2026-08-29 Admin Overview 主表数据行高度收口
+
+- [x] 依据 Figma 节点 `995:1053`、`995:1085`，将前端 Admin Overview 主表表头保持为 `48px`，六条数据行从 `55px` 调整为 `58px`，桌面表格总高精确为 `396px`；未修改 Figma 设计稿。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149011612`、字体状态 `loaded` 下实测表头 `48px`、六条数据行均为 `58px`、表格和卡片均为 `1116×396px`；页面无横向/纵向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`，业务状态圆点保留。
+- [x] `390×844` 窄视口实测表格可视区约 `343px`、内容区 `1116px`，内部横向滚动仍保留，页面宽度 `390px`，未产生页面级横向溢出。
+- [x] 已登记浏览器原始 JPEG、RGBA PNG 和独立 diff JSON；同尺寸结果为 `differentPixels=472888`、差异比例 `32.0698%`、`MAE=2.946841`、`RMSE=15.766627`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 主证据、`figma-105-diff-results.json` 和运行时几何证据已同步；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成 Admin Overview 主表行高局部几何收口，不代表 Admin Overview 或 105 张画板达到像素级 `PASS`；整页字体、图标、侧栏身份等差异、shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
