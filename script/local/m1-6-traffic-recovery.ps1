@@ -182,6 +182,7 @@ $password = [guid]::NewGuid().ToString("N") + "Aa1!"
 $sessionId = $null
 $sampler = $null
 $jobs = @()
+$faultRecovery = $null
 
 try {
     Add-Type -AssemblyName System.Net.Http
@@ -215,6 +216,13 @@ try {
         if ([string]::IsNullOrWhiteSpace($sessionId)) { throw "test session id is missing" }
     } finally {
         $setupClient.Dispose()
+    }
+
+    if ($EnableFaultInjection) {
+        $report.fault_injection = "redis_restart"
+        docker restart foodmate-redis | Out-Null
+        $faultRecovery = Wait-Ready "python_readiness_after_redis_restart" $runtimeReady
+        $report.readiness_after_fault = $faultRecovery
     }
 
     $sampler = Start-QueueSampler ((Get-Date).AddSeconds($WarmupSeconds + $SteadySeconds + 45))
@@ -340,10 +348,12 @@ try {
                 $input = New-FoodInput "M1-6 proposal failure" $false
                 $proposal = New-Approval $context $csrf "create" $null $input $key
                 [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $input $csrf)
+                $executionFailed = $false
                 try {
                     [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $input $csrf)
-                    throw "invalid food log unexpectedly executed"
-                } catch { $outcome = "business_failed" }
+                } catch { $executionFailed = $true }
+                if (-not $executionFailed) { throw "invalid food log unexpectedly executed" }
+                $outcome = "business_failed"
             } elseif ($scenario -eq 3) {
                 $resourceId = [long](900000000 + ($workerId * 10000) + $index)
                 $input = @{ revision = 1 }

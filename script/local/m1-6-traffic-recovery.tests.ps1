@@ -6,6 +6,15 @@ $scriptText = Get-Content -Raw -LiteralPath $scriptPath
 if ($scriptText -notmatch '\[switch\]\$ExecuteTraffic') {
     throw "M1-6 traffic entrypoint must require an explicit ExecuteTraffic switch"
 }
+if ($scriptText -notmatch 'docker restart foodmate-redis') {
+    throw "M1-6 traffic entrypoint must preserve the explicit Redis fault-injection path"
+}
+if ($scriptText -notmatch '\$executionFailed\s*=\s*\$false') {
+    throw "M1-6 failure scenario must distinguish an expected business error from a successful execution"
+}
+if ($scriptText -notmatch 'if \(-not \$executionFailed\)') {
+    throw "M1-6 failure scenario must fail when the invalid request unexpectedly succeeds"
+}
 if ($scriptText -notmatch '80') {
     throw "M1-6 traffic entrypoint must define the 80 percent AgentRun path"
 }
