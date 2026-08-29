@@ -326,7 +326,7 @@ function AgentTimelineFixture({ trace }: { trace: boolean }) {
       <div className={styles.runFixtureToolbar} aria-label="Run 筛选">
         <span className={styles.runFixtureId}>Run ID: run_...</span>
         <span className={styles.runFixtureSearch}>搜索用户...</span>
-        <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusFailed}`}>Failed ×</span>
+        <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusFailed}`}>Failed ✖</span>
         <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusSuccess}`}>Success ✓</span>
         <span className={styles.runFixtureDegraded}>
           仅降级

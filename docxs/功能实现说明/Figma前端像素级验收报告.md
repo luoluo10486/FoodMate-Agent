@@ -1213,3 +1213,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器视口 `1440×1024`、DPR `1.0000000149011612`、字体状态 `loaded`；链接 computed style 为 `rgb(93, 169, 178)`、`font-weight: 400`、`text-decoration-line: underline`，位置和尺寸为 `78×16px at x=1318,y=278.5`；页面无横向或纵向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`。
 - [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-download-link-browser-2026-08-29.jpg`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-download-link-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-trace-download-link-2026-08-29-diff.json`；`png-diff.mjs` 同尺寸结果为 `differentPixels=366952`、差异比例 `24.8855%`、`MAE=2.733262`、`RMSE=15.432517`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
 - [ ] 本小点只完成 Trace 下载链接局部样式收口，不代表该画板或 105 张画板达到像素级 `PASS`；侧栏身份、其它字体/图标和整页组合差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 132. 2026-08-29 Admin Trace 状态与时间线颜色收口
+
+- [x] 依据实时 Figma 节点 `797:704`、`797:705`、`797:706`、`797:707`、`797:741`、`797:747`、`797:753`、`797:759`，仅修改前端 `AdminPage.tsx` 与 `AdminPage.module.css`：失败/成功筛选改为 Figma 色值和 `11px`，失败符号改为 `✖`，四个时间线标题改为 `#5da9b2`、`#b58cc4`、`#c79654`、`#d67676`；未修改 Figma 设计稿。
+- [x] 浏览器 `1440×1024`、DPR `1.0000000149011612`、字体状态 `loaded`；工具栏 `1132×34px`，搜索框 `663.375×32px at x=476,y=89`，失败/成功筛选分别为 `64.1875×25px`、`72.4375×25px`，页面无横向或纵向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-status-style-browser-2026-08-29.jpg`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-status-style-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-trace-status-style-2026-08-29-diff.json`；`png-diff.mjs` 同尺寸结果为 `differentPixels=365602`、差异比例 `24.79397%`、`MAE=2.713447`、`RMSE=15.377519`、最大通道差异 `230`，较前项 `24.8855%` 有所改善，结论继续为 `DIFF_REVIEW`。
+- [x] Admin 定向测试 `8/8`、`npm run typecheck`、截图格式转换、JSON 解析和 `git diff --check` 已验证。
+- [ ] 本小点只完成 Trace 状态和时间线颜色局部收口，不代表该画板或 105 张画板达到像素级 `PASS`；侧栏身份、其它字体/图标和整页组合差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

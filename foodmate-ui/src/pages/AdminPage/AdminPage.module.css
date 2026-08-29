@@ -4515,20 +4515,20 @@
   gap: 8px;
   padding: 6px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 16px;
   white-space: nowrap;
 }
 
 .runFixtureStatusFailed {
-  background: #fff0ed;
-  color: #ff665d;
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
 }
 
 .runFixtureStatusSuccess {
-  background: #effaf1;
-  color: #43aa55;
+  background: rgba(166, 217, 151, 0.08);
+  color: #89b27c;
 }
 
 .runFixtureDegraded {
@@ -4604,8 +4604,8 @@
   align-items: center;
   padding: 4px 8px;
   border-radius: 4px;
-  background: #fff0ed;
-  color: #ff665d;
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
   font-size: 11px;
   line-height: 13px;
 }
@@ -4685,7 +4685,7 @@
 
 .runFixtureSteps article strong {
   overflow: hidden;
-  color: #4776e8;
+  color: #5da9b2;
   font-size: 13px;
   line-height: 16px;
   text-overflow: ellipsis;
@@ -4696,8 +4696,12 @@
   color: #c79654;
 }
 
+.runFixtureSteps article:nth-child(2) strong {
+  color: #b58cc4;
+}
+
 .runFixtureSteps article:nth-child(4) strong {
-  color: #ff665d;
+  color: #d67676;
 }
 
 .runFixtureSteps article code {

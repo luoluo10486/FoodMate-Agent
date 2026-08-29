@@ -3933,11 +3933,11 @@
       "queryState": "state=trace",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-download-link-browser-2026-08-29-rgba.png",
-      "diffJson": ".qa/figma-pixel-acceptance/admin-trace-download-link-2026-08-29-diff.json",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-status-style-browser-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/admin-trace-status-style-2026-08-29-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-29 独立 diff 已更新；Trace 事件面板依据实时 Figma 节点 797:732 收口为 162px，下载链接依据节点 797:737 对齐颜色、字重和下划线，详情字段面板保持 Figma y=454 目标，整页视觉差异仍需复核",
+      "evidenceNote": "2026-08-29 独立 diff 已更新；Trace 事件面板依据实时 Figma 节点 797:732 收口为 162px，下载链接依据节点 797:737 对齐颜色、字重和下划线，筛选状态与时间线颜色依据节点 797:704、797:705、797:706、797:707、797:741、797:747、797:753、797:759 对齐，详情字段面板保持 Figma y=454 目标，整页视觉差异仍需复核",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3963,7 +3963,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "Trace filters, run table, four event timeline cards, refresh control, log-download action and Trace detail fields remain represented. The event panel, cards, detail panel and log-download link styling now match the checked Figma targets; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
+        "conclusion": "Trace filters, run table, four event timeline cards, refresh control, log-download action and Trace detail fields remain represented. The event panel, cards, detail panel, log-download link styling, status colors and timeline colors now match the checked Figma targets; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
       },
       "additionalVisualEvidence": [
         {
