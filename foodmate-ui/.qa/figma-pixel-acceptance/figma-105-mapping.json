@@ -1103,7 +1103,8 @@
       "queryState": "state=planning",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-planning.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-planning-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-planning-window-controls-pruned-browser-2026-08-30-rgba.png",
+      "browserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-planning-window-controls-pruned-browser-2026-08-30.jpg",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-planning",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1132,8 +1133,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "The Planning timeline, message structure, and stop composer state align with the Figma reference. Avatar and icon treatment differ; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "已使用当前前端截图重新核对 Planning 时间线、消息结构和停止 Composer 状态；当前捕获不再包含 Figma 参考稿中的左上角红黄绿窗口点，默认头像和图标仍与 Figma 光栅存在差异，继续保留 DIFF_REVIEW。"
       }
     },
     {

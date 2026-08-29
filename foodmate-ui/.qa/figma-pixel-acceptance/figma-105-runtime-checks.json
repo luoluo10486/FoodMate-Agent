@@ -2000,6 +2000,15 @@
       },
       "textOverflow": [],
       "url": "/chat?state=planning",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "planningGeometry": {
+        "userMessage": "x=292,y=145,width=1116,height=68",
+        "userBubble": "x=1132,y=145,width=228,height=49",
+        "planningAssistantRow": "x=292,y=237,width=1116,height=160",
+        "planningBubble": "x=340,y=237,width=165,height=160",
+        "composer": "y=912,height=112"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440

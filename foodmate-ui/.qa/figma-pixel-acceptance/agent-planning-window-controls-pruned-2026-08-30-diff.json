@@ -1,0 +1,30 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "687:342",
+  "artboardName": "agent-planning",
+  "frontendRoute": "/chat?state=planning",
+  "figmaPng": "../docxs/设计/figma-png/agent-planning.png",
+  "browserPng": "recaptured/agent-planning-window-controls-pruned-browser-2026-08-30-rgba.png",
+  "browserCapture": "recaptured/agent-planning-window-controls-pruned-browser-2026-08-30.jpg",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "differentPixels": 269822,
+  "pixelCount": 1474560,
+  "differentRatio": 0.18298475477430556,
+  "meanAbsoluteError": 2.215928649902344,
+  "rmse": 13.810468739344131,
+  "maxChannelDelta": 241,
+  "geometry": {
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControls": 0,
+    "trafficLightColors": 0,
+    "planningCard": "x=340,y=237,width=165,height=160",
+    "composer": "y=912,height=112"
+  },
+  "conclusion": "DIFF_REVIEW",
+  "visualChange": "仅登记当前前端 agent-planning 截图；确认左上角红黄绿窗口装饰点未渲染，未修改 Figma 设计稿。",
+  "generatedBy": "scripts/png-diff.mjs",
+  "generatedAt": "2026-08-30"
+}
