@@ -56,4 +56,6 @@ corresponding read-only checks are in
 
 7. 如需扩展营养目录，人工执行 `V4__nutrition_usda_extended_seed.sql`，再执行对应 validation，确认 11 条食材和 11 条换算均为 `approved` 且来源版本包含 FDC ID/portion 序号。
 
+8. 如需导入第二批常见食材，人工执行 `V5__nutrition_usda_common_foods_seed.sql`，再执行对应 validation，确认 9 条食材和 9 条换算均为 `approved` 且来源版本包含 FDC ID/portion 序号。
+
 seed 可重复执行：相同 `nutrition_food_id` 会被跳过；如果同一标准名称已被其他 ID 占用，SQL 会失败，必须先做数据评审，不得静默覆盖目录。
