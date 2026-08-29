@@ -1385,3 +1385,16 @@
 | 执行命令 | `script\\security\\secret-rotation-check.tests.ps1`；`script\\security\\security-scan.ps1`。 |
 | 结果 | PowerShell 契约测试通过；安全扫描 `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`security_scan_status=passed`。 |
 | 数据边界 | 未写入密钥、未调用真实云服务、未修改业务数据库；真实 SiliconFlow smoke 需使用供应商控制台轮换后的新密钥。 |
+
+## D75 低基数指标与 Trace 统计口径复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；使用项目 `agent-runtime\\.venv\\Scripts\\python.exe`；未读取或使用聊天中公开的旧 API Key。 |
+| 指标修复 | Java 队列深度统一使用 `transport/operation/result/reason` 固定标签，动态状态归入 `other`；定向测试 `AgentOperationMetricsTest` 为 `3/3`。提交 `084a96d0`。 |
+| Trace 修复 | Trace 列表的 `span_count` 与详情一致，纳入 Runtime 事件、工具、模型、SSE、SQL 审计和操作审计事实；新增 Mapper 契约测试 `1/1`。提交 `245c03c9`。 |
+| Java 规范 | Application 与 Infrastructure Spotless 检查通过；新增/修改 Java 类注释使用中文。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`163 passed、2 skipped、4 subtests passed`；未产生源码范围 `.pyc`。 |
+| 安全门禁 | `script\\security\\security-scan.ps1`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`；`secret-rotation-check.tests.ps1` 通过。 |
+| Python 缓存边界 | `.pyc` 共 `419` 个，全部位于 `agent-runtime\\.venv` 第三方依赖缓存，约 `5.64 MB`；源码范围为 `0`，Git 跟踪为 `0`，由 `.gitignore` 忽略。未删除虚拟环境。 |
+| 未执行范围 | 未调用真实 SiliconFlow Chat/Embedding、未执行性能压测、组件重启、ACK/重复消息故障注入、备份恢复、生产监控部署或不可逆清理。真实云 smoke 需使用供应商控制台轮换后的新凭据。 |
