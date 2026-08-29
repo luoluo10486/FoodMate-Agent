@@ -1574,3 +1574,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=338410`、差异比例 `22.9499%`、`MAE=2.769102`、`RMSE=15.461383`、最大通道差异 `249`；实际浏览器 DPR 为 `1.0000000149`，通过 DPR 门禁，但工作台、头像、字体和图标仍存在整页差异，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已切换到当前 RGBA 证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成 SSE 重连态当前运行证据复核，不代表该画板或 105 张画板达到像素级 `PASS`；shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 171. 2026-08-30 前端全量质量门禁复核
+
+- [x] `foodmate-ui` 全量测试通过：`npm run test` 为 `38/38` 个测试文件、`215/215` 个用例通过，覆盖 Chat 六种状态和 Agent SSE 连接状态回归。
+- [x] `npm run typecheck` 通过；`npm run build` 通过，Vite 完成生产构建并转换 `2010` 个模块。
+- [x] `git diff --check` 通过；本轮没有新增前端左上角红、黄、绿窗口装饰，业务状态圆点保持不变。
+- [ ] 质量门禁通过只证明当前代码可测试、可类型检查和可构建，不关闭 105 张画板的 `DIFF_REVIEW`、shadcn 全量逐页迁移或 iconfont `BLOCKED`。
