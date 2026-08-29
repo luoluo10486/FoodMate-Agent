@@ -29,6 +29,45 @@ function Invoke-ProcessText([string]$FilePath, [string[]]$Arguments) {
     [pscustomobject]@{ ExitCode = $process.ExitCode; Stdout = $stdout; Stderr = $stderr }
 }
 
+function Get-ScannableWorktreeFiles([string]$Root, [string[]]$TrackedFiles) {
+    $extensions = @(
+        '.c', '.cc', '.conf', '.config', '.cpp', '.cs', '.env', '.example', '.go', '.h',
+        '.html', '.ini', '.java', '.js', '.json', '.md', '.properties', '.ps1', '.py',
+        '.sql', '.sh', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml'
+    )
+    $candidatePaths = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase
+    )
+    foreach ($relativePath in $TrackedFiles) { [void]$candidatePaths.Add($relativePath) }
+
+    $untrackedResult = Invoke-ProcessText "git.exe" @("ls-files", "--others", "--exclude-standard")
+    if ($untrackedResult.ExitCode -eq 0) {
+        foreach ($relativePath in ($untrackedResult.Stdout -split "`r?`n" | Where-Object { $_ })) {
+            [void]$candidatePaths.Add($relativePath)
+        }
+    }
+
+    # Ignored environment files are deliberately added explicitly. They are the most
+    # important local files for this check, but must never be added to Git.
+    foreach ($relativePath in @('.env', '.env.local', 'docker/.env', 'agent-runtime/.env')) {
+        if (Test-Path -LiteralPath (Join-Path $Root $relativePath)) {
+            [void]$candidatePaths.Add($relativePath)
+        }
+    }
+
+    foreach ($relativePath in $candidatePaths) {
+        $fullPath = Join-Path $Root $relativePath
+        if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) { continue }
+        if ($fullPath -match '(?i)[\\/](\.git|node_modules|target|dist|__pycache__|\.pytest_cache)[\\/]') {
+            continue
+        }
+        $extension = [System.IO.Path]::GetExtension($fullPath).ToLowerInvariant()
+        if ($extensions -contains $extension -or [System.IO.Path]::GetFileName($fullPath) -like '.env*') {
+            $relativePath
+        }
+    }
+}
+
 Push-Location $repoRoot
 try {
     $trackedResult = Invoke-ProcessText "git.exe" @("ls-files")
@@ -53,8 +92,29 @@ try {
             $secretHits += @($grepResult.Stdout -split "`r?`n" | Where-Object { $_ })
         }
     }
+    $workingTreeSecretHits = [System.Collections.Generic.List[string]]::new()
+    $scanFiles = @(Get-ScannableWorktreeFiles $repoRoot $trackedFiles | Select-Object -Unique)
+    foreach ($relativePath in $scanFiles) {
+        $fullPath = Join-Path $repoRoot $relativePath
+        try {
+            $content = [System.IO.File]::ReadAllText($fullPath)
+        } catch [System.IO.IOException] {
+            continue
+        } catch [System.UnauthorizedAccessException] {
+            continue
+        }
+        foreach ($pattern in $secretPatterns) {
+            if ([regex]::IsMatch($content, $pattern)) {
+                $workingTreeSecretHits.Add($relativePath)
+                break
+            }
+        }
+    }
     if ($secretHits.Count -gt 0) {
         $failures.Add("tracked secret pattern hits: $($secretHits.Count)")
+    }
+    if ($workingTreeSecretHits.Count -gt 0) {
+        $failures.Add("working tree secret pattern hits: $($workingTreeSecretHits.Count)")
     }
 
     $trackedEnvFiles = @(
@@ -123,7 +183,8 @@ try {
         foreach ($item in $skipped) { $failures.Add("strict mode: $item") }
     }
 
-    Write-Output "secret_scan_hits=$($secretHits.Count)"
+    Write-Output "tracked_secret_scan_hits=$($secretHits.Count)"
+    Write-Output "working_tree_secret_scan_hits=$($workingTreeSecretHits.Count)"
     Write-Output "tracked_env_files=$($trackedEnvFiles.Count)"
     Write-Output "skipped_checks=$($skipped.Count)"
     foreach ($item in $skipped) { Write-Warning $item }
