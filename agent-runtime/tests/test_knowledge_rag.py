@@ -179,7 +179,7 @@ class RagSettingsTests(TestCase):
                 "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
                 "FOODMATE_RAG_EMBEDDING_BASE_URL": "https://embedding.example.test/v1",
                 "FOODMATE_RAG_EMBEDDING_API_KEY": "must-not-be-retained",
-                "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3",
+                "FOODMATE_RAG_EMBEDDING_PROFILE": "invalid-paid-profile",
                 "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
                 "FOODMATE_RAG_MILVUS_COLLECTION": "paid_vectors",
             }

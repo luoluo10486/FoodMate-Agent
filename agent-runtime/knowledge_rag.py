@@ -71,12 +71,6 @@ class RagSettings:
         mode = env.get("FOODMATE_RAG_MODE", "stub").strip().lower()
         if mode not in {"stub", "local"}:
             raise RagError("RAG_MODE_INVALID", "FOODMATE_RAG_MODE must be stub or local")
-        provider = env.get("FOODMATE_RAG_EMBEDDING_PROVIDER", "openai-compatible").strip().lower()
-        if provider not in {"openai-compatible", "deterministic"}:
-            raise RagError("RAG_EMBEDDING_PROVIDER_INVALID", "embedding provider is invalid")
-        profile = env.get("FOODMATE_RAG_EMBEDDING_PROFILE", "").strip().lower()
-        if profile and profile not in EMBEDDING_PROFILES:
-            raise RagError("RAG_EMBEDDING_PROFILE_INVALID", "embedding profile is invalid")
         concurrency = _integer(env.get("FOODMATE_RAG_INDEX_CONCURRENCY", "4"), "RAG_INDEX_CONCURRENCY_INVALID")
         if not 1 <= concurrency <= 8:
             raise RagError("RAG_INDEX_CONCURRENCY_INVALID", "index concurrency must be between 1 and 8")
@@ -86,17 +80,6 @@ class RagSettings:
         )
         if not 8 <= deterministic_dimension <= 4096:
             raise RagError("RAG_DETERMINISTIC_DIMENSION_INVALID", "deterministic dimension must be between 8 and 4096")
-        embedding_model = env.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip()
-        if provider == "deterministic" and not embedding_model:
-            embedding_model = "deterministic-local-v1"
-        if profile:
-            profile_model = EMBEDDING_PROFILES[profile]
-            if embedding_model and embedding_model != profile_model:
-                raise RagError(
-                    "RAG_EMBEDDING_PROFILE_MISMATCH",
-                    "embedding profile and model do not match",
-                )
-            embedding_model = profile_model
         if mode == "stub":
             # Stub is deliberately isolated from every paid or vector dependency.
             # Do not even retain externally supplied credentials in process state.
@@ -108,6 +91,23 @@ class RagSettings:
             milvus_uri = ""
             milvus_collection = ""
         else:
+            provider = env.get("FOODMATE_RAG_EMBEDDING_PROVIDER", "openai-compatible").strip().lower()
+            if provider not in {"openai-compatible", "deterministic"}:
+                raise RagError("RAG_EMBEDDING_PROVIDER_INVALID", "embedding provider is invalid")
+            profile = env.get("FOODMATE_RAG_EMBEDDING_PROFILE", "").strip().lower()
+            if profile and profile not in EMBEDDING_PROFILES:
+                raise RagError("RAG_EMBEDDING_PROFILE_INVALID", "embedding profile is invalid")
+            embedding_model = env.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip()
+            if provider == "deterministic" and not embedding_model:
+                embedding_model = "deterministic-local-v1"
+            if profile:
+                profile_model = EMBEDDING_PROFILES[profile]
+                if embedding_model and embedding_model != profile_model:
+                    raise RagError(
+                        "RAG_EMBEDDING_PROFILE_MISMATCH",
+                        "embedding profile and model do not match",
+                    )
+                embedding_model = profile_model
             embedding_base_url = env.get("FOODMATE_RAG_EMBEDDING_BASE_URL", "").strip()
             embedding_api_key = env.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip()
             milvus_uri = env.get("FOODMATE_RAG_MILVUS_URI", "").strip()
