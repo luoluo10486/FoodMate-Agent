@@ -28,10 +28,10 @@
   padding-top: 52px;
 }
 
-/* Figma node 879:353 uses the warning color as a low-opacity selection wash. */
+/* Figma node 640:428 uses separate neutral surfaces for active navigation and session rows. */
 .designChat {
-  --fm-fixture-sidebar-active-surface: rgba(199, 150, 84, 0.08);
-  --fm-fixture-session-active-surface: rgba(255, 246, 226, 0.2);
+  --fm-fixture-sidebar-active-surface: #fbf7f2;
+  --fm-fixture-session-active-surface: #fffcf9;
 }
 
 .figmaFixture .primarySideNav {

@@ -1425,3 +1425,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增浏览器原始 JPEG、RGBA PNG 和独立 diff：`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-1440x1024-2026-08-30-rgba.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-390x844-2026-08-30-rgba.png`、`foodmate-ui/.qa/figma-pixel-acceptance/agent-user-cancelled-aligned-2026-08-30-diff.json`；同尺寸结果为 `differentPixels=303295`、差异比例 `20.5685%`、`MAE=2.43150`、`RMSE=14.50891`、最大通道差异 `249`，结论继续为 `DIFF_REVIEW`。
 - [x] ChatPage 定向测试 `27/27` 通过；新增回归断言覆盖取消态主区宽度、助手行宽度和提示条布局契约。前端已确认不存在 `window-controls`、`traffic-light` 或三色窗口装饰候选。
 - [ ] 本小点只完成取消态局部几何收口，不代表该画板或 105 张画板达到像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 153. 2026-08-30 Agent Chat 侧栏选中态背景色收口
+
+- [x] 依据 Figma 节点 `640:428`，将 `/chat?state=figma-v2` 侧栏 `Agent 对话` 选中态背景对齐为 `#FBF7F2`，当前会话行背景对齐为 `#FFFCF9`；仅修改前端 `.designChat` 语义变量，未修改 Figma 设计稿。
+- [x] 浏览器实测视口 `1440×1024`、字体状态 `loaded`、侧栏选中态实际为 `rgb(251, 247, 242)`、当前会话行实际为 `rgb(255, 252, 249)`；页面无横向/纵向溢出，前端左上角红黄绿窗口装饰候选为 `0`，业务状态圆点保留。
+- [x] 已登记浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-selection-surfaces-browser-2026-08-30-rgba.png`、Figma 参考 `docxs/设计/figma-png/agent-chat-v2.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-selection-surfaces-2026-08-30-diff.json`；同尺寸结果为 `differentPixels=351778`、差异比例 `23.8565%`、`MAE=2.74033`、`RMSE=15.61032`、最大通道差异 `234`，结论继续为 `DIFF_REVIEW`。
+- [x] `WorkspaceLayout.test.tsx` 定向测试 `8/8`、`npm run typecheck`、`npm run build` 和 `git diff --check` 已通过；映射主证据和 `figma-105-diff-results.json` 已同步，最新采集实际 DPR 为 `1.25`，不满足严格 DPR 1 的像素 `PASS` 门禁。
+- [ ] 本小点只完成 Agent Chat 侧栏两个选中态背景色的局部收口，不代表该画板或 105 张画板达到像素级 `PASS`；整页头像、字体、图标和光栅化差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

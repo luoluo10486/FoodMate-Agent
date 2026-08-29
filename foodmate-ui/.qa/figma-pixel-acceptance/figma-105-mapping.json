@@ -88,19 +88,19 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-sidebar-baseline-browser-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-selection-surfaces-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; 2026-08-30 selection-surface evidence is the current primary capture; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -132,6 +132,25 @@
           "diffJson": ".qa/figma-pixel-acceptance/agent-chat-v2-message-actions-2026-08-29-diff.json",
           "status": "DIFF_REVIEW",
           "note": "同一 Figma 节点的局部补充证据；query 状态不同于主映射的 state=figma-v2，不替换主画板映射。"
+        },
+        {
+          "label": "侧栏选中态背景色局部验收",
+          "figmaNodeId": "640:428",
+          "frontendRoute": "/chat",
+          "queryState": "state=figma-v2",
+          "browserViewport": "1440x1024",
+          "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-selection-surfaces-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-chat-v2-selection-surfaces-2026-08-30-diff.json",
+          "status": "DIFF_REVIEW",
+          "actualDpr": 1.25,
+          "geometry": {
+            "activeSectionBackground": "rgb(251, 247, 242)",
+            "activeSessionBackground": "rgb(255, 252, 249)",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "note": "仅收口 Figma 节点 640:428 的侧栏 Agent 对话选中态和当前会话行背景色；DPR 为 1.25，整页仍保留 DIFF_REVIEW。"
         }
       ]
     },

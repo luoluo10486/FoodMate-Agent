@@ -1,0 +1,32 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 351778,
+  "differentRatio": 0.23856472439236112,
+  "meanAbsoluteError": 2.7403296576605904,
+  "rmse": 15.610318808098478,
+  "maxChannelDelta": 234,
+  "figmaNodeId": "640:428",
+  "artboardName": "agent-chat-v2",
+  "frontendRoute": "/chat",
+  "queryState": "state=figma-v2",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "fonts": "loaded",
+  "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
+  "browserPng": "recaptured/agent-chat-v2-selection-surfaces-browser-2026-08-30-rgba.png",
+  "geometry": {
+    "status": "PASS",
+    "activeSectionBackground": "rgb(251, 247, 242)",
+    "activeSessionBackground": "rgb(255, 252, 249)",
+    "bodyOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "textCheck": {
+    "status": "PASS",
+    "fonts": "loaded"
+  },
+  "conclusion": "DIFF_REVIEW"
+}
