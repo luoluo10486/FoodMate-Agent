@@ -1533,8 +1533,8 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     if (state === 'user-cancelled') {
       return (
-        <div className={styles.fixtureCancelledWrap}>
-          <div className={styles.fixtureCancelledAssistantRow}>
+        <div className={`${styles.fixtureCancelledWrap} ${styles.fixtureCancelledWrapAligned}`}>
+          <div className={`${styles.fixtureCancelledAssistantRow} ${styles.fixtureCancelledAssistantRowAligned}`}>
             <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
             <div className={styles.fixtureCancelledAssistantBody}>
               <p className={styles.fixtureAssistantText}>
@@ -1542,7 +1542,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               </p>
             </div>
           </div>
-          <div className={styles.fixtureCancelledNotice}>
+          <div className={`${styles.fixtureCancelledNotice} ${styles.fixtureCancelledNoticeAligned}`}>
             <img src="/assets/figma/agent-chat/cancel-slash.svg" alt="" />
             <span>用户已取消此次运行 · 2:16 PM</span>
           </div>

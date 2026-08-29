@@ -1348,11 +1348,11 @@
       "queryState": "state=user-cancelled",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser-2026-08-28.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-1440x1024-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; 2026-08-30 aligned evidence is recorded in additionalVisualEvidence; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1377,8 +1377,43 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture preserves the partially received text, user cancellation reason and enabled restart entry, and does not present the state as a system failure. The frontend does not render the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "取消态已将主对话区外层扩展到 1116px，助手行保持 608px、气泡保持 560px，取消提示条按 Figma 对齐到 x=738.64、y=310、222.725x30px；移动端无页面级横向溢出，前端未渲染左上角红黄绿窗口控制点。整页仍存在字体、图标和共享工作台组合差异，继续保留 DIFF_REVIEW。"
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-1440x1024-2026-08-30-rgba.png",
+          "browserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-1440x1024-2026-08-30.jpg",
+          "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-390x844-2026-08-30-rgba.png",
+          "mobileBrowserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-390x844-2026-08-30.jpg",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-user-cancelled-aligned-2026-08-30-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "visualChange": "依据 Figma 节点 687:1684，将取消态提示条移至主对话区中心、固定为 30px 高，并将助手行约束为 608px；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "desktopWrap": "x=292,y=237,width=1116,height=143.2",
+            "desktopAssistantRow": "x=292,y=237,width=608,height=52",
+            "desktopAssistantBody": "x=340,y=237,width=560,height=52",
+            "desktopNotice": "x=738.64,y=310,width=222.725,height=30",
+            "mobileAssistantRow": "x=16,y=251.8,width=343.2,height=72 at 390x844",
+            "mobileAssistantBody": "x=64,y=251.8,width=295.2,height=72 at 390x844",
+            "mobileNotice": "x=76.24,y=344.8,width=222.725,height=30 at 390x844",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          }
+        }
+      ],
+      "contentGeometry": {
+        "desktopCancelledWrap": "x=292,width=1116",
+        "desktopAssistantRow": "x=292,width=608",
+        "desktopAssistantBody": "x=340,width=560",
+        "desktopCancellationNotice": "x=738.64,y=310,width=222.725,height=30",
+        "mobileAssistantBody": "x=64,width=295.2 at 390x844",
+        "mobileCancellationNotice": "x=76.24,y=344.8,width=222.725,height=30 at 390x844",
+        "bodyOverflow": false,
+        "windowControlsCandidates": 0
       }
     },
     {

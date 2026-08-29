@@ -280,6 +280,15 @@ describe('ChatPage Agent remaining states', () => {
     renderState('user-cancelled');
     expect(screen.getByText(/用户已取消此次运行/)).toBeInTheDocument();
     expect(screen.queryByText(/运行失败/)).not.toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureCancelledWrap"]')).toHaveClass(
+      'fixtureCancelledWrapAligned',
+    );
+    expect(document.querySelector('[class*="fixtureCancelledAssistantRow"]')).toHaveClass(
+      'fixtureCancelledAssistantRowAligned',
+    );
+    expect(document.querySelector('[class*="fixtureCancelledNotice"]')).toHaveClass(
+      'fixtureCancelledNoticeAligned',
+    );
     const statusItems = screen.getAllByRole('listitem').map((item) => item.textContent);
     expect(statusItems).toContain('Planning●');
     expect(statusItems).toContain('Retrieving○');

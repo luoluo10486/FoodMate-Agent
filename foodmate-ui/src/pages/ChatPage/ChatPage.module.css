@@ -1862,6 +1862,11 @@
   gap: 24px;
 }
 
+.fixtureCancelledWrapAligned {
+  width: 100%;
+  gap: 21px;
+}
+
 .fixtureReconnectWrap {
   display: flex;
   position: relative;
@@ -1890,6 +1895,10 @@
   align-items: flex-start;
   gap: 12px;
   opacity: 0.4;
+}
+
+.fixtureCancelledAssistantRowAligned {
+  width: min(608px, 100%);
 }
 
 .fixtureCancelledAssistantBody {
@@ -1966,6 +1975,13 @@
   border-radius: 999px;
   background: #e5e7eb;
   line-height: normal;
+}
+
+.fixtureCancelledNoticeAligned {
+  box-sizing: border-box;
+  height: 30px;
+  padding: 0 16px;
+  line-height: 16px;
 }
 
 .fixtureCancelledNotice img {

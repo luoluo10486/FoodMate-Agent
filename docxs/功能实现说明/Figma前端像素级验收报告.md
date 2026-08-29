@@ -1400,3 +1400,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 独立证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-filter-icons-browser-1440x1024-2026-08-29-rgba.png`、`admin-overview-filter-icons-browser-390x844-2026-08-29-rgba.png` 和 `admin-overview-filter-icons-2026-08-29-diff.json`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=862029`、差异比例 `58.4601%`、`MAE=3.634867`、`RMSE=17.215182`、最大通道差异 `230`，结论为 `DIFF_REVIEW`。
 - [x] Admin 定向测试 `11/11`、目标文件 Prettier、`npm run typecheck`、`npm run build` 与本次改动 `git diff --check` 已通过；仓库级 `format:check` 仍被既有无关文件阻断。
 - [ ] 本小点只完成筛选栏图标资产收口，不关闭 Admin Overview 或 105 张画板像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 150. 2026-08-30 Agent User Cancelled 取消态布局边界收口
+
+- [x] 依据 Figma 节点 `687:1684`，将取消态外层扩展为主对话内容区 `1116px`，取消提示条按主区居中；助手行保持 `608px`，助手气泡保持 `560px`，提示条固定为 `222.725×30px`。
+- [x] 浏览器实测 `1440×1024`、DPR `1.0000000149011612`、字体加载完成：助手行 `x=292,y=237,width=608,height=52`，气泡 `x=340,width=560`，取消提示条 `x=738.64,y=310,width=222.725,height=30`；页面无横向溢出，左上角红黄绿窗口控制点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] `390×844` 移动端实测助手行 `x=16,width=343.2`、气泡 `x=64,width=295.2`、取消提示条 `x=76.24,y=344.8,width=222.725,height=30`，页面无横向溢出。
+- [x] 新增浏览器原始 JPEG、RGBA PNG 和独立 diff：`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-1440x1024-2026-08-30-rgba.png`、`foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-390x844-2026-08-30-rgba.png`、`foodmate-ui/.qa/figma-pixel-acceptance/agent-user-cancelled-aligned-2026-08-30-diff.json`；同尺寸结果为 `differentPixels=303295`、差异比例 `20.5685%`、`MAE=2.43150`、`RMSE=14.50891`、最大通道差异 `249`，结论继续为 `DIFF_REVIEW`。
+- [x] ChatPage 定向测试 `27/27` 通过；新增回归断言覆盖取消态主区宽度、助手行宽度和提示条布局契约。前端已确认不存在 `window-controls`、`traffic-light` 或三色窗口装饰候选。
+- [ ] 本小点只完成取消态局部几何收口，不代表该画板或 105 张画板达到像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

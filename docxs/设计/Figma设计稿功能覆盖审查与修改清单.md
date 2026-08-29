@@ -964,3 +964,10 @@
 - [x] 浏览器 `1440×1024` 实测无页面级横向溢出；顶栏知识库链接存在，左上角红、黄、绿窗口装饰候选为 `0`，没有修改 Figma 设计稿，也没有删除业务状态圆点。
 - [x] 已登记独立 Figma/浏览器截图、内容区裁剪图、白底归一化图和 diff JSON；同尺寸内容区 diff 为 `49.8610% / MAE 3.2238 / RMSE 14.1849`，结论保持 `DIFF_REVIEW`。
 - [x] Knowledge、WorkspaceLayout 定向测试共 `3` 个测试文件、`16/16` 通过；DPR `1.25` 不满足严格 DPR 1 门禁，因此不能将本项标记为像素级 `PASS`。
+
+## 49. 2026-08-30 Agent User Cancelled 取消态前端几何收口
+
+- [x] 依据 Figma 节点 `687:1684`，取消态外层改为占满主对话内容区，提示条横向居中；助手行约束为 `608px`，助手气泡为 `560px`，提示条高度为 `30px`。只修改前端，未修改 Figma。
+- [x] 浏览器 `1440×1024` 实测助手行 `x=292,width=608`、气泡 `x=340,width=560`、提示条 `x=738.64,y=310,width=222.725,height=30`；`390×844` 下页面无横向溢出，左上角红黄绿窗口装饰候选均为 `0`，业务状态圆点保留。
+- [x] ChatPage 定向测试 `27/27` 通过；新证据已同步至 `figma-105-mapping.json`、`figma-105-diff-results.json` 和独立 diff JSON，结果改善为 `20.5685% / MAE 2.43150 / RMSE 14.50891`，但仍保持 `DIFF_REVIEW`。
+- [ ] 本项不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
