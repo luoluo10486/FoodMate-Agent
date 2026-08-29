@@ -1408,5 +1408,5 @@
 | 执行命令 | `Get-Content seed/V5__nutrition_usda_common_foods_seed.sql | docker exec -i foodmate-postgres psql -v ON_ERROR_STOP=1 -U postgres -d FoodMate`；同样方式执行 `seed/V6__nutrition_mass_unit_seed.sql`；随后执行对应 `validation/V5__nutrition_usda_common_foods_validation.sql` 和 `validation/V6__nutrition_mass_unit_seed_validation.sql`。 |
 | V5 结果 | 新增/更新 9 条常见食材和 9 条 USDA foodPortions 换算；`common_nutrition_seed_rows=9`、`common_unit_conversion_seed_rows=9`；非法行、食材关联错误均为 `0`。 |
 | V6 结果 | 新增/更新 75 条 `kg/mg/lb -> g` 精确质量换算；`mass_unit_conversion_seed_rows=75`；非法行、食材关联错误、规则形状错误均为 `0`。数据库按 `numeric(12,4)` 保存磅系数为 `453.5924`。 |
-| 代码验证 | `NutritionCommonV5SeedScriptTest` `4/4`、`NutritionSeedScriptTest` `9/9` 通过；受影响 Infrastructure Spotless 检查通过。提交 `c957a831` 包含 V5 长度契约；V6 部分唯一索引冲突目标、精度校验和契约测试的修正待本轮提交。 |
+| 代码验证 | `NutritionCommonV5SeedScriptTest` `4/4`、`NutritionSeedScriptTest` `9/9` 通过；受影响 Infrastructure Spotless 检查通过。提交 `c957a831` 包含 V5 长度契约，提交 `f3c2af41` 已补齐 V5/V6 的唯一索引冲突目标、磅系数精度校验和 validation 契约。 |
 | 数据边界 | 未执行 `TRUNCATE`、宽泛删除、迁移、数据库硬删除、备份恢复、性能压测、组件重启或生产操作；seed 可重复执行且未覆盖既有业务数据。 |

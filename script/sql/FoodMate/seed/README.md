@@ -2,6 +2,8 @@
 
 本目录存放人工评审后的营养目录数据，不由 Java 启动自动执行，也不由 Flyway 自动执行。
 
+截至 2026-08-30，当前本地数据库已通过 validation 核验 25 条 `approved` 食材、25 条 USDA `foodPortions` 食材级换算规则，以及 75 条 `kg/mg/lb -> g` 精确质量换算。下面的 V1/V2/V4/V5/V6 说明分别对应各自 seed 的增量范围，不应将单个脚本的行数误读为当前目录总量。
+
 ## V1
 
 `V1__nutrition_usda_seed.sql` 首批导入 5 条 USDA FoodData Central `SR Legacy` 数据：米饭、鸡胸肉、鸡蛋、三文鱼和苹果。所有数值都是每 100g 基准值，来源版本和 FDC ID 写入 `nutrition_foods.source_version`，并以 `approved` 状态供 Java 匹配。
