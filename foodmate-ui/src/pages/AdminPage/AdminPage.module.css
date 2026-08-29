@@ -1005,10 +1005,32 @@
 }
 
 .overviewFilter :global([data-radix-select-icon]) {
+  display: none;
+}
+
+.overviewFilterArrow {
+  display: block;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
   margin-left: auto;
+  background: #6b7280;
+  -webkit-mask: url('/assets/figma/admin/overview/dropdown-arrow.svg') center / 12px 12px no-repeat;
+  mask: url('/assets/figma/admin/overview/dropdown-arrow.svg') center / 12px 12px no-repeat;
+}
+
+.overviewSearchIcon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  background: #6b7280;
+  -webkit-mask: url('/assets/figma/admin/overview/search.svg') center / 16px 16px no-repeat;
+  mask: url('/assets/figma/admin/overview/search.svg') center / 16px 16px no-repeat;
 }
 
 .overviewFilter :global(svg) {
+  display: none;
   width: 12px;
   height: 12px;
   color: #333333;
@@ -1024,13 +1046,6 @@
   padding: 0 12px;
   border-radius: 16px;
   background: #f4f6f5;
-}
-
-.overviewSearch > svg {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  color: #6b7280;
 }
 
 .overviewSearch input {

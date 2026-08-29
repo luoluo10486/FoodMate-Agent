@@ -4794,6 +4794,31 @@
           },
           "visualChange": "依据实时 Figma 节点 995:978、995:987、995:988-995:1031，将 Admin 侧栏导航从 Lucide 形状替换为 9 个可追溯的 Figma SVG 资产；SQL/模型用量与 Trace/工具注册表按设计稿复用对应资产。仅修改前端，未修改 Figma，业务权限状态圆点保留。",
           "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "capturedAt": "2026-08-29",
+          "figmaNodeId": "995:1054",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-filter-icons-browser-1440x1024-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-overview-filter-icons-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "geometryEvidence": {
+            "filterSelects": "116x32, 116x32, 142x32",
+            "searchField": "280x32",
+            "dropdownArrow": "3 x 12x12",
+            "searchIcon": "16x16",
+            "fonts": "loaded",
+            "bodyHorizontalOverflow": false,
+            "windowControlsCandidates": 0,
+            "mobileScreenshot": "390x844",
+            "mobileRuntimeViewport": "390x846",
+            "mobileDpr": 1.0000000149011612,
+            "mobileBodyWidth": "390px",
+            "mobileWindowControlsCandidates": 0
+          },
+          "visualChange": "依据实时 Figma 节点 995:1054，将 Admin Overview 时间、结果、降级三个 Select 的箭头和搜索框图标替换为真实 Figma SVG 资产；隐藏 Radix 默认箭头但保留 shadcn Select 的键盘与选值行为。仅修改前端，未修改 Figma，业务状态圆点保留。",
+          "conclusion": "DIFF_REVIEW"
         }
       ]
     },

@@ -72,9 +72,19 @@ describe('AdminPage overview', () => {
       'deleted',
       'audit',
     ]);
-    expect(icons.every((icon) => icon.style.getPropertyValue('--admin-nav-icon').includes('/assets/figma/admin/navigation/'))).toBe(
-      true,
-    );
+    expect(
+      icons.every((icon) =>
+        icon.style.getPropertyValue('--admin-nav-icon').includes('/assets/figma/admin/navigation/'),
+      ),
+    ).toBe(true);
+  });
+
+  it('uses the registered Figma filter icons while preserving shadcn Select behavior', () => {
+    renderAdmin();
+
+    expect(document.querySelectorAll('[data-figma-asset="admin-overview-dropdown-arrow"]')).toHaveLength(3);
+    expect(document.querySelector('[data-figma-asset="admin-overview-search"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[aria-label="时间范围"] [data-radix-select-icon] svg')).toHaveLength(0);
   });
 
   it('filters the overview table by result and search query', async () => {

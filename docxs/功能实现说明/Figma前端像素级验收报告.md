@@ -1392,3 +1392,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 同尺寸 `png-diff.mjs` 结果为 `differentPixels=472595`、差异比例 `32.0499%`、`MAE=2.965224`、`RMSE=15.923452`、最大通道差异 `230`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/admin-overview-navigation-2026-08-29-diff.json`，浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-navigation-browser-2026-08-29.png`，画板继续为 `DIFF_REVIEW`。
 - [x] `AdminPage.test.tsx` `10/10`、`npm run typecheck`、`npm run build` 和 `git diff --check` 已验证；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成侧栏导航图标资产替换和移动端响应式修正，不代表 Admin Overview 或 105 张画板达到像素级 `PASS`；字体、侧栏身份和其它整页差异仍需继续收口，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+## 149. 2026-08-29 Admin Overview 筛选栏图标资产收口
+
+- [x] 实时 Figma 节点 `995:1054` 的筛选栏包含 `116×32`、`116×32`、`142×32` 三个 Select 和 `280×32` 搜索框；前端已使用 `dropdown-arrow.svg` 和 `search.svg` 两个真实 Figma SVG 资产，Radix 默认箭头仅被隐藏，Select 行为保持不变。
+- [x] 浏览器 `1440×1024`、DPR `1.0000000149011612`、字体已加载：下拉箭头为 `3×12×12`，搜索图标为 `16×16`，页面无横向溢出。`390×844` 移动截图也已生成，实际页面宽度为 `390px`；打开“结果筛选”并选择 `failed` 后显示两条失败记录。
+- [x] 前端左上角红、黄、绿窗口装饰候选数量桌面/移动均为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 独立证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-filter-icons-browser-1440x1024-2026-08-29-rgba.png`、`admin-overview-filter-icons-browser-390x844-2026-08-29-rgba.png` 和 `admin-overview-filter-icons-2026-08-29-diff.json`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=862029`、差异比例 `58.4601%`、`MAE=3.634867`、`RMSE=17.215182`、最大通道差异 `230`，结论为 `DIFF_REVIEW`。
+- [x] Admin 定向测试 `11/11`、目标文件 Prettier、`npm run typecheck`、`npm run build` 与本次改动 `git diff --check` 已通过；仓库级 `format:check` 仍被既有无关文件阻断。
+- [ ] 本小点只完成筛选栏图标资产收口，不关闭 Admin Overview 或 105 张画板像素级 `PASS`；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
