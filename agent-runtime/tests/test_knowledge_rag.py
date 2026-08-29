@@ -271,6 +271,29 @@ class RagSettingsTests(TestCase):
             self.assertEqual(profile, settings.embedding_profile)
             self.assertEqual(model, settings.embedding_model)
 
+    def test_embedding_profiles_use_distinct_index_namespaces(self):
+        common = {
+            "FOODMATE_RAG_MODE": "local",
+            "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+            "FOODMATE_RAG_EMBEDDING_BASE_URL": "http://embedding/v1",
+            "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
+            "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+            "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+            "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1",
+            "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "1",
+            "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+            "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+            "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+            "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+        }
+        bge = RagSettings.from_environment(
+            {**common, "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3"}
+        )
+        qwen = RagSettings.from_environment(
+            {**common, "FOODMATE_RAG_EMBEDDING_PROFILE": "qwen3-embedding-0.6b"}
+        )
+        self.assertNotEqual(bge.index_namespace, qwen.index_namespace)
+
     def test_embedding_profile_rejects_a_different_explicit_model(self):
         with self.assertRaisesRegex(RagError, "do not match") as raised:
             RagSettings.from_environment(

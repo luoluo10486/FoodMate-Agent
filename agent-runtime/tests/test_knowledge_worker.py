@@ -27,6 +27,17 @@ class _UsageEmbedder:
         return EmbeddingResult([[1.0, 0.0] for _ in inputs], 17, "embedding-request-1")
 
 class KnowledgeIndexWorkerTests(TestCase):
+    def test_runtime_stub_uses_configured_redis_namespace(self):
+        settings = RagSettings.from_environment(
+            {
+                "FOODMATE_RAG_MODE": "stub",
+                "FOODMATE_RAG_STUB_REDIS_PREFIX": "foodmate:test:rag",
+            }
+        )
+        worker = KnowledgeIndexWorker(settings=settings)
+
+        self.assertEqual("foodmate:test:rag", worker.stub.prefix)
+
     def test_stub_indexes_one_document_once(self):
         published = []
         worker = KnowledgeIndexWorker(lambda _: ("guide.md", b"# Protein\nProtein supports recovery."), published.append, RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))

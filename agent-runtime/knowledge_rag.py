@@ -65,6 +65,22 @@ class RagSettings:
     price_per_million_tokens: Decimal | None = None
     price_version: str = ""
     embedding_profile: str = ""
+    stub_redis_prefix: str = "foodmate:rag:stub"
+
+    @property
+    def index_namespace(self) -> str:
+        """返回不包含凭据的索引身份，隔离模型、集合和 stub 命名空间。"""
+        identity = "\x1f".join(
+            (
+                self.mode,
+                self.embedding_provider,
+                self.embedding_profile,
+                self.embedding_model,
+                self.milvus_collection,
+                self.stub_redis_prefix,
+            )
+        )
+        return "idx_" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:32]
 
     @classmethod
     def from_environment(cls, environment: dict[str, str] | None = None) -> "RagSettings":
@@ -139,6 +155,11 @@ class RagSettings:
             price_per_million_tokens=_optional_decimal(env.get("FOODMATE_RAG_PRICE_PER_MILLION_TOKENS", "")),
             price_version=env.get("FOODMATE_RAG_PRICE_VERSION", "").strip(),
             embedding_profile=profile,
+            stub_redis_prefix=(
+                env.get("FOODMATE_RAG_STUB_REDIS_PREFIX", "foodmate:rag:stub").strip()
+                if mode == "stub"
+                else ""
+            ),
         )
         if settings.milvus_collection and not _MILVUS_COLLECTION.fullmatch(settings.milvus_collection):
             raise RagError(

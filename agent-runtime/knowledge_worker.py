@@ -47,7 +47,13 @@ class KnowledgeIndexWorker:
         self.result_publisher = result_publisher or (lambda _result: None)
         # In-memory dependencies are only for isolated unit tests. The runtime path
         # constructs the worker without an object_reader and therefore always uses Redis.
-        self.stub = stub_index or (RedisStubIndex() if self.settings.mode == "stub" and object_reader is None else StubIndex() if self.settings.mode == "stub" else None)
+        self.stub = stub_index or (
+            RedisStubIndex(prefix=self.settings.stub_redis_prefix)
+            if self.settings.mode == "stub" and object_reader is None
+            else StubIndex()
+            if self.settings.mode == "stub"
+            else None
+        )
         self.embedder = embedder or (build_local_embedder(self.settings) if self.settings.mode == "local" else None)
         self.milvus = milvus_index or (MilvusIndex(self.settings) if self.settings.mode == "local" else None)
         self.completed = completed_store or (self._completed_store() if object_reader is None else _MemoryCompletionStore())
@@ -280,7 +286,13 @@ class KnowledgeIndexWorker:
             raise RagError("RAG_REDIS_UNAVAILABLE", "worker idempotency store is unavailable") from error
 
     def _completion_key(self, key: tuple[str, str, str]) -> str:
-        return "foodmate:rag:worker:completed:" + ":".join(key)
+        """按索引身份隔离完成事实，避免切换 embedding 模型复用旧结果。"""
+        return (
+            "foodmate:rag:worker:completed:"
+            + self.settings.index_namespace
+            + ":"
+            + ":".join(key)
+        )
 
     def _completion_summary(self, key: tuple[str, str, str]) -> dict | None:
         raw = self.completed.get(self._completion_key(key))
