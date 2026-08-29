@@ -1420,3 +1420,17 @@
 | 恢复校验 | `pg_restore --exit-on-error --no-owner --no-privileges` 成功；只读 SQL 返回 `64` 张 public base table、`37` 个 `is_deleted` 列，数据库名与临时库一致。 |
 | 清理校验 | 恢复库和容器内 `/tmp/foodmate-recovery.dump` 均在 `finally` 清理；恢复库不存在性校验为 `true`；源 `FoodMate` 数据未执行删除或覆盖。 |
 | 结论 | 本地隔离备份恢复和清理流程取得实际证据；不等同于生产备份恢复、跨环境灾备、RPO/RTO 或发布回滚演练。 |
+
+## D78 当前分支业务门禁与 Python 字节码边界复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；使用 `agent-runtime\\.venv`；Docker Server `28.5.1`。 |
+| Python 业务门禁 | 在 `agent-runtime` 目录执行 `PYTHONDONTWRITEBYTECODE=1 .\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`163 passed、2 skipped、4 subtests passed`。 |
+| Java 业务门禁 | `mvnw.cmd verify`：Shared `12`、Application `214`、Infrastructure `102`（20 skipped）、API `68`、Bootstrap `58`（37 skipped），无失败；Spotless 通过。 |
+| 隔离清理验证 | `DataRetentionDatabasePurgeRealIntegrationTest` 在 Testcontainers PostgreSQL 空库中 `1/1` 通过；现有业务数据库未连接。 |
+| 安全扫描 | `script\\security\\security-scan.ps1`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`、`security_scan_status=passed`。 |
+| Python 缓存边界 | `.pyc` 共 `419` 个、约 `5.64 MB`，全部位于 `agent-runtime\\.venv` 第三方依赖缓存；源码范围 `0`，Git 跟踪 `0`。未删除虚拟环境。 |
+| 云服务边界 | 未调用 SiliconFlow；对话中公开的旧凭据不再使用。真实 Chat 和两个 Embedding smoke 需在供应商控制台轮换后，通过当前 PowerShell 进程显式注入新凭据。 |
+| 暂缓范围 | 未执行性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复、生产监控部署或现有数据库不可逆清理。 |
+| 结论 | 当前本地业务、隔离清理、Java 构建规范和秘密扫描均有本轮证据；真实云联调和生产强化仍不能标记完成。 |
