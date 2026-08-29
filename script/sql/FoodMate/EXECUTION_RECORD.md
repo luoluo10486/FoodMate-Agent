@@ -1329,3 +1329,14 @@
 | npm | `package-lock.json` 存在，但当前 registry advisory endpoint 返回不可用，脚本记录 `npm audit: registry advisory endpoint unavailable` 并将该项标记为 skipped。 |
 | 秘密扫描 | `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`。 |
 | 结论 | Python 依赖和仓库秘密扫描有本地证据；npm advisory 服务恢复后需重新执行，OWASP dependency-check、渗透测试和生产安全验证仍未完成。 |
+
+## D70 Python 缓存清理与本地安全/业务门禁复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；使用项目 `agent-runtime\\.venv\\Scripts\\python.exe`；未使用或读取对话中暴露的旧 API Key。 |
+| 缓存清理 | 清理项目范围内 `.pyc`、`.pyo`、`__pycache__` 和 `.pytest_cache`；保留 `agent-runtime\\.venv` 环境本身；清理后相关文件/目录计数为 `0`。 |
+| 安全门禁 | `script\\security\\security-scan.ps1 -RunPythonAudit -RunNpmAudit`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`、`security_scan_status=passed`。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`154 passed、2 skipped、4 subtests passed`；通过 `PYTHONDONTWRITEBYTECODE=1` 避免重新生成字节码。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；真实云 smoke 等待轮换后的新凭据。 |
+| 结论 | Python 缓存清理、安全扫描和业务测试门禁取得本地证据；真实云调用、生产强化及暂缓的性能/故障验证仍不能标记完成。 |
