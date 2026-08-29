@@ -37,6 +37,8 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
             int chunkCount = node.path("chunk_count").asInt(0);
             long tokenCount = node.path("token_count").asLong(0);
             String errorCode = node.path("error_code").asText(null);
+            String errorSummary =
+                    safeErrorSummary(node.path("error_summary").asText(""), errorCode);
             String modelVersion = node.path("model_version").asText(null);
             List<KnowledgeRepository.IndexChunk> chunks = parseChunks(node.path("chunks"));
             if (!("indexed".equals(status) || "index_failed".equals(status))
@@ -66,6 +68,7 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                             status,
                             chunkCount,
                             errorCode,
+                            errorSummary,
                             attempt,
                             tokenCount,
                             costAmount,
@@ -79,6 +82,16 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
         } catch (RuntimeException error) {
             return MqConsumeDecision.RETRY;
         }
+    }
+
+    private String safeErrorSummary(String value, String errorCode) {
+        String normalized = value == null ? "" : value.replaceAll("[\\r\\n\\t]+", " ").trim();
+        if (normalized.isBlank()) normalized = errorCode == null ? "INDEX_FAILED" : errorCode;
+        normalized =
+                normalized.replaceAll(
+                        "(?i)(api[_ -]?key|authorization|bearer|password|token)\\s*[:=]\\s*\\S+",
+                        "$1=[REDACTED]");
+        return normalized.length() <= 512 ? normalized : normalized.substring(0, 512);
     }
 
     private List<KnowledgeRepository.IndexChunk> parseChunks(JsonNode value) {

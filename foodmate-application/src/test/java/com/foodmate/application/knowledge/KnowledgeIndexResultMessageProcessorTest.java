@@ -11,6 +11,7 @@ import com.foodmate.application.knowledge.service.KnowledgeDeliveryService;
 import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
+import java.lang.reflect.RecordComponent;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -93,6 +94,29 @@ class KnowledgeIndexResultMessageProcessorTest {
         assertEquals(MqConsumeDecision.REJECT, processor.handle(missingModel, context()));
         assertEquals(MqConsumeDecision.REJECT, processor.handle(negativeCost, context()));
         verifyNoInteractions(delivery);
+    }
+
+    @Test
+    void failedResultCarriesTheBoundedSafetySummaryToPersistence() throws Exception {
+        String body =
+                "{\"item_id\":11,\"document_id\":12,\"version\":\"v1\","
+                        + "\"status\":\"index_failed\",\"attempt\":3,"
+                        + "\"error_code\":\"RAG_PARSE_FAILED\","
+                        + "\"error_summary\":\"document parser rejected the file\"}";
+
+        assertEquals(MqConsumeDecision.ACK, processor.handle(body, context()));
+
+        ArgumentCaptor<KnowledgeRepository.IndexResult> result =
+                ArgumentCaptor.forClass(KnowledgeRepository.IndexResult.class);
+        verify(delivery).accept(result.capture(), any(String.class));
+        RecordComponent summary =
+                java.util.Arrays.stream(result.getValue().getClass().getRecordComponents())
+                        .filter(component -> component.getName().equals("errorSummary"))
+                        .findFirst()
+                        .orElseThrow();
+        assertEquals(
+                "document parser rejected the file",
+                summary.getAccessor().invoke(result.getValue()));
     }
 
     private static MqMessageContext context() {

@@ -183,7 +183,7 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                                     result.itemId(),
                                     result.documentId(),
                                     result.errorCode(),
-                                    result.errorCode(),
+                                    result.errorSummary(),
                                     attempt,
                                     result.version())
                             == 1;
@@ -212,6 +212,10 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                         + result.documentId()
                         + ",\"status\":\""
                         + result.status()
+                        + "\",\"error_code\":\""
+                        + jsonString(result.errorCode())
+                        + "\",\"error_summary\":\""
+                        + jsonString(result.errorSummary())
                         + "\"}");
         JobView progress = mapper.job(jobId);
         mapper.insertJobEvent(
@@ -230,6 +234,11 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                         + ",\"failed_items\":"
                         + progress.failedItems()
                         + "}");
+    }
+
+    private String jsonString(String value) {
+        if (value == null) return "";
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @Override
