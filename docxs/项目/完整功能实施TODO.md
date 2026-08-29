@@ -20,7 +20,7 @@
 - [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
 - [x] M1-5 第一切片已完成本地代码和真实 HTTP E2E：饮食记录创建/查询/编辑/删除/恢复，today/7d/30d 分析，计划创建/查询/修改/校验/保存/删除/恢复/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。
 - [x] `food_log_writer` 已完成：Proposal -> Confirm -> Execute、`confirmation_ref`/AgentRun/用户归属/参数摘要/幂等校验、复用饮食记录写入用例、`food_log_id` 回填、rejected/failed/superseded 和 create/update/delete/restore 均已有定向测试，并已通过真实 PostgreSQL HTTP 和 RocketMQ writer 回归。
-- [x] 本地 PostgreSQL 已存在 V13/V14/V15 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。营养 seed V1 已人工导入 5 条 approved USDA 数据，seed V2 已人工导入 5 条 approved USDA foodPortions 规则并通过校验；未覆盖的单位仍不推断。
+- [x] 本地 PostgreSQL 已存在 V13/V14/V15 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。营养目录 V1-V5 已人工导入 25 条 approved USDA 数据，V2/V4/V5 已导入 25 条 approved USDA foodPortions 规则，V6 已导入 75 条精确质量换算并通过校验；未覆盖的密度单位仍不推断。
 - [x] M1-5 Java 写确认扩展已实现：`food_log_writer` 支持 create/update/delete/restore，确认状态支持 rejected/failed/superseded，Tool Gateway 校验工具名/type 并映射结果状态；Java 定向测试覆盖拒绝、失败回滚记录、supersede 和三种资源写操作。
 - [x] 完成 M1-5 写确认扩展的真实 HTTP/MQ 跨进程回归：HTTP 与 RocketMQ 各 11 个用例通过，覆盖 rejected、failed 回滚与失败审计、superseded、update/delete/restore、revision 冲突、成功 Proposal 幂等重放，以及官方 foodPortions 换算 matched/pending 和数据库快照断言；每个用例使用随机用户、Session、AgentRun、Proposal 和幂等键隔离。
 - [x] M2-1/M2-2/M2-3 业务范围已完成：公共知识库 deterministic 上传/索引/发布/检索/引用、只读 SQL Agent 多轮闭环、管理后台真实查询/写操作/模型治理和受控脱敏导出均已有代码与业务测试证据；真实云服务、性能和故障验证不属于当前完成门槛。
@@ -38,7 +38,7 @@
 | M1-2 | 已完成 | 真实认证、会话、消息、前端 API 接入和 Cookie/CSRF 已验收。 |
 | M1-3 | 最小真实闭环已完成 | Java -> Python 确定性 stub -> Java -> SSE、取消、续传和越权校验已验证。 |
 | M1-4 | 本地闭环完成，生产收尾中 | 已具备受控模型适配、LangGraph 白名单图、独立 Eval/预算、Redis 准入、摘要 CAS、记忆候选、MQ Transport、Proposal/Result、浏览器 SSE 和跨进程恢复；生产长压、真实云稳定性、价格/账单审计和生产 Eval 治理仍未完成。 |
-| M1-5 | 核心范围已完成，扩展持续 | 饮食记录、营养 seed、分析、餐食计划完整资源生命周期、`meal_plan.save_plan`、5 条官方单位换算规则和 `food_log_writer` 的 HTTP/MQ 各 11/11 回归已验证；更广泛营养目录、生产长压和生产治理仍后置。 |
+| M1-5 | 核心范围已完成，扩展持续 | 饮食记录、营养 seed、分析、餐食计划完整资源生命周期、`meal_plan.save_plan`、25 条官方 foodPortions 换算、75 条精确质量换算和 `food_log_writer` 的 HTTP/MQ 各 11/11 回归已验证；生产长压和生产治理仍后置。 |
 | M1-6 | 本地子项已验证，整体未完成 | Actuator/metrics、双 JVM 有界 PostgreSQL 读取、Java 重启回读、Python readiness、Redis AOF 探针和 RocketMQ 重启恢复已验证；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵、队列统计和生产治理仍后置。 |
 
 ## 2. 已确认的产品边界
@@ -199,7 +199,7 @@ M1-4 的上述治理项均属于最小真实模型闭环的完成门槛，不得
 
 - [x] V13/V14/V15 结构已落地并经本地只读校验确认：`food_logs`、`food_log_items`、`nutrition_foods`、`nutrition_unit_conversions`、`approval_requests`、计划生命周期字段，以及 `operation_audits` 幂等字段和索引。
 - [x] 实现饮食记录创建、查询、编辑、删除、恢复与幂等键；编辑/删除/恢复使用 `revision`，编辑采用整条内容替换并重新生成明细营养快照。
-- [x] 实现 today/7d/30d 营养分析、覆盖率、不完整提示和非医疗免责声明；5 条 USDA seed 的真实 matched/pending 分支以及 5 条 USDA foodPortions 单位换算的 matched/pending 分支已导入并验证。
+- [x] 实现 today/7d/30d 营养分析、覆盖率、不完整提示和非医疗免责声明；25 条 USDA seed、25 条 USDA foodPortions 单位换算和 75 条精确质量换算已导入并通过本地 validation，已有 matched/pending 分支保护。
 - [x] 实现餐食计划创建、查询、修改、校验、保存、软删除、恢复和购物清单生成；V15 `revision`/幂等迁移及本地 HTTP 回归已通过。
 - [x] 实现 `meal_plan.save_plan` 的 Proposal -> Confirm -> Execute、过期/参数摘要校验、CAS 执行和审计重放。
 - [x] 实现 `food_log_writer` 的本地写入能力：确认绑定、AgentRun/用户归属、幂等/摘要校验、复用 `FoodLogService` create/update/delete/restore、资源 ID 回填和重放保护。
