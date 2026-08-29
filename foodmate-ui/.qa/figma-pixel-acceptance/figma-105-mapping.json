@@ -3933,11 +3933,11 @@
       "queryState": "state=trace",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-height-browser-2026-08-29-rgba.png",
-      "diffJson": ".qa/figma-pixel-acceptance/recaptured/admin-trace-height-2026-08-29-diff.json",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-download-link-browser-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/admin-trace-download-link-2026-08-29-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-29 独立 diff 已更新；Trace 事件面板依据实时 Figma 节点 797:732 收口为 162px，详情字段面板保持 Figma y=454 目标，整页视觉差异仍需复核",
+      "evidenceNote": "2026-08-29 独立 diff 已更新；Trace 事件面板依据实时 Figma 节点 797:732 收口为 162px，下载链接依据节点 797:737 对齐颜色、字重和下划线，详情字段面板保持 Figma y=454 目标，整页视觉差异仍需复核",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3963,7 +3963,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "Trace filters, run table, four event timeline cards, refresh control, log-download action and Trace detail fields remain represented. The event panel, cards and detail panel now match the Figma geometry targets; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
+        "conclusion": "Trace filters, run table, four event timeline cards, refresh control, log-download action and Trace detail fields remain represented. The event panel, cards, detail panel and log-download link styling now match the checked Figma targets; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
       },
       "additionalVisualEvidence": [
         {
@@ -3990,6 +3990,41 @@
             "bodyHorizontalOverflow": false,
             "bodyVerticalOverflow": false,
             "windowControlsCandidates": 0
+          },
+          "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-download-link-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-trace-download-link-2026-08-29-diff.json",
+          "visualChange": "依据 Figma 节点 797:737，将 Trace 下载链接对齐为 #5da9b2、Noto Sans SC Regular、13px 并增加下划线；仅修改前端，未修改 Figma。",
+          "diff": {
+            "differentPixels": 366952,
+            "differentRatio": 0.24885525173611112,
+            "meanAbsoluteError": 2.7332616170247395,
+            "rmse": 15.432517030246059,
+            "maxChannelDelta": 230
+          },
+          "geometry": {
+            "viewport": "1440x1024",
+            "dpr": 1.0000000149011612,
+            "fonts": "loaded",
+            "downloadLink": "78x16 at x=1318,y=278.5",
+            "toolbar": "1132x34 at y=88",
+            "table": "1132x87 at y=146",
+            "tracePanel": "1132x162 at y=257",
+            "traceCards": "4 x 261x87",
+            "detailPanel": "1132x300 at y=454",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "computedStyle": {
+            "color": "rgb(93, 169, 178)",
+            "fontFamily": "Noto Sans SC, Microsoft YaHei, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "400",
+            "textDecorationLine": "underline"
           },
           "conclusion": "DIFF_REVIEW"
         }

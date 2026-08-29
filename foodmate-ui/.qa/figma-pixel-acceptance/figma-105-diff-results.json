@@ -920,10 +920,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 366520,
-      "differentRatio": 0.2485622829861111,
-      "meanAbsoluteError": 2.7430372450086806,
-      "rmse": 15.44011424688348,
+      "differentPixels": 366952,
+      "differentRatio": 0.24885525173611112,
+      "meanAbsoluteError": 2.7332616170247395,
+      "rmse": 15.432517030246059,
       "maxChannelDelta": 230
     },
     "admin-user-detail": {

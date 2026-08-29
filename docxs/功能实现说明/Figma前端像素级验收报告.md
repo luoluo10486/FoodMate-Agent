@@ -1206,3 +1206,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-risk-filter-browser-2026-08-29.jpg`、转换后的 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-sql-audit-risk-filter-browser-2026-08-29.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-sql-audit-risk-filter-2026-08-29-diff.json`；`png-diff.mjs` 结果为 `differentPixels=287694`、差异比例 `19.5105%`、`MAE=2.491523`、`RMSE=15.989531`、最大通道差异 `230`。
 - [x] Admin 定向测试 `11/11`、`npm run typecheck` 和 `git diff --check` 通过；本次确认的前端窗口装饰候选数量仍为 `0`，业务权限状态圆点不变。
 - [ ] 该小点只收口 SQL Audit 筛选行局部几何；画板和 105 张画板汇总仍为 `DIFF_REVIEW`，不标记像素级 `PASS`；shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 131. 2026-08-29 Admin Trace 下载链接样式收口
+
+- [x] 依据实时 Figma 节点 `797:621`、`797:737`，仅修改前端 `AdminPage.module.css`：下载链接对齐为 `#5da9b2`、Noto Sans SC Regular、`13px`、带下划线；交互行为保持不变，未修改 Figma 设计稿。
+- [x] 浏览器视口 `1440×1024`、DPR `1.0000000149011612`、字体状态 `loaded`；链接 computed style 为 `rgb(93, 169, 178)`、`font-weight: 400`、`text-decoration-line: underline`，位置和尺寸为 `78×16px at x=1318,y=278.5`；页面无横向或纵向溢出，前端左上角红黄绿窗口装饰候选数量为 `0`。
+- [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-download-link-browser-2026-08-29.jpg`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-download-link-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-trace-download-link-2026-08-29-diff.json`；`png-diff.mjs` 同尺寸结果为 `differentPixels=366952`、差异比例 `24.8855%`、`MAE=2.733262`、`RMSE=15.432517`、最大通道差异 `230`，结论继续为 `DIFF_REVIEW`。
+- [ ] 本小点只完成 Trace 下载链接局部样式收口，不代表该画板或 105 张画板达到像素级 `PASS`；侧栏身份、其它字体/图标和整页组合差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
