@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -29,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/** Retention governance; approval creates a plan but does not execute hard deletion. */
+/** 数据保留治理实现；审批只创建清理计划，不执行硬删除。 */
 @Service
 public class DataRetentionServiceImpl implements DataRetentionService {
     private static final String PURGE_ACTION = "retention.purge.request";
@@ -48,7 +50,7 @@ public class DataRetentionServiceImpl implements DataRetentionService {
     private final Clock clock;
     private final String bucket;
 
-    /** Compatibility constructor for application-only tests. */
+    /** 供仅依赖 application 模块的测试使用的兼容构造函数。 */
     public DataRetentionServiceImpl(
             DataRetentionRepository store, OperationAuditService audit, IdGenerator ids) {
         this(store, audit, ids, Clock.systemUTC(), "foodmate-private");
@@ -341,6 +343,79 @@ public class DataRetentionServiceImpl implements DataRetentionService {
                 request.resourceId(),
                 request.eligibleAt(),
                 request.taskCount());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PurgePreflight getPreflight(long requestId) {
+        PurgeRequest request = requirePurge(requestId);
+        ResourceSnapshot resource = store.resource(request.resourceType(), request.resourceId());
+        Policy policy = store.policy(request.resourceType());
+        Hold hold = store.activeHold(request.resourceType(), request.resourceId());
+        List<DataRetentionRepository.PurgeTaskState> storedTasks = store.purgeTaskStates(requestId);
+        List<PurgeTaskState> tasks =
+                storedTasks.stream()
+                        .map(
+                                task ->
+                                        new PurgeTaskState(
+                                                task.taskType(),
+                                                task.status(),
+                                                task.attemptCount(),
+                                                task.lastErrorCode()))
+                        .toList();
+        List<String> blockers = new ArrayList<>();
+        boolean policyFound = policy != null;
+        boolean hardDeleteEnabled = policyFound && policy.hardDeleteEnabled();
+        boolean resourceSoftDeleted =
+                resource != null && resource.deleted() && resource.deletedAt() != null;
+        boolean retentionElapsed =
+                policyFound
+                        && resourceSoftDeleted
+                        && !eligibleAt(resource, policy).isAfter(Instant.now(clock));
+        boolean legalHoldClear = hold == null;
+        boolean taskContractValid = hasRequiredTasks(request.resourceType(), resource, storedTasks);
+        if (!"approved".equals(request.status()) && !"running".equals(request.status())) {
+            blockers.add("RETENTION_REQUEST_NOT_APPROVED");
+        }
+        if (!policyFound) blockers.add("RETENTION_POLICY_NOT_FOUND");
+        else if (!hardDeleteEnabled) blockers.add("RETENTION_HARD_DELETE_DISABLED");
+        if (!resourceSoftDeleted || !retentionElapsed) blockers.add("RETENTION_NOT_ELIGIBLE");
+        if (!legalHoldClear) blockers.add("RETENTION_HOLD_ACTIVE");
+        if (!taskContractValid) blockers.add("RETENTION_TASK_CONTRACT_INVALID");
+        if (storedTasks.stream().anyMatch(task -> "failed".equals(task.status()))) {
+            blockers.add("RETENTION_TASK_FAILED");
+        }
+        return new PurgePreflight(
+                request.requestId(),
+                request.status(),
+                request.resourceType(),
+                request.resourceId(),
+                policyFound,
+                hardDeleteEnabled,
+                resourceSoftDeleted,
+                retentionElapsed,
+                legalHoldClear,
+                taskContractValid,
+                blockers.isEmpty(),
+                tasks,
+                List.copyOf(blockers));
+    }
+
+    private boolean hasRequiredTasks(
+            String resourceType,
+            ResourceSnapshot resource,
+            List<DataRetentionRepository.PurgeTaskState> tasks) {
+        Set<String> expected = new java.util.HashSet<>();
+        if (resource != null && resource.storageKey() != null && !resource.storageKey().isBlank()) {
+            expected.add("object_storage");
+        }
+        if ("knowledge_document".equals(resourceType)) expected.add("vector_index");
+        expected.add("database");
+        Set<String> actual = new java.util.HashSet<>();
+        for (DataRetentionRepository.PurgeTaskState task : tasks) {
+            if (!actual.add(task.taskType())) return false;
+        }
+        return actual.equals(expected);
     }
 
     private int planTasks(PurgeRequest request, ResourceSnapshot resource) {

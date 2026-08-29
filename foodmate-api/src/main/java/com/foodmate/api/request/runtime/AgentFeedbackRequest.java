@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
+/** AgentRun 反馈请求参数。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record AgentFeedbackRequest(
         Boolean helpful,

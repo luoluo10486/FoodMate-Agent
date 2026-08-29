@@ -43,6 +43,15 @@ describe('KnowledgePage', () => {
     expect(screen.queryByText('运动后最佳蛋白质吸收窗口期')).not.toBeInTheDocument();
   });
 
+  it('uses the Figma shell fixture for the default page', () => {
+    renderPage('/knowledge?state=default');
+
+    expect(screen.getByRole('button', { name: 'Anddy' })).toBeInTheDocument();
+    expect(screen.getByText('Anddy 的工作区')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /每周饮食微调/ })).toBeInTheDocument();
+    expect(screen.queryByText('梁同学')).not.toBeInTheDocument();
+  });
+
   it('recovers from an empty result state by clearing the search', async () => {
     const user = userEvent.setup();
     renderPage();
@@ -58,11 +67,13 @@ describe('KnowledgePage', () => {
   });
 
   it('uses the Figma shell fixture for knowledge states', () => {
-    renderPage('/knowledge?state=empty');
+    const { container } = renderPage('/knowledge?state=empty');
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('没有找到相关内容');
+    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(container.innerHTML).not.toMatch(/window-controls|traffic-light|#ff3b30|#ffcc00|#34c759/i);
   });
 
   it('recovers from search and source availability errors', async () => {
@@ -76,6 +87,7 @@ describe('KnowledgePage', () => {
     unmount();
     renderPage('/knowledge');
     await user.click(screen.getByRole('button', { name: '打开原始来源' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('PARTIAL ACCESS');
     expect(screen.getByRole('alert')).toHaveTextContent('来源暂时不可访问');
     await user.click(screen.getByRole('button', { name: '稍后重试' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

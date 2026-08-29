@@ -4,14 +4,74 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
-/** Low-cardinality Agent operation metrics; identifiers are deliberately never metric tags. */
+/** 记录低基数 Agent 操作指标，业务标识不会进入指标标签。 */
 @Service
 public class AgentOperationMetrics {
+    private static final Set<String> TRANSPORTS = Set.of("http", "rocketmq", "local");
+    private static final Set<String> OPERATIONS =
+            Set.of(
+                    "dispatch",
+                    "proposal",
+                    "result",
+                    "event",
+                    "sse_replay",
+                    "knowledge_index",
+                    "visibility",
+                    "purge");
+    private static final Set<String> RESULTS =
+            Set.of(
+                    "success",
+                    "failed",
+                    "duplicate",
+                    "redelivered",
+                    "rejected",
+                    "accepted",
+                    "retry",
+                    "terminal",
+                    "pending",
+                    "leased");
+    private static final Set<String> QUEUE_STATES = Set.of("pending", "leased");
+    private static final Set<String> REASONS =
+            Set.of(
+                    "published",
+                    "delivered",
+                    "relay_error",
+                    "inbox",
+                    "consumer_error",
+                    "last_event_id",
+                    "accepted",
+                    "routed",
+                    "model_usage",
+                    "context_assembled",
+                    "tool_proposal",
+                    "tool_result",
+                    "eval_decided",
+                    "answer_stream",
+                    "completed",
+                    "failed",
+                    "cancelled",
+                    "checkpoint_saved",
+                    "received",
+                    "http",
+                    "rocketmq",
+                    "leased",
+                    "retry",
+                    "redelivery",
+                    "duplicate",
+                    "replay",
+                    "knowledge_index",
+                    "visibility",
+                    "purge",
+                    "database",
+                    "object_storage",
+                    "vector_index",
+                    "relay");
     private final MeterRegistry registry;
     private final Map<String, AtomicLong> queueDepths = new ConcurrentHashMap<>();
 
@@ -24,10 +84,10 @@ public class AgentOperationMetrics {
         Counter.builder("foodmate.agent.operations")
                 .description("Agent dispatch, proposal, result, event and replay outcomes")
                 .tags(
-                        "transport", tag(transport),
-                        "operation", tag(operation),
-                        "result", tag(result),
-                        "reason", tag(reason))
+                        "transport", tag(transport, TRANSPORTS),
+                        "operation", tag(operation, OPERATIONS),
+                        "result", tag(result, RESULTS),
+                        "reason", tag(reason, REASONS))
                 .register(registry)
                 .increment();
     }
@@ -38,10 +98,10 @@ public class AgentOperationMetrics {
         Timer.builder("foodmate.agent.terminal.latency")
                 .description("Request to Agent terminal state latency")
                 .tags(
-                        "transport", tag(transport),
-                        "operation", tag(operation),
-                        "result", tag(result),
-                        "reason", tag(reason))
+                        "transport", tag(transport, TRANSPORTS),
+                        "operation", tag(operation, OPERATIONS),
+                        "result", tag(result, RESULTS),
+                        "reason", tag(reason, REASONS))
                 .publishPercentiles(0.50, 0.95, 0.99)
                 .register(registry)
                 .record(Math.max(0, millis), java.util.concurrent.TimeUnit.MILLISECONDS);
@@ -49,14 +109,24 @@ public class AgentOperationMetrics {
 
     public void queueDepth(String transport, String operation, long value) {
         if (registry == null) return;
-        String key = tag(transport) + ":" + tag(operation);
+        queueDepth(transport, operation, "pending", value);
+    }
+
+    /** 记录固定队列状态的当前深度，不把动态业务标识加入标签。 */
+    public void queueDepth(String transport, String operation, String state, long value) {
+        if (registry == null) return;
+        String normalizedTransport = tag(transport, TRANSPORTS);
+        String normalizedOperation = tag(operation, OPERATIONS);
+        String normalizedState = tag(state, QUEUE_STATES);
+        String key = normalizedTransport + ":" + normalizedOperation + ":" + normalizedState;
         AtomicLong depth = queueDepths.computeIfAbsent(key, ignored -> new AtomicLong());
         depth.set(Math.max(0, value));
         registry.gauge(
-                "foodmate.agent.queue.pending",
+                "foodmate.agent.queue.depth",
                 java.util.List.of(
-                        io.micrometer.core.instrument.Tag.of("transport", tag(transport)),
-                        io.micrometer.core.instrument.Tag.of("operation", tag(operation))),
+                        io.micrometer.core.instrument.Tag.of("transport", normalizedTransport),
+                        io.micrometer.core.instrument.Tag.of("operation", normalizedOperation),
+                        io.micrometer.core.instrument.Tag.of("state", normalizedState)),
                 depth);
     }
 
@@ -70,16 +140,17 @@ public class AgentOperationMetrics {
         sample.stop(
                 Timer.builder("foodmate.agent.request.latency")
                         .tags(
-                                "transport", tag(transport),
-                                "operation", tag(operation),
-                                "result", tag(result),
-                                "reason", tag(reason))
+                                "transport", tag(transport, TRANSPORTS),
+                                "operation", tag(operation, OPERATIONS),
+                                "result", tag(result, RESULTS),
+                                "reason", tag(reason, REASONS))
                         .publishPercentiles(0.50, 0.95, 0.99)
                         .register(registry));
     }
 
-    private static String tag(String value) {
+    private static String tag(String value, Set<String> allowed) {
         if (value == null || value.isBlank()) return "unknown";
-        return value.length() > 64 ? value.substring(0, 64) : value;
+        String normalized = value.trim().toLowerCase();
+        return allowed.contains(normalized) ? normalized : "other";
     }
 }

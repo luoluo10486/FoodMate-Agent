@@ -4,10 +4,10 @@
   "width": 1440,
   "height": 1024,
   "pixelCount": 1474560,
-  "differentPixels": 198602,
-  "differentRatio": 0.13468560112847222,
-  "meanAbsoluteError": 2.627039591471354,
-  "rmse": 17.086151495986257,
-  "maxChannelDelta": 246,
-  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: the frontend now includes the Agent avatar, failed process marker, Figma alert color treatment, and compact retry/skip actions; residual differences remain in font/icon rasterization and surrounding workspace rendering"
+  "differentPixels": 296890,
+  "differentRatio": 0.20134141710069445,
+  "meanAbsoluteError": 2.2419528537326388,
+  "rmse": 14.730809108556462,
+  "maxChannelDelta": 245,
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: Figma failure card geometry and colors now match the current node, including 560x160px card, 16px radius, 58x32px retry action and 97x32px skip action; residual differences remain in surrounding workspace rendering and icon/font rasterization"
 }

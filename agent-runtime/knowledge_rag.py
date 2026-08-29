@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
 from typing import Iterable, Protocol
+from urllib.parse import urlsplit
 
 
 class RagError(RuntimeError):
@@ -37,6 +38,12 @@ _CHINA_ID = re.compile(
     r"(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])"
     r"(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)"
 )
+_MILVUS_COLLECTION = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,254}$")
+
+EMBEDDING_PROFILES = {
+    "bge-m3": "BAAI/bge-m3",
+    "qwen3-embedding-0.6b": "Qwen/Qwen3-Embedding-0.6B",
+}
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,23 @@ class RagSettings:
     daily_cost_limit: Decimal | None = None
     price_per_million_tokens: Decimal | None = None
     price_version: str = ""
+    embedding_profile: str = ""
+    stub_redis_prefix: str = "foodmate:rag:stub"
+
+    @property
+    def index_namespace(self) -> str:
+        """返回不包含凭据的索引身份，隔离模型、集合和 stub 命名空间。"""
+        identity = "\x1f".join(
+            (
+                self.mode,
+                self.embedding_provider,
+                self.embedding_profile,
+                self.embedding_model,
+                self.milvus_collection,
+                self.stub_redis_prefix,
+            )
+        )
+        return "idx_" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:32]
 
     @classmethod
     def from_environment(cls, environment: dict[str, str] | None = None) -> "RagSettings":
@@ -64,9 +88,6 @@ class RagSettings:
         mode = env.get("FOODMATE_RAG_MODE", "stub").strip().lower()
         if mode not in {"stub", "local"}:
             raise RagError("RAG_MODE_INVALID", "FOODMATE_RAG_MODE must be stub or local")
-        provider = env.get("FOODMATE_RAG_EMBEDDING_PROVIDER", "openai-compatible").strip().lower()
-        if provider not in {"openai-compatible", "deterministic"}:
-            raise RagError("RAG_EMBEDDING_PROVIDER_INVALID", "embedding provider is invalid")
         concurrency = _integer(env.get("FOODMATE_RAG_INDEX_CONCURRENCY", "4"), "RAG_INDEX_CONCURRENCY_INVALID")
         if not 1 <= concurrency <= 8:
             raise RagError("RAG_INDEX_CONCURRENCY_INVALID", "index concurrency must be between 1 and 8")
@@ -76,27 +97,75 @@ class RagSettings:
         )
         if not 8 <= deterministic_dimension <= 4096:
             raise RagError("RAG_DETERMINISTIC_DIMENSION_INVALID", "deterministic dimension must be between 8 and 4096")
-        embedding_model = env.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip()
-        if provider == "deterministic" and not embedding_model:
+        if mode == "stub":
+            # Stub is deliberately isolated from every paid or vector dependency.
+            # Do not even retain externally supplied credentials in process state.
+            provider = "deterministic"
+            profile = ""
+            embedding_base_url = ""
+            embedding_api_key = ""
             embedding_model = "deterministic-local-v1"
+            milvus_uri = ""
+            milvus_collection = ""
+        else:
+            provider = env.get("FOODMATE_RAG_EMBEDDING_PROVIDER", "openai-compatible").strip().lower()
+            if provider not in {"openai-compatible", "deterministic"}:
+                raise RagError("RAG_EMBEDDING_PROVIDER_INVALID", "embedding provider is invalid")
+            profile = env.get("FOODMATE_RAG_EMBEDDING_PROFILE", "").strip().lower()
+            if profile and profile not in EMBEDDING_PROFILES:
+                raise RagError("RAG_EMBEDDING_PROFILE_INVALID", "embedding profile is invalid")
+            if profile and provider != "openai-compatible":
+                raise RagError(
+                    "RAG_EMBEDDING_PROFILE_PROVIDER_MISMATCH",
+                    "embedding profile requires the OpenAI-compatible provider",
+                )
+            embedding_model = env.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip()
+            if provider == "deterministic" and not embedding_model:
+                embedding_model = "deterministic-local-v1"
+            if profile:
+                profile_model = EMBEDDING_PROFILES[profile]
+                if embedding_model and embedding_model != profile_model:
+                    raise RagError(
+                        "RAG_EMBEDDING_PROFILE_MISMATCH",
+                        "embedding profile and model do not match",
+                    )
+                embedding_model = profile_model
+            embedding_base_url = env.get("FOODMATE_RAG_EMBEDDING_BASE_URL", "").strip()
+            embedding_api_key = env.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip()
+            milvus_uri = env.get("FOODMATE_RAG_MILVUS_URI", "").strip()
+            milvus_collection = env.get("FOODMATE_RAG_MILVUS_COLLECTION", "").strip()
         settings = cls(
             mode=mode,
             embedding_provider=provider,
-            embedding_base_url=env.get("FOODMATE_RAG_EMBEDDING_BASE_URL", "").strip(),
-            embedding_api_key=env.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip(),
+            embedding_base_url=embedding_base_url,
+            embedding_api_key=embedding_api_key,
             embedding_model=embedding_model,
-            milvus_uri=env.get("FOODMATE_RAG_MILVUS_URI", "").strip(),
-            milvus_collection=env.get("FOODMATE_RAG_MILVUS_COLLECTION", "").strip(),
+            milvus_uri=milvus_uri,
+            milvus_collection=milvus_collection,
             deterministic_dimension=deterministic_dimension,
             index_concurrency=concurrency,
-            timeout_seconds=float(env.get("FOODMATE_RAG_ITEM_TIMEOUT_SECONDS", "20")),
+            timeout_seconds=_positive_float(
+                env.get("FOODMATE_RAG_ITEM_TIMEOUT_SECONDS", "20"),
+                "RAG_ITEM_TIMEOUT_INVALID",
+            ),
             batch_token_limit=_optional_integer(env.get("FOODMATE_RAG_BATCH_TOKEN_LIMIT", "")),
             daily_token_limit=_optional_integer(env.get("FOODMATE_RAG_DAILY_TOKEN_LIMIT", "")),
             batch_cost_limit=_optional_decimal(env.get("FOODMATE_RAG_BATCH_COST_LIMIT", "")),
             daily_cost_limit=_optional_decimal(env.get("FOODMATE_RAG_DAILY_COST_LIMIT", "")),
             price_per_million_tokens=_optional_decimal(env.get("FOODMATE_RAG_PRICE_PER_MILLION_TOKENS", "")),
             price_version=env.get("FOODMATE_RAG_PRICE_VERSION", "").strip(),
+            embedding_profile=profile,
+            stub_redis_prefix=(
+                env.get("FOODMATE_RAG_STUB_REDIS_PREFIX", "foodmate:rag:stub").strip()
+                if mode == "stub"
+                else ""
+            ),
         )
+        if settings.milvus_collection and not _MILVUS_COLLECTION.fullmatch(settings.milvus_collection):
+            raise RagError(
+                "RAG_MILVUS_COLLECTION_INVALID",
+                "Milvus collection name must contain only letters, numbers, and underscores",
+            )
         if mode == "local":
             if provider == "openai-compatible":
                 for code, value in {
@@ -106,6 +175,9 @@ class RagSettings:
                 }.items():
                     if not value:
                         raise RagError(code, "local RAG configuration is incomplete")
+                _validate_http_endpoint(
+                    settings.embedding_base_url, "RAG_EMBEDDING_BASE_URL_INVALID"
+                )
             required = {
                 "RAG_MILVUS_URI_MISSING": settings.milvus_uri,
                 "RAG_MILVUS_COLLECTION_MISSING": settings.milvus_collection,
@@ -119,6 +191,15 @@ class RagSettings:
             for code, value in required.items():
                 if value is None or value == "":
                     raise RagError(code, "local RAG configuration is incomplete")
+            if (
+                provider == "openai-compatible"
+                and settings.price_per_million_tokens is not None
+                and settings.price_per_million_tokens <= 0
+            ):
+                raise RagError(
+                    "RAG_PRICE_INVALID",
+                    "real embedding price must be greater than zero",
+                )
         return settings
 
 
@@ -130,7 +211,22 @@ def _integer(value: str, code: str) -> int:
 
 
 def _optional_integer(value: str) -> int | None:
-    return None if not value.strip() else _integer(value, "RAG_BUDGET_INVALID")
+    if not value.strip():
+        return None
+    parsed = _integer(value, "RAG_BUDGET_INVALID")
+    if parsed < 0:
+        raise RagError("RAG_BUDGET_INVALID", "budget must be non-negative")
+    return parsed
+
+
+def _positive_float(value: str, code: str) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as error:
+        raise RagError(code, "invalid positive number") from error
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise RagError(code, "value must be a positive finite number")
+    return parsed
 
 
 def _optional_decimal(value: str) -> Decimal | None:
@@ -143,6 +239,23 @@ def _optional_decimal(value: str) -> Decimal | None:
     if not parsed.is_finite() or parsed < 0:
         raise RagError("RAG_BUDGET_INVALID", "budget must be non-negative")
     return parsed
+
+
+def _validate_http_endpoint(value: str, code: str) -> None:
+    """Reject non-HTTP endpoints and credentials embedded in a URL."""
+    endpoint = urlsplit(value)
+    if (
+        endpoint.scheme not in {"http", "https"}
+        or not endpoint.hostname
+        or endpoint.username is not None
+        or endpoint.password is not None
+        or endpoint.query
+        or endpoint.fragment
+    ):
+        raise RagError(
+            code,
+            "embedding endpoint must be an HTTP or HTTPS URL without credentials",
+        )
 
 
 @dataclass(frozen=True)
@@ -171,9 +284,27 @@ class Citation:
     snippet: str
 
 
+@dataclass(frozen=True)
+class DeletionResult:
+    """版本范围删除后返回的后端无关清理事实。"""
+
+    backend: str
+    deleted_count: int
+    verified_absent: bool
+
+
 class EmbeddingProvider(Protocol):
     def embed(self, inputs: list[str]) -> list[list[float]]:
         ...
+
+
+@dataclass(frozen=True)
+class EmbeddingResult:
+    """Embedding 向量及供应商可选的用量事实。"""
+
+    vectors: list[list[float]]
+    token_count: int | None = None
+    provider_request_id: str | None = None
 
 
 def chunk_markdown(text: str, document_id: str, version: str, max_chars: int = 900) -> list[KnowledgeChunk]:
@@ -248,10 +379,17 @@ class StubIndex:
                 break
         return citations
 
-    def delete_document(self, document_id: str, version: str) -> None:
+    def delete_document(self, document_id: str, version: str) -> DeletionResult:
+        deleted = 0
         for embedding_id, (_, chunk) in list(self._chunks.items()):
             if str(chunk.document_id) == str(document_id) and str(chunk.version) == str(version):
                 del self._chunks[embedding_id]
+                deleted += 1
+        remaining = any(
+            str(chunk.document_id) == str(document_id) and str(chunk.version) == str(version)
+            for _, chunk in self._chunks.values()
+        )
+        return DeletionResult("memory", deleted, not remaining)
 
 
 class RedisStubIndex:
@@ -298,14 +436,23 @@ class RedisStubIndex:
                 pipeline.hset(f"{self.prefix}:chunks", chunk_id, json.dumps(value, ensure_ascii=False))
         pipeline.execute()
 
-    def delete_document(self, document_id: str, version: str) -> None:
+    def delete_document(self, document_id: str, version: str) -> DeletionResult:
         values = self.client.hgetall(f"{self.prefix}:chunks")
         pipeline = self.client.pipeline()
+        matching = []
         for chunk_id, raw in values.items():
             value = json.loads(raw)
             if str(value.get("document_id")) == str(document_id) and str(value.get("version")) == str(version):
+                matching.append(chunk_id)
                 pipeline.hdel(f"{self.prefix}:chunks", chunk_id)
         pipeline.execute()
+        remaining = self.client.hgetall(f"{self.prefix}:chunks")
+        verified_absent = not any(
+            str(json.loads(raw).get("document_id")) == str(document_id)
+            and str(json.loads(raw).get("version")) == str(version)
+            for raw in remaining.values()
+        )
+        return DeletionResult("redis", len(matching), verified_absent)
 
     def search(self, query: str, scope: str = PUBLIC_SCOPE) -> list[Citation]:
         if scope != PUBLIC_SCOPE:
@@ -349,30 +496,124 @@ class OpenAICompatibleEmbedder:
     def __init__(self, settings: RagSettings):
         if settings.mode != "local" or settings.embedding_provider != "openai-compatible":
             raise RagError("RAG_EMBEDDING_PROVIDER_MISMATCH", "OpenAI-compatible embedder requires its explicit local provider")
+        _validate_http_endpoint(settings.embedding_base_url, "RAG_EMBEDDING_BASE_URL_INVALID")
         self.settings = settings
 
     def embed(self, inputs: list[str]) -> list[list[float]]:
+        return self.embed_with_usage(inputs).vectors
+
+    def embed_with_usage(self, inputs: list[str]) -> EmbeddingResult:
+        if not inputs or any(not isinstance(value, str) or not value.strip() for value in inputs):
+            raise RagError("RAG_EMBEDDING_INVALID_INPUT", "embedding input must not be empty")
         request = urllib.request.Request(
             self._url(), data=json.dumps({"model": self.settings.embedding_model, "input": inputs}).encode("utf-8"), method="POST",
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.settings.embedding_api_key},
         )
         try:
             with urllib.request.urlopen(request, timeout=self.settings.timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+                raw_payload = response.read()
+            payload = json.loads(raw_payload.decode("utf-8"))
         except urllib.error.HTTPError as error:
-            raise RagError("RAG_EMBEDDING_REJECTED", "embedding endpoint rejected request") from error
+            raise RagError(
+                _embedding_http_error_code(error.code),
+                _embedding_http_error_message(error.code),
+            ) from error
         except (urllib.error.URLError, TimeoutError) as error:
             raise RagError("RAG_EMBEDDING_UNAVAILABLE", "embedding endpoint is unavailable") from error
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
         try:
-            vectors = [list(map(float, item["embedding"])) for item in payload["data"]]
+            if not isinstance(payload, dict):
+                raise TypeError("embedding response must be an object")
+            data = payload["data"]
+            if not isinstance(data, list):
+                raise TypeError("embedding data must be a list")
+            indexed = []
+            for position, item in enumerate(data):
+                if not isinstance(item, dict):
+                    raise TypeError("embedding item must be an object")
+                raw_index = item.get("index", position)
+                if isinstance(raw_index, bool):
+                    raise TypeError("embedding index must be an integer")
+                index = int(raw_index)
+                vector = item["embedding"]
+                if not isinstance(vector, (list, tuple)):
+                    raise TypeError("embedding vector must be an array")
+                indexed.append((index, vector))
+            if sorted(index for index, _ in indexed) != list(range(len(inputs))):
+                raise ValueError("embedding indexes are not a complete sequence")
+            vectors = [list(map(float, vector)) for _, vector in sorted(indexed)]
+            token_count = _embedding_token_count(payload.get("usage"))
+            provider_request_id = _optional_response_id(payload.get("id"))
         except (KeyError, TypeError, ValueError) as error:
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
-        if len(vectors) != len(inputs) or not vectors or any(not vector or not all(math.isfinite(item) for item in vector) for vector in vectors):
+        dimension = len(vectors[0]) if vectors else 0
+        if (
+            len(vectors) != len(inputs)
+            or not vectors
+            or dimension == 0
+            or any(
+                len(vector) != dimension
+                or not all(math.isfinite(item) for item in vector)
+                for vector in vectors
+            )
+        ):
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "embedding count or values are invalid")
-        return vectors
+        return EmbeddingResult(vectors, token_count, provider_request_id)
 
     def _url(self) -> str:
         return self.settings.embedding_base_url if self.settings.embedding_base_url.endswith("/embeddings") else self.settings.embedding_base_url.rstrip("/") + "/embeddings"
+
+
+def _embedding_http_error_code(status_code: int) -> str:
+    """把供应商 HTTP 状态转换为不泄露响应正文的稳定错误码。"""
+    if status_code in {408, 425}:
+        return "RAG_EMBEDDING_TIMEOUT"
+    if status_code == 429:
+        return "RAG_EMBEDDING_RATE_LIMITED"
+    if 500 <= status_code <= 599:
+        return "RAG_EMBEDDING_UNAVAILABLE"
+    if status_code in {401, 403}:
+        return "RAG_EMBEDDING_AUTH_FAILED"
+    return "RAG_EMBEDDING_REJECTED"
+
+
+def _embedding_http_error_message(status_code: int) -> str:
+    """返回固定错误摘要，禁止把外部服务响应原文带入业务事实。"""
+    messages = {
+        "RAG_EMBEDDING_TIMEOUT": "embedding endpoint timed out",
+        "RAG_EMBEDDING_RATE_LIMITED": "embedding endpoint rate limited the request",
+        "RAG_EMBEDDING_UNAVAILABLE": "embedding endpoint is unavailable",
+        "RAG_EMBEDDING_AUTH_FAILED": "embedding endpoint authentication failed",
+        "RAG_EMBEDDING_REJECTED": "embedding endpoint rejected request",
+    }
+    return messages[_embedding_http_error_code(status_code)]
+
+
+def _embedding_token_count(usage: object) -> int | None:
+    """读取兼容接口的输入用量；供应商未返回 usage 时保留未知状态。"""
+    if usage is None:
+        return None
+    if not isinstance(usage, dict):
+        raise TypeError("embedding usage must be an object")
+    total = usage.get("total_tokens", usage.get("prompt_tokens"))
+    if total is None or isinstance(total, bool) or not isinstance(total, int) or total < 0:
+        raise ValueError("embedding usage token count is invalid")
+    prompt = usage.get("prompt_tokens")
+    if prompt is not None and (isinstance(prompt, bool) or not isinstance(prompt, int) or prompt < 0):
+        raise ValueError("embedding prompt token count is invalid")
+    if prompt is not None and total < prompt:
+        raise ValueError("embedding total token count is invalid")
+    return total
+
+
+def _optional_response_id(value: object) -> str | None:
+    """只接受短字符串请求标识，避免把异常响应内容带入业务事实。"""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip() or len(value) > 256:
+        raise ValueError("embedding response id is invalid")
+    return value.strip()
 
 
 class DeterministicEmbedder:
@@ -593,10 +834,10 @@ class MilvusIndex:
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus visibility update failed") from error
 
-    def delete_document(self, document_id: str, version: str) -> None:
+    def delete_document(self, document_id: str, version: str) -> DeletionResult:
         try:
             if not self.client.has_collection(self.collection):
-                return
+                return DeletionResult("milvus", 0, True)
             rows = self.client.query(
                 collection_name=self.collection,
                 filter=f'document_id == "{_milvus_string(document_id)}" and version == "{_milvus_string(version)}"',
@@ -606,6 +847,12 @@ class MilvusIndex:
             if ids:
                 self.client.delete(collection_name=self.collection, ids=ids)
                 self._flush()
+            remaining = self.client.query(
+                collection_name=self.collection,
+                filter=f'document_id == "{_milvus_string(document_id)}" and version == "{_milvus_string(version)}"',
+                output_fields=["embedding_id"],
+            )
+            return DeletionResult("milvus", len(ids), not remaining)
         except Exception as error:
             raise RagError("RAG_MILVUS_DELETE_FAILED", "Milvus vector delete failed") from error
 

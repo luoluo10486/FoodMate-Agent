@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Safe model governance API; write authorization is also enforced by application. */
+/** 模型治理接口；写操作授权由应用层再次强制校验。 */
 @RestController
 @RequestMapping("/api/admin/model-governance")
 public class ModelGovernanceController extends AuthenticatedControllerSupport {

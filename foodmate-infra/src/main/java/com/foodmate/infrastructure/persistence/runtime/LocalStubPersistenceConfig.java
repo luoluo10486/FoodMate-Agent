@@ -480,6 +480,11 @@ public class LocalStubPersistenceConfig {
                 return null;
             }
 
+            public java.util.List<DataRetentionRepository.PurgeTaskState> purgeTaskStates(
+                    long requestId) {
+                return java.util.List.of();
+            }
+
             public int insertPurgeRequest(NewPurgeRequest request) {
                 throw unavailable();
             }
@@ -500,6 +505,10 @@ public class LocalStubPersistenceConfig {
                 throw unavailable();
             }
 
+            public PurgeTaskContext purgeTaskContext(long taskId) {
+                throw unavailable();
+            }
+
             public int markTaskPublished(long taskId, String owner, String messageId) {
                 throw unavailable();
             }
@@ -516,6 +525,10 @@ public class LocalStubPersistenceConfig {
 
             public int applyTaskResult(
                     long taskId, String status, String errorCode, String errorSummary) {
+                throw unavailable();
+            }
+
+            public int insertPurgeTaskResult(PurgeTaskResult result) {
                 throw unavailable();
             }
 
@@ -605,6 +618,22 @@ public class LocalStubPersistenceConfig {
 
             public long countRuns(Query query) {
                 return 0;
+            }
+
+            public List<TraceRow> traces(Query query) {
+                return List.of();
+            }
+
+            public long countTraces(Query query) {
+                return 0;
+            }
+
+            public TraceRow traceById(String traceId) {
+                return null;
+            }
+
+            public List<TraceSpanRow> traceSpans(String traceId) {
+                return List.of();
             }
 
             public List<ToolCallRow> toolCalls(Query query) {

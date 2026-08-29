@@ -72,6 +72,10 @@ public interface FoodLogMapper {
             @Param("userId") long userId, @Param("from") Instant from, @Param("to") Instant to);
 
     @Select(
+            "SELECT f.food_log_id AS foodLogId,f.user_id AS userId,f.session_id AS sessionId,f.agent_run_id AS agentRunId,f.meal_time AS mealTime,f.meal_type AS mealType,f.notes,f.source,f.revision,f.is_deleted AS deleted,f.created_at AS createdAt,f.updated_at AS updatedAt FROM food_logs f WHERE f.user_id=#{userId} AND f.is_deleted=TRUE ORDER BY f.updated_at DESC,f.food_log_id DESC")
+    List<FoodLogRow> findDeleted(@Param("userId") long userId);
+
+    @Select(
             "SELECT f.food_log_id AS foodLogId,f.user_id AS userId,f.session_id AS sessionId,f.agent_run_id AS agentRunId,f.meal_time AS mealTime,f.meal_type AS mealType,f.notes,f.source,f.revision,f.is_deleted AS deleted,f.created_at AS createdAt,f.updated_at AS updatedAt FROM food_logs f WHERE f.food_log_id=#{foodLogId} AND f.user_id=#{userId} AND f.is_deleted=#{includeDeleted}")
     FoodLogRow findOwned(
             @Param("userId") long userId,

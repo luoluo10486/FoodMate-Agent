@@ -1181,3 +1181,185 @@
 | 文档收口 | 同步 M2-1/M2-2/M2-3、M2 总计划、总 TODO、路线图、产品文档、测试策略、README 和本地开发指南的当前日期/门禁数字；带历史日期的执行证据保留原样。 |
 | 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复；用户已有前端/Figma/QA 改动未暂存、未回滚。 |
 | 结论 | 当前功能版业务代码与测试门禁保持通过；M1-6 的吞吐/积压、完整故障恢复和生产强化仍按既定决策后置，不据此标记完成。 |
+
+## D58 真实 PostgreSQL 全迁移与业务幂等约束验证（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；Testcontainers 启动隔离的 PostgreSQL `16-alpine`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-infra -am -Ddocker.available=true -Dtest=BusinessIdempotencyRealMigrationTest -Dsurefire.failIfNoSpecifiedTests=false test`；随后执行 `mvnw.cmd --% -pl foodmate-infra -am spotless:check`。 |
+| 迁移验证 | 当前 baseline + migration 共 26 个版本在空数据库真实执行成功；第二次 `flyway.migrate()` 执行 `0` 个迁移，证明重复执行为 no-op。V12 的已存在列和 V18/V19 的事务提示为 PostgreSQL/Flyway 的非失败 warning。 |
+| 幂等验证 | `food_logs`、`meal_plans`、`approval_requests` 和 `operation_audits` 的重复业务事实均返回 PostgreSQL SQLState `23505`；最终每类测试用户业务事实均保持 1 条，无额外写入。 |
+| 质量门禁 | 定向测试 `2/2` 通过；Infrastructure 及上游 reactor 构建成功；Spotless `check` 通过；新增测试已提交为 `85fb2e6 test(数据库):补齐业务幂等写入验证`。 |
+| 数据与暂缓边界 | 只使用隔离 Testcontainers 数据库，未连接或修改现有 FoodMate 数据；未执行迁移到现有库、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复。 |
+| 结论 | M0-2 中并发消息序号、账号唯一性、会话撤销和业务幂等写入的数据库级测试均已有证据；M1-6 性能、完整故障矩阵和 M3 生产强化仍保持后置。 |
+
+## D59 饮食记录真实业务闭环与前端周视图修复（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| 代码与提交 | 新增 `GET /api/food-logs/deleted`；前端 real 模式接入饮食记录查询、编辑、软删除查询与恢复，增加日/周视图和份量/单位录入；修正周视图具体日期新增写入错误。提交为 `2b6184f`、`d27bf20`、`29a3057`。 |
+| Java 业务门禁 | 前置验证：Application `14/14`、API `3/3`、Spotless 通过；全量 `mvnw.cmd clean verify` 已通过。 |
+| 前端业务门禁 | 饮食记录定向测试 `7/7`、ESLint、Prettier、typecheck 和 build 通过；全量 Vitest `38` 个文件、`201/201` 通过。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`124 passed、1 skipped、2 warnings`；跳过项为显式真实外部服务测试。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复；用户已有分析页改动和 UI 验收图片未暂存、未回滚。 |
+| 结论 | 饮食记录 real 业务主路径与周视图日期修复取得可复核业务门禁结果；M1-6 性能、完整故障恢复和生产强化仍保持后置。 |
+
+## D60 local RAG Worker readiness gate 与业务门禁复核（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；默认 Docker 配置为 `FOODMATE_RAG_MODE=stub`；未读取真实 API Key，未调用真实云模型或付费 embedding。 |
+| 代码与提交 | `17306d9 修复知识索引本地启动门禁`；local 模式在启动索引/可见性消费者前等待 Milvus `/healthz`，默认从 `19530` 推导 `9091/healthz`，可用 `FOODMATE_RAG_MILVUS_HEALTH_URL` 覆盖；stub 模式直接跳过探测。 |
+| Python 业务测试 | `PYTHONDONTWRITEBYTECODE=1 .\\agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`126 passed、1 skipped、2 warnings`。新增 stub bypass 与 local health probe 定向用例包含在结果内。 |
+| 前端业务测试 | `foodmate-ui` 的 `npm.cmd test -- --run`：38 个测试文件、`201/201` 通过；`npm.cmd run build`（含 typecheck）通过，Vite 转换 2010 个模块。 |
+| Java 业务门禁 | `mvnw.cmd clean verify`：BUILD SUCCESS；Shared `12/12`、Application `201/201`、Infrastructure `83/83`（19 skipped）、API `65/65`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Docker 配置与容器 smoke | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；已有 `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO、Milvus 及依赖容器保持 healthy。使用现有已安装依赖的 Agent 镜像挂载当前源码：stub 输出 `STUB_READY_GATE_BYPASSED`；local 输出 `LOCAL_MILVUS_READY_GATE_PASSED`，并在容器网络内访问 `http://milvus:9091/healthz` 成功。 |
+| Docker 构建记录 | `docker compose --env-file .env -f docker/compose.yml up -d --build agent-runtime` 在 `pip install .` 的构建隔离阶段因访问 `pypi.org` 的 TLS/网络错误失败，未将该次命令记为新镜像构建成功；原运行容器未被删除，readiness 保持正常。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；未新增业务数据。 |
+| 结论 | local Worker 的启动顺序门禁已通过代码、定向 pytest 和容器网络 smoke 验证；stub 不受 Milvus 依赖影响。Docker 镜像完整重建仍受外部 PyPI TLS/网络条件阻断，需在网络恢复后重新执行；M1-6 性能/故障类门禁继续后置。 |
+
+## D61 全项目代码规范与业务门禁最终复核（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；未调用真实云模型、付费 Embedding 或生产服务。 |
+| Java 规范 | `mvnw.cmd --% -Palibaba-code-style verify -DskipTests` 通过；根项目及 Shared、Application、Infrastructure、API、Bootstrap 均为 Checkstyle `0 violations`，Spotless 通过。生产源码扫描未发现泛化异常捕获、通配符 import、控制台输出、`Executors` 工厂或 `MAX(id)+1` 主键生成；application/api/bootstrap 未直接写 `operation_audits`。 |
+| SQL 组织 | `baseline/migration/validation/rollback/seed` 分层保持一致；V3-V12 历史配套文件缺失范围已在 SQL README 与执行台账说明，本轮未改写已执行迁移、未补危险 rollback。 |
+| Java 业务门禁 | `mvnw.cmd clean verify`：`BUILD SUCCESS`；Shared `12/12`、Application `201/201`、Infrastructure `83/83`（19 skipped）、API `65/65`、Bootstrap `58/58`（37 skipped）；Spotless、ArchUnit 和 Spring Boot repackage 通过。 |
+| Python 业务门禁 | `PYTHONDONTWRITEBYTECODE=1 .\\agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`126 passed、1 skipped、2 warnings`；跳过项为显式真实外部服务测试。 |
+| 前端业务门禁 | `foodmate-ui` `npm.cmd test -- --run`：38 个测试文件、`201/201` 通过；`npm.cmd run typecheck` 与 `npm.cmd run build` 通过，Vite 转换 2010 个模块。 |
+| Docker | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；现有 PostgreSQL、Redis、MinIO、RocketMQ、Milvus 及应用容器均 healthy。Docker `agent-runtime` 完整重建仍受 PyPI TLS/网络错误阻断，未伪造为成功。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产环境操作；用户已有前端视觉改动未暂存、未回滚。 |
+| 结论 | 功能版 Java/Python/前端业务门禁和当前可执行的 Alibaba 规范子集均通过；不可逆硬删除、真实依赖清理、性能/故障矩阵、生产安全与部署演练继续后置。 |
+
+## D62 SiliconFlow 真实 Chat 与双 Embedding smoke（2026-08-28）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；API Key 仅通过当前进程环境变量传入，未写入仓库、日志或执行记录。 |
+| 服务发现 | SiliconFlow `https://api.siliconflow.cn/v1/models` HTTP 成功；目标模型 `BAAI/bge-m3`、`Qwen/Qwen3-Embedding-0.6B` 和 `deepseek-ai/DeepSeek-V4-Flash` 均可见。 |
+| Embedding 验证 | `FOODMATE_RUN_REAL_EMBEDDING_TESTS=true .\\agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q agent-runtime/tests/test_real_embedding_integration.py`：`1 passed`；同一测试分别请求两个模型，均返回 1 个、1024 维浮点向量。 |
+| Chat 验证 | `FOODMATE_RUN_REAL_CLOUD_TESTS=true`，primary/eval 显式使用 `cloud_primary:deepseek-ai/DeepSeek-V4-Flash`，执行 `agent-runtime/tests/test_real_cloud_integration.py`：`1 passed`；真实 Chat 和独立评测请求均返回非空内容、provider request ID 和 usage。 |
+| 代码修正 | 真实云测试现在尊重显式 `FOODMATE_MODEL_TIER_STANDARD/EVAL`，只配置 SiliconFlow primary 也可执行；离线 pytest 默认仍隔离为 deterministic。新增安全扫描脚本默认 secret scan：`secret_scan_hits=0`、`tracked_env_files=0`、`security_scan_status=passed`。 |
+| 依赖扫描 | `security-scan.ps1 -RunNpmAudit` 未发现可判定漏洞；当前 npm registry `registry.npmmirror.com` 的 advisory endpoint 返回 `404/[NOT_IMPLEMENTED]`，脚本将其记录为 skipped，不伪造为通过的漏洞结论。Python `pip-audit` 尚未安装，OWASP dependency-check 未执行。 |
+| 数据与边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产服务；真实调用是单次 smoke，不代表云模型长稳、价格审计、账单对账或生产容量完成。 |
+| Git 提交 | `2cbab19 test(runtime): verify real cloud provider configuration safely`。 |
+| 结论 | SiliconFlow 真实 Chat 与两个 Embedding 的最小调用合同已取得可复核证据；真实云长期稳定性、正式价格/账单审计和生产强化保持未完成。 |
+
+## D63 M3 清理执行结果对账闭环定向验证（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；未连接现有业务数据库、未执行真实硬删除、未调用付费云服务。 |
+| 代码范围 | 清理结果台账 `data_purge_task_results`、PostgreSQL/MinIO/Redis/Milvus 删除后存在性验证、外部结果上下文校验、结果摘要幂等和数据库清理事务入口。 |
+| 执行命令 | `.\mvnw.cmd --% -pl foodmate-application,foodmate-infra -am -Dtest=DataRetentionDeliveryServiceImplTest,DataRetentionResultMessageProcessorTest,DataRetentionTaskPublisherTest,DataRetentionDatabasePurgeAdapterTest,FlywayV27MigrationScriptTest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| Java 结果 | Application `14/14`、Infrastructure `8/8` 通过；编译、定向业务测试和 V27 迁移脚本安全检查通过。 |
+| 关键断言 | 外部结果必须匹配任务不可变上下文；重复结果生成相同摘要且只触发一次状态收敛；数据库/对象存储结果记录删除数量并验证资源缺失；成功结果必须 `verified_absent=true`。 |
+| 规范检查 | 受影响 Java 模块已执行 `spotless:apply`；`git diff --check` 通过；新增/修改类级注释已使用中文。 |
+| 数据与暂缓边界 | 未执行 V27 到现有数据库的迁移、truncate、真实数据库硬删除、备份恢复、组件重启、性能压测或故障注入；V27 rollback 仍为只读前置检查。 |
+| 结论 | M3 清理结果对账和失败关闭校验具备定向业务证据；真实环境执行、备份恢复和生产强化仍未完成，不能据此标记整个 M3 完成。 |
+
+## D64 真实隔离 PostgreSQL 全量迁移与业务幂等复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；Testcontainers 启动隔离 PostgreSQL `16-alpine`；未连接现有 FoodMate 数据库，未调用真实云服务。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-infra -am -Ddocker.available=true -Dtest=BusinessIdempotencyRealMigrationTest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| 迁移结果 | baseline 与 migration 共 27 个版本从空数据库执行成功，Flyway 当前版本为 `v27`；第二次 `flyway.migrate()` 执行 `0` 个迁移。V12/V13/V15/V16 的已存在对象提示是脚本的兼容性 warning，不影响迁移成功。 |
+| 幂等结果 | `food_logs`、`meal_plans`、`approval_requests` 和 `operation_audits` 的重复事实均被 PostgreSQL 以 SQLState `23505` 拒绝；每类测试事实最终保持 1 条。 |
+| 质量结果 | Infrastructure reactor 定向测试 `2/2` 通过；测试容器正常启动并由 Testcontainers 回收；本轮未修改用户已有前端、QA 或 NutritionSeedScript 改动。 |
+| 数据与暂缓边界 | 只使用隔离 Testcontainers 数据库；未执行现有库迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复。 |
+| 结论 | V27 已在真实 PostgreSQL 空库中取得可复核的迁移和业务幂等证据；M3 实际清理、备份恢复及生产强化仍需独立验证，不能据此宣称完成。 |
+
+## D65 真实隔离 PostgreSQL 知识文档硬删除与重放验证（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；Testcontainers PostgreSQL `16-alpine`；只使用随机测试数据，未连接现有 FoodMate 数据库。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-infra -am -Ddocker.available=true -Dtest=DataRetentionDatabasePurgeRealIntegrationTest,DataRetentionDatabasePurgeAdapterTest,DataRetentionTaskPublisherTest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| 删除结果 | 真实 MyBatis Mapper 按依赖顺序删除知识文档的结果 Inbox、索引 Outbox、批次 SSE、chunks、可见性 Outbox、导入条目和文档；首次返回 `backend=postgresql/deleted_count=7/verified_absent=true`。 |
+| 保留结果 | `data_purge_task_results`、`data_purge_tasks` 和 `data_purge_requests` 均保留，证明执行对账事实与清理计划不会随业务资源删除。 |
+| 重放结果 | 同一已批准清理流程再次调用返回 `deleted_count=0/verified_absent=true`，无唯一键或外键错误；guard 仅允许存在已软删除资源或在同一批准流程下已不存在的资源。 |
+| Java 结果 | Application `7/7`、Infrastructure `7/7` 通过；包含对象/向量/数据库任务业务测试和真实隔离 PostgreSQL 删除验证。 |
+| 数据与暂缓边界 | 未对现有库执行硬删除、truncate、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复；真实云服务未调用。 |
+| 结论 | M3 数据库清理的真实删除、结果保留和幂等重放已有隔离环境证据；现有生产数据清理、备份恢复和生产强化仍未完成。 |
+
+## D66 Python 依赖与仓库秘密扫描（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；使用项目环境 `agent-runtime\\.venv\\Scripts\\python.exe`；未调用云模型、Embedding 或生产服务。 |
+| 执行命令 | `script\\security\\security-scan.ps1 -RunPythonAudit` |
+| 扫描结果 | `secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`、`security_scan_status=passed`；`pip-audit --local` 未报告已知漏洞。 |
+| 扫描边界 | 秘密规则只匹配高置信度凭据格式；未把配置名、测试占位值或文档中的变量名误报为密钥。对话中曾公开的旧 API Key 未写入仓库，后续不再使用。 |
+| 数据与暂缓边界 | 未修改业务数据、未执行性能压测、组件重启、故障注入、备份恢复或生产部署；npm advisory/OWASP 扫描不在本轮命令中执行。 |
+| 结论 | Python 依赖和 Git 跟踪文件秘密扫描已有本地证据；完整生产安全流程、密钥轮换执行和渗透测试仍未完成。 |
+
+## D67 SiliconFlow 双 Embedding 真实接口复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；使用项目 `agent-runtime\.venv`，Python 字节码写入已关闭。 |
+| 执行命令 | 在当前 PowerShell 进程临时注入 SiliconFlow endpoint 和 embedding credential：`$env:FOODMATE_RUN_REAL_EMBEDDING_TESTS=true`；`PYTHONDONTWRITEBYTECODE=1 .\\.venv\\Scripts\\python.exe -m pytest -q tests/test_real_embedding_integration.py -p no:cacheprovider`。凭据未写入文件、源码、日志或执行记录。 |
+| 验证结果 | `1 passed in 0.57s`；测试覆盖 `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B`，两者各返回 1 个、1024 维浮点向量。 |
+| 缓存检查 | 项目范围 `*.pyc/*.pyo=0`、`__pycache__/.pytest_cache=0`；`.gitignore` 已忽略 Python 生成缓存。 |
+| 数据与边界 | 未写入 Milvus 业务数据，未执行索引批次、真实 AgentRun、性能压测或生产调用；本次只证明 SiliconFlow `/embeddings` 的协议和模型维度契约。对话中公开的 credential 不再复用，应在供应商控制台轮换。 |
+| 结论 | 两个指定 Embedding 模型的真实接口 smoke 通过；真实 RAG 全链路、长期稳定性、正式价格/账单审计和生产强化仍未完成。 |
+
+## D68 本地业务门禁与 Python 缓存清理复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；使用项目 `agent-runtime\\.venv`；未调用云服务或生产依赖。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q`：`154 passed、2 skipped、4 subtests passed`；跳过项为显式外部服务测试。 |
+| Java 业务门禁 | `mvnw.cmd --% -pl foodmate-application,foodmate-infra,foodmate-api -am test`：Shared `12`、Application `211`、Infrastructure `96`（20 skipped）、API `68`，无失败。 |
+| 规范与安全 | `mvnw.cmd --% -Palibaba-code-style verify -DskipTests` 成功，所有 Java 模块 Checkstyle `0 violations`；Spotless 通过；安全扫描 `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`。 |
+| Python 缓存 | 源码与测试目录的 `.pyc/.pyo`、`__pycache__`、`.pytest_cache` 已清理；`.venv` 内部依赖缓存保留并由 `.gitignore` 忽略，不纳入版本库。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；未使用对话中暴露的旧凭据。 |
+| 结论 | 当前本地业务门禁和规范/秘密扫描通过；真实云调用需使用轮换后的新凭据，生产强化和暂缓验证仍不能标记完成。 |
+
+## D69 依赖漏洞扫描复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行命令 | `script\\security\\security-scan.ps1 -RunPythonAudit -RunNpmAudit`；并使用 `agent-runtime\\.venv\\Scripts\\python.exe -m pip_audit --local` 复核。 |
+| Python | `pip-audit` 报告 `No known vulnerabilities found`；项目自身 editable 包不在 PyPI，按工具提示跳过该包，不影响第三方依赖扫描结论。 |
+| npm | `package-lock.json` 存在，但当前 registry advisory endpoint 返回不可用，脚本记录 `npm audit: registry advisory endpoint unavailable` 并将该项标记为 skipped。 |
+| 秘密扫描 | `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`。 |
+| 结论 | Python 依赖和仓库秘密扫描有本地证据；npm advisory 服务恢复后需重新执行，OWASP dependency-check、渗透测试和生产安全验证仍未完成。 |
+
+## D70 Python 缓存清理与本地安全/业务门禁复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；使用项目 `agent-runtime\\.venv\\Scripts\\python.exe`；未使用或读取对话中暴露的旧 API Key。 |
+| 缓存清理 | 清理项目范围内 `.pyc`、`.pyo`、`__pycache__` 和 `.pytest_cache`；保留 `agent-runtime\\.venv` 环境本身；清理后相关文件/目录计数为 `0`。 |
+| 安全门禁 | `script\\security\\security-scan.ps1 -RunPythonAudit -RunNpmAudit`：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`、`security_scan_status=passed`。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`154 passed、2 skipped、4 subtests passed`；通过 `PYTHONDONTWRITEBYTECODE=1` 避免重新生成字节码。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；真实云 smoke 等待轮换后的新凭据。 |
+| 结论 | Python 缓存清理、安全扫描和业务测试门禁取得本地证据；真实云调用、生产强化及暂缓的性能/故障验证仍不能标记完成。 |
+
+## D71 Retention 与营养目录 Java 业务门禁复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；Java 21；未连接生产或现有业务数据库，未执行不可逆清理。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-application,foodmate-infra,foodmate-api -am test -Dtest=DataRetentionDeliveryServiceImplTest,DataRetentionResultMessageProcessorTest,DataRetentionTaskPublisherTest,DataRetentionDatabasePurgeAdapterTest,FlywayV27MigrationScriptTest,NutritionCommonV5SeedScriptTest,NutritionSeedScriptTest,AdminRetentionControllerTest -Dsurefire.failIfNoSpecifiedTests=false`。 |
+| Java 结果 | Application `14/14`、Infrastructure `18/18`、API `4/4`，无失败。覆盖 retention 任务结果、对象/向量/数据库清理门禁、V27 脚本、营养 seed 和管理 API。 |
+| 规范结果 | `-Palibaba-code-style -DskipTests verify` 通过；受影响模块 Spotless clean，Shared/Application/Infrastructure/API Checkstyle 均为 `0 violations`。 |
+| 数据与暂缓边界 | 未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入、SSE 故障恢复或生产操作；用户已有未提交改动未纳入本次提交。 |
+| 结论 | 当前 retention、营养 seed 与管理 API 的业务门禁和 Java 规范检查通过；真实硬删除、备份恢复及生产强化仍不能标记完成。 |
+
+## D72 Python 缓存边界、双 PowerShell 扫描与 Java 注释复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；未使用对话中暴露的旧云凭据。 |
+| Python 业务门禁 | 在 `agent-runtime` 目录执行 `PYTHONDONTWRITEBYTECODE=1 .\\venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`154 passed、2 skipped、4 subtests passed`。 |
+| Python 缓存 | 项目源码范围 `.pyc/.pyo=0`、`__pycache__=0`、`.pytest_cache=0`；`agent-runtime\\.venv` 内依赖缓存 `419` 个文件和 `62` 个目录保留，并由 `.gitignore` 忽略，未删除虚拟环境。 |
+| 安全扫描 | `security-scan.ps1 -RunPythonAudit` 在 Windows PowerShell 5.1 与 PowerShell 7 均通过：`tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`、`skipped_checks=0`。 |
+| 代码规范 | 目标 Java 公共类/接口说明已统一为中文，提交 `d80d8f8d`；安全扫描器 Shell 兼容修复提交 `125c9c5c`；application/infra 定向业务测试合计 `67` 个通过。 |
+| 数据与边界 | 未调用真实云服务、未执行迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启或生产操作；未清理虚拟环境依赖缓存。 |
+| 结论 | 项目源码没有 Python 字节码残留；虚拟环境中的依赖缓存属于本地运行环境并保持隔离。安全扫描兼容两种 PowerShell，当前业务门禁通过；真实云与生产强化范围仍按既定边界执行。 |

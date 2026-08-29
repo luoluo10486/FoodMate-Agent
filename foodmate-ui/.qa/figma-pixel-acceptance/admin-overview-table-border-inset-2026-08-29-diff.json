@@ -1,0 +1,41 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 486020,
+  "differentRatio": 0.3296034071180556,
+  "meanAbsoluteError": 3.5661761813693578,
+  "rmse": 18.04982080766911,
+  "maxChannelDelta": 230,
+  "figmaNodeId": "995:977",
+  "artboardName": "admin-overview",
+  "frontendRoute": "/admin",
+  "queryState": "state=overview",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "figmaPng": "recaptured-figma/admin-overview-current-2026-08-29.png",
+  "browserPng": "recaptured/admin-overview-table-border-inset-browser-2026-08-29-rgba.png",
+  "geometry": {
+    "tableContainer": "1116x396 at x=292,y=266",
+    "table": "1116x388.8 at x=292,y=266",
+    "tableViewport": "1116px wide",
+    "scrollWidth": 1116,
+    "clientWidth": 1116,
+    "horizontalScrollbar": false,
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "mobileGeometry": {
+    "viewport": "390x844",
+    "tableViewport": "343px wide",
+    "tableScrollWidth": 1116,
+    "horizontalInternalScroll": true,
+    "bodyClientWidth": 390,
+    "bodyScrollWidth": 390
+  },
+  "visualChange": "依据实时 Figma 节点 995:1085，将 Admin Overview 表格卡片的占位边框改为等效内描边，保持 #f4f6f5 视觉边界与 1116x396px 外框尺寸，同时消除桌面 2px 盒模型溢出；仅修改前端，未修改 Figma。",
+  "conclusion": "DIFF_REVIEW"
+}

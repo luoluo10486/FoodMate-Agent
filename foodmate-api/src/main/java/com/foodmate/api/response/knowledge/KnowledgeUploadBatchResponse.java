@@ -3,6 +3,6 @@ package com.foodmate.api.response.knowledge;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
-/** Accepted asynchronous public knowledge import batch. */
+/** 已接收的异步公共知识库导入批次响应。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record KnowledgeUploadBatchResponse(long batchId, String status) {}

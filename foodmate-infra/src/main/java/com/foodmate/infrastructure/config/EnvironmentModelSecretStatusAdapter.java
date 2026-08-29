@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-/** Exposes only configured/fingerprint state for a provider API key from process configuration. */
+/** 仅从进程配置暴露供应商 API Key 的配置状态和不可逆指纹。 */
 @Component
 @Profile("local")
 public class EnvironmentModelSecretStatusAdapter implements ModelSecretStatusPort {

@@ -2,63 +2,72 @@ package com.foodmate.application.retention.port.out;
 
 import java.time.Instant;
 
-/** Persistence boundary for retention policy, legal hold and purge-plan facts. */
+/** 数据保留策略、法律保全和清理计划事实的持久化边界。 */
 public interface DataRetentionRepository {
-    /** Reads the active retention policy for one resource type. */
+    /** 读取指定资源类型的有效保留策略。 */
     Policy policy(String resourceType);
 
-    /** Reads the soft-deletion and version facts needed before purge. */
+    /** 读取清理前所需的软删除和版本事实。 */
     ResourceSnapshot resource(String resourceType, long resourceId);
 
-    /** Reads one purge request by its durable identifier. */
+    /** 按持久化标识读取清理请求。 */
     PurgeRequest purgeRequest(long requestId);
 
-    /** Finds a prior purge request for operator-scoped idempotency replay. */
+    /** 查找操作者范围内用于幂等重放的历史清理请求。 */
     PurgeRequest purgeRequestByIdempotency(long operatorId, String idempotencyKey);
 
-    /** Finds an active purge request that already covers a resource. */
+    /** 查找已覆盖指定资源的有效清理请求。 */
     PurgeRequest activePurgeRequest(String resourceType, long resourceId);
 
-    /** Creates a purge request without deleting any resource data. */
+    /** 读取面向操作者的清理前置检查所需的非敏感任务状态。 */
+    java.util.List<PurgeTaskState> purgeTaskStates(long requestId);
+
+    /** 创建清理请求，但不删除任何资源数据。 */
     int insertPurgeRequest(NewPurgeRequest request);
 
-    /** Records the separately authorized purge approval. */
+    /** 记录经过独立授权的清理审批事实。 */
     int approvePurge(long requestId, long approverId, Instant approvedAt);
 
-    /** Creates one object, vector, or database purge task. */
+    /** 创建一个对象、向量或数据库清理任务。 */
     int insertPurgeTask(PurgeTask task);
 
-    /** Reads tasks eligible for a leased delivery attempt. */
+    /** 读取当前可领取投递尝试的任务。 */
     java.util.List<PurgeTaskSnapshot> pendingTasks(int limit);
 
-    /** Claims one purge task for a worker. */
+    /** 为工作进程领取一个清理任务。 */
     int leaseTask(long taskId, String owner, String resourceType, long resourceId);
 
-    /** Records publication of a purge task message. */
+    /** 读取用于校验外部结果的不可变任务上下文。 */
+    PurgeTaskContext purgeTaskContext(long taskId);
+
+    /** 记录清理任务消息已发布。 */
     int markTaskPublished(long taskId, String owner, String messageId);
 
-    /** Records successful completion of a purge task. */
+    /** 记录清理任务成功完成。 */
     int markTaskSucceeded(long taskId, String owner, String errorCode, String errorSummary);
 
-    /** Schedules a failed purge task for a bounded retry. */
+    /** 将失败的清理任务安排到有界重试队列。 */
     void retryTask(long taskId, String owner, String errorCode, String errorSummary);
 
-    /** Applies a worker result idempotently and refreshes the request state. */
+    /** 幂等应用工作进程结果并刷新清理请求状态。 */
     int applyTaskResult(long taskId, String status, String errorCode, String errorSummary);
 
-    /** Recomputes a purge request from its task states. */
+    /** 在变更任务状态前持久化一条安全的清理执行事实。 */
+    int insertPurgeTaskResult(PurgeTaskResult result);
+
+    /** 根据任务状态重新计算清理请求状态。 */
     void refreshPurgeRequest(long taskId);
 
-    /** Places a legal hold without changing the held resource. */
+    /** 设置法律保全，但不修改被保全资源。 */
     int insertHold(NewHold hold);
 
-    /** Reads the active hold for a resource, if any. */
+    /** 读取资源的有效保全记录（如存在）。 */
     Hold activeHold(String resourceType, long resourceId);
 
-    /** Reads a hold by identifier. */
+    /** 按标识读取法律保全记录。 */
     Hold hold(long holdId);
 
-    /** Releases a hold and records the releasing operator and time. */
+    /** 解除法律保全并记录解除操作者及时间。 */
     int releaseHold(long holdId, long operatorId, Instant releasedAt);
 
     record Policy(
@@ -112,6 +121,36 @@ public interface DataRetentionRepository {
             String targetRef,
             String status,
             boolean hardDeleteEnabled) {}
+
+    record PurgeTaskContext(
+            long taskId,
+            long requestId,
+            String resourceType,
+            long resourceId,
+            String taskType,
+            String version,
+            int attemptCount) {}
+
+    /** 结果账本行；有意排除对象键和向量载荷。 */
+    record PurgeTaskResult(
+            long resultId,
+            long taskId,
+            long requestId,
+            String resourceType,
+            long resourceId,
+            String taskType,
+            String version,
+            String status,
+            String backend,
+            int deletedCount,
+            boolean verifiedAbsent,
+            String messageId,
+            String resultDigest,
+            String errorCode,
+            String errorSummary) {}
+
+    /** 安全任务状态；目标引用和存储细节不得越过此边界。 */
+    record PurgeTaskState(String taskType, String status, int attemptCount, String lastErrorCode) {}
 
     record Hold(
             long holdId,

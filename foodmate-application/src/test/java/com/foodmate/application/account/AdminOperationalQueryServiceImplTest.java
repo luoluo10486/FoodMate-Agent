@@ -9,6 +9,8 @@ import static org.mockito.Mockito.when;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
 import com.foodmate.application.account.service.impl.AdminOperationalQueryServiceImpl;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,5 +114,84 @@ class AdminOperationalQueryServiceImplTest {
         assertEquals("needs_attention", row.reconciliationState());
         assertEquals(8, row.reconsumeTimes());
         verify(store).dlq(any());
+    }
+
+    @Test
+    void mapsTraceAggregationSummary() {
+        when(store.traces(any()))
+                .thenReturn(
+                        List.of(
+                                new AdminOperationalQueryRepository.TraceRow(
+                                        "trace-1",
+                                        42L,
+                                        "java.control-plane -> python.agent-runtime -> model -> sse",
+                                        "completed",
+                                        Instant.parse("2026-08-28T00:00:00Z"),
+                                        new BigDecimal("18.5"),
+                                        4L,
+                                        "foodmate-java",
+                                        null)));
+        when(store.countTraces(any())).thenReturn(1L);
+
+        var result =
+                service.query(
+                        "traces",
+                        new AdminOperationalQueryService.Request(
+                                1, 20, "trace-1", null, null, "duration_ms", "desc"));
+
+        var row = (AdminOperationalQueryService.Trace) result.items().getFirst();
+        assertEquals("trace-1", row.traceId());
+        assertEquals(42L, row.runId());
+        assertEquals(4L, row.spanCount());
+        assertEquals("foodmate-java", row.rootService());
+        verify(store).traces(any());
+    }
+
+    @Test
+    void mapsAuthoritativeTraceSpansWithoutPayloads() {
+        when(store.traceById("trace-detail"))
+                .thenReturn(
+                        new AdminOperationalQueryRepository.TraceRow(
+                                "trace-detail",
+                                42L,
+                                "java.control-plane -> python.agent-runtime",
+                                "completed",
+                                Instant.parse("2026-08-28T00:00:00Z"),
+                                new BigDecimal("18.5"),
+                                2L,
+                                "foodmate-java",
+                                null));
+        when(store.traceSpans("trace-detail"))
+                .thenReturn(
+                        List.of(
+                                new AdminOperationalQueryRepository.TraceSpanRow(
+                                        "event-1",
+                                        "runtime_event",
+                                        "run.completed",
+                                        "python.agent-runtime",
+                                        "success",
+                                        Instant.parse("2026-08-28T00:00:00Z"),
+                                        Instant.parse("2026-08-28T00:00:00.010Z"),
+                                        new BigDecimal("10"),
+                                        null,
+                                        4L)));
+
+        var result = service.traceDetail("trace-detail");
+
+        assertEquals("trace-detail", result.summary().traceId());
+        assertEquals(1, result.spans().size());
+        assertEquals("run.completed", result.spans().getFirst().name());
+        assertEquals("runtime_event", result.spans().getFirst().spanType());
+        verify(store).traceById("trace-detail");
+        verify(store).traceSpans("trace-detail");
+    }
+
+    @Test
+    void returnsNotFoundForUnknownTraceDetail() {
+        when(store.traceById("missing-trace")).thenReturn(null);
+
+        assertThrows(
+                com.foodmate.shared.error.BusinessException.class,
+                () -> service.traceDetail("missing-trace"));
     }
 }

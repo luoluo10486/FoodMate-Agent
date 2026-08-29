@@ -768,3 +768,22 @@ class RuntimeContractTests(unittest.TestCase):
         with patch.object(runtime_server, "JAVA_PUBLIC_KEY", base64.b64encode(public_der).decode()), patch.object(runtime_server, "JWT_ENABLED", True):
             self.assertTrue(runtime_server._verify(token, "foodmate-agent-runtime", "foodmate-control-plane", "agent:event"))
             self.assertFalse(runtime_server._verify(token, "foodmate-agent-runtime", "foodmate-control-plane", "runtime:cancel"))
+
+    def test_service_jwt_rotation_uses_kid_keyring(self):
+        old_key = Ed25519PrivateKey.generate()
+        new_key = Ed25519PrivateKey.generate()
+        old_private = old_key.private_bytes(serialization.Encoding.DER, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+        old_public = old_key.public_key().public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+        new_public = new_key.public_key().public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+        with patch.object(runtime_server, "PYTHON_PRIVATE_KEY", base64.b64encode(old_private).decode()), patch.object(runtime_server, "PYTHON_KID", "python-old"):
+            token = runtime_server._sign("foodmate-agent-runtime", "foodmate-control-plane", "agent:event")
+        keyring = f"python-old={base64.b64encode(old_public).decode()},python-new={base64.b64encode(new_public).decode()}"
+        with patch.object(runtime_server, "JAVA_PUBLIC_KEYS", keyring), patch.object(runtime_server, "JAVA_PUBLIC_KEY", ""), patch.object(runtime_server, "JWT_ENABLED", True):
+            self.assertTrue(runtime_server._verify(token, "foodmate-agent-runtime", "foodmate-control-plane", "agent:event"))
+            self.assertFalse(runtime_server._verify(token, "foodmate-agent-runtime", "foodmate-control-plane", "runtime:cancel"))
+        unknown_token = token.split(".")
+        unknown_header = json.loads(runtime_server._decode(unknown_token[0]))
+        unknown_header["kid"] = "python-removed"
+        unknown_token[0] = runtime_server._b64(json.dumps(unknown_header, separators=(",", ":")).encode())
+        with patch.object(runtime_server, "JAVA_PUBLIC_KEYS", keyring), patch.object(runtime_server, "JAVA_PUBLIC_KEY", ""), patch.object(runtime_server, "JWT_ENABLED", True):
+            self.assertFalse(runtime_server._verify(".".join(unknown_token), "foodmate-agent-runtime", "foodmate-control-plane", "agent:event"))

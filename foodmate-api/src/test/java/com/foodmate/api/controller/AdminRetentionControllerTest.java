@@ -81,6 +81,41 @@ class AdminRetentionControllerTest {
     }
 
     @Test
+    void operatorCanReadSafePurgePreflight() throws Exception {
+        when(accounts.requireSessionUser("operator-session")).thenReturn(user("operator"));
+        when(retention.getPreflight(901L))
+                .thenReturn(
+                        new DataRetentionService.PurgePreflight(
+                                901L,
+                                "approved",
+                                "knowledge_document",
+                                42L,
+                                true,
+                                false,
+                                true,
+                                true,
+                                true,
+                                true,
+                                false,
+                                java.util.List.of(
+                                        new DataRetentionService.PurgeTaskState(
+                                                "database", "pending", 0, null)),
+                                java.util.List.of("RETENTION_HARD_DELETE_DISABLED")));
+
+        mvc.perform(
+                        org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                                        "/api/admin/data-retention/purge-requests/901/preflight")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "operator-session")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.ready_to_execute", is(false)))
+                .andExpect(jsonPath("$.data.blockers[0]", is("RETENTION_HARD_DELETE_DISABLED")))
+                .andExpect(jsonPath("$.data.tasks[0].task_type", is("database")))
+                .andExpect(jsonPath("$.data.target_ref").doesNotExist());
+    }
+
+    @Test
     void onlySuperadminCanReleaseHold() throws Exception {
         when(accounts.requireSessionUser("superadmin-session")).thenReturn(user("superadmin"));
         when(retention.releaseHold(

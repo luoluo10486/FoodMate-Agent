@@ -6,13 +6,15 @@ import com.foodmate.shared.runtime.RuntimeException;
 import com.foodmate.shared.runtime.V1CancelCommand;
 import com.foodmate.shared.runtime.V1RunCommand;
 import com.foodmate.shared.security.ServiceJwt;
+import com.foodmate.shared.trace.TraceContext;
+import com.foodmate.shared.trace.TraceContextHeaders;
+import com.foodmate.shared.trace.TraceContextHolder;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.UUID;
 
 /** HTTP implementation of the V1 runtime client port. */
 public final class V1HttpRuntimeClient implements RuntimeClientPort {
@@ -71,24 +73,15 @@ public final class V1HttpRuntimeClient implements RuntimeClientPort {
 
     private RuntimeClientPort.Response send(String path, Object body, String scope) {
         try {
+            TraceContext context = TraceContextHolder.currentOrNew();
             HttpRequest.Builder builder =
                     HttpRequest.newBuilder(base.resolve(path))
                             .timeout(timeout)
                             .header("Content-Type", "application/json")
                             .header("X-Contract-Version", contractVersion)
-                            .header(
-                                    "X-Request-Id",
-                                    "req_http_" + UUID.randomUUID().toString().replace("-", ""))
-                            .header(
-                                    "traceparent",
-                                    "00-"
-                                            + UUID.randomUUID().toString().replace("-", "")
-                                            + "-"
-                                            + UUID.randomUUID()
-                                                    .toString()
-                                                    .replace("-", "")
-                                                    .substring(0, 16)
-                                            + "-01");
+                            .header("X-Request-Id", context.requestId())
+                            .header("X-Trace-Id", context.traceId())
+                            .header("traceparent", TraceContextHeaders.traceparent(context));
             if (jwtEnabled) {
                 if (privateKey.isBlank() || kid.isBlank())
                     throw new RuntimeException(

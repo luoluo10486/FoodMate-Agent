@@ -1,5 +1,6 @@
 package com.foodmate.bootstrap;
 
+import com.foodmate.shared.security.ServiceJwt;
 import jakarta.annotation.PostConstruct;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
@@ -11,7 +12,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
-/** Enforces the production and development configuration boundary without logging secrets. */
+/** 强制执行生产与开发配置边界，且不记录任何密钥。 */
 @Component
 public final class M03ConfigurationValidator {
     private final Environment environment;
@@ -54,12 +55,16 @@ public final class M03ConfigurationValidator {
     private void validateRuntimeKeysIfEnabled() {
         if (!Boolean.parseBoolean(value("foodmate.runtime.service-jwt.enabled"))) return;
         requireNonBlank("foodmate.runtime.service-jwt.java-private-key");
-        requireNonBlank("foodmate.runtime.service-jwt.java-public-key");
-        requireNonBlank("foodmate.runtime.service-jwt.python-public-key");
         requireNonBlank("foodmate.runtime.service-jwt.java-kid");
         parsePrivateKey(value("foodmate.runtime.service-jwt.java-private-key"));
-        parsePublicKey(value("foodmate.runtime.service-jwt.java-public-key"));
-        parsePublicKey(value("foodmate.runtime.service-jwt.python-public-key"));
+        parseKeyRing(
+                "foodmate.runtime.service-jwt.java-public-keys",
+                "foodmate.runtime.service-jwt.java-kid",
+                "foodmate.runtime.service-jwt.java-public-key");
+        parseKeyRing(
+                "foodmate.runtime.service-jwt.python-public-keys",
+                "foodmate.runtime.service-jwt.python-kid",
+                "foodmate.runtime.service-jwt.python-public-key");
     }
 
     private void requireBoolean(String property, boolean expected, String label) {
@@ -68,6 +73,20 @@ public final class M03ConfigurationValidator {
 
     private void requireNonBlank(String property) {
         if (value(property).isBlank()) throw invalid(property);
+    }
+
+    private void parseKeyRing(
+            String ringProperty, String legacyKidProperty, String legacyKeyProperty) {
+        String ring = value(ringProperty);
+        String legacyKey = value(legacyKeyProperty);
+        if (ring.isBlank() && legacyKey.isBlank()) throw invalid(ringProperty);
+        try {
+            var keys = ServiceJwt.parsePublicKeyRing(ring, value(legacyKidProperty), legacyKey);
+            if (keys.isEmpty()) throw invalid(ringProperty);
+            keys.forEachKey(M03ConfigurationValidator::parsePublicKey);
+        } catch (IllegalArgumentException exception) {
+            throw invalid("runtime public key ring format");
+        }
     }
 
     private String value(String property) {

@@ -3,12 +3,22 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DietRecordsPage } from './DietRecordsPage';
-import { createFoodLog, deleteFoodLog, loadFoodLogs } from '../../services/foodLogService';
+import {
+  createFoodLog,
+  deleteFoodLog,
+  loadDeletedFoodLogs,
+  loadFoodLogs,
+  restoreFoodLog,
+  updateFoodLog,
+} from '../../services/foodLogService';
 
 vi.mock('../../services/foodLogService', () => ({
   createFoodLog: vi.fn(),
   deleteFoodLog: vi.fn(),
+  loadDeletedFoodLogs: vi.fn(),
   loadFoodLogs: vi.fn(),
+  restoreFoodLog: vi.fn(),
+  updateFoodLog: vi.fn(),
 }));
 
 const log = {
@@ -66,7 +76,7 @@ describe('DietRecordsPage real mode', () => {
     expect(screen.queryByText('蓝莓燕麦粥')).not.toBeInTheDocument();
     expect(screen.getByText('C: 68g')).toBeInTheDocument();
     expect(screen.getByText('能量合计')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '周视图' })).toBeDisabled();
+    expect(screen.getByRole('tab', { name: '周视图' })).toBeEnabled();
   });
 
   it('creates a real food log from the add-food dialog', async () => {
@@ -101,6 +111,67 @@ describe('DietRecordsPage real mode', () => {
 
     await waitFor(() => expect(deleteFoodLog).toHaveBeenCalledWith('11', 2));
     expect(screen.queryByText('服务端燕麦')).not.toBeInTheDocument();
+  });
+
+  it('edits the first item without dropping other server items', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([log]);
+    vi.mocked(updateFoodLog).mockResolvedValue({
+      ...log,
+      revision: 3,
+      items: [{ ...log.items[0], raw_name: '编辑后的燕麦' }],
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '编辑服务端燕麦所在记录' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '编辑服务端燕麦所在记录' }));
+    const nameInput = screen.getByRole('textbox', { name: '食物名称' });
+    await user.clear(nameInput);
+    await user.type(nameInput, '编辑后的燕麦');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    await waitFor(() =>
+      expect(updateFoodLog).toHaveBeenCalledWith(
+        '11',
+        2,
+        expect.objectContaining({
+          items: [{ raw_name: '编辑后的燕麦', amount: 100, unit: 'g' }],
+        }),
+      ),
+    );
+    expect(screen.getByText('编辑后的燕麦')).toBeInTheDocument();
+  });
+
+  it('loads and restores deleted records from the real endpoint', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadDeletedFoodLogs).mockResolvedValue([log]);
+    vi.mocked(restoreFoodLog).mockResolvedValue({ ...log, deleted: false, revision: 3 });
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '已删除记录' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '已删除记录' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '恢复服务端燕麦' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '恢复服务端燕麦' }));
+
+    await waitFor(() => expect(restoreFoodLog).toHaveBeenCalledWith('11', 2));
+    expect(screen.queryByRole('button', { name: '恢复服务端燕麦' })).not.toBeInTheDocument();
+  });
+
+  it('loads a seven-day range when switching to week view', async () => {
+    const todayLog = { ...log, meal_time: new Date().toISOString() };
+    vi.mocked(loadFoodLogs).mockResolvedValue([todayLog]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('服务端燕麦')).toBeInTheDocument());
+    await user.click(screen.getByRole('tab', { name: '周视图' }));
+
+    await waitFor(() => expect(loadFoodLogs).toHaveBeenCalledTimes(2));
+    const [, to] = vi.mocked(loadFoodLogs).mock.calls[1];
+    const fromDate = new Date(vi.mocked(loadFoodLogs).mock.calls[1][0]);
+    const toDate = new Date(to);
+    expect(toDate.getTime() - fromDate.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
   });
 
   it('shows an explicit empty state for no server records', async () => {

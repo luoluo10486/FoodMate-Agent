@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** User-facing public knowledge search endpoint. */
+/** 面向用户的公共知识库检索接口。 */
 @RestController
 @RequestMapping("/api/knowledge-base")
 public class KnowledgeSearchController extends AuthenticatedControllerSupport {

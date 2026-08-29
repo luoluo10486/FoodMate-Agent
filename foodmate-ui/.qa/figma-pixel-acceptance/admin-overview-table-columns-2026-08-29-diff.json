@@ -1,0 +1,31 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 495686,
+  "differentRatio": 0.33615858289930556,
+  "meanAbsoluteError": 4.139173889160157,
+  "rmse": 19.69484975398057,
+  "maxChannelDelta": 230,
+  "figmaNodeId": "995:977",
+  "artboardName": "admin-overview",
+  "frontendRoute": "/admin",
+  "queryState": "state=overview",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "figmaPng": "recaptured-figma/admin-overview-current-2026-08-29.png",
+  "browserPng": "recaptured/admin-overview-table-columns-browser-2026-08-29-rgba.png",
+  "geometry": {
+    "table": "1116x396 at x=292,y=346",
+    "headerHeight": "48px",
+    "dataRows": "6 x 58px",
+    "gridTemplateColumns": "196px 96px 116px 116px 116px 156px 84px 84px 64px 88px",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据实时 Figma 节点 995:1053、995:1085，将 Admin Overview 主表表头与数据行列轨道统一为 196/96/116/116/116/156/84/84/64/88px；仅修改前端，未修改 Figma。",
+  "conclusion": "DIFF_REVIEW"
+}

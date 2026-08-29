@@ -8,7 +8,7 @@ import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
-/** Searches the public published knowledge scope and rechecks citation visibility. */
+/** 检索公共已发布知识范围，并再次校验引用的可见性。 */
 @Service
 public class KnowledgeSearchServiceImpl implements KnowledgeSearchService {
     private static final String PUBLIC_SCOPE = "public_published";

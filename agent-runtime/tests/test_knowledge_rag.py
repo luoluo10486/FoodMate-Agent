@@ -1,6 +1,9 @@
 import json
 from io import BytesIO
+import urllib.error
 from unittest import TestCase
+from unittest.mock import patch
+from unittest.mock import Mock
 import zipfile
 
 from knowledge_rag import (DeterministicEmbedder, KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key)
@@ -173,7 +176,26 @@ class RedisStubIndexTests(TestCase):
 
 class RagSettingsTests(TestCase):
     def test_stub_needs_no_secret_or_milvus(self):
-        self.assertEqual("stub", RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}).mode)
+        settings = RagSettings.from_environment(
+            {
+                "FOODMATE_RAG_MODE": "stub",
+                "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                "FOODMATE_RAG_EMBEDDING_BASE_URL": "https://embedding.example.test/v1",
+                "FOODMATE_RAG_EMBEDDING_API_KEY": "must-not-be-retained",
+                "FOODMATE_RAG_EMBEDDING_PROFILE": "invalid-paid-profile",
+                "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                "FOODMATE_RAG_MILVUS_COLLECTION": "paid_vectors",
+            }
+        )
+
+        self.assertEqual("stub", settings.mode)
+        self.assertEqual("deterministic", settings.embedding_provider)
+        self.assertEqual("deterministic-local-v1", settings.embedding_model)
+        self.assertEqual("", settings.embedding_base_url)
+        self.assertEqual("", settings.embedding_api_key)
+        self.assertEqual("", settings.milvus_uri)
+        self.assertEqual("", settings.milvus_collection)
+        self.assertEqual("", settings.embedding_profile)
 
     def test_local_fails_closed_when_configuration_is_missing(self):
         with self.assertRaisesRegex(RagError, "incomplete") as raised:
@@ -224,6 +246,219 @@ class RagSettingsTests(TestCase):
             })
         self.assertEqual("RAG_EMBEDDING_BASE_URL_MISSING", raised.exception.code)
 
+    def test_supported_embedding_profiles_resolve_to_their_model(self):
+        for profile, model in (
+            ("bge-m3", "BAAI/bge-m3"),
+            ("qwen3-embedding-0.6b", "Qwen/Qwen3-Embedding-0.6B"),
+        ):
+            settings = RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_RAG_EMBEDDING_PROFILE": profile,
+                    "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                    "FOODMATE_RAG_EMBEDDING_BASE_URL": "http://embedding/v1",
+                    "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
+                    "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge_" + profile.replace("-", "_").replace(".", "_"),
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1",
+                    "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "1",
+                    "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                    "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+                    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+                    "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+                }
+            )
+            self.assertEqual(profile, settings.embedding_profile)
+            self.assertEqual(model, settings.embedding_model)
+
+    def test_embedding_profiles_use_distinct_index_namespaces(self):
+        common = {
+            "FOODMATE_RAG_MODE": "local",
+            "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+            "FOODMATE_RAG_EMBEDDING_BASE_URL": "http://embedding/v1",
+            "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
+            "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+            "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+            "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1",
+            "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "1",
+            "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+            "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+            "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+            "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+        }
+        bge = RagSettings.from_environment(
+            {**common, "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3"}
+        )
+        qwen = RagSettings.from_environment(
+            {**common, "FOODMATE_RAG_EMBEDDING_PROFILE": "qwen3-embedding-0.6b"}
+        )
+        self.assertNotEqual(bge.index_namespace, qwen.index_namespace)
+
+    def test_embedding_profile_rejects_a_different_explicit_model(self):
+        with self.assertRaisesRegex(RagError, "do not match") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3",
+                    "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                    "FOODMATE_RAG_EMBEDDING_BASE_URL": "http://embedding/v1",
+                    "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
+                    "FOODMATE_RAG_EMBEDDING_MODEL": "Qwen/Qwen3-Embedding-0.6B",
+                }
+            )
+        self.assertEqual("RAG_EMBEDDING_PROFILE_MISMATCH", raised.exception.code)
+
+    def test_local_rejects_milvus_collection_names_unsupported_by_milvus(self):
+        with self.assertRaisesRegex(RagError, "collection name") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+                    "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "knowledge.v1",
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                    "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                    "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+                    "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+                    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+                    "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+                }
+            )
+        self.assertEqual("RAG_MILVUS_COLLECTION_INVALID", raised.exception.code)
+
+    def test_real_profile_requires_openai_compatible_provider(self):
+        with self.assertRaisesRegex(RagError, "OpenAI-compatible") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+                    "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3",
+                    "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                    "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                    "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+                    "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+                    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+                    "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+                }
+            )
+        self.assertEqual("RAG_EMBEDDING_PROFILE_PROVIDER_MISMATCH", raised.exception.code)
+
+    def test_real_embedding_endpoint_rejects_embedded_credentials_or_query(self):
+        base = {
+            "FOODMATE_RAG_MODE": "local",
+            "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+            "FOODMATE_RAG_EMBEDDING_API_KEY": "test",
+            "FOODMATE_RAG_EMBEDDING_MODEL": "BAAI/bge-m3",
+            "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+            "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+            "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+            "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+            "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+            "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+            "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+            "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+        }
+        for endpoint in ("https://user:password@embedding.example/v1", "https://embedding.example/v1?token=secret"):
+            with self.subTest(endpoint=endpoint):
+                with self.assertRaisesRegex(RagError, "without credentials") as raised:
+                    RagSettings.from_environment({**base, "FOODMATE_RAG_EMBEDDING_BASE_URL": endpoint})
+                self.assertEqual("RAG_EMBEDDING_BASE_URL_INVALID", raised.exception.code)
+
+    def test_real_embedding_configuration_does_not_reuse_chat_provider_credentials(self):
+        with self.assertRaisesRegex(RagError, "incomplete") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_BASE_URL": "https://chat.example/v1",
+                    "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY": "chat-key-must-not-be-used",
+                    "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                    "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                    "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                    "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+                    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+                    "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+                }
+            )
+        self.assertEqual("RAG_EMBEDDING_BASE_URL_MISSING", raised.exception.code)
+
+
+class OpenAICompatibleEmbedderTests(TestCase):
+    def _settings(self):
+        return RagSettings(
+            mode="local",
+            embedding_provider="openai-compatible",
+            embedding_base_url="https://embedding.example/v1",
+            embedding_api_key="test-key",
+            embedding_model="BAAI/bge-m3",
+        )
+
+    def test_invalid_json_fails_closed(self):
+        response = Mock()
+        response.read.return_value = b"not-json"
+        with patch("urllib.request.urlopen", return_value=response):
+            with self.assertRaisesRegex(RagError, "invalid embedding response") as raised:
+                OpenAICompatibleEmbedder(self._settings()).embed(["hello"])
+        self.assertEqual("RAG_EMBEDDING_INVALID_RESPONSE", raised.exception.code)
+
+    def test_non_object_vector_and_mismatched_dimensions_fail_closed(self):
+        payloads = (
+            {"data": [{"index": 0, "embedding": "not-an-array"}]},
+            {"data": [{"index": 0, "embedding": [1.0]}, {"index": 1, "embedding": [1.0, 2.0]}]},
+        )
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                response = Mock()
+                response.read.return_value = json.dumps(payload).encode("utf-8")
+                with patch("urllib.request.urlopen", return_value=response):
+                    with self.assertRaises(RagError) as raised:
+                        OpenAICompatibleEmbedder(self._settings()).embed(["one", "two"])
+                self.assertEqual("RAG_EMBEDDING_INVALID_RESPONSE", raised.exception.code)
+
+    def test_real_profile_rejects_zero_price(self):
+        with self.assertRaisesRegex(RagError, "greater than zero") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "local",
+                    "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                    "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3",
+                    "FOODMATE_RAG_EMBEDDING_BASE_URL": "https://api.siliconflow.cn/v1",
+                    "FOODMATE_RAG_EMBEDDING_API_KEY": "test-key",
+                    "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                    "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                    "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                    "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                    "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+                    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+                    "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+                }
+            )
+        self.assertEqual("RAG_PRICE_INVALID", raised.exception.code)
+
+    def test_invalid_timeout_is_a_stable_rag_error(self):
+        with self.assertRaisesRegex(RagError, "positive") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "stub",
+                    "FOODMATE_RAG_ITEM_TIMEOUT_SECONDS": "not-a-number",
+                }
+            )
+        self.assertEqual("RAG_ITEM_TIMEOUT_INVALID", raised.exception.code)
+
+    def test_negative_budget_is_rejected(self):
+        with self.assertRaisesRegex(RagError, "non-negative") as raised:
+            RagSettings.from_environment(
+                {
+                    "FOODMATE_RAG_MODE": "stub",
+                    "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "-1",
+                }
+            )
+        self.assertEqual("RAG_BUDGET_INVALID", raised.exception.code)
+
 
 class DeterministicEmbedderTests(TestCase):
     def test_vectors_are_stable_non_zero_and_have_configured_dimension(self):
@@ -241,6 +476,134 @@ class DeterministicEmbedderTests(TestCase):
 
         with self.assertRaisesRegex(RagError, "explicit local provider"):
             DeterministicEmbedder(settings)
+
+
+class OpenAICompatibleEmbedderTests(TestCase):
+    class _Response:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return json.dumps(self.payload).encode("utf-8")
+
+    def _settings(self):
+        return RagSettings.from_environment(
+            {
+                "FOODMATE_RAG_MODE": "local",
+                "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                "FOODMATE_RAG_EMBEDDING_PROFILE": "bge-m3",
+                "FOODMATE_RAG_EMBEDDING_BASE_URL": "https://api.siliconflow.cn/v1",
+                "FOODMATE_RAG_EMBEDDING_API_KEY": "test-key",
+                "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                "FOODMATE_RAG_DAILY_COST_LIMIT": "1",
+                "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+                "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+            }
+        )
+
+    @patch("urllib.request.urlopen")
+    def test_sends_siliconflow_openai_embedding_contract(self, urlopen):
+        urlopen.return_value = self._Response(
+            {
+                "data": [
+                    {"index": 1, "embedding": [0.0, 1.0]},
+                    {"index": 0, "embedding": [1.0, 0.0]},
+                ]
+            }
+        )
+
+        vectors = OpenAICompatibleEmbedder(self._settings()).embed(["first", "second"])
+
+        request = urlopen.call_args.args[0]
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual("https://api.siliconflow.cn/v1/embeddings", request.full_url)
+        self.assertEqual("BAAI/bge-m3", body["model"])
+        self.assertEqual(["first", "second"], body["input"])
+        self.assertEqual([[1.0, 0.0], [0.0, 1.0]], vectors)
+        self.assertEqual("Bearer test-key", request.headers["Authorization"])
+
+    @patch("urllib.request.urlopen")
+    def test_reads_provider_usage_and_request_id_without_exposing_input(self, urlopen):
+        urlopen.return_value = self._Response(
+            {
+                "id": "embedding-request-1",
+                "data": [{"index": 0, "embedding": [1.0, 0.0]}],
+                "usage": {"prompt_tokens": 11, "total_tokens": 11},
+            }
+        )
+
+        result = OpenAICompatibleEmbedder(self._settings()).embed_with_usage(["first"])
+
+        self.assertEqual([[1.0, 0.0]], result.vectors)
+        self.assertEqual(11, result.token_count)
+        self.assertEqual("embedding-request-1", result.provider_request_id)
+
+    @patch("urllib.request.urlopen")
+    def test_rejects_malformed_provider_usage(self, urlopen):
+        urlopen.return_value = self._Response(
+            {
+                "data": [{"index": 0, "embedding": [1.0, 0.0]}],
+                "usage": {"prompt_tokens": "11"},
+            }
+        )
+
+        with self.assertRaisesRegex(RagError, "invalid embedding response") as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed_with_usage(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_INVALID_RESPONSE", raised.exception.code)
+
+    @patch("urllib.request.urlopen")
+    def test_rejects_non_object_embedding_item(self, urlopen):
+        urlopen.return_value = self._Response({"data": ["invalid"]})
+
+        with self.assertRaisesRegex(RagError, "invalid embedding response") as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_INVALID_RESPONSE", raised.exception.code)
+
+    @patch("urllib.request.urlopen")
+    def test_maps_rate_limit_to_a_stable_provider_code(self, urlopen):
+        urlopen.side_effect = urllib.error.HTTPError(
+            "https://api.siliconflow.cn/v1/embeddings", 429, "ignored", {}, None
+        )
+
+        with self.assertRaises(RagError) as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_RATE_LIMITED", raised.exception.code)
+
+    @patch("urllib.request.urlopen")
+    def test_maps_provider_failures_without_retaining_response_body(self, urlopen):
+        urlopen.side_effect = urllib.error.HTTPError(
+            "https://api.siliconflow.cn/v1/embeddings", 503, "secret response", {}, None
+        )
+
+        with self.assertRaises(RagError) as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_UNAVAILABLE", raised.exception.code)
+        self.assertNotIn("secret response", str(raised.exception))
+
+    @patch("urllib.request.urlopen")
+    def test_maps_authentication_failures_to_a_stable_code(self, urlopen):
+        urlopen.side_effect = urllib.error.HTTPError(
+            "https://api.siliconflow.cn/v1/embeddings", 401, "ignored", {}, None
+        )
+
+        with self.assertRaises(RagError) as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_AUTH_FAILED", raised.exception.code)
 
 
 class StubIndexTests(TestCase):

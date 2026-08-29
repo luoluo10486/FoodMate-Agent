@@ -38,12 +38,53 @@ describe('AdminPage overview', () => {
       '模型用量',
       '知识库管理',
       '工具注册表',
-      '软删除资源',
+      '删除资源',
       '操作审计',
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(screen.queryByRole('link', { name: '模型治理' })).not.toBeInTheDocument();
+  });
+
+  it('does not render the Figma-only macOS window control dots', () => {
+    renderAdmin();
+
+    expect(document.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-name="traffic-light"]')).not.toBeInTheDocument();
+    expect(document.body.innerHTML).not.toMatch(/#ff3b30|#ffcc00|#34c759/i);
+  });
+
+  it('uses the registered Figma SVG asset for every admin navigation item', () => {
+    renderAdmin();
+
+    const icons = Array.from(document.querySelectorAll<HTMLElement>('[data-figma-icon]'));
+    expect(icons).toHaveLength(11);
+    expect(icons.map((icon) => icon.dataset.figmaIcon)).toEqual([
+      'overview',
+      'users',
+      'runs',
+      'tools',
+      'sql',
+      'trace',
+      'usage',
+      'knowledge',
+      'registry',
+      'deleted',
+      'audit',
+    ]);
+    expect(
+      icons.every((icon) =>
+        icon.style.getPropertyValue('--admin-nav-icon').includes('/assets/figma/admin/navigation/'),
+      ),
+    ).toBe(true);
+  });
+
+  it('uses the registered Figma filter icons while preserving shadcn Select behavior', () => {
+    renderAdmin();
+
+    expect(document.querySelectorAll('[data-figma-asset="admin-overview-dropdown-arrow"]')).toHaveLength(3);
+    expect(document.querySelector('[data-figma-asset="admin-overview-search"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[aria-label="时间范围"] [data-radix-select-icon] svg')).toHaveLength(0);
   });
 
   it('filters the overview table by result and search query', async () => {
@@ -85,7 +126,7 @@ describe('AdminPage overview', () => {
     view.unmount();
     view = renderAdmin('/admin?state=deleted-resources');
     expect(screen.getByText('存档数据保护规范与合规通告')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '软删除资源' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: '删除资源' })).toHaveAttribute('aria-current', 'page');
 
     view.unmount();
     view = renderAdmin('/admin?state=user-detail');
@@ -126,6 +167,10 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('Arguments & System Schema (call_829c)')).toBeInTheDocument();
     expect(screen.getByText('策略：通过')).toBeInTheDocument();
     expect(document.body.textContent).toContain('SENSITIVE_USER_CREDENTIALS_MASKED');
+    expect(screen.getByRole('complementary', { name: 'Tool Calls 筛选与详情' })).toHaveAttribute(
+      'data-figma-role',
+      'admin-tool-calls-detail-fields',
+    );
 
     const search = screen.getByRole('textbox', { name: '搜索运行 ID' });
     await user.type(search, 'does-not-exist');

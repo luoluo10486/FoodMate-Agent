@@ -1,0 +1,15 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 519672,
+  "differentRatio": 0.3524251302083333,
+  "meanAbsoluteError": 3.8815816243489585,
+  "rmse": 16.577421796679413,
+  "maxChannelDelta": 255,
+  "expectedPng": "docxs/设计/figma-png/user-knowledge-search-failed.png",
+  "actualPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-search-failed-browser-dpr1-2026-08-29-rgba.png",
+  "figmaNodeId": "795:968",
+  "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED"
+}

@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-/** Consumes Python indexing results and applies them to the Java-owned knowledge state. */
+/** 消费 Python 索引结果，并以幂等方式更新 Java 所拥有的知识库状态。 */
 @Service
 public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
     private final KnowledgeDeliveryService service;
@@ -24,7 +24,7 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
         this.service = service;
     }
 
-    /** Validates and idempotently applies one Python index result message. */
+    /** 校验并幂等应用一条 Python 索引结果消息。 */
     @Override
     public MqConsumeDecision handle(String body, MqMessageContext context) {
         try {

@@ -301,7 +301,7 @@ export function HomePage() {
                 </div>
               </article>
 
-              <article className={styles.panel}>
+              <article className={`${styles.panel} ${styles.pendingPanel}`}>
                 <div className={styles.panelHeader}>
                   <h2>待确认队列</h2>
                 </div>

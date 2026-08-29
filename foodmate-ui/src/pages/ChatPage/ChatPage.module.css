@@ -246,6 +246,14 @@
   stroke-width: 0;
 }
 
+.completedCitationsPage .user .messageBubble {
+  width: 186px;
+  min-width: 186px;
+  max-width: 186px;
+  box-sizing: border-box;
+  color: #333;
+}
+
 .planningTitle {
   display: flex;
   align-items: center;
@@ -1143,6 +1151,99 @@
   gap: 6px;
 }
 
+.completedAnalysisCard {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #f4f6f5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.completedAnalysisCard h2 {
+  margin: 0;
+  color: #333;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.completedMetricGrid {
+  display: flex;
+  width: 100%;
+  gap: 16px;
+}
+
+.completedMetricGrid > div {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.completedMetricGrid span {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 13px;
+}
+
+.completedMetricGrid strong {
+  color: #333;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 24px;
+}
+
+.completedMetricGrid > div:nth-child(2) strong {
+  color: #89b27c;
+}
+
+.completedMetricGrid > div:nth-child(3) strong {
+  color: #c79654;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 17px;
+}
+
+.completedCitations {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.completedCitations > strong {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 14px;
+}
+
+.completedCitationList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.completedCitationList span {
+  display: inline-flex;
+  min-height: 22px;
+  box-sizing: border-box;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid #f4f6f5;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  font-size: 11px;
+  line-height: 13px;
+  white-space: nowrap;
+}
+
 .fixtureUserLine {
   display: flex;
   width: 100%;
@@ -1216,6 +1317,7 @@
 
 .fixtureBudgetIntro {
   width: min(560px, calc(100% - 48px));
+  height: 53px;
   margin: 0;
   padding: 16px;
   border: 1px solid #eef1ef;
@@ -1223,7 +1325,7 @@
   background: #fff;
   color: #333;
   font-size: 13px;
-  line-height: 18px;
+  line-height: 21px;
   white-space: nowrap;
 }
 
@@ -1237,8 +1339,9 @@
 }
 
 .fixtureAssistantRow .fixtureBudgetCard {
-  gap: 12px;
-  padding: 20px 18px 20px 17px;
+  height: 289px;
+  gap: 16px;
+  padding: 20px 20px 20px 17px;
   border-color: #c79654;
   border-left-width: 3px;
   border-radius: 0 16px 16px 0;
@@ -1247,8 +1350,8 @@
 }
 
 .fixtureAssistantRow .fixtureBudgetCard .fixtureBudgetRow {
-  padding-top: 8px;
-  border-top: 1px solid #eef1ef;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .fixtureBudgetTitle {
@@ -1273,8 +1376,8 @@
 .fixtureBudgetDescription {
   margin: 0;
   color: #6b7280;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 13px;
+  line-height: 16px;
 }
 
 .fixtureCard {
@@ -1289,53 +1392,129 @@
   box-shadow: 0 6px 20px rgb(51 51 51 / 4%);
 }
 
-.fixtureFailureCard {
-  gap: 11px;
-  border-color: #ff6b68;
-  background: #fee8e8;
+/* Figma node 687:883 is a compact 305x319 confirmation card. Keep this
+   fixture-specific geometry isolated from the wider Agent state cards. */
+.fixtureWriteCard {
+  width: 305px;
+  height: 319px;
+  flex: 0 0 305px;
+  padding: 20px;
+  padding-left: 16px;
+  border-color: #a6d997;
+  border-left-width: 4px;
+  border-radius: 16px 16px 16px 0;
   box-shadow: none;
 }
 
-.fixtureFailureCard .fixtureStatusTitle svg {
-  color: #ff6b68;
+.fixtureWriteCard .fixtureDetails {
+  width: 265px;
+  height: 168px;
+  flex: 0 0 168px;
 }
 
-.fixtureFailureCard .fixtureStatusTitle h2,
-.fixtureFailureCard .fixtureErrorTitle {
-  color: #ff6b68;
+.fixtureWriteCard .fixtureMeta {
+  width: 265px;
+  height: 13px;
+  flex-wrap: nowrap;
+  gap: 12px;
 }
 
-.fixtureFailureCard .fixtureErrorTitle {
-  color: #333;
-}
-
-.fixtureFailureCard .fixtureParagraph {
-  color: #6b7280;
-}
-
-.fixtureFailureCard .fixtureActions button {
+.fixtureWriteCard .fixtureActions button {
   height: 32px;
   min-height: 32px;
   border-radius: 8px;
   padding: 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.fixtureWriteCard .fixtureActions button:first-child {
+  background: #a6d997;
+  color: #fff;
+  box-shadow: none;
+}
+
+.fixtureWriteCard .fixtureActions button:first-child:hover {
+  background: #96d286;
+}
+
+.fixtureWriteCard .fixtureActions button:last-child {
+  width: 58px;
+  border: 1px solid #f4f6f5;
+  background: #fff;
+  color: #6b7280;
+}
+
+.fixtureFailureCard {
+  width: 560px;
+  height: 160px;
+  flex: 0 0 560px;
+  gap: 16px;
+  border-color: #ff7576;
+  border-radius: 16px;
+  background: #ffe9e9;
+  box-shadow: none;
+}
+
+.fixtureFailureCard .fixtureStatusTitle svg {
+  color: #d67676;
+}
+
+.fixtureFailureCard .fixtureStatusTitle h2 {
+  color: #d67676;
+  font-size: 14px;
+  line-height: normal;
+}
+
+.fixtureFailureCard .fixtureErrorTitle {
+  color: #333;
+  font-size: 13px;
+  line-height: normal;
+}
+
+.fixtureFailureDetails {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fixtureFailureCard .fixtureParagraph {
+  color: #6b7280;
   font-size: 12px;
+  line-height: normal;
+}
+
+.fixtureFailureCard .fixtureActions button {
+  box-sizing: border-box;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 13px;
+  line-height: normal;
 }
 
 .fixtureFailureCard .fixtureRetryButton {
+  width: 58px;
   border: 0;
-  background: #ffdc97;
-  color: #876e45;
+  background: #ffda93;
+  color: #fff;
+  font-weight: 700;
   box-shadow: none;
 }
 
 .fixtureFailureCard .fixtureRetryButton:hover {
-  background: #f5cf87;
+  background: #f2cc86;
 }
 
 .fixtureFailureCard .fixtureSkipButton {
+  width: 97px;
   border-color: transparent;
   background: #fff;
   color: #333;
+  font-weight: 500;
 }
 
 .fixtureCard h2,
@@ -1479,12 +1658,12 @@
 .fixtureChoiceList {
   display: grid;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 12px;
   border-radius: 8px;
   background: #f4f6f5;
   color: #6b7280;
-  font-size: 11px;
-  line-height: 15px;
+  font-size: 12px;
+  line-height: 14px;
 }
 
 .fixtureChoiceList span {
@@ -1493,24 +1672,14 @@
   gap: 6px;
 }
 
-.fixtureChoiceList i {
-  display: block;
-  width: 10px;
-  height: 10px;
-  flex: 0 0 auto;
-  margin-top: 2px;
-  border-radius: 50%;
-  background: #6b7280;
-}
-
 .fixtureChoiceList strong {
   color: #333;
   font-weight: 700;
 }
 
 .fixtureBudgetRow {
-  padding-top: 4px;
-  border-top: 1px solid #eef1ef;
+  height: 13px;
+  flex: 0 0 13px;
 }
 
 .fixtureBudgetRow strong {
@@ -1522,7 +1691,7 @@
   width: 100%;
   height: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #f4f6f5;
 }
 
@@ -1535,14 +1704,18 @@
 }
 
 .fixtureBudgetCard .fixtureActions button {
+  box-sizing: border-box;
   height: 32px;
   min-height: 32px;
   border-radius: 8px;
-  padding: 0 12px;
-  font-size: 12px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
 }
 
 .fixtureBudgetPrimaryButton {
+  width: 150px;
   background: #c79654;
   color: #fff;
   box-shadow: none;
@@ -1553,7 +1726,18 @@
 }
 
 .fixtureBudgetSecondaryButton {
+  width: 84px;
+  border: 1px solid #f4f6f5;
+  background: #fff;
   color: #6b7280;
+}
+
+.fixtureBudgetMeter {
+  display: flex;
+  width: 100%;
+  height: 27px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .fixtureSafetyBlock {

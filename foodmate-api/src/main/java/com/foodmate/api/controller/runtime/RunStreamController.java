@@ -1,10 +1,13 @@
 package com.foodmate.api.controller.runtime;
 
 import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
+import com.foodmate.api.sse.SseTraceContext;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.service.RuntimeGatewayService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.shared.runtime.RunEvent;
+import com.foodmate.shared.trace.TraceContext;
+import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.time.Duration;
@@ -23,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** Provides the Chat SSE compatibility stream and delegates durable replay to the event service. */
+/** 提供 Chat SSE 兼容流，并将持久化回放委托给事件服务。 */
 @RestController
 public class RunStreamController {
     private final RuntimeGatewayService service;
@@ -57,24 +60,28 @@ public class RunStreamController {
         String lastEventId = headerLastEventId != null ? headerLastEventId : queryLastEventId;
         long afterSequence = parseSequence(lastEventId);
         SseEmitter emitter = new SseEmitter(0L);
+        TraceContext traceContext = TraceContextHolder.currentOrNew();
         AtomicReference<Consumer<RunEvent>> reference = new AtomicReference<>();
         Consumer<RunEvent> listener =
-                event -> {
-                    try {
-                        emitter.send(
-                                SseEmitter.event()
-                                        .id(Long.toString(event.eventSeq()))
-                                        .name("run.event")
-                                        .data(event));
-                        if (terminal(event.state())) {
-                            emitter.complete();
-                            service.unsubscribe(runId, reference.get());
-                        }
-                    } catch (IOException exception) {
-                        service.unsubscribe(runId, reference.get());
-                        emitter.completeWithError(exception);
-                    }
-                };
+                event ->
+                        TraceContextHolder.runWith(
+                                traceContext,
+                                () -> {
+                                    try {
+                                        emitter.send(
+                                                SseEmitter.event()
+                                                        .id(Long.toString(event.eventSeq()))
+                                                        .name("run.event")
+                                                        .data(event));
+                                        if (terminal(event.state())) {
+                                            emitter.complete();
+                                            service.unsubscribe(runId, reference.get());
+                                        }
+                                    } catch (IOException exception) {
+                                        service.unsubscribe(runId, reference.get());
+                                        emitter.completeWithError(exception);
+                                    }
+                                });
         reference.set(listener);
         emitter.onCompletion(() -> service.unsubscribe(runId, listener));
         emitter.onTimeout(() -> service.unsubscribe(runId, listener));
@@ -98,31 +105,33 @@ public class RunStreamController {
                 new java.util.concurrent.atomic.AtomicReference<>();
         ScheduledFuture<?> task =
                 taskScheduler.scheduleWithFixedDelay(
-                        () -> {
-                            if (closed.get()) return;
-                            try {
-                                for (var event : v1Events.sseEvents(runId, currentSequence[0])) {
-                                    emitter.send(
-                                            SseEmitter.event()
-                                                    .id(event.sseEventId())
-                                                    .name(event.eventType())
-                                                    .data(event.payload()));
-                                    currentSequence[0] = event.streamSeq();
-                                    if (event.terminal()) {
+                        SseTraceContext.capture(
+                                () -> {
+                                    if (closed.get()) return;
+                                    try {
+                                        for (var event :
+                                                v1Events.sseEvents(runId, currentSequence[0])) {
+                                            emitter.send(
+                                                    SseEmitter.event()
+                                                            .id(event.sseEventId())
+                                                            .name(event.eventType())
+                                                            .data(event.payload()));
+                                            currentSequence[0] = event.streamSeq();
+                                            if (event.terminal()) {
+                                                closed.set(true);
+                                                emitter.complete();
+                                                ScheduledFuture<?> scheduled = taskReference.get();
+                                                if (scheduled != null) scheduled.cancel(false);
+                                                return;
+                                            }
+                                        }
+                                    } catch (IOException | RuntimeException exception) {
                                         closed.set(true);
-                                        emitter.complete();
+                                        emitter.completeWithError(exception);
                                         ScheduledFuture<?> scheduled = taskReference.get();
                                         if (scheduled != null) scheduled.cancel(false);
-                                        return;
                                     }
-                                }
-                            } catch (IOException | RuntimeException exception) {
-                                closed.set(true);
-                                emitter.completeWithError(exception);
-                                ScheduledFuture<?> scheduled = taskReference.get();
-                                if (scheduled != null) scheduled.cancel(false);
-                            }
-                        },
+                                }),
                         Instant.now(),
                         Duration.ofMillis(200));
         taskReference.set(task);

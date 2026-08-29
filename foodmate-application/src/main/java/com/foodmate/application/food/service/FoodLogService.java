@@ -14,6 +14,9 @@ public interface FoodLogService {
 
     List<FoodLogView> list(long userId, Instant from, Instant to);
 
+    /** Lists the current user's soft-deleted records so they can be restored. */
+    List<FoodLogView> listDeleted(long userId);
+
     void delete(long userId, long foodLogId, long revision, String idempotencyKey);
 
     FoodLogView restore(long userId, long foodLogId, long revision, String idempotencyKey);

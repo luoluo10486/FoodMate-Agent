@@ -21,7 +21,7 @@
 .brandBlock {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .adminBrand {
@@ -113,12 +113,14 @@
     color 160ms ease;
 }
 
-.navButton svg {
+.navIcon {
+  display: block;
   flex: 0 0 auto;
   width: 18px;
   height: 18px;
-  color: var(--fm-ink);
-  stroke-width: 1.8;
+  background: currentColor;
+  -webkit-mask: var(--admin-nav-icon) center / contain no-repeat;
+  mask: var(--admin-nav-icon) center / contain no-repeat;
 }
 
 .navButton:hover,
@@ -248,7 +250,7 @@
   min-width: 0;
   flex: 0 0 64px;
   height: 64px;
-  padding: 16px 24px;
+  padding: 16px 32px;
   border-bottom: 1px solid var(--fm-border);
   background: var(--fm-surface);
 }
@@ -1003,10 +1005,32 @@
 }
 
 .overviewFilter :global([data-radix-select-icon]) {
+  display: none;
+}
+
+.overviewFilterArrow {
+  display: block;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
   margin-left: auto;
+  background: #6b7280;
+  -webkit-mask: url('/assets/figma/admin/overview/dropdown-arrow.svg') center / 12px 12px no-repeat;
+  mask: url('/assets/figma/admin/overview/dropdown-arrow.svg') center / 12px 12px no-repeat;
+}
+
+.overviewSearchIcon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  background: #6b7280;
+  -webkit-mask: url('/assets/figma/admin/overview/search.svg') center / 16px 16px no-repeat;
+  mask: url('/assets/figma/admin/overview/search.svg') center / 16px 16px no-repeat;
 }
 
 .overviewFilter :global(svg) {
+  display: none;
   width: 12px;
   height: 12px;
   color: #333333;
@@ -1022,13 +1046,6 @@
   padding: 0 12px;
   border-radius: 16px;
   background: #f4f6f5;
-}
-
-.overviewSearch > svg {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  color: #6b7280;
 }
 
 .overviewSearch input {
@@ -1101,10 +1118,10 @@
   height: 396px;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #f4f6f5;
+  border: 0;
   border-radius: 16px;
   background: #ffffff;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px #f4f6f5;
 }
 
 .overviewTableScroll {
@@ -1147,14 +1164,14 @@
 }
 
 .overviewTable :global(td) {
-  height: 55px;
+  height: 58px;
   color: #333333;
   font-size: 13px;
   line-height: 19px;
 }
 
 .overviewTable :global(tbody tr) {
-  height: 55px;
+  height: 58px;
   border-bottom: 1px solid #f4f6f5;
   background: #ffffff;
 }
@@ -1169,7 +1186,7 @@
 
 .overviewTable :global(th:nth-child(1)),
 .overviewTable :global(td:nth-child(1)) {
-  width: 164px;
+  width: 196px;
 }
 .overviewTable :global(th:nth-child(2)),
 .overviewTable :global(td:nth-child(2)) {
@@ -1177,19 +1194,19 @@
 }
 .overviewTable :global(th:nth-child(3)),
 .overviewTable :global(td:nth-child(3)) {
-  width: 108px;
+  width: 116px;
 }
 .overviewTable :global(th:nth-child(4)),
 .overviewTable :global(td:nth-child(4)) {
-  width: 108px;
+  width: 116px;
 }
 .overviewTable :global(th:nth-child(5)),
 .overviewTable :global(td:nth-child(5)) {
-  width: 108px;
+  width: 116px;
 }
 .overviewTable :global(th:nth-child(6)),
 .overviewTable :global(td:nth-child(6)) {
-  width: 124px;
+  width: 156px;
 }
 .overviewTable :global(th:nth-child(7)),
 .overviewTable :global(td:nth-child(7)) {
@@ -1201,11 +1218,11 @@
 }
 .overviewTable :global(th:nth-child(9)),
 .overviewTable :global(td:nth-child(9)) {
-  width: 112px;
+  width: 64px;
 }
 .overviewTable :global(th:nth-child(10)),
 .overviewTable :global(td:nth-child(10)) {
-  width: 112px;
+  width: 88px;
 }
 
 .overviewTable :global(th:last-child),
@@ -1249,10 +1266,13 @@
 }
 
 .overviewErrorCode {
+  display: block;
   color: #333333;
   font-weight: 700;
+  width: 48px;
   overflow-wrap: anywhere;
-  white-space: nowrap;
+  line-height: 14px;
+  white-space: normal;
 }
 
 .copyButton {
@@ -1384,6 +1404,7 @@
   flex: 0 0 auto;
   height: 180px;
   padding: 16px;
+  overflow: hidden;
   border: 1px solid #e8edeb;
   border-radius: 12px;
   background: #ffffff;
@@ -1393,7 +1414,7 @@
 .overviewAnalytics article {
   display: flex;
   min-width: 0;
-  height: 148px;
+  height: 180px;
   flex-direction: column;
   gap: 8px;
   overflow: hidden;
@@ -2047,10 +2068,10 @@
   height: 304px;
   flex: 0 0 auto;
   overflow: hidden;
-  border: 1px solid #f4f6f5;
+  border: 0;
   border-radius: 16px;
   background: #ffffff;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px #f4f6f5;
 }
 
 .deletedTableScroll {
@@ -2068,8 +2089,8 @@
 }
 
 .deletedTable {
-  width: 1114px;
-  min-width: 1114px;
+  width: 1116px;
+  min-width: 1116px;
   table-layout: fixed;
   border-collapse: collapse;
   color: #333333;
@@ -2093,6 +2114,10 @@
   white-space: nowrap;
 }
 
+.deletedTable :global(thead tr) {
+  border-bottom: 0;
+}
+
 .deletedTable :global(td) {
   height: 58px;
   color: #333333;
@@ -2103,8 +2128,12 @@
 
 .deletedTable :global(tbody tr) {
   height: 58px;
-  border-bottom: 1px solid #f4f6f5;
+  border-bottom: 0;
   background: #ffffff;
+}
+
+.deletedTable :global(tbody tr:not(:last-child) td) {
+  box-shadow: inset 0 -1px #f4f6f5;
 }
 
 .deletedTable :global(tbody tr:hover) {
@@ -2134,6 +2163,7 @@
 .deletedTable :global(th:nth-child(5)),
 .deletedTable :global(td:nth-child(5)) {
   width: 136px;
+  padding-right: 0;
   white-space: normal;
 }
 
@@ -2926,6 +2956,7 @@
 
 .usersResetFilter {
   justify-self: end;
+  height: 32px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -4023,7 +4054,7 @@
   .adminLogoCopy,
   .adminTag,
   .workspaceLink,
-  .navButton span,
+  .navButton > span:last-child,
   .privilegeBox strong,
   .userMetadata {
     display: none;
@@ -4477,7 +4508,7 @@
   gap: 12px;
   align-items: center;
   width: 100%;
-  height: 32px;
+  height: 34px;
 }
 
 .runFixtureId,
@@ -4500,29 +4531,31 @@
 .runFixtureStatus,
 .runFixtureDegraded {
   display: inline-flex;
-  height: 32px;
+  height: 25px;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 16px;
   white-space: nowrap;
 }
 
 .runFixtureStatusFailed {
-  background: #fff0ed;
-  color: #ff665d;
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
 }
 
 .runFixtureStatusSuccess {
-  background: #effaf1;
-  color: #43aa55;
+  background: rgba(166, 217, 151, 0.08);
+  color: #89b27c;
 }
 
 .runFixtureDegraded {
   justify-content: space-between;
+  height: 34px;
+  padding: 8px 12px;
   border: 1px solid #f4f6f5;
   border-radius: 8px;
   background: #ffffff;
@@ -4541,15 +4574,17 @@
   width: 100%;
   margin-top: 24px;
   overflow: hidden;
-  border: 1px solid #f4f6f5;
+  border: 0;
   border-radius: 12px;
   background: #ffffff;
+  box-shadow: inset 0 0 0 1px #f4f6f5;
 }
 
 .runFixtureTableHeader,
 .runFixtureTableRow {
   display: grid;
-  grid-template-columns: 132px 132px minmax(0, 1fr) 88px 132px 88px 88px 88px;
+  grid-template-columns: 120px 120px minmax(0, 1fr) 110px 120px 90px 80px 80px;
+  column-gap: 12px;
   align-items: center;
   width: 100%;
 }
@@ -4565,7 +4600,7 @@
 }
 
 .runFixtureTableRow {
-  height: 50px;
+  height: 49px;
   padding: 0 12px;
   color: #333333;
   font-size: 13px;
@@ -4591,19 +4626,22 @@
   align-items: center;
   padding: 4px 8px;
   border-radius: 4px;
-  background: #fff0ed;
-  color: #ff665d;
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
   font-size: 11px;
   line-height: 13px;
 }
 
 .runFixtureTrace {
   width: 100%;
+  height: 162px;
+  box-sizing: border-box;
   margin-top: 24px;
   padding: 20px;
-  border: 1px solid #f4f6f5;
+  border: 0;
   border-radius: 16px;
   background: #fcfcfc;
+  box-shadow: inset 0 0 0 1px #f4f6f5;
 }
 
 .runFixtureTraceHeader {
@@ -4611,14 +4649,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  height: 19px;
 }
 
 .runFixtureTraceHeader h2 {
   margin: 0;
   color: #333333;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 20px;
+  line-height: 19px;
 }
 
 .runFixtureTraceHeader h2 code {
@@ -4629,11 +4668,16 @@
 }
 
 .runFixtureDownload {
+  height: 16px;
+  min-height: 16px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: #4776e8;
+  color: #5da9b2;
   font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+  text-decoration: underline;
   cursor: pointer;
 }
 
@@ -4646,11 +4690,12 @@
 
 .runFixtureSteps article {
   min-width: 0;
-  height: 90px;
-  padding: 12px;
-  border: 1px solid #e5e8e6;
+  height: 87px;
+  padding: 16px;
+  border: 0;
   border-radius: 12px;
   background: #ffffff;
+  box-shadow: inset 0 0 0 1px #e5e8e6;
 }
 
 .runFixtureSteps article header {
@@ -4662,7 +4707,7 @@
 
 .runFixtureSteps article strong {
   overflow: hidden;
-  color: #4776e8;
+  color: #5da9b2;
   font-size: 13px;
   line-height: 16px;
   text-overflow: ellipsis;
@@ -4673,8 +4718,12 @@
   color: #c79654;
 }
 
+.runFixtureSteps article:nth-child(2) strong {
+  color: #b58cc4;
+}
+
 .runFixtureSteps article:nth-child(4) strong {
-  color: #ff665d;
+  color: #d67676;
 }
 
 .runFixtureSteps article code {
@@ -4688,7 +4737,7 @@
 }
 
 .runFixtureSteps article p {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   overflow: hidden;
   color: #6b7280;
   font-size: 12px;
@@ -4702,7 +4751,7 @@
   gap: 9px;
   width: 100%;
   min-height: 300px;
-  margin-top: 24px;
+  margin-top: 34.8px;
   padding: 16px 20px;
   box-sizing: border-box;
   border: 1px solid #e3ebe5;
@@ -4777,6 +4826,10 @@
   height: 32px;
 }
 
+.sqlAuditFilters {
+  grid-template-columns: 220px 94px minmax(0, 1fr);
+}
+
 .governanceStaticFilter,
 .governanceSearch,
 .governanceRiskFilter {
@@ -4821,8 +4874,9 @@
 .governanceTable {
   width: 100%;
   overflow: hidden;
-  border: 1px solid #f4f6f5;
+  border: 0;
   border-radius: 12px;
+  box-shadow: inset 0 0 0 1px #f4f6f5;
 }
 
 .governanceTableHeader,
@@ -4845,7 +4899,8 @@
 }
 
 .governanceTableRow {
-  min-height: 62px;
+  height: 49px;
+  min-height: 49px;
   background: #f4f6f5;
   color: #333333;
   font-size: 13px;
@@ -4984,6 +5039,14 @@
   background: #fcfcfa;
 }
 
+.toolCallsNotes {
+  transform: translateY(17.6px);
+}
+
+.sqlAuditNotes {
+  transform: translateY(17.6px);
+}
+
 .governanceNotes h2,
 .governanceNotes p {
   margin: 0;
@@ -5019,6 +5082,7 @@
 
 .traceNotes {
   min-height: 300px;
+  margin-top: 34.8px;
 }
 .fixtureSurfaceHeader,
 .fixtureSurfaceToolbar {

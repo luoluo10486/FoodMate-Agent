@@ -14,12 +14,24 @@
   --fm-fixture-top-nav-active-surface: #fffefa;
 }
 
+/* Keep the Figma fixture rail at its 340px canvas boundary without letting the divider consume layout space. */
+.figmaFixture .rightRail {
+  border-left: 0;
+  box-shadow: inset 1px 0 0 var(--fm-border);
+}
+
 .figmaFixture .sidebar {
   padding-top: 52px;
 }
 
 .designChat .sidebar {
   padding-top: 52px;
+}
+
+/* Figma node 879:353 uses the warning color as a low-opacity selection wash. */
+.designChat {
+  --fm-fixture-sidebar-active-surface: rgba(199, 150, 84, 0.08);
+  --fm-fixture-session-active-surface: rgba(255, 246, 226, 0.2);
 }
 
 .figmaFixture .primarySideNav {
@@ -408,6 +420,13 @@
   padding: 0 24px;
   background: var(--fm-surface);
   border-bottom: 1px solid var(--fm-border);
+}
+
+.planningListTopbar .iconButton {
+  box-sizing: border-box;
+  border: 1px solid #f4f6f5;
+  border-radius: 18px;
+  background: #ffffff;
 }
 
 .topbar > :global(.brand) {

@@ -130,6 +130,10 @@
   height: 107px;
 }
 
+.figmaDefault .filters {
+  width: 384px;
+}
+
 .loadingMetrics {
   height: 126px;
 }
@@ -369,7 +373,9 @@
 }
 
 .figmaAnalysis .loadingChartCard,
-.figmaAnalysis .loadingInsightCard {
+.figmaAnalysis .loadingInsightCard,
+.figmaAnalysis .chartCard,
+.figmaAnalysis .insightCard {
   border: 0;
   box-shadow: inset 0 0 0 1px var(--fm-border);
 }
@@ -527,6 +533,10 @@
   line-height: 20px;
 }
 
+.stateCopy .errorDescription {
+  line-height: 17px;
+}
+
 .recordButton {
   height: 40px;
   padding: 10px 24px;
@@ -564,6 +574,17 @@
   font-family: var(--fm-font);
   font-size: 14px;
   font-weight: 700;
+}
+
+.figmaAnalysis .reloadButton {
+  width: 120px;
+  height: 41px;
+  line-height: 17px;
+}
+
+.figmaAnalysis .errorCard {
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--fm-border);
 }
 
 .insights {
@@ -618,6 +639,19 @@
   border-color: #ecccff;
   background: #ecccff;
   color: #ffffff;
+}
+
+.figmaAnalysis .figmaInsightActionPrimary,
+.figmaAnalysis .figmaInsightActionSecondary {
+  box-sizing: border-box;
+}
+
+.figmaAnalysis .figmaInsightActionPrimary {
+  width: 121px;
+}
+
+.figmaAnalysis .figmaInsightActionSecondary {
+  width: 144px;
 }
 
 .qualityPanel {

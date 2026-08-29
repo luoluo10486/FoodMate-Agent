@@ -1,0 +1,26 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 341860,
+  "differentRatio": 0.2318386501736111,
+  "meanAbsoluteError": 2.24425048828125,
+  "rmse": 12.938224053917885,
+  "maxChannelDelta": 234,
+  "expected": "recaptured-figma/meal-planning-v2-current.png",
+  "actual": "recaptured/meal-planning-v2-right-rail-inset-browser-2026-08-29-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "dprPass": false,
+  "geometry": {
+    "rightRail": "x=1100,width=340",
+    "planSidebarContent": "x=1124,width=292",
+    "constraintRows": "x=1124,width=292,y=54/111/168/225,height=45",
+    "shoppingGroups": "x=1124,width=292,y=348/446,height=86",
+    "bodyHorizontalOverflow": false,
+    "fonts": "loaded",
+    "windowControlsCandidates": 0
+  },
+  "conclusion": "DIFF_REVIEW"
+}

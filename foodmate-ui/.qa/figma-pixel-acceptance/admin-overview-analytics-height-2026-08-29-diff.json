@@ -1,0 +1,38 @@
+{
+  "figmaNodeId": "995:977",
+  "artboardName": "admin-overview",
+  "frontendRoute": "/admin",
+  "queryState": "state=overview",
+  "viewport": "1440x1024",
+  "actualDpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "figmaPng": "recaptured-figma/admin-overview-current-2026-08-29.png",
+  "browserPng": "recaptured/admin-overview-analytics-height-browser-2026-08-29-rgba.png",
+  "diff": {
+    "status": "COMPARED",
+    "width": 1440,
+    "height": 1024,
+    "pixelCount": 1474560,
+    "differentPixels": 496400,
+    "differentRatio": 0.3366427951388889,
+    "meanAbsoluteError": 3.932244873046875,
+    "rmse": 19.17861461697122,
+    "maxChannelDelta": 230
+  },
+  "geometry": {
+    "analyticsCards": "1116x180 at x=292,y=766",
+    "analyticsCardItems": "3 x 350.125/350.1375/350.125 x 180",
+    "analyticsOverflow": "hidden",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据 Figma 节点 1005:2、1005:3、1005:7、1005:11，将 Admin Overview 底部分析卡内卡高度从 148px 调整为 180px，并为外层分析卡补齐 hidden 裁切；仅修改前端，未修改 Figma，业务状态圆点保留。",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-29",
+    "conclusion": "分析卡外框与内卡高度已按实时 Figma 节点收口，但整页仍存在表格、字体、图标、侧栏身份和其它组合差异，保留 DIFF_REVIEW。"
+  },
+  "conclusion": "DIFF_REVIEW"
+}

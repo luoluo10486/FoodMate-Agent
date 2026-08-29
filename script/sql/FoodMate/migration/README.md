@@ -43,6 +43,8 @@
 
 `V26__m1_4_agent_feedback.sql`：结构化 Agent 反馈事实，保存用户、Run、assistant message、稳定原因代码、幂等键、参数摘要和高风险标记；不保存回答正文、Prompt、原始请求、令牌或敏感内容。配套校验为 `validation/V26__m1_4_agent_feedback_validation.sql`，rollback 为只读前置检查 `rollback/R26__m1_4_agent_feedback_precheck.sql`，执行前必须人工确认反馈数据迁移与保留范围。
 
+`V27__m3_purge_execution_results.sql`：清理任务执行对账事实，保存后端、删除计数、版本、结果摘要和删除后存在性校验；不保存对象键、向量或原始业务内容。配套校验为 `validation/V27__m3_purge_execution_results_validation.sql`，rollback 为只读前置检查 `rollback/R27__m3_purge_execution_results_precheck.sql`，迁移本身不执行清理。
+
 ## 配套文件矩阵
 
 | 版本 | validation | rollback | 处理边界 |
@@ -53,6 +55,7 @@
 | V7-V12 | 无 | 无 | 历史运行时、记忆和兼容结构；以数据库事实和新增迁移修正 |
 | V13-V25 | 有 | 有 | 当前目录约定，按版本保存 validation 和 rollback |
 | V26 | 有 | 有（只读前置检查） | 结构化 Agent 反馈；不提供未经人工确认的自动删除 |
+| V27 | 有 | 有（只读前置检查） | 清理执行对账事实；不执行清理或删除既有数据 |
 
 该矩阵描述文件现状，不代表任何迁移已在当前数据库执行。实际执行状态、validation 输出、失败与补偿必须以 `../EXECUTION_RECORD.md` 为准。历史版本若需补充校验，优先新增只读 SQL 文档；若需修复结构，创建更高版本迁移，不原地修改已执行脚本，不执行宽泛删除或 `TRUNCATE`。
 

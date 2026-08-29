@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** AgentRun 查询、取消、预算追加和 checkpoint 恢复接口。 */
 @RestController
 @RequestMapping("/api/agent-runs")
 public class V1AgentRunController extends AuthenticatedControllerSupport {

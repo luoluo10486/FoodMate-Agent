@@ -189,7 +189,7 @@ function ErrorAnalysis({ onReload, detail }: { onReload: () => void; detail?: st
       </div>
       <div className={styles.stateCopy}>
         <h3>分析数据加载失败</h3>
-        <p>获取营养趋势数据时出错，请稍后重试</p>
+        <p className={styles.errorDescription}>获取营养趋势数据时出错，请稍后重试</p>
         {detail ? <p>{detail}</p> : null}
       </div>
       <Button className={styles.reloadButton} variant="outline" onClick={onReload}>
@@ -476,12 +476,16 @@ export function AnalysisPage() {
               </div>
               <div className={styles.insightActions}>
                 <Button
-                  className={styles.interpretButton}
+                  className={`${styles.interpretButton} ${styles.figmaInsightActionPrimary}`}
                   onClick={() => navigate('/chat/protein-review?prompt=请解读这份摄入分析')}
                 >
                   让 Agent 解读
                 </Button>
-                <Button variant="outline" onClick={() => navigate('/planning')}>
+                <Button
+                  className={styles.figmaInsightActionSecondary}
+                  variant="outline"
+                  onClick={() => navigate('/planning')}
+                >
                   基于分析制定计划
                 </Button>
               </div>

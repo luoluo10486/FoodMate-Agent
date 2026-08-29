@@ -1,7 +1,7 @@
 package com.foodmate.application.retention;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -23,15 +23,10 @@ class DataRetentionResultMessageProcessorTest {
         assertEquals(
                 MqConsumeDecision.ACK,
                 processor.handle(
-                        "{\"task_id\":103,\"status\":\"failed\",\"error_code\":\"RAG_MILVUS_DELETE_FAILED\",\"error_summary\":\"backend unavailable\"}",
+                        "{\"task_id\":103,\"request_id\":9,\"resource_type\":\"knowledge_document\",\"resource_id\":42,\"task_type\":\"vector_index\",\"document_id\":\"42\",\"version\":\"v1\",\"status\":\"failed\",\"backend\":\"milvus\",\"deleted_count\":0,\"verified_absent\":false,\"error_code\":\"RAG_MILVUS_DELETE_FAILED\",\"error_summary\":\"backend unavailable\"}",
                         context()));
 
-        verify(service)
-                .acceptResult(
-                        eq(103L),
-                        eq("failed"),
-                        eq("RAG_MILVUS_DELETE_FAILED"),
-                        eq("backend unavailable"));
+        verify(service).acceptResult(any(DataRetentionDeliveryService.ExternalResult.class));
     }
 
     @Test

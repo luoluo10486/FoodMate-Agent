@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
+/** 模型预算策略写入请求参数。 */
 public record ModelBudgetRequest(
         @NotBlank String policyKey,
         @NotBlank String scene,

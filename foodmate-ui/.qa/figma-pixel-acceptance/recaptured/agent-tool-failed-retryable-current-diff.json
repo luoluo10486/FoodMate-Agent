@@ -1,0 +1,11 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 296890,
+  "differentRatio": 0.20134141710069445,
+  "meanAbsoluteError": 2.2419528537326388,
+  "rmse": 14.730809108556462,
+  "maxChannelDelta": 245
+}

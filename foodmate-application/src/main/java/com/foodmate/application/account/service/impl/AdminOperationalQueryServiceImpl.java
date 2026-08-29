@@ -3,6 +3,8 @@ package com.foodmate.application.account.service.impl;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository.Query;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
+import com.foodmate.shared.error.BusinessException;
+import com.foodmate.shared.error.ErrorCode;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -13,6 +15,7 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
     private static final Set<String> RESOURCES =
             Set.of(
                     "runs",
+                    "traces",
                     "users",
                     "tool-calls",
                     "sql-audits",
@@ -44,6 +47,8 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
             case "users" ->
                     page(store.users(query), store.countUsers(query), safeRequest, this::user);
             case "runs" -> page(store.runs(query), store.countRuns(query), safeRequest, this::run);
+            case "traces" ->
+                    page(store.traces(query), store.countTraces(query), safeRequest, this::trace);
             case "tool-calls" ->
                     page(
                             store.toolCalls(query),
@@ -83,6 +88,22 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
         };
     }
 
+    @Override
+    public TraceDetail traceDetail(String traceId) {
+        String normalizedTraceId = normalizeTraceId(traceId);
+        AdminOperationalQueryRepository.TraceRow summary = store.traceById(normalizedTraceId);
+        if (summary == null) throw new BusinessException(ErrorCode.NOT_FOUND, "trace not found");
+        return new TraceDetail(
+                trace(summary),
+                store.traceSpans(normalizedTraceId).stream().map(this::traceSpan).toList());
+    }
+
+    private static String normalizeTraceId(String traceId) {
+        if (traceId == null || traceId.isBlank() || traceId.length() > 64)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "trace id is invalid");
+        return traceId.trim();
+    }
+
     private Query toQuery(String resource, Request request) {
         String sort = request.sort();
         if (sort == null) sort = defaultSort(resource);
@@ -111,6 +132,7 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
         return switch (resource) {
             case "users" -> Set.of("created_at", "username", "status");
             case "runs" -> Set.of("created_at", "duration_ms", "status");
+            case "traces" -> Set.of("started_at", "duration_ms", "status");
             case "tool-calls" -> Set.of("created_at", "latency_ms", "status");
             case "sql-audits" -> Set.of("created_at", "latency_ms", "status");
             case "tools" -> Set.of("name", "updated_at", "status");
@@ -142,6 +164,33 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
 
     private User user(AdminOperationalQueryRepository.UserRow row) {
         return new User(row.userId(), row.username(), row.role(), row.status(), row.emailRef());
+    }
+
+    private Trace trace(AdminOperationalQueryRepository.TraceRow row) {
+        return new Trace(
+                row.traceId(),
+                row.runId(),
+                row.entry(),
+                row.status(),
+                row.startedAt(),
+                row.durationMs(),
+                row.spanCount(),
+                row.rootService(),
+                row.errorCode());
+    }
+
+    private TraceSpan traceSpan(AdminOperationalQueryRepository.TraceSpanRow row) {
+        return new TraceSpan(
+                row.spanId(),
+                row.spanType(),
+                row.name(),
+                row.service(),
+                row.status(),
+                row.startedAt(),
+                row.finishedAt(),
+                row.durationMs(),
+                row.errorCode(),
+                row.sequenceNo());
     }
 
     private ToolCall toolCall(AdminOperationalQueryRepository.ToolCallRow row) {

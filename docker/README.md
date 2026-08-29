@@ -47,7 +47,7 @@ Invoke-WebRequest http://localhost:8080/actuator/health/readiness
 Invoke-WebRequest http://localhost:9002/foodmate/internal/health/ready
 ```
 
-Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。本地 Compose 已将四档 Agent 模型路由锁定为 `deterministic:local`，避免宿主机 `.env` 中的云模型配置被应用容器继承；这些设置只用于本地业务验证，不代表真实模型联调已经完成。
+Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。Compose 默认将四档 Agent 模型路由设为 `deterministic:local`；需要真实 Chat 时，在被忽略的根目录 `.env` 中显式设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD/HIGH/EVAL=siliconflow:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_SILICONFLOW_*` 端点、API Key 和已审计价格配置。也可以使用已有的 `cloud_primary` 通用 provider 映射。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
 
 应用容器不会自动执行数据库迁移。启动前应确认 V16-V25 已按 `script/sql/FoodMate` 的顺序实际执行，启动后再检查 Java 和 Python readiness，以及应用日志中的 Outbox/Worker 状态。停止时使用 `docker compose ... down` 保留数据卷，除非明确需要销毁本地卷并另行确认。
 
@@ -66,6 +66,11 @@ docker compose --env-file .env -f docker/compose.yml up -d milvus
 `http://milvus:19530`；宿主机启动的 Java/Python 进程则使用
 `http://localhost:19530`。集合维度以首次生成的实际向量为准，已有集合维度不一致时会失败关闭。
 
+local 模式的 Python 索引消费者会在订阅索引 Topic 前探测 Milvus 的
+`/healthz`（默认从 `FOODMATE_RAG_MILVUS_URI` 的 `19530` 端口推导为 `9091`），
+直到 readiness 成功或达到 `FOODMATE_RAG_MILVUS_READY_TIMEOUT_SECONDS`；stub 模式不执行该探测。
+自定义探针地址时设置 `FOODMATE_RAG_MILVUS_HEALTH_URL`。
+
 Compose 还会把 local 模式所需的预算、价格版本和确定性向量维度传入
 `agent-runtime`。默认仍是 `stub`，因此不启动 Milvus 也不会连接它；切换到
 `local` 时必须显式启动 Milvus，并保持 collection 名称与隔离环境一致：
@@ -79,6 +84,8 @@ docker compose --env-file .env -f docker/compose.yml up -d milvus foodmate agent
 ```
 
 切换真实 OpenAI-compatible embedding 时，将 provider 改为 `openai-compatible`，并显式配置 endpoint、API Key、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。当前只提供基础设施容器，Python/Java 应用仍按各自开发命令启动；Compose 不自动执行数据库迁移。
+
+SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_RAG_MILVUS_COLLECTION`；Embedding 的 `FOODMATE_RAG_EMBEDDING_API_KEY` 必须在被忽略的本地 `.env` 或 Secret Store 中单独显式配置，不能从 Chat provider 变量继承，也不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
 
 ## RocketMQ
 

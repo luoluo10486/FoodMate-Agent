@@ -6,10 +6,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.foodmate.application.common.service.AgentOperationMetrics;
 import com.foodmate.application.knowledge.messaging.KnowledgeOutboxPublisher;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import com.foodmate.application.knowledge.service.KnowledgeDeliveryService;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -21,6 +24,9 @@ class KnowledgeOutboxPublisherTest {
     private final MessagePublisherPort publisher =
             org.mockito.Mockito.mock(MessagePublisherPort.class);
     private final ObjectProvider<MessagePublisherPort> provider =
+            org.mockito.Mockito.mock(ObjectProvider.class);
+
+    private final ObjectProvider<AgentOperationMetrics> metricsProvider =
             org.mockito.Mockito.mock(ObjectProvider.class);
 
     @Test
@@ -85,5 +91,39 @@ class KnowledgeOutboxPublisherTest {
                 "KnowledgeVisibility",
                 request.getValue().properties().get("foodmate_message_type"));
         verify(service).publishedVisibility(32L, owner.getValue());
+    }
+
+    @Test
+    void recordsLowCardinalityMetricsForIndexRelay() {
+        when(provider.getIfAvailable()).thenReturn(publisher);
+        when(service.pendingIndex(10))
+                .thenReturn(List.of(new KnowledgeRepository.OutboxRow(31L, 41L, "index", "{}")));
+        when(service.pendingVisibility(10)).thenReturn(List.of());
+        when(service.leaseIndex(eq(31L), anyString())).thenReturn(1);
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ObjectProvider<MeterRegistry> registryProvider =
+                org.mockito.Mockito.mock(ObjectProvider.class);
+        when(registryProvider.getIfAvailable()).thenReturn(registry);
+        AgentOperationMetrics metrics = new AgentOperationMetrics(registryProvider);
+        when(metricsProvider.getIfAvailable()).thenReturn(metrics);
+
+        KnowledgeOutboxPublisher relay =
+                new KnowledgeOutboxPublisher(service, provider, metricsProvider, "rocketmq");
+        relay.publish();
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                1.0,
+                registry.get("foodmate.agent.operations")
+                        .tags(
+                                "transport",
+                                "rocketmq",
+                                "operation",
+                                "knowledge_index",
+                                "result",
+                                "success",
+                                "reason",
+                                "published")
+                        .counter()
+                        .count());
     }
 }

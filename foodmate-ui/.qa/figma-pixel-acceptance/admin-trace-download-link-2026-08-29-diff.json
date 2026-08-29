@@ -1,0 +1,36 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 366952,
+  "differentRatio": 0.24885525173611112,
+  "meanAbsoluteError": 2.7332616170247395,
+  "rmse": 15.432517030246059,
+  "maxChannelDelta": 230,
+  "expected": "recaptured/admin-trace-figma-live-2026-08-29.png",
+  "actual": "recaptured/admin-trace-download-link-browser-2026-08-29-rgba.png",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "geometry": {
+    "downloadLink": "78x16 at x=1318,y=278.5",
+    "toolbar": "1132x34 at y=88",
+    "table": "1132x87 at y=146",
+    "tracePanel": "1132x162 at y=257",
+    "traceCards": "4 x 261x87",
+    "detailPanel": "1132x300 at y=454",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "computedStyle": {
+    "color": "rgb(93, 169, 178)",
+    "fontFamily": "Noto Sans SC, Microsoft YaHei, sans-serif",
+    "fontSize": "13px",
+    "fontWeight": "400",
+    "textDecorationLine": "underline"
+  },
+  "visualChange": "依据 Figma 节点 797:737，将 Trace 下载链接对齐为 #5da9b2、Noto Sans SC Regular、13px 并增加下划线；仅修改前端，未修改 Figma。",
+  "conclusion": "DIFF_REVIEW"
+}

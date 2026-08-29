@@ -441,6 +441,36 @@ export type AdminQueryRun = {
   actor_ref: string;
 };
 
+export type AdminQueryTrace = {
+  trace_id: string;
+  run_id: number | null;
+  entry: string;
+  status: string;
+  started_at: string | null;
+  duration_ms: number | string | null;
+  span_count: number | null;
+  root_service: string;
+  error_code: string | null;
+};
+
+export type AdminTraceSpan = {
+  span_id: string;
+  span_type: string;
+  name: string;
+  service: string;
+  status: string;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | string | null;
+  error_code: string | null;
+  sequence_no: number | null;
+};
+
+export type AdminTraceDetail = {
+  summary: AdminQueryTrace;
+  spans: AdminTraceSpan[];
+};
+
 export type AdminQueryToolCall = {
   tool_call_id: number | null;
   agent_run_id: number | null;
@@ -497,6 +527,11 @@ export async function loadAdminQuery<T>(resource: string, params: AdminQueryPara
   if (params.sort) search.set('sort', params.sort);
   if (params.direction) search.set('direction', params.direction);
   return apiRequest<AdminOperationalQueryResponse<T>>(`/api/admin/queries/${resource}?${search.toString()}`);
+}
+
+export async function loadAdminTraceDetail(traceId: string): Promise<AdminTraceDetail> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  return apiRequest<AdminTraceDetail>(`/api/admin/queries/traces/${encodeURIComponent(traceId)}`);
 }
 
 type AdminDeletedQueryItem = {

@@ -1,9 +1,10 @@
+import os
 import sys
 from types import ModuleType, SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
 from knowledge_worker import KnowledgeIndexWorker, _MemoryCompletionStore
-from knowledge_rag import DeterministicEmbedder, RagError, RagSettings
+from knowledge_rag import DeletionResult, DeterministicEmbedder, EmbeddingResult, RagError, RagSettings
 
 
 class _VectorIndex:
@@ -19,8 +20,25 @@ class _VectorIndex:
 
     def delete_document(self, document_id, version):
         self.deleted.append((document_id, version))
+        return DeletionResult("test", 1, True)
+
+
+class _UsageEmbedder:
+    def embed_with_usage(self, inputs):
+        return EmbeddingResult([[1.0, 0.0] for _ in inputs], 17, "embedding-request-1")
 
 class KnowledgeIndexWorkerTests(TestCase):
+    def test_runtime_stub_uses_configured_redis_namespace(self):
+        settings = RagSettings.from_environment(
+            {
+                "FOODMATE_RAG_MODE": "stub",
+                "FOODMATE_RAG_STUB_REDIS_PREFIX": "foodmate:test:rag",
+            }
+        )
+        worker = KnowledgeIndexWorker(settings=settings)
+
+        self.assertEqual("foodmate:test:rag", worker.stub.prefix)
+
     def test_stub_indexes_one_document_once(self):
         published = []
         worker = KnowledgeIndexWorker(lambda _: ("guide.md", b"# Protein\nProtein supports recovery."), published.append, RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))
@@ -143,6 +161,47 @@ class KnowledgeIndexWorkerTests(TestCase):
         self.assertEqual(1, len(index.rows))
         self.assertEqual(16, len(index.rows[0][2][0]))
 
+    def test_local_provider_usage_overrides_estimate_and_reconciles_budget(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="openai-compatible",
+            embedding_model="BAAI/bge-m3",
+            milvus_uri="http://milvus",
+            milvus_collection="knowledge",
+            batch_token_limit=100,
+            daily_token_limit=100,
+            batch_cost_limit=1,
+            daily_cost_limit=1,
+            price_per_million_tokens=2,
+            price_version="siliconflow-test-v1",
+        )
+        index = _VectorIndex()
+        published = []
+        worker = KnowledgeIndexWorker(
+            lambda _: ("guide.md", b"# Recovery\nProtein supports recovery."),
+            published.append,
+            settings,
+            completed_store=_MemoryCompletionStore(),
+            embedder=_UsageEmbedder(),
+            milvus_index=index,
+        )
+
+        result = worker.handle_index(
+            {
+                "item_id": "i-usage",
+                "document_id": "d-usage",
+                "version": "v1",
+                "mode": "local",
+            }
+        )
+
+        self.assertEqual("indexed", result["status"])
+        self.assertEqual(17, result["token_count"])
+        self.assertEqual("provider", result["usage_source"])
+        self.assertEqual("embedding-request-1", result["provider_request_id"])
+        self.assertEqual("0.00003400", result["cost_amount"])
+        self.assertEqual("17", worker.completed.get(worker._daily_key("tokens")))
+
     def test_visibility_requires_version_and_public_scope(self):
         worker = KnowledgeIndexWorker(lambda _: ("guide.md", b"Protein supports recovery."), settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))
 
@@ -164,19 +223,23 @@ class KnowledgeIndexWorkerTests(TestCase):
         )
 
         first = worker.handle_purge(
-            {"task_id": 71, "document_id": "d1", "version": "v2"},
+            {"task_id": 71, "request_id": 9, "document_id": "42", "version": "v2"},
             result_publisher=purge_published.append,
         )
         second = worker.handle_purge(
-            {"task_id": 71, "document_id": "d1", "version": "v2"},
+            {"task_id": 71, "request_id": 9, "document_id": "42", "version": "v2"},
             result_publisher=purge_published.append,
         )
 
         self.assertEqual("succeeded", first["status"])
         self.assertTrue(second["duplicate"])
-        self.assertEqual([("d1", "v2")], index.deleted)
+        self.assertEqual([("42", "v2")], index.deleted)
         self.assertEqual([], index_published)
         self.assertEqual(2, len(purge_published))
+        self.assertEqual(9, first["request_id"])
+        self.assertEqual(42, first["resource_id"])
+        self.assertEqual("vector_index", first["task_type"])
+        self.assertTrue(first["verified_absent"])
 
     def test_purge_failure_is_published_with_a_stable_error_code(self):
         class FailingIndex(_VectorIndex):
@@ -192,12 +255,35 @@ class KnowledgeIndexWorkerTests(TestCase):
         )
 
         result = worker.handle_purge(
-            {"task_id": 72, "document_id": "d1", "version": "v1"}
+            {"task_id": 72, "request_id": 9, "document_id": "42", "version": "v1"}
         )
 
         self.assertEqual("failed", result["status"])
         self.assertEqual("RAG_MILVUS_DELETE_FAILED", result["error_code"])
         self.assertEqual("backend unavailable", result["error_summary"])
+
+    def test_purge_rejects_a_backend_without_a_structured_result_fact(self):
+        class IncompleteIndex(_VectorIndex):
+            def delete_document(self, _document_id, _version):
+                self.deleted.append((_document_id, _version))
+                return None
+
+        published = []
+        worker = KnowledgeIndexWorker(
+            result_publisher=published.append,
+            settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}),
+            stub_index=IncompleteIndex(),
+            completed_store=_MemoryCompletionStore(),
+        )
+
+        result = worker.handle_purge(
+            {"task_id": 75, "request_id": 9, "document_id": "42", "version": "v1"}
+        )
+
+        self.assertEqual("failed", result["status"])
+        self.assertEqual("RAG_PURGE_RESULT_INVALID", result["error_code"])
+        self.assertFalse(result["verified_absent"])
+        self.assertEqual(1, len(published))
 
     def test_unexpected_purge_failure_is_converted_to_a_stable_error(self):
         class FailingIndex(_VectorIndex):
@@ -212,7 +298,7 @@ class KnowledgeIndexWorkerTests(TestCase):
             completed_store=_MemoryCompletionStore(),
         )
 
-        result = worker.handle_purge({"task_id": 74, "document_id": "d1", "version": "v1"})
+        result = worker.handle_purge({"task_id": 74, "request_id": 9, "document_id": "42", "version": "v1"})
 
         self.assertEqual("failed", result["status"])
         self.assertEqual("RAG_PURGE_EXECUTION_FAILED", result["error_code"])
@@ -226,7 +312,7 @@ class KnowledgeIndexWorkerTests(TestCase):
         )
 
         with self.assertRaisesRegex(RagError, "task id is invalid") as raised:
-            worker.handle_purge({"task_id": "bad", "document_id": "d1", "version": "v1"})
+            worker.handle_purge({"task_id": "bad", "request_id": 9, "document_id": "42", "version": "v1"})
 
         self.assertEqual("RAG_PURGE_CONTRACT_INVALID", raised.exception.code)
 
@@ -236,10 +322,10 @@ class KnowledgeIndexWorkerTests(TestCase):
             stub_index=_VectorIndex(),
             completed_store=_MemoryCompletionStore(),
         )
-        worker.handle_purge({"task_id": 73, "document_id": "d1", "version": "v1"})
+        worker.handle_purge({"task_id": 73, "request_id": 9, "document_id": "42", "version": "v1"})
 
         with self.assertRaisesRegex(RagError, "completed fact") as raised:
-            worker.handle_purge({"task_id": 73, "document_id": "d2", "version": "v1"})
+            worker.handle_purge({"task_id": 73, "request_id": 9, "document_id": "43", "version": "v1"})
 
         self.assertEqual("RAG_PURGE_IDEMPOTENCY_CONFLICT", raised.exception.code)
 
@@ -270,3 +356,58 @@ class KnowledgeIndexWorkerTests(TestCase):
 
         self.assertEqual(3, len(consumers))
         self.assertEqual(3, len(FakeConsumer.instances))
+
+    def test_rocketmq_worker_can_disable_each_consumer_independently(self):
+        from knowledge_worker import start_rocketmq_worker
+
+        with patch.dict(
+            os.environ,
+            {
+                "FOODMATE_KNOWLEDGE_INDEX_CONSUMER_ENABLED": "false",
+                "FOODMATE_KNOWLEDGE_VISIBILITY_CONSUMER_ENABLED": "false",
+                "FOODMATE_KNOWLEDGE_PURGE_CONSUMER_ENABLED": "false",
+            },
+            clear=False,
+        ):
+            consumers = start_rocketmq_worker()
+
+        self.assertEqual((None, None, None), consumers)
+
+    def test_stub_worker_start_does_not_probe_milvus(self):
+        from knowledge_worker import wait_for_milvus_ready
+
+        with patch("knowledge_worker.urlopen", side_effect=AssertionError("stub must not probe Milvus")):
+            wait_for_milvus_ready(RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}))
+
+    def test_local_worker_waits_for_milvus_health_before_starting(self):
+        from knowledge_worker import wait_for_milvus_ready
+
+        settings = RagSettings.from_environment(
+            {
+                "FOODMATE_RAG_MODE": "local",
+                "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+                "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+                "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+                "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+                "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+                "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+            }
+        )
+
+        class ReadyResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+        with patch("knowledge_worker.urlopen", return_value=ReadyResponse()) as probe:
+            wait_for_milvus_ready(settings)
+
+        probe.assert_called_once()
+        self.assertEqual("http://milvus:9091/healthz", probe.call_args.args[0])

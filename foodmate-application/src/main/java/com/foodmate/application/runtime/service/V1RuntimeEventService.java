@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.foodmate.shared.runtime.V1RunEvent;
 import java.util.List;
 
-/** Validates, persists, and exposes acknowledged V1 runtime events. */
+/** 校验、持久化并提供已确认的 V1 Runtime 事件。 */
 public interface V1RuntimeEventService {
     EventResult accept(V1RunEvent event);
 

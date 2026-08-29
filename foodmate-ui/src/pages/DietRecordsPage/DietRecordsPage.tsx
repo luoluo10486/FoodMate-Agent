@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, Utensils } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Trash2,
+  Utensils,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,7 +23,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { DEFAULT_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { createFoodLog, deleteFoodLog, loadFoodLogs, type FoodLog } from '../../services/foodLogService';
+import {
+  createFoodLog,
+  deleteFoodLog,
+  loadDeletedFoodLogs,
+  loadFoodLogs,
+  restoreFoodLog,
+  updateFoodLog,
+  type FoodLog,
+} from '../../services/foodLogService';
 import type { SessionSummary } from '../../types/session';
 import styles from './DietRecordsPage.module.css';
 
@@ -133,6 +151,47 @@ function shiftDate(date: Date, amount: number) {
   return next;
 }
 
+function startOfWeek(date: Date) {
+  const start = new Date(date);
+  const mondayOffset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - mondayOffset);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function weekWindow(date: Date) {
+  const from = startOfWeek(date);
+  const to = shiftDate(from, 7);
+  return { from: from.toISOString(), to: to.toISOString() };
+}
+
+function sameLocalDate(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
+function formatWeekLabel(date: Date) {
+  const from = startOfWeek(date);
+  const to = shiftDate(from, 6);
+  return `${from.getMonth() + 1}月${from.getDate()}日 - ${to.getMonth() + 1}月${to.getDate()}日`;
+}
+
+type WeekDay = { date: Date; meals: MealSection[] };
+
+function mapWeekLogs(logs: FoodLog[], date: Date): WeekDay[] {
+  const from = startOfWeek(date);
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = shiftDate(from, index);
+    return {
+      date: day,
+      meals: mapFoodLogs(logs.filter((log) => sameLocalDate(new Date(log.meal_time), day))),
+    };
+  });
+}
+
 function ProgressRing({ percentage, tone }: { percentage: number; tone: Metric['tone'] }) {
   const style = { '--progress': percentage } as CSSProperties;
   return (
@@ -239,7 +298,16 @@ export function DietRecordsPage() {
   const [realError, setRealError] = useState<string>();
   const [realReloadNonce, setRealReloadNonce] = useState(0);
   const [dialogMealId, setDialogMealId] = useState<MealSection['id']>();
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
+  const [editingLogId, setEditingLogId] = useState<string>();
+  const [dialogDate, setDialogDate] = useState(selectedDate);
   const [foodName, setFoodName] = useState('');
+  const [foodAmount, setFoodAmount] = useState('1');
+  const [foodUnit, setFoodUnit] = useState('份');
+  const [deletedLogs, setDeletedLogs] = useState<FoodLog[]>([]);
+  const [deletedLoading, setDeletedLoading] = useState(false);
+  const [deletedError, setDeletedError] = useState<string>();
+  const [showDeleted, setShowDeleted] = useState(false);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -249,7 +317,7 @@ export function DietRecordsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
-    const window = dayWindow(selectedDate);
+    const window = view === 'week' ? weekWindow(selectedDate) : dayWindow(selectedDate);
     loadFoodLogs(window.from, window.to)
       .then((logs) => {
         if (!active) return;
@@ -268,29 +336,80 @@ export function DietRecordsPage() {
     return () => {
       active = false;
     };
-  }, [isRealMode, realReloadNonce, selectedDate]);
+  }, [isRealMode, realReloadNonce, selectedDate, view]);
 
   const selectedMeal = useMemo(() => meals.find((meal) => meal.id === dialogMealId), [dialogMealId, meals]);
+  const weekDays = useMemo(() => mapWeekLogs(realLogs, selectedDate), [realLogs, selectedDate]);
 
-  const openFoodDialog = (mealId: MealSection['id']) => {
+  const openFoodDialog = (mealId: MealSection['id'], date = selectedDate) => {
+    setDialogMode('create');
+    setEditingLogId(undefined);
     setDialogMealId(mealId);
+    setDialogDate(date);
     setFoodName('');
+    setFoodAmount('1');
+    setFoodUnit('份');
+  };
+
+  const openEditDialog = (logId: string) => {
+    const log = realLogs.find((candidate) => candidate.food_log_id === logId);
+    const firstItem = log?.items[0];
+    if (!log || !firstItem) return;
+    setDialogMode('edit');
+    setEditingLogId(log.food_log_id);
+    setDialogMealId(log.meal_type as MealSection['id']);
+    setFoodName(firstItem.raw_name);
+    setFoodAmount(String(firstItem.amount));
+    setFoodUnit(firstItem.unit);
   };
 
   const closeFoodDialog = () => {
     setDialogMealId(undefined);
+    setDialogMode('create');
+    setEditingLogId(undefined);
     setFoodName('');
+    setFoodAmount('1');
+    setFoodUnit('份');
   };
 
   const addFood = () => {
     const name = foodName.trim();
     if (!name || !dialogMealId) return;
+    const amount = Number(foodAmount);
+    const unit = foodUnit.trim();
+    if (!Number.isFinite(amount) || amount <= 0 || !unit) {
+      setNotice('请填写有效的份量和单位。');
+      return;
+    }
 
     if (isRealMode) {
+      if (dialogMode === 'edit' && editingLogId) {
+        const current = realLogs.find((log) => log.food_log_id === editingLogId);
+        if (!current || current.items.length === 0) return;
+        void updateFoodLog(editingLogId, current.revision, {
+          meal_time: current.meal_time,
+          meal_type: current.meal_type,
+          notes: current.notes ?? undefined,
+          items: current.items.map((item, index) =>
+            index === 0
+              ? { raw_name: name, amount, unit }
+              : { raw_name: item.raw_name, amount: asNumber(item.amount), unit: item.unit },
+          ),
+        })
+          .then((updated) => {
+            const nextLogs = realLogs.map((log) => (log.food_log_id === updated.food_log_id ? updated : log));
+            setRealLogs(nextLogs);
+            setMeals(mapFoodLogs(nextLogs));
+            setNotice(`${name} 已更新。`);
+            closeFoodDialog();
+          })
+          .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录更新失败'));
+        return;
+      }
       void createFoodLog({
-        meal_time: new Date(selectedDate).toISOString(),
+        meal_time: new Date(dialogDate).toISOString(),
         meal_type: dialogMealId,
-        items: [{ raw_name: name, amount: 1, unit: '份' }],
+        items: [{ raw_name: name, amount, unit }],
       })
         .then((created) => {
           setRealLogs((current) => [...current, created]);
@@ -348,6 +467,28 @@ export function DietRecordsPage() {
     setNotice(`${foodNameToRemove} 已从当前记录移除。`);
   };
 
+  const toggleDeleted = () => {
+    const nextVisible = !showDeleted;
+    setShowDeleted(nextVisible);
+    if (!nextVisible || deletedLogs.length > 0 || deletedLoading) return;
+    setDeletedLoading(true);
+    setDeletedError(undefined);
+    void loadDeletedFoodLogs()
+      .then(setDeletedLogs)
+      .catch((cause) => setDeletedError(cause instanceof Error ? cause.message : '已删除记录加载失败'))
+      .finally(() => setDeletedLoading(false));
+  };
+
+  const restoreDeleted = (log: FoodLog) => {
+    void restoreFoodLog(log.food_log_id, log.revision)
+      .then(() => {
+        setDeletedLogs((current) => current.filter((item) => item.food_log_id !== log.food_log_id));
+        setRealReloadNonce((current) => current + 1);
+        setNotice(`${log.items[0]?.raw_name ?? '饮食记录'} 已恢复。`);
+      })
+      .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录恢复失败'));
+  };
+
   const reloadRecords = () => {
     if (isRealMode) {
       setRealReloadNonce((current) => current + 1);
@@ -369,6 +510,70 @@ export function DietRecordsPage() {
     : recordsState;
   const recordMetrics = isRealMode ? realMetrics(realLogs) : recordsState === 'empty' ? emptyMetrics : metrics;
 
+  const renderMealCard = (meal: MealSection, date = selectedDate) => (
+    <article className={styles.mealCard} key={meal.id}>
+      <header className={styles.mealHeader}>
+        <div className={styles.mealHeading}>
+          <h2>
+            {meal.icon} {meal.title}
+          </h2>
+          <span>{meal.time}</span>
+        </div>
+        <Button
+          className={styles.addFoodButton}
+          variant="ghost"
+          type="button"
+          onClick={() => openFoodDialog(meal.id, date)}
+        >
+          + 添加食物
+        </Button>
+      </header>
+      <div className={styles.foodList}>
+        {meal.items.map((item) => (
+          <div className={styles.foodRow} key={item.id}>
+            <div className={styles.foodName}>
+              <strong>{item.name}</strong>
+              <span className={item.status === 'confirmed' ? styles.confirmed : styles.pending}>
+                {item.status === 'confirmed' ? '已确认' : '待确认'}
+              </span>
+            </div>
+            <div className={styles.foodMeta}>
+              <div className={styles.macroTags} aria-label="营养素">
+                <span className={styles.carb}>{item.carbs}</span>
+                <span className={styles.protein}>{item.protein}</span>
+                <span className={styles.fat}>{item.fat}</span>
+              </div>
+              {isRealMode && item.logId ? (
+                <Button
+                  className={styles.iconAction}
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  aria-label={`编辑${item.name}所在记录`}
+                  title={`编辑${item.name}所在记录`}
+                  onClick={() => openEditDialog(item.logId as string)}
+                >
+                  <Pencil aria-hidden="true" />
+                </Button>
+              ) : null}
+              <Button
+                className={styles.removeButton}
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label={`删除${item.name}${isRealMode ? '所在记录' : ''}`}
+                title={`删除${item.name}${isRealMode ? '所在记录' : ''}`}
+                onClick={() => removeFood(meal.id, item.id, item.name)}
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+
   return (
     <WorkspaceLayout
       activeModule="records"
@@ -388,14 +593,18 @@ export function DietRecordsPage() {
                 variant="ghost"
                 size="icon"
                 aria-label="前一天"
-                onClick={() => setSelectedDate((current) => shiftDate(current, -1))}
+                onClick={() => setSelectedDate((current) => shiftDate(current, view === 'week' ? -7 : -1))}
               >
                 <ChevronLeft aria-hidden="true" />
               </Button>
-              <Button className={styles.dateLabel} variant="ghost" onClick={() => setSelectedDate(initialDate)}>
+              <Button
+                className={styles.dateLabel}
+                variant="ghost"
+                onClick={() => setSelectedDate(isRealMode ? new Date() : initialDate)}
+              >
                 {view === 'week'
                   ? isRealMode
-                    ? '周视图暂未接入'
+                    ? formatWeekLabel(selectedDate)
                     : '本周，3月11日 - 3月17日'
                   : formatDateLabel(selectedDate, isRealMode)}
               </Button>
@@ -404,7 +613,7 @@ export function DietRecordsPage() {
                 variant="ghost"
                 size="icon"
                 aria-label="后一天"
-                onClick={() => setSelectedDate((current) => shiftDate(current, 1))}
+                onClick={() => setSelectedDate((current) => shiftDate(current, view === 'week' ? 7 : 1))}
               >
                 <ChevronRight aria-hidden="true" />
               </Button>
@@ -427,7 +636,6 @@ export function DietRecordsPage() {
                 role="tab"
                 aria-selected={view === 'week'}
                 onClick={() => setView('week')}
-                disabled={isRealMode}
               >
                 周视图
               </Button>
@@ -516,8 +724,8 @@ export function DietRecordsPage() {
                     <Utensils aria-hidden="true" />
                   </div>
                   <div className={styles.stateCopy}>
-                    <h2>今天还没有饮食记录</h2>
-                    <p>点击下方按钮记录你的第一餐</p>
+                    <h2>{view === 'week' ? '本周还没有饮食记录' : '今天还没有饮食记录'}</h2>
+                    <p>{view === 'week' ? '选择一个日期或记录一餐，开始建立饮食记录' : '点击下方按钮记录你的第一餐'}</p>
                   </div>
                   <Button className={styles.stateAction} onClick={() => openFoodDialog('breakfast')}>
                     <Plus aria-hidden="true" />
@@ -526,75 +734,103 @@ export function DietRecordsPage() {
                 </section>
               ) : (
                 <section className={styles.meals} aria-label="餐次记录">
-                  {meals.map((meal) => (
-                    <article className={styles.mealCard} key={meal.id}>
-                      <header className={styles.mealHeader}>
-                        <div className={styles.mealHeading}>
-                          <h2>
-                            {meal.icon} {meal.title}
-                          </h2>
-                          <span>{meal.time}</span>
-                        </div>
-                        <Button
-                          className={styles.addFoodButton}
-                          variant="ghost"
-                          type="button"
-                          onClick={() => openFoodDialog(meal.id)}
-                        >
-                          + 添加食物
-                        </Button>
-                      </header>
-                      <div className={styles.foodList}>
-                        {meal.items.map((item) => (
-                          <div className={styles.foodRow} key={item.id}>
-                            <div className={styles.foodName}>
-                              <strong>{item.name}</strong>
-                              <span className={item.status === 'confirmed' ? styles.confirmed : styles.pending}>
-                                {item.status === 'confirmed' ? '已确认' : '待确认'}
-                              </span>
-                            </div>
-                            <div className={styles.foodMeta}>
-                              <div className={styles.macroTags} aria-label="营养素">
-                                <span className={styles.carb}>{item.carbs}</span>
-                                <span className={styles.protein}>{item.protein}</span>
-                                <span className={styles.fat}>{item.fat}</span>
-                              </div>
-                              <Button
-                                className={styles.removeButton}
-                                variant="ghost"
-                                size="icon"
-                                type="button"
-                                aria-label={`删除${item.name}${isRealMode ? '所在记录' : ''}`}
-                                title={`删除${item.name}${isRealMode ? '所在记录' : ''}`}
-                                onClick={() => removeFood(meal.id, item.id, item.name)}
-                              >
-                                <Trash2 aria-hidden="true" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </article>
-                  ))}
+                  {isRealMode && view === 'week'
+                    ? weekDays.map((day) => (
+                        <section className={styles.weekDay} key={day.date.toISOString()} aria-label="周视图日期">
+                          <header className={styles.weekDayHeader}>
+                            <h2>{day.date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}</h2>
+                            <span>{sameLocalDate(day.date, new Date()) ? '今天' : ''}</span>
+                          </header>
+                          {day.meals.length > 0 ? (
+                            day.meals.map((meal) => renderMealCard(meal, day.date))
+                          ) : (
+                            <p className={styles.weekDayEmpty}>暂无记录</p>
+                          )}
+                        </section>
+                      ))
+                    : meals.map((meal) => renderMealCard(meal, selectedDate))}
                 </section>
               )}
             </>
           )}
         </section>
 
-        {visibleState === 'default' && !isFigmaFixture ? (
+        {(visibleState === 'default' || visibleState === 'empty') && !isFigmaFixture ? (
           <section className={styles.recordsActions} aria-label="饮食记录操作">
-            <Button className={styles.logMealButton} type="button" onClick={() => openFoodDialog('breakfast')}>
-              记录一餐
-            </Button>
-            <Button
-              className={styles.analyzeDayButton}
-              variant="outline"
-              type="button"
-              onClick={() => navigate('/analysis')}
-            >
-              分析这一天
-            </Button>
+            {visibleState === 'default' ? (
+              <>
+                <Button className={styles.logMealButton} type="button" onClick={() => openFoodDialog('breakfast')}>
+                  记录一餐
+                </Button>
+                <Button
+                  className={styles.analyzeDayButton}
+                  variant="outline"
+                  type="button"
+                  onClick={() => navigate('/analysis')}
+                >
+                  分析这一天
+                </Button>
+              </>
+            ) : null}
+            {isRealMode ? (
+              <Button
+                className={styles.deletedButton}
+                variant="outline"
+                type="button"
+                aria-expanded={showDeleted}
+                onClick={toggleDeleted}
+              >
+                <RotateCcw aria-hidden="true" />
+                {showDeleted ? '收起已删除' : '已删除记录'}
+              </Button>
+            ) : null}
+          </section>
+        ) : null}
+
+        {isRealMode && showDeleted ? (
+          <section className={styles.deletedPanel} aria-label="已删除饮食记录">
+            <header className={styles.deletedHeader}>
+              <div>
+                <h2>已删除记录</h2>
+                <p>恢复后记录会回到原来的用餐日期。</p>
+              </div>
+              <RotateCcw aria-hidden="true" />
+            </header>
+            {deletedLoading ? <p className={styles.deletedState}>正在加载已删除记录…</p> : null}
+            {deletedError ? (
+              <p className={styles.deletedState} role="alert">
+                {deletedError}
+              </p>
+            ) : null}
+            {!deletedLoading && !deletedError && deletedLogs.length === 0 ? (
+              <p className={styles.deletedState}>暂无可恢复记录。</p>
+            ) : null}
+            <div className={styles.deletedList}>
+              {deletedLogs.map((log) => (
+                <div className={styles.deletedRow} key={log.food_log_id}>
+                  <div>
+                    <strong>{log.items.map((item) => item.raw_name).join('、')}</strong>
+                    <span>
+                      {new Date(log.meal_time).toLocaleString('zh-CN', {
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => restoreDeleted(log)}
+                    aria-label={`恢复${log.items[0]?.raw_name ?? '饮食记录'}`}
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    恢复
+                  </Button>
+                </div>
+              ))}
+            </div>
           </section>
         ) : null}
 
@@ -633,24 +869,44 @@ export function DietRecordsPage() {
       <Dialog open={Boolean(dialogMealId)} onOpenChange={(open) => !open && closeFoodDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>添加食物</DialogTitle>
-            <DialogDescription>添加到 {selectedMeal?.title ?? '当前餐次'}，营养值将在确认后估算。</DialogDescription>
+            <DialogTitle>{dialogMode === 'edit' ? '编辑饮食记录' : '添加食物'}</DialogTitle>
+            <DialogDescription>
+              {dialogMode === 'edit'
+                ? '只修改当前记录的第一项食物，其余明细会保留。'
+                : `添加到 ${selectedMeal?.title ?? '当前餐次'}，营养值将在确认后估算。`}
+            </DialogDescription>
           </DialogHeader>
           <Input
             autoFocus
             placeholder="例如：煮鸡蛋 2 个"
+            aria-label="食物名称"
             value={foodName}
             onChange={(event) => setFoodName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') addFood();
             }}
           />
+          <Input
+            type="number"
+            min="0.001"
+            step="0.001"
+            placeholder="份量"
+            aria-label="食物份量"
+            value={foodAmount}
+            onChange={(event) => setFoodAmount(event.target.value)}
+          />
+          <Input
+            placeholder="单位，例如：份、克"
+            aria-label="食物单位"
+            value={foodUnit}
+            onChange={(event) => setFoodUnit(event.target.value)}
+          />
           <DialogFooter>
             <Button variant="outline" onClick={closeFoodDialog}>
               取消
             </Button>
-            <Button onClick={addFood} disabled={!foodName.trim()}>
-              添加
+            <Button onClick={addFood} disabled={!foodName.trim() || !foodAmount.trim() || !foodUnit.trim()}>
+              {dialogMode === 'edit' ? '保存' : '添加'}
             </Button>
           </DialogFooter>
         </DialogContent>

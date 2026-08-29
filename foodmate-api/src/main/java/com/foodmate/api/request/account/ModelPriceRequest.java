@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+/** 模型供应商价格写入请求参数。 */
 public record ModelPriceRequest(
         @NotBlank String providerCode,
         @NotBlank String modelName,

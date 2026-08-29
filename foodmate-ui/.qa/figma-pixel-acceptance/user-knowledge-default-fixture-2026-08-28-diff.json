@@ -1,0 +1,38 @@
+{
+  "status": "COMPARED",
+  "width": 1180,
+  "height": 1024,
+  "pixelCount": 1208320,
+  "differentPixels": 602480,
+  "differentRatio": 0.4986096398305085,
+  "meanAbsoluteError": 3.2237737106064617,
+  "rmse": 14.184857201833262,
+  "maxChannelDelta": 242,
+  "expected": "recaptured/user-knowledge-default-fixture-figma-white-2026-08-28.png",
+  "actual": "recaptured/user-knowledge-default-fixture-browser-content-2026-08-28.png",
+  "browserViewport": "1440x1024",
+  "contentCrop": {
+    "x": 260,
+    "y": 0,
+    "width": 1180,
+    "height": 1024
+  },
+  "actualDpr": 1.25,
+  "dprPass": false,
+  "geometry": {
+    "bodyHorizontalOverflow": false,
+    "topbarMarkText": "",
+    "sidebarMarkText": "F",
+    "topKnowledgeNav": true,
+    "windowControls": 0,
+    "trafficLightColors": 0
+  },
+  "conclusion": "DIFF_REVIEW",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-28",
+    "conclusion": "Default Knowledge fixture data and the topbar mark treatment now match the Figma fixture contract. The strict DPR 1 gate is not met and the normalized screenshot still has whole-page rasterization differences, so this evidence is not eligible for PASS."
+  },
+  "note": "Figma get_screenshot(contentsOnly=true) returns the 1180px main area; browser evidence was cropped from x=260 after the full 1440px viewport capture. The Figma reference was composited onto white before running scripts/png-diff.mjs."
+}

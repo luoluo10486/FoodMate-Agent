@@ -201,6 +201,19 @@ describe('ChatPage Agent remaining states', () => {
     );
   };
 
+  it('renders the completed citation fixture without the trace rail', () => {
+    renderState('completed-with-citations');
+    expect(screen.getByText('分析我这周的蛋白质摄入')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '本周蛋白质摄入分析' })).toBeInTheDocument();
+    expect(screen.getByText('85g')).toBeInTheDocument();
+    expect(screen.getByText('78%')).toBeInTheDocument();
+    expect(screen.getByText('周三 62g')).toBeInTheDocument();
+    expect(screen.getByText('[1] USDA FoodData Central - Ref #4451002')).toBeInTheDocument();
+    expect(screen.getByText('[2] 用户饮食记录 2024-03-08~03-14')).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: '运行轨迹' })).not.toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
+  });
+
   it('renders write confirmation details and records confirm/cancel actions', () => {
     renderState('write-confirmation');
     expect(screen.getByRole('heading', { name: '确认写入以下记录' })).toBeInTheDocument();
@@ -208,6 +221,10 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('来源: USDA FoodData Central')).toBeInTheDocument();
     expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    const writeCard = document.querySelector('[class*="fixtureWriteCard"]');
+    expect(writeCard).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认写入' }).querySelector('svg')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '取消' }).querySelector('svg')).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '确认写入' }));
     expect(screen.getByRole('status')).toHaveTextContent('fixture 已记录确认动作');
@@ -219,6 +236,11 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText(/我已在后台调用历史数据解析服务/)).toBeInTheDocument();
     expect(screen.getByText('Token 用量 (100%)')).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: '预算用量 100%' })).toHaveAttribute('aria-valuenow', '100');
+    expect(document.querySelector('[class*="fixtureBudgetMeter"]')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '追加 20,000 tokens' }).className).toContain(
+      'fixtureBudgetPrimaryButton',
+    );
+    expect(screen.getByRole('button', { name: '结束会话' }).className).toContain('fixtureBudgetSecondaryButton');
     fireEvent.click(screen.getByRole('button', { name: '追加 20,000 tokens' }));
     expect(screen.getByRole('status')).toHaveTextContent('当前 Run');
   });
@@ -227,6 +249,10 @@ describe('ChatPage Agent remaining states', () => {
     renderState('tool-failed-retryable');
     expect(screen.getByText('数据库查询超时 (错误码: TOOL_TIMEOUT_001)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureFailureDetails"]')).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureFailureCard"]')?.className).toContain('fixtureFailureCard');
+    expect(screen.getByRole('button', { name: '重试' }).className).toContain('fixtureRetryButton');
+    expect(screen.getByRole('button', { name: '跳过此步骤' }).className).toContain('fixtureSkipButton');
     expect(document.querySelector('[class*="fixtureAgentAvatar"]')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Executing×');
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Composing○');
@@ -397,6 +423,7 @@ describe('ChatPage Figma navigation fixtures', () => {
     expect(screen.queryByText('查询扩展 (Query Expansion)')).not.toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '消息操作' })).toBeInTheDocument();
+    expect(screen.getByText(/右侧面板：运行 · 工具 · 引用/)).toBeInTheDocument();
   });
 
   it.each(['nav-loading', 'nav-hover-preview', 'pagination'])(

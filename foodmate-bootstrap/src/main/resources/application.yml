@@ -36,6 +36,11 @@ spring:
 server:
   port: 8080
 
+logging:
+  structured:
+    format:
+      console: ecs
+
 management:
   endpoints:
     web:
@@ -79,8 +84,13 @@ foodmate:
       enabled: ${RUNTIME_SERVICE_JWT_ENABLED:true}
       java-private-key: ${RUNTIME_JAVA_PRIVATE_KEY:}
       java-public-key: ${RUNTIME_JAVA_PUBLIC_KEY:}
+      # Rotation format: kid=base64-x509-public-key,kid2=base64-x509-public-key.
+      # Keep the old single-key properties during the overlap window.
+      java-public-keys: ${RUNTIME_JAVA_PUBLIC_KEYS:}
       java-kid: ${RUNTIME_JAVA_KID:}
       python-public-key: ${RUNTIME_PYTHON_PUBLIC_KEY:}
+      python-public-keys: ${RUNTIME_PYTHON_PUBLIC_KEYS:}
+      python-kid: ${RUNTIME_PYTHON_KID:}
   model:
     default-chat-model: qwen-plus
     default-embed-model: text-embedding-v4

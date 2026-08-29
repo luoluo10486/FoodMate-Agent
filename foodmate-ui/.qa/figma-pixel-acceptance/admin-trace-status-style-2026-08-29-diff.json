@@ -1,0 +1,44 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 365602,
+  "differentRatio": 0.24793972439236112,
+  "meanAbsoluteError": 2.713446553548177,
+  "rmse": 15.377519453839836,
+  "maxChannelDelta": 230,
+  "expected": "recaptured/admin-trace-figma-live-2026-08-29.png",
+  "actual": "recaptured/admin-trace-status-style-browser-2026-08-29-rgba.png",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "geometry": {
+    "toolbar": "1132x34 at x=284,y=88",
+    "runIdFilter": "180x32 at x=284,y=89",
+    "search": "663.375x32 at x=476,y=89",
+    "failedFilter": "64.1875x25 at x=1151.375,y=92.5",
+    "successFilter": "72.4375x25 at x=1227.5625,y=92.5",
+    "degradedFilter": "104x34 at x=1312,y=88",
+    "tracePanel": "1132x162 at y=257",
+    "traceCards": "4 x 261x87",
+    "detailPanel": "1132x300 at y=454",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "computedStyle": {
+    "failedFilterColor": "rgb(214, 118, 118)",
+    "successFilterColor": "rgb(137, 178, 124)",
+    "stageColors": [
+      "rgb(93, 169, 178)",
+      "rgb(181, 140, 196)",
+      "rgb(199, 150, 84)",
+      "rgb(214, 118, 118)"
+    ],
+    "failedFilterFontSize": "11px",
+    "successFilterFontSize": "11px"
+  },
+  "visualChange": "依据 Figma 节点 797:704、797:705、797:706、797:707、797:741、797:747、797:753、797:759，将 Trace 筛选状态和四个时间线标题的颜色、字号及失败符号对齐；仅修改前端，未修改 Figma。",
+  "conclusion": "DIFF_REVIEW"
+}

@@ -940,3 +940,27 @@
 - [x] 浏览器 `1440×1024` 实测空态卡宽 `1116px`、内容区域 `1066.4×320px`；自动差异 `18.6046% / RMSE 15.8118`，继续保持 `DIFF_REVIEW`。
 - [x] 前端左上角红黄绿窗口装饰点核查结果为 `0`，不存在需要删除的对应代码；业务会话状态圆点保留，Figma 设计稿未修改。
 - [ ] 本项不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、后端闭环或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。
+
+## 46. 2026-08-28 摄入分析错误态重载按钮几何对齐
+
+- [x] Figma 节点 `692:2139` 的错误卡片重载按钮 `692:2238` 已核对为 `120×41px`，文本节点 `692:2239` 行盒为 `17px`；前端 Figma fixture 已按该尺寸实现。
+- [x] Figma fixture 错误卡片使用等效内描边，实测 `1116×440px`，图标容器 `64×64px`，描述 `238×17px`，按钮 `x=790,y=443`；前端左上角窗口装饰候选为 `0`，业务状态点保留，Figma 未修改。
+- [x] 同尺寸 diff 为 `12.8468% / MAE 2.00587 / RMSE 14.19979`，证据路径为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-error-browser-reload-button-2026-08-28-rgba.png`，状态继续为 `DIFF_REVIEW`。
+- [ ] in-app 浏览器实际 DPR 为 `1.25`，DPR 1 门禁和整页像素 `PASS` 仍未完成；iconfont 实体资源继续为 `BLOCKED`。
+
+## 47. 2026-08-28 餐食规划默认页计划横幅几何收口
+
+- [x] 依据实时 Figma 节点 `640:901` 核对计划横幅尺寸为 `776×97px`，重新生成和保存计划按钮尺寸均为 `88×37px`；前端仅调整 `PlanningPage.module.css`，未修改 Figma 设计稿。
+- [x] 横幅描边改用等效内描边，避免普通 `border` 改变内容盒尺寸；两个操作按钮增加固定宽度和 `box-sizing`，浏览器实测横幅 `776×97px`、按钮均为 `88×37px`。
+- [x] 浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-banner-geometry-browser-2026-08-28.png`，RGBA 归一化证据用于 diff；字体已加载，页面无横向溢出。
+- [x] 与 `recaptured-figma/meal-planning-v2-current.png` 的同尺寸 diff 为 `344235` 个差异像素、`23.3449%`、`MAE=2.40089`、`RMSE=13.73352`、最大通道差异 `234`，独立结果见 `foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-v2-banner-geometry-2026-08-28-diff.json`。
+- [x] 前端左上角红、黄、绿窗口装饰候选仍为 `0`，没有需要删除的对应代码；业务状态圆点保留，Figma 设计稿不改。
+- [ ] 当前采集实际 DPR 为 `1.25`，本条为补充几何证据，不能关闭该画板的 DPR 1 门禁或整页像素 `PASS`；105 张画板仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全量逐页迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
+
+## 48. 2026-08-28 Knowledge 默认态 fixture 与顶栏品牌块收口
+
+- [x] Knowledge 默认态 mock/Figma fixture 已固定使用 Figma 示例账号 `Anddy / 1234567`、默认会话列表和默认头像；真实模式不改变，仍只使用后端返回的用户与会话数据。
+- [x] 按实时 Figma 节点 `795:838` 核对顶栏品牌块为空、侧栏品牌标记保留 `F`；新增 `WorkspaceLayout.topbarShowMarkLetter`，Knowledge fixture 只隐藏顶栏字母，不关闭知识库顶部导航。
+- [x] 浏览器 `1440×1024` 实测无页面级横向溢出；顶栏知识库链接存在，左上角红、黄、绿窗口装饰候选为 `0`，没有修改 Figma 设计稿，也没有删除业务状态圆点。
+- [x] 已登记独立 Figma/浏览器截图、内容区裁剪图、白底归一化图和 diff JSON；同尺寸内容区 diff 为 `49.8610% / MAE 3.2238 / RMSE 14.1849`，结论保持 `DIFF_REVIEW`。
+- [x] Knowledge、WorkspaceLayout 定向测试共 `3` 个测试文件、`16/16` 通过；DPR `1.25` 不满足严格 DPR 1 门禁，因此不能将本项标记为像素级 `PASS`。

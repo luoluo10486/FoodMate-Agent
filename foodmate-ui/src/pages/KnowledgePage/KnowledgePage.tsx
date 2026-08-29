@@ -148,7 +148,7 @@ export function KnowledgePage() {
     sourceResults.find((item) => item.title === selectedResultTitle) ??
     sourceResults[0] ??
     (!isRealMode ? knowledgeResults[0] : undefined);
-  const isFigmaFixture = !isRealMode && knowledgeState !== 'default';
+  const isFigmaFixture = !isRealMode;
 
   const visibleResults = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -239,6 +239,7 @@ export function KnowledgePage() {
       sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
+      topbarShowMarkLetter={!isFigmaFixture}
       pageOverlay={
         displayedState !== 'default' ? (
           <KnowledgeStateCard
@@ -421,14 +422,14 @@ function KnowledgeStateCard({
       action: '清除筛选',
     },
     'search-failed': {
-      status: 'ERROR · SEARCH UNAVAILABLE',
+      status: 'ERROR · RETRY AVAILABLE',
       title: '检索失败',
       body: '知识库服务暂时不可用，当前没有返回结果。请稍后重试。',
       detail: '错误码: KB_SEARCH_UNAVAILABLE · request_id: req_kb_73e2',
       action: '重新检索',
     },
     'source-unavailable': {
-      status: 'PARTIAL · SOURCE UNAVAILABLE',
+      status: 'PARTIAL ACCESS',
       title: '来源暂时不可访问',
       body: '当前结果仍可查看匹配片段，但原始来源暂时无法打开。',
       detail: '来源状态: unavailable · 已保留引用与文档 ID',

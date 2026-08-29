@@ -35,6 +35,22 @@ class FoodLogServiceImplTest {
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     @Test
+    void listsOnlyDeletedRecordsFromRepository() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findDeleted(7L)).thenReturn(List.of(snapshot(true, 4)));
+
+        FoodLogService service = new FoodLogServiceImpl(repository, ids(100L), auditService());
+
+        List<FoodLogService.FoodLogView> result = service.listDeleted(7L);
+
+        assertEquals(1, result.size());
+        assertEquals(100L, result.getFirst().foodLogId());
+        assertEquals(4L, result.getFirst().revision());
+        assertEquals(true, result.getFirst().deleted());
+        verify(repository).findDeleted(7L);
+    }
+
+    @Test
     void createReplaysSuccessfulIdempotentRequest() throws Exception {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         FoodLogRepository.FoodLogSnapshot snapshot = snapshot(false, 1);

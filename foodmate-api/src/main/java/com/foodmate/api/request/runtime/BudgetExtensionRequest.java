@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 
+/** AgentRun 预算追加请求参数。 */
 public record BudgetExtensionRequest(
         @Min(1) int additionalTokens,
         @DecimalMin("0.0001") BigDecimal additionalCostCny,

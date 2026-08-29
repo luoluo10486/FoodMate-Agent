@@ -1,0 +1,24 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 344235,
+  "differentRatio": 0.23344930013020834,
+  "meanAbsoluteError": 2.400888909233941,
+  "rmse": 13.733520021373367,
+  "maxChannelDelta": 234,
+  "expected": "recaptured-figma/meal-planning-v2-current.png",
+  "actual": "recaptured/meal-planning-v2-banner-geometry-browser-2026-08-28-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "dprPass": false,
+  "geometry": {
+    "planBanner": "776x97",
+    "actionButtons": "88x37",
+    "bodyHorizontalOverflow": false,
+    "fonts": "loaded"
+  },
+  "conclusion": "DIFF_REVIEW",
+  "note": "Supplemental evidence for the front-end geometry correction; not eligible for PASS because the capture DPR is 1.25 and whole-page visual differences remain."
+}

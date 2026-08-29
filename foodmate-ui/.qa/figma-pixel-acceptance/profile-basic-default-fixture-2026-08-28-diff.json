@@ -1,0 +1,34 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 1001086,
+  "differentRatio": 0.6789048936631944,
+  "meanAbsoluteError": 4.876249694824219,
+  "rmse": 21.40682421976055,
+  "maxChannelDelta": 244,
+  "expected": "recaptured/profile-basic-figma-live-2026-08-28.png",
+  "actual": "recaptured/profile-basic-default-browser-2026-08-28-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "dprPass": false,
+  "geometry": {
+    "bodyHorizontalOverflow": false,
+    "windowControls": 0,
+    "fonts": "loaded"
+  },
+  "content": {
+    "displayName": "Anddy",
+    "username": "anddy_operator_9",
+    "profileId": "1234567",
+    "heightCm": 180,
+    "weightKg": 78,
+    "dietGoal": "精益增肌",
+    "calorieTarget": 2500,
+    "proteinTarget": 150,
+    "allergens": ["花生", "乳糖"]
+  },
+  "conclusion": "DIFF_REVIEW",
+  "note": "Supplemental evidence for the default mock Profile Figma fixture. The Figma reference contains window controls, while the front-end renders none; the capture DPR is 1.25 and whole-page visual differences remain."
+}

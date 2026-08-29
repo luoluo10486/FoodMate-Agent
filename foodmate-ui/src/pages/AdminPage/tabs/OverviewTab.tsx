@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, Search } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -84,6 +84,11 @@ function OverviewFilterSelect({
       <SelectTrigger className={styles.overviewFilter} aria-label={ariaLabel}>
         <span className={styles.overviewFilterLabel}>{label}:</span>
         <SelectValue />
+        <span
+          aria-hidden="true"
+          className={styles.overviewFilterArrow}
+          data-figma-asset="admin-overview-dropdown-arrow"
+        />
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (
@@ -205,7 +210,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
           />
         </div>
         <label className={styles.overviewSearch}>
-          <Search aria-hidden="true" />
+          <span aria-hidden="true" className={styles.overviewSearchIcon} data-figma-asset="admin-overview-search" />
           <ShadcnInput
             value={query}
             onChange={(event) => {

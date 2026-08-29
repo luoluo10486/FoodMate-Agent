@@ -8,6 +8,7 @@ endpoint, key, or price in source code.
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 import urllib.error
@@ -17,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Callable
+from urllib.parse import urlsplit
 
 
 RETRYABLE_ERROR_CODES = frozenset({"MODEL_TIMEOUT", "MODEL_RATE_LIMIT", "MODEL_PROVIDER_UNAVAILABLE"})
@@ -133,13 +135,32 @@ class DeterministicModelProvider(ModelProvider):
 class OpenAICompatibleModelProvider(ModelProvider):
     """多个兼容云端点共用的协议适配器，端点与密钥只从环境变量读取。"""
 
-    def __init__(self, provider_code: str, base_url: str, api_key: str, timeout_seconds: float = 30):
+    def __init__(
+        self,
+        provider_code: str,
+        base_url: str,
+        api_key: str,
+        timeout_seconds: float | str = 30,
+    ):
         if not base_url or not api_key:
             raise ModelProviderError("MODEL_PROVIDER_UNAVAILABLE", "cloud provider is not configured")
+        endpoint = urlsplit(base_url.strip())
+        if (
+            endpoint.scheme not in {"http", "https"}
+            or not endpoint.hostname
+            or endpoint.username is not None
+            or endpoint.password is not None
+            or endpoint.query
+            or endpoint.fragment
+        ):
+            raise ModelProviderError(
+                "MODEL_PROVIDER_URL_INVALID",
+                "cloud provider endpoint must be an HTTP or HTTPS URL without credentials or query parameters",
+            )
         self.provider_code = provider_code
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url.strip().rstrip("/")
         self.api_key = api_key
-        self.timeout_seconds = max(0.1, float(timeout_seconds))
+        self.timeout_seconds = _positive_timeout(timeout_seconds)
 
     def complete(self, model_name: str, request: ModelRequest) -> ModelResponse:
         body = {
@@ -168,21 +189,54 @@ class OpenAICompatibleModelProvider(ModelProvider):
             raise ModelProviderError("MODEL_PROVIDER_REJECTED", "provider rejected request") from error
         except (urllib.error.URLError, TimeoutError) as error:
             raise ModelProviderError("MODEL_TIMEOUT", "provider request timed out", True) from error
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ModelProviderError(
+                "MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid"
+            ) from error
         try:
-            usage = payload.get("usage") or {}
-            content = str(payload["choices"][0]["message"]["content"])
-            input_tokens = int(usage.get("prompt_tokens", 0))
-            output_tokens = int(usage.get("completion_tokens", 0))
-            prompt_details = usage.get("prompt_tokens_details") or {}
-            cached_input_tokens = int(prompt_details.get("cached_tokens", 0))
-            return ModelResponse(content, input_tokens, output_tokens, payload.get("id"), cached_input_tokens)
-        except (KeyError, IndexError, TypeError, ValueError) as error:
+            if not isinstance(payload, dict):
+                raise TypeError("provider response must be an object")
+            usage = payload.get("usage")
+            if usage is None:
+                usage = {}
+            if not isinstance(usage, dict):
+                raise TypeError("provider usage must be an object")
+            content = payload["choices"][0]["message"]["content"]
+            if not isinstance(content, str):
+                raise TypeError("provider content must be text")
+            input_tokens = _token_count(usage.get("prompt_tokens", 0), "prompt_tokens")
+            output_tokens = _token_count(usage.get("completion_tokens", 0), "completion_tokens")
+            prompt_details = usage.get("prompt_tokens_details")
+            if prompt_details is None:
+                prompt_details = {}
+            if not isinstance(prompt_details, dict):
+                raise TypeError("provider prompt token details must be an object")
+            cached_input_tokens = _token_count(
+                prompt_details.get("cached_tokens", 0), "cached_tokens"
+            )
+            if cached_input_tokens > input_tokens:
+                raise ValueError("cached tokens exceed input tokens")
+            provider_request_id = payload.get("id")
+            if provider_request_id is not None and (
+                not isinstance(provider_request_id, str)
+                or not provider_request_id.strip()
+                or len(provider_request_id) > 256
+            ):
+                raise ValueError("provider response id is invalid")
+            return ModelResponse(
+                content,
+                input_tokens,
+                output_tokens,
+                provider_request_id.strip() if provider_request_id is not None else None,
+                cached_input_tokens,
+            )
+        except (AttributeError, KeyError, IndexError, TypeError, ValueError) as error:
             raise ModelProviderError("MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid") from error
 
     def _request_timeout(self, request: ModelRequest) -> float:
         """Return the smaller of provider, node and Run-level deadlines."""
         configured = request.timeout_seconds
-        timeout = self.timeout_seconds if configured is None else max(0.1, float(configured))
+        timeout = self.timeout_seconds if configured is None else _positive_timeout(configured)
         if not request.deadline_at:
             return timeout
         try:
@@ -367,7 +421,7 @@ class ModelRouter:
             provider_code,
             self.environment.get(prefix + "BASE_URL", ""),
             self.environment.get(prefix + "API_KEY", ""),
-            float(self.environment.get(prefix + "TIMEOUT_SECONDS", "30")),
+            self.environment.get(prefix + "TIMEOUT_SECONDS", "30"),
         )
 
     def _attempt(
@@ -447,7 +501,13 @@ class ModelRouter:
         in_raw = self.environment.get(model_prefix + "INPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "INPUT_CNY_PER_MILLION_TOKENS", "")).strip()
         out_raw = self.environment.get(model_prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "OUTPUT_CNY_PER_MILLION_TOKENS", "")).strip()
         cached_raw = self.environment.get(model_prefix + "CACHED_INPUT_CNY_PER_MILLION_TOKENS", self.environment.get(provider_prefix + "CACHED_INPUT_CNY_PER_MILLION_TOKENS", "")).strip()
-        version = self.environment.get(model_prefix + "PRICE_VERSION", self.environment.get("FOODMATE_MODEL_PRICE_VERSION", "unconfigured")).strip() or "unconfigured"
+        version = self.environment.get(
+            model_prefix + "PRICE_VERSION",
+            self.environment.get(
+                provider_prefix + "PRICE_VERSION",
+                self.environment.get("FOODMATE_MODEL_PRICE_VERSION", "unconfigured"),
+            ),
+        ).strip() or "unconfigured"
         if not in_raw or not out_raw:
             return None, None, None, version
         try:
@@ -504,3 +564,24 @@ def _decimal_or_none(value: object) -> Decimal | None:
     except (InvalidOperation, ValueError):
         return None
     return parsed if parsed.is_finite() and parsed >= 0 else None
+
+
+def _token_count(value: object, field_name: str) -> int:
+    """只接受非负整数用量，避免把供应商异常值写入成本事实。"""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"{field_name} must be a non-negative integer")
+    return value
+
+
+def _positive_timeout(value: object) -> float:
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError) as error:
+        raise ModelProviderError(
+            "MODEL_PROVIDER_TIMEOUT_INVALID", "provider timeout must be a positive number"
+        ) from error
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ModelProviderError(
+            "MODEL_PROVIDER_TIMEOUT_INVALID", "provider timeout must be a positive number"
+        )
+    return max(0.1, timeout)

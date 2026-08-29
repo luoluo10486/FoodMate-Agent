@@ -4,12 +4,12 @@ import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
 import java.math.BigDecimal;
 import java.util.List;
 
-/** Knowledge persistence contract owned by the knowledge use cases. */
+/** 知识库用例使用的持久化端口，由基础设施层提供实现。 */
 public interface KnowledgeRepository {
-    /** Persists the initial document fact before indexing begins. */
+    /** 在索引开始前持久化初始文档事实。 */
     void insertDocument(long documentId, String title, String storageKey, long operatorId);
 
-    /** Persists source and licensing metadata without storing document contents. */
+    /** 持久化来源和授权元数据，不保存文档正文。 */
     void updateDocumentSource(
             long documentId,
             String sourceType,
@@ -18,89 +18,89 @@ public interface KnowledgeRepository {
             String licenseNotice,
             long operatorId);
 
-    /** Applies an allowed document lifecycle transition. */
+    /** 执行允许的文档生命周期转换。 */
     int updateStatus(long documentId, KnowledgeDocumentStatus status, long operatorId);
 
-    /** Persists an import job fact. */
+    /** 持久化导入任务事实。 */
     void insertImportJob(ImportJob job);
 
-    /** Finds an existing import job for operator-scoped idempotency replay. */
+    /** 查找操作者范围内用于幂等重放的已有导入任务。 */
     ImportJob findImportJob(long operatorId, String idempotencyKey);
 
-    /** Persists one file item belonging to an import job. */
+    /** 持久化属于导入任务的一个文件条目。 */
     void insertImportItem(ImportItem item);
 
-    /** Persists the committed index request consumed by the Runtime worker. */
+    /** 持久化由 Runtime 工作进程消费的已提交索引请求。 */
     void insertIndexOutbox(long outboxId, long itemId, String payload);
 
-    /** Applies a document visibility transition in the authoritative store. */
+    /** 在权威存储中执行文档可见性转换。 */
     int updateVisibility(long documentId, String visibility, long operatorId);
 
-    /** Reads the authoritative document version used by lifecycle commands. */
+    /** 读取生命周期命令使用的权威文档版本。 */
     DocumentView document(long documentId);
 
-    /** Rechecks the authoritative PostgreSQL visibility and version gate. */
+    /** 重新检查 PostgreSQL 权威可见性和版本门禁。 */
     default boolean isPublicPublished(long documentId, String version) {
         return false;
     }
 
-    /** Persists a replayable visibility projection request. */
+    /** 持久化可重放的可见性投影请求。 */
     void insertVisibilityOutbox(long outboxId, long documentId, String payload);
 
-    /** Reads pending index messages eligible for leasing. */
+    /** 读取当前可领取的待处理索引消息。 */
     List<OutboxRow> pendingIndexOutbox(int limit);
 
-    /** Reads pending visibility messages eligible for leasing. */
+    /** 读取当前可领取的待处理可见性消息。 */
     List<OutboxRow> pendingVisibilityOutbox(int limit);
 
-    /** Claims one index message for a bounded publication lease. */
+    /** 为有界发布租约领取一条索引消息。 */
     int leaseIndexOutbox(long outboxId, String owner);
 
-    /** Claims one visibility message for a bounded publication lease. */
+    /** 为有界发布租约领取一条可见性消息。 */
     int leaseVisibilityOutbox(long outboxId, String owner);
 
-    /** Records a successful index publication owned by the lease holder. */
+    /** 记录租约持有者成功发布索引消息。 */
     void markIndexOutboxPublished(long outboxId, String owner);
 
-    /** Records a successful visibility publication owned by the lease holder. */
+    /** 记录租约持有者成功发布可见性消息。 */
     void markVisibilityOutboxPublished(long outboxId, String owner);
 
-    /** Schedules a failed index publication for retry. */
+    /** 将失败的索引消息发布安排到重试。 */
     void retryIndexOutbox(long outboxId, String owner, String error);
 
-    /** Schedules a failed visibility publication for retry. */
+    /** 将失败的可见性消息发布安排到重试。 */
     void retryVisibilityOutbox(long outboxId, String owner, String error);
 
-    /** Applies one index result idempotently and updates the batch read model. */
+    /** 幂等应用一条索引结果并更新批次读模型。 */
     void applyIndexResult(IndexResult result, String payloadHash);
 
-    /** Replaces the current version's authoritative chunk facts in the same transaction. */
+    /** 在同一事务中替换当前版本的权威分块事实。 */
     default void replaceKnowledgeChunks(IndexResult result) {
         // Local stub persistence does not own a database chunk table.
     }
 
-    /** Reads batch-level progress. */
+    /** 读取批次级进度。 */
     JobView job(long jobId);
 
-    /** Reads file-level progress for a batch. */
+    /** 读取批次的文件级进度。 */
     List<ItemView> jobItems(long jobId);
 
-    /** Reads batch events after a resumable SSE cursor. */
+    /** 读取可恢复 SSE 游标之后的批次事件。 */
     List<JobEvent> jobEvents(long jobId, long afterEventId);
 
-    /** Finds the owning batch for an imported file item. */
+    /** 查找导入文件条目所属的批次。 */
     long jobIdForItem(long itemId);
 
-    /** Persists one replayable batch progress event. */
+    /** 持久化一个可重放的批次进度事件。 */
     void insertJobEvent(long eventId, long jobId, Long itemId, String eventType, String payload);
 
-    /** Resets one failed item and creates its next index outbox fact. */
+    /** 重置一个失败条目并创建下一条索引 Outbox 事实。 */
     int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload);
 
-    /** A durable message eligible for publication. */
+    /** 一条可发布的持久化消息。 */
     record OutboxRow(long outboxId, long itemOrDocumentId, String topic, String payload) {}
 
-    /** Authoritative document version state. */
+    /** 权威文档版本状态。 */
     record DocumentView(long documentId, String version, boolean currentVersion) {}
 
     record IndexResult(
@@ -145,13 +145,13 @@ public interface KnowledgeRepository {
         }
     }
 
-    /** Safe, bounded chunk facts returned by the Runtime index worker. */
+    /** Runtime 索引工作进程返回的安全、有界分块事实。 */
     record IndexChunk(int chunkNo, String embeddingId, String sectionPath, String text) {}
 
-    /** Batch-level progress projection. */
+    /** 批次级进度投影。 */
     record JobView(long jobId, String status, int totalItems, int indexedItems, int failedItems) {}
 
-    /** File-level upload and indexing progress projection. */
+    /** 文件级上传和索引进度投影。 */
     record ItemView(
             long itemId,
             long documentId,
@@ -161,10 +161,10 @@ public interface KnowledgeRepository {
             int attempts,
             String errorCode) {}
 
-    /** Resumable batch progress event. */
+    /** 可恢复批次进度事件。 */
     record JobEvent(long eventId, String eventType, String payload) {}
 
-    /** Sanitized import batch metadata owned by the application boundary. */
+    /** 由 application 边界持有的已清理导入批次元数据。 */
     record ImportJob(
             long jobId,
             long operatorId,
@@ -176,7 +176,7 @@ public interface KnowledgeRepository {
             String licenseNotice,
             String traceId) {}
 
-    /** Sanitized imported file metadata; file contents stay in object storage. */
+    /** 已清理的导入文件元数据；文件内容保留在对象存储中。 */
     record ImportItem(
             long itemId,
             long jobId,

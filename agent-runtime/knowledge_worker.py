@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from decimal import Decimal
 from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Callable
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import urlopen
 
-from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
+from knowledge_rag import DeletionResult, EmbeddingResult, MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
 
 
 class _MemoryCompletionStore:
@@ -44,7 +47,13 @@ class KnowledgeIndexWorker:
         self.result_publisher = result_publisher or (lambda _result: None)
         # In-memory dependencies are only for isolated unit tests. The runtime path
         # constructs the worker without an object_reader and therefore always uses Redis.
-        self.stub = stub_index or (RedisStubIndex() if self.settings.mode == "stub" and object_reader is None else StubIndex() if self.settings.mode == "stub" else None)
+        self.stub = stub_index or (
+            RedisStubIndex(prefix=self.settings.stub_redis_prefix)
+            if self.settings.mode == "stub" and object_reader is None
+            else StubIndex()
+            if self.settings.mode == "stub"
+            else None
+        )
         self.embedder = embedder or (build_local_embedder(self.settings) if self.settings.mode == "local" else None)
         self.milvus = milvus_index or (MilvusIndex(self.settings) if self.settings.mode == "local" else None)
         self.completed = completed_store or (self._completed_store() if object_reader is None else _MemoryCompletionStore())
@@ -89,7 +98,8 @@ class KnowledgeIndexWorker:
             if not chunks:
                 raise RagError("RAG_EMPTY_DOCUMENT", "document contains no indexable chunks")
             title = payload.get("title") or filename
-            token_count = sum(_estimate_tokens(chunk.text) for chunk in chunks)
+            estimated_token_count = sum(_estimate_tokens(chunk.text) for chunk in chunks)
+            token_count = estimated_token_count
             cost_amount = _cost_amount(self.settings, token_count)
             if self.settings.batch_token_limit is not None and token_count > self.settings.batch_token_limit:
                 raise RagError("RAG_BATCH_TOKEN_LIMIT_EXCEEDED", "knowledge batch token budget exceeded")
@@ -97,10 +107,38 @@ class KnowledgeIndexWorker:
                 raise RagError("RAG_BATCH_COST_LIMIT_EXCEEDED", "knowledge batch cost budget exceeded")
             self._reserve_daily_budget(token_count, cost_amount)
             budget_reserved = True
+            embedding_result = None
             if self.stub:
                 self.stub.upsert(title, chunks)
             else:
-                self.milvus.upsert(title, chunks, self.embedder.embed([chunk.text for chunk in chunks]))
+                embedding_result = _embed_with_usage(
+                    self.embedder, [chunk.text for chunk in chunks]
+                )
+                provider_token_count = embedding_result.token_count
+                if provider_token_count is not None:
+                    provider_cost = _cost_amount(self.settings, provider_token_count)
+                    if (
+                        self.settings.batch_token_limit is not None
+                        and provider_token_count > self.settings.batch_token_limit
+                    ):
+                        raise RagError(
+                            "RAG_BATCH_TOKEN_LIMIT_EXCEEDED",
+                            "knowledge batch token budget exceeded",
+                        )
+                    if (
+                        self.settings.batch_cost_limit is not None
+                        and provider_cost > self.settings.batch_cost_limit
+                    ):
+                        raise RagError(
+                            "RAG_BATCH_COST_LIMIT_EXCEEDED",
+                            "knowledge batch cost budget exceeded",
+                        )
+                    self._reconcile_daily_budget(
+                        token_count, cost_amount, provider_token_count, provider_cost
+                    )
+                    token_count = provider_token_count
+                    cost_amount = provider_cost
+                self.milvus.upsert(title, chunks, embedding_result.vectors)
             result = {
                 "item_id": item_id,
                 "document_id": document_id,
@@ -119,10 +157,14 @@ class KnowledgeIndexWorker:
                 "mode": self.settings.mode,
                 "model_version": self.settings.embedding_model if self.embedder else "deterministic-stub",
                 "token_count": token_count,
+                "estimated_token_count": estimated_token_count,
+                "usage_source": "provider" if embedding_result and embedding_result.token_count is not None else "estimate",
                 "cost_amount": str(cost_amount),
                 "price_version": self.settings.price_version or None,
                 "attempt": attempt,
             }
+            if embedding_result and embedding_result.provider_request_id:
+                result["provider_request_id"] = embedding_result.provider_request_id
             self._mark_completed(key, result)
         except RagError as error:
             if "budget_reserved" in locals() and budget_reserved:
@@ -154,13 +196,22 @@ class KnowledgeIndexWorker:
     def handle_purge(self, payload: dict, result_publisher: Callable[[dict], None] | None = None) -> dict:
         publish = result_publisher or self.result_publisher
         task_id = str(payload.get("task_id", "")).strip()
+        request_id = str(payload.get("request_id", "")).strip()
         document_id = str(payload.get("document_id", "")).strip()
         version = str(payload.get("version", "")).strip()
         try:
             task_id_value = int(task_id)
         except (TypeError, ValueError) as error:
             raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge task id is invalid") from error
-        if task_id_value <= 0 or not document_id or not version:
+        try:
+            request_id_value = int(request_id)
+        except (TypeError, ValueError) as error:
+            raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge request id is invalid") from error
+        try:
+            resource_id = int(document_id)
+        except (TypeError, ValueError) as error:
+            raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge resource id is invalid") from error
+        if task_id_value <= 0 or request_id_value <= 0 or resource_id <= 0 or not document_id or not version:
             raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge identifiers are required")
         if payload.get("tenant_id", 0) != 0 or payload.get("scope", PUBLIC_SCOPE) != PUBLIC_SCOPE:
             raise RagError("RAG_SCOPE_DENIED", "retention purge scope is not public")
@@ -173,28 +224,44 @@ class KnowledgeIndexWorker:
                 or completed_result.get("version") not in (None, version)
             ):
                 raise RagError("RAG_PURGE_IDEMPOTENCY_CONFLICT", "retention purge task target conflicts with its completed fact")
-            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "succeeded", "duplicate": True}
+            result = {"task_id": task_id_value, "request_id": request_id_value, "resource_type": "knowledge_document", "resource_id": resource_id, "task_type": "vector_index", "document_id": document_id, "version": version, "status": "succeeded", "backend": completed_result.get("backend", "unknown"), "deleted_count": int(completed_result.get("deleted_count", 0)), "verified_absent": bool(completed_result.get("verified_absent", True)), "duplicate": True}
             publish(result)
             return result
         if not self._claim(key):
             raise RagError("RAG_PURGE_IN_PROGRESS", "retention purge task is already being processed")
         try:
             if self.milvus:
-                self.milvus.delete_document(document_id, version)
+                deletion = self.milvus.delete_document(document_id, version)
             elif self.stub:
-                self.stub.delete_document(document_id, version)
-            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "succeeded"}
+                deletion = self.stub.delete_document(document_id, version)
+            else:
+                raise RagError("RAG_PURGE_BACKEND_UNAVAILABLE", "retention purge backend is unavailable")
+            if not isinstance(deletion, DeletionResult):
+                raise RagError("RAG_PURGE_RESULT_INVALID", "retention purge backend returned no result fact")
+            backend = deletion.backend
+            deleted_count = deletion.deleted_count
+            verified_absent = deletion.verified_absent
+            if not verified_absent:
+                raise RagError("RAG_PURGE_VERIFY_FAILED", "retention purge absence verification failed")
+            result = {"task_id": task_id_value, "request_id": request_id_value, "resource_type": "knowledge_document", "resource_id": resource_id, "task_type": "vector_index", "document_id": document_id, "version": version, "status": "succeeded", "backend": backend, "deleted_count": deleted_count, "verified_absent": verified_absent}
             self._mark_completed(key, result)
         except RagError as error:
             self._release(key)
-            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "failed", "error_code": error.code, "error_summary": str(error)[:256]}
+            result = {"task_id": task_id_value, "request_id": request_id_value, "resource_type": "knowledge_document", "resource_id": resource_id, "task_type": "vector_index", "document_id": document_id, "version": version, "status": "failed", "backend": "milvus" if self.milvus else "redis", "deleted_count": 0, "verified_absent": False, "error_code": error.code, "error_summary": str(error)[:256]}
         except Exception:
             self._release(key)
             result = {
                 "task_id": task_id_value,
+                "request_id": request_id_value,
+                "resource_type": "knowledge_document",
+                "resource_id": resource_id,
+                "task_type": "vector_index",
                 "document_id": document_id,
                 "version": version,
                 "status": "failed",
+                "backend": "milvus" if self.milvus else "redis",
+                "deleted_count": 0,
+                "verified_absent": False,
                 "error_code": "RAG_PURGE_EXECUTION_FAILED",
                 "error_summary": "retention purge backend execution failed",
             }
@@ -219,7 +286,13 @@ class KnowledgeIndexWorker:
             raise RagError("RAG_REDIS_UNAVAILABLE", "worker idempotency store is unavailable") from error
 
     def _completion_key(self, key: tuple[str, str, str]) -> str:
-        return "foodmate:rag:worker:completed:" + ":".join(key)
+        """按索引身份隔离完成事实，避免切换 embedding 模型复用旧结果。"""
+        return (
+            "foodmate:rag:worker:completed:"
+            + self.settings.index_namespace
+            + ":"
+            + ":".join(key)
+        )
 
     def _completion_summary(self, key: tuple[str, str, str]) -> dict | None:
         raw = self.completed.get(self._completion_key(key))
@@ -278,6 +351,50 @@ class KnowledgeIndexWorker:
         self._increment(self._daily_key("tokens"), -token_count)
         self._increment(self._daily_key("cost"), -int(cost_amount * Decimal("100000000")))
 
+    def _reconcile_daily_budget(
+        self,
+        reserved_token_count: int,
+        reserved_cost_amount: Decimal,
+        actual_token_count: int,
+        actual_cost_amount: Decimal,
+    ) -> None:
+        """将供应商 usage 与预估预留对齐，并在超限时完整回滚调整。"""
+        token_delta = actual_token_count - reserved_token_count
+        cost_delta = int(
+            (actual_cost_amount - reserved_cost_amount) * Decimal("100000000")
+        )
+        token_adjusted = False
+        cost_adjusted = False
+        try:
+            if token_delta:
+                token_total = self._increment(self._daily_key("tokens"), token_delta)
+                token_adjusted = True
+                if (
+                    self.settings.daily_token_limit is not None
+                    and token_total > self.settings.daily_token_limit
+                ):
+                    raise RagError(
+                        "RAG_DAILY_TOKEN_LIMIT_EXCEEDED",
+                        "daily knowledge token budget exceeded",
+                    )
+            if cost_delta:
+                cost_total = self._increment(self._daily_key("cost"), cost_delta)
+                cost_adjusted = True
+                if (
+                    self.settings.daily_cost_limit is not None
+                    and cost_total > int(self.settings.daily_cost_limit * Decimal("100000000"))
+                ):
+                    raise RagError(
+                        "RAG_DAILY_COST_LIMIT_EXCEEDED",
+                        "daily knowledge cost budget exceeded",
+                    )
+        except RagError:
+            if cost_adjusted:
+                self._increment(self._daily_key("cost"), -cost_delta)
+            if token_adjusted:
+                self._increment(self._daily_key("tokens"), -token_delta)
+            raise
+
     def _increment(self, key: str, amount: int) -> int:
         try:
             result = int(self.completed.incrby(key, amount))
@@ -326,41 +443,177 @@ def _cost_amount(settings: RagSettings, token_count: int) -> Decimal:
     return (Decimal(token_count) * settings.price_per_million_tokens / Decimal(1_000_000)).quantize(Decimal("0.00000001"))
 
 
-def start_rocketmq_worker() -> tuple[object, object, object]:
-    """Start dedicated index and visibility consumers, separate from AgentRun traffic."""
-    from rocketmq import ClientConfiguration, ConsumeResult, Credentials, FilterExpression, MessageListener, PushConsumer
-    from mq_runtime import RocketMqKnowledgePurgeResultPublisher, RocketMqKnowledgeResultPublisher, _startup_client_with_timeout
-    publisher = RocketMqKnowledgeResultPublisher()
-    purge_publisher = RocketMqKnowledgePurgeResultPublisher()
-    worker = KnowledgeIndexWorker(result_publisher=publisher.publish)
-    class Listener(MessageListener):
-        def consume(self, message):
-            try:
-                worker.handle_index(json.loads(message.body.decode("utf-8")))
-                return ConsumeResult.SUCCESS
-            except Exception:
-                return ConsumeResult.FAILURE
-    consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_INDEX", "foodmate-python-knowledge-index-v1"), Listener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX", "foodmate-knowledge-index-v1"): FilterExpression("*")}, consumption_thread_count=int(os.getenv("FOODMATE_RAG_INDEX_CONCURRENCY", "4")))
-    _startup_client_with_timeout(consumer, "knowledge-index", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
-    class VisibilityListener(MessageListener):
-        def consume(self, message):
-            try:
-                worker.handle_visibility(json.loads(message.body.decode("utf-8")))
-                return ConsumeResult.SUCCESS
-            except Exception:
-                return ConsumeResult.FAILURE
-    visibility_consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_VISIBILITY", "foodmate-python-knowledge-visibility-v1"), VisibilityListener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_VISIBILITY", "foodmate-knowledge-visibility-v1"): FilterExpression("*")}, consumption_thread_count=1)
-    _startup_client_with_timeout(visibility_consumer, "knowledge-visibility", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
-    class PurgeListener(MessageListener):
-        def consume(self, message):
-            try:
-                worker.handle_purge(
-                    json.loads(message.body.decode("utf-8")),
-                    result_publisher=purge_publisher.publish,
-                )
-                return ConsumeResult.SUCCESS
-            except Exception:
-                return ConsumeResult.FAILURE
-    purge_consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_PURGE", "foodmate-python-knowledge-purge-v1"), PurgeListener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_PURGE", "foodmate-knowledge-purge-v1"): FilterExpression("*")}, consumption_thread_count=1)
-    _startup_client_with_timeout(purge_consumer, "knowledge-purge", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
+def _embed_with_usage(embedder, inputs: list[str]) -> EmbeddingResult:
+    """兼容旧 Embedder，同时优先使用供应商 usage 事实。"""
+    method = getattr(embedder, "embed_with_usage", None)
+    result = method(inputs) if callable(method) else EmbeddingResult(embedder.embed(inputs))
+    if not isinstance(result, EmbeddingResult):
+        raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "embedding provider returned an invalid result")
+    return result
+
+
+def start_rocketmq_worker() -> tuple[object | None, object | None, object | None]:
+    """按开关启动知识索引、可见性和清理 Consumer，不影响 AgentRun Consumer。"""
+    index_enabled = _consumer_enabled("FOODMATE_KNOWLEDGE_INDEX_CONSUMER_ENABLED")
+    visibility_enabled = _consumer_enabled("FOODMATE_KNOWLEDGE_VISIBILITY_CONSUMER_ENABLED")
+    purge_enabled = _consumer_enabled("FOODMATE_KNOWLEDGE_PURGE_CONSUMER_ENABLED")
+    if not any((index_enabled, visibility_enabled, purge_enabled)):
+        return None, None, None
+
+    from rocketmq import (
+        ClientConfiguration,
+        ConsumeResult,
+        Credentials,
+        FilterExpression,
+        MessageListener,
+        PushConsumer,
+    )
+    from mq_runtime import (
+        RocketMqKnowledgePurgeResultPublisher,
+        RocketMqKnowledgeResultPublisher,
+        _startup_client_with_timeout,
+    )
+
+    settings = RagSettings.from_environment()
+    wait_for_milvus_ready(settings)
+    index_publisher = (
+        RocketMqKnowledgeResultPublisher().publish if index_enabled else lambda _result: None
+    )
+    worker = KnowledgeIndexWorker(result_publisher=index_publisher, settings=settings)
+    startup_timeout = float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15"))
+    endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
+    configuration = ClientConfiguration(endpoint, Credentials())
+
+    consumer = None
+    if index_enabled:
+
+        class Listener(MessageListener):
+            def consume(self, message):
+                try:
+                    worker.handle_index(json.loads(message.body.decode("utf-8")))
+                    return ConsumeResult.SUCCESS
+                except Exception:
+                    return ConsumeResult.FAILURE
+
+        consumer = PushConsumer(
+            configuration,
+            os.getenv(
+                "FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_INDEX",
+                "foodmate-python-knowledge-index-v1",
+            ),
+            Listener(),
+            subscription={
+                os.getenv(
+                    "FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX",
+                    "foodmate-knowledge-index-v1",
+                ): FilterExpression("*")
+            },
+            consumption_thread_count=int(os.getenv("FOODMATE_RAG_INDEX_CONCURRENCY", "4")),
+        )
+        _startup_client_with_timeout(consumer, "knowledge-index", startup_timeout)
+
+    visibility_consumer = None
+    if visibility_enabled:
+
+        class VisibilityListener(MessageListener):
+            def consume(self, message):
+                try:
+                    worker.handle_visibility(json.loads(message.body.decode("utf-8")))
+                    return ConsumeResult.SUCCESS
+                except Exception:
+                    return ConsumeResult.FAILURE
+
+        visibility_consumer = PushConsumer(
+            configuration,
+            os.getenv(
+                "FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_VISIBILITY",
+                "foodmate-python-knowledge-visibility-v1",
+            ),
+            VisibilityListener(),
+            subscription={
+                os.getenv(
+                    "FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_VISIBILITY",
+                    "foodmate-knowledge-visibility-v1",
+                ): FilterExpression("*")
+            },
+            consumption_thread_count=1,
+        )
+        _startup_client_with_timeout(
+            visibility_consumer, "knowledge-visibility", startup_timeout
+        )
+
+    purge_consumer = None
+    if purge_enabled:
+        purge_publisher = RocketMqKnowledgePurgeResultPublisher()
+
+        class PurgeListener(MessageListener):
+            def consume(self, message):
+                try:
+                    worker.handle_purge(
+                        json.loads(message.body.decode("utf-8")),
+                        result_publisher=purge_publisher.publish,
+                    )
+                    return ConsumeResult.SUCCESS
+                except Exception:
+                    return ConsumeResult.FAILURE
+
+        purge_consumer = PushConsumer(
+            configuration,
+            os.getenv(
+                "FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_PURGE",
+                "foodmate-python-knowledge-purge-v1",
+            ),
+            PurgeListener(),
+            subscription={
+                os.getenv(
+                    "FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_PURGE",
+                    "foodmate-knowledge-purge-v1",
+                ): FilterExpression("*")
+            },
+            consumption_thread_count=1,
+        )
+        _startup_client_with_timeout(purge_consumer, "knowledge-purge", startup_timeout)
     return consumer, visibility_consumer, purge_consumer
+
+
+def _consumer_enabled(name: str) -> bool:
+    """读取独立 Consumer 开关，默认保持既有整体 Worker 行为。"""
+    return os.getenv(name, "true").strip().lower() == "true"
+
+
+def wait_for_milvus_ready(settings: RagSettings) -> None:
+    """Keep local index consumers stopped until the configured Milvus is ready."""
+    if settings.mode != "local":
+        return
+    health_url = os.getenv("FOODMATE_RAG_MILVUS_HEALTH_URL", "").strip()
+    if not health_url:
+        health_url = _milvus_health_url(settings.milvus_uri)
+    try:
+        timeout = float(os.getenv("FOODMATE_RAG_MILVUS_READY_TIMEOUT_SECONDS", "60"))
+    except ValueError as error:
+        raise RagError("RAG_MILVUS_READY_TIMEOUT_INVALID", "Milvus readiness timeout is invalid") from error
+    if timeout <= 0:
+        raise RagError("RAG_MILVUS_READY_TIMEOUT_INVALID", "Milvus readiness timeout must be positive")
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            with urlopen(health_url, timeout=min(3.0, max(0.1, deadline - time.monotonic()))) as response:
+                if 200 <= response.status < 300:
+                    return
+        except OSError:
+            pass
+        if time.monotonic() >= deadline:
+            raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus did not become ready before the startup deadline")
+        time.sleep(min(1.0, max(0.05, deadline - time.monotonic())))
+
+
+def _milvus_health_url(uri: str) -> str:
+    """Map the SDK endpoint to Milvus standalone's HTTP health endpoint."""
+    parsed = urlsplit(uri)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise RagError("RAG_MILVUS_URI_INVALID", "Milvus URI must be an HTTP endpoint")
+    port = parsed.port
+    if port == 19530:
+        port = 9091
+    netloc = parsed.hostname if port is None else f"{parsed.hostname}:{port}"
+    return urlunsplit((parsed.scheme, netloc, "/healthz", "", ""))

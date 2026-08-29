@@ -16,7 +16,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Enforces same-origin requests and a session-bound CSRF token for authenticated mutations. */
+/** 对基于 Cookie 的认证写请求执行同源和会话绑定的 CSRF 校验。 */
 @Component
 public class CsrfProtectionFilter extends OncePerRequestFilter {
     private static final Set<String> SAFE_METHODS =

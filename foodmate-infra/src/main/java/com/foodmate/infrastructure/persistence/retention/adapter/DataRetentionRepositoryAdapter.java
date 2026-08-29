@@ -1,13 +1,14 @@
 package com.foodmate.infrastructure.persistence.retention.adapter;
 
 import com.foodmate.application.retention.port.out.DataRetentionRepository;
+import com.foodmate.application.retention.port.out.DataRetentionRepository.PurgeTaskState;
 import com.foodmate.infrastructure.persistence.retention.DataRetentionMapper;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
-/** PostgreSQL implementation of the retention governance port. */
+/** 保留治理端口的 PostgreSQL 实现。 */
 @Repository
 @Profile("local")
 public class DataRetentionRepositoryAdapter implements DataRetentionRepository {
@@ -43,6 +44,11 @@ public class DataRetentionRepositoryAdapter implements DataRetentionRepository {
     }
 
     @Override
+    public List<PurgeTaskState> purgeTaskStates(long requestId) {
+        return mapper.purgeTaskStates(requestId);
+    }
+
+    @Override
     public int insertPurgeRequest(NewPurgeRequest request) {
         return mapper.insertPurgeRequest(request);
     }
@@ -68,6 +74,11 @@ public class DataRetentionRepositoryAdapter implements DataRetentionRepository {
     }
 
     @Override
+    public PurgeTaskContext purgeTaskContext(long taskId) {
+        return mapper.purgeTaskContext(taskId);
+    }
+
+    @Override
     public int markTaskPublished(long taskId, String owner, String messageId) {
         return mapper.markTaskPublished(taskId, owner, messageId);
     }
@@ -85,6 +96,11 @@ public class DataRetentionRepositoryAdapter implements DataRetentionRepository {
     @Override
     public int applyTaskResult(long taskId, String status, String errorCode, String errorSummary) {
         return mapper.applyTaskResult(taskId, status, errorCode, errorSummary);
+    }
+
+    @Override
+    public int insertPurgeTaskResult(PurgeTaskResult result) {
+        return mapper.insertPurgeTaskResult(result);
     }
 
     @Override

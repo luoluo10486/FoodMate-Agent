@@ -22,7 +22,7 @@ public interface OperationAuditPort {
     /** 查询同一操作者的已保留审计事实，用于业务写操作的幂等重放。 */
     IdempotencyRecord findIdempotency(long operatorId, String idempotencyKey);
 
-    /** Safe operation fields persisted by the shared audit adapter. */
+    /** 由统一审计适配器持久化的安全操作字段。 */
     record AuditRecord(
             long operationAuditId,
             Long operatorId,
@@ -38,6 +38,6 @@ public interface OperationAuditPort {
             String parametersDigest,
             String idempotencyKey) {}
 
-    /** Existing audit fact returned for an idempotent replay. */
+    /** 为幂等重放返回的已有审计事实。 */
     record IdempotencyRecord(String parametersDigest, String result, String responseJson) {}
 }

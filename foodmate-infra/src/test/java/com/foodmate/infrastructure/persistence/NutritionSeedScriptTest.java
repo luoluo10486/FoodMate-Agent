@@ -35,6 +35,22 @@ class NutritionSeedScriptTest {
                     "FoodMate",
                     "validation",
                     "V2__nutrition_usda_portion_seed_validation.sql");
+    private static final Path EXTENDED_SEED =
+            Path.of(
+                    "..",
+                    "script",
+                    "sql",
+                    "FoodMate",
+                    "seed",
+                    "V4__nutrition_usda_extended_seed.sql");
+    private static final Path EXTENDED_VALIDATION =
+            Path.of(
+                    "..",
+                    "script",
+                    "sql",
+                    "FoodMate",
+                    "validation",
+                    "V4__nutrition_usda_extended_seed_validation.sql");
 
     @Test
     void seedContainsOnlyReviewedUsdaRowsWithTraceableFdcIds() throws IOException {
@@ -94,6 +110,42 @@ class NutritionSeedScriptTest {
         assertTrue(sql.contains("nutrition_unit_conversion_seed_rows"));
         assertTrue(sql.contains("invalid_nutrition_unit_conversion_seed_rows"));
         assertTrue(sql.contains("foodPortions"));
+        assertTrue(sql.contains("review_status <> 'approved'"));
+    }
+
+    @Test
+    void extendedSeedContainsTraceableUsdaFoodsAndPortions() throws IOException {
+        String sql = Files.readString(EXTENDED_SEED);
+
+        assertTrue(sql.contains("FDC-169705"));
+        assertTrue(sql.contains("FDC-169737"));
+        assertTrue(sql.contains("FDC-169967"));
+        assertTrue(sql.contains("FDC-170093"));
+        assertTrue(sql.contains("FDC-171265"));
+        assertTrue(sql.contains("FDC-171794"));
+        assertTrue(sql.contains("FDC-172421"));
+        assertTrue(sql.contains("FDC-172448"));
+        assertTrue(sql.contains("FDC-172688"));
+        assertTrue(sql.contains("FDC-173735"));
+        assertTrue(sql.contains("FDC-173944"));
+        assertTrue(sql.contains("510006"));
+        assertTrue(sql.contains("510016"));
+        assertTrue(sql.contains("520006"));
+        assertTrue(sql.contains("520016"));
+        assertTrue(sql.contains("food_portion"));
+        assertTrue(sql.contains("ON CONFLICT (nutrition_food_id) DO NOTHING"));
+        assertTrue(sql.contains("ON CONFLICT (conversion_id) DO UPDATE"));
+    }
+
+    @Test
+    void extendedValidationChecksCountsAndFoodReferences() throws IOException {
+        String sql = Files.readString(EXTENDED_VALIDATION);
+
+        assertTrue(sql.contains("extended_nutrition_seed_rows"));
+        assertTrue(sql.contains("invalid_extended_nutrition_seed_rows"));
+        assertTrue(sql.contains("extended_unit_conversion_seed_rows"));
+        assertTrue(sql.contains("invalid_extended_unit_conversion_seed_rows"));
+        assertTrue(sql.contains("extended_conversion_food_mismatch_rows"));
         assertTrue(sql.contains("review_status <> 'approved'"));
     }
 }

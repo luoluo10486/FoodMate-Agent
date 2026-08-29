@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Coordinates knowledge index and visibility outbox delivery at the application boundary. */
+/** 在应用边界协调知识索引与可见性 Outbox 的投递。 */
 @Service
 public class KnowledgeDeliveryServiceImpl implements KnowledgeDeliveryService {
     private final KnowledgeRepository store;

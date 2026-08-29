@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, FileWarning, LoaderCircle, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -210,7 +210,11 @@ function ToolCallsFixture() {
         </p>
       </section>
 
-      <aside className={styles.governanceNotes} aria-label="Tool Calls 筛选与详情">
+      <aside
+        className={`${styles.governanceNotes} ${styles.toolCallsNotes}`}
+        aria-label="Tool Calls 筛选与详情"
+        data-figma-role="admin-tool-calls-detail-fields"
+      >
         <h2>Tool Calls · 筛选与详情</h2>
         <p>筛选：时间范围 · 状态 · 工具名 · 风险等级 · 仅看失败 · 重试次数</p>
         <p>详情字段：call_id · run_id · 创建时间 · 完成时间 · 耗时 · 状态 · 重试次数 · 错误码</p>
@@ -237,7 +241,7 @@ function SqlAuditFixture() {
     <section className={styles.governanceSurface} aria-label="SQL 审计详情 fixture">
       <GovernanceTabs active="sql-audit" />
 
-      <div className={styles.governanceFilters} aria-label="SQL 审计筛选">
+      <div className={`${styles.governanceFilters} ${styles.sqlAuditFilters}`} aria-label="SQL 审计筛选">
         <span className={styles.governanceStaticFilter}>tool_name: query_usda</span>
         <Select defaultValue="high">
           <SelectTrigger className={styles.governanceRiskFilter} aria-label="SQL 风险筛选">
@@ -302,7 +306,7 @@ function SqlAuditFixture() {
         </p>
       </section>
 
-      <aside className={styles.governanceNotes} aria-label="SQL Audit 筛选与详情">
+      <aside className={`${styles.governanceNotes} ${styles.sqlAuditNotes}`} aria-label="SQL Audit 筛选与详情">
         <h2>SQL Audit · 筛选与详情</h2>
         <p>筛选：时间范围 · 用户 / Run · 工具组件 · 风险等级 · 执行结果 · 仅看失败</p>
         <p>列表字段：audit_id · run_id · tool_name · query_hash · 执行时间 · 耗时 · 状态 · 风险等级</p>
@@ -326,7 +330,7 @@ function AgentTimelineFixture({ trace }: { trace: boolean }) {
       <div className={styles.runFixtureToolbar} aria-label="Run 筛选">
         <span className={styles.runFixtureId}>Run ID: run_...</span>
         <span className={styles.runFixtureSearch}>搜索用户...</span>
-        <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusFailed}`}>Failed ×</span>
+        <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusFailed}`}>Failed ✖</span>
         <span className={`${styles.runFixtureStatus} ${styles.runFixtureStatusSuccess}`}>Success ✓</span>
         <span className={styles.runFixtureDegraded}>
           仅降级
@@ -832,7 +836,12 @@ export function AdminPage() {
                   if (isLocked) event.preventDefault();
                 }}
               >
-                {item.icon}
+                <span
+                  aria-hidden="true"
+                  className={styles.navIcon}
+                  data-figma-icon={item.key}
+                  style={{ '--admin-nav-icon': `url("${item.iconPath}")` } as CSSProperties}
+                />
                 <span>{item.label}</span>
               </Link>
             );

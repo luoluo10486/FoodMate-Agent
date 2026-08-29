@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** Full replacement payload for the editable fields of a food log. */
+/** 饮食记录可编辑字段的整条替换请求参数。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record FoodLogUpdateRequest(
         @NotNull Instant mealTime,

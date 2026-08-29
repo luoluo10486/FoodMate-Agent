@@ -77,6 +77,22 @@ describe('WorkspaceLayout shell controls', () => {
     expect(topbarMark).toBeInTheDocument();
     expect(topbarMark).not.toHaveTextContent('F');
     expect(sidebarMark).toHaveTextContent('F');
+    expect(container.firstElementChild).toHaveClass('designChat');
+    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+  });
+
+  it('allows a page to hide only the topbar mark letter while keeping its top navigation', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/knowledge']}>
+        <WorkspaceLayout topbarShowMarkLetter={false} sidebarFixture={{ sessions: [] }}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('main header .brand > span')).not.toHaveTextContent('F');
+    expect(container.querySelector('main header a[href="/knowledge"]')).toBeInTheDocument();
+    expect(container.querySelector('aside .brand > span')).toHaveTextContent('F');
   });
 
   it('does not render desktop window controls in the Figma fixture shell', () => {

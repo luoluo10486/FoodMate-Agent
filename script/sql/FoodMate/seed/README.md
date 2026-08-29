@@ -29,6 +29,21 @@ idempotent by stable metadata IDs and must be run manually before local SQL
 Agent integration tests. Its read-only validation is
 `validation/V3__m2_2_sql_agent_catalog_seed_validation.sql`.
 
+## V4
+
+`V4__nutrition_usda_extended_seed.sql` adds 11 reviewed USDA FoodData Central
+`SR Legacy` foods: oats, cooked pasta, cooked broccoli, baked potato, whole
+milk, cooked 90/10 ground beef, lentils, firm tofu, whole-wheat bread, black
+beans and banana. The values are per 100 g and retain the official FDC ID in
+`source_version`.
+
+The same seed adds 11 food-specific `foodPortions` rules, including cup,
+medium, ounce and slice conversions. Portion rows whose original amount is
+0.5 or 3 are normalized to one source unit, with the original amount retained
+in `source_version`; no generic household conversion is inferred. The
+corresponding read-only checks are in
+`validation/V4__nutrition_usda_extended_seed_validation.sql`.
+
 ## 执行顺序
 
 1. 确认目标数据库为本地 `FoodMate`，并先读取 seed SQL 和对应校验 SQL。
@@ -38,5 +53,9 @@ Agent integration tests. Its read-only validation is
 5. 用真实 HTTP 创建带 `rice`、`鸡胸肉` 或其他已覆盖别名/单位的饮食记录，确认明细分别进入 `matched` 或无证据时的 `pending`，再验证营养分析。
 
 6. 对 SQL Agent 本地业务验证，先执行 `V3__m2_2_sql_agent_catalog_seed.sql`，再运行受开关控制的 Java RocketMQ 测试；该 seed 不会替换或删除既有目录数据。
+
+7. 如需扩展营养目录，人工执行 `V4__nutrition_usda_extended_seed.sql`，再执行对应 validation，确认 11 条食材和 11 条换算均为 `approved` 且来源版本包含 FDC ID/portion 序号。
+
+8. 如需导入第二批常见食材，人工执行 `V5__nutrition_usda_common_foods_seed.sql`，再执行对应 validation，确认 9 条食材和 9 条换算均为 `approved` 且来源版本包含 FDC ID/portion 序号。
 
 seed 可重复执行：相同 `nutrition_food_id` 会被跳过；如果同一标准名称已被其他 ID 占用，SQL 会失败，必须先做数据评审，不得静默覆盖目录。

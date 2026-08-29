@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/** 会话、消息及用户会话内 AgentRun 入口。 */
 @RestController
 @RequestMapping("/api/sessions")
 public class SessionController extends AuthenticatedControllerSupport {

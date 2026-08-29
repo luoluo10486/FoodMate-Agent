@@ -100,6 +100,25 @@ describe('PlanningPage', () => {
     expect(screen.getByRole('heading', { name: '增肌计划 v3' })).toBeInTheDocument();
   });
 
+  it('keeps the list tab controls at the Figma fixture height', () => {
+    const { container } = renderPage('/planning?state=list');
+    expect(container.querySelector('[data-figma-role="planning-list-tabs"]')).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-figma-role="planning-list-tab"]')).toHaveLength(3);
+  });
+
+  it('scopes the planning list notification treatment to the list fixture', () => {
+    const listRender = renderPage('/planning?state=list');
+    const listTopbar = listRender.container.querySelector('main header');
+    expect(listTopbar).toHaveAttribute('data-topbar-variant', 'planning-list');
+    listRender.unmount();
+
+    const emptyRender = renderPage('/planning?state=empty');
+    expect(emptyRender.container.querySelector('main header')).not.toHaveAttribute(
+      'data-topbar-variant',
+      'planning-list',
+    );
+  });
+
   it('moves through the wizard and supports cancelling generation', async () => {
     const user = userEvent.setup();
     renderPage('/planning?state=wizard-step1');

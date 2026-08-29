@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** Read-only persistence port for the administrator dashboard projection. */
+/** 管理后台投影的只读持久化端口。 */
 public interface AdminDashboardRepository {
     Overview overview();
 

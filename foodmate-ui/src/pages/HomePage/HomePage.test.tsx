@@ -43,4 +43,16 @@ describe('HomePage session cards', () => {
       within(screen.getByRole('navigation', { name: '主导航' })).queryByRole('link', { name: '知识库' }),
     ).toBeNull();
   });
+
+  it('keeps the Figma pending queue as a compact panel instead of stretching to the activity panel height', () => {
+    render(
+      <MemoryRouter initialEntries={['/?state=figma-v2']}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: '待确认队列' }).closest('article')).toHaveClass('pendingPanel');
+  });
 });

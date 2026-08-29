@@ -11,6 +11,9 @@ import java.util.Locale;
 public interface AdminOperationalQueryService {
     Page<?> query(String resource, Request request);
 
+    /** 返回一个 Trace 的脱敏权威跨度视图。 */
+    TraceDetail traceDetail(String traceId);
+
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record Request(
             int page,
@@ -65,6 +68,34 @@ public interface AdminOperationalQueryService {
             String traceId,
             BigDecimal durationMs,
             String actorRef) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record Trace(
+            String traceId,
+            Long runId,
+            String entry,
+            String status,
+            Instant startedAt,
+            BigDecimal durationMs,
+            Long spanCount,
+            String rootService,
+            String errorCode) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record TraceDetail(Trace summary, List<TraceSpan> spans) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    record TraceSpan(
+            String spanId,
+            String spanType,
+            String name,
+            String service,
+            String status,
+            Instant startedAt,
+            Instant finishedAt,
+            BigDecimal durationMs,
+            String errorCode,
+            Long sequenceNo) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record User(Long userId, String username, String role, String status, String emailRef) {}

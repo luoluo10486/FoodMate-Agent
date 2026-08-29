@@ -596,40 +596,67 @@
 }
 
 .state-search-failed .stateCard {
-  border-color: #ff6d66;
-  border-radius: 12px;
-  background: var(--fm-surface);
+  border-color: rgba(214, 118, 118, 0.34);
+  border-radius: 18px;
+  background: #f4f6f5;
 }
 
-.state-search-failed .stateCard::before,
+.state-search-failed .stateCard::before {
+  background: rgba(214, 118, 118, 0.9);
+}
+
 .state-source-unavailable .stateCard::before {
-  display: none;
+  background: rgba(199, 150, 84, 0.9);
 }
 
-.state-search-failed .stateStatus,
 .state-source-unavailable .stateStatus {
-  display: none;
+  background: #fff8e5;
+  color: var(--fm-orange);
 }
 
-.state-search-failed .stateCard p,
+.state-search-failed .stateStatus {
+  background: #ffedeb;
+  color: #d67676;
+}
+
+.state-search-failed .stateCard h2 {
+  top: 43px;
+  color: #d67676;
+}
+
+.state-search-failed .stateCard p {
+  top: 93px;
+}
+
 .state-source-unavailable .stateCard p {
-  top: 87px;
+  top: 93px;
 }
 
-.state-search-failed .stateDetail,
+.state-search-failed .stateDetail {
+  top: 149px;
+}
+
 .state-source-unavailable .stateDetail {
   top: 149px;
 }
 
-.state-search-failed .stateAction,
+.state-search-failed .stateAction {
+  top: 204px;
+}
+
 .state-source-unavailable .stateAction {
-  top: 207px;
+  top: 204px;
 }
 
 .state-source-unavailable .stateCard {
-  border-color: var(--fm-orange);
-  border-radius: 12px;
-  background: var(--fm-surface);
+  border-color: rgba(199, 150, 84, 0.34);
+  border-radius: 18px;
+  background: #f4f6f5;
+}
+
+.state-source-unavailable .stateCard h2 {
+  top: 43px;
+  color: var(--fm-orange);
 }
 
 .state-source-unavailable .stateDetail {

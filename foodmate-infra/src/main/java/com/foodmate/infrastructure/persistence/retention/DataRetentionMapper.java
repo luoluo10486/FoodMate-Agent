@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-/** PostgreSQL adapter for retention policy and purge-plan facts. */
+/** 保留策略和清理计划事实的 PostgreSQL 持久化映射器。 */
 @Mapper
 public interface DataRetentionMapper {
     @Select(
@@ -34,6 +34,11 @@ public interface DataRetentionMapper {
             "SELECT request_id AS requestId,resource_type AS resourceType,resource_id AS resourceId,policy_id AS policyId,requested_by AS requestedBy,status,eligible_at AS eligibleAt,approved_by AS approvedBy,approved_at AS approvedAt,(SELECT COUNT(*) FROM data_purge_tasks t WHERE t.request_id=r.request_id) AS taskCount FROM data_purge_requests r WHERE resource_type=#{resourceType} AND resource_id=#{resourceId} AND status IN ('requested','approved','running') ORDER BY request_id DESC LIMIT 1")
     DataRetentionRepository.PurgeRequest activePurgeRequest(
             @Param("resourceType") String resourceType, @Param("resourceId") long resourceId);
+
+    @Select(
+            "SELECT task_type AS taskType,status,attempt_count AS attemptCount,last_error_code AS lastErrorCode FROM data_purge_tasks WHERE request_id=#{requestId} ORDER BY task_type")
+    List<DataRetentionRepository.PurgeTaskState> purgeTaskStates(
+            @Param("requestId") long requestId);
 
     @Insert(
             "INSERT INTO data_purge_requests(request_id,resource_type,resource_id,policy_id,requested_by,idempotency_key,deleted_at_snapshot,eligible_at) VALUES(#{request.requestId},#{request.resourceType},#{request.resourceId},#{request.policyId},#{request.requestedBy},#{request.idempotencyKey},#{request.deletedAt},#{request.eligibleAt}) ON CONFLICT DO NOTHING")
@@ -61,6 +66,10 @@ public interface DataRetentionMapper {
             @Param("owner") String owner,
             @Param("resourceType") String resourceType,
             @Param("resourceId") long resourceId);
+
+    @Select(
+            "SELECT t.task_id AS taskId,t.request_id AS requestId,r.resource_type AS resourceType,r.resource_id AS resourceId,t.task_type AS taskType,COALESCE(t.target_ref->>'version','') AS version,t.attempt_count AS attemptCount FROM data_purge_tasks t JOIN data_purge_requests r ON r.request_id=t.request_id WHERE t.task_id=#{taskId}")
+    DataRetentionRepository.PurgeTaskContext purgeTaskContext(@Param("taskId") long taskId);
 
     @Update(
             "UPDATE data_purge_tasks SET status='published',owner_token=NULL,lease_until=NULL,published_message_id=#{messageId},updated_at=CURRENT_TIMESTAMP WHERE task_id=#{taskId} AND owner_token=#{owner} AND status='leased'")
@@ -92,6 +101,10 @@ public interface DataRetentionMapper {
             @Param("status") String status,
             @Param("errorCode") String errorCode,
             @Param("errorSummary") String errorSummary);
+
+    @Insert(
+            "INSERT INTO data_purge_task_results(result_id,task_id,request_id,resource_type,resource_id,task_type,version,status,backend,deleted_count,verified_absent,message_id,result_digest,error_code,error_summary) VALUES(#{result.resultId},#{result.taskId},#{result.requestId},#{result.resourceType},#{result.resourceId},#{result.taskType},#{result.version},#{result.status},#{result.backend},#{result.deletedCount},#{result.verifiedAbsent},#{result.messageId},#{result.resultDigest},#{result.errorCode},#{result.errorSummary}) ON CONFLICT (task_id,result_digest) DO NOTHING")
+    int insertPurgeTaskResult(@Param("result") DataRetentionRepository.PurgeTaskResult result);
 
     @Update(
             "UPDATE data_purge_requests r SET status=CASE WHEN EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status='failed') THEN 'failed' WHEN NOT EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status<>'succeeded') THEN 'completed' WHEN EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status IN ('published','succeeded')) THEN 'running' ELSE 'approved' END,completed_at=CASE WHEN NOT EXISTS(SELECT 1 FROM data_purge_tasks t WHERE t.request_id=r.request_id AND t.status<>'succeeded') THEN CURRENT_TIMESTAMP ELSE r.completed_at END,updated_at=CURRENT_TIMESTAMP WHERE r.request_id=(SELECT request_id FROM data_purge_tasks WHERE task_id=#{taskId}) AND r.status IN ('approved','running')")

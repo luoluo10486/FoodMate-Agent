@@ -42,10 +42,17 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('link', { name: '基本资料' })).not.toHaveAttribute('aria-current');
   });
 
-  it('renders the Figma profile shell fixture', () => {
-    renderPage('/profile?state=basic');
+  it('uses the Figma profile fixture for the default mock entry', () => {
+    renderPage('/profile');
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
+    expect(screen.getByText('anddy_operator_9')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('180')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('78')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('精益增肌')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('2500')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('150')).toBeInTheDocument();
+    expect(screen.getByText('花生 · 乳糖')).toBeInTheDocument();
     expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
     expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute('src', '/assets/avatars/default-male.svg');
@@ -53,6 +60,7 @@ describe('ProfilePage', () => {
       'src',
       '/assets/avatars/default-male.svg',
     );
+    expect(document.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
   });
 
   it('renders the Figma logout confirmation fixture with the target devices', async () => {

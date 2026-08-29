@@ -53,6 +53,8 @@ describe('AnalysisPage', () => {
     const user = userEvent.setup();
     renderPage('/analysis?state=v2');
 
+    expect(screen.getByLabelText('摄入分析')).toHaveClass(styles.figmaDefault);
+    expect(screen.getByRole('tablist')).toHaveClass(styles.filters);
     expect(screen.getByRole('button', { name: '自定义范围' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '全部餐次' })).toBeInTheDocument();
     [
@@ -69,6 +71,23 @@ describe('AnalysisPage', () => {
 
     await user.click(screen.getByRole('button', { name: '全部餐次' }));
     expect(screen.getByText('当前分析覆盖全部餐次。')).toBeInTheDocument();
+  });
+
+  it('keeps Figma-only card treatment scoped to the fixture shell', () => {
+    const fixtureRender = renderPage('/analysis?state=v2');
+    const fixtureShell = screen.getByLabelText('摄入分析');
+    const fixtureChart = screen.getByText('能量摄入与目标对比').closest('section');
+    const fixtureInsight = screen.getByText('营养洞察（由 Agent 生成）').closest('section');
+
+    expect(fixtureShell).toHaveClass(styles.figmaAnalysis);
+    expect(fixtureChart).toHaveClass(styles.chartCard);
+    expect(fixtureInsight).toHaveClass(styles.insightCard);
+    expect(screen.getByRole('button', { name: '让 Agent 解读' })).toHaveClass(styles.figmaInsightActionPrimary);
+    expect(screen.getByRole('button', { name: '基于分析制定计划' })).toHaveClass(styles.figmaInsightActionSecondary);
+
+    fixtureRender.unmount();
+    renderPage('/analysis');
+    expect(screen.getByLabelText('摄入分析')).not.toHaveClass(styles.figmaAnalysis);
   });
 
   it('renders loading, empty, and error analysis states with recovery paths', async () => {
@@ -97,6 +116,8 @@ describe('AnalysisPage', () => {
       'src',
       '/assets/figma/analysis/intake-analysis-error-alert-triangle.svg',
     );
+    expect(screen.getByText('获取营养趋势数据时出错，请稍后重试')).toHaveClass(styles.errorDescription);
+    expect(screen.getByRole('button', { name: '重新加载' })).toHaveClass(styles.reloadButton);
     expect(screen.queryByRole('button', { name: '自定义范围' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '全部餐次' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '重新加载' }));
