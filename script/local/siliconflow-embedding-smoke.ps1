@@ -28,7 +28,7 @@ try {
     [Environment]::SetEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1")
     Push-Location (Join-Path $repoRoot "agent-runtime")
     try {
-        & $PythonPath -m pytest -q tests/test_real_embedding_integration.py -p no:cacheprovider
+        & $PythonPath -m pytest -q -s tests/test_real_embedding_integration.py -p no:cacheprovider
         if ($LASTEXITCODE -ne 0) {
             throw "SiliconFlow Embedding smoke failed with exit code $LASTEXITCODE"
         }

@@ -6,6 +6,7 @@ repository-local ``.env`` file, printed, or persisted.
 """
 
 import os
+import time
 
 import pytest
 
@@ -61,10 +62,17 @@ def test_siliconflow_embedding_profiles_return_expected_dimensions():
             }
         )
 
+        started = time.perf_counter()
         vectors = OpenAICompatibleEmbedder(settings).embed(
             ["FoodMate embedding smoke test."]
         )
+        latency_ms = round((time.perf_counter() - started) * 1000, 2)
 
         assert len(vectors) == 1
         assert len(vectors[0]) == expected_dimension
         assert all(isinstance(value, float) for value in vectors[0])
+        print(
+            "real_embedding_profile={} model={} status=passed dimension={} latency_ms={}".format(
+                profile, model, len(vectors[0]), latency_ms
+            )
+        )

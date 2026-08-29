@@ -5,6 +5,7 @@
 """
 
 import os
+import time
 
 import pytest
 
@@ -69,16 +70,24 @@ def test_real_primary_and_eval_provider_contract():
         pytest.skip("真实云联调需要 primary BASE_URL 和 API_KEY")
 
     router = ModelRouter(environment)
+    started = time.perf_counter()
     response, attempts = router.invoke(
         ModelRequest("composer", "请只返回一句简短的中文测试结果。", max_output_tokens=32),
         "standard",
     )
+    composer_latency_ms = round((time.perf_counter() - started) * 1000, 2)
     assert response.content.strip()
     assert attempts[-1].provider_request_id
     assert attempts[-1].input_tokens is not None
     assert attempts[-1].output_tokens is not None
     assert attempts[-1].cost_cny is not None
+    print(
+        "real_cloud_scene=composer provider={} model={} status=passed latency_ms={} provider_request_id_present=true".format(
+            attempts[-1].provider_code, attempts[-1].model_name, composer_latency_ms
+        )
+    )
 
+    started = time.perf_counter()
     eval_response, eval_attempts = router.invoke(
         ModelRequest(
             "eval",
@@ -89,5 +98,11 @@ def test_real_primary_and_eval_provider_contract():
         ),
         "eval",
     )
+    eval_latency_ms = round((time.perf_counter() - started) * 1000, 2)
     assert eval_response.content.strip()
     assert eval_attempts[-1].provider_request_id
+    print(
+        "real_cloud_scene=eval provider={} model={} status=passed latency_ms={} provider_request_id_present=true".format(
+            eval_attempts[-1].provider_code, eval_attempts[-1].model_name, eval_latency_ms
+        )
+    )
