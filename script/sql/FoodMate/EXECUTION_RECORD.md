@@ -1521,3 +1521,13 @@
 | 外部服务边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow；真实 Chat 和 `BAAI/bge-m3`/`Qwen/Qwen3-Embedding-0.6B` smoke 仍需供应商控制台轮换后的新凭据。 |
 | 工作树与数据边界 | 未修改用户已有 UI/QA 改动；未执行迁移、truncate、业务数据删除、性能压测、组件重启、ACK/重复消息故障注入或生产操作。 |
 | 结论 | 当前业务测试、Java 规范和安全扫描门禁保持通过；虚拟环境 `.pyc` 属于可再生依赖缓存，不进入 Git。真实云联调及生产强化仍不能标记完成。 |
+
+## D86 SiliconFlow Embedding API 契约只读核验（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 文档来源 | `https://api-docs.siliconflow.cn/docs/api/embeddings-post`；只读请求返回 HTTP `200`。 |
+| 契约核对 | 文档页面包含 `embeddings`、`model`、`input` 和 `encoding_format`；Runtime 发送 `POST /v1/embeddings`，请求体使用模型名、批量输入和 `encoding_format=float`，与现有本地契约测试一致。 |
+| 模型配置 | 已支持 `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 两个显式 profile；两者使用隔离的 Milvus collection 命名空间。 |
+| 安全边界 | 未读取或使用对话中公开的旧 API Key，未发起 Embedding 请求，未产生付费调用；凭据只能由当前进程环境显式注入。 |
+| 结论 | API 请求/响应适配具备本地契约证据；真实返回维度、供应商延迟和计费结果仍需轮换后的新凭据执行 opt-in smoke。 |
