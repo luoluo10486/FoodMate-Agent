@@ -167,6 +167,15 @@ class _ProviderHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"choices": []}')
             return
+        if self.__class__.response_mode == "malformed_usage":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(
+                b'{"choices":[{"message":{"content":"cloud answer"}}],'
+                b'"usage":{"prompt_tokens":"7","completion_tokens":5}}'
+            )
+            return
         if self.__class__.response_mode == "invalid_json":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -223,6 +232,14 @@ class ProviderContractTests(TestCase):
 
         self.assertEqual("MODEL_PROVIDER_URL_INVALID", raised.exception.code)
 
+    def test_endpoint_query_and_fragment_fail_closed_before_request(self):
+        for endpoint in (self.base_url + "?token=secret", self.base_url + "#fragment"):
+            with self.subTest(endpoint=endpoint):
+                with self.assertRaisesRegex(ModelProviderError, "query parameters") as raised:
+                    OpenAICompatibleModelProvider("cloud_primary", endpoint, "test-key")
+
+                self.assertEqual("MODEL_PROVIDER_URL_INVALID", raised.exception.code)
+
     def test_invalid_timeout_fails_closed_before_request(self):
         with self.assertRaisesRegex(ModelProviderError, "positive number") as raised:
             OpenAICompatibleModelProvider("cloud_primary", self.base_url, "test-key", "nan")
@@ -277,6 +294,16 @@ class ProviderContractTests(TestCase):
 
     def test_malformed_cloud_response_is_not_fallback_retryable(self):
         _ProviderHandler.response_mode = "malformed"
+        provider = OpenAICompatibleModelProvider("cloud_primary", self.base_url, "test-key")
+
+        with self.assertRaisesRegex(ModelProviderError, "schema is invalid") as raised:
+            provider.complete("qwen-plus", ModelRequest("composer", "hello"))
+
+        self.assertEqual("MODEL_PROVIDER_INVALID_RESPONSE", raised.exception.code)
+        self.assertFalse(raised.exception.retryable)
+
+    def test_malformed_usage_is_not_coerced_into_cost_fact(self):
+        _ProviderHandler.response_mode = "malformed_usage"
         provider = OpenAICompatibleModelProvider("cloud_primary", self.base_url, "test-key")
 
         with self.assertRaisesRegex(ModelProviderError, "schema is invalid") as raised:

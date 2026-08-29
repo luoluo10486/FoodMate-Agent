@@ -46,6 +46,14 @@ describe('AdminPage overview', () => {
     expect(screen.queryByRole('link', { name: '模型治理' })).not.toBeInTheDocument();
   });
 
+  it('does not render the Figma-only macOS window control dots', () => {
+    renderAdmin();
+
+    expect(document.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-name="traffic-light"]')).not.toBeInTheDocument();
+    expect(document.body.innerHTML).not.toMatch(/#ff3b30|#ffcc00|#34c759/i);
+  });
+
   it('filters the overview table by result and search query', async () => {
     const user = userEvent.setup();
     renderAdmin();

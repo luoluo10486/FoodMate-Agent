@@ -4637,7 +4637,7 @@
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-overview.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-topbar-padding-browser-2026-08-29.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4666,9 +4666,31 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Admin overview content is substantially present, but table/card dimensions, typography, icon treatment, sidebar identity, and lower summary-card composition differ from Figma. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-29",
+        "conclusion": "Admin overview content is substantially present and the desktop topbar now uses the Figma 32px horizontal inset. Table/card dimensions, typography, icon treatment, sidebar identity, and lower summary-card composition still differ from Figma. Retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-29",
+          "figmaPng": "docxs/设计/figma-png/admin-overview.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-topbar-padding-browser-2026-08-29.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-overview-topbar-padding-2026-08-29-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "geometryEvidence": {
+            "topbar": "1180x64 at x=260,y=0",
+            "title": "160x24 at x=292,y=19.6",
+            "actions": "192.6x32 at x=1215.4,y=15.6",
+            "refreshButton": "85.6x32 at x=1322.4,y=15.6",
+            "fonts": "loaded",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "依据 Figma 节点 995:1044、995:1045、995:1049，将 Admin Overview 桌面顶栏左右内边距从 24px 调整为 32px；仅修改前端，未修改 Figma，业务状态圆点保留。",
+          "conclusion": "DIFF_REVIEW"
+        }
+      ]
     },
     {
       "figmaNodeId": "995:1238",

@@ -150,10 +150,12 @@ class OpenAICompatibleModelProvider(ModelProvider):
             or not endpoint.hostname
             or endpoint.username is not None
             or endpoint.password is not None
+            or endpoint.query
+            or endpoint.fragment
         ):
             raise ModelProviderError(
                 "MODEL_PROVIDER_URL_INVALID",
-                "cloud provider endpoint must be an HTTP or HTTPS URL without credentials",
+                "cloud provider endpoint must be an HTTP or HTTPS URL without credentials or query parameters",
             )
         self.provider_code = provider_code
         self.base_url = base_url.strip().rstrip("/")
@@ -194,15 +196,40 @@ class OpenAICompatibleModelProvider(ModelProvider):
         try:
             if not isinstance(payload, dict):
                 raise TypeError("provider response must be an object")
-            usage = payload.get("usage") or {}
+            usage = payload.get("usage")
+            if usage is None:
+                usage = {}
+            if not isinstance(usage, dict):
+                raise TypeError("provider usage must be an object")
             content = payload["choices"][0]["message"]["content"]
             if not isinstance(content, str):
                 raise TypeError("provider content must be text")
-            input_tokens = int(usage.get("prompt_tokens", 0))
-            output_tokens = int(usage.get("completion_tokens", 0))
-            prompt_details = usage.get("prompt_tokens_details") or {}
-            cached_input_tokens = int(prompt_details.get("cached_tokens", 0))
-            return ModelResponse(content, input_tokens, output_tokens, payload.get("id"), cached_input_tokens)
+            input_tokens = _token_count(usage.get("prompt_tokens", 0), "prompt_tokens")
+            output_tokens = _token_count(usage.get("completion_tokens", 0), "completion_tokens")
+            prompt_details = usage.get("prompt_tokens_details")
+            if prompt_details is None:
+                prompt_details = {}
+            if not isinstance(prompt_details, dict):
+                raise TypeError("provider prompt token details must be an object")
+            cached_input_tokens = _token_count(
+                prompt_details.get("cached_tokens", 0), "cached_tokens"
+            )
+            if cached_input_tokens > input_tokens:
+                raise ValueError("cached tokens exceed input tokens")
+            provider_request_id = payload.get("id")
+            if provider_request_id is not None and (
+                not isinstance(provider_request_id, str)
+                or not provider_request_id.strip()
+                or len(provider_request_id) > 256
+            ):
+                raise ValueError("provider response id is invalid")
+            return ModelResponse(
+                content,
+                input_tokens,
+                output_tokens,
+                provider_request_id.strip() if provider_request_id is not None else None,
+                cached_input_tokens,
+            )
         except (AttributeError, KeyError, IndexError, TypeError, ValueError) as error:
             raise ModelProviderError("MODEL_PROVIDER_INVALID_RESPONSE", "provider response schema is invalid") from error
 
@@ -531,6 +558,13 @@ def _decimal_or_none(value: object) -> Decimal | None:
     except (InvalidOperation, ValueError):
         return None
     return parsed if parsed.is_finite() and parsed >= 0 else None
+
+
+def _token_count(value: object, field_name: str) -> int:
+    """只接受非负整数用量，避免把供应商异常值写入成本事实。"""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"{field_name} must be a non-negative integer")
+    return value
 
 
 def _positive_timeout(value: object) -> float:

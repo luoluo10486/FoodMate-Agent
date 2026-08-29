@@ -1340,3 +1340,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 已确认计划横幅 `776×97px`、两个操作按钮 `88×37px`、右栏边界 `x=1100,width=340px`、右栏内容 `x=1124,width=292px`；浏览器 PNG 与 Figma PNG 尺寸一致，前端左上角红、黄、绿窗口装饰候选为 `0`，业务状态圆点保留。
 - [x] `PlanningPage` 定向测试、PNG 尺寸/签名检查、`png-diff.mjs` 和 `git diff --check` 已执行；本次没有发现新的可证实 CSS 几何差异，因此没有盲目修改页面样式。
 - [ ] 该画板仍为 `DIFF_REVIEW`，不能因差异比例改善标记 `PASS`；字体、图标、头像及整页视觉差异仍需后续人工复核，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 143. 2026-08-29 Admin Overview 顶栏横向内边距收口
+
+- [x] 重新读取 Figma 节点 `995:1044`、`995:1045`、`995:1049`，确认桌面顶栏内容左右内边距均为 `32px`；前端 `.topbar` 已从 `16px 24px` 调整为 `16px 32px`，移动端媒体查询保持原有 `16px`，未修改 Figma 设计稿。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149011612`、字体加载完成条件下复核：顶栏 `1180×64px`，标题区域 `160×24px at x=292,y=19.6`，右侧操作区 `192.6×32px at x=1215.4,y=15.6`，刷新按钮 `85.6×32px at x=1322.4,y=15.6`；页面无横向/纵向溢出。
+- [x] 前端左上角红、黄、绿窗口装饰候选数量为 `0`；本次没有删除业务状态圆点，也没有修改 Figma。
+- [x] 真实 RGBA PNG 为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-topbar-padding-browser-2026-08-29.png`，独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/admin-overview-topbar-padding-2026-08-29-diff.json`；`png-diff.mjs` 结果为 `differentPixels=493936`、差异比例 `33.4972%`、`MAE=3.988667`、`RMSE=19.207800`、最大通道差异 `230`，MAE/RMSE 较旧证据改善，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步新的浏览器证据；Admin 定向测试 `9/9`、`npm run typecheck` 和 `git diff --check` 已通过。
+- [ ] 本小点只完成 Admin Overview 顶栏局部几何收口，不代表该画板或 105 张画板达到像素级 `PASS`；整页字体、图标、侧栏身份、表格/卡片和摘要区差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。

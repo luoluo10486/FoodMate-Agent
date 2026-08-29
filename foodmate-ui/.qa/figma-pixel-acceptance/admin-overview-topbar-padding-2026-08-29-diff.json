@@ -1,0 +1,39 @@
+{
+  "figmaNodeId": "995:977",
+  "artboardName": "admin-overview",
+  "frontendRoute": "/admin",
+  "queryState": "state=overview",
+  "viewport": "1440x1024",
+  "actualDpr": 1.0000000149011612,
+  "figmaPng": "docxs/设计/figma-png/admin-overview.png",
+  "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-topbar-padding-browser-2026-08-29.png",
+  "diff": {
+    "status": "COMPARED",
+    "width": 1440,
+    "height": 1024,
+    "pixelCount": 1474560,
+    "differentPixels": 493936,
+    "differentRatio": 0.33497178819444445,
+    "meanAbsoluteError": 3.98866695827908,
+    "rmse": 19.207800104624482,
+    "maxChannelDelta": 230
+  },
+  "geometry": {
+    "topbar": "1180x64 at x=260,y=0",
+    "title": "160x24 at x=292,y=19.6",
+    "actions": "192.6x32 at x=1215.4,y=15.6",
+    "refreshButton": "85.6x32 at x=1322.4,y=15.6",
+    "fonts": "loaded",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "将 Admin Overview 桌面顶栏左右内边距由 24px 对齐至 Figma 节点 995:1044 的 32px；仅修改前端，未修改 Figma。",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-29",
+    "conclusion": "顶栏标题和右侧刷新区域已按 32px 横向内边距对齐，但整页仍存在表格/卡片尺寸、字体、图标、侧栏身份和摘要卡组合差异，保留 DIFF_REVIEW。"
+  },
+  "conclusion": "DIFF_REVIEW"
+}
