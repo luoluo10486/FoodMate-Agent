@@ -1272,3 +1272,16 @@
 | 质量结果 | Infrastructure reactor 定向测试 `2/2` 通过；测试容器正常启动并由 Testcontainers 回收；本轮未修改用户已有前端、QA 或 NutritionSeedScript 改动。 |
 | 数据与暂缓边界 | 只使用隔离 Testcontainers 数据库；未执行现有库迁移、truncate、数据库硬删除、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复。 |
 | 结论 | V27 已在真实 PostgreSQL 空库中取得可复核的迁移和业务幂等证据；M3 实际清理、备份恢复及生产强化仍需独立验证，不能据此宣称完成。 |
+
+## D65 真实隔离 PostgreSQL 知识文档硬删除与重放验证（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；Testcontainers PostgreSQL `16-alpine`；只使用随机测试数据，未连接现有 FoodMate 数据库。 |
+| 执行命令 | `mvnw.cmd --% -pl foodmate-infra -am -Ddocker.available=true -Dtest=DataRetentionDatabasePurgeRealIntegrationTest,DataRetentionDatabasePurgeAdapterTest,DataRetentionTaskPublisherTest -Dsurefire.failIfNoSpecifiedTests=false test` |
+| 删除结果 | 真实 MyBatis Mapper 按依赖顺序删除知识文档的结果 Inbox、索引 Outbox、批次 SSE、chunks、可见性 Outbox、导入条目和文档；首次返回 `backend=postgresql/deleted_count=7/verified_absent=true`。 |
+| 保留结果 | `data_purge_task_results`、`data_purge_tasks` 和 `data_purge_requests` 均保留，证明执行对账事实与清理计划不会随业务资源删除。 |
+| 重放结果 | 同一已批准清理流程再次调用返回 `deleted_count=0/verified_absent=true`，无唯一键或外键错误；guard 仅允许存在已软删除资源或在同一批准流程下已不存在的资源。 |
+| Java 结果 | Application `7/7`、Infrastructure `7/7` 通过；包含对象/向量/数据库任务业务测试和真实隔离 PostgreSQL 删除验证。 |
+| 数据与暂缓边界 | 未对现有库执行硬删除、truncate、备份恢复、性能压测、组件重启、ACK/重复消息故障注入或 SSE 故障恢复；真实云服务未调用。 |
+| 结论 | M3 数据库清理的真实删除、结果保留和幂等重放已有隔离环境证据；现有生产数据清理、备份恢复和生产强化仍未完成。 |
