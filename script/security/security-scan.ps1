@@ -134,7 +134,9 @@ try {
         } else {
             Push-Location (Join-Path $repoRoot "foodmate-ui")
             try {
-                $auditOutput = (& npm.cmd audit --omit=dev --audit-level=high --package-lock-only 2>&1 | Out-String)
+                # The audit API is provided by the official registry; a developer's
+                # package download mirror may not expose npm's advisory endpoint.
+                $auditOutput = (& npm.cmd audit --registry https://registry.npmjs.org --omit=dev --audit-level=high --package-lock-only 2>&1 | Out-String)
                 $npmExitCode = $LASTEXITCODE
                 if ($npmExitCode -ne 0) {
                     if ($auditOutput -match "(?i)(audit endpoint returned an error|not[_ ]implemented|404\s+Not\s+Found.*npm/v1/security|eai_again|enotfound|econnrefused|etimedout|network request failed)") {
