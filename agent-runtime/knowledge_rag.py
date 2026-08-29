@@ -493,7 +493,10 @@ class OpenAICompatibleEmbedder:
                 raw_payload = response.read()
             payload = json.loads(raw_payload.decode("utf-8"))
         except urllib.error.HTTPError as error:
-            raise RagError("RAG_EMBEDDING_REJECTED", "embedding endpoint rejected request") from error
+            raise RagError(
+                _embedding_http_error_code(error.code),
+                _embedding_http_error_message(error.code),
+            ) from error
         except (urllib.error.URLError, TimeoutError) as error:
             raise RagError("RAG_EMBEDDING_UNAVAILABLE", "embedding endpoint is unavailable") from error
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -539,6 +542,31 @@ class OpenAICompatibleEmbedder:
 
     def _url(self) -> str:
         return self.settings.embedding_base_url if self.settings.embedding_base_url.endswith("/embeddings") else self.settings.embedding_base_url.rstrip("/") + "/embeddings"
+
+
+def _embedding_http_error_code(status_code: int) -> str:
+    """把供应商 HTTP 状态转换为不泄露响应正文的稳定错误码。"""
+    if status_code in {408, 425}:
+        return "RAG_EMBEDDING_TIMEOUT"
+    if status_code == 429:
+        return "RAG_EMBEDDING_RATE_LIMITED"
+    if 500 <= status_code <= 599:
+        return "RAG_EMBEDDING_UNAVAILABLE"
+    if status_code in {401, 403}:
+        return "RAG_EMBEDDING_AUTH_FAILED"
+    return "RAG_EMBEDDING_REJECTED"
+
+
+def _embedding_http_error_message(status_code: int) -> str:
+    """返回固定错误摘要，禁止把外部服务响应原文带入业务事实。"""
+    messages = {
+        "RAG_EMBEDDING_TIMEOUT": "embedding endpoint timed out",
+        "RAG_EMBEDDING_RATE_LIMITED": "embedding endpoint rate limited the request",
+        "RAG_EMBEDDING_UNAVAILABLE": "embedding endpoint is unavailable",
+        "RAG_EMBEDDING_AUTH_FAILED": "embedding endpoint authentication failed",
+        "RAG_EMBEDDING_REJECTED": "embedding endpoint rejected request",
+    }
+    return messages[_embedding_http_error_code(status_code)]
 
 
 def _embedding_token_count(usage: object) -> int | None:

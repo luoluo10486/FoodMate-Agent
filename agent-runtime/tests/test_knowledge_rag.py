@@ -1,5 +1,6 @@
 import json
 from io import BytesIO
+import urllib.error
 from unittest import TestCase
 from unittest.mock import patch
 from unittest.mock import Mock
@@ -546,6 +547,40 @@ class OpenAICompatibleEmbedderTests(TestCase):
             OpenAICompatibleEmbedder(self._settings()).embed(["first"])
 
         self.assertEqual("RAG_EMBEDDING_INVALID_RESPONSE", raised.exception.code)
+
+    @patch("urllib.request.urlopen")
+    def test_maps_rate_limit_to_a_stable_provider_code(self, urlopen):
+        urlopen.side_effect = urllib.error.HTTPError(
+            "https://api.siliconflow.cn/v1/embeddings", 429, "ignored", {}, None
+        )
+
+        with self.assertRaises(RagError) as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_RATE_LIMITED", raised.exception.code)
+
+    @patch("urllib.request.urlopen")
+    def test_maps_provider_failures_without_retaining_response_body(self, urlopen):
+        urlopen.side_effect = urllib.error.HTTPError(
+            "https://api.siliconflow.cn/v1/embeddings", 503, "secret response", {}, None
+        )
+
+        with self.assertRaises(RagError) as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_UNAVAILABLE", raised.exception.code)
+        self.assertNotIn("secret response", str(raised.exception))
+
+    @patch("urllib.request.urlopen")
+    def test_maps_authentication_failures_to_a_stable_code(self, urlopen):
+        urlopen.side_effect = urllib.error.HTTPError(
+            "https://api.siliconflow.cn/v1/embeddings", 401, "ignored", {}, None
+        )
+
+        with self.assertRaises(RagError) as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_AUTH_FAILED", raised.exception.code)
 
 
 class StubIndexTests(TestCase):
