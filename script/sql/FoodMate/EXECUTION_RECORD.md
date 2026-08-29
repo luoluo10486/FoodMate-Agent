@@ -1472,3 +1472,15 @@
 | 外部服务边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow；真实 Chat 与两个 Embedding smoke 仍需控制台轮换后的新凭据。 |
 | 工作树保护 | 未修改用户已有 UI/QA 改动；未执行迁移、truncate、生产部署、性能压测、故障注入或不可逆清理。 |
 | 结论 | 当前业务代码、Java 规范和安全扫描门禁有新鲜证据；生产长稳、真实云联调及后置运维验证仍未完成。 |
+
+## D82 Python 虚拟环境字节码缓存清理（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/runtime-observability`。 |
+| 清理范围 | 仅处理明确的 `agent-runtime\\.venv` 缓存目录；没有删除虚拟环境、依赖包或项目源码。 |
+| 清理结果 | 删除 1405 个第三方依赖 `.pyc` 文件和 253 个空 `__pycache__` 目录；仓库递归检查剩余 `.pyc=0`、`__pycache__=0`。 |
+| Git 状态 | Git 跟踪的字节码路径为 `0`；清理未产生需提交的后端变更，用户已有前端 QA 文件未修改。 |
+| 解释器校验 | `agent-runtime\\.venv\\Scripts\\python.exe -B --version` 返回 `Python 3.13.14`。 |
+| 安全边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow，未执行迁移、删除业务数据、生产操作或故障测试。 |
+| 结论 | `.pyc` 均为可再生缓存，当前已全部清理；后续 Python 测试继续设置 `PYTHONDONTWRITEBYTECODE=1`，真实云联调仍需轮换后的新凭据。 |
