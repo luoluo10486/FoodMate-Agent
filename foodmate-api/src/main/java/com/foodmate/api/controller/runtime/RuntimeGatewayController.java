@@ -9,9 +9,9 @@ import com.foodmate.shared.runtime.RunCommand;
 import com.foodmate.shared.runtime.RunEvent;
 import com.foodmate.shared.runtime.V1RunEvent;
 import com.foodmate.shared.security.ServiceJwt;
+import com.foodmate.shared.security.ServiceJwt.PublicKeyRing;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
-import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,8 +24,8 @@ public class RuntimeGatewayController {
     private final RuntimeGatewayService service;
     private final String contractVersion;
     private final boolean jwtEnabled;
-    private final Map<String, String> javaPublicKeys;
-    private final Map<String, String> pythonPublicKeys;
+    private final PublicKeyRing javaPublicKeys;
+    private final PublicKeyRing pythonPublicKeys;
     private final V1RuntimeEventService v1Events;
     private final RuntimeCheckpointRecoveryReconciler recoveryReconciler;
 
@@ -129,7 +129,7 @@ public class RuntimeGatewayController {
             String authorization,
             String version,
             String issuer,
-            Map<String, String> publicKeys,
+            PublicKeyRing publicKeys,
             String scope) {
         if (version != null && !contractVersion.equals(version))
             throw new com.foodmate.shared.runtime.RuntimeException(

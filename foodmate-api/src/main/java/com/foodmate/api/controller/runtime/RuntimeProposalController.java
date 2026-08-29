@@ -4,9 +4,9 @@ import com.foodmate.api.request.runtime.RuntimeProposalRequest;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.security.ServiceJwt;
+import com.foodmate.shared.security.ServiceJwt.PublicKeyRing;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.validation.Valid;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,7 +19,7 @@ public class RuntimeProposalController {
     private final ToolGatewayService gateway;
     private final String contractVersion;
     private final boolean jwtEnabled;
-    private final Map<String, String> pythonPublicKeys;
+    private final PublicKeyRing pythonPublicKeys;
 
     public RuntimeProposalController(
             ToolGatewayService gateway,

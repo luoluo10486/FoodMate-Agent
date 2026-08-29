@@ -83,7 +83,7 @@ public final class M03ConfigurationValidator {
         try {
             var keys = ServiceJwt.parsePublicKeyRing(ring, value(legacyKidProperty), legacyKey);
             if (keys.isEmpty()) throw invalid(ringProperty);
-            keys.values().forEach(M03ConfigurationValidator::parsePublicKey);
+            keys.forEachKey(M03ConfigurationValidator::parsePublicKey);
         } catch (IllegalArgumentException exception) {
             throw invalid("runtime public key ring format");
         }

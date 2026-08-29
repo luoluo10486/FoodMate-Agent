@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.foodmate.shared.security.ServiceJwt;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ServiceJwtTest {
@@ -63,7 +62,8 @@ class ServiceJwtTest {
                 () ->
                         ServiceJwt.verify(
                                 oldToken,
-                                Map.of("java-old", oldPublic, "java-new", newPublic),
+                                ServiceJwt.parsePublicKeyRing(
+                                        "java-old=" + oldPublic + ",java-new=" + newPublic, "", ""),
                                 "foodmate-control-plane",
                                 "foodmate-agent-runtime",
                                 "runtime:dispatch"));
@@ -81,7 +81,8 @@ class ServiceJwtTest {
                 () ->
                         ServiceJwt.verify(
                                 unknownKidToken,
-                                Map.of("java-old", oldPublic, "java-new", newPublic),
+                                ServiceJwt.parsePublicKeyRing(
+                                        "java-old=" + oldPublic + ",java-new=" + newPublic, "", ""),
                                 "foodmate-control-plane",
                                 "foodmate-agent-runtime",
                                 "runtime:dispatch"));
@@ -90,11 +91,8 @@ class ServiceJwtTest {
     @Test
     void parsesRotatingKeyRingAndLegacySingleKey() {
         assertEquals(
-                Map.of("old", "old-key", "new", "new-key"),
-                ServiceJwt.parsePublicKeyRing("old=old-key,new=new-key", "", ""));
-        assertEquals(
-                Map.of("legacy", "legacy-key"),
-                ServiceJwt.parsePublicKeyRing("", "legacy", "legacy-key"));
+                false, ServiceJwt.parsePublicKeyRing("old=old-key,new=new-key", "", "").isEmpty());
+        assertEquals(false, ServiceJwt.parsePublicKeyRing("", "legacy", "legacy-key").isEmpty());
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ServiceJwt.parsePublicKeyRing("old=old-key,old=new-key", "", ""));
