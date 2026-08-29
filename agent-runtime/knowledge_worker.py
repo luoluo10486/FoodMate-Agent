@@ -11,7 +11,7 @@ from typing import Callable
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import urlopen
 
-from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
+from knowledge_rag import DeletionResult, MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key
 
 
 class _MemoryCompletionStore:
@@ -157,13 +157,22 @@ class KnowledgeIndexWorker:
     def handle_purge(self, payload: dict, result_publisher: Callable[[dict], None] | None = None) -> dict:
         publish = result_publisher or self.result_publisher
         task_id = str(payload.get("task_id", "")).strip()
+        request_id = str(payload.get("request_id", "")).strip()
         document_id = str(payload.get("document_id", "")).strip()
         version = str(payload.get("version", "")).strip()
         try:
             task_id_value = int(task_id)
         except (TypeError, ValueError) as error:
             raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge task id is invalid") from error
-        if task_id_value <= 0 or not document_id or not version:
+        try:
+            request_id_value = int(request_id)
+        except (TypeError, ValueError) as error:
+            raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge request id is invalid") from error
+        try:
+            resource_id = int(document_id)
+        except (TypeError, ValueError) as error:
+            raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge resource id is invalid") from error
+        if task_id_value <= 0 or request_id_value <= 0 or resource_id <= 0 or not document_id or not version:
             raise RagError("RAG_PURGE_CONTRACT_INVALID", "retention purge identifiers are required")
         if payload.get("tenant_id", 0) != 0 or payload.get("scope", PUBLIC_SCOPE) != PUBLIC_SCOPE:
             raise RagError("RAG_SCOPE_DENIED", "retention purge scope is not public")
@@ -176,28 +185,44 @@ class KnowledgeIndexWorker:
                 or completed_result.get("version") not in (None, version)
             ):
                 raise RagError("RAG_PURGE_IDEMPOTENCY_CONFLICT", "retention purge task target conflicts with its completed fact")
-            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "succeeded", "duplicate": True}
+            result = {"task_id": task_id_value, "request_id": request_id_value, "resource_type": "knowledge_document", "resource_id": resource_id, "task_type": "vector_index", "document_id": document_id, "version": version, "status": "succeeded", "backend": completed_result.get("backend", "unknown"), "deleted_count": int(completed_result.get("deleted_count", 0)), "verified_absent": bool(completed_result.get("verified_absent", True)), "duplicate": True}
             publish(result)
             return result
         if not self._claim(key):
             raise RagError("RAG_PURGE_IN_PROGRESS", "retention purge task is already being processed")
         try:
             if self.milvus:
-                self.milvus.delete_document(document_id, version)
+                deletion = self.milvus.delete_document(document_id, version)
             elif self.stub:
-                self.stub.delete_document(document_id, version)
-            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "succeeded"}
+                deletion = self.stub.delete_document(document_id, version)
+            else:
+                raise RagError("RAG_PURGE_BACKEND_UNAVAILABLE", "retention purge backend is unavailable")
+            if not isinstance(deletion, DeletionResult):
+                raise RagError("RAG_PURGE_RESULT_INVALID", "retention purge backend returned no result fact")
+            backend = deletion.backend
+            deleted_count = deletion.deleted_count
+            verified_absent = deletion.verified_absent
+            if not verified_absent:
+                raise RagError("RAG_PURGE_VERIFY_FAILED", "retention purge absence verification failed")
+            result = {"task_id": task_id_value, "request_id": request_id_value, "resource_type": "knowledge_document", "resource_id": resource_id, "task_type": "vector_index", "document_id": document_id, "version": version, "status": "succeeded", "backend": backend, "deleted_count": deleted_count, "verified_absent": verified_absent}
             self._mark_completed(key, result)
         except RagError as error:
             self._release(key)
-            result = {"task_id": task_id_value, "document_id": document_id, "version": version, "status": "failed", "error_code": error.code, "error_summary": str(error)[:256]}
+            result = {"task_id": task_id_value, "request_id": request_id_value, "resource_type": "knowledge_document", "resource_id": resource_id, "task_type": "vector_index", "document_id": document_id, "version": version, "status": "failed", "backend": "milvus" if self.milvus else "redis", "deleted_count": 0, "verified_absent": False, "error_code": error.code, "error_summary": str(error)[:256]}
         except Exception:
             self._release(key)
             result = {
                 "task_id": task_id_value,
+                "request_id": request_id_value,
+                "resource_type": "knowledge_document",
+                "resource_id": resource_id,
+                "task_type": "vector_index",
                 "document_id": document_id,
                 "version": version,
                 "status": "failed",
+                "backend": "milvus" if self.milvus else "redis",
+                "deleted_count": 0,
+                "verified_absent": False,
                 "error_code": "RAG_PURGE_EXECUTION_FAILED",
                 "error_summary": "retention purge backend execution failed",
             }

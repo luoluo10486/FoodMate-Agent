@@ -195,6 +195,15 @@ class Citation:
     snippet: str
 
 
+@dataclass(frozen=True)
+class DeletionResult:
+    """版本范围删除后返回的后端无关清理事实。"""
+
+    backend: str
+    deleted_count: int
+    verified_absent: bool
+
+
 class EmbeddingProvider(Protocol):
     def embed(self, inputs: list[str]) -> list[list[float]]:
         ...
@@ -272,10 +281,17 @@ class StubIndex:
                 break
         return citations
 
-    def delete_document(self, document_id: str, version: str) -> None:
+    def delete_document(self, document_id: str, version: str) -> DeletionResult:
+        deleted = 0
         for embedding_id, (_, chunk) in list(self._chunks.items()):
             if str(chunk.document_id) == str(document_id) and str(chunk.version) == str(version):
                 del self._chunks[embedding_id]
+                deleted += 1
+        remaining = any(
+            str(chunk.document_id) == str(document_id) and str(chunk.version) == str(version)
+            for _, chunk in self._chunks.values()
+        )
+        return DeletionResult("memory", deleted, not remaining)
 
 
 class RedisStubIndex:
@@ -322,14 +338,23 @@ class RedisStubIndex:
                 pipeline.hset(f"{self.prefix}:chunks", chunk_id, json.dumps(value, ensure_ascii=False))
         pipeline.execute()
 
-    def delete_document(self, document_id: str, version: str) -> None:
+    def delete_document(self, document_id: str, version: str) -> DeletionResult:
         values = self.client.hgetall(f"{self.prefix}:chunks")
         pipeline = self.client.pipeline()
+        matching = []
         for chunk_id, raw in values.items():
             value = json.loads(raw)
             if str(value.get("document_id")) == str(document_id) and str(value.get("version")) == str(version):
+                matching.append(chunk_id)
                 pipeline.hdel(f"{self.prefix}:chunks", chunk_id)
         pipeline.execute()
+        remaining = self.client.hgetall(f"{self.prefix}:chunks")
+        verified_absent = not any(
+            str(json.loads(raw).get("document_id")) == str(document_id)
+            and str(json.loads(raw).get("version")) == str(version)
+            for raw in remaining.values()
+        )
+        return DeletionResult("redis", len(matching), verified_absent)
 
     def search(self, query: str, scope: str = PUBLIC_SCOPE) -> list[Citation]:
         if scope != PUBLIC_SCOPE:
@@ -628,10 +653,10 @@ class MilvusIndex:
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus visibility update failed") from error
 
-    def delete_document(self, document_id: str, version: str) -> None:
+    def delete_document(self, document_id: str, version: str) -> DeletionResult:
         try:
             if not self.client.has_collection(self.collection):
-                return
+                return DeletionResult("milvus", 0, True)
             rows = self.client.query(
                 collection_name=self.collection,
                 filter=f'document_id == "{_milvus_string(document_id)}" and version == "{_milvus_string(version)}"',
@@ -641,6 +666,12 @@ class MilvusIndex:
             if ids:
                 self.client.delete(collection_name=self.collection, ids=ids)
                 self._flush()
+            remaining = self.client.query(
+                collection_name=self.collection,
+                filter=f'document_id == "{_milvus_string(document_id)}" and version == "{_milvus_string(version)}"',
+                output_fields=["embedding_id"],
+            )
+            return DeletionResult("milvus", len(ids), not remaining)
         except Exception as error:
             raise RagError("RAG_MILVUS_DELETE_FAILED", "Milvus vector delete failed") from error
 
