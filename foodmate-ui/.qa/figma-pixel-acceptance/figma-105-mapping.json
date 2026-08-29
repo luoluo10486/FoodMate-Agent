@@ -1549,7 +1549,7 @@
       "queryState": "state=sse-reconnecting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-warning-colors-browser-1440x1024-2026-08-30.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-current-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1579,7 +1579,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
-        "conclusion": "The current browser capture preserves the Figma reconnect attempt count, retained text, disabled composer, refresh guidance, Agent avatar and reconnect band. The user-message timestamp is aligned to the Figma fixture at 03:00 PM. The frontend does not render the desktop window controls. Residual differences remain in workspace, avatar, font and icon rasterization; retain DIFF_REVIEW."
+        "conclusion": "当前浏览器截图保留 Figma 的重连次数、已显示文本、禁用输入框、刷新提示、Agent 头像和重连提示带；用户消息时间为 03:00 PM。前端不渲染桌面窗口装饰，整页仍存在工作台、头像、字体和图标光栅化差异，继续保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {

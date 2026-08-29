@@ -315,10 +315,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 339487,
-      "differentRatio": 0.23022935655381943,
-      "meanAbsoluteError": 2.778809102376302,
-      "rmse": 15.462460892056573,
+      "differentPixels": 338410,
+      "differentRatio": 0.2294989691840278,
+      "meanAbsoluteError": 2.76910163031684,
+      "rmse": 15.461382838106463,
       "maxChannelDelta": 249
     },
     "agent-chat-redesign-default": {

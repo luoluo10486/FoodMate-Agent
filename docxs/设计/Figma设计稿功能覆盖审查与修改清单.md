@@ -1028,3 +1028,11 @@
 - [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `20.5035% / MAE 2.421603 / RMSE 14.507177 / maxChannelDelta 249`，实际 DPR `1.0000000149` 通过门禁，但整页视觉仍存在差异，因此继续记为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换到当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本节只关闭用户取消态当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 58. 2026-08-30 Agent SSE Reconnecting 当前前端证据复核
+
+- [x] 对照 Figma 节点 `687:1803` 复核 `/chat?state=sse-reconnecting`；当前页面保留已显示文本、显示第 `2/5` 次重连、刷新提示并禁用 Composer。
+- [x] 当前运行时视口为 `1440×1024`，字体状态为 `loaded`，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
+- [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `22.9499% / MAE 2.769102 / RMSE 15.461383 / maxChannelDelta 249`，实际 DPR `1.0000000149` 通过门禁，但整页仍存在视觉差异，因此继续记为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换到当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本节只关闭 SSE 重连态当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
