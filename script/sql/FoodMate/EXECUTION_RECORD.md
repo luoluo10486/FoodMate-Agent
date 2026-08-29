@@ -1296,3 +1296,14 @@
 | 扫描边界 | 秘密规则只匹配高置信度凭据格式；未把配置名、测试占位值或文档中的变量名误报为密钥。对话中曾公开的旧 API Key 未写入仓库，后续不再使用。 |
 | 数据与暂缓边界 | 未修改业务数据、未执行性能压测、组件重启、故障注入、备份恢复或生产部署；npm advisory/OWASP 扫描不在本轮命令中执行。 |
 | 结论 | Python 依赖和 Git 跟踪文件秘密扫描已有本地证据；完整生产安全流程、密钥轮换执行和渗透测试仍未完成。 |
+
+## D67 SiliconFlow 双 Embedding 真实接口复核（2026-08-29）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/business-db-idempotency`；使用项目 `agent-runtime\.venv`，Python 字节码写入已关闭。 |
+| 执行命令 | 在当前 PowerShell 进程临时注入 SiliconFlow endpoint 和 embedding credential：`$env:FOODMATE_RUN_REAL_EMBEDDING_TESTS=true`；`PYTHONDONTWRITEBYTECODE=1 .\\.venv\\Scripts\\python.exe -m pytest -q tests/test_real_embedding_integration.py -p no:cacheprovider`。凭据未写入文件、源码、日志或执行记录。 |
+| 验证结果 | `1 passed in 0.57s`；测试覆盖 `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B`，两者各返回 1 个、1024 维浮点向量。 |
+| 缓存检查 | 项目范围 `*.pyc/*.pyo=0`、`__pycache__/.pytest_cache=0`；`.gitignore` 已忽略 Python 生成缓存。 |
+| 数据与边界 | 未写入 Milvus 业务数据，未执行索引批次、真实 AgentRun、性能压测或生产调用；本次只证明 SiliconFlow `/embeddings` 的协议和模型维度契约。对话中公开的 credential 不再复用，应在供应商控制台轮换。 |
+| 结论 | 两个指定 Embedding 模型的真实接口 smoke 通过；真实 RAG 全链路、长期稳定性、正式价格/账单审计和生产强化仍未完成。 |
