@@ -1,8 +1,8 @@
 """Explicit SiliconFlow embedding smoke tests.
 
-These tests are opt-in because they make paid external requests. They load the
-repository-local environment for developer convenience but never print or
-persist the credential.
+These tests are opt-in because they make paid external requests. Credentials
+must come from the current process environment and are never loaded from the
+repository-local ``.env`` file, printed, or persisted.
 """
 
 import os

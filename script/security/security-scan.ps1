@@ -193,6 +193,7 @@ try {
         exit 1
     }
     Write-Output "security_scan_status=passed"
+    exit 0
 } finally {
     Pop-Location
 }
