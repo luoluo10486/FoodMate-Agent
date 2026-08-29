@@ -95,11 +95,11 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 1286500,
-      "differentRatio": 0.9926697530864198,
-      "meanAbsoluteError": 2.3160171682098767,
-      "rmse": 14.074317592770191,
-      "maxChannelDelta": 213
+      "differentPixels": 1284884,
+      "differentRatio": 0.9914228395061728,
+      "meanAbsoluteError": 1.6437918595679013,
+      "rmse": 11.583253505253838,
+      "maxChannelDelta": 212
     },
     "login-submitting": {
       "status": "COMPARED",

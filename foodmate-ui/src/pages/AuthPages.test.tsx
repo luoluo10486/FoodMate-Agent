@@ -337,4 +337,12 @@ describe('authentication pages', () => {
     await user.click(screen.getByRole('button', { name: '确认重置' }));
     expect(screen.getByRole('heading', { name: '重置密码' })).toBeInTheDocument();
   });
+
+  it('uses the Figma accent token for the reset-password brand mark', () => {
+    renderAuth('/reset-password');
+
+    expect(screen.getByRole('main')).toHaveStyle({
+      '--auth-accent': '#48c78e',
+    });
+  });
 });

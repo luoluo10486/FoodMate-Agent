@@ -14,6 +14,9 @@ export const authShellFigmaTokens = {
   forgot: {
     accent: '#48c78e',
   },
+  reset: {
+    accent: '#48c78e',
+  },
 } as const;
 
 type AuthShellStyle = CSSProperties & {
@@ -37,7 +40,9 @@ export function AuthShell({ variant, children }: { variant: AuthVariant; childre
       ? authShellFigmaTokens.register
       : variant === 'forgot'
         ? authShellFigmaTokens.forgot
-        : undefined;
+        : variant === 'reset'
+          ? authShellFigmaTokens.reset
+          : undefined;
   const style = tokens
     ? ({
         '--auth-diagonal': tokens.diagonal,

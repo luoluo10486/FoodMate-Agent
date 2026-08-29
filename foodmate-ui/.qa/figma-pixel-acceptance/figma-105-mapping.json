@@ -594,19 +594,19 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/reset-password-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#reset-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-08-30 browser capture and independent PNG diff added; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 900,
@@ -623,9 +623,28 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Reset-password page differs visually from the Figma reference. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The Figma accent token is now #48c78e on the brand mark. The viewport and font checks pass, but the browser capture is DPR 1.25 and the page still has rasterization differences; retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "label": "重置密码页品牌强调色 Token 收口",
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/reset-password-page.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-2026-08-30-diff.json",
+          "viewport": "1440x900",
+          "actualDpr": 1.25,
+          "geometry": {
+            "root": "1440x900",
+            "fonts": "loaded",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0,
+            "mainStyle": "--auth-accent: #48c78e"
+          },
+          "visualChange": "重置密码页通过 AuthShell 语义变量使用 Figma 品牌强调色 #48c78e；仅修改前端，未修改 Figma 设计稿。"
+        }
+      ]
     },
     {
       "figmaNodeId": "680:408",
