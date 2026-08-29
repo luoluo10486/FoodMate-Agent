@@ -1,0 +1,49 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 364747,
+  "differentRatio": 0.24735989040798612,
+  "meanAbsoluteError": 2.6520094129774305,
+  "rmse": 15.174373672299334,
+  "maxChannelDelta": 230,
+  "expected": "recaptured/admin-trace-figma-live-2026-08-29.png",
+  "actual": "recaptured/admin-trace-table-columns-browser-2026-08-29-rgba.png",
+  "viewport": "1440x1024",
+  "dpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "geometry": {
+    "table": "1132x87 at x=284,y=146",
+    "gridTemplateColumns": "120px 120px 304px 110px 120px 90px 80px 80px",
+    "columnGap": "12px",
+    "headerColumns": [
+      "120px at x=296",
+      "120px at x=428",
+      "304px at x=560",
+      "110px at x=876",
+      "120px at x=998",
+      "90px at x=1130",
+      "80px at x=1232",
+      "80px at x=1324"
+    ],
+    "rowColumns": [
+      "120px at x=296",
+      "120px at x=428",
+      "304px at x=560",
+      "110px at x=876",
+      "120px at x=998",
+      "90px at x=1130",
+      "80px at x=1232",
+      "80px at x=1324"
+    ],
+    "tracePanel": "1132x162 at y=257",
+    "traceCards": "4 x 261x87",
+    "detailPanel": "1132x300 at y=454",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据 Figma 节点 797:712-731，将 Run 记录表头与数据行统一为 120/120/自适应/110/120/90/80/80px 列轨道并使用 12px 列间距；仅修改前端，未修改 Figma。",
+  "conclusion": "DIFF_REVIEW"
+}

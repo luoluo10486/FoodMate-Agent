@@ -1221,3 +1221,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-status-style-browser-2026-08-29.jpg`、RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-status-style-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-trace-status-style-2026-08-29-diff.json`；`png-diff.mjs` 同尺寸结果为 `differentPixels=365602`、差异比例 `24.79397%`、`MAE=2.713447`、`RMSE=15.377519`、最大通道差异 `230`，较前项 `24.8855%` 有所改善，结论继续为 `DIFF_REVIEW`。
 - [x] Admin 定向测试 `8/8`、`npm run typecheck`、截图格式转换、JSON 解析和 `git diff --check` 已验证。
 - [ ] 本小点只完成 Trace 状态和时间线颜色局部收口，不代表该画板或 105 张画板达到像素级 `PASS`；侧栏身份、其它字体/图标和整页组合差异仍需继续处理，shadcn 全页面迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 133. 2026-08-29 Admin Trace 运行记录表列轨道收口
+
+- [x] 依据实时 Figma 节点 `797:712-731`，确认 Run 记录表目标列轨道为 `120px 120px minmax(0, 1fr) 110px 120px 90px 80px 80px`，列间距为 `12px`；前端 `AdminPage.module.css` 已完成对应调整，Figma 设计稿保持只读。
+- [x] 浏览器使用 `1440×1024`、DPR `1.0000000149011612`、字体状态 `loaded`；Run 记录表实测为 `1132×87px at x=284,y=146`，状态列为 `110px at x=876`，阶段列为 `120px at x=998`，页面无横向或纵向溢出，左上角红黄绿窗口装饰候选数量为 `0`，业务权限状态圆点保留。
+- [x] Figma PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png`、浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-table-columns-browser-2026-08-29.jpg`、浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-table-columns-browser-2026-08-29-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/admin-trace-table-columns-2026-08-29-diff.json` 已登记；同尺寸结果为 `differentPixels=364747`、差异比例 `24.735989%`、`MAE=2.652009`、`RMSE=15.174374`、最大通道差异 `230`，结论为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 和 `figma-105-diff-results.json` 已同步最新证据；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，本次没有将局部几何修正标记为像素级 `PASS`。
+- [x] Admin Trace 定向测试、JSON 解析、`npm run typecheck`、`npm run build` 和 `git diff --check` 已验证。
+- [ ] 本小点只完成 Run 记录表列轨道局部几何收口；侧栏身份、其它字体/图标和整页组合差异仍需继续处理，shadcn 全页面视觉迁移尚未完成，iconfont 继续为 `BLOCKED`。

@@ -3933,11 +3933,11 @@
       "queryState": "state=trace",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-status-style-browser-2026-08-29-rgba.png",
-      "diffJson": ".qa/figma-pixel-acceptance/admin-trace-status-style-2026-08-29-diff.json",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-table-columns-browser-2026-08-29-rgba.png",
+      "diffJson": ".qa/figma-pixel-acceptance/admin-trace-table-columns-2026-08-29-diff.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-29 独立 diff 已更新；Trace 事件面板依据实时 Figma 节点 797:732 收口为 162px，下载链接依据节点 797:737 对齐颜色、字重和下划线，筛选状态与时间线颜色依据节点 797:704、797:705、797:706、797:707、797:741、797:747、797:753、797:759 对齐，详情字段面板保持 Figma y=454 目标，整页视觉差异仍需复核",
+      "evidenceNote": "2026-08-29 独立 diff 已更新；Trace 事件面板依据实时 Figma 节点 797:732 收口为 162px，下载链接依据节点 797:737 对齐颜色、字重和下划线，筛选状态与时间线颜色依据节点 797:704、797:705、797:706、797:707、797:741、797:747、797:753、797:759 对齐，Run 记录表依据节点 797:712-731 对齐列轨道和间距，详情字段面板保持 Figma y=454 目标，整页视觉差异仍需复核",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -3963,7 +3963,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "Trace filters, run table, four event timeline cards, refresh control, log-download action and Trace detail fields remain represented. The event panel, cards, detail panel, log-download link styling, status colors and timeline colors now match the checked Figma targets; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
+        "conclusion": "Trace filters, run table, four event timeline cards, refresh control, log-download action and Trace detail fields remain represented. The event panel, cards, detail panel, log-download link styling, status colors, timeline colors and Run table column tracks now match the checked Figma targets; shell identity, icon treatment, typography and other full-page visual differences remain, so retain DIFF_REVIEW."
       },
       "additionalVisualEvidence": [
         {
@@ -4025,6 +4025,77 @@
             "fontSize": "13px",
             "fontWeight": "400",
             "textDecorationLine": "underline"
+          },
+          "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-status-style-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-trace-status-style-2026-08-29-diff.json",
+          "visualChange": "依据 Figma 节点 797:704、797:705、797:706、797:707、797:741、797:747、797:753、797:759，将 Trace 筛选状态和四个时间线标题的颜色、字号及失败符号对齐；仅修改前端，未修改 Figma。",
+          "diff": {
+            "differentPixels": 365602,
+            "differentRatio": 0.24793972439236112,
+            "meanAbsoluteError": 2.713446553548177,
+            "rmse": 15.377519453839836,
+            "maxChannelDelta": 230
+          },
+          "geometry": {
+            "viewport": "1440x1024",
+            "dpr": 1.0000000149011612,
+            "fonts": "loaded",
+            "toolbar": "1132x34 at y=88",
+            "search": "663.375x32 at x=476,y=89",
+            "failedFilter": "64.1875x25 at x=1151.375,y=92.5",
+            "successFilter": "72.4375x25 at x=1227.5625,y=92.5",
+            "tracePanel": "1132x162 at y=257",
+            "traceCards": "4 x 261x87",
+            "detailPanel": "1132x300 at y=454",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "computedStyle": {
+            "failedFilterColor": "rgb(214, 118, 118)",
+            "successFilterColor": "rgb(137, 178, 124)",
+            "stageColors": [
+              "rgb(93, 169, 178)",
+              "rgb(181, 140, 196)",
+              "rgb(199, 150, 84)",
+              "rgb(214, 118, 118)"
+            ],
+            "failedFilterFontSize": "11px",
+            "successFilterFontSize": "11px"
+          },
+          "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-trace-figma-live-2026-08-29.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-trace-table-columns-browser-2026-08-29-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-trace-table-columns-2026-08-29-diff.json",
+          "visualChange": "依据 Figma 节点 797:712-731，将 Run 记录表头与数据行统一为 120/120/自适应/110/120/90/80/80px 列轨道并使用 12px 列间距；仅修改前端，未修改 Figma。",
+          "diff": {
+            "differentPixels": 364747,
+            "differentRatio": 0.24735989040798612,
+            "meanAbsoluteError": 2.6520094129774305,
+            "rmse": 15.174373672299334,
+            "maxChannelDelta": 230
+          },
+          "geometry": {
+            "viewport": "1440x1024",
+            "dpr": 1.0000000149011612,
+            "fonts": "loaded",
+            "table": "1132x87 at x=284,y=146",
+            "gridTemplateColumns": "120px 120px 304px 110px 120px 90px 80px 80px",
+            "columnGap": "12px",
+            "statusColumn": "110px at x=876",
+            "phaseColumn": "120px at x=998",
+            "tracePanel": "1132x162 at y=257",
+            "traceCards": "4 x 261x87",
+            "detailPanel": "1132x300 at y=454",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
           },
           "conclusion": "DIFF_REVIEW"
         }
