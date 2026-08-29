@@ -1,3 +1,4 @@
+import os
 import sys
 from types import ModuleType, SimpleNamespace
 from unittest import TestCase
@@ -355,6 +356,22 @@ class KnowledgeIndexWorkerTests(TestCase):
 
         self.assertEqual(3, len(consumers))
         self.assertEqual(3, len(FakeConsumer.instances))
+
+    def test_rocketmq_worker_can_disable_each_consumer_independently(self):
+        from knowledge_worker import start_rocketmq_worker
+
+        with patch.dict(
+            os.environ,
+            {
+                "FOODMATE_KNOWLEDGE_INDEX_CONSUMER_ENABLED": "false",
+                "FOODMATE_KNOWLEDGE_VISIBILITY_CONSUMER_ENABLED": "false",
+                "FOODMATE_KNOWLEDGE_PURGE_CONSUMER_ENABLED": "false",
+            },
+            clear=False,
+        ):
+            consumers = start_rocketmq_worker()
+
+        self.assertEqual((None, None, None), consumers)
 
     def test_stub_worker_start_does_not_probe_milvus(self):
         from knowledge_worker import wait_for_milvus_ready

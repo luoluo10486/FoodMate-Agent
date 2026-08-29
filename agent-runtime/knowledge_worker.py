@@ -452,46 +452,133 @@ def _embed_with_usage(embedder, inputs: list[str]) -> EmbeddingResult:
     return result
 
 
-def start_rocketmq_worker() -> tuple[object, object, object]:
-    """Start dedicated index and visibility consumers, separate from AgentRun traffic."""
-    from rocketmq import ClientConfiguration, ConsumeResult, Credentials, FilterExpression, MessageListener, PushConsumer
-    from mq_runtime import RocketMqKnowledgePurgeResultPublisher, RocketMqKnowledgeResultPublisher, _startup_client_with_timeout
+def start_rocketmq_worker() -> tuple[object | None, object | None, object | None]:
+    """按开关启动知识索引、可见性和清理 Consumer，不影响 AgentRun Consumer。"""
+    index_enabled = _consumer_enabled("FOODMATE_KNOWLEDGE_INDEX_CONSUMER_ENABLED")
+    visibility_enabled = _consumer_enabled("FOODMATE_KNOWLEDGE_VISIBILITY_CONSUMER_ENABLED")
+    purge_enabled = _consumer_enabled("FOODMATE_KNOWLEDGE_PURGE_CONSUMER_ENABLED")
+    if not any((index_enabled, visibility_enabled, purge_enabled)):
+        return None, None, None
+
+    from rocketmq import (
+        ClientConfiguration,
+        ConsumeResult,
+        Credentials,
+        FilterExpression,
+        MessageListener,
+        PushConsumer,
+    )
+    from mq_runtime import (
+        RocketMqKnowledgePurgeResultPublisher,
+        RocketMqKnowledgeResultPublisher,
+        _startup_client_with_timeout,
+    )
+
     settings = RagSettings.from_environment()
     wait_for_milvus_ready(settings)
-    publisher = RocketMqKnowledgeResultPublisher()
-    purge_publisher = RocketMqKnowledgePurgeResultPublisher()
-    worker = KnowledgeIndexWorker(result_publisher=publisher.publish, settings=settings)
-    class Listener(MessageListener):
-        def consume(self, message):
-            try:
-                worker.handle_index(json.loads(message.body.decode("utf-8")))
-                return ConsumeResult.SUCCESS
-            except Exception:
-                return ConsumeResult.FAILURE
-    consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_INDEX", "foodmate-python-knowledge-index-v1"), Listener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX", "foodmate-knowledge-index-v1"): FilterExpression("*")}, consumption_thread_count=int(os.getenv("FOODMATE_RAG_INDEX_CONCURRENCY", "4")))
-    _startup_client_with_timeout(consumer, "knowledge-index", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
-    class VisibilityListener(MessageListener):
-        def consume(self, message):
-            try:
-                worker.handle_visibility(json.loads(message.body.decode("utf-8")))
-                return ConsumeResult.SUCCESS
-            except Exception:
-                return ConsumeResult.FAILURE
-    visibility_consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_VISIBILITY", "foodmate-python-knowledge-visibility-v1"), VisibilityListener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_VISIBILITY", "foodmate-knowledge-visibility-v1"): FilterExpression("*")}, consumption_thread_count=1)
-    _startup_client_with_timeout(visibility_consumer, "knowledge-visibility", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
-    class PurgeListener(MessageListener):
-        def consume(self, message):
-            try:
-                worker.handle_purge(
-                    json.loads(message.body.decode("utf-8")),
-                    result_publisher=purge_publisher.publish,
-                )
-                return ConsumeResult.SUCCESS
-            except Exception:
-                return ConsumeResult.FAILURE
-    purge_consumer = PushConsumer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_PURGE", "foodmate-python-knowledge-purge-v1"), PurgeListener(), subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_PURGE", "foodmate-knowledge-purge-v1"): FilterExpression("*")}, consumption_thread_count=1)
-    _startup_client_with_timeout(purge_consumer, "knowledge-purge", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
+    index_publisher = (
+        RocketMqKnowledgeResultPublisher().publish if index_enabled else lambda _result: None
+    )
+    worker = KnowledgeIndexWorker(result_publisher=index_publisher, settings=settings)
+    startup_timeout = float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15"))
+    endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
+    configuration = ClientConfiguration(endpoint, Credentials())
+
+    consumer = None
+    if index_enabled:
+
+        class Listener(MessageListener):
+            def consume(self, message):
+                try:
+                    worker.handle_index(json.loads(message.body.decode("utf-8")))
+                    return ConsumeResult.SUCCESS
+                except Exception:
+                    return ConsumeResult.FAILURE
+
+        consumer = PushConsumer(
+            configuration,
+            os.getenv(
+                "FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_INDEX",
+                "foodmate-python-knowledge-index-v1",
+            ),
+            Listener(),
+            subscription={
+                os.getenv(
+                    "FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX",
+                    "foodmate-knowledge-index-v1",
+                ): FilterExpression("*")
+            },
+            consumption_thread_count=int(os.getenv("FOODMATE_RAG_INDEX_CONCURRENCY", "4")),
+        )
+        _startup_client_with_timeout(consumer, "knowledge-index", startup_timeout)
+
+    visibility_consumer = None
+    if visibility_enabled:
+
+        class VisibilityListener(MessageListener):
+            def consume(self, message):
+                try:
+                    worker.handle_visibility(json.loads(message.body.decode("utf-8")))
+                    return ConsumeResult.SUCCESS
+                except Exception:
+                    return ConsumeResult.FAILURE
+
+        visibility_consumer = PushConsumer(
+            configuration,
+            os.getenv(
+                "FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_VISIBILITY",
+                "foodmate-python-knowledge-visibility-v1",
+            ),
+            VisibilityListener(),
+            subscription={
+                os.getenv(
+                    "FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_VISIBILITY",
+                    "foodmate-knowledge-visibility-v1",
+                ): FilterExpression("*")
+            },
+            consumption_thread_count=1,
+        )
+        _startup_client_with_timeout(
+            visibility_consumer, "knowledge-visibility", startup_timeout
+        )
+
+    purge_consumer = None
+    if purge_enabled:
+        purge_publisher = RocketMqKnowledgePurgeResultPublisher()
+
+        class PurgeListener(MessageListener):
+            def consume(self, message):
+                try:
+                    worker.handle_purge(
+                        json.loads(message.body.decode("utf-8")),
+                        result_publisher=purge_publisher.publish,
+                    )
+                    return ConsumeResult.SUCCESS
+                except Exception:
+                    return ConsumeResult.FAILURE
+
+        purge_consumer = PushConsumer(
+            configuration,
+            os.getenv(
+                "FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_KNOWLEDGE_PURGE",
+                "foodmate-python-knowledge-purge-v1",
+            ),
+            PurgeListener(),
+            subscription={
+                os.getenv(
+                    "FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_PURGE",
+                    "foodmate-knowledge-purge-v1",
+                ): FilterExpression("*")
+            },
+            consumption_thread_count=1,
+        )
+        _startup_client_with_timeout(purge_consumer, "knowledge-purge", startup_timeout)
     return consumer, visibility_consumer, purge_consumer
+
+
+def _consumer_enabled(name: str) -> bool:
+    """读取独立 Consumer 开关，默认保持既有整体 Worker 行为。"""
+    return os.getenv(name, "true").strip().lower() == "true"
 
 
 def wait_for_milvus_ready(settings: RagSettings) -> None:

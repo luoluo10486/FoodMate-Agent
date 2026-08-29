@@ -877,4 +877,5 @@ if __name__ == "__main__":
             mq_runtime.close()
         if knowledge_consumer is not None:
             for consumer in knowledge_consumer:
-                consumer.shutdown()
+                if consumer is not None:
+                    consumer.shutdown()
