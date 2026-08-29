@@ -1,0 +1,35 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 373405,
+  "differentRatio": 0.2532314724392361,
+  "meanAbsoluteError": 2.1923192342122397,
+  "rmse": 13.473595014720978,
+  "maxChannelDelta": 234,
+  "figmaNodeId": "687:1803",
+  "artboardName": "agent-sse-reconnecting",
+  "frontendRoute": "/chat",
+  "queryState": "state=sse-reconnecting",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "fonts": "loaded",
+  "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
+  "browserPng": "recaptured/agent-sse-reconnecting-time-aligned-browser-1440x1024-2026-08-30.png",
+  "geometry": {
+    "status": "PASS",
+    "desktopAssistantRow": "x=292,y=237,width=608,height=52",
+    "desktopAssistantBody": "x=340,y=237,width=560,height=52",
+    "desktopNotice": "x=284,y=820,width=1132,height=66",
+    "desktopCenteredText": "x=284,y=898,width=1132,height=14",
+    "desktopComposer": "x=260,y=912,width=1180,height=112",
+    "bodyOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "textCheck": {
+    "status": "PASS",
+    "userMessageTimestamp": "Anddy · 03:00 PM"
+  },
+  "conclusion": "DIFF_REVIEW"
+}

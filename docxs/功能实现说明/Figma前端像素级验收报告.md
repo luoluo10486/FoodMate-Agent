@@ -1101,6 +1101,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] ChatPage 状态回归确认部分文本、取消提示和重新开始输入框存在，且页面正文不包含“运行失败”；机器检查与人工复核均已更新，结论继续为 `DIFF_REVIEW`。
 - [ ] 整页壳层、字体光栅化、图标及其他组合差异仍存在；该画板不能标记像素级 `PASS`。shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
 
+## 151. 2026-08-30 Agent SSE Reconnecting 时间文案收口
+
+- [x] 依据 Figma 节点 `687:1803`，将 `/chat?state=sse-reconnecting` 的用户消息时间从共享默认时间修正为画板中的 `Anddy · 03:00 PM`；仅修改前端，未修改 Figma 设计稿。
+- [x] 浏览器重新采集视口 `1440×1024`，字体已加载，`scrollWidth=clientWidth=1440`，助手行 `x=292,y=237,width=608,height=52`，助手气泡 `x=340,y=237,width=560,height=52`，重连提示带 `x=284,y=820,width=1132,height=66`，输入区 `x=260,y=912,width=1180,height=112`；前端左上角红黄绿窗口装饰候选数量为 `0`，业务状态圆点保留。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-time-aligned-browser-1440x1024-2026-08-30.png`，Figma 参考为 `docxs/设计/figma-png/agent-sse-reconnecting.png`；独立 diff 为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-sse-reconnecting-time-aligned-2026-08-30-diff.json`，`differentPixels=373405`、差异比例 `25.3231%`、`MAE=2.19232`、`RMSE=13.47360`、最大通道差异 `234`，结论继续为 `DIFF_REVIEW`。
+- [x] 映射 JSON 和聚合 diff 已更新；重连态测试通过，最新采集实际 DPR 为 `1.25`，因此不满足严格 DPR 1 的像素 `PASS` 门禁。
+- [ ] 整页工作台壳层、头像、字体和图标光栅化仍存在差异；该画板不能标记像素级 `PASS`。105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，shadcn 全页面迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
+
 ## 110. 2026-08-28 Agent SSE Reconnecting 当前版本验收
 
 - [x] 对应 Figma 节点 `687:1803` 的 `/chat?state=sse-reconnecting` fixture 保留已显示文本，展示第 `2/5` 次重连、等待重连状态和持续失败后的刷新提示；输入框保持禁用。

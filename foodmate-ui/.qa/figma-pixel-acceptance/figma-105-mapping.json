@@ -1427,11 +1427,11 @@
       "queryState": "state=sse-reconnecting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-browser-2026-08-28.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-time-aligned-browser-1440x1024-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; 2026-08-30 time-aligned evidence is recorded in additionalVisualEvidence; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -1456,9 +1456,29 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture preserves the reconnect attempt count, retained text, disabled composer, refresh guidance, Agent avatar and reconnect band. The frontend does not render the desktop window controls. Residual differences remain in workspace and font/icon rasterization; retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The current browser capture preserves the Figma reconnect attempt count, retained text, disabled composer, refresh guidance, Agent avatar and reconnect band. The user-message timestamp is aligned to the Figma fixture at 03:00 PM. The frontend does not render the desktop window controls. Residual differences remain in workspace, avatar, font and icon rasterization; retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-time-aligned-browser-1440x1024-2026-08-30.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-sse-reconnecting-time-aligned-2026-08-30-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "visualChange": "依据 Figma 节点 687:1803，将重连态用户消息时间从共享默认时间修正为画板中的 03:00 PM；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "desktopAssistantRow": "x=292,y=237,width=608,height=52",
+            "desktopAssistantBody": "x=340,y=237,width=560,height=52",
+            "desktopNotice": "x=284,y=820,width=1132,height=66",
+            "desktopCenteredText": "x=284,y=898,width=1132,height=14",
+            "desktopComposer": "x=260,y=912,width=1180,height=112",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          }
+        }
+      ]
     },
     {
       "figmaNodeId": "689:217",

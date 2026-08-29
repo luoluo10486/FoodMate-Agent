@@ -305,6 +305,7 @@ describe('ChatPage Agent remaining states', () => {
 
   it('renders the bounded SSE reconnect notice while preserving the composer state', () => {
     renderState('sse-reconnecting');
+    expect(screen.getByText('Anddy · 03:00 PM')).toBeInTheDocument();
     expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();

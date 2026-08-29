@@ -1633,7 +1633,14 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
           ) : null}
         </div>
         <span className={styles.fixtureMessageMeta}>
-          Anddy · {state === 'user-cancelled' ? '02:15 PM' : state === 'safety-degraded' ? '01:30 PM' : '12:45 PM'}
+          Anddy ·{' '}
+          {state === 'user-cancelled'
+            ? '02:15 PM'
+            : state === 'safety-degraded'
+              ? '01:30 PM'
+              : state === 'sse-reconnecting'
+                ? '03:00 PM'
+                : '12:45 PM'}
         </span>
       </article>
       {content}
