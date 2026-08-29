@@ -1116,7 +1116,7 @@
       "queryState": "state=write-confirmation",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-browser-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-details-background-browser-1440x1024-2026-08-29-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-write-confirmation",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1146,7 +1146,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "The latest Figma and browser captures contain the confirmation fields, source, assumptions, and actions. The confirmation card geometry now matches the checked Figma frame; shell identity, avatar treatment, typography, and icon rasterization still differ, so retain DIFF_REVIEW."
+          "conclusion": "The latest Figma and browser captures contain the confirmation fields, source, assumptions, and actions. The confirmation card geometry and details background now match the checked Figma frame; shell identity, avatar treatment, typography, and icon rasterization still differ, so retain DIFF_REVIEW."
       }
     },
     {

@@ -1410,6 +1410,7 @@
   width: 265px;
   height: 168px;
   flex: 0 0 168px;
+  background: #f4f6f5;
 }
 
 .fixtureWriteCard .fixtureMeta {

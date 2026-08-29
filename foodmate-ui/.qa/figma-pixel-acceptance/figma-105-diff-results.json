@@ -244,17 +244,17 @@
       "rmse": 12.909475300897704,
       "maxChannelDelta": 251
     },
-    "agent-write-confirmation": {
-      "status": "COMPARED",
-      "width": 1440,
-      "height": 1024,
-      "pixelCount": 1474560,
-      "differentPixels": 275551,
-      "differentRatio": 0.18686998155381945,
-      "meanAbsoluteError": 2.020593939887153,
-      "rmse": 13.143764127049653,
-      "maxChannelDelta": 232
-    },
+      "agent-write-confirmation": {
+        "status": "COMPARED",
+        "width": 1440,
+        "height": 1024,
+        "pixelCount": 1474560,
+        "differentPixels": 250527,
+        "differentRatio": 0.16989949544270833,
+        "meanAbsoluteError": 1.8457022772894964,
+        "rmse": 13.046976261926144,
+        "maxChannelDelta": 232
+      },
     "agent-budget-limit": {
       "status": "COMPARED",
       "width": 1440,

@@ -1,0 +1,26 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 250527,
+  "differentRatio": 0.16989949544270833,
+  "meanAbsoluteError": 1.8457022772894964,
+  "rmse": 13.046976261926144,
+  "maxChannelDelta": 232,
+  "expected": "recaptured-figma/agent-write-confirmation-2026-08-29.png",
+  "actual": "recaptured/agent-write-confirmation-details-background-browser-1440x1024-2026-08-29-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.0000000149011612,
+  "dprPass": true,
+  "geometry": {
+    "confirmationCard": "x=340,y=237,width=305,height=319",
+    "details": "x=360,y=291.8,width=265,height=168",
+    "detailsBackground": "rgb(244, 246, 245)",
+    "composer": "x=260,y=912,width=1180,height=112",
+    "bodyOverflow": false,
+    "fonts": "loaded",
+    "windowControlsCandidates": 0
+  },
+  "conclusion": "DIFF_REVIEW"
+}
