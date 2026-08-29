@@ -2,11 +2,10 @@ package com.foodmate.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.Test;
 
 /** 校验 M1-5 首批营养目录 seed 的来源、精度和人工执行边界。 */
 class NutritionSeedScriptTest {

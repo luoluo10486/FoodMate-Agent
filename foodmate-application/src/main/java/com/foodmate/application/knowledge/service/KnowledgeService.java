@@ -20,9 +20,7 @@ public interface KnowledgeService {
     void updateStatus(
             long documentId, KnowledgeDocumentStatus status, long operatorId, String traceId);
 
-    /**
-     * 创建一个公共知识导入批次；索引和发布仍由后续显式步骤完成。
-     */
+    /** 创建一个公共知识导入批次；索引和发布仍由后续显式步骤完成。 */
     long uploadBatch(long operatorId, ImportBatch batch, String traceId);
 
     /** 执行公共可见性转换并发出可重放的投影事实。 */
