@@ -47,6 +47,25 @@ class EvalMetricsTests(unittest.TestCase):
         self.assertEqual(1, snapshot["operations"]["other"]["result:success"])
         self.assertEqual(1, snapshot["operations"]["other"]["reason:other"])
 
+    def test_runtime_metrics_captures_transport_rates_and_queue_states(self):
+        metrics = RuntimeMetrics(transport="rocketmq")
+        metrics.record("dispatch", "success", "completed", 10)
+        metrics.record_duplicate("dispatch")
+        metrics.record_redelivery("dispatch")
+        metrics.record_retry("dispatch")
+        metrics.queue_depth("dispatch_pending", 4)
+        metrics.queue_depth("dispatch_leased", 2)
+
+        snapshot = metrics.snapshot()
+        dispatch = snapshot["by_transport"]["rocketmq"]["dispatch"]
+        self.assertEqual(4, dispatch["total"])
+        self.assertEqual(0.25, dispatch["success_rate"])
+        self.assertEqual(0.25, dispatch["duplicate_rate"])
+        self.assertEqual(0.25, dispatch["redelivery_rate"])
+        self.assertEqual(0.25, dispatch["retry_rate"])
+        self.assertEqual(4, snapshot["queues"]["dispatch_pending"])
+        self.assertEqual(2, snapshot["queues"]["dispatch_leased"])
+
 
 if __name__ == "__main__":
     unittest.main()

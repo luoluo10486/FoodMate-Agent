@@ -7,8 +7,8 @@ import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -58,7 +58,7 @@ public class KnowledgeOutboxPublisher {
 
     private void relay(List<OutboxRow> rows, boolean index) {
         String operation = index ? "knowledge_index" : "visibility";
-        if (metrics != null) metrics.queueDepth("rocketmq", operation, rows.size());
+        if (metrics != null) metrics.queueDepth("rocketmq", operation, "pending", rows.size());
         for (OutboxRow row : rows) {
             String owner = "knowledge_" + UUID.randomUUID();
             if ((index

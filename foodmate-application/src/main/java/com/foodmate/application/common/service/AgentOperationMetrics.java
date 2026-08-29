@@ -33,7 +33,10 @@ public class AgentOperationMetrics {
                     "rejected",
                     "accepted",
                     "retry",
-                    "terminal");
+                    "terminal",
+                    "pending",
+                    "leased");
+    private static final Set<String> QUEUE_STATES = Set.of("pending", "leased");
     private static final Set<String> REASONS =
             Set.of(
                     "published",
@@ -106,16 +109,24 @@ public class AgentOperationMetrics {
 
     public void queueDepth(String transport, String operation, long value) {
         if (registry == null) return;
+        queueDepth(transport, operation, "pending", value);
+    }
+
+    /** 记录固定队列状态的当前深度，不把动态业务标识加入标签。 */
+    public void queueDepth(String transport, String operation, String state, long value) {
+        if (registry == null) return;
         String normalizedTransport = tag(transport, TRANSPORTS);
         String normalizedOperation = tag(operation, OPERATIONS);
-        String key = normalizedTransport + ":" + normalizedOperation;
+        String normalizedState = tag(state, QUEUE_STATES);
+        String key = normalizedTransport + ":" + normalizedOperation + ":" + normalizedState;
         AtomicLong depth = queueDepths.computeIfAbsent(key, ignored -> new AtomicLong());
         depth.set(Math.max(0, value));
         registry.gauge(
-                "foodmate.agent.queue.pending",
+                "foodmate.agent.queue.depth",
                 java.util.List.of(
                         io.micrometer.core.instrument.Tag.of("transport", normalizedTransport),
-                        io.micrometer.core.instrument.Tag.of("operation", normalizedOperation)),
+                        io.micrometer.core.instrument.Tag.of("operation", normalizedOperation),
+                        io.micrometer.core.instrument.Tag.of("state", normalizedState)),
                 depth);
     }
 

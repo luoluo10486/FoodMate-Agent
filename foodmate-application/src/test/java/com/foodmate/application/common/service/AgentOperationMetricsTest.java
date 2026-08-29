@@ -35,4 +35,40 @@ class AgentOperationMetricsTest {
                         .counter()
                         .count());
     }
+
+    @Test
+    void exposesPendingAndLeasedQueueDepthWithFixedStateTags() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ObjectProvider<MeterRegistry> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(registry);
+
+        AgentOperationMetrics metrics = new AgentOperationMetrics(provider);
+        metrics.queueDepth("rocketmq", "knowledge_index", "pending", 3);
+        metrics.queueDepth("rocketmq", "knowledge_index", "leased", 1);
+
+        assertEquals(
+                3.0,
+                registry.get("foodmate.agent.queue.depth")
+                        .tags(
+                                "transport",
+                                "rocketmq",
+                                "operation",
+                                "knowledge_index",
+                                "state",
+                                "pending")
+                        .gauge()
+                        .value());
+        assertEquals(
+                1.0,
+                registry.get("foodmate.agent.queue.depth")
+                        .tags(
+                                "transport",
+                                "rocketmq",
+                                "operation",
+                                "knowledge_index",
+                                "state",
+                                "leased")
+                        .gauge()
+                        .value());
+    }
 }
