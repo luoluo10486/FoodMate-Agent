@@ -17,11 +17,11 @@ public interface DataRetentionDatabasePurgeMapper {
     int adminExportJobExists(@Param("jobId") long jobId);
 
     @Select(
-            "SELECT CASE WHEN EXISTS (SELECT 1 FROM data_purge_requests r JOIN data_retention_policies p ON p.policy_id=r.policy_id JOIN knowledge_documents d ON d.document_id=#{documentId} WHERE r.resource_type='knowledge_document' AND r.resource_id=#{documentId} AND r.status IN ('approved','running') AND p.status='active' AND p.hard_delete_enabled=TRUE AND d.is_deleted=TRUE AND NOT EXISTS (SELECT 1 FROM data_legal_holds h WHERE h.resource_type='knowledge_document' AND h.resource_id=#{documentId} AND h.status='active')) THEN 1 ELSE 0 END")
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM data_purge_requests r JOIN data_retention_policies p ON p.policy_id=r.policy_id LEFT JOIN knowledge_documents d ON d.document_id=#{documentId} WHERE r.resource_type='knowledge_document' AND r.resource_id=#{documentId} AND r.status IN ('approved','running') AND p.status='active' AND p.hard_delete_enabled=TRUE AND (d.document_id IS NULL OR d.is_deleted=TRUE) AND NOT EXISTS (SELECT 1 FROM data_legal_holds h WHERE h.resource_type='knowledge_document' AND h.resource_id=#{documentId} AND h.status='active')) THEN 1 ELSE 0 END")
     int knowledgeDocumentPurgeAllowed(@Param("documentId") long documentId);
 
     @Select(
-            "SELECT CASE WHEN EXISTS (SELECT 1 FROM data_purge_requests r JOIN data_retention_policies p ON p.policy_id=r.policy_id JOIN admin_export_jobs j ON j.admin_export_job_id=#{jobId} WHERE r.resource_type='admin_export_job' AND r.resource_id=#{jobId} AND r.status IN ('approved','running') AND p.status='active' AND p.hard_delete_enabled=TRUE AND j.is_deleted=TRUE AND NOT EXISTS (SELECT 1 FROM data_legal_holds h WHERE h.resource_type='admin_export_job' AND h.resource_id=#{jobId} AND h.status='active')) THEN 1 ELSE 0 END")
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM data_purge_requests r JOIN data_retention_policies p ON p.policy_id=r.policy_id LEFT JOIN admin_export_jobs j ON j.admin_export_job_id=#{jobId} WHERE r.resource_type='admin_export_job' AND r.resource_id=#{jobId} AND r.status IN ('approved','running') AND p.status='active' AND p.hard_delete_enabled=TRUE AND (j.admin_export_job_id IS NULL OR j.is_deleted=TRUE) AND NOT EXISTS (SELECT 1 FROM data_legal_holds h WHERE h.resource_type='admin_export_job' AND h.resource_id=#{jobId} AND h.status='active')) THEN 1 ELSE 0 END")
     int adminExportJobPurgeAllowed(@Param("jobId") long jobId);
 
     @Delete(
