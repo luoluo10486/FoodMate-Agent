@@ -1449,3 +1449,14 @@
 | 云服务边界 | 未读取或使用对话中公开的旧 API Key，未调用 SiliconFlow Chat/Embedding；两个真实 Embedding profile 的 smoke 需在供应商控制台轮换后由当前 PowerShell 进程显式注入新密钥。 |
 | 暂缓边界 | 未执行 30 秒预热/120 秒稳态长时流量、组件重启、ACK/重复消息故障注入、SSE 断线恢复或生产操作；该入口提交为 `2f3b649c`。 |
 | 结论 | M1-6 本地业务入口、Python/Java 业务门禁和安全扫描有本轮证据；`.pyc` 仅为可再生缓存且当前未清理，真实云联调及性能/故障验证仍未完成。 |
+
+## D80 Python 源码字节码清理与业务门禁复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；使用 `agent-runtime\.venv\Scripts\python.exe`。 |
+| 缓存清理 | 删除 `agent-runtime` 源码、评估和测试目录中的 29 个 `.pyc` 及 3 个 `__pycache__` 目录；清理后项目源码范围 `*.pyc=0`、`__pycache__=0`。 |
+| 虚拟环境边界 | `agent-runtime\.venv` 内 1405 个第三方 `.pyc` 保留，属于可复用依赖缓存；该路径已由 `.gitignore` 忽略，未纳入 Git。 |
+| Python 业务门禁 | 设置 `PYTHONDONTWRITEBYTECODE=1` 后执行 `\.venv\Scripts\python.exe -m pytest -q`：`163 passed、2 skipped、4 subtests passed`。 |
+| 工作树保护 | 未修改用户已有 UI/QA 文件；未执行迁移、truncate、宽泛删除、生产操作或真实云调用。 |
+| 结论 | 项目源码无 Python 字节码残留；后续测试继续使用 `PYTHONDONTWRITEBYTECODE=1`，真实云 smoke 仍需供应商控制台轮换后的新凭据。 |
