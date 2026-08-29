@@ -3,7 +3,7 @@ package com.foodmate.application.knowledge.service;
 import com.foodmate.application.knowledge.port.out.KnowledgeRepository;
 import java.util.List;
 
-/** Durable knowledge index delivery, result reconciliation and batch progress read model. */
+/** 编排知识索引投递、结果对账和批次进度查询。 */
 public interface KnowledgeDeliveryService {
     /** Lists index messages eligible for a lease. */
     List<KnowledgeRepository.OutboxRow> pendingIndex(int limit);

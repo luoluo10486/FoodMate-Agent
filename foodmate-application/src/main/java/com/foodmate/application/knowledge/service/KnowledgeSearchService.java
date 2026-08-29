@@ -2,7 +2,7 @@ package com.foodmate.application.knowledge.service;
 
 import java.util.List;
 
-/** Authenticated public knowledge search use case. */
+/** 面向已认证用户的公共知识库检索用例。 */
 public interface KnowledgeSearchService {
     /** Searches the public, published knowledge scope for the authenticated user. */
     SearchResult search(String query);

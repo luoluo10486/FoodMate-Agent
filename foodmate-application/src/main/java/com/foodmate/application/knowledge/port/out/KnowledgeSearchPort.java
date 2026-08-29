@@ -2,7 +2,7 @@ package com.foodmate.application.knowledge.port.out;
 
 import java.util.List;
 
-/** Port for the Runtime-owned public knowledge index. */
+/** Runtime 所拥有的公共知识索引查询端口。 */
 public interface KnowledgeSearchPort {
     /** Searches only the caller-approved knowledge scope. */
     SearchResult search(String query, String knowledgeScope);

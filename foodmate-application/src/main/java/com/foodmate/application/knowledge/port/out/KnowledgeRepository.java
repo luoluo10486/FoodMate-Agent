@@ -4,7 +4,7 @@ import com.foodmate.shared.knowledge.enums.KnowledgeDocumentStatus;
 import java.math.BigDecimal;
 import java.util.List;
 
-/** Knowledge persistence contract owned by the knowledge use cases. */
+/** 知识库用例使用的持久化端口，由基础设施层提供实现。 */
 public interface KnowledgeRepository {
     /** Persists the initial document fact before indexing begins. */
     void insertDocument(long documentId, String title, String storageKey, long operatorId);
