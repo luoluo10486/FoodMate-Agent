@@ -131,7 +131,9 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | 冲突解决 | `692:3375` | `/planning?state=conflict` | `meal-plan-conflict-figma.png` | `meal-plan-conflict-browser-stable-rgba.png` | 37.28% | 25.12 | `DIFF_REVIEW` |
 | 购物清单 | `692:3569` | `/planning?state=shopping-list` | `meal-plan-shopping-list-figma.png` | `meal-plan-shopping-list-browser-stable-rgba.png` | 24.35% | 17.23 | `DIFF_REVIEW` |
 | 生成中 | `692:3746` | `/planning?state=generating` | `meal-plan-generating-figma.png` | `meal-plan-generating-browser-stable-rgba.png` | 13.69% | 16.84 | `DIFF_REVIEW` |
-| 计划列表 | `692:2662` | `/planning?state=list` | `meal-plan-list-figma.png` | `meal-plan-list-browser-current-rgba.png` | 26.1032% | 19.40 | `DIFF_REVIEW` |
+| 计划列表 | `692:2662` | `/planning?state=list` | `recaptured-figma/meal-plan-list-live-2026-08-29.png` | `recaptured/meal-plan-list-tabs-gap-browser-2026-08-29-rgba.png` | 21.6817% | 13.77 | `DIFF_REVIEW` |
+
+计划列表最新证据使用原始 `1440×1024` Figma 截图和浏览器 RGBA 截图，`png-diff.mjs` 结果为 `differentRatio=21.6817%`、`MAE=2.37253`、`RMSE=13.77192`、`maxChannelDelta=232`。浏览器运行时视口和 DPR 均通过，页面无横向溢出、可见文字无越界；列表 Tab 的位置为 `x=292/374/456`、间距 `8px`，三张计划卡和新建按钮均已复核。整体壳层、内容密度、字体和图标光栅化仍存在差异，继续保留 `DIFF_REVIEW`。前端未渲染 Figma 中的左上角红黄绿窗口装饰点，Figma 文件未修改。
 
 浏览器 smoke 已实际确认：向导步骤推进和取消生成、冲突方案应用、购物清单初始采购数量及导出反馈均可操作；七个入口均无页面级横向溢出。流程 fixture 只复现前端设计状态，不代表真实餐食生成、冲突解决、购物清单持久化或异步任务后端闭环完成。
 
