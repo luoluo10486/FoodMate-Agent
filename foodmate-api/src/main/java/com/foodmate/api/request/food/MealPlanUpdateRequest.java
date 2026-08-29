@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.List;
 
+/** 餐食计划修改请求参数。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record MealPlanUpdateRequest(
         @Size(max = 128) String planName,

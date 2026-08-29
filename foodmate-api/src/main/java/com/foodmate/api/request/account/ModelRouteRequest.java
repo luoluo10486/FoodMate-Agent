@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
+/** 模型路由写入请求参数。 */
 public record ModelRouteRequest(
         @NotBlank String providerCode,
         @NotBlank String modelName,

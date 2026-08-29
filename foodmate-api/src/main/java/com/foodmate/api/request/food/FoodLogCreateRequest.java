@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+/** 饮食记录创建请求参数。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record FoodLogCreateRequest(
         Long sessionId,

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
-/** Safe filters and field selection for a bounded administrator export. */
+/** 管理员受限导出的安全筛选条件和字段选择。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record AdminExportRequest(
         @NotBlank @Size(max = 32) String resource,

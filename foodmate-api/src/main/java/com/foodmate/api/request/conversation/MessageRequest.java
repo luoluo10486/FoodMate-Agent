@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+/** 会话消息创建请求参数。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record MessageRequest(
         @NotNull MessageRole role,

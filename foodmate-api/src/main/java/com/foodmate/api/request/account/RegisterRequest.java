@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/** 用户注册请求参数。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record RegisterRequest(
         @NotBlank @Size(max = 64) String username,
