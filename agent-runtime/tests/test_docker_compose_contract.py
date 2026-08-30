@@ -33,3 +33,15 @@ class DockerComposeContractTests(TestCase):
         )
         self.assertIn("FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY=", example)
         self.assertNotIn("FOODMATE_RAG_EMBEDDING_API_KEY=", example)
+
+    def test_docker_rag_milvus_uri_uses_compose_service_hostname(self):
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "FOODMATE_DOCKER_RAG_MILVUS_URI=http://milvus:19530",
+            example,
+        )
+        self.assertNotIn(
+            "FOODMATE_DOCKER_RAG_MILVUS_URI=http://localhost:19530",
+            example,
+        )
