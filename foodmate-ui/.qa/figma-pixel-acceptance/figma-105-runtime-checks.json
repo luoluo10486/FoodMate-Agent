@@ -707,10 +707,47 @@
         "y": 0
       },
       "textOverflow": [],
+      "modalGeometry": {
+        "x": 590,
+        "y": 320,
+        "width": 520,
+        "height": 252
+      },
+      "overlayGeometry": {
+        "x": 260,
+        "y": 0,
+        "width": 1180,
+        "height": 1024
+      },
+      "actionGeometry": {
+        "x": 621.8,
+        "y": 509.2,
+        "width": 456.4,
+        "height": 32
+      },
+      "windowControls": 0,
+      "trafficLightColors": 0,
       "url": "/profile?state=basic-unsaved-leave-confirmation",
       "viewport": {
         "height": 1024,
         "width": 1440
+      },
+      "mobile": {
+        "viewport": {
+          "height": 844,
+          "width": 390
+        },
+        "dpr": 1.0000000149011612,
+        "modalGeometry": {
+          "x": 16,
+          "y": 296,
+          "width": 358.4,
+          "height": 252
+        },
+        "bodyOverflow": false,
+        "rootOverflow": false,
+        "windowControls": 0,
+        "buttons": ["继续编辑", "放弃并离开"]
       }
     },
     "meal-planning-error": {

@@ -362,10 +362,12 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
   const isDeletionSubmitting = state === 'privacy-deletion-submitting';
   const isDeletionSuccess = state === 'privacy-deletion-success';
   const isDeletionFailed = state === 'privacy-deletion-failed';
+  const isUnsavedConfirmation = state === 'basic-unsaved-leave-confirmation';
   return (
     <div
       className={cn(
         styles.fixtureOverlay,
+        isUnsavedConfirmation ? styles.fixtureOverlayUnsaved : undefined,
         isSuccess ? styles.fixtureOverlaySuccess : undefined,
         isLogoutConfirmation ? styles.fixtureOverlayLogout : undefined,
         isDeleteConfirmation ? styles.fixtureOverlayDelete : undefined,
@@ -380,6 +382,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
       <section
         className={cn(
           styles.fixtureModal,
+          isUnsavedConfirmation ? styles.fixtureModalUnsaved : undefined,
           isError ? styles.fixtureModalError : undefined,
           isLogoutConfirmation ? styles.fixtureModalLogout : undefined,
           isDeleteConfirmation ? styles.fixtureModalDelete : undefined,
@@ -392,6 +395,7 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
         )}
         role="alert"
         aria-live="polite"
+        data-figma-modal={isUnsavedConfirmation ? 'profile-basic-unsaved-leave-confirmation' : undefined}
       >
         {isExportRunning ? (
           <>
@@ -510,9 +514,9 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
           </>
         )}
         {state === 'basic-unsaved-leave-confirmation' ? (
-          <div className={styles.fixtureModalActions}>
+          <div className={cn(styles.fixtureModalActions, styles.fixtureUnsavedActions)}>
             <Button variant="outline" onClick={onDismiss}>
-              取消
+              继续编辑
             </Button>
             <Button variant="default" onClick={onDismiss}>
               放弃并离开

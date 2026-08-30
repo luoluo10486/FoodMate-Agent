@@ -744,10 +744,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1216728,
-      "differentRatio": 0.825146484375,
-      "meanAbsoluteError": 49.73549584282769,
-      "rmse": 66.93139229375222,
+      "differentPixels": 1164098,
+      "differentRatio": 0.7894544813368055,
+      "meanAbsoluteError": 5.388275994194879,
+      "rmse": 16.966924542239166,
       "maxChannelDelta": 255
     },
     "profile-security-password-submitting": {

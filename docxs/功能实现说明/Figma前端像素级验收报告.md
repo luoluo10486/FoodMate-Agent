@@ -1690,3 +1690,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 最新浏览器 RGBA PNG 已登记：`diet-records-v2-sidebar-history-browser-2026-08-30-rgba.png`、`intake-analysis-v2-sidebar-history-browser-2026-08-30-rgba.png`、`meal-planning-v2-sidebar-history-browser-2026-08-30-rgba.png`、`user-knowledge-empty-sidebar-history-browser-2026-08-30-rgba.png` 和 `profile-basic-sidebar-history-browser-2026-08-30-rgba.png`；独立运行 `scripts/png-diff.mjs` 的差异比例分别为 `34.9078%`、`26.7036%`、`22.3250%`、`51.8127%` 和 `78.9528%`，对应 `MAE/RMSE/maxChannelDelta` 分别为 `2.716329/15.930098/234`、`2.721724/15.612590/234`、`2.472251/14.540411/234`、`4.970141/21.117905/255` 和 `4.473208/19.053256/255`，五项均保持 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已切换到这五张最新证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时汇总为 `viewportPass=105/105`、`dprPass=96/105`、`geometryPass=105/105`、`textPass=105/105`。
 - [ ] 本小点只完成非 Chat fixture 的会话历史边界收口，不代表五个画板或 105 张画板达到像素级 `PASS`；共享壳层、头像、图标、字体光栅化和整页视觉差异仍需继续处理，shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 186. 2026-08-30 Profile 未保存离开确认弹窗几何收口
+
+- [x] 依据 Figma 节点 `794:380`，为 `state=basic-unsaved-leave-confirmation` 增加独立 fixture 契约：主区域 overlay 固定从 `x=260` 开始，弹窗为 `x=590,y=320,width=520,height=252`，操作文字调整为“继续编辑”和“放弃并离开”；真实资料页和其它 Profile 状态不受影响。
+- [x] 浏览器在 `1440×1024`、字体 `loaded` 条件下复核：overlay 为 `1180×1024`，标题 `x=621.8,y=350.8`，正文 `x=621.8,y=402.8`，操作区 `x=621.8,y=509.2,width=456.4,height=32`；页面无横向/纵向溢出，前端左上角红黄绿窗口装饰候选为 `0`，Figma 设计稿未修改。
+- [x] `390×844` 移动端复核：弹窗为 `x=16,y=296,width=358.4,height=252`，按钮文字保持正确，body/root 均无溢出，窗口装饰候选为 `0`。
+- [x] 已登记浏览器 PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-figma-modal-browser-2026-08-30.png` 及移动证据 `profile-basic-unsaved-leave-confirmation-figma-modal-browser-390x844-2026-08-30.png`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=1164098`、差异比例 `78.9454%`、`MAE=5.388276`、`RMSE=16.966925`、最大通道差异 `255`，较旧证据 `82.5146%` 有改善，结论仍为 `DIFF_REVIEW`。
+- [x] `ProfilePage.test.tsx` 定向测试为 `24/24`；运行时几何、文字、DPR 和窗口装饰证据已同步 `figma-105-mapping.json`、`figma-105-diff-results.json` 与 `figma-105-runtime-checks.json`。
+- [ ] 本小点只完成未保存离开确认弹窗的 Figma fixture 几何和操作语义收口，不代表该画板或 105 张画板达到像素级 `PASS`；头像、底层资料、字体光栅化和其它页面差异、shadcn 全量迁移仍需继续，iconfont 继续为 `BLOCKED`。

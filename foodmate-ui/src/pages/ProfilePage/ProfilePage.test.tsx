@@ -43,6 +43,18 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('link', { name: '基本资料' })).not.toHaveAttribute('aria-current');
   });
 
+  it('uses the Figma unsaved-leave modal contract', () => {
+    renderPage('/profile?state=basic-unsaved-leave-confirmation');
+
+    const modal = screen.getByRole('heading', { name: '放弃未保存的修改？' }).closest('section');
+
+    expect(modal).toHaveClass(styles.fixtureModalUnsaved);
+    expect(modal).toHaveAttribute('data-figma-modal', 'profile-basic-unsaved-leave-confirmation');
+    expect(screen.getByRole('button', { name: '继续编辑' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '放弃并离开' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '取消' })).not.toBeInTheDocument();
+  });
+
   it('uses the Figma profile fixture for the default mock entry', () => {
     renderPage('/profile');
 

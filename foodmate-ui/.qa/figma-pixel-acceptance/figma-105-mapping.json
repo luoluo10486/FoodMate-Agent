@@ -3360,7 +3360,9 @@
       "queryState": "state=basic-unsaved-leave-confirmation",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic-unsaved-leave-confirmation.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-figma-modal-browser-2026-08-30.png",
+      "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-figma-modal-browser-390x844-2026-08-30.png",
+      "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-unsaved-leave-confirmation",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3389,8 +3391,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Unsaved-change confirmation is present, but browser changes action wording/order, omits the Figma full-page composition, and differs in dialog geometry, profile data, avatar, and lower preference section. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "当前浏览器 fixture 已按 Figma 节点 794:380 收口为主区域 x=590,y=320 的 520x252 弹窗，标题与正文使用深色基准，操作为‘继续编辑’和‘放弃并离开’，overlay 仅覆盖主区域且前端窗口装饰点为 0。头像、底层资料、字体光栅化和其它整页差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {

@@ -1672,6 +1672,10 @@
   background: rgb(255 255 255 / 72%);
 }
 
+.fixtureOverlayUnsaved {
+  background: rgb(0 0 0 / 35%);
+}
+
 .fixtureOverlaySuccess {
   background: rgb(255 255 255 / 72%);
 }
@@ -1724,6 +1728,27 @@
   background: #fff;
   box-shadow: none;
   transform: translateX(-50%);
+}
+
+.fixtureModalUnsaved {
+  top: 320px;
+  left: 330px;
+  width: 520px;
+  height: 252px;
+  min-height: 252px;
+  border-color: #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  transform: none;
+}
+
+.fixtureModalUnsaved h2 {
+  color: #333;
+  font-weight: 500;
+}
+
+.fixtureModalUnsaved p {
+  color: #333;
 }
 
 .fixtureModalLogout {
@@ -2551,6 +2576,38 @@
   gap: 12px;
   margin-top: 32px;
 }
+
+.fixtureUnsavedActions {
+  position: absolute;
+  right: 31px;
+  bottom: 30px;
+  left: 31px;
+  justify-content: space-between;
+  gap: 0;
+  margin: 0;
+}
+
+.fixtureUnsavedActions button {
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #333;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 22px;
+  box-shadow: none;
+}
+
+.fixtureUnsavedActions button:hover,
+.fixtureUnsavedActions button:focus-visible {
+  background: transparent;
+  color: #333;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .fixtureModalActions svg {
   width: 15px;
   height: 15px;
@@ -2621,6 +2678,17 @@
     top: 30%;
     width: calc(100% - 32px);
     padding: 24px;
+  }
+  .fixtureOverlayUnsaved {
+    inset: 0;
+  }
+  .fixtureModalUnsaved {
+    top: 50%;
+    left: 16px;
+    width: calc(100% - 32px);
+    height: 252px;
+    min-height: 252px;
+    transform: translateY(-50%);
   }
   .fixtureOverlayLogout {
     inset: 0;
