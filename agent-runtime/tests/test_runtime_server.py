@@ -77,14 +77,54 @@ class RuntimeContractTests(unittest.TestCase):
     def test_readiness_is_up_for_local_http_runtime(self):
         with patch.dict(
             runtime_server.os.environ,
-            {"FOODMATE_AGENT_TRANSPORT": "http", "FOODMATE_AGENT_CHECKPOINT_BACKEND": "inmemory"},
+            {
+                "FOODMATE_AGENT_TRANSPORT": "http",
+                "FOODMATE_AGENT_CHECKPOINT_BACKEND": "inmemory",
+                "FOODMATE_RAG_MODE": "stub",
+            },
             clear=False,
+        ), patch.object(
+            runtime_server, "_redis_client", return_value=SimpleNamespace(ping=lambda: None)
         ):
             with patch.object(runtime_server, "_checkpoint", InMemoryCheckpoint()):
                 status, payload = runtime_server._readiness()
         self.assertEqual(200, status)
         self.assertEqual("UP", payload["status"])
-        self.assertEqual("disabled", payload["dependencies"]["redis"]["status"])
+        self.assertEqual("ready", payload["dependencies"]["redis"]["status"])
+
+    def test_readiness_exposes_safe_effective_rag_profile(self):
+        with patch.dict(
+            runtime_server.os.environ,
+            {
+                "FOODMATE_AGENT_TRANSPORT": "http",
+                "FOODMATE_AGENT_CHECKPOINT_BACKEND": "inmemory",
+                "FOODMATE_RAG_MODE": "local",
+                "FOODMATE_RAG_EMBEDDING_PROVIDER": "openai-compatible",
+                "FOODMATE_RAG_EMBEDDING_PROFILE": "qwen3-embedding-0.6b",
+                "FOODMATE_RAG_EMBEDDING_BASE_URL": "https://api.siliconflow.cn/v1",
+                "FOODMATE_RAG_EMBEDDING_API_KEY": "must-not-be-exposed",
+                "FOODMATE_RAG_EMBEDDING_MODEL": "Qwen/Qwen3-Embedding-0.6B",
+                "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+                "FOODMATE_RAG_MILVUS_COLLECTION": "foodmate_knowledge_chunks_qwen",
+                "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+                "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+                "FOODMATE_RAG_BATCH_COST_LIMIT": "1",
+                "FOODMATE_RAG_DAILY_COST_LIMIT": "10",
+                "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "1",
+                "FOODMATE_RAG_PRICE_VERSION": "test-v1",
+            },
+            clear=False,
+        ):
+            with patch.object(runtime_server, "_checkpoint", InMemoryCheckpoint()):
+                status, payload = runtime_server._readiness()
+
+        self.assertEqual(200, status)
+        rag = payload["dependencies"]["rag"]
+        self.assertEqual("local", rag["mode"])
+        self.assertEqual("qwen3-embedding-0.6b", rag["embedding_profile"])
+        self.assertEqual("Qwen/Qwen3-Embedding-0.6B", rag["embedding_model"])
+        self.assertNotIn("embedding_api_key", rag)
+        self.assertNotIn("must-not-be-exposed", json.dumps(payload))
 
     def test_metrics_endpoint_returns_only_aggregate_runtime_state(self):
         handler = runtime_server.Handler.__new__(runtime_server.Handler)

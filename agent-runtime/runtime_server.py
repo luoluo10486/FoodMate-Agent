@@ -186,16 +186,31 @@ def _redis_client():
 def _readiness() -> tuple[int, dict[str, object]]:
     backend = os.getenv("FOODMATE_AGENT_CHECKPOINT_BACKEND", "inmemory").lower()
     transport = os.getenv("FOODMATE_AGENT_TRANSPORT", "http").lower()
+    problems: list[str] = []
+    rag_settings = None
+    try:
+        rag_settings = RagSettings.from_environment()
+        rag_dependency = _rag_readiness_payload(rag_settings)
+    except RagError as error:
+        rag_dependency = {
+            "status": "unavailable",
+            "error_code": error.code,
+        }
+        problems.append("rag")
     dependencies: dict[str, object] = {
         "checkpoint_backend": {"name": backend, "status": "ready"},
         "redis": {"status": "disabled"},
+        "rag": rag_dependency,
         "rocketmq_event_producer": {"status": "disabled"},
         "rocketmq_proposal_producer": {"status": "disabled"},
         "rocketmq_command_consumer": {"status": "disabled"},
         "rocketmq_result_consumer": {"status": "disabled"},
     }
-    problems: list[str] = []
-    needs_redis = backend == "redis" or transport == "rocketmq"
+    needs_redis = (
+        backend == "redis"
+        or transport == "rocketmq"
+        or (rag_settings is not None and rag_settings.mode == "stub")
+    )
     if needs_redis:
         client = _redis_client()
         try:
@@ -241,6 +256,22 @@ def _readiness() -> tuple[int, dict[str, object]]:
         payload["unavailable_dependencies"] = problems
         return 503, payload
     return 200, payload
+
+
+def _rag_readiness_payload(settings: RagSettings) -> dict[str, object]:
+    """Expose the effective RAG route without exposing credentials or source data."""
+    payload: dict[str, object] = {
+        "status": "ready",
+        "mode": settings.mode,
+        "backend": "redis" if settings.mode == "stub" else "milvus",
+        "embedding_provider": settings.embedding_provider,
+        "embedding_model": settings.embedding_model,
+    }
+    if settings.embedding_profile:
+        payload["embedding_profile"] = settings.embedding_profile
+    if settings.mode == "local":
+        payload["milvus_collection"] = settings.milvus_collection
+    return payload
 
 
 def _canonical(value):
