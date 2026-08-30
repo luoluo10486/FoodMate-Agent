@@ -1636,3 +1636,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 当前浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-layout-browser-2026-08-30.jpg` 与 `agent-chat-v2-assistant-layout-browser-2026-08-30-rgba.png`，独立 diff 为 `agent-chat-v2-assistant-layout-2026-08-30-diff.json`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=452126`、差异比例 `30.6618%`、`MAE=2.944767`、`RMSE=15.908241`、最大通道差异 `234`，结论保持 `DIFF_REVIEW`。
 - [x] 运行时检查为 `1440×1024`、字体 `loaded`、无横向/纵向溢出、窗口控制点候选为 `0`；实际 DPR 为 `1.25`，严格 DPR 1 门禁未通过。`figma-105-mapping.json` 和 `figma-105-diff-results.json` 已切换到本次证据，全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只校正 `agent-chat-v2` 的助手正文结构和背景基准，不关闭整页或 105 张画板像素级 `PASS`；头像、图标、DPR 及其它页面差异、shadcn 全量逐页迁移仍需继续，iconfont 继续为 `BLOCKED`。
+
+## 177. 2026-08-30 Chat 助手基准提交后的前端质量门禁复核
+
+- [x] 提交 `df092098` 后重新运行前端全量测试：`38/38` 个测试文件、`225/225` 个用例通过；覆盖 Chat 六状态、Agent SSE 连接状态/重连/去重/终态关闭及工作区窗口装饰门禁。
+- [x] 提交前后已运行 `npm run typecheck`、`npm run build` 和目标文件 `git diff --check`，均以退出码 `0` 完成；构建产物由 Vite 正常生成。
+- [x] 本次提交仅包含 Chat 助手正文宽度/背景校正、对应测试、Figma 映射和验收证据；未修改 Figma，未暂存工作区中已有的后端测试与脚本修改。
+- [ ] 质量门禁只证明当前前端代码可测试、可类型检查和可构建，不关闭 105 张画板的 `DIFF_REVIEW`、shadcn 全量逐页视觉迁移或 iconfont `BLOCKED` 状态。
