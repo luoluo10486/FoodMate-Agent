@@ -29,10 +29,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 527661,
-      "differentRatio": 0.357843017578125,
-      "meanAbsoluteError": 2.681890360514323,
-      "rmse": 15.511047959829156,
+      "differentPixels": 514737,
+      "differentRatio": 0.349078369140625,
+      "meanAbsoluteError": 2.7163292778862846,
+      "rmse": 15.930098490692927,
       "maxChannelDelta": 234
     },
     "intake-analysis-v2": {
@@ -40,10 +40,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 406120,
-      "differentRatio": 0.2754177517361111,
-      "meanAbsoluteError": 2.4937120225694445,
-      "rmse": 14.132545458827767,
+      "differentPixels": 393761,
+      "differentRatio": 0.26703626844618056,
+      "meanAbsoluteError": 2.721724446614583,
+      "rmse": 15.6125903736869,
       "maxChannelDelta": 234
     },
     "meal-planning-v2": {
@@ -51,10 +51,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 344334,
-      "differentRatio": 0.23351643880208334,
-      "meanAbsoluteError": 2.4008661905924478,
-      "rmse": 13.733444086264026,
+      "differentPixels": 329195,
+      "differentRatio": 0.22324964735243055,
+      "meanAbsoluteError": 2.472250535753038,
+      "rmse": 14.540411077906546,
       "maxChannelDelta": 234
     },
     "login-v2": {
@@ -854,10 +854,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 493284,
-      "differentRatio": 0.33452962239583334,
-      "meanAbsoluteError": 3.5868060641818578,
-      "rmse": 15.857407999897276,
+      "differentPixels": 764010,
+      "differentRatio": 0.51812744140625,
+      "meanAbsoluteError": 4.970141432020399,
+      "rmse": 21.117904504767317,
       "maxChannelDelta": 255
     },
     "user-knowledge-search-failed": {
@@ -986,10 +986,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1187059,
-      "differentRatio": 0.8050259060329861,
-      "meanAbsoluteError": 4.861439853244358,
-      "rmse": 20.069718313258832,
+      "differentPixels": 1164206,
+      "differentRatio": 0.7895277235243056,
+      "meanAbsoluteError": 4.473208448621961,
+      "rmse": 19.053256146661923,
       "maxChannelDelta": 255
     },
     "profile-memories": {

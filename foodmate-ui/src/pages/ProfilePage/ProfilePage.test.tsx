@@ -51,7 +51,8 @@ describe('ProfilePage', () => {
     expect(screen.getByDisplayValue('150')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '花生' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '乳糖' })).toBeInTheDocument();
-    expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
+    expect(screen.queryByText('早餐奶昔配方')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
     expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute('src', '/assets/avatars/default-male.svg');
     expect(screen.getByRole('button', { name: 'Anddy' }).querySelector('img')).toHaveAttribute(

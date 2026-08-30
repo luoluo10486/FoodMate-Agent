@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 95,
+    "dprPass": 96,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -199,6 +199,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1517,6 +1518,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1524,6 +1526,7 @@
         "x": 0,
         "y": 0
       },
+      "windowControlsCandidates": 0,
       "textOverflow": [],
       "url": "/analysis?view=records&state=v2",
       "viewport": {
@@ -1700,8 +1703,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1960,6 +1963,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1967,6 +1971,7 @@
         "x": 0,
         "y": 0
       },
+      "windowControlsCandidates": 0,
       "textOverflow": [],
       "url": "/knowledge?state=empty",
       "viewport": {
@@ -2007,6 +2012,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -2014,6 +2020,7 @@
         "x": 0,
         "y": 0
       },
+      "windowControlsCandidates": 0,
       "textOverflow": [],
       "url": "/planning?state=v2",
       "viewport": {

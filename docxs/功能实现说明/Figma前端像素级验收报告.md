@@ -1682,3 +1682,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 运行时字体状态为 `loaded`，根节点 `1440×1024`，页面无横向溢出，前端窗口控制点候选为 `0`，业务状态圆点未删除；浏览器实际 DPR 为 `1.0000000149`，该画板的 `dprPass=true`。Figma 文件保持不变。
 - [x] 主证据为 `.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-body-current-browser-2026-08-30-rgba.png`，`png-diff.mjs` 结果为 `378986/1474560` 个差异像素、差异比例 `25.7016%`、`MAE=3.162904`、`RMSE=17.558625`、最大通道差异 `255`；自动结果与人工复核均保持 `DIFF_REVIEW`，未标记 `PASS`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已更新；105 张画板汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时汇总为 `dprPass=95/105`。
+
+## 185. 2026-08-30 非 Chat Figma Fixture 隐藏会话历史
+
+- [x] 依据 Figma 节点 `640:588`、`640:773`、`640:901`、`795:786` 和 `806:1119` 复核，饮食记录、摄入分析、餐食规划、知识库空态和个人资料画板均不包含会话搜索、会话历史列表或分页；前端仅在对应 Figma fixture 通过 `hideSessionHistory` 隐藏这些非设计稿结构，真实模式保持原有会话历史。
+- [x] `DietRecordsPage`、`AnalysisPage`、`PlanningPage`、`KnowledgePage` 和 `ProfilePage` 的定向测试为 `55/55`；五个页面均在 `1440×1024`、字体 `loaded`、无横向溢出条件下复采集，前端左上角红、黄、绿窗口控制点候选均为 `0`，业务状态圆点保持不变，Figma 设计稿未修改。
+- [x] 最新浏览器 RGBA PNG 已登记：`diet-records-v2-sidebar-history-browser-2026-08-30-rgba.png`、`intake-analysis-v2-sidebar-history-browser-2026-08-30-rgba.png`、`meal-planning-v2-sidebar-history-browser-2026-08-30-rgba.png`、`user-knowledge-empty-sidebar-history-browser-2026-08-30-rgba.png` 和 `profile-basic-sidebar-history-browser-2026-08-30-rgba.png`；独立运行 `scripts/png-diff.mjs` 的差异比例分别为 `34.9078%`、`26.7036%`、`22.3250%`、`51.8127%` 和 `78.9528%`，对应 `MAE/RMSE/maxChannelDelta` 分别为 `2.716329/15.930098/234`、`2.721724/15.612590/234`、`2.472251/14.540411/234`、`4.970141/21.117905/255` 和 `4.473208/19.053256/255`，五项均保持 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已切换到这五张最新证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时汇总为 `viewportPass=105/105`、`dprPass=96/105`、`geometryPass=105/105`、`textPass=105/105`。
+- [ ] 本小点只完成非 Chat fixture 的会话历史边界收口，不代表五个画板或 105 张画板达到像素级 `PASS`；共享壳层、头像、图标、字体光栅化和整页视觉差异仍需继续处理，shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。

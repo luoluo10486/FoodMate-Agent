@@ -238,6 +238,7 @@ export function KnowledgePage() {
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      hideSessionHistory={isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
       topbarShowMarkLetter={!isFigmaFixture}
       pageOverlay={

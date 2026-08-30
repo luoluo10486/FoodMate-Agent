@@ -67,6 +67,9 @@ describe('DietRecordsPage', () => {
     const user = userEvent.setup();
     renderPage('/analysis?view=records&state=v2');
 
+    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
+    expect(screen.queryByText('每周饮食微调')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '记录一餐' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '分析这一天' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '记录详情 · 待确认记录可在这里补充后保存' })).not.toBeInTheDocument();

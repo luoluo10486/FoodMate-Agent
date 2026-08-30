@@ -2036,6 +2036,7 @@ export function ProfilePage() {
       profileActiveTab={isFigmaFixture ? activeTab : undefined}
       sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      hideSessionHistory={isFigmaFixture}
       sidebarFixture={
         isFigmaFixture
           ? {
