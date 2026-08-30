@@ -91,7 +91,7 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-layout-browser-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-surface-followup-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -121,7 +121,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
-        "conclusion": "The refreshed browser fixture uses the Figma green token #4CAF50 for the brand and Agent marks, uses the Figma assistant-body width of 560px with a 528px inline confirmation card, and applies the assistant surface #F4F6F5 without rendering the three dots. Avatar assets, icon rasterization, DPR 1.25, and remaining browser rendering differences are still visible; retain DIFF_REVIEW."
+        "conclusion": "The refreshed browser fixture uses the Figma green token #4CAF50 for the brand and Agent marks, uses the Figma assistant-body width of 560px with a 528px inline confirmation card, and applies the assistant surface #F9FAFB without rendering the three dots. The rendered assistant bubble was verified as rgb(249,250,251); avatar assets, icon rasterization, DPR 1.25, and remaining browser rendering differences are still visible, so retain DIFF_REVIEW."
       },
       "supplementalEvidence": [
         {
@@ -4632,7 +4632,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see profile-basic-sidebar-2026-08-30-diff.json",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4676,7 +4676,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see profile-memories-sidebar-2026-08-30-diff.json",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",

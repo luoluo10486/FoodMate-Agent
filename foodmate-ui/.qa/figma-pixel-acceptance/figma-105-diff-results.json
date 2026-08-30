@@ -18,11 +18,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 452126,
-      "differentRatio": 0.30661756727430556,
-      "meanAbsoluteError": 2.9447669135199654,
-      "rmse": 15.908240711388139,
-      "maxChannelDelta": 234
+      "differentPixels": 429620,
+      "differentRatio": 0.2913547092013889,
+      "meanAbsoluteError": 3.7668970743815104,
+      "rmse": 19.641207825571126,
+      "maxChannelDelta": 255
     },
     "diet-records-v2": {
       "status": "COMPARED",
@@ -73,11 +73,11 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 699190,
-      "differentRatio": 0.5394984567901234,
-      "meanAbsoluteError": 0.8132970679012346,
-      "rmse": 5.644032239705892,
-      "maxChannelDelta": 204
+      "differentPixels": 1281726,
+      "differentRatio": 0.9889861111111111,
+      "meanAbsoluteError": 5.131581983024692,
+      "rmse": 12.515445434394106,
+      "maxChannelDelta": 213
     },
     "forgot-password-page": {
       "status": "COMPARED",

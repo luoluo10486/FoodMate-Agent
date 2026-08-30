@@ -149,7 +149,7 @@ describe('ChatPage Figma 默认状态', () => {
     const stylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
 
     expect(stylesheet).toContain('.designChatPage .assistant .messageBubble');
-    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f4f6f5;');
+    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f9fafb;');
   });
 
   it('uses the Figma surface for the Composer input row in the fixture', () => {

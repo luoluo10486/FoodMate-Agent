@@ -1667,3 +1667,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 最新浏览器 JPEG、RGBA PNG 和独立 diff 已登记：`register-page-browser-2026-08-30-token-fix.jpg`、`register-page-browser-2026-08-30-token-fix-rgba.png`、`register-page-2026-08-30-token-fix-diff.json`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=699190`、差异比例 `53.9498%`、`MAE=0.813297`、`RMSE=5.644032`、`maxChannelDelta=204`，结论保持 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步本次证据；当前注册页浏览器实际 DPR 为 `1.25`，严格 DPR 1 门禁未通过，运行时汇总修正为 `dprPass=96/105`；105 张画板总览仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成注册页颜色基准收口，不代表该画板或 105 张画板达到像素级 `PASS`；整页仍存在字体、图标和浏览器光栅化差异，shadcn 全量逐页迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
+
+## 183. 2026-08-30 Agent Chat 助手背景 Token 复采集
+
+- [x] 依据 Figma 节点 `640:428` 的 `1440×1024` PNG 重新核对助手气泡背景；前端 `.designChatPage` 的专用 Token 已从旧值 `#f4f6f5` 收口为 `#f9fafb`，实际 DOM 计算颜色为 `rgb(249,250,251)`，未修改 Figma 设计稿。
+- [x] 浏览器重新采集 `/chat?state=figma-v2`：视口 `1440×1024`、字体 `loaded`、无横向/纵向溢出、消息操作面板数量 `0`、前端左上角红黄绿窗口装饰候选数量 `0`；业务状态圆点保持不变。
+- [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-surface-followup-2026-08-30.jpg`，RGBA PNG 为 `agent-chat-v2-assistant-surface-followup-2026-08-30-rgba.png`，独立 diff 为 `agent-chat-v2-assistant-surface-followup-2026-08-30-diff.json`；同尺寸 `png-diff.mjs` 结果为差异比例 `29.1355%`、`MAE=3.766897`、`RMSE=19.641207`、`maxChannelDelta=255`，继续登记为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已切换到本次浏览器 RGBA 证据；当前 105 张画板聚合为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。本次运行时实际 DPR 为 `1.25`，`figma-105-runtime-checks.json` 的 `dprPass` 更新为 `95/105`。
+- [x] `ChatPage.test.tsx` 定向测试为 `30/30`；该修正只收口助手气泡背景 Token，不代表 `agent-chat-v2` 或 105 张画板达到像素级 `PASS`，shadcn 全量逐页迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
