@@ -29,7 +29,12 @@ class KnowledgeMapperContractTest {
     void automaticRetryTargetsTheLatestPublishedFactForThatAttempt() throws Exception {
         String sql =
                 KnowledgeMapper.class
-                        .getMethod("requeueIndexOutbox", long.class, int.class, int.class, String.class)
+                        .getMethod(
+                                "requeueIndexOutbox",
+                                long.class,
+                                int.class,
+                                int.class,
+                                String.class)
                         .getAnnotation(Update.class)
                         .value()[0];
 
