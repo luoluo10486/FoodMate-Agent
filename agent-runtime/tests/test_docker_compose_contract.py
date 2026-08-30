@@ -45,3 +45,12 @@ class DockerComposeContractTests(TestCase):
             "FOODMATE_DOCKER_RAG_MILVUS_URI=http://localhost:19530",
             example,
         )
+
+    def test_docker_chat_example_uses_one_cloud_primary_namespace(self):
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "# FOODMATE_DOCKER_MODEL_TIER_STANDARD=cloud_primary:deepseek-ai/DeepSeek-V4-Flash",
+            example,
+        )
+        self.assertNotIn("FOODMATE_DOCKER_MODEL_PROVIDER_SILICONFLOW_API_KEY=", example)
