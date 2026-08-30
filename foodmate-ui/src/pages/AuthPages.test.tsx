@@ -226,8 +226,8 @@ describe('authentication pages', () => {
     renderAuth('/register');
 
     expect(screen.getByRole('main')).toHaveStyle({
-      '--auth-diagonal': '#c5f0d6',
-      '--auth-accent': '#48c78e',
+      '--auth-diagonal': '#dfeedb',
+      '--auth-accent': '#a6d997',
     });
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-user.svg"]')).toBeInTheDocument();

@@ -76,7 +76,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；后续 in-app 浏览器实际 DPR 为 `1.25` 的当前版本复核，运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=101/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；后续 in-app 浏览器实际 DPR 为 `1.25` 的当前版本复核，运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=96/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 
@@ -1659,3 +1659,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 已登记浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/profile-security-current-browser-2026-08-30.jpg`、RGBA PNG `profile-security-current-browser-2026-08-30-rgba.png` 和独立 diff `profile-security-current-2026-08-30-diff.json`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=390034`、差异比例 `26.4509%`、`MAE=3.965800`、`RMSE=19.438791`、`maxChannelDelta=255`，结论保持 `DIFF_REVIEW`。
 - [x] `ProfilePage.test.tsx` 定向测试 `23/23` 通过；运行时实际 DPR 为 `1.25`，严格 DPR 1 门禁未通过；105 张画板汇总继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成 Profile 安全与设备 fixture 的结构收口，不代表该画板或 105 张画板达到像素级 `PASS`；共享壳层、头像、图标、字体光栅化、其它页面、shadcn 全量迁移和 iconfont 实体资源登记仍需继续，iconfont 保持 `BLOCKED`。
+
+## 182. 2026-08-30 注册页 Figma 色彩 Token 收口
+
+- [x] 依据 Figma 节点 `680:216` 的原始 `1440×900` PNG，读取注册页斜切背景为 `#dfeedb`、主注册按钮和品牌标记强调色为 `#a6d997`；仅更新前端 `AuthShell` 的 `register` 变体 Token，登录、找回密码、重置密码和真实注册逻辑未改变，Figma 设计稿未修改。
+- [x] `AuthPages.test.tsx` 先以 Figma 目标色值运行红灯（`1 failed / 22 passed`），完成最小实现后定向测试 `23/23` 通过；浏览器 `1440×900` 实测背景 `rgb(223,238,219)`、按钮 `rgb(166,217,151)`、字体 `loaded`、页面无横向/纵向溢出，前端左上角红黄绿窗口控制点候选为 `0`。
+- [x] 最新浏览器 JPEG、RGBA PNG 和独立 diff 已登记：`register-page-browser-2026-08-30-token-fix.jpg`、`register-page-browser-2026-08-30-token-fix-rgba.png`、`register-page-2026-08-30-token-fix-diff.json`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=699190`、差异比例 `53.9498%`、`MAE=0.813297`、`RMSE=5.644032`、`maxChannelDelta=204`，结论保持 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步本次证据；当前注册页浏览器实际 DPR 为 `1.25`，严格 DPR 1 门禁未通过，运行时汇总修正为 `dprPass=96/105`；105 张画板总览仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成注册页颜色基准收口，不代表该画板或 105 张画板达到像素级 `PASS`；整页仍存在字体、图标和浏览器光栅化差异，shadcn 全量逐页迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。

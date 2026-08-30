@@ -8,8 +8,8 @@ export type AuthVariant = 'login' | 'register' | 'forgot' | 'reset' | 'token';
 
 export const authShellFigmaTokens = {
   register: {
-    diagonal: '#c5f0d6',
-    accent: '#48c78e',
+    diagonal: '#dfeedb',
+    accent: '#a6d997',
   },
   forgot: {
     accent: '#48c78e',

@@ -469,7 +469,7 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/register-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-token-fix-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#register-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -479,9 +479,9 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 900,
@@ -499,27 +499,39 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
-        "conclusion": "Registration diagonal background, brand mark and primary action now use the Figma color tokens; geometry and font loading pass, while rasterization and remaining page pixels require continued DIFF_REVIEW."
+        "conclusion": "注册页斜切背景、品牌标记和主操作按钮已使用 Figma 色彩 Token #dfeedb 与 #a6d997；1440×900 视口、几何、字体加载和无溢出检查通过，但当前浏览器 DPR 为 1.25，且整页仍存在光栅化和其他像素差异，继续保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
           "label": "注册页 Figma 色彩 Token 收口",
           "capturedAt": "2026-08-30",
           "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png",
-          "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-rgba.png",
-          "diffJson": ".qa/figma-pixel-acceptance/recaptured/register-page-2026-08-30-diff.json",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-token-fix-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/register-page-2026-08-30-token-fix-diff.json",
           "viewport": "1440x900",
-          "actualDpr": 1.0000000149011612,
+          "actualDpr": 1.25,
           "geometry": {
             "root": "1440x900",
             "card": "x=490,y=34.4,width=460,height=831.2",
             "contentWidth": 380,
             "firstInput": "x=530,y=235.2,width=380,height=50",
+            "primaryButton": "x=530,y=665.6,width=380,height=50",
             "fonts": "loaded",
             "bodyOverflow": false,
             "windowControlsCandidates": 0
           },
-          "visualChange": "注册页通过 AuthShell 语义变量使用 Figma 斜切背景 #c5f0d6 和强调色 #48c78e；仅修改前端，未修改 Figma 设计稿。"
+          "visualChange": "注册页 AuthShell 的 Figma 斜切背景为 #dfeedb，强调色、品牌标记和主注册按钮为 #a6d997；仅修改前端，未修改 Figma 设计稿。",
+          "diff": {
+            "status": "COMPARED",
+            "width": 1440,
+            "height": 900,
+            "pixelCount": 1296000,
+            "differentPixels": 699190,
+            "differentRatio": 0.5394984567901234,
+            "meanAbsoluteError": 0.8132970679012346,
+            "rmse": 5.644032239705892,
+            "maxChannelDelta": 204
+          }
         }
       ]
     },

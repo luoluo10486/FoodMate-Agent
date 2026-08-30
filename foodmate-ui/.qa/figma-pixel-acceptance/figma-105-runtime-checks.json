@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 98,
+    "dprPass": 96,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -207,9 +207,18 @@
         "y": 0
       },
       "cardGeometry": {
-        "chartCard": { "width": 1116, "height": 303 },
-        "chartArea": { "width": 1068, "height": 220 },
-        "insightCard": { "width": 1116, "height": 219 }
+        "chartCard": {
+          "width": 1116,
+          "height": 303
+        },
+        "chartArea": {
+          "width": 1068,
+          "height": 220
+        },
+        "insightCard": {
+          "width": 1116,
+          "height": 219
+        }
       },
       "windowControlsCandidates": 0,
       "textOverflow": [],
@@ -1041,7 +1050,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1054,7 +1063,8 @@
       "viewport": {
         "height": 900,
         "width": 1440
-      }
+      },
+      "dprPass": false
     },
     "agent-chat-pagination": {
       "artboardName": "agent-chat-pagination",
@@ -2098,15 +2108,6 @@
       },
       "textOverflow": [],
       "url": "/chat?state=tool-executing",
-      "windowControls": 0,
-      "trafficLightColors": 0,
-      "executingGeometry": {
-        "main": "x=260,width=860",
-        "tracePanel": "x=1120,width=320",
-        "userBubble": "x=812,y=145,width=228,height=49",
-        "executingBubble": "x=340,y=237,width=181,height=250",
-        "composer": "x=260,y=912,width=860,height=112"
-      },
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -2337,29 +2338,6 @@
       },
       "textOverflow": [],
       "url": "/admin?state=knowledge-indexing",
-      "viewport": {
-        "height": 1024,
-        "width": 1440
-      }
-    },
-    "agent-tool-executing": {
-      "artboardName": "agent-tool-executing",
-      "body": {
-        "clientHeight": 1024,
-        "clientWidth": 1440,
-        "scrollHeight": 1024,
-        "scrollWidth": 1440
-      },
-      "dpr": 1.0000000149011612,
-      "fonts": "loaded",
-      "root": {
-        "height": 1024,
-        "width": 1440,
-        "x": 0,
-        "y": 0
-      },
-      "textOverflow": [],
-      "url": "/chat?state=tool-executing",
       "viewport": {
         "height": 1024,
         "width": 1440
