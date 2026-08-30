@@ -11,9 +11,21 @@ import org.junit.jupiter.api.Test;
 /** 校验 V7 USDA 营养目录扩展的来源、数量和幂等边界。 */
 class NutritionExpansionV7SeedScriptTest {
     private static final Path SEED =
-            Path.of("..", "script", "sql", "FoodMate", "seed", "V7__nutrition_usda_directory_expansion_seed.sql");
+            Path.of(
+                    "..",
+                    "script",
+                    "sql",
+                    "FoodMate",
+                    "seed",
+                    "V7__nutrition_usda_directory_expansion_seed.sql");
     private static final Path VALIDATION =
-            Path.of("..", "script", "sql", "FoodMate", "validation", "V7__nutrition_usda_directory_expansion_validation.sql");
+            Path.of(
+                    "..",
+                    "script",
+                    "sql",
+                    "FoodMate",
+                    "validation",
+                    "V7__nutrition_usda_directory_expansion_validation.sql");
 
     @Test
     void seedContainsTwentyThreeOfficialFoodsAndPortions() throws Exception {

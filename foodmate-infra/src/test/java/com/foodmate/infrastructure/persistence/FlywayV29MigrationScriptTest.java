@@ -16,7 +16,8 @@ class FlywayV29MigrationScriptTest {
                 Files.readString(ROOT.resolve("migration/V29__m2_1_embedding_trace.sql"));
 
         assertTrue(migration.contains("ADD COLUMN IF NOT EXISTS provider_trace_id VARCHAR(256)"));
-        assertTrue(migration.contains("COMMENT ON COLUMN knowledge_import_items.provider_trace_id"));
+        assertTrue(
+                migration.contains("COMMENT ON COLUMN knowledge_import_items.provider_trace_id"));
         assertTrue(!migration.matches("(?is).*\\b(TRUNCATE|DELETE\\s+FROM|DROP\\s+TABLE)\\b.*"));
     }
 
@@ -26,8 +27,7 @@ class FlywayV29MigrationScriptTest {
                 Files.readString(
                         ROOT.resolve("validation/V29__m2_1_embedding_trace_validation.sql"));
         String rollback =
-                Files.readString(
-                        ROOT.resolve("rollback/R29__m2_1_embedding_trace_precheck.sql"));
+                Files.readString(ROOT.resolve("rollback/R29__m2_1_embedding_trace_precheck.sql"));
         String rootReadme = Files.readString(ROOT.resolve("README.md"));
         String migrationReadme = Files.readString(ROOT.resolve("migration/README.md"));
 

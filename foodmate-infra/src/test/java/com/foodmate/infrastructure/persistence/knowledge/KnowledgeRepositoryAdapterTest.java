@@ -26,7 +26,8 @@ class KnowledgeRepositoryAdapterTest {
         when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
         when(mapper.resultPayloadHash(11L, "v1", 2)).thenReturn(null);
         when(mapper.insertResultInbox(11L, "v1", 2, "sha256:ok")).thenReturn(1);
-        when(mapper.markItemIndexed(11L, 12L, 2, 4, "v1", 100L, new BigDecimal("0.12"), "stub-v1", null))
+        when(mapper.markItemIndexed(
+                        11L, 12L, 2, 4, "v1", 100L, new BigDecimal("0.12"), "stub-v1", null))
                 .thenReturn(1);
         when(mapper.jobIdForItem(11L)).thenReturn(77L);
         when(mapper.job(77L))
@@ -104,7 +105,8 @@ class KnowledgeRepositoryAdapterTest {
 
         verify(mapper, never())
                 .markItemIndexed(
-                        anyLong(), anyLong(), anyInt(), anyInt(), any(), anyLong(), any(), any(), any());
+                        anyLong(), anyLong(), anyInt(), anyInt(), any(), anyLong(), any(), any(),
+                        any());
         verify(mapper, never()).insertJobEvent(anyLong(), anyLong(), any(), any(), any());
     }
 
