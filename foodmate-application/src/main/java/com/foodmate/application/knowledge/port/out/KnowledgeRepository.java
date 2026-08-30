@@ -115,6 +115,7 @@ public interface KnowledgeRepository {
             long tokenCount,
             BigDecimal costAmount,
             String modelVersion,
+            String providerTraceId,
             List<IndexChunk> chunks) {
         public IndexResult(
                 long itemId,
@@ -139,6 +140,7 @@ public interface KnowledgeRepository {
                     tokenCount,
                     costAmount,
                     modelVersion,
+                    null,
                     List.of());
         }
 
@@ -166,6 +168,36 @@ public interface KnowledgeRepository {
                     tokenCount,
                     costAmount,
                     modelVersion,
+                    null,
+                    chunks);
+        }
+
+        public IndexResult(
+                long itemId,
+                long documentId,
+                String version,
+                String status,
+                int chunkCount,
+                String errorCode,
+                String errorSummary,
+                int attempt,
+                long tokenCount,
+                BigDecimal costAmount,
+                String modelVersion,
+                List<IndexChunk> chunks) {
+            this(
+                    itemId,
+                    documentId,
+                    version,
+                    status,
+                    chunkCount,
+                    errorCode,
+                    errorSummary,
+                    attempt,
+                    tokenCount,
+                    costAmount,
+                    modelVersion,
+                    null,
                     chunks);
         }
 

@@ -26,6 +26,7 @@ class KnowledgeIndexResultMessageProcessorTest {
         String body =
                 "{\"item_id\":11,\"document_id\":12,\"version\":\"2026-08\","
                         + "\"status\":\"indexed\",\"chunk_count\":1,\"attempt\":2,"
+                        + "\"provider_trace_id\":\"trace-embedding-1\","
                         + "\"chunks\":[{\"chunk_no\":0,\"embedding_id\":\"emb-1\",\"section_path\":\"Guide\",\"text\":\"Protein guide\"}],"
                         + "\"token_count\":123,\"cost_amount\":\"0.12\",\"model_version\":\"stub-v1\"}";
 
@@ -41,6 +42,7 @@ class KnowledgeIndexResultMessageProcessorTest {
         assertEquals(123L, result.getValue().tokenCount());
         assertEquals("0.12", result.getValue().costAmount().toPlainString());
         assertEquals("stub-v1", result.getValue().modelVersion());
+        assertEquals("trace-embedding-1", result.getValue().providerTraceId());
         assertEquals(1, result.getValue().chunks().size());
         assertEquals("emb-1", result.getValue().chunks().get(0).embeddingId());
     }

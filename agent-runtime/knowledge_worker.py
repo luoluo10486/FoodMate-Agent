@@ -165,6 +165,8 @@ class KnowledgeIndexWorker:
             }
             if embedding_result and embedding_result.provider_request_id:
                 result["provider_request_id"] = embedding_result.provider_request_id
+            if embedding_result and embedding_result.provider_trace_id:
+                result["provider_trace_id"] = embedding_result.provider_trace_id
             self._mark_completed(key, result)
         except RagError as error:
             if "budget_reserved" in locals() and budget_reserved:

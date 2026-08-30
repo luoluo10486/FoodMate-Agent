@@ -540,8 +540,9 @@ class DeterministicEmbedderTests(TestCase):
 
 class OpenAICompatibleEmbedderTests(TestCase):
     class _Response:
-        def __init__(self, payload):
+        def __init__(self, payload, headers=None):
             self.payload = payload
+            self.headers = headers or {}
 
         def __enter__(self):
             return self
@@ -608,6 +609,21 @@ class OpenAICompatibleEmbedderTests(TestCase):
         self.assertEqual([[1.0, 0.0]], result.vectors)
         self.assertEqual(11, result.token_count)
         self.assertEqual("embedding-request-1", result.provider_request_id)
+
+    @patch("urllib.request.urlopen")
+    def test_reads_siliconflow_trace_id_from_response_header(self, urlopen):
+        urlopen.return_value = self._Response(
+            {
+                "id": "embedding-request-1",
+                "data": [{"index": 0, "embedding": [1.0, 0.0]}],
+                "usage": {"prompt_tokens": 11, "total_tokens": 11},
+            },
+            {"x-siliconcloud-trace-id": "trace-embedding-1"},
+        )
+
+        result = OpenAICompatibleEmbedder(self._settings()).embed_with_usage(["first"])
+
+        self.assertEqual("trace-embedding-1", result.provider_trace_id)
 
     @patch("urllib.request.urlopen")
     def test_rejects_malformed_provider_usage(self, urlopen):

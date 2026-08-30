@@ -155,7 +155,7 @@ public interface KnowledgeMapper {
             @Param("version") String version);
 
     @Update(
-            "UPDATE knowledge_import_items i SET index_status='indexed',attempt_count=GREATEST(i.attempt_count,#{attempt}),chunk_count=#{chunkCount},indexed_at=CURRENT_TIMESTAMP,error_code=NULL,error_summary=NULL,token_count=#{tokenCount},cost_amount=#{costAmount},model_version=#{modelVersion},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
+            "UPDATE knowledge_import_items i SET index_status='indexed',attempt_count=GREATEST(i.attempt_count,#{attempt}),chunk_count=#{chunkCount},indexed_at=CURRENT_TIMESTAMP,error_code=NULL,error_summary=NULL,token_count=#{tokenCount},cost_amount=#{costAmount},model_version=#{modelVersion},provider_trace_id=#{providerTraceId},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
     int markItemIndexed(
             @Param("itemId") long itemId,
             @Param("documentId") long documentId,
@@ -164,7 +164,8 @@ public interface KnowledgeMapper {
             @Param("version") String version,
             @Param("tokenCount") long tokenCount,
             @Param("costAmount") java.math.BigDecimal costAmount,
-            @Param("modelVersion") String modelVersion);
+            @Param("modelVersion") String modelVersion,
+            @Param("providerTraceId") String providerTraceId);
 
     @Update(
             "UPDATE knowledge_documents SET status='indexed',indexed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND version=#{version} AND is_deleted=FALSE")

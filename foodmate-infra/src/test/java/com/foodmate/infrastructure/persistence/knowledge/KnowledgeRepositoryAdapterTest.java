@@ -26,7 +26,7 @@ class KnowledgeRepositoryAdapterTest {
         when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
         when(mapper.resultPayloadHash(11L, "v1", 2)).thenReturn(null);
         when(mapper.insertResultInbox(11L, "v1", 2, "sha256:ok")).thenReturn(1);
-        when(mapper.markItemIndexed(11L, 12L, 2, 4, "v1", 100L, new BigDecimal("0.12"), "stub-v1"))
+        when(mapper.markItemIndexed(11L, 12L, 2, 4, "v1", 100L, new BigDecimal("0.12"), "stub-v1", null))
                 .thenReturn(1);
         when(mapper.jobIdForItem(11L)).thenReturn(77L);
         when(mapper.job(77L))
@@ -60,7 +60,7 @@ class KnowledgeRepositoryAdapterTest {
         when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
         when(mapper.resultPayloadHash(11L, "v1", 1)).thenReturn(null);
         when(mapper.insertResultInbox(11L, "v1", 1, "sha256:chunks")).thenReturn(1);
-        when(mapper.markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1"))
+        when(mapper.markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1", null))
                 .thenReturn(1);
         when(mapper.jobIdForItem(11L)).thenReturn(77L);
         when(mapper.job(77L))
@@ -86,7 +86,7 @@ class KnowledgeRepositoryAdapterTest {
 
         org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(mapper);
         inOrder.verify(mapper)
-                .markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1");
+                .markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1", null);
         inOrder.verify(mapper).softDeleteVersionChunks(12L, "v1");
         inOrder.verify(mapper).insertKnowledgeChunks(eq(12L), eq("v1"), any());
         verify(mapper).markDocumentIndexed(12L, "v1");
@@ -104,7 +104,7 @@ class KnowledgeRepositoryAdapterTest {
 
         verify(mapper, never())
                 .markItemIndexed(
-                        anyLong(), anyLong(), anyInt(), anyInt(), any(), anyLong(), any(), any());
+                        anyLong(), anyLong(), anyInt(), anyInt(), any(), anyLong(), any(), any(), any());
         verify(mapper, never()).insertJobEvent(anyLong(), anyLong(), any(), any(), any());
     }
 

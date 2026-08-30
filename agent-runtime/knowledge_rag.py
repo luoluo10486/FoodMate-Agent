@@ -322,6 +322,7 @@ class EmbeddingResult:
     vectors: list[list[float]]
     token_count: int | None = None
     provider_request_id: str | None = None
+    provider_trace_id: str | None = None
 
 
 def chunk_markdown(text: str, document_id: str, version: str, max_chars: int = 900) -> list[KnowledgeChunk]:
@@ -534,9 +535,11 @@ class OpenAICompatibleEmbedder:
             method="POST",
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.settings.embedding_api_key},
         )
+        provider_trace_id_raw = None
         try:
             with urllib.request.urlopen(request, timeout=self.settings.timeout_seconds) as response:
                 raw_payload = response.read()
+                provider_trace_id_raw = _response_header(response, "x-siliconcloud-trace-id")
             payload = json.loads(raw_payload.decode("utf-8"))
         except urllib.error.HTTPError as error:
             raise RagError(
@@ -570,6 +573,7 @@ class OpenAICompatibleEmbedder:
             vectors = [list(map(float, vector)) for _, vector in sorted(indexed)]
             token_count = _embedding_token_count(payload.get("usage"))
             provider_request_id = _optional_response_id(payload.get("id"))
+            provider_trace_id = _optional_response_id(provider_trace_id_raw)
         except (KeyError, TypeError, ValueError) as error:
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
         dimension = len(vectors[0]) if vectors else 0
@@ -584,7 +588,7 @@ class OpenAICompatibleEmbedder:
             )
         ):
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "embedding count or values are invalid")
-        return EmbeddingResult(vectors, token_count, provider_request_id)
+        return EmbeddingResult(vectors, token_count, provider_request_id, provider_trace_id)
 
     def _url(self) -> str:
         return self.settings.embedding_base_url if self.settings.embedding_base_url.endswith("/embeddings") else self.settings.embedding_base_url.rstrip("/") + "/embeddings"
@@ -639,6 +643,20 @@ def _optional_response_id(value: object) -> str | None:
     if not isinstance(value, str) or not value.strip() or len(value) > 256:
         raise ValueError("embedding response id is invalid")
     return value.strip()
+
+
+def _response_header(response: object, name: str) -> object:
+    """读取供应商响应头，不把响应对象或正文带入业务事实。"""
+    headers = getattr(response, "headers", None)
+    getter = getattr(headers, "get", None)
+    if callable(getter):
+        value = getter(name)
+        if value is None:
+            value = getter(name.lower())
+        if value is not None:
+            return value
+    getheader = getattr(response, "getheader", None)
+    return getheader(name) if callable(getheader) else None
 
 
 class DeterministicEmbedder:

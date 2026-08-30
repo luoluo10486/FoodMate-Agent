@@ -170,7 +170,8 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                                     result.version(),
                                     result.tokenCount(),
                                     result.costAmount(),
-                                    result.modelVersion())
+                                    result.modelVersion(),
+                                    result.providerTraceId())
                             == 1;
             if (changed) {
                 replaceKnowledgeChunks(result);

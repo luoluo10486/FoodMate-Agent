@@ -40,6 +40,7 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
             String errorSummary =
                     safeErrorSummary(node.path("error_summary").asText(""), errorCode);
             String modelVersion = node.path("model_version").asText(null);
+            String providerTraceId = optionalTraceId(node.get("provider_trace_id"));
             List<KnowledgeRepository.IndexChunk> chunks = parseChunks(node.path("chunks"));
             if (!("indexed".equals(status) || "index_failed".equals(status))
                     || itemId <= 0
@@ -73,6 +74,7 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                             tokenCount,
                             costAmount,
                             modelVersion,
+                            providerTraceId,
                             chunks),
                     hash(body));
             return MqConsumeDecision.ACK;
@@ -92,6 +94,17 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                         "(?i)(api[_ -]?key|authorization|bearer|password|token)\\s*[:=]\\s*\\S+",
                         "$1=[REDACTED]");
         return normalized.length() <= 512 ? normalized : normalized.substring(0, 512);
+    }
+
+    private String optionalTraceId(JsonNode value) {
+        if (value == null || value.isNull()) return null;
+        String normalized = value.asText("").trim();
+        if (normalized.isBlank()
+                || normalized.length() > 256
+                || normalized.chars().anyMatch(Character::isISOControl)) {
+            throw new IllegalArgumentException("provider trace id is invalid");
+        }
+        return normalized;
     }
 
     private List<KnowledgeRepository.IndexChunk> parseChunks(JsonNode value) {

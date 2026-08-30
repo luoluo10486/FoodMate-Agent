@@ -25,7 +25,12 @@ class _VectorIndex:
 
 class _UsageEmbedder:
     def embed_with_usage(self, inputs):
-        return EmbeddingResult([[1.0, 0.0] for _ in inputs], 17, "embedding-request-1")
+        return EmbeddingResult(
+            [[1.0, 0.0] for _ in inputs],
+            17,
+            "embedding-request-1",
+            "trace-embedding-1",
+        )
 
 class KnowledgeIndexWorkerTests(TestCase):
     def test_runtime_stub_uses_configured_redis_namespace(self):
@@ -199,6 +204,7 @@ class KnowledgeIndexWorkerTests(TestCase):
         self.assertEqual(17, result["token_count"])
         self.assertEqual("provider", result["usage_source"])
         self.assertEqual("embedding-request-1", result["provider_request_id"])
+        self.assertEqual("trace-embedding-1", result["provider_trace_id"])
         self.assertEqual("0.00003400", result["cost_amount"])
         self.assertEqual("17", worker.completed.get(worker._daily_key("tokens")))
 

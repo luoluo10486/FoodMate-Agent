@@ -44,4 +44,25 @@ class KnowledgeMapperContractTest {
         assertTrue(sql.contains("ORDER BY outbox_id DESC LIMIT 1"));
         assertTrue(sql.contains("FROM candidate"));
     }
+
+    @Test
+    void indexedResultStoresTheProviderTraceIdAsASeparateFact() throws Exception {
+        String sql =
+                KnowledgeMapper.class
+                        .getMethod(
+                                "markItemIndexed",
+                                long.class,
+                                long.class,
+                                int.class,
+                                int.class,
+                                String.class,
+                                long.class,
+                                java.math.BigDecimal.class,
+                                String.class,
+                                String.class)
+                        .getAnnotation(Update.class)
+                        .value()[0];
+
+        assertTrue(sql.contains("provider_trace_id=#{providerTraceId}"));
+    }
 }
