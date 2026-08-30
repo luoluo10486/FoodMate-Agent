@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 from unittest import TestCase
 
 
@@ -48,3 +49,30 @@ class CloudSmokeScriptContractTests(TestCase):
         self.assertIn("docker compose exec -T agent-runtime python -c", script)
         self.assertNotIn("$EmbeddingApiKey", script)
         self.assertNotIn("--api-key", script.lower())
+
+    def test_docker_embedding_smoke_transports_python_source_without_cli_quote_reparsing(self):
+        script = (
+            self.ROOT / "script" / "local" / "siliconflow-docker-embedding-smoke.ps1"
+        ).read_text(encoding="utf-8")
+
+        self.assertRegex(
+            script,
+            re.compile(
+                r"\[Convert\]::ToBase64String\(\s*"
+                r"\[Text\.Encoding\]::UTF8\.GetBytes\(\$pythonCode\)\s*\)"
+            ),
+        )
+        self.assertIn("base64.b64decode", script)
+        self.assertIn("$encodedPythonCode", script)
+        self.assertIn("base64.b64decode(sys.argv[2])", script)
+        self.assertIn("$pythonBootstrap $Profile $encodedPythonCode", script)
+
+    def test_docker_embedding_smoke_embedded_python_source_is_ascii_safe(self):
+        script = (
+            self.ROOT / "script" / "local" / "siliconflow-docker-embedding-smoke.ps1"
+        ).read_text(encoding="utf-8")
+        start = script.index("$pythonCode = @'") + len("$pythonCode = @'")
+        end = script.index("'@", start)
+        embedded_python = script[start:end]
+
+        self.assertTrue(all(ord(character) < 128 for character in embedded_python))

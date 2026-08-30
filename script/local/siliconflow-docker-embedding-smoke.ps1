@@ -80,13 +80,13 @@ configured_model = os.environ.get("FOODMATE_RAG_EMBEDDING_MODEL", "").strip()
 api_key = os.environ.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip()
 
 if mode != "local":
-    raise SystemExit("FOODMATE_RAG_MODE 必须为 local")
+    raise SystemExit("FOODMATE_RAG_MODE must be local")
 if provider != "openai-compatible":
-    raise SystemExit("FOODMATE_RAG_EMBEDDING_PROVIDER 必须为 openai-compatible")
+    raise SystemExit("FOODMATE_RAG_EMBEDDING_PROVIDER must be openai-compatible")
 if not base_url or not api_key:
-    raise SystemExit("Embedding endpoint 或 API Key 未注入到 agent-runtime")
+    raise SystemExit("Embedding endpoint or API key is not configured in agent-runtime")
 if configured_model != expected_model:
-    raise SystemExit("Embedding model 与请求 profile 不一致，请切换 profile 后重新创建容器")
+    raise SystemExit("Embedding model does not match the requested profile")
 
 payload = json.dumps({
     "model": configured_model,
@@ -130,7 +130,14 @@ print("latency_ms=" + str(latency_ms))
 print("embedding_smoke_status=passed")
 '@
 
-& docker compose @composeArgs exec -T agent-runtime python -c $pythonCode $Profile
+$encodedPythonCode = [Convert]::ToBase64String(
+    [Text.Encoding]::UTF8.GetBytes($pythonCode)
+)
+$pythonBootstrap = "import base64,sys;exec(base64.b64decode(sys.argv[2]))"
+
+# Pass only base64 through the Windows Docker CLI so Python source quotes are
+# not re-parsed or stripped before they reach the container.
+& docker compose @composeArgs exec -T agent-runtime python -c $pythonBootstrap $Profile $encodedPythonCode
 if ($LASTEXITCODE -ne 0) {
     throw "Docker SiliconFlow Embedding smoke failed"
 }
