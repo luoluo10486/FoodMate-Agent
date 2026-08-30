@@ -18,10 +18,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 598653,
-      "differentRatio": 0.405987548828125,
-      "meanAbsoluteError": 4.608837381998698,
-      "rmse": 20.508796971244717,
+      "differentPixels": 475559,
+      "differentRatio": 0.32250908745659723,
+      "meanAbsoluteError": 4.097054375542535,
+      "rmse": 19.538565470265485,
       "maxChannelDelta": 255
     },
     "diet-records-v2": {
@@ -1129,11 +1129,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 574032,
-      "differentRatio": 0.3892903645833333,
-      "meanAbsoluteError": 4.5815427992079,
-      "rmse": 20.702392835422238,
-      "maxChannelDelta": 246
+      "differentPixels": 451763,
+      "differentRatio": 0.3063713921440972,
+      "meanAbsoluteError": 3.5752639770507812,
+      "rmse": 18.813835331531916,
+      "maxChannelDelta": 237
     },
     "workspace-home-input-states": {
       "status": "COMPARED",

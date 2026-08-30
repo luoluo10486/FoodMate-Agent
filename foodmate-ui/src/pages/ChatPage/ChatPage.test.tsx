@@ -439,8 +439,8 @@ describe('ChatPage Figma navigation fixtures', () => {
     expect(screen.getByText('查询扩展')).toBeInTheDocument();
     expect(screen.queryByText('查询扩展 (Query Expansion)')).not.toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '消息操作' })).toBeInTheDocument();
-    expect(screen.getByText(/右侧面板：运行 · 工具 · 引用/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '消息操作' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/右侧面板：运行 · 工具 · 引用/)).not.toBeInTheDocument();
   });
 
   it.each(['nav-loading', 'nav-hover-preview', 'pagination'])(
@@ -462,6 +462,6 @@ describe('ChatPage Figma running-stop fixture', () => {
     expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
     expect(screen.getByText('响应合成')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '停止生成' })).toBeEnabled();
-    expect(screen.getByText('消息操作')).toBeInTheDocument();
+    expect(screen.queryByText('消息操作')).not.toBeInTheDocument();
   });
 });

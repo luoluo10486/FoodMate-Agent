@@ -1590,3 +1590,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] Admin 定向测试为 `17/17`；当前全量 `npm run test` 为 `38/38` 个测试文件、`221/221` 个用例通过，`npm run typecheck`、`npm run build` 和 `git diff --check` 通过。`npm run lint` 当前输出 `0 errors、438 warnings`，警告主要为全仓 Prettier 换行和既有 React 规则问题，未将其隐藏为通过。
 - [x] 前端全量扫描未发现 Apple 红、黄、绿窗口控制节点、traffic-light 选择器或对应标准颜色；该核验仅作用于前端，Figma 设计稿未修改，业务状态圆点保持不变。
 - [ ] 该小点不关闭 105 张画板的像素级验收；当前聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。shadcn 全量逐页迁移与 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
+
+## 173. 2026-08-30 Chat Figma Fixture 移除额外消息操作面板
+
+- [x] Figma 节点 `640:428`（`state=figma-v2`）和 `1013:653`（`state=running-stop`）均未包含“消息操作”说明面板；前端已在 Figma fixture 中移除该额外结构，仅非 Figma fixture 的真实模式继续渲染操作说明。
+- [x] 浏览器在 `1440×1024` 视口完成复核：两个 fixture 的 `messageActions=0`、窗口控制点为 `0`、字体状态为 `loaded`、页面无横向或纵向溢出。
+- [x] 当前证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-no-message-actions-browser-2026-08-30.png` 和 `agent-chat-running-stop-no-message-actions-browser-2026-08-30.png`；`png-diff.mjs` 同尺寸结果分别为 `differentPixels=475559`、差异比例 `32.2509%`、`MAE=4.097054`、`RMSE=19.538565`、最大通道差异 `255`，以及 `differentPixels=451763`、差异比例 `30.6371%`、`MAE=3.575264`、`RMSE=18.813835`、最大通道差异 `237`，两项均保持 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换为上述当前浏览器证据；映射总览仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，未将局部结构修正标记为 `PASS`。
+- [ ] 本小点只完成 Figma fixture 的额外面板移除，不关闭全量像素验收；DPR 为 `1.25`，头像、字体、图标、运行中 Composer 和其他页面差异仍需继续复核，shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。

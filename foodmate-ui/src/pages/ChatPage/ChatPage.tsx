@@ -1200,17 +1200,6 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               />
             )}
           </MessageBubble>
-          {isRunning || isRedesignDefault ? (
-            <section className={styles.messageActions} aria-label="消息操作">
-              <h2>消息操作</h2>
-              <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
-              <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
-              <p className={styles.actionGreen}>
-                工具失败时显示重试；运行中发送按钮切换停止；写入确认 / 预算追加仍需确认后继续。
-              </p>
-              <p>右侧面板：运行 · 工具 · 引用 原始 JSON 默认折叠并隐藏敏感参数。</p>
-            </section>
-          ) : null}
         </>
       ) : (
         <>
@@ -2009,15 +1998,17 @@ function MockChatPage() {
       ) : null}
       {agent.card.type === 'confirmation' ? null : null}
       {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
-      <section className={styles.messageActions} aria-label="消息操作">
-        <h2>消息操作</h2>
-        <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
-        <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
-        <p className={styles.actionGreen}>
-          工具失败时显示重试；运行中发送按钮切换停止；写入确认/预算追加仍需确认后继续。
-        </p>
-        <p>右侧面板：运行 · 工具 · 引用 · 原始 JSON 默认折叠并隐藏敏感参数。</p>
-      </section>
+      {!isFigmaFixture ? (
+        <section className={styles.messageActions} aria-label="消息操作">
+          <h2>消息操作</h2>
+          <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
+          <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
+          <p className={styles.actionGreen}>
+            工具失败时显示重试；运行中发送按钮切换停止；写入确认/预算追加仍需确认后继续。
+          </p>
+          <p>右侧面板：运行 · 工具 · 引用 · 原始 JSON 默认折叠并隐藏敏感参数。</p>
+        </section>
+      ) : null}
     </ChatSurface>
   );
 }
