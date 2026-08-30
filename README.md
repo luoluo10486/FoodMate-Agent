@@ -107,6 +107,7 @@ npm run dev
 ## 2026-08-27 当前进度补充
 
 - 2026-08-30 宿主机 SiliconFlow smoke 已验证 `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 均返回 1024 维向量；Docker `agent-runtime` 当前健康运行并选中 Qwen profile。切换到 BGE 必须使用 BGE 专用 collection、重新创建容器并重新索引，不能混写两个模型的向量；Docker 内真实 HTTPS 调用仍需修复本机出站 TLS 环境。
+- Docker `agent-runtime` 支持通过 `FOODMATE_DOCKER_HTTP_PROXY`、`FOODMATE_DOCKER_HTTPS_PROXY` 显式配置外部代理，并用 `FOODMATE_DOCKER_NO_PROXY` 隔离 Compose 内部服务；默认不启用代理，未配置可用出站路径时真实请求保持 fail-closed。
 - M1-5 的饮食记录、营养分析、餐食计划、购物清单和写确认核心范围已进入真实 Java/SQL/API 链路；`food_log_writer` 已覆盖 create/update/delete/restore，并完成 HTTP 与 RocketMQ 各 11/11 跨进程回归；当前本地目录含 48 条 approved 食材、48 条官方 foodPortions 换算和 75 条精确质量换算规则。
 - Agent 运行路径已支持 `run.eval_decided`、预算、checkpoint、continuation、追问和审批确认；写入仍由 Java 授权和执行，Python/模型不直连业务库。
 - M1-6 已完成本地 Actuator/metrics 配置回归、Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启恢复、双 JVM 有界读取和 Java 重启回读；生产故障矩阵和容量门禁仍待目标环境执行。

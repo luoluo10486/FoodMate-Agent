@@ -1647,3 +1647,17 @@
 | Docker profile 预检 | 当前 Qwen profile 预检通过；请求 BGE 时因容器仍为 Qwen 被明确拒绝，避免模型/集合错配。契约测试通过。 |
 | 代码提交 | `2eb1c6e1` 修正 M1-6 队列排空语义；`aaab2480` 增加 Docker Embedding profile 安全回读与 PowerShell 参数回归。 |
 | 暂缓范围 | 按当前业务门禁决策，未执行 16 worker 长压、吞吐/延迟容量测试、组件重启、ACK 丢失、重复投递或 SSE 故障矩阵；Docker 真实云请求仍受既有出站 TLS 环境阻塞。 |
+
+## D96 SiliconFlow 双 Embedding 宿主机复验与 Docker 出站诊断（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/runtime-observability`；Python 使用 `agent-runtime\\.venv`；密钥只从本地忽略 `.env` 读取，未输出、写入脚本或提交 Git。 |
+| 宿主机真实 Embedding | `siliconflow-embedding-smoke.ps1 -Profile all`：`BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 均 `HTTP 200`、`1024` 维；本轮延迟分别约 `414.08 ms`、`190.61 ms`。向量正文未保存。 |
+| Docker 配置 | Compose 展开和 Runtime 回读均确认 `local + openai-compatible`、当前 profile 为 `qwen3-embedding-0.6b`、模型为 `Qwen/Qwen3-Embedding-0.6B`、Milvus 使用 Compose 服务名；Runtime live/ready 为 HTTP `200`。 |
+| Docker 真实请求 | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest` 预检通过，实际请求失败于 TLS 握手 `SSL_UNEXPECTED_EOF_WHILE_READING`，未进入 HTTP 鉴权层；BGE profile 在当前 Qwen 容器中被配置门禁拒绝，防止 collection/model 错配。 |
+| 网络诊断 | 容器 DNS 与 `443` TCP 可达；TLS 1.2、TLS 1.3 和直连均复现 EOF。Docker Desktop 声明的 `http.docker.internal:3128` 代理继续转发到宿主 `127.0.0.1:7897`，该本机端口当前未监听。未关闭证书校验、未硬编码 IP、未把 Chat 与 Embedding 密钥混用。 |
+| 配置修复 | `agent-runtime` 新增可选 `HTTP_PROXY`、`HTTPS_PROXY` 和隔离内部服务的 `NO_PROXY` Compose 映射；默认均为空，不改变 stub/deterministic 行为。提交 `77f2cdee`。 |
+| 业务验证 | Python 全量 `183 passed、2 skipped、6 subtests passed`；Docker Compose 契约 `6 passed`；Compose config 校验通过；Java `-P alibaba-code-style -DskipTests verify` 为 `BUILD SUCCESS`，各模块 `0 Checkstyle violations`，Spotless 通过。 |
+| 安全门禁 | tracked secret `0`、tracked env `0`；working-tree secret 命中 `1`，来源为本地忽略 `.env` 中的真实凭据，按失败处理。必须在 SiliconFlow 控制台轮换曾在对话中暴露的密钥后复验。 |
+| 结论 | 两个 Embedding profile 的宿主机协议调用已取得证据；Docker Python 启动、配置映射和 fail-closed 行为已验证，容器真实云请求仍等待可用 Docker 出站代理或网络环境修复，不能标记为 Docker 云联调完成。 |
