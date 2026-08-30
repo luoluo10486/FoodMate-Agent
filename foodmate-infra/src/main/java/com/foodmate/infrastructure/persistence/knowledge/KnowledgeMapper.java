@@ -65,7 +65,7 @@ public interface KnowledgeMapper {
             @Param("size") long size);
 
     @Insert(
-            "INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) VALUES(#{outboxId},#{itemId},'foodmate-knowledge-index-v1',CASE WHEN CAST(#{payload} AS jsonb)='{}'::jsonb THEN COALESCE((SELECT payload_json FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' ORDER BY outbox_id DESC LIMIT 1),CAST(#{payload} AS jsonb)) ELSE CAST(#{payload} AS jsonb) END)")
+            "WITH source AS (SELECT CAST(#{payload} AS jsonb) AS requested_payload), base AS (SELECT requested_payload,CASE WHEN requested_payload='{}'::jsonb THEN COALESCE((SELECT payload_json FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' ORDER BY outbox_id DESC LIMIT 1),requested_payload) ELSE requested_payload END AS payload FROM source) INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) SELECT #{outboxId},#{itemId},'foodmate-knowledge-index-v1',jsonb_set(payload,'{attempt}',CASE WHEN requested_payload='{}'::jsonb THEN '1'::jsonb WHEN payload ? 'attempt' THEN payload->'attempt' ELSE '1'::jsonb END,true) FROM base")
     void insertIndexOutbox(
             @Param("outboxId") long outboxId,
             @Param("itemId") long itemId,
@@ -194,7 +194,7 @@ public interface KnowledgeMapper {
             @Param("version") String version);
 
     @Update(
-            "UPDATE knowledge_index_outbox SET status='pending',attempt_count=0,available_at=CURRENT_TIMESTAMP + (#{delaySeconds} * INTERVAL '1 second'),owner_token=NULL,lease_until=NULL,last_error=#{errorCode},payload_json=jsonb_set(payload_json,'{attempt}',to_jsonb(#{attempt}::int),true),updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1'")
+            "WITH candidate AS (SELECT outbox_id FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' AND status='published' AND CASE WHEN payload_json->>'attempt' ~ '^[1-3]$' THEN (payload_json->>'attempt')::int ELSE 1 END=#{attempt} ORDER BY outbox_id DESC LIMIT 1) UPDATE knowledge_index_outbox AS outbox SET status='pending',attempt_count=0,available_at=CURRENT_TIMESTAMP + (#{delaySeconds} * INTERVAL '1 second'),owner_token=NULL,lease_until=NULL,last_error=#{errorCode},payload_json=jsonb_set(outbox.payload_json,'{attempt}',to_jsonb(#{attempt}::int),true),updated_at=CURRENT_TIMESTAMP FROM candidate WHERE outbox.outbox_id=candidate.outbox_id")
     int requeueIndexOutbox(
             @Param("itemId") long itemId,
             @Param("attempt") int attempt,
