@@ -35,3 +35,16 @@ class CloudSmokeScriptContractTests(TestCase):
         self.assertIn('FOODMATE_REAL_EMBEDDING_PROFILE', script)
         self.assertNotIn("dotenv", script.lower())
         self.assertNotIn("Get-Content", script)
+
+    def test_docker_embedding_smoke_is_explicit_and_keeps_credentials_out_of_arguments(self):
+        script = (
+            self.ROOT / "script" / "local" / "siliconflow-docker-embedding-smoke.ps1"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('ValidateSet("bge-m3", "qwen3-embedding-0.6b")', script)
+        self.assertIn("[switch]$ExecuteRequest", script)
+        self.assertIn("FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY", script)
+        self.assertIn("docker compose", script)
+        self.assertIn("docker compose exec -T agent-runtime python -c", script)
+        self.assertNotIn("$EmbeddingApiKey", script)
+        self.assertNotIn("--api-key", script.lower())
