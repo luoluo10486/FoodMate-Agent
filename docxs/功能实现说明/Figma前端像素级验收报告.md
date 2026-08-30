@@ -1598,3 +1598,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 当前证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-no-message-actions-browser-2026-08-30.png` 和 `agent-chat-running-stop-no-message-actions-browser-2026-08-30.png`；`png-diff.mjs` 同尺寸结果分别为 `differentPixels=475559`、差异比例 `32.2509%`、`MAE=4.097054`、`RMSE=19.538565`、最大通道差异 `255`，以及 `differentPixels=451763`、差异比例 `30.6371%`、`MAE=3.575264`、`RMSE=18.813835`、最大通道差异 `237`，两项均保持 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换为上述当前浏览器证据；映射总览仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，未将局部结构修正标记为 `PASS`。
 - [ ] 本小点只完成 Figma fixture 的额外面板移除，不关闭全量像素验收；DPR 为 `1.25`，头像、字体、图标、运行中 Composer 和其他页面差异仍需继续复核，shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
+
+## 174. 2026-08-30 Agent Chat Figma 助手正文宽度收口
+
+- [x] `MockChatPage` 仅为 `state=figma-v2` 的消息传入 `wide` 标记；桌面端 `.assistantBodyWide` 实测为 `x=340,width=764px`，避免 flex 收缩使设计稿中的助手内容区退化为 `748px`。真实模式不使用该标记。
+- [x] 新增浏览器证据 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-wide-browser-2026-08-30.png`，视口 `1440×1024`，字体 `loaded`，页面无横向溢出，窗口装饰点 `0`；Figma 设计稿未修改。
+- [x] `png-diff.mjs` 同尺寸结果为 `differentPixels=457274`、差异比例 `31.0109%`、`MAE=4.079167`、`RMSE=19.384585`、最大通道差异 `255`；独立证据为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-assistant-wide-2026-08-30-diff.json`，结论继续为 `DIFF_REVIEW`。
+- [x] 已将当前证据同步至 `figma-105-mapping.json` 和 `figma-105-diff-results.json`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只证明助手正文宽度局部改善，不关闭 `agent-chat-v2` 的整页像素 `PASS`；DPR、头像、图标、字体光栅化和工作台其它差异仍需处理，shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。

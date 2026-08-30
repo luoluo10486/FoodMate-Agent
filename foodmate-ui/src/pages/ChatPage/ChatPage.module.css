@@ -658,6 +658,13 @@
   width: min(764px, calc(100% - 48px));
 }
 
+@media (min-width: 721px) {
+  .assistantBodyWide {
+    width: min(764px, calc(100% - 32px));
+    flex: 0 0 min(764px, calc(100% - 32px));
+  }
+}
+
 .agentAvatar,
 .userAvatar {
   display: grid;

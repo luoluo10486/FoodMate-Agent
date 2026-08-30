@@ -1965,7 +1965,7 @@ function MockChatPage() {
       placeholder="追问或添加自定义指令..."
     >
       {agent.messages.map((message, index) => (
-        <MessageBubble key={message.id} message={message}>
+        <MessageBubble key={message.id} message={{ ...message, wide: isFigmaFixture }}>
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
             <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />
           ) : null}

@@ -129,6 +129,19 @@ describe('ChatPage Figma 默认状态', () => {
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
   });
+
+  it('uses the wide assistant body from the Figma chat fixture', () => {
+    render(
+      <MemoryRouter initialEntries={['/chat?state=figma-v2']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const assistantBody = document.querySelector(`[class*="${styles.assistantBody}"]`);
+    expect(assistantBody).toHaveClass(styles.assistantBodyWide);
+  });
 });
 
 describe('ChatPage Figma Planning 状态', () => {
@@ -280,15 +293,11 @@ describe('ChatPage Agent remaining states', () => {
     renderState('user-cancelled');
     expect(screen.getByText(/用户已取消此次运行/)).toBeInTheDocument();
     expect(screen.queryByText(/运行失败/)).not.toBeInTheDocument();
-    expect(document.querySelector('[class*="fixtureCancelledWrap"]')).toHaveClass(
-      'fixtureCancelledWrapAligned',
-    );
+    expect(document.querySelector('[class*="fixtureCancelledWrap"]')).toHaveClass('fixtureCancelledWrapAligned');
     expect(document.querySelector('[class*="fixtureCancelledAssistantRow"]')).toHaveClass(
       'fixtureCancelledAssistantRowAligned',
     );
-    expect(document.querySelector('[class*="fixtureCancelledNotice"]')).toHaveClass(
-      'fixtureCancelledNoticeAligned',
-    );
+    expect(document.querySelector('[class*="fixtureCancelledNotice"]')).toHaveClass('fixtureCancelledNoticeAligned');
     const statusItems = screen.getAllByRole('listitem').map((item) => item.textContent);
     expect(statusItems).toContain('Planning●');
     expect(statusItems).toContain('Retrieving○');
@@ -306,9 +315,7 @@ describe('ChatPage Agent remaining states', () => {
   it('renders the bounded SSE reconnect notice while preserving the composer state', () => {
     renderState('sse-reconnecting');
     expect(screen.getByText('Anddy · 03:00 PM')).toBeInTheDocument();
-    expect(document.querySelector('[class*="fixtureReconnectNotice"]')).toHaveClass(
-      styles.fixtureReconnectNoticeFigma,
-    );
+    expect(document.querySelector('[class*="fixtureReconnectNotice"]')).toHaveClass(styles.fixtureReconnectNoticeFigma);
     expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();
