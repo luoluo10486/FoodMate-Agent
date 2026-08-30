@@ -57,3 +57,12 @@ class DockerComposeContractTests(TestCase):
         )
         self.assertNotIn("FOODMATE_DOCKER_MODEL_PROVIDER_SILICONFLOW_API_KEY=", example)
         self.assertNotIn("FOODMATE_MODEL_PROVIDER_SILICONFLOW_API_KEY", compose)
+
+    def test_docker_readme_documents_the_python_service_startup(self):
+        readme = (self.ROOT / "docker" / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "docker compose --env-file .env -f docker/compose.yml up -d --build foodmate agent-runtime",
+            readme,
+        )
+        self.assertIn("docker compose --env-file .env -f docker/compose.yml logs -f agent-runtime", readme)
