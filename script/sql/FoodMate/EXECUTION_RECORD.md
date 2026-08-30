@@ -1588,3 +1588,16 @@
 | 安全门禁 | `security-scan.ps1` 与 `secret-rotation-check.ps1` 均报告 tracked secret `0`、tracked env `0`，但本地忽略 `.env` 的工作树密钥命中为 `1`；该结果按失败处理，等待密钥轮换后复验。 |
 | 数据与提交边界 | 未执行迁移、truncate、现有业务数据删除、备份恢复、组件重启、ACK/重复消息故障注入或生产操作；本轮只更新执行记录，未新增代码提交。 |
 | 结论 | 两个真实 Embedding 模型和 DeepSeek Chat 的供应商契约在宿主机已验证；Docker Python 启动链路已验证，容器内真实云调用仍受本机 Docker 出站 TLS 限制，不能标记为完成。 |
+
+## D91 SiliconFlow 宿主机真实云 smoke 与 Docker 出站复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；Python 使用 `agent-runtime\.venv`；密钥只从本地忽略 `.env` 读取到当前进程，未输出或持久化。 |
+| Embedding 真实调用 | 宿主机 `siliconflow-embedding-smoke.ps1 -Profile all`：`BAAI/bge-m3` HTTP 200、1024 维、约 367.76 ms；`Qwen/Qwen3-Embedding-0.6B` HTTP 200、1024 维、约 548.02 ms。未保存向量正文。 |
+| Chat 真实调用 | 宿主机 `siliconflow-chat-smoke.ps1`：`cloud_primary/deepseek-ai/DeepSeek-V4-Flash` Composer 通过、约 714.85 ms；Eval 通过、约 13,776.29 ms；两次均有 provider request ID。第一次连续 Eval 请求超时，独立中文请求及完整 smoke 重跑通过。 |
+| Docker Python | `agent-runtime` 保持 `healthy`；live/ready HTTP 200；Compose 配置校验通过。Docker smoke 的 PowerShell 引号、UTF-8/行尾和参数位次问题已修复，提交 `8c1dbde5`、`f9c3dfbe`；契约测试 `7 passed`。 |
+| Docker 真实调用 | Qwen Docker smoke 预检通过，实际请求在 TLS 握手阶段失败为 `URLError/SSL_UNEXPECTED_EOF_WHILE_READING`；DNS 可用，未进入 HTTP 鉴权层。未关闭 TLS 校验，也未把密钥写入命令或日志。 |
+| 网络对照 | 宿主机真实调用成功；本机代理候选端口 `7897/7890/1080` 无监听，Docker `host` 网络此前同样复现 TLS EOF。需配置 Docker 可访问的 HTTPS 代理或修复 Docker Desktop 出站网络后重跑 Docker smoke。 |
+| 业务测试 | `agent-runtime\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`：此前基线 `177 passed、2 skipped、6 subtests passed`；本轮新增云 smoke 契约 `7 passed`。 |
+| 结论 | 宿主机两个真实 Embedding profile 和 DeepSeek Chat 已取得真实协议证据；Docker Python 启动及配置映射已取得证据，但 Docker 云调用、长稳/性能、故障矩阵和生产强化仍未完成，不能更新为完成状态。 |
