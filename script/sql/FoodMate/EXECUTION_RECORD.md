@@ -1557,3 +1557,18 @@
 | 代码提交 | V29 trace 关联事实提交 c10186e5；Docker Python 启动文档提交 332a828d。 |
 | 外部服务边界 | 未读取、回显或使用对话中公开的旧 API Key；未发起 SiliconFlow Chat/Embedding 请求，真实 smoke 仍需供应商控制台轮换后的新凭据。 |
 | 结论 | Docker 可直接启动 Python Runtime，两个 SiliconFlow profile 的配置与本地协议测试已具备；真实云返回维度、延迟和账单事实尚未取得。 |
+
+## D89 USDA 营养目录 V7 扩展实际执行（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；运行中的 `foodmate-postgres`；数据库 `FoodMate`；PostgreSQL `16.14`。 |
+| 数据来源 | USDA FoodData Central SR Legacy（published 2019-04-01）CSV 数据包；营养值来自 `food_nutrient.csv`，份量来自 `food_portion.csv`；每行保留 FDC ID 和 portion 序号。 |
+| 执行前检查 | V7 食材 ID `510026-510048` 和换算 ID `520026-520048` 均不存在；未执行 truncate、迁移或覆盖现有行。 |
+| 执行命令 | `Get-Content seed/V7__nutrition_usda_directory_expansion_seed.sql -Raw | docker exec -i foodmate-postgres psql -v ON_ERROR_STOP=1 -X -U postgres -d FoodMate`。 |
+| 执行结果 | 事务成功提交：新增 23 条 `nutrition_foods` 和 23 条 `nutrition_unit_conversions`；seed 使用主键冲突跳过，支持重复执行。 |
+| Validation | `validation/V7__nutrition_usda_directory_expansion_validation.sql`：`expansion_nutrition_seed_rows=23`、`expansion_unit_conversion_seed_rows=23`、非法食材/换算/食材关联/规则形状错误均为 `0`。 |
+| 代码测试 | `NutritionExpansionV7SeedScriptTest` `2/2` 通过；受影响模块 Maven 测试 `BUILD SUCCESS`。 |
+| 总量 | 当前本地目录为 48 条 approved USDA 食材、48 条 approved foodPortions 规则和 75 条精确质量换算。 |
+| 失败记录 | 首次执行因 V7 份量 `source_version` 超过数据库 `VARCHAR(64)` 约束回滚；随后缩短为 FDC ID + portion 序号并重新执行成功，未留下半成品。 |
+| 代码提交 | 待本轮验证完成后以 `codex:` 前缀单独提交。 |
