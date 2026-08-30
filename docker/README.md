@@ -88,6 +88,29 @@ docker compose --env-file .env -f docker/compose.yml up -d milvus foodmate agent
 
 SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_DOCKER_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_DOCKER_RAG_MILVUS_COLLECTION`；Embedding 的 `FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY` 必须在被忽略的本地 `.env` 或 Secret Store 中单独显式配置，不能从 Chat provider 变量继承，也不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
 
+#### Docker 真实密钥注入与重建
+
+根目录 `.env` 只作为 Compose 的非敏感配置输入。真实密钥不要写入仓库或复制到命令行参数；在 Windows 本地联调时，可以仅注入当前 PowerShell 进程，Compose 会优先使用进程环境变量：
+
+```powershell
+$secureEmbeddingKey = Read-Host "SiliconFlow Embedding API Key" -AsSecureString
+$embeddingKeyPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureEmbeddingKey)
+try {
+    $env:FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($embeddingKeyPtr)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($embeddingKeyPtr)
+}
+
+docker compose --env-file .env -f docker/compose.yml up -d --build --force-recreate agent-runtime
+Invoke-WebRequest http://localhost:9002/foodmate/internal/health/ready
+
+Remove-Item Env:FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY
+```
+
+Chat 密钥使用独立的 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY` 注入，不能复用 Embedding 密钥。修改 `.env` 或进程变量后必须重新创建 `agent-runtime`；单独 `restart` 不会更新容器环境变量。可用 `docker inspect foodmate-agent-runtime` 检查 `FOODMATE_RAG_MODE`、profile、model 和 collection，但不要输出任何 `*_API_KEY`、密码或令牌。
+
+两个 Embedding profile 是互斥的运行配置，不会混写同一 collection。切换时先选择一个 profile 和对应 collection，重新创建 Runtime，并对需要检索的文档重新索引；旧 collection 可保留用于回滚或在确认无引用后单独清理。
+
 ## RocketMQ
 
 `rocketmq-namesrv` + `rocketmq-broker` 是 Java 控制面与 Python Runtime 的异步主通道（[ADR-0005](../docxs/决策/ADR-0005-RocketMQ异步主通道.md)）。本地只部署单 NameServer + 单 Broker，不配置集群、TLS 或 ACL。
