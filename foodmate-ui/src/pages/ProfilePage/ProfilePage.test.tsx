@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { ProfilePage } from './ProfilePage';
+import styles from './ProfilePage.module.css';
 
 function LocationProbe() {
   const location = useLocation();
@@ -47,12 +48,9 @@ describe('ProfilePage', () => {
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('anddy_operator_9')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('180')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('78')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('精益增肌')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('2500')).toBeInTheDocument();
     expect(screen.getByDisplayValue('150')).toBeInTheDocument();
-    expect(screen.getByText('花生 · 乳糖')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '花生' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '乳糖' })).toBeInTheDocument();
     expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
     expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute('src', '/assets/avatars/default-male.svg');
@@ -61,6 +59,20 @@ describe('ProfilePage', () => {
       '/assets/avatars/default-male.svg',
     );
     expect(document.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+  });
+
+  it('limits the basic Figma fixture to the fields shown in the reference artboard', () => {
+    renderPage('/profile?state=basic');
+
+    expect(screen.getByRole('textbox', { name: '蛋白质目标 (g)' })).toHaveValue('150');
+    expect(screen.getByRole('heading', { name: '饮食与身体目标' }).closest('div')).toHaveClass(styles.figmaGoalsCard);
+    expect(screen.queryByRole('textbox', { name: '展示名称' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '性别（可选）' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: '身高 (cm)' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: '体重 (kg)' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '活动水平' })).not.toBeInTheDocument();
+    expect(screen.queryByText('偏好速览')).not.toBeInTheDocument();
+    expect(screen.queryByText('头像与账号概览')).not.toBeInTheDocument();
   });
 
   it('renders the Figma logout confirmation fixture with the target devices', async () => {
@@ -216,9 +228,9 @@ describe('ProfilePage', () => {
     const user = userEvent.setup();
     renderPage('/profile');
 
-    const displayName = screen.getByRole('textbox', { name: '展示名称' });
-    await user.clear(displayName);
-    await user.type(displayName, '我的营养工作区');
+    const proteinTarget = screen.getByRole('textbox', { name: '蛋白质目标 (g)' });
+    await user.clear(proteinTarget);
+    await user.type(proteinTarget, '160');
 
     const allergenInput = screen.getByRole('textbox', { name: '添加过敏原' });
     await user.type(allergenInput, '花生');

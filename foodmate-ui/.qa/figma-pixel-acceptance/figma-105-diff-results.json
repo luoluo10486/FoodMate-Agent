@@ -986,10 +986,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1236904,
-      "differentRatio": 0.8388292100694444,
-      "meanAbsoluteError": 6.6007944742838545,
-      "rmse": 23.668447286038138,
+      "differentPixels": 1203944,
+      "differentRatio": 0.8164767795138889,
+      "meanAbsoluteError": 5.044906955295139,
+      "rmse": 20.363129019162635,
       "maxChannelDelta": 255
     },
     "profile-memories": {

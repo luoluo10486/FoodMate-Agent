@@ -652,7 +652,15 @@ function IconAction({
   );
 }
 
-function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolean }) {
+function BasicTab({
+  authUser,
+  realMode,
+  figmaFixture = false,
+}: {
+  authUser: AuthUser;
+  realMode: boolean;
+  figmaFixture?: boolean;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState(authUser.avatarUrl ?? '');
   const [avatarFileName, setAvatarFileName] = useState('');
@@ -774,7 +782,7 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
     <div className={styles.basicLayout}>
       <div className={styles.basicLeft}>
         <Card className={styles.profileCard}>
-          <p className={styles.overline}>头像与账号概览</p>
+          {!figmaFixture ? <p className={styles.overline}>头像与账号概览</p> : null}
           <div className={styles.avatarShell}>
             <div className={styles.avatarRing}>
               {avatarSource ? (
@@ -819,22 +827,26 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
               </span>
             </div>
           ) : null}
-          <div className={cn(styles.avatarSummary, styles.summaryStatus)}>
-            <span>账号状态</span>
-            <strong>{statusLabel(authUser.status)}</strong>
-          </div>
-          <div className={cn(styles.avatarSummary, styles.summaryLogin)}>
-            <span>最近登录</span>
-            <strong>{realMode ? authUser.lastLoginAt : '今天 09:42'}</strong>
-          </div>
-          <div className={cn(styles.avatarSummary, styles.summaryUnits)}>
-            <span>常用单位</span>
-            <strong>公制</strong>
-          </div>
-          <div className={cn(styles.avatarSummary, styles.summaryTimezone)}>
-            <span>时区</span>
-            <strong>UTC+08:00</strong>
-          </div>
+          {!figmaFixture ? (
+            <>
+              <div className={cn(styles.avatarSummary, styles.summaryStatus)}>
+                <span>账号状态</span>
+                <strong>{statusLabel(authUser.status)}</strong>
+              </div>
+              <div className={cn(styles.avatarSummary, styles.summaryLogin)}>
+                <span>最近登录</span>
+                <strong>{realMode ? authUser.lastLoginAt : '今天 09:42'}</strong>
+              </div>
+              <div className={cn(styles.avatarSummary, styles.summaryUnits)}>
+                <span>常用单位</span>
+                <strong>公制</strong>
+              </div>
+              <div className={cn(styles.avatarSummary, styles.summaryTimezone)}>
+                <span>时区</span>
+                <strong>UTC+08:00</strong>
+              </div>
+            </>
+          ) : null}
         </Card>
 
         <Card className={styles.profileCard + ' ' + styles.credentialCard}>
@@ -859,94 +871,108 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
           </div>
         </Card>
 
-        <Card className={styles.profileCard + ' ' + styles.preferenceCard}>
-          <h2>偏好速览</h2>
-          <p>用于生成更贴合你的饮食建议</p>
-          <div className={styles.preferenceGrid}>
-            <SummaryTile label="常用餐型" value="三餐 + 加餐" />
-            <SummaryTile label="当前目标" value={profileForm.dietGoal || '精益增肌'} />
-            <SummaryTile
-              label="已记录过敏原"
-              value={profileForm.allergens.length ? profileForm.allergens.join(' · ') : '暂无'}
-              tone="red"
-            />
-            <SummaryTile label="最近更新" value="今天 12:45" tone="green" />
-          </div>
-        </Card>
+        {!figmaFixture ? (
+          <Card className={styles.profileCard + ' ' + styles.preferenceCard}>
+            <h2>偏好速览</h2>
+            <p>用于生成更贴合你的饮食建议</p>
+            <div className={styles.preferenceGrid}>
+              <SummaryTile label="常用餐型" value="三餐 + 加餐" />
+              <SummaryTile label="当前目标" value={profileForm.dietGoal || '精益增肌'} />
+              <SummaryTile
+                label="已记录过敏原"
+                value={profileForm.allergens.length ? profileForm.allergens.join(' · ') : '暂无'}
+                tone="red"
+              />
+              <SummaryTile label="最近更新" value="今天 12:45" tone="green" />
+            </div>
+          </Card>
+        ) : null}
       </div>
 
-      <Card className={styles.goalsCard}>
-        <div className={styles.goalsAccent} />
+      <Card className={cn(styles.goalsCard, figmaFixture && styles.figmaGoalsCard)}>
+        {!figmaFixture ? <div className={styles.goalsAccent} /> : null}
         <h1>饮食与身体目标</h1>
         <form onSubmit={handleSave}>
-          <div className={styles.goalsGrid}>
-            <Field label="展示名称">
-              <Input
-                value={profileForm.displayName}
-                onChange={(event) => setField('displayName', event.target.value)}
-              />
-            </Field>
-            <Field label="性别（可选）">
-              <Select
-                value={profileForm.gender || 'unset'}
-                onValueChange={(value) => setField('gender', value === 'unset' ? '' : value)}
-              >
-                <SelectTrigger className={styles.select} aria-label="性别（可选）">
-                  <SelectValue placeholder="未设置" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unset">未设置</SelectItem>
-                  <SelectItem value="男">男</SelectItem>
-                  <SelectItem value="女">女</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="身高 (cm)">
-              <Input
-                inputMode="decimal"
-                value={profileForm.heightCm}
-                onChange={(event) => setField('heightCm', event.target.value)}
-              />
-            </Field>
-            <Field label="体重 (kg)">
-              <Input
-                inputMode="decimal"
-                value={profileForm.weightKg}
-                onChange={(event) => setField('weightKg', event.target.value)}
-              />
-            </Field>
-            <Field label="活动水平">
-              <Select value={profileForm.activityLevel} onValueChange={(value) => setField('activityLevel', value)}>
-                <SelectTrigger className={styles.select} aria-label="活动水平">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {activityOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="饮食目标">
-              <Input value={profileForm.dietGoal} onChange={(event) => setField('dietGoal', event.target.value)} />
-            </Field>
-            <Field label="每日热量目标 (千卡)">
-              <Input
-                inputMode="numeric"
-                value={profileForm.calorieTarget}
-                onChange={(event) => setField('calorieTarget', event.target.value)}
-              />
-            </Field>
-            <Field label="每日蛋白质目标 (g)">
-              <Input
-                inputMode="numeric"
-                value={profileForm.proteinTarget}
-                onChange={(event) => setField('proteinTarget', event.target.value)}
-              />
-            </Field>
-          </div>
+          {figmaFixture ? (
+            <div className={cn(styles.goalsGrid, styles.figmaGoalsGrid)}>
+              <Field label="蛋白质目标 (g)">
+                <Input
+                  inputMode="numeric"
+                  value={profileForm.proteinTarget}
+                  onChange={(event) => setField('proteinTarget', event.target.value)}
+                />
+              </Field>
+            </div>
+          ) : (
+            <div className={styles.goalsGrid}>
+              <Field label="展示名称">
+                <Input
+                  value={profileForm.displayName}
+                  onChange={(event) => setField('displayName', event.target.value)}
+                />
+              </Field>
+              <Field label="性别（可选）">
+                <Select
+                  value={profileForm.gender || 'unset'}
+                  onValueChange={(value) => setField('gender', value === 'unset' ? '' : value)}
+                >
+                  <SelectTrigger className={styles.select} aria-label="性别（可选）">
+                    <SelectValue placeholder="未设置" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unset">未设置</SelectItem>
+                    <SelectItem value="男">男</SelectItem>
+                    <SelectItem value="女">女</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="身高 (cm)">
+                <Input
+                  inputMode="decimal"
+                  value={profileForm.heightCm}
+                  onChange={(event) => setField('heightCm', event.target.value)}
+                />
+              </Field>
+              <Field label="体重 (kg)">
+                <Input
+                  inputMode="decimal"
+                  value={profileForm.weightKg}
+                  onChange={(event) => setField('weightKg', event.target.value)}
+                />
+              </Field>
+              <Field label="活动水平">
+                <Select value={profileForm.activityLevel} onValueChange={(value) => setField('activityLevel', value)}>
+                  <SelectTrigger className={styles.select} aria-label="活动水平">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activityOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="饮食目标">
+                <Input value={profileForm.dietGoal} onChange={(event) => setField('dietGoal', event.target.value)} />
+              </Field>
+              <Field label="每日热量目标 (千卡)">
+                <Input
+                  inputMode="numeric"
+                  value={profileForm.calorieTarget}
+                  onChange={(event) => setField('calorieTarget', event.target.value)}
+                />
+              </Field>
+              <Field label="每日蛋白质目标 (g)">
+                <Input
+                  inputMode="numeric"
+                  value={profileForm.proteinTarget}
+                  onChange={(event) => setField('proteinTarget', event.target.value)}
+                />
+              </Field>
+            </div>
+          )}
           <div className={styles.allergenSection}>
             <span className={styles.fieldLabel}>过敏原与不耐受</span>
             <div className={styles.tagRow}>
@@ -999,7 +1025,7 @@ function BasicTab({ authUser, realMode }: { authUser: AuthUser; realMode: boolea
               放弃更改
             </Button>
             <Button className={styles.saveButton} type="submit" disabled={saving}>
-              {saving ? <LoaderCircle className={styles.spin} aria-hidden="true" /> : <Check aria-hidden="true" />}{' '}
+              {saving ? <LoaderCircle className={styles.spin} aria-hidden="true" /> : figmaFixture ? null : <Check aria-hidden="true" />}{' '}
               {saving ? '保存中...' : '保存资料'}
             </Button>
           </div>
@@ -2001,7 +2027,7 @@ export function ProfilePage() {
     >
       <div className={cn(styles.page, 'fm-enter')}>
         {activeTab === 'basic' ? (
-          <BasicTab authUser={displayedUser} realMode={isFigmaFixture ? false : realMode} />
+          <BasicTab authUser={displayedUser} realMode={isFigmaFixture ? false : realMode} figmaFixture={isFigmaFixture} />
         ) : null}
         {activeTab === 'memories' ? realMode ? <RealMemoriesTab /> : <MemoriesTab /> : null}
         {activeTab === 'security' ? <SecurityTab /> : null}

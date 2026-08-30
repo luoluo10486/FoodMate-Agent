@@ -4616,19 +4616,19 @@
       "queryState": "state=basic",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-fitted-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; see profile-basic-fitted-2026-08-30-diff.json",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -4645,8 +4645,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture contains the Figma-aligned two-column profile composition, account summary, target fields and allergen controls, but full-image diff remains high; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The fixture now keeps the measured 692x366 goals card, full-width protein input, visible allergen controls and footer inside the card. Full-image differences remain from the workspace shell, avatar, icons, typography rasterization and actual browser DPR; retain DIFF_REVIEW."
       }
     },
     {

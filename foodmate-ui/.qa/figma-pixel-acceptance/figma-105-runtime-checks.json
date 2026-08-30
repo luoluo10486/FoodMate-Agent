@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18",
+  "generatedAt": "2026-08-30",
   "tool": "Codex Browser runtime DOM inspection (recaptured evidence)",
   "rules": {
     "viewport": "mapping.browserViewport",
@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 101,
+    "dprPass": 98,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -1672,7 +1672,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1681,6 +1682,15 @@
         "y": 0
       },
       "textOverflow": [],
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "profileGeometry": {
+        "goalsCard": "x=716,y=100,width=692,height=366",
+        "proteinInput": "x=739.8,y=199.3,width=644.4,height=40",
+        "allergenSection": "x=739.8,y=239.3,width=644.4,height=115.5",
+        "tagRow": "x=739.8,y=322.8,width=644.4,height=32",
+        "formFooter": "x=739.8,y=366.8,width=644.4,height=56.8"
+      },
       "url": "/profile?state=basic",
       "viewport": {
         "height": 1024,
