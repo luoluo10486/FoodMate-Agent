@@ -91,7 +91,7 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-wide-browser-2026-08-30.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-design-green-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -121,7 +121,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
-        "conclusion": "The refreshed browser fixture uses the Figma top-navigation active surface #FFFEFC, preserves the assistant-body font, and keeps the 12px top blank area without rendering the three dots. Avatar assets, icon rasterization, and remaining browser rendering differences are still visible; retain DIFF_REVIEW."
+        "conclusion": "The refreshed browser fixture uses the Figma green token #4CAF50 for the brand and Agent marks, preserves the assistant-body width, and keeps the 12px top blank area without rendering the three dots. Avatar assets, icon rasterization, DPR, and remaining browser rendering differences are still visible; retain DIFF_REVIEW."
       },
       "supplementalEvidence": [
         {

@@ -119,6 +119,16 @@ describe('WorkspaceLayout shell controls', () => {
     expect(stylesheet).not.toContain('--fm-fixture-top-nav-active-surface: #fffefa;');
   });
 
+  it('uses the Figma green token for design chat brand and agent marks', () => {
+    const stylesheet = readFileSync(
+      resolve(process.cwd(), 'src/layouts/WorkspaceLayout/WorkspaceLayout.module.css'),
+      'utf8',
+    );
+
+    expect(stylesheet).toContain('.designChat {');
+    expect(stylesheet).toContain('--fm-green: #4caf50;');
+  });
+
   it('allows a page to hide only the topbar mark letter while keeping its top navigation', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/knowledge']}>

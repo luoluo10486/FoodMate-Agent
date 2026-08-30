@@ -30,6 +30,7 @@
 
 /* Figma node 640:428 uses separate neutral surfaces for active navigation and session rows. */
 .designChat {
+  --fm-green: #4caf50;
   --fm-fixture-sidebar-active-surface: #fbf7f2;
   --fm-fixture-session-active-surface: #fffcf9;
   --fm-fixture-top-nav-active-surface: #fffefc;

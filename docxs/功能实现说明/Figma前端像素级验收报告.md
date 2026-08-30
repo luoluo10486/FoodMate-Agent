@@ -1606,3 +1606,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `png-diff.mjs` 同尺寸结果为 `differentPixels=457274`、差异比例 `31.0109%`、`MAE=4.079167`、`RMSE=19.384585`、最大通道差异 `255`；独立证据为 `foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-assistant-wide-2026-08-30-diff.json`，结论继续为 `DIFF_REVIEW`。
 - [x] 已将当前证据同步至 `figma-105-mapping.json` 和 `figma-105-diff-results.json`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只证明助手正文宽度局部改善，不关闭 `agent-chat-v2` 的整页像素 `PASS`；DPR、头像、图标、字体光栅化和工作台其它差异仍需处理，shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 175. 2026-08-30 Agent Chat Figma 绿色 Token 收口
+
+- [x] 依据 Figma 节点 `640:428` 的已登记 PNG，确认品牌标记和 Agent 方块的主绿色为 `#4caf50`；前端只在 `.designChat` fixture 作用域覆盖 `--fm-green`，不改变全局页面 Token，也未修改 Figma 设计稿。
+- [x] `WorkspaceLayout` 定向测试先在缺少 Token 时按预期失败，再补充最小 CSS 覆盖后通过 `9/9`；浏览器 `1440×1024` 实测品牌标记和 Agent 方块均为 `rgb(76,175,80)`，字体状态为 `loaded`，页面无横向/纵向溢出，左上角红黄绿窗口控制点候选为 `0`。
+- [x] 新增浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-design-green-browser-2026-08-30-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-design-green-2026-08-30-diff.json`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=457385`、差异比例 `31.0184%`、`MAE=4.049774`、`RMSE=19.528353`、最大通道差异 `255`，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换至本次 RGBA 证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只收口 Figma fixture 绿色 Token，不代表 `agent-chat-v2` 或 105 张画板达到像素级 `PASS`；头像、图标、DPR 和其它整页渲染差异、shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。
