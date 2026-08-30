@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-08-29",
+    "capturedAt": "2026-08-30",
     "figmaMcp": "get_metadata"
   },
   "acceptanceRules": {
@@ -3128,7 +3128,7 @@
       "queryState": "state=knowledge-uploading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-uploading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-uploading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-uploading-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-uploading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3157,8 +3157,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Upload progress overlay is present, but the browser uses a different knowledge-base page, modal title/state, document data, progress copy, and underlying layout. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；弹层已按 Figma 对齐到主区域 x=570、560x260，标题、批次文案、64% 进度、绿色进度条和查看任务进度链接均已复核。Figma-only 左上角窗口点未渲染；底层知识库页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3172,7 +3172,7 @@
       "queryState": "state=knowledge-indexing",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-indexing.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-indexing-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-indexing-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-indexing",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3201,8 +3201,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Indexing progress overlay is present, but browser uses a different knowledge page, backdrop, modal title/state, progress color, document data, and information hierarchy. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；弹层已按 Figma 对齐到主区域 x=570、560x280，后台建立索引标题、批次文案、72% 蓝色进度条和任务详情文案均已复核。Figma-only 左上角窗口点未渲染；底层页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3216,7 +3216,7 @@
       "queryState": "state=knowledge-upload-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-upload-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-failed-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-failed-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3245,8 +3245,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Upload failure overlay is present, but browser differs in failure scope, error code, modal dimensions, copy, action buttons, document table, and side detail panel. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；失败弹层已按 Figma 对齐到主区域 x=570、560x286，失败范围、错误码、批次说明、右上角失败标记/关闭控件和重试此文件按钮均已复核。Figma-only 左上角窗口点未渲染；底层页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -4792,7 +4792,7 @@
       "queryState": "state=knowledge-upload-success",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-upload-success.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-success-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-success-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-success",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4821,8 +4821,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Browser presents a generic dimmed upload-progress modal, whereas Figma shows the completed knowledge document table, upload drop zone, insight panel, and status rows. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 正常知识库页面；成功态不再渲染上传进度弹层，上传区域、文档表格、向量洞察和状态行均可见。底层页面与 Figma 在字体、图标、颜色和内容几何上仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -5120,7 +5120,7 @@
       "queryState": "state=knowledge-format-error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-format-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-format-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-format-error-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-format-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -5149,8 +5149,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Format-error modal is present, but browser differs in underlying knowledge page, modal styling, error detail placement, button treatment, and background geometry. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；格式错误弹层已按 Figma 对齐到主区域 x=570、560x286，错误标题、文件范围、支持格式说明、错误码、失败标记、关闭控件和移除并重试按钮均已复核。Figma-only 左上角窗口点未渲染；底层页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -5164,7 +5164,7 @@
       "queryState": "state=knowledge-size-error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-size-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-size-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-size-error-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-size-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -5193,8 +5193,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Size-limit modal is present, but browser differs in underlying knowledge page, modal dimensions, copy, error metadata, action label, and surrounding detail layout. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；大小限制弹层已按 Figma 对齐到主区域 x=570、560x286，文件大小说明、错误码、失败标记、关闭控件和重新选择文件按钮均已复核。Figma-only 左上角窗口点未渲染；底层页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, FileWarning, LoaderCircle, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, LoaderCircle, RefreshCw, ShieldAlert, X, XCircle } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -58,6 +58,69 @@ type AdminFixtureState =
   | 'tool-calls'
   | 'sql-audit'
   | 'trace';
+
+type KnowledgeFixtureState = Extract<AdminFixtureState, `knowledge-${string}`>;
+
+type KnowledgeFixtureCopy = {
+  title: string;
+  summary: string;
+  detail: string;
+  progressLabel?: string;
+  progressValue?: number;
+  errorCode?: string;
+  actionLabel?: string;
+  showFailureBadge?: boolean;
+};
+
+const knowledgeFixtureCopy: Record<KnowledgeFixtureState, KnowledgeFixtureCopy> = {
+  'knowledge-uploading': {
+    title: '批量任务已提交',
+    summary: '3 个文件 · nutrient_reference.xlsx 等',
+    detail: '上传中 · 64% · 可离开页面，完成后自动开始索引',
+    progressLabel: '查看任务进度',
+    progressValue: 64,
+  },
+  'knowledge-indexing': {
+    title: '后台正在建立索引',
+    summary: '3 个文件 · 批次 KB-20260731-0042',
+    detail: '索引中 · 72% · 可离开页面，完成后收到通知',
+    progressLabel: '任务详情 · 已完成 1 / 3 个文件',
+    progressValue: 72,
+  },
+  'knowledge-upload-failed': {
+    title: '批次上传有失败项',
+    summary: '1 个文件失败 · nutrient_reference.xlsx',
+    detail: '其余 2 个文件已接收并继续后台索引，可单独重试失败文件。',
+    errorCode: '错误码：KB_UPLOAD_FORMAT_INVALID · request_id: req_kb_20260731_0042',
+    actionLabel: '重试此文件',
+    showFailureBadge: true,
+  },
+  'knowledge-upload-success': {
+    title: '',
+    summary: '',
+    detail: '',
+  },
+  'knowledge-format-error': {
+    title: '文件格式校验失败',
+    summary: '2 个文件不支持 · meal_photo.webp',
+    detail: '仅支持 PDF / CSV / XLSX / TXT；其他文件未提交。',
+    errorCode: '错误码：KB_UPLOAD_FORMAT_INVALID · request_id: req_kb_20260731_0042',
+    actionLabel: '移除并重试',
+    showFailureBadge: true,
+  },
+  'knowledge-size-error': {
+    title: '文件大小超过限制',
+    summary: '1 个文件超出 50MB · nutrition_archive.pdf',
+    detail: '文件未提交；其他文件继续后台索引。',
+    errorCode: '错误码：KB_UPLOAD_SIZE_LIMIT · request_id: req_kb_20260731_0048',
+    actionLabel: '重新选择文件',
+    showFailureBadge: true,
+  },
+};
+
+function isKnowledgeFixtureState(state: AdminFixtureState): state is KnowledgeFixtureState {
+  return state.startsWith('knowledge-');
+}
 
 function getAdminFixtureState(value: string | null): AdminFixtureState | undefined {
   const states: AdminFixtureState[] = [
@@ -441,10 +504,81 @@ function AgentTimelineFixture({ trace }: { trace: boolean }) {
   );
 }
 
+function AdminKnowledgeFixture({ state, onDismiss }: { state: KnowledgeFixtureState; onDismiss: () => void }) {
+  const copy = knowledgeFixtureCopy[state];
+  const isError = Boolean(copy.errorCode);
+  const titleId = `admin-knowledge-fixture-title-${state}`;
+
+  return (
+    <div className={styles.knowledgeFixtureOverlay} role="presentation">
+      <section
+        className={`${styles.knowledgeFixtureModal} ${isError ? styles.knowledgeFixtureModalError : ''} ${state === 'knowledge-indexing' ? styles.knowledgeFixtureModalIndexing : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <header className={styles.knowledgeFixtureHeader}>
+          <h2 id={titleId}>{copy.title}</h2>
+          {copy.showFailureBadge ? (
+            <div className={styles.knowledgeFixtureHeaderActions}>
+              <span className={styles.knowledgeFixtureFailureBadge}>失败</span>
+              <Button
+                aria-label="关闭"
+                className={styles.knowledgeFixtureClose}
+                onClick={onDismiss}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </div>
+          ) : null}
+        </header>
+        <p className={styles.knowledgeFixtureSummary}>{copy.summary}</p>
+        <p className={`${styles.knowledgeFixtureDetail} ${isError ? styles.knowledgeFixtureErrorDetail : ''}`}>
+          {copy.detail}
+        </p>
+        {copy.errorCode ? <p className={styles.knowledgeFixtureErrorCode}>{copy.errorCode}</p> : null}
+        {copy.progressValue !== undefined ? (
+          <div
+            aria-label={`${copy.progressValue}%`}
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={copy.progressValue}
+            className={`${styles.knowledgeFixtureProgress} ${state === 'knowledge-indexing' ? styles.knowledgeFixtureProgressIndexing : ''}`}
+            role="progressbar"
+          >
+            <i style={{ width: `${copy.progressValue}%` }} />
+          </div>
+        ) : null}
+        {copy.progressLabel ? (
+          state === 'knowledge-uploading' ? (
+            <Link className={styles.knowledgeFixtureProgressLink} to="/admin?view=audit">
+              {copy.progressLabel}
+            </Link>
+          ) : (
+            <p className={styles.knowledgeFixtureProgressDetail}>{copy.progressLabel}</p>
+          )
+        ) : null}
+        {copy.actionLabel ? (
+          <div className={styles.knowledgeFixtureActions}>
+            <Button className={styles.knowledgeFixtureAction} onClick={onDismiss} type="button">
+              {copy.actionLabel}
+            </Button>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
 function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; onDismiss: () => void }) {
   if (state === 'overview' || state === 'tool-registry' || state === 'deleted-resources' || state === 'user-detail')
     return null;
-  const isOperation = state.startsWith('op-');
+  if (isKnowledgeFixtureState(state)) {
+    return state === 'knowledge-upload-success' ? null : <AdminKnowledgeFixture state={state} onDismiss={onDismiss} />;
+  }
   const isDetail = state === 'run-detail' || state === 'tool-calls' || state === 'sql-audit' || state === 'trace';
   if (state === 'op-no-permission') {
     return (
@@ -501,52 +635,21 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
     );
   }
 
-  const knowledgeError =
-    state === 'knowledge-format-error' || state === 'knowledge-size-error' || state === 'knowledge-upload-failed';
-  const errorTitle =
-    state === 'knowledge-format-error'
-      ? '文件格式校验失败'
-      : state === 'knowledge-size-error'
-        ? '文件大小超过限制'
-        : '知识库上传失败';
-  const knowledgeProgressTitle =
-    state === 'knowledge-uploading'
-      ? '批量任务已提交'
-      : state === 'knowledge-indexing'
-        ? '正在建立索引'
-        : state === 'knowledge-upload-success'
-          ? '批量任务已提交'
-          : '';
   const operationTitle =
     state === 'op-confirm'
       ? '确认停用工具'
       : state === 'op-submitting'
         ? '正在提交操作'
         : state === 'op-failed'
-          ? '操作失败'
-          : '';
-  const title = isOperation ? operationTitle : knowledgeError ? errorTitle : knowledgeProgressTitle;
-  const Icon = isOperation
-    ? state === 'op-failed'
-      ? XCircle
-      : AlertTriangle
-    : knowledgeError
-      ? FileWarning
-      : LoaderCircle;
-  const progress =
-    state === 'op-submitting'
-      ? '正在通知关联的服务集群同步状态...'
-      : state === 'knowledge-uploading'
-        ? '上传中 · 64% · 可离开页面，完成后自动开始索引'
-        : state === 'knowledge-indexing'
-          ? '索引中 · 72% · 正在生成向量索引'
-          : state === 'knowledge-upload-success'
-            ? '批量任务已提交 · 3 个文件正在后台处理'
-            : '';
+        ? '操作失败'
+        : '';
+  const title = operationTitle;
+  const Icon = state === 'op-failed' ? XCircle : AlertTriangle;
+  const progress = state === 'op-submitting' ? '正在通知关联的服务集群同步状态...' : '';
   return (
     <div className={styles.fixtureOverlay} role="presentation">
       <section
-        className={`${styles.fixtureModal} ${knowledgeError ? styles.fixtureModalError : ''}`}
+        className={styles.fixtureModal}
         role="alert"
         aria-live="polite"
       >
@@ -556,49 +659,29 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
           </span>
           <h2>{title}</h2>
         </div>
-        {isOperation ? (
-          <p>
-            您正在尝试停用工具 <strong>nutrition_lookup</strong>。停用后，所有关联的 Agent
-            运行将无法在调用流中激活此工具。
-          </p>
-        ) : null}
-        {knowledgeError ? (
-          <>
-            <p>
-              <strong>
-                {state === 'knowledge-format-error'
-                  ? '2 个文件不支持 · meal_photo.webp'
-                  : state === 'knowledge-size-error'
-                    ? '1 个文件超出 50MB · nutrition_archive.pdf'
-                    : '上传任务未完成 · 请检查文件并重试'}
-              </strong>
-            </p>
-            <p>仅支持 PDF / CSV / XLSX / TXT；错误不会影响已完成的索引。</p>
-            <code>
-              错误码: {state === 'knowledge-format-error' ? 'KB_UPLOAD_FORMAT_INVALID' : 'KB_UPLOAD_SIZE_LIMIT'} ·
-              request_id: req_kb_20260731_0042
-            </code>
-          </>
-        ) : null}
+        <p>
+          您正在尝试停用工具 <strong>nutrition_lookup</strong>。停用后，所有关联的 Agent
+          运行将无法在调用流中激活此工具。
+        </p>
         {progress ? (
           <>
             <p className={styles.fixtureProgressText}>{progress}</p>
             <span className={styles.fixtureProgress}>
-              <i style={{ width: state === 'knowledge-upload-success' ? '100%' : '64%' }} />
+              <i style={{ width: '64%' }} />
             </span>
           </>
         ) : null}
         {state === 'op-failed' ? (
           <code>ERROR_CODE: REGISTRY_TIMEOUT_504{`\n`}REQUEST_ID: req-foodmate-9082ac918</code>
         ) : null}
-        {state === 'op-confirm' || state === 'op-failed' || knowledgeError ? (
+        {state === 'op-confirm' || state === 'op-failed' ? (
           <div className={styles.fixtureModalActions}>
             <Button variant="outline" onClick={onDismiss}>
               取消
             </Button>
-            <Button variant={state === 'op-failed' || knowledgeError ? 'destructive' : 'default'} onClick={onDismiss}>
+            <Button variant={state === 'op-failed' ? 'destructive' : 'default'} onClick={onDismiss}>
               <RefreshCw aria-hidden="true" />
-              {state === 'op-failed' ? '重新尝试' : knowledgeError ? '移除并重试' : '确认停用'}
+              {state === 'op-failed' ? '重新尝试' : '确认停用'}
             </Button>
           </div>
         ) : null}

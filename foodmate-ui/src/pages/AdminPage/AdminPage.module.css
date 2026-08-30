@@ -4354,6 +4354,204 @@
   color: #ff665d;
 }
 
+.knowledgeFixtureOverlay {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding-left: 260px;
+  background: rgb(255 255 255 / 86%);
+}
+
+.knowledgeFixtureModal {
+  position: relative;
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 48px));
+  min-height: 260px;
+  padding: 31px;
+  transform: translateY(-52px);
+  border: 1px solid #91a9f1;
+  border-radius: 12px;
+  background: #f8faf9;
+  box-shadow: 0 12px 28px rgb(26 33 46 / 12%);
+}
+
+.knowledgeFixtureModalIndexing {
+  min-height: 280px;
+  border-color: #8dbba9;
+}
+
+.knowledgeFixtureModalError {
+  min-height: 286px;
+  border-color: #ee8d8e;
+}
+
+.knowledgeFixtureHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-height: 28px;
+}
+
+.knowledgeFixtureHeader h2 {
+  margin: 0;
+  color: #4a76dc;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.knowledgeFixtureModalIndexing .knowledgeFixtureHeader h2 {
+  color: #4b9078;
+}
+
+.knowledgeFixtureModalError .knowledgeFixtureHeader h2 {
+  color: #dc5a5c;
+}
+
+.knowledgeFixtureHeaderActions {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.knowledgeFixtureFailureBadge {
+  display: inline-grid;
+  min-width: 63px;
+  height: 24px;
+  box-sizing: border-box;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffe4e2;
+  color: #ed706c;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.knowledgeFixtureClose {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #ffaaa6;
+  border-radius: 999px;
+  color: #ed706c;
+}
+
+.knowledgeFixtureClose:hover {
+  background: #fff0ee;
+  color: #dc5a5c;
+}
+
+.knowledgeFixtureClose svg {
+  width: 16px;
+  height: 16px;
+}
+
+.knowledgeFixtureSummary,
+.knowledgeFixtureDetail,
+.knowledgeFixtureProgressDetail,
+.knowledgeFixtureErrorCode {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.knowledgeFixtureSummary {
+  margin-top: 23px;
+  color: #667085;
+}
+
+.knowledgeFixtureDetail {
+  margin-top: 9px;
+  color: #4a76dc;
+}
+
+.knowledgeFixtureModalIndexing .knowledgeFixtureDetail {
+  color: #4b9078;
+}
+
+.knowledgeFixtureErrorDetail {
+  color: #667085;
+}
+
+.knowledgeFixtureErrorCode {
+  margin-top: 14px;
+  color: #e56668;
+  font-size: 13px;
+}
+
+.knowledgeFixtureProgress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  margin-top: 23px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #e8ebef;
+}
+
+.knowledgeFixtureProgress i {
+  display: block;
+  height: 100%;
+  background: #4caf59;
+}
+
+.knowledgeFixtureProgressIndexing i {
+  background: #5b92e9;
+}
+
+.knowledgeFixtureProgressLink,
+.knowledgeFixtureProgressDetail {
+  display: block;
+  margin-top: 31px;
+  color: #df5557;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  text-decoration: none;
+}
+
+.knowledgeFixtureProgressLink:hover {
+  text-decoration: underline;
+}
+
+.knowledgeFixtureProgressDetail {
+  color: #667085;
+}
+
+.knowledgeFixtureActions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 34px;
+}
+
+.knowledgeFixtureAction {
+  min-width: 104px;
+  height: 36px;
+  padding: 0 21px;
+  border-radius: 8px;
+  background: #4caf59;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.knowledgeFixtureAction:hover {
+  background: #3f9d4c;
+}
+
+@media (max-width: 900px) {
+  .knowledgeFixtureOverlay {
+    padding-left: 0;
+  }
+}
+
 .fixtureOverlay {
   position: fixed;
   inset: 0;

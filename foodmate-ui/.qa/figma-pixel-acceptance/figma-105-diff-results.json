@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29",
+  "generatedAt": "2026-08-30",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -689,33 +689,33 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1427562,
-      "differentRatio": 0.96812744140625,
-      "meanAbsoluteError": 64.97811787923177,
-      "rmse": 78.03813165064176,
-      "maxChannelDelta": 241
+      "differentPixels": 529932,
+      "differentRatio": 0.3593831380208333,
+      "meanAbsoluteError": 2.079614766438802,
+      "rmse": 12.186399682958115,
+      "maxChannelDelta": 247
     },
     "admin-knowledge-indexing": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1422743,
-      "differentRatio": 0.9648593478732639,
-      "meanAbsoluteError": 64.80573543972439,
-      "rmse": 77.87757066103575,
-      "maxChannelDelta": 241
+      "differentPixels": 536587,
+      "differentRatio": 0.36389634874131943,
+      "meanAbsoluteError": 2.180883619520399,
+      "rmse": 12.503623749097509,
+      "maxChannelDelta": 247
     },
     "admin-knowledge-upload-failed": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1385061,
-      "differentRatio": 0.9393046061197917,
-      "meanAbsoluteError": 61.500541008843314,
-      "rmse": 76.06954992648905,
-      "maxChannelDelta": 241
+      "differentPixels": 538766,
+      "differentRatio": 0.36537407769097224,
+      "meanAbsoluteError": 2.504419962565104,
+      "rmse": 13.901570832238084,
+      "maxChannelDelta": 247
     },
     "profile-basic-avatar-uploading": {
       "status": "COMPARED",
@@ -1030,11 +1030,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1474427,
-      "differentRatio": 0.9999098036024305,
-      "meanAbsoluteError": 63.07823469373915,
-      "rmse": 75.96365859629363,
-      "maxChannelDelta": 238
+      "differentPixels": 729255,
+      "differentRatio": 0.4945576985677083,
+      "meanAbsoluteError": 5.0968743218315975,
+      "rmse": 22.240613281795774,
+      "maxChannelDelta": 239
     },
     "admin-overview": {
       "status": "COMPARED",
@@ -1074,22 +1074,22 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1470875,
-      "differentRatio": 0.9975009494357638,
-      "meanAbsoluteError": 60.49377916124132,
-      "rmse": 74.3821512850765,
-      "maxChannelDelta": 240
+      "differentPixels": 933384,
+      "differentRatio": 0.6329915364583333,
+      "meanAbsoluteError": 2.5582205878363715,
+      "rmse": 12.556861508698022,
+      "maxChannelDelta": 213
     },
     "admin-knowledge-size-error": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 1470937,
-      "differentRatio": 0.9975429958767361,
-      "meanAbsoluteError": 60.489886135525175,
-      "rmse": 74.37924116706219,
-      "maxChannelDelta": 240
+      "differentPixels": 933414,
+      "differentRatio": 0.6330118815104167,
+      "meanAbsoluteError": 2.568289354112413,
+      "rmse": 12.671411803351473,
+      "maxChannelDelta": 213
     },
     "profile-memories-empty": {
       "status": "COMPARED",
