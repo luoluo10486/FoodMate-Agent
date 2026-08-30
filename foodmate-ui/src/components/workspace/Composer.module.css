@@ -18,7 +18,7 @@
   gap: 12px;
   padding: 16px;
   border-radius: var(--radius-container);
-  background: var(--fm-bg-soft);
+  background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));
 }
 
 .input {

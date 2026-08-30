@@ -1044,3 +1044,11 @@
 - [x] 已登记 RGBA 浏览器证据 `agent-chat-v2-assistant-surface-browser-2026-08-30-rgba.png` 和独立 diff `agent-chat-v2-assistant-surface-2026-08-30-diff.json`；结果为 `30.9938% / MAE 3.868814 / RMSE 19.521027 / maxChannelDelta 255`，继续记为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步本次证据，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。
+
+## 60. 2026-08-30 Agent Chat Composer 输入行背景收口
+
+- [x] 依据 Figma 节点 `640:428`，将 Figma fixture 的 Composer 输入行背景对齐为 `#fcfcfc`；真实模式仍使用原有 `--fm-bg-soft` fallback。
+- [x] Chat 与 Composer 定向测试共 `35/35` 通过；浏览器 `1440×1024` 字体已加载、页面无横向溢出，前端左上角红黄绿窗口控制点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 已登记 RGBA 浏览器证据 `agent-chat-v2-composer-surface-browser-2026-08-30-rgba.png` 和独立 diff `agent-chat-v2-composer-surface-2026-08-30-diff.json`；结果为 `27.8977% / MAE 3.693984 / RMSE 19.488887 / maxChannelDelta 255`，继续记为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步本次证据，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。

@@ -151,6 +151,17 @@ describe('ChatPage Figma 默认状态', () => {
     expect(stylesheet).toContain('.designChatPage .assistant .messageBubble');
     expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f9fafb;');
   });
+
+  it('uses the Figma surface for the Composer input row in the fixture', () => {
+    const pageStylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
+    const composerStylesheet = readFileSync(
+      resolve(process.cwd(), 'src/components/workspace/Composer.module.css'),
+      'utf8',
+    );
+
+    expect(pageStylesheet).toContain('--fm-fixture-composer-input-surface: #fcfcfc;');
+    expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
+  });
 });
 
 describe('ChatPage Figma Planning 状态', () => {

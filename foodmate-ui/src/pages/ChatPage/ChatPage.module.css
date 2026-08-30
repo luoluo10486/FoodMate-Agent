@@ -633,6 +633,7 @@
 
 .designChatPage {
   --fm-fixture-assistant-surface: #f9fafb;
+  --fm-fixture-composer-input-surface: #fcfcfc;
 }
 
 .designChatPage .assistant .messageBubble {

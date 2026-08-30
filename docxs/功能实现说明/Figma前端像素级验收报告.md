@@ -93,6 +93,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - 新增 RGBA 浏览器证据 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-surface-browser-2026-08-30-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-assistant-surface-2026-08-30-diff.json`；同尺寸结果为 `30.9938% / MAE 3.868814 / RMSE 19.521027 / maxChannelDelta 255`，较上一份 Chat 证据有小幅改善，结论仍为 `DIFF_REVIEW`。
 - `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换到本次证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。iconfont 仍为 `BLOCKED`，shadcn 全量逐页迁移仍未完成。
 
+## 6.2 2026-08-30 Chat Composer 输入行背景收口
+
+- Figma 节点 `640:428` 的 Composer 输入行背景已依据已登记 PNG 对齐为 `#fcfcfc`；前端通过继承的 `--fm-fixture-composer-input-surface` 作用于 Figma fixture，真实模式继续使用 `--fm-bg-soft` fallback。
+- Chat 与 Composer 定向测试共 `35/35` 通过；浏览器 `1440×1024` 实测输入行背景为 `rgb(252, 252, 252)`、字体为 `loaded`、页面无横向溢出，前端左上角红黄绿窗口控制点数量为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- 新增 RGBA PNG 和独立 diff：`agent-chat-v2-composer-surface-browser-2026-08-30-rgba.png`、`agent-chat-v2-composer-surface-2026-08-30-diff.json`；同尺寸结果为 `27.8977% / MAE 3.693984 / RMSE 19.488887 / maxChannelDelta 255`，结论仍为 `DIFF_REVIEW`。
+- `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换到本次证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。iconfont 仍为 `BLOCKED`，shadcn 全量逐页迁移仍未完成。
+
 ## 7. 后续验收门槛
 
 1. 对 105 个已映射画板逐项完成几何、文字、颜色、状态和像素差异复核。
