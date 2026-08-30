@@ -35,6 +35,7 @@ class KnowledgeMapperContractTest {
 
         assertTrue(sql.contains("status='published'"));
         assertTrue(sql.contains("payload_json->>'attempt'"));
+        assertTrue(sql.contains("END=(#{attempt} - 1)"));
         assertTrue(sql.contains("ORDER BY outbox_id DESC LIMIT 1"));
         assertTrue(sql.contains("FROM candidate"));
     }

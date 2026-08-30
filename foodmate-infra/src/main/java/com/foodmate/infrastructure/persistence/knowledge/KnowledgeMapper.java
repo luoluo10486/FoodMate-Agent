@@ -194,7 +194,7 @@ public interface KnowledgeMapper {
             @Param("version") String version);
 
     @Update(
-            "WITH candidate AS (SELECT outbox_id FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' AND status='published' AND CASE WHEN payload_json->>'attempt' ~ '^[1-3]$' THEN (payload_json->>'attempt')::int ELSE 1 END=#{attempt} ORDER BY outbox_id DESC LIMIT 1) UPDATE knowledge_index_outbox AS outbox SET status='pending',attempt_count=0,available_at=CURRENT_TIMESTAMP + (#{delaySeconds} * INTERVAL '1 second'),owner_token=NULL,lease_until=NULL,last_error=#{errorCode},payload_json=jsonb_set(outbox.payload_json,'{attempt}',to_jsonb(#{attempt}::int),true),updated_at=CURRENT_TIMESTAMP FROM candidate WHERE outbox.outbox_id=candidate.outbox_id")
+            "WITH candidate AS (SELECT outbox_id FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' AND status='published' AND CASE WHEN payload_json->>'attempt' ~ '^[1-3]$' THEN (payload_json->>'attempt')::int ELSE 1 END=(#{attempt} - 1) ORDER BY outbox_id DESC LIMIT 1) UPDATE knowledge_index_outbox AS outbox SET status='pending',attempt_count=0,available_at=CURRENT_TIMESTAMP + (#{delaySeconds} * INTERVAL '1 second'),owner_token=NULL,lease_until=NULL,last_error=#{errorCode},payload_json=jsonb_set(outbox.payload_json,'{attempt}',to_jsonb(#{attempt}::int),true),updated_at=CURRENT_TIMESTAMP FROM candidate WHERE outbox.outbox_id=candidate.outbox_id")
     int requeueIndexOutbox(
             @Param("itemId") long itemId,
             @Param("attempt") int attempt,
