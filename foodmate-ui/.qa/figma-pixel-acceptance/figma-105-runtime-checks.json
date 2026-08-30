@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 94,
+    "dprPass": 95,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -1097,7 +1097,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
+      "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1107,6 +1108,14 @@
       },
       "textOverflow": [],
       "url": "/chat?state=figma-v2",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "assistantGeometry": {
+        "assistantBody": "x=340,y=237,width=780,height=254",
+        "messageText": "x=356,y=253,width=764,height=21",
+        "source": "x=356,y=285,width=764,height=18",
+        "confirmation": "x=356,y=313,width=764,height=143"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440

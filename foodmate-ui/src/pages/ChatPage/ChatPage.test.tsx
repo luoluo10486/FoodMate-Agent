@@ -132,7 +132,7 @@ describe('ChatPage Figma 默认状态', () => {
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
   });
 
-  it('uses the base assistant body width from the Figma chat fixture', () => {
+  it('uses the full-width assistant surface for the Figma default response', () => {
     render(
       <MemoryRouter initialEntries={['/chat?state=figma-v2']}>
         <Routes>
@@ -142,7 +142,7 @@ describe('ChatPage Figma 默认状态', () => {
     );
 
     const assistantBody = document.querySelector(`[class*="${styles.assistantBody}"]`);
-    expect(assistantBody).not.toHaveClass(styles.assistantBodyWide);
+    expect(assistantBody).toHaveClass(styles.assistantBodyWide);
   });
 
   it('uses the Figma neutral surface for the assistant message body', () => {

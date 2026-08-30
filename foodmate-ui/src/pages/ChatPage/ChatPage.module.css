@@ -651,6 +651,32 @@
   font-family: var(--fm-font);
 }
 
+/* Figma node 640:428 lets the default assistant surface reach the trace
+   boundary; keep this geometry isolated from other chat fixtures. */
+.figmaDefaultPage .assistantBody {
+  width: 780px;
+  flex: 0 0 780px;
+}
+
+.figmaDefaultPage .assistant .messageBubble {
+  gap: 10px;
+  padding-right: 0;
+}
+
+.figmaDefaultPage .assistant .messageText {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.figmaDefaultPage .assistant .source {
+  margin-top: 1px;
+}
+
+.figmaDefaultPage .inlineConfirmation {
+  height: 143px;
+  border-color: #e8e8e8;
+}
+
 .designTracePanel .traceStepActive {
   border-color: transparent;
 }
@@ -1115,6 +1141,30 @@
 
   .assistantBody {
     width: min(560px, calc(100% - 48px));
+  }
+
+  .figmaDefaultPage .assistantBody {
+    width: calc(100% - 48px);
+    flex: 0 1 auto;
+  }
+
+  .figmaDefaultPage .assistant .messageBubble {
+    gap: 12px;
+    padding-right: 16px;
+  }
+
+  .figmaDefaultPage .assistant .messageText {
+    overflow: visible;
+    white-space: pre-wrap;
+  }
+
+  .figmaDefaultPage .assistant .source {
+    margin-top: 0;
+  }
+
+  .figmaDefaultPage .inlineConfirmation {
+    height: auto;
+    min-height: 142px;
   }
 
   .messageActions {

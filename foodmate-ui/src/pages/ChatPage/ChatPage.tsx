@@ -210,7 +210,7 @@ type ChatSurfaceProps = {
   profileIdOverride?: string;
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
-  pageVariant?: 'completed-citations';
+  pageVariant?: 'completed-citations' | 'figma-default';
   statusForStrip?: AgentDisplayStatus;
   statusVisualState?: 'user-cancelled';
   pageOverlay?: ReactNode;
@@ -261,7 +261,7 @@ function ChatSurface({
       topAvatarSrc={topAvatarSrc}
     >
       <div
-        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''}`}
+        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''} ${pageVariant === 'figma-default' ? styles.figmaDefaultPage : ''}`}
       >
         <section className={styles.workspace}>
           <div className={styles.center}>
@@ -1959,13 +1959,14 @@ function MockChatPage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
+      pageVariant={isFigmaFixture ? 'figma-default' : undefined}
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}
       placeholder="追问或添加自定义指令..."
     >
       {agent.messages.map((message, index) => (
-        <MessageBubble key={message.id} message={message}>
+        <MessageBubble key={message.id} message={{ ...message, wide: isFigmaFixture }}>
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
             <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />
           ) : null}

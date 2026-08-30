@@ -1675,3 +1675,10 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 最新浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-surface-followup-2026-08-30.jpg`，RGBA PNG 为 `agent-chat-v2-assistant-surface-followup-2026-08-30-rgba.png`，独立 diff 为 `agent-chat-v2-assistant-surface-followup-2026-08-30-diff.json`；同尺寸 `png-diff.mjs` 结果为差异比例 `29.1355%`、`MAE=3.766897`、`RMSE=19.641207`、`maxChannelDelta=255`，继续登记为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已切换到本次浏览器 RGBA 证据；当前 105 张画板聚合为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。本次运行时实际 DPR 为 `1.25`，`figma-105-runtime-checks.json` 的 `dprPass` 更新为 `95/105`。
 - [x] `ChatPage.test.tsx` 定向测试为 `30/30`；该修正只收口助手气泡背景 Token，不代表 `agent-chat-v2` 或 105 张画板达到像素级 `PASS`，shadcn 全量逐页迁移尚未完成，iconfont 实体资源继续为 `BLOCKED`。
+
+## 184. 2026-08-30 Agent Chat 助手宽布局复采集
+
+- [x] Figma 节点 `640:428` 与前端 `/chat?state=figma-v2` 已重新按 `1440×1024` 对照；助手内容区实测 `x=340,y=237,width=780,height=254`，消息正文与来源实测 `x=356,width=764`，确认卡实测 `x=356,y=313,width=764,height=143`。
+- [x] 运行时字体状态为 `loaded`，根节点 `1440×1024`，页面无横向溢出，前端窗口控制点候选为 `0`，业务状态圆点未删除；浏览器实际 DPR 为 `1.0000000149`，该画板的 `dprPass=true`。Figma 文件保持不变。
+- [x] 主证据为 `.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-body-current-browser-2026-08-30-rgba.png`，`png-diff.mjs` 结果为 `378986/1474560` 个差异像素、差异比例 `25.7016%`、`MAE=3.162904`、`RMSE=17.558625`、最大通道差异 `255`；自动结果与人工复核均保持 `DIFF_REVIEW`，未标记 `PASS`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已更新；105 张画板汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时汇总为 `dprPass=95/105`。
