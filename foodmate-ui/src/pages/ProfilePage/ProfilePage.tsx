@@ -1058,7 +1058,7 @@ function SummaryTile({
   );
 }
 
-function MemoriesTab() {
+function MemoriesTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const navigate = useNavigate();
   const [memories, setMemories] = useState(memorySeed);
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed'>('all');
@@ -1081,7 +1081,10 @@ function MemoriesTab() {
   };
 
   return (
-    <div className={styles.memoryPage}>
+    <div
+      className={cn(styles.memoryPage, figmaFixture && styles.figmaMemoriesPage)}
+      data-figma-layout={figmaFixture ? 'profile-memories' : undefined}
+    >
       <Card className={styles.memoryIntro}>
         <h1>记忆系统</h1>
         <p>
@@ -2038,7 +2041,7 @@ export function ProfilePage() {
         {activeTab === 'basic' ? (
           <BasicTab authUser={displayedUser} realMode={isFigmaFixture ? false : realMode} figmaFixture={isFigmaFixture} />
         ) : null}
-        {activeTab === 'memories' ? realMode ? <RealMemoriesTab /> : <MemoriesTab /> : null}
+        {activeTab === 'memories' ? realMode ? <RealMemoriesTab /> : <MemoriesTab figmaFixture={isFigmaFixture} /> : null}
         {activeTab === 'security' ? <SecurityTab /> : null}
         {activeTab === 'privacy' ? <PrivacyTab /> : null}
       </div>

@@ -4660,11 +4660,11 @@
       "queryState": "state=memories",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-memories.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-memories-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-memories-sidebar-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "Automated diff exists; see profile-memories-sidebar-2026-08-30-diff.json",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4689,8 +4689,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture renders the memory controls and content, but automatic full-image comparison still reports visual differences. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The fixture now uses the measured 96px intro card, 124px regular memory rows, 130px pending row, and 240px guidance panel with the Figma sidebar shell. Full-image differences remain from the workspace shell, avatar, icons, typography rasterization, and browser rendering; retain DIFF_REVIEW."
       }
     },
     {

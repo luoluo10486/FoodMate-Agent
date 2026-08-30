@@ -628,6 +628,28 @@
   background: #fcfcfc;
 }
 
+.figmaMemoriesPage .memoryIntro {
+  height: 96px;
+  min-height: 96px;
+  border-radius: 16px;
+}
+
+.figmaMemoriesPage .memoryRow {
+  height: 124px;
+  min-height: 124px;
+  border-radius: 16px;
+}
+
+.figmaMemoriesPage .memoryRowPending {
+  height: 130px;
+  min-height: 130px;
+}
+
+.figmaMemoriesPage .memoryGuidance {
+  margin-top: 8px;
+  border-radius: 12px;
+}
+
 .memoryIntro {
   min-height: 96px;
   padding: 22px 23px;

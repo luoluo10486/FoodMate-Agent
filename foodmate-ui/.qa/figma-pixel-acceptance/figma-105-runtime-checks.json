@@ -2373,6 +2373,18 @@
         "y": 0
       },
       "textOverflow": [],
+      "memoryGeometry": {
+        "memoryIntro": "x=292,y=100,width=1116,height=96",
+        "memoryToolbar": "x=292,y=220,width=1116,height=40",
+        "memoryRows": [
+          "x=292,y=284,width=1116,height=124",
+          "x=292,y=424,width=1116,height=130",
+          "x=292,y=570,width=1116,height=124"
+        ],
+        "memoryGuidance": "x=292,y=726,width=1116,height=240"
+      },
+      "windowControls": 0,
+      "trafficLightColors": 0,
       "url": "/profile?state=memories",
       "viewport": {
         "height": 1024,

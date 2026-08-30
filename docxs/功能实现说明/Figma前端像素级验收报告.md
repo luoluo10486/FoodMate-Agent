@@ -1643,3 +1643,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 提交前后已运行 `npm run typecheck`、`npm run build` 和目标文件 `git diff --check`，均以退出码 `0` 完成；构建产物由 Vite 正常生成。
 - [x] 本次提交仅包含 Chat 助手正文宽度/背景校正、对应测试、Figma 映射和验收证据；未修改 Figma，未暂存工作区中已有的后端测试与脚本修改。
 - [ ] 质量门禁只证明当前前端代码可测试、可类型检查和可构建，不关闭 105 张画板的 `DIFF_REVIEW`、shadcn 全量逐页视觉迁移或 iconfont `BLOCKED` 状态。
+
+## 178. 2026-08-30 Profile 记忆与偏好 Figma 主体几何收口
+
+- [x] 依据 Figma 节点 `806:1281`，将 Figma fixture 的介绍卡固定为 `96px`，普通记忆行固定为 `124px`，待确认记忆行固定为 `130px`，说明区与列表间距按画板补偿为 `32px`；真实模式保持原有布局。
+- [x] 浏览器 `1440×1024` 实测字体 `loaded`、无横向溢出：介绍卡 `x=292,y=100,width=1116,height=96`，工具栏 `x=292,y=220,width=1116,height=40`，记忆行分别为 `x=292,y=284,width=1116,height=124`、`x=292,y=424,width=1116,height=130`、`x=292,y=570,width=1116,height=124`，说明区 `x=292,y=726,width=1116,height=240`；前端窗口控制点候选为 `0`，Figma 设计稿未修改。
+- [x] 使用真实 Figma PNG 和浏览器 RGBA PNG 运行 `scripts/png-diff.mjs`：`differentPixels=703449`、差异比例 `47.7057%`、`MAE=5.497678`、`RMSE=23.473287`、最大通道差异 `255`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/profile-memories-sidebar-2026-08-30-diff.json`，画板继续为 `DIFF_REVIEW`。
+- [x] `ProfilePage.test.tsx` 定向测试 `22/22` 通过；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成 Profile 记忆页 fixture 主体几何收口，不代表 `profile-memories` 或 105 张画板达到像素级 `PASS`；共享壳层、头像、图标、字体光栅化、其它页面、shadcn 全量迁移和 iconfont 实体资源登记仍需继续，iconfont 保持 `BLOCKED`。

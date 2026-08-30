@@ -75,6 +75,14 @@ describe('ProfilePage', () => {
     expect(screen.queryByText('头像与账号概览')).not.toBeInTheDocument();
   });
 
+  it('marks the memories page with its Figma-only geometry contract', () => {
+    renderPage('/profile?state=memories');
+
+    const memoryPage = screen.getByRole('heading', { name: '记忆系统' }).closest('[data-figma-layout]');
+
+    expect(memoryPage).toHaveAttribute('data-figma-layout', 'profile-memories');
+  });
+
   it('renders the Figma logout confirmation fixture with the target devices', async () => {
     const user = userEvent.setup();
     renderPage('/profile?state=security-logout-confirm');
