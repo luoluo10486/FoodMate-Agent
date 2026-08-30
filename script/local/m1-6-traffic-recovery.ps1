@@ -15,6 +15,13 @@ function Require-Positive([int]$value, [string]$name) {
     if ($value -lt 1) { throw "$name must be positive" }
 }
 
+function ConvertTo-ResponseText([object]$content) {
+    if ($content -is [byte[]]) {
+        return [Text.Encoding]::UTF8.GetString($content)
+    }
+    return [string]$content
+}
+
 function Get-Status([string]$name, [string]$url) {
     $stopwatch = [Diagnostics.Stopwatch]::StartNew()
     try {
@@ -23,7 +30,7 @@ function Get-Status([string]$name, [string]$url) {
             component = $name
             ready = $response.StatusCode -eq 200
             latency_ms = [math]::Round($stopwatch.Elapsed.TotalMilliseconds, 3)
-            detail = $response.Content
+            detail = ConvertTo-ResponseText $response.Content
         }
     } catch {
         [pscustomobject]@{
@@ -47,20 +54,45 @@ function Wait-Ready([string]$name, [string]$url) {
 
 function Get-QueueSnapshot {
     $query = @"
-SELECT
+SELECT CONCAT_WS('|',
   (SELECT COUNT(*) FROM runtime_dispatch_outbox WHERE status IN ('pending','leased'))
   + (SELECT COUNT(*) FROM knowledge_index_outbox WHERE status IN ('pending','leased'))
-  + (SELECT COUNT(*) FROM knowledge_visibility_outbox WHERE status IN ('pending','leased'))
+  + (SELECT COUNT(*) FROM knowledge_visibility_outbox WHERE status IN ('pending','leased')),
+  (SELECT COUNT(*) FROM runtime_dispatch_outbox WHERE status IN ('pending','leased')),
+  (SELECT COUNT(*) FROM knowledge_index_outbox WHERE status IN ('pending','leased'))
+  + (SELECT COUNT(*) FROM knowledge_visibility_outbox WHERE status IN ('pending','leased')),
+  (SELECT COUNT(*) FROM runtime_tool_proposal_inbox WHERE status='claimed'),
+  (SELECT COUNT(*) FROM runtime_event_inbox_v2 WHERE processing_status='accepted'),
+  (SELECT COUNT(*) FROM agent_run_sse_outbox WHERE status IN ('pending','leased'))
+)
 "@
     try {
-        $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -v ON_ERROR_STOP=1 -c $query 2>$null
+        $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -F '|' -v ON_ERROR_STOP=1 -c $query 2>$null
         if ($LASTEXITCODE -ne 0) { return $null }
-        $value = 0L
-        if ([long]::TryParse($raw.Trim(), [ref]$value)) {
-            return [pscustomobject]@{ pending = $value; sampled_at = (Get-Date).ToUniversalTime().ToString("o") }
-        }
+        return ConvertTo-QueueSnapshot $raw
     } catch { }
     return $null
+}
+
+function ConvertTo-QueueSnapshot([string]$raw) {
+    $parts = @($raw.Trim().Split('|'))
+    if ($parts.Count -lt 6) { return $null }
+    $values = @()
+    foreach ($part in $parts[0..5]) {
+        $value = 0L
+        if (-not [long]::TryParse($part, [ref]$value)) { return $null }
+        $values += $value
+    }
+    return [pscustomobject]@{
+        pending = $values[0] + $values[3] + $values[4]
+        delivery_pending = $values[0]
+        dispatch_pending = $values[1]
+        knowledge_pending = $values[2]
+        proposal_inbox_pending = $values[3]
+        runtime_inbox_pending = $values[4]
+        sse_replay_retained = $values[5]
+        sampled_at = (Get-Date).ToUniversalTime().ToString("o")
+    }
 }
 
 function Start-QueueSampler([datetime]$until) {
@@ -68,22 +100,107 @@ function Start-QueueSampler([datetime]$until) {
         param($deadline)
         $ErrorActionPreference = "SilentlyContinue"
         $query = @"
-SELECT
+SELECT CONCAT_WS('|',
   (SELECT COUNT(*) FROM runtime_dispatch_outbox WHERE status IN ('pending','leased'))
   + (SELECT COUNT(*) FROM knowledge_index_outbox WHERE status IN ('pending','leased'))
-  + (SELECT COUNT(*) FROM knowledge_visibility_outbox WHERE status IN ('pending','leased'))
+  + (SELECT COUNT(*) FROM knowledge_visibility_outbox WHERE status IN ('pending','leased')),
+  (SELECT COUNT(*) FROM runtime_dispatch_outbox WHERE status IN ('pending','leased')),
+  (SELECT COUNT(*) FROM knowledge_index_outbox WHERE status IN ('pending','leased'))
+  + (SELECT COUNT(*) FROM knowledge_visibility_outbox WHERE status IN ('pending','leased')),
+  (SELECT COUNT(*) FROM runtime_tool_proposal_inbox WHERE status='claimed'),
+  (SELECT COUNT(*) FROM runtime_event_inbox_v2 WHERE processing_status='accepted'),
+  (SELECT COUNT(*) FROM agent_run_sse_outbox WHERE status IN ('pending','leased'))
+)
 "@
         while ((Get-Date) -lt $deadline) {
-            $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -c $query 2>$null
+            $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -F '|' -c $query 2>$null
             if ($LASTEXITCODE -eq 0) {
-                $value = 0L
-                if ([long]::TryParse($raw.Trim(), [ref]$value)) {
-                    [pscustomobject]@{ pending = $value; sampled_at = (Get-Date).ToUniversalTime().ToString("o") }
+                $parts = @($raw.Trim().Split('|'))
+                if ($parts.Count -ge 6) {
+                    $values = @()
+                    $valid = $true
+                    foreach ($part in $parts[0..5]) {
+                        $value = 0L
+                        if (-not [long]::TryParse($part, [ref]$value)) { $valid = $false; break }
+                        $values += $value
+                    }
+                    if ($valid) {
+                        [pscustomobject]@{
+                            pending = $values[0] + $values[3] + $values[4]
+                            delivery_pending = $values[0]
+                            dispatch_pending = $values[1]
+                            knowledge_pending = $values[2]
+                            proposal_inbox_pending = $values[3]
+                            runtime_inbox_pending = $values[4]
+                            sse_replay_retained = $values[5]
+                            sampled_at = (Get-Date).ToUniversalTime().ToString("o")
+                        }
+                    }
                 }
             }
             Start-Sleep -Seconds 1
         }
     } -ArgumentList $until
+}
+
+function Get-AuditSnapshot([string]$username) {
+    if ($username -notmatch '^m16_[a-f0-9]{32}$') { return $null }
+    $query = @"
+SELECT CONCAT_WS('|',
+  COUNT(*),
+  COUNT(*) FILTER (WHERE result='success'),
+  COUNT(*) FILTER (WHERE result='failed'),
+  COUNT(*) FILTER (WHERE result='rejected'),
+  COUNT(*) FILTER (WHERE result='pending')
+)
+FROM operation_audits
+WHERE operator_id=(SELECT user_id FROM users WHERE username=:'scan_username')
+"@
+    try {
+        $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -F '|' -v ON_ERROR_STOP=1 -v "scan_username=$username" -c $query 2>$null
+        if ($LASTEXITCODE -ne 0) { return $null }
+        $parts = @($raw.Trim().Split('|'))
+        if ($parts.Count -lt 5) { return $null }
+        $values = @()
+        foreach ($part in $parts[0..4]) {
+            $value = 0L
+            if (-not [long]::TryParse($part, [ref]$value)) { return $null }
+            $values += $value
+        }
+        return [pscustomobject]@{
+            total = $values[0]
+            success = $values[1]
+            failed = $values[2]
+            rejected = $values[3]
+            pending = $values[4]
+            sampled_at = (Get-Date).ToUniversalTime().ToString("o")
+        }
+    } catch { }
+    return $null
+}
+
+function Wait-QueueDrained([int]$timeoutSeconds = 90) {
+    $started = [Diagnostics.Stopwatch]::StartNew()
+    $deadline = (Get-Date).AddSeconds($timeoutSeconds)
+    $latest = Get-QueueSnapshot
+    do {
+        if ($latest -and $latest.pending -eq 0) {
+            $started.Stop()
+            return [pscustomobject]@{
+                drained = $true
+                wait_ms = [math]::Round($started.Elapsed.TotalMilliseconds, 3)
+                snapshot = $latest
+            }
+        }
+        Start-Sleep -Seconds 1
+        $latest = Get-QueueSnapshot
+    } while ((Get-Date) -lt $deadline)
+    $started.Stop()
+    return [pscustomobject]@{
+        drained = $false
+        wait_ms = [math]::Round($started.Elapsed.TotalMilliseconds, 3)
+        snapshot = $latest
+    }
 }
 
 function Get-Percentile([object[]]$values, [double]$percent) {
@@ -162,6 +279,10 @@ $report = [ordered]@{
     }
     readiness_before = $before
     queue_before = Get-QueueSnapshot
+    audit_before = $null
+    audit_after = $null
+    queue_drained = $null
+    drain_wait_ms = $null
     fault_injection = "not_requested"
     limitations = @(
         "This is a bounded local business-path baseline, not a production capacity result.",
@@ -214,6 +335,7 @@ try {
         $sessionJson = $sessionText | ConvertFrom-Json
         $sessionId = [string]$sessionJson.data.session_id
         if ([string]::IsNullOrWhiteSpace($sessionId)) { throw "test session id is missing" }
+        $report.audit_before = Get-AuditSnapshot $username
     } finally {
         $setupClient.Dispose()
     }
@@ -451,6 +573,11 @@ try {
     }
     $queuePeak = $null
     if ($queueSamples.Count -gt 0) { $queuePeak = [long](($queueSamples | Measure-Object -Property pending -Maximum).Maximum) }
+    $drain = Wait-QueueDrained
+    $report.queue_after = $drain.snapshot
+    $report.queue_drained = $drain.drained
+    $report.drain_wait_ms = $drain.wait_ms
+    $report.audit_after = Get-AuditSnapshot $username
 
     $report.traffic.total_operations = $total
     $report.traffic.agent_run_operations = $agentRuns
@@ -474,7 +601,7 @@ try {
     if ($sampler) { Remove-Job -Job $sampler -Force -ErrorAction SilentlyContinue }
     Remove-TestUser $username
     if ($report.traffic.execution -eq "requested") {
-        $report.queue_after = Get-QueueSnapshot
+        if ($null -eq $report.queue_after) { $report.queue_after = Get-QueueSnapshot }
         $report.finished_at = (Get-Date).ToUniversalTime().ToString("o")
         $report | ConvertTo-Json -Depth 12
     }

@@ -37,5 +37,28 @@ foreach ($field in @(
 if ($scriptText -match '(?i)FOODMATE_.*API_KEY\s*=\s*[^\r\n#]+') {
     throw "M1-6 traffic entrypoint must not contain a credential value"
 }
+if ($scriptText -notmatch '\[Text\.Encoding\]::UTF8\.GetString') {
+    throw "M1-6 traffic report must decode HTTP response content as UTF-8 text"
+}
+foreach ($field in @(
+        'audit_before',
+        'audit_after',
+        'queue_drained',
+        'drain_wait_ms',
+        'delivery_pending',
+        'proposal_inbox_pending',
+        'runtime_inbox_pending',
+        'sse_replay_retained'
+    )) {
+    if ($scriptText -notmatch [regex]::Escape($field)) {
+        throw "M1-6 traffic report is missing evidence field: $field"
+    }
+}
+if ($scriptText -match 'sse_pending\s*=') {
+    throw "M1-6 traffic report must distinguish retained SSE replay facts from drainable queues"
+}
+if ($scriptText -notmatch 'pending\s*=\s*\$values\[0\]\s*\+\s*\$values\[3\]\s*\+\s*\$values\[4\]') {
+    throw "M1-6 drainable pending count must exclude retained SSE replay facts"
+}
 
 Write-Output "m1_6_traffic_contract=passed"
