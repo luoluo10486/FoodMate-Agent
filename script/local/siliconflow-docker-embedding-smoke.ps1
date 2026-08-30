@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
+    [Alias("Profile")]
     [ValidateSet("bge-m3", "qwen3-embedding-0.6b")]
-    [string]$Profile = "bge-m3",
+    [string]$EmbeddingProfile = "bge-m3",
     [switch]$ExecuteRequest
 )
 
@@ -30,6 +31,57 @@ if ($LASTEXITCODE -ne 0) {
     throw "Docker Compose 配置校验失败"
 }
 
+$profileModels = @{
+    "bge-m3" = "BAAI/bge-m3"
+    "qwen3-embedding-0.6b" = "Qwen/Qwen3-Embedding-0.6B"
+}
+
+function Get-AgentRuntimeRagConfig {
+    $pythonCode = @'
+import json
+import os
+
+print(json.dumps({
+    "mode": os.environ.get("FOODMATE_RAG_MODE", ""),
+    "provider": os.environ.get("FOODMATE_RAG_EMBEDDING_PROVIDER", ""),
+    "profile": os.environ.get("FOODMATE_RAG_EMBEDDING_PROFILE", ""),
+    "model": os.environ.get("FOODMATE_RAG_EMBEDDING_MODEL", ""),
+    "has_base_url": bool(os.environ.get("FOODMATE_RAG_EMBEDDING_BASE_URL", "").strip()),
+    "has_api_key": bool(os.environ.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip()),
+}, ensure_ascii=False))
+'@
+    $encodedPythonCode = [Convert]::ToBase64String(
+        [Text.Encoding]::UTF8.GetBytes($pythonCode)
+    )
+    $pythonBootstrap = "import base64,sys;exec(base64.b64decode(sys.argv[1]))"
+    $output = & docker compose @composeArgs exec -T agent-runtime python -c $pythonBootstrap $encodedPythonCode
+    if ($LASTEXITCODE -ne 0) {
+        throw "无法读取 agent-runtime 的 RAG 配置"
+    }
+    try {
+        return (($output -join [Environment]::NewLine).Trim() | ConvertFrom-Json)
+    } catch {
+        throw "agent-runtime RAG 配置不是有效 JSON"
+    }
+}
+
+function Assert-ProfileConfiguration([string]$requestedProfile, [object]$configuration) {
+    $expected_model = $profileModels[$requestedProfile]
+    if ($configuration.mode -ne "local") {
+        throw "agent-runtime 必须处于 local RAG 模式"
+    }
+    if ($configuration.provider -ne "openai-compatible") {
+        throw "agent-runtime 必须使用 openai-compatible Embedding provider"
+    }
+    if ($configuration.profile -ne $requestedProfile -or $configuration.model -ne $expected_model) {
+        throw "agent-runtime 当前 profile/model 与请求不匹配；请求=$requestedProfile，期望模型=$expected_model，实际 profile=$($configuration.profile)，实际模型=$($configuration.model)"
+    }
+    if (-not $configuration.has_base_url -or -not $configuration.has_api_key) {
+        throw "agent-runtime 缺少 Embedding endpoint 或 API Key"
+    }
+    return $expected_model
+}
+
 $agentPort = [Environment]::GetEnvironmentVariable("FOODMATE_AGENT_PORT")
 if ([string]::IsNullOrWhiteSpace($agentPort)) {
     $agentPort = "9002"
@@ -49,8 +101,11 @@ function Test-AgentRuntimeReady {
 }
 
 Test-AgentRuntimeReady
+$agentConfig = Get-AgentRuntimeRagConfig
+$expectedModel = Assert-ProfileConfiguration $EmbeddingProfile $agentConfig
 Write-Output "docker_embedding_smoke_preflight=passed"
-Write-Output "embedding_profile=$Profile"
+Write-Output "embedding_profile=$EmbeddingProfile"
+Write-Output "embedding_model=$expectedModel"
 Write-Output "agent_runtime_port=$agentPort"
 
 if (-not $ExecuteRequest) {
@@ -137,7 +192,7 @@ $pythonBootstrap = "import base64,sys;exec(base64.b64decode(sys.argv[2]))"
 
 # Pass only base64 through the Windows Docker CLI so Python source quotes are
 # not re-parsed or stripped before they reach the container.
-& docker compose @composeArgs exec -T agent-runtime python -c $pythonBootstrap $Profile $encodedPythonCode
+& docker compose @composeArgs exec -T agent-runtime python -c $pythonBootstrap $EmbeddingProfile $encodedPythonCode
 if ($LASTEXITCODE -ne 0) {
     throw "Docker SiliconFlow Embedding smoke failed"
 }
