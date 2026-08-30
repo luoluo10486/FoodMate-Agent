@@ -66,3 +66,23 @@ class DockerComposeContractTests(TestCase):
             readme,
         )
         self.assertIn("docker compose --env-file .env -f docker/compose.yml logs -f agent-runtime", readme)
+
+    def test_docker_runtime_exposes_optional_external_proxy_without_proxying_internal_services(self):
+        compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+        readme = (self.ROOT / "docker" / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "HTTPS_PROXY: ${FOODMATE_DOCKER_HTTPS_PROXY:-}", compose
+        )
+        self.assertIn(
+            "HTTP_PROXY: ${FOODMATE_DOCKER_HTTP_PROXY:-}", compose
+        )
+        self.assertIn(
+            "NO_PROXY: ${FOODMATE_DOCKER_NO_PROXY:-localhost,127.0.0.1,foodmate,redis,postgres,milvus,minio,rocketmq-proxy}",
+            compose,
+        )
+        self.assertIn("FOODMATE_DOCKER_HTTPS_PROXY=", example)
+        self.assertIn("FOODMATE_DOCKER_HTTP_PROXY=", example)
+        self.assertIn("FOODMATE_DOCKER_NO_PROXY=", example)
+        self.assertIn("FOODMATE_DOCKER_HTTPS_PROXY", readme)

@@ -96,6 +96,13 @@ docker compose --env-file .env -f docker/compose.yml up -d milvus foodmate agent
 
 切换真实 OpenAI-compatible embedding 时，将 `FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER` 改为 `openai-compatible`，并显式配置 `FOODMATE_DOCKER_RAG_EMBEDDING_BASE_URL`、`FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY`、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。Python 由 Compose 的 `agent-runtime` 服务启动，Compose 不自动执行数据库迁移。
 
+如果 Docker Desktop 所在网络要求通过出站代理访问 SiliconFlow，可只给
+`agent-runtime` 配置 `FOODMATE_DOCKER_HTTP_PROXY` 和
+`FOODMATE_DOCKER_HTTPS_PROXY`，并保留 `FOODMATE_DOCKER_NO_PROXY` 中的 Compose
+服务名。代理默认留空；不要把代理凭据写入 Git，也不要把代理用于 PostgreSQL、Redis、
+RocketMQ、MinIO 或 Milvus 的内部访问。修改后使用 `up -d --force-recreate agent-runtime`，
+再执行带 `-ExecuteRequest` 的 smoke 才会验证真实请求。
+
 SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_DOCKER_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_DOCKER_RAG_MILVUS_COLLECTION`；Embedding 的 `FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY` 必须在被忽略的本地 `.env` 或 Secret Store 中单独显式配置，不能从 Chat provider 变量继承，也不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
 
 宿主机 smoke 入口默认顺序请求两个 profile，也可以只验证一个 profile：

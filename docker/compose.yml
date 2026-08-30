@@ -406,6 +406,11 @@ services:
       FOODMATE_KNOWLEDGE_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       FOODMATE_KNOWLEDGE_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
       FOODMATE_KNOWLEDGE_MINIO_BUCKET: ${MINIO_BUCKET:-foodmate-private}
+      # Only set these when the host network requires an explicit outbound proxy.
+      # Keep Compose service names outside the proxy so local traffic stays local.
+      HTTP_PROXY: ${FOODMATE_DOCKER_HTTP_PROXY:-}
+      HTTPS_PROXY: ${FOODMATE_DOCKER_HTTPS_PROXY:-}
+      NO_PROXY: ${FOODMATE_DOCKER_NO_PROXY:-localhost,127.0.0.1,foodmate,redis,postgres,milvus,minio,rocketmq-proxy}
     ports:
       # MinIO already occupies host port 9000; keep the container contract at
       # 9000 and expose the Runtime on a separate local host port by default.
