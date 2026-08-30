@@ -2020,7 +2020,16 @@ export function ProfilePage() {
       profileActiveTab={isFigmaFixture ? activeTab : undefined}
       sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
-      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
+      sidebarFixture={
+        isFigmaFixture
+          ? {
+              sessions: figmaSidebarSessions,
+              showTopStatus: true,
+              hideSessionSearch: true,
+              hideCollapseButton: true,
+            }
+          : undefined
+      }
       pageOverlay={
         fixtureState ? <ProfileFixtureOverlay state={fixtureState} onDismiss={() => navigate('/profile')} /> : null
       }

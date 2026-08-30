@@ -155,4 +155,29 @@ describe('WorkspaceLayout shell controls', () => {
     expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
     expect(container.innerHTML).not.toMatch(/window-controls|traffic-light|#ff3b30|#ffcc00|#34c759/i);
   });
+
+  it('supports the Profile Figma sidebar composition without search or collapse controls', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/profile?state=basic']}>
+        <WorkspaceLayout
+          activeModule="profile"
+          profileActiveTab="basic"
+          showKnowledgeTopNav
+          sidebarFixture={{
+            sessions: [],
+            showTopStatus: true,
+            hideSessionSearch: true,
+            hideCollapseButton: true,
+          }}
+        >
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('在线代理')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '收起导航' })).not.toBeInTheDocument();
+    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+  });
 });

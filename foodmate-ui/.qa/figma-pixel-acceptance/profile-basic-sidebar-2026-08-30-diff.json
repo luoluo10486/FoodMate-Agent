@@ -1,0 +1,41 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "806:1119",
+  "artboardName": "profile-basic",
+  "queryState": "state=basic",
+  "figmaPng": "docxs/设计/figma-png/profile-basic.png",
+  "browserPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/profile-basic-sidebar-browser-2026-08-30.png",
+  "viewport": {
+    "width": 1440,
+    "height": 1024,
+    "dpr": 1.25
+  },
+  "pixelCount": 1474560,
+  "differentPixels": 1187059,
+  "differentRatio": 0.8050259060329861,
+  "meanAbsoluteError": 4.861439853244358,
+  "rmse": 20.069718313258832,
+  "maxChannelDelta": 255,
+  "geometry": {
+    "sidebar": "x=0,y=0,width=260,height=1024",
+    "brand": "x=24,y=24,width=211.2,height=36",
+    "onlineStatus": "x=24,y=84,width=60,height=20",
+    "newTask": "x=24,y=128,width=211.2,height=41",
+    "workspaceNav": "x=24,y=193,width=211.2,height=40",
+    "agentNav": "x=24,y=235,width=211.2,height=40",
+    "secondaryNav": "x=24,y=670,width=211.2,height=216",
+    "statusPill": "x=24,y=910,width=211.2,height=38",
+    "profileDock": "x=24,y=964,width=211.2,height=36",
+    "bodyHorizontalOverflow": false,
+    "fonts": "loaded",
+    "windowControlCandidates": 0,
+    "forbiddenMarkers": false
+  },
+  "acceptanceStatus": "DIFF_REVIEW",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-30",
+    "conclusion": "The Profile Figma fixture now shows the measured online status label before the new-task action, removes the session search and collapse controls, and keeps the bottom status/profile dock. Full-image differences remain from the workspace shell, avatar, icons, typography rasterization, and actual browser DPR; retain DIFF_REVIEW."
+  }
+}

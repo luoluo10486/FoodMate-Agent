@@ -75,6 +75,9 @@ type WorkspaceLayoutProps = {
     sessions: SessionSummary[];
     searchValue?: string;
     currentPage?: number;
+    showTopStatus?: boolean;
+    hideSessionSearch?: boolean;
+    hideCollapseButton?: boolean;
   };
   pageOverlay?: React.ReactNode;
 };
@@ -225,15 +228,16 @@ export function WorkspaceLayout({
       <div
         className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${sidebarFixture && !showKnowledgeTopNav ? styles.figmaFixture : ''}`}
       >
-        <aside className={styles.sidebar}>
+        <aside className={`${styles.sidebar} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}>
           <div className={styles.sidebarBrand}>
             <BrandLogo showTagline />
           </div>
+          {sidebarFixture?.showTopStatus ? <div className={styles.fixtureOnlineStatus}>在线代理</div> : null}
           <Button className={styles.newButton} onClick={createNewSession}>
             <Plus aria-hidden="true" />
             <span>新建任务</span>
           </Button>
-          {!hideSessionHistory ? (
+          {!hideSessionHistory && !sidebarFixture?.hideSessionSearch ? (
             <div className={styles.searchWrap}>
               <Search className={styles.searchIcon} aria-hidden="true" />
               <Input
@@ -303,15 +307,17 @@ export function WorkspaceLayout({
             </Button>
           </nav>
           <div className={styles.accountDock}>
-            <Button
-              className={styles.collapseButton}
-              variant="ghost"
-              type="button"
-              onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
-            >
-              <MoreHorizontal aria-hidden="true" />
-              <span>收起导航</span>
-            </Button>
+            {!sidebarFixture?.hideCollapseButton ? (
+              <Button
+                className={styles.collapseButton}
+                variant="ghost"
+                type="button"
+                onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
+              >
+                <MoreHorizontal aria-hidden="true" />
+                <span>收起导航</span>
+              </Button>
+            ) : null}
             <div className={styles.statusPill}>
               <span />
               <span>就绪 (Fustat-v2)</span>
