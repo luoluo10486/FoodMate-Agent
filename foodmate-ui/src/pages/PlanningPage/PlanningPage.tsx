@@ -684,7 +684,7 @@ export function PlanningPage() {
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       hideSessionHistory={isFigmaFixture}
-      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
+      sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions, hideAccountDock: true } : undefined}
     >
       {content}
     </WorkspaceLayout>

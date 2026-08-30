@@ -334,7 +334,8 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-sidebar-history-browser-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-account-dock-browser-2026-08-30-rgba.png",
+      "browserCapture": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-account-dock-browser-2026-08-30.jpg",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -363,8 +364,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Plan-grid semantics exist, but toolbar, navigation, card geometry, typography, and content density differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "当前浏览器 fixture 已按 Figma 节点 640:901 隐藏画板中不存在的账户停靠区；1440×1024、字体加载、无溢出和窗口控制点检查通过。计划工具栏、导航、卡片几何、字体光栅化和内容密度仍存在差异，保留 DIFF_REVIEW。"
       },
       "supplementalVisualEvidence": {
         "capturedAt": "2026-08-27",

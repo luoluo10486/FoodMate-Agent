@@ -51,6 +51,14 @@ describe('PlanningPage', () => {
     expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
   });
 
+  it('omits the account dock from the Figma planning fixture', () => {
+    renderPage('/planning?state=v2');
+
+    expect(screen.queryByRole('button', { name: '收起导航' })).not.toBeInTheDocument();
+    expect(screen.queryByText('就绪 (Fustat-v2)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Anddy 的工作区')).not.toBeInTheDocument();
+  });
+
   it('renders all four planning constraint statuses', () => {
     renderPage('/planning?state=v2');
 

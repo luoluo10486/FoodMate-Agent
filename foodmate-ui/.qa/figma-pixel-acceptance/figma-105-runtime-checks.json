@@ -2042,6 +2042,7 @@
     },
     "meal-planning-v2": {
       "artboardName": "meal-planning-v2",
+      "recapturedAt": "2026-08-30",
       "body": {
         "clientHeight": 1024,
         "clientWidth": 1440,
@@ -2058,6 +2059,11 @@
         "y": 0
       },
       "windowControlsCandidates": 0,
+      "accountDock": false,
+      "accountDockText": "",
+      "bodyOverflow": false,
+      "rootOverflow": false,
+      "trafficLightColors": 0,
       "textOverflow": [],
       "url": "/planning?state=v2",
       "viewport": {
