@@ -1628,3 +1628,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 新增浏览器 RGBA PNG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-design-green-browser-2026-08-30-rgba.png` 和独立 diff `foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-design-green-2026-08-30-diff.json`；`scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=457385`、差异比例 `31.0184%`、`MAE=4.049774`、`RMSE=19.528353`、最大通道差异 `255`，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换至本次 RGBA 证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只收口 Figma fixture 绿色 Token，不代表 `agent-chat-v2` 或 105 张画板达到像素级 `PASS`；头像、图标、DPR 和其它整页渲染差异、shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 176. 2026-08-30 Agent Chat Figma 助手正文宽度与背景基准校正
+
+- [x] 依据 Figma 节点 `640:428` 的已登记 PNG，确认助手消息外层像素基准为 `#f4f6f5`，非确认卡助手正文边界为 `x=340,width=560px`；前端移除 `state=figma-v2` 的错误 `assistantBodyWide` 标记，内嵌确认卡边界为 `x=356,y=337,width=528,height=142px`，未修改 Figma 设计稿。
+- [x] 按 TDD 先观察助手背景和正文宽度回归测试失败，再完成最小 CSS/渲染修正；`ChatPage.test.tsx` 定向测试为 `30/30`，`npm run typecheck` 通过。
+- [x] 当前浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-layout-browser-2026-08-30.jpg` 与 `agent-chat-v2-assistant-layout-browser-2026-08-30-rgba.png`，独立 diff 为 `agent-chat-v2-assistant-layout-2026-08-30-diff.json`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=452126`、差异比例 `30.6618%`、`MAE=2.944767`、`RMSE=15.908241`、最大通道差异 `234`，结论保持 `DIFF_REVIEW`。
+- [x] 运行时检查为 `1440×1024`、字体 `loaded`、无横向/纵向溢出、窗口控制点候选为 `0`；实际 DPR 为 `1.25`，严格 DPR 1 门禁未通过。`figma-105-mapping.json` 和 `figma-105-diff-results.json` 已切换到本次证据，全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只校正 `agent-chat-v2` 的助手正文结构和背景基准，不关闭整页或 105 张画板像素级 `PASS`；头像、图标、DPR 及其它页面差异、shadcn 全量逐页迁移仍需继续，iconfont 继续为 `BLOCKED`。

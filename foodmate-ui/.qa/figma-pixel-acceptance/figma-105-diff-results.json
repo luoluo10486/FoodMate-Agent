@@ -18,11 +18,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 411368,
-      "differentRatio": 0.2789767795138889,
-      "meanAbsoluteError": 3.693983968098958,
-      "rmse": 19.48888680025382,
-      "maxChannelDelta": 255
+      "differentPixels": 452126,
+      "differentRatio": 0.30661756727430556,
+      "meanAbsoluteError": 2.9447669135199654,
+      "rmse": 15.908240711388139,
+      "maxChannelDelta": 234
     },
     "diet-records-v2": {
       "status": "COMPARED",

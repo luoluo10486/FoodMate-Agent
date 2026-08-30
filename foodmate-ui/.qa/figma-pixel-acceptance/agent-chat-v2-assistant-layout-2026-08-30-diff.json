@@ -1,0 +1,49 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "640:428",
+  "artboardName": "agent-chat-v2",
+  "queryState": "state=figma-v2",
+  "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/agent-chat-v2-figma.png",
+  "browserPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-layout-browser-2026-08-30-rgba.png",
+  "viewport": {
+    "width": 1440,
+    "height": 1024,
+    "dpr": 1.25
+  },
+  "pixelCount": 1474560,
+  "differentPixels": 452126,
+  "differentRatio": 0.30661756727430556,
+  "meanAbsoluteError": 2.9447669135199654,
+  "rmse": 15.908240711388139,
+  "maxChannelDelta": 234,
+  "geometry": {
+    "assistantBody": {
+      "x": 340,
+      "y": 237,
+      "width": 560,
+      "height": 277
+    },
+    "assistantBubble": {
+      "x": 340,
+      "y": 237,
+      "width": 560,
+      "height": 258
+    },
+    "inlineConfirmation": {
+      "x": 356,
+      "y": 337,
+      "width": 528,
+      "height": 142
+    },
+    "bodyOverflow": false,
+    "fonts": "loaded",
+    "windowControlCandidates": 0
+  },
+  "acceptanceStatus": "DIFF_REVIEW",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-30",
+    "conclusion": "The Figma fixture now uses the measured 560px assistant body, 528px inline confirmation card, and #F4F6F5 assistant surface. Remaining avatar, icon rasterization, DPR, and other page differences keep the artboard in DIFF_REVIEW."
+  }
+}

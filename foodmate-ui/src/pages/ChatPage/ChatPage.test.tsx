@@ -132,7 +132,7 @@ describe('ChatPage Figma 默认状态', () => {
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
   });
 
-  it('uses the wide assistant body from the Figma chat fixture', () => {
+  it('uses the base assistant body width from the Figma chat fixture', () => {
     render(
       <MemoryRouter initialEntries={['/chat?state=figma-v2']}>
         <Routes>
@@ -142,14 +142,14 @@ describe('ChatPage Figma 默认状态', () => {
     );
 
     const assistantBody = document.querySelector(`[class*="${styles.assistantBody}"]`);
-    expect(assistantBody).toHaveClass(styles.assistantBodyWide);
+    expect(assistantBody).not.toHaveClass(styles.assistantBodyWide);
   });
 
   it('uses the Figma neutral surface for the assistant message body', () => {
     const stylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
 
     expect(stylesheet).toContain('.designChatPage .assistant .messageBubble');
-    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f9fafb;');
+    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f4f6f5;');
   });
 
   it('uses the Figma surface for the Composer input row in the fixture', () => {
