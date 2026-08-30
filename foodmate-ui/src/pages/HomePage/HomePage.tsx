@@ -39,19 +39,19 @@ const pendingItems = [
   { id: 'fish', title: '煎三文鱼碗', detail: '记录为 620 千卡 · 置信度：88%', prompt: '确认记录煎三文鱼碗' },
 ];
 
-type HomeState = 'default' | 'loading' | 'empty' | 'error' | 'input-states';
-
 const figmaSidebarSessions: SessionSummary[] = [
   { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
-  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
-  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', active: false },
-  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', active: false },
-  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', active: false },
-  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', active: false },
-  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', active: false },
-  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', active: false },
-  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45', active: false },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45' },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45' },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45' },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45' },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45' },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45' },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45' },
+  { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45' },
 ];
+
+type HomeState = 'default' | 'loading' | 'empty' | 'error' | 'input-states';
 
 function getHomeState(value: string | null): HomeState {
   return value === 'loading' || value === 'empty' || value === 'error' || value === 'input-states' ? value : 'default';
@@ -332,17 +332,19 @@ export function HomePage() {
               </article>
             </section>
 
-            <section className={styles.statusPanel} aria-labelledby="status-title">
-              <h2 id="status-title">任务入口与状态</h2>
-              <p>输入器：空输入时发送禁用 · 有内容时启用 · Agent 运行中切换为停止 · 附件解析中显示进度</p>
-              <p>高频任务点击后带入输入器；继续任务打开原会话；查看全部进入会话列表。</p>
-              <p className={styles.statusGreen}>
-                Tools / Agents 面板可展开查看健康状态；待处理事项覆盖写入确认、预算追加、记忆确认和失败任务。
-              </p>
-              <p className={styles.statusMuted}>
-                摘要局部失败支持重试，不替换已有成功数据；空态不展示虚构营养或任务数据。
-              </p>
-            </section>
+            {isFigmaFixture ? (
+              <section className={styles.statusPanel} aria-labelledby="status-title">
+                <h2 id="status-title">任务入口与状态</h2>
+                <p>输入器：空输入时发送禁用 · 有内容时启用 · Agent 运行中切换为停止 · 附件解析中显示进度</p>
+                <p>高频任务点击后带入输入器；继续任务打开原会话；查看全部进入会话列表。</p>
+                <p className={styles.statusGreen}>
+                  Tools / Agents 面板可展开查看健康状态；待处理事项覆盖写入确认、预算追加、记忆确认和失败任务。
+                </p>
+                <p className={styles.statusMuted}>
+                  摘要局部失败支持重试，不替换已有成功数据；空态不展示虚构营养或任务数据。
+                </p>
+              </section>
+            ) : null}
           </>
         )}
       </div>

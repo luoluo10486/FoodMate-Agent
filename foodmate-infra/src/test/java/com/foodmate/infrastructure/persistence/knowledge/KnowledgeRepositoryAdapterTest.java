@@ -26,7 +26,8 @@ class KnowledgeRepositoryAdapterTest {
         when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
         when(mapper.resultPayloadHash(11L, "v1", 2)).thenReturn(null);
         when(mapper.insertResultInbox(11L, "v1", 2, "sha256:ok")).thenReturn(1);
-        when(mapper.markItemIndexed(11L, 12L, 2, 4, "v1", 100L, new BigDecimal("0.12"), "stub-v1"))
+        when(mapper.markItemIndexed(
+                        11L, 12L, 2, 4, "v1", 100L, new BigDecimal("0.12"), "stub-v1", null))
                 .thenReturn(1);
         when(mapper.jobIdForItem(11L)).thenReturn(77L);
         when(mapper.job(77L))
@@ -60,7 +61,7 @@ class KnowledgeRepositoryAdapterTest {
         when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
         when(mapper.resultPayloadHash(11L, "v1", 1)).thenReturn(null);
         when(mapper.insertResultInbox(11L, "v1", 1, "sha256:chunks")).thenReturn(1);
-        when(mapper.markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1"))
+        when(mapper.markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1", null))
                 .thenReturn(1);
         when(mapper.jobIdForItem(11L)).thenReturn(77L);
         when(mapper.job(77L))
@@ -86,7 +87,7 @@ class KnowledgeRepositoryAdapterTest {
 
         org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(mapper);
         inOrder.verify(mapper)
-                .markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1");
+                .markItemIndexed(11L, 12L, 1, 1, "v1", 3L, BigDecimal.ZERO, "stub-v1", null);
         inOrder.verify(mapper).softDeleteVersionChunks(12L, "v1");
         inOrder.verify(mapper).insertKnowledgeChunks(eq(12L), eq("v1"), any());
         verify(mapper).markDocumentIndexed(12L, "v1");
@@ -104,7 +105,8 @@ class KnowledgeRepositoryAdapterTest {
 
         verify(mapper, never())
                 .markItemIndexed(
-                        anyLong(), anyLong(), anyInt(), anyInt(), any(), anyLong(), any(), any());
+                        anyLong(), anyLong(), anyInt(), anyInt(), any(), anyLong(), any(), any(),
+                        any());
         verify(mapper, never()).insertJobEvent(anyLong(), anyLong(), any(), any(), any());
     }
 
@@ -134,7 +136,6 @@ class KnowledgeRepositoryAdapterTest {
     @Test
     void manualRetryResetsAuthorityAndEmitsReplayableProgressFacts() {
         when(mapper.resetItem(11L, 77L)).thenReturn(1);
-        when(mapper.requeueIndexOutbox(11L, 1, 0, null)).thenReturn(1);
         when(mapper.job(77L)).thenReturn(new KnowledgeRepository.JobView(77L, "indexing", 1, 0, 0));
         when(ids.nextId()).thenReturn(901L, 902L);
 
@@ -142,6 +143,7 @@ class KnowledgeRepositoryAdapterTest {
                 1, adapter.retryItem(11L, 77L, 7L, 903L, "{}"));
 
         verify(mapper).deleteResultInbox(11L);
+        verify(mapper).insertIndexOutbox(903L, 11L, "{}");
         verify(mapper).refreshJob(11L);
         verify(mapper)
                 .insertJobEvent(eq(901L), eq(77L), eq(11L), eq("knowledge.index.retry"), any());
@@ -157,11 +159,14 @@ class KnowledgeRepositoryAdapterTest {
         when(mapper.job(77L)).thenReturn(new KnowledgeRepository.JobView(77L, "indexing", 1, 0, 0));
         when(ids.nextId()).thenReturn(901L, 902L, 903L, 904L, 905L, 906L);
         when(mapper.insertResultInbox(anyLong(), any(), anyInt(), any())).thenReturn(1);
-        when(mapper.markItemFailed(11L, 12L, "RAG_PARSE_FAILED", "RAG_PARSE_FAILED", 1, "v1"))
+        when(mapper.markItemFailed(
+                        11L, 12L, "RAG_PARSE_FAILED", "parser rejected the document", 1, "v1"))
                 .thenReturn(1);
-        when(mapper.markItemFailed(11L, 12L, "RAG_PARSE_FAILED", "RAG_PARSE_FAILED", 2, "v1"))
+        when(mapper.markItemFailed(
+                        11L, 12L, "RAG_PARSE_FAILED", "parser rejected the document", 2, "v1"))
                 .thenReturn(1);
-        when(mapper.markItemFailed(11L, 12L, "RAG_PARSE_FAILED", "RAG_PARSE_FAILED", 3, "v1"))
+        when(mapper.markItemFailed(
+                        11L, 12L, "RAG_PARSE_FAILED", "parser rejected the document", 3, "v1"))
                 .thenReturn(1);
         when(mapper.requeueIndexOutbox(11L, 2, 1, "RAG_PARSE_FAILED")).thenReturn(1);
         when(mapper.requeueIndexOutbox(11L, 3, 2, "RAG_PARSE_FAILED")).thenReturn(1);
@@ -175,10 +180,12 @@ class KnowledgeRepositoryAdapterTest {
                             "index_failed",
                             0,
                             "RAG_PARSE_FAILED",
+                            "parser rejected the document",
                             attempt,
                             0L,
                             BigDecimal.ZERO,
-                            "stub-v1"),
+                            "stub-v1",
+                            List.of()),
                     "sha256:attempt-" + attempt);
         }
 

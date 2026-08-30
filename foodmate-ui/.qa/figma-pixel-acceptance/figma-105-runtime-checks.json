@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18",
+  "generatedAt": "2026-08-30",
   "tool": "Codex Browser runtime DOM inspection (recaptured evidence)",
   "rules": {
     "viewport": "mapping.browserViewport",
@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 101,
+    "dprPass": 96,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -50,7 +50,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -60,6 +61,15 @@
       },
       "textOverflow": [],
       "url": "/chat?state=budget-limit",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "budgetGeometry": {
+        "budgetCard": "x=340,y=314,width=286,height=289",
+        "choicePanel": "x=359.4,y=431.8,width=245.8,height=60",
+        "budgetMeter": "x=359.4,y=507.8,width=245.8,height=27",
+        "primaryButton": "x=359.4,y=550.8,width=150,height=32",
+        "secondaryButton": "x=521.4,y=550.8,width=84,height=32"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -189,6 +199,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -197,9 +208,18 @@
         "y": 0
       },
       "cardGeometry": {
-        "chartCard": { "width": 1116, "height": 303 },
-        "chartArea": { "width": 1068, "height": 220 },
-        "insightCard": { "width": 1116, "height": 219 }
+        "chartCard": {
+          "width": 1116,
+          "height": 303
+        },
+        "chartArea": {
+          "width": 1068,
+          "height": 220
+        },
+        "insightCard": {
+          "width": 1116,
+          "height": 219
+        }
       },
       "windowControlsCandidates": 0,
       "textOverflow": [],
@@ -218,6 +238,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -227,6 +248,14 @@
       },
       "textOverflow": [],
       "url": "/chat?state=tool-failed-retryable",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "failureGeometry": {
+        "failureCard": "x=340,y=237,width=560,height=160",
+        "failureDetails": "x=360.8,y=293.8,width=518.4,height=44",
+        "retryButton": "x=360.8,y=353.8,width=58,height=32",
+        "skipButton": "x=430.8,y=353.8,width=97,height=32"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -678,10 +707,47 @@
         "y": 0
       },
       "textOverflow": [],
+      "modalGeometry": {
+        "x": 590,
+        "y": 320,
+        "width": 520,
+        "height": 252
+      },
+      "overlayGeometry": {
+        "x": 260,
+        "y": 0,
+        "width": 1180,
+        "height": 1024
+      },
+      "actionGeometry": {
+        "x": 621.8,
+        "y": 509.2,
+        "width": 456.4,
+        "height": 32
+      },
+      "windowControls": 0,
+      "trafficLightColors": 0,
       "url": "/profile?state=basic-unsaved-leave-confirmation",
       "viewport": {
         "height": 1024,
         "width": 1440
+      },
+      "mobile": {
+        "viewport": {
+          "height": 844,
+          "width": 390
+        },
+        "dpr": 1.0000000149011612,
+        "modalGeometry": {
+          "x": 16,
+          "y": 296,
+          "width": 358.4,
+          "height": 252
+        },
+        "bodyOverflow": false,
+        "rootOverflow": false,
+        "windowControls": 0,
+        "buttons": ["继续编辑", "放弃并离开"]
       }
     },
     "meal-planning-error": {
@@ -807,7 +873,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -817,6 +884,13 @@
       },
       "textOverflow": [],
       "url": "/chat?state=safety-degraded",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "safetyGeometry": {
+        "safetyContainer": "x=292,y=237,width=612,height=211.1",
+        "warningBanner": "x=344,y=237,width=560,height=58",
+        "response": "x=344,y=301,width=560,height=125.1"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -1014,7 +1088,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1027,7 +1101,8 @@
       "viewport": {
         "height": 900,
         "width": 1440
-      }
+      },
+      "dprPass": false
     },
     "agent-chat-pagination": {
       "artboardName": "agent-chat-pagination",
@@ -1061,6 +1136,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1070,6 +1146,14 @@
       },
       "textOverflow": [],
       "url": "/chat?state=figma-v2",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "assistantGeometry": {
+        "assistantBody": "x=340,y=237,width=780,height=254",
+        "messageText": "x=356,y=253,width=764,height=21",
+        "source": "x=356,y=285,width=764,height=18",
+        "confirmation": "x=356,y=313,width=764,height=143"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -1268,7 +1352,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1281,6 +1366,14 @@
       "viewport": {
         "height": 1024,
         "width": 1440
+      },
+      "windowControls": 0,
+      "securityGeometry": {
+        "passwordCard": "x=292,y=100.71,width=546,height=464",
+        "sessionCard": "x=862,y=100.71,width=546,height=378",
+        "activityCardCount": 0,
+        "securityAccentCount": 0,
+        "sessionAccentCount": 0
       }
     },
     "login-field-error": {
@@ -1370,6 +1463,15 @@
       },
       "textOverflow": [],
       "url": "/chat?state=awaiting-clarification",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "clarificationGeometry": {
+        "main": "x=260,width=1180",
+        "userBubble": "x=1216,y=145,width=144,height=49",
+        "assistantRow": "x=292,y=237,width=1116,height=193",
+        "assistantBody": "x=340,y=237,width=560,height=193",
+        "composer": "x=260,y=912,width=1180,height=112"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -1453,6 +1555,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1460,6 +1563,7 @@
         "x": 0,
         "y": 0
       },
+      "windowControlsCandidates": 0,
       "textOverflow": [],
       "url": "/analysis?view=records&state=v2",
       "viewport": {
@@ -1637,6 +1741,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1645,6 +1750,26 @@
         "y": 0
       },
       "textOverflow": [],
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "profileGeometry": {
+        "goalsCard": "x=716,y=100,width=692,height=366",
+        "proteinInput": "x=739.8,y=199.3,width=644.4,height=40",
+        "allergenSection": "x=739.8,y=239.3,width=644.4,height=115.5",
+        "tagRow": "x=739.8,y=322.8,width=644.4,height=32",
+        "formFooter": "x=739.8,y=366.8,width=644.4,height=56.8"
+      },
+      "sidebarGeometry": {
+        "sidebar": "x=0,y=0,width=260,height=1024",
+        "brand": "x=24,y=24,width=211.2,height=36",
+        "onlineStatus": "x=24,y=84,width=60,height=20",
+        "newTask": "x=24,y=128,width=211.2,height=41",
+        "workspaceNav": "x=24,y=193,width=211.2,height=40",
+        "agentNav": "x=24,y=235,width=211.2,height=40",
+        "secondaryNav": "x=24,y=670,width=211.2,height=216",
+        "statusPill": "x=24,y=910,width=211.2,height=38",
+        "profileDock": "x=24,y=964,width=211.2,height=36"
+      },
       "url": "/profile?state=basic",
       "viewport": {
         "height": 1024,
@@ -1797,7 +1922,7 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1807,6 +1932,14 @@
       },
       "textOverflow": [],
       "url": "/?state=figma-v2",
+      "figmaSidebar": {
+        "sessionSearch": false,
+        "sessionItems": 0,
+        "sessionPagination": false,
+        "agentConversationLink": true,
+        "windowControls": false,
+        "trafficLightColors": 0
+      },
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -1867,6 +2000,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1874,6 +2008,7 @@
         "x": 0,
         "y": 0
       },
+      "windowControlsCandidates": 0,
       "textOverflow": [],
       "url": "/knowledge?state=empty",
       "viewport": {
@@ -1907,6 +2042,7 @@
     },
     "meal-planning-v2": {
       "artboardName": "meal-planning-v2",
+      "recapturedAt": "2026-08-30",
       "body": {
         "clientHeight": 1024,
         "clientWidth": 1440,
@@ -1914,6 +2050,7 @@
         "scrollWidth": 1440
       },
       "dpr": 1.0000000149011612,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1921,6 +2058,12 @@
         "x": 0,
         "y": 0
       },
+      "windowControlsCandidates": 0,
+      "accountDock": false,
+      "accountDockText": "",
+      "bodyOverflow": false,
+      "rootOverflow": false,
+      "trafficLightColors": 0,
       "textOverflow": [],
       "url": "/planning?state=v2",
       "viewport": {
@@ -1992,6 +2135,38 @@
       },
       "textOverflow": [],
       "url": "/chat?state=planning",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "planningGeometry": {
+        "userMessage": "x=292,y=145,width=1116,height=68",
+        "userBubble": "x=1132,y=145,width=228,height=49",
+        "planningAssistantRow": "x=292,y=237,width=1116,height=160",
+        "planningBubble": "x=340,y=237,width=165,height=160",
+        "composer": "y=912,height=112"
+      },
+      "viewport": {
+        "height": 1024,
+        "width": 1440
+      }
+    },
+    "agent-tool-executing": {
+      "artboardName": "agent-tool-executing",
+      "body": {
+        "clientHeight": 1024,
+        "clientWidth": 1440,
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
+      },
+      "dpr": 1.0000000149011612,
+      "fonts": "loaded",
+      "root": {
+        "height": 1024,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "textOverflow": [],
+      "url": "/chat?state=tool-executing",
       "viewport": {
         "height": 1024,
         "width": 1440
@@ -2227,29 +2402,6 @@
         "width": 1440
       }
     },
-    "agent-tool-executing": {
-      "artboardName": "agent-tool-executing",
-      "body": {
-        "clientHeight": 1024,
-        "clientWidth": 1440,
-        "scrollHeight": 1024,
-        "scrollWidth": 1440
-      },
-      "dpr": 1.0000000149011612,
-      "fonts": "loaded",
-      "root": {
-        "height": 1024,
-        "width": 1440,
-        "x": 0,
-        "y": 0
-      },
-      "textOverflow": [],
-      "url": "/chat?state=tool-executing",
-      "viewport": {
-        "height": 1024,
-        "width": 1440
-      }
-    },
     "profile-memories": {
       "artboardName": "profile-memories",
       "body": {
@@ -2267,6 +2419,18 @@
         "y": 0
       },
       "textOverflow": [],
+      "memoryGeometry": {
+        "memoryIntro": "x=292,y=100,width=1116,height=96",
+        "memoryToolbar": "x=292,y=220,width=1116,height=40",
+        "memoryRows": [
+          "x=292,y=284,width=1116,height=124",
+          "x=292,y=424,width=1116,height=130",
+          "x=292,y=570,width=1116,height=124"
+        ],
+        "memoryGuidance": "x=292,y=726,width=1116,height=240"
+      },
+      "windowControls": 0,
+      "trafficLightColors": 0,
       "url": "/profile?state=memories",
       "viewport": {
         "height": 1024,

@@ -16,7 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-/** HTTP adapter for the runtime gateway port. */
+/** Runtime 网关端口的 HTTP 适配器。 */
 public final class HttpGatewayClient implements RuntimeGatewayPort {
     private final HttpClient client;
     private final ObjectMapper mapper;

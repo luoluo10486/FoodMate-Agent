@@ -36,7 +36,6 @@ public class AgentOperationMetrics {
                     "terminal",
                     "pending",
                     "leased");
-    private static final Set<String> QUEUE_STATES = Set.of("pending", "leased");
     private static final Set<String> REASONS =
             Set.of(
                     "published",
@@ -71,7 +70,8 @@ public class AgentOperationMetrics {
                     "database",
                     "object_storage",
                     "vector_index",
-                    "relay");
+                    "relay",
+                    "queue_depth");
     private final MeterRegistry registry;
     private final Map<String, AtomicLong> queueDepths = new ConcurrentHashMap<>();
 
@@ -117,8 +117,16 @@ public class AgentOperationMetrics {
         if (registry == null) return;
         String normalizedTransport = tag(transport, TRANSPORTS);
         String normalizedOperation = tag(operation, OPERATIONS);
-        String normalizedState = tag(state, QUEUE_STATES);
-        String key = normalizedTransport + ":" + normalizedOperation + ":" + normalizedState;
+        String normalizedResult = tag(state, RESULTS);
+        String normalizedReason = tag("queue_depth", REASONS);
+        String key =
+                normalizedTransport
+                        + ":"
+                        + normalizedOperation
+                        + ":"
+                        + normalizedResult
+                        + ":"
+                        + normalizedReason;
         AtomicLong depth = queueDepths.computeIfAbsent(key, ignored -> new AtomicLong());
         depth.set(Math.max(0, value));
         registry.gauge(
@@ -126,7 +134,8 @@ public class AgentOperationMetrics {
                 java.util.List.of(
                         io.micrometer.core.instrument.Tag.of("transport", normalizedTransport),
                         io.micrometer.core.instrument.Tag.of("operation", normalizedOperation),
-                        io.micrometer.core.instrument.Tag.of("state", normalizedState)),
+                        io.micrometer.core.instrument.Tag.of("result", normalizedResult),
+                        io.micrometer.core.instrument.Tag.of("reason", normalizedReason)),
                 depth);
     }
 

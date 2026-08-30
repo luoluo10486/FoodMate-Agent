@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
 
-/** Arbitration state of an agent-run dispatch. */
+/** AgentRun 派发的仲裁状态。 */
 public enum DispatchState {
     ACTIVE("active"),
     SUPERSEDED("superseded"),

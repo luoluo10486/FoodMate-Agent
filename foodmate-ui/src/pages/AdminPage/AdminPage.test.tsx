@@ -205,3 +205,63 @@ describe('AdminPage overview', () => {
     expect(document.querySelector('.fixtureSurfaceCard')).toBeNull();
   });
 });
+
+describe('AdminPage knowledge upload fixtures', () => {
+  it('renders the uploading state with the submitted batch and 64% progress', () => {
+    renderAdmin('/admin?state=knowledge-uploading');
+
+    expect(screen.getByRole('dialog', { name: '批量任务已提交' })).toBeInTheDocument();
+    expect(screen.getByText('3 个文件 · nutrient_reference.xlsx 等')).toBeInTheDocument();
+    expect(screen.getByText('上传中 · 64% · 可离开页面，完成后自动开始索引')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '64');
+    expect(screen.getByRole('link', { name: '查看任务进度' })).toBeInTheDocument();
+  });
+
+  it('renders the indexing state with the batch detail and 72% progress', () => {
+    renderAdmin('/admin?state=knowledge-indexing');
+
+    expect(screen.getByRole('dialog', { name: '后台正在建立索引' })).toBeInTheDocument();
+    expect(screen.getByText('3 个文件 · 批次 KB-20260731-0042')).toBeInTheDocument();
+    expect(screen.getByText('索引中 · 72% · 可离开页面，完成后收到通知')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '72');
+    expect(screen.getByText('任务详情 · 已完成 1 / 3 个文件')).toBeInTheDocument();
+  });
+
+  it('renders the batch failure state with a retry action', () => {
+    renderAdmin('/admin?state=knowledge-upload-failed');
+
+    expect(screen.getByRole('dialog', { name: '批次上传有失败项' })).toBeInTheDocument();
+    expect(screen.getByText('1 个文件失败 · nutrient_reference.xlsx')).toBeInTheDocument();
+    expect(screen.getByText('其余 2 个文件已接收并继续后台索引，可单独重试失败文件。')).toBeInTheDocument();
+    expect(screen.getByText('错误码：KB_UPLOAD_FORMAT_INVALID · request_id: req_kb_20260731_0042')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重试此文件' })).toBeInTheDocument();
+  });
+
+  it('renders the format validation error with the remove-and-retry action', () => {
+    renderAdmin('/admin?state=knowledge-format-error');
+
+    expect(screen.getByRole('dialog', { name: '文件格式校验失败' })).toBeInTheDocument();
+    expect(screen.getByText('2 个文件不支持 · meal_photo.webp')).toBeInTheDocument();
+    expect(screen.getByText('仅支持 PDF / CSV / XLSX / TXT；其他文件未提交。')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '移除并重试' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+  });
+
+  it('renders the size limit error with the file selection action', () => {
+    renderAdmin('/admin?state=knowledge-size-error');
+
+    expect(screen.getByRole('dialog', { name: '文件大小超过限制' })).toBeInTheDocument();
+    expect(screen.getByText('1 个文件超出 50MB · nutrition_archive.pdf')).toBeInTheDocument();
+    expect(screen.getByText('文件未提交；其他文件继续后台索引。')).toBeInTheDocument();
+    expect(screen.getByText('错误码：KB_UPLOAD_SIZE_LIMIT · request_id: req_kb_20260731_0048')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新选择文件' })).toBeInTheDocument();
+  });
+
+  it('returns to the normal knowledge page after upload success', () => {
+    renderAdmin('/admin?state=knowledge-upload-success');
+
+    expect(screen.getByRole('link', { name: '知识库管理' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('USDA_Keto_Ingredient_Guidelines.pdf')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});

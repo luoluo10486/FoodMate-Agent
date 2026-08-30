@@ -170,7 +170,8 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                                     result.version(),
                                     result.tokenCount(),
                                     result.costAmount(),
-                                    result.modelVersion())
+                                    result.modelVersion(),
+                                    result.providerTraceId())
                             == 1;
             if (changed) {
                 replaceKnowledgeChunks(result);
@@ -183,7 +184,7 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                                     result.itemId(),
                                     result.documentId(),
                                     result.errorCode(),
-                                    result.errorCode(),
+                                    result.errorSummary(),
                                     attempt,
                                     result.version())
                             == 1;
@@ -212,6 +213,10 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                         + result.documentId()
                         + ",\"status\":\""
                         + result.status()
+                        + "\",\"error_code\":\""
+                        + jsonString(result.errorCode())
+                        + "\",\"error_summary\":\""
+                        + jsonString(result.errorSummary())
                         + "\"}");
         JobView progress = mapper.job(jobId);
         mapper.insertJobEvent(
@@ -230,6 +235,11 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                         + ",\"failed_items\":"
                         + progress.failedItems()
                         + "}");
+    }
+
+    private String jsonString(String value) {
+        if (value == null) return "";
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     @Override
@@ -281,8 +291,7 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
         int changed = mapper.resetItem(itemId, jobId);
         if (changed == 1) {
             mapper.deleteResultInbox(itemId);
-            if (mapper.requeueIndexOutbox(itemId, 1, 0, null) != 1)
-                throw new IllegalStateException("knowledge index outbox is missing");
+            mapper.insertIndexOutbox(outboxId, itemId, payload);
             mapper.refreshJob(itemId);
             mapper.insertJobEvent(
                     ids.nextId(),

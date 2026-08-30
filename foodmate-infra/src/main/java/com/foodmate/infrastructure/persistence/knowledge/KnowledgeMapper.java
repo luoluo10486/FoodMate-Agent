@@ -65,7 +65,7 @@ public interface KnowledgeMapper {
             @Param("size") long size);
 
     @Insert(
-            "INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) VALUES(#{outboxId},#{itemId},'foodmate-knowledge-index-v1',CAST(#{payload} AS jsonb))")
+            "WITH source AS (SELECT CAST(#{payload} AS jsonb) AS requested_payload), base AS (SELECT requested_payload,CASE WHEN requested_payload='{}'::jsonb THEN COALESCE((SELECT payload_json FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' ORDER BY outbox_id DESC LIMIT 1),requested_payload) ELSE requested_payload END AS payload FROM source) INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) SELECT #{outboxId},#{itemId},'foodmate-knowledge-index-v1',jsonb_set(payload,'{attempt}',CASE WHEN requested_payload='{}'::jsonb THEN '1'::jsonb WHEN payload ? 'attempt' THEN payload->'attempt' ELSE '1'::jsonb END,true) FROM base")
     void insertIndexOutbox(
             @Param("outboxId") long outboxId,
             @Param("itemId") long itemId,
@@ -155,7 +155,7 @@ public interface KnowledgeMapper {
             @Param("version") String version);
 
     @Update(
-            "UPDATE knowledge_import_items i SET index_status='indexed',attempt_count=GREATEST(i.attempt_count,#{attempt}),chunk_count=#{chunkCount},indexed_at=CURRENT_TIMESTAMP,error_code=NULL,error_summary=NULL,token_count=#{tokenCount},cost_amount=#{costAmount},model_version=#{modelVersion},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
+            "UPDATE knowledge_import_items i SET index_status='indexed',attempt_count=GREATEST(i.attempt_count,#{attempt}),chunk_count=#{chunkCount},indexed_at=CURRENT_TIMESTAMP,error_code=NULL,error_summary=NULL,token_count=#{tokenCount},cost_amount=#{costAmount},model_version=#{modelVersion},provider_trace_id=#{providerTraceId},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
     int markItemIndexed(
             @Param("itemId") long itemId,
             @Param("documentId") long documentId,
@@ -164,7 +164,8 @@ public interface KnowledgeMapper {
             @Param("version") String version,
             @Param("tokenCount") long tokenCount,
             @Param("costAmount") java.math.BigDecimal costAmount,
-            @Param("modelVersion") String modelVersion);
+            @Param("modelVersion") String modelVersion,
+            @Param("providerTraceId") String providerTraceId);
 
     @Update(
             "UPDATE knowledge_documents SET status='indexed',indexed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND version=#{version} AND is_deleted=FALSE")
@@ -194,7 +195,7 @@ public interface KnowledgeMapper {
             @Param("version") String version);
 
     @Update(
-            "UPDATE knowledge_index_outbox SET status='pending',attempt_count=0,available_at=CURRENT_TIMESTAMP + (#{delaySeconds} * INTERVAL '1 second'),owner_token=NULL,lease_until=NULL,last_error=#{errorCode},payload_json=jsonb_set(payload_json,'{attempt}',to_jsonb(#{attempt}::int),true),updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1'")
+            "WITH candidate AS (SELECT outbox_id FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' AND status='published' AND CASE WHEN payload_json->>'attempt' ~ '^[1-3]$' THEN (payload_json->>'attempt')::int ELSE 1 END=(#{attempt} - 1) ORDER BY outbox_id DESC LIMIT 1) UPDATE knowledge_index_outbox AS outbox SET status='pending',attempt_count=0,available_at=CURRENT_TIMESTAMP + (#{delaySeconds} * INTERVAL '1 second'),owner_token=NULL,lease_until=NULL,last_error=#{errorCode},payload_json=jsonb_set(outbox.payload_json,'{attempt}',to_jsonb(#{attempt}::int),true),updated_at=CURRENT_TIMESTAMP FROM candidate WHERE outbox.outbox_id=candidate.outbox_id")
     int requeueIndexOutbox(
             @Param("itemId") long itemId,
             @Param("attempt") int attempt,

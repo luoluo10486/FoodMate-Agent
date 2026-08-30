@@ -1,0 +1,28 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 350748,
+  "differentRatio": 0.2378662109375,
+  "meanAbsoluteError": 3.4372299194335936,
+  "rmse": 17.809801889458026,
+  "maxChannelDelta": 254,
+  "expected": "../docxs/设计/figma-png/agent-budget-limit.png",
+  "actual": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-current-browser-2026-08-30-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "dprPass": false,
+  "fonts": "loaded",
+  "bodyOverflow": false,
+  "textOverflowCount": 0,
+  "windowControls": 0,
+  "trafficLightColors": 0,
+  "geometry": {
+    "budgetCard": "x=340,y=314,width=286,height=289",
+    "choicePanel": "x=359.4,y=431.8,width=245.8,height=60",
+    "budgetMeter": "x=359.4,y=507.8,width=245.8,height=27",
+    "primaryButton": "x=359.4,y=550.8,width=150,height=32",
+    "secondaryButton": "x=521.4,y=550.8,width=84,height=32"
+  }
+}

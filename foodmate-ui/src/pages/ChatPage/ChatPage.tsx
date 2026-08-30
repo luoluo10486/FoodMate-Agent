@@ -210,7 +210,7 @@ type ChatSurfaceProps = {
   profileIdOverride?: string;
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
-  pageVariant?: 'completed-citations';
+  pageVariant?: 'completed-citations' | 'figma-default';
   statusForStrip?: AgentDisplayStatus;
   statusVisualState?: 'user-cancelled';
   pageOverlay?: ReactNode;
@@ -261,7 +261,7 @@ function ChatSurface({
       topAvatarSrc={topAvatarSrc}
     >
       <div
-        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''}`}
+        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''} ${pageVariant === 'figma-default' ? styles.figmaDefaultPage : ''}`}
       >
         <section className={styles.workspace}>
           <div className={styles.center}>
@@ -1200,17 +1200,6 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               />
             )}
           </MessageBubble>
-          {isRunning || isRedesignDefault ? (
-            <section className={styles.messageActions} aria-label="消息操作">
-              <h2>消息操作</h2>
-              <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
-              <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
-              <p className={styles.actionGreen}>
-                工具失败时显示重试；运行中发送按钮切换停止；写入确认 / 预算追加仍需确认后继续。
-              </p>
-              <p>右侧面板：运行 · 工具 · 引用 原始 JSON 默认折叠并隐藏敏感参数。</p>
-            </section>
-          ) : null}
         </>
       ) : (
         <>
@@ -1415,7 +1404,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
             <Card className={`${styles.fixtureCard} ${styles.fixtureBudgetCard}`}>
               <div className={styles.fixtureBudgetTitle}>
                 <AlertTriangle aria-hidden="true" />
-                <h2>已达到预算上限</h2>
+                <h2 className={styles.fixtureBudgetTitleText}>已达到预算上限</h2>
               </div>
               <p className={styles.fixtureBudgetDescription}>
                 本次会话已使用 50,000 tokens（单次会话预算上限）。为了保证资源分配合理及避免异常资费产生，你可以：
@@ -1508,7 +1497,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
               <span className={styles.fixtureSafetyLabel}>安全降级</span>
             </div>
-            <div className={styles.fixtureSafetyBody}>
+            <div className={`${styles.fixtureSafetyBody} ${styles.fixtureSafetyBodyAligned}`}>
               <Alert variant="warning" className={styles.fixtureSafetyAlert}>
                 <AlertTitle>⚠️ 安全降级提示</AlertTitle>
                 <AlertDescription>
@@ -1533,8 +1522,8 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     if (state === 'user-cancelled') {
       return (
-        <div className={styles.fixtureCancelledWrap}>
-          <div className={styles.fixtureCancelledAssistantRow}>
+        <div className={`${styles.fixtureCancelledWrap} ${styles.fixtureCancelledWrapAligned}`}>
+          <div className={`${styles.fixtureCancelledAssistantRow} ${styles.fixtureCancelledAssistantRowAligned}`}>
             <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
             <div className={styles.fixtureCancelledAssistantBody}>
               <p className={styles.fixtureAssistantText}>
@@ -1542,7 +1531,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
               </p>
             </div>
           </div>
-          <div className={styles.fixtureCancelledNotice}>
+          <div className={`${styles.fixtureCancelledNotice} ${styles.fixtureCancelledNoticeAligned}`}>
             <img src="/assets/figma/agent-chat/cancel-slash.svg" alt="" />
             <span>用户已取消此次运行 · 2:16 PM</span>
           </div>
@@ -1561,7 +1550,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
           </div>
         </div>
         <div className={styles.fixtureReconnectBottom}>
-          <div className={styles.fixtureReconnectNotice}>
+          <div className={`${styles.fixtureReconnectNotice} ${styles.fixtureReconnectNoticeFigma}`}>
             <img src="/assets/figma/agent-chat/tool-executing-loader-running.svg" alt="" />
             <div>
               <strong>连接已中断，正在重新连接...</strong>
@@ -1633,7 +1622,14 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
           ) : null}
         </div>
         <span className={styles.fixtureMessageMeta}>
-          Anddy · {state === 'user-cancelled' ? '02:15 PM' : state === 'safety-degraded' ? '01:30 PM' : '12:45 PM'}
+          Anddy ·{' '}
+          {state === 'user-cancelled'
+            ? '02:15 PM'
+            : state === 'safety-degraded'
+              ? '01:30 PM'
+              : state === 'sse-reconnecting'
+                ? '03:00 PM'
+                : '12:45 PM'}
         </span>
       </article>
       {content}
@@ -1963,13 +1959,14 @@ function MockChatPage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
+      pageVariant={isFigmaFixture ? 'figma-default' : undefined}
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}
       placeholder="追问或添加自定义指令..."
     >
       {agent.messages.map((message, index) => (
-        <MessageBubble key={message.id} message={message}>
+        <MessageBubble key={message.id} message={{ ...message, wide: isFigmaFixture }}>
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
             <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />
           ) : null}
@@ -2002,15 +1999,17 @@ function MockChatPage() {
       ) : null}
       {agent.card.type === 'confirmation' ? null : null}
       {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
-      <section className={styles.messageActions} aria-label="消息操作">
-        <h2>消息操作</h2>
-        <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
-        <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
-        <p className={styles.actionGreen}>
-          工具失败时显示重试；运行中发送按钮切换停止；写入确认/预算追加仍需确认后继续。
-        </p>
-        <p>右侧面板：运行 · 工具 · 引用 · 原始 JSON 默认折叠并隐藏敏感参数。</p>
-      </section>
+      {!isFigmaFixture ? (
+        <section className={styles.messageActions} aria-label="消息操作">
+          <h2>消息操作</h2>
+          <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
+          <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
+          <p className={styles.actionGreen}>
+            工具失败时显示重试；运行中发送按钮切换停止；写入确认/预算追加仍需确认后继续。
+          </p>
+          <p>右侧面板：运行 · 工具 · 引用 · 原始 JSON 默认折叠并隐藏敏感参数。</p>
+        </section>
+      ) : null}
     </ChatSurface>
   );
 }

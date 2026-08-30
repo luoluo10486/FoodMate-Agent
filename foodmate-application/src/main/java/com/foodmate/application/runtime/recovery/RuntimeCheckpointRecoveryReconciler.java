@@ -11,10 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Starts recovery after a Runtime startup notification. PostgreSQL facts decide whether a Run is
- * stale; the notification itself never authorizes a blind replay.
- */
+/** Runtime 启动通知到达后开始恢复。是否过期由 PostgreSQL 事实决定，通知本身不得授权盲目重放。 */
 @Component
 public class RuntimeCheckpointRecoveryReconciler {
     private static final Logger log =

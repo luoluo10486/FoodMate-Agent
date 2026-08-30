@@ -39,7 +39,7 @@ import net.sf.jsqlparser.statement.select.WithItem;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.springframework.stereotype.Service;
 
-/** JSqlParser-backed read-only SQL guard with Java-derived scope predicates. */
+/** 结合 Java 派生范围谓词的 JSqlParser 只读 SQL 守卫。 */
 @Service
 public class JSqlParserQueryGuard implements SqlQueryGuard {
     private static final int MAX_ROWS = 500;

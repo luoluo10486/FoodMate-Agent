@@ -51,6 +51,16 @@ class NutritionSeedScriptTest {
                     "FoodMate",
                     "validation",
                     "V4__nutrition_usda_extended_seed_validation.sql");
+    private static final Path MASS_SEED =
+            Path.of("..", "script", "sql", "FoodMate", "seed", "V6__nutrition_mass_unit_seed.sql");
+    private static final Path MASS_VALIDATION =
+            Path.of(
+                    "..",
+                    "script",
+                    "sql",
+                    "FoodMate",
+                    "validation",
+                    "V6__nutrition_mass_unit_seed_validation.sql");
 
     @Test
     void seedContainsOnlyReviewedUsdaRowsWithTraceableFdcIds() throws IOException {
@@ -146,6 +156,35 @@ class NutritionSeedScriptTest {
         assertTrue(sql.contains("extended_unit_conversion_seed_rows"));
         assertTrue(sql.contains("invalid_extended_unit_conversion_seed_rows"));
         assertTrue(sql.contains("extended_conversion_food_mismatch_rows"));
+        assertTrue(sql.contains("review_status <> 'approved'"));
+    }
+
+    @Test
+    void massSeedAddsOnlyExactNonDensityConversions() throws IOException {
+        String sql = Files.readString(MASS_SEED);
+
+        assertTrue(sql.contains("kg"));
+        assertTrue(sql.contains("mg"));
+        assertTrue(sql.contains("lb"));
+        assertTrue(sql.contains("1000.000000"));
+        assertTrue(sql.contains("0.001000"));
+        assertTrue(sql.contains("453.592370"));
+        assertTrue(sql.contains("FoodMate reviewed exact mass conversion"));
+        assertTrue(sql.contains("530000 + ((foods.nutrition_food_id - 510001) * 3)"));
+        assertTrue(
+                sql.contains(
+                        "ON CONFLICT (nutrition_food_id, source_unit, target_unit) WHERE is_deleted = FALSE DO UPDATE"));
+    }
+
+    @Test
+    void massValidationChecksAllThreeRuleShapes() throws IOException {
+        String sql = Files.readString(MASS_VALIDATION);
+
+        assertTrue(sql.contains("mass_unit_conversion_seed_rows"));
+        assertTrue(sql.contains("mass_unit_conversion_food_mismatch_rows"));
+        assertTrue(sql.contains("mass_unit_conversion_rule_shape_errors"));
+        assertTrue(sql.contains("source_unit NOT IN ('kg', 'mg', 'lb')"));
+        assertTrue(sql.contains("source_unit = 'lb' AND multiplier <> 453.5924"));
         assertTrue(sql.contains("review_status <> 'approved'"));
     }
 }

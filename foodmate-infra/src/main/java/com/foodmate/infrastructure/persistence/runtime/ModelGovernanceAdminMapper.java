@@ -15,7 +15,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-/** SQL for model governance summaries and controlled status/version writes. */
+/** 模型治理汇总及受控状态、版本写入的 SQL 映射。 */
 @Mapper
 public interface ModelGovernanceAdminMapper {
     @Select(

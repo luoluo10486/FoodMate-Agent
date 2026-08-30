@@ -1,0 +1,19 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "640:256",
+  "artboardName": "workspace-home-v2",
+  "frontendRoute": "/?state=figma-v2",
+  "figmaPng": "recaptured-figma/workspace-home-v2-figma.png",
+  "browserPng": "recaptured/workspace-home-v2-no-status-panel-browser-2026-08-30-rgba.png",
+  "browserCapture": "recaptured/workspace-home-v2-no-status-panel-browser-2026-08-30.jpg",
+  "viewport": "1440x1024",
+  "differentPixels": 554164,
+  "pixelCount": 1474560,
+  "differentRatio": 0.37581651475694444,
+  "meanAbsoluteError": 3.2363638983832463,
+  "rmse": 17.110668487658913,
+  "maxChannelDelta": 253,
+  "conclusion": "DIFF_REVIEW",
+  "generatedBy": "scripts/png-diff.mjs",
+  "generatedAt": "2026-08-30"
+}

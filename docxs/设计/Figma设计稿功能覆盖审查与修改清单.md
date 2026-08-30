@@ -964,3 +964,92 @@
 - [x] 浏览器 `1440×1024` 实测无页面级横向溢出；顶栏知识库链接存在，左上角红、黄、绿窗口装饰候选为 `0`，没有修改 Figma 设计稿，也没有删除业务状态圆点。
 - [x] 已登记独立 Figma/浏览器截图、内容区裁剪图、白底归一化图和 diff JSON；同尺寸内容区 diff 为 `49.8610% / MAE 3.2238 / RMSE 14.1849`，结论保持 `DIFF_REVIEW`。
 - [x] Knowledge、WorkspaceLayout 定向测试共 `3` 个测试文件、`16/16` 通过；DPR `1.25` 不满足严格 DPR 1 门禁，因此不能将本项标记为像素级 `PASS`。
+
+## 50. 2026-08-30 Workspace Home 前端侧栏结构复核
+
+- [x] 对照 Figma 节点 `640:256`，确认前端首页 fixture 已恢复会话搜索、Agent 会话历史列表、会话分页和底部“任务入口与状态”说明面板；该项只修改前端，Figma 设计稿保持不变。
+- [x] `1440×1024` 与 `390×844` 浏览器检查均确认页面没有左上角红、黄、绿窗口装饰点；生产源码扫描结果为 `NO_FRONTEND_PRODUCTION_WINDOW_DECORATION_MARKERS`，业务状态圆点不作误删。
+- [x] 首页侧栏与状态面板最新截图、运行时 JSON 和同尺寸 PNG diff 已登记；差异比例为 `37.7674%`、`MAE 3.651656`、`RMSE 17.505058`、最大通道差异 `253`，因此继续保留 `DIFF_REVIEW`，不将局部结构收口写成像素级通过。
+- [x] 浏览器实际 DPR 为 `1.25`，已在 `figma-105-mapping.json` 中将该画板 `dprPass` 登记为 `false`；视口、几何和文字检查仍通过，不能把 DPR 1.25 写成严格 DPR 1 通过。
+- [ ] 本节只关闭首页前端侧栏结构复核，不关闭 105 张画板像素级验收、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 51. 2026-08-30 Agent Planning 前端窗口装饰核验
+
+- [x] 对照 Figma 节点 `687:342` 重新检查 `/chat?state=planning`；当前前端保留 Planning 时间线、用户消息、规划卡和停止 Composer，浏览器视口为 `1440×1024`，字体状态为 `loaded`。
+- [x] 前端运行时 `windowControls=0`、`trafficLightColors=0`，没有发现需要删除的左上角红黄绿窗口装饰代码；Figma 参考稿保持不变。
+- [x] 当前截图与同尺寸 Figma PNG 的 diff 为 `18.2985% / RMSE 13.810469`，仍为 `DIFF_REVIEW`；头像、图标和字体光栅化差异不能用几何通过替代。
+- [ ] 本节只关闭 Agent Planning 的前端窗口装饰核验，不关闭 105 张画板像素级验收、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 52. 2026-08-30 Agent Tool Executing 前端窗口装饰核验
+
+- [x] 对照 Figma 节点 `687:475` 重新检查 `/chat?state=tool-executing`；当前前端保留工具执行卡、Trace 区和停止 Composer，浏览器视口为 `1440×1024`，字体状态为 `loaded`。
+- [x] 前端运行时 `windowControls=0`、`trafficLightColors=0`，没有发现需要删除的左上角红黄绿窗口装饰代码；Figma 参考稿保持不变。
+- [x] 当前截图与同尺寸 Figma PNG 的 diff 为 `22.7037% / RMSE 15.945549`，仍为 `DIFF_REVIEW`；头像、图标和字体光栅化差异不能用几何通过替代。
+- [ ] 本节只关闭 Agent Tool Executing 的前端窗口装饰核验，不关闭 105 张画板像素级验收、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 53. 2026-08-30 Agent Awaiting Clarification 前端窗口装饰核验
+
+- [x] 对照 Figma 节点 `687:642` 重新检查 `/chat?state=awaiting-clarification`；当前前端保留澄清卡、选项和可用 Composer，浏览器视口为 `1440×1024`，字体状态为 `loaded`。
+- [x] 前端运行时 `windowControls=0`、`trafficLightColors=0`，没有发现需要删除的左上角红黄绿窗口装饰代码；Figma 参考稿保持不变。
+- [x] 当前截图与同尺寸 Figma PNG 的 diff 为 `19.6004% / RMSE 14.802080`，仍为 `DIFF_REVIEW`；头像、图标和字体光栅化差异不能用几何通过替代。
+- [ ] 本节只关闭 Agent Awaiting Clarification 的前端窗口装饰核验，不关闭 105 张画板像素级验收、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 49. 2026-08-30 Agent User Cancelled 取消态前端几何收口
+
+- [x] 依据 Figma 节点 `687:1684`，取消态外层改为占满主对话内容区，提示条横向居中；助手行约束为 `608px`，助手气泡为 `560px`，提示条高度为 `30px`。只修改前端，未修改 Figma。
+- [x] 浏览器 `1440×1024` 实测助手行 `x=292,width=608`、气泡 `x=340,width=560`、提示条 `x=738.64,y=310,width=222.725,height=30`；`390×844` 下页面无横向溢出，左上角红黄绿窗口装饰候选均为 `0`，业务状态圆点保留。
+- [x] ChatPage 定向测试 `27/27` 通过；新证据已同步至 `figma-105-mapping.json`、`figma-105-diff-results.json` 和独立 diff JSON，结果改善为 `20.5685% / MAE 2.43150 / RMSE 14.50891`，但仍保持 `DIFF_REVIEW`。
+- [ ] 本项不关闭 105 张画板像素级 `PASS`、shadcn 全量迁移或 iconfont 实体资源登记；105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
+## 54. 2026-08-30 Agent Budget Limit 当前前端证据复核
+
+- [x] 对照 Figma 节点 `687:918` 复核 `/chat?state=budget-limit`；当前前端预算卡、选择说明区、Token 计量区和两个操作按钮的几何分别为 `286×289px`、`246×60px`、`246×27px`、`150×32px` / `84×32px`。
+- [x] 当前运行时确认 `50,000 tokens`、`100%`、预计费用、追加预算和结束会话均可见，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
+- [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `23.7866% / MAE 3.437230 / RMSE 17.809802 / maxChannelDelta 254`，实际 DPR `1.25` 不满足严格 DPR 1 门禁，因此继续记为 `DIFF_REVIEW`。
+- [ ] 本节只关闭预算上限页当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 55. 2026-08-30 Agent Tool Failed Retryable 当前前端证据复核
+
+- [x] 对照 Figma 节点 `687:1439` 复核 `/chat?state=tool-failed-retryable`；当前失败卡为 `560×160px`，说明区域为 `518.4×44px`，重试和跳过按钮为 `58×32px` / `97×32px`。
+- [x] 当前运行时确认工具超时、外部知识库不可用、错误码 `TOOL_TIMEOUT_001`、重试和跳过动作均可见，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
+- [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `24.3021% / MAE 3.098139 / RMSE 16.594073 / maxChannelDelta 253`，实际 DPR `1.25` 不满足严格 DPR 1 门禁，因此继续记为 `DIFF_REVIEW`。
+- [ ] 本节只关闭工具失败可重试页当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 56. 2026-08-30 Agent Safety Degraded 当前前端证据复核
+
+- [x] 对照 Figma 节点 `687:1563` 复核 `/chat?state=safety-degraded`；当前安全内容容器为 `612×211.1px`，警告带为 `560×58px`，回答区域为 `560×125.1px`。
+- [x] 当前运行时确认安全降级警告、有限数据范围、个人条件未完整应用提示和追问入口均可见，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
+- [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `25.4949% / MAE 3.213981 / RMSE 16.377636 / maxChannelDelta 255`，实际 DPR `1.25` 不满足严格 DPR 1 门禁，因此继续记为 `DIFF_REVIEW`。
+- [ ] 本节只关闭安全降级页当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 57. 2026-08-30 Agent User Cancelled 当前前端证据复核
+
+- [x] 对照 Figma 节点 `687:1684` 复核 `/chat?state=user-cancelled`；已接收部分文本、取消原因和重新开始入口均可见，取消态不显示为系统失败。
+- [x] 当前运行时视口为 `1440×1024`，字体状态为 `loaded`，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
+- [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `20.5035% / MAE 2.421603 / RMSE 14.507177 / maxChannelDelta 249`，实际 DPR `1.0000000149` 通过门禁，但整页视觉仍存在差异，因此继续记为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换到当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本节只关闭用户取消态当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 58. 2026-08-30 Agent SSE Reconnecting 当前前端证据复核
+
+- [x] 对照 Figma 节点 `687:1803` 复核 `/chat?state=sse-reconnecting`；当前页面保留已显示文本、显示第 `2/5` 次重连、刷新提示并禁用 Composer。
+- [x] 当前运行时视口为 `1440×1024`，字体状态为 `loaded`，页面无溢出；前端左上角红、黄、绿窗口装饰候选数量为 `0`，Figma 设计稿保持不变，业务状态圆点保留。
+- [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `22.9499% / MAE 2.769102 / RMSE 15.461383 / maxChannelDelta 249`，实际 DPR `1.0000000149` 通过门禁，但整页仍存在视觉差异，因此继续记为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换到当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本节只关闭 SSE 重连态当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 59. 2026-08-30 Agent Chat 助手消息背景收口
+
+- [x] 依据 Figma 节点 `640:428`，将 Figma fixture 的助手消息外层背景对齐为 `#f9fafb`；真实模式不受影响。
+- [x] Chat 与 Workspace 定向测试共 `38/38` 通过；浏览器 `1440×1024` 字体已加载、页面无横向溢出，前端左上角红黄绿窗口控制点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 已登记 RGBA 浏览器证据 `agent-chat-v2-assistant-surface-browser-2026-08-30-rgba.png` 和独立 diff `agent-chat-v2-assistant-surface-2026-08-30-diff.json`；结果为 `30.9938% / MAE 3.868814 / RMSE 19.521027 / maxChannelDelta 255`，继续记为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步本次证据，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。
+
+## 60. 2026-08-30 Agent Chat Composer 输入行背景收口
+
+- [x] 依据 Figma 节点 `640:428`，将 Figma fixture 的 Composer 输入行背景对齐为 `#fcfcfc`；真实模式仍使用原有 `--fm-bg-soft` fallback。
+- [x] Chat 与 Composer 定向测试共 `35/35` 通过；浏览器 `1440×1024` 字体已加载、页面无横向溢出，前端左上角红黄绿窗口控制点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 已登记 RGBA 浏览器证据 `agent-chat-v2-composer-surface-browser-2026-08-30-rgba.png` 和独立 diff `agent-chat-v2-composer-surface-2026-08-30-diff.json`；结果为 `27.8977% / MAE 3.693984 / RMSE 19.488887 / maxChannelDelta 255`，继续记为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步本次证据，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。

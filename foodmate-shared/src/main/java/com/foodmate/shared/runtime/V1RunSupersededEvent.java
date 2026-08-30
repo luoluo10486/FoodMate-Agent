@@ -2,6 +2,6 @@ package com.foodmate.shared.runtime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** Payload emitted when a waiting run is superseded by a continuation run. */
+/** 等待中的 AgentRun 被接续 AgentRun 替代时发出的载荷。 */
 public record V1RunSupersededEvent(
         @JsonProperty("superseded_by_run_id") String supersededByRunId) {}

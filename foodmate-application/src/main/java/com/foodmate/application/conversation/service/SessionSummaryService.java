@@ -1,6 +1,6 @@
 package com.foodmate.application.conversation.service;
 
-/** Maintains the versioned summary projection for a conversation. */
+/** 维护会话的版本化摘要投影。 */
 public interface SessionSummaryService {
     void maybeRefresh(long userId, long sessionId);
 

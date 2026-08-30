@@ -1,0 +1,27 @@
+{
+  "status": "DIFF_REVIEW",
+  "comparison": "COMPARED",
+  "figmaNodeId": "640:428",
+  "artboardName": "agent-chat-v2",
+  "frontendRoute": "/chat",
+  "queryState": "state=figma-v2",
+  "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
+  "browserPng": "recaptured/agent-chat-v2-assistant-wide-browser-2026-08-30.png",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 457274,
+  "differentRatio": 0.31010877821180555,
+  "meanAbsoluteError": 4.079166836208767,
+  "rmse": 19.384585333177114,
+  "maxChannelDelta": 255,
+  "actualDpr": 1.25,
+  "fonts": "loaded",
+  "assistantBody": {
+    "x": 340,
+    "width": 764
+  },
+  "windowControlsCandidates": 0,
+  "bodyOverflow": false,
+  "conclusion": "Figma fixture 桌面端助手内容区已对齐为 764px；字体已加载且页面无横向溢出。头像、图标、DPR 和其它页面渲染差异仍存在，继续保留 DIFF_REVIEW。"
+}

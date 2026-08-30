@@ -631,6 +631,15 @@
   background: var(--fm-bg-soft);
 }
 
+.designChatPage {
+  --fm-fixture-assistant-surface: #f9fafb;
+  --fm-fixture-composer-input-surface: #fcfcfc;
+}
+
+.designChatPage .assistant .messageBubble {
+  background: var(--fm-fixture-assistant-surface);
+}
+
 .assistant .messageText {
   font-family: var(--fm-font-mono);
   line-height: 1.5;
@@ -640,6 +649,32 @@
    monospace treatment scoped to source and trace text instead. */
 .designChatPage .assistant .messageText {
   font-family: var(--fm-font);
+}
+
+/* Figma node 640:428 lets the default assistant surface reach the trace
+   boundary; keep this geometry isolated from other chat fixtures. */
+.figmaDefaultPage .assistantBody {
+  width: 780px;
+  flex: 0 0 780px;
+}
+
+.figmaDefaultPage .assistant .messageBubble {
+  gap: 10px;
+  padding-right: 0;
+}
+
+.figmaDefaultPage .assistant .messageText {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.figmaDefaultPage .assistant .source {
+  margin-top: 1px;
+}
+
+.figmaDefaultPage .inlineConfirmation {
+  height: 143px;
+  border-color: #e8e8e8;
 }
 
 .designTracePanel .traceStepActive {
@@ -656,6 +691,13 @@
 
 .assistantBodyWide {
   width: min(764px, calc(100% - 48px));
+}
+
+@media (min-width: 721px) {
+  .assistantBodyWide {
+    width: min(764px, calc(100% - 32px));
+    flex: 0 0 min(764px, calc(100% - 32px));
+  }
 }
 
 .agentAvatar,
@@ -1101,6 +1143,30 @@
     width: min(560px, calc(100% - 48px));
   }
 
+  .figmaDefaultPage .assistantBody {
+    width: calc(100% - 48px);
+    flex: 0 1 auto;
+  }
+
+  .figmaDefaultPage .assistant .messageBubble {
+    gap: 12px;
+    padding-right: 16px;
+  }
+
+  .figmaDefaultPage .assistant .messageText {
+    overflow: visible;
+    white-space: pre-wrap;
+  }
+
+  .figmaDefaultPage .assistant .source {
+    margin-top: 0;
+  }
+
+  .figmaDefaultPage .inlineConfirmation {
+    height: auto;
+    min-height: 142px;
+  }
+
   .messageActions {
     width: 100%;
     height: auto;
@@ -1366,7 +1432,7 @@
   color: #c79654;
 }
 
-.fixtureBudgetTitle h2 {
+.fixtureAssistantRow .fixtureBudgetCard .fixtureBudgetTitleText {
   margin: 0;
   color: #c79654;
   font-size: 14px;
@@ -1410,6 +1476,7 @@
   width: 265px;
   height: 168px;
   flex: 0 0 168px;
+  background: #f4f6f5;
 }
 
 .fixtureWriteCard .fixtureMeta {
@@ -1742,7 +1809,7 @@
 
 .fixtureSafetyBlock {
   display: flex;
-  width: min(608px, 100%);
+  width: min(612px, 100%);
   flex-direction: column;
   gap: 6px;
 }
@@ -1811,6 +1878,10 @@
   gap: 6px;
 }
 
+.fixtureSafetyBodyAligned {
+  margin-left: 4px;
+}
+
 .fixtureSafetyResponse {
   display: flex;
   width: 100%;
@@ -1857,6 +1928,11 @@
   gap: 24px;
 }
 
+.fixtureCancelledWrapAligned {
+  width: 100%;
+  gap: 21px;
+}
+
 .fixtureReconnectWrap {
   display: flex;
   position: relative;
@@ -1885,6 +1961,10 @@
   align-items: flex-start;
   gap: 12px;
   opacity: 0.4;
+}
+
+.fixtureCancelledAssistantRowAligned {
+  width: min(608px, 100%);
 }
 
 .fixtureCancelledAssistantBody {
@@ -1963,6 +2043,13 @@
   line-height: normal;
 }
 
+.fixtureCancelledNoticeAligned {
+  box-sizing: border-box;
+  height: 30px;
+  padding: 0 16px;
+  line-height: 16px;
+}
+
 .fixtureCancelledNotice img {
   width: 14px;
   height: 14px;
@@ -1995,6 +2082,16 @@
 .fixtureReconnectNotice strong {
   color: #876e45;
   font-size: 13px;
+}
+
+.fixtureReconnectNoticeFigma {
+  border-color: #f97316;
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.fixtureReconnectNoticeFigma strong {
+  color: #c2410c;
 }
 
 .fixtureReconnectBottom .fixtureCenteredText {
@@ -2128,6 +2225,10 @@
 
   .fixtureSafetyBody {
     width: calc(100% - 48px);
+  }
+
+  .fixtureSafetyBodyAligned {
+    margin-left: 0;
   }
 }
 .fixtureAuxMessage {

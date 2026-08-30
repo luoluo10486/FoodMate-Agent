@@ -1,0 +1,26 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 375938,
+  "differentRatio": 0.2549492730034722,
+  "meanAbsoluteError": 3.2139806111653644,
+  "rmse": 16.37763610794674,
+  "maxChannelDelta": 255,
+  "expected": "../docxs/设计/figma-png/agent-safety-degraded.png",
+  "actual": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-current-browser-2026-08-30-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "dprPass": false,
+  "fonts": "loaded",
+  "bodyOverflow": false,
+  "textOverflowCount": 0,
+  "windowControls": 0,
+  "trafficLightColors": 0,
+  "geometry": {
+    "safetyContainer": "x=292,y=237,width=612,height=211.1",
+    "warningBanner": "x=344,y=237,width=560,height=58",
+    "response": "x=344,y=301,width=560,height=125.1"
+  }
+}

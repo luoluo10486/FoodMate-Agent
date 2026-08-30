@@ -1,0 +1,13 @@
+{
+  "status": "DIFF_REVIEW",
+  "comparison": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 303295,
+  "differentRatio": 0.2056850857204861,
+  "meanAbsoluteError": 2.4314999050564237,
+  "rmse": 14.508906538301723,
+  "maxChannelDelta": 249,
+  "manualReview": "VISUAL_DIFFERENCES_CONFIRMED: 取消态保留已接收文本、取消原因和重新开始入口；主对话区、助手行、气泡和提示条已按本轮几何证据对齐，移动端无页面级横向溢出，左上角红黄绿窗口控制点为 0。整页字体、图标和共享工作台组合仍存在差异，不能标记 PASS。"
+}

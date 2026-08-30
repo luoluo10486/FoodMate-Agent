@@ -7,7 +7,7 @@ import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
-/** PostgreSQL adapter for the approved SQL Schema Catalog. */
+/** 已批准 SQL Schema Catalog 的 PostgreSQL 适配器。 */
 @Repository
 @Profile("local")
 public class SqlSchemaCatalogRepositoryAdapter implements SqlSchemaCatalogRepository {

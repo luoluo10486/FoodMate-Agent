@@ -17,7 +17,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-/** HTTP adapter for the Runtime-owned public knowledge index. */
+/** Runtime 负责的公共知识索引 HTTP 适配器。 */
 public final class V1HttpKnowledgeSearchClient implements KnowledgeSearchPort {
     private static final String PUBLIC_SCOPE = "public_published";
 

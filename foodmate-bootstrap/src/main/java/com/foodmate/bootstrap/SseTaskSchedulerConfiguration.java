@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
-/** Provides one bounded scheduler for all server-sent event polling tasks. */
+/** 为所有 Server-Sent Event 轮询任务提供统一的有界调度器。 */
 @Configuration
 public class SseTaskSchedulerConfiguration {
     @Bean

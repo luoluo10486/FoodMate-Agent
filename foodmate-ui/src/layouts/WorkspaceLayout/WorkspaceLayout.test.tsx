@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { WorkspaceLayout } from './WorkspaceLayout';
+import styles from './WorkspaceLayout.module.css';
 
 describe('WorkspaceLayout shell controls', () => {
   it('renders shell actions through the shared shadcn Button primitive', () => {
@@ -81,6 +84,51 @@ describe('WorkspaceLayout shell controls', () => {
     expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
   });
 
+  it('uses the Figma selection surface colors for the design chat fixture', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <WorkspaceLayout
+          activeModule="chat"
+          designChat
+          showKnowledgeTopNav={false}
+          sidebarFixture={{
+            sessions: [{ id: 'session-1', title: '本周饮食分析', subtitle: '今天 12:45', active: true }],
+          }}
+        >
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const shell = container.querySelector(`.${styles.designChat}`);
+    const activeSection = container.querySelector('.sidebar-session-section-title.active');
+    const activeSession = container.querySelector('.sidebar-session-list-item.active');
+
+    expect(shell).toBeInTheDocument();
+    expect(activeSection).toBeInTheDocument();
+    expect(activeSession).toBeInTheDocument();
+    const stylesheet = readFileSync(
+      resolve(process.cwd(), 'src/layouts/WorkspaceLayout/WorkspaceLayout.module.css'),
+      'utf8',
+    );
+    expect(stylesheet).toContain('--fm-fixture-sidebar-active-surface: #fbf7f2;');
+    expect(stylesheet).toContain('--fm-fixture-session-active-surface: #fffcf9;');
+    expect(stylesheet).toContain('--fm-fixture-top-nav-active-surface: #fffefc;');
+    expect(stylesheet).not.toContain('--fm-fixture-sidebar-active-surface: rgba(199, 150, 84, 0.08);');
+    expect(stylesheet).not.toContain('--fm-fixture-session-active-surface: rgba(255, 246, 226, 0.2);');
+    expect(stylesheet).not.toContain('--fm-fixture-top-nav-active-surface: #fffefa;');
+  });
+
+  it('uses the Figma green token for design chat brand and agent marks', () => {
+    const stylesheet = readFileSync(
+      resolve(process.cwd(), 'src/layouts/WorkspaceLayout/WorkspaceLayout.module.css'),
+      'utf8',
+    );
+
+    expect(stylesheet).toContain('.designChat {');
+    expect(stylesheet).toContain('--fm-green: #4caf50;');
+  });
+
   it('allows a page to hide only the topbar mark letter while keeping its top navigation', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/knowledge']}>
@@ -106,5 +154,30 @@ describe('WorkspaceLayout shell controls', () => {
 
     expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
     expect(container.innerHTML).not.toMatch(/window-controls|traffic-light|#ff3b30|#ffcc00|#34c759/i);
+  });
+
+  it('supports the Profile Figma sidebar composition without search or collapse controls', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/profile?state=basic']}>
+        <WorkspaceLayout
+          activeModule="profile"
+          profileActiveTab="basic"
+          showKnowledgeTopNav
+          sidebarFixture={{
+            sessions: [],
+            showTopStatus: true,
+            hideSessionSearch: true,
+            hideCollapseButton: true,
+          }}
+        >
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('在线代理')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '收起导航' })).not.toBeInTheDocument();
+    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
   });
 });

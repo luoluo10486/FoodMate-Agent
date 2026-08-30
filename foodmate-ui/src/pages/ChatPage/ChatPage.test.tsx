@@ -8,9 +8,12 @@
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { useEffect, useState } from 'react';
 import { describe, it, expect } from 'vitest';
 import { ChatPage } from './ChatPage';
+import styles from './ChatPage.module.css';
 
 function renderChatState(state: string) {
   render(
@@ -128,6 +131,37 @@ describe('ChatPage Figma 默认状态', () => {
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
   });
+
+  it('uses the full-width assistant surface for the Figma default response', () => {
+    render(
+      <MemoryRouter initialEntries={['/chat?state=figma-v2']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const assistantBody = document.querySelector(`[class*="${styles.assistantBody}"]`);
+    expect(assistantBody).toHaveClass(styles.assistantBodyWide);
+  });
+
+  it('uses the Figma neutral surface for the assistant message body', () => {
+    const stylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
+
+    expect(stylesheet).toContain('.designChatPage .assistant .messageBubble');
+    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f9fafb;');
+  });
+
+  it('uses the Figma surface for the Composer input row in the fixture', () => {
+    const pageStylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
+    const composerStylesheet = readFileSync(
+      resolve(process.cwd(), 'src/components/workspace/Composer.module.css'),
+      'utf8',
+    );
+
+    expect(pageStylesheet).toContain('--fm-fixture-composer-input-surface: #fcfcfc;');
+    expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
+  });
 });
 
 describe('ChatPage Figma Planning 状态', () => {
@@ -223,6 +257,8 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
     const writeCard = document.querySelector('[class*="fixtureWriteCard"]');
     expect(writeCard).toBeInTheDocument();
+    const writeDetails = document.querySelector('[class*="fixtureWriteCard"] [class*="fixtureDetails"]');
+    expect(writeDetails).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '确认写入' }).querySelector('svg')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '取消' }).querySelector('svg')).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
@@ -232,7 +268,7 @@ describe('ChatPage Agent remaining states', () => {
 
   it('renders budget limit choices and keeps the current Run action explicit', () => {
     renderState('budget-limit');
-    expect(screen.getByRole('heading', { name: '已达到预算上限' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '已达到预算上限' })).toHaveClass(styles.fixtureBudgetTitleText);
     expect(screen.getByText(/我已在后台调用历史数据解析服务/)).toBeInTheDocument();
     expect(screen.getByText('Token 用量 (100%)')).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: '预算用量 100%' })).toHaveAttribute('aria-valuenow', '100');
@@ -269,6 +305,7 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText(/\*\*清蒸鳕鱼配西兰花\*\*/)).toBeInTheDocument();
     expect(screen.getByText(/未结合您的个人高血压排除条件/)).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('由于部分工具不可用');
+    expect(document.querySelector('[class*="fixtureSafetyBody"]')).toHaveClass(styles.fixtureSafetyBodyAligned);
     expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeEnabled();
   });
 
@@ -276,6 +313,11 @@ describe('ChatPage Agent remaining states', () => {
     renderState('user-cancelled');
     expect(screen.getByText(/用户已取消此次运行/)).toBeInTheDocument();
     expect(screen.queryByText(/运行失败/)).not.toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureCancelledWrap"]')).toHaveClass('fixtureCancelledWrapAligned');
+    expect(document.querySelector('[class*="fixtureCancelledAssistantRow"]')).toHaveClass(
+      'fixtureCancelledAssistantRowAligned',
+    );
+    expect(document.querySelector('[class*="fixtureCancelledNotice"]')).toHaveClass('fixtureCancelledNoticeAligned');
     const statusItems = screen.getAllByRole('listitem').map((item) => item.textContent);
     expect(statusItems).toContain('Planning●');
     expect(statusItems).toContain('Retrieving○');
@@ -292,6 +334,8 @@ describe('ChatPage Agent remaining states', () => {
 
   it('renders the bounded SSE reconnect notice while preserving the composer state', () => {
     renderState('sse-reconnecting');
+    expect(screen.getByText('Anddy · 03:00 PM')).toBeInTheDocument();
+    expect(document.querySelector('[class*="fixtureReconnectNotice"]')).toHaveClass(styles.fixtureReconnectNoticeFigma);
     expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();
@@ -422,8 +466,8 @@ describe('ChatPage Figma navigation fixtures', () => {
     expect(screen.getByText('查询扩展')).toBeInTheDocument();
     expect(screen.queryByText('查询扩展 (Query Expansion)')).not.toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '消息操作' })).toBeInTheDocument();
-    expect(screen.getByText(/右侧面板：运行 · 工具 · 引用/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '消息操作' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/右侧面板：运行 · 工具 · 引用/)).not.toBeInTheDocument();
   });
 
   it.each(['nav-loading', 'nav-hover-preview', 'pagination'])(
@@ -445,6 +489,6 @@ describe('ChatPage Figma running-stop fixture', () => {
     expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
     expect(screen.getByText('响应合成')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '停止生成' })).toBeEnabled();
-    expect(screen.getByText('消息操作')).toBeInTheDocument();
+    expect(screen.queryByText('消息操作')).not.toBeInTheDocument();
   });
 });

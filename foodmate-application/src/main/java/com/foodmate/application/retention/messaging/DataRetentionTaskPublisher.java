@@ -25,6 +25,7 @@ public class DataRetentionTaskPublisher {
     private final DataRetentionDatabasePurgePort databasePurge;
     private final ObjectMapper mapper;
     private final boolean enabled;
+    private final boolean backupVerified;
     private final boolean rocketMq;
     private final String bucket;
 
@@ -42,7 +43,8 @@ public class DataRetentionTaskPublisher {
                 (DataRetentionDatabasePurgePort) null,
                 enabled,
                 transport,
-                bucket);
+                bucket,
+                false);
     }
 
     /** 供直接提供数据库清理端口的业务测试使用的构造方法。 */
@@ -54,12 +56,50 @@ public class DataRetentionTaskPublisher {
             boolean enabled,
             String transport,
             String bucket) {
+        this(service, storage, publisher, databasePurge, enabled, transport, bucket, false);
+    }
+
+    /** 供不需要数据库清理端口的显式备份校验测试使用的构造方法。 */
+    public DataRetentionTaskPublisher(
+            DataRetentionDeliveryService service,
+            ObjectProvider<ObjectStoragePort> storage,
+            ObjectProvider<MessagePublisherPort> publisher,
+            boolean enabled,
+            String transport,
+            String bucket,
+            boolean backupVerified) {
+        this(
+                service,
+                storage,
+                publisher,
+                (DataRetentionDatabasePurgePort) null,
+                enabled,
+                transport,
+                bucket,
+                backupVerified);
+    }
+
+    /**
+     * 构造清理执行器；硬删除必须同时具备显式备份校验事实。
+     *
+     * @param backupVerified 是否已由受控备份流程验证可恢复
+     */
+    public DataRetentionTaskPublisher(
+            DataRetentionDeliveryService service,
+            ObjectProvider<ObjectStoragePort> storage,
+            ObjectProvider<MessagePublisherPort> publisher,
+            DataRetentionDatabasePurgePort databasePurge,
+            boolean enabled,
+            String transport,
+            String bucket,
+            boolean backupVerified) {
         this.service = service;
         this.storage = storage.getIfAvailable();
         this.publisher = publisher.getIfAvailable();
         this.databasePurge = databasePurge;
         this.mapper = new ObjectMapper();
         this.enabled = enabled;
+        this.backupVerified = backupVerified;
         this.rocketMq = "rocketmq".equals(transport);
         this.bucket = requireBucket(bucket);
     }
@@ -72,7 +112,9 @@ public class DataRetentionTaskPublisher {
             ObjectProvider<DataRetentionDatabasePurgePort> databasePurge,
             @Value("${foodmate.retention.execution.enabled:false}") boolean enabled,
             @Value("${foodmate.runtime.transport:http}") String transport,
-            @Value("${foodmate.storage.bucket:foodmate-private}") String bucket) {
+            @Value("${foodmate.storage.bucket:foodmate-private}") String bucket,
+            @Value("${foodmate.retention.execution.backup-verified:false}")
+                    boolean backupVerified) {
         this(
                 service,
                 storage,
@@ -80,12 +122,13 @@ public class DataRetentionTaskPublisher {
                 databasePurge.getIfAvailable(),
                 enabled,
                 transport,
-                bucket);
+                bucket,
+                backupVerified);
     }
 
     @Scheduled(fixedDelayString = "${foodmate.retention.execution-poll-ms:1000}")
     public void publishPending() {
-        if (!enabled) return;
+        if (!enabled || !backupVerified) return;
         for (PurgeTaskSnapshot task : service.pending(20)) {
             if (!task.hardDeleteEnabled()) continue;
             String owner = "retention_" + UUID.randomUUID();

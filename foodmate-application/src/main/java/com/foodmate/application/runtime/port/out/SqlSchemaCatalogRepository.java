@@ -2,7 +2,7 @@ package com.foodmate.application.runtime.port.out;
 
 import java.util.List;
 
-/** Provides the approved, non-secret SQL catalog from the persistence boundary. */
+/** 从持久化边界提供已批准且不含密钥的 SQL Catalog。 */
 public interface SqlSchemaCatalogRepository {
     List<CatalogField> findActiveFields(long datasourceId);
 

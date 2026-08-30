@@ -418,15 +418,18 @@
   font-size: 14px;
   font-weight: 500;
 }
+
 .statusPanel p {
   margin: 6px 0 0;
   color: var(--fm-muted);
   font-size: 11px;
   line-height: 1.45;
 }
+
 .statusPanel .statusGreen {
   color: #70a867;
 }
+
 .statusPanel .statusMuted {
   color: #9ca3af;
 }
@@ -507,6 +510,7 @@
     height: auto;
     min-height: auto;
   }
+
   .statusPanel {
     margin-top: 24px;
   }

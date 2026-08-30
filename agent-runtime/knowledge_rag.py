@@ -12,6 +12,7 @@ import json
 import math
 import os
 import re
+import ssl
 import urllib.error
 import urllib.request
 import io
@@ -82,6 +83,19 @@ class RagSettings:
         )
         return "idx_" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:32]
 
+    @property
+    def index_fingerprint(self) -> str:
+        """返回用于阻止 Milvus 混写的、不包含凭据的 embedding 身份。"""
+        identity = "\x1f".join(
+            (
+                self.mode,
+                self.embedding_provider,
+                self.embedding_profile,
+                self.embedding_model,
+            )
+        )
+        return "rag_" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:32]
+
     @classmethod
     def from_environment(cls, environment: dict[str, str] | None = None) -> "RagSettings":
         env = environment if environment is not None else os.environ
@@ -134,6 +148,10 @@ class RagSettings:
             embedding_api_key = env.get("FOODMATE_RAG_EMBEDDING_API_KEY", "").strip()
             milvus_uri = env.get("FOODMATE_RAG_MILVUS_URI", "").strip()
             milvus_collection = env.get("FOODMATE_RAG_MILVUS_COLLECTION", "").strip()
+            if provider == "deterministic":
+                # 确定性模式不保留任何付费 provider 凭据，避免后续适配器误用。
+                embedding_base_url = ""
+                embedding_api_key = ""
         settings = cls(
             mode=mode,
             embedding_provider=provider,
@@ -305,6 +323,7 @@ class EmbeddingResult:
     vectors: list[list[float]]
     token_count: int | None = None
     provider_request_id: str | None = None
+    provider_trace_id: str | None = None
 
 
 def chunk_markdown(text: str, document_id: str, version: str, max_chars: int = 900) -> list[KnowledgeChunk]:
@@ -506,19 +525,40 @@ class OpenAICompatibleEmbedder:
         if not inputs or any(not isinstance(value, str) or not value.strip() for value in inputs):
             raise RagError("RAG_EMBEDDING_INVALID_INPUT", "embedding input must not be empty")
         request = urllib.request.Request(
-            self._url(), data=json.dumps({"model": self.settings.embedding_model, "input": inputs}).encode("utf-8"), method="POST",
+            self._url(),
+            data=json.dumps(
+                {
+                    "model": self.settings.embedding_model,
+                    "input": inputs,
+                    "encoding_format": "float",
+                }
+            ).encode("utf-8"),
+            method="POST",
             headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.settings.embedding_api_key},
         )
+        provider_trace_id_raw = None
         try:
             with urllib.request.urlopen(request, timeout=self.settings.timeout_seconds) as response:
                 raw_payload = response.read()
+                provider_trace_id_raw = _response_header(response, "x-siliconcloud-trace-id")
             payload = json.loads(raw_payload.decode("utf-8"))
         except urllib.error.HTTPError as error:
             raise RagError(
                 _embedding_http_error_code(error.code),
                 _embedding_http_error_message(error.code),
             ) from error
-        except (urllib.error.URLError, TimeoutError) as error:
+        except urllib.error.URLError as error:
+            if isinstance(error.reason, ssl.SSLError):
+                raise RagError(
+                    "RAG_EMBEDDING_TLS_ERROR",
+                    "embedding endpoint TLS handshake failed",
+                ) from error
+            raise RagError("RAG_EMBEDDING_UNAVAILABLE", "embedding endpoint is unavailable") from error
+        except ssl.SSLError as error:
+            raise RagError(
+                "RAG_EMBEDDING_TLS_ERROR", "embedding endpoint TLS handshake failed"
+            ) from error
+        except TimeoutError as error:
             raise RagError("RAG_EMBEDDING_UNAVAILABLE", "embedding endpoint is unavailable") from error
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
@@ -545,6 +585,7 @@ class OpenAICompatibleEmbedder:
             vectors = [list(map(float, vector)) for _, vector in sorted(indexed)]
             token_count = _embedding_token_count(payload.get("usage"))
             provider_request_id = _optional_response_id(payload.get("id"))
+            provider_trace_id = _optional_response_id(provider_trace_id_raw)
         except (KeyError, TypeError, ValueError) as error:
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error
         dimension = len(vectors[0]) if vectors else 0
@@ -559,7 +600,7 @@ class OpenAICompatibleEmbedder:
             )
         ):
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "embedding count or values are invalid")
-        return EmbeddingResult(vectors, token_count, provider_request_id)
+        return EmbeddingResult(vectors, token_count, provider_request_id, provider_trace_id)
 
     def _url(self) -> str:
         return self.settings.embedding_base_url if self.settings.embedding_base_url.endswith("/embeddings") else self.settings.embedding_base_url.rstrip("/") + "/embeddings"
@@ -614,6 +655,20 @@ def _optional_response_id(value: object) -> str | None:
     if not isinstance(value, str) or not value.strip() or len(value) > 256:
         raise ValueError("embedding response id is invalid")
     return value.strip()
+
+
+def _response_header(response: object, name: str) -> object:
+    """读取供应商响应头，不把响应对象或正文带入业务事实。"""
+    headers = getattr(response, "headers", None)
+    getter = getattr(headers, "get", None)
+    if callable(getter):
+        value = getter(name)
+        if value is None:
+            value = getter(name.lower())
+        if value is not None:
+            return value
+    getheader = getattr(response, "getheader", None)
+    return getheader(name) if callable(getheader) else None
 
 
 class DeterministicEmbedder:
@@ -775,6 +830,7 @@ class MilvusIndex:
         except Exception as error:
             raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus is unavailable") from error
         self.collection = settings.milvus_collection
+        self.index_fingerprint = settings.index_fingerprint
 
     def _ensure_collection(self, dimension: int) -> None:
         try:
@@ -797,10 +853,42 @@ class MilvusIndex:
             actual = (vector or {}).get("params", {}).get("dim") or (vector or {}).get("params", {}).get("dimension")
             if actual is not None and int(actual) != dimension:
                 raise RagError("RAG_MILVUS_DIMENSION_MISMATCH", "Milvus vector dimension does not match embedding model")
+            self._verify_collection_identity()
         except RagError:
             raise
         except Exception as error:
             raise RagError("RAG_MILVUS_UNAVAILABLE", "Milvus collection is unavailable") from error
+
+    def _verify_collection_identity(self) -> None:
+        """拒绝把不同 embedding 模式或模型写入同一个已有 collection。"""
+        expected = getattr(self, "index_fingerprint", "")
+        if not expected:
+            return
+        try:
+            rows = self.client.query(
+                collection_name=self.collection,
+                filter="",
+                output_fields=["embedding_id", "embedding_fingerprint"],
+                limit=1,
+            )
+        except Exception as error:
+            raise RagError(
+                "RAG_MILVUS_METADATA_UNAVAILABLE",
+                "Milvus embedding identity metadata is unavailable",
+            ) from error
+        if not rows:
+            return
+        actual = str(rows[0].get("embedding_fingerprint", "")).strip()
+        if not actual:
+            raise RagError(
+                "RAG_MILVUS_MODEL_MISMATCH",
+                "Milvus collection has no embedding identity metadata",
+            )
+        if actual != expected:
+            raise RagError(
+                "RAG_MILVUS_MODEL_MISMATCH",
+                "Milvus collection embedding identity does not match the configured provider",
+            )
 
     def upsert(self, title: str, chunks: Iterable[KnowledgeChunk], vectors: list[list[float]]) -> None:
         chunks = list(chunks)
@@ -809,7 +897,7 @@ class MilvusIndex:
         self._ensure_collection(len(vectors[0]))
         rows = []
         for chunk, vector in zip(chunks, vectors, strict=True):
-            rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted, "current_version": chunk.current_version})
+            rows.append({"embedding_id": chunk.embedding_id, "vector": vector, "embedding_fingerprint": getattr(self, "index_fingerprint", ""), "document_id": chunk.document_id, "title": title, "version": chunk.version, "section_path": chunk.section_path, "text": chunk.text, "tenant_id": 0, "scope": PUBLIC_SCOPE, "visibility": chunk.visibility, "indexed": chunk.indexed, "deleted": chunk.deleted, "current_version": chunk.current_version})
         try:
             self.client.upsert(collection_name=self.collection, data=rows)
             self._flush()
@@ -823,7 +911,7 @@ class MilvusIndex:
             if not self.client.has_collection(self.collection):
                 return
             version_filter = "" if version is None else f' and version == "{_milvus_string(version)}"'
-            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{_milvus_string(document_id)}"{version_filter}', output_fields=["embedding_id", "vector", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted", "current_version"])
+            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{_milvus_string(document_id)}"{version_filter}', output_fields=["embedding_id", "vector", "embedding_fingerprint", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted", "current_version"])
             for row in rows:
                 row["visibility"] = visibility
                 row["deleted"] = deleted
@@ -867,13 +955,16 @@ class MilvusIndex:
         vectors = embedder.embed([query])
         self._ensure_collection(len(vectors[0]))
         try:
+            identity_filter = ""
+            if getattr(self, "index_fingerprint", ""):
+                identity_filter = f' and embedding_fingerprint == "{_milvus_string(self.index_fingerprint)}"'
             hits = self.client.search(
                 collection_name=self.collection,
                 data=vectors,
                 anns_field="vector",
-                filter='tenant_id == 0 and scope == "public_published" and visibility == "published" and indexed == true and deleted == false and current_version == true',
+                filter='tenant_id == 0 and scope == "public_published" and visibility == "published" and indexed == true and deleted == false and current_version == true' + identity_filter,
                 limit=12,
-                output_fields=["embedding_id", "document_id", "title", "version", "section_path", "text", "current_version"],
+                output_fields=["embedding_id", "document_id", "title", "version", "section_path", "text", "current_version", "embedding_fingerprint"],
             )[0]
         except Exception as error:
             raise RagError("RAG_MILVUS_SEARCH_FAILED", "Milvus search failed") from error

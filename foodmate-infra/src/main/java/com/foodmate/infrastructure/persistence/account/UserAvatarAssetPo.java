@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.foodmate.infrastructure.persistence.BasePo;
 
-/** Object-storage metadata for a user's avatar; image bytes stay outside PostgreSQL. */
+/** 用户头像的对象存储元数据，图片字节保留在 PostgreSQL 之外。 */
 @TableName("user_avatar_assets")
 public class UserAvatarAssetPo extends BasePo {
     @TableId("avatar_asset_id")

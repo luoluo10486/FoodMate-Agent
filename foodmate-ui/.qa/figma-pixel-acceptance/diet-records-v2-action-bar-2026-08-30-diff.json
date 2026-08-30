@@ -1,0 +1,33 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 527661,
+  "differentRatio": 0.357843017578125,
+  "meanAbsoluteError": 2.681890360514323,
+  "rmse": 15.511047959829156,
+  "maxChannelDelta": 234,
+  "expected": "recaptured-figma/diet-records-v2-live-2026-08-27.png",
+  "actual": "recaptured/diet-records-v2-action-bar-browser-2026-08-30-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "dprPass": false,
+  "geometry": {
+    "desktopActionBar": "x=292,y=640,width=1116,height=48",
+    "desktopLogMealButton": "x=292,y=644,width=140,height=40",
+    "desktopAnalyzeButton": "x=448,y=644,width=164,height=40",
+    "detailPanelRendered": false,
+    "bodyHorizontalOverflow": false,
+    "fonts": "loaded",
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据 Figma 节点 640:588，让 diet-records-v2 默认 fixture 显示记录一餐/分析这一天操作栏，并隐藏 Figma 画板中不存在的额外记录详情面板；仅修改前端，未修改 Figma。",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-30",
+    "conclusion": "The Figma fixture now renders the action bar below the meal cards and omits the extra record-detail panel. Geometry and overflow checks pass, but the strict DPR 1 gate is not met and residual font, icon, avatar and workspace differences remain; retain DIFF_REVIEW."
+  },
+  "conclusion": "DIFF_REVIEW"
+}

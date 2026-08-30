@@ -66,6 +66,24 @@ class EvalMetricsTests(unittest.TestCase):
         self.assertEqual(4, snapshot["queues"]["dispatch_pending"])
         self.assertEqual(2, snapshot["queues"]["dispatch_leased"])
 
+    def test_runtime_metrics_aggregates_model_attempts_without_dynamic_labels(self):
+        metrics = RuntimeMetrics(transport="rocketmq")
+
+        metrics.record_model_attempt("composer", "success", None, 12)
+        metrics.record_model_attempt("eval", "timeout", "MODEL_TIMEOUT", 24)
+        metrics.record_model_attempt("composer", "failed", "MODEL_PRICE_UNCONFIGURED", 36)
+
+        snapshot = metrics.snapshot()
+
+        self.assertEqual(2, snapshot["operations"]["model"]["total"])
+        self.assertEqual(1, snapshot["operations"]["model"]["result:success"])
+        self.assertEqual(1, snapshot["operations"]["model"]["result:failed"])
+        self.assertEqual(1, snapshot["operations"]["model"]["reason:provider_error"])
+        self.assertEqual(1, snapshot["operations"]["model"]["reason:none"])
+        self.assertEqual(1, snapshot["operations"]["eval"]["reason:timeout"])
+        self.assertNotIn("MODEL_PRICE_UNCONFIGURED", snapshot["operations"]["model"])
+        self.assertEqual(36, snapshot["operations"]["model"]["p99_latency_ms"])
+
 
 if __name__ == "__main__":
     unittest.main()

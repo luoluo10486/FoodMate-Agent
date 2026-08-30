@@ -1,0 +1,27 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "687:773",
+  "artboardName": "agent-write-confirmation",
+  "frontendRoute": "/chat?state=write-confirmation",
+  "figmaPng": "recaptured-figma/agent-write-confirmation-2026-08-29.png",
+  "browserPng": "recaptured/agent-write-confirmation-compact-browser-2026-08-30-rgba.png",
+  "browserCapture": "recaptured/agent-write-confirmation-compact-browser-2026-08-30.jpg",
+  "viewport": "1440x1024",
+  "cardGeometry": {
+    "x": 340,
+    "y": 237,
+    "width": 305,
+    "height": 319,
+    "detailsWidth": 265,
+    "detailsHeight": 168
+  },
+  "differentPixels": 247917,
+  "pixelCount": 1474560,
+  "differentRatio": 0.16812947591145833,
+  "meanAbsoluteError": 1.8448699951171874,
+  "rmse": 13.046592164162325,
+  "maxChannelDelta": 232,
+  "conclusion": "DIFF_REVIEW",
+  "generatedBy": "scripts/png-diff.mjs",
+  "generatedAt": "2026-08-30"
+}

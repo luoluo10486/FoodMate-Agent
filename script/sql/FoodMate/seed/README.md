@@ -2,6 +2,8 @@
 
 本目录存放人工评审后的营养目录数据，不由 Java 启动自动执行，也不由 Flyway 自动执行。
 
+截至 2026-08-30，当前本地数据库已通过 validation 核验 48 条 `approved` 食材、48 条 USDA `foodPortions` 食材级换算规则，以及 75 条 `kg/mg/lb -> g` 精确质量换算。下面的 V1/V2/V4/V5/V6/V7 说明分别对应各自 seed 的增量范围，不应将单个脚本的行数误读为当前目录总量。
+
 ## V1
 
 `V1__nutrition_usda_seed.sql` 首批导入 5 条 USDA FoodData Central `SR Legacy` 数据：米饭、鸡胸肉、鸡蛋、三文鱼和苹果。所有数值都是每 100g 基准值，来源版本和 FDC ID 写入 `nutrition_foods.source_version`，并以 `approved` 状态供 Java 匹配。
@@ -57,5 +59,9 @@ corresponding read-only checks are in
 7. 如需扩展营养目录，人工执行 `V4__nutrition_usda_extended_seed.sql`，再执行对应 validation，确认 11 条食材和 11 条换算均为 `approved` 且来源版本包含 FDC ID/portion 序号。
 
 8. 如需导入第二批常见食材，人工执行 `V5__nutrition_usda_common_foods_seed.sql`，再执行对应 validation，确认 9 条食材和 9 条换算均为 `approved` 且来源版本包含 FDC ID/portion 序号。
+
+9. 如需启用无密度推断的质量单位，人工执行 `V6__nutrition_mass_unit_seed.sql`，再执行 `validation/V6__nutrition_mass_unit_seed_validation.sql`。该 seed 为现有克基准食材增加 `kg`、`mg` 和 `lb` 到 `g` 的精确换算；`oz` 仍使用食材级 USDA 规则，不由本 seed 覆盖。
+
+10. 如需导入官方目录扩展，人工执行 `V7__nutrition_usda_directory_expansion_seed.sql`，再执行 `validation/V7__nutrition_usda_directory_expansion_validation.sql`，确认 23 条食材和 23 条换算均为 `approved`、来源版本包含 FDC ID/portion 序号、关联食材无缺失且规则形状错误为 `0`。V7 覆盖水果、蔬菜、谷物、坚果、鱼肉和禽畜肉等常用食材，所有份量均来自对应 USDA `food_portion` 记录；3 oz 规则仅按原始 85 g 归一化为每 oz 28.3333 g。
 
 seed 可重复执行：相同 `nutrition_food_id` 会被跳过；如果同一标准名称已被其他 ID 占用，SQL 会失败，必须先做数据评审，不得静默覆盖目录。

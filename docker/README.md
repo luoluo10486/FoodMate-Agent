@@ -36,6 +36,7 @@ docker compose --env-file .env -f docker/compose.yml down
 ```powershell
 docker compose --env-file .env -f docker/compose.yml up -d --build foodmate agent-runtime
 docker compose --env-file .env -f docker/compose.yml ps foodmate agent-runtime
+docker compose --env-file .env -f docker/compose.yml logs -f agent-runtime
 ```
 
 Java 容器使用 `local` profile，Python 容器默认使用 Redis-backed `stub` 索引；两者都只使用 deterministic 本地逻辑，不调用付费模型或 embedding 服务。应用容器不会自动执行 `script/sql/FoodMate` 迁移，迁移必须按版本人工执行并记录。
@@ -47,16 +48,26 @@ Invoke-WebRequest http://localhost:8080/actuator/health/readiness
 Invoke-WebRequest http://localhost:9002/foodmate/internal/health/ready
 ```
 
-Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。Compose 默认将四档 Agent 模型路由设为 `deterministic:local`；需要真实 Chat 时，在被忽略的根目录 `.env` 中显式设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD/HIGH/EVAL=siliconflow:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_SILICONFLOW_*` 端点、API Key 和已审计价格配置。也可以使用已有的 `cloud_primary` 通用 provider 映射。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
+Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。Compose 默认将四档 Agent 模型路由设为 `deterministic:local`；需要真实 Chat 时，在被忽略的根目录 `.env` 中显式设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD/HIGH/EVAL=cloud_primary:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_*` 端点、API Key 和已审计价格配置。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
 
-应用容器不会自动执行数据库迁移。启动前应确认 V16-V25 已按 `script/sql/FoodMate` 的顺序实际执行，启动后再检查 Java 和 Python readiness，以及应用日志中的 Outbox/Worker 状态。停止时使用 `docker compose ... down` 保留数据卷，除非明确需要销毁本地卷并另行确认。
+应用容器不会自动执行数据库迁移。启动前应确认 V16-V29 已按 `script/sql/FoodMate` 的顺序实际执行，启动后再检查 Java 和 Python readiness，以及应用日志中的 Outbox/Worker 状态。修改 Python 源码后必须重新执行 `up -d --build agent-runtime`，仅重启不会更新镜像内容。停止时使用 `docker compose ... down` 保留数据卷，除非明确需要销毁本地卷并另行确认。
+
+### M3 清理执行门禁
+
+数据库、对象和向量硬删除由 Java 清理执行器负责，但必须同时满足策略表的
+`hard_delete_enabled=true`、`FOODMATE_RETENTION_EXECUTION_ENABLED=true` 和
+`FOODMATE_RETENTION_EXECUTION_BACKUP_VERIFIED=true`。最后一个开关只能在
+`script/sql/FoodMate/backup-restore.ps1` 完成非生产本地数据库备份、隔离库恢复和
+`validation.sql` 校验后设置；默认值为 `false`。未完成备份证明时，执行器不会领取
+任何清理任务。修改开关后使用 `up -d --force-recreate foodmate`，不要只执行
+`restart`。
 
 ## M2-1 RAG
 
-默认 `FOODMATE_RAG_MODE=stub`，只使用 Redis 隔离前缀保存确定性关键词索引，不连接 Milvus，也不读取 embedding API Key。
+默认 `FOODMATE_DOCKER_RAG_MODE=stub`，只使用 Redis 隔离前缀保存确定性关键词索引，不连接 Milvus，也不读取 embedding API Key。Docker Compose 宿主侧统一使用 `FOODMATE_DOCKER_RAG_*`，避免根目录 `.env` 中的非 Docker 配置意外进入容器。
 
-需要验证向量索引业务路径时，使用 `FOODMATE_RAG_MODE=local` 和
-`FOODMATE_RAG_EMBEDDING_PROVIDER=deterministic`。此模式使用本地确定性向量并写入 Compose 的 Milvus：
+需要验证向量索引业务路径时，使用 `FOODMATE_DOCKER_RAG_MODE=local` 和
+`FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER=deterministic`。此模式使用本地确定性向量并写入 Compose 的 Milvus：
 
 ```powershell
 docker compose --env-file .env -f docker/compose.yml up -d milvus
@@ -76,16 +87,55 @@ Compose 还会把 local 模式所需的预算、价格版本和确定性向量�
 `local` 时必须显式启动 Milvus，并保持 collection 名称与隔离环境一致：
 
 ```powershell
-$env:FOODMATE_RAG_MODE = "local"
-$env:FOODMATE_RAG_EMBEDDING_PROVIDER = "deterministic"
-$env:FOODMATE_RAG_MILVUS_URI = "http://milvus:19530"
-$env:FOODMATE_RAG_MILVUS_COLLECTION = "foodmate_knowledge_chunks_local"
+$env:FOODMATE_DOCKER_RAG_MODE = "local"
+$env:FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER = "deterministic"
+$env:FOODMATE_DOCKER_RAG_MILVUS_URI = "http://milvus:19530"
+$env:FOODMATE_DOCKER_RAG_MILVUS_COLLECTION = "foodmate_knowledge_chunks_local"
 docker compose --env-file .env -f docker/compose.yml up -d milvus foodmate agent-runtime
 ```
 
-切换真实 OpenAI-compatible embedding 时，将 provider 改为 `openai-compatible`，并显式配置 endpoint、API Key、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。当前只提供基础设施容器，Python/Java 应用仍按各自开发命令启动；Compose 不自动执行数据库迁移。
+切换真实 OpenAI-compatible embedding 时，将 `FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER` 改为 `openai-compatible`，并显式配置 `FOODMATE_DOCKER_RAG_EMBEDDING_BASE_URL`、`FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY`、model、预算和价格版本；缺少任一配置不会回退到 stub 或 deterministic。Python 由 Compose 的 `agent-runtime` 服务启动，Compose 不自动执行数据库迁移。
 
-SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_RAG_MILVUS_COLLECTION`；Embedding 的 `FOODMATE_RAG_EMBEDDING_API_KEY` 必须在被忽略的本地 `.env` 或 Secret Store 中单独显式配置，不能从 Chat provider 变量继承，也不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
+如果 Docker Desktop 所在网络要求通过出站代理访问 SiliconFlow，可只给
+`agent-runtime` 配置 `FOODMATE_DOCKER_HTTP_PROXY` 和
+`FOODMATE_DOCKER_HTTPS_PROXY`，并保留 `FOODMATE_DOCKER_NO_PROXY` 中的 Compose
+服务名。代理默认留空；不要把代理凭据写入 Git，也不要把代理用于 PostgreSQL、Redis、
+RocketMQ、MinIO 或 Milvus 的内部访问。修改后使用 `up -d --force-recreate agent-runtime`，
+再执行带 `-ExecuteRequest` 的 smoke 才会验证真实请求。
+
+SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设置 `FOODMATE_DOCKER_RAG_EMBEDDING_PROFILE=bge-m3` 或 `qwen3-embedding-0.6b`，并为每个模型使用独立的 `FOODMATE_DOCKER_RAG_MILVUS_COLLECTION`；Embedding 的 `FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY` 必须在被忽略的本地 `.env` 或 Secret Store 中单独显式配置，不能从 Chat provider 变量继承，也不能提交到仓库。两个模型都会按实际返回维度校验 Milvus collection，切换模型时必须切换 collection 并重新索引。
+
+宿主机 smoke 入口默认顺序请求两个 profile，也可以只验证一个 profile：
+
+```powershell
+.\script\local\siliconflow-embedding-smoke.ps1 -Profile bge-m3
+.\script\local\siliconflow-embedding-smoke.ps1 -Profile qwen3-embedding-0.6b
+```
+
+该入口只从当前 PowerShell 进程读取 `FOODMATE_RAG_EMBEDDING_BASE_URL` 和 `FOODMATE_RAG_EMBEDDING_API_KEY`，不读取项目 `.env`，也不接受命令行密钥参数；真实调用前必须使用已轮换的供应商密钥。
+
+#### Docker 真实密钥注入与重建
+
+根目录 `.env` 只作为 Compose 的非敏感配置输入。真实密钥不要写入仓库或复制到命令行参数；在 Windows 本地联调时，可以仅注入当前 PowerShell 进程，Compose 会优先使用进程环境变量：
+
+```powershell
+$secureEmbeddingKey = Read-Host "SiliconFlow Embedding API Key" -AsSecureString
+$embeddingKeyPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureEmbeddingKey)
+try {
+    $env:FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($embeddingKeyPtr)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($embeddingKeyPtr)
+}
+
+docker compose --env-file .env -f docker/compose.yml up -d --build --force-recreate agent-runtime
+Invoke-WebRequest http://localhost:9002/foodmate/internal/health/ready
+
+Remove-Item Env:FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY
+```
+
+Chat 密钥使用独立的 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY` 注入，不能复用 Embedding 密钥。修改 `.env` 或进程变量后必须重新创建 `agent-runtime`；单独 `restart` 不会更新容器环境变量。可用 `docker inspect foodmate-agent-runtime` 检查 `FOODMATE_RAG_MODE`、profile、model 和 collection，但不要输出任何 `*_API_KEY`、密码或令牌。
+
+两个 Embedding profile 是互斥的运行配置，不会混写同一 collection。切换时先选择一个 profile 和对应 collection，重新创建 Runtime，并对需要检索的文档重新索引；旧 collection 可保留用于回滚或在确认无引用后单独清理。
 
 ## RocketMQ
 

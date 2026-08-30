@@ -45,6 +45,10 @@
 
 `V27__m3_purge_execution_results.sql`：清理任务执行对账事实，保存后端、删除计数、版本、结果摘要和删除后存在性校验；不保存对象键、向量或原始业务内容。配套校验为 `validation/V27__m3_purge_execution_results_validation.sql`，rollback 为只读前置检查 `rollback/R27__m3_purge_execution_results_precheck.sql`，迁移本身不执行清理。
 
+`V28__m2_1_knowledge_retry_outbox.sql`：移除知识索引 Outbox 的旧条目/主题唯一约束，允许管理员重试追加独立事实；保留全部历史消息并增加按条目查找最新载荷的索引。配套校验为 `validation/V28__m2_1_knowledge_retry_outbox_validation.sql`，rollback 为只读前置检查 `rollback/R28__m2_1_knowledge_retry_outbox_precheck.sql`。
+
+`V29__m2_1_embedding_trace.sql`：为知识导入条目追加受限长度的 Embedding 供应商 Trace 关联标识，用于受控排障；不保存 API Key、请求正文或响应正文。配套校验为 `validation/V29__m2_1_embedding_trace_validation.sql`，rollback 为只读前置检查 `rollback/R29__m2_1_embedding_trace_precheck.sql`。
+
 ## 配套文件矩阵
 
 | 版本 | validation | rollback | 处理边界 |
@@ -56,6 +60,8 @@
 | V13-V25 | 有 | 有 | 当前目录约定，按版本保存 validation 和 rollback |
 | V26 | 有 | 有（只读前置检查） | 结构化 Agent 反馈；不提供未经人工确认的自动删除 |
 | V27 | 有 | 有（只读前置检查） | 清理执行对账事实；不执行清理或删除既有数据 |
+| V28 | 有 | 有（只读前置检查） | M2-1 索引重试追加 Outbox 事实；不删除既有消息 |
+| V29 | 有 | 有（只读前置检查） | M2-1 Embedding 供应商 Trace 关联事实；不删除既有数据 |
 
 该矩阵描述文件现状，不代表任何迁移已在当前数据库执行。实际执行状态、validation 输出、失败与补偿必须以 `../EXECUTION_RECORD.md` 为准。历史版本若需补充校验，优先新增只读 SQL 文档；若需修复结构，创建更高版本迁移，不原地修改已执行脚本，不执行宽泛删除或 `TRUNCATE`。
 

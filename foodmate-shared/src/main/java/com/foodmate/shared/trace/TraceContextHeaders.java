@@ -7,7 +7,7 @@ import java.util.HexFormat;
 import java.util.Locale;
 import java.util.UUID;
 
-/** Builds W3C trace headers while keeping FoodMate's public request/trace IDs compatible. */
+/** 构建 W3C Trace Header，同时兼容 FoodMate 的公开 request/trace ID。 */
 public final class TraceContextHeaders {
     private TraceContextHeaders() {}
 

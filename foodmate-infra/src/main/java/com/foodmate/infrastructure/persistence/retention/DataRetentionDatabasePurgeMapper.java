@@ -12,6 +12,9 @@ public interface DataRetentionDatabasePurgeMapper {
             "SELECT CASE WHEN EXISTS (SELECT 1 FROM knowledge_documents WHERE document_id=#{documentId}) THEN 1 ELSE 0 END")
     int knowledgeDocumentExists(@Param("documentId") long documentId);
 
+    @Select("SELECT job_id FROM knowledge_import_items WHERE document_id=#{documentId}")
+    Long knowledgeImportJobId(@Param("documentId") long documentId);
+
     @Select(
             "SELECT CASE WHEN EXISTS (SELECT 1 FROM admin_export_jobs WHERE admin_export_job_id=#{jobId}) THEN 1 ELSE 0 END")
     int adminExportJobExists(@Param("jobId") long jobId);
@@ -44,6 +47,10 @@ public interface DataRetentionDatabasePurgeMapper {
 
     @Delete("DELETE FROM knowledge_import_items WHERE document_id=#{documentId}")
     int deleteKnowledgeImportItems(@Param("documentId") long documentId);
+
+    @Delete(
+            "DELETE FROM knowledge_import_jobs WHERE job_id=#{jobId} AND NOT EXISTS (SELECT 1 FROM knowledge_import_items WHERE job_id=#{jobId})")
+    int deleteKnowledgeImportJobIfEmpty(@Param("jobId") long jobId);
 
     @Delete("DELETE FROM knowledge_documents WHERE document_id=#{documentId} AND is_deleted=TRUE")
     int deleteKnowledgeDocument(@Param("documentId") long documentId);

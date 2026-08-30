@@ -31,7 +31,8 @@ class DataRetentionTaskPublisherTest {
                         provider(null),
                         false,
                         "rocketmq",
-                        "foodmate-private");
+                        "foodmate-private",
+                        true);
 
         publisher.publishPending();
 
@@ -59,7 +60,8 @@ class DataRetentionTaskPublisherTest {
                         provider(null),
                         true,
                         "rocketmq",
-                        "foodmate-private");
+                        "foodmate-private",
+                        true);
 
         publisher.publishPending();
 
@@ -87,7 +89,8 @@ class DataRetentionTaskPublisherTest {
                         provider(null),
                         true,
                         "rocketmq",
-                        "foodmate-private");
+                        "foodmate-private",
+                        true);
 
         publisher.publishPending();
 
@@ -117,7 +120,8 @@ class DataRetentionTaskPublisherTest {
                         provider(broker),
                         true,
                         "rocketmq",
-                        "foodmate-private");
+                        "foodmate-private",
+                        true);
 
         publisher.publishPending();
 
@@ -183,12 +187,44 @@ class DataRetentionTaskPublisherTest {
                         database,
                         true,
                         "rocketmq",
-                        "foodmate-private");
+                        "foodmate-private",
+                        true);
 
         publisher.publishPending();
 
         verify(database).purgeWithResult("knowledge_document", 42L);
         verify(service).succeeded(any(DataRetentionDeliveryService.PurgeExecution.class));
+    }
+
+    @Test
+    void hardDeleteDoesNotClaimTasksUntilBackupIsVerified() {
+        DataRetentionDeliveryService service = Mockito.mock(DataRetentionDeliveryService.class);
+        DataRetentionDatabasePurgePort database =
+                Mockito.mock(DataRetentionDatabasePurgePort.class);
+        DataRetentionRepository.PurgeTaskSnapshot task =
+                snapshot(
+                        107L,
+                        "database",
+                        null,
+                        "{\"resource_type\":\"knowledge_document\",\"resource_id\":42}",
+                        true);
+        when(service.pending(20)).thenReturn(List.of(task));
+
+        DataRetentionTaskPublisher publisher =
+                new DataRetentionTaskPublisher(
+                        service,
+                        provider(null),
+                        provider(null),
+                        database,
+                        true,
+                        "rocketmq",
+                        "foodmate-private",
+                        false);
+
+        publisher.publishPending();
+
+        verify(service, never()).lease(any(Long.class), anyString(), anyString(), any(Long.class));
+        verify(database, never()).purgeWithResult(anyString(), any(Long.class));
     }
 
     @Test
@@ -205,7 +241,8 @@ class DataRetentionTaskPublisherTest {
                         provider(null),
                         true,
                         "rocketmq",
-                        "foodmate-private");
+                        "foodmate-private",
+                        true);
 
         publisher.publishPending();
 

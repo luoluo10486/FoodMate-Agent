@@ -337,6 +337,54 @@ class FoodLogServiceImplTest {
     }
 
     @Test
+    void normalizesMetricMassUnitsBeforeLookingUpReviewedConversion() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findNutritionFood("rice"))
+                .thenReturn(
+                        new FoodLogRepository.NutritionFoodLookup(
+                                900L,
+                                "rice",
+                                "g",
+                                new BigDecimal("130.0000"),
+                                new BigDecimal("2.7000"),
+                                new BigDecimal("0.3000"),
+                                new BigDecimal("28.2000"),
+                                "USDA FoodData Central API",
+                                "SR Legacy 2019-04-01 FDC-168880"));
+        when(repository.findUnitConversion(900L, "kg", "g"))
+                .thenReturn(
+                        new FoodLogRepository.UnitConversionLookup(
+                                530001L,
+                                new BigDecimal("1000.0000"),
+                                "g",
+                                "SI conversion",
+                                "si-v1"));
+        when(repository.insertFoodLog(any())).thenReturn(1);
+        when(repository.findOwned(7L, 100L, false)).thenReturn(snapshotWithEmptyItems());
+        FoodLogService service = service(repository, ids(100L, 101L, 102L));
+
+        service.create(
+                7L,
+                new FoodLogService.CreateCommand(
+                        null,
+                        null,
+                        MEAL_TIME,
+                        MealType.LUNCH,
+                        null,
+                        "nutrition-metric-mass",
+                        List.of(
+                                new FoodLogService.ItemCommand(
+                                        "rice", new BigDecimal("0.5"), "公斤"))));
+
+        var item = org.mockito.ArgumentCaptor.forClass(FoodLogRepository.FoodLogItemWrite.class);
+        verify(repository).insertItem(item.capture());
+        assertEquals("matched", item.getValue().nutritionStatus());
+        assertEquals(530001L, item.getValue().conversionId());
+        assertEquals(new BigDecimal("500.000"), item.getValue().normalizedAmount());
+        assertEquals("g", item.getValue().normalizedUnit());
+    }
+
+    @Test
     void updateReplacesItemsAndIncrementsRevisionWithNutritionSnapshot() {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         when(repository.findIdempotency(7L, "update-1")).thenReturn(null);

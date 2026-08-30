@@ -5,6 +5,7 @@
 """
 
 import os
+import time
 
 import pytest
 
@@ -13,6 +14,31 @@ from model_provider import ModelRequest, ModelRouter
 
 def _env(name: str, fallback: str = "") -> str:
     return os.environ.get(name, fallback).strip()
+
+
+def _model_specific_price(provider_key: str, tiers: tuple[str, ...]) -> dict[str, str]:
+    """Copy configured model-level prices into the isolated smoke environment."""
+    copied: dict[str, str] = {}
+    for tier in tiers:
+        provider, separator, model = tier.partition(":")
+        if not separator or not provider or not model:
+            continue
+        model_key = "_".join(
+            part
+            for part in model.upper().replace("-", "_").replace("/", "_").split("_")
+            if part
+        )
+        prefix = f"FOODMATE_MODEL_PROVIDER_{provider_key}_{model_key}_"
+        for suffix in (
+            "INPUT_CNY_PER_MILLION_TOKENS",
+            "OUTPUT_CNY_PER_MILLION_TOKENS",
+            "CACHED_INPUT_CNY_PER_MILLION_TOKENS",
+            "PRICE_VERSION",
+        ):
+            value = _env(prefix + suffix)
+            if value:
+                copied[prefix + suffix] = value
+    return copied
 
 
 def _cloud_environment() -> dict[str, str] | None:
@@ -36,7 +62,7 @@ def _cloud_environment() -> dict[str, str] | None:
         provider + ":" + _env("FOODMATE_REAL_CLOUD_MODEL", _env("FOODMATE_MODEL_CLOUD_PRIMARY_MODEL", "chat-model")),
     )
     eval_tier = _env("FOODMATE_MODEL_TIER_EVAL", standard_tier)
-    return {
+    environment = {
         provider_prefix + "BASE_URL": primary_base,
         provider_prefix + "API_KEY": primary_key,
         "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_BASE_URL": primary_base,
@@ -58,6 +84,10 @@ def _cloud_environment() -> dict[str, str] | None:
         "FOODMATE_MODEL_FALLBACK_ENABLED": "true" if backup_base and backup_key else "false",
         "FOODMATE_MODEL_FALLBACK_STANDARD": "eval",
     }
+    environment.update(
+        _model_specific_price(provider_key, (standard_tier, eval_tier))
+    )
+    return environment
 
 
 @pytest.mark.integration
@@ -69,16 +99,24 @@ def test_real_primary_and_eval_provider_contract():
         pytest.skip("真实云联调需要 primary BASE_URL 和 API_KEY")
 
     router = ModelRouter(environment)
+    started = time.perf_counter()
     response, attempts = router.invoke(
         ModelRequest("composer", "请只返回一句简短的中文测试结果。", max_output_tokens=32),
         "standard",
     )
+    composer_latency_ms = round((time.perf_counter() - started) * 1000, 2)
     assert response.content.strip()
     assert attempts[-1].provider_request_id
     assert attempts[-1].input_tokens is not None
     assert attempts[-1].output_tokens is not None
     assert attempts[-1].cost_cny is not None
+    print(
+        "real_cloud_scene=composer provider={} model={} status=passed latency_ms={} provider_request_id_present=true".format(
+            attempts[-1].provider_code, attempts[-1].model_name, composer_latency_ms
+        )
+    )
 
+    started = time.perf_counter()
     eval_response, eval_attempts = router.invoke(
         ModelRequest(
             "eval",
@@ -89,5 +127,11 @@ def test_real_primary_and_eval_provider_contract():
         ),
         "eval",
     )
+    eval_latency_ms = round((time.perf_counter() - started) * 1000, 2)
     assert eval_response.content.strip()
     assert eval_attempts[-1].provider_request_id
+    print(
+        "real_cloud_scene=eval provider={} model={} status=passed latency_ms={} provider_request_id_present=true".format(
+            eval_attempts[-1].provider_code, eval_attempts[-1].model_name, eval_latency_ms
+        )
+    )

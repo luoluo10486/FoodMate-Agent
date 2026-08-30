@@ -1,0 +1,36 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "806:1119",
+  "artboardName": "profile-basic",
+  "queryState": "state=basic",
+  "figmaPng": "docxs/设计/figma-png/profile-basic.png",
+  "browserPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/profile-basic-fitted-browser-2026-08-30.png",
+  "viewport": {
+    "width": 1440,
+    "height": 1024,
+    "dpr": 1.25
+  },
+  "pixelCount": 1474560,
+  "differentPixels": 1203944,
+  "differentRatio": 0.8164767795138889,
+  "meanAbsoluteError": 5.044906955295139,
+  "rmse": 20.363129019162635,
+  "maxChannelDelta": 255,
+  "geometry": {
+    "goalsCard": "x=716,y=100,width=692,height=366",
+    "proteinInput": "x=739.8,y=199.3,width=644.4,height=40",
+    "allergenSection": "x=739.8,y=239.3,width=644.4,height=115.5",
+    "tagRow": "x=739.8,y=322.8,width=644.4,height=32",
+    "formFooter": "x=739.8,y=366.8,width=644.4,height=56.8",
+    "bodyHorizontalOverflow": false,
+    "fonts": "loaded",
+    "windowControlCandidates": 0
+  },
+  "acceptanceStatus": "DIFF_REVIEW",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-30",
+    "conclusion": "The Figma basic profile fixture now keeps the measured 692x366 goals card, full-width protein input, visible allergen controls, and footer inside the card. Full-image differences remain from the workspace shell, avatar, icons, typography rasterization, and actual browser DPR; retain DIFF_REVIEW."
+  }
+}

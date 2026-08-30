@@ -43,20 +43,20 @@ describe('PlanningPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('计划已保存');
   });
 
-  it('renders the nine-session Figma sidebar fixture', () => {
+  it('renders the Figma shell without session history', () => {
     renderPage('/planning?state=v2');
 
-    [
-      '每周饮食微调',
-      '运动前零食建议',
-      '过敏原排除规则',
-      '蛋白质补充方案',
-      '睡前加餐建议',
-      '早餐碳水搭配',
-      '晚餐蛋白质补充',
-      '低碳水饮食建议',
-      '早餐奶昔配方',
-    ].forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
+    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
+    expect(screen.queryByText('每周饮食微调')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
+  });
+
+  it('omits the account dock from the Figma planning fixture', () => {
+    renderPage('/planning?state=v2');
+
+    expect(screen.queryByRole('button', { name: '收起导航' })).not.toBeInTheDocument();
+    expect(screen.queryByText('就绪 (Fustat-v2)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Anddy 的工作区')).not.toBeInTheDocument();
   });
 
   it('renders all four planning constraint statuses', () => {

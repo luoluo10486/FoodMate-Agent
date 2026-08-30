@@ -182,7 +182,7 @@ VALUES
     (520018, 510018, 'cup', 'g', 200.0000, 'USDA FoodData Central API foodPortions', 'SR Legacy 2019-04-01 FDC-168483 portion-1 (1 cup=200g)', 'approved'),
     (520019, 510019, 'cup', 'g', 180.0000, 'USDA FoodData Central API foodPortions', 'SR Legacy 2019-04-01 FDC-169097 portion-1 (1 cup sections=180g)', 'approved'),
     (520020, 510020, 'cup', 'g', 128.0000, 'USDA FoodData Central API foodPortions', 'SR Legacy 2019-04-01 FDC-170393 portion-1 (1 cup chopped=128g)', 'approved'),
-    (520021, 510021, 'cup', 'g', 180.0000, 'USDA FoodData Central API foodPortions', 'SR Legacy 2019-04-01 FDC-170457 portion-2 (1 cup chopped or sliced=180g)', 'approved'),
+    (520021, 510021, 'cup', 'g', 180.0000, 'USDA FoodData Central API foodPortions', 'SR Legacy 2019-04-01 FDC-170457 portion-2', 'approved'),
     (520022, 510022, 'cup', 'g', 245.0000, 'USDA FoodData Central API foodPortions', 'SR Legacy 2019-04-01 FDC-171284 portion-4 (1 cup=245g)', 'approved'),
     (520023, 510023, 'cup', 'g', 150.0000, 'USDA FoodData Central API foodPortions', 'SR Legacy 2019-04-01 FDC-171705 portion-1 (1 cup cubes=150g)', 'approved'),
     (520024, 510024, 'oz', 'g', 28.3333, 'USDA FoodData Central API foodPortions', 'SR Legacy 2019-04-01 FDC-171971 portion-1 (3 oz=85g norm)', 'approved'),

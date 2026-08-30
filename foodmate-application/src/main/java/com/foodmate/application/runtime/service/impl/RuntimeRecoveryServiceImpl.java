@@ -196,10 +196,7 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
         return result;
     }
 
-    /**
-     * 已确认的工具或预算恢复使用的正式触发入口：Java 读取持久化 checkpoint 事件，
-     * 不信任浏览器重建 checkpoint 元数据。
-     */
+    /** 已确认的工具或预算恢复使用的正式触发入口：Java 读取持久化 checkpoint 事件，不信任浏览器重建 checkpoint 元数据。 */
     @Transactional
     @Override
     public RecoveryResult recoverFromPersistedCheckpoint(long userId, long runId) {

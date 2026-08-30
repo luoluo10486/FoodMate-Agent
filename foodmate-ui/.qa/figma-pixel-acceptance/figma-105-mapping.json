@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-08-29",
+    "capturedAt": "2026-08-30",
     "figmaMcp": "get_metadata"
   },
   "acceptanceRules": {
@@ -44,7 +44,10 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-browser-dpr1-motionoff-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-status-followup-2026-08-30-rgba.png",
+      "browserCapture": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-status-followup-2026-08-30.jpg",
+      "mobileBrowserJpg": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-pruned-browser-390x844-2026-08-30.jpg",
+      "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "MINOR_RENDERING_DIFF_CONFIRMED",
@@ -54,9 +57,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -73,8 +76,8 @@
       "manualReview": {
         "status": "MINOR_RENDERING_DIFF_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "已按 Figma 节点 640:256 对齐工作台状态说明中的‘覆盖’和‘预算追加’文案；顶栏品牌方块保持空白，前端左上角红黄绿窗口装饰点未渲染。图标、头像、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-08-30",
+        "conclusion": "已按 Figma 节点 640:256 恢复前端 fixture 中的会话搜索、Agent 会话列表、分页和‘任务入口与状态’说明面板；Figma 画板中的红黄绿窗口装饰仅保留在设计稿，前端运行检查候选为 0。1440×1024 页面无溢出，图标、头像、字体渲染、DPR 1.25 和其他浏览器渲染差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -88,7 +91,7 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-sidebar-baseline-browser-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-assistant-body-current-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -117,8 +120,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-27",
-        "conclusion": "The refreshed browser fixture preserves the Figma assistant-body font, removes the extra Trace active-step border, and restores the 12px top blank area reserved by the Figma window-control region without rendering the three dots. Avatar assets, icon rasterization, and remaining browser rendering differences are still visible; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The refreshed browser fixture uses the Figma green token #4CAF50 for the brand and Agent marks, extends the assistant surface from x=340 to the main-content boundary with a 780px body, and renders the 764x143px inline confirmation card at x=356,y=313. The assistant text and source remain inside the body, the frontend traffic-light candidate count is 0, and the Figma file remains unchanged. Avatar assets, icon rasterization, and remaining browser rendering differences are still visible, so retain DIFF_REVIEW."
       },
       "supplementalEvidence": [
         {
@@ -132,6 +135,43 @@
           "diffJson": ".qa/figma-pixel-acceptance/agent-chat-v2-message-actions-2026-08-29-diff.json",
           "status": "DIFF_REVIEW",
           "note": "同一 Figma 节点的局部补充证据；query 状态不同于主映射的 state=figma-v2，不替换主画板映射。"
+        },
+        {
+          "label": "侧栏选中态背景色局部验收",
+          "figmaNodeId": "640:428",
+          "frontendRoute": "/chat",
+          "queryState": "state=figma-v2",
+          "browserViewport": "1440x1024",
+          "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-selection-surfaces-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-chat-v2-selection-surfaces-2026-08-30-diff.json",
+          "status": "DIFF_REVIEW",
+          "actualDpr": 1.25,
+          "geometry": {
+            "activeSectionBackground": "rgb(251, 247, 242)",
+            "activeSessionBackground": "rgb(255, 252, 249)",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "note": "仅收口 Figma 节点 640:428 的侧栏 Agent 对话选中态和当前会话行背景色；DPR 为 1.25，整页仍保留 DIFF_REVIEW。"
+        },
+        {
+          "label": "顶部导航选中态颜色局部验收",
+          "figmaNodeId": "640:428",
+          "frontendRoute": "/chat",
+          "queryState": "state=figma-v2",
+          "browserViewport": "1440x1024",
+          "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-top-nav-active-surface-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-chat-v2-top-nav-active-surface-2026-08-30-diff.json",
+          "status": "DIFF_REVIEW",
+          "actualDpr": 1.25,
+          "geometry": {
+            "topNavActiveSurface": "rgb(255, 254, 252)",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "note": "仅收口 Figma 节点 640:428 的顶部工作台选中态背景色；浏览器实际颜色为 #FFFEFC，DPR 为 1.25，整页仍保留 DIFF_REVIEW。"
         }
       ]
     },
@@ -146,7 +186,7 @@
       "queryState": "view=records&state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-27.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-browser-spacing-2026-08-27.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-sidebar-history-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -156,9 +196,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -175,9 +215,29 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-27",
-        "conclusion": "Live Figma structure and page geometry are aligned after removing the duplicate fixture action bar; font rendering, icon implementation, avatar asset, and remaining visual differences require further review. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The Figma fixture now renders the two action buttons below the meal cards and no longer renders the extra record-detail panel. The action bar and button geometry align with the Figma reference, while font, icon, avatar and surrounding workspace differences remain. Retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-30",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-27.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-action-bar-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/diet-records-v2-action-bar-2026-08-30-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "visualChange": "依据 Figma 节点 640:588，让 diet-records-v2 默认 fixture 显示记录一餐/分析这一天操作栏，并隐藏 Figma 画板中不存在的额外记录详情面板；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "desktopActionBar": "x=292,y=640,width=1116,height=48",
+            "desktopLogMealButton": "x=292,y=644,width=140,height=40",
+            "desktopAnalyzeButton": "x=448,y=644,width=164,height=40",
+            "detailPanelRendered": false,
+            "bodyHorizontalOverflow": false,
+            "fonts": "loaded",
+            "windowControlsCandidates": 0
+          }
+        }
+      ]
     },
     {
       "figmaNodeId": "640:773",
@@ -190,7 +250,7 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-browser-live-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-sidebar-history-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -274,7 +334,8 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-browser-dpr1-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-account-dock-browser-2026-08-30-rgba.png",
+      "browserCapture": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-account-dock-browser-2026-08-30.jpg",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -303,8 +364,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Plan-grid semantics exist, but toolbar, navigation, card geometry, typography, and content density differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "当前浏览器 fixture 已按 Figma 节点 640:901 隐藏画板中不存在的账户停靠区；1440×1024、字体加载、无溢出和窗口控制点检查通过。计划工具栏、导航、卡片几何、字体光栅化和内容密度仍存在差异，保留 DIFF_REVIEW。"
       },
       "supplementalVisualEvidence": {
         "capturedAt": "2026-08-27",
@@ -409,7 +470,7 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/register-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-token-fix-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#register-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -419,9 +480,9 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 900,
@@ -438,9 +499,42 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Registration page differs visually from the Figma reference. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "注册页斜切背景、品牌标记和主操作按钮已使用 Figma 色彩 Token #dfeedb 与 #a6d997；1440×900 视口、几何、字体加载和无溢出检查通过，但当前浏览器 DPR 为 1.25，且整页仍存在光栅化和其他像素差异，继续保留 DIFF_REVIEW。"
+      },
+      "additionalVisualEvidence": [
+        {
+          "label": "注册页 Figma 色彩 Token 收口",
+          "capturedAt": "2026-08-30",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/register-page-latest.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/register-page-browser-2026-08-30-token-fix-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/register-page-2026-08-30-token-fix-diff.json",
+          "viewport": "1440x900",
+          "actualDpr": 1.25,
+          "geometry": {
+            "root": "1440x900",
+            "card": "x=490,y=34.4,width=460,height=831.2",
+            "contentWidth": 380,
+            "firstInput": "x=530,y=235.2,width=380,height=50",
+            "primaryButton": "x=530,y=665.6,width=380,height=50",
+            "fonts": "loaded",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "注册页 AuthShell 的 Figma 斜切背景为 #dfeedb，强调色、品牌标记和主注册按钮为 #a6d997；仅修改前端，未修改 Figma 设计稿。",
+          "diff": {
+            "status": "COMPARED",
+            "width": 1440,
+            "height": 900,
+            "pixelCount": 1296000,
+            "differentPixels": 699190,
+            "differentRatio": 0.5394984567901234,
+            "meanAbsoluteError": 0.8132970679012346,
+            "rmse": 5.644032239705892,
+            "maxChannelDelta": 204
+          }
+        }
+      ]
     },
     {
       "figmaNodeId": "680:275",
@@ -453,7 +547,7 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/forgot-password-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/forgot-password-page-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/forgot-password-page-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#forgot-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -463,9 +557,9 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 900,
@@ -482,9 +576,28 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Forgot-password page differs visually from the Figma reference. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The Figma accent token is now #48c78e on the brand mark. The viewport and font checks pass, but the browser capture is DPR 1.25 and the page still has rasterization differences; retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "label": "找回密码页品牌强调色 Token 收口",
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/forgot-password-page.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/forgot-password-page-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/forgot-password-page-2026-08-30-diff.json",
+          "viewport": "1440x900",
+          "actualDpr": 1.25,
+          "geometry": {
+            "root": "1440x900",
+            "fonts": "loaded",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0,
+            "mainStyle": "--auth-accent: #48c78e"
+          },
+          "visualChange": "找回密码页通过 AuthShell 语义变量使用 Figma 品牌强调色 #48c78e；仅修改前端，未修改 Figma 设计稿。"
+        }
+      ]
     },
     {
       "figmaNodeId": "680:307",
@@ -497,7 +610,7 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/reset-password-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#reset-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -507,9 +620,9 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 900,
@@ -526,9 +639,28 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-19",
-        "conclusion": "Reset-password page differs visually from the Figma reference. Retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The Figma accent token is now #48c78e on the brand mark. The viewport and font checks pass, but the browser capture is DPR 1.25 and the page still has rasterization differences; retain DIFF_REVIEW."
+      },
+      "additionalVisualEvidence": [
+        {
+          "label": "重置密码页品牌强调色 Token 收口",
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/reset-password-page.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser-2026-08-30-rgba.png",
+          "diffJson": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-2026-08-30-diff.json",
+          "viewport": "1440x900",
+          "actualDpr": 1.25,
+          "geometry": {
+            "root": "1440x900",
+            "fonts": "loaded",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0,
+            "mainStyle": "--auth-accent: #48c78e"
+          },
+          "visualChange": "重置密码页通过 AuthShell 语义变量使用 Figma 品牌强调色 #48c78e；仅修改前端，未修改 Figma 设计稿。"
+        }
+      ]
     },
     {
       "figmaNodeId": "680:408",
@@ -984,7 +1116,8 @@
       "queryState": "state=planning",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-planning.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-planning-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-planning-window-controls-pruned-browser-2026-08-30-rgba.png",
+      "browserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-planning-window-controls-pruned-browser-2026-08-30.jpg",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-planning",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1013,8 +1146,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "The Planning timeline, message structure, and stop composer state align with the Figma reference. Avatar and icon treatment differ; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "已使用当前前端截图重新核对 Planning 时间线、消息结构和停止 Composer 状态；当前捕获不再包含 Figma 参考稿中的左上角红黄绿窗口点，默认头像和图标仍与 Figma 光栅存在差异，继续保留 DIFF_REVIEW。"
       }
     },
     {
@@ -1028,7 +1161,8 @@
       "queryState": "state=tool-executing",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-tool-executing.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-executing-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-executing-window-controls-pruned-browser-2026-08-30-rgba.png",
+      "browserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-tool-executing-window-controls-pruned-browser-2026-08-30.jpg",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-executing",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1057,8 +1191,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Tool execution steps, trace cards, and stop composer state align with the Figma reference. Avatar and icon treatment differ; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "已使用当前前端截图重新核对工具执行步骤、Trace 卡片和停止 Composer；当前捕获不再包含 Figma 参考稿中的左上角红黄绿窗口点，默认头像和图标仍与 Figma 光栅存在差异，继续保留 DIFF_REVIEW。"
       }
     },
     {
@@ -1072,7 +1206,8 @@
       "queryState": "state=awaiting-clarification",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-awaiting-clarification-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-browser-current-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30-rgba.png",
+      "browserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-awaiting-clarification-window-controls-pruned-browser-2026-08-30.jpg",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-awaiting-clarification",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1101,8 +1236,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-23",
-        "conclusion": "Current Figma and browser captures match the clarification hierarchy and option labels. Avatar treatment and remaining font/icon rasterization differences are visible; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "已使用当前前端截图重新核对澄清层级、选项文案和可用 Composer；当前捕获不再包含 Figma 参考稿中的左上角红黄绿窗口点，默认头像和图标仍与 Figma 光栅存在差异，继续保留 DIFF_REVIEW。"
       }
     },
     {
@@ -1116,7 +1251,7 @@
       "queryState": "state=write-confirmation",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-browser-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-compact-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-write-confirmation",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1145,8 +1280,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-29",
-        "conclusion": "The latest Figma and browser captures contain the confirmation fields, source, assumptions, and actions. The confirmation card geometry now matches the checked Figma frame; shell identity, avatar treatment, typography, and icon rasterization still differ, so retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The latest Figma and browser captures contain the confirmation fields, source, assumptions, and actions. The current browser capture confirms the compact 305x319 confirmation card and 265x168 details region; shell identity, avatar treatment, typography, and icon rasterization still differ, so retain DIFF_REVIEW."
       }
     },
     {
@@ -1159,8 +1294,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=budget-limit",
       "browserViewport": "1440x1024",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-current-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-2026-08-29-rgba.png",
+      "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-current-browser-2026-08-30-rgba.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
@@ -1172,9 +1307,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -1191,8 +1326,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-29",
-        "conclusion": "已按实时 Figma 节点 687:918 收口预算卡：卡片 286×289px、选择说明区 246×60px、Token 计量区 246×27px，追加和结束按钮分别为 150×32px 与 84×32px。浏览器截图满足 1440×1024、DPR 1、字体加载和无页面溢出；周边工作台、头像、图标和字体光栅化仍有差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-08-30",
+        "conclusion": "已按实时 Figma 节点 687:918 复核预算卡：标题计算颜色为 #c79654，卡片 286×289px、选择说明区 246×60px、Token 计量区 246×27px，追加和结束按钮分别为 150×32px 与 84×32px。当前浏览器截图为 1440×1024、字体已加载且页面无溢出，但实际 DPR 为 1.25，未满足严格 DPR 1 门禁；周边工作台、头像、图标和字体光栅化仍有差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -1249,8 +1384,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=tool-failed-retryable",
       "browserViewport": "1440x1024",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/agent-tool-failed-retryable-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-browser-2026-08-29-rgba.png",
+      "figmaPng": "docxs/设计/figma-png/agent-tool-failed-retryable.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-current-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1260,9 +1395,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -1280,7 +1415,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
-        "conclusion": "已按实时 Figma 节点 687:1439 收口失败卡片：卡片为 560×160px、背景 #ffe9e9、描边 #ff7576、圆角 16px，标题/说明和重试/跳过按钮分别匹配 Figma 的字号与 58×32px / 97×32px 尺寸。浏览器截图满足 1440×1024、DPR 1、字体加载和无横向溢出；周边工作台、图标和字体光栅化仍有差异，保留 DIFF_REVIEW。"
+        "conclusion": "已按实时 Figma 节点 687:1439 复核失败卡片：卡片为 560×160px、背景 #ffe9e9、描边 #ff7576、圆角 16px，标题/说明和重试/跳过按钮分别匹配 Figma 的字号与 58×32px / 97×32px 尺寸。当前浏览器截图为 1440×1024、字体已加载且页面无溢出，但实际 DPR 为 1.25，未满足严格 DPR 1 门禁；周边工作台、图标和字体光栅化仍有差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -1294,7 +1429,7 @@
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-2026-08-28.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-current-browser-2026-08-30-rgba.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
@@ -1306,9 +1441,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -1325,8 +1460,16 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture contains the safety warning, bounded data scope, personal-condition limitation and enabled follow-up entry. The frontend retains the Figma warning hierarchy and does not render the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "当前浏览器截图包含安全警告、有限数据范围、个人条件限制和可继续追问入口；安全内容容器为 612px，警告与回答区域为 560px，保留 Figma 的警告层级且不渲染桌面窗口装饰。当前实际 DPR 为 1.25，未满足严格 DPR 1 门禁；字体、图标光栅化和周边工作台仍有差异，保留 DIFF_REVIEW。"
+      },
+      "contentGeometry": {
+        "desktopSafetyContainer": "x=292,width=612",
+        "desktopWarningBanner": "x=344,width=560",
+        "desktopResponse": "x=344,width=560",
+        "mobileContent": "x=64,width=295.2 at 390x844",
+        "bodyOverflow": false,
+        "windowControlsCandidates": 0
       }
     },
     {
@@ -1340,7 +1483,7 @@
       "queryState": "state=user-cancelled",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-browser-2026-08-28.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-current-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1369,8 +1512,43 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture preserves the partially received text, user cancellation reason and enabled restart entry, and does not present the state as a system failure. The frontend does not render the desktop window controls. Residual differences remain in font/icon rasterization and surrounding workspace rendering; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "当前浏览器截图保留取消态已接收文本、取消原因和重新开始入口；页面视口为 1440×1024，字体已加载且无页面溢出，前端不渲染左上角红黄绿窗口装饰。与 Figma 的整页差异仍存在于共享工作台、头像、字体和图标光栅化，继续保留 DIFF_REVIEW。"
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-1440x1024-2026-08-30-rgba.png",
+          "browserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-1440x1024-2026-08-30.jpg",
+          "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-390x844-2026-08-30-rgba.png",
+          "mobileBrowserJpg": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-aligned-browser-390x844-2026-08-30.jpg",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-user-cancelled-aligned-2026-08-30-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "visualChange": "依据 Figma 节点 687:1684，将取消态提示条移至主对话区中心、固定为 30px 高，并将助手行约束为 608px；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "desktopWrap": "x=292,y=237,width=1116,height=143.2",
+            "desktopAssistantRow": "x=292,y=237,width=608,height=52",
+            "desktopAssistantBody": "x=340,y=237,width=560,height=52",
+            "desktopNotice": "x=738.64,y=310,width=222.725,height=30",
+            "mobileAssistantRow": "x=16,y=251.8,width=343.2,height=72 at 390x844",
+            "mobileAssistantBody": "x=64,y=251.8,width=295.2,height=72 at 390x844",
+            "mobileNotice": "x=76.24,y=344.8,width=222.725,height=30 at 390x844",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          }
+        }
+      ],
+      "contentGeometry": {
+        "desktopCancelledWrap": "x=292,width=1116",
+        "desktopAssistantRow": "x=292,width=608",
+        "desktopAssistantBody": "x=340,width=560",
+        "desktopCancellationNotice": "x=738.64,y=310,width=222.725,height=30",
+        "mobileAssistantBody": "x=64,width=295.2 at 390x844",
+        "mobileCancellationNotice": "x=76.24,y=344.8,width=222.725,height=30 at 390x844",
+        "bodyOverflow": false,
+        "windowControlsCandidates": 0
       }
     },
     {
@@ -1384,7 +1562,7 @@
       "queryState": "state=sse-reconnecting",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-browser-2026-08-28.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-current-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1413,9 +1591,43 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-28",
-        "conclusion": "The current browser capture preserves the reconnect attempt count, retained text, disabled composer, refresh guidance, Agent avatar and reconnect band. The frontend does not render the desktop window controls. Residual differences remain in workspace and font/icon rasterization; retain DIFF_REVIEW."
-      }
+        "reviewedAt": "2026-08-30",
+        "conclusion": "当前浏览器截图保留 Figma 的重连次数、已显示文本、禁用输入框、刷新提示、Agent 头像和重连提示带；用户消息时间为 03:00 PM。前端不渲染桌面窗口装饰，整页仍存在工作台、头像、字体和图标光栅化差异，继续保留 DIFF_REVIEW。"
+      },
+      "additionalVisualEvidence": [
+        {
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-time-aligned-browser-1440x1024-2026-08-30.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-sse-reconnecting-time-aligned-2026-08-30-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "visualChange": "依据 Figma 节点 687:1803，将重连态用户消息时间从共享默认时间修正为画板中的 03:00 PM；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "desktopAssistantRow": "x=292,y=237,width=608,height=52",
+            "desktopAssistantBody": "x=340,y=237,width=560,height=52",
+            "desktopNotice": "x=284,y=820,width=1132,height=66",
+            "desktopCenteredText": "x=284,y=898,width=1132,height=14",
+            "desktopComposer": "x=260,y=912,width=1180,height=112",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          }
+        },
+        {
+          "capturedAt": "2026-08-30",
+          "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-warning-colors-browser-1440x1024-2026-08-30.png",
+          "diffJson": ".qa/figma-pixel-acceptance/agent-sse-reconnecting-warning-colors-2026-08-30-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "visualChange": "依据 Figma 节点 687:1803，将重连提示带的背景、描边和文字颜色从通用告警样式收口为 Figma 的 #FFEDD5、#F97316 和 #C2410C；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "desktopNotice": "x=284,y=820,width=1132,height=66",
+            "bodyOverflow": false,
+            "windowControlsCandidates": 0
+          }
+        }
+      ]
     },
     {
       "figmaNodeId": "689:217",
@@ -2929,7 +3141,7 @@
       "queryState": "state=knowledge-uploading",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-uploading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-uploading-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-uploading-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-uploading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -2958,8 +3170,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Upload progress overlay is present, but the browser uses a different knowledge-base page, modal title/state, document data, progress copy, and underlying layout. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；弹层已按 Figma 对齐到主区域 x=570、560x260，标题、批次文案、64% 进度、绿色进度条和查看任务进度链接均已复核。Figma-only 左上角窗口点未渲染；底层知识库页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2973,7 +3185,7 @@
       "queryState": "state=knowledge-indexing",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-indexing.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-indexing-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-indexing-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-indexing",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3002,8 +3214,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Indexing progress overlay is present, but browser uses a different knowledge page, backdrop, modal title/state, progress color, document data, and information hierarchy. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；弹层已按 Figma 对齐到主区域 x=570、560x280，后台建立索引标题、批次文案、72% 蓝色进度条和任务详情文案均已复核。Figma-only 左上角窗口点未渲染；底层页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3017,7 +3229,7 @@
       "queryState": "state=knowledge-upload-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-upload-failed.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-failed-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-failed-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3046,8 +3258,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Upload failure overlay is present, but browser differs in failure scope, error code, modal dimensions, copy, action buttons, document table, and side detail panel. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；失败弹层已按 Figma 对齐到主区域 x=570、560x286，失败范围、错误码、批次说明、右上角失败标记/关闭控件和重试此文件按钮均已复核。Figma-only 左上角窗口点未渲染；底层页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3149,7 +3361,9 @@
       "queryState": "state=basic-unsaved-leave-confirmation",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic-unsaved-leave-confirmation.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-figma-modal-browser-2026-08-30.png",
+      "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-unsaved-leave-confirmation-figma-modal-browser-390x844-2026-08-30.png",
+      "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic-unsaved-leave-confirmation",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3178,8 +3392,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Unsaved-change confirmation is present, but browser changes action wording/order, omits the Figma full-page composition, and differs in dialog geometry, profile data, avatar, and lower preference section. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "当前浏览器 fixture 已按 Figma 节点 794:380 收口为主区域 x=590,y=320 的 520x252 弹窗，标题与正文使用深色基准，操作为‘继续编辑’和‘放弃并离开’，overlay 仅覆盖主区域且前端窗口装饰点为 0。头像、底层资料、字体光栅化和其它整页差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3589,7 +3803,7 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/user-knowledge-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-browser-dpr1-2026-08-29.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-sidebar-history-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4417,7 +4631,7 @@
       "queryState": "state=basic",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-basic.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-basic-sidebar-history-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-basic",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4427,9 +4641,9 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -4446,8 +4660,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture contains the Figma-aligned two-column profile composition, account summary, target fields and allergen controls, but full-image diff remains high; retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The fixture now shows the measured online status label before the new-task action, removes the session search and collapse controls, and keeps the bottom status/profile dock. Full-image differences remain from the workspace shell, avatar, icons, typography rasterization and actual browser DPR; retain DIFF_REVIEW."
       }
     },
     {
@@ -4461,7 +4675,7 @@
       "queryState": "state=memories",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-memories.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-memories-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-memories-sidebar-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-memories",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4490,8 +4704,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture renders the memory controls and content, but automatic full-image comparison still reports visual differences. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The fixture now uses the measured 96px intro card, 124px regular memory rows, 130px pending row, and 240px guidance panel with the Figma sidebar shell. Full-image differences remain from the workspace shell, avatar, icons, typography rasterization, and browser rendering; retain DIFF_REVIEW."
       }
     },
     {
@@ -4505,7 +4719,7 @@
       "queryState": "state=security",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-current-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4534,8 +4748,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture renders password, device and activity controls, but automatic full-image comparison still reports visual differences. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The Figma fixture now renders only the password and active-session cards. The activity card, SECURE label, device-count label and top accent lines are absent as required by node 806:1445; shell, avatar, icon, typography rasterization and browser rendering differences remain, so retain DIFF_REVIEW."
       }
     },
     {
@@ -4593,7 +4807,7 @@
       "queryState": "state=knowledge-upload-success",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-upload-success.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-success-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-upload-success-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-upload-success",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4622,8 +4836,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Browser presents a generic dimmed upload-progress modal, whereas Figma shows the completed knowledge document table, upload drop zone, insight panel, and status rows. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 正常知识库页面；成功态不再渲染上传进度弹层，上传区域、文档表格、向量洞察和状态行均可见。底层页面与 Figma 在字体、图标、颜色和内容几何上仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -4636,7 +4850,7 @@
       "frontendRoute": "/admin",
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
-      "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-29.png",
+      "figmaPng": "docxs/设计/figma-png/admin-overview.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-navigation-browser-2026-08-29.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
@@ -4921,7 +5135,7 @@
       "queryState": "state=knowledge-format-error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-format-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-format-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-format-error-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-format-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4950,8 +5164,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Format-error modal is present, but browser differs in underlying knowledge page, modal styling, error detail placement, button treatment, and background geometry. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；格式错误弹层已按 Figma 对齐到主区域 x=570、560x286，错误标题、文件范围、支持格式说明、错误码、失败标记、关闭控件和移除并重试按钮均已复核。Figma-only 左上角窗口点未渲染；底层页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -4965,7 +5179,7 @@
       "queryState": "state=knowledge-size-error",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-knowledge-size-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-size-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-knowledge-size-error-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-knowledge-size-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4994,8 +5208,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Size-limit modal is present, but browser differs in underlying knowledge page, modal dimensions, copy, error metadata, action label, and surrounding detail layout. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "2026-08-30 浏览器证据已切换为最新 1440x1024 截图；大小限制弹层已按 Figma 对齐到主区域 x=570、560x286，文件大小说明、错误码、失败标记、关闭控件和重新选择文件按钮均已复核。Figma-only 左上角窗口点未渲染；底层页面、字体光栅化和整页仍存在视觉差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -5141,7 +5355,7 @@
       "queryState": "state=running-stop",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/agent-chat-running-stop.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-running-stop-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-running-stop-no-message-actions-browser-2026-08-30.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-running-stop",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -5171,7 +5385,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-18",
-        "conclusion": "The browser exposes a stop control for the running session, but Figma includes the complete assistant response, Trace cards, message-action panel, and a different composer/status layout. Retain DIFF_REVIEW."
+        "conclusion": "The browser exposes a stop control for the running session and no longer renders the extra message-actions panel, but the complete assistant response, Trace cards, and composer/status layout still differ. Retain DIFF_REVIEW."
       }
     },
     {

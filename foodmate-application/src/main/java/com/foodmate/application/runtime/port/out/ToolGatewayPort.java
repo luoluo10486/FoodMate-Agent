@@ -3,7 +3,7 @@ package com.foodmate.application.runtime.port.out;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
-/** Executes the already-authorized, read-only tool contract at the persistence boundary. */
+/** 在持久化边界执行已授权的只读工具契约。 */
 public interface ToolGatewayPort {
     /** Checks that a Runtime run is still known to the authority store. */
     boolean runExists(long runId);

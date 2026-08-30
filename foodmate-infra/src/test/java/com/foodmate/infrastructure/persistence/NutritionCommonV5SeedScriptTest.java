@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 /** 校验 V5 常见食材目录和 USDA 份量规则的来源与幂等边界。 */
@@ -53,6 +55,7 @@ class NutritionCommonV5SeedScriptTest {
         assertTrue(sql.contains("520017"));
         assertTrue(sql.contains("520025"));
         assertTrue(sql.contains("FDC-171971 portion-1 (3 oz=85g norm)"));
+        assertTrue(sql.contains("SR Legacy 2019-04-01 FDC-170457 portion-2"));
         assertTrue(sql.contains("ON CONFLICT (conversion_id) DO UPDATE"));
     }
 
@@ -66,5 +69,17 @@ class NutritionCommonV5SeedScriptTest {
         assertTrue(sql.contains("invalid_common_unit_conversion_seed_rows"));
         assertTrue(sql.contains("common_conversion_food_mismatch_rows"));
         assertTrue(sql.contains("review_status <> 'approved'"));
+    }
+
+    @Test
+    void sourceVersionValuesFitTheDatabaseColumn() throws IOException {
+        String sql = Files.readString(SEED);
+        Matcher matcher = Pattern.compile("'([^']*FDC-[^']*)'").matcher(sql);
+
+        while (matcher.find()) {
+            assertTrue(
+                    matcher.group(1).length() <= 64,
+                    () -> "source_version exceeds VARCHAR(64): " + matcher.group(1));
+        }
     }
 }

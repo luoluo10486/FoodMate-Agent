@@ -1,0 +1,41 @@
+{
+  "status": "COMPARED",
+  "figmaNodeId": "806:1281",
+  "artboardName": "profile-memories",
+  "queryState": "state=memories",
+  "figmaPng": "docxs/设计/figma-png/profile-memories.png",
+  "browserPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/profile-memories-sidebar-browser-2026-08-30-rgba.png",
+  "browserJpeg": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/profile-memories-sidebar-browser-2026-08-30.jpg",
+  "viewport": {
+    "width": 1440,
+    "height": 1024,
+    "dpr": 1.0000000149011612
+  },
+  "pixelCount": 1474560,
+  "differentPixels": 703449,
+  "differentRatio": 0.477056884765625,
+  "meanAbsoluteError": 5.497677442762587,
+  "rmse": 23.473286520801032,
+  "maxChannelDelta": 255,
+  "geometry": {
+    "memoryIntro": "x=292,y=100,width=1116,height=96",
+    "memoryToolbar": "x=292,y=220,width=1116,height=40",
+    "memoryRows": [
+      "x=292,y=284,width=1116,height=124",
+      "x=292,y=424,width=1116,height=130",
+      "x=292,y=570,width=1116,height=124"
+    ],
+    "memoryGuidance": "x=292,y=726,width=1116,height=240",
+    "bodyHorizontalOverflow": false,
+    "fonts": "loaded",
+    "windowControlCandidates": 0,
+    "forbiddenMarkers": false
+  },
+  "acceptanceStatus": "DIFF_REVIEW",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-30",
+    "conclusion": "The Profile memories Figma fixture now uses the measured 96px intro card, 124px regular memory rows, 130px pending row, and 240px guidance panel with the Figma sidebar shell. Full-image differences remain from the workspace shell, avatar, icons, typography rasterization, and browser rendering; retain DIFF_REVIEW."
+  }
+}

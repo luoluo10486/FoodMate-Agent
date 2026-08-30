@@ -30,7 +30,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 
 完整的边界、状态机、预算、Eval、写确认与退回规则见：[架构总览](./docxs/架构/架构总览.md)、[Agent 运行架构](./docxs/架构/Agent运行架构.md)、[M1-5 实施方案](./docxs/项目/M1-5核心饮食业务与写确认实施方案.md)、[ADR-0005](./docxs/决策/ADR-0005-RocketMQ异步主通道.md)。
 
-## 当前真实状态（2026-08-28）
+## 当前真实状态（2026-08-30）
 
 以下仅记录已经运行验证的事实；“已实现”不等于已经完成完整生产闭环。
 
@@ -40,16 +40,16 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 | M1-2/M1-3 基础链路 | PostgreSQL E2E 已验证注册、登录、Cookie/CSRF、会话创建、消息持久化和读取；Java -> Python deterministic stub -> Java -> SSE 最小闭环已验证。 |
 | 异步传输 | Java PostgreSQL Outbox -> RocketMQ -> Consumer 的真实 E2E 已验证 envelope、`request_hash`、`dispatch_id` 与 `run_id`。 |
 | Tool/SQL 闭环 | Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result 的真实 E2E 已验证；SQL 失败会记录 `SQL_EXECUTION_FAILED`，重复 Proposal 不重复执行。 |
-| M1-5 饮食业务 | 饮食记录创建、查询、编辑、删除、恢复，today/7d/30d 分析，餐食计划生命周期和购物清单已接入 Java/SQL/API；5 条 approved 营养 seed 与 5 条 USDA foodPortions 单位换算规则的 matched/pending 分支已验证。 |
+| M1-5 饮食业务 | 饮食记录创建、查询、编辑、删除、恢复，today/7d/30d 分析，餐食计划生命周期和购物清单已接入 Java/SQL/API；48 条 approved 营养 seed、48 条 USDA foodPortions 换算和 75 条精确质量换算已在本地 PostgreSQL 校验，matched/pending 分支保持可用。 |
 | M1-5 写确认 | `meal_plan.save_plan` 和 `food_log_writer` 的 create/update/delete/restore 已完成 Proposal -> Confirm -> Execute；reject、failed、superseded、revision 冲突、失败回滚/审计和幂等重放已通过真实 PostgreSQL HTTP/RocketMQ 回归。 |
-| Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库已完成批量上传、异步索引、发布可见性和 `public_published` 安全引用。默认仍是 `deterministic:local`；SiliconFlow 真实 Chat 与 `BAAI/bge-m3`/`Qwen/Qwen3-Embedding-0.6B` 单次 smoke 已通过，长时间稳定性、正式价格审计和生产 RAG 治理仍未完成。 |
+| Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库已完成批量上传、异步索引、发布可见性和 `public_published` 安全引用。默认仍是 `deterministic:local`；宿主机已用显式凭据验证 SiliconFlow Chat、`BAAI/bge-m3` 和 `Qwen/Qwen3-Embedding-0.6B` 的协议调用。Docker `agent-runtime` 的两套 profile 配置与安全切换入口已具备，但当前容器真实 Embedding 请求受 Docker 出站 TLS 环境阻塞，长时间稳定性、正式价格审计和生产 RAG 治理仍未完成。 |
 | 恢复与 M1-6 本地门禁 | 已验证 Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启/Topic 初始化、双 JVM 有界读取和 Java 重启回读；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵仍未完成。 |
 | 前端 | G1-G6 页面代码边界、追问/确认/失败/取消/SSE 状态、真实管理查询和知识库批次/RAG 引用接入已完成；当前业务回归为 38 个测试文件、201/201，typecheck/build 已通过。 |
 | Java 回归 | 当前 Java 全量业务门禁、Spotless、ArchUnit 和 Alibaba 可执行规范子集均通过；HTTP 与 RocketMQ `food_log_writer` 回归各 11/11，包含官方 foodPortions 换算 matched/pending 数据库断言。具体运行批次和跳过项以 [`EXECUTION_RECORD.md`](./script/sql/FoodMate/EXECUTION_RECORD.md) 为准。 |
 
 当前不能宣称完成的内容：
 
-- Python Runtime 的真实云 embedding 长稳、生产 RAG 质量/容量和统一生产 Trace/指标治理。
+- Docker Runtime 的真实云 embedding 出站连通性、真实云 embedding 长稳、生产 RAG 质量/容量和统一生产 Trace/指标治理。
 - 单位换算、更广泛的营养目录和完整的业务 Tool/SQL 覆盖。
 - 生产资源上的长时间压测、P95/P99 容量结论、跨节点故障切换、PostgreSQL 进程故障和持续业务 Agent 流量验证。
 - 供应商正式价格表核准、账单抽样对账、人工 Eval 校准样本、成本异常告警和完整生产监控治理。
@@ -106,7 +106,9 @@ npm run dev
 
 ## 2026-08-27 当前进度补充
 
-- M1-5 的饮食记录、营养分析、餐食计划、购物清单和写确认核心范围已进入真实 Java/SQL/API 链路；`food_log_writer` 已覆盖 create/update/delete/restore，并完成 HTTP 与 RocketMQ 各 11/11 跨进程回归；5 条官方 foodPortions 换算规则已导入并校验。
+- 2026-08-30 宿主机 SiliconFlow smoke 已验证 `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 均返回 1024 维向量；Docker `agent-runtime` 当前健康运行并选中 Qwen profile。切换到 BGE 必须使用 BGE 专用 collection、重新创建容器并重新索引，不能混写两个模型的向量；Docker 内真实 HTTPS 调用仍需修复本机出站 TLS 环境。
+- Docker `agent-runtime` 支持通过 `FOODMATE_DOCKER_HTTP_PROXY`、`FOODMATE_DOCKER_HTTPS_PROXY` 显式配置外部代理，并用 `FOODMATE_DOCKER_NO_PROXY` 隔离 Compose 内部服务；默认不启用代理，未配置可用出站路径时真实请求保持 fail-closed。
+- M1-5 的饮食记录、营养分析、餐食计划、购物清单和写确认核心范围已进入真实 Java/SQL/API 链路；`food_log_writer` 已覆盖 create/update/delete/restore，并完成 HTTP 与 RocketMQ 各 11/11 跨进程回归；当前本地目录含 48 条 approved 食材、48 条官方 foodPortions 换算和 75 条精确质量换算规则。
 - Agent 运行路径已支持 `run.eval_decided`、预算、checkpoint、continuation、追问和审批确认；写入仍由 Java 授权和执行，Python/模型不直连业务库。
 - M1-6 已完成本地 Actuator/metrics 配置回归、Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启恢复、双 JVM 有界读取和 Java 重启回读；生产故障矩阵和容量门禁仍待目标环境执行。
 - M2-1 已在 Docker 应用容器中复验 `local-stub` Redis 索引和 local deterministic Milvus 路径，覆盖批次上传、RocketMQ 索引、结果回写、显式发布/下线/恢复、用户检索、AgentRun 引用和批次 SSE；未调用真实付费服务。
@@ -114,4 +116,4 @@ npm run dev
 
 ## M1-5 / M1-6 收尾边界
 
-已完成本地真实基础链路、跨进程 checkpoint 恢复、RocketMQ Proposal/Result、Eval Gate、饮食记录与餐食计划、M2-1 公共知识库 RAG、M2-2 Tool/SQL、M2-3 管理核心切片、写确认和 5 条官方食材级单位换算规则。当前仍不能宣称生产完成：更广泛营养目录、真实云模型/embedding 长时间稳定性、生产资源长压与容量结论、队列防饥饿、多实例业务流量、完整依赖故障矩阵、正式价格/账单对账，以及人工校准驱动的生产 Eval 指标告警仍需在目标环境执行。
+已完成本地真实基础链路、跨进程 checkpoint 恢复、RocketMQ Proposal/Result、Eval Gate、饮食记录与餐食计划、M2-1 公共知识库 RAG、M2-2 Tool/SQL、M2-3 管理核心切片、写确认和本地营养目录扩展。当前仍不能宣称生产完成：真实云模型/embedding 长时间稳定性、生产资源长压与容量结论、队列防饥饿、多实例业务流量、完整依赖故障矩阵、正式价格/账单对账，以及人工校准驱动的生产 Eval 指标告警仍需在目标环境执行。

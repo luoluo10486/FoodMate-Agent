@@ -2,7 +2,7 @@ package com.foodmate.application.runtime.port.out;
 
 import java.util.List;
 
-/** Durable publication boundary for Java-to-Runtime messages. */
+/** Java 到 Runtime 消息的持久化发布边界。 */
 public interface OutboxRepository {
     /** Reads messages whose retry time and lease state allow publication. */
     List<OutboxSnapshot> findPending(int limit);

@@ -11,7 +11,7 @@
 .figmaFixture {
   --fm-fixture-sidebar-active-surface: #fdf6ef;
   --fm-fixture-session-active-surface: #fffdf5;
-  --fm-fixture-top-nav-active-surface: #fffefa;
+  --fm-fixture-top-nav-active-surface: #fffefc;
 }
 
 /* Keep the Figma fixture rail at its 340px canvas boundary without letting the divider consume layout space. */
@@ -28,10 +28,12 @@
   padding-top: 52px;
 }
 
-/* Figma node 879:353 uses the warning color as a low-opacity selection wash. */
+/* Figma node 640:428 uses separate neutral surfaces for active navigation and session rows. */
 .designChat {
-  --fm-fixture-sidebar-active-surface: rgba(199, 150, 84, 0.08);
-  --fm-fixture-session-active-surface: rgba(255, 246, 226, 0.2);
+  --fm-green: #4caf50;
+  --fm-fixture-sidebar-active-surface: #fbf7f2;
+  --fm-fixture-session-active-surface: #fffcf9;
+  --fm-fixture-top-nav-active-surface: #fffefc;
 }
 
 .figmaFixture .primarySideNav {
@@ -118,6 +120,24 @@
   overflow: hidden;
   background: var(--fm-surface);
   border-right: 1px solid var(--fm-border);
+}
+
+.profileFixture {
+  gap: 24px;
+}
+
+.fixtureOnlineStatus {
+  display: inline-flex;
+  width: max-content;
+  height: 20px;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #f0faf4;
+  color: #48a868;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .sidebarBrand {

@@ -1,9 +1,11 @@
 import json
 from io import BytesIO
+import ssl
 import urllib.error
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock
 from unittest.mock import Mock
+from unittest.mock import patch
 import zipfile
 
 from knowledge_rag import (DeterministicEmbedder, KnowledgeChunk, MilvusIndex, OpenAICompatibleEmbedder, RagError, RagSettings, RedisStubIndex, StubIndex, build_local_embedder, chunk_markdown, parse_document, safe_object_key)
@@ -87,6 +89,17 @@ class _VectorMilvusClient:
         self.flushed.append(kwargs["collection_name"])
 
 
+class _IdentityMilvusClient(_VectorMilvusClient):
+    def __init__(self, fingerprint):
+        super().__init__(dimension=2)
+        self.rows = [{"embedding_id": "existing", "embedding_fingerprint": fingerprint}]
+        self.queries = []
+
+    def query(self, **kwargs):
+        self.queries.append(kwargs)
+        return [dict(row) for row in self.rows]
+
+
 class MilvusIndexTests(TestCase):
     def test_visibility_update_is_limited_to_document_version(self):
         index = MilvusIndex.__new__(MilvusIndex)
@@ -136,6 +149,29 @@ class MilvusIndexTests(TestCase):
             index.upsert("Guide", [KnowledgeChunk("emb-1", "d1", "v1", 0, "", "protein")], [[0.1] * 12])
 
         self.assertEqual("RAG_MILVUS_DIMENSION_MISMATCH", raised.exception.code)
+
+    def test_upsert_rejects_existing_collection_with_different_embedding_identity(self):
+        settings = RagSettings(
+            mode="local",
+            embedding_provider="openai-compatible",
+            embedding_profile="bge-m3",
+            embedding_model="BAAI/bge-m3",
+            milvus_uri="http://milvus",
+            milvus_collection="shared_knowledge",
+        )
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _IdentityMilvusClient("rag_different_model")
+        index.collection = settings.milvus_collection
+        index.index_fingerprint = settings.index_fingerprint
+
+        with self.assertRaisesRegex(RagError, "embedding identity") as raised:
+            index.upsert(
+                "Guide",
+                [KnowledgeChunk("emb-1", "d1", "v1", 0, "", "protein")],
+                [[0.1, 0.2]],
+            )
+
+        self.assertEqual("RAG_MILVUS_MODEL_MISMATCH", raised.exception.code)
 
     def test_delete_is_limited_to_document_version(self):
         index = MilvusIndex.__new__(MilvusIndex)
@@ -230,6 +266,25 @@ class RagSettingsTests(TestCase):
         self.assertEqual("deterministic", settings.embedding_provider)
         self.assertEqual("deterministic-local-v1", settings.embedding_model)
         self.assertIsInstance(build_local_embedder(settings), DeterministicEmbedder)
+
+    def test_local_deterministic_provider_discards_real_embedding_credentials(self):
+        settings = RagSettings.from_environment({
+            "FOODMATE_RAG_MODE": "local",
+            "FOODMATE_RAG_EMBEDDING_PROVIDER": "deterministic",
+            "FOODMATE_RAG_EMBEDDING_BASE_URL": "https://embedding.example/v1",
+            "FOODMATE_RAG_EMBEDDING_API_KEY": "must-not-be-retained",
+            "FOODMATE_RAG_MILVUS_URI": "http://milvus:19530",
+            "FOODMATE_RAG_MILVUS_COLLECTION": "public_knowledge",
+            "FOODMATE_RAG_BATCH_TOKEN_LIMIT": "1000",
+            "FOODMATE_RAG_DAILY_TOKEN_LIMIT": "10000",
+            "FOODMATE_RAG_BATCH_COST_LIMIT": "0",
+            "FOODMATE_RAG_DAILY_COST_LIMIT": "0",
+            "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS": "0",
+            "FOODMATE_RAG_PRICE_VERSION": "deterministic-v1",
+        })
+
+        self.assertEqual("", settings.embedding_base_url)
+        self.assertEqual("", settings.embedding_api_key)
 
     def test_openai_provider_still_fails_closed_without_api_key(self):
         with self.assertRaisesRegex(RagError, "incomplete") as raised:
@@ -386,7 +441,15 @@ class RagSettingsTests(TestCase):
         self.assertEqual("RAG_EMBEDDING_BASE_URL_MISSING", raised.exception.code)
 
 
-class OpenAICompatibleEmbedderTests(TestCase):
+class OpenAICompatibleEmbedderConfigurationTests(TestCase):
+    @staticmethod
+    def _response(body):
+        response = MagicMock()
+        response.read.return_value = body
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        return response
+
     def _settings(self):
         return RagSettings(
             mode="local",
@@ -397,8 +460,7 @@ class OpenAICompatibleEmbedderTests(TestCase):
         )
 
     def test_invalid_json_fails_closed(self):
-        response = Mock()
-        response.read.return_value = b"not-json"
+        response = self._response(b"not-json")
         with patch("urllib.request.urlopen", return_value=response):
             with self.assertRaisesRegex(RagError, "invalid embedding response") as raised:
                 OpenAICompatibleEmbedder(self._settings()).embed(["hello"])
@@ -411,8 +473,7 @@ class OpenAICompatibleEmbedderTests(TestCase):
         )
         for payload in payloads:
             with self.subTest(payload=payload):
-                response = Mock()
-                response.read.return_value = json.dumps(payload).encode("utf-8")
+                response = self._response(json.dumps(payload).encode("utf-8"))
                 with patch("urllib.request.urlopen", return_value=response):
                     with self.assertRaises(RagError) as raised:
                         OpenAICompatibleEmbedder(self._settings()).embed(["one", "two"])
@@ -480,8 +541,9 @@ class DeterministicEmbedderTests(TestCase):
 
 class OpenAICompatibleEmbedderTests(TestCase):
     class _Response:
-        def __init__(self, payload):
+        def __init__(self, payload, headers=None):
             self.payload = payload
+            self.headers = headers or {}
 
         def __enter__(self):
             return self
@@ -529,6 +591,7 @@ class OpenAICompatibleEmbedderTests(TestCase):
         self.assertEqual("https://api.siliconflow.cn/v1/embeddings", request.full_url)
         self.assertEqual("BAAI/bge-m3", body["model"])
         self.assertEqual(["first", "second"], body["input"])
+        self.assertEqual("float", body["encoding_format"])
         self.assertEqual([[1.0, 0.0], [0.0, 1.0]], vectors)
         self.assertEqual("Bearer test-key", request.headers["Authorization"])
 
@@ -547,6 +610,21 @@ class OpenAICompatibleEmbedderTests(TestCase):
         self.assertEqual([[1.0, 0.0]], result.vectors)
         self.assertEqual(11, result.token_count)
         self.assertEqual("embedding-request-1", result.provider_request_id)
+
+    @patch("urllib.request.urlopen")
+    def test_reads_siliconflow_trace_id_from_response_header(self, urlopen):
+        urlopen.return_value = self._Response(
+            {
+                "id": "embedding-request-1",
+                "data": [{"index": 0, "embedding": [1.0, 0.0]}],
+                "usage": {"prompt_tokens": 11, "total_tokens": 11},
+            },
+            {"x-siliconcloud-trace-id": "trace-embedding-1"},
+        )
+
+        result = OpenAICompatibleEmbedder(self._settings()).embed_with_usage(["first"])
+
+        self.assertEqual("trace-embedding-1", result.provider_trace_id)
 
     @patch("urllib.request.urlopen")
     def test_rejects_malformed_provider_usage(self, urlopen):
@@ -604,6 +682,16 @@ class OpenAICompatibleEmbedderTests(TestCase):
             OpenAICompatibleEmbedder(self._settings()).embed(["first"])
 
         self.assertEqual("RAG_EMBEDDING_AUTH_FAILED", raised.exception.code)
+
+    @patch("urllib.request.urlopen")
+    def test_maps_tls_handshake_failures_without_disabling_certificate_validation(self, urlopen):
+        urlopen.side_effect = urllib.error.URLError(ssl.SSLEOFError("handshake closed"))
+
+        with self.assertRaises(RagError) as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_TLS_ERROR", raised.exception.code)
+        self.assertNotIn("handshake closed", str(raised.exception))
 
 
 class StubIndexTests(TestCase):

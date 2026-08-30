@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import org.springframework.beans.factory.FactoryBean;
 
-/** Exposes a MyBatis mapper through an application-owned repository contract. */
+/** 通过应用层拥有的仓储契约暴露 MyBatis Mapper。 */
 public abstract class MapperRepositoryAdapter<T> implements FactoryBean<T> {
     private final Object mapper;
     private final Class<T> repositoryType;

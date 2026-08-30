@@ -1,6 +1,8 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
-    [string]$PythonPath = ""
+    [string]$PythonPath = "",
+    [ValidateSet("all", "bge-m3", "qwen3-embedding-0.6b")]
+    [string]$Profile = "all"
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,14 +23,16 @@ foreach ($name in @("FOODMATE_RAG_EMBEDDING_BASE_URL", "FOODMATE_RAG_EMBEDDING_A
 }
 
 $oldRunFlag = [Environment]::GetEnvironmentVariable("FOODMATE_RUN_REAL_EMBEDDING_TESTS")
+$oldProfile = [Environment]::GetEnvironmentVariable("FOODMATE_REAL_EMBEDDING_PROFILE")
 $oldBytecodeFlag = [Environment]::GetEnvironmentVariable("PYTHONDONTWRITEBYTECODE")
 
 try {
     [Environment]::SetEnvironmentVariable("FOODMATE_RUN_REAL_EMBEDDING_TESTS", "true")
+    [Environment]::SetEnvironmentVariable("FOODMATE_REAL_EMBEDDING_PROFILE", $Profile)
     [Environment]::SetEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1")
     Push-Location (Join-Path $repoRoot "agent-runtime")
     try {
-        & $PythonPath -m pytest -q tests/test_real_embedding_integration.py -p no:cacheprovider
+        & $PythonPath -m pytest -q -s tests/test_real_embedding_integration.py -p no:cacheprovider
         if ($LASTEXITCODE -ne 0) {
             throw "SiliconFlow Embedding smoke failed with exit code $LASTEXITCODE"
         }
@@ -39,5 +43,6 @@ try {
 }
 finally {
     [Environment]::SetEnvironmentVariable("FOODMATE_RUN_REAL_EMBEDDING_TESTS", $oldRunFlag)
+    [Environment]::SetEnvironmentVariable("FOODMATE_REAL_EMBEDDING_PROFILE", $oldProfile)
     [Environment]::SetEnvironmentVariable("PYTHONDONTWRITEBYTECODE", $oldBytecodeFlag)
 }

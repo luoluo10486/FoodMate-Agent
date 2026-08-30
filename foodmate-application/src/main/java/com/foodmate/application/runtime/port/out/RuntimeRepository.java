@@ -4,7 +4,7 @@ import com.foodmate.shared.runtime.RunEvent;
 import java.time.Instant;
 import java.util.List;
 
-/** Persistence port for durable Run, dispatch, event, and ownership facts. */
+/** AgentRun、派发、事件和归属事实的持久化端口。 */
 public interface RuntimeRepository {
     String dispatchFingerprint(String id);
 

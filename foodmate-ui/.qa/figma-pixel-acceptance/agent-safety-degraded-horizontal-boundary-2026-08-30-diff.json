@@ -1,0 +1,33 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 376896,
+  "differentRatio": 0.25559895833333335,
+  "meanAbsoluteError": 3.2238778008355036,
+  "rmse": 16.379168046465868,
+  "maxChannelDelta": 255,
+  "expected": "docxs/设计/figma-png/agent-safety-degraded.png",
+  "actual": "recaptured/agent-safety-degraded-horizontal-boundary-browser-1440x1024-2026-08-30-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.0000000149011612,
+  "dprPass": true,
+  "geometry": {
+    "desktopSafetyContainer": "x=292,width=612",
+    "desktopWarningBanner": "x=344,width=560",
+    "desktopResponse": "x=344,width=560",
+    "mobileContent": "x=64,width=295.2 at 390x844",
+    "bodyHorizontalOverflow": false,
+    "fonts": "loaded",
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据 Figma 节点 687:1563，将安全降级内容容器宽度从 608px 对齐为 612px，正文右移 4px；移动端清除偏移以避免横向溢出。仅修改前端，未修改 Figma。",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-30",
+    "conclusion": "The safety warning and response regions remain aligned to the Figma 560px content width inside the 612px safety container. The mobile layout clears the desktop alignment offset, the page has no horizontal overflow, and no desktop window controls are rendered. Residual font/icon and surrounding workspace differences remain; retain DIFF_REVIEW."
+  },
+  "conclusion": "DIFF_REVIEW"
+}

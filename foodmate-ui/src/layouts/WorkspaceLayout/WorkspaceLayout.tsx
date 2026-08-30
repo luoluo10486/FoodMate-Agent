@@ -70,10 +70,15 @@ type WorkspaceLayoutProps = {
   topbarShowMarkLetter?: boolean;
   designChat?: boolean;
   topbarVariant?: 'planning-list';
+  hideSessionHistory?: boolean;
   sidebarFixture?: {
     sessions: SessionSummary[];
     searchValue?: string;
     currentPage?: number;
+    showTopStatus?: boolean;
+    hideSessionSearch?: boolean;
+    hideCollapseButton?: boolean;
+    hideAccountDock?: boolean;
   };
   pageOverlay?: React.ReactNode;
 };
@@ -94,6 +99,7 @@ export function WorkspaceLayout({
   topbarShowMarkLetter = true,
   designChat = false,
   topbarVariant,
+  hideSessionHistory = false,
   sidebarFixture,
   pageOverlay,
 }: WorkspaceLayoutProps) {
@@ -223,35 +229,38 @@ export function WorkspaceLayout({
       <div
         className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${sidebarFixture && !showKnowledgeTopNav ? styles.figmaFixture : ''}`}
       >
-        <aside className={styles.sidebar}>
+        <aside className={`${styles.sidebar} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}>
           <div className={styles.sidebarBrand}>
             <BrandLogo showTagline />
           </div>
+          {sidebarFixture?.showTopStatus ? <div className={styles.fixtureOnlineStatus}>在线代理</div> : null}
           <Button className={styles.newButton} onClick={createNewSession}>
             <Plus aria-hidden="true" />
             <span>新建任务</span>
           </Button>
-          <div className={styles.searchWrap}>
-            <Search className={styles.searchIcon} aria-hidden="true" />
-            <Input
-              className={styles.search}
-              placeholder="搜索会话..."
-              value={displayedSessionQuery}
-              onChange={(event) => setSessionQuery(event.target.value)}
-            />
-            {displayedSessionQuery && !designChat ? (
-              <Button
-                className={styles.clearSearch}
-                variant="ghost"
-                size="icon"
-                type="button"
-                aria-label="清除会话搜索"
-                onClick={() => setSessionQuery('')}
-              >
-                <X aria-hidden="true" />
-              </Button>
-            ) : null}
-          </div>
+          {!hideSessionHistory && !sidebarFixture?.hideSessionSearch ? (
+            <div className={styles.searchWrap}>
+              <Search className={styles.searchIcon} aria-hidden="true" />
+              <Input
+                className={styles.search}
+                placeholder="搜索会话..."
+                value={displayedSessionQuery}
+                onChange={(event) => setSessionQuery(event.target.value)}
+              />
+              {displayedSessionQuery && !designChat ? (
+                <Button
+                  className={styles.clearSearch}
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  aria-label="清除会话搜索"
+                  onClick={() => setSessionQuery('')}
+                >
+                  <X aria-hidden="true" />
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
           <div className={styles.sessionTools}>
             <nav className={styles.primarySideNav} aria-label="工作区导航">
               <NavLink className={sideLink} to={ROUTES.HOME} end>
@@ -262,6 +271,7 @@ export function WorkspaceLayout({
             <SidebarSessionList
               currentPage={sidebarFixture?.currentPage}
               sessions={displayedSessions}
+              showHistory={!hideSessionHistory}
               onAction={sidebarFixture ? undefined : handleSessionAction}
             />
             {realMode ? (
@@ -297,36 +307,40 @@ export function WorkspaceLayout({
               <span>设置</span>
             </Button>
           </nav>
-          <div className={styles.accountDock}>
-            <Button
-              className={styles.collapseButton}
-              variant="ghost"
-              type="button"
-              onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
-            >
-              <MoreHorizontal aria-hidden="true" />
-              <span>收起导航</span>
-            </Button>
-            <div className={styles.statusPill}>
-              <span />
-              <span>就绪 (Fustat-v2)</span>
+          {!sidebarFixture?.hideAccountDock ? (
+            <div className={styles.accountDock}>
+              {!sidebarFixture?.hideCollapseButton ? (
+                <Button
+                  className={styles.collapseButton}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
+                >
+                  <MoreHorizontal aria-hidden="true" />
+                  <span>收起导航</span>
+                </Button>
+              ) : null}
+              <div className={styles.statusPill}>
+                <span />
+                <span>就绪 (Fustat-v2)</span>
+              </div>
+              <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
+                <div className={styles.avatar}>
+                  <img src={sidebarAvatar} alt="" />
+                </div>
+                <div>
+                  <strong>
+                    {displayNameOverride
+                      ? `${displayNameOverride} 的工作区`
+                      : isAuthenticated
+                        ? `${authUser.displayName} 的工作区`
+                        : '未登录'}
+                  </strong>
+                  <span>ID: {profileId}</span>
+                </div>
+              </Link>
             </div>
-            <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
-              <div className={styles.avatar}>
-                <img src={sidebarAvatar} alt="" />
-              </div>
-              <div>
-                <strong>
-                  {displayNameOverride
-                    ? `${displayNameOverride} 的工作区`
-                    : isAuthenticated
-                      ? `${authUser.displayName} 的工作区`
-                      : '未登录'}
-                </strong>
-                <span>ID: {profileId}</span>
-              </div>
-            </Link>
-          </div>
+          ) : null}
         </aside>
         <main className={styles.main}>
           <header

@@ -225,6 +225,10 @@ describe('authentication pages', () => {
   it('starts the mock registration fixture with the Figma example values', () => {
     renderAuth('/register');
 
+    expect(screen.getByRole('main')).toHaveStyle({
+      '--auth-diagonal': '#dfeedb',
+      '--auth-accent': '#a6d997',
+    });
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-user.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-mail.svg"]')).toBeInTheDocument();
@@ -310,6 +314,14 @@ describe('authentication pages', () => {
     expect(screen.getByRole('status')).toHaveTextContent('重置邮件请求已完成');
   });
 
+  it('uses the Figma accent token for the forgot-password brand mark', () => {
+    renderAuth('/forgot-password');
+
+    expect(screen.getByRole('main')).toHaveStyle({
+      '--auth-accent': '#48c78e',
+    });
+  });
+
   it('renders the reset-password strength contract and protects missing tokens', async () => {
     const user = userEvent.setup();
     renderAuth('/reset-password');
@@ -324,5 +336,13 @@ describe('authentication pages', () => {
     expect(screen.getByText('高安全')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '确认重置' }));
     expect(screen.getByRole('heading', { name: '重置密码' })).toBeInTheDocument();
+  });
+
+  it('uses the Figma accent token for the reset-password brand mark', () => {
+    renderAuth('/reset-password');
+
+    expect(screen.getByRole('main')).toHaveStyle({
+      '--auth-accent': '#48c78e',
+    });
   });
 });

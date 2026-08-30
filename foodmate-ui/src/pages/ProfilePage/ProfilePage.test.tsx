@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { ProfilePage } from './ProfilePage';
+import styles from './ProfilePage.module.css';
 
 function LocationProbe() {
   const location = useLocation();
@@ -42,18 +43,28 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('link', { name: '基本资料' })).not.toHaveAttribute('aria-current');
   });
 
+  it('uses the Figma unsaved-leave modal contract', () => {
+    renderPage('/profile?state=basic-unsaved-leave-confirmation');
+
+    const modal = screen.getByRole('heading', { name: '放弃未保存的修改？' }).closest('section');
+
+    expect(modal).toHaveClass(styles.fixtureModalUnsaved);
+    expect(modal).toHaveAttribute('data-figma-modal', 'profile-basic-unsaved-leave-confirmation');
+    expect(screen.getByRole('button', { name: '继续编辑' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '放弃并离开' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '取消' })).not.toBeInTheDocument();
+  });
+
   it('uses the Figma profile fixture for the default mock entry', () => {
     renderPage('/profile');
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('anddy_operator_9')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('180')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('78')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('精益增肌')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('2500')).toBeInTheDocument();
     expect(screen.getByDisplayValue('150')).toBeInTheDocument();
-    expect(screen.getByText('花生 · 乳糖')).toBeInTheDocument();
-    expect(screen.getByText('早餐奶昔配方')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '花生' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '乳糖' })).toBeInTheDocument();
+    expect(screen.queryByText('早餐奶昔配方')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
     expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute('src', '/assets/avatars/default-male.svg');
     expect(screen.getByRole('button', { name: 'Anddy' }).querySelector('img')).toHaveAttribute(
@@ -61,6 +72,43 @@ describe('ProfilePage', () => {
       '/assets/avatars/default-male.svg',
     );
     expect(document.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+  });
+
+  it('limits the basic Figma fixture to the fields shown in the reference artboard', () => {
+    renderPage('/profile?state=basic');
+
+    expect(screen.getByRole('textbox', { name: '蛋白质目标 (g)' })).toHaveValue('150');
+    expect(screen.getByRole('heading', { name: '饮食与身体目标' }).closest('div')).toHaveClass(styles.figmaGoalsCard);
+    expect(screen.queryByRole('textbox', { name: '展示名称' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '性别（可选）' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: '身高 (cm)' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: '体重 (kg)' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '活动水平' })).not.toBeInTheDocument();
+    expect(screen.queryByText('偏好速览')).not.toBeInTheDocument();
+    expect(screen.queryByText('头像与账号概览')).not.toBeInTheDocument();
+  });
+
+  it('marks the memories page with its Figma-only geometry contract', () => {
+    renderPage('/profile?state=memories');
+
+    const memoryPage = screen.getByRole('heading', { name: '记忆系统' }).closest('[data-figma-layout]');
+
+    expect(memoryPage).toHaveAttribute('data-figma-layout', 'profile-memories');
+  });
+
+  it('limits the security Figma fixture to the two reference cards', () => {
+    renderPage('/profile?state=security');
+
+    const securityPage = screen.getByRole('heading', { name: '修改账号密码' }).closest('[data-figma-layout]');
+
+    expect(securityPage).toHaveAttribute('data-figma-layout', 'profile-security');
+    expect(securityPage).toHaveClass(styles.figmaSecurityPage);
+    expect(screen.queryByRole('heading', { name: '最近安全活动' })).not.toBeInTheDocument();
+    expect(screen.queryByText('SECURE')).not.toBeInTheDocument();
+    expect(screen.queryByText('2 ACTIVE DEVICES')).not.toBeInTheDocument();
+    expect(screen.queryByText('设备状态在每次登录后更新')).not.toBeInTheDocument();
+    expect(securityPage?.querySelector(`.${styles.securityAccent}`)).not.toBeInTheDocument();
+    expect(securityPage?.querySelector(`.${styles.sessionAccent}`)).not.toBeInTheDocument();
   });
 
   it('renders the Figma logout confirmation fixture with the target devices', async () => {
@@ -216,9 +264,9 @@ describe('ProfilePage', () => {
     const user = userEvent.setup();
     renderPage('/profile');
 
-    const displayName = screen.getByRole('textbox', { name: '展示名称' });
-    await user.clear(displayName);
-    await user.type(displayName, '我的营养工作区');
+    const proteinTarget = screen.getByRole('textbox', { name: '蛋白质目标 (g)' });
+    await user.clear(proteinTarget);
+    await user.type(proteinTarget, '160');
 
     const allergenInput = screen.getByRole('textbox', { name: '添加过敏原' });
     await user.type(allergenInput, '花生');

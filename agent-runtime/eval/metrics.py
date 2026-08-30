@@ -76,7 +76,18 @@ class RuntimeMetrics:
     _ALLOWED_TRANSPORTS = frozenset({"http", "rocketmq", "local"})
 
     _ALLOWED_OPERATIONS = frozenset(
-        {"dispatch", "event", "result", "proposal", "sse_replay", "knowledge_index", "visibility", "purge"}
+        {
+            "dispatch",
+            "event",
+            "result",
+            "proposal",
+            "sse_replay",
+            "knowledge_index",
+            "visibility",
+            "purge",
+            "model",
+            "eval",
+        }
     )
     _ALLOWED_RESULTS = frozenset(
         {
@@ -199,6 +210,32 @@ class RuntimeMetrics:
     def record_retry(self, operation: str, transport: str | None = None) -> None:
         """记录可重试失败事实。"""
         self.record(operation, "retry", "retry", transport=transport)
+
+    def record_model_attempt(
+        self,
+        scene: str,
+        result: str,
+        error_code: str | None,
+        latency_ms: int | None,
+        transport: str | None = None,
+    ) -> None:
+        """记录模型调用摘要，错误码只映射到固定 reason。"""
+        operation = "eval" if str(scene).strip().lower() == "eval" else "model"
+        reason = self._model_reason(error_code)
+        self.record(operation, result, reason, latency_ms, transport)
+
+    @staticmethod
+    def _model_reason(error_code: str | None) -> str:
+        if not error_code:
+            return "none"
+        normalized = str(error_code).strip().upper()
+        if normalized in {"MODEL_TIMEOUT", "RAG_EMBEDDING_TIMEOUT"}:
+            return "timeout"
+        if normalized in {"MODEL_RATE_LIMIT", "RAG_EMBEDDING_RATE_LIMITED"}:
+            return "provider_error"
+        if normalized.startswith("MODEL_") or normalized.startswith("RAG_"):
+            return "provider_error"
+        return "other"
 
     def queue_depth(self, name: str, value: int) -> None:
         with self._lock:

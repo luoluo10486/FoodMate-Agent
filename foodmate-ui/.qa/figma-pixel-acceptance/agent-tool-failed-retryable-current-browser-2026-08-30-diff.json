@@ -1,0 +1,27 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 358349,
+  "differentRatio": 0.2430209689670139,
+  "meanAbsoluteError": 3.098138597276476,
+  "rmse": 16.594073131964773,
+  "maxChannelDelta": 253,
+  "expected": "../docxs/设计/figma-png/agent-tool-failed-retryable.png",
+  "actual": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-current-browser-2026-08-30-rgba.png",
+  "viewport": "1440x1024",
+  "actualDpr": 1.25,
+  "dprPass": false,
+  "fonts": "loaded",
+  "bodyOverflow": false,
+  "textOverflowCount": 0,
+  "windowControls": 0,
+  "trafficLightColors": 0,
+  "geometry": {
+    "failureCard": "x=340,y=237,width=560,height=160",
+    "failureDetails": "x=360.8,y=293.8,width=518.4,height=44",
+    "retryButton": "x=360.8,y=353.8,width=58,height=32",
+    "skipButton": "x=430.8,y=353.8,width=97,height=32"
+  }
+}

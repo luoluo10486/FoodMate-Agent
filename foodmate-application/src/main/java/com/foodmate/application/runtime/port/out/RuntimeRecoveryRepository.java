@@ -3,7 +3,7 @@ package com.foodmate.application.runtime.port.out;
 import java.time.Instant;
 import java.util.List;
 
-/** Java-side reconciliation port for resuming a Run from a Python checkpoint. */
+/** Java 侧从 Python checkpoint 恢复 AgentRun 的对账端口。 */
 public interface RuntimeRecoveryRepository {
     RecoveryRun lockRun(long runId, long userId);
 
