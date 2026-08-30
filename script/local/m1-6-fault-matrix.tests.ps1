@@ -70,6 +70,16 @@ foreach ($field in @(
     }
 }
 
+foreach ($assignment in @(
+        '$result.component =',
+        '$result.fault_injected_at =',
+        '$result.readiness_recovered_at ='
+    )) {
+    if ($scriptText -notmatch [regex]::Escape($assignment)) {
+        throw "Fault matrix must promote restart evidence into the scenario result: $assignment"
+    }
+}
+
 if ($scriptText -match '(?i)FOODMATE_.*API_KEY\s*=\s*[^\r\n#]+') {
     throw "Fault matrix must not contain a credential value"
 }

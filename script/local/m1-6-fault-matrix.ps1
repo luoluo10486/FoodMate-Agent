@@ -463,6 +463,14 @@ try {
     foreach ($name in $selectedScenarios) {
         $before = Get-QueueSnapshot $probe.username
         $result = New-ScenarioResult $name $before
+        $result.component = switch ($name) {
+            "java-restart" { "foodmate" }
+            "python-restart" { "foodmate-agent-runtime" }
+            "postgres-restart" { "foodmate-postgres" }
+            "redis-restart" { "foodmate-redis" }
+            "rocketmq-restart" { "foodmate-rocketmq-namesrv,foodmate-rocketmq-broker,foodmate-rocketmq-proxy" }
+            default { "application-and-database-evidence" }
+        }
         $watch = [Diagnostics.Stopwatch]::StartNew()
         try {
             switch ($name) {
@@ -481,6 +489,9 @@ try {
                     else { $result.evidence = [pscustomobject]@{ retry_attempts = 0; final_status = "outbox-replay_requires_orchestrator_fixture"; source_run_status = $status } }
                 }
             }
+            if ($result.evidence.fault_injected_at) { $result.fault_injected_at = [string]$result.evidence.fault_injected_at }
+            if ($result.evidence.readiness_recovered_at) { $result.readiness_recovered_at = [string]$result.evidence.readiness_recovered_at }
+            if ($result.evidence.component) { $result.component = [string]$result.evidence.component }
             $result.final_status = if ($result.evidence.final_status) { [string]$result.evidence.final_status } else { "recovered" }
             if ($result.evidence.duplicate_deliveries) { $result.duplicate_deliveries = [int]$result.evidence.duplicate_deliveries }
             if ($result.evidence.duplicate_side_effects) { $result.duplicate_side_effects = [int]$result.evidence.duplicate_side_effects }
