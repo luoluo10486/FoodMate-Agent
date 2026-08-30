@@ -60,5 +60,14 @@ if ($scriptText -match 'sse_pending\s*=') {
 if ($scriptText -notmatch 'pending\s*=\s*\$values\[0\]\s*\+\s*\$values\[3\]\s*\+\s*\$values\[4\]') {
     throw "M1-6 drainable pending count must exclude retained SSE replay facts"
 }
+if ($scriptText -notmatch '\$workerSessionId') {
+    throw "M1-6 traffic workers must use a worker-local session"
+}
+if ($scriptText -notmatch 'api/sessions') {
+    throw "M1-6 traffic workers must create sessions through the real API"
+}
+if ($scriptText -match '\$sharedSessionId') {
+    throw "M1-6 traffic workers must not share one session across workers"
+}
 
 Write-Output "m1_6_traffic_contract=passed"

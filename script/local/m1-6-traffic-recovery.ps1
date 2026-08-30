@@ -300,7 +300,6 @@ if (-not $ExecuteTraffic) {
 $username = "m16_" + [guid]::NewGuid().ToString("N")
 $email = "$username@example.com"
 $password = [guid]::NewGuid().ToString("N") + "Aa1!"
-$sessionId = $null
 $sampler = $null
 $jobs = @()
 $faultRecovery = $null
@@ -325,16 +324,6 @@ try {
         $csrfCookie = $cookies | Where-Object Name -eq "foodmate_csrf" | Select-Object -First 1
         if (-not $csrfCookie) { throw "foodmate_csrf cookie is missing after login" }
 
-        $sessionBody = @{ title = "M1-6 traffic"; mode = "agent" } | ConvertTo-Json -Compress
-        $sessionRequest = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Post, "$JavaBaseUrl/api/sessions")
-        $sessionRequest.Content = New-Object System.Net.Http.StringContent($sessionBody, [Text.Encoding]::UTF8, "application/json")
-        [void]$sessionRequest.Headers.Add("X-CSRF-Token", $csrfCookie.Value)
-        $sessionResponse = $setupClient.SendAsync($sessionRequest).GetAwaiter().GetResult()
-        $sessionText = $sessionResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult()
-        if (-not $sessionResponse.IsSuccessStatusCode) { throw "test session creation failed: HTTP $($sessionResponse.StatusCode)" }
-        $sessionJson = $sessionText | ConvertFrom-Json
-        $sessionId = [string]$sessionJson.data.session_id
-        if ([string]::IsNullOrWhiteSpace($sessionId)) { throw "test session id is missing" }
         $report.audit_before = Get-AuditSnapshot $username
     } finally {
         $setupClient.Dispose()
@@ -349,7 +338,7 @@ try {
 
     $sampler = Start-QueueSampler ((Get-Date).AddSeconds($WarmupSeconds + $SteadySeconds + 45))
     $workerScript = {
-        param($workerId, $warmup, $steady, $baseUrl, $user, $secret, $sharedSessionId)
+        param($workerId, $warmup, $steady, $baseUrl, $user, $secret)
         $ErrorActionPreference = "Stop"
         Add-Type -AssemblyName System.Net.Http
 
@@ -388,6 +377,19 @@ try {
             return Get-Csrf $context
         }
 
+        function New-WorkerSession($context, [string]$csrf) {
+            $suffix = [guid]::NewGuid().ToString("N")
+            $response = Send-Json $context "POST" "$baseUrl/api/sessions" @{
+                title = "M1-6 traffic worker $workerId-$suffix"
+                mode = "agent"
+            } $csrf
+            $workerSessionId = [string]$response.data.session_id
+            if ([string]::IsNullOrWhiteSpace($workerSessionId)) {
+                throw "worker session id is missing"
+            }
+            return $workerSessionId
+        }
+
         function Wait-Run($context, [string]$runId) {
             $deadline = (Get-Date).AddSeconds(60)
             do {
@@ -402,7 +404,7 @@ try {
         function Invoke-Agent($context, [string]$csrf, [int]$index) {
             $started = [Diagnostics.Stopwatch]::StartNew()
             $token = [guid]::NewGuid().ToString("N")
-            $response = Send-Json $context "POST" "$baseUrl/api/chat/runs" @{ prompt = "M1-6 deterministic agent query $token"; session_id = $sharedSessionId } $csrf
+            $response = Send-Json $context "POST" "$baseUrl/api/chat/runs" @{ prompt = "M1-6 deterministic agent query $token"; session_id = $workerSessionId } $csrf
             $runId = [string]$response.data.run_id
             if ([string]::IsNullOrWhiteSpace($runId)) { throw "AgentRun id is missing" }
             $status = Wait-Run $context $runId
@@ -430,7 +432,7 @@ try {
 
         function New-Approval($context, [string]$csrf, [string]$operation, [Nullable[long]]$resourceId, [hashtable]$input, [string]$key) {
             $payload = @{
-                session_id = [long]$sharedSessionId
+                session_id = [long]$workerSessionId
                 operation = $operation
                 resource_type = "food_log"
                 parameters = $input
@@ -510,6 +512,7 @@ try {
         $workerError = $null
         try {
             $csrf = Login $context
+            $workerSessionId = New-WorkerSession $context $csrf
             $warmupEnd = (Get-Date).AddSeconds($warmup)
             $counter = 0
             while ((Get-Date) -lt $warmupEnd) {
@@ -544,16 +547,22 @@ try {
             }
         } catch { $workerError = "worker setup failed" }
         finally { $context.Client.Dispose() }
-        [pscustomobject]@{ worker_id = $workerId; operations = @($operations); worker_error = $workerError }
+        [pscustomobject]@{
+            worker_id = $workerId
+            session_id = $workerSessionId
+            operations = @($operations)
+            worker_error = $workerError
+        }
     }
 
     for ($worker = 0; $worker -lt $Workers; $worker++) {
-        $jobs += Start-Job -ScriptBlock $workerScript -ArgumentList $worker, $WarmupSeconds, $SteadySeconds, $JavaBaseUrl, $username, $password, $sessionId
+        $jobs += Start-Job -ScriptBlock $workerScript -ArgumentList $worker, $WarmupSeconds, $SteadySeconds, $JavaBaseUrl, $username, $password
     }
     Wait-Job -Job $jobs | Out-Null
     $workerResults = @(Receive-Job -Job $jobs)
     $allOperations = @($workerResults | ForEach-Object { $_.operations })
     $workerErrors = @($workerResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.worker_error) }).Count
+    $workerSessions = @($workerResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.session_id) } | Select-Object -ExpandProperty session_id -Unique)
 
     $latencies = @($allOperations | ForEach-Object { $_.duration_ms })
     $total = $allOperations.Count
@@ -582,6 +591,7 @@ try {
     $report.traffic.total_operations = $total
     $report.traffic.agent_run_operations = $agentRuns
     $report.traffic.proposal_operations = $proposals
+    $report.traffic.worker_sessions = $workerSessions.Count
     $report.traffic.successful_operations = $successful
     $report.traffic.business_rejected = $businessRejected
     $report.traffic.business_failed = $businessFailed
