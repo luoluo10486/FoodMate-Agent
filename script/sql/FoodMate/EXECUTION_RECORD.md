@@ -1635,3 +1635,15 @@
 | 恢复结果 | 新恢复库创建成功，`validation.sql` 通过；验证后恢复库已按显式开关删除。 |
 | 源库保护 | 恢复库删除后确认 `FoodMateCodexRestore20260830` 不存在；源库只读计数复核为 `users=627`、`knowledge_documents=35`、`food_logs=235`。 |
 | 文件边界 | 备份文件保留在 `script/sql/FoodMate/backups/`，被 `.gitignore` 排除，不进入 Git；不得将其上传到仓库或公共位置。 |
+
+## D95 M1-6 队列事实语义与 Docker Embedding Profile 预检（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；Docker Compose `foodmate` 与 `agent-runtime` 保持运行；未读取或输出任何凭据。 |
+| 业务基线 | 项目 `.venv` Python pytest：`180 passed、2 skipped、6 subtests passed`；`mvnw.cmd -B -ntp verify`：`BUILD SUCCESS`。 |
+| M1-6 预检 | `m1-6-traffic-recovery.ps1 -WarmupSeconds 1 -SteadySeconds 1` readiness 通过：Java、Python 均 HTTP 200；未启动流量、未执行重启或故障注入。 |
+| 队列快照 | `pending=10`（仅可排空项）；`delivery_pending=0`；`proposal_inbox_pending=1`；`runtime_inbox_pending=9`；`sse_replay_retained=1546`。SSE 回放保留事实不再计入积压或排空判断。 |
+| Docker profile 预检 | 当前 Qwen profile 预检通过；请求 BGE 时因容器仍为 Qwen 被明确拒绝，避免模型/集合错配。契约测试通过。 |
+| 代码提交 | `2eb1c6e1` 修正 M1-6 队列排空语义；`aaab2480` 增加 Docker Embedding profile 安全回读与 PowerShell 参数回归。 |
+| 暂缓范围 | 按当前业务门禁决策，未执行 16 worker 长压、吞吐/延迟容量测试、组件重启、ACK 丢失、重复投递或 SSE 故障矩阵；Docker 真实云请求仍受既有出站 TLS 环境阻塞。 |
