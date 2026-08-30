@@ -78,6 +78,19 @@ class CloudSmokeScriptContractTests(TestCase):
 
         self.assertTrue(all(ord(character) < 128 for character in embedded_python))
 
+    def test_docker_chat_smoke_is_explicit_and_keeps_credentials_out_of_arguments(self):
+        script = (
+            self.ROOT / "script" / "local" / "siliconflow-docker-chat-smoke.ps1"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('[ValidateSet("standard", "high", "eval")]', script)
+        self.assertIn("[switch]$ExecuteRequest", script)
+        self.assertIn("FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY", script)
+        self.assertIn("FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY", script)
+        self.assertIn("docker compose exec -T agent-runtime python -c", script)
+        self.assertNotIn("--api-key", script.lower())
+        self.assertNotIn("$ModelApiKey", script)
+
     def test_windows_cloud_smoke_scripts_use_utf8_bom_and_consistent_crlf(self):
         for relative_path in (
             "script/local/siliconflow-embedding-smoke.ps1",
