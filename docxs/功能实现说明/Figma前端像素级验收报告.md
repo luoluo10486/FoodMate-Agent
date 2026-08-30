@@ -1581,3 +1581,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `npm run typecheck` 通过；`npm run build` 通过，Vite 完成生产构建并转换 `2010` 个模块。
 - [x] `git diff --check` 通过；本轮没有新增前端左上角红、黄、绿窗口装饰，业务状态圆点保持不变。
 - [ ] 质量门禁通过只证明当前代码可测试、可类型检查和可构建，不关闭 105 张画板的 `DIFF_REVIEW`、shadcn 全量逐页迁移或 iconfont `BLOCKED`。
+
+## 172. 2026-08-30 Admin Knowledge 六种流程态实现与像素证据
+
+- [x] 已依据 Figma 节点 `782:212`（上传中）、`782:366`（索引中）、`782:520`（上传失败）、`806:1737`（上传成功）、`997:2`（格式错误）和 `997:160`（大小错误）实现对应 Admin 前端状态；路由分别为 `/admin?state=knowledge-uploading`、`knowledge-indexing`、`knowledge-upload-failed`、`knowledge-upload-success`、`knowledge-format-error`、`knowledge-size-error`。
+- [x] 6 个状态均在 `1440×1024`、字体加载完成条件下生成当前浏览器证据；实测几何为上传中 `x=570,y=330,560×260`、索引中 `x=570,y=320,560×280`、错误态 `x=570,560×286`，成功态无额外弹层并显示正常知识库页面。
+- [x] 当前浏览器证据与独立 diff 位于 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/`：`admin-knowledge-uploading-2026-08-30`、`admin-knowledge-indexing-2026-08-30`、`admin-knowledge-upload-failed-2026-08-30`、`admin-knowledge-upload-success-2026-08-30`、`admin-knowledge-format-error-2026-08-30`、`admin-knowledge-size-error-2026-08-30`；`png-diff.mjs` 差异比例分别为 `35.9383%`、`36.3896%`、`36.5374%`、`49.4558%`、`63.2992%`、`63.3012%`，6 项均为 `DIFF_REVIEW`。
+- [x] Admin 定向测试为 `17/17`；当前全量 `npm run test` 为 `38/38` 个测试文件、`221/221` 个用例通过，`npm run typecheck`、`npm run build` 和 `git diff --check` 通过。`npm run lint` 当前输出 `0 errors、438 warnings`，警告主要为全仓 Prettier 换行和既有 React 规则问题，未将其隐藏为通过。
+- [x] 前端全量扫描未发现 Apple 红、黄、绿窗口控制节点、traffic-light 选择器或对应标准颜色；该核验仅作用于前端，Figma 设计稿未修改，业务状态圆点保持不变。
+- [ ] 该小点不关闭 105 张画板的像素级验收；当前聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。shadcn 全量逐页迁移与 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
