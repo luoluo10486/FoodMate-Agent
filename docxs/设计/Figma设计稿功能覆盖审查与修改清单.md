@@ -1036,3 +1036,11 @@
 - [x] 当前 RGBA 浏览器证据和独立 diff 已登记；同尺寸 diff 为 `22.9499% / MAE 2.769102 / RMSE 15.461383 / maxChannelDelta 249`，实际 DPR `1.0000000149` 通过门禁，但整页仍存在视觉差异，因此继续记为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已切换到当前证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本节只关闭 SSE 重连态当前前端证据复核，不关闭 105 张画板像素级 `PASS`、shadcn 全量逐页迁移、真实后端闭环或 iconfont 实体资源登记；iconfont 继续为 `BLOCKED`。
+
+## 59. 2026-08-30 Agent Chat 助手消息背景收口
+
+- [x] 依据 Figma 节点 `640:428`，将 Figma fixture 的助手消息外层背景对齐为 `#f9fafb`；真实模式不受影响。
+- [x] Chat 与 Workspace 定向测试共 `38/38` 通过；浏览器 `1440×1024` 字体已加载、页面无横向溢出，前端左上角红黄绿窗口控制点为 `0`，业务状态圆点保留，Figma 设计稿未修改。
+- [x] 已登记 RGBA 浏览器证据 `agent-chat-v2-assistant-surface-browser-2026-08-30-rgba.png` 和独立 diff `agent-chat-v2-assistant-surface-2026-08-30-diff.json`；结果为 `30.9938% / MAE 3.868814 / RMSE 19.521027 / maxChannelDelta 255`，继续记为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步本次证据，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。

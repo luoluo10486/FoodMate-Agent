@@ -631,6 +631,14 @@
   background: var(--fm-bg-soft);
 }
 
+.designChatPage {
+  --fm-fixture-assistant-surface: #f9fafb;
+}
+
+.designChatPage .assistant .messageBubble {
+  background: var(--fm-fixture-assistant-surface);
+}
+
 .assistant .messageText {
   font-family: var(--fm-font-mono);
   line-height: 1.5;

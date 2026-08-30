@@ -8,6 +8,8 @@
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { useEffect, useState } from 'react';
 import { describe, it, expect } from 'vitest';
 import { ChatPage } from './ChatPage';
@@ -141,6 +143,13 @@ describe('ChatPage Figma 默认状态', () => {
 
     const assistantBody = document.querySelector(`[class*="${styles.assistantBody}"]`);
     expect(assistantBody).toHaveClass(styles.assistantBodyWide);
+  });
+
+  it('uses the Figma neutral surface for the assistant message body', () => {
+    const stylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
+
+    expect(stylesheet).toContain('.designChatPage .assistant .messageBubble');
+    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f9fafb;');
   });
 });
 
