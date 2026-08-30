@@ -52,6 +52,16 @@ Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配
 
 应用容器不会自动执行数据库迁移。启动前应确认 V16-V29 已按 `script/sql/FoodMate` 的顺序实际执行，启动后再检查 Java 和 Python readiness，以及应用日志中的 Outbox/Worker 状态。修改 Python 源码后必须重新执行 `up -d --build agent-runtime`，仅重启不会更新镜像内容。停止时使用 `docker compose ... down` 保留数据卷，除非明确需要销毁本地卷并另行确认。
 
+### M3 清理执行门禁
+
+数据库、对象和向量硬删除由 Java 清理执行器负责，但必须同时满足策略表的
+`hard_delete_enabled=true`、`FOODMATE_RETENTION_EXECUTION_ENABLED=true` 和
+`FOODMATE_RETENTION_EXECUTION_BACKUP_VERIFIED=true`。最后一个开关只能在
+`script/sql/FoodMate/backup-restore.ps1` 完成非生产本地数据库备份、隔离库恢复和
+`validation.sql` 校验后设置；默认值为 `false`。未完成备份证明时，执行器不会领取
+任何清理任务。修改开关后使用 `up -d --force-recreate foodmate`，不要只执行
+`restart`。
+
 ## M2-1 RAG
 
 默认 `FOODMATE_DOCKER_RAG_MODE=stub`，只使用 Redis 隔离前缀保存确定性关键词索引，不连接 Milvus，也不读取 embedding API Key。Docker Compose 宿主侧统一使用 `FOODMATE_DOCKER_RAG_*`，避免根目录 `.env` 中的非 Docker 配置意外进入容器。
