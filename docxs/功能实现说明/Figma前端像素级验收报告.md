@@ -1651,3 +1651,11 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 使用真实 Figma PNG 和浏览器 RGBA PNG 运行 `scripts/png-diff.mjs`：`differentPixels=703449`、差异比例 `47.7057%`、`MAE=5.497678`、`RMSE=23.473287`、最大通道差异 `255`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/profile-memories-sidebar-2026-08-30-diff.json`，画板继续为 `DIFF_REVIEW`。
 - [x] `ProfilePage.test.tsx` 定向测试 `22/22` 通过；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成 Profile 记忆页 fixture 主体几何收口，不代表 `profile-memories` 或 105 张画板达到像素级 `PASS`；共享壳层、头像、图标、字体光栅化、其它页面、shadcn 全量迁移和 iconfont 实体资源登记仍需继续，iconfont 保持 `BLOCKED`。
+
+## 181. 2026-08-30 Profile 安全与设备 Figma fixture 结构收口
+
+- [x] 依据 Figma 节点 `806:1445`，仅为 `/profile?state=security` 增加 Figma 专用结构契约：保留“修改账号密码”和“活跃工作区会话”两张卡片，隐藏 Figma 画板不存在的“最近安全活动”、`SECURE`、`2 ACTIVE DEVICES`、设备状态说明和顶部装饰线；普通 `/profile/security` 与真实模式保持原有安全活动和交互。
+- [x] 浏览器在 `1440×1024` 视口实测字体状态 `loaded`、无横向/纵向溢出；密码卡为 `x=292,y=100.71,width=546,height=464`，会话卡为 `x=862,y=100.71,width=546,height=378`，活动卡和两条安全顶部装饰线均未渲染，前端左上角红黄绿窗口控制点为 `0`，Figma 设计稿未修改。
+- [x] 已登记浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/profile-security-current-browser-2026-08-30.jpg`、RGBA PNG `profile-security-current-browser-2026-08-30-rgba.png` 和独立 diff `profile-security-current-2026-08-30-diff.json`；同尺寸 `png-diff.mjs` 结果为 `differentPixels=390034`、差异比例 `26.4509%`、`MAE=3.965800`、`RMSE=19.438791`、`maxChannelDelta=255`，结论保持 `DIFF_REVIEW`。
+- [x] `ProfilePage.test.tsx` 定向测试 `23/23` 通过；运行时实际 DPR 为 `1.25`，严格 DPR 1 门禁未通过；105 张画板汇总继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成 Profile 安全与设备 fixture 的结构收口，不代表该画板或 105 张画板达到像素级 `PASS`；共享壳层、头像、图标、字体光栅化、其它页面、shadcn 全量迁移和 iconfont 实体资源登记仍需继续，iconfont 保持 `BLOCKED`。

@@ -83,6 +83,21 @@ describe('ProfilePage', () => {
     expect(memoryPage).toHaveAttribute('data-figma-layout', 'profile-memories');
   });
 
+  it('limits the security Figma fixture to the two reference cards', () => {
+    renderPage('/profile?state=security');
+
+    const securityPage = screen.getByRole('heading', { name: '修改账号密码' }).closest('[data-figma-layout]');
+
+    expect(securityPage).toHaveAttribute('data-figma-layout', 'profile-security');
+    expect(securityPage).toHaveClass(styles.figmaSecurityPage);
+    expect(screen.queryByRole('heading', { name: '最近安全活动' })).not.toBeInTheDocument();
+    expect(screen.queryByText('SECURE')).not.toBeInTheDocument();
+    expect(screen.queryByText('2 ACTIVE DEVICES')).not.toBeInTheDocument();
+    expect(screen.queryByText('设备状态在每次登录后更新')).not.toBeInTheDocument();
+    expect(securityPage?.querySelector(`.${styles.securityAccent}`)).not.toBeInTheDocument();
+    expect(securityPage?.querySelector(`.${styles.sessionAccent}`)).not.toBeInTheDocument();
+  });
+
   it('renders the Figma logout confirmation fixture with the target devices', async () => {
     const user = userEvent.setup();
     renderPage('/profile?state=security-logout-confirm');

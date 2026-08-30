@@ -4704,7 +4704,7 @@
       "queryState": "state=security",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/profile-security.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-browser-current.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/profile-security-current-browser-2026-08-30-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#profile-security",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4733,8 +4733,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current fixture renders password, device and activity controls, but automatic full-image comparison still reports visual differences. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-30",
+        "conclusion": "The Figma fixture now renders only the password and active-session cards. The activity card, SECURE label, device-count label and top accent lines are absent as required by node 806:1445; shell, avatar, icon, typography rasterization and browser rendering differences remain, so retain DIFF_REVIEW."
       }
     },
     {

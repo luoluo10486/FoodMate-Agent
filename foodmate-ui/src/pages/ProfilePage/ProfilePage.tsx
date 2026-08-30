@@ -1271,7 +1271,7 @@ function MemoryRow({
   );
 }
 
-function SecurityTab() {
+function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [passwordState, setPasswordState] = useState<AsyncState>('idle');
@@ -1360,10 +1360,13 @@ function SecurityTab() {
   };
 
   return (
-    <div className={styles.securityPage}>
+    <div
+      className={cn(styles.securityPage, figmaFixture && styles.figmaSecurityPage)}
+      data-figma-layout={figmaFixture ? 'profile-security' : undefined}
+    >
       <div className={styles.securityTopGrid}>
-        <Card className={styles.securityCard + ' ' + styles.passwordCard}>
-          <div className={styles.securityAccent} />
+        <Card className={cn(styles.securityCard, styles.passwordCard, figmaFixture && styles.figmaSecurityCard)}>
+          {!figmaFixture ? <div className={styles.securityAccent} /> : null}
           <h1>修改账号密码</h1>
           <form className={styles.passwordForm} onSubmit={submitPassword}>
             <Field label="当前密码">
@@ -1411,9 +1414,11 @@ function SecurityTab() {
             >
               {stateIcon(passwordState)} 更新密码
             </Button>
-            <StatusChip tone="green">
-              <ShieldCheck aria-hidden="true" /> SECURE
-            </StatusChip>
+            {!figmaFixture ? (
+              <StatusChip tone="green">
+                <ShieldCheck aria-hidden="true" /> SECURE
+              </StatusChip>
+            ) : null}
           </form>
           {passwordState === 'success' ? (
             <div className={styles.successPanel}>
@@ -1429,8 +1434,8 @@ function SecurityTab() {
           ) : null}
         </Card>
 
-        <Card className={styles.securityCard + ' ' + styles.sessionCard}>
-          <div className={styles.sessionAccent} />
+        <Card className={cn(styles.securityCard, styles.sessionCard, figmaFixture && styles.figmaSecurityCard)}>
+          {!figmaFixture ? <div className={styles.sessionAccent} /> : null}
           <div className={styles.securityCardHeader}>
             <h1>活跃工作区会话</h1>
             <Button
@@ -1451,35 +1456,41 @@ function SecurityTab() {
               ))}
             </div>
           )}
-          <StatusChip tone="blue">{Math.max(0, sessions.length - 1)} ACTIVE DEVICES</StatusChip>
-          <p className={styles.securityHint}>设备状态在每次登录后更新</p>
+          {!figmaFixture ? (
+            <>
+              <StatusChip tone="blue">{Math.max(0, sessions.length - 1)} ACTIVE DEVICES</StatusChip>
+              <p className={styles.securityHint}>设备状态在每次登录后更新</p>
+            </>
+          ) : null}
         </Card>
       </div>
-      <Card className={styles.activityCard}>
-        <div className={styles.activityAccent} />
-        <div className={styles.activityHeader}>
-          <div>
-            <h2>最近安全活动</h2>
-            <p>查看最近的登录、密码和设备状态变化</p>
+      {!figmaFixture ? (
+        <Card className={styles.activityCard}>
+          <div className={styles.activityAccent} />
+          <div className={styles.activityHeader}>
+            <div>
+              <h2>最近安全活动</h2>
+              <p>查看最近的登录、密码和设备状态变化</p>
+            </div>
+            <Button type="button" className={styles.textLink} variant="ghost">
+              查看登录历史 &gt;
+            </Button>
           </div>
-          <Button type="button" className={styles.textLink} variant="ghost">
-            查看登录历史 &gt;
-          </Button>
-        </div>
-        <div className={styles.activityList}>
-          <ActivityRow dot="green" title="密码更新" detail="今天 09:42 · 当前设备" status="已完成" />
-          <ActivityRow dot="blue" title="新设备登录" detail="iPhone 15 Pro · 3月12日" status="已验证" />
-          <ActivityRow
-            dot="green"
-            title="设备会话检查"
-            detail={`已检查 ${sessions.length} 台设备，未发现异常`}
-            status="正常"
-          />
-        </div>
-        <p className={styles.securityHint}>
-          设备详情包含创建时间 / 过期时间 / 当前状态；单设备退出需确认，退出全部设备时保留当前会话并二次确认。
-        </p>
-      </Card>
+          <div className={styles.activityList}>
+            <ActivityRow dot="green" title="密码更新" detail="今天 09:42 · 当前设备" status="已完成" />
+            <ActivityRow dot="blue" title="新设备登录" detail="iPhone 15 Pro · 3月12日" status="已验证" />
+            <ActivityRow
+              dot="green"
+              title="设备会话检查"
+              detail={`已检查 ${sessions.length} 台设备，未发现异常`}
+              status="正常"
+            />
+          </div>
+          <p className={styles.securityHint}>
+            设备详情包含创建时间 / 过期时间 / 当前状态；单设备退出需确认，退出全部设备时保留当前会话并二次确认。
+          </p>
+        </Card>
+      ) : null}
       <Dialog open={Boolean(logoutTarget)} onOpenChange={(open) => !open && setLogoutTarget(undefined)}>
         <DialogContent className={styles.dialogContent}>
           <DialogHeader>
@@ -2012,8 +2023,10 @@ export function ProfilePage() {
       ? 'privacy'
       : fixtureState === 'memories-empty'
         ? 'memories'
-        : (baseFigmaState ?? getTab(location.pathname));
+      : (baseFigmaState ?? getTab(location.pathname));
   const isFigmaFixture = !realMode || Boolean(baseFigmaState || fixtureState);
+  const securityFigmaFixture =
+    isFigmaFixture && (baseFigmaState === 'security' || Boolean(fixtureState?.startsWith('security-')));
   const displayedUser = isFigmaFixture ? figmaProfileUser : authUser;
   return (
     <WorkspaceLayout
@@ -2042,7 +2055,7 @@ export function ProfilePage() {
           <BasicTab authUser={displayedUser} realMode={isFigmaFixture ? false : realMode} figmaFixture={isFigmaFixture} />
         ) : null}
         {activeTab === 'memories' ? realMode ? <RealMemoriesTab /> : <MemoriesTab figmaFixture={isFigmaFixture} /> : null}
-        {activeTab === 'security' ? <SecurityTab /> : null}
+        {activeTab === 'security' ? <SecurityTab figmaFixture={securityFigmaFixture} /> : null}
         {activeTab === 'privacy' ? <PrivacyTab /> : null}
       </div>
     </WorkspaceLayout>

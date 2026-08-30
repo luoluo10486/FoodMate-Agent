@@ -945,6 +945,26 @@
   min-height: 484px;
 }
 
+.figmaSecurityPage {
+  background: #fff;
+}
+
+.figmaSecurityCard {
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 23px;
+}
+
+.figmaSecurityPage .passwordCard {
+  height: 464px;
+  min-height: 464px;
+}
+
+.figmaSecurityPage .sessionCard {
+  height: 378px;
+  min-height: 378px;
+}
+
 .securityAccent,
 .sessionAccent,
 .activityAccent {
@@ -1572,6 +1592,16 @@
     height: auto;
     min-height: auto;
     padding: 46px 16px 20px;
+  }
+
+  .figmaSecurityPage .passwordCard,
+  .figmaSecurityPage .sessionCard {
+    height: auto;
+    min-height: auto;
+  }
+
+  .figmaSecurityPage .figmaSecurityCard {
+    padding: 23px 16px 20px;
   }
 
   .sessionInfo span,

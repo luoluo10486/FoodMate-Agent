@@ -1295,7 +1295,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1308,6 +1309,14 @@
       "viewport": {
         "height": 1024,
         "width": 1440
+      },
+      "windowControls": 0,
+      "securityGeometry": {
+        "passwordCard": "x=292,y=100.71,width=546,height=464",
+        "sessionCard": "x=862,y=100.71,width=546,height=378",
+        "activityCardCount": 0,
+        "securityAccentCount": 0,
+        "sessionAccentCount": 0
       }
     },
     "login-field-error": {
