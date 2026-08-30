@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$PythonPath = "",
     [ValidateSet("all", "bge-m3", "qwen3-embedding-0.6b")]

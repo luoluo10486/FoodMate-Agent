@@ -1,3 +1,4 @@
+import codecs
 from pathlib import Path
 import re
 from unittest import TestCase
@@ -76,3 +77,12 @@ class CloudSmokeScriptContractTests(TestCase):
         embedded_python = script[start:end]
 
         self.assertTrue(all(ord(character) < 128 for character in embedded_python))
+
+    def test_windows_cloud_smoke_scripts_use_utf8_bom_and_consistent_crlf(self):
+        for relative_path in (
+            "script/local/siliconflow-embedding-smoke.ps1",
+            "script/local/siliconflow-chat-smoke.ps1",
+        ):
+            raw = (self.ROOT / relative_path).read_bytes()
+            self.assertTrue(raw.startswith(codecs.BOM_UTF8), relative_path)
+            self.assertNotIn(b"\n", raw.replace(b"\r\n", b""), relative_path)
