@@ -405,6 +405,35 @@
   background: #f1f8ef;
 }
 
+.statusPanel {
+  min-height: 150px;
+  margin-top: 54px;
+  padding: 14px 20px;
+  border: 1px solid #dce9d9;
+  border-radius: var(--radius-container);
+  background: var(--fm-surface);
+}
+
+.statusPanel h2 {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.statusPanel p {
+  margin: 6px 0 0;
+  color: var(--fm-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.statusPanel .statusGreen {
+  color: #70a867;
+}
+
+.statusPanel .statusMuted {
+  color: #9ca3af;
+}
+
 @media (max-width: 1060px) {
   .page {
     padding-inline: 24px;
@@ -480,6 +509,10 @@
   .pendingPanel {
     height: auto;
     min-height: auto;
+  }
+
+  .statusPanel {
+    margin-top: 24px;
   }
 }
 

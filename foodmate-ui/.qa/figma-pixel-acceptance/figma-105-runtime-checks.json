@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 95,
+    "dprPass": 94,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -1873,7 +1873,7 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1.25,
       "fonts": "loaded",
       "root": {
         "height": 1024,
