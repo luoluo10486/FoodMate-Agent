@@ -31,6 +31,16 @@ def _environment() -> dict[str, str] | None:
     return {"base_url": base_url, "api_key": api_key}
 
 
+def _selected_profiles() -> tuple[tuple[str, str, int], ...]:
+    selected = os.environ.get("FOODMATE_REAL_EMBEDDING_PROFILE", "all").strip().lower()
+    if selected == "all":
+        return _PROFILES
+    for profile in _PROFILES:
+        if profile[0] == selected:
+            return (profile,)
+    raise AssertionError("unsupported real embedding profile")
+
+
 @pytest.mark.integration
 def test_siliconflow_embedding_profiles_return_expected_dimensions():
     environment = _environment()
@@ -39,7 +49,7 @@ def test_siliconflow_embedding_profiles_return_expected_dimensions():
             "set FOODMATE_RUN_REAL_EMBEDDING_TESTS=true and configure a local embedding credential"
         )
 
-    for profile, model, expected_dimension in _PROFILES:
+    for profile, model, expected_dimension in _selected_profiles():
         settings = RagSettings.from_environment(
             {
                 "FOODMATE_RAG_MODE": "local",
