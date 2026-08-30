@@ -66,7 +66,7 @@ class CloudSmokeScriptContractTests(TestCase):
         self.assertIn("base64.b64decode", script)
         self.assertIn("$encodedPythonCode", script)
         self.assertIn("base64.b64decode(sys.argv[2])", script)
-        self.assertIn("$pythonBootstrap $Profile $encodedPythonCode", script)
+        self.assertIn("$pythonBootstrap $EmbeddingProfile $encodedPythonCode", script)
 
     def test_docker_embedding_smoke_embedded_python_source_is_ascii_safe(self):
         script = (

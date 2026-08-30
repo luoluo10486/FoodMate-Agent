@@ -12,6 +12,7 @@ import json
 import math
 import os
 import re
+import ssl
 import urllib.error
 import urllib.request
 import io
@@ -546,7 +547,18 @@ class OpenAICompatibleEmbedder:
                 _embedding_http_error_code(error.code),
                 _embedding_http_error_message(error.code),
             ) from error
-        except (urllib.error.URLError, TimeoutError) as error:
+        except urllib.error.URLError as error:
+            if isinstance(error.reason, ssl.SSLError):
+                raise RagError(
+                    "RAG_EMBEDDING_TLS_ERROR",
+                    "embedding endpoint TLS handshake failed",
+                ) from error
+            raise RagError("RAG_EMBEDDING_UNAVAILABLE", "embedding endpoint is unavailable") from error
+        except ssl.SSLError as error:
+            raise RagError(
+                "RAG_EMBEDDING_TLS_ERROR", "embedding endpoint TLS handshake failed"
+            ) from error
+        except TimeoutError as error:
             raise RagError("RAG_EMBEDDING_UNAVAILABLE", "embedding endpoint is unavailable") from error
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise RagError("RAG_EMBEDDING_INVALID_RESPONSE", "invalid embedding response") from error

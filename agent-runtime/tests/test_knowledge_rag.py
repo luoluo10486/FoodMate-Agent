@@ -1,5 +1,6 @@
 import json
 from io import BytesIO
+import ssl
 import urllib.error
 from unittest import TestCase
 from unittest.mock import MagicMock
@@ -681,6 +682,16 @@ class OpenAICompatibleEmbedderTests(TestCase):
             OpenAICompatibleEmbedder(self._settings()).embed(["first"])
 
         self.assertEqual("RAG_EMBEDDING_AUTH_FAILED", raised.exception.code)
+
+    @patch("urllib.request.urlopen")
+    def test_maps_tls_handshake_failures_without_disabling_certificate_validation(self, urlopen):
+        urlopen.side_effect = urllib.error.URLError(ssl.SSLEOFError("handshake closed"))
+
+        with self.assertRaises(RagError) as raised:
+            OpenAICompatibleEmbedder(self._settings()).embed(["first"])
+
+        self.assertEqual("RAG_EMBEDDING_TLS_ERROR", raised.exception.code)
+        self.assertNotIn("handshake closed", str(raised.exception))
 
 
 class StubIndexTests(TestCase):
