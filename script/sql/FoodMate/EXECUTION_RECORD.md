@@ -1531,3 +1531,16 @@
 | 模型配置 | 已支持 `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 两个显式 profile；两者使用隔离的 Milvus collection 命名空间。 |
 | 安全边界 | 未读取或使用对话中公开的旧 API Key，未发起 Embedding 请求，未产生付费调用；凭据只能由当前进程环境显式注入。 |
 | 结论 | API 请求/响应适配具备本地契约证据；真实返回维度、供应商延迟和计费结果仍需轮换后的新凭据执行 opt-in smoke。 |
+
+## D87 Docker Python Runtime 启动与云配置边界复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/runtime-observability`；Docker Server `28.5.1`。 |
+| Python 启动链路 | [docker/python.Dockerfile](../../../docker/python.Dockerfile) 的入口为 `python runtime_server.py`；Compose `agent-runtime` 容器内监听 `9000`，宿主映射 `9002`，容器健康状态为 `healthy`。 |
+| 依赖检查 | 容器内 `pymilvus`、`pypdf`、RocketMQ 客户端可导入；`GET /foodmate/internal/health/live` 返回 HTTP `200` 和 `status=UP`。DOCX 解析使用受限 ZIP/XML 路径，不依赖执行宏或外部链接。 |
+| Compose 配置 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；当前展开配置为 `FOODMATE_RAG_MODE=local`、OpenAI-compatible、Qwen3 Embedding、Milvus 服务名 `milvus:19530`，Chat tier 为 `cloud_primary:deepseek-ai/DeepSeek-V4-Flash`。 |
+| 配置修复 | `docker/.env.example` 改用 Compose 内部服务名 `http://milvus:19530`；Chat smoke 改为读取 `CLOUD_PRIMARY` 命名空间，并复制模型级价格配置。提交 `a876ebd1`、`5f628b59`。 |
+| 业务测试 | Python Docker/云 smoke 契约测试分别为 `3 passed`、`2 passed, 1 skipped`；无凭据时真实云测试跳过，未发起 SiliconFlow 请求。 |
+| 容器状态边界 | 当前运行容器创建于配置更新前，`docker inspect` 显示仍为旧 stub 环境；应用新 `.env` 必须显式执行 `up -d --force-recreate agent-runtime`。本轮未执行该重建，以避免使用对话中已公开的旧密钥。 |
+| 结论 | Docker 可以负责启动 Python，启动链路和配置映射已有证据；真实 Chat/Embedding 调用与新配置容器联调待供应商控制台轮换后执行。 |
