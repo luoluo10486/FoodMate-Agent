@@ -1612,3 +1612,15 @@
 | `Qwen/Qwen3-Embedding-0.6B` | `passed`；返回向量维度 `1024`；本轮延迟 `205.8 ms`。 |
 | Python 测试 | 真实 Embedding 集成测试 `1 passed`；未保存向量正文。 |
 | 结论 | SiliconFlow `/v1/embeddings` 的两个 profile 在宿主机可用；Docker Runtime 内真实请求仍受既有 Docker 出站 TLS EOF 阻塞，需单独修复网络后复验。 |
+
+## D93 M3 隔离 PostgreSQL 硬删除真实业务验证（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Testcontainers `postgres:16-alpine` 隔离容器；未连接当前 `foodmate-postgres`，未修改现有本地业务数据。 |
+| 执行命令 | `mvnw.cmd -B -ntp -pl foodmate-infra -am test -Ddocker.available=true -Dtest=DataRetentionDatabasePurgeRealIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false`。 |
+| Schema | Flyway 在临时数据库中成功应用 V1-V29；测试 fixture 使用随机 ID/邮箱和随机后缀。 |
+| 首次清理 | PostgreSQL 真实删除知识文档及其 chunks、导入条目/批次、索引 Outbox/Inbox、SSE 事件和可见性 Outbox；结果 `postgresql`、`verified_absent=true`。 |
+| 幂等复放 | 同一文档再次执行清理返回 `deleted_count=0` 且 `verified_absent=true`；无重复删除异常。 |
+| 测试结果 | `DataRetentionDatabasePurgeRealIntegrationTest` `1/1` 通过，Maven `BUILD SUCCESS`。 |
+| 边界 | 本轮未在现有业务库执行迁移、硬删除、备份恢复、truncate 或组件故障注入；生产清理仍受策略、应用开关和备份校验三重门禁。 |
