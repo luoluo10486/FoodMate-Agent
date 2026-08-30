@@ -1624,3 +1624,14 @@
 | 幂等复放 | 同一文档再次执行清理返回 `deleted_count=0` 且 `verified_absent=true`；无重复删除异常。 |
 | 测试结果 | `DataRetentionDatabasePurgeRealIntegrationTest` `1/1` 通过，Maven `BUILD SUCCESS`。 |
 | 边界 | 本轮未在现有业务库执行迁移、硬删除、备份恢复、truncate 或组件故障注入；生产清理仍受策略、应用开关和备份校验三重门禁。 |
+
+## D94 Docker PostgreSQL 备份与隔离恢复验证（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 当前本地 `foodmate-postgres` 容器；PostgreSQL `16.14`；源库 `FoodMate`。宿主机未安装 PostgreSQL 客户端，因此使用脚本的 `-DockerContainer` 路径。 |
+| 执行命令 | `backup-restore.ps1 -DatabaseName FoodMate -Username postgres -DockerContainer foodmate-postgres -BackupFile codex_local_foodmate_20260830.dump -RestoreDatabaseName FoodMateCodexRestore20260830 -Execute -RunValidation -DropRestoreDatabaseAfterValidation`。 |
+| 备份结果 | 自定义格式备份创建成功，文件大小 `1,344,249` bytes；SHA-256 已在本地命令输出中取得，未写入源码或密钥相关日志。 |
+| 恢复结果 | 新恢复库创建成功，`validation.sql` 通过；验证后恢复库已按显式开关删除。 |
+| 源库保护 | 恢复库删除后确认 `FoodMateCodexRestore20260830` 不存在；源库只读计数复核为 `users=627`、`knowledge_documents=35`、`food_logs=235`。 |
+| 文件边界 | 备份文件保留在 `script/sql/FoodMate/backups/`，被 `.gitignore` 排除，不进入 Git；不得将其上传到仓库或公共位置。 |
