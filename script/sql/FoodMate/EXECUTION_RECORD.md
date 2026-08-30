@@ -1544,3 +1544,16 @@
 | 业务测试 | Python Docker/云 smoke 契约测试分别为 `3 passed`、`2 passed, 1 skipped`；无凭据时真实云测试跳过，未发起 SiliconFlow 请求。 |
 | 容器状态边界 | 当前运行容器创建于配置更新前，`docker inspect` 显示仍为旧 stub 环境；应用新 `.env` 必须显式执行 `up -d --force-recreate agent-runtime`。本轮未执行该重建，以避免使用对话中已公开的旧密钥。 |
 | 结论 | Docker 可以负责启动 Python，启动链路和配置映射已有证据；真实 Chat/Embedding 调用与新配置容器联调待供应商控制台轮换后执行。 |
+
+## D88 V29 Embedding Trace 与 Docker Python 启动文档复核（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 D:/develop/FoodMate；分支 codex/runtime-observability；Java 21；Python 使用 agent-runtime/.venv。 |
+| V29 迁移契约 | 新增 knowledge_import_items.provider_trace_id 的 migration、validation、rollback 前置检查和 FlywayV29MigrationScriptTest；不执行 V29，不修改现有数据库。 |
+| Java 验证 | 运行 KnowledgeIndexResultMessageProcessorTest、KnowledgeMapperContractTest、KnowledgeRepositoryAdapterTest、FlywayV29MigrationScriptTest：Application 5/5，Infrastructure 2+3+6/6，无失败。 |
+| Python 验证 | agent-runtime/.venv/Scripts/python.exe -B -m pytest tests/test_knowledge_rag.py tests/test_knowledge_worker.py -q：65 passed、4 subtests passed；Docker 文档契约：5 passed。 |
+| Docker 文档 | docker/README.md 已明确 agent-runtime 的 up -d --build、日志、readiness 和源码变更后的重建要求；提交 332a828d。 |
+| 代码提交 | V29 trace 关联事实提交 c10186e5；Docker Python 启动文档提交 332a828d。 |
+| 外部服务边界 | 未读取、回显或使用对话中公开的旧 API Key；未发起 SiliconFlow Chat/Embedding 请求，真实 smoke 仍需供应商控制台轮换后的新凭据。 |
+| 结论 | Docker 可直接启动 Python Runtime，两个 SiliconFlow profile 的配置与本地协议测试已具备；真实云返回维度、延迟和账单事实尚未取得。 |
