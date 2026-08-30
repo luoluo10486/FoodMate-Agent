@@ -1661,3 +1661,14 @@
 | 业务验证 | Python 全量 `183 passed、2 skipped、6 subtests passed`；Docker Compose 契约 `6 passed`；Compose config 校验通过；Java `-P alibaba-code-style -DskipTests verify` 为 `BUILD SUCCESS`，各模块 `0 Checkstyle violations`，Spotless 通过。 |
 | 安全门禁 | tracked secret `0`、tracked env `0`；working-tree secret 命中 `1`，来源为本地忽略 `.env` 中的真实凭据，按失败处理。必须在 SiliconFlow 控制台轮换曾在对话中暴露的密钥后复验。 |
 | 结论 | 两个 Embedding profile 的宿主机协议调用已取得证据；Docker Python 启动、配置映射和 fail-closed 行为已验证，容器真实云请求仍等待可用 Docker 出站代理或网络环境修复，不能标记为 Docker 云联调完成。 |
+
+## D97 SiliconFlow 双 Embedding 真实协议复验（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Python 使用 `agent-runtime\\.venv`；密钥仅从本地忽略 `.env` 映射到当前进程，未输出、写入脚本或提交 Git。 |
+| 执行命令 | `script\\local\\siliconflow-embedding-smoke.ps1 -Profile all`；请求体仅包含固定 smoke 文本，不保存向量正文。 |
+| `BAAI/bge-m3` | `passed`；SiliconFlow `/v1/embeddings` 返回 HTTP `200`，向量维度 `1024`，本轮延迟约 `397.09 ms`。 |
+| `Qwen/Qwen3-Embedding-0.6B` | `passed`；SiliconFlow `/v1/embeddings` 返回 HTTP `200`，向量维度 `1024`，本轮延迟约 `219.72 ms`。 |
+| 配置隔离 | 两个 profile 均由显式模型校验；实际运行仍一次选择一个 profile，并使用独立 Milvus collection，禁止混写。 |
+| 结论 | 宿主机真实 Embedding 服务和两个模型适配均已取得新鲜业务证据；Docker 容器内真实请求仍受出站 TLS 环境阻塞，不能以宿主机结果代替 Docker 云联调证据。 |
