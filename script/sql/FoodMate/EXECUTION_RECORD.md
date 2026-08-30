@@ -1601,3 +1601,14 @@
 | 网络对照 | 宿主机真实调用成功；本机代理候选端口 `7897/7890/1080` 无监听，Docker `host` 网络此前同样复现 TLS EOF。需配置 Docker 可访问的 HTTPS 代理或修复 Docker Desktop 出站网络后重跑 Docker smoke。 |
 | 业务测试 | `agent-runtime\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`：此前基线 `177 passed、2 skipped、6 subtests passed`；本轮新增云 smoke 契约 `7 passed`。 |
 | 结论 | 宿主机两个真实 Embedding profile 和 DeepSeek Chat 已取得真实协议证据；Docker Python 启动及配置映射已取得证据，但 Docker 云调用、长稳/性能、故障矩阵和生产强化仍未完成，不能更新为完成状态。 |
+
+## D92 SiliconFlow 两个 Embedding Profile 宿主机复验（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；Python 使用 `agent-runtime\.venv`；真实凭据仅从本地忽略 `.env` 临时映射到当前进程，未输出、写入脚本或提交 Git。 |
+| 执行命令 | `script\local\siliconflow-embedding-smoke.ps1 -Profile all`；脚本显式覆盖两个已支持 profile。 |
+| `BAAI/bge-m3` | `passed`；返回向量维度 `1024`；本轮延迟 `363.72 ms`。 |
+| `Qwen/Qwen3-Embedding-0.6B` | `passed`；返回向量维度 `1024`；本轮延迟 `205.8 ms`。 |
+| Python 测试 | 真实 Embedding 集成测试 `1 passed`；未保存向量正文。 |
+| 结论 | SiliconFlow `/v1/embeddings` 的两个 profile 在宿主机可用；Docker Runtime 内真实请求仍受既有 Docker 出站 TLS EOF 阻塞，需单独修复网络后复验。 |
