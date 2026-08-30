@@ -1572,3 +1572,19 @@
 | 总量 | 当前本地目录为 48 条 approved USDA 食材、48 条 approved foodPortions 规则和 75 条精确质量换算。 |
 | 失败记录 | 首次执行因 V7 份量 `source_version` 超过数据库 `VARCHAR(64)` 约束回滚；随后缩短为 FDC ID + portion 序号并重新执行成功，未留下半成品。 |
 | 代码提交 | 待本轮验证完成后以 `codex:` 前缀单独提交。 |
+
+## D90 SiliconFlow 真实模型与 Docker Runtime 出站验证（2026-08-30）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/runtime-observability`；宿主机使用现有本地 `.env`，密钥仅在当前进程内存中读取；未把密钥写入命令、脚本或记录。 |
+| 真实 Embedding | 宿主机内存探针调用 SiliconFlow `POST /v1/embeddings`：`BAAI/bge-m3` HTTP `200`、1024 维、9 prompt tokens、348.38 ms；`Qwen/Qwen3-Embedding-0.6B` HTTP `200`、1024 维、5 prompt tokens、320.37 ms。未保存向量正文。 |
+| 真实 Chat | 显式运行 `script\\local\\siliconflow-chat-smoke.ps1`，命中 `cloud_primary / deepseek-ai/DeepSeek-V4-Flash`；Composer `passed`、1032.6 ms，Eval `passed`、4482.38 ms，pytest `1 passed`。未保存回答正文或 provider key。 |
+| Docker Runtime 启动 | `docker compose --env-file .env -f docker/compose.yml ps agent-runtime` 显示 `foodmate-agent-runtime` `healthy`；宿主机 `/foodmate/internal/health/live` 与 `/ready` 均 HTTP `200`；Compose config 校验通过。 |
+| Docker 真实 Embedding | 显式执行 `script\\local\\siliconflow-docker-embedding-smoke.ps1 -Profile qwen3-embedding-0.6b -ExecuteRequest`；预检通过，但容器内请求失败为 `URLError`，根因是 TLS `UNEXPECTED_EOF_WHILE_READING`。容器 DNS 可解析目标；TLS 1.2、TLS 1.3 及 Docker `host` 网络均复现，未进入 HTTP 鉴权层。 |
+| 网络对照 | 宿主机 `curl -k` 对同一 endpoint 无 Authorization 请求返回 HTTP `401`，证明宿主机可达；本机注册的 `127.0.0.1:7897` 代理端口当前未监听。未通过关闭 Python TLS 校验来绕过问题。 |
+| Python 业务门禁 | `agent-runtime\\.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`：`177 passed、2 skipped、6 subtests passed`；Docker/云契约测试 `9 passed`。 |
+| Java 业务与规范门禁 | `mvnw.cmd clean verify`：最终 `BUILD SUCCESS`；显式 `-P alibaba-code-style -DskipTests verify`：Shared/Application/Infrastructure/API/Bootstrap 均 `0 Checkstyle violations`，Spotless 通过。 |
+| 安全门禁 | `security-scan.ps1` 与 `secret-rotation-check.ps1` 均报告 tracked secret `0`、tracked env `0`，但本地忽略 `.env` 的工作树密钥命中为 `1`；该结果按失败处理，等待密钥轮换后复验。 |
+| 数据与提交边界 | 未执行迁移、truncate、现有业务数据删除、备份恢复、组件重启、ACK/重复消息故障注入或生产操作；本轮只更新执行记录，未新增代码提交。 |
+| 结论 | 两个真实 Embedding 模型和 DeepSeek Chat 的供应商契约在宿主机已验证；Docker Python 启动链路已验证，容器内真实云调用仍受本机 Docker 出站 TLS 限制，不能标记为完成。 |
