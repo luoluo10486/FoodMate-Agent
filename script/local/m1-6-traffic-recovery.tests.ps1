@@ -63,11 +63,42 @@ if ($scriptText -notmatch 'pending\s*=\s*\$values\[0\]\s*\+\s*\$values\[3\]\s*\+
 if ($scriptText -notmatch '\$workerSessionId') {
     throw "M1-6 traffic workers must use a worker-local session"
 }
+if ($scriptText -match '\$operations\s*=\s*(?:New-Object\s+)?System\.Collections\.Generic\.List\[object\]') {
+    throw "M1-6 PowerShell workers must not return generic List values across a background Job boundary"
+}
+if ($scriptText -notmatch '\$operations\s*=\s*@\(\)') {
+    throw "M1-6 traffic workers must collect operations in a Job-serializable array"
+}
 if ($scriptText -notmatch 'api/sessions') {
     throw "M1-6 traffic workers must create sessions through the real API"
 }
 if ($scriptText -match '\$sharedSessionId') {
     throw "M1-6 traffic workers must not share one session across workers"
+}
+
+if ($scriptText -notmatch 'foreach\s*\(\$job\s+in\s+@\(\$jobs\)\)') {
+    throw "M1-6 traffic results must be received one Job at a time for Windows PowerShell compatibility"
+}
+if ($scriptText -match 'Receive-Job\s+-Job\s+\$jobs\b') {
+    throw "M1-6 traffic must not pass the heterogeneous jobs array directly to Receive-Job"
+}
+if ($scriptText -notmatch 'Receive-Job\s+-Id\s+\(\[int\]\$job\.Id\)') {
+    throw "M1-6 traffic must receive each worker Job by its stable numeric id"
+}
+if ($scriptText -notmatch 'ChildJobs.*Error|worker_error') {
+    throw "M1-6 traffic must retain worker Job errors in the report"
+}
+if ($scriptText -notmatch 'worker setup failed:\s*\$\(') {
+    throw "M1-6 traffic must expose a bounded worker setup error summary for diagnosis"
+}
+if ($scriptText -notmatch 'worker_errors\s*=') {
+    throw "M1-6 traffic report must expose bounded worker error summaries"
+}
+if ($scriptText -notmatch '\[int\]\$DrainTimeoutSeconds\s*=\s*90') {
+    throw "M1-6 traffic must allow a bounded queue drain timeout for diagnostics"
+}
+if ($scriptText -notmatch 'Wait-QueueDrained\s+\$DrainTimeoutSeconds') {
+    throw "M1-6 traffic must use the configured queue drain timeout"
 }
 
 Write-Output "m1_6_traffic_contract=passed"

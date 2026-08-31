@@ -3,6 +3,7 @@ param(
     [int]$WarmupSeconds = 30,
     [int]$SteadySeconds = 120,
     [int]$Workers = 16,
+    [int]$DrainTimeoutSeconds = 90,
     [string]$JavaBaseUrl = "http://127.0.0.1:8080",
     [string]$RuntimeBaseUrl = "http://127.0.0.1:9002",
     [switch]$ExecuteTraffic,
@@ -239,6 +240,8 @@ COMMIT;
 Require-Positive $WarmupSeconds "WarmupSeconds"
 Require-Positive $SteadySeconds "SteadySeconds"
 Require-Positive $Workers "Workers"
+Require-Positive $DrainTimeoutSeconds "DrainTimeoutSeconds"
+if ($DrainTimeoutSeconds -gt 900) { throw "DrainTimeoutSeconds must not exceed 900" }
 if ($Workers -gt 64) { throw "Workers must not exceed 64 for a bounded local run" }
 if ($EnableFaultInjection -and -not $ExecuteTraffic) {
     throw "EnableFaultInjection requires explicit ExecuteTraffic"
@@ -508,7 +511,8 @@ try {
         }
 
         $context = New-Context
-        $operations = New-Object System.Collections.Generic.List[object]
+        # Windows PowerShell Job 返回值必须使用可序列化的数组，不能跨进程返回泛型 List。
+        $operations = @()
         $workerError = $null
         try {
             $csrf = Login $context
@@ -531,21 +535,30 @@ try {
                     } else {
                         $operation = Invoke-Proposal $context $csrf $counter
                     }
-                    [void]$operations.Add($operation)
+                    $operations += $operation
                 } catch {
                     $started.Stop()
-                    [void]$operations.Add([pscustomobject]@{
+                    $operations += [pscustomobject]@{
                         channel = "unknown"
                         outcome = "unexpected_error"
                         unexpected = $true
                         duration_ms = [math]::Round($started.Elapsed.TotalMilliseconds, 3)
                         duplicate_deliveries = 0
                         duplicate_side_effects = 0
-                    })
+                    }
                 }
                 $counter++
             }
-        } catch { $workerError = "worker setup failed" }
+        } catch {
+            $message = [string]$_.Exception.Message
+            if (-not [string]::IsNullOrWhiteSpace($secret)) {
+                $message = $message.Replace($secret, "[redacted]")
+            }
+            if (-not [string]::IsNullOrWhiteSpace($user)) {
+                $message = $message.Replace($user, "[redacted]")
+            }
+            $workerError = "worker setup failed: $($_.Exception.GetType().Name): " + $message.Substring(0, [math]::Min(256, $message.Length))
+        }
         finally { $context.Client.Dispose() }
         [pscustomobject]@{
             worker_id = $workerId
@@ -559,9 +572,51 @@ try {
         $jobs += Start-Job -ScriptBlock $workerScript -ArgumentList $worker, $WarmupSeconds, $SteadySeconds, $JavaBaseUrl, $username, $password
     }
     Wait-Job -Job $jobs | Out-Null
-    $workerResults = @(Receive-Job -Job $jobs)
-    $allOperations = @($workerResults | ForEach-Object { $_.operations })
+    $workerResultsList = [System.Collections.Generic.List[object]]::new()
+    foreach ($job in @($jobs)) {
+        $jobOutput = @(Receive-Job -Id ([int]$job.Id) -ErrorAction SilentlyContinue)
+        $workerResults = @(
+            $jobOutput |
+                Where-Object {
+                    $null -ne $_ -and $null -ne $_.PSObject.Properties['operations']
+                }
+        )
+        foreach ($workerResult in $workerResults) {
+            [void]$workerResultsList.Add($workerResult)
+        }
+        $jobErrors = @(
+            $job.ChildJobs |
+                ForEach-Object { $_.Error } |
+                Where-Object { $null -ne $_ }
+        )
+        if ($workerResults.Count -eq 0) {
+            [void]$workerResultsList.Add(
+                [pscustomobject]@{
+                    worker_id = $job.Id
+                    session_id = $null
+                    operations = @()
+                    worker_error = if ($jobErrors.Count -gt 0) {
+                        "worker job failed: $($jobErrors.Count) error record(s)"
+                    } else {
+                        "worker job returned no result"
+                    }
+                })
+        }
+        elseif ($jobErrors.Count -gt 0) {
+            foreach ($workerResult in $workerResults) {
+                $workerResult.worker_error = "worker job emitted $($jobErrors.Count) error record(s)"
+            }
+        }
+    }
+    $workerResults = @($workerResultsList)
+    $allOperations = @($workerResults | ForEach-Object { @($_.operations) })
     $workerErrors = @($workerResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.worker_error) }).Count
+    $report.traffic.worker_errors = @(
+        $workerResults |
+            ForEach-Object { [string]$_.worker_error } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Select-Object -First 16
+    )
     $workerSessions = @($workerResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.session_id) } | Select-Object -ExpandProperty session_id -Unique)
 
     $latencies = @($allOperations | ForEach-Object { $_.duration_ms })
@@ -582,7 +637,7 @@ try {
     }
     $queuePeak = $null
     if ($queueSamples.Count -gt 0) { $queuePeak = [long](($queueSamples | Measure-Object -Property pending -Maximum).Maximum) }
-    $drain = Wait-QueueDrained
+    $drain = Wait-QueueDrained $DrainTimeoutSeconds
     $report.queue_after = $drain.snapshot
     $report.queue_drained = $drain.drained
     $report.drain_wait_ms = $drain.wait_ms
