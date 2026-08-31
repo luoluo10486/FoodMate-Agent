@@ -2042,7 +2042,7 @@
     },
     "meal-planning-v2": {
       "artboardName": "meal-planning-v2",
-      "recapturedAt": "2026-08-30",
+      "recapturedAt": "2026-08-31",
       "body": {
         "clientHeight": 1024,
         "clientWidth": 1440,
@@ -2059,8 +2059,14 @@
         "y": 0
       },
       "windowControlsCandidates": 0,
-      "accountDock": false,
-      "accountDockText": "",
+      "accountDock": true,
+      "accountDockText": "收起导航|就绪 (Fustat-v2)|Anddy 的工作区",
+      "accountDockGeometry": {
+        "x": 24,
+        "y": 866,
+        "width": 211.2,
+        "height": 134
+      },
       "bodyOverflow": false,
       "rootOverflow": false,
       "trafficLightColors": 0,

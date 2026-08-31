@@ -1702,9 +1702,22 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 ## 187. 2026-08-30 Meal Planning Figma fixture 账户停靠区收口
 
+> 历史记录：本节“隐藏账户停靠区”的判断已被 2026-08-31 实时 Figma 回读纠正，当前实现和证据以第 188 节为准。
+
 - [x] 依据 Figma 节点 `640:901` 的原始画板，确认 `meal-planning-v2` 不包含侧栏底部的“收起导航”、就绪状态和工作区账户停靠区；仅为 `/planning?state=v2` 传入 `hideAccountDock`，Workspace Home、饮食记录、摄入分析、Profile 和真实模式保持原有账户停靠区。
 - [x] 先新增 Planning 契约测试并确认红灯（`1 failed / 11 passed`），再完成最小实现；定向测试为 `12/12`。
 - [x] 浏览器在 `1440×1024`、DPR `1.0000000149`、字体 `loaded` 条件下复核：账户停靠区为 `false`、页面无横向/纵向溢出、前端窗口控制点候选为 `0`，Figma 设计稿未修改。
 - [x] 已登记原始 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/meal-planning-v2-account-dock-browser-2026-08-30.jpg`、PNG `meal-planning-v2-account-dock-browser-2026-08-30-rgba.png` 和独立 diff `meal-planning-v2-account-dock-2026-08-30-diff.json`；同尺寸结果为 `differentPixels=326174`、差异比例 `22.1201%`、`MAE=2.603460`、`RMSE=15.161513`、最大通道差异 `243`，结论保持 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步本次证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成 Meal Planning Figma fixture 账户停靠区边界收口，不代表该画板或 105 张画板达到像素级 `PASS`；工具栏、导航、卡片几何、字体光栅化和内容密度仍需继续复核，shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 188. 2026-08-31 Meal Planning 账户停靠区证据纠正
+
+上一节关于 `meal-planning-v2` 隐藏账户停靠区的判断已被实时 Figma 节点 `640:901` 回读纠正。Figma 明确包含 `收起导航`、`就绪 (Fustat-v2)` 和 `Anddy 的工作区` 三个底部账户停靠区层；本轮仅修正前端 fixture 和验收证据，未修改 Figma 设计稿。
+
+- [x] `/planning?state=v2` 已恢复账户停靠区；前端左上角红、黄、绿窗口装饰候选数量仍为 `0`，业务状态圆点保持不变。
+- [x] 浏览器运行时为 `1440×1024`、DPR `1.0000000149`、字体 `loaded`、页面无横向溢出；账户停靠区实测 `x=24,y=866,width=211.2,height=134`。
+- [x] 原始浏览器截图已按真实格式登记为 `meal-planning-v2-account-dock-corrected-browser-2026-08-31.jpg`，RGBA PNG 为 `meal-planning-v2-account-dock-corrected-browser-2026-08-31-rgba.png`；两张图尺寸均为 `1440×1024`。
+- [x] `png-diff.mjs` 同尺寸结果为 `differentPixels=329294`、差异比例 `22.3317%`、`MAE=2.472228`、`RMSE=14.540339`、最大通道差异 `234`；独立结果为 `meal-planning-v2-account-dock-corrected-2026-08-31-diff.json`，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步修正证据；聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只纠正账户停靠区边界和证据文件格式，不代表该画板或 105 张画板达到像素级 `PASS`；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
