@@ -78,7 +78,6 @@ type WorkspaceLayoutProps = {
     showTopStatus?: boolean;
     hideSessionSearch?: boolean;
     hideCollapseButton?: boolean;
-    hideAccountDock?: boolean;
   };
   pageOverlay?: React.ReactNode;
 };
@@ -307,40 +306,38 @@ export function WorkspaceLayout({
               <span>设置</span>
             </Button>
           </nav>
-          {!sidebarFixture?.hideAccountDock ? (
-            <div className={styles.accountDock}>
-              {!sidebarFixture?.hideCollapseButton ? (
-                <Button
-                  className={styles.collapseButton}
-                  variant="ghost"
-                  type="button"
-                  onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
-                >
-                  <MoreHorizontal aria-hidden="true" />
-                  <span>收起导航</span>
-                </Button>
-              ) : null}
-              <div className={styles.statusPill}>
-                <span />
-                <span>就绪 (Fustat-v2)</span>
-              </div>
-              <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
-                <div className={styles.avatar}>
-                  <img src={sidebarAvatar} alt="" />
-                </div>
-                <div>
-                  <strong>
-                    {displayNameOverride
-                      ? `${displayNameOverride} 的工作区`
-                      : isAuthenticated
-                        ? `${authUser.displayName} 的工作区`
-                        : '未登录'}
-                  </strong>
-                  <span>ID: {profileId}</span>
-                </div>
-              </Link>
+          <div className={styles.accountDock}>
+            {!sidebarFixture?.hideCollapseButton ? (
+              <Button
+                className={styles.collapseButton}
+                variant="ghost"
+                type="button"
+                onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
+              >
+                <MoreHorizontal aria-hidden="true" />
+                <span>收起导航</span>
+              </Button>
+            ) : null}
+            <div className={styles.statusPill}>
+              <span />
+              <span>就绪 (Fustat-v2)</span>
             </div>
-          ) : null}
+            <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
+              <div className={styles.avatar}>
+                <img src={sidebarAvatar} alt="" />
+              </div>
+              <div>
+                <strong>
+                  {displayNameOverride
+                    ? `${displayNameOverride} 的工作区`
+                    : isAuthenticated
+                      ? `${authUser.displayName} 的工作区`
+                      : '未登录'}
+                </strong>
+                <span>ID: {profileId}</span>
+              </div>
+            </Link>
+          </div>
         </aside>
         <main className={styles.main}>
           <header
