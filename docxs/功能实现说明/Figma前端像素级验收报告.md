@@ -1732,3 +1732,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `png-diff.mjs` 同尺寸结果为 `differentPixels=341408`、差异比例 `23.1532%`、`MAE=2.243974`、`RMSE=12.938152`、最大通道差异 `234`；独立结果为 `meal-planning-v2-session-history-2026-08-31-diff.json`，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步本次证据；聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只纠正 Planning fixture 的会话历史边界，不代表该画板或 105 张画板达到像素级 `PASS`；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
+
+## 190. 2026-08-31 Diet Records 会话历史与记录详情结构纠正
+
+依据实时 Figma 节点 `640:588` 的 `1440×1024` 参考图，本轮恢复 Diet Records Figma fixture 中的会话搜索、Agent 会话历史、分页和底部“记录详情”面板，并隐藏 Figma 画板中不存在的“记录一餐 / 分析这一天”额外操作栏；真实模式和普通默认态行为保持不变，Figma 设计稿未修改。
+
+- [x] 按 TDD 先将旧契约改为 Figma 目标契约并确认红灯（`1 failed / 9 passed`），再完成最小前端实现；`DietRecordsPage` 定向测试为 `10/10`。
+- [x] 浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/diet-records-v2-session-history-browser-2026-08-31.jpg` 和 RGBA PNG `diet-records-v2-session-history-browser-2026-08-31-rgba.png`；两者与 Figma 参考图尺寸均为 `1440×1024`。
+- [x] 浏览器运行时实测视口 `1440×1024`、字体 `loaded`、页面无横向/纵向溢出；会话搜索 `1` 个、记录详情 `1` 个、额外操作栏 `0` 个，前端左上角红黄绿窗口装饰候选为 `0`，业务状态圆点保持不变。
+- [x] `scripts/png-diff.mjs` 结果为 `differentPixels=536960`、差异比例 `36.4149%`、`MAE=2.622175`、`RMSE=15.524117`、最大通道差异 `234`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/diet-records-v2-session-history-2026-08-31-diff.json`，结论保持 `DIFF_REVIEW`。
+- [x] 该次浏览器实际 DPR 为 `1.25`，严格 DPR 1 门禁为 `false`；`figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步，105 张画板聚合为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时 `dprPass=95/105`。
+- [ ] 本小点只完成 Diet Records fixture 结构纠偏，不代表该画板或 105 张画板达到像素级 `PASS`；整页仍有头像、图标、字体光栅化和其他视觉差异，shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。

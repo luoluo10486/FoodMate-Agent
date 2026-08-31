@@ -63,16 +63,16 @@ describe('DietRecordsPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('已复制到明天的记录草稿。');
   });
 
-  it('renders the Figma action bar without an extra detail layer', async () => {
+  it('renders the Figma session history and record detail without the extra action bar', async () => {
     const user = userEvent.setup();
     renderPage('/analysis?view=records&state=v2');
 
-    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
-    expect(screen.queryByText('每周饮食微调')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '记录一餐' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '分析这一天' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: '记录详情 · 待确认记录可在这里补充后保存' })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
+    expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '记录详情 · 待确认记录可在这里补充后保存' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '记录一餐' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '分析这一天' })).not.toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: '+ 添加食物' })[0]);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();

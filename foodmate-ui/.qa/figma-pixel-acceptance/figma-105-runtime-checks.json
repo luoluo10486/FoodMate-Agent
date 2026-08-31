@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30",
+  "generatedAt": "2026-08-31",
   "tool": "Codex Browser runtime DOM inspection (recaptured evidence)",
   "rules": {
     "viewport": "mapping.browserViewport",
@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 96,
+    "dprPass": 95,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -1554,8 +1554,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
-      "dprPass": true,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1564,6 +1564,9 @@
         "y": 0
       },
       "windowControlsCandidates": 0,
+      "sessionSearchCount": 1,
+      "recordDetailCount": 1,
+      "extraActionBarCount": 0,
       "textOverflow": [],
       "url": "/analysis?view=records&state=v2",
       "viewport": {

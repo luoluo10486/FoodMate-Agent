@@ -185,8 +185,8 @@
       "frontendRoute": "/analysis",
       "queryState": "view=records&state=v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-27.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-sidebar-history-browser-2026-08-30-rgba.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-31.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-session-history-browser-2026-08-31-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -216,7 +216,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
-        "conclusion": "The Figma fixture now renders the two action buttons below the meal cards and no longer renders the extra record-detail panel. The action bar and button geometry align with the Figma reference, while font, icon, avatar and surrounding workspace differences remain. Retain DIFF_REVIEW."
+        "conclusion": "依据 Figma 节点 640:588，fixture 已恢复会话搜索、Agent 会话历史、分页和底部记录详情面板，并隐藏 Figma 不包含的记录一餐/分析这一天额外操作栏。1440×1024 视口、字体加载、无溢出和前端窗口控制点检查通过；DPR 为 1.25，头像、图标、字体光栅化及整页视觉差异仍存在，保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
@@ -233,6 +233,26 @@
             "desktopAnalyzeButton": "x=448,y=644,width=164,height=40",
             "detailPanelRendered": false,
             "bodyHorizontalOverflow": false,
+            "fonts": "loaded",
+            "windowControlsCandidates": 0
+          }
+        },
+        {
+          "capturedAt": "2026-08-31",
+          "figmaPng": ".qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-31.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-session-history-browser-2026-08-31-rgba.png",
+          "browserCapture": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-session-history-browser-2026-08-31.jpg",
+          "diffJson": ".qa/figma-pixel-acceptance/diet-records-v2-session-history-2026-08-31-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "dprPass": false,
+          "visualChange": "依据 Figma 节点 640:588，恢复 diet-records-v2 fixture 的会话搜索、Agent 会话历史、分页和记录详情面板，并隐藏 Figma 中不存在的额外记录一餐/分析这一天操作栏；仅修改前端，未修改 Figma。",
+          "geometry": {
+            "sessionSearchCount": 1,
+            "recordDetailCount": 1,
+            "extraActionBarCount": 0,
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
             "fonts": "loaded",
             "windowControlsCandidates": 0
           }

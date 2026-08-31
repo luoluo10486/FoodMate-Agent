@@ -24,17 +24,17 @@
       "rmse": 17.558624822305962,
       "maxChannelDelta": 255
     },
-    "diet-records-v2": {
-      "status": "COMPARED",
-      "width": 1440,
-      "height": 1024,
-      "pixelCount": 1474560,
-      "differentPixels": 514737,
-      "differentRatio": 0.349078369140625,
-      "meanAbsoluteError": 2.7163292778862846,
-      "rmse": 15.930098490692927,
-      "maxChannelDelta": 234
-    },
+      "diet-records-v2": {
+        "status": "COMPARED",
+        "width": 1440,
+        "height": 1024,
+        "pixelCount": 1474560,
+        "differentPixels": 536960,
+        "differentRatio": 0.3641493055555556,
+        "meanAbsoluteError": 2.6221749199761284,
+        "rmse": 15.524117299962004,
+        "maxChannelDelta": 234
+      },
     "intake-analysis-v2": {
       "status": "COMPARED",
       "width": 1440,
