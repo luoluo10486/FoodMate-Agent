@@ -1672,3 +1672,14 @@
 | `Qwen/Qwen3-Embedding-0.6B` | `passed`；SiliconFlow `/v1/embeddings` 返回 HTTP `200`，向量维度 `1024`，本轮延迟约 `219.72 ms`。 |
 | 配置隔离 | 两个 profile 均由显式模型校验；实际运行仍一次选择一个 profile，并使用独立 Milvus collection，禁止混写。 |
 | 结论 | 宿主机真实 Embedding 服务和两个模型适配均已取得新鲜业务证据；Docker 容器内真实请求仍受出站 TLS 环境阻塞，不能以宿主机结果代替 Docker 云联调证据。 |
+
+## D98 Docker Runtime 双 Embedding 真实协议复验（2026-08-31）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Docker Compose `foodmate`/`agent-runtime`/Milvus；凭据仅由本地忽略 `.env` 注入容器，未输出、写入脚本或提交 Git。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：请求通过，模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，延迟约 `411.64 ms`，返回 `prompt_tokens=5`。 |
+| BGE profile | 临时使用独立 collection `foodmate_knowledge_chunks_bge_m3` 重建 Runtime 后执行 `-EmbeddingProfile bge-m3 -ExecuteRequest`：请求通过，模型 `BAAI/bge-m3`，向量维度 `1024`，延迟约 `302.4 ms`，返回 `prompt_tokens=9`。 |
+| 配置恢复 | BGE 验证后已按 `.env` 恢复 Qwen profile；Runtime readiness 为 `healthy`，Milvus readiness 为 `healthy`。 |
+| 安全边界 | 未关闭 TLS 校验；没有在命令、日志或仓库中输出密钥；两个模型使用互斥 profile 和独立 collection，禁止混写。 |
+| 结论 | Docker 容器内两个 SiliconFlow Embedding profile 均已取得真实协议证据；这不等同于 M1-6 性能/故障矩阵或生产稳定性完成。 |
