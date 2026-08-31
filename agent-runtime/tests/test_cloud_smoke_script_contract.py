@@ -91,6 +91,13 @@ class CloudSmokeScriptContractTests(TestCase):
         self.assertNotIn("--api-key", script.lower())
         self.assertNotIn("$ModelApiKey", script)
 
+    def test_docker_chat_smoke_disables_thinking_for_short_bounded_probe(self):
+        script = (
+            self.ROOT / "script" / "local" / "siliconflow-docker-chat-smoke.ps1"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('"enable_thinking": False', script)
+
     def test_windows_cloud_smoke_scripts_use_utf8_bom_and_consistent_crlf(self):
         for relative_path in (
             "script/local/siliconflow-embedding-smoke.ps1",

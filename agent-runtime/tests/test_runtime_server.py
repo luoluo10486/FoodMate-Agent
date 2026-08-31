@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 sys.path.append(str(Path(__file__).parents[1]))
 import runtime_server
 from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoint, Plan, Reflector, RouteDecision, StepValidator, Usage, WorkflowGraph, budget_mode, budget_policy, run_deterministic, split_answer
+from model_provider import ModelProvider, ModelResponse, ModelRouter
 from knowledge_rag import Citation, PUBLIC_SCOPE
 from proposal_protocol import Proposal, validate_proposal
 from recovery_protocol import checkpoint_digest, validate_recovery_command
@@ -817,6 +818,35 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual("pass", execution.eval.result)
         self.assertEqual(["composer", "eval"], [attempt.scene for attempt in execution.model_attempts])
         self.assertNotEqual(execution.model_attempts[0].model_call_id, execution.model_attempts[1].model_call_id)
+
+    def test_cloud_composer_disables_thinking_for_bounded_runtime_latency(self):
+        class CapturingProvider(ModelProvider):
+            provider_code = "capture"
+
+            def __init__(self):
+                self.requests = []
+
+            def complete(self, model_name, request):
+                self.requests.append(request)
+                return ModelResponse("cloud answer", 1, 1, "provider-request-1")
+
+        provider = CapturingProvider()
+        router = ModelRouter(
+            {"FOODMATE_MODEL_TIER_STANDARD": "capture:local"},
+            lambda _provider_code: provider,
+        )
+
+        run_deterministic(
+            {
+                "run_id": "cloud-composer-options",
+                "dispatch_id": "dispatch-1",
+                "message": {"content": "请总结今天的饮食"},
+            },
+            model_router=router,
+        )
+
+        self.assertGreaterEqual(len(provider.requests), 1)
+        self.assertEqual({"enable_thinking": False}, provider.requests[0].extra_body)
 
     def test_cancel_is_observed_before_execution(self):
         events = []
