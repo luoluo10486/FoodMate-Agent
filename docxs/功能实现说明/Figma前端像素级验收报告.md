@@ -1721,3 +1721,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `png-diff.mjs` 同尺寸结果为 `differentPixels=329294`、差异比例 `22.3317%`、`MAE=2.472228`、`RMSE=14.540339`、最大通道差异 `234`；独立结果为 `meal-planning-v2-account-dock-corrected-2026-08-31-diff.json`，结论继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步修正证据；聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只纠正账户停靠区边界和证据文件格式，不代表该画板或 105 张画板达到像素级 `PASS`；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
+
+## 189. 2026-08-31 Meal Planning 会话历史结构纠正
+
+依据实时 Figma 节点 `640:901` 的画板截图，`meal-planning-v2` 同时包含会话搜索、9 条 Agent 会话、分页、账户停靠区和计划主体。本轮仅恢复前端 fixture 中被错误隐藏的会话历史，真实模式和 Figma 设计稿保持不变。
+
+- [x] `/planning?state=v2` 已恢复 `搜索会话...`、9 条 Figma 会话标题、`1 / 3` 分页以及上一页/下一页控件；前端左上角红、黄、绿窗口装饰候选数量为 `0`，业务会话圆点保持不变。
+- [x] 浏览器运行时为 `1440×1024`、DPR `1.0000000149`、字体 `loaded`、页面无横向或纵向溢出；活动会话文本位置实测 `x=48,y=320.875,width=179.2,height=16.25`。
+- [x] `PlanningPage` 与 `WorkspaceLayout` 定向测试为 `22/22`；原始浏览器 JPEG 为 `meal-planning-v2-session-history-browser-2026-08-31.jpg`，RGBA PNG 为 `meal-planning-v2-session-history-browser-2026-08-31-rgba.png`。
+- [x] `png-diff.mjs` 同尺寸结果为 `differentPixels=341408`、差异比例 `23.1532%`、`MAE=2.243974`、`RMSE=12.938152`、最大通道差异 `234`；独立结果为 `meal-planning-v2-session-history-2026-08-31-diff.json`，结论继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步本次证据；聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只纠正 Planning fixture 的会话历史边界，不代表该画板或 105 张画板达到像素级 `PASS`；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。

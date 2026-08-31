@@ -2067,6 +2067,15 @@
         "width": 211.2,
         "height": 134
       },
+      "sessionHistory": true,
+      "sessionSearch": true,
+      "sessionCount": 9,
+      "sessionPagination": {
+        "currentPage": 1,
+        "totalPages": 3,
+        "previousDisabled": true,
+        "nextDisabled": false
+      },
       "bodyOverflow": false,
       "rootOverflow": false,
       "trafficLightColors": 0,

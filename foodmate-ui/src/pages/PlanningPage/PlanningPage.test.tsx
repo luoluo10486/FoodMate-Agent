@@ -43,12 +43,12 @@ describe('PlanningPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('计划已保存');
   });
 
-  it('renders the Figma shell without session history', () => {
+  it('renders the Figma shell with session history', () => {
     renderPage('/planning?state=v2');
 
-    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
-    expect(screen.queryByText('每周饮食微调')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
+    expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
   });
 
   it('keeps the account dock in the Figma planning fixture', () => {
