@@ -35,6 +35,17 @@ def _startup_client_with_timeout(client, name: str, timeout_seconds: float):
         raise RuntimeError("RUNTIME_MQ_STARTUP_FAILED") from outcome[0]
 
 
+def _shutdown_client(client) -> None:
+    """尽力关闭旧客户端，避免失效连接阻塞新客户端接管。"""
+    if client is None or not getattr(client, "is_running", True):
+        return
+    try:
+        client.shutdown()
+    except Exception:
+        # 旧连接可能已由 SDK 自身清理；新连接已经是权威状态。
+        return
+
+
 class RedisCheckpoint:
     """Redis technical checkpoint with atomic version CAS, TTL and optional encryption."""
 
@@ -142,10 +153,12 @@ class RedisResultInbox:
 
 
 class RocketMqEventPublisher:
-    """Publish immutable RunEvent envelopes after local execution emits them."""
+    """发布不可变 RunEvent，并支持连接失效后的 Producer 重建。"""
 
-    def __init__(self, producer=None, topic=None, outbox=None):
+    def __init__(self, producer=None, topic=None, outbox=None, producer_factory=None):
         self.topic = topic or os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_EVENT", "foodmate-agent-event-v1")
+        self._producer_lock = threading.RLock()
+        self._producer_factory = producer_factory or self._new_producer if producer is None else producer_factory
         self.producer = producer or self._new_producer()
         self.outbox = outbox or RedisEventOutbox()
 
@@ -170,12 +183,25 @@ class RocketMqEventPublisher:
         message.add_property("foodmate_dispatch_id", event["dispatch_id"])
         message.add_property("foodmate_event_id", event["event_id"])
         message.add_property("foodmate_event_seq", str(event["event_seq"]))
-        receipt = self.producer.send(message)
-        self.outbox.ack(entry_id)
-        return receipt
+        with self._producer_lock:
+            receipt = self.producer.send(message)
+            self.outbox.ack(entry_id)
+            return receipt
+
+    def reconnect(self) -> bool:
+        """重建 Producer；测试注入的固定 Producer 默认不参与重建。"""
+        if self._producer_factory is None:
+            return False
+        replacement = self._producer_factory()
+        with self._producer_lock:
+            previous = self.producer
+            self.producer = replacement
+        _shutdown_client(previous)
+        return True
 
     def close(self):
-        self.producer.shutdown()
+        with self._producer_lock:
+            _shutdown_client(self.producer)
 
 
 class RedisProposalOutbox:
@@ -200,10 +226,12 @@ class RedisProposalOutbox:
 
 
 class RocketMqProposalPublisher:
-    """向 Java Tool Gateway 发布 Proposal；Python 不持有数据库凭据，也不执行 SQL。"""
+    """向 Java Tool Gateway 发布 Proposal，并支持 Producer 重建。"""
 
-    def __init__(self, producer=None, topic=None, outbox=None):
+    def __init__(self, producer=None, topic=None, outbox=None, producer_factory=None):
         self.topic = topic or os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_PROPOSAL", "foodmate-agent-proposal-v1")
+        self._producer_lock = threading.RLock()
+        self._producer_factory = producer_factory or self._new_producer if producer is None else producer_factory
         self.producer = producer or self._new_producer()
         self.outbox = outbox or RedisProposalOutbox()
 
@@ -240,18 +268,33 @@ class RocketMqProposalPublisher:
         message.add_property("foodmate_run_id", payload["run_id"])
         message.add_property("foodmate_proposal_id", payload["proposal_id"])
         message.add_property("foodmate_request_hash", payload["request_hash"])
-        receipt = self.producer.send(message)
-        self.outbox.ack(entry_id)
-        return receipt
+        with self._producer_lock:
+            receipt = self.producer.send(message)
+            self.outbox.ack(entry_id)
+            return receipt
+
+    def reconnect(self) -> bool:
+        """重建 Proposal Producer；固定注入的测试 Producer 不主动连接网络。"""
+        if self._producer_factory is None:
+            return False
+        replacement = self._producer_factory()
+        with self._producer_lock:
+            previous = self.producer
+            self.producer = replacement
+        _shutdown_client(previous)
+        return True
 
     def close(self):
-        self.producer.shutdown()
+        with self._producer_lock:
+            _shutdown_client(self.producer)
 
 
 class RocketMqKnowledgeResultPublisher:
-    """Publishes only index facts; source bytes and credentials never enter RocketMQ."""
-    def __init__(self, producer=None, topic=None):
+    """只发布索引事实，连接失效时可重建 Producer。"""
+    def __init__(self, producer=None, topic=None, producer_factory=None):
         self.topic = topic or os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_INDEX_RESULT", "foodmate-knowledge-index-result-v1")
+        self._producer_lock = threading.RLock()
+        self._producer_factory = producer_factory or self._new_producer if producer is None else producer_factory
         self.producer = producer or self._new_producer()
 
     def _new_producer(self):
@@ -265,19 +308,46 @@ class RocketMqKnowledgeResultPublisher:
         message.body = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         message.keys = str(result["item_id"])
         message.add_property("foodmate_message_type", "KnowledgeIndexResult")
-        return self.producer.send(message)
+        with self._producer_lock:
+            return self.producer.send(message)
+
+    def reconnect(self) -> bool:
+        """重建索引结果 Producer。"""
+        if self._producer_factory is None:
+            return False
+        replacement = self._producer_factory()
+        with self._producer_lock:
+            previous = self.producer
+            self.producer = replacement
+        _shutdown_client(previous)
+        return True
 
     def close(self):
-        self.producer.shutdown()
+        with self._producer_lock:
+            _shutdown_client(self.producer)
 
 
 class RocketMqKnowledgePurgeResultPublisher:
-    """Publishes only vector purge outcomes, never source bytes or object keys."""
-    def __init__(self, producer=None, topic=None):
+    """只发布向量清理结果，连接失效时可重建 Producer。"""
+    def __init__(self, producer=None, topic=None, producer_factory=None):
         self.topic = topic or os.getenv("FOODMATE_ROCKETMQ_TOPIC_KNOWLEDGE_PURGE_RESULT", "foodmate-knowledge-purge-result-v1")
-        self.producer = producer or Producer(ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()), topics=[self.topic])
+        self._producer_lock = threading.RLock()
+        self._producer_factory = producer_factory or self._new_producer if producer is None else producer_factory
+        self.producer = producer or self._new_producer()
         if producer is None:
-            _startup_client_with_timeout(self.producer, "knowledge-purge-result-producer", float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")))
+            pass
+
+    def _new_producer(self):
+        producer = Producer(
+            ClientConfiguration(os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081"), Credentials()),
+            topics=[self.topic],
+        )
+        _startup_client_with_timeout(
+            producer,
+            "knowledge-purge-result-producer",
+            float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15")),
+        )
+        return producer
 
     def publish(self, result: dict):
         message = Message()
@@ -285,10 +355,23 @@ class RocketMqKnowledgePurgeResultPublisher:
         message.body = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         message.keys = str(result["task_id"])
         message.add_property("foodmate_message_type", "KnowledgePurgeResult")
-        return self.producer.send(message)
+        with self._producer_lock:
+            return self.producer.send(message)
+
+    def reconnect(self) -> bool:
+        """重建向量清理结果 Producer。"""
+        if self._producer_factory is None:
+            return False
+        replacement = self._producer_factory()
+        with self._producer_lock:
+            previous = self.producer
+            self.producer = replacement
+        _shutdown_client(previous)
+        return True
 
     def close(self):
-        self.producer.shutdown()
+        with self._producer_lock:
+            _shutdown_client(self.producer)
 
 
 class _CommandListener(MessageListener):
@@ -372,59 +455,185 @@ class RedisEventOutbox:
 
 
 class RocketMqRuntime:
-    """Own the Python command consumer and event producer lifecycle."""
+    """管理 Agent 消费连接，并在 RocketMQ 重启后自动重建客户端。"""
 
-    def __init__(self, execute: Callable[[dict], None], inbox=None, publisher=None, proposal_publisher=None, on_result=None, result_inbox=None, metrics=None):
-        endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
-        config = ClientConfiguration(endpoint, Credentials())
+    def __init__(
+        self,
+        execute: Callable[[dict], None],
+        inbox=None,
+        publisher=None,
+        proposal_publisher=None,
+        on_result=None,
+        result_inbox=None,
+        metrics=None,
+        consumer_factory=None,
+    ):
         self.publisher = publisher or RocketMqEventPublisher()
         self.proposal_publisher = proposal_publisher
         self.inbox = inbox or RedisCommandInbox()
+        self.result_inbox = result_inbox or RedisResultInbox()
+        self.execute = execute
+        self.on_result = on_result or (lambda _result: None)
+        self.metrics = metrics
+        self.endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
         self.topic = os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_COMMAND", "foodmate-agent-command-v1")
-        self.consumer = PushConsumer(
-            config,
-            os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_COMMAND", "foodmate-python-agent-command-v1"),
-            _CommandListener(self.inbox, execute, metrics),
+        self.result_topic = os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_RESULT", "foodmate-agent-result-v1")
+        self.command_group = os.getenv(
+            "FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_COMMAND",
+            "foodmate-python-agent-command-v1",
+        )
+        self.result_group = os.getenv(
+            "FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_RESULT",
+            "foodmate-python-agent-result-v1",
+        )
+        self.consumer_factory = consumer_factory or PushConsumer
+        self.consumer = None
+        self.result_consumer = None
+        self._started = False
+        self._lock = threading.RLock()
+        self._monitor_stop = threading.Event()
+        self._monitor_thread = None
+
+    def _build_consumers(self):
+        """每次接管都创建全新的 SDK 客户端，因为 shutdown 后不能再次 startup。"""
+        configuration = ClientConfiguration(self.endpoint, Credentials())
+        command_consumer = self.consumer_factory(
+            configuration,
+            self.command_group,
+            _CommandListener(self.inbox, self.execute, self.metrics),
             subscription={self.topic: FilterExpression("*")},
             consumption_thread_count=int(os.getenv("FOODMATE_AGENT_WORKER_CONCURRENCY", "1")),
         )
-        self.result_consumer = PushConsumer(
-            config,
-            os.getenv("FOODMATE_ROCKETMQ_CONSUMER_GROUP_PYTHON_AGENT_RESULT", "foodmate-python-agent-result-v1"),
-            _ResultListener(result_inbox or RedisResultInbox(), on_result or (lambda _result: None), metrics),
-            subscription={os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_RESULT", "foodmate-agent-result-v1"): FilterExpression("*")},
+        result_consumer = self.consumer_factory(
+            configuration,
+            self.result_group,
+            _ResultListener(self.result_inbox, self.on_result, self.metrics),
+            subscription={self.result_topic: FilterExpression("*")},
             consumption_thread_count=1,
         )
-        self._started = False
-        self._lock = threading.Lock()
+        return command_consumer, result_consumer
+
+    @staticmethod
+    def _start_pair(command_consumer, result_consumer, timeout_seconds: float):
+        started = []
+        try:
+            _startup_client_with_timeout(command_consumer, "command", timeout_seconds)
+            started.append(command_consumer)
+            _startup_client_with_timeout(result_consumer, "result", timeout_seconds)
+            started.append(result_consumer)
+        except Exception:
+            for client in reversed(started):
+                _shutdown_client(client)
+            _shutdown_client(result_consumer)
+            raise
 
     def start(self):
         with self._lock:
             if self._started:
                 return
             timeout_seconds = float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15"))
-            _startup_client_with_timeout(self.consumer, "command", timeout_seconds)
-            try:
-                _startup_client_with_timeout(self.result_consumer, "result", timeout_seconds)
-            except Exception:
-                self.consumer.shutdown()
-                raise
+            command_consumer, result_consumer = self._build_consumers()
+            self._start_pair(command_consumer, result_consumer, timeout_seconds)
+            self.consumer = command_consumer
+            self.result_consumer = result_consumer
             self._started = True
+            self._start_health_monitor_locked()
 
+    def _start_health_monitor_locked(self):
+        if os.getenv("FOODMATE_ROCKETMQ_HEALTHCHECK_ENABLED", "true").lower() != "true":
+            return
+        interval = float(os.getenv("FOODMATE_ROCKETMQ_HEALTHCHECK_INTERVAL_SECONDS", "5"))
+        if interval <= 0:
+            raise RuntimeError("RUNTIME_MQ_HEALTHCHECK_INTERVAL_INVALID")
+        self._monitor_stop.clear()
+        self._monitor_thread = threading.Thread(
+            target=self._health_monitor,
+            name="rocketmq-runtime-health",
+            daemon=True,
+        )
+        self._monitor_thread.start()
+
+    def _health_monitor(self):
+        interval = float(os.getenv("FOODMATE_ROCKETMQ_HEALTHCHECK_INTERVAL_SECONDS", "5"))
+        while not self._monitor_stop.wait(interval):
+            if not self.ensure_healthy() and self.metrics:
+                self.metrics("transport", "retry", "rocketmq_health_unavailable")
+
+    def _client_healthy(self, client, topic: str) -> bool:
+        if client is None or not getattr(client, "is_running", False):
+            return False
+        # rocketmq-python-client has no public health API. Force a route refresh
+        # so a cached route cannot hide a dead Proxy channel after a restart.
+        refresh_route = getattr(client, "_Client__update_topic_route", None)
+        if not callable(refresh_route):
+            return True
+        try:
+            return refresh_route(topic) is not None
+        except Exception:
+            return False
+
+    def _clients_healthy_locked(self) -> bool:
+        return self._client_healthy(self.consumer, self.topic) and self._client_healthy(
+            self.result_consumer, self.result_topic
+        )
+
+    def _reconnect_locked(self) -> bool:
+        if not self._started:
+            return False
+        timeout_seconds = float(os.getenv("FOODMATE_ROCKETMQ_STARTUP_TIMEOUT_SECONDS", "15"))
+        replacement_command, replacement_result = self._build_consumers()
+        try:
+            self._start_pair(replacement_command, replacement_result, timeout_seconds)
+        except Exception:
+            return False
+        previous_command, previous_result = self.consumer, self.result_consumer
+        self.consumer, self.result_consumer = replacement_command, replacement_result
+        for publisher in (self.publisher, self.proposal_publisher):
+            reconnect = getattr(publisher, "reconnect", None)
+            if callable(reconnect):
+                try:
+                    reconnect()
+                except Exception:
+                    if self.metrics:
+                        self.metrics("transport", "retry", "rocketmq_producer_reconnect_failed")
+        _shutdown_client(previous_command)
+        _shutdown_client(previous_result)
+        return True
+
+    def ensure_healthy(self) -> bool:
+        """探测真实路由；失效时新建 Consumer/Producer 后再返回。"""
+        with self._lock:
+            if not self._started:
+                return False
+            if self._clients_healthy_locked():
+                return True
+            return self._reconnect_locked() and self._clients_healthy_locked()
 
     def close(self):
         with self._lock:
             if not self._started:
                 return
-            self.consumer.shutdown()
-            self.result_consumer.shutdown()
-            self.publisher.close()
-            if self.proposal_publisher is not None:
-                self.proposal_publisher.close()
             self._started = False
+            self._monitor_stop.set()
+            monitor = self._monitor_thread
+            self._monitor_thread = None
+            command_consumer, result_consumer = self.consumer, self.result_consumer
+            self.consumer, self.result_consumer = None, None
+        if monitor is not None and monitor is not threading.current_thread():
+            monitor.join(timeout=2)
+        _shutdown_client(command_consumer)
+        _shutdown_client(result_consumer)
+        self.publisher.close()
+        if self.proposal_publisher is not None:
+            self.proposal_publisher.close()
 
     @property
     def started(self) -> bool:
-        """Expose startup state for the Runtime readiness contract."""
+        """返回本地生命周期状态；readiness 使用 healthy 触发真实探测。"""
         with self._lock:
             return self._started
+
+    @property
+    def healthy(self) -> bool:
+        """返回当前 Consumer 是否可通过 RocketMQ 路由探测。"""
+        return self.ensure_healthy()

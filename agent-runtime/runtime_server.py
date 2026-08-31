@@ -225,7 +225,7 @@ def _readiness() -> tuple[int, dict[str, object]]:
     if transport == "rocketmq":
         event_ready = _event_publisher is not None and getattr(_event_publisher, "producer", None) is not None
         proposal_ready = _proposal_publisher is not None and getattr(_proposal_publisher, "producer", None) is not None
-        consumer_ready = _mq_runtime is not None and _mq_runtime.started
+        consumer_ready = _mq_runtime is not None and _mq_runtime.healthy
         result_ready = consumer_ready and getattr(_mq_runtime, "result_consumer", None) is not None
         dependencies["rocketmq_event_producer"] = {"status": "ready" if event_ready else "unavailable"}
         dependencies["rocketmq_proposal_producer"] = {"status": "ready" if proposal_ready else "unavailable"}
