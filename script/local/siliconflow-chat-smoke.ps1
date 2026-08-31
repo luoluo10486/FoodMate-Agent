@@ -13,6 +13,7 @@ if ([string]::IsNullOrWhiteSpace($PythonPath)) {
 if (-not (Test-Path -LiteralPath $PythonPath -PathType Leaf)) {
     throw "项目 Python 解释器不存在：$PythonPath"
 }
+$PythonPath = (Resolve-Path -LiteralPath $PythonPath).Path
 
 foreach ($name in @(
         "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_BASE_URL",

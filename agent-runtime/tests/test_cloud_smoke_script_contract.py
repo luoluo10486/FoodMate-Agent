@@ -99,3 +99,15 @@ class CloudSmokeScriptContractTests(TestCase):
             raw = (self.ROOT / relative_path).read_bytes()
             self.assertTrue(raw.startswith(codecs.BOM_UTF8), relative_path)
             self.assertNotIn(b"\n", raw.replace(b"\r\n", b""), relative_path)
+
+    def test_cloud_smoke_scripts_resolve_explicit_python_paths_before_changing_directory(self):
+        for relative_path in (
+            "script/local/siliconflow-embedding-smoke.ps1",
+            "script/local/siliconflow-chat-smoke.ps1",
+        ):
+            script = (self.ROOT / relative_path).read_text(encoding="utf-8-sig")
+            self.assertIn(
+                "$PythonPath = (Resolve-Path -LiteralPath $PythonPath).Path",
+                script,
+                relative_path,
+            )
