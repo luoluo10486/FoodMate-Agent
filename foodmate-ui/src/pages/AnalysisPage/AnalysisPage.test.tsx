@@ -49,7 +49,7 @@ describe('AnalysisPage', () => {
     expect(screen.getByText('能量摄入与目标对比')).toBeInTheDocument();
   });
 
-  it('renders the Figma filter controls without session history', async () => {
+  it('renders the Figma filter controls with session history', async () => {
     const user = userEvent.setup();
     renderPage('/analysis?state=v2');
 
@@ -57,9 +57,9 @@ describe('AnalysisPage', () => {
     expect(screen.getByRole('tablist')).toHaveClass(styles.filters);
     expect(screen.getByRole('button', { name: '自定义范围' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '全部餐次' })).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
-    expect(screen.queryByText('每周饮食微调')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
+    expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '全部餐次' }));
     expect(screen.getByText('当前分析覆盖全部餐次。')).toBeInTheDocument();

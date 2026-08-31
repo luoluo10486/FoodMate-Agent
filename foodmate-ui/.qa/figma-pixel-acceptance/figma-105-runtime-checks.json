@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 95,
+    "dprPass": 94,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -198,8 +198,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
-      "dprPass": true,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -222,6 +222,12 @@
         }
       },
       "windowControlsCandidates": 0,
+      "sessionHistory": {
+        "searchCount": 1,
+        "activeSessionCount": 1,
+        "paginationVisible": true,
+        "paginationRect": "x=24,y=598,width=212,height=22"
+      },
       "textOverflow": [],
       "url": "/analysis?state=v2",
       "viewport": {

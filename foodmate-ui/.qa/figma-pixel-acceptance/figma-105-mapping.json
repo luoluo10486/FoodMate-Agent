@@ -270,19 +270,19 @@
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-sidebar-history-browser-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-session-history-browser-2026-08-31-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-08-31 session-history recapture; automated diff and runtime evidence are recorded below; retain DIFF_REVIEW",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1,
+        "actualDpr": 1.25,
         "viewportPass": true,
-        "dprPass": true,
+        "dprPass": false,
         "bodyOverflow": false,
         "root": {
           "height": 1024,
@@ -299,8 +299,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-27",
-        "conclusion": "已复核当前 Figma fixture 的第三条营养洞察圆点为 #80E0E6，前端运行时颜色一致；默认态摘要卡高度为 107px，趋势卡内容区已收口为 1068×220px，两个洞察操作按钮已收口为 121×37px 和 144×37px，趋势、洞察和质量面板的垂直位置已同步下移。顶部红黄绿窗口装饰点未渲染，业务状态圆点保留。图标、字体渲染和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-08-31",
+        "conclusion": "依据 Figma 节点 640:773，前端 fixture 已恢复会话搜索、活动会话和分页；视口、字体和无溢出检查通过，顶部红黄绿窗口装饰点未渲染，业务状态圆点保留。当前浏览器实际 DPR 为 1.25，严格 DPR 1 门禁未通过；图标、字体光栅化和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
@@ -340,6 +340,27 @@
           },
           "visualChange": "依据 Figma 节点 640:895，将 Figma fixture 的两个洞察操作按钮固定为 121×37px 和 144×37px，并把边框计入目标尺寸；真实模式不受影响。",
           "conclusion": "Supplemental evidence confirms the target action geometry; the whole artboard still has visible differences, so retain DIFF_REVIEW."
+        },
+        {
+          "capturedAt": "2026-08-31",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-session-history-browser-2026-08-31-rgba.png",
+          "browserCapture": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-session-history-browser-2026-08-31.jpg",
+          "diffJson": ".qa/figma-pixel-acceptance/intake-analysis-v2-session-history-2026-08-31-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.25,
+          "dprPass": false,
+          "geometryEvidence": {
+            "sessionSearchCount": 1,
+            "activeSessionCount": 1,
+            "paginationVisible": true,
+            "paginationRect": "x=24,y=598,width=212,height=22",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "fonts": "loaded",
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "依据 Figma 节点 640:773，恢复 Analysis Figma fixture 的会话搜索、活动会话和分页；真实模式不受影响，Figma 设计稿未修改。",
+          "conclusion": "Session-history evidence confirms the target sidebar structure; actual DPR is 1.25 and the whole artboard still has visible differences, so retain DIFF_REVIEW."
         }
       ]
     },

@@ -1,6 +1,6 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-30
+更新时间：2026-08-31
 
 ## 1. 结论
 
@@ -76,7 +76,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；后续 in-app 浏览器实际 DPR 为 `1.25` 的当前版本复核，运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=96/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；后续 in-app 浏览器实际 DPR 为 `1.25` 的当前版本复核，运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 
@@ -1743,3 +1743,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `scripts/png-diff.mjs` 结果为 `differentPixels=536960`、差异比例 `36.4149%`、`MAE=2.622175`、`RMSE=15.524117`、最大通道差异 `234`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/diet-records-v2-session-history-2026-08-31-diff.json`，结论保持 `DIFF_REVIEW`。
 - [x] 该次浏览器实际 DPR 为 `1.25`，严格 DPR 1 门禁为 `false`；`figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步，105 张画板聚合为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时 `dprPass=95/105`。
 - [ ] 本小点只完成 Diet Records fixture 结构纠偏，不代表该画板或 105 张画板达到像素级 `PASS`；整页仍有头像、图标、字体光栅化和其他视觉差异，shadcn 全量逐页迁移尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 191. 2026-08-31 摄入分析会话历史结构纠正
+
+依据实时 Figma 节点 `640:773` 的 `1440×1024` 参考图，本轮恢复 Analysis Figma fixture 中的会话搜索、活动会话和分页；真实模式和 Figma 设计稿保持不变。
+
+- [x] `/analysis?state=v2` 已显示 `搜索会话...`、活动会话 `每周饮食微调` 和分页控件；浏览器运行时检测到搜索框 `1` 个、活动会话 `1` 个、分页可见，分页区域为 `x=24,y=598,width=212,height=22`。
+- [x] 浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-session-history-browser-2026-08-31.jpg` 和 RGBA PNG `intake-analysis-v2-session-history-browser-2026-08-31-rgba.png`；两者与 Figma 参考图尺寸均为 `1440×1024`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=405974`、差异比例 `27.5319%`、`MAE=2.493448`、`RMSE=14.1324168`、最大通道差异 `234`；独立结果为 `foodmate-ui/.qa/figma-pixel-acceptance/intake-analysis-v2-session-history-2026-08-31-diff.json`，结论保持 `DIFF_REVIEW`。
+- [x] 浏览器字体状态为 `loaded`，页面无横向或纵向溢出，前端左上角红黄绿窗口装饰候选为 `0`，业务状态圆点保持不变；实际 DPR 为 `1.25`，严格 DPR 1 门禁为 `false`，运行时汇总修正为 `dprPass=94/105`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步当前证据；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本小点只完成 Analysis fixture 会话历史结构和证据更新，不代表该画板或 105 张画板达到像素级 `PASS`；图标、字体光栅化和主体视觉差异、shadcn 全量逐页迁移仍需继续，iconfont 继续为 `BLOCKED`。
