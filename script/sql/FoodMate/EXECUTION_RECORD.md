@@ -1683,3 +1683,15 @@
 | 配置恢复 | BGE 验证后已按 `.env` 恢复 Qwen profile；Runtime readiness 为 `healthy`，Milvus readiness 为 `healthy`。 |
 | 安全边界 | 未关闭 TLS 校验；没有在命令、日志或仓库中输出密钥；两个模型使用互斥 profile 和独立 collection，禁止混写。 |
 | 结论 | Docker 容器内两个 SiliconFlow Embedding profile 均已取得真实协议证据；这不等同于 M1-6 性能/故障矩阵或生产稳定性完成。 |
+
+## D99 Docker Runtime SiliconFlow Chat 与双 Embedding 复验（2026-08-31）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Docker Compose `foodmate`/`agent-runtime`/Milvus；凭据仅由本地忽略 `.env` 注入，未输出、写入脚本或提交 Git。 |
+| Chat | `siliconflow-docker-chat-smoke.ps1 -Tier standard -ExecuteRequest`：`cloud_primary/deepseek-ai/DeepSeek-V4-Flash` 返回有效回答，`total_tokens=23`，延迟约 `4968.76 ms`。 |
+| Qwen Embedding | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：`Qwen/Qwen3-Embedding-0.6B` 返回 `1024` 维，`prompt_tokens=5`，延迟约 `4409.28 ms`。 |
+| BGE Embedding | 一次性 Docker Runtime 容器覆盖为 `bge-m3` 后调用 `/embeddings`：`BAAI/bge-m3` 返回 `1024` 维，`prompt_tokens=14`，延迟约 `9058.94 ms`；未改写持久 `.env`。 |
+| 配置隔离 | 两个 Embedding profile 仍一次只启用一个，并使用独立 Milvus collection；Chat 与 Embedding 使用不同配置入口。 |
+| 安全边界 | 未关闭 TLS 校验；请求正文仅为固定 smoke 文本；未保存向量、回答正文、API Key 或供应商原始响应。 |
+| 结论 | Docker Python Runtime 可通过 Compose 调用 SiliconFlow Chat 和两个真实 Embedding 模型；本证据仅证明协议/配置/单次业务调用，不代表长稳、容量、成本对账或生产门禁完成。 |
