@@ -109,5 +109,11 @@ if ($scriptText -notmatch 'Get-QueueDelta') {
 if ($scriptText -notmatch 'queue_peak_over_baseline') {
     throw "M1-6 traffic report must expose peak queue growth over the pre-run baseline"
 }
+if ($scriptText -match '\[hashtable\]\$input|\$input\s*=') {
+    throw "M1-6 PowerShell workers must not use the automatic input enumerator as proposal parameters"
+}
+if ($scriptText -notmatch '\$parameters') {
+    throw "M1-6 proposal worker must use an explicit parameters variable"
+}
 
 Write-Output "m1_6_traffic_contract=passed"

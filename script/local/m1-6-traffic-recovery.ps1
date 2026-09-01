@@ -459,12 +459,12 @@ try {
             }
         }
 
-        function New-Approval($context, [string]$csrf, [string]$operation, [Nullable[long]]$resourceId, [hashtable]$input, [string]$key) {
+        function New-Approval($context, [string]$csrf, [string]$operation, [Nullable[long]]$resourceId, [hashtable]$parameters, [string]$key) {
             $payload = @{
                 session_id = [long]$workerSessionId
                 operation = $operation
                 resource_type = "food_log"
-                parameters = $input
+                parameters = $parameters
                 idempotency_key = $key
                 expires_in_seconds = 300
             }
@@ -483,45 +483,45 @@ try {
             $duplicateEffects = 0
             $outcome = "success"
             if ($scenario -eq 0) {
-                $input = New-FoodInput "M1-6 proposal success" $true
-                $proposal = New-Approval $context $csrf "create" $null $input $key
-                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $input $csrf)
-                $first = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $input $csrf
-                $second = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $input $csrf
+                $parameters = New-FoodInput "M1-6 proposal success" $true
+                $proposal = New-Approval $context $csrf "create" $null $parameters $key
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $parameters $csrf)
+                $first = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $parameters $csrf
+                $second = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $parameters $csrf
                 if ([string]$first.data.status -ne "executed" -or [string]$second.data.status -ne "executed") { throw "idempotent proposal execution did not converge" }
                 if ([string]$first.data.resource_id -ne [string]$second.data.resource_id) { throw "duplicate proposal execution changed the resource" }
                 $duplicates = 1
             } elseif ($scenario -eq 1) {
-                $input = New-FoodInput "M1-6 proposal rejected" $true
-                $proposal = New-Approval $context $csrf "create" $null $input $key
-                $rejected = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/reject" $input $csrf
+                $parameters = New-FoodInput "M1-6 proposal rejected" $true
+                $proposal = New-Approval $context $csrf "create" $null $parameters $key
+                $rejected = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/reject" $parameters $csrf
                 if ([string]$rejected.data.status -ne "rejected") { throw "proposal rejection did not converge" }
                 $outcome = "business_rejected"
             } elseif ($scenario -eq 2) {
-                $input = New-FoodInput "M1-6 proposal failure" $false
-                $proposal = New-Approval $context $csrf "create" $null $input $key
-                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $input $csrf)
+                $parameters = New-FoodInput "M1-6 proposal failure" $false
+                $proposal = New-Approval $context $csrf "create" $null $parameters $key
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $parameters $csrf)
                 $executionFailed = $false
                 try {
-                    [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $input $csrf)
+                    [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $parameters $csrf)
                 } catch { $executionFailed = $true }
                 if (-not $executionFailed) { throw "invalid food log unexpectedly executed" }
                 $outcome = "business_failed"
             } elseif ($scenario -eq 3) {
                 $resourceId = [long](900000000 + ($workerId * 10000) + $index)
-                $input = @{ revision = 1 }
-                $first = New-Approval $context $csrf "update" $resourceId $input "$key-first"
-                $second = New-Approval $context $csrf "update" $resourceId $input "$key-second"
+                $parameters = @{ revision = 1 }
+                $first = New-Approval $context $csrf "update" $resourceId $parameters "$key-first"
+                $second = New-Approval $context $csrf "update" $resourceId $parameters "$key-second"
                 if ([string]$first.status -ne "superseded") { throw "first update proposal was not superseded" }
                 if ([string]$second.status -ne "pending") { throw "replacement proposal is not pending" }
-                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($second.approval_request_id)/reject" $input $csrf)
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($second.approval_request_id)/reject" $parameters $csrf)
                 $outcome = "business_superseded"
             } else {
-                $input = New-FoodInput "M1-6 proposal duplicate" $true
-                $proposal = New-Approval $context $csrf "create" $null $input $key
-                $replayed = New-Approval $context $csrf "create" $null $input $key
+                $parameters = New-FoodInput "M1-6 proposal duplicate" $true
+                $proposal = New-Approval $context $csrf "create" $null $parameters $key
+                $replayed = New-Approval $context $csrf "create" $null $parameters $key
                 if ([string]$proposal.approval_request_id -ne [string]$replayed.approval_request_id) { throw "duplicate proposal created a second approval" }
-                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/reject" $input $csrf)
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/reject" $parameters $csrf)
                 $duplicates = 1
                 $outcome = "business_duplicate"
             }
