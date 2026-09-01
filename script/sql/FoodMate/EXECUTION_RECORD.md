@@ -1707,3 +1707,13 @@
 | 配置恢复 | BGE 验证后恢复 `.env` 原 Qwen profile 和 collection；`GET /foodmate/internal/health/ready` 返回 `200`，RAG 为 `local/openai-compatible`。 |
 | 安全边界 | 未在命令、日志、执行记录或 Git 中写入 API Key；未关闭 TLS 校验；两个模型使用互斥 profile 和独立 Milvus collection。 |
 | 结论 | Docker 可直接启动 Python，并已验证 SiliconFlow 两个 Embedding profile 的真实协议调用；该证据不替代生产长稳、性能、故障矩阵和账单审计。 |
+
+## D101 M3 硬删除隔离验证与本地备份恢复演练（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；硬删除使用 Testcontainers `postgres:16-alpine` 隔离数据库；备份恢复使用当前本地 `foodmate-postgres`，源库数据未删除。 |
+| 硬删除验证 | `mvnw.cmd -B -ntp -pl foodmate-infra -am test '-Ddocker.available=true' '-Dtest=DataRetentionDatabasePurgeRealIntegrationTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：Flyway V1-V29 应用成功，知识文档及关联索引/事件事实按依赖顺序清理，重复清理幂等，测试 `1/1` 通过。 |
+| 备份恢复验证 | `backup-restore.ps1 -DatabaseName FoodMate -Username postgres -DockerContainer foodmate-postgres -BackupFile codex_local_foodmate_20260901.dump -RestoreDatabaseName FoodMateCodexRestore20260901 -Execute -RunValidation -DropRestoreDatabaseAfterValidation`：备份 `5127414` bytes，SHA-256 `6fe4e944be9e99dcf98d9dcf809b5c067631b3cf6dbce41b6338dc6d05fcedff`，恢复库 validation 通过并已删除。 |
+| 数据边界 | 未执行迁移改写、truncate、生产库操作或现有业务数据硬删除；备份文件保留在 Git 忽略目录，源库仍由 Docker 卷保留。 |
+| 结论 | M3 的隔离硬删除和本地备份恢复已有直接执行证据；这不等同于生产灾备、生产删除授权或发布回滚完成。 |
