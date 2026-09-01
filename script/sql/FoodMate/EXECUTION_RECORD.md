@@ -1717,3 +1717,14 @@
 | 备份恢复验证 | `backup-restore.ps1 -DatabaseName FoodMate -Username postgres -DockerContainer foodmate-postgres -BackupFile codex_local_foodmate_20260901.dump -RestoreDatabaseName FoodMateCodexRestore20260901 -Execute -RunValidation -DropRestoreDatabaseAfterValidation`：备份 `5127414` bytes，SHA-256 `6fe4e944be9e99dcf98d9dcf809b5c067631b3cf6dbce41b6338dc6d05fcedff`，恢复库 validation 通过并已删除。 |
 | 数据边界 | 未执行迁移改写、truncate、生产库操作或现有业务数据硬删除；备份文件保留在 Git 忽略目录，源库仍由 Docker 卷保留。 |
 | 结论 | M3 的隔离硬删除和本地备份恢复已有直接执行证据；这不等同于生产灾备、生产删除授权或发布回滚完成。 |
+
+## D102 Docker Runtime SiliconFlow 双 Embedding profile 复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；凭据仅由本地忽略 `.env` 注入，未输出或写入仓库。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `1185.97 ms`，请求通过。 |
+| BGE profile | 临时切换到独立 collection `foodmate_knowledge_chunks_bge_m3` 后执行 `-EmbeddingProfile bge-m3 -ExecuteRequest`：模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `1218.7 ms`，请求通过。 |
+| 配置恢复 | BGE 验证后恢复 Qwen profile、模型和 collection；`foodmate-agent-runtime` 为 `healthy`，`/foodmate/internal/health/ready` 返回 HTTP `200`，RAG 为 `local/openai-compatible`。 |
+| 隔离与费用边界 | 两次请求均使用固定 smoke 文本；未保存向量正文、API Key 或供应商原始响应；两个 profile 使用独立 collection，禁止混写。 |
+| 结论 | Docker 可启动 Python Runtime，并已取得 SiliconFlow `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 的新鲜真实协议证据；该结果不替代长稳性能、故障矩阵、成本对账或生产门禁。 |
