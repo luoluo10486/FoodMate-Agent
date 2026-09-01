@@ -475,6 +475,15 @@ try {
             return $response.data
         }
 
+        function Get-ApprovalStatus($context, [string]$approvalRequestId) {
+            $encodedId = [uri]::EscapeDataString($approvalRequestId)
+            $response = Send-Json $context "GET" "$baseUrl/api/approvals/$encodedId" $null
+            if ($null -eq $response -or $null -eq $response.data) {
+                throw "approval status response is missing"
+            }
+            return $response.data
+        }
+
         function Invoke-Proposal($context, [string]$csrf, [int]$index) {
             $started = [Diagnostics.Stopwatch]::StartNew()
             $scenario = $index % 5
@@ -512,7 +521,8 @@ try {
                 $parameters = @{ revision = 1 }
                 $first = New-Approval $context $csrf "update" $resourceId $parameters "$key-first"
                 $second = New-Approval $context $csrf "update" $resourceId $parameters "$key-second"
-                if ([string]$first.status -ne "superseded") { throw "first update proposal was not superseded" }
+                $authoritativeFirst = Get-ApprovalStatus $context $first.approval_request_id
+                if ([string]$authoritativeFirst.status -ne "superseded") { throw "first update proposal was not superseded" }
                 if ([string]$second.status -ne "pending") { throw "replacement proposal is not pending" }
                 [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($second.approval_request_id)/reject" $parameters $csrf)
                 $outcome = "business_superseded"

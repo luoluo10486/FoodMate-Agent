@@ -115,5 +115,11 @@ if ($scriptText -match '\[hashtable\]\$input|\$input\s*=') {
 if ($scriptText -notmatch '\$parameters') {
     throw "M1-6 proposal worker must use an explicit parameters variable"
 }
+if ($scriptText -notmatch 'function Get-ApprovalStatus') {
+    throw "M1-6 superseded scenario must re-read the authoritative approval status"
+}
+if ($scriptText -notmatch 'GET.*api/approvals') {
+    throw "M1-6 superseded scenario must use the approval read API"
+}
 
 Write-Output "m1_6_traffic_contract=passed"

@@ -114,6 +114,12 @@ public class ApprovalServiceImpl implements ApprovalService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ProposalView get(long userId, long approvalRequestId) {
+        return view(require(userId, approvalRequestId));
+    }
+
+    @Override
     @Transactional
     public ProposalView propose(long userId, ProposalCommand command) {
         try {
