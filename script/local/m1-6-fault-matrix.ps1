@@ -400,7 +400,7 @@ WHERE outbox_id=$safeOutboxId
 "@
     Invoke-PsqlCommand $query
     $pending = Get-RunDispatchSummary $runId
-    if ($null -eq $pending -or [string]$pending.status -ne "pending") {
+    if ($null -eq $pending -or [string]$pending.status -notin @("pending", "published")) {
         throw "Outbox ACK-loss probe did not reset the selected test fact"
     }
     $after = Wait-OutboxRepublished $runId $safeOutboxId ([int]$before.send_attempts)

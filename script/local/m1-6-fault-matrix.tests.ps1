@@ -104,6 +104,9 @@ if ($scriptText -notmatch 'UPDATE runtime_dispatch_outbox') {
 if ($scriptText -notmatch 'send_attempts') {
     throw "Outbox ACK-loss probe must verify that the relay published a retry"
 }
+if ($scriptText -notmatch 'status -notin @\("pending", "published"\)') {
+    throw "Outbox ACK-loss probe must tolerate a relay that republishes before the next observation"
+}
 if ($scriptText -match 'outbox-replay_requires_orchestrator_fixture') {
     throw "Outbox ACK-loss scenario must not remain an orchestrator-only placeholder"
 }
