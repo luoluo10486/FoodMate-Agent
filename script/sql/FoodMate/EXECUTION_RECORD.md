@@ -1741,3 +1741,14 @@
 | 审计取数修复 | 修复 Windows Docker 调用中 `psql -v` 变量未展开导致审计快照为空的问题；随机测试用户名经过固定格式校验后再进入查询。短复核 `1 worker/1+1s`：操作 `2`，审计由 `1` 增至 `15`，success `15`，failed/rejected/pending 均为 `0`。 |
 | 数据边界 | 测试账号、会话和业务数据均使用随机命名空间，脚本 finally 软删除测试账号；未执行 truncate、数据库硬删除或性能故障注入。 |
 | 结论 | M1-6 本地业务流量入口和审计统计已取得可复核基线；意外错误率和较高时延需作为本机诊断结果保留，不宣称达到生产性能门禁。 |
+
+## D104 M3 本地 Docker PostgreSQL 备份恢复复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；源库为本地 Docker `foodmate-postgres`，恢复目标为本轮唯一隔离库。 |
+| 执行命令 | `backup-restore.ps1 -DatabaseName FoodMate -Username postgres -DockerContainer foodmate-postgres -BackupFile codex_local_foodmate_20260901_m3.dump -RestoreDatabaseName codex_restore_20260901_m3 -Execute -RunValidation -DropRestoreDatabaseAfterValidation` |
+| 备份事实 | 文件大小 `5541357` bytes；SHA-256 `855b49c761cd508c789cdef21441d7b28140cd2aa5287cd13ad619f3e4895176`。 |
+| 恢复校验 | 隔离恢复库执行 `validation.sql` 为 `passed`；验证结束后恢复库清理为 `passed`。 |
+| 数据边界 | 未覆盖源库、未执行 truncate、迁移回写或源库硬删除；备份文件保留在 Git 忽略目录供本地追溯。 |
+| 结论 | 本地 Docker 备份、隔离恢复和 schema/约束校验已取得新鲜执行证据；不将其等同于生产灾备或跨环境恢复演练。 |
