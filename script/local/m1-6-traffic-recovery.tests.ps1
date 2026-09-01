@@ -100,5 +100,14 @@ if ($scriptText -notmatch '\[int\]\$DrainTimeoutSeconds\s*=\s*90') {
 if ($scriptText -notmatch 'Wait-QueueDrained\s+\$DrainTimeoutSeconds') {
     throw "M1-6 traffic must use the configured queue drain timeout"
 }
+if ($scriptText -notmatch 'Test-QueueAtBaseline') {
+    throw "M1-6 traffic must distinguish pre-existing queue backlog from this run's drain target"
+}
+if ($scriptText -notmatch 'Get-QueueDelta') {
+    throw "M1-6 traffic report must expose queue changes relative to the pre-run baseline"
+}
+if ($scriptText -notmatch 'queue_peak_over_baseline') {
+    throw "M1-6 traffic report must expose peak queue growth over the pre-run baseline"
+}
 
 Write-Output "m1_6_traffic_contract=passed"

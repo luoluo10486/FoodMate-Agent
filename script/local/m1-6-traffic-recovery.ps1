@@ -180,12 +180,37 @@ WHERE operator_id=(SELECT user_id FROM users WHERE username=:'scan_username')
     return $null
 }
 
-function Wait-QueueDrained([int]$timeoutSeconds = 90) {
+function Test-QueueAtBaseline([object]$snapshot, [object]$baseline) {
+    if ($null -eq $snapshot) { return $false }
+    if ($null -eq $baseline) { return $snapshot.pending -eq 0 }
+    return (
+        $snapshot.delivery_pending -le $baseline.delivery_pending -and
+        $snapshot.dispatch_pending -le $baseline.dispatch_pending -and
+        $snapshot.knowledge_pending -le $baseline.knowledge_pending -and
+        $snapshot.proposal_inbox_pending -le $baseline.proposal_inbox_pending -and
+        $snapshot.runtime_inbox_pending -le $baseline.runtime_inbox_pending
+    )
+}
+
+function Get-QueueDelta([object]$before, [object]$after) {
+    if ($null -eq $before -or $null -eq $after) { return $null }
+    return [pscustomobject]@{
+        pending = $after.pending - $before.pending
+        delivery_pending = $after.delivery_pending - $before.delivery_pending
+        dispatch_pending = $after.dispatch_pending - $before.dispatch_pending
+        knowledge_pending = $after.knowledge_pending - $before.knowledge_pending
+        proposal_inbox_pending = $after.proposal_inbox_pending - $before.proposal_inbox_pending
+        runtime_inbox_pending = $after.runtime_inbox_pending - $before.runtime_inbox_pending
+        sse_replay_retained = $after.sse_replay_retained - $before.sse_replay_retained
+    }
+}
+
+function Wait-QueueDrained([int]$timeoutSeconds = 90, [object]$baseline = $null) {
     $started = [Diagnostics.Stopwatch]::StartNew()
     $deadline = (Get-Date).AddSeconds($timeoutSeconds)
     $latest = Get-QueueSnapshot
     do {
-        if ($latest -and $latest.pending -eq 0) {
+        if (Test-QueueAtBaseline $latest $baseline) {
             $started.Stop()
             return [pscustomobject]@{
                 drained = $true
@@ -269,6 +294,7 @@ $missing = $required | Where-Object { $_ -notin @($containers) }
 if ($missing) { throw "Required local dependencies are unavailable: $($missing -join ', ')" }
 if (@($before | Where-Object { -not $_.ready }).Count -gt 0) { throw "Readiness prerequisite failed; no traffic or fault injection was started" }
 
+$queueBefore = Get-QueueSnapshot
 $report = [ordered]@{
     run_id = "m16-" + [guid]::NewGuid().ToString("N")
     started_at = (Get-Date).ToUniversalTime().ToString("o")
@@ -281,7 +307,7 @@ $report = [ordered]@{
         channel_mix = [ordered]@{ agent_run_percent = 80; proposal_percent = 20 }
     }
     readiness_before = $before
-    queue_before = Get-QueueSnapshot
+    queue_before = $queueBefore
     audit_before = $null
     audit_after = $null
     queue_drained = $null
@@ -637,10 +663,16 @@ try {
     }
     $queuePeak = $null
     if ($queueSamples.Count -gt 0) { $queuePeak = [long](($queueSamples | Measure-Object -Property pending -Maximum).Maximum) }
-    $drain = Wait-QueueDrained $DrainTimeoutSeconds
+    $drain = Wait-QueueDrained $DrainTimeoutSeconds $report.queue_before
     $report.queue_after = $drain.snapshot
     $report.queue_drained = $drain.drained
     $report.drain_wait_ms = $drain.wait_ms
+    $report.queue_delta = Get-QueueDelta $report.queue_before $report.queue_after
+    $report.queue_peak_over_baseline = if ($null -eq $queuePeak -or $null -eq $report.queue_before) {
+        $null
+    } else {
+        [math]::Max(0, $queuePeak - $report.queue_before.pending)
+    }
     $report.audit_after = Get-AuditSnapshot $username
 
     $report.traffic.total_operations = $total
@@ -667,6 +699,7 @@ try {
     Remove-TestUser $username
     if ($report.traffic.execution -eq "requested") {
         if ($null -eq $report.queue_after) { $report.queue_after = Get-QueueSnapshot }
+        if ($null -eq $report.queue_delta) { $report.queue_delta = Get-QueueDelta $report.queue_before $report.queue_after }
         $report.finished_at = (Get-Date).ToUniversalTime().ToString("o")
         $report | ConvertTo-Json -Depth 12
     }
