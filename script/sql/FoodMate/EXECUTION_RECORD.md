@@ -1752,3 +1752,14 @@
 | 恢复校验 | 隔离恢复库执行 `validation.sql` 为 `passed`；验证结束后恢复库清理为 `passed`。 |
 | 数据边界 | 未覆盖源库、未执行 truncate、迁移回写或源库硬删除；备份文件保留在 Git 忽略目录供本地追溯。 |
 | 结论 | 本地 Docker 备份、隔离恢复和 schema/约束校验已取得新鲜执行证据；不将其等同于生产灾备或跨环境恢复演练。 |
+
+## D105 Docker Runtime SiliconFlow 双 Embedding 当前凭据复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；凭据仅由本地忽略 `.env` 注入，未输出或写入仓库。 |
+| BGE profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest`：模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `1894.89 ms`，请求通过。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `3502.4 ms`，请求通过。 |
+| 配置与启动 | 两次验证均使用独立 Milvus collection；切换期间一次性 RocketMQ 初始化最终正常退出，`foodmate-agent-runtime` 恢复为 `healthy`，宿主端口 `9002 -> 9000`。验证后 `.env` 恢复为 Qwen profile。 |
+| 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；未执行迁移、truncate、现有业务数据删除或生产操作。 |
+| 结论 | Docker 可启动 Python Runtime，并已取得两个指定 SiliconFlow Embedding 模型的真实协议证据；该证据不替代长稳性能、成本对账、故障矩阵或生产门禁。 |
