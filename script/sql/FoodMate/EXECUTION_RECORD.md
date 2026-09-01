@@ -1763,3 +1763,14 @@
 | 配置与启动 | 两次验证均使用独立 Milvus collection；切换期间一次性 RocketMQ 初始化最终正常退出，`foodmate-agent-runtime` 恢复为 `healthy`，宿主端口 `9002 -> 9000`。验证后 `.env` 恢复为 Qwen profile。 |
 | 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；未执行迁移、truncate、现有业务数据删除或生产操作。 |
 | 结论 | Docker 可启动 Python Runtime，并已取得两个指定 SiliconFlow Embedding 模型的真实协议证据；该证据不替代长稳性能、成本对账、故障矩阵或生产门禁。 |
+
+## D106 Docker Runtime SiliconFlow 双 Embedding 当前轮次复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；密钥仅由本地忽略 `.env` 注入，未输出或写入仓库。 |
+| BGE profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest`：模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `2243.95 ms`，请求通过。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `880.63 ms`，请求通过。 |
+| 配置恢复 | BGE 验证后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；Runtime readiness 为 `healthy`。 |
+| 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
+| 结论 | Docker Python Runtime 的两个指定 SiliconFlow Embedding profile 均取得本轮真实协议证据；该证据不替代长稳性能、成本对账、故障矩阵或生产门禁。 |
