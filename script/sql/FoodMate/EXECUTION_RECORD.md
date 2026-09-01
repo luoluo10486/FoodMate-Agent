@@ -1695,3 +1695,15 @@
 | 配置隔离 | 两个 Embedding profile 仍一次只启用一个，并使用独立 Milvus collection；Chat 与 Embedding 使用不同配置入口。 |
 | 安全边界 | 未关闭 TLS 校验；请求正文仅为固定 smoke 文本；未保存向量、回答正文、API Key 或供应商原始响应。 |
 | 结论 | Docker Python Runtime 可通过 Compose 调用 SiliconFlow Chat 和两个真实 Embedding 模型；本证据仅证明协议/配置/单次业务调用，不代表长稳、容量、成本对账或生产门禁完成。 |
+
+## D100 Docker Python Runtime 双 Embedding 当前凭据复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`/`agent-runtime`/Milvus；凭据仅从本地忽略 `.env` 注入，未输出或写入仓库。 |
+| Python 启动 | `docker compose --env-file .env -f docker/compose.yml ps agent-runtime`：容器由 `python runtime_server.py` 启动，状态 `healthy`，宿主端口 `9002 -> 9000`。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：HTTP 请求通过，模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `1693.95 ms`。 |
+| BGE profile | 临时以 Compose 进程变量覆盖 profile 和独立 collection 后执行 `-EmbeddingProfile bge-m3 -ExecuteRequest`：HTTP 请求通过，模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `1268.72 ms`。 |
+| 配置恢复 | BGE 验证后恢复 `.env` 原 Qwen profile 和 collection；`GET /foodmate/internal/health/ready` 返回 `200`，RAG 为 `local/openai-compatible`。 |
+| 安全边界 | 未在命令、日志、执行记录或 Git 中写入 API Key；未关闭 TLS 校验；两个模型使用互斥 profile 和独立 Milvus collection。 |
+| 结论 | Docker 可直接启动 Python，并已验证 SiliconFlow 两个 Embedding profile 的真实协议调用；该证据不替代生产长稳、性能、故障矩阵和账单审计。 |
