@@ -104,6 +104,9 @@ if ($scriptText -notmatch 'UPDATE runtime_dispatch_outbox') {
 if ($scriptText -notmatch 'send_attempts') {
     throw "Outbox ACK-loss probe must verify that the relay published a retry"
 }
+if ($scriptText -match '\[hashtable\]\$payload') {
+    throw "Fault matrix JSON helper must accept deserialized event payloads"
+}
 if ($scriptText -notmatch 'status -notin @\("pending", "published"\)') {
     throw "Outbox ACK-loss probe must tolerate a relay that republishes before the next observation"
 }

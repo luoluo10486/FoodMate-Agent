@@ -170,7 +170,7 @@ function Invoke-Json(
     [object]$context,
     [string]$method,
     [string]$url,
-    [hashtable]$payload = $null,
+    [object]$payload = $null,
     [hashtable]$headers = $null
 ) {
     $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::new($method), $url)
