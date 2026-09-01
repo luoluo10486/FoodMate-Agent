@@ -360,6 +360,26 @@ LIMIT 1;
     return Invoke-PsqlJson $query
 }
 
+function Get-PersistedSseEvents([string]$runId) {
+    $safeRunId = $runId.Replace("'", "''")
+    $query = @"
+SELECT COALESCE(
+  json_agg(
+    json_build_object(
+      'stream_seq',stream_seq,
+      'sse_event_id',sse_event_id,
+      'event_type',event_type,
+      'terminal',event_type IN ('run.completed','run.failed','run.cancelled')
+    ) ORDER BY stream_seq
+  ),
+  '[]'::json
+)::text
+FROM agent_run_sse_outbox
+WHERE agent_run_id='$safeRunId';
+"@
+    return Invoke-PsqlJson $query
+}
+
 function Wait-OutboxRepublished([string]$runId, [int64]$outboxId, [int]$previousAttempts) {
     $deadline = (Get-Date).AddSeconds($RecoveryTimeoutSeconds)
     $latest = $null
@@ -430,18 +450,18 @@ WHERE outbox_id=$safeOutboxId
 }
 
 function Invoke-SseReplay([object]$probe, [string]$baseUrl, [string]$runId) {
-    $events = Invoke-Json $probe.context "GET" "$baseUrl/api/chat/runs/$([uri]::EscapeDataString($runId))/events"
-    $items = @($events.data)
+    $items = @(Get-PersistedSseEvents $runId)
     if ($items.Count -lt 2) { throw "SSE replay probe needs at least two persisted events" }
-    $cursor = [string]$items[0].event_id
-    $expected = @($items | Where-Object { [long]$_.event_seq -gt [long]$items[0].event_seq } | ForEach-Object { [string]$_.event_id })
+    $cursor = [string]$items[0].sse_event_id
+    $expected = @($items | Where-Object { [long]$_.stream_seq -gt [long]$items[0].stream_seq } | ForEach-Object { [string]$_.sse_event_id })
     $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Get, "$baseUrl/api/chat/runs/$([uri]::EscapeDataString($runId))/stream")
     [void]$request.Headers.TryAddWithoutValidation("Last-Event-ID", $cursor)
     $response = $probe.context.Client.SendAsync($request).GetAwaiter().GetResult()
     $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
     if (-not $response.IsSuccessStatusCode) { throw "SSE replay returned HTTP $([int]$response.StatusCode)" }
     $observed = @([regex]::Matches($body, '(?m)^id:\s*(\S+)') | ForEach-Object { $_.Groups[1].Value })
-    $terminalCount = @($observed | Where-Object { $_ -in @($items | Where-Object { $_.state -in @("SUCCEEDED", "FAILED", "CANCELED") } | ForEach-Object { [string]$_.event_id }) }).Count
+    $terminalIds = @($items | Where-Object { [bool]$_.terminal } | ForEach-Object { [string]$_.sse_event_id })
+    $terminalCount = @($observed | Where-Object { $_ -in $terminalIds }).Count
     $missing = @($expected | Where-Object { $_ -notin $observed }).Count
     $duplicates = $observed.Count - @($observed | Select-Object -Unique).Count
     if ($missing -ne 0 -or $terminalCount -gt 1) { throw "SSE replay has missing events or duplicate terminal events" }

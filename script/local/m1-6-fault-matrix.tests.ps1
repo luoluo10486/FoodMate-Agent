@@ -89,6 +89,12 @@ if ($scriptText -match 'docker\s+(rm|system\s+prune|volume\s+rm|compose\s+down\s
 if ($scriptText -notmatch 'Last-Event-ID') {
     throw "Fault matrix must verify the Last-Event-ID replay contract"
 }
+if ($scriptText -notmatch 'function Get-PersistedSseEvents') {
+    throw "SSE replay probe must read authoritative persisted SSE event ids"
+}
+if ($scriptText -notmatch 'sse_event_id') {
+    throw "SSE replay probe must compare the stream sse_event_id values"
+}
 if ($scriptText -notmatch 'runtime_dispatch_outbox') {
     throw "Fault matrix must inspect Outbox state"
 }
