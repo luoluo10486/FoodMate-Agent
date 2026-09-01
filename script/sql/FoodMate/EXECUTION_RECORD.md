@@ -1783,3 +1783,15 @@
 | 路由 | `siliconflow-docker-chat-smoke.ps1 -Tier standard -ExecuteRequest`：`cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，预检通过。 |
 | 真实调用 | 返回有效响应摘要，`total_tokens=23`，延迟 `5961.05 ms`，请求通过；未保存回答正文或供应商原始响应。 |
 | 结论 | Docker Python Runtime 的真实 Chat 配置已生效；该证据不替代长稳、容量、价格账单对账或生产可用性结论。 |
+
+## D108 Docker Runtime SiliconFlow 双 Embedding 当前轮次复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；凭据仅从本地忽略 `.env` 注入，未输出或写入仓库。 |
+| Python 启动 | `docker compose --env-file .env -f docker/compose.yml ps agent-runtime`：容器以 `python runtime_server.py` 启动，状态 `healthy`，宿主端口 `9002 -> 9000`。 |
+| BGE profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest`：模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `6069.13 ms`，请求通过。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `10921.07 ms`，请求通过。 |
+| 配置恢复 | BGE 验证完成后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；Runtime readiness 恢复为 `healthy`。 |
+| 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
+| 结论 | Docker Python Runtime 可直接调用 SiliconFlow 的两个指定 Embedding 模型；本结果是单次协议/配置业务证据，不代表长稳、容量、成本对账、故障矩阵或生产门禁完成。 |

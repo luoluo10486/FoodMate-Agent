@@ -69,6 +69,37 @@ docker compose --env-file .env -f docker/compose.yml up -d --build agent-runtime
 
 接口依据：SiliconFlow Embeddings API 文档 <https://api-docs.siliconflow.cn/docs/api/embeddings-post>。
 
+### 4.3 Docker 启动与切换操作
+
+Docker Compose 的 `agent-runtime` 服务直接构建 `docker/python.Dockerfile`，容器入口为
+`python runtime_server.py`，容器监听 `9000`，宿主机映射为 `9002`。Java 容器通过
+Compose 网络中的 `agent-runtime:9000` 调用 Python；宿主机只使用 `localhost:9002` 做
+readiness 或 smoke 检查。
+
+启动或更新 Python 镜像：
+
+```powershell
+docker compose --env-file .env -f docker/compose.yml up -d --build agent-runtime
+```
+
+只修改 `.env` 中的 profile、endpoint、模型或密钥映射时，必须强制重建容器：
+
+```powershell
+docker compose --env-file .env -f docker/compose.yml up -d --force-recreate agent-runtime
+```
+
+`restart` 只会重启旧容器，不会重新读取新的环境变量。实际切换通过
+`script/local/switch-rag-embedding-profile.ps1` 完成：`bge-m3` 使用
+`foodmate_knowledge_chunks_bge_m3`，`qwen3-embedding-0.6b` 使用
+`foodmate_knowledge_chunks_qwen3_embedding_0_6b`。切换后必须重新索引需要检索的文档，
+不能把两个模型的向量写入同一个 collection。真实请求使用
+`script/local/siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile <profile> -ExecuteRequest`；
+脚本只打印脱敏的模型、维度、token、延迟和状态。
+
+2026-09-01 当前轮次已在 Docker 中分别验证两个 profile：`BAAI/bge-m3` 和
+`Qwen/Qwen3-Embedding-0.6B` 均返回 `1024` 维向量，随后恢复 Qwen 配置并确认 Runtime
+健康。该验证只证明当前凭据、网络和协议链路可用，不替代生产稳定性或成本审计。
+
 ## 5. 检索与引用
 
 每个 AgentRun 的 Java `V1RunCommand` 固定携带 `knowledge_scope=public_published`。Python 检索前固定过滤 tenant、scope、visibility、索引状态、当前版本和删除标记；最多召回 12 个候选，rerank 至 6 个，最终最多 4 条引用，每个文档最多贡献 2 条。
