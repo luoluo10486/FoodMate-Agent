@@ -118,3 +118,18 @@ class CloudSmokeScriptContractTests(TestCase):
                 script,
                 relative_path,
             )
+
+    def test_embedding_profile_switch_has_two_isolated_models_and_collections(self):
+        script_path = self.ROOT / "script" / "local" / "switch-rag-embedding-profile.ps1"
+
+        self.assertTrue(script_path.is_file())
+        script = script_path.read_text(encoding="utf-8-sig")
+
+        self.assertIn('ValidateSet("bge-m3", "qwen3-embedding-0.6b")', script)
+        self.assertIn('"BAAI/bge-m3"', script)
+        self.assertIn('"Qwen/Qwen3-Embedding-0.6B"', script)
+        self.assertIn('"foodmate_knowledge_chunks_bge_m3"', script)
+        self.assertIn('"foodmate_knowledge_chunks_qwen3_embedding_0_6b"', script)
+        self.assertIn("FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY", script)
+        self.assertNotIn("ApiKey", script)
+        self.assertIn("SupportsShouldProcess", script)
