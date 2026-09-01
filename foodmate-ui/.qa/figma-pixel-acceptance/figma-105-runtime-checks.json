@@ -2306,6 +2306,13 @@
       },
       "textOverflow": [],
       "url": "/admin?state=overview",
+      "windowControls": 0,
+      "trafficLightColors": 0,
+      "analyticsGeometry": {
+        "analyticsContainer": "x=292,y=766,width=1116,height=180",
+        "analyticsCards": "x=308/668/1028,y=782,width=344,height=180",
+        "border": "inset"
+      },
       "viewport": {
         "height": 1024,
         "width": 1440
