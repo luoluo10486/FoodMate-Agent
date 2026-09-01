@@ -1774,3 +1774,12 @@
 | 配置恢复 | BGE 验证后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；Runtime readiness 为 `healthy`。 |
 | 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
 | 结论 | Docker Python Runtime 的两个指定 SiliconFlow Embedding profile 均取得本轮真实协议证据；该证据不替代长稳性能、成本对账、故障矩阵或生产门禁。 |
+
+## D107 Docker Runtime SiliconFlow DeepSeek Chat 当前轮次复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate` 与 `agent-runtime`；密钥仅由本地忽略 `.env` 注入，未输出或写入仓库。 |
+| 路由 | `siliconflow-docker-chat-smoke.ps1 -Tier standard -ExecuteRequest`：`cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，预检通过。 |
+| 真实调用 | 返回有效响应摘要，`total_tokens=23`，延迟 `5961.05 ms`，请求通过；未保存回答正文或供应商原始响应。 |
+| 结论 | Docker Python Runtime 的真实 Chat 配置已生效；该证据不替代长稳、容量、价格账单对账或生产可用性结论。 |
