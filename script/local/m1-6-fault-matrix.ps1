@@ -335,6 +335,100 @@ function Invoke-DuplicateEvent([object]$probe, [string]$baseUrl, [string]$runId)
     return [pscustomobject]@{ duplicate_deliveries = 1; duplicate_side_effects = 0; final_status = "inbox_duplicate_reused" }
 }
 
+function Invoke-PsqlCommand([string]$query) {
+    docker exec foodmate-postgres psql -U postgres -d FoodMate -v ON_ERROR_STOP=1 -c $query 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "PostgreSQL fault-injection command failed" }
+}
+
+function Get-RunDispatchSummary([string]$runId) {
+    $safeRunId = $runId.Replace("'", "''")
+    $query = @"
+SELECT json_build_object(
+  'outbox_id',o.outbox_id,
+  'dispatch_id',o.dispatch_id,
+  'status',o.status,
+  'transport',o.transport,
+  'send_attempts',o.send_attempts,
+  'event_count',(SELECT COUNT(*) FROM runtime_event_inbox_v2 e WHERE e.agent_run_id=o.agent_run_id),
+  'assistant_count',(SELECT COUNT(*) FROM messages m WHERE m.agent_run_id=o.agent_run_id AND m.role='assistant' AND m.is_deleted=FALSE)
+)::text
+FROM runtime_dispatch_outbox o
+WHERE o.run_id='$safeRunId'
+ORDER BY o.created_at DESC
+LIMIT 1;
+"@
+    return Invoke-PsqlJson $query
+}
+
+function Wait-OutboxRepublished([string]$runId, [int64]$outboxId, [int]$previousAttempts) {
+    $deadline = (Get-Date).AddSeconds($RecoveryTimeoutSeconds)
+    $latest = $null
+    do {
+        $latest = Get-RunDispatchSummary $runId
+        if ([int64]$latest.outbox_id -eq $outboxId -and
+            [string]$latest.status -eq "published" -and
+            [int]$latest.send_attempts -gt $previousAttempts) {
+            return $latest
+        }
+        Start-Sleep -Milliseconds 500
+    } while ((Get-Date) -lt $deadline)
+    throw "Outbox ACK-loss probe did not observe a republished fact"
+}
+
+function Invoke-OutboxAckLost([object]$probe, [string]$baseUrl, [string]$runId) {
+    $before = Get-RunDispatchSummary $runId
+    if ($null -eq $before -or [string]$before.status -ne "published" -or [string]$before.transport -ne "rocketmq") {
+        throw "Outbox ACK-loss probe requires a published RocketMQ test fact"
+    }
+    $safeOutboxId = [int64]$before.outbox_id
+    $faultInjectedAt = (Get-Date).ToUniversalTime().ToString("o")
+    $query = @"
+UPDATE runtime_dispatch_outbox
+SET status='pending',
+    owner_token=NULL,
+    lease_until=NULL,
+    next_attempt_at=CURRENT_TIMESTAMP,
+    mq_message_id=NULL,
+    published_at=NULL,
+    delivered_at=NULL,
+    last_error='M1-6 injected broker ACK loss',
+    updated_at=CURRENT_TIMESTAMP
+WHERE outbox_id=$safeOutboxId
+  AND run_id='$($runId.Replace("'", "''"))'
+  AND status='published'
+  AND transport='rocketmq';
+"@
+    Invoke-PsqlCommand $query
+    $pending = Get-RunDispatchSummary $runId
+    if ($null -eq $pending -or [string]$pending.status -ne "pending") {
+        throw "Outbox ACK-loss probe did not reset the selected test fact"
+    }
+    $after = Wait-OutboxRepublished $runId $safeOutboxId ([int]$before.send_attempts)
+    $faultSettledAt = (Get-Date).ToUniversalTime().ToString("o")
+    $eventDelta = [int64]$after.event_count - [int64]$before.event_count
+    $assistantDelta = [int64]$after.assistant_count - [int64]$before.assistant_count
+    $duplicateSideEffects = [math]::Max(0, $eventDelta + $assistantDelta)
+    if ($duplicateSideEffects -ne 0) {
+        throw "Outbox ACK-loss replay produced duplicate business side effects"
+    }
+    return [pscustomobject]@{
+        fault_injected_at = $faultInjectedAt
+        readiness_recovered_at = $faultSettledAt
+        outbox_id = $safeOutboxId
+        dispatch_id = [string]$before.dispatch_id
+        initial_send_attempts = [int]$before.send_attempts
+        final_send_attempts = [int]$after.send_attempts
+        retry_attempts = [int]$after.send_attempts - [int]$before.send_attempts
+        duplicate_deliveries = 1
+        duplicate_side_effects = $duplicateSideEffects
+        event_count_before = [int64]$before.event_count
+        event_count_after = [int64]$after.event_count
+        assistant_count_before = [int64]$before.assistant_count
+        assistant_count_after = [int64]$after.assistant_count
+        final_status = "outbox_replayed_idempotently"
+    }
+}
+
 function Invoke-SseReplay([object]$probe, [string]$baseUrl, [string]$runId) {
     $events = Invoke-Json $probe.context "GET" "$baseUrl/api/chat/runs/$([uri]::EscapeDataString($runId))/events"
     $items = @($events.data)
@@ -484,9 +578,9 @@ try {
                     if (-not $IncludeAgentRun) { throw "Scenario $name requires -IncludeAgentRun to create a real run" }
                     if ([string]::IsNullOrWhiteSpace($probe.run_id)) { $probe.run_id = New-AgentRun $probe $JavaBaseUrl }
                     $status = Wait-AgentRun $probe $JavaBaseUrl $probe.run_id
-                    if ($name -eq "duplicate-event" -or $name -eq "inbox-not-ack") { $result.evidence = Invoke-DuplicateEvent $probe $JavaBaseUrl $probe.run_id }
+                    if ($name -eq "outbox-ack-lost") { $result.evidence = Invoke-OutboxAckLost $probe $JavaBaseUrl $probe.run_id }
+                    elseif ($name -eq "duplicate-event" -or $name -eq "inbox-not-ack") { $result.evidence = Invoke-DuplicateEvent $probe $JavaBaseUrl $probe.run_id }
                     elseif ($name -eq "sse-last-event-id") { $result.evidence = Invoke-SseReplay $probe $JavaBaseUrl $probe.run_id }
-                    else { $result.evidence = [pscustomobject]@{ retry_attempts = 0; final_status = "outbox-replay_requires_orchestrator_fixture"; source_run_status = $status } }
                 }
             }
             if ($result.evidence.fault_injected_at) { $result.fault_injected_at = [string]$result.evidence.fault_injected_at }

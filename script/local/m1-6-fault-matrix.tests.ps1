@@ -95,5 +95,17 @@ if ($scriptText -notmatch 'runtime_dispatch_outbox') {
 if ($scriptText -notmatch 'runtime_event_inbox_v2') {
     throw "Fault matrix must inspect Inbox state"
 }
+if ($scriptText -notmatch 'function Invoke-OutboxAckLost') {
+    throw "Fault matrix must execute a real Outbox ACK-loss replay probe"
+}
+if ($scriptText -notmatch 'UPDATE runtime_dispatch_outbox') {
+    throw "Outbox ACK-loss probe must reset one published test fact for controlled replay"
+}
+if ($scriptText -notmatch 'send_attempts') {
+    throw "Outbox ACK-loss probe must verify that the relay published a retry"
+}
+if ($scriptText -match 'outbox-replay_requires_orchestrator_fixture') {
+    throw "Outbox ACK-loss scenario must not remain an orchestrator-only placeholder"
+}
 
 Write-Output "m1_6_fault_matrix_contract=passed"
