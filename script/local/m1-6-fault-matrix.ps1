@@ -532,9 +532,6 @@ function Invoke-ContainerRestart([string]$component, [string[]]$containers) {
     $recovery = @()
     foreach ($container in $containers) {
         if ($container -notin $containerAllowList) { throw "Container is outside the local allow-list: $container" }
-        if (-not $PSCmdlet.ShouldProcess($container, "restart local fault-matrix component")) {
-            continue
-        }
         docker restart $container | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "failed to restart $container" }
         if ($container -eq "foodmate") { $recovery += Wait-HttpReady "java_readiness_after_restart" "$JavaBaseUrl/actuator/health/readiness" }

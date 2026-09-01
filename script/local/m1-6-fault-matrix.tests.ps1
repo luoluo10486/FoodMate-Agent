@@ -132,4 +132,15 @@ if ($scriptText -match 'outbox-replay_requires_orchestrator_fixture') {
     throw "Outbox ACK-loss scenario must not remain an orchestrator-only placeholder"
 }
 
+$restartFunction = [regex]::Match(
+    $scriptText,
+    '(?s)function Invoke-ContainerRestart.*?\n}\s*\n\s*function New-ScenarioResult'
+).Value
+if ([string]::IsNullOrWhiteSpace($restartFunction)) {
+    throw "Fault matrix restart helper is missing"
+}
+if ($restartFunction -match '\$PSCmdlet\.ShouldProcess') {
+    throw "Nested restart helper must not access the top-level PSCmdlet scope"
+}
+
 Write-Output "m1_6_fault_matrix_contract=passed"
