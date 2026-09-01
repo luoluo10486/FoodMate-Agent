@@ -568,9 +568,41 @@ class RocketMqRuntime:
         if not callable(refresh_route):
             return True
         try:
-            return refresh_route(topic) is not None
+            if refresh_route(topic) is None:
+                return False
+            return self._heartbeat_healthy(client)
         except Exception:
             return False
+
+    @staticmethod
+    def _heartbeat_healthy(client) -> bool:
+        """使用 SDK 当前连接执行心跳，避免路由缓存掩盖失效消费流。"""
+        endpoint_loader = getattr(client, "_Client__get_all_endpoints", None)
+        heartbeat_builder = getattr(client, "_Client__heartbeat_req", None)
+        signer = getattr(client, "_sign", None)
+        rpc_client = getattr(client, "rpc_client", None)
+        heartbeat = getattr(rpc_client, "heartbeat_async", None)
+        if not all(callable(value) for value in (endpoint_loader, heartbeat_builder, signer, heartbeat)):
+            # 兼容不暴露 SDK 私有探针的客户端；路由探测仍是最低限度的健康信号。
+            return True
+        endpoints = endpoint_loader()
+        if not endpoints:
+            return False
+        timeout_seconds = float(os.getenv("FOODMATE_ROCKETMQ_HEALTHCHECK_TIMEOUT_SECONDS", "3"))
+        if timeout_seconds <= 0:
+            return False
+        for endpoint in endpoints.values():
+            response = heartbeat(
+                endpoint,
+                heartbeat_builder(),
+                signer(),
+                timeout=timeout_seconds,
+            ).result(timeout=timeout_seconds + 1)
+            status = getattr(response, "status", None)
+            code = getattr(status, "code", None)
+            if code != 0 and getattr(code, "name", "") != "OK" and not str(code).endswith("OK"):
+                return False
+        return True
 
     def _clients_healthy_locked(self) -> bool:
         return self._client_healthy(self.consumer, self.topic) and self._client_healthy(
