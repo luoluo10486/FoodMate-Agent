@@ -1728,3 +1728,16 @@
 | 配置恢复 | BGE 验证后恢复 Qwen profile、模型和 collection；`foodmate-agent-runtime` 为 `healthy`，`/foodmate/internal/health/ready` 返回 HTTP `200`，RAG 为 `local/openai-compatible`。 |
 | 隔离与费用边界 | 两次请求均使用固定 smoke 文本；未保存向量正文、API Key 或供应商原始响应；两个 profile 使用独立 collection，禁止混写。 |
 | 结论 | Docker 可启动 Python Runtime，并已取得 SiliconFlow `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 的新鲜真实协议证据；该结果不替代长稳性能、故障矩阵、成本对账或生产门禁。 |
+
+## D103 M1-6 deterministic Agent/Proposal 业务流量与审计复核（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO、Milvus；流量期间临时将 Docker Chat tiers 设为 `deterministic:local`，结束后恢复 `.env` 的 SiliconFlow DeepSeek 路由。 |
+| 正式档位 | `m1-6-traffic-recovery.ps1 -ExecuteTraffic`：预热 `30s`、稳态 `120s`、`16` workers、AgentRun/Proposal 目标比例 `80/20`。 |
+| 业务结果 | 总操作 `117`；AgentRun `97`；Proposal `18`；成功 `94`；业务拒绝 `4`；业务失败 `14`；意外错误 `2`；意外错误率 `1.709%`；未发现 worker 错误。 |
+| 时延与吞吐 | 吞吐 `0.975 ops/s`；P50/P95/P99 为 `15722.982/30767.0658/36037.16848 ms`。该数据是本机 deterministic 业务基线，不是容量或生产 SLO。 |
+| 重复与队列 | 重复投递 `7`；重复副作用 `0`；队列峰值相对基线增加 `1`；结束时可排空队列回到基线，排空等待约 `267.616 ms`。SSE replay 保留事实单独统计，不计入积压。 |
+| 审计取数修复 | 修复 Windows Docker 调用中 `psql -v` 变量未展开导致审计快照为空的问题；随机测试用户名经过固定格式校验后再进入查询。短复核 `1 worker/1+1s`：操作 `2`，审计由 `1` 增至 `15`，success `15`，failed/rejected/pending 均为 `0`。 |
+| 数据边界 | 测试账号、会话和业务数据均使用随机命名空间，脚本 finally 软删除测试账号；未执行 truncate、数据库硬删除或性能故障注入。 |
+| 结论 | M1-6 本地业务流量入口和审计统计已取得可复核基线；意外错误率和较高时延需作为本机诊断结果保留，不宣称达到生产性能门禁。 |

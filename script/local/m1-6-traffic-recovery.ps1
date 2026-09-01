@@ -155,10 +155,10 @@ SELECT CONCAT_WS('|',
   COUNT(*) FILTER (WHERE result='pending')
 )
 FROM operation_audits
-WHERE operator_id=(SELECT user_id FROM users WHERE username=:'scan_username')
+WHERE operator_id=(SELECT user_id FROM users WHERE username='$username')
 "@
     try {
-        $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -F '|' -v ON_ERROR_STOP=1 -v "scan_username=$username" -c $query 2>$null
+        $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -F '|' -v ON_ERROR_STOP=1 -c $query 2>$null
         if ($LASTEXITCODE -ne 0) { return $null }
         $parts = @($raw.Trim().Split('|'))
         if ($parts.Count -lt 5) { return $null }

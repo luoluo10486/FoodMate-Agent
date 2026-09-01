@@ -2,6 +2,17 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $scriptPath = Join-Path $repoRoot "script/local/m1-6-traffic-recovery.ps1"
 $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+$auditSnapshot = [regex]::Match($scriptText, '(?s)function Get-AuditSnapshot.*?function Test-QueueAtBaseline').Value
+if ([string]::IsNullOrWhiteSpace($auditSnapshot)) {
+    throw "M1-6 traffic entrypoint is missing the audit snapshot function"
+}
+if ($auditSnapshot -match "username=:'scan_username'") {
+    throw "M1-6 audit snapshot must not pass an unexpanded psql variable through Docker"
+}
+$validatedUsernameSql = [regex]::Escape(('username=' + [char]39 + '$username' + [char]39))
+if ($auditSnapshot -notmatch $validatedUsernameSql) {
+    throw "M1-6 audit snapshot must use the validated generated username"
+}
 
 if ($scriptText -notmatch '\[switch\]\$ExecuteTraffic') {
     throw "M1-6 traffic entrypoint must require an explicit ExecuteTraffic switch"
