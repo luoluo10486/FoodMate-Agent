@@ -300,6 +300,15 @@ function Wait-AgentRun([object]$probe, [string]$baseUrl, [string]$runId) {
     throw "AgentRun did not reach a terminal state within $RecoveryTimeoutSeconds seconds"
 }
 
+function New-CompletedAgentRun([object]$probe, [string]$baseUrl) {
+    $runId = New-AgentRun $probe $baseUrl
+    $status = Wait-AgentRun $probe $baseUrl $runId
+    if ($status -ne "completed") {
+        throw "AgentRun fault probe requires a completed Run; actual status=$status"
+    }
+    return $runId
+}
+
 function Get-RawEvent([string]$runId) {
     $safeRunId = $runId.Replace("'", "''")
     $query = @"
@@ -646,8 +655,7 @@ try {
                 "duplicate-proposal" { $result.evidence = Invoke-DuplicateProposal $probe $JavaBaseUrl }
                 { $_ -in @("outbox-ack-lost", "inbox-not-ack", "duplicate-event", "sse-last-event-id") } {
                     if (-not $IncludeAgentRun) { throw "Scenario $name requires -IncludeAgentRun to create a real run" }
-                    if ([string]::IsNullOrWhiteSpace($probe.run_id)) { $probe.run_id = New-AgentRun $probe $JavaBaseUrl }
-                    $status = Wait-AgentRun $probe $JavaBaseUrl $probe.run_id
+                    $probe.run_id = New-CompletedAgentRun $probe $JavaBaseUrl
                     if ($name -eq "outbox-ack-lost") { $result.evidence = Invoke-OutboxAckLost $probe $JavaBaseUrl $probe.run_id }
                     elseif ($name -eq "inbox-not-ack") { $result.evidence = Invoke-InboxNotAck $probe $JavaBaseUrl $probe.run_id }
                     elseif ($name -eq "duplicate-event") { $result.evidence = Invoke-DuplicateEvent $probe $JavaBaseUrl $probe.run_id }

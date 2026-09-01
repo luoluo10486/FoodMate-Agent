@@ -1754,3 +1754,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 浏览器字体状态为 `loaded`，页面无横向或纵向溢出，前端左上角红黄绿窗口装饰候选为 `0`，业务状态圆点保持不变；实际 DPR 为 `1.25`，严格 DPR 1 门禁为 `false`，运行时汇总修正为 `dprPass=94/105`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步当前证据；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点只完成 Analysis fixture 会话历史结构和证据更新，不代表该画板或 105 张画板达到像素级 `PASS`；图标、字体光栅化和主体视觉差异、shadcn 全量逐页迁移仍需继续，iconfont 继续为 `BLOCKED`。
+
+## 192. 2026-08-31 Admin Overview 分析卡固定网格验收
+
+依据实时 Figma 节点 `995:977` 下的分析容器 `1005:2` 及三张内卡 `1005:3`、`1005:7`、`1005:11`，本轮只收口 Admin Overview Figma fixture 的分析区几何；Figma 设计稿保持只读。
+
+- [x] Figma 元数据目标为外层 `1116×180px`，三张内卡均为 `344×180px`，相对位置为 `16/376/736`；前端实测外层 `x=292,y=766,width=1116,height=180`，三张内卡为 `x=308/668/1028,y=782,width=344,height=180`。
+- [x] 前端将分析卡桌面网格固定为 `repeat(3, 344px)`、间距 `16px`、左对齐；外层与内层描边使用 `inset`，不改变移动端现有单列布局；真实模式保持原有后端数据行为。
+- [x] 浏览器在 `1440×1024`、DPR `1.0000000149`、字体 `loaded` 条件下复核，页面无横向/纵向溢出，前端左上角红黄绿窗口装饰候选为 `0`，业务状态圆点保持不变。
+- [x] 已登记原始浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-grid-browser-2026-08-31.jpg`、RGBA PNG `admin-overview-analytics-grid-browser-2026-08-31-rgba.png` 和独立 diff `admin-overview-analytics-grid-2026-08-31-diff.json`；同尺寸结果为 `differentPixels=466371`、差异比例 `31.6278%`、`MAE=2.613027`、`RMSE=14.310728`、最大通道差异 `230`，继续为 `DIFF_REVIEW`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步本次证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本节只关闭分析卡固定网格和边界偏移，不关闭该画板或 105 张画板像素级 `PASS`；头像、图标、浏览器光栅化差异、shadcn 全量逐页迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。

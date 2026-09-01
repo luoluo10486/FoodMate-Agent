@@ -107,6 +107,12 @@ if ($scriptText -notmatch 'function Invoke-OutboxAckLost') {
 if ($scriptText -notmatch 'function Invoke-InboxNotAck') {
     throw "Fault matrix must execute a distinct Inbox no-ACK replay probe"
 }
+if ($scriptText -notmatch 'function New-CompletedAgentRun') {
+    throw "AgentRun fault scenarios must create a fresh completed Run instead of reusing a failed probe"
+}
+if ($scriptText -notmatch 'New-CompletedAgentRun\s+\$probe\s+\$JavaBaseUrl') {
+    throw "Each AgentRun fault scenario must acquire a fresh completed Run"
+}
 if ($scriptText -notmatch 'ack_lost_after_commit') {
     throw "Inbox no-ACK probe must identify the committed-transaction/ack-loss fault model"
 }

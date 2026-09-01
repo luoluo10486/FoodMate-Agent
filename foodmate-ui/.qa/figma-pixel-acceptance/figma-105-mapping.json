@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-08-30",
+    "capturedAt": "2026-08-31",
     "figmaMcp": "get_metadata"
   },
   "acceptanceRules": {
@@ -274,7 +274,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-08-31 session-history recapture; automated diff and runtime evidence are recorded below; retain DIFF_REVIEW",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -4891,8 +4891,8 @@
       "frontendRoute": "/admin",
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/admin-overview.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-navigation-browser-2026-08-29.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-31.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-grid-browser-2026-08-31-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4921,8 +4921,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-29",
-        "conclusion": "Admin overview content is substantially present; the desktop topbar, analytics-card inner height/cropping, main table column tracks, desktop table overflow behavior, six 58px data rows, and Figma navigation icon treatment now follow the checked Figma nodes. Typography, sidebar identity, and other composition differences remain. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-08-31",
+        "conclusion": "依据实时 Figma 节点 1005:2、1005:3、1005:7、1005:11，将三张分析卡固定为 344px 并使用 inset 描边；浏览器实测卡片位置为 x=308/668/1028、y=782、w=344、h=180，字体已加载、页面无溢出，前端左上角红黄绿窗口装饰候选为 0。默认男性头像按用户要求使用项目默认资产，不替换为 Figma 真人头像；头像、图标和浏览器光栅化差异仍存在，保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
@@ -5074,8 +5074,31 @@
           },
           "visualChange": "依据实时 Figma 节点 995:1054，将 Admin Overview 时间、结果、降级三个 Select 的箭头和搜索框图标替换为真实 Figma SVG 资产；隐藏 Radix 默认箭头但保留 shadcn Select 的键盘与选值行为。仅修改前端，未修改 Figma，业务状态圆点保留。",
           "conclusion": "DIFF_REVIEW"
+        },
+        {
+          "capturedAt": "2026-08-31",
+          "figmaNodeId": "995:977",
+          "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-31.png",
+          "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-grid-browser-2026-08-31-rgba.png",
+          "browserCapture": ".qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-grid-browser-2026-08-31.jpg",
+          "diffJson": ".qa/figma-pixel-acceptance/admin-overview-analytics-grid-2026-08-31-diff.json",
+          "viewport": "1440x1024",
+          "actualDpr": 1.0000000149011612,
+          "dprPass": true,
+          "geometryEvidence": {
+            "analyticsContainer": "1116x180 at x=292,y=766",
+            "analyticsCardItems": "3 x 344x180 at x=308/668/1028,y=782",
+            "analyticsBorder": "inset",
+            "fonts": "loaded",
+            "bodyHorizontalOverflow": false,
+            "bodyVerticalOverflow": false,
+            "windowControlsCandidates": 0
+          },
+          "visualChange": "依据实时 Figma 节点 1005:2、1005:3、1005:7、1005:11，将三张 Admin Overview 分析卡由弹性三等分改为 344px 固定网格，并把外层及内层描边改为 inset，保持 Figma 的位置和尺寸；仅修改前端，未修改 Figma，业务状态圆点与项目默认头像保留。",
+          "conclusion": "DIFF_REVIEW"
         }
-      ]
+      ],
+      "browserCapture": ".qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-grid-browser-2026-08-31.jpg"
     },
     {
       "figmaNodeId": "995:1238",

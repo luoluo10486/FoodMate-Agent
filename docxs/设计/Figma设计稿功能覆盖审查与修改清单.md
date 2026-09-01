@@ -1046,6 +1046,13 @@
 - [x] `figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步本次证据，105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本小点不代表 105 张画板像素级 `PASS`、shadcn 全量逐页迁移或 iconfont 实体资源登记完成；iconfont 继续为 `BLOCKED`。
 
+## 61. 2026-08-31 Admin Overview 分析卡固定网格收口
+
+- [x] 实时 Figma 节点 `995:977` 的分析区元数据确认三张内卡均为 `344×180px`，相对位置为 `16/376/736`；前端 fixture 已按此固定桌面网格，外层和内层采用等效 `inset` 描边，Figma 设计稿未修改。
+- [x] 前端实测 `1440×1024`、字体 `loaded`、无横向/纵向溢出，分析容器为 `1116×180px at x=292,y=766`，内卡为 `344×180px at x=308/668/1028,y=782`；左上角红黄绿窗口装饰候选数量为 `0`，业务状态圆点保留。
+- [x] 已登记 Figma PNG、浏览器 JPEG、RGBA PNG 和独立 diff；同尺寸 diff 为 `31.6278% / MAE 2.613027 / RMSE 14.310728 / maxChannelDelta 230`，因此继续为 `DIFF_REVIEW`。
+- [x] 105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；本小点不关闭全量像素验收、shadcn 全量逐页迁移、后端闭环或 iconfont 实体资源登记。
+
 ## 60. 2026-08-30 Agent Chat Composer 输入行背景收口
 
 - [x] 依据 Figma 节点 `640:428`，将 Figma fixture 的 Composer 输入行背景对齐为 `#fcfcfc`；真实模式仍使用原有 `--fm-bg-soft` fallback。

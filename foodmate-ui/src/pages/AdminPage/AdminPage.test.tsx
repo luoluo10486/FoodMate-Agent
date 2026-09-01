@@ -87,6 +87,20 @@ describe('AdminPage overview', () => {
     expect(document.querySelectorAll('[aria-label="时间范围"] [data-radix-select-icon] svg')).toHaveLength(0);
   });
 
+  it('keeps the overview analytics cards at their Figma desktop widths', () => {
+    renderAdmin();
+
+    const cards = Array.from(document.querySelectorAll('[data-figma-role="admin-overview-analytics-card"]'));
+    expect(cards).toHaveLength(3);
+    expect(cards.map((card) => card.getAttribute('data-figma-node'))).toEqual(['1005:3', '1005:7', '1005:11']);
+    expect(cards.map((card) => card.getAttribute('data-figma-width'))).toEqual(['344', '344', '344']);
+    expect(document.querySelector('[data-figma-role="admin-overview-analytics"]')).toHaveAttribute(
+      'data-figma-border',
+      'inset',
+    );
+    expect(cards.every((card) => card.getAttribute('data-figma-border') === 'inset')).toBe(true);
+  });
+
   it('filters the overview table by result and search query', async () => {
     const user = userEvent.setup();
     renderAdmin();
