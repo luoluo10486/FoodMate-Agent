@@ -915,6 +915,7 @@ def run_deterministic(
             ModelRequest(
                 scene="composer",
                 prompt=candidate,
+                extra_body={"enable_thinking": False},
                 deadline_at=deadline_at,
                 timeout_seconds=composer_timeout,
             ),

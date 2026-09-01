@@ -89,11 +89,64 @@ if ($scriptText -match 'docker\s+(rm|system\s+prune|volume\s+rm|compose\s+down\s
 if ($scriptText -notmatch 'Last-Event-ID') {
     throw "Fault matrix must verify the Last-Event-ID replay contract"
 }
+if ($scriptText -notmatch 'function Get-PersistedSseEvents') {
+    throw "SSE replay probe must read authoritative persisted SSE event ids"
+}
+if ($scriptText -notmatch 'sse_event_id') {
+    throw "SSE replay probe must compare the stream sse_event_id values"
+}
 if ($scriptText -notmatch 'runtime_dispatch_outbox') {
     throw "Fault matrix must inspect Outbox state"
 }
 if ($scriptText -notmatch 'runtime_event_inbox_v2') {
     throw "Fault matrix must inspect Inbox state"
+}
+if ($scriptText -notmatch 'function Invoke-OutboxAckLost') {
+    throw "Fault matrix must execute a real Outbox ACK-loss replay probe"
+}
+if ($scriptText -notmatch 'function Invoke-InboxNotAck') {
+    throw "Fault matrix must execute a distinct Inbox no-ACK replay probe"
+}
+if ($scriptText -notmatch 'function New-CompletedAgentRun') {
+    throw "AgentRun fault scenarios must create a fresh completed Run instead of reusing a failed probe"
+}
+if ($scriptText -notmatch 'New-CompletedAgentRun\s+\$probe\s+\$JavaBaseUrl') {
+    throw "Each AgentRun fault scenario must acquire a fresh completed Run"
+}
+if ($scriptText -notmatch 'ack_lost_after_commit') {
+    throw "Inbox no-ACK probe must identify the committed-transaction/ack-loss fault model"
+}
+if ($scriptText -notmatch 'processing_status') {
+    throw "Inbox no-ACK probe must verify the persisted Inbox completion fact"
+}
+if ($scriptText -match '(?s)elseif\s*\(\$name\s*-eq\s*\"inbox-not-ack\"\s*\)\s*\{[^}]*Invoke-DuplicateEvent') {
+    throw "Inbox no-ACK must not reuse the generic duplicate-event probe"
+}
+if ($scriptText -notmatch 'UPDATE runtime_dispatch_outbox') {
+    throw "Outbox ACK-loss probe must reset one published test fact for controlled replay"
+}
+if ($scriptText -notmatch 'send_attempts') {
+    throw "Outbox ACK-loss probe must verify that the relay published a retry"
+}
+if ($scriptText -match '\[hashtable\]\$payload') {
+    throw "Fault matrix JSON helper must accept deserialized event payloads"
+}
+if ($scriptText -notmatch 'status -notin @\("pending", "published"\)') {
+    throw "Outbox ACK-loss probe must tolerate a relay that republishes before the next observation"
+}
+if ($scriptText -match 'outbox-replay_requires_orchestrator_fixture') {
+    throw "Outbox ACK-loss scenario must not remain an orchestrator-only placeholder"
+}
+
+$restartFunction = [regex]::Match(
+    $scriptText,
+    '(?s)function Invoke-ContainerRestart.*?\n}\s*\n\s*function New-ScenarioResult'
+).Value
+if ([string]::IsNullOrWhiteSpace($restartFunction)) {
+    throw "Fault matrix restart helper is missing"
+}
+if ($restartFunction -match '\$PSCmdlet\.ShouldProcess') {
+    throw "Nested restart helper must not access the top-level PSCmdlet scope"
 }
 
 Write-Output "m1_6_fault_matrix_contract=passed"

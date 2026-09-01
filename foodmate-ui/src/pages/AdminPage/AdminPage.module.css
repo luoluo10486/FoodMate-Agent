@@ -1399,16 +1399,17 @@
 
 .overviewAnalytics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 344px);
   gap: 16px;
+  justify-content: start;
   flex: 0 0 auto;
   height: 180px;
   padding: 16px;
   overflow: hidden;
-  border: 1px solid #e8edeb;
+  border: 0;
   border-radius: 12px;
   background: #ffffff;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px #e8edeb;
 }
 
 .overviewAnalytics article {
@@ -1419,9 +1420,10 @@
   gap: 8px;
   overflow: hidden;
   padding: 14px 16px;
-  border: 1px solid #e8edeb;
+  border: 0;
   border-radius: 10px;
   background: #f7faf7;
+  box-shadow: inset 0 0 0 1px #e8edeb;
 }
 
 .overviewAnalytics h2 {

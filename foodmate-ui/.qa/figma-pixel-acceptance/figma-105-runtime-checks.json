@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30",
+  "generatedAt": "2026-08-31",
   "tool": "Codex Browser runtime DOM inspection (recaptured evidence)",
   "rules": {
     "viewport": "mapping.browserViewport",
@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 96,
+    "dprPass": 94,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -198,8 +198,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
-      "dprPass": true,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -222,6 +222,12 @@
         }
       },
       "windowControlsCandidates": 0,
+      "sessionHistory": {
+        "searchCount": 1,
+        "activeSessionCount": 1,
+        "paginationVisible": true,
+        "paginationRect": "x=24,y=598,width=212,height=22"
+      },
       "textOverflow": [],
       "url": "/analysis?state=v2",
       "viewport": {
@@ -1554,8 +1560,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
-      "dprPass": true,
+      "dpr": 1.25,
+      "dprPass": false,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1564,6 +1570,9 @@
         "y": 0
       },
       "windowControlsCandidates": 0,
+      "sessionSearchCount": 1,
+      "recordDetailCount": 1,
+      "extraActionBarCount": 0,
       "textOverflow": [],
       "url": "/analysis?view=records&state=v2",
       "viewport": {
@@ -2042,7 +2051,7 @@
     },
     "meal-planning-v2": {
       "artboardName": "meal-planning-v2",
-      "recapturedAt": "2026-08-30",
+      "recapturedAt": "2026-08-31",
       "body": {
         "clientHeight": 1024,
         "clientWidth": 1440,
@@ -2059,8 +2068,23 @@
         "y": 0
       },
       "windowControlsCandidates": 0,
-      "accountDock": false,
-      "accountDockText": "",
+      "accountDock": true,
+      "accountDockText": "收起导航|就绪 (Fustat-v2)|Anddy 的工作区",
+      "accountDockGeometry": {
+        "x": 24,
+        "y": 866,
+        "width": 211.2,
+        "height": 134
+      },
+      "sessionHistory": true,
+      "sessionSearch": true,
+      "sessionCount": 9,
+      "sessionPagination": {
+        "currentPage": 1,
+        "totalPages": 3,
+        "previousDisabled": true,
+        "nextDisabled": false
+      },
       "bodyOverflow": false,
       "rootOverflow": false,
       "trafficLightColors": 0,

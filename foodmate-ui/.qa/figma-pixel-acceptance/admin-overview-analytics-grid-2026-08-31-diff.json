@@ -1,0 +1,39 @@
+{
+  "figmaNodeId": "995:977",
+  "artboardName": "admin-overview",
+  "frontendRoute": "/admin",
+  "queryState": "state=overview",
+  "viewport": "1440x1024",
+  "actualDpr": 1.0000000149011612,
+  "fonts": "loaded",
+  "figmaPng": "recaptured-figma/admin-overview-current-2026-08-31.png",
+  "browserCapture": "recaptured/admin-overview-analytics-grid-browser-2026-08-31.jpg",
+  "browserPng": "recaptured/admin-overview-analytics-grid-browser-2026-08-31-rgba.png",
+  "diff": {
+    "status": "COMPARED",
+    "width": 1440,
+    "height": 1024,
+    "pixelCount": 1474560,
+    "differentPixels": 466371,
+    "differentRatio": 0.316278076171875,
+    "meanAbsoluteError": 2.613027106391059,
+    "rmse": 14.310727418635585,
+    "maxChannelDelta": 230
+  },
+  "geometry": {
+    "analyticsContainer": "1116x180 at x=292,y=766",
+    "analyticsCardItems": "3 x 344x180 at x=308/668/1028,y=782",
+    "analyticsBorder": "inset",
+    "bodyHorizontalOverflow": false,
+    "bodyVerticalOverflow": false,
+    "windowControlsCandidates": 0
+  },
+  "visualChange": "依据实时 Figma 节点 1005:2、1005:3、1005:7、1005:11，将三张 Admin Overview 分析卡由弹性三等分改为 344px 固定网格，并把外层及内层描边改为 inset；仅修改前端，未修改 Figma，业务状态圆点与项目默认头像保留。",
+  "manualReview": {
+    "status": "VISUAL_DIFFERENCES_CONFIRMED",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-08-31",
+    "conclusion": "分析区外框、卡片位置和尺寸已与 Figma 元数据对齐；页面字体已加载且无溢出，前端没有左上角红黄绿装饰点。默认男性头像按用户要求使用项目默认资产，不替换为 Figma 真人头像；整页仍存在头像、图标和浏览器光栅化差异，保持 DIFF_REVIEW。"
+  },
+  "conclusion": "DIFF_REVIEW"
+}

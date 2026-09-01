@@ -3,6 +3,7 @@ param(
     [int]$WarmupSeconds = 30,
     [int]$SteadySeconds = 120,
     [int]$Workers = 16,
+    [int]$DrainTimeoutSeconds = 90,
     [string]$JavaBaseUrl = "http://127.0.0.1:8080",
     [string]$RuntimeBaseUrl = "http://127.0.0.1:9002",
     [switch]$ExecuteTraffic,
@@ -154,10 +155,10 @@ SELECT CONCAT_WS('|',
   COUNT(*) FILTER (WHERE result='pending')
 )
 FROM operation_audits
-WHERE operator_id=(SELECT user_id FROM users WHERE username=:'scan_username')
+WHERE operator_id=(SELECT user_id FROM users WHERE username='$username')
 "@
     try {
-        $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -F '|' -v ON_ERROR_STOP=1 -v "scan_username=$username" -c $query 2>$null
+        $raw = docker exec foodmate-postgres psql -U postgres -d FoodMate -At -F '|' -v ON_ERROR_STOP=1 -c $query 2>$null
         if ($LASTEXITCODE -ne 0) { return $null }
         $parts = @($raw.Trim().Split('|'))
         if ($parts.Count -lt 5) { return $null }
@@ -179,12 +180,37 @@ WHERE operator_id=(SELECT user_id FROM users WHERE username=:'scan_username')
     return $null
 }
 
-function Wait-QueueDrained([int]$timeoutSeconds = 90) {
+function Test-QueueAtBaseline([object]$snapshot, [object]$baseline) {
+    if ($null -eq $snapshot) { return $false }
+    if ($null -eq $baseline) { return $snapshot.pending -eq 0 }
+    return (
+        $snapshot.delivery_pending -le $baseline.delivery_pending -and
+        $snapshot.dispatch_pending -le $baseline.dispatch_pending -and
+        $snapshot.knowledge_pending -le $baseline.knowledge_pending -and
+        $snapshot.proposal_inbox_pending -le $baseline.proposal_inbox_pending -and
+        $snapshot.runtime_inbox_pending -le $baseline.runtime_inbox_pending
+    )
+}
+
+function Get-QueueDelta([object]$before, [object]$after) {
+    if ($null -eq $before -or $null -eq $after) { return $null }
+    return [pscustomobject]@{
+        pending = $after.pending - $before.pending
+        delivery_pending = $after.delivery_pending - $before.delivery_pending
+        dispatch_pending = $after.dispatch_pending - $before.dispatch_pending
+        knowledge_pending = $after.knowledge_pending - $before.knowledge_pending
+        proposal_inbox_pending = $after.proposal_inbox_pending - $before.proposal_inbox_pending
+        runtime_inbox_pending = $after.runtime_inbox_pending - $before.runtime_inbox_pending
+        sse_replay_retained = $after.sse_replay_retained - $before.sse_replay_retained
+    }
+}
+
+function Wait-QueueDrained([int]$timeoutSeconds = 90, [object]$baseline = $null) {
     $started = [Diagnostics.Stopwatch]::StartNew()
     $deadline = (Get-Date).AddSeconds($timeoutSeconds)
     $latest = Get-QueueSnapshot
     do {
-        if ($latest -and $latest.pending -eq 0) {
+        if (Test-QueueAtBaseline $latest $baseline) {
             $started.Stop()
             return [pscustomobject]@{
                 drained = $true
@@ -239,6 +265,8 @@ COMMIT;
 Require-Positive $WarmupSeconds "WarmupSeconds"
 Require-Positive $SteadySeconds "SteadySeconds"
 Require-Positive $Workers "Workers"
+Require-Positive $DrainTimeoutSeconds "DrainTimeoutSeconds"
+if ($DrainTimeoutSeconds -gt 900) { throw "DrainTimeoutSeconds must not exceed 900" }
 if ($Workers -gt 64) { throw "Workers must not exceed 64 for a bounded local run" }
 if ($EnableFaultInjection -and -not $ExecuteTraffic) {
     throw "EnableFaultInjection requires explicit ExecuteTraffic"
@@ -266,6 +294,7 @@ $missing = $required | Where-Object { $_ -notin @($containers) }
 if ($missing) { throw "Required local dependencies are unavailable: $($missing -join ', ')" }
 if (@($before | Where-Object { -not $_.ready }).Count -gt 0) { throw "Readiness prerequisite failed; no traffic or fault injection was started" }
 
+$queueBefore = Get-QueueSnapshot
 $report = [ordered]@{
     run_id = "m16-" + [guid]::NewGuid().ToString("N")
     started_at = (Get-Date).ToUniversalTime().ToString("o")
@@ -278,7 +307,7 @@ $report = [ordered]@{
         channel_mix = [ordered]@{ agent_run_percent = 80; proposal_percent = 20 }
     }
     readiness_before = $before
-    queue_before = Get-QueueSnapshot
+    queue_before = $queueBefore
     audit_before = $null
     audit_after = $null
     queue_drained = $null
@@ -430,12 +459,12 @@ try {
             }
         }
 
-        function New-Approval($context, [string]$csrf, [string]$operation, [Nullable[long]]$resourceId, [hashtable]$input, [string]$key) {
+        function New-Approval($context, [string]$csrf, [string]$operation, [Nullable[long]]$resourceId, [hashtable]$parameters, [string]$key) {
             $payload = @{
                 session_id = [long]$workerSessionId
                 operation = $operation
                 resource_type = "food_log"
-                parameters = $input
+                parameters = $parameters
                 idempotency_key = $key
                 expires_in_seconds = 300
             }
@@ -443,6 +472,15 @@ try {
             $response = Send-Json $context "POST" "$baseUrl/api/approvals/proposals" $payload $csrf
             $id = [string]$response.data.approval_request_id
             if ([string]::IsNullOrWhiteSpace($id)) { throw "approval request id is missing" }
+            return $response.data
+        }
+
+        function Get-ApprovalStatus($context, [string]$approvalRequestId) {
+            $encodedId = [uri]::EscapeDataString($approvalRequestId)
+            $response = Send-Json $context "GET" "$baseUrl/api/approvals/$encodedId" $null
+            if ($null -eq $response -or $null -eq $response.data) {
+                throw "approval status response is missing"
+            }
             return $response.data
         }
 
@@ -454,45 +492,46 @@ try {
             $duplicateEffects = 0
             $outcome = "success"
             if ($scenario -eq 0) {
-                $input = New-FoodInput "M1-6 proposal success" $true
-                $proposal = New-Approval $context $csrf "create" $null $input $key
-                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $input $csrf)
-                $first = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $input $csrf
-                $second = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $input $csrf
+                $parameters = New-FoodInput "M1-6 proposal success" $true
+                $proposal = New-Approval $context $csrf "create" $null $parameters $key
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $parameters $csrf)
+                $first = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $parameters $csrf
+                $second = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $parameters $csrf
                 if ([string]$first.data.status -ne "executed" -or [string]$second.data.status -ne "executed") { throw "idempotent proposal execution did not converge" }
                 if ([string]$first.data.resource_id -ne [string]$second.data.resource_id) { throw "duplicate proposal execution changed the resource" }
                 $duplicates = 1
             } elseif ($scenario -eq 1) {
-                $input = New-FoodInput "M1-6 proposal rejected" $true
-                $proposal = New-Approval $context $csrf "create" $null $input $key
-                $rejected = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/reject" $input $csrf
+                $parameters = New-FoodInput "M1-6 proposal rejected" $true
+                $proposal = New-Approval $context $csrf "create" $null $parameters $key
+                $rejected = Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/reject" $parameters $csrf
                 if ([string]$rejected.data.status -ne "rejected") { throw "proposal rejection did not converge" }
                 $outcome = "business_rejected"
             } elseif ($scenario -eq 2) {
-                $input = New-FoodInput "M1-6 proposal failure" $false
-                $proposal = New-Approval $context $csrf "create" $null $input $key
-                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $input $csrf)
+                $parameters = New-FoodInput "M1-6 proposal failure" $false
+                $proposal = New-Approval $context $csrf "create" $null $parameters $key
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/confirm" $parameters $csrf)
                 $executionFailed = $false
                 try {
-                    [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $input $csrf)
+                    [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $parameters $csrf)
                 } catch { $executionFailed = $true }
                 if (-not $executionFailed) { throw "invalid food log unexpectedly executed" }
                 $outcome = "business_failed"
             } elseif ($scenario -eq 3) {
                 $resourceId = [long](900000000 + ($workerId * 10000) + $index)
-                $input = @{ revision = 1 }
-                $first = New-Approval $context $csrf "update" $resourceId $input "$key-first"
-                $second = New-Approval $context $csrf "update" $resourceId $input "$key-second"
-                if ([string]$first.status -ne "superseded") { throw "first update proposal was not superseded" }
+                $parameters = @{ revision = 1 }
+                $first = New-Approval $context $csrf "update" $resourceId $parameters "$key-first"
+                $second = New-Approval $context $csrf "update" $resourceId $parameters "$key-second"
+                $authoritativeFirst = Get-ApprovalStatus $context $first.approval_request_id
+                if ([string]$authoritativeFirst.status -ne "superseded") { throw "first update proposal was not superseded" }
                 if ([string]$second.status -ne "pending") { throw "replacement proposal is not pending" }
-                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($second.approval_request_id)/reject" $input $csrf)
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($second.approval_request_id)/reject" $parameters $csrf)
                 $outcome = "business_superseded"
             } else {
-                $input = New-FoodInput "M1-6 proposal duplicate" $true
-                $proposal = New-Approval $context $csrf "create" $null $input $key
-                $replayed = New-Approval $context $csrf "create" $null $input $key
+                $parameters = New-FoodInput "M1-6 proposal duplicate" $true
+                $proposal = New-Approval $context $csrf "create" $null $parameters $key
+                $replayed = New-Approval $context $csrf "create" $null $parameters $key
                 if ([string]$proposal.approval_request_id -ne [string]$replayed.approval_request_id) { throw "duplicate proposal created a second approval" }
-                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/reject" $input $csrf)
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/reject" $parameters $csrf)
                 $duplicates = 1
                 $outcome = "business_duplicate"
             }
@@ -508,7 +547,8 @@ try {
         }
 
         $context = New-Context
-        $operations = New-Object System.Collections.Generic.List[object]
+        # Windows PowerShell Job 返回值必须使用可序列化的数组，不能跨进程返回泛型 List。
+        $operations = @()
         $workerError = $null
         try {
             $csrf = Login $context
@@ -531,21 +571,30 @@ try {
                     } else {
                         $operation = Invoke-Proposal $context $csrf $counter
                     }
-                    [void]$operations.Add($operation)
+                    $operations += $operation
                 } catch {
                     $started.Stop()
-                    [void]$operations.Add([pscustomobject]@{
+                    $operations += [pscustomobject]@{
                         channel = "unknown"
                         outcome = "unexpected_error"
                         unexpected = $true
                         duration_ms = [math]::Round($started.Elapsed.TotalMilliseconds, 3)
                         duplicate_deliveries = 0
                         duplicate_side_effects = 0
-                    })
+                    }
                 }
                 $counter++
             }
-        } catch { $workerError = "worker setup failed" }
+        } catch {
+            $message = [string]$_.Exception.Message
+            if (-not [string]::IsNullOrWhiteSpace($secret)) {
+                $message = $message.Replace($secret, "[redacted]")
+            }
+            if (-not [string]::IsNullOrWhiteSpace($user)) {
+                $message = $message.Replace($user, "[redacted]")
+            }
+            $workerError = "worker setup failed: $($_.Exception.GetType().Name): " + $message.Substring(0, [math]::Min(256, $message.Length))
+        }
         finally { $context.Client.Dispose() }
         [pscustomobject]@{
             worker_id = $workerId
@@ -559,9 +608,51 @@ try {
         $jobs += Start-Job -ScriptBlock $workerScript -ArgumentList $worker, $WarmupSeconds, $SteadySeconds, $JavaBaseUrl, $username, $password
     }
     Wait-Job -Job $jobs | Out-Null
-    $workerResults = @(Receive-Job -Job $jobs)
-    $allOperations = @($workerResults | ForEach-Object { $_.operations })
+    $workerResultsList = [System.Collections.Generic.List[object]]::new()
+    foreach ($job in @($jobs)) {
+        $jobOutput = @(Receive-Job -Id ([int]$job.Id) -ErrorAction SilentlyContinue)
+        $workerResults = @(
+            $jobOutput |
+                Where-Object {
+                    $null -ne $_ -and $null -ne $_.PSObject.Properties['operations']
+                }
+        )
+        foreach ($workerResult in $workerResults) {
+            [void]$workerResultsList.Add($workerResult)
+        }
+        $jobErrors = @(
+            $job.ChildJobs |
+                ForEach-Object { $_.Error } |
+                Where-Object { $null -ne $_ }
+        )
+        if ($workerResults.Count -eq 0) {
+            [void]$workerResultsList.Add(
+                [pscustomobject]@{
+                    worker_id = $job.Id
+                    session_id = $null
+                    operations = @()
+                    worker_error = if ($jobErrors.Count -gt 0) {
+                        "worker job failed: $($jobErrors.Count) error record(s)"
+                    } else {
+                        "worker job returned no result"
+                    }
+                })
+        }
+        elseif ($jobErrors.Count -gt 0) {
+            foreach ($workerResult in $workerResults) {
+                $workerResult.worker_error = "worker job emitted $($jobErrors.Count) error record(s)"
+            }
+        }
+    }
+    $workerResults = @($workerResultsList)
+    $allOperations = @($workerResults | ForEach-Object { @($_.operations) })
     $workerErrors = @($workerResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.worker_error) }).Count
+    $report.traffic.worker_errors = @(
+        $workerResults |
+            ForEach-Object { [string]$_.worker_error } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Select-Object -First 16
+    )
     $workerSessions = @($workerResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.session_id) } | Select-Object -ExpandProperty session_id -Unique)
 
     $latencies = @($allOperations | ForEach-Object { $_.duration_ms })
@@ -582,10 +673,16 @@ try {
     }
     $queuePeak = $null
     if ($queueSamples.Count -gt 0) { $queuePeak = [long](($queueSamples | Measure-Object -Property pending -Maximum).Maximum) }
-    $drain = Wait-QueueDrained
+    $drain = Wait-QueueDrained $DrainTimeoutSeconds $report.queue_before
     $report.queue_after = $drain.snapshot
     $report.queue_drained = $drain.drained
     $report.drain_wait_ms = $drain.wait_ms
+    $report.queue_delta = Get-QueueDelta $report.queue_before $report.queue_after
+    $report.queue_peak_over_baseline = if ($null -eq $queuePeak -or $null -eq $report.queue_before) {
+        $null
+    } else {
+        [math]::Max(0, $queuePeak - $report.queue_before.pending)
+    }
     $report.audit_after = Get-AuditSnapshot $username
 
     $report.traffic.total_operations = $total
@@ -612,6 +709,7 @@ try {
     Remove-TestUser $username
     if ($report.traffic.execution -eq "requested") {
         if ($null -eq $report.queue_after) { $report.queue_after = Get-QueueSnapshot }
+        if ($null -eq $report.queue_delta) { $report.queue_delta = Get-QueueDelta $report.queue_before $report.queue_after }
         $report.finished_at = (Get-Date).ToUniversalTime().ToString("o")
         $report | ConvertTo-Json -Depth 12
     }

@@ -101,6 +101,14 @@ function Get-ScannableWorktreeFiles([string]$Root, [string[]]$TrackedFiles) {
     }
 }
 
+function Test-IgnoredLocalEnvironmentFile([string]$RelativePath) {
+    $fileName = [System.IO.Path]::GetFileName($RelativePath)
+    return $fileName -eq '.env' -or (
+        $fileName.StartsWith('.env.', [System.StringComparison]::OrdinalIgnoreCase) -and
+        $fileName -notin @('.env.example', '.env.template')
+    )
+}
+
 Push-Location $repoRoot
 try {
     $trackedResult = Invoke-ProcessText "git.exe" @("-c", "core.quotePath=false", "ls-files", "-z")
@@ -126,6 +134,7 @@ try {
         }
     }
     $workingTreeSecretHits = [System.Collections.Generic.List[string]]::new()
+    $ignoredLocalSecretHits = [System.Collections.Generic.List[string]]::new()
     $scanFiles = @(Get-ScannableWorktreeFiles $repoRoot $trackedFiles | Select-Object -Unique)
     foreach ($relativePath in $scanFiles) {
         $fullPath = Join-Path $repoRoot $relativePath
@@ -138,7 +147,11 @@ try {
         }
         foreach ($pattern in $secretPatterns) {
             if ([regex]::IsMatch($content, $pattern)) {
-                $workingTreeSecretHits.Add($relativePath)
+                if (Test-IgnoredLocalEnvironmentFile $relativePath) {
+                    $ignoredLocalSecretHits.Add($relativePath)
+                } else {
+                    $workingTreeSecretHits.Add($relativePath)
+                }
                 break
             }
         }
@@ -220,6 +233,7 @@ try {
 
     Write-Output "tracked_secret_scan_hits=$($secretHits.Count)"
     Write-Output "working_tree_secret_scan_hits=$($workingTreeSecretHits.Count)"
+    Write-Output "ignored_local_secret_files=$($ignoredLocalSecretHits.Count)"
     Write-Output "tracked_env_files=$($trackedEnvFiles.Count)"
     Write-Output "skipped_checks=$($skipped.Count)"
     foreach ($item in $skipped) { Write-Warning $item }

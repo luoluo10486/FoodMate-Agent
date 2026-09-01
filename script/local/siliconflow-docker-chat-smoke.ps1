@@ -117,6 +117,7 @@ payload = json.dumps({
     "messages": [{"role": "user", "content": "Return one short Chinese smoke-test sentence."}],
     "temperature": 0,
     "max_tokens": 32,
+    "enable_thinking": False,
 }).encode("utf-8")
 request = urllib.request.Request(
     base_url.rstrip("/") + "/chat/completions",

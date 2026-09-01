@@ -350,19 +350,38 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
           </div>
         </Card>
       ) : (
-        <Card className={styles.overviewAnalytics}>
-          <article>
+        <Card
+          className={styles.overviewAnalytics}
+          data-figma-border="inset"
+          data-figma-role="admin-overview-analytics"
+        >
+          <article
+            data-figma-border="inset"
+            data-figma-node="1005:3"
+            data-figma-role="admin-overview-analytics-card"
+            data-figma-width="344"
+          >
             <h2>运行趋势</h2>
             <p>近 24h 1,284 次 · 成功率 91.4%</p>
             <p>P50 4.2s · P95 18.6s · P99 42.1s</p>
             <p>模型 Token 16.1M · 平均耗时 8.4s</p>
           </article>
-          <article>
+          <article
+            data-figma-border="inset"
+            data-figma-node="1005:7"
+            data-figma-role="admin-overview-analytics-card"
+            data-figma-width="344"
+          >
             <h2>失败原因分布</h2>
             <p>模型限制 42% · 工具超时 31%</p>
             <p>策略拒绝 18% · 其他 9%</p>
           </article>
-          <article>
+          <article
+            data-figma-border="inset"
+            data-figma-node="1005:11"
+            data-figma-role="admin-overview-analytics-card"
+            data-figma-width="344"
+          >
             <h2>健康与审计</h2>
             <p>工具 24 个 · 3 个高风险 · 知识库索引 92%</p>
             <p>最近管理操作 4 条待复核 · 取消率 2.1%</p>

@@ -1672,3 +1672,114 @@
 | `Qwen/Qwen3-Embedding-0.6B` | `passed`；SiliconFlow `/v1/embeddings` 返回 HTTP `200`，向量维度 `1024`，本轮延迟约 `219.72 ms`。 |
 | 配置隔离 | 两个 profile 均由显式模型校验；实际运行仍一次选择一个 profile，并使用独立 Milvus collection，禁止混写。 |
 | 结论 | 宿主机真实 Embedding 服务和两个模型适配均已取得新鲜业务证据；Docker 容器内真实请求仍受出站 TLS 环境阻塞，不能以宿主机结果代替 Docker 云联调证据。 |
+
+## D98 Docker Runtime 双 Embedding 真实协议复验（2026-08-31）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Docker Compose `foodmate`/`agent-runtime`/Milvus；凭据仅由本地忽略 `.env` 注入容器，未输出、写入脚本或提交 Git。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：请求通过，模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，延迟约 `411.64 ms`，返回 `prompt_tokens=5`。 |
+| BGE profile | 临时使用独立 collection `foodmate_knowledge_chunks_bge_m3` 重建 Runtime 后执行 `-EmbeddingProfile bge-m3 -ExecuteRequest`：请求通过，模型 `BAAI/bge-m3`，向量维度 `1024`，延迟约 `302.4 ms`，返回 `prompt_tokens=9`。 |
+| 配置恢复 | BGE 验证后已按 `.env` 恢复 Qwen profile；Runtime readiness 为 `healthy`，Milvus readiness 为 `healthy`。 |
+| 安全边界 | 未关闭 TLS 校验；没有在命令、日志或仓库中输出密钥；两个模型使用互斥 profile 和独立 collection，禁止混写。 |
+| 结论 | Docker 容器内两个 SiliconFlow Embedding profile 均已取得真实协议证据；这不等同于 M1-6 性能/故障矩阵或生产稳定性完成。 |
+
+## D99 Docker Runtime SiliconFlow Chat 与双 Embedding 复验（2026-08-31）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Docker Compose `foodmate`/`agent-runtime`/Milvus；凭据仅由本地忽略 `.env` 注入，未输出、写入脚本或提交 Git。 |
+| Chat | `siliconflow-docker-chat-smoke.ps1 -Tier standard -ExecuteRequest`：`cloud_primary/deepseek-ai/DeepSeek-V4-Flash` 返回有效回答，`total_tokens=23`，延迟约 `4968.76 ms`。 |
+| Qwen Embedding | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：`Qwen/Qwen3-Embedding-0.6B` 返回 `1024` 维，`prompt_tokens=5`，延迟约 `4409.28 ms`。 |
+| BGE Embedding | 一次性 Docker Runtime 容器覆盖为 `bge-m3` 后调用 `/embeddings`：`BAAI/bge-m3` 返回 `1024` 维，`prompt_tokens=14`，延迟约 `9058.94 ms`；未改写持久 `.env`。 |
+| 配置隔离 | 两个 Embedding profile 仍一次只启用一个，并使用独立 Milvus collection；Chat 与 Embedding 使用不同配置入口。 |
+| 安全边界 | 未关闭 TLS 校验；请求正文仅为固定 smoke 文本；未保存向量、回答正文、API Key 或供应商原始响应。 |
+| 结论 | Docker Python Runtime 可通过 Compose 调用 SiliconFlow Chat 和两个真实 Embedding 模型；本证据仅证明协议/配置/单次业务调用，不代表长稳、容量、成本对账或生产门禁完成。 |
+
+## D100 Docker Python Runtime 双 Embedding 当前凭据复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`/`agent-runtime`/Milvus；凭据仅从本地忽略 `.env` 注入，未输出或写入仓库。 |
+| Python 启动 | `docker compose --env-file .env -f docker/compose.yml ps agent-runtime`：容器由 `python runtime_server.py` 启动，状态 `healthy`，宿主端口 `9002 -> 9000`。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：HTTP 请求通过，模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `1693.95 ms`。 |
+| BGE profile | 临时以 Compose 进程变量覆盖 profile 和独立 collection 后执行 `-EmbeddingProfile bge-m3 -ExecuteRequest`：HTTP 请求通过，模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `1268.72 ms`。 |
+| 配置恢复 | BGE 验证后恢复 `.env` 原 Qwen profile 和 collection；`GET /foodmate/internal/health/ready` 返回 `200`，RAG 为 `local/openai-compatible`。 |
+| 安全边界 | 未在命令、日志、执行记录或 Git 中写入 API Key；未关闭 TLS 校验；两个模型使用互斥 profile 和独立 Milvus collection。 |
+| 结论 | Docker 可直接启动 Python，并已验证 SiliconFlow 两个 Embedding profile 的真实协议调用；该证据不替代生产长稳、性能、故障矩阵和账单审计。 |
+
+## D101 M3 硬删除隔离验证与本地备份恢复演练（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；硬删除使用 Testcontainers `postgres:16-alpine` 隔离数据库；备份恢复使用当前本地 `foodmate-postgres`，源库数据未删除。 |
+| 硬删除验证 | `mvnw.cmd -B -ntp -pl foodmate-infra -am test '-Ddocker.available=true' '-Dtest=DataRetentionDatabasePurgeRealIntegrationTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：Flyway V1-V29 应用成功，知识文档及关联索引/事件事实按依赖顺序清理，重复清理幂等，测试 `1/1` 通过。 |
+| 备份恢复验证 | `backup-restore.ps1 -DatabaseName FoodMate -Username postgres -DockerContainer foodmate-postgres -BackupFile codex_local_foodmate_20260901.dump -RestoreDatabaseName FoodMateCodexRestore20260901 -Execute -RunValidation -DropRestoreDatabaseAfterValidation`：备份 `5127414` bytes，SHA-256 `6fe4e944be9e99dcf98d9dcf809b5c067631b3cf6dbce41b6338dc6d05fcedff`，恢复库 validation 通过并已删除。 |
+| 数据边界 | 未执行迁移改写、truncate、生产库操作或现有业务数据硬删除；备份文件保留在 Git 忽略目录，源库仍由 Docker 卷保留。 |
+| 结论 | M3 的隔离硬删除和本地备份恢复已有直接执行证据；这不等同于生产灾备、生产删除授权或发布回滚完成。 |
+
+## D102 Docker Runtime SiliconFlow 双 Embedding profile 复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；凭据仅由本地忽略 `.env` 注入，未输出或写入仓库。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `1185.97 ms`，请求通过。 |
+| BGE profile | 临时切换到独立 collection `foodmate_knowledge_chunks_bge_m3` 后执行 `-EmbeddingProfile bge-m3 -ExecuteRequest`：模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `1218.7 ms`，请求通过。 |
+| 配置恢复 | BGE 验证后恢复 Qwen profile、模型和 collection；`foodmate-agent-runtime` 为 `healthy`，`/foodmate/internal/health/ready` 返回 HTTP `200`，RAG 为 `local/openai-compatible`。 |
+| 隔离与费用边界 | 两次请求均使用固定 smoke 文本；未保存向量正文、API Key 或供应商原始响应；两个 profile 使用独立 collection，禁止混写。 |
+| 结论 | Docker 可启动 Python Runtime，并已取得 SiliconFlow `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 的新鲜真实协议证据；该结果不替代长稳性能、故障矩阵、成本对账或生产门禁。 |
+
+## D103 M1-6 deterministic Agent/Proposal 业务流量与审计复核（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO、Milvus；流量期间临时将 Docker Chat tiers 设为 `deterministic:local`，结束后恢复 `.env` 的 SiliconFlow DeepSeek 路由。 |
+| 正式档位 | `m1-6-traffic-recovery.ps1 -ExecuteTraffic`：预热 `30s`、稳态 `120s`、`16` workers、AgentRun/Proposal 目标比例 `80/20`。 |
+| 业务结果 | 总操作 `117`；AgentRun `97`；Proposal `18`；成功 `94`；业务拒绝 `4`；业务失败 `14`；意外错误 `2`；意外错误率 `1.709%`；未发现 worker 错误。 |
+| 时延与吞吐 | 吞吐 `0.975 ops/s`；P50/P95/P99 为 `15722.982/30767.0658/36037.16848 ms`。该数据是本机 deterministic 业务基线，不是容量或生产 SLO。 |
+| 重复与队列 | 重复投递 `7`；重复副作用 `0`；队列峰值相对基线增加 `1`；结束时可排空队列回到基线，排空等待约 `267.616 ms`。SSE replay 保留事实单独统计，不计入积压。 |
+| 审计取数修复 | 修复 Windows Docker 调用中 `psql -v` 变量未展开导致审计快照为空的问题；随机测试用户名经过固定格式校验后再进入查询。短复核 `1 worker/1+1s`：操作 `2`，审计由 `1` 增至 `15`，success `15`，failed/rejected/pending 均为 `0`。 |
+| 数据边界 | 测试账号、会话和业务数据均使用随机命名空间，脚本 finally 软删除测试账号；未执行 truncate、数据库硬删除或性能故障注入。 |
+| 结论 | M1-6 本地业务流量入口和审计统计已取得可复核基线；意外错误率和较高时延需作为本机诊断结果保留，不宣称达到生产性能门禁。 |
+
+## D104 M3 本地 Docker PostgreSQL 备份恢复复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；源库为本地 Docker `foodmate-postgres`，恢复目标为本轮唯一隔离库。 |
+| 执行命令 | `backup-restore.ps1 -DatabaseName FoodMate -Username postgres -DockerContainer foodmate-postgres -BackupFile codex_local_foodmate_20260901_m3.dump -RestoreDatabaseName codex_restore_20260901_m3 -Execute -RunValidation -DropRestoreDatabaseAfterValidation` |
+| 备份事实 | 文件大小 `5541357` bytes；SHA-256 `855b49c761cd508c789cdef21441d7b28140cd2aa5287cd13ad619f3e4895176`。 |
+| 恢复校验 | 隔离恢复库执行 `validation.sql` 为 `passed`；验证结束后恢复库清理为 `passed`。 |
+| 数据边界 | 未覆盖源库、未执行 truncate、迁移回写或源库硬删除；备份文件保留在 Git 忽略目录供本地追溯。 |
+| 结论 | 本地 Docker 备份、隔离恢复和 schema/约束校验已取得新鲜执行证据；不将其等同于生产灾备或跨环境恢复演练。 |
+
+## D105 Docker Runtime SiliconFlow 双 Embedding 当前凭据复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；凭据仅由本地忽略 `.env` 注入，未输出或写入仓库。 |
+| BGE profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest`：模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `1894.89 ms`，请求通过。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `3502.4 ms`，请求通过。 |
+| 配置与启动 | 两次验证均使用独立 Milvus collection；切换期间一次性 RocketMQ 初始化最终正常退出，`foodmate-agent-runtime` 恢复为 `healthy`，宿主端口 `9002 -> 9000`。验证后 `.env` 恢复为 Qwen profile。 |
+| 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；未执行迁移、truncate、现有业务数据删除或生产操作。 |
+| 结论 | Docker 可启动 Python Runtime，并已取得两个指定 SiliconFlow Embedding 模型的真实协议证据；该证据不替代长稳性能、成本对账、故障矩阵或生产门禁。 |
+
+## D106 Docker Runtime SiliconFlow 双 Embedding 当前轮次复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；密钥仅由本地忽略 `.env` 注入，未输出或写入仓库。 |
+| BGE profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest`：模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `2243.95 ms`，请求通过。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `880.63 ms`，请求通过。 |
+| 配置恢复 | BGE 验证后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；Runtime readiness 为 `healthy`。 |
+| 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
+| 结论 | Docker Python Runtime 的两个指定 SiliconFlow Embedding profile 均取得本轮真实协议证据；该证据不替代长稳性能、成本对账、故障矩阵或生产门禁。 |
+
+## D107 Docker Runtime SiliconFlow DeepSeek Chat 当前轮次复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate` 与 `agent-runtime`；密钥仅由本地忽略 `.env` 注入，未输出或写入仓库。 |
+| 路由 | `siliconflow-docker-chat-smoke.ps1 -Tier standard -ExecuteRequest`：`cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，预检通过。 |
+| 真实调用 | 返回有效响应摘要，`total_tokens=23`，延迟 `5961.05 ms`，请求通过；未保存回答正文或供应商原始响应。 |
+| 结论 | Docker Python Runtime 的真实 Chat 配置已生效；该证据不替代长稳、容量、价格账单对账或生产可用性结论。 |

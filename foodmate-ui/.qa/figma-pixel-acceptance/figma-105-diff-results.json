@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30",
+  "generatedAt": "2026-08-31",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -29,10 +29,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 514737,
-      "differentRatio": 0.349078369140625,
-      "meanAbsoluteError": 2.7163292778862846,
-      "rmse": 15.930098490692927,
+      "differentPixels": 536960,
+      "differentRatio": 0.3641493055555556,
+      "meanAbsoluteError": 2.6221749199761284,
+      "rmse": 15.524117299962004,
       "maxChannelDelta": 234
     },
     "intake-analysis-v2": {
@@ -40,10 +40,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 393761,
-      "differentRatio": 0.26703626844618056,
-      "meanAbsoluteError": 2.721724446614583,
-      "rmse": 15.6125903736869,
+      "differentPixels": 405974,
+      "differentRatio": 0.27531873914930555,
+      "meanAbsoluteError": 2.4934480455186634,
+      "rmse": 14.132416836994588,
       "maxChannelDelta": 234
     },
     "meal-planning-v2": {
@@ -51,11 +51,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 326174,
-      "differentRatio": 0.2212009006076389,
-      "meanAbsoluteError": 2.603460184733073,
-      "rmse": 15.16151349061914,
-      "maxChannelDelta": 243
+      "differentPixels": 341408,
+      "differentRatio": 0.23153211805555557,
+      "meanAbsoluteError": 2.243974134657118,
+      "rmse": 12.938152178442435,
+      "maxChannelDelta": 234
     },
     "login-v2": {
       "status": "COMPARED",
@@ -1041,10 +1041,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 472595,
-      "differentRatio": 0.3204989963107639,
-      "meanAbsoluteError": 2.9652240329318578,
-      "rmse": 15.923451621548091,
+      "differentPixels": 466371,
+      "differentRatio": 0.316278076171875,
+      "meanAbsoluteError": 2.613027106391059,
+      "rmse": 14.310727418635585,
       "maxChannelDelta": 230
     },
     "admin-model-usage": {

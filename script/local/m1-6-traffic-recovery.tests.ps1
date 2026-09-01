@@ -2,6 +2,17 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $scriptPath = Join-Path $repoRoot "script/local/m1-6-traffic-recovery.ps1"
 $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+$auditSnapshot = [regex]::Match($scriptText, '(?s)function Get-AuditSnapshot.*?function Test-QueueAtBaseline').Value
+if ([string]::IsNullOrWhiteSpace($auditSnapshot)) {
+    throw "M1-6 traffic entrypoint is missing the audit snapshot function"
+}
+if ($auditSnapshot -match "username=:'scan_username'") {
+    throw "M1-6 audit snapshot must not pass an unexpanded psql variable through Docker"
+}
+$validatedUsernameSql = [regex]::Escape(('username=' + [char]39 + '$username' + [char]39))
+if ($auditSnapshot -notmatch $validatedUsernameSql) {
+    throw "M1-6 audit snapshot must use the validated generated username"
+}
 
 if ($scriptText -notmatch '\[switch\]\$ExecuteTraffic') {
     throw "M1-6 traffic entrypoint must require an explicit ExecuteTraffic switch"
@@ -63,11 +74,63 @@ if ($scriptText -notmatch 'pending\s*=\s*\$values\[0\]\s*\+\s*\$values\[3\]\s*\+
 if ($scriptText -notmatch '\$workerSessionId') {
     throw "M1-6 traffic workers must use a worker-local session"
 }
+if ($scriptText -match '\$operations\s*=\s*(?:New-Object\s+)?System\.Collections\.Generic\.List\[object\]') {
+    throw "M1-6 PowerShell workers must not return generic List values across a background Job boundary"
+}
+if ($scriptText -notmatch '\$operations\s*=\s*@\(\)') {
+    throw "M1-6 traffic workers must collect operations in a Job-serializable array"
+}
 if ($scriptText -notmatch 'api/sessions') {
     throw "M1-6 traffic workers must create sessions through the real API"
 }
 if ($scriptText -match '\$sharedSessionId') {
     throw "M1-6 traffic workers must not share one session across workers"
+}
+
+if ($scriptText -notmatch 'foreach\s*\(\$job\s+in\s+@\(\$jobs\)\)') {
+    throw "M1-6 traffic results must be received one Job at a time for Windows PowerShell compatibility"
+}
+if ($scriptText -match 'Receive-Job\s+-Job\s+\$jobs\b') {
+    throw "M1-6 traffic must not pass the heterogeneous jobs array directly to Receive-Job"
+}
+if ($scriptText -notmatch 'Receive-Job\s+-Id\s+\(\[int\]\$job\.Id\)') {
+    throw "M1-6 traffic must receive each worker Job by its stable numeric id"
+}
+if ($scriptText -notmatch 'ChildJobs.*Error|worker_error') {
+    throw "M1-6 traffic must retain worker Job errors in the report"
+}
+if ($scriptText -notmatch 'worker setup failed:\s*\$\(') {
+    throw "M1-6 traffic must expose a bounded worker setup error summary for diagnosis"
+}
+if ($scriptText -notmatch 'worker_errors\s*=') {
+    throw "M1-6 traffic report must expose bounded worker error summaries"
+}
+if ($scriptText -notmatch '\[int\]\$DrainTimeoutSeconds\s*=\s*90') {
+    throw "M1-6 traffic must allow a bounded queue drain timeout for diagnostics"
+}
+if ($scriptText -notmatch 'Wait-QueueDrained\s+\$DrainTimeoutSeconds') {
+    throw "M1-6 traffic must use the configured queue drain timeout"
+}
+if ($scriptText -notmatch 'Test-QueueAtBaseline') {
+    throw "M1-6 traffic must distinguish pre-existing queue backlog from this run's drain target"
+}
+if ($scriptText -notmatch 'Get-QueueDelta') {
+    throw "M1-6 traffic report must expose queue changes relative to the pre-run baseline"
+}
+if ($scriptText -notmatch 'queue_peak_over_baseline') {
+    throw "M1-6 traffic report must expose peak queue growth over the pre-run baseline"
+}
+if ($scriptText -match '\[hashtable\]\$input|\$input\s*=') {
+    throw "M1-6 PowerShell workers must not use the automatic input enumerator as proposal parameters"
+}
+if ($scriptText -notmatch '\$parameters') {
+    throw "M1-6 proposal worker must use an explicit parameters variable"
+}
+if ($scriptText -notmatch 'function Get-ApprovalStatus') {
+    throw "M1-6 superseded scenario must re-read the authoritative approval status"
+}
+if ($scriptText -notmatch 'GET.*api/approvals') {
+    throw "M1-6 superseded scenario must use the approval read API"
 }
 
 Write-Output "m1_6_traffic_contract=passed"

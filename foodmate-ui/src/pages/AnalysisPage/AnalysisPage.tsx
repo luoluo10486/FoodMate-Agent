@@ -274,7 +274,6 @@ export function AnalysisPage() {
       sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
-      hideSessionHistory={isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       <div className={styles.page}>

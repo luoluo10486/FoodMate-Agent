@@ -114,6 +114,21 @@ class ApprovalServiceImplTest {
     }
 
     @Test
+    void getReturnsTheCurrentOwnedProposalState() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        ApprovalRequestRepository.ApprovalSnapshot pending =
+                snapshotFor(parameters("pending"), "superseded", FUTURE);
+        when(repository.findOwned(7L, 100L)).thenReturn(pending);
+        ApprovalService service = service(repository, mock(MealPlanService.class), ids(101L));
+
+        ApprovalService.ProposalView result = service.get(7L, 100L);
+
+        assertEquals(100L, result.approvalRequestId());
+        assertEquals("superseded", result.status());
+        verify(repository).findOwned(7L, 100L);
+    }
+
+    @Test
     void confirmMovesPendingProposalToConfirmedAndAuditsIt() {
         ApprovalRequestRepository repository =
                 org.mockito.Mockito.mock(ApprovalRequestRepository.class);

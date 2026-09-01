@@ -91,6 +91,13 @@ class CloudSmokeScriptContractTests(TestCase):
         self.assertNotIn("--api-key", script.lower())
         self.assertNotIn("$ModelApiKey", script)
 
+    def test_docker_chat_smoke_disables_thinking_for_short_bounded_probe(self):
+        script = (
+            self.ROOT / "script" / "local" / "siliconflow-docker-chat-smoke.ps1"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('"enable_thinking": False', script)
+
     def test_windows_cloud_smoke_scripts_use_utf8_bom_and_consistent_crlf(self):
         for relative_path in (
             "script/local/siliconflow-embedding-smoke.ps1",
@@ -99,3 +106,30 @@ class CloudSmokeScriptContractTests(TestCase):
             raw = (self.ROOT / relative_path).read_bytes()
             self.assertTrue(raw.startswith(codecs.BOM_UTF8), relative_path)
             self.assertNotIn(b"\n", raw.replace(b"\r\n", b""), relative_path)
+
+    def test_cloud_smoke_scripts_resolve_explicit_python_paths_before_changing_directory(self):
+        for relative_path in (
+            "script/local/siliconflow-embedding-smoke.ps1",
+            "script/local/siliconflow-chat-smoke.ps1",
+        ):
+            script = (self.ROOT / relative_path).read_text(encoding="utf-8-sig")
+            self.assertIn(
+                "$PythonPath = (Resolve-Path -LiteralPath $PythonPath).Path",
+                script,
+                relative_path,
+            )
+
+    def test_embedding_profile_switch_has_two_isolated_models_and_collections(self):
+        script_path = self.ROOT / "script" / "local" / "switch-rag-embedding-profile.ps1"
+
+        self.assertTrue(script_path.is_file())
+        script = script_path.read_text(encoding="utf-8-sig")
+
+        self.assertIn('ValidateSet("bge-m3", "qwen3-embedding-0.6b")', script)
+        self.assertIn('"BAAI/bge-m3"', script)
+        self.assertIn('"Qwen/Qwen3-Embedding-0.6B"', script)
+        self.assertIn('"foodmate_knowledge_chunks_bge_m3"', script)
+        self.assertIn('"foodmate_knowledge_chunks_qwen3_embedding_0_6b"', script)
+        self.assertIn("FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY", script)
+        self.assertNotIn("ApiKey", script)
+        self.assertIn("SupportsShouldProcess", script)

@@ -170,7 +170,7 @@ function Invoke-Json(
     [object]$context,
     [string]$method,
     [string]$url,
-    [hashtable]$payload = $null,
+    [object]$payload = $null,
     [hashtable]$headers = $null
 ) {
     $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::new($method), $url)
@@ -300,11 +300,21 @@ function Wait-AgentRun([object]$probe, [string]$baseUrl, [string]$runId) {
     throw "AgentRun did not reach a terminal state within $RecoveryTimeoutSeconds seconds"
 }
 
+function New-CompletedAgentRun([object]$probe, [string]$baseUrl) {
+    $runId = New-AgentRun $probe $baseUrl
+    $status = Wait-AgentRun $probe $baseUrl $runId
+    if ($status -ne "completed") {
+        throw "AgentRun fault probe requires a completed Run; actual status=$status"
+    }
+    return $runId
+}
+
 function Get-RawEvent([string]$runId) {
     $safeRunId = $runId.Replace("'", "''")
     $query = @"
 SELECT json_build_object(
   'schema_version','v1',
+  'runtime_event_inbox_id',e.runtime_event_inbox_id,
   'run_id',CAST(e.agent_run_id AS text),
   'dispatch_id',e.dispatch_id,
   'attempt',d.attempt,
@@ -314,6 +324,9 @@ SELECT json_build_object(
   'trace_id',COALESCE(r.trace_id,'m1-6-fault-matrix'),
   'request_hash',e.request_hash,
   'occurred_at',e.occurred_at,
+  'received_at',e.received_at,
+  'applied_at',e.applied_at,
+  'processing_status',e.processing_status,
   'event_type',e.event_type,
   'payload',e.payload_json
 )::text
@@ -335,19 +348,182 @@ function Invoke-DuplicateEvent([object]$probe, [string]$baseUrl, [string]$runId)
     return [pscustomobject]@{ duplicate_deliveries = 1; duplicate_side_effects = 0; final_status = "inbox_duplicate_reused" }
 }
 
+function Invoke-InboxNotAck([object]$probe, [string]$baseUrl, [string]$runId) {
+    # 先读取已经提交的 Inbox 事实，再模拟其消费 ACK 在提交后丢失。
+    $event = Get-RawEvent $runId
+    if ($null -eq $event -or [string]$event.processing_status -ne "applied") {
+        throw "Inbox no-ACK probe requires an already applied persisted event"
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$event.applied_at)) {
+        throw "Inbox no-ACK probe requires an applied_at completion fact"
+    }
+    $before = Get-RunDispatchSummary $runId
+    if ($null -eq $before) { throw "Inbox no-ACK probe requires a persisted dispatch summary" }
+    $faultInjectedAt = (Get-Date).ToUniversalTime().ToString("o")
+    $redelivery = Invoke-Json $probe.context "POST" "$baseUrl/foodmate/internal/v1/agent-events" $event @{ "X-Contract-Version" = "v1" }
+    if (-not [bool]$redelivery.data.duplicate) {
+        throw "Inbox no-ACK redelivery did not reuse the completed Inbox fact"
+    }
+    $after = Get-RunDispatchSummary $runId
+    $eventAfter = Get-RawEvent $runId
+    if ([string]$eventAfter.processing_status -ne "applied" -or
+        [string]$eventAfter.applied_at -ne [string]$event.applied_at) {
+        throw "Inbox no-ACK redelivery changed the completed Inbox fact"
+    }
+    $eventDelta = [int64]$after.event_count - [int64]$before.event_count
+    $assistantDelta = [int64]$after.assistant_count - [int64]$before.assistant_count
+    $duplicateSideEffects = [math]::Max(0, $eventDelta + $assistantDelta)
+    if ($duplicateSideEffects -ne 0) {
+        throw "Inbox no-ACK redelivery produced duplicate business side effects"
+    }
+    return [pscustomobject]@{
+        fault_injected_at = $faultInjectedAt
+        readiness_recovered_at = (Get-Date).ToUniversalTime().ToString("o")
+        runtime_event_inbox_id = [string]$event.runtime_event_inbox_id
+        initial_processing_status = [string]$event.processing_status
+        final_processing_status = [string]$eventAfter.processing_status
+        initial_applied_at = [string]$event.applied_at
+        final_applied_at = [string]$eventAfter.applied_at
+        initial_delivery_committed = $true
+        ack_lost_after_commit = $true
+        redelivery_duplicate = [bool]$redelivery.data.duplicate
+        duplicate_deliveries = 1
+        duplicate_side_effects = $duplicateSideEffects
+        event_count_before = [int64]$before.event_count
+        event_count_after = [int64]$after.event_count
+        assistant_count_before = [int64]$before.assistant_count
+        assistant_count_after = [int64]$after.assistant_count
+        final_status = "inbox_redelivered_after_ack_loss"
+    }
+}
+
+function Invoke-PsqlCommand([string]$query) {
+    docker exec foodmate-postgres psql -U postgres -d FoodMate -v ON_ERROR_STOP=1 -c $query 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "PostgreSQL fault-injection command failed" }
+}
+
+function Get-RunDispatchSummary([string]$runId) {
+    $safeRunId = $runId.Replace("'", "''")
+    $query = @"
+SELECT json_build_object(
+  'outbox_id',o.outbox_id,
+  'dispatch_id',o.dispatch_id,
+  'status',o.status,
+  'transport',o.transport,
+  'send_attempts',o.send_attempts,
+  'event_count',(SELECT COUNT(*) FROM runtime_event_inbox_v2 e WHERE e.agent_run_id=o.agent_run_id),
+  'assistant_count',(SELECT COUNT(*) FROM messages m WHERE m.agent_run_id=o.agent_run_id AND m.role='assistant' AND m.is_deleted=FALSE)
+)::text
+FROM runtime_dispatch_outbox o
+WHERE o.run_id='$safeRunId'
+ORDER BY o.created_at DESC
+LIMIT 1;
+"@
+    return Invoke-PsqlJson $query
+}
+
+function Get-PersistedSseEvents([string]$runId) {
+    $safeRunId = $runId.Replace("'", "''")
+    $query = @"
+SELECT COALESCE(
+  json_agg(
+    json_build_object(
+      'stream_seq',stream_seq,
+      'sse_event_id',sse_event_id,
+      'event_type',event_type,
+      'terminal',event_type IN ('run.completed','run.failed','run.cancelled')
+    ) ORDER BY stream_seq
+  ),
+  '[]'::json
+)::text
+FROM agent_run_sse_outbox
+WHERE agent_run_id='$safeRunId';
+"@
+    return Invoke-PsqlJson $query
+}
+
+function Wait-OutboxRepublished([string]$runId, [int64]$outboxId, [int]$previousAttempts) {
+    $deadline = (Get-Date).AddSeconds($RecoveryTimeoutSeconds)
+    $latest = $null
+    do {
+        $latest = Get-RunDispatchSummary $runId
+        if ([int64]$latest.outbox_id -eq $outboxId -and
+            [string]$latest.status -eq "published" -and
+            [int]$latest.send_attempts -gt $previousAttempts) {
+            return $latest
+        }
+        Start-Sleep -Milliseconds 500
+    } while ((Get-Date) -lt $deadline)
+    throw "Outbox ACK-loss probe did not observe a republished fact"
+}
+
+function Invoke-OutboxAckLost([object]$probe, [string]$baseUrl, [string]$runId) {
+    $before = Get-RunDispatchSummary $runId
+    if ($null -eq $before -or [string]$before.status -ne "published" -or [string]$before.transport -ne "rocketmq") {
+        throw "Outbox ACK-loss probe requires a published RocketMQ test fact"
+    }
+    $safeOutboxId = [int64]$before.outbox_id
+    $faultInjectedAt = (Get-Date).ToUniversalTime().ToString("o")
+    $query = @"
+UPDATE runtime_dispatch_outbox
+SET status='pending',
+    owner_token=NULL,
+    lease_until=NULL,
+    next_attempt_at=CURRENT_TIMESTAMP,
+    mq_message_id=NULL,
+    published_at=NULL,
+    delivered_at=NULL,
+    last_error='M1-6 injected broker ACK loss',
+    updated_at=CURRENT_TIMESTAMP
+WHERE outbox_id=$safeOutboxId
+  AND run_id='$($runId.Replace("'", "''"))'
+  AND status='published'
+  AND transport='rocketmq';
+"@
+    Invoke-PsqlCommand $query
+    $pending = Get-RunDispatchSummary $runId
+    if ($null -eq $pending -or [string]$pending.status -notin @("pending", "published")) {
+        throw "Outbox ACK-loss probe did not reset the selected test fact"
+    }
+    $after = Wait-OutboxRepublished $runId $safeOutboxId ([int]$before.send_attempts)
+    $faultSettledAt = (Get-Date).ToUniversalTime().ToString("o")
+    $eventDelta = [int64]$after.event_count - [int64]$before.event_count
+    $assistantDelta = [int64]$after.assistant_count - [int64]$before.assistant_count
+    $duplicateSideEffects = [math]::Max(0, $eventDelta + $assistantDelta)
+    if ($duplicateSideEffects -ne 0) {
+        throw "Outbox ACK-loss replay produced duplicate business side effects"
+    }
+    return [pscustomobject]@{
+        fault_injected_at = $faultInjectedAt
+        readiness_recovered_at = $faultSettledAt
+        outbox_id = $safeOutboxId
+        dispatch_id = [string]$before.dispatch_id
+        initial_send_attempts = [int]$before.send_attempts
+        final_send_attempts = [int]$after.send_attempts
+        retry_attempts = [int]$after.send_attempts - [int]$before.send_attempts
+        duplicate_deliveries = 1
+        duplicate_side_effects = $duplicateSideEffects
+        event_count_before = [int64]$before.event_count
+        event_count_after = [int64]$after.event_count
+        assistant_count_before = [int64]$before.assistant_count
+        assistant_count_after = [int64]$after.assistant_count
+        final_status = "outbox_replayed_idempotently"
+    }
+}
+
 function Invoke-SseReplay([object]$probe, [string]$baseUrl, [string]$runId) {
-    $events = Invoke-Json $probe.context "GET" "$baseUrl/api/chat/runs/$([uri]::EscapeDataString($runId))/events"
-    $items = @($events.data)
+    $items = @(Get-PersistedSseEvents $runId)
     if ($items.Count -lt 2) { throw "SSE replay probe needs at least two persisted events" }
-    $cursor = [string]$items[0].event_id
-    $expected = @($items | Where-Object { [long]$_.event_seq -gt [long]$items[0].event_seq } | ForEach-Object { [string]$_.event_id })
+    $cursor = [string]$items[0].sse_event_id
+    $expected = @($items | Where-Object { [long]$_.stream_seq -gt [long]$items[0].stream_seq } | ForEach-Object { [string]$_.sse_event_id })
     $request = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Get, "$baseUrl/api/chat/runs/$([uri]::EscapeDataString($runId))/stream")
     [void]$request.Headers.TryAddWithoutValidation("Last-Event-ID", $cursor)
     $response = $probe.context.Client.SendAsync($request).GetAwaiter().GetResult()
     $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
     if (-not $response.IsSuccessStatusCode) { throw "SSE replay returned HTTP $([int]$response.StatusCode)" }
     $observed = @([regex]::Matches($body, '(?m)^id:\s*(\S+)') | ForEach-Object { $_.Groups[1].Value })
-    $terminalCount = @($observed | Where-Object { $_ -in @($items | Where-Object { $_.state -in @("SUCCEEDED", "FAILED", "CANCELED") } | ForEach-Object { [string]$_.event_id }) }).Count
+    $terminalIds = @($items | Where-Object { [bool]$_.terminal } | ForEach-Object { [string]$_.sse_event_id })
+    $terminalCount = @($observed | Where-Object { $_ -in $terminalIds }).Count
     $missing = @($expected | Where-Object { $_ -notin $observed }).Count
     $duplicates = $observed.Count - @($observed | Select-Object -Unique).Count
     if ($missing -ne 0 -or $terminalCount -gt 1) { throw "SSE replay has missing events or duplicate terminal events" }
@@ -365,9 +541,6 @@ function Invoke-ContainerRestart([string]$component, [string[]]$containers) {
     $recovery = @()
     foreach ($container in $containers) {
         if ($container -notin $containerAllowList) { throw "Container is outside the local allow-list: $container" }
-        if (-not $PSCmdlet.ShouldProcess($container, "restart local fault-matrix component")) {
-            continue
-        }
         docker restart $container | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "failed to restart $container" }
         if ($container -eq "foodmate") { $recovery += Wait-HttpReady "java_readiness_after_restart" "$JavaBaseUrl/actuator/health/readiness" }
@@ -482,11 +655,11 @@ try {
                 "duplicate-proposal" { $result.evidence = Invoke-DuplicateProposal $probe $JavaBaseUrl }
                 { $_ -in @("outbox-ack-lost", "inbox-not-ack", "duplicate-event", "sse-last-event-id") } {
                     if (-not $IncludeAgentRun) { throw "Scenario $name requires -IncludeAgentRun to create a real run" }
-                    if ([string]::IsNullOrWhiteSpace($probe.run_id)) { $probe.run_id = New-AgentRun $probe $JavaBaseUrl }
-                    $status = Wait-AgentRun $probe $JavaBaseUrl $probe.run_id
-                    if ($name -eq "duplicate-event" -or $name -eq "inbox-not-ack") { $result.evidence = Invoke-DuplicateEvent $probe $JavaBaseUrl $probe.run_id }
+                    $probe.run_id = New-CompletedAgentRun $probe $JavaBaseUrl
+                    if ($name -eq "outbox-ack-lost") { $result.evidence = Invoke-OutboxAckLost $probe $JavaBaseUrl $probe.run_id }
+                    elseif ($name -eq "inbox-not-ack") { $result.evidence = Invoke-InboxNotAck $probe $JavaBaseUrl $probe.run_id }
+                    elseif ($name -eq "duplicate-event") { $result.evidence = Invoke-DuplicateEvent $probe $JavaBaseUrl $probe.run_id }
                     elseif ($name -eq "sse-last-event-id") { $result.evidence = Invoke-SseReplay $probe $JavaBaseUrl $probe.run_id }
-                    else { $result.evidence = [pscustomobject]@{ retry_attempts = 0; final_status = "outbox-replay_requires_orchestrator_fixture"; source_run_status = $status } }
                 }
             }
             if ($result.evidence.fault_injected_at) { $result.fault_injected_at = [string]$result.evidence.fault_injected_at }

@@ -11,6 +11,7 @@ import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.context.annotation.Profile;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,6 +46,12 @@ public class ApprovalController extends AuthenticatedControllerSupport {
                                         body.parameters(),
                                         body.idempotencyKey(),
                                         body.expiresInSeconds()))));
+    }
+
+    @GetMapping("/{approvalRequestId}")
+    public ApiResponse<ApprovalProposalResponse> get(
+            HttpServletRequest request, @PathVariable long approvalRequestId) {
+        return ok(map(approvals.get(user(request).userId(), approvalRequestId)));
     }
 
     @PostMapping("/{approvalRequestId}/confirm")

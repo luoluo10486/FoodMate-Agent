@@ -7,6 +7,9 @@ import java.time.Instant;
 public interface ApprovalService {
     ProposalView propose(long userId, ProposalCommand command);
 
+    /** 查询当前用户拥有的审批请求权威状态。 */
+    ProposalView get(long userId, long approvalRequestId);
+
     String parametersDigest(
             String operation, String resourceType, Long resourceId, JsonNode parameters);
 

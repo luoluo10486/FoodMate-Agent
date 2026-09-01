@@ -18,7 +18,7 @@
 - [x] 本地依赖恢复子项已验证：Python readiness HTTP 200，Redis checkpoint、Redis、RocketMQ event/proposal producer、command/result consumer 均 ready；Redis AOF 探针在容器重启后保留，RocketMQ NameServer/Broker/Proxy 重启后 healthy 且 Topic/group 初始化成功。
 - [ ] 生产级长压、多实例 Agent 业务吞吐、队列积压/重复执行、PostgreSQL 进程重启，以及 Outbox/Inbox ACK 丢失、租约接管和 SSE 故障恢复仍待执行。
 - [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
-- [x] 宿主机显式 SiliconFlow smoke 已验证 `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 均返回 1024 维向量；Docker `agent-runtime` 的 profile、集合隔离和凭据映射已验证，容器内真实 HTTPS 请求仍因本机 Docker 出站 TLS 握手失败而未通过。
+- [x] 宿主机和 Docker `agent-runtime` 均已通过 SiliconFlow `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 的显式 `/v1/embeddings` smoke，两个模型均返回 1024 维向量；运行时仍一次选择一个 profile，并使用独立 Milvus collection，详见执行记录 D98。
 - [x] M1-5 第一切片已完成本地代码和真实 HTTP E2E：饮食记录创建/查询/编辑/删除/恢复，today/7d/30d 分析，计划创建/查询/修改/校验/保存/删除/恢复/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。
 - [x] `food_log_writer` 已完成：Proposal -> Confirm -> Execute、`confirmation_ref`/AgentRun/用户归属/参数摘要/幂等校验、复用饮食记录写入用例、`food_log_id` 回填、rejected/failed/superseded 和 create/update/delete/restore 均已有定向测试，并已通过真实 PostgreSQL HTTP 和 RocketMQ writer 回归。
 - [x] 本地 PostgreSQL 已存在 V13/V14/V15 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。营养目录 V1-V7 已人工导入 48 条 approved USDA 数据，V2/V4/V5/V7 已导入 48 条 approved USDA foodPortions 规则，V6 已导入 75 条精确质量换算并通过校验；未覆盖的密度单位仍不推断。

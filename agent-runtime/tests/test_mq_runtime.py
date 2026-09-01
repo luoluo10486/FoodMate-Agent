@@ -2,8 +2,10 @@ import json
 import time
 import sys
 import base64
+from concurrent.futures import Future
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 from unittest import TestCase
 
 sys.path.append(str(Path(__file__).parents[1]))
@@ -66,7 +68,113 @@ class FakeProducer:
         pass
 
 
+class FakeConsumer:
+    instances = []
+
+    def __init__(self, _configuration, _group, _listener, subscription, **_kwargs):
+        self.topic = next(iter(subscription))
+        self.is_running = False
+        self.route_available = True
+        self.heartbeat_available = True
+        self.shutdown_count = 0
+        type(self).instances.append(self)
+
+    def startup(self):
+        self.is_running = True
+
+    def shutdown(self):
+        self.shutdown_count += 1
+        self.is_running = False
+
+    def _Client__update_topic_route(self, _topic):
+        return object() if self.route_available else None
+
+    def _Client__get_all_endpoints(self):
+        return {"fake-endpoint": object()}
+
+    def _Client__heartbeat_req(self):
+        return object()
+
+    def _sign(self):
+        return ()
+
+    @property
+    def rpc_client(self):
+        return self
+
+    def heartbeat_async(self, _endpoint, _request, _metadata, timeout=3):
+        future = Future()
+        if self.heartbeat_available:
+            future.set_result(SimpleNamespace(status=SimpleNamespace(code=0)))
+        else:
+            future.set_exception(RuntimeError("heartbeat unavailable"))
+        return future
+
+
+class FakePublisher:
+    def __init__(self):
+        self.reconnect_count = 0
+        self.close_count = 0
+
+    def reconnect(self):
+        self.reconnect_count += 1
+
+    def close(self):
+        self.close_count += 1
+
+
 class MqRuntimeTests(TestCase):
+    def test_runtime_rebuilds_clients_when_started_connection_fails_health_probe(self):
+        FakeConsumer.instances = []
+        event_publisher = FakePublisher()
+        proposal_publisher = FakePublisher()
+        with patch("mq_runtime.PushConsumer", FakeConsumer):
+            from mq_runtime import RocketMqRuntime
+
+            runtime = RocketMqRuntime(
+                lambda _command: None,
+                publisher=event_publisher,
+                proposal_publisher=proposal_publisher,
+            )
+            runtime.start()
+            stale_command = runtime.consumer
+            stale_result = runtime.result_consumer
+            stale_command.route_available = False
+            stale_result.route_available = False
+
+            self.assertTrue(runtime.ensure_healthy())
+            self.assertEqual(4, len(FakeConsumer.instances))
+            self.assertIsNot(stale_command, runtime.consumer)
+            self.assertIsNot(stale_result, runtime.result_consumer)
+            self.assertEqual(1, event_publisher.reconnect_count)
+            self.assertEqual(1, proposal_publisher.reconnect_count)
+            self.assertTrue(runtime.ensure_healthy())
+            runtime.close()
+
+    def test_runtime_rebuilds_clients_when_route_is_available_but_heartbeat_fails(self):
+        FakeConsumer.instances = []
+        event_publisher = FakePublisher()
+        proposal_publisher = FakePublisher()
+        with patch("mq_runtime.PushConsumer", FakeConsumer):
+            from mq_runtime import RocketMqRuntime
+
+            runtime = RocketMqRuntime(
+                lambda _command: None,
+                publisher=event_publisher,
+                proposal_publisher=proposal_publisher,
+            )
+            runtime.start()
+            stale_command = runtime.consumer
+            stale_result = runtime.result_consumer
+            stale_command.heartbeat_available = False
+            stale_result.heartbeat_available = False
+
+            self.assertTrue(runtime.ensure_healthy())
+            self.assertEqual(4, len(FakeConsumer.instances))
+            self.assertIsNot(stale_command, runtime.consumer)
+            self.assertIsNot(stale_result, runtime.result_consumer)
+            runtime.close()
+
     def test_rocketmq_startup_timeout_returns_explicit_failure(self):
         class HangingClient:
             def startup(self):
