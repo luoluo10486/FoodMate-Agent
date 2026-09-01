@@ -24,5 +24,14 @@ if ($scriptText -match '(?i)FOODMATE_.*API_KEY\s*=\s*[^#]+') {
 if ($scriptText -notmatch 'expected_model') {
     throw "Docker Embedding smoke must compare the configured model with the requested profile"
 }
+if ($scriptText -notmatch 'function Test-AgentRuntimeReady') {
+    throw "Docker Embedding smoke must keep a bounded Runtime readiness probe"
+}
+if ($scriptText -notmatch 'function Wait-AgentRuntimeReady') {
+    throw "Docker Embedding smoke must wait for Runtime readiness after container recreation"
+}
+if ($scriptText -notmatch 'Wait-AgentRuntimeReady') {
+    throw "Docker Embedding smoke must use the bounded readiness wait"
+}
 
 Write-Output "siliconflow_docker_embedding_smoke_contract=passed"

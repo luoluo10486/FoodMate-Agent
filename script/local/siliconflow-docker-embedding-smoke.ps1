@@ -100,7 +100,22 @@ function Test-AgentRuntimeReady {
     }
 }
 
-Test-AgentRuntimeReady
+function Wait-AgentRuntimeReady([int]$timeoutSeconds = 90) {
+    $deadline = (Get-Date).AddSeconds($timeoutSeconds)
+    $lastError = "unknown readiness failure"
+    do {
+        try {
+            Test-AgentRuntimeReady
+            return
+        } catch {
+            $lastError = $_.Exception.Message
+        }
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $deadline)
+    throw "agent-runtime readiness 在 $timeoutSeconds 秒内未恢复：$lastError"
+}
+
+Wait-AgentRuntimeReady
 $agentConfig = Get-AgentRuntimeRagConfig
 $expectedModel = Assert-ProfileConfiguration $EmbeddingProfile $agentConfig
 Write-Output "docker_embedding_smoke_preflight=passed"
