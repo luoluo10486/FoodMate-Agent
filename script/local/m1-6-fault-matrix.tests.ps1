@@ -104,6 +104,18 @@ if ($scriptText -notmatch 'runtime_event_inbox_v2') {
 if ($scriptText -notmatch 'function Invoke-OutboxAckLost') {
     throw "Fault matrix must execute a real Outbox ACK-loss replay probe"
 }
+if ($scriptText -notmatch 'function Invoke-InboxNotAck') {
+    throw "Fault matrix must execute a distinct Inbox no-ACK replay probe"
+}
+if ($scriptText -notmatch 'ack_lost_after_commit') {
+    throw "Inbox no-ACK probe must identify the committed-transaction/ack-loss fault model"
+}
+if ($scriptText -notmatch 'processing_status') {
+    throw "Inbox no-ACK probe must verify the persisted Inbox completion fact"
+}
+if ($scriptText -match '(?s)elseif\s*\(\$name\s*-eq\s*\"inbox-not-ack\"\s*\)\s*\{[^}]*Invoke-DuplicateEvent') {
+    throw "Inbox no-ACK must not reuse the generic duplicate-event probe"
+}
 if ($scriptText -notmatch 'UPDATE runtime_dispatch_outbox') {
     throw "Outbox ACK-loss probe must reset one published test fact for controlled replay"
 }

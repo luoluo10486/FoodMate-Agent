@@ -305,6 +305,7 @@ function Get-RawEvent([string]$runId) {
     $query = @"
 SELECT json_build_object(
   'schema_version','v1',
+  'runtime_event_inbox_id',e.runtime_event_inbox_id,
   'run_id',CAST(e.agent_run_id AS text),
   'dispatch_id',e.dispatch_id,
   'attempt',d.attempt,
@@ -314,6 +315,9 @@ SELECT json_build_object(
   'trace_id',COALESCE(r.trace_id,'m1-6-fault-matrix'),
   'request_hash',e.request_hash,
   'occurred_at',e.occurred_at,
+  'received_at',e.received_at,
+  'applied_at',e.applied_at,
+  'processing_status',e.processing_status,
   'event_type',e.event_type,
   'payload',e.payload_json
 )::text
@@ -333,6 +337,55 @@ function Invoke-DuplicateEvent([object]$probe, [string]$baseUrl, [string]$runId)
     $duplicate = [bool]$result.data.duplicate
     if (-not $duplicate) { throw "duplicate event was not recognized by the Java Inbox" }
     return [pscustomobject]@{ duplicate_deliveries = 1; duplicate_side_effects = 0; final_status = "inbox_duplicate_reused" }
+}
+
+function Invoke-InboxNotAck([object]$probe, [string]$baseUrl, [string]$runId) {
+    # 先读取已经提交的 Inbox 事实，再模拟其消费 ACK 在提交后丢失。
+    $event = Get-RawEvent $runId
+    if ($null -eq $event -or [string]$event.processing_status -ne "applied") {
+        throw "Inbox no-ACK probe requires an already applied persisted event"
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$event.applied_at)) {
+        throw "Inbox no-ACK probe requires an applied_at completion fact"
+    }
+    $before = Get-RunDispatchSummary $runId
+    if ($null -eq $before) { throw "Inbox no-ACK probe requires a persisted dispatch summary" }
+    $faultInjectedAt = (Get-Date).ToUniversalTime().ToString("o")
+    $redelivery = Invoke-Json $probe.context "POST" "$baseUrl/foodmate/internal/v1/agent-events" $event @{ "X-Contract-Version" = "v1" }
+    if (-not [bool]$redelivery.data.duplicate) {
+        throw "Inbox no-ACK redelivery did not reuse the completed Inbox fact"
+    }
+    $after = Get-RunDispatchSummary $runId
+    $eventAfter = Get-RawEvent $runId
+    if ([string]$eventAfter.processing_status -ne "applied" -or
+        [string]$eventAfter.applied_at -ne [string]$event.applied_at) {
+        throw "Inbox no-ACK redelivery changed the completed Inbox fact"
+    }
+    $eventDelta = [int64]$after.event_count - [int64]$before.event_count
+    $assistantDelta = [int64]$after.assistant_count - [int64]$before.assistant_count
+    $duplicateSideEffects = [math]::Max(0, $eventDelta + $assistantDelta)
+    if ($duplicateSideEffects -ne 0) {
+        throw "Inbox no-ACK redelivery produced duplicate business side effects"
+    }
+    return [pscustomobject]@{
+        fault_injected_at = $faultInjectedAt
+        readiness_recovered_at = (Get-Date).ToUniversalTime().ToString("o")
+        runtime_event_inbox_id = [string]$event.runtime_event_inbox_id
+        initial_processing_status = [string]$event.processing_status
+        final_processing_status = [string]$eventAfter.processing_status
+        initial_applied_at = [string]$event.applied_at
+        final_applied_at = [string]$eventAfter.applied_at
+        initial_delivery_committed = $true
+        ack_lost_after_commit = $true
+        redelivery_duplicate = [bool]$redelivery.data.duplicate
+        duplicate_deliveries = 1
+        duplicate_side_effects = $duplicateSideEffects
+        event_count_before = [int64]$before.event_count
+        event_count_after = [int64]$after.event_count
+        assistant_count_before = [int64]$before.assistant_count
+        assistant_count_after = [int64]$after.assistant_count
+        final_status = "inbox_redelivered_after_ack_loss"
+    }
 }
 
 function Invoke-PsqlCommand([string]$query) {
@@ -599,7 +652,8 @@ try {
                     if ([string]::IsNullOrWhiteSpace($probe.run_id)) { $probe.run_id = New-AgentRun $probe $JavaBaseUrl }
                     $status = Wait-AgentRun $probe $JavaBaseUrl $probe.run_id
                     if ($name -eq "outbox-ack-lost") { $result.evidence = Invoke-OutboxAckLost $probe $JavaBaseUrl $probe.run_id }
-                    elseif ($name -eq "duplicate-event" -or $name -eq "inbox-not-ack") { $result.evidence = Invoke-DuplicateEvent $probe $JavaBaseUrl $probe.run_id }
+                    elseif ($name -eq "inbox-not-ack") { $result.evidence = Invoke-InboxNotAck $probe $JavaBaseUrl $probe.run_id }
+                    elseif ($name -eq "duplicate-event") { $result.evidence = Invoke-DuplicateEvent $probe $JavaBaseUrl $probe.run_id }
                     elseif ($name -eq "sse-last-event-id") { $result.evidence = Invoke-SseReplay $probe $JavaBaseUrl $probe.run_id }
                 }
             }
