@@ -1807,3 +1807,13 @@
 | 轮换预检 | `script\\security\\secret-rotation-check.ps1`：预检通过；RAG/Chat 凭据分离检查通过。当前本地 `RUNTIME_SERVICE_JWT_ENABLED` 未开启，JWT 重叠轮换检查按脚本规则跳过，不宣称已完成供应商控制台或 JWT 轮换。 |
 | 配置边界 | Docker 使用 `FOODMATE_DOCKER_*` 输入映射到容器内 `FOODMATE_*`；真实 API Key 未写入 Git、执行记录、日志或命令参数。修改代码需 `--build`，修改环境变量需 `--force-recreate`。 |
 | 结论 | Docker 可直接负责启动 Python Runtime，当前实例健康；本轮仅完成启动、readiness 和本地安全预检，不替代生产密钥轮换、生产监控、性能容量或故障恢复证据。 |
+
+## D110 营养目录与单位换算只读核验（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 本地 Docker PostgreSQL `foodmate-postgres` / `FoodMate`；仅执行只读 SQL，未修改业务数据。 |
+| 营养目录 | `nutrition_foods` 未删除记录 `48` 条，其中 `approved=48`；当前 V1/V4/V5/V7 USDA 增量均已进入本地目录。 |
+| 单位换算 | `nutrition_unit_conversions` 未删除记录 `123` 条，其中 `approved=123`；包含食材级 USDA `foodPortions` 规则和 V6 精确质量单位规则。 |
+| 约束 | 未覆盖的食材、家庭单位和密度换算继续返回 `pending`；不使用模型推断营养值或单位密度。 |
+| 结论 | 当前本地功能范围的营养目录扩展和单位换算数据已具备数据库事实与 validation 依据；更广泛目录仍可在未来按新的官方来源增量评审，不作为本轮未验证数据补录。 |
