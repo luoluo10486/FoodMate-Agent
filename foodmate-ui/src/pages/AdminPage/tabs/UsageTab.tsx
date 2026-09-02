@@ -134,7 +134,9 @@ function emitUsageNotice(message: string) {
 }
 
 function UsageStatus({ status }: { status: FigmaUsageRow['status'] }) {
-  return <span className={`${styles.usageStatus} ${status === 'failed' ? styles.usageStatusFailed : ''}`}>{status}</span>;
+  return (
+    <span className={`${styles.usageStatus} ${status === 'failed' ? styles.usageStatusFailed : ''}`}>{status}</span>
+  );
 }
 
 function UsageProvider({ provider, rowIndex }: { provider: FigmaUsageRow['provider']; rowIndex: number }) {

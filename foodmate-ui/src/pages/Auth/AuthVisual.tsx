@@ -3,21 +3,9 @@ import type { ChangeEvent, CSSProperties, ReactNode } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import styles from '../LoginPage/LoginPage.module.css';
+import { authShellFigmaTokens } from './authVisualTokens';
 
 export type AuthVariant = 'login' | 'register' | 'forgot' | 'reset' | 'token';
-
-export const authShellFigmaTokens = {
-  register: {
-    diagonal: '#dfeedb',
-    accent: '#a6d997',
-  },
-  forgot: {
-    accent: '#48c78e',
-  },
-  reset: {
-    accent: '#48c78e',
-  },
-} as const;
 
 type AuthShellStyle = CSSProperties & {
   '--auth-diagonal'?: string;

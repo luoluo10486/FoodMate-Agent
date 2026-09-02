@@ -1,6 +1,6 @@
 # FoodMate Java 业务控制面工程骨架与跨语言边界设计
 
-> M1-5 当前实现口径（2026-08-15）：Java application 已编排手工记录创建/查询/编辑/删除/恢复、分析、餐食计划完整资源生命周期和 `meal_plan.save_plan` Agent 提案共享的业务用例；`food_log_writer` 的 create/update/delete/restore 已接入 Proposal/Confirm/Execute，复用同一 `FoodLogService` 并回填资源 ID，且已通过真实 PostgreSQL HTTP/RocketMQ 各 11/11 跨进程回归，覆盖 rejected/failed/superseded、revision 冲突、幂等重放和 foodPortions 换算分支。计划生命周期已通过本地 PostgreSQL HTTP 回归，覆盖幂等重放、revision 冲突、购物清单失效和恢复。infra 负责 `food_logs`、`food_log_items`、营养目录、计划和 `approval_requests` 持久化；api 只做 HTTP 参数转换。当前仍本地优先，营养目录已有 5 条 approved 食材 seed 和 5 条 approved 换算规则，更广泛 Tool/SQL、生产部署与备份恢复不属于本轮。
+> M1-5 当前实现口径（2026-09-02）：Java application 已编排手工记录创建/查询/编辑/删除/恢复、分析、餐食计划完整资源生命周期和 `meal_plan.save_plan` Agent 提案共享的业务用例；`food_log_writer` 的 create/update/delete/restore 已接入 Proposal/Confirm/Execute，复用同一 `FoodLogService` 并回填资源 ID，且已通过真实 PostgreSQL HTTP/RocketMQ 各 11/11 跨进程回归，覆盖 rejected/failed/superseded、revision 冲突、幂等重放和 foodPortions 换算分支。计划生命周期已通过本地 PostgreSQL HTTP 回归，覆盖幂等重放、revision 冲突、购物清单失效和恢复。infra 负责 `food_logs`、`food_log_items`、营养目录、计划和 `approval_requests` 持久化；api 只做 HTTP 参数转换。当前仍本地优先，营养目录已有 60 条 approved 食材 seed、60 条 approved USDA foodPortion 换算规则和 75 条精确质量换算；V8 seed/validation 已验证，更广泛 Tool/SQL、生产部署与备份恢复不属于本轮。
 
 版本：v1.2
 维护基线：2026-07-25
@@ -21,7 +21,7 @@ FoodMate 目标架构采用两个运行时：
 
 这不是让 Java 和 Python 成为两个业务后端。Java 是业务真值和最终授权点，Python 只能提出动作与查询建议。Python 不持有业务数据库写权限，不直接执行业务工具，也不向前端提供接口。
 
-当前 Java 控制面保留 6 个 Maven 模块；旧 Java Agent 占位模块已移除。Router、Planner、RAG、模型和 SQL Planner 归 Python Runtime，Tool/SQL Guard 在有真实实现前先按现有 Java 模块内的包组织。
+当前 Java 根 POM 实际保留 5 个 Maven 模块；仓库中旧 Java Agent 占位目录不属于当前 Reactor 构建。Router、Planner、RAG、模型和 SQL Planner 归 Python Runtime，Tool/SQL Guard 在有真实实现前先按现有 Java 模块内的包组织。
 
 采用双运行时的原因是系统的智能复杂度集中在：
 
@@ -139,7 +139,7 @@ foodmate/
   └── foodmate-shared/
 ```
 
-当前 Java 控制面采用 6 个 Maven 模块。Tool、Worker、领域规则、RAG、模型、编排和 SQL 的未来职责先在现有模块内以包组织；在出现独立部署、稳定边界或足够实现量前，不预建空 Maven module。
+当前 Java 控制面采用 5 个 Maven 模块。Tool、Worker、领域规则、RAG、模型、编排和 SQL 的未来职责先在现有模块内以包组织；在出现独立部署、稳定边界或足够实现量前，不预建空 Maven module。
 
 ### 2.2 模块清单与角色
 
@@ -148,7 +148,7 @@ foodmate/
 | `foodmate-bootstrap` | Java 启动模块 | Spring Boot 启动、配置和 Bean 装配 |
 | `foodmate-api` | Java 接入层 | 外部 HTTP/SSE、鉴权、内部 Agent 事件接收 |
 | `foodmate-application` | Java 应用层 | 用例、事务、AgentRun 状态机、DTO 和事件映射 |
-| `foodmate-gateway-client` | Java 客户端层 | Python Runtime Client、服务身份、超时、取消和协议转换 |
+| `foodmate-gateway-client` | 历史/过渡目录 | 不参与当前根 POM Reactor；Runtime Client 的现行装配以实际 Java 模块和代码为准 |
 | `foodmate-infra` | Java 基础设施层 | PostgreSQL、Redis、对象存储、SQL Guard/只读执行适配 |
 | `foodmate-shared` | Java 共享层 | 稳定公共对象、错误、Trace；不共享 Java 类给 Python |
 | `agent-runtime` | Python 智能执行面 | 编排、Prompt、模型、RAG、SQL proposal、checkpoint 和评测 |

@@ -507,7 +507,7 @@ function RunDetailSheet({
   );
 }
 
-function DataPlaceholder({ filtered, tab, error }: { filtered: boolean; tab: GovernanceTab; error?: string }) {
+function DataPlaceholder({ filtered, tab: _tab, error }: { filtered: boolean; tab: GovernanceTab; error?: string }) {
   const title = error
     ? '真实接口加载失败'
     : filtered
@@ -543,6 +543,17 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [traceDetailLoading, setTraceDetailLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   const activeTab = tabFromSearch(searchParams);
+
+  const selectDetail = (nextSelection?: DetailSelection) => {
+    setSelection(nextSelection);
+    if (nextSelection?.type === 'trace' && nextSelection.row.traceId !== '-') {
+      setTraceDetail(undefined);
+      setTraceDetailLoading(true);
+    } else {
+      setTraceDetail(undefined);
+      setTraceDetailLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isRealMode) return;
@@ -580,13 +591,9 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
 
   useEffect(() => {
     if (!isRealMode || selection?.type !== 'trace' || selection.row.traceId === '-') {
-      setTraceDetail(undefined);
-      setTraceDetailLoading(false);
       return;
     }
     let mounted = true;
-    setTraceDetail(undefined);
-    setTraceDetailLoading(true);
     loadAdminTraceDetail(selection.row.traceId)
       .then((detail) => {
         if (mounted) setTraceDetail(detail);
@@ -723,7 +730,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, row) => (
-        <Button variant="outline" size="sm" onClick={() => setSelection({ type: 'run', row })}>
+        <Button variant="outline" size="sm" onClick={() => selectDetail({ type: 'run', row })}>
           查看详情
         </Button>
       ),
@@ -741,7 +748,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, row) => (
-        <Button variant="outline" size="sm" onClick={() => setSelection({ type: 'tool', row })}>
+        <Button variant="outline" size="sm" onClick={() => selectDetail({ type: 'tool', row })}>
           查看详情
         </Button>
       ),
@@ -759,7 +766,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, row) => (
-        <Button variant="outline" size="sm" onClick={() => setSelection({ type: 'sql', row })}>
+        <Button variant="outline" size="sm" onClick={() => selectDetail({ type: 'sql', row })}>
           查看详情
         </Button>
       ),
@@ -777,7 +784,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     {
       title: '操作',
       render: (_, row) => (
-        <Button variant="outline" size="sm" onClick={() => setSelection({ type: 'trace', row })}>
+        <Button variant="outline" size="sm" onClick={() => selectDetail({ type: 'trace', row })}>
           查看详情
         </Button>
       ),
@@ -951,8 +958,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
       <RunDetailSheet
         selection={selection}
         dashboard={dashboard}
-        onClose={() => setSelection(undefined)}
-        onSelect={setSelection}
+        onClose={() => selectDetail(undefined)}
+        onSelect={selectDetail}
         traceDetail={traceDetail}
         traceDetailLoading={traceDetailLoading}
       />

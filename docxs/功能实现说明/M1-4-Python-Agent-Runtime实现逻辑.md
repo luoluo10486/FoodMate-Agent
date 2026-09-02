@@ -18,7 +18,7 @@
 
 | 功能点 | 当前证据 | 结论边界 |
 |---|---|---|
-| Python Runtime | agent-runtime/.venv 执行 56 passed, 1 skipped | 覆盖本地协议、状态机、模型、Eval、恢复和传输测试，不代表生产容量 |
+| Python Runtime | agent-runtime/.venv 执行 189 passed, 2 skipped, 6 subtests passed | 覆盖本地协议、状态机、模型、Eval、恢复和传输测试，不代表当前供应商认证或生产容量 |
 | Eval Gate | Golden、Judge schema/provider fail-closed、安全降级、正文延迟发布测试通过 | 是本地质量门，不是生产质量结论 |
 | 浏览器闭环 | 登录、会话、消息、RocketMQ、Runtime、Java Inbox、最终 SSE 已完成本地验证 | 不代表生产网络和浏览器兼容性验收 |
 | Proposal/Result | Python -> RocketMQ -> Java Tool Gateway -> PostgreSQL -> Result -> Python 已完成本地真实 E2E | 当前主要覆盖只读 SQL 和最小工具链路 |
@@ -538,7 +538,7 @@ Java 传入：
 ### 13.6 状态
 
 - 已实现：硬规则、独立 Judge、schema/provider fail-closed、风险降级、正文延迟发布、Golden 和进程内 P95/P99。
-- 已验证：Python .venv 56 passed, 1 skipped。
+- 已验证：2026-09-02 使用项目 `.venv` 全量 pytest 为 `189 passed, 2 skipped, 6 subtests passed`；Docker Runtime 启动/readiness 已验证，当前 Embedding 凭据的两个 profile 均返回 HTTP 401，真实云认证仍待密钥确认或轮换。
 - 生产待办：人工校准、统一指标库、通过/降级/失败/P95/P99 告警和生产质量结论。
 
 ## 14. 事件生命周期与 SSE

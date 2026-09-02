@@ -350,11 +350,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
           </div>
         </Card>
       ) : (
-        <Card
-          className={styles.overviewAnalytics}
-          data-figma-border="inset"
-          data-figma-role="admin-overview-analytics"
-        >
+        <Card className={styles.overviewAnalytics} data-figma-border="inset" data-figma-role="admin-overview-analytics">
           <article
             data-figma-border="inset"
             data-figma-node="1005:3"
