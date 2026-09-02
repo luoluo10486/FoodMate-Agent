@@ -1795,3 +1795,15 @@
 | 配置恢复 | BGE 验证完成后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；Runtime readiness 恢复为 `healthy`。 |
 | 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
 | 结论 | Docker Python Runtime 可直接调用 SiliconFlow 的两个指定 Embedding 模型；本结果是单次协议/配置业务证据，不代表长稳、容量、成本对账、故障矩阵或生产门禁完成。 |
+
+## D109 Docker Python 启动与安全配置预检（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；现有 Docker Compose 应用容器保持运行；未修改数据库、Redis、RocketMQ、MinIO 或 Milvus 数据。 |
+| Python 启动 | `docker inspect foodmate-agent-runtime` 确认入口为 `python runtime_server.py`，工作目录为 `/app`；容器内 Python `3.12.14`，宿主机端口映射为 `9002 -> 9000`。 |
+| 运行状态 | `GET http://127.0.0.1:9002/foodmate/internal/health/live` 返回 `200`；`GET http://127.0.0.1:9002/foodmate/internal/health/ready` 返回 `200`，Runtime、Redis、RocketMQ 协调状态为 ready。 |
+| 安全扫描 | `script\\security\\security-scan.ps1`：tracked secret `0`、working-tree secret `0`、tracked env `0`，扫描通过；本地忽略 `.env` 仅计数，不输出密钥内容。 |
+| 轮换预检 | `script\\security\\secret-rotation-check.ps1`：预检通过；RAG/Chat 凭据分离检查通过。当前本地 `RUNTIME_SERVICE_JWT_ENABLED` 未开启，JWT 重叠轮换检查按脚本规则跳过，不宣称已完成供应商控制台或 JWT 轮换。 |
+| 配置边界 | Docker 使用 `FOODMATE_DOCKER_*` 输入映射到容器内 `FOODMATE_*`；真实 API Key 未写入 Git、执行记录、日志或命令参数。修改代码需 `--build`，修改环境变量需 `--force-recreate`。 |
+| 结论 | Docker 可直接负责启动 Python Runtime，当前实例健康；本轮仅完成启动、readiness 和本地安全预检，不替代生产密钥轮换、生产监控、性能容量或故障恢复证据。 |
