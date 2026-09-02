@@ -104,13 +104,18 @@ function ToolRegistrySection({
   onAction,
   operationStatus = 'idle',
   refreshNonce = 0,
+  operationFixture = false,
 }: {
   onAction: (payload: AdminActionPayload) => void;
   operationStatus?: AdminOperationState;
   refreshNonce?: number;
+  operationFixture?: boolean;
 }) {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const [tools, setTools] = useState<ToolRegistryRow[]>(isRealMode ? [] : adminToolRegistryRows);
+  const isFigmaOperationFixture = operationFixture && !isRealMode;
+  const [tools, setTools] = useState<ToolRegistryRow[]>(
+    isRealMode ? [] : isFigmaOperationFixture ? adminToolRegistryRows.slice(0, 4) : adminToolRegistryRows,
+  );
   const [statusFilter, setStatusFilter] = useState('all');
   const [riskFilter, setRiskFilter] = useState('all');
   const [scopeFilter, setScopeFilter] = useState('all');
@@ -249,7 +254,9 @@ function ToolRegistrySection({
 
   const hasFilter = Boolean(query.trim()) || statusFilter !== 'all' || riskFilter !== 'all' || scopeFilter !== 'all';
   const totalResults = isRealMode || hasFilter ? filteredTools.length : 24;
-  const visibleResults = filteredTools.slice((page - 1) * 6, page * 6);
+  const pageSize = isFigmaOperationFixture ? 4 : 6;
+  const pageCount = isFigmaOperationFixture ? 2 : 4;
+  const visibleResults = filteredTools.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <>
@@ -286,23 +293,25 @@ function ToolRegistrySection({
             ariaLabel="风险等级筛选"
             className={styles.registryFilterRisk}
           />
-          <RegistryFilterSelect
-            label="权限范围"
-            value={scopeFilter}
-            options={[
-              { value: 'all', label: '全部' },
-              { value: 'read-only', label: 'read-only' },
-              { value: 'read-write', label: 'read-write' },
-              { value: 'write-only', label: 'write-only' },
-              { value: 'admin', label: 'admin' },
-            ]}
-            onChange={(value) => {
-              setScopeFilter(value);
-              setPage(1);
-            }}
-            ariaLabel="权限范围筛选"
-            className={styles.registryFilterScope}
-          />
+          {!isFigmaOperationFixture ? (
+            <RegistryFilterSelect
+              label="权限范围"
+              value={scopeFilter}
+              options={[
+                { value: 'all', label: '全部' },
+                { value: 'read-only', label: 'read-only' },
+                { value: 'read-write', label: 'read-write' },
+                { value: 'write-only', label: 'write-only' },
+                { value: 'admin', label: 'admin' },
+              ]}
+              onChange={(value) => {
+                setScopeFilter(value);
+                setPage(1);
+              }}
+              ariaLabel="权限范围筛选"
+              className={styles.registryFilterScope}
+            />
+          ) : null}
         </div>
         <label className={styles.registrySearch}>
           <Search aria-hidden="true" />
@@ -318,7 +327,10 @@ function ToolRegistrySection({
         </label>
       </section>
 
-      <section className={styles.registryStats} aria-label="工具注册表指标">
+      <section
+        className={`${styles.registryStats} ${isFigmaOperationFixture ? styles.registryOperationStats : ''}`}
+        aria-label="工具注册表指标"
+      >
         {(isRealMode
           ? [
               { label: '已注册工具', value: `${tools.length} 个` },
@@ -327,25 +339,35 @@ function ToolRegistrySection({
             ]
           : registryMetrics
         ).map((metric, index) => (
-          <Card className={`${styles.registryStatCard} ${styles[`registryStat${index}`]}`} key={metric.label}>
+          <Card
+            className={`${styles.registryStatCard} ${styles[`registryStat${index}`]} ${isFigmaOperationFixture ? styles.registryOperationStatCard : ''}`}
+            key={metric.label}
+          >
             <span>{metric.label}</span>
             <strong>{metric.value}</strong>
           </Card>
         ))}
       </section>
 
-      <Card className={styles.registryTableCard}>
+      <Card
+        className={`${styles.registryTableCard} ${isFigmaOperationFixture ? styles.registryOperationTableCard : ''}`}
+        data-figma-node={isFigmaOperationFixture ? '692:4539' : undefined}
+        data-figma-role={isFigmaOperationFixture ? 'admin-operation-state-registry-table' : undefined}
+      >
         <DataTable
           className={styles.registryTableScroll}
-          tableClassName={styles.registryTable}
+          tableClassName={`${styles.registryTable} ${isFigmaOperationFixture ? styles.registryOperationTable : ''}`}
           columns={registryColumns}
           data={visibleResults}
         />
       </Card>
 
-      <section className={styles.registryPagination} aria-label="工具注册表分页">
+      <section
+        className={`${styles.registryPagination} ${isFigmaOperationFixture ? styles.registryOperationPagination : ''}`}
+        aria-label="工具注册表分页"
+      >
         <span>
-          显示第 {totalResults === 0 ? 0 : 1} 到 {Math.min(6, totalResults)} 条，共 {totalResults} 条结果
+          显示第 {totalResults === 0 ? 0 : 1} 到 {Math.min(pageSize, totalResults)} 条，共 {totalResults} 条结果
         </span>
         <div className={styles.registryPageButtons}>
           <Button
@@ -356,7 +378,7 @@ function ToolRegistrySection({
           >
             上一页
           </Button>
-          {[1, 2, 3, 4].map((value) => (
+          {Array.from({ length: pageCount }, (_, index) => index + 1).map((value) => (
             <Button
               variant="outline"
               className={`${styles.registryPageButton} ${page === value ? styles.registryPageActive : ''}`}
@@ -369,8 +391,8 @@ function ToolRegistrySection({
           <Button
             variant="outline"
             className={styles.registryPageButton}
-            disabled={page === 4}
-            onClick={() => setPage((current) => Math.min(4, current + 1))}
+            disabled={page === pageCount}
+            onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
           >
             下一页
           </Button>
@@ -437,10 +459,14 @@ export function ToolsSection({
 }) {
   const [searchParams] = useSearchParams();
   const fixtureState = searchParams.get('state');
-  return searchParams.get('tab') === 'registry' ||
-    fixtureState === 'tool-registry' ||
-    fixtureState?.startsWith('op-') ? (
-    <ToolRegistrySection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />
+  const operationFixture = fixtureState?.startsWith('op-') ?? false;
+  return searchParams.get('tab') === 'registry' || fixtureState === 'tool-registry' || operationFixture ? (
+    <ToolRegistrySection
+      onAction={onAction}
+      operationFixture={operationFixture}
+      operationStatus={operationStatus}
+      refreshNonce={refreshNonce}
+    />
   ) : (
     <ToolCallsSection onAction={onAction} refreshNonce={refreshNonce} />
   );

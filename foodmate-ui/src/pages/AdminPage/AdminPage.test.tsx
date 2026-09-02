@@ -155,6 +155,31 @@ describe('AdminPage overview', () => {
     view.unmount();
   });
 
+  it('uses the Figma user-detail close affordance and gender avatar fallback', () => {
+    renderAdmin('/admin?state=user-detail');
+
+    const closeButton = screen.getByRole('button', { name: '关闭用户详情' });
+    expect(closeButton).toHaveAttribute('data-figma-asset', 'admin-user-detail-close');
+    expect(closeButton.querySelector('svg circle')).toBeInTheDocument();
+    expect(document.querySelector('.userDetailAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+  });
+
+  it('limits operation-state fixtures to the four Figma registry rows', () => {
+    renderAdmin('/admin?state=op-confirm');
+
+    expect(screen.getAllByText('nutrition_lookup')).toHaveLength(2);
+    expect(screen.getAllByText('food_image_analyze')).toHaveLength(1);
+    expect(screen.getAllByText('meal_plan_generate')).toHaveLength(1);
+    expect(screen.getAllByText('knowledge_search')).toHaveLength(1);
+    expect(screen.queryByText('sql_query')).not.toBeInTheDocument();
+    expect(screen.queryByText('user_memory_write')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '权限范围筛选' })).not.toBeInTheDocument();
+    expect(screen.getByText('显示第 1 到 4 条，共 24 条结果')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '3' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '4' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '停用工具', hidden: true })).toHaveLength(4);
+  });
+
   it('renders the Figma run detail fixture with a table and execution steps', () => {
     renderAdmin('/admin?state=run-detail');
 

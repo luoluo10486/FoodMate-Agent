@@ -1586,6 +1586,14 @@
   box-shadow: none;
 }
 
+.registryOperationStats {
+  height: 92px;
+}
+
+.registryOperationStatCard {
+  height: 92px;
+}
+
 .registryStatCard span {
   color: #6b7280;
   font-size: 12px;
@@ -1619,6 +1627,10 @@
   border-radius: 16px;
   background: #ffffff;
   box-shadow: none;
+}
+
+.registryOperationTableCard {
+  height: 280px;
 }
 
 .registryTableScroll {
@@ -1672,6 +1684,15 @@
   height: 55px;
   border-bottom: 1px solid #f4f6f5;
   background: #ffffff;
+}
+
+.registryOperationTable :global(td),
+.registryOperationTable :global(tbody tr) {
+  height: 58px;
+}
+
+.registryOperationPagination {
+  height: 56px;
 }
 
 .registryTable :global(tbody tr:hover) {
