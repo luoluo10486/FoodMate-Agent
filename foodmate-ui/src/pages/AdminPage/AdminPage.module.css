@@ -5952,3 +5952,544 @@
     min-height: auto;
   }
 }
+
+/* Figma node 995:1499 - operation audit fixture. */
+.auditFigmaPage {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.auditFigmaFilters {
+  display: flex;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.auditFigmaFilterGroup {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.auditFigmaFilter {
+  display: flex;
+  width: 116px;
+  height: 32px !important;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 16px !important;
+  border: 1px solid #f4f6f5 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  color: #333333 !important;
+  font-size: 13px !important;
+  line-height: 16px !important;
+  box-shadow: none !important;
+}
+
+.auditFigmaFilterTarget {
+  width: 142px;
+}
+
+.auditFigmaFilterLabel {
+  flex: 0 0 auto;
+  color: #6b7280;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.auditFigmaFilter :global([data-radix-select-icon]) {
+  display: none;
+}
+
+.auditFigmaFilter > :global(span:not([data-radix-select-icon])) {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.auditFigmaFilterArrow {
+  display: block;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  background: #6b7280;
+  -webkit-mask: url('/assets/figma/admin/overview/dropdown-arrow.svg') center / 12px 12px no-repeat;
+  mask: url('/assets/figma/admin/overview/dropdown-arrow.svg') center / 12px 12px no-repeat;
+}
+
+.auditFigmaSearch {
+  display: flex;
+  width: 280px;
+  height: 32px;
+  flex: 0 0 280px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: #f4f6f5;
+}
+
+.auditFigmaSearchIcon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  background: #6b7280;
+  -webkit-mask: url('/assets/figma/admin/overview/search.svg') center / 16px 16px no-repeat;
+  mask: url('/assets/figma/admin/overview/search.svg') center / 16px 16px no-repeat;
+}
+
+.auditFigmaSearch input {
+  width: 100%;
+  height: 30px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #333333 !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+}
+
+.auditFigmaSearch input:focus-visible {
+  outline: none;
+  box-shadow: none !important;
+}
+
+.auditFigmaSearch input::placeholder {
+  color: #6b7280;
+  opacity: 1;
+}
+
+.auditFigmaStats {
+  display: grid;
+  height: 90px;
+  flex: 0 0 90px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.auditFigmaStatCard {
+  display: flex;
+  height: 90px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #f4f6f5;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.auditFigmaStatCard span {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 14px;
+}
+
+.auditFigmaStatCard strong {
+  color: #333333;
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.auditFigmaStatFailure strong {
+  color: #d67676;
+}
+
+.auditFigmaStatReview strong {
+  color: #89b27c;
+}
+
+.auditFigmaTableCard {
+  display: flex;
+  height: 444px;
+  flex: 0 0 444px;
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #f4f6f5;
+}
+
+.auditFigmaTable {
+  width: 100%;
+  min-width: 1116px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  color: #333333;
+}
+
+.auditFigmaTableHeader {
+  background: #f4f6f5;
+}
+
+.auditFigmaTable :global(th),
+.auditFigmaTable :global(td) {
+  padding: 16px;
+  border: 0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.auditFigmaTable :global(th) {
+  height: 48px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.auditFigmaTable :global(td) {
+  height: 58px;
+  color: #333333;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.auditFigmaTable :global(tbody tr) {
+  border-bottom: 1px solid #f4f6f5;
+  background: #ffffff;
+}
+
+.auditFigmaTable :global(tbody tr:nth-child(1)),
+.auditFigmaTable :global(tbody tr:nth-child(2)),
+.auditFigmaTable :global(tbody tr:nth-child(4)),
+.auditFigmaTable :global(tbody tr:nth-child(6)) {
+  height: 70px;
+}
+
+.auditFigmaTable :global(tbody tr:hover) {
+  background: #ffffff;
+}
+
+.auditFigmaTable :global(th:nth-child(1)),
+.auditFigmaTable :global(td:nth-child(1)) {
+  width: 196px;
+}
+
+.auditFigmaTable :global(th:nth-child(2)),
+.auditFigmaTable :global(td:nth-child(2)) {
+  width: 96px;
+}
+
+.auditFigmaTable :global(th:nth-child(3)),
+.auditFigmaTable :global(td:nth-child(3)),
+.auditFigmaTable :global(th:nth-child(4)),
+.auditFigmaTable :global(td:nth-child(4)),
+.auditFigmaTable :global(th:nth-child(5)),
+.auditFigmaTable :global(td:nth-child(5)) {
+  width: 116px;
+}
+
+.auditFigmaTable :global(th:nth-child(6)),
+.auditFigmaTable :global(td:nth-child(6)) {
+  width: 156px;
+}
+
+.auditFigmaTable :global(th:nth-child(7)),
+.auditFigmaTable :global(td:nth-child(7)),
+.auditFigmaTable :global(th:nth-child(8)),
+.auditFigmaTable :global(td:nth-child(8)) {
+  width: 84px;
+}
+
+.auditFigmaTable :global(th:nth-child(9)),
+.auditFigmaTable :global(td:nth-child(9)) {
+  width: 64px;
+}
+
+.auditFigmaTable :global(th:nth-child(10)),
+.auditFigmaTable :global(td:nth-child(10)) {
+  width: 88px;
+}
+
+.auditFigmaTimeCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.auditFigmaTimeCell strong,
+.auditFigmaRequest,
+.auditFigmaTrace,
+.auditFigmaError {
+  font-family: var(--font-mono);
+}
+
+.auditFigmaTimeCell strong {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 21px;
+}
+
+.auditFigmaCopyButton {
+  display: inline-grid;
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
+  padding: 0 !important;
+  place-items: center;
+  border: 0 !important;
+  background: transparent !important;
+  color: #6b7280 !important;
+  box-shadow: none !important;
+}
+
+.auditFigmaCopyButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.auditFigmaOperator,
+.auditFigmaSource,
+.auditFigmaRequest,
+.auditFigmaTrace {
+  color: #6b7280 !important;
+}
+
+.auditFigmaOperator {
+  overflow-wrap: anywhere;
+}
+
+.auditFigmaRequest,
+.auditFigmaTrace,
+.auditFigmaError {
+  font-size: 11px !important;
+}
+
+.auditFigmaAction,
+.auditFigmaTarget {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 13px;
+  white-space: nowrap;
+}
+
+.auditFigmaAction {
+  background: rgba(166, 217, 151, 0.08);
+  color: #89b27c;
+}
+
+.auditFigmaActionMuted {
+  background: #f4f6f5;
+  color: #6b7280;
+}
+
+.auditFigmaTargetInfo {
+  background: rgba(128, 224, 230, 0.08);
+  color: #5da9b2;
+}
+
+.auditFigmaTargetDanger {
+  background: rgba(255, 117, 118, 0.08);
+  color: #d67676;
+}
+
+.auditFigmaTargetOrange {
+  background: rgba(255, 246, 226, 0.08);
+  color: #c79654;
+}
+
+.auditFigmaError {
+  color: #333333 !important;
+  font-weight: 700;
+}
+
+.auditFigmaErrorDanger {
+  color: #d67676 !important;
+}
+
+.auditFigmaActionCell {
+  padding-right: 16px !important;
+  text-align: right !important;
+}
+
+.auditFigmaDetailButton {
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 6px 12px !important;
+  border: 1px solid #f4f6f5 !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+  color: #333333 !important;
+  font-size: 12px !important;
+  line-height: 14px !important;
+  box-shadow: none !important;
+}
+
+.auditFigmaEmpty {
+  height: 396px !important;
+  color: #6b7280 !important;
+  text-align: center !important;
+}
+
+.auditFigmaPagination {
+  display: flex;
+  height: 56px;
+  flex: 0 0 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0 8px;
+}
+
+.auditFigmaPagination p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.auditFigmaPageButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auditFigmaPageButton {
+  height: 32px !important;
+  min-width: 36px;
+  padding: 8px 14px !important;
+  border: 1px solid #f4f6f5 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #333333 !important;
+  font-size: 13px !important;
+  line-height: 16px !important;
+  box-shadow: none !important;
+}
+
+.auditFigmaPageButton:disabled {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+.auditFigmaPageButtonActive {
+  border-color: #ff7576 !important;
+  background: #ff7576 !important;
+  color: #ffffff !important;
+}
+
+.auditFigmaAnalytics {
+  display: flex;
+  height: 180px;
+  flex: 0 0 180px;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e8edeb;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.auditFigmaAnalytics article {
+  display: flex;
+  width: 344px;
+  height: 148px;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  padding: 14px 16px;
+  border: 1px solid #e8edeb;
+  border-radius: 10px;
+  background: #f7faf7;
+}
+
+.auditFigmaAnalytics h2,
+.auditFigmaAnalytics p {
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auditFigmaAnalytics h2 {
+  height: 22px;
+  color: #2e3333;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.auditFigmaAnalytics p {
+  min-height: 38px;
+  color: #6b7573;
+  font-size: 12px;
+  line-height: 19px;
+}
+
+@media (max-width: 720px) {
+  .auditFigmaFilters {
+    height: auto;
+    flex-wrap: wrap;
+  }
+
+  .auditFigmaFilterGroup {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .auditFigmaSearch {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .auditFigmaStats {
+    height: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .auditFigmaStatCard {
+    height: 90px;
+  }
+
+  .auditFigmaTableCard {
+    overflow-x: auto;
+  }
+
+  .auditFigmaAnalytics {
+    height: auto;
+    flex-direction: column;
+  }
+
+  .auditFigmaAnalytics article {
+    width: 100%;
+    flex: 0 0 148px;
+  }
+
+  .auditFigmaPagination {
+    height: auto;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

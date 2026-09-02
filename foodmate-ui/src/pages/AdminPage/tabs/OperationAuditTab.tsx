@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Eye, RefreshCw, Search } from 'lucide-react';
+import { Copy, Download, Eye, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input as ShadcnInput } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AdminOnlyNotice } from './AdminComponents';
 import { adminOperationAuditRows, canViewAudit, statusTag } from './AdminShared';
 import {
@@ -61,6 +62,402 @@ type AuditRecord = {
 };
 
 const pageSize = 8;
+
+const figmaAuditRows: AuditRecord[] = [
+  {
+    key: 'figma-audit-0',
+    operatorId: '1234567',
+    operator: 'anddy_admin',
+    action: '更新权限',
+    targetType: 'tool_registry',
+    targetId: 'tool_registry',
+    result: '成功',
+    requestId: 'req_7c2e',
+    traceId: 'tr_88192a',
+    createdAt: '10:24:12',
+    requestSummary: '更新权限 tool_registry',
+    beforeState: 'operator',
+    afterState: 'admin',
+    errorCode: 'OK',
+    clientInfo: 'admin',
+  },
+  {
+    key: 'figma-audit-1',
+    operatorId: 'operator-chen',
+    operator: 'operator_chen',
+    action: '查看详情',
+    targetType: 'user',
+    targetId: 'user_1234567',
+    result: '失败',
+    requestId: 'req_7c44',
+    traceId: 'tr_881a2b',
+    createdAt: '10:19:04',
+    requestSummary: '查看详情 user_1234567',
+    beforeState: 'active',
+    afterState: 'active',
+    errorCode: 'ERR_POLICY',
+    clientInfo: 'operator',
+  },
+  {
+    key: 'figma-audit-2',
+    operatorId: 'system',
+    operator: 'system',
+    action: '重新索引',
+    targetType: 'document',
+    targetId: 'doc_552b1',
+    result: '成功',
+    requestId: 'req_7c51',
+    traceId: 'tr_881b0c',
+    createdAt: '09:58:31',
+    requestSummary: '重新索引 doc_552b1',
+    beforeState: 'stale',
+    afterState: 'indexed',
+    errorCode: 'OK',
+    clientInfo: 'system',
+  },
+  {
+    key: 'figma-audit-3',
+    operatorId: '1234567',
+    operator: 'anddy_admin',
+    action: '恢复资源',
+    targetType: 'run',
+    targetId: 'run_98218a',
+    result: '成功',
+    requestId: 'req_7c63',
+    traceId: 'tr_881c11',
+    createdAt: '09:44:08',
+    requestSummary: '恢复资源 run_98218a',
+    beforeState: 'deleted',
+    afterState: 'active',
+    errorCode: 'OK',
+    clientInfo: 'admin',
+  },
+  {
+    key: 'figma-audit-4',
+    operatorId: 'system',
+    operator: 'system',
+    action: '停用工具',
+    targetType: 'tool',
+    targetId: 'sql_query',
+    result: '拒绝',
+    requestId: 'req_7c75',
+    traceId: 'tr_881d09',
+    createdAt: '09:31:16',
+    requestSummary: '停用工具 sql_query',
+    beforeState: 'active',
+    afterState: 'active',
+    errorCode: 'DENIED',
+    clientInfo: 'system',
+  },
+  {
+    key: 'figma-audit-5',
+    operatorId: '1234567',
+    operator: 'anddy_admin',
+    action: '导出报告',
+    targetType: 'profile',
+    targetId: 'profile_88',
+    result: '成功',
+    requestId: 'req_7c88',
+    traceId: 'tr_881e31',
+    createdAt: '09:12:44',
+    requestSummary: '导出报告 profile_88',
+    beforeState: 'ready',
+    afterState: 'exported',
+    errorCode: 'OK',
+    clientInfo: 'admin',
+  },
+];
+
+type AuditFigmaFilter = 'all' | '成功' | '失败' | '拒绝';
+
+function FigmaAuditFilter({
+  label,
+  ariaLabel,
+  value,
+  options,
+  onChange,
+  className,
+}: {
+  label: string;
+  ariaLabel: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={`${styles.auditFigmaFilter} ${className ?? ''}`} aria-label={ariaLabel}>
+        <span className={styles.auditFigmaFilterLabel}>{label}:</span>
+        <SelectValue />
+        <span className={styles.auditFigmaFilterArrow} aria-hidden="true" />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function FigmaAuditAction({ action }: { action: string }) {
+  return (
+    <span className={`${styles.auditFigmaAction} ${action === '停用工具' ? styles.auditFigmaActionMuted : ''}`}>
+      {action}
+    </span>
+  );
+}
+
+function FigmaAuditTarget({ targetId }: { targetId: string }) {
+  const tone = targetId === 'sql_query' ? 'Danger' : targetId === 'profile_88' ? 'Orange' : 'Info';
+  return <span className={`${styles.auditFigmaTarget} ${styles[`auditFigmaTarget${tone}`]}`}>{targetId}</span>;
+}
+
+function FigmaOperationAuditSection() {
+  const [result, setResult] = useState<AuditFigmaFilter>('all');
+  const [target, setTarget] = useState('all');
+  const [action, setAction] = useState('all');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [selectedRow, setSelectedRow] = useState<AuditRecord>();
+
+  const filteredRows = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return figmaAuditRows.filter((row) => {
+      const searchable = [row.requestId, row.traceId].join(' ').toLowerCase();
+      return (
+        (result === 'all' || row.result === result) &&
+        (target === 'all' || row.targetId === target) &&
+        (action === 'all' || row.action === action) &&
+        (!normalizedQuery || searchable.includes(normalizedQuery))
+      );
+    });
+  }, [action, query, result, target]);
+
+  const resultCount =
+    result === 'all' && target === 'all' && action === 'all' && !query.trim() ? 1284 : filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(resultCount / figmaAuditRows.length));
+  const currentPage = Math.min(page, totalPages);
+  const visibleRows = currentPage === 1 ? filteredRows : [];
+  const rangeStart = resultCount === 0 ? 0 : (currentPage - 1) * figmaAuditRows.length + 1;
+  const rangeEnd = Math.min(currentPage * figmaAuditRows.length, resultCount);
+
+  const resetPage = (setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    setPage(1);
+  };
+
+  const copyTime = async (time: string) => {
+    try {
+      await navigator.clipboard?.writeText(time);
+    } catch {
+      // Clipboard access is optional in embedded preview contexts.
+    }
+  };
+
+  return (
+    <div className={styles.auditFigmaPage}>
+      <section className={styles.auditFigmaFilters} aria-label="操作审计筛选">
+        <div className={styles.auditFigmaFilterGroup}>
+          <FigmaAuditFilter
+            label="结果"
+            ariaLabel="审计结果筛选"
+            value={result}
+            onChange={(value) => {
+              setResult(value as AuditFigmaFilter);
+              setPage(1);
+            }}
+            options={[
+              { value: 'all', label: '全部' },
+              { value: '成功', label: '成功' },
+              { value: '失败', label: '失败' },
+              { value: '拒绝', label: '拒绝' },
+            ]}
+          />
+          <FigmaAuditFilter
+            label="目标类型"
+            ariaLabel="审计目标类型筛选"
+            value={target}
+            onChange={resetPage(setTarget)}
+            options={[
+              { value: 'all', label: '全部' },
+              ...Array.from(new Set(figmaAuditRows.map((row) => row.targetId))).map((value) => ({
+                value,
+                label: value,
+              })),
+            ]}
+            className={styles.auditFigmaFilterTarget}
+          />
+          <FigmaAuditFilter
+            label="动作"
+            ariaLabel="审计动作筛选"
+            value={action}
+            onChange={resetPage(setAction)}
+            options={[
+              { value: 'all', label: '全部' },
+              ...Array.from(new Set(figmaAuditRows.map((row) => row.action))).map((value) => ({ value, label: value })),
+            ]}
+          />
+        </div>
+        <label className={styles.auditFigmaSearch}>
+          <span className={styles.auditFigmaSearchIcon} aria-hidden="true" />
+          <ShadcnInput
+            aria-label="搜索 request_id / trace_id..."
+            placeholder="搜索 request_id / trace_id..."
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
+      </section>
+
+      <section className={styles.auditFigmaStats} aria-label="操作审计统计">
+        <Card className={styles.auditFigmaStatCard}>
+          <span>近 24h 操作</span>
+          <strong>1,284</strong>
+        </Card>
+        <Card className={`${styles.auditFigmaStatCard} ${styles.auditFigmaStatFailure}`}>
+          <span>失败操作</span>
+          <strong>18</strong>
+        </Card>
+        <Card className={`${styles.auditFigmaStatCard} ${styles.auditFigmaStatReview}`}>
+          <span>待复核</span>
+          <strong>4 条</strong>
+        </Card>
+      </section>
+
+      <section className={styles.auditFigmaTableCard} aria-label="操作审计明细">
+        <Table className={styles.auditFigmaTable}>
+          <TableHeader className={styles.auditFigmaTableHeader}>
+            <TableRow>
+              <TableHead>时间</TableHead>
+              <TableHead>操作者</TableHead>
+              <TableHead>动作</TableHead>
+              <TableHead>目标</TableHead>
+              <TableHead>结果</TableHead>
+              <TableHead>request_id</TableHead>
+              <TableHead>trace_id</TableHead>
+              <TableHead>来源</TableHead>
+              <TableHead>错误码</TableHead>
+              <TableHead>操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visibleRows.map((row) => (
+              <TableRow key={row.key}>
+                <TableCell>
+                  <span className={styles.auditFigmaTimeCell}>
+                    <strong>{row.createdAt}</strong>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={styles.auditFigmaCopyButton}
+                      aria-label={`复制 ${row.createdAt}`}
+                      onClick={() => void copyTime(row.createdAt)}
+                    >
+                      <Copy aria-hidden="true" />
+                    </Button>
+                  </span>
+                </TableCell>
+                <TableCell className={styles.auditFigmaOperator}>{row.operator}</TableCell>
+                <TableCell>
+                  <FigmaAuditAction action={row.action} />
+                </TableCell>
+                <TableCell>
+                  <FigmaAuditTarget targetId={row.targetId} />
+                </TableCell>
+                <TableCell>{row.result}</TableCell>
+                <TableCell className={styles.auditFigmaRequest}>{row.requestId}</TableCell>
+                <TableCell className={styles.auditFigmaTrace}>{row.traceId}</TableCell>
+                <TableCell className={styles.auditFigmaSource}>{row.clientInfo}</TableCell>
+                <TableCell
+                  className={`${styles.auditFigmaError} ${row.errorCode === 'OK' ? '' : styles.auditFigmaErrorDanger}`}
+                >
+                  {row.errorCode}
+                </TableCell>
+                <TableCell className={styles.auditFigmaActionCell}>
+                  <Button
+                    variant="outline"
+                    className={styles.auditFigmaDetailButton}
+                    onClick={() => setSelectedRow(row)}
+                  >
+                    查看详情
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!visibleRows.length ? (
+              <TableRow>
+                <TableCell colSpan={10} className={styles.auditFigmaEmpty}>
+                  暂无匹配的操作审计
+                </TableCell>
+              </TableRow>
+            ) : null}
+          </TableBody>
+        </Table>
+      </section>
+
+      <nav className={styles.auditFigmaPagination} aria-label="操作审计分页">
+        <p>
+          显示第 {rangeStart} 到 {rangeEnd} 条，共 {resultCount.toLocaleString('en-US')} 条结果
+        </p>
+        <div className={styles.auditFigmaPageButtons}>
+          <Button
+            variant="outline"
+            className={styles.auditFigmaPageButton}
+            disabled={currentPage === 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            上一页
+          </Button>
+          {[1, 2, 3, 4].map((pageNumber) => (
+            <Button
+              key={pageNumber}
+              variant={currentPage === pageNumber ? 'default' : 'outline'}
+              className={`${styles.auditFigmaPageButton} ${currentPage === pageNumber ? styles.auditFigmaPageButtonActive : ''}`}
+              onClick={() => setPage(pageNumber)}
+            >
+              {pageNumber}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            className={styles.auditFigmaPageButton}
+            disabled={currentPage === totalPages}
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+          >
+            下一页
+          </Button>
+        </div>
+      </nav>
+
+      <Card className={styles.auditFigmaAnalytics} aria-label="操作审计分析">
+        <article>
+          <h2>审计详情</h2>
+          <p>按动作 / 目标 / 结果筛选</p>
+          <p>request_id / trace_id 可复制 · 敏感字段脱敏</p>
+        </article>
+        <article>
+          <h2>最近异常</h2>
+          <p>ERR_POLICY 4 条 · DENIED 3 条</p>
+          <p>查看前后状态摘要 · 审计记录只读</p>
+        </article>
+        <article>
+          <h2>关联追踪</h2>
+          <p>Trace / Run / Tool Call 可跳转</p>
+          <p>保留客户端、时间和稳定错误码</p>
+        </article>
+      </Card>
+
+      {selectedRow ? <AuditDetail row={selectedRow} onClose={() => setSelectedRow(undefined)} /> : null}
+    </div>
+  );
+}
 
 function normalizeAuditRow(row: AuditSource): AuditRecord {
   return {
@@ -188,7 +585,7 @@ function AuditDetail({ row, onClose }: { row: AuditRecord; onClose: () => void }
   );
 }
 
-export function OperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
+function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const mockRows = (adminOperationAuditRows as AuditSource[]).map(normalizeAuditRow);
   const [realRows, setRealRows] = useState<AuditRecord[]>([]);
@@ -496,5 +893,13 @@ export function OperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: num
 
       {selectedRow ? <AuditDetail row={selectedRow} onClose={() => setSelectedRow(undefined)} /> : null}
     </>
+  );
+}
+
+export function OperationAuditSection(props: { refreshNonce?: number }) {
+  return import.meta.env.VITE_AGENT_MODE === 'real' ? (
+    <RealOperationAuditSection {...props} />
+  ) : (
+    <FigmaOperationAuditSection />
   );
 }

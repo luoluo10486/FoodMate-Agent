@@ -109,6 +109,18 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 ## 8. 餐食规划状态补充验收
 
+## 9. 2026-09-02 Admin 操作审计页当前证据
+
+本轮依据 Figma 节点 `995:1499` 收口 `/admin?view=audit` 的前端 fixture，Figma 设计稿保持只读。前端新增并保留生产环境标记、结果/目标类型/动作筛选、`request_id / trace_id` 搜索、三张统计卡、十列表格、分页、底部分析卡和只读详情 Dialog；真实模式继续使用既有操作审计 API、导出任务和权限逻辑。
+
+- [x] 浏览器使用本地 Edge `1440×1024`、强制 DPR 1、字体加载完成条件采集；页面根节点为 `1440×1024`，`body` 无横向溢出，文字溢出检查通过。
+- [x] 实际交互验证结果筛选、`request_id` 搜索、详情 Dialog；详情包含动作、操作者、目标、创建时间、请求摘要、前后状态、错误码、`trace_id` 和客户端信息。
+- [x] 前端左上角 macOS 红、黄、绿窗口装饰点候选数量为 `0`；该检查只针对前端，未修改 Figma 设计稿；业务状态点保留。
+- [x] 当前浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-operation-audit-browser-2026-09-02.png`，Figma 参考为 `docxs/设计/figma-png/admin-operation-audit.png`。
+- [x] `scripts/png-diff.mjs` 同尺寸结果为 `differentPixels=157231`、差异比例 `10.6629%`、`MAE=3.015004`、`RMSE=17.033025`、最大通道差异 `241`；独立结果已同步至 `figma-105-diff-results.json#admin-operation-audit`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已同步当前审计页证据；105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 当前页面仍有文字光栅化、头像素材和局部视觉像素差异，因此保留 `DIFF_REVIEW`；本项不能宣称该画板或 105 张画板像素级 PASS。
+
 本轮补充餐食规划 Loading、Empty、Error 三种前端状态的独立映射。Figma 来源节点均为完整 `1440×1024` 画板；浏览器入口复用 `/planning?state=`，只用于复现设计状态，不代表真实计划数据或任务闭环已经完成。
 
 | 状态 | Figma 节点 | 前端入口 | Figma 证据 | 浏览器证据 | 结果 |
