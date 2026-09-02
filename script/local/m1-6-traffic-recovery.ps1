@@ -375,8 +375,66 @@ try {
             $handler = New-Object System.Net.Http.HttpClientHandler
             $handler.CookieContainer = New-Object System.Net.CookieContainer
             $client = New-Object System.Net.Http.HttpClient($handler)
-            $client.Timeout = [TimeSpan]::FromSeconds(30)
-            return [pscustomobject]@{ Handler = $handler; Client = $client }
+        $client.Timeout = [TimeSpan]::FromSeconds(30)
+        return [pscustomobject]@{ Handler = $handler; Client = $client }
+        }
+
+        function Get-SafeErrorEvidence([object]$errorRecord, [string]$user, [string]$secret) {
+            $exception = if ($null -ne $errorRecord.Exception) { $errorRecord.Exception } else { $errorRecord }
+            $errorType = if ($null -ne $exception) { $exception.GetType().Name } else { "UnknownError" }
+            $errorCode = $null
+            $summary = if ($null -ne $exception) { [string]$exception.Message } else { "unknown error" }
+            if ($null -ne $exception -and $null -ne $exception.Data) {
+                if ($exception.Data.Contains("foodmate_error_code")) {
+                    $errorCode = [string]$exception.Data["foodmate_error_code"]
+                }
+                if ($exception.Data.Contains("foodmate_error_summary")) {
+                    $summary = [string]$exception.Data["foodmate_error_summary"]
+                }
+            }
+            if ([string]::IsNullOrWhiteSpace($errorCode)) { $errorCode = "UNSPECIFIED_HTTP_ERROR" }
+            $errorCode = [regex]::Replace($errorCode, "[^A-Za-z0-9_.:-]", "_")
+            if ($errorCode.Length -gt 96) { $errorCode = $errorCode.Substring(0, 96) }
+            if (-not [string]::IsNullOrWhiteSpace($secret)) { $summary = $summary.Replace($secret, "[redacted]") }
+            if (-not [string]::IsNullOrWhiteSpace($user)) { $summary = $summary.Replace($user, "[redacted]") }
+            $summary = [regex]::Replace($summary, "(?i)https?://[^\\s]+", "[url]")
+            $summary = [regex]::Replace($summary, "\\s+", " ").Trim()
+            if ([string]::IsNullOrWhiteSpace($summary)) { $summary = "unknown error" }
+            if ($summary.Length -gt 256) { $summary = $summary.Substring(0, 256) }
+            return [pscustomobject]@{
+                error_code = $errorCode
+                error_type = $errorType
+                error_summary = $summary
+            }
+        }
+
+        function New-HttpFailure([string]$method, [string]$url, [int]$statusCode, [string]$responseText) {
+            $errorCode = "HTTP_$statusCode"
+            $errorSummary = $null
+            if (-not [string]::IsNullOrWhiteSpace($responseText)) {
+                try {
+                    $body = $responseText | ConvertFrom-Json
+                    $errorNode = if ($null -ne $body.error) { $body.error } else { $body }
+                    if ($null -ne $errorNode -and $null -ne $errorNode.PSObject.Properties["code"]) {
+                        $candidate = [string]$errorNode.code
+                        if (-not [string]::IsNullOrWhiteSpace($candidate)) { $errorCode = $candidate }
+                    } elseif ($null -ne $body.PSObject.Properties["error_code"]) {
+                        $candidate = [string]$body.error_code
+                        if (-not [string]::IsNullOrWhiteSpace($candidate)) { $errorCode = $candidate }
+                    }
+                    if ($null -ne $errorNode -and $null -ne $errorNode.PSObject.Properties["message"]) {
+                        $errorSummary = [string]$errorNode.message
+                    } elseif ($null -ne $body.PSObject.Properties["message"]) {
+                        $errorSummary = [string]$body.message
+                    }
+                } catch { }
+            }
+            $exception = [System.Exception]::new("$method $url returned HTTP $statusCode")
+            $exception.Data["foodmate_error_code"] = $errorCode
+            if (-not [string]::IsNullOrWhiteSpace($errorSummary)) {
+                $exception.Data["foodmate_error_summary"] = $errorSummary
+            }
+            return $exception
         }
 
         function Send-Json($context, [string]$method, [string]$url, [hashtable]$payload, [string]$csrf = $null) {
@@ -389,7 +447,9 @@ try {
             if (-not [string]::IsNullOrWhiteSpace($csrf)) { [void]$request.Headers.Add("X-CSRF-Token", $csrf) }
             $response = $context.Client.SendAsync($request).GetAwaiter().GetResult()
             $text = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
-            if (-not $response.IsSuccessStatusCode) { throw "$method $url returned HTTP $([int]$response.StatusCode)" }
+            if (-not $response.IsSuccessStatusCode) {
+                throw (New-HttpFailure $method $url ([int]$response.StatusCode) $text)
+            }
             if ([string]::IsNullOrWhiteSpace($text)) { return $null }
             return $text | ConvertFrom-Json
         }
@@ -445,6 +505,9 @@ try {
                 duration_ms = [math]::Round($started.Elapsed.TotalMilliseconds, 3)
                 duplicate_deliveries = 0
                 duplicate_side_effects = 0
+                error_code = $null
+                error_type = $null
+                error_summary = $null
             }
         }
 
@@ -468,7 +531,7 @@ try {
                 idempotency_key = $key
                 expires_in_seconds = 300
             }
-            if ($null -ne $resourceId) { $payload.resource_id = $resourceId.Value }
+            if ($null -ne $resourceId) { $payload.resource_id = [long]$resourceId }
             $response = Send-Json $context "POST" "$baseUrl/api/approvals/proposals" $payload $csrf
             $id = [string]$response.data.approval_request_id
             if ([string]::IsNullOrWhiteSpace($id)) { throw "approval request id is missing" }
@@ -491,6 +554,8 @@ try {
             $duplicates = 0
             $duplicateEffects = 0
             $outcome = "success"
+            $errorCode = $null
+            $errorSummary = $null
             if ($scenario -eq 0) {
                 $parameters = New-FoodInput "M1-6 proposal success" $true
                 $proposal = New-Approval $context $csrf "create" $null $parameters $key
@@ -513,12 +578,25 @@ try {
                 $executionFailed = $false
                 try {
                     [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($proposal.approval_request_id)/execute" $parameters $csrf)
-                } catch { $executionFailed = $true }
+                } catch {
+                    $executionFailed = $true
+                    $failureEvidence = Get-SafeErrorEvidence $_ $user $secret
+                    $errorCode = $failureEvidence.error_code
+                    $errorSummary = $failureEvidence.error_summary
+                }
                 if (-not $executionFailed) { throw "invalid food log unexpectedly executed" }
                 $outcome = "business_failed"
             } elseif ($scenario -eq 3) {
-                $resourceId = [long](900000000 + ($workerId * 10000) + $index)
-                $parameters = @{ revision = 1 }
+                $createParameters = New-FoodInput "M1-6 superseded fixture" $true
+                $createProposal = New-Approval $context $csrf "create" $null $createParameters "$key-create"
+                [void](Send-Json $context "POST" "$baseUrl/api/approvals/$($createProposal.approval_request_id)/confirm" $createParameters $csrf)
+                $created = Send-Json $context "POST" "$baseUrl/api/approvals/$($createProposal.approval_request_id)/execute" $createParameters $csrf
+                if ([string]$created.data.status -ne "executed" -or [string]::IsNullOrWhiteSpace([string]$created.data.resource_id)) {
+                    throw "superseded fixture creation did not converge"
+                }
+                $resourceId = [long]$created.data.resource_id
+                $parameters = New-FoodInput "M1-6 proposal superseded" $true
+                $parameters.revision = 1
                 $first = New-Approval $context $csrf "update" $resourceId $parameters "$key-first"
                 $second = New-Approval $context $csrf "update" $resourceId $parameters "$key-second"
                 $authoritativeFirst = Get-ApprovalStatus $context $first.approval_request_id
@@ -543,6 +621,9 @@ try {
                 duration_ms = [math]::Round($started.Elapsed.TotalMilliseconds, 3)
                 duplicate_deliveries = $duplicates
                 duplicate_side_effects = $duplicateEffects
+                error_code = $errorCode
+                error_type = if ($null -ne $errorCode) { "BusinessError" } else { $null }
+                error_summary = $errorSummary
             }
         }
 
@@ -550,6 +631,9 @@ try {
         # Windows PowerShell Job 返回值必须使用可序列化的数组，不能跨进程返回泛型 List。
         $operations = @()
         $workerError = $null
+        $workerErrorCode = $null
+        $workerErrorType = $null
+        $workerErrorSummary = $null
         try {
             $csrf = Login $context
             $workerSessionId = New-WorkerSession $context $csrf
@@ -574,6 +658,7 @@ try {
                     $operations += $operation
                 } catch {
                     $started.Stop()
+                    $errorEvidence = Get-SafeErrorEvidence $_ $user $secret
                     $operations += [pscustomobject]@{
                         channel = "unknown"
                         outcome = "unexpected_error"
@@ -581,19 +666,19 @@ try {
                         duration_ms = [math]::Round($started.Elapsed.TotalMilliseconds, 3)
                         duplicate_deliveries = 0
                         duplicate_side_effects = 0
+                        error_code = $errorEvidence.error_code
+                        error_type = $errorEvidence.error_type
+                        error_summary = $errorEvidence.error_summary
                     }
                 }
                 $counter++
             }
         } catch {
-            $message = [string]$_.Exception.Message
-            if (-not [string]::IsNullOrWhiteSpace($secret)) {
-                $message = $message.Replace($secret, "[redacted]")
-            }
-            if (-not [string]::IsNullOrWhiteSpace($user)) {
-                $message = $message.Replace($user, "[redacted]")
-            }
-            $workerError = "worker setup failed: $($_.Exception.GetType().Name): " + $message.Substring(0, [math]::Min(256, $message.Length))
+            $errorEvidence = Get-SafeErrorEvidence $_ $user $secret
+            $workerErrorCode = $errorEvidence.error_code
+            $workerErrorType = $errorEvidence.error_type
+            $workerErrorSummary = $errorEvidence.error_summary
+            $workerError = "worker setup failed: $($workerErrorType): $($workerErrorSummary)"
         }
         finally { $context.Client.Dispose() }
         [pscustomobject]@{
@@ -601,6 +686,9 @@ try {
             session_id = $workerSessionId
             operations = @($operations)
             worker_error = $workerError
+            worker_error_code = $workerErrorCode
+            worker_error_type = $workerErrorType
+            worker_error_summary = $workerErrorSummary
         }
     }
 
@@ -636,6 +724,13 @@ try {
                     } else {
                         "worker job returned no result"
                     }
+                    worker_error_code = "WORKER_JOB_ERROR"
+                    worker_error_type = "WorkerJobError"
+                    worker_error_summary = if ($jobErrors.Count -gt 0) {
+                        "worker job failed: $($jobErrors.Count) error record(s)"
+                    } else {
+                        "worker job returned no result"
+                    }
                 })
         }
         elseif ($jobErrors.Count -gt 0) {
@@ -652,6 +747,18 @@ try {
             ForEach-Object { [string]$_.worker_error } |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
             Select-Object -First 16
+    )
+    $report.traffic.worker_error_details = @(
+        $workerResults |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_.worker_error) } |
+            Select-Object worker_error_code, worker_error_type, worker_error_summary |
+            Select-Object -First 16
+    )
+    $report.traffic.unexpected_error_details = @(
+        $allOperations |
+            Where-Object { $_.unexpected -and $_.error_type -and $_.error_summary } |
+            Select-Object -Property error_code, error_type, error_summary |
+            Select-Object -First 32
     )
     $workerSessions = @($workerResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.session_id) } | Select-Object -ExpandProperty session_id -Unique)
 

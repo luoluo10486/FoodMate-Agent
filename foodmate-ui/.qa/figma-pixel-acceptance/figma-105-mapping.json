@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-08-31",
+    "capturedAt": "2026-09-02",
     "figmaMcp": "get_metadata"
   },
   "acceptanceRules": {
@@ -5111,7 +5111,7 @@
       "queryState": null,
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-model-usage.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-model-usage-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-model-usage-browser-2026-09-01-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-model-usage",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -5155,10 +5155,10 @@
       "queryState": "view=audit",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-operation-audit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-operation-audit-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-operation-audit-browser-2026-09-02.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-operation-audit",
       "status": "DIFF_REVIEW",
-      "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
+      "manualReviewConclusion": "VISUAL_DIFFERENCES_REMAIN",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
@@ -5184,8 +5184,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Audit semantics are present, but browser uses a different page heading, filter set, table columns, row data, summary cards, and pagination geometry than Figma. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-09-02",
+        "conclusion": "顶栏生产环境标记、筛选、统计、十列表格、分页和底部分析区已与 Figma 结构对齐；仍存在头像素材、文字光栅化和局部像素差异，保留 DIFF_REVIEW。"
       }
     },
     {

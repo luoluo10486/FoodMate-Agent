@@ -18,7 +18,12 @@ type SidebarSessionListProps = {
   showHistory?: boolean;
 };
 
-export function SidebarSessionList({ sessions, onAction, currentPage = 1, showHistory = true }: SidebarSessionListProps) {
+export function SidebarSessionList({
+  sessions,
+  onAction,
+  currentPage = 1,
+  showHistory = true,
+}: SidebarSessionListProps) {
   return (
     <section className={`${styles.section} sidebar-session-section`}>
       <NavLink

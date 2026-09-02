@@ -1,16 +1,107 @@
 [CmdletBinding()]
 param(
     [switch]$Strict,
-    [switch]$RequireJwtOverlap
+    [switch]$RequireJwtOverlap,
+    [string]$EnvFile = ""
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $failures = [System.Collections.Generic.List[string]]::new()
 $skipped = [System.Collections.Generic.List[string]]::new()
+$environmentNames = @(
+    "RUNTIME_SERVICE_JWT_ENABLED",
+    "RUNTIME_JAVA_PUBLIC_KEYS",
+    "RUNTIME_PYTHON_PUBLIC_KEYS",
+    "RUNTIME_JAVA_KID",
+    "RUNTIME_PYTHON_KID",
+    "FOODMATE_RAG_MODE",
+    "FOODMATE_RAG_EMBEDDING_PROVIDER",
+    "FOODMATE_RAG_EMBEDDING_BASE_URL",
+    "FOODMATE_RAG_EMBEDDING_API_KEY",
+    "FOODMATE_RAG_EMBEDDING_MODEL",
+    "FOODMATE_RAG_MILVUS_URI",
+    "FOODMATE_RAG_MILVUS_COLLECTION",
+    "FOODMATE_RAG_BATCH_TOKEN_LIMIT",
+    "FOODMATE_RAG_DAILY_TOKEN_LIMIT",
+    "FOODMATE_RAG_BATCH_COST_LIMIT",
+    "FOODMATE_RAG_DAILY_COST_LIMIT",
+    "FOODMATE_RAG_PRICE_PER_MILLION_TOKENS",
+    "FOODMATE_RAG_PRICE_VERSION",
+    "FOODMATE_DOCKER_RAG_MODE",
+    "FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER",
+    "FOODMATE_DOCKER_RAG_EMBEDDING_BASE_URL",
+    "FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY",
+    "FOODMATE_DOCKER_RAG_EMBEDDING_MODEL",
+    "FOODMATE_DOCKER_RAG_MILVUS_URI",
+    "FOODMATE_DOCKER_RAG_MILVUS_COLLECTION",
+    "FOODMATE_DOCKER_RAG_BATCH_TOKEN_LIMIT",
+    "FOODMATE_DOCKER_RAG_DAILY_TOKEN_LIMIT",
+    "FOODMATE_DOCKER_RAG_BATCH_COST_LIMIT",
+    "FOODMATE_DOCKER_RAG_DAILY_COST_LIMIT",
+    "FOODMATE_DOCKER_RAG_PRICE_PER_MILLION_TOKENS",
+    "FOODMATE_DOCKER_RAG_PRICE_VERSION",
+    "FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY",
+    "FOODMATE_MODEL_PROVIDER_CLOUD_BACKUP_API_KEY",
+    "FOODMATE_MODEL_PROVIDER_SILICONFLOW_API_KEY",
+    "FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY",
+    "FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_BACKUP_API_KEY",
+    "FOODMATE_DOCKER_MODEL_PROVIDER_SILICONFLOW_API_KEY"
+)
 
 function Test-NonEmpty([string]$Value) {
     return -not [string]::IsNullOrWhiteSpace($Value)
+}
+
+function Read-EnvironmentFile([string]$RequestedPath) {
+    if ([string]::IsNullOrWhiteSpace($RequestedPath)) {
+        return @{}
+    }
+
+    $path = $RequestedPath
+    if (-not [IO.Path]::IsPathRooted($path)) {
+        $path = Join-Path $repoRoot $path
+    }
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw "environment file does not exist"
+    }
+
+    $values = @{}
+    foreach ($rawLine in [IO.File]::ReadAllLines((Resolve-Path -LiteralPath $path).Path)) {
+        $line = $rawLine.TrimStart([char]0xFEFF).Trim()
+        if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith("#")) {
+            continue
+        }
+        if ($line -notmatch '^(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=(.*)$') {
+            throw "environment file contains an invalid entry"
+        }
+
+        $name = $Matches[1]
+        $value = $Matches[2].Trim()
+        if ($value.Length -ge 2 -and
+            (($value.StartsWith('"') -and $value.EndsWith('"')) -or
+             ($value.StartsWith("'") -and $value.EndsWith("'")))) {
+            $value = $value.Substring(1, $value.Length - 2)
+        }
+        if ($environmentNames -contains $name) {
+            $values[$name] = $value
+        }
+    }
+    return $values
+}
+
+function Import-EnvironmentFile([string]$RequestedPath) {
+    $values = Read-EnvironmentFile $RequestedPath
+    $loadedNames = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in $values.Keys) {
+        # 非空进程变量优先于环境文件，避免文件覆盖当前会话中的有效配置。
+        if (Test-NonEmpty ([Environment]::GetEnvironmentVariable($name, "Process"))) {
+            continue
+        }
+        [Environment]::SetEnvironmentVariable($name, [string]$values[$name], "Process")
+        $loadedNames.Add($name)
+    }
+    return @($loadedNames)
 }
 
 function Get-KeyRing([string]$Value) {
@@ -96,8 +187,10 @@ function Test-RagConfiguration(
     }
 }
 
+$loadedEnvironmentNames = @()
 Push-Location $repoRoot
 try {
+    $loadedEnvironmentNames = Import-EnvironmentFile $EnvFile
     $enabled = $env:RUNTIME_SERVICE_JWT_ENABLED -eq "true"
     $javaRing = Get-KeyRing $env:RUNTIME_JAVA_PUBLIC_KEYS
     $pythonRing = Get-KeyRing $env:RUNTIME_PYTHON_PUBLIC_KEYS
@@ -156,6 +249,7 @@ try {
     if (-not (Test-NonEmpty $dockerRagMode)) { $dockerRagMode = "stub" }
     Write-Output "docker_rag_mode=$($dockerRagMode.Trim().ToLowerInvariant())"
     Write-Output "docker_rag_embedding_key_configured=$((Test-NonEmpty (Get-EnvironmentValue 'FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY')).ToString().ToLowerInvariant())"
+    Write-Output "environment_file_loaded=$(([string]::IsNullOrWhiteSpace($EnvFile) -eq $false).ToString().ToLowerInvariant())"
     Write-Output "skipped_checks=$($skipped.Count)"
     foreach ($item in $skipped) { Write-Warning $item }
     if ($failures.Count -gt 0) {
@@ -164,5 +258,8 @@ try {
     }
     Write-Output "secret_rotation_preflight=passed"
 } finally {
+    foreach ($name in $loadedEnvironmentNames) {
+        [Environment]::SetEnvironmentVariable($name, $null, "Process")
+    }
     Pop-Location
 }

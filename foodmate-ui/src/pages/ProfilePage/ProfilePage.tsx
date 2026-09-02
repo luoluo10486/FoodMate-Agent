@@ -1029,7 +1029,11 @@ function BasicTab({
               放弃更改
             </Button>
             <Button className={styles.saveButton} type="submit" disabled={saving}>
-              {saving ? <LoaderCircle className={styles.spin} aria-hidden="true" /> : figmaFixture ? null : <Check aria-hidden="true" />}{' '}
+              {saving ? (
+                <LoaderCircle className={styles.spin} aria-hidden="true" />
+              ) : figmaFixture ? null : (
+                <Check aria-hidden="true" />
+              )}{' '}
               {saving ? '保存中...' : '保存资料'}
             </Button>
           </div>
@@ -2027,7 +2031,7 @@ export function ProfilePage() {
       ? 'privacy'
       : fixtureState === 'memories-empty'
         ? 'memories'
-      : (baseFigmaState ?? getTab(location.pathname));
+        : (baseFigmaState ?? getTab(location.pathname));
   const isFigmaFixture = !realMode || Boolean(baseFigmaState || fixtureState);
   const securityFigmaFixture =
     isFigmaFixture && (baseFigmaState === 'security' || Boolean(fixtureState?.startsWith('security-')));
@@ -2057,9 +2061,19 @@ export function ProfilePage() {
     >
       <div className={cn(styles.page, 'fm-enter')}>
         {activeTab === 'basic' ? (
-          <BasicTab authUser={displayedUser} realMode={isFigmaFixture ? false : realMode} figmaFixture={isFigmaFixture} />
+          <BasicTab
+            authUser={displayedUser}
+            realMode={isFigmaFixture ? false : realMode}
+            figmaFixture={isFigmaFixture}
+          />
         ) : null}
-        {activeTab === 'memories' ? realMode ? <RealMemoriesTab /> : <MemoriesTab figmaFixture={isFigmaFixture} /> : null}
+        {activeTab === 'memories' ? (
+          realMode ? (
+            <RealMemoriesTab />
+          ) : (
+            <MemoriesTab figmaFixture={isFigmaFixture} />
+          )
+        ) : null}
         {activeTab === 'security' ? <SecurityTab figmaFixture={securityFigmaFixture} /> : null}
         {activeTab === 'privacy' ? <PrivacyTab /> : null}
       </div>

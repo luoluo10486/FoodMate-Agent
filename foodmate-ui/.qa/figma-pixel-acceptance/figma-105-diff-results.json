@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-31",
+  "generatedAt": "2026-09-02",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -1052,22 +1052,22 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 624773,
-      "differentRatio": 0.42370130750868057,
-      "meanAbsoluteError": 5.032532925075955,
-      "rmse": 22.042143854890167,
-      "maxChannelDelta": 240
+      "differentPixels": 448539,
+      "differentRatio": 0.30418497721354165,
+      "meanAbsoluteError": 2.7992755466037327,
+      "rmse": 14.98877002382069,
+      "maxChannelDelta": 235
     },
     "admin-operation-audit": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 748347,
-      "differentRatio": 0.5075052897135417,
-      "meanAbsoluteError": 5.537028672960069,
-      "rmse": 22.558639302202685,
-      "maxChannelDelta": 233
+      "differentPixels": 157231,
+      "differentRatio": 0.10662909613715278,
+      "meanAbsoluteError": 3.0150044759114585,
+      "rmse": 17.033024981569966,
+      "maxChannelDelta": 241
     },
     "admin-knowledge-format-error": {
       "status": "COMPARED",

@@ -59,7 +59,10 @@ foreach ($field in @(
         'delivery_pending',
         'proposal_inbox_pending',
         'runtime_inbox_pending',
-        'sse_replay_retained'
+        'sse_replay_retained',
+        'error_type',
+        'error_code',
+        'error_summary'
     )) {
     if ($scriptText -notmatch [regex]::Escape($field)) {
         throw "M1-6 traffic report is missing evidence field: $field"
@@ -131,6 +134,18 @@ if ($scriptText -notmatch 'function Get-ApprovalStatus') {
 }
 if ($scriptText -notmatch 'GET.*api/approvals') {
     throw "M1-6 superseded scenario must use the approval read API"
+}
+if ($scriptText -match '900000000 \+ \(\$workerId \* 10000\) \+ \$index') {
+    throw "M1-6 superseded scenario must not use a fabricated resource id"
+}
+if ($scriptText -notmatch 'created\.data\.resource_id') {
+    throw "M1-6 superseded scenario must bind the update proposal to a created test resource"
+}
+if ($scriptText -match '\$resourceId\.Value') {
+    throw "M1-6 proposal resource id must not read Nullable.Value after PowerShell unboxing"
+}
+if ($scriptText -notmatch '\$payload\.resource_id\s*=\s*\[long\]\$resourceId') {
+    throw "M1-6 proposal resource id must be serialized as a long value"
 }
 
 Write-Output "m1_6_traffic_contract=passed"

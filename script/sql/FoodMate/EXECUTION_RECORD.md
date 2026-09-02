@@ -1783,3 +1783,84 @@
 | 路由 | `siliconflow-docker-chat-smoke.ps1 -Tier standard -ExecuteRequest`：`cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，预检通过。 |
 | 真实调用 | 返回有效响应摘要，`total_tokens=23`，延迟 `5961.05 ms`，请求通过；未保存回答正文或供应商原始响应。 |
 | 结论 | Docker Python Runtime 的真实 Chat 配置已生效；该证据不替代长稳、容量、价格账单对账或生产可用性结论。 |
+
+## D108 Docker Runtime SiliconFlow 双 Embedding 当前轮次复验（2026-09-01）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；凭据仅从本地忽略 `.env` 注入，未输出或写入仓库。 |
+| Python 启动 | `docker compose --env-file .env -f docker/compose.yml ps agent-runtime`：容器以 `python runtime_server.py` 启动，状态 `healthy`，宿主端口 `9002 -> 9000`。 |
+| BGE profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest`：模型 `BAAI/bge-m3`，向量维度 `1024`，`prompt_tokens=9`，延迟 `6069.13 ms`，请求通过。 |
+| Qwen profile | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：模型 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `10921.07 ms`，请求通过。 |
+| 配置恢复 | BGE 验证完成后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；Runtime readiness 恢复为 `healthy`。 |
+| 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
+| 结论 | Docker Python Runtime 可直接调用 SiliconFlow 的两个指定 Embedding 模型；本结果是单次协议/配置业务证据，不代表长稳、容量、成本对账、故障矩阵或生产门禁完成。 |
+
+## D109 Docker Python 启动与安全配置预检（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；现有 Docker Compose 应用容器保持运行；未修改数据库、Redis、RocketMQ、MinIO 或 Milvus 数据。 |
+| Python 启动 | `docker inspect foodmate-agent-runtime` 确认入口为 `python runtime_server.py`，工作目录为 `/app`；容器内 Python `3.12.14`，宿主机端口映射为 `9002 -> 9000`。 |
+| 运行状态 | `GET http://127.0.0.1:9002/foodmate/internal/health/live` 返回 `200`；`GET http://127.0.0.1:9002/foodmate/internal/health/ready` 返回 `200`，Runtime、Redis、RocketMQ 协调状态为 ready。 |
+| 安全扫描 | `script\\security\\security-scan.ps1`：tracked secret `0`、working-tree secret `0`、tracked env `0`，扫描通过；本地忽略 `.env` 仅计数，不输出密钥内容。 |
+| 轮换预检 | `script\\security\\secret-rotation-check.ps1`：预检通过；RAG/Chat 凭据分离检查通过。当前本地 `RUNTIME_SERVICE_JWT_ENABLED` 未开启，JWT 重叠轮换检查按脚本规则跳过，不宣称已完成供应商控制台或 JWT 轮换。 |
+| 配置边界 | Docker 使用 `FOODMATE_DOCKER_*` 输入映射到容器内 `FOODMATE_*`；真实 API Key 未写入 Git、执行记录、日志或命令参数。修改代码需 `--build`，修改环境变量需 `--force-recreate`。 |
+| 结论 | Docker 可直接负责启动 Python Runtime，当前实例健康；本轮仅完成启动、readiness 和本地安全预检，不替代生产密钥轮换、生产监控、性能容量或故障恢复证据。 |
+
+## D110 营养目录与单位换算只读核验（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | 本地 Docker PostgreSQL `foodmate-postgres` / `FoodMate`；仅执行只读 SQL，未修改业务数据。 |
+| 营养目录 | `nutrition_foods` 未删除记录 `48` 条，其中 `approved=48`；当前 V1/V4/V5/V7 USDA 增量均已进入本地目录。 |
+| 单位换算 | `nutrition_unit_conversions` 未删除记录 `123` 条，其中 `approved=123`；包含食材级 USDA `foodPortions` 规则和 V6 精确质量单位规则。 |
+| 约束 | 未覆盖的食材、家庭单位和密度换算继续返回 `pending`；不使用模型推断营养值或单位密度。 |
+| 结论 | 当前本地功能范围的营养目录扩展和单位换算数据已具备数据库事实与 validation 依据；更广泛目录仍可在未来按新的官方来源增量评审，不作为本轮未验证数据补录。 |
+
+## D111 安全配置预检支持显式环境文件（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行命令 | `script\\security\\secret-rotation-check.tests.ps1`；`script\\security\\secret-rotation-check.ps1 -EnvFile .env`；`script\\security\\security-scan.tests.ps1`。 |
+| 回归测试 | `secret_rotation_check_tests=passed`；覆盖环境文件加载、进程环境优先和敏感值不出现在输出中。 |
+| 实际配置 | `.env` 预检输出 `docker_rag_mode=local`、`docker_rag_embedding_key_configured=true`、`environment_file_loaded=true`；服务 JWT 当前关闭并按规则提示跳过轮换检查。 |
+| 安全结果 | `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`；脚本仅输出状态/计数，不输出 API Key。 |
+| 兼容性 | 解析器兼容现有 Compose `.env` 中带点号的模型价格变量；只导入脚本检查的配置名，不把其他环境变量注入当前进程。 |
+| 结论 | Docker 实际配置现在可以通过显式 `-EnvFile .env` 进行脱敏预检；这仍不等同于供应商控制台密钥轮换或生产 JWT 重叠轮换已完成。 |
+
+## D112 Docker Runtime SiliconFlow 双 Embedding 本轮真实复验（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；API Key 仅从本地忽略 `.env` 注入，未输出或写入仓库。 |
+| BGE profile | `switch-rag-embedding-profile.ps1 -Profile bge-m3 -Apply -Recreate` 后执行 `siliconflow-docker-embedding-smoke.ps1 -Profile bge-m3 -ExecuteRequest`：`BAAI/bge-m3` 返回 `1024` 维，`prompt_tokens=9`，延迟约 `1870.06 ms`，请求通过。 |
+| Qwen profile | 恢复 `qwen3-embedding-0.6b` 后执行 `siliconflow-docker-embedding-smoke.ps1 -Profile qwen3-embedding-0.6b -ExecuteRequest`：`Qwen/Qwen3-Embedding-0.6B` 返回 `1024` 维，`prompt_tokens=5`，延迟约 `1167.1 ms`，请求通过。 |
+| 配置恢复 | BGE 验证完成后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；`foodmate-agent-runtime` readiness 为 `healthy`，宿主端口为 `9002 -> 9000`。 |
+| 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
+| 结论 | Docker Python Runtime 可以在 `local` 模式下调用两个指定 SiliconFlow Embedding 模型，并可通过 profile 脚本切换；本证据不替代性能容量、成本对账、故障矩阵或生产门禁。 |
+
+## D113 USDA 营养目录 V8 增量与本地 PostgreSQL 验证（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；本地 Docker PostgreSQL 容器 `foodmate-postgres`，数据库 `FoodMate`；没有执行 truncate、宽泛删除或历史迁移修改。 |
+| 数据来源 | USDA FoodData Central SR Legacy 2019-04-01；新增 FDC `169330`、`169473`、`170000`、`170026`、`170845`、`170894`、`171688`、`172388`、`172420`、`172449`、`173734`、`175168`，保留 FDC 与 portion 序号。 |
+| 执行命令 | `docker exec foodmate-postgres psql --no-psqlrc --set ON_ERROR_STOP=1 --username postgres --dbname FoodMate --file /tmp/foodmate-v8-seed.sql`；随后执行同路径 `V8__nutrition_usda_directory_expansion_validation.sql`。 |
+| Seed 结果 | 食材 `12/12` 写入，foodPortion 规则 `12/12` 写入；重复执行时食材按稳定 ID 幂等更新 `12` 行，规则新增 `0` 行。 |
+| Validation 结果 | V8 食材行 `12`、无效食材 `0`；V8 规则行 `12`、无效规则 `0`；食材外键不匹配 `0`；换算规则形状错误 `0`。 |
+| 当前总量 | `nutrition_foods` approved 未删除 `60` 条；USDA foodPortion approved 未删除 `60` 条；精确质量换算 `75` 条；active conversion 合计 `135` 条。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-infra -am test -Dtest=NutritionExpansionV8SeedScriptTest -Dsurefire.failIfNoSpecifiedTests=false`：`2/2` 通过。先行运行缺失文件时按预期失败，补齐 seed/validation 后转绿。 |
+| 数据边界 | 发现并修正初版 seed 的同名冲突、希腊酸奶中文名和 validation 规则 ID；未覆盖已有 V1/V4/V5/V7 事实，未写入原始数据包、API Key 或供应商响应。 |
+| 结论 | 本地营养目录已从 48 条扩展至 60 条，V8 seed、来源追溯、份量归一化、幂等和只读 validation 已取得直接证据；后续新增仍需使用新 seed 编号和独立稳定 ID。 |
+
+## D114 Docker Runtime 当前 Embedding 密钥复验（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；密钥仅从本地忽略 `.env` 注入，未输出或写入仓库。 |
+| 配置预检 | `bge-m3` profile、`BAAI/bge-m3`、`local`、`openai-compatible` 和容器 readiness 均通过；Runtime 可从 Docker 启动并监听宿主 `9002`。 |
+| 真实请求 | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest` 和 `-EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest` 均到达 `https://api.siliconflow.cn/v1/embeddings`，供应商均返回 HTTP `401 Unauthorized`，安全响应摘要为 `Api key is invalid`。 |
+| 影响范围 | 两次请求均未取得向量，不能据此确认当前密钥下 BGE 或 Qwen 的真实 Embedding 业务调用；未使用旧密钥静默替换，也未继续重复请求。 |
+| 业务测试 | Python RAG/Worker/云 smoke 契约测试：`77 passed, 4 subtests passed`；该结果只证明本地业务和配置契约，不替代供应商认证。 |
+| 结论 | Docker Python Runtime 启动链路和两个 profile 配置正常，当前密钥需要在 SiliconFlow 控制台确认有效性或轮换后再进行真实请求复验；D112 的成功记录仍仅代表当时使用的历史密钥。 |

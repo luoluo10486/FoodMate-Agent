@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, LoaderCircle, RefreshCw, ShieldAlert, X, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert, X, XCircle } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -641,18 +641,14 @@ function AdminFixtureOverlay({ state, onDismiss }: { state: AdminFixtureState; o
       : state === 'op-submitting'
         ? '正在提交操作'
         : state === 'op-failed'
-        ? '操作失败'
-        : '';
+          ? '操作失败'
+          : '';
   const title = operationTitle;
   const Icon = state === 'op-failed' ? XCircle : AlertTriangle;
   const progress = state === 'op-submitting' ? '正在通知关联的服务集群同步状态...' : '';
   return (
     <div className={styles.fixtureOverlay} role="presentation">
-      <section
-        className={styles.fixtureModal}
-        role="alert"
-        aria-live="polite"
-      >
+      <section className={styles.fixtureModal} role="alert" aria-live="polite">
         <div className={styles.fixtureModalTitle}>
           <span>
             <Icon aria-hidden="true" />
@@ -771,6 +767,8 @@ export function AdminPage() {
     requestedFixture === 'tool-registry' ||
     (pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry');
   const isDeletedRoute = pathname.endsWith('/deleted') || requestedFixture === 'deleted-resources';
+  const isUsageRoute = sectionKey === 'usage';
+  const isAuditFigmaRoute = sectionKey === 'audit' && import.meta.env.VITE_AGENT_MODE !== 'real';
   const isDetailFixture =
     requestedFixture === 'run-detail' ||
     requestedFixture === 'tool-calls' ||
@@ -964,7 +962,7 @@ export function AdminPage() {
         ) : null}
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
-            <strong>
+            <h1>
               {isDetailFixture
                 ? detailTitle
                 : sectionKey === 'overview'
@@ -977,13 +975,20 @@ export function AdminPage() {
                         ? '用户管理'
                         : sectionKey === 'knowledge'
                           ? '知识库管理'
-                          : sectionKey === 'model'
-                            ? '模型治理'
-                            : sectionKey === 'audit'
-                              ? '操作审计'
-                              : '管理控制台'}
-            </strong>
-            {isDetailFixture || sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
+                          : sectionKey === 'usage'
+                            ? '模型用量'
+                            : sectionKey === 'model'
+                              ? '模型治理'
+                              : sectionKey === 'audit'
+                                ? '操作审计'
+                                : '管理控制台'}
+            </h1>
+            {isDetailFixture ||
+            sectionKey === 'overview' ||
+            sectionKey === 'users' ||
+            isRegistryRoute ||
+            isUsageRoute ||
+            isAuditFigmaRoute ? (
               <span className={styles.envBadge}>生产环境</span>
             ) : isDeletedRoute ? (
               <span className={styles.securityBadge}>审计存档区</span>
@@ -997,16 +1002,28 @@ export function AdminPage() {
                   ? '服务节点：healthy-cluster-0'
                   : isDeletedRoute
                     ? '存档保留时长：90天安全窗口'
-                    : sectionKey === 'users'
-                      ? '刷新时间：刚刚'
-                      : sectionKey === 'audit'
-                        ? '审计记录只读'
-                        : '数据刷新：刚刚'}
+                    : isUsageRoute
+                      ? '数据刷新：刚刚'
+                      : sectionKey === 'users'
+                        ? '刷新时间：刚刚'
+                        : isAuditFigmaRoute
+                          ? '数据刷新：刚刚'
+                          : sectionKey === 'audit'
+                            ? '审计记录只读'
+                            : '数据刷新：刚刚'}
             </span>
             <Button
               variant="outline"
               className={styles.topbarRefresh}
-              onClick={isDeletedRoute ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。') : handleRefresh}
+              onClick={
+                isDeletedRoute
+                  ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。')
+                  : isUsageRoute
+                    ? () => setNotice('模型用量 CSV 已生成。')
+                    : isAuditFigmaRoute
+                      ? () => setNotice('审计导出已准备。')
+                      : handleRefresh
+              }
             >
               {isDetailFixture
                 ? '刷新'
@@ -1014,11 +1031,15 @@ export function AdminPage() {
                   ? '更新状态'
                   : isDeletedRoute
                     ? '合规性审计'
-                    : sectionKey === 'users'
-                      ? '刷新'
-                      : sectionKey === 'audit'
-                        ? '刷新审计'
-                        : '刷新数据'}
+                    : isUsageRoute
+                      ? '导出 CSV'
+                      : isAuditFigmaRoute
+                        ? '导出审计'
+                        : sectionKey === 'users'
+                          ? '刷新'
+                          : sectionKey === 'audit'
+                            ? '刷新审计'
+                            : '刷新数据'}
             </Button>
           </div>
         </header>
@@ -1033,6 +1054,8 @@ export function AdminPage() {
           {sectionKey === 'overview' ||
           sectionKey === 'users' ||
           sectionKey === 'knowledge' ||
+          isUsageRoute ||
+          isAuditFigmaRoute ||
           isRegistryRoute ||
           isDeletedRoute ? null : (
             <AdminHeader sectionKey={sectionKey} />

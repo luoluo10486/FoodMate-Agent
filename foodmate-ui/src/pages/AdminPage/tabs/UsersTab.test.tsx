@@ -18,7 +18,7 @@ describe('Admin user details', () => {
   it('renders the user list and all five detail tabs', async () => {
     renderUsers();
 
-    expect(await screen.findByText('用户管理', { selector: 'strong' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '用户管理', level: 1 })).toBeInTheDocument();
     expect(await screen.findByRole('row', { name: /usr_098a1/ })).toBeInTheDocument();
     expect(screen.getAllByRole('tab')).toHaveLength(5);
     expect(screen.getByRole('tab', { name: '资料' })).toHaveAttribute('aria-selected', 'true');

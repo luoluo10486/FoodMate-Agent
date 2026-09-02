@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   CalendarDays,
+  CircleX,
   CircleUserRound,
   Copy,
   History,
@@ -11,7 +12,6 @@ import {
   Search,
   ShieldCheck,
   Utensils,
-  X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -525,13 +525,14 @@ function UserDetailCard({ user, onRevoke }: { user: AdminUserView; onRevoke: () 
           size="icon"
           type="button"
           aria-label="关闭用户详情"
+          data-figma-asset="admin-user-detail-close"
           onClick={() =>
             window.dispatchEvent(
               new CustomEvent('foodmate:admin-notice', { detail: { message: '详情面板保持打开以便对照用户信息。' } }),
             )
           }
         >
-          <X aria-hidden="true" />
+          <CircleX aria-hidden="true" />
         </Button>
       </div>
       <div className={styles.userDetailIdentity}>

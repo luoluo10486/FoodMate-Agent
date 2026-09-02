@@ -114,6 +114,8 @@ SiliconFlow 可使用 `BAAI/bge-m3` 或 `Qwen/Qwen3-Embedding-0.6B`。分别设�
 
 该入口只从当前 PowerShell 进程读取 `FOODMATE_RAG_EMBEDDING_BASE_URL` 和 `FOODMATE_RAG_EMBEDDING_API_KEY`，不读取项目 `.env`，也不接受命令行密钥参数；真实调用前必须使用已轮换的供应商密钥。
 
+当前验证口径（2026-09-02）：D112 使用历史凭据时，BGE 和 Qwen 两个 profile 均返回 1024 维向量；D114 使用当前凭据复验时，两个请求均返回 HTTP 401 `Unauthorized`，响应摘要为 `Api key is invalid`。因此当前 Docker Runtime 的启动、配置、readiness 和 profile 隔离已验证，但当前凭据下的真实 Embedding 调用尚未成功；应在 SiliconFlow 控制台确认或轮换密钥后再复验。历史证据与当前凭据不能混为一个成功结论。
+
 #### Docker 真实密钥注入与重建
 
 根目录 `.env` 只作为 Compose 的非敏感配置输入。真实密钥不要写入仓库或复制到命令行参数；在 Windows 本地联调时，可以仅注入当前 PowerShell 进程，Compose 会优先使用进程环境变量：

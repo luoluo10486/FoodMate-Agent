@@ -155,6 +155,31 @@ describe('AdminPage overview', () => {
     view.unmount();
   });
 
+  it('uses the Figma user-detail close affordance and gender avatar fallback', () => {
+    renderAdmin('/admin?state=user-detail');
+
+    const closeButton = screen.getByRole('button', { name: '关闭用户详情' });
+    expect(closeButton).toHaveAttribute('data-figma-asset', 'admin-user-detail-close');
+    expect(closeButton.querySelector('svg circle')).toBeInTheDocument();
+    expect(document.querySelector('.userDetailAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+  });
+
+  it('limits operation-state fixtures to the four Figma registry rows', () => {
+    renderAdmin('/admin?state=op-confirm');
+
+    expect(screen.getAllByText('nutrition_lookup')).toHaveLength(2);
+    expect(screen.getAllByText('food_image_analyze')).toHaveLength(1);
+    expect(screen.getAllByText('meal_plan_generate')).toHaveLength(1);
+    expect(screen.getAllByText('knowledge_search')).toHaveLength(1);
+    expect(screen.queryByText('sql_query')).not.toBeInTheDocument();
+    expect(screen.queryByText('user_memory_write')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '权限范围筛选' })).not.toBeInTheDocument();
+    expect(screen.getByText('显示第 1 到 4 条，共 24 条结果')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '3' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '4' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '停用工具', hidden: true })).toHaveLength(4);
+  });
+
   it('renders the Figma run detail fixture with a table and execution steps', () => {
     renderAdmin('/admin?state=run-detail');
 
@@ -277,5 +302,81 @@ describe('AdminPage knowledge upload fixtures', () => {
     expect(screen.getByRole('link', { name: '知识库管理' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('USDA_Keto_Ingredient_Guidelines.pdf')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('Admin model usage Figma fixture', () => {
+  it('renders the model usage board with filters, six usage rows, pagination, and analytics', () => {
+    renderAdmin('/admin/usage');
+
+    expect(screen.getByRole('heading', { name: '模型用量', level: 1 })).toBeInTheDocument();
+    const environmentBadge = document.querySelector('.topbar .envBadge');
+    expect(environmentBadge).toBeInTheDocument();
+    expect(environmentBadge).toHaveTextContent('生产环境');
+    expect(screen.getByText('数据刷新：刚刚')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '导出 CSV' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '模型用量筛选' })).toBeInTheDocument();
+    expect(screen.getAllByText('结果:')).toHaveLength(1);
+    expect(screen.getAllByText('供应商:')).toHaveLength(1);
+    expect(screen.getAllByText('模型:')).toHaveLength(1);
+    expect(screen.getByPlaceholderText('时间 / 场景 / 模型 / Run ID...')).toBeInTheDocument();
+
+    expect(screen.getByText('输入 Token')).toBeInTheDocument();
+    expect(screen.getByText('12.4M')).toBeInTheDocument();
+    expect(screen.getByText('输出 Token')).toBeInTheDocument();
+    expect(screen.getByText('3.7M')).toBeInTheDocument();
+    expect(screen.getByText('总成本')).toBeInTheDocument();
+    expect(screen.getByText('$128.45')).toBeInTheDocument();
+
+    const table = screen.getByRole('region', { name: '模型用量明细' });
+    expect(table).toBeInTheDocument();
+    expect(screen.getByText('调用时间')).toBeInTheDocument();
+    expect(screen.getByText('run_98218a')).toBeInTheDocument();
+    expect(screen.getByText('run_774x2')).toBeInTheDocument();
+    expect(screen.getByText('run_889a4')).toBeInTheDocument();
+    expect(screen.getByText('run_552b1')).toBeInTheDocument();
+    expect(screen.getByText('run_133c9')).toBeInTheDocument();
+    expect(screen.getByText('run_908d1')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '查看 Run' })).toHaveLength(6);
+    expect(screen.getByText('显示第 1 到 6 条，共 12,480 条结果')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '模型用量分页' })).toBeInTheDocument();
+
+    expect(screen.getByText('成本 / Token 趋势')).toBeInTheDocument();
+    expect(screen.getByText('供应商占比')).toBeInTheDocument();
+    expect(screen.getByText('场景排行')).toBeInTheDocument();
+    expect(document.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(document.body.innerHTML).not.toMatch(/traffic-light|#ff3b30|#ffcc00|#34c759/i);
+  });
+
+  it('filters usage rows and copies a run id from the Figma table', async () => {
+    const user = userEvent.setup();
+    renderAdmin('/admin/usage');
+
+    const search = screen.getByPlaceholderText('时间 / 场景 / 模型 / Run ID...');
+    await user.type(search, 'run_774x2');
+
+    expect(screen.getByText('run_774x2')).toBeInTheDocument();
+    expect(screen.queryByText('run_98218a')).not.toBeInTheDocument();
+    expect(screen.getByText('显示第 1 到 1 条，共 12,480 条结果')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '复制 run_774x2' }));
+    expect(screen.getByRole('status')).toHaveTextContent('已复制 run_774x2');
+  });
+
+  it('filters usage rows by result and changes page without losing the Figma table contract', async () => {
+    const user = userEvent.setup();
+    renderAdmin('/admin/usage');
+
+    await user.click(screen.getByRole('combobox', { name: '结果筛选' }));
+    await user.click(screen.getByRole('option', { name: '失败' }));
+
+    expect(screen.getByText('run_133c9')).toBeInTheDocument();
+    expect(screen.queryByText('run_98218a')).not.toBeInTheDocument();
+    expect(screen.getByText('显示第 1 到 1 条，共 12,480 条结果')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('combobox', { name: '结果筛选' }));
+    await user.click(screen.getByRole('option', { name: '全部' }));
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+    expect(screen.getByText('显示第 7 到 12 条，共 12,480 条结果')).toBeInTheDocument();
   });
 });
