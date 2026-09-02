@@ -70,6 +70,33 @@ function Assert-Success([hashtable]$Values) {
     }
 }
 
+function Invoke-PreflightFromEnvFile([string]$Path, [hashtable]$Overrides = @{}) {
+    $old = @{}
+    try {
+        foreach ($name in $names) {
+            $old[$name] = [Environment]::GetEnvironmentVariable($name)
+            [Environment]::SetEnvironmentVariable($name, $null)
+        }
+        foreach ($entry in $Overrides.GetEnumerator()) {
+            [Environment]::SetEnvironmentVariable($entry.Key, [string]$entry.Value)
+        }
+        try {
+            $output = (& $target -EnvFile $Path 2>&1 | Out-String)
+            $exitCode = $LASTEXITCODE
+        }
+        catch {
+            $output = $_ | Out-String
+            $exitCode = 1
+        }
+        [pscustomobject]@{ ExitCode = $exitCode; Output = $output }
+    }
+    finally {
+        foreach ($name in $names) {
+            [Environment]::SetEnvironmentVariable($name, $old[$name])
+        }
+    }
+}
+
 $common = @{
     RUNTIME_SERVICE_JWT_ENABLED = "false"
     FOODMATE_RAG_MODE = "local"
@@ -124,5 +151,40 @@ $dockerReused["FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY"] = ""
 $dockerReused["FOODMATE_DOCKER_MODEL_PROVIDER_SILICONFLOW_API_KEY"] = "chat-only-test-key"
 Assert-Failure $dockerReused "Docker RAG embedding API key is missing"
 Assert-Success $dockerCommon
+
+$envFile = [IO.Path]::GetTempFileName()
+try {
+    @"
+RUNTIME_SERVICE_JWT_ENABLED=false
+FOODMATE_DOCKER_RAG_MODE=local
+FOODMATE_DOCKER_RAG_EMBEDDING_PROVIDER=openai-compatible
+FOODMATE_DOCKER_RAG_EMBEDDING_BASE_URL=https://embedding.example/v1
+FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY=embedding-test-key
+FOODMATE_DOCKER_RAG_EMBEDDING_MODEL=BAAI/bge-m3
+FOODMATE_DOCKER_RAG_MILVUS_URI=http://milvus.example:19530
+FOODMATE_DOCKER_RAG_MILVUS_COLLECTION=test_collection
+FOODMATE_DOCKER_RAG_BATCH_TOKEN_LIMIT=1000
+FOODMATE_DOCKER_RAG_DAILY_TOKEN_LIMIT=10000
+FOODMATE_DOCKER_RAG_BATCH_COST_LIMIT=1
+FOODMATE_DOCKER_RAG_DAILY_COST_LIMIT=10
+FOODMATE_DOCKER_RAG_PRICE_PER_MILLION_TOKENS=1
+FOODMATE_DOCKER_RAG_PRICE_VERSION=test-v1
+"@ | Set-Content -LiteralPath $envFile -Encoding utf8
+    $fromFile = Invoke-PreflightFromEnvFile $envFile
+    if ($fromFile.ExitCode -ne 0 -or
+        $fromFile.Output -notmatch "docker_rag_mode=local" -or
+        $fromFile.Output -notmatch "docker_rag_embedding_key_configured=true" -or
+        $fromFile.Output -match "embedding-test-key") {
+        throw "Expected explicit env file to be loaded without exposing values: $($fromFile.Output)"
+    }
+
+    $precedence = Invoke-PreflightFromEnvFile $envFile @{ FOODMATE_DOCKER_RAG_MODE = "stub" }
+    if ($precedence.ExitCode -ne 0 -or $precedence.Output -notmatch "docker_rag_mode=stub") {
+        throw "Expected process environment to take precedence over env file: $($precedence.Output)"
+    }
+}
+finally {
+    Remove-Item -LiteralPath $envFile -Force -ErrorAction SilentlyContinue
+}
 
 Write-Output "secret_rotation_check_tests=passed"

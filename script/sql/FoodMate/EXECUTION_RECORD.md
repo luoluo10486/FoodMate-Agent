@@ -1817,3 +1817,14 @@
 | 单位换算 | `nutrition_unit_conversions` 未删除记录 `123` 条，其中 `approved=123`；包含食材级 USDA `foodPortions` 规则和 V6 精确质量单位规则。 |
 | 约束 | 未覆盖的食材、家庭单位和密度换算继续返回 `pending`；不使用模型推断营养值或单位密度。 |
 | 结论 | 当前本地功能范围的营养目录扩展和单位换算数据已具备数据库事实与 validation 依据；更广泛目录仍可在未来按新的官方来源增量评审，不作为本轮未验证数据补录。 |
+
+## D111 安全配置预检支持显式环境文件（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行命令 | `script\\security\\secret-rotation-check.tests.ps1`；`script\\security\\secret-rotation-check.ps1 -EnvFile .env`；`script\\security\\security-scan.tests.ps1`。 |
+| 回归测试 | `secret_rotation_check_tests=passed`；覆盖环境文件加载、进程环境优先和敏感值不出现在输出中。 |
+| 实际配置 | `.env` 预检输出 `docker_rag_mode=local`、`docker_rag_embedding_key_configured=true`、`environment_file_loaded=true`；服务 JWT 当前关闭并按规则提示跳过轮换检查。 |
+| 安全结果 | `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`；脚本仅输出状态/计数，不输出 API Key。 |
+| 兼容性 | 解析器兼容现有 Compose `.env` 中带点号的模型价格变量；只导入脚本检查的配置名，不把其他环境变量注入当前进程。 |
+| 结论 | Docker 实际配置现在可以通过显式 `-EnvFile .env` 进行脱敏预检；这仍不等同于供应商控制台密钥轮换或生产 JWT 重叠轮换已完成。 |
