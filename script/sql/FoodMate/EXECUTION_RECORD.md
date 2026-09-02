@@ -1828,3 +1828,14 @@
 | 安全结果 | `tracked_secret_scan_hits=0`、`working_tree_secret_scan_hits=0`、`tracked_env_files=0`；脚本仅输出状态/计数，不输出 API Key。 |
 | 兼容性 | 解析器兼容现有 Compose `.env` 中带点号的模型价格变量；只导入脚本检查的配置名，不把其他环境变量注入当前进程。 |
 | 结论 | Docker 实际配置现在可以通过显式 `-EnvFile .env` 进行脱敏预检；这仍不等同于供应商控制台密钥轮换或生产 JWT 重叠轮换已完成。 |
+
+## D112 Docker Runtime SiliconFlow 双 Embedding 本轮真实复验（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；API Key 仅从本地忽略 `.env` 注入，未输出或写入仓库。 |
+| BGE profile | `switch-rag-embedding-profile.ps1 -Profile bge-m3 -Apply -Recreate` 后执行 `siliconflow-docker-embedding-smoke.ps1 -Profile bge-m3 -ExecuteRequest`：`BAAI/bge-m3` 返回 `1024` 维，`prompt_tokens=9`，延迟约 `1870.06 ms`，请求通过。 |
+| Qwen profile | 恢复 `qwen3-embedding-0.6b` 后执行 `siliconflow-docker-embedding-smoke.ps1 -Profile qwen3-embedding-0.6b -ExecuteRequest`：`Qwen/Qwen3-Embedding-0.6B` 返回 `1024` 维，`prompt_tokens=5`，延迟约 `1167.1 ms`，请求通过。 |
+| 配置恢复 | BGE 验证完成后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；`foodmate-agent-runtime` readiness 为 `healthy`，宿主端口为 `9002 -> 9000`。 |
+| 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
+| 结论 | Docker Python Runtime 可以在 `local` 模式下调用两个指定 SiliconFlow Embedding 模型，并可通过 profile 脚本切换；本证据不替代性能容量、成本对账、故障矩阵或生产门禁。 |
