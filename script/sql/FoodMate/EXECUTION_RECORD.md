@@ -1839,3 +1839,17 @@
 | 配置恢复 | BGE 验证完成后恢复 Qwen profile、模型和 `foodmate_knowledge_chunks_qwen3_embedding_0_6b` collection；`foodmate-agent-runtime` readiness 为 `healthy`，宿主端口为 `9002 -> 9000`。 |
 | 安全边界 | 未输出 API Key、向量正文或供应商原始响应；未关闭 TLS 校验；两个 profile 使用独立 collection，禁止混写。 |
 | 结论 | Docker Python Runtime 可以在 `local` 模式下调用两个指定 SiliconFlow Embedding 模型，并可通过 profile 脚本切换；本证据不替代性能容量、成本对账、故障矩阵或生产门禁。 |
+
+## D113 USDA 营养目录 V8 增量与本地 PostgreSQL 验证（2026-09-02）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；本地 Docker PostgreSQL 容器 `foodmate-postgres`，数据库 `FoodMate`；没有执行 truncate、宽泛删除或历史迁移修改。 |
+| 数据来源 | USDA FoodData Central SR Legacy 2019-04-01；新增 FDC `169330`、`169473`、`170000`、`170026`、`170845`、`170894`、`171688`、`172388`、`172420`、`172449`、`173734`、`175168`，保留 FDC 与 portion 序号。 |
+| 执行命令 | `docker exec foodmate-postgres psql --no-psqlrc --set ON_ERROR_STOP=1 --username postgres --dbname FoodMate --file /tmp/foodmate-v8-seed.sql`；随后执行同路径 `V8__nutrition_usda_directory_expansion_validation.sql`。 |
+| Seed 结果 | 食材 `12/12` 写入，foodPortion 规则 `12/12` 写入；重复执行时食材按稳定 ID 幂等更新 `12` 行，规则新增 `0` 行。 |
+| Validation 结果 | V8 食材行 `12`、无效食材 `0`；V8 规则行 `12`、无效规则 `0`；食材外键不匹配 `0`；换算规则形状错误 `0`。 |
+| 当前总量 | `nutrition_foods` approved 未删除 `60` 条；USDA foodPortion approved 未删除 `60` 条；精确质量换算 `75` 条；active conversion 合计 `135` 条。 |
+| 业务测试 | `mvnw.cmd -pl foodmate-infra -am test -Dtest=NutritionExpansionV8SeedScriptTest -Dsurefire.failIfNoSpecifiedTests=false`：`2/2` 通过。先行运行缺失文件时按预期失败，补齐 seed/validation 后转绿。 |
+| 数据边界 | 发现并修正初版 seed 的同名冲突、希腊酸奶中文名和 validation 规则 ID；未覆盖已有 V1/V4/V5/V7 事实，未写入原始数据包、API Key 或供应商响应。 |
+| 结论 | 本地营养目录已从 48 条扩展至 60 条，V8 seed、来源追溯、份量归一化、幂等和只读 validation 已取得直接证据；后续新增仍需使用新 seed 编号和独立稳定 ID。 |
