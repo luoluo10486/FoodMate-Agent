@@ -1860,7 +1860,7 @@
 |---|---|
 | 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime` 和 Milvus；密钥仅从本地忽略 `.env` 注入，未输出或写入仓库。 |
 | 配置预检 | `bge-m3` profile、`BAAI/bge-m3`、`local`、`openai-compatible` 和容器 readiness 均通过；Runtime 可从 Docker 启动并监听宿主 `9002`。 |
-| 真实请求 | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest` 到达 `https://api.siliconflow.cn/v1/embeddings`，供应商返回 HTTP `401 Unauthorized`，安全响应摘要为 `Api key is invalid`。 |
-| 影响范围 | 请求未取得向量，不能据此确认当前密钥下 BGE 或 Qwen 的真实 Embedding 业务调用；未使用旧密钥静默替换，也未继续重复请求。 |
+| 真实请求 | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile bge-m3 -ExecuteRequest` 和 `-EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest` 均到达 `https://api.siliconflow.cn/v1/embeddings`，供应商均返回 HTTP `401 Unauthorized`，安全响应摘要为 `Api key is invalid`。 |
+| 影响范围 | 两次请求均未取得向量，不能据此确认当前密钥下 BGE 或 Qwen 的真实 Embedding 业务调用；未使用旧密钥静默替换，也未继续重复请求。 |
 | 业务测试 | Python RAG/Worker/云 smoke 契约测试：`77 passed, 4 subtests passed`；该结果只证明本地业务和配置契约，不替代供应商认证。 |
-| 结论 | Docker Python Runtime 启动链路正常，当前密钥需要在 SiliconFlow 控制台确认有效性或轮换后再进行两个 profile 的真实请求复验；D112 的成功记录仍仅代表当时使用的历史密钥。 |
+| 结论 | Docker Python Runtime 启动链路和两个 profile 配置正常，当前密钥需要在 SiliconFlow 控制台确认有效性或轮换后再进行真实请求复验；D112 的成功记录仍仅代表当时使用的历史密钥。 |
