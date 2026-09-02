@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-08-31",
+    "capturedAt": "2026-09-01",
     "figmaMcp": "get_metadata"
   },
   "acceptanceRules": {
@@ -5111,7 +5111,7 @@
       "queryState": null,
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-model-usage.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-model-usage-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-model-usage-browser-2026-09-01-rgba.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-model-usage",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",

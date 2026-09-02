@@ -771,6 +771,7 @@ export function AdminPage() {
     requestedFixture === 'tool-registry' ||
     (pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry');
   const isDeletedRoute = pathname.endsWith('/deleted') || requestedFixture === 'deleted-resources';
+  const isUsageRoute = sectionKey === 'usage';
   const isDetailFixture =
     requestedFixture === 'run-detail' ||
     requestedFixture === 'tool-calls' ||
@@ -964,7 +965,7 @@ export function AdminPage() {
         ) : null}
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
-            <strong>
+            <h1>
               {isDetailFixture
                 ? detailTitle
                 : sectionKey === 'overview'
@@ -977,13 +978,15 @@ export function AdminPage() {
                         ? '用户管理'
                         : sectionKey === 'knowledge'
                           ? '知识库管理'
+                          : sectionKey === 'usage'
+                            ? '模型用量'
                           : sectionKey === 'model'
                             ? '模型治理'
                             : sectionKey === 'audit'
                               ? '操作审计'
                               : '管理控制台'}
-            </strong>
-            {isDetailFixture || sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute ? (
+            </h1>
+            {isDetailFixture || sectionKey === 'overview' || sectionKey === 'users' || isRegistryRoute || isUsageRoute ? (
               <span className={styles.envBadge}>生产环境</span>
             ) : isDeletedRoute ? (
               <span className={styles.securityBadge}>审计存档区</span>
@@ -997,6 +1000,8 @@ export function AdminPage() {
                   ? '服务节点：healthy-cluster-0'
                   : isDeletedRoute
                     ? '存档保留时长：90天安全窗口'
+                    : isUsageRoute
+                      ? '数据刷新：刚刚'
                     : sectionKey === 'users'
                       ? '刷新时间：刚刚'
                       : sectionKey === 'audit'
@@ -1006,15 +1011,23 @@ export function AdminPage() {
             <Button
               variant="outline"
               className={styles.topbarRefresh}
-              onClick={isDeletedRoute ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。') : handleRefresh}
+              onClick={
+                isDeletedRoute
+                  ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。')
+                  : isUsageRoute
+                    ? () => setNotice('模型用量 CSV 已生成。')
+                    : handleRefresh
+              }
             >
               {isDetailFixture
                 ? '刷新'
                 : isRegistryRoute
                   ? '更新状态'
-                  : isDeletedRoute
-                    ? '合规性审计'
-                    : sectionKey === 'users'
+                : isDeletedRoute
+                  ? '合规性审计'
+                  : isUsageRoute
+                    ? '导出 CSV'
+                  : sectionKey === 'users'
                       ? '刷新'
                       : sectionKey === 'audit'
                         ? '刷新审计'
@@ -1033,6 +1046,7 @@ export function AdminPage() {
           {sectionKey === 'overview' ||
           sectionKey === 'users' ||
           sectionKey === 'knowledge' ||
+          isUsageRoute ||
           isRegistryRoute ||
           isDeletedRoute ? null : (
             <AdminHeader sectionKey={sectionKey} />
