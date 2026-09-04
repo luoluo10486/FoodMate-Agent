@@ -230,7 +230,7 @@ describe('authentication pages', () => {
       '--auth-brand': '#a6d997',
       '--auth-primary': '#a6d997',
     });
-    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-leaf.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-user.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-mail.svg"]')).toBeInTheDocument();
     expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-register-lock.svg"]')).toHaveLength(2);
@@ -243,6 +243,7 @@ describe('authentication pages', () => {
     expect(screen.getByLabelText('密码')).toHaveValue('Foodmate123');
     expect(screen.getByLabelText('确认密码')).toHaveValue('Foodmate123');
     expect(screen.getByText('至少 8 个字符')).toHaveClass(/passwordRuleValid/);
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-register-line.svg"]')).toHaveLength(2);
   });
 
   it('does not prefill the registration form in real mode', () => {
@@ -289,7 +290,7 @@ describe('authentication pages', () => {
     await user.click(toggle);
     expect(password).toHaveAttribute('type', 'text');
     expect(screen.getByLabelText('隐藏密码')).toHaveClass('inline-flex');
-    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-eye.svg"]')).not.toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-eye.svg"]')).toBeInTheDocument();
   });
 
   it('keeps account support and service recovery actions available as shadcn buttons', () => {

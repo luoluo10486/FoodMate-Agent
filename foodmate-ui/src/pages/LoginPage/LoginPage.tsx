@@ -1,4 +1,3 @@
-import { EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useRef } from 'react';
 import type { FormEvent } from 'react';
@@ -284,7 +283,7 @@ export function LoginPage() {
                     aria-label={showPassword ? '隐藏密码' : '显示密码'}
                     onClick={() => setShowPassword((value) => !value)}
                   >
-                    {showPassword ? <EyeOff aria-hidden="true" /> : <img src={loginAsset(visualState, 'eye')} alt="" />}
+                    <img src={loginAsset(visualState, 'eye')} alt="" />
                   </Button>
                 }
                 value={loginValues.password}

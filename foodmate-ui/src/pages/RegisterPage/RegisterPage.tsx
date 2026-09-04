@@ -61,7 +61,11 @@ export function RegisterPage() {
   return (
     <AuthShell variant="register">
       <AuthCard className={styles.registerCard}>
-        <AuthBrand title="创建账号" subtitle="开始你的营养管理之旅" />
+        <AuthBrand
+          title="创建账号"
+          subtitle="开始你的营养管理之旅"
+          iconSrc="/assets/figma/auth/foodmate-register-leaf.svg"
+        />
         <form className={styles.authForm} onSubmit={submit}>
           <div className={styles.registerFields} data-node-id="680:227">
             <AuthField
@@ -123,7 +127,7 @@ export function RegisterPage() {
 
           <div className={styles.registerActions} data-node-id="680:263">
             <AuthSubmit disabled={submitting}>{submitting ? '注册中...' : '注册'}</AuthSubmit>
-            <AuthDivider />
+            <AuthDivider lineSrc="/assets/figma/auth/foodmate-register-line.svg" />
             <div className={styles.authLinkRow}>
               <span>已有账号？</span>
               <Button

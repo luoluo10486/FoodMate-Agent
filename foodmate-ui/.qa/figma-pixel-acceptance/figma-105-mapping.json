@@ -5,7 +5,8 @@
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
     "capturedAt": "2026-09-04",
-    "figmaMcp": "get_metadata"
+    "figmaMcp": "get_metadata",
+    "lastUpdated": "2026-09-05"
   },
   "acceptanceRules": {
     "dpr": 1,
@@ -507,7 +508,7 @@
       "queryState": "state=v2",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-v2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-v2-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-v2-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "MINOR_RENDERING_DIFF_CONFIRMED",
@@ -517,7 +518,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -538,6 +539,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-18",
         "conclusion": "Layout, fields and diagonal background align visually with Figma 647:214; raw per-pixel difference remains inflated by JPEG-to-PNG recoding."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/login?state=v2&visual-qa=1"
       }
     },
     {
@@ -624,7 +635,7 @@
         "viewport": "1440x900",
         "fonts": "loaded",
         "bodyOverflow": false,
-        "url": "http://127.0.0.1:5174/register?visual-qa=1"
+        "url": "http://127.0.0.1:5174/register?null&visual-qa=1"
       }
     },
     {
@@ -638,7 +649,7 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/forgot-password-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/forgot-password-page-browser-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-forgot-password-page-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#forgot-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -648,9 +659,9 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.25,
+        "actualDpr": 1,
         "viewportPass": true,
-        "dprPass": false,
+        "dprPass": true,
         "bodyOverflow": false,
         "root": {
           "height": 900,
@@ -688,7 +699,17 @@
           },
           "visualChange": "找回密码页通过 AuthShell 语义变量使用 Figma 品牌强调色 #48c78e；仅修改前端，未修改 Figma 设计稿。"
         }
-      ]
+      ],
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/forgot-password?null&visual-qa=1"
+      }
     },
     {
       "figmaNodeId": "680:307",
@@ -701,7 +722,7 @@
       "queryState": null,
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/reset-password-page.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/reset-password-page-browser-2026-08-30-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-reset-password-page-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#reset-password-page",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -711,9 +732,9 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.25,
+        "actualDpr": 1,
         "viewportPass": true,
-        "dprPass": false,
+        "dprPass": true,
         "bodyOverflow": false,
         "root": {
           "height": 900,
@@ -751,7 +772,17 @@
           },
           "visualChange": "重置密码页通过 AuthShell 语义变量使用 Figma 品牌强调色 #48c78e；仅修改前端，未修改 Figma 设计稿。"
         }
-      ]
+      ],
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/reset-password?null&visual-qa=1"
+      }
     },
     {
       "figmaNodeId": "680:408",
@@ -764,7 +795,7 @@
       "queryState": "state=submitting",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-submitting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-submitting-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-submitting-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-submitting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -774,7 +805,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -795,6 +826,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-19",
         "conclusion": "Submitting state exists, but background, input geometry, loading control, typography, and spacing differ. Retain DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/login?state=submitting&visual-qa=1"
       }
     },
     {
@@ -808,7 +849,7 @@
       "queryState": "state=field-error",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-field-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-field-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-field-error-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-field-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -818,7 +859,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -839,6 +880,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-19",
         "conclusion": "Field-error state exists, but validation copy placement, input geometry, button treatment, background, and spacing differ. Retain DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/login?state=field-error&visual-qa=1"
       }
     },
     {
@@ -852,7 +903,7 @@
       "queryState": "state=credential-error",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-credential-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-credential-error-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-credential-error-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-credential-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -862,7 +913,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -883,6 +934,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-19",
         "conclusion": "Credential-error state exists, but alert placement, input values, button geometry, background, and spacing differ. Retain DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/login?state=credential-error&visual-qa=1"
       }
     },
     {
@@ -896,7 +957,7 @@
       "queryState": "state=account-locked",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-account-locked.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-account-locked-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-account-locked-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-account-locked",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -906,7 +967,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -927,6 +988,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-19",
         "conclusion": "Account-locked state exists, but warning panel geometry, disabled control, background, and spacing differ. Retain DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/login?state=account-locked&visual-qa=1"
       }
     },
     {
@@ -940,7 +1011,7 @@
       "queryState": "state=account-disabled",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-account-disabled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-account-disabled-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-account-disabled-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-account-disabled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -950,7 +1021,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -971,6 +1042,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-19",
         "conclusion": "Account-disabled state exists, but alert geometry, disabled control, background, and spacing differ. Retain DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/login?state=account-disabled&visual-qa=1"
       }
     },
     {
@@ -984,7 +1065,7 @@
       "queryState": "state=service-unavailable",
       "browserViewport": "1440x900",
       "figmaPng": "docxs/设计/figma-png/login-service-unavailable.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/login-service-unavailable-browser.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-service-unavailable-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-service-unavailable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -994,7 +1075,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -1015,6 +1096,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-19",
         "conclusion": "Service-unavailable state exists, but alert geometry, disabled control, background, and spacing differ. Retain DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/login?state=service-unavailable&visual-qa=1"
       }
     },
     {
@@ -1028,7 +1119,7 @@
       "queryState": "state=invalid",
       "browserViewport": "1440x900",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-invalid-figma-current-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-invalid-browser-current-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-invalid-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-invalid",
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/token-invalid-current-diff-2026-08-29.json",
       "status": "DIFF_REVIEW",
@@ -1039,7 +1130,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -1060,6 +1151,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
         "conclusion": "Latest same-size Figma and browser captures match the page hierarchy and geometry. The diagonal boundary is aligned after the +8px correction, but text/icon rasterization and remaining pixels require continued DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/token-status?state=invalid&visual-qa=1"
       }
     },
     {
@@ -1073,7 +1174,7 @@
       "queryState": "state=expired",
       "browserViewport": "1440x900",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-expired-figma-current-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-expired-browser-current-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-expired-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-expired",
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/token-expired-current-diff-2026-08-29.json",
       "status": "DIFF_REVIEW",
@@ -1084,7 +1185,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -1105,6 +1206,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
         "conclusion": "Latest same-size Figma and browser captures match the page hierarchy and geometry. The shared diagonal boundary correction is active; text/icon rasterization and remaining pixels require continued DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/token-status?state=expired&visual-qa=1"
       }
     },
     {
@@ -1118,7 +1229,7 @@
       "queryState": "state=used",
       "browserViewport": "1440x900",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-used-figma-current-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/token-used-browser-current-2026-08-29-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-used-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-used",
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/token-used-current-diff-2026-08-29.json",
       "status": "DIFF_REVIEW",
@@ -1129,7 +1240,7 @@
         "expectedViewport": "1440x900",
         "actualViewport": "1440x900",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -1150,6 +1261,16 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-29",
         "conclusion": "Latest same-size Figma and browser captures match the page hierarchy, two-button action stack, and card geometry. Text/icon rasterization and remaining pixels require continued DIFF_REVIEW."
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x900",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/token-status?state=used&visual-qa=1"
       }
     },
     {

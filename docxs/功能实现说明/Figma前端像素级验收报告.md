@@ -1820,3 +1820,29 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `figma-105-mapping.json` 和 `figma-105-diff-results.json` 已切换到本次浏览器证据；105 项汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，结构校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
 - [x] 本大点完成后集中执行前端质量门禁：`npm run test` 为 `39/39` 个测试文件、`240/240` 个用例通过，`npm run typecheck`、`npm run build`、`npm run format:check`、`npm run lint` 和 `git diff --check` 均通过；既有 React/Radix `act(...)` 提示不影响退出码。
 - [ ] 自动 diff 和人工视觉复核仍显示图标、字体光栅化及局部组合差异，本轮不能把 DPR/几何通过替代像素级 `PASS`；shadcn 全量逐页视觉收口尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 17. 2026-09-05 Auth 页面组最新证据同步
+
+本轮对 Auth 页面组的 13 个 Figma 画板使用现有 Figma PNG 与最新浏览器 PNG 重新建立一一对应的 diff 证据。Figma 文件保持只读，浏览器采集使用 `visual-qa=1`，关闭动画和动态时间。
+
+| 画板 | 前端入口 | 视口 / DPR | diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---:|---:|---:|---:|---:|---|
+| `login-v2` | `/login?state=default` | `1440×900 / 1` | `3.5494%` | `0.563271` | `7.556086` | `213` | `DIFF_REVIEW` |
+| `register-page` | `/register` | `1440×900 / 1` | `53.4744%` | `4.925019` | `12.976234` | `202` | `DIFF_REVIEW` |
+| `forgot-password-page` | `/forgot-password` | `1440×900 / 1` | `3.1839%` | `0.698558` | `7.558744` | `188` | `DIFF_REVIEW` |
+| `reset-password-page` | `/reset-password` | `1440×900 / 1` | `4.0651%` | `1.279848` | `12.070849` | `213` | `DIFF_REVIEW` |
+| `login-submitting` | `/login?state=submitting` | `1440×900 / 1` | `6.0041%` | `0.666177` | `7.112977` | `213` | `DIFF_REVIEW` |
+| `login-field-error` | `/login?state=field-error` | `1440×900 / 1` | `5.9847%` | `2.176949` | `15.160967` | `213` | `DIFF_REVIEW` |
+| `login-credential-error` | `/login?state=credential-error` | `1440×900 / 1` | `7.3556%` | `2.180823` | `14.229756` | `213` | `DIFF_REVIEW` |
+| `login-account-locked` | `/login?state=account-locked` | `1440×900 / 1` | `6.3483%` | `1.153100` | `10.919070` | `213` | `DIFF_REVIEW` |
+| `login-account-disabled` | `/login?state=account-disabled` | `1440×900 / 1` | `8.3975%` | `1.501752` | `11.600173` | `213` | `DIFF_REVIEW` |
+| `login-service-unavailable` | `/login?state=service-unavailable` | `1440×900 / 1` | `6.1755%` | `1.130837` | `10.875567` | `213` | `DIFF_REVIEW` |
+| `token-invalid` | `/token-status?state=invalid` | `1440×900 / 1` | `1.8195%` | `0.101208` | `2.509056` | `204` | `DIFF_REVIEW` |
+| `token-expired` | `/token-status?state=expired` | `1440×900 / 1` | `1.8706%` | `0.115650` | `2.707871` | `204` | `DIFF_REVIEW` |
+| `token-used` | `/token-status?state=used` | `1440×900 / 1` | `1.9593%` | `0.147349` | `3.025545` | `187` | `DIFF_REVIEW` |
+
+- [x] 最新浏览器证据已登记在 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/dpr1-*-browser-2026-09-05.png`；Figma 参考图和浏览器图尺寸均匹配，13 项均为 `COMPARED`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步；全量运行时检查为 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`、`errors=0`。
+- [x] Auth 视觉资源边界已保持可追溯：品牌标记、字段图标、密码可见性、分隔线和 Token 状态图标使用 Figma 导出文件；未创建虚构 iconfont 字体、字形或 Unicode 映射。
+- [ ] 13 项 diff 均存在非零差异，且最新截图尚未完成逐项人工视觉复核，故不能标记 `PASS`；本次只完成证据更新，不宣称 Auth 页面组像素级验收完成。
+- [ ] 105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；shadcn 全量逐页视觉迁移尚未完成，iconfont 仍为 `BLOCKED`。

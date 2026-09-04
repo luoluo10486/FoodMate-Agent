@@ -114,7 +114,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -123,12 +123,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=v2",
+      "url": "http://127.0.0.1:5174/login?state=v2&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-v2-browser-2026-09-05.png"
+      }
     },
     "meal-plan-conflict": {
       "artboardName": "meal-plan-conflict",
@@ -395,7 +401,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -404,12 +410,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=credential-error",
+      "url": "http://127.0.0.1:5174/login?state=credential-error&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-credential-error-browser-2026-09-05.png"
+      }
     },
     "diet-records-loading": {
       "artboardName": "diet-records-loading",
@@ -486,7 +498,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -495,12 +507,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/token-status?state=used",
+      "url": "http://127.0.0.1:5174/token-status?state=used&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-used-browser-2026-09-05.png"
+      }
     },
     "meal-planning-loading": {
       "artboardName": "meal-planning-loading",
@@ -1062,7 +1080,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1071,12 +1089,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=account-locked",
+      "url": "http://127.0.0.1:5174/login?state=account-locked&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-account-locked-browser-2026-09-05.png"
+      }
     },
     "profile-memories-empty": {
       "artboardName": "profile-memories-empty",
@@ -1167,7 +1191,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "http://127.0.0.1:5174/register?visual-qa=1",
+      "url": "http://127.0.0.1:5174/register?null&visual-qa=1",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -1394,7 +1418,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1403,12 +1427,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=submitting",
+      "url": "http://127.0.0.1:5174/login?state=submitting&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-submitting-browser-2026-09-05.png"
+      }
     },
     "profile-privacy-deletion-failed": {
       "artboardName": "profile-privacy-deletion-failed",
@@ -1480,7 +1510,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1489,12 +1519,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=field-error",
+      "url": "http://127.0.0.1:5174/login?state=field-error&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-field-error-browser-2026-09-05.png"
+      }
     },
     "profile-security-password-failed": {
       "artboardName": "profile-security-password-failed",
@@ -1528,7 +1564,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1537,12 +1573,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/token-status?state=invalid",
+      "url": "http://127.0.0.1:5174/token-status?state=invalid&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-invalid-browser-2026-09-05.png"
+      }
     },
     "agent-awaiting-clarification": {
       "artboardName": "agent-awaiting-clarification",
@@ -1739,7 +1781,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1748,12 +1790,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=service-unavailable",
+      "url": "http://127.0.0.1:5174/login?state=service-unavailable&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-service-unavailable-browser-2026-09-05.png"
+      }
     },
     "admin-op-success": {
       "artboardName": "admin-op-success",
@@ -1999,7 +2047,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -2008,12 +2056,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/reset-password",
+      "url": "http://127.0.0.1:5174/reset-password?null&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-reset-password-page-browser-2026-09-05.png"
+      }
     },
     "intake-analysis-loading": {
       "artboardName": "intake-analysis-loading",
@@ -2538,7 +2592,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -2547,12 +2601,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=account-disabled",
+      "url": "http://127.0.0.1:5174/login?state=account-disabled&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-account-disabled-browser-2026-09-05.png"
+      }
     },
     "admin-knowledge-indexing": {
       "artboardName": "admin-knowledge-indexing",
@@ -2622,7 +2682,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -2631,12 +2691,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/token-status?state=expired",
+      "url": "http://127.0.0.1:5174/token-status?state=expired&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-expired-browser-2026-09-05.png"
+      }
     },
     "agent-chat-session-actions": {
       "artboardName": "agent-chat-session-actions",
@@ -2820,7 +2886,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -2829,12 +2895,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/forgot-password",
+      "url": "http://127.0.0.1:5174/forgot-password?null&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-forgot-password-page-browser-2026-09-05.png"
+      }
     }
   }
 }

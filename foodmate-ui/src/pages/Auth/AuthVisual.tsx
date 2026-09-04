@@ -1,4 +1,3 @@
-import { Eye } from 'lucide-react';
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -20,6 +19,9 @@ type AuthShellTokens = {
 };
 
 type AuthShellTokenVariant = Exclude<AuthVariant, 'login'>;
+
+// 认证页面的图标必须绑定对应 Figma 画板导出的资源，避免状态页复用错误字形。
+const defaultDividerLineSource = '/assets/figma/auth/foodmate-register-line.svg';
 
 const fieldIconSources = {
   user: '/assets/figma/auth/foodmate-register-user.svg',
@@ -170,7 +172,7 @@ export function PasswordField({
             aria-label={show ? `隐藏${label}` : `显示${label}`}
             onClick={onToggle}
           >
-            {show ? <img src={visibleIconSrc} alt="" /> : <Eye aria-hidden="true" />}
+            <img src={visibleIconSrc} alt="" />
           </Button>
         }
         value={value}
@@ -189,10 +191,12 @@ export function AuthSubmit({ children, disabled = false }: { children: ReactNode
   );
 }
 
-export function AuthDivider() {
+export function AuthDivider({ lineSrc = defaultDividerLineSource }: { lineSrc?: string }) {
   return (
     <div className={styles.authDivider} aria-hidden="true">
+      <img src={lineSrc} alt="" />
       <span>或者</span>
+      <img src={lineSrc} alt="" />
     </div>
   );
 }

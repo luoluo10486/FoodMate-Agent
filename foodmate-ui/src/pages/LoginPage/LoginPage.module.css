@@ -1636,10 +1636,15 @@
 
 .authDivider::before,
 .authDivider::after {
+  display: none;
+}
+
+.authDivider img {
+  display: block;
+  width: 165px;
   height: 1px;
-  flex: 1;
-  background: rgb(90 102 114 / 20%);
-  content: '';
+  min-width: 0;
+  flex: 1 1 0;
 }
 
 .authLinkRow {
