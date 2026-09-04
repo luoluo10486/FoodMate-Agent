@@ -1920,3 +1920,20 @@
 | Python 门禁 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider`：`206 passed、2 skipped、6 subtests passed`；未写入 `.pyc`。 |
 | 配置门禁 | `docker compose --env-file .env -f docker/compose.yml config --quiet`：通过。 |
 | 证据边界 | 本轮离线 provider 测试只证明共享路由、结构化契约、用量映射和 fail-closed 业务行为；没有发起真实 SQL Agent 付费 Chat 请求，因此不将 M2-2 真实云调用标记为完成。性能压测、组件重启、ACK 丢失、重复投递、SSE 故障恢复和生产验证继续后置。 |
+
+## D119 真实云 SQL Agent 只读分析闭环（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/real-sql-agent-e2e`；Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均保持 healthy；Chat API Key 仅从当前进程注入，未输出或写入仓库。 |
+| 真实 Chat | 使用 SiliconFlow `deepseek-ai/DeepSeek-V4-Flash` 执行问题“分析最近7天蛋白质摄入”；Run `354317208152707072`，Session `354317208098181120`，测试账号为随机账号 `codex_sql_paid_37fbde2552a845d9ad07889d9210f730`。 |
+| AgentRun 结果 | Run 最终状态为 `completed`；Runtime 产生 `18` 条事件，终态事件 `1` 条；SSE 存在 `run.completed` 终态事件。 |
+| 模型用量 | `run.model_usage` 记录 `sql_planner=1`、`composer=3`、`eval=0`；真实请求通过共享 Cloud Router，未启用 deterministic Planner fallback。 |
+| SQL Proposal | 生成并执行 `2` 个 Proposal：`time_parser` 和 `database_query`；两者均成功，Java 侧继续执行只读 SQL、Schema 白名单、当前用户范围和 LIMIT 安全校验。 |
+| SQL 审计 | SQL 查询审计 `2` 条，结果均为 `executed`；统一操作审计 `7` 条；没有发现 `SQL_SCHEMA_DENIED` 或未授权查询。 |
+| 业务终态 | 助手终态消息 `1` 条；`run.completed` 通过现有 Runtime -> Java Inbox -> SSE 投影链路输出，未泄露密码、令牌、完整 Prompt、完整回答或高基数标识到 metrics 标签。 |
+| 缺陷修复 | 首次真实模型响应包含末尾分号/完整 Markdown SQL 围栏，已在安全解析边界归一化；同时收紧 Planner 提示词到 Java 授权 Schema，未放宽 JSqlParser AST、字段白名单或用户范围校验。 |
+| 测试门禁 | SQL Planner 定向测试 `14 passed`；Python 全量业务测试 `209 passed, 2 skipped, 6 subtests passed`；两个 `integration` marker warning 不影响通过。Java 全量 `mvnw.cmd verify` 与 Docker Compose 校验沿用 D117/D118 已通过证据。 |
+| 数据清理 | 已精确清理本轮创建的 `6` 个随机管理员账号及关联 Session、AgentRun、消息、Runtime Inbox/Outbox、Proposal Inbox、SQL 审计、SSE 事实和认证令牌；反向核验 `users=0`、`sessions=0`、`runs=0`、`runtime_events=0`、`proposals=0`、`sql_audits=0`。统一 `operation_audits` 按审计保留约定保留；历史 `codex_sql_real_*` 账号未触碰。 |
+| 暂缓范围 | 未执行性能压测、组件重启矩阵、Outbox/Inbox ACK 丢失、重复投递故障注入、SSE 断线恢复、生产容量、备份恢复或发布回滚；本记录只证明一次真实付费 SQL Agent 主链路业务闭环。 |
+| 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> SQL Proposal -> Java 只读校验与执行 -> SQL 审计 -> `run.completed`/SSE 的 SQL Agent 业务闭环已取得直接证据；餐食计划扩展及性能/故障恢复门禁仍按路线后置。 |
