@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { notify } from '../../lib/notice';
+import { isVisualQaEnabled } from '../../lib/visualQa';
 import { getLoginDefaults, login } from '../../services/authService';
 import styles from './LoginPage.module.css';
 
@@ -103,6 +104,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const pageRef = useRef<HTMLElement>(null);
   const [searchParams] = useSearchParams();
+  const visualQaEnabled = isVisualQaEnabled(searchParams.toString());
   const defaults = getLoginDefaults();
   const requestedState = searchParams.get('state') as LoginState | null;
   const state = requestedState && loginStates.has(requestedState) ? requestedState : 'default';
@@ -120,7 +122,7 @@ export function LoginPage() {
   useGSAP(
     () => {
       const page = pageRef.current;
-      if (!page || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (visualQaEnabled || !page || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
       // Preserve the Figma entrance timing, then leave the login form interactive and stable.
       const timeline = gsap.timeline();
@@ -144,7 +146,7 @@ export function LoginPage() {
         .to('[data-login-motion="diagonal"]', { x: 0, y: 0, duration: 0.4, ease: 'elastic.out(1, 0.45)' }, 2.3)
         .to({}, { duration: 0.2 });
     },
-    { scope: pageRef },
+    { scope: pageRef, dependencies: [visualQaEnabled] },
   );
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {

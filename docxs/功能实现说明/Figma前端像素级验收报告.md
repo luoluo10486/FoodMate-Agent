@@ -1,6 +1,6 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-31
+更新时间：2026-09-05
 
 ## 1. 结论
 
@@ -1777,3 +1777,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 已登记原始浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-grid-browser-2026-08-31.jpg`、RGBA PNG `admin-overview-analytics-grid-browser-2026-08-31-rgba.png` 和独立 diff `admin-overview-analytics-grid-2026-08-31-diff.json`；同尺寸结果为 `differentPixels=466371`、差异比例 `31.6278%`、`MAE=2.613027`、`RMSE=14.310728`、最大通道差异 `230`，继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步本次证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本节只关闭分析卡固定网格和边界偏移，不关闭该画板或 105 张画板像素级 `PASS`；头像、图标、浏览器光栅化差异、shadcn 全量逐页迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
+
+## 13. 2026-09-05 视觉验收采集环境固定
+
+本节只固定前端浏览器采集约束，不修改 Figma 文件，也不重写已有 PNG 或 diff 结果。
+
+- 访问任意验收路由时追加 `?visual-qa=1`（已有 query 时使用 `&visual-qa=1`），应用会设置 `data-visual-qa="true"`。
+- 该模式关闭 CSS 动画、GSAP 入场时间线、过渡、滚动动画和输入光标闪烁；mock Agent 时间固定为 `2024-03-14 12:46`，真实模式仍使用真实时间和真实接口。
+- 采集配置集中在 `foodmate-ui/scripts/figma-acceptance-config.mjs`：目标 DPR 为 `1`，语言为 `zh-CN`，主题为 light，并登记 `1440×1024`、`1440×900`、`1366×768`、`1024×768` 和 `390×844`。
+- `npm run qa:figma:validate` 校验 105 条映射的必填字段、视口、PNG 文件头与尺寸，以及 runtime 的 viewport/geometry/text/DPR 汇总；追加 `--strict` 才会把未满足全部门禁的结果作为失败退出。
+- 当前旧证据实际汇总仍为 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`，所以校验结论为 `DPR_RECAPTURE_REQUIRED`；105 项继续为 `DIFF_REVIEW`，不能标记为 `PASS`。

@@ -1,6 +1,7 @@
 import type { AgentDisplayStatus, AgentRunView, Citation, ToolCall } from '../types/agent';
 import type { Message } from '../types/session';
 import type { ClarificationField } from '../components/agent/ClarificationCard';
+import { getVisualQaNow } from '../lib/visualQa';
 
 export type AgentMode = 'planning' | 'record' | 'analysis' | 'knowledge_qna' | 'calculation';
 export type AgentCard =
@@ -119,7 +120,7 @@ export const initialMessages: Message[] = [
 ];
 
 const nowTime = () =>
-  new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+  new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(getVisualQaNow());
 
 export function createMessage(role: Message['role'], content: string): Message {
   return {
