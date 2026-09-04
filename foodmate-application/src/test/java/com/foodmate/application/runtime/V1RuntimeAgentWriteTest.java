@@ -46,6 +46,20 @@ class V1RuntimeAgentWriteTest {
     }
 
     @Test
+    void mealPlanApprovalCompletionIncludesPlanAndShoppingListResources() {
+        V1RuntimeEventServiceImpl service = new V1RuntimeEventServiceImpl(nullProvider(), () -> 1L);
+
+        service.completeAgentWrite(
+                42L, 10L, 99L, "request-4", "trace-4", "meal_plan", "save_plan", 100L, true);
+
+        var event = service.events("42").getFirst();
+        assertEquals("run.completed", event.eventType());
+        assertEquals("99", event.payload().path("meal_plan_id").asText());
+        assertEquals("100", event.payload().path("shopping_list_id").asText());
+        assertEquals("已保存餐食计划并生成购物清单。", event.payload().path("answer").asText());
+    }
+
+    @Test
     void persistedApprovalCompletionIsDeduplicatedByTheEventFact() {
         RuntimeEventRepository store = mock(RuntimeEventRepository.class);
         AtomicReference<String> knownHash = new AtomicReference<>();

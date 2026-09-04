@@ -102,9 +102,17 @@ def validate_proposal(proposal: Proposal) -> None:
                 raise ValueError("PLAN_VALIDATOR_INPUT_INVALID")
             if not isinstance(proposal.input.get("plan"), dict):
                 raise ValueError("PLAN_VALIDATOR_INPUT_INVALID")
+        elif proposal.tool_name == "meal_plan.save_plan":
+            if not proposal.requires_confirmation or not isinstance(proposal.input, dict):
+                raise ValueError("MEAL_PLAN_INPUT_INVALID")
+            _validate_meal_plan_input(proposal.input.get("plan"))
+            if not proposal.payload.get("idempotency_key"):
+                raise ValueError("TOOL_IDEMPOTENCY_KEY_REQUIRED")
         elif proposal.tool_name != "food_log_writer":
             raise ValueError("TOOL_NAME_NOT_ALLOWED")
         if proposal.tool_name in {"database_query", "time_parser", "calculator", "plan_validator"}:
+            return
+        if proposal.tool_name == "meal_plan.save_plan":
             return
         if proposal.tool_name == "food_log_writer" and not proposal.confirmation_ref:
             _validate_food_log_input(proposal.input)
@@ -174,3 +182,45 @@ def _validate_food_log_input(value: dict[str, Any] | None) -> None:
             raise ValueError("TOOL_INPUT_INVALID")
         if not isinstance(unit, str) or not unit.strip() or len(unit) > 32:
             raise ValueError("TOOL_INPUT_INVALID")
+
+
+def _validate_meal_plan_input(value: dict[str, Any] | None) -> None:
+    """校验模型餐食计划的窄结构；约束语义仍由 Java PlanValidator 决定。"""
+    if not isinstance(value, dict) or len(json.dumps(value, ensure_ascii=False)) > 200_000:
+        raise ValueError("MEAL_PLAN_INPUT_INVALID")
+    people = value.get("people")
+    days = value.get("days")
+    days_plan = value.get("days_plan")
+    if (
+        not isinstance(people, int)
+        or isinstance(people, bool)
+        or not 1 <= people <= 20
+        or not isinstance(days, int)
+        or isinstance(days, bool)
+        or not 1 <= days <= 7
+        or not isinstance(days_plan, list)
+        or len(days_plan) != days
+    ):
+        raise ValueError("MEAL_PLAN_INPUT_INVALID")
+    plan_name = value.get("plan_name")
+    if plan_name is not None and (not isinstance(plan_name, str) or len(plan_name) > 128):
+        raise ValueError("MEAL_PLAN_INPUT_INVALID")
+    for field in ("allergens", "dislikes"):
+        entries = value.get(field, [])
+        if not isinstance(entries, list) or len(entries) > 64 or any(
+            not isinstance(item, str) or not item.strip() or len(item) > 128 for item in entries
+        ):
+            raise ValueError("MEAL_PLAN_INPUT_INVALID")
+    for field in ("budget", "calorie_target", "protein_target"):
+        number = value.get(field)
+        if number is not None and (
+            isinstance(number, bool)
+            or not isinstance(number, (int, float))
+            or number < 0
+        ):
+            raise ValueError("MEAL_PLAN_INPUT_INVALID")
+    for day in days_plan:
+        if not isinstance(day, dict) or any(
+            not isinstance(day.get(meal), dict) for meal in ("breakfast", "lunch", "dinner")
+        ):
+            raise ValueError("MEAL_PLAN_INPUT_INVALID")

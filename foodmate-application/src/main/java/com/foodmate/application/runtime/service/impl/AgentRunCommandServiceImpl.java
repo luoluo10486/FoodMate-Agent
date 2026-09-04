@@ -210,6 +210,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                             longTermMemories,
                             null,
                             "public_published",
+                            true,
                             true);
             int maxTotalTokens =
                     governanceSnapshot == null

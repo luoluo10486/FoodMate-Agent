@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHolder;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -204,6 +206,142 @@ class ApprovalServiceImplTest {
         order.verify(plans).save(eq(7L), eq(55L), org.mockito.ArgumentMatchers.startsWith("plan_"));
         verify(plans).save(eq(7L), eq(55L), org.mockito.ArgumentMatchers.startsWith("plan_"));
         verifyAuditRecorded();
+    }
+
+    @Test
+    void confirmedNewMealPlanCreatesSavesAndGeneratesShoppingListOnce() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        MealPlanService plans = mock(MealPlanService.class);
+        ObjectNode parameters = JsonNodeFactory.instance.objectNode();
+        ObjectNode plan = mealPlanCandidate();
+        parameters.set("plan", plan);
+        ApprovalService service = service(repository, plans, ids(55L));
+        String digest = service.parametersDigest("save_plan", "meal_plan", null, parameters);
+        ApprovalRequestRepository.ApprovalSnapshot confirmed =
+                snapshot(
+                        new ApprovalRequestRepository.ApprovalWrite(
+                                100L,
+                                7L,
+                                8L,
+                                42L,
+                                "meal_plan",
+                                null,
+                                "save_plan",
+                                digest,
+                                "req_test",
+                                "trace_test",
+                                "plan-key",
+                                FUTURE),
+                        "confirmed",
+                        FUTURE);
+        MealPlanService.PlanView created = mealPlanView(55L, "draft", plan);
+        MealPlanService.PlanView saved = mealPlanView(55L, "saved", plan);
+        when(repository.findOwned(7L, 100L)).thenReturn(confirmed);
+        when(repository.markExecuted(eq(7L), eq(100L), any())).thenReturn(1);
+        when(repository.updateExecutedResource(eq(7L), eq(100L), eq(55L), any())).thenReturn(1);
+        when(plans.create(eq(7L), any())).thenReturn(created);
+        when(plans.save(eq(7L), eq(55L), org.mockito.ArgumentMatchers.startsWith("plan_")))
+                .thenReturn(saved);
+        when(plans.shoppingList(eq(7L), eq(55L)))
+                .thenReturn(
+                        new MealPlanService.ShoppingListView(
+                                66L,
+                                55L,
+                                JsonNodeFactory.instance.arrayNode(),
+                                "generated",
+                                Instant.now(),
+                                Instant.now()));
+
+        ApprovalService.ExecuteView result = service.execute(7L, 100L, parameters);
+
+        assertEquals("executed", result.status());
+        assertEquals(55L, result.resourceId());
+        assertEquals(66L, result.secondaryResourceId());
+        verify(plans).create(eq(7L), any());
+        verify(plans).validate(eq(7L), eq(55L));
+        verify(plans).save(eq(7L), eq(55L), org.mockito.ArgumentMatchers.startsWith("plan_"));
+        verify(plans).shoppingList(eq(7L), eq(55L));
+        verify(repository).updateExecutedResource(eq(7L), eq(100L), eq(55L), any());
+    }
+
+    @Test
+    void confirmedInvalidMealPlanDoesNotCreateBusinessResource() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        MealPlanService plans = mock(MealPlanService.class);
+        ObjectNode parameters = JsonNodeFactory.instance.objectNode();
+        ObjectNode plan = mealPlanCandidate();
+        plan.put("days", 2);
+        parameters.set("plan", plan);
+        ApprovalService service = service(repository, plans, ids(55L));
+        String digest = service.parametersDigest("save_plan", "meal_plan", null, parameters);
+        ApprovalRequestRepository.ApprovalSnapshot confirmed =
+                snapshot(
+                        new ApprovalRequestRepository.ApprovalWrite(
+                                101L,
+                                7L,
+                                8L,
+                                42L,
+                                "meal_plan",
+                                null,
+                                "save_plan",
+                                digest,
+                                "req_invalid_plan",
+                                "trace_invalid_plan",
+                                "invalid-plan-key",
+                                FUTURE),
+                        "confirmed",
+                        FUTURE);
+        when(repository.findOwned(7L, 101L)).thenReturn(confirmed);
+
+        assertThrows(BusinessException.class, () -> service.execute(7L, 101L, parameters));
+
+        verify(repository, never()).markExecuted(eq(7L), eq(101L), any());
+        verifyNoInteractions(plans);
+    }
+
+    @Test
+    void executedMealPlanReplayReusesExistingShoppingList() {
+        ApprovalRequestRepository repository = mock(ApprovalRequestRepository.class);
+        MealPlanService plans = mock(MealPlanService.class);
+        ObjectNode parameters = JsonNodeFactory.instance.objectNode();
+        parameters.set("plan", mealPlanCandidate());
+        ApprovalService service = service(repository, plans, ids(55L));
+        String digest = service.parametersDigest("save_plan", "meal_plan", 55L, parameters);
+        ApprovalRequestRepository.ApprovalSnapshot executed =
+                snapshot(
+                        new ApprovalRequestRepository.ApprovalWrite(
+                                102L,
+                                7L,
+                                8L,
+                                42L,
+                                "meal_plan",
+                                55L,
+                                "save_plan",
+                                digest,
+                                "req_replay_plan",
+                                "trace_replay_plan",
+                                "replay-plan-key",
+                                FUTURE),
+                        "executed",
+                        FUTURE);
+        when(repository.findOwned(7L, 102L)).thenReturn(executed);
+        when(plans.shoppingList(eq(7L), eq(55L)))
+                .thenReturn(
+                        new MealPlanService.ShoppingListView(
+                                66L,
+                                55L,
+                                JsonNodeFactory.instance.arrayNode(),
+                                "generated",
+                                Instant.now(),
+                                Instant.now()));
+
+        ApprovalService.ExecuteView result = service.execute(7L, 102L, parameters);
+
+        assertEquals("executed", result.status());
+        assertEquals(55L, result.resourceId());
+        assertEquals(66L, result.secondaryResourceId());
+        verify(repository, never()).markExecuted(eq(7L), eq(102L), any());
+        verify(plans).shoppingList(eq(7L), eq(55L));
     }
 
     @Test
@@ -612,6 +750,47 @@ class ApprovalServiceImplTest {
 
     private ObjectNode parameters(String status) {
         return JsonNodeFactory.instance.objectNode().put("status", status);
+    }
+
+    private ObjectNode mealPlanCandidate() {
+        ObjectNode plan =
+                JsonNodeFactory.instance
+                        .objectNode()
+                        .put("plan_name", "一日计划")
+                        .put("people", 1)
+                        .put("days", 1)
+                        .put("budget", new BigDecimal("80.00"));
+        plan.putArray("allergens");
+        plan.putArray("dislikes");
+        ObjectNode day = plan.putArray("days_plan").addObject();
+        day.putObject("breakfast");
+        day.putObject("lunch");
+        day.putObject("dinner");
+        return plan;
+    }
+
+    private MealPlanService.PlanView mealPlanView(long id, String status, ObjectNode plan) {
+        ObjectNode constraints =
+                JsonNodeFactory.instance
+                        .objectNode()
+                        .put("people", plan.path("people").asInt())
+                        .set("allergens", plan.path("allergens").deepCopy());
+        constraints.set("dislikes", plan.path("dislikes").deepCopy());
+        return new MealPlanService.PlanView(
+                id,
+                8L,
+                plan.path("plan_name").asText(),
+                plan.path("people").asInt(),
+                plan.path("days").asInt(),
+                new BigDecimal("80.00"),
+                constraints,
+                plan.path("days_plan"),
+                JsonNodeFactory.instance.objectNode().put("valid", true),
+                status,
+                1L,
+                false,
+                Instant.now(),
+                Instant.now());
     }
 
     private ApprovalRequestRepository.ApprovalSnapshot snapshotFor(

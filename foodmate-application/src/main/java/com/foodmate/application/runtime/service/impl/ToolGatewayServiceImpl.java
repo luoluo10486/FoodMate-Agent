@@ -163,7 +163,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                         && (text(proposal.confirmationRef()) == null
                                 || payload == null
                                 || text(payload.idempotencyKey()) == null)
-                        && (!"food_log_writer".equals(tool.name()) || approvals == null))
+                        && (!isApprovalTool(tool.name()) || approvals == null))
                     return result(
                             proposalId,
                             runId,
@@ -189,7 +189,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     && !"time_parser".equals(proposal.toolName())
                     && !"food_log_writer".equals(proposal.toolName())
                     && !"calculator".equals(proposal.toolName())
-                    && !"plan_validator".equals(proposal.toolName()))
+                    && !"plan_validator".equals(proposal.toolName())
+                    && !"meal_plan.save_plan".equals(proposal.toolName()))
                 return reject(proposalId, "TOOL_NAME_NOT_ALLOWED");
             if ("sql_read".equals(type)
                     && proposal.toolName() != null
@@ -257,14 +258,15 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         if (context == null) return reject(proposalId, "RUN_NOT_FOUND");
         if (confirmationRef == null) {
             try {
+                boolean mealPlan = "meal_plan.save_plan".equals(toolName);
                 ApprovalService.ProposalView approval =
                         approvals.propose(
                                 context.userId(),
                                 new ApprovalService.ProposalCommand(
                                         context.sessionId(),
                                         numericRunId,
-                                        "create",
-                                        "food_log",
+                                        mealPlan ? "save_plan" : "create",
+                                        mealPlan ? "meal_plan" : "food_log",
                                         null,
                                         proposal.input(),
                                         idempotencyKey,
@@ -275,8 +277,9 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                         invocationId,
                         "confirmation_required",
                         "TOOL_CONFIRMATION_REQUIRED",
-                        confirmationRows(approval.approvalRequestId(), proposal.input()),
-                        Long.toString(approval.approvalRequestId()));
+                        confirmationRows(approval.approvalRequestId(), proposal.input(), toolName),
+                        Long.toString(approval.approvalRequestId()),
+                        toolName);
             } catch (BusinessException exception) {
                 return result(
                         proposalId,
@@ -310,6 +313,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     "meal_plan.save_plan".equals(toolName) ? "meal_plan_id" : "food_log_id",
                     Long.toString(resourceId));
             row.put("status", "saved");
+            if (execution.secondaryResourceId() != null)
+                row.put("shopping_list_id", Long.toString(execution.secondaryResourceId()));
             List<JsonNode> rows = List.of(row);
             long sqlAuditId = ids.nextId();
             store.audit(
@@ -377,7 +382,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             String status,
             String errorCode,
             List<JsonNode> rows,
-            String confirmationRef) {
+            String confirmationRef,
+            String toolName) {
         return new ProposalResult(
                 proposalId,
                 runId,
@@ -385,16 +391,26 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 errorCode,
                 rows == null ? List.of() : rows,
                 null,
-                "food_log_writer",
+                toolName,
                 confirmationRef);
     }
 
+    private static boolean isApprovalTool(String toolName) {
+        return "food_log_writer".equals(toolName) || "meal_plan.save_plan".equals(toolName);
+    }
+
     /** 返回给确认卡的最小业务摘要，不把完整请求原文写入运行事件。 */
-    private List<JsonNode> confirmationRows(long approvalRequestId, JsonNode input) {
+    private List<JsonNode> confirmationRows(
+            long approvalRequestId, JsonNode input, String toolName) {
         ObjectNode row = mapper.createObjectNode();
         row.put("approval_request_id", Long.toString(approvalRequestId));
-        row.put("operation", "create");
-        row.put("resource_type", "food_log");
+        boolean mealPlan = "meal_plan.save_plan".equals(toolName);
+        row.put("operation", mealPlan ? "save_plan" : "create");
+        row.put("resource_type", mealPlan ? "meal_plan" : "food_log");
+        if (mealPlan) {
+            copySafePlan(row, input == null ? null : input.get("plan"));
+            return List.of(row);
+        }
         if (input != null) {
             copySafeText(row, input, "meal_time");
             copySafeText(row, input, "meal_type");
@@ -419,6 +435,30 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             }
         }
         return List.of(row);
+    }
+
+    /** 返回餐食计划确认所需的有限结构，不暴露运行凭据或对象存储信息。 */
+    private void copySafePlan(ObjectNode target, JsonNode plan) {
+        if (plan == null || !plan.isObject()) return;
+        ObjectNode safePlan = mapper.createObjectNode();
+        for (String field :
+                List.of(
+                        "plan_name",
+                        "people",
+                        "days",
+                        "budget",
+                        "calorie_target",
+                        "protein_target",
+                        "allergens",
+                        "dislikes")) {
+            JsonNode value = plan.get(field);
+            if (value != null && (value.isValueNode() || value.isArray()))
+                safePlan.set(field, value.deepCopy());
+        }
+        JsonNode daysPlan = plan.get("days_plan");
+        if (daysPlan != null && daysPlan.isArray() && daysPlan.size() <= 7)
+            safePlan.set("days_plan", daysPlan.deepCopy());
+        target.set("plan", safePlan);
     }
 
     private void copySafeText(ObjectNode target, JsonNode source, String field) {

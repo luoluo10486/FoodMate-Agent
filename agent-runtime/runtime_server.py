@@ -461,6 +461,10 @@ def _enrich_tool_result(result: dict, proposal: dict) -> dict:
             "dimensions": list(raw_plan.get("dimensions") or ()),
             "filters": dict(raw_plan.get("filters") or {}),
         }
+    if tool_name == "plan_validator":
+        raw_input = proposal.get("input") or {}
+        if isinstance(raw_input.get("plan"), dict):
+            enriched["plan"] = raw_input["plan"]
     return enriched
 
 
@@ -646,7 +650,7 @@ def execute(command):
                 (
                     item
                     for item in results
-                    if item.get("tool_name") == "food_log_writer"
+                    if item.get("tool_name") in {"food_log_writer", "meal_plan.save_plan"}
                     and item.get("status") == "confirmation_required"
                     and item.get("confirmation_ref")
                 ),
@@ -681,6 +685,8 @@ def execute(command):
                     _eval_payload(execution),
                 )
                 next_sequence += 1
+                tool_name = str(approval_result.get("tool_name") or "")
+                is_meal_plan = tool_name == "meal_plan.save_plan"
                 safe_details = (approval_result.get("rows") or [{}])[0]
                 emit(
                     command,
@@ -689,10 +695,10 @@ def execute(command):
                     "run.clarification_requested",
                     {
                         "reason": "TOOL_CONFIRMATION_REQUIRED",
-                        "tool_name": "food_log_writer",
+                        "tool_name": tool_name,
                         "approval_request_id": approval_result["confirmation_ref"],
-                        "operation": "create",
-                        "resource_type": "food_log",
+                        "operation": "save_plan" if is_meal_plan else "create",
+                        "resource_type": "meal_plan" if is_meal_plan else "food_log",
                         "details": safe_details,
                     },
                 )

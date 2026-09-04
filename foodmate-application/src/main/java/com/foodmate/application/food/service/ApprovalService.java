@@ -47,5 +47,15 @@ public interface ApprovalService {
             Instant confirmedAt,
             Instant executedAt) {}
 
-    record ExecuteView(long approvalRequestId, String operation, String status, Long resourceId) {}
+    record ExecuteView(
+            long approvalRequestId,
+            String operation,
+            String status,
+            Long resourceId,
+            Long secondaryResourceId) {
+        public ExecuteView(
+                long approvalRequestId, String operation, String status, Long resourceId) {
+            this(approvalRequestId, operation, status, resourceId, null);
+        }
+    }
 }

@@ -203,13 +203,45 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
             String requestId,
             String traceId,
             boolean written) {
+        return completeAgentWrite(
+                runId,
+                approvalRequestId,
+                resourceId,
+                requestId,
+                traceId,
+                "food_log",
+                "create",
+                null,
+                written);
+    }
+
+    @Override
+    @Transactional
+    public synchronized EventResult completeAgentWrite(
+            long runId,
+            long approvalRequestId,
+            Long resourceId,
+            String requestId,
+            String traceId,
+            String resourceType,
+            String operation,
+            Long secondaryResourceId,
+            boolean written) {
         String runIdText = Long.toString(runId);
         ObjectNode payload = mapper.createObjectNode();
-        payload.put("answer", written ? "已记录饮食日志。" : "已取消写入，本次未修改饮食记录。\n");
+        boolean mealPlan = "meal_plan".equals(resourceType);
+        payload.put(
+                "answer",
+                written
+                        ? (mealPlan ? "已保存餐食计划并生成购物清单。" : "已记录饮食日志。")
+                        : (mealPlan ? "已取消保存，本次未修改餐食计划。\n" : "已取消写入，本次未修改饮食记录。\n"));
         payload.put("status", "completed");
         payload.put("result_type", "normal");
         payload.put("approval_request_id", Long.toString(approvalRequestId));
-        if (written && resourceId != null) payload.put("food_log_id", Long.toString(resourceId));
+        if (written && resourceId != null)
+            payload.put(mealPlan ? "meal_plan_id" : "food_log_id", Long.toString(resourceId));
+        if (written && mealPlan && secondaryResourceId != null)
+            payload.put("shopping_list_id", Long.toString(secondaryResourceId));
         if (!written) payload.put("write_skipped", true);
         if (store == null) {
             long sequence = memorySequence.getOrDefault(runIdText, 0L) + 1;

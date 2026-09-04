@@ -67,7 +67,33 @@ public record V1RunCommand(
             @JsonProperty("long_term_memories") List<MemoryContext> longTermMemories,
             @JsonProperty("sql_read_request") SqlReadRequest sqlReadRequest,
             @JsonProperty("knowledge_scope") String knowledgeScope,
-            @JsonProperty("food_log_writer_authorized") boolean foodLogWriterAuthorized) {
+            @JsonProperty("food_log_writer_authorized") boolean foodLogWriterAuthorized,
+            @JsonProperty("meal_plan_writer_authorized") boolean mealPlanWriterAuthorized) {
+        public AuthorizedContext(
+                String sessionId,
+                String timezone,
+                String locale,
+                String toolContractVersion,
+                List<RecentMessage> recentMessages,
+                SessionSummary sessionSummary,
+                List<MemoryContext> longTermMemories,
+                SqlReadRequest sqlReadRequest,
+                String knowledgeScope,
+                boolean foodLogWriterAuthorized) {
+            this(
+                    sessionId,
+                    timezone,
+                    locale,
+                    toolContractVersion,
+                    recentMessages,
+                    sessionSummary,
+                    longTermMemories,
+                    sqlReadRequest,
+                    knowledgeScope,
+                    foodLogWriterAuthorized,
+                    false);
+        }
+
         public AuthorizedContext(
                 String sessionId,
                 String timezone,
@@ -88,6 +114,7 @@ public record V1RunCommand(
                     longTermMemories,
                     sqlReadRequest,
                     knowledgeScope,
+                    false,
                     false);
         }
 
