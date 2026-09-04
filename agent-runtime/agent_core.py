@@ -1321,6 +1321,7 @@ def run_deterministic(
                     timeout_seconds=_model_timeout_seconds("EVAL", 20.0),
                 ), eval_tier,
                     router.fallback_tiers_for(eval_tier),
+                    governed_route=governed_route,
                 )
                 attempts.extend(judge_attempts)
                 usage.tokens += sum(attempt.total_tokens or 0 for attempt in judge_attempts)

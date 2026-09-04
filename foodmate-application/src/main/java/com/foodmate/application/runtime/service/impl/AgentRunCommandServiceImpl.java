@@ -53,7 +53,6 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         this(store, ids, accounts, budgetDefaults, admission, summaries, null, null);
     }
 
-    @Autowired
     public AgentRunCommandServiceImpl(
             ObjectProvider<AgentRunCommandRepository> store,
             IdGenerator ids,
@@ -65,6 +64,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         this(store, ids, accounts, budgetDefaults, admission, summaries, auditProvider, null);
     }
 
+    @Autowired
     public AgentRunCommandServiceImpl(
             ObjectProvider<AgentRunCommandRepository> store,
             IdGenerator ids,

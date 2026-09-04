@@ -24,6 +24,14 @@ class RuntimeContractTests(unittest.TestCase):
         runtime_server._dispatches.clear()
         runtime_server._result_waiters.clear()
         runtime_server._checkpoint = InMemoryCheckpoint()
+        runtime_server._model_router = ModelRouter(
+            {
+                "FOODMATE_MODEL_TIER_STANDARD": "deterministic:local",
+                "FOODMATE_MODEL_TIER_HIGH": "deterministic:local",
+                "FOODMATE_MODEL_TIER_ECONOMY": "deterministic:local",
+                "FOODMATE_MODEL_TIER_EVAL": "deterministic:local",
+            }
+        )
 
     def test_execute_emits_ordered_lifecycle(self):
         events = []
@@ -664,7 +672,7 @@ class RuntimeContractTests(unittest.TestCase):
         first = SimpleNamespace(proposals=[proposal], route=route, plan=SimpleNamespace(plan_version="v1"), workflow={"nodes": []}, model_attempts=[], usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1))
         second = SimpleNamespace(proposals=[], route=route, plan=SimpleNamespace(plan_version="v1"), workflow={"nodes": []}, model_attempts=[], usage=SimpleNamespace(tokens=2, cost_cny=0.0, model_calls=1), answer="ok", eval=SimpleNamespace(result="pass", reason="ok"), budget_mode="normal", budget_actions={}, memory_candidates=[])
 
-        def run(command, _checkpoint):
+        def run(command, _checkpoint, **_kwargs):
             commands.append(command)
             return first if len(commands) == 1 else second
 
@@ -761,7 +769,7 @@ class RuntimeContractTests(unittest.TestCase):
                 runtime_server._on_result(result)
 
         command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
-        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store: commands.append(value) or executions[len(commands) - 1]), patch.object(
+        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store, **_kwargs: commands.append(value) or executions[len(commands) - 1]), patch.object(
             runtime_server, "emit", side_effect=lambda *args: (event_ids.append(args[1]), events.append(args[3]))
         ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
             runtime_server.execute(command)
@@ -941,7 +949,7 @@ class RuntimeContractTests(unittest.TestCase):
             workflow={},
             memory_candidates=[],
         )
-        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store: captured.append(value) or execution), patch.object(
+        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store, **_kwargs: captured.append(value) or execution), patch.object(
             runtime_server, "emit"
         ):
             runtime_server.execute(command)
