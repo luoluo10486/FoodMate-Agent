@@ -12,7 +12,7 @@ import json
 import os
 from typing import Any
 
-from model_provider import ModelProviderError, ModelRequest, OpenAICompatibleModelProvider
+from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
 
 
 MAX_SQL_LENGTH = 8_192
@@ -21,13 +21,21 @@ MAX_LIMIT = 500
 _TIME_PATTERN = re.compile(r"(?:最近|过去|近)\s*(\d{1,3})\s*天")
 
 
-class SqlPlannerError(ValueError):
-    """Stable planner failure that must be surfaced without a fallback query."""
+class SqlPlannerError(ModelProviderError):
+    """必须向上层暴露、且不得自动生成备用查询的稳定规划失败。"""
 
-    def __init__(self, code: str, message: str, missing_slots: tuple[str, ...] = ()):
-        super().__init__(f"{code}: {message}")
-        self.code = code
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        missing_slots: tuple[str, ...] = (),
+        attempts: list[ProviderAttempt] | None = None,
+        retryable: bool = False,
+    ):
+        super().__init__(code, f"{code}: {message}", retryable)
         self.missing_slots = missing_slots
+        if attempts is not None:
+            self.attempts = list(attempts)
 
 
 @dataclass(frozen=True)
@@ -274,7 +282,7 @@ class DeterministicSqlPlanner:
 
 
 class OpenAICompatibleSqlPlanner:
-    """Structured local model planner with no implicit deterministic fallback."""
+    """供协议单测注入 Provider 的结构化规划器。"""
 
     mode = "local"
     version = "m2-2-model-v1"
@@ -286,43 +294,23 @@ class OpenAICompatibleSqlPlanner:
         self.model_name = model_name
 
     @classmethod
-    def from_environment(cls, environment: dict[str, str] | None = None) -> "OpenAICompatibleSqlPlanner":
-        env = environment if environment is not None else os.environ
-        base_url = env.get("FOODMATE_SQL_PLANNER_BASE_URL", "").strip()
-        api_key = env.get("FOODMATE_SQL_PLANNER_API_KEY", "").strip()
-        model_name = env.get("FOODMATE_SQL_PLANNER_MODEL", "").strip()
-        if not base_url or not api_key or not model_name:
-            raise SqlPlannerError("SQL_PLANNER_CONFIG_MISSING", "local SQL planner requires endpoint, key, and model")
-        try:
-            timeout = max(0.1, float(env.get("FOODMATE_SQL_PLANNER_TIMEOUT_SECONDS", "20")))
-        except (TypeError, ValueError):
-            raise SqlPlannerError("SQL_PLANNER_CONFIG_INVALID", "local SQL planner timeout is invalid")
-        return cls(OpenAICompatibleModelProvider("sql-planner", base_url, api_key, timeout), model_name)
+    def from_environment(
+        cls, environment: dict[str, str] | None = None
+    ) -> "ModelRouterSqlPlanner":
+        """兼容旧入口，但实际转发到共享 Chat 路由。"""
+        return ModelRouterSqlPlanner.from_environment(environment)
 
     def plan(self, question: str, intent_hint: str | None = None) -> SqlPlan:
+        plan, _ = self.plan_with_attempts(question, intent_hint)
+        return plan
+
+    def plan_with_attempts(
+        self, question: str, intent_hint: str | None = None, governed_route: dict[str, object] | None = None
+    ) -> tuple[SqlPlan, list[ProviderAttempt]]:
         text = str(question or "").strip()
         if not text or len(text) > 2_000:
             raise SqlPlannerError("SQL_PLANNER_INPUT_INVALID", "query text is empty or too large")
-        prompt = json.dumps(
-            {
-                "task": "produce_database_query_plan",
-                "question": text,
-                "intent_hint": intent_hint,
-                "allowed_intents": ["nutrition_summary", "meal_plan", "shopping_list", "nutrition_food"],
-                "required_output": {
-                    "status": "ready or need_clarification",
-                    "intent": "approved intent",
-                    "time_range": {"kind": "relative", "days": "integer string", "timezone": "IANA timezone"},
-                    "metrics": ["approved metric names"],
-                    "dimensions": ["approved dimension names"],
-                    "filters": {"approved_field": "approved literal"},
-                    "candidate_sql": "single SELECT/WITH SELECT ending in LIMIT <= 500",
-                    "missing_slots": ["required clarification slots"],
-                },
-            },
-            ensure_ascii=False,
-            sort_keys=True,
-        )
+        prompt = _planner_prompt(text, intent_hint)
         try:
             response = self.provider.complete(
                 self.model_name,
@@ -335,23 +323,211 @@ class OpenAICompatibleSqlPlanner:
                 ),
             )
             value = json.loads(response.content)
-            return SqlPlan.from_model_output(value, self.mode, self.version)
+            return SqlPlan.from_model_output(value, self.mode, self.version), []
         except SqlPlannerError:
             raise
         except ModelProviderError as error:
-            raise SqlPlannerError("SQL_PLANNER_MODEL_UNAVAILABLE", error.code) from error
+            raise SqlPlannerError(
+                "SQL_PLANNER_MODEL_UNAVAILABLE", error.code, attempts=error.attempts, retryable=error.retryable
+            ) from error
         except (TypeError, ValueError, json.JSONDecodeError) as error:
             raise SqlPlannerError("SQL_PLANNER_RESPONSE_INVALID", "local SQL planner response is invalid") from error
 
 
-def planner_from_environment(environment: dict[str, str] | None = None):
+class ModelRouterSqlPlanner:
+    """通过共享 Chat ModelRouter 进行 SQL 规划。
+
+    规划器保留独立场景和结构化响应契约，但不拥有第二套端点、密钥、模型注册表或价格表。
+    """
+
+    mode = "local"
+    version = "m2-2-router-v1"
+    _allowed_tiers = frozenset({"standard", "high", "economy"})
+
+    def __init__(self, router: ModelRouter, tier: str, timeout_seconds: float):
+        if router is None:
+            raise SqlPlannerError("SQL_PLANNER_CONFIG_MISSING", "shared model router is not configured")
+        if tier not in self._allowed_tiers:
+            raise SqlPlannerError("SQL_PLANNER_CONFIG_INVALID", "SQL planner tier is invalid")
+        self.router = router
+        self.tier = tier
+        self.timeout_seconds = timeout_seconds
+
+    @classmethod
+    def from_environment(
+        cls,
+        environment: dict[str, str] | None = None,
+        model_router: ModelRouter | None = None,
+    ) -> "ModelRouterSqlPlanner":
+        env = environment if environment is not None else os.environ
+        tier = env.get("FOODMATE_SQL_PLANNER_TIER", "standard").strip().lower()
+        if tier not in cls._allowed_tiers:
+            raise SqlPlannerError("SQL_PLANNER_CONFIG_INVALID", "SQL planner tier is invalid")
+        route = env.get("FOODMATE_MODEL_TIER_" + tier.upper(), "").strip()
+        if not route or route.partition(":")[0].strip().lower() == "deterministic":
+            raise SqlPlannerError(
+                "SQL_PLANNER_CONFIG_MISSING",
+                "local SQL planner requires a non-deterministic shared Chat route",
+            )
+        try:
+            timeout = max(0.1, float(env.get("FOODMATE_SQL_PLANNER_TIMEOUT_SECONDS", "30")))
+        except (TypeError, ValueError):
+            raise SqlPlannerError("SQL_PLANNER_CONFIG_INVALID", "SQL planner timeout is invalid")
+        return cls(model_router or ModelRouter(env), tier, timeout)
+
+    def plan(self, question: str, intent_hint: str | None = None) -> SqlPlan:
+        plan, _ = self.plan_with_attempts(question, intent_hint)
+        return plan
+
+    def plan_with_attempts(
+        self,
+        question: str,
+        intent_hint: str | None = None,
+        governed_route: dict[str, object] | None = None,
+    ) -> tuple[SqlPlan, list[ProviderAttempt]]:
+        text = str(question or "").strip()
+        if not text or len(text) > 2_000:
+            raise SqlPlannerError("SQL_PLANNER_INPUT_INVALID", "query text is empty or too large")
+        safe_route = _cloud_only_governed_route(governed_route)
+        prompt = _planner_prompt(text, intent_hint)
+        try:
+            response, attempts = self.router.invoke(
+                ModelRequest(
+                    scene="sql_planner",
+                    prompt=prompt,
+                    max_output_tokens=768,
+                    temperature=0.0,
+                    response_format={"type": "json_object"},
+                    extra_body={"enable_thinking": False},
+                    timeout_seconds=self.timeout_seconds,
+                ),
+                self.tier,
+                _cloud_only_fallback_tiers(self.router, self.tier),
+                governed_route=safe_route,
+            )
+            try:
+                value = json.loads(response.content)
+                return SqlPlan.from_model_output(value, self.mode, self.version), attempts
+            except SqlPlannerError as error:
+                error.attempts = list(attempts)
+                raise
+            except (TypeError, ValueError, json.JSONDecodeError) as error:
+                raise SqlPlannerError(
+                    "SQL_PLANNER_RESPONSE_INVALID",
+                    "shared Chat SQL planner response is invalid",
+                    attempts=list(attempts),
+                ) from error
+        except SqlPlannerError:
+            raise
+        except ModelProviderError as error:
+            raise SqlPlannerError(
+                "SQL_PLANNER_MODEL_UNAVAILABLE",
+                error.code,
+                attempts=error.attempts,
+                retryable=error.retryable,
+            ) from error
+
+
+def _planner_prompt(question: str, intent_hint: str | None) -> str:
+    """只向模型提供已批准的只读 Schema，Java 仍是最终权威边界。"""
+    return json.dumps(
+        {
+            "task": "produce_database_query_plan",
+            "question": question,
+            "intent_hint": intent_hint,
+            "security_rules": [
+                "Return JSON only and never execute a query.",
+                "Use only the listed tables and columns.",
+                "Return one SELECT or WITH query ending in LIMIT <= 500.",
+                "Never select user_id, notes, items_json, nutrition_json, or any unlisted field.",
+                "Java adds the current-user and is_deleted predicates; do not invent another user or tenant.",
+                "A Java AST guard will reject writes, subqueries, unknown fields, sensitive fields, and unbounded queries.",
+            ],
+            "approved_schema": {
+                "food_logs": ["food_log_id", "meal_time", "meal_type", "is_deleted"],
+                "food_log_items": [
+                    "food_log_item_id",
+                    "food_log_id",
+                    "raw_name",
+                    "amount",
+                    "unit",
+                    "calories_kcal",
+                    "protein_g",
+                    "fat_g",
+                    "carbs_g",
+                    "nutrition_status",
+                    "is_deleted",
+                ],
+                "meal_plans": ["meal_plan_id", "plan_name", "days", "status", "updated_at", "is_deleted"],
+                "shopping_lists": ["shopping_list_id", "meal_plan_id", "status", "is_deleted"],
+                "nutrition_foods": [
+                    "nutrition_food_id",
+                    "standard_name",
+                    "chinese_name",
+                    "basis_unit",
+                    "calories_kcal_per_100",
+                    "protein_g_per_100",
+                    "fat_g_per_100",
+                    "carbs_g_per_100",
+                    "review_status",
+                    "is_deleted",
+                ],
+            },
+            "allowed_intents": ["nutrition_summary", "meal_plan", "shopping_list", "nutrition_food"],
+            "required_output": {
+                "status": "ready or need_clarification",
+                "intent": "approved intent",
+                "time_range": {"kind": "relative", "days": "integer string", "timezone": "IANA timezone"},
+                "metrics": ["approved metric names"],
+                "dimensions": ["approved dimension names"],
+                "filters": {"approved_field": "approved literal"},
+                "candidate_sql": "single SELECT/WITH SELECT ending in LIMIT <= 500",
+                "missing_slots": ["required clarification slots"],
+            },
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def _cloud_only_fallback_tiers(router: ModelRouter, tier: str) -> tuple[str, ...]:
+    """真实 SQL 规划路由移除 deterministic 备选，避免无提示降级。"""
+    environment = getattr(router, "environment", {})
+    candidates = []
+    for fallback in router.fallback_tiers_for(tier):
+        alias = environment.get("FOODMATE_MODEL_TIER_" + fallback.upper(), "").strip()
+        if alias and alias.partition(":")[0].strip().lower() != "deterministic":
+            candidates.append(fallback)
+    return tuple(candidates)
+
+
+def _cloud_only_governed_route(route: dict[str, object] | None) -> dict[str, object] | None:
+    if route is None:
+        return None
+    safe = dict(route)
+    provider = str(safe.get("provider_code") or "").strip().lower()
+    if provider == "deterministic":
+        raise SqlPlannerError(
+            "SQL_PLANNER_CONFIG_MISSING", "local SQL planner cannot use a deterministic governed route"
+        )
+    fallback_provider = str(safe.get("fallback_provider_code") or "").strip().lower()
+    if fallback_provider == "deterministic":
+        safe.pop("fallback_provider_code", None)
+        safe.pop("fallback_model_name", None)
+    return safe
+
+
+def planner_from_environment(
+    environment: dict[str, str] | None = None,
+    model_router: ModelRouter | None = None,
+):
     """Build exactly one configured planner mode; local never falls back to stub."""
     env = environment if environment is not None else os.environ
     mode = env.get("FOODMATE_SQL_PLANNER_MODE", "stub").strip().lower()
     if mode == "stub":
         return DeterministicSqlPlanner()
     if mode == "local":
-        return OpenAICompatibleSqlPlanner.from_environment(env)
+        return ModelRouterSqlPlanner.from_environment(env, model_router)
     raise SqlPlannerError("SQL_PLANNER_MODE_INVALID", "SQL planner mode must be stub or local")
 
 

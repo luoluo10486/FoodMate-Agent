@@ -48,7 +48,7 @@ Invoke-WebRequest http://localhost:8080/actuator/health/readiness
 Invoke-WebRequest http://localhost:9002/foodmate/internal/health/ready
 ```
 
-Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。Compose 默认将四档 Agent 模型路由设为 `deterministic:local`；需要真实 Chat 时，在被忽略的根目录 `.env` 中显式设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD/HIGH/EVAL=cloud_primary:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_*` 端点、API Key 和已审计价格配置。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
+ Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。Compose 默认将四档 Agent 模型路由设为 `deterministic:local`；需要真实 Chat 时，在被忽略的根目录 `.env` 中显式设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD/HIGH/EVAL=cloud_primary:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_*` 端点、API Key 和已审计价格配置。启用真实 SQL Agent 时再设置 `FOODMATE_DOCKER_SQL_PLANNER_MODE=local`，它复用同一套 Chat 路由和价格治理，不需要 SQL 专用 API Key。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
 
 应用容器不会自动执行数据库迁移。启动前应确认 V16-V29 已按 `script/sql/FoodMate` 的顺序实际执行，启动后再检查 Java 和 Python readiness，以及应用日志中的 Outbox/Worker 状态。修改 Python 源码后必须重新执行 `up -d --build agent-runtime`，仅重启不会更新镜像内容。停止时使用 `docker compose ... down` 保留数据卷，除非明确需要销毁本地卷并另行确认。
 

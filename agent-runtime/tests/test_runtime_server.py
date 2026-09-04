@@ -511,6 +511,57 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual(database["payload"]["statement"], database["input"]["candidate_sql"])
         validate_proposal(Proposal(**database))
 
+    def test_real_sql_planner_uses_shared_router_once_across_tool_rounds(self):
+        class Provider(ModelProvider):
+            provider_code = "cloud_primary"
+
+            def __init__(self):
+                self.calls = []
+
+            def complete(self, _model_name, request):
+                self.calls.append(request.scene)
+                return ModelResponse(
+                    '{"status":"ready","intent":"nutrition_summary",'
+                    '"time_range":{"kind":"relative","days":"7","timezone":"Asia/Shanghai"},'
+                    '"metrics":["protein_g"],"dimensions":["meal_time"],"filters":{},'
+                    '"candidate_sql":"SELECT meal_time FROM food_logs LIMIT 500","missing_slots":[]}',
+                    12,
+                    10,
+                    "sql-request-1",
+                )
+
+        provider = Provider()
+        router = ModelRouter(
+            {
+                "FOODMATE_SQL_PLANNER_MODE": "local",
+                "FOODMATE_MODEL_TIER_STANDARD": "cloud_primary:chat-model",
+                "FOODMATE_MODEL_FALLBACK_ENABLED": "false",
+            },
+            lambda _provider_code: provider,
+        )
+        command = {
+            "run_id": "analysis-real-1",
+            "dispatch_id": "d-real-1",
+            "message": {"content": "分析最近7天蛋白质摄入"},
+            "authorized_context": {"sql_read_request": {"invocation_id": "inv-analysis"}},
+        }
+
+        first = run_deterministic(command, model_router=router)
+        time_proposal = first.proposals[0]
+        completed = {
+            "tool_name": "time_parser",
+            "invocation_id": time_proposal["payload"]["invocation_id"],
+            "status": "succeeded",
+            "rows": [{"days": 7}],
+        }
+        command["authorized_context"]["tool_results"] = [completed]
+        second = run_deterministic(command, model_router=router)
+
+        self.assertEqual(1, provider.calls.count("sql_planner"))
+        self.assertEqual("database_query", second.proposals[0]["tool_name"])
+        self.assertEqual("local", second.proposals[0]["input"]["planner_mode"])
+        self.assertEqual(1, sum(attempt.scene == "sql_planner" for attempt in first.model_attempts))
+
     def test_analysis_fallback_database_invocation_is_unique_per_run(self):
         completed = {
             "tool_name": "time_parser",

@@ -18,7 +18,7 @@ from typing import Any, Callable
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
 from proposal_protocol import Proposal, validate_proposal
-from sql_planner import SqlPlannerError, planner_from_environment
+from sql_planner import SqlPlan, SqlPlannerError, planner_from_environment
 
 
 def _digest(value: Any) -> str:
@@ -534,7 +534,13 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
     return candidates[:max_candidates]
 
 
-def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> list[dict[str, Any]]:
+def generate_tool_proposals(
+    command: dict[str, Any],
+    route: RouteDecision,
+    model_router: ModelRouter | None = None,
+    governed_route: dict[str, object] | None = None,
+    attempts_out: list[ProviderAttempt] | None = None,
+) -> list[dict[str, Any]]:
     """只包装 Java 授权的工具请求；Python 不自行确认或拼接业务写入。"""
     authorized = command.get("authorized_context") or {}
     tool_results = list(authorized.get("tool_results") or ())
@@ -666,13 +672,6 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
             return []
     if route.intent == "analysis":
         question = str((command.get("message") or {}).get("content", ""))
-        plan = planner_from_environment().plan(question)
-        if plan.status == "need_clarification":
-            raise SqlPlannerError(
-                "SQL_PLANNER_TIME_RANGE_REQUIRED",
-                "analysis query requires a time range",
-                plan.missing_slots,
-            )
         database_result = next(
             (
                 item
@@ -684,6 +683,36 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
         )
         if database_result is not None:
             return []
+        plan = None
+        cached_plan = authorized.get("_sql_planner_plan")
+        if isinstance(cached_plan, dict):
+            try:
+                plan = SqlPlan.from_model_output(
+                    cached_plan,
+                    str(cached_plan.get("planner_mode") or ""),
+                    str(cached_plan.get("planner_version") or ""),
+                )
+            except SqlPlannerError:
+                plan = None
+        if plan is None:
+            planner_environment = (
+                getattr(model_router, "environment", None) if model_router is not None else None
+            )
+            planner = planner_from_environment(planner_environment, model_router)
+            if model_router is not None and hasattr(planner, "plan_with_attempts"):
+                plan, planner_attempts = planner.plan_with_attempts(question, governed_route=governed_route)
+                if attempts_out is not None:
+                    attempts_out.extend(planner_attempts)
+            else:
+                plan = planner.plan(question)
+            if isinstance(authorized, dict):
+                authorized["_sql_planner_plan"] = plan.as_dict()
+        if plan.status == "need_clarification":
+            raise SqlPlannerError(
+                "SQL_PLANNER_TIME_RANGE_REQUIRED",
+                "analysis query requires a time range",
+                plan.missing_slots,
+            )
         time_result = next(
             (item for item in reversed(tool_results) if item.get("tool_name") == "time_parser"),
             None,
@@ -1179,7 +1208,13 @@ def run_deterministic(
                 command, route, router, governed_route
             )
         else:
-            proposals = generate_tool_proposals(command, route)
+            proposals = generate_tool_proposals(
+                command,
+                route,
+                router,
+                governed_route,
+                proposal_attempts,
+            )
         # 候选写入必须先停在 Java 审批边界，不能先生成一条看似已完成的回答。
         if any(
             item.get("tool_name") in {"food_log_writer", "plan_validator", "meal_plan.save_plan"}
@@ -1217,7 +1252,7 @@ def run_deterministic(
                 usage,
                 mode,
                 [],
-                [],
+                proposal_attempts,
                 policy.as_dict(),
                 graph.as_dict(),
                 [],
@@ -1228,7 +1263,7 @@ def run_deterministic(
     deadline_at = command.get("deadline_at")
     composer_timeout = _model_timeout_seconds("COMPOSER", 45.0)
     try:
-        response, attempts = router.invoke(
+        response, composer_attempts = router.invoke(
             ModelRequest(
                 scene="composer",
                 prompt=candidate,
@@ -1243,9 +1278,10 @@ def run_deterministic(
     except ModelProviderError:
         # 不能静默伪造云模型回答；上层会把该失败写为可观测终态。
         raise
+    attempts = list(proposal_attempts) + list(composer_attempts)
     usage.tokens = sum(attempt.total_tokens or 0 for attempt in attempts)
     usage.cost_cny = float(sum((attempt.cost_cny or 0) for attempt in attempts))
-    usage.model_calls = 1
+    usage.model_calls = len(proposal_attempts) + 1
     policy = budget_policy(usage, budget)
     mode = policy.mode
     answer = response.content

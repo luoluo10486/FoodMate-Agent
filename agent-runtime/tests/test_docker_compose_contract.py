@@ -58,6 +58,19 @@ class DockerComposeContractTests(TestCase):
         self.assertNotIn("FOODMATE_DOCKER_MODEL_PROVIDER_SILICONFLOW_API_KEY=", example)
         self.assertNotIn("FOODMATE_MODEL_PROVIDER_SILICONFLOW_API_KEY", compose)
 
+    def test_sql_planner_switches_to_shared_chat_route(self):
+        compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "FOODMATE_SQL_PLANNER_MODE: ${FOODMATE_DOCKER_SQL_PLANNER_MODE:-stub}",
+            compose,
+        )
+        self.assertIn("FOODMATE_DOCKER_SQL_PLANNER_MODE=stub", example)
+        self.assertIn("FOODMATE_DOCKER_SQL_PLANNER_TIER=standard", example)
+        self.assertNotIn("FOODMATE_SQL_PLANNER_API_KEY", compose)
+        self.assertNotIn("FOODMATE_DOCKER_SQL_PLANNER_API_KEY", example)
+
     def test_docker_readme_documents_the_python_service_startup(self):
         readme = (self.ROOT / "docker" / "README.md").read_text(encoding="utf-8")
 

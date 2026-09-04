@@ -1,9 +1,10 @@
 from unittest import TestCase
 
-from model_provider import ModelResponse
+from model_provider import ModelProviderError, ModelResponse
 from sql_planner import (
     DeterministicSqlPlanner,
     OpenAICompatibleSqlPlanner,
+    ModelRouterSqlPlanner,
     SqlPlannerError,
     planner_from_environment,
     validate_candidate_sql,
@@ -71,7 +72,7 @@ class OpenAICompatibleSqlPlannerTests(TestCase):
         self.assertEqual("ready", plan.status)
         self.assertEqual(("protein_g",), plan.metrics)
 
-    def test_missing_local_configuration_fails_without_stub_fallback(self):
+    def test_missing_shared_chat_route_fails_without_stub_fallback(self):
         with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_CONFIG_MISSING"):
             planner_from_environment({"FOODMATE_SQL_PLANNER_MODE": "local"})
 
@@ -80,3 +81,86 @@ class OpenAICompatibleSqlPlannerTests(TestCase):
 
         with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_RESPONSE_INVALID"):
             planner.plan("最近7天蛋白质摄入")
+
+
+class ModelRouterSqlPlannerTests(TestCase):
+    class Router:
+        environment = {
+            "FOODMATE_MODEL_TIER_STANDARD": "cloud_primary:chat-model",
+        }
+
+        def __init__(self, content):
+            self.content = content
+            self.calls = []
+
+        def fallback_tiers_for(self, _tier):
+            return ()
+
+        def invoke(self, request, tier, fallback_tiers, governed_route=None):
+            self.calls.append((request, tier, fallback_tiers, governed_route))
+            return ModelResponse(self.content, 12, 10, "provider-request"), ["attempt"]
+
+    def test_local_mode_uses_shared_chat_route_and_returns_attempts(self):
+        router = self.Router(
+            '{"status":"ready","intent":"nutrition_summary",'
+            '"time_range":{"kind":"relative","days":"7","timezone":"Asia/Shanghai"},'
+            '"metrics":["protein_g"],"dimensions":["meal_time"],"filters":{},'
+            '"candidate_sql":"SELECT meal_time FROM food_logs LIMIT 500","missing_slots":[]}'
+        )
+        planner = planner_from_environment(
+            {
+                "FOODMATE_SQL_PLANNER_MODE": "local",
+                "FOODMATE_MODEL_TIER_STANDARD": "cloud_primary:chat-model",
+            },
+            router,
+        )
+
+        plan, attempts = planner.plan_with_attempts(
+            "最近7天蛋白质摄入",
+            governed_route={"provider_code": "cloud_primary", "model_name": "chat-model"},
+        )
+
+        self.assertIsInstance(planner, ModelRouterSqlPlanner)
+        self.assertEqual("local", plan.planner_mode)
+        self.assertEqual(["attempt"], attempts)
+        self.assertEqual("sql_planner", router.calls[0][0].scene)
+        self.assertEqual("standard", router.calls[0][1])
+        self.assertEqual("cloud_primary", router.calls[0][3]["provider_code"])
+        self.assertNotIn("API_KEY", router.calls[0][0].prompt)
+
+    def test_local_mode_rejects_deterministic_route_instead_of_falling_back(self):
+        with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_CONFIG_MISSING"):
+            planner_from_environment(
+                {
+                    "FOODMATE_SQL_PLANNER_MODE": "local",
+                    "FOODMATE_MODEL_TIER_STANDARD": "deterministic:local",
+                }
+            )
+
+    def test_governed_deterministic_route_is_rejected(self):
+        router = self.Router(
+            '{"status":"ready","intent":"nutrition_summary",'
+            '"time_range":{"kind":"relative","days":"7"},"metrics":[],"dimensions":[],"filters":{},'
+            '"candidate_sql":"SELECT meal_time FROM food_logs LIMIT 1","missing_slots":[]}'
+        )
+        planner = ModelRouterSqlPlanner(router, "standard", 30)
+
+        with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_CONFIG_MISSING"):
+            planner.plan_with_attempts(
+                "最近7天饮食",
+                governed_route={"provider_code": "deterministic", "model_name": "local"},
+            )
+
+    def test_shared_provider_failure_is_stable_and_preserves_attempts(self):
+        class FailingRouter(self.Router):
+            def invoke(self, *_args, **_kwargs):
+                error = ModelProviderError("MODEL_PROVIDER_REJECTED", "provider rejected")
+                error.attempts = ["attempt"]
+                raise error
+
+        planner = ModelRouterSqlPlanner(FailingRouter(""), "standard", 30)
+
+        with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_MODEL_UNAVAILABLE") as raised:
+            planner.plan_with_attempts("最近7天饮食")
+
+        self.assertEqual(["attempt"], raised.exception.attempts)
