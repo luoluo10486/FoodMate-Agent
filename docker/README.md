@@ -139,6 +139,34 @@ Chat 密钥使用独立的 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY
 
 真实业务闭环的付费调用必须单独开启 `FOODMATE_DOCKER_PAID_EXECUTION_ENABLED=true`，并保持最多 4 个场景、累计 5 CNY、无 fallback/自动重试和云 provider 门禁。可先运行 `script/local/paid-cloud-preflight.ps1 -Scenario rag` 做非付费配置校验；只有显式传入 `-ExecutePaid` 才会在当前脚本进程内启用容器门禁并重建 Runtime。预检只输出模型、状态和配置是否存在，不输出密钥，也不等同于业务链路完成。
 
+#### 真实 RAG 业务闭环验收入口
+
+`script/local/real-rag-e2e.ps1` 是受限的 R1 业务验收入口，不承担压测、长稳、组件重启、ACK 丢失或重复投递故障矩阵。无参数执行只做 Compose、Java/Python readiness、真实 RAG 配置和付费门禁预检，不登录、不上传文件、不调用云模型：
+
+```powershell
+.\script\local\real-rag-e2e.ps1
+```
+
+显式执行真实付费闭环前，管理员账号和密码只能注入当前 PowerShell 进程；不要作为脚本参数、命令行参数或日志内容传递。脚本会使用 `.env` 中已经配置的 Chat/Embedding Key，自动将 Docker 运行时置为真实 local 模式，单轮最多 1 个场景、预算上限 5 CNY、禁止自动重试，并在默认结束路径软删除本轮文档和会话：
+
+```powershell
+$env:FOODMATE_E2E_ADMIN_USERNAME = Read-Host "FoodMate admin username"
+$securePassword = Read-Host "FoodMate admin password" -AsSecureString
+$passwordPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+    $env:FOODMATE_E2E_ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPtr)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPtr)
+}
+try {
+    .\script\local\real-rag-e2e.ps1 -ExecutePaid
+} finally {
+    Remove-Item Env:FOODMATE_E2E_ADMIN_USERNAME,Env:FOODMATE_E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+入口会验证批次上传、Java Index Outbox/RocketMQ、Python 解析和真实 Embedding/Milvus、Java 结果回写、批次 SSE、显式发布、公共检索、真实 Chat AgentRun、`run.completed` 引用、SSE `Last-Event-ID` 回放，以及下线后的不可检索。默认使用 3 份隔离 Markdown 样例；也可通过 `-DocumentPaths` 传入 1 至 5 个不超过 20 MB 的 PDF/DOCX/Markdown/TXT 文件。脚本只输出脱敏状态、模型标识、数量和稳定错误摘要，不输出 API Key、密码、Prompt、回答、原文、对象键或供应商原始响应。
+
 两个 Embedding profile 是互斥的运行配置，不会混写同一 collection。切换时先选择一个 profile 和对应 collection，重新创建 Runtime，并对需要检索的文档重新索引；旧 collection 可保留用于回滚或在确认无引用后单独清理。
 
 ## RocketMQ

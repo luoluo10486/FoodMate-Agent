@@ -1974,3 +1974,15 @@
 | Runtime | `agent-runtime` readiness HTTP 200；Redis checkpoint、RocketMQ producer/consumer 和 Milvus local RAG 均为 ready。 |
 | 业务边界 | 本轮只验证当前密钥和 Docker 云端点的最小请求，没有重复调用完整业务链路；真实 RAG/SQL/写确认链路以 D117、D119、D120 的直接证据为准。未执行压测、组件故障注入、ACK/重复投递、备份恢复或生产操作。 |
 | 结论 | 当前密钥的 Docker Chat 与 Embedding 认证已恢复，付费预检和 Runtime 启动门禁可正常工作；真实业务闭环的稳定性、性能和故障专项继续后置。 |
+
+## D123 真实 RAG 业务闭环可重复执行入口与预检复核（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 新增 `script/local/real-rag-e2e.ps1` 及契约测试。入口默认只执行 Compose 配置、Java/Python readiness、真实 RAG 配置和付费门禁预检；只有显式 `-ExecutePaid` 才会登录管理员、上传隔离文档并运行 R1 真实业务闭环。管理员凭据仅从当前 PowerShell 进程环境读取，不接受命令行凭据参数。 |
+| 真实闭环覆盖 | 显式付费执行路径覆盖批次上传、Java Index Outbox/RocketMQ、Python 解析/真实 Embedding/Milvus、Java 结果回写、批次 SSE、显式发布、公共检索、真实 Chat AgentRun、`run.completed` 引用、SSE `Last-Event-ID` 回放和下线后的不可检索；默认使用 3 份隔离 Markdown 样例，也支持 1 至 5 个 PDF/DOCX/Markdown/TXT 文件。 |
+| 安全边界 | 脚本不输出或记录 API Key、密码、Prompt、回答、原文、对象键或供应商原始响应；默认只软删除本轮文档和自动创建的会话。付费执行固定单场景、累计 5 CNY、云 provider 门禁和无自动重试。 |
+| 本轮预检 | `powershell.exe -NoProfile -NonInteractive -File .\script\local\real-rag-e2e.ps1` 返回 `status=preflight_passed`；RAG 为 `local`，Embedding 为 `openai-compatible/Qwen/Qwen3-Embedding-0.6B`，Milvus collection 已配置，Chat 为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，Chat/Embedding Key 均已配置但未输出。 |
+| 业务测试 | PowerShell parser 通过；`real-rag-e2e.tests.ps1` 返回 `real_rag_e2e_contract=passed`；项目 `.venv` 执行 `python -B -m pytest -q -p no:cacheprovider`：`212 passed、2 skipped、2 warnings、6 subtests passed`；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；`git diff --check` 通过。 |
+| 未执行 | 本轮未再次执行真实付费 RAG 上传/索引/Chat 闭环，未产生新增供应商费用；D115/D120 保留的真实付费 RAG 证据仍是当前业务闭环依据。未执行性能压测、组件重启、ACK/重复投递故障注入、生产操作、备份恢复或发布回滚。 |
+| 结论 | M2-1 真实 RAG 业务验收已有安全、受限且可重复的执行入口，当前配置预检和业务门禁通过；要新增一轮付费证据，必须由执行人显式提供管理员账号密码并运行 `-ExecutePaid`。 |
