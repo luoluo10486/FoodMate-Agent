@@ -127,9 +127,8 @@ export function WorkspaceLayout({
   const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
   const displayedSessions = sidebarFixture?.sessions ?? sessions;
   const displayedSessionQuery = sidebarFixture?.searchValue ?? sessionQuery;
-  // 窗口控制点只属于当前 Figma Home/Chat fixture，不进入普通业务壳层。
-  const showFixtureWindowControls =
-    designChat || Boolean(sidebarFixture && activeModule === 'home' && !showKnowledgeTopNav);
+  // 窗口控制点属于所有 Figma 工作台业务 fixture，不进入普通业务壳层。
+  const showFixtureWindowControls = designChat || Boolean(sidebarFixture && !showKnowledgeTopNav);
 
   useEffect(() => {
     if (!realMode) return;

@@ -1846,3 +1846,35 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] Auth 视觉资源边界已保持可追溯：品牌标记、字段图标、密码可见性、分隔线和 Token 状态图标使用 Figma 导出文件；未创建虚构 iconfont 字体、字形或 Unicode 映射。
 - [ ] 13 项 diff 均存在非零差异，且最新截图尚未完成逐项人工视觉复核，故不能标记 `PASS`；本次只完成证据更新，不宣称 Auth 页面组像素级验收完成。
 - [ ] 105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；shadcn 全量逐页视觉迁移尚未完成，iconfont 仍为 `BLOCKED`。
+
+## 18. 2026-09-05 Diet Records、Intake Analysis、Meal Planning 批次复采集
+
+本轮依据 Figma 节点 `640:588`、`640:773`、`640:901` 及对应状态节点，补齐三组业务页面的 DPR 1 浏览器证据。Figma 设计稿保持只读；所有浏览器 PNG 均在 `1440×1024`、DPR `1`、字体加载完成和视觉验收模式下采集。
+
+| 画板 | 前端入口 | diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---:|---:|---:|---:|---|
+| `diet-records-v2` | `/analysis?view=records&state=v2` | `7.9746%` | `2.597864` | `17.036879` | `246` | `DIFF_REVIEW` |
+| `diet-records-loading` | `/analysis?view=records&state=loading` | `19.2645%` | `2.586917` | `15.479344` | `255` | `DIFF_REVIEW` |
+| `diet-records-empty` | `/analysis?view=records&state=empty` | `10.1311%` | `2.385595` | `16.457653` | `255` | `DIFF_REVIEW` |
+| `diet-records-error` | `/analysis?view=records&state=error` | `8.8559%` | `2.114887` | `15.650741` | `255` | `DIFF_REVIEW` |
+| `intake-analysis-v2` | `/analysis?state=v2` | `7.5442%` | `2.055728` | `14.479771` | `242` | `DIFF_REVIEW` |
+| `intake-analysis-loading` | `/analysis?state=loading` | `19.0972%` | `2.396458` | `15.153815` | `255` | `DIFF_REVIEW` |
+| `intake-analysis-empty` | `/analysis?state=empty` | `30.4776%` | `3.608765` | `17.122086` | `255` | `DIFF_REVIEW` |
+| `intake-analysis-error` | `/analysis?state=error` | `8.1003%` | `1.976565` | `14.977629` | `255` | `DIFF_REVIEW` |
+| `meal-planning-v2` | `/planning?state=v2` | `23.1532%` | `2.243974` | `12.938152` | `234` | `DIFF_REVIEW` |
+| `meal-planning-loading` | `/planning?state=loading` | `7.5538%` | `0.971944` | `9.799762` | `249` | `DIFF_REVIEW` |
+| `meal-planning-empty` | `/planning?state=empty` | `5.5347%` | `1.080543` | `10.454680` | `249` | `DIFF_REVIEW` |
+| `meal-planning-error` | `/planning?state=error` | `10.1912%` | `2.254055` | `15.862731` | `249` | `DIFF_REVIEW` |
+| `meal-plan-list` | `/planning?state=list` | `6.9485%` | `2.152352` | `14.802715` | `236` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step1` | `/planning?state=wizard-step1` | `35.9497%` | `5.390206` | `25.307971` | `255` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step2` | `/planning?state=wizard-step2` | `35.3477%` | `5.733976` | `26.049840` | `250` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step3` | `/planning?state=wizard-step3` | `38.1058%` | `6.312309` | `27.371345` | `255` | `DIFF_REVIEW` |
+| `meal-plan-conflict` | `/planning?state=conflict` | `31.6232%` | `7.547086` | `30.701595` | `255` | `DIFF_REVIEW` |
+| `meal-plan-shopping-list` | `/planning?state=shopping-list` | `21.4598%` | `4.122252` | `21.045152` | `255` | `DIFF_REVIEW` |
+| `meal-plan-generating` | `/planning?state=generating` | `9.5041%` | `3.033991` | `19.434948` | `255` | `DIFF_REVIEW` |
+
+- [x] `WorkspaceLayout.test.tsx` 新增 records、analysis、planning fixture 壳层回归；三条入口均确认窗口控制点存在，普通壳层条件不变。
+- [x] `figma-105-mapping.json` 已将 19 项切换至 `recaptured/dpr1-*-browser-2026-09-05.png`；`figma-105-diff-results.json` 已由 `scripts/generate-figma-105-diff.mjs` 重新生成，自动比较输入为 `105/105`。
+- [x] 19 项 PNG 尺寸均为 `1440×1024`，全量校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；运行时几何、文字和 DPR 门禁均通过。
+- [ ] 19 项均为非零 diff，且尚未完成逐项人工视觉复核，全部保持 `DIFF_REVIEW`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能提前标记 PASS。
+- [ ] 本批次不关闭 shadcn 全量逐页视觉迁移或 iconfont 阻塞；标准命令图标继续使用 Lucide，iconfont 仍为 `BLOCKED`。

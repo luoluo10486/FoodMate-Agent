@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-05",
+  "generatedAt": "2026-09-04",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -29,10 +29,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 117825,
-      "differentRatio": 0.07990519205729167,
-      "meanAbsoluteError": 2.6103744506835938,
-      "rmse": 17.0761670819784,
+      "differentPixels": 117590,
+      "differentRatio": 0.0797458224826389,
+      "meanAbsoluteError": 2.59786376953125,
+      "rmse": 17.03687853962123,
       "maxChannelDelta": 246
     },
     "intake-analysis-v2": {
@@ -40,10 +40,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 111479,
-      "differentRatio": 0.07560153537326389,
-      "meanAbsoluteError": 2.0682383219401044,
-      "rmse": 14.525977437727757,
+      "differentPixels": 111244,
+      "differentRatio": 0.07544216579861111,
+      "meanAbsoluteError": 2.0557276407877603,
+      "rmse": 14.47977101626747,
       "maxChannelDelta": 242
     },
     "meal-planning-v2": {
@@ -403,76 +403,76 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 388085,
-      "differentRatio": 0.2631869845920139,
-      "meanAbsoluteError": 2.6992818196614583,
-      "rmse": 14.83212179315339,
-      "maxChannelDelta": 247
+      "differentPixels": 284066,
+      "differentRatio": 0.19264458550347222,
+      "meanAbsoluteError": 2.586916944715712,
+      "rmse": 15.479343987977101,
+      "maxChannelDelta": 255
     },
     "diet-records-empty": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 243182,
-      "differentRatio": 0.16491834852430556,
-      "meanAbsoluteError": 2.4565926445855033,
-      "rmse": 15.529718824948354,
-      "maxChannelDelta": 247
+      "differentPixels": 149389,
+      "differentRatio": 0.10131089952256944,
+      "meanAbsoluteError": 2.3855953640407987,
+      "rmse": 16.45765258926421,
+      "maxChannelDelta": 255
     },
     "diet-records-error": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 202970,
-      "differentRatio": 0.13764784071180555,
-      "meanAbsoluteError": 2.1863961113823787,
-      "rmse": 14.844249871654542,
-      "maxChannelDelta": 247
+      "differentPixels": 130586,
+      "differentRatio": 0.08855929904513889,
+      "meanAbsoluteError": 2.114887152777778,
+      "rmse": 15.650741491332468,
+      "maxChannelDelta": 255
     },
     "meal-planning-loading": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 265491,
-      "differentRatio": 0.180047607421875,
-      "meanAbsoluteError": 1.1595440334743923,
-      "rmse": 9.742724390097228,
-      "maxChannelDelta": 232
+      "differentPixels": 111386,
+      "differentRatio": 0.07553846571180556,
+      "meanAbsoluteError": 0.9719441731770834,
+      "rmse": 9.79976172471102,
+      "maxChannelDelta": 249
     },
     "meal-planning-empty": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 190697,
-      "differentRatio": 0.12932467990451388,
-      "meanAbsoluteError": 1.240224372016059,
-      "rmse": 10.125952279476904,
-      "maxChannelDelta": 232
+      "differentPixels": 81613,
+      "differentRatio": 0.05534735785590278,
+      "meanAbsoluteError": 1.0805428398980035,
+      "rmse": 10.454680255930523,
+      "maxChannelDelta": 249
     },
     "meal-planning-error": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 215778,
-      "differentRatio": 0.14633382161458333,
-      "meanAbsoluteError": 2.2391677856445313,
-      "rmse": 14.752632684907343,
-      "maxChannelDelta": 243
+      "differentPixels": 150275,
+      "differentRatio": 0.10191175672743055,
+      "meanAbsoluteError": 2.2540551079644096,
+      "rmse": 15.862731058682249,
+      "maxChannelDelta": 249
     },
     "intake-analysis-loading": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 491411,
-      "differentRatio": 0.33325941297743056,
-      "meanAbsoluteError": 2.557869635687934,
-      "rmse": 14.415558565511661,
+      "differentPixels": 281599,
+      "differentRatio": 0.19097154405381944,
+      "meanAbsoluteError": 2.3964574178059896,
+      "rmse": 15.153814600876458,
       "maxChannelDelta": 255
     },
     "intake-analysis-empty": {
@@ -480,10 +480,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 530769,
-      "differentRatio": 0.35995076497395834,
-      "meanAbsoluteError": 3.6548548380533856,
-      "rmse": 16.33455979809287,
+      "differentPixels": 449410,
+      "differentRatio": 0.3047756618923611,
+      "meanAbsoluteError": 3.6087654961480036,
+      "rmse": 17.122086018862174,
       "maxChannelDelta": 255
     },
     "intake-analysis-error": {
@@ -491,10 +491,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 189434,
-      "differentRatio": 0.12846815321180555,
-      "meanAbsoluteError": 2.005872768825955,
-      "rmse": 14.199789392524329,
+      "differentPixels": 119444,
+      "differentRatio": 0.08100314670138889,
+      "meanAbsoluteError": 1.976565212673611,
+      "rmse": 14.97762873946791,
       "maxChannelDelta": 255
     },
     "meal-plan-list": {
@@ -502,21 +502,21 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 319709,
-      "differentRatio": 0.21681654188368055,
-      "meanAbsoluteError": 2.372528584798177,
-      "rmse": 13.771922781628419,
-      "maxChannelDelta": 232
+      "differentPixels": 102460,
+      "differentRatio": 0.0694851345486111,
+      "meanAbsoluteError": 2.152352227105035,
+      "rmse": 14.802714832570006,
+      "maxChannelDelta": 236
     },
     "meal-plan-wizard-step1": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 610758,
-      "differentRatio": 0.41419677734375,
-      "meanAbsoluteError": 5.612545945909289,
-      "rmse": 24.994325605889397,
+      "differentPixels": 530100,
+      "differentRatio": 0.3594970703125,
+      "meanAbsoluteError": 5.390206231011285,
+      "rmse": 25.30797147955869,
       "maxChannelDelta": 255
     },
     "meal-plan-wizard-step2": {
@@ -524,32 +524,32 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 605652,
-      "differentRatio": 0.41073404947916664,
-      "meanAbsoluteError": 5.738296678331163,
-      "rmse": 25.02768576385523,
-      "maxChannelDelta": 248
+      "differentPixels": 521223,
+      "differentRatio": 0.3534769694010417,
+      "meanAbsoluteError": 5.733975558810764,
+      "rmse": 26.049839570374566,
+      "maxChannelDelta": 250
     },
     "meal-plan-wizard-step3": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 622538,
-      "differentRatio": 0.4221856011284722,
-      "meanAbsoluteError": 6.278900316026475,
-      "rmse": 26.367796929042477,
-      "maxChannelDelta": 241
+      "differentPixels": 561893,
+      "differentRatio": 0.3810580783420139,
+      "meanAbsoluteError": 6.312308756510417,
+      "rmse": 27.371344979511203,
+      "maxChannelDelta": 255
     },
     "meal-plan-conflict": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 548411,
-      "differentRatio": 0.3719150119357639,
-      "meanAbsoluteError": 7.567183091905382,
-      "rmse": 29.713188584303,
+      "differentPixels": 466303,
+      "differentRatio": 0.3162319607204861,
+      "meanAbsoluteError": 7.547085571289062,
+      "rmse": 30.701595163063445,
       "maxChannelDelta": 255
     },
     "meal-plan-shopping-list": {
@@ -557,10 +557,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 441394,
-      "differentRatio": 0.29933946397569444,
-      "meanAbsoluteError": 4.281812201605903,
-      "rmse": 20.325763423106554,
+      "differentPixels": 316438,
+      "differentRatio": 0.21459825303819444,
+      "meanAbsoluteError": 4.122252231174045,
+      "rmse": 21.045152057503092,
       "maxChannelDelta": 255
     },
     "meal-plan-generating": {
@@ -568,10 +568,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 209370,
-      "differentRatio": 0.14198811848958334,
-      "meanAbsoluteError": 3.0063373141818577,
-      "rmse": 18.22239174234164,
+      "differentPixels": 140144,
+      "differentRatio": 0.09504123263888889,
+      "meanAbsoluteError": 3.033991495768229,
+      "rmse": 19.434947834595334,
       "maxChannelDelta": 255
     },
     "admin-tool-registry": {

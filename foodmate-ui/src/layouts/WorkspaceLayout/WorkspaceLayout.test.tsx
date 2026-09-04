@@ -159,6 +159,22 @@ describe('WorkspaceLayout shell controls', () => {
     );
   });
 
+  it.each([
+    ['records', '/analysis?view=records&state=v2'],
+    ['analysis', '/analysis?state=v2'],
+    ['planning', '/planning?state=v2'],
+  ] as const)('renders desktop window controls in the %s Figma fixture shell', (activeModule, entry) => {
+    const { container } = render(
+      <MemoryRouter initialEntries={[entry]}>
+        <WorkspaceLayout activeModule={activeModule} showKnowledgeTopNav={false} sidebarFixture={{ sessions: [] }}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
+  });
+
   it('supports the Profile Figma sidebar composition without search or collapse controls', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/profile?state=basic']}>
