@@ -21,6 +21,8 @@ class KnowledgeMapperContractTest {
 
         assertTrue(sql.contains("requested_payload='{}'::jsonb"));
         assertTrue(sql.contains("jsonb_set(payload,'{attempt}'"));
+        assertTrue(sql.contains("jsonb_exists(payload,'attempt')"));
+        assertTrue(!sql.contains("payload ? 'attempt'"));
         assertTrue(sql.contains("'1'::jsonb"));
         assertTrue(sql.contains("ORDER BY outbox_id DESC LIMIT 1"));
     }
@@ -46,7 +48,7 @@ class KnowledgeMapperContractTest {
     }
 
     @Test
-    void indexedResultStoresTheProviderTraceIdAsASeparateFact() throws Exception {
+    void indexedResultKeepsProviderTracePersistenceCompatibleWithPreV29Databases() throws Exception {
         String sql =
                 KnowledgeMapper.class
                         .getMethod(
@@ -63,6 +65,14 @@ class KnowledgeMapperContractTest {
                         .getAnnotation(Update.class)
                         .value()[0];
 
-        assertTrue(sql.contains("provider_trace_id=#{providerTraceId}"));
+        assertTrue(!sql.contains("provider_trace_id=#{providerTraceId}"));
+
+        String traceSql =
+                KnowledgeMapper.class
+                        .getMethod("updateProviderTraceId", long.class, String.class)
+                        .getAnnotation(Update.class)
+                        .value()[0];
+        assertTrue(traceSql.contains("provider_trace_id=#{providerTraceId}"));
+        assertTrue(traceSql.contains("updated_at=CURRENT_TIMESTAMP"));
     }
 }

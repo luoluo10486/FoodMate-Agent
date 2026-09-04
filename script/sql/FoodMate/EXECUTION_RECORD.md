@@ -1864,3 +1864,30 @@
 | 影响范围 | 两次请求均未取得向量，不能据此确认当前密钥下 BGE 或 Qwen 的真实 Embedding 业务调用；未使用旧密钥静默替换，也未继续重复请求。 |
 | 业务测试 | Python RAG/Worker/云 smoke 契约测试：`77 passed, 4 subtests passed`；该结果只证明本地业务和配置契约，不替代供应商认证。 |
 | 结论 | Docker Python Runtime 启动链路和两个 profile 配置正常，当前密钥需要在 SiliconFlow 控制台确认有效性或轮换后再进行真实请求复验；D112 的成功记录仍仅代表当时使用的历史密钥。 |
+
+## D115 Docker 真实公共知识库与 Chat 引用闭环（2026-09-04）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus；管理员会话仅在当前 PowerShell 进程使用，未输出 Cookie、API Key、回答正文或原文。 |
+| Java 修复与测试 | 修正知识索引 Outbox SQL 的 PostgreSQL JSONB 存在性判断，兼容尚未执行 V29 的本地数据库；`KnowledgeMapperContractTest` 与 `KnowledgeRepositoryAdapterTest` 定向测试 `9/9` 通过。 |
+| Java Docker 部署 | `mvnw.cmd -pl foodmate-bootstrap -am package -DskipTests` 和 `docker compose --env-file .env -f docker/compose.yml build foodmate` 均 `BUILD SUCCESS`；重建后的 `foodmate` readiness 为 `healthy`，未重启或改动依赖服务及持久化卷。 |
+| Python Runtime | `/foodmate/internal/health/ready` 返回 HTTP `200`；实际模式为 `local`，后端为 Milvus，Embedding provider 为 `openai-compatible`，模型为 `Qwen/Qwen3-Embedding-0.6B`；RocketMQ producer/consumer 与 Redis 均 ready。 |
+| 上传批次 | 使用管理员账号和随机幂等键提交 1 个 Markdown 文件；批次 `354150618522193920`，文档 `354150620275412992`，条目 `354150620275412993`；来源类型为允许的 `admin_upload`。 |
+| 真实索引 | Java Index Outbox `foodmate-knowledge-index-v1` 为 `published/attempt=1`；Python 从 MinIO 读取并解析，真实 Embedding 返回 `1024` 维并写入 Milvus；Java 消费结果后条目和文档均为 `indexed`，批次为 `completed`，chunk `10`，token `2116`，成本摘要 `0.00014812`，模型版本为 `Qwen/Qwen3-Embedding-0.6B`；结果 Inbox 为单条幂等事实。 |
+| 显式发布与检索 | 文档由管理员显式发布；Visibility Outbox `foodmate-knowledge-visibility-v1` 为 `published/attempt=1`。`POST /api/knowledge-base/search` 返回该文档的 2 条安全引用，未暴露 MinIO 地址或对象键。 |
+| 真实 Chat AgentRun | 创建 Run `354151297747783680`；`run.model_usage` 记录 `cloud_primary / deepseek-ai/DeepSeek-V4-Flash`、`total_tokens=481`、状态 `success`。`/api/chat/runs/{runId}/stream` 使用 `Last-Event-ID: 0` 回放 7 个连续事件，唯一终态为 `run.completed`，其中包含 2 条引用；PostgreSQL SSE Outbox `stream_seq=1..7`、唯一 SSE ID `7` 个、终态事件 `1` 个。 |
+| 失败记录 | 首轮测试中使用不允许的来源类型和自动上传 MIME 各触发一次稳定 `INVALID_ARGUMENT`，未创建批次或对象；修正为 `admin_upload` 并使用显式 `text/markdown` 后成功。 |
+| 清理边界 | 证据核对完成后，仅清理本轮上述批次、文档、条目、chunk、Outbox/Inbox、SSE 事实、Run 及 MinIO/Milvus 测试索引；不执行迁移、truncate、备份恢复或现有数据宽泛删除。 |
+| 暂缓范围 | 未执行性能压测、组件重启、ACK 丢失/重复投递故障注入、生产环境容量或发布回滚；本记录只证明一次真实付费主链路业务闭环。 |
+
+## D116 本轮真实闭环测试数据定点清理（2026-09-04）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker PostgreSQL、Redis、MinIO、Milvus、RocketMQ、Java 和 Python 容器保持运行；未执行迁移、truncate、备份恢复或宽泛删除。 |
+| PostgreSQL 清理 | 在一个 `BEGIN/COMMIT` 事务中按外键依赖删除本轮批次 `354150618522193920`、文档 `354150620275412992`、条目 `354150620275412993`、10 个 chunk、索引/结果/可见性 Outbox、2 条批次 SSE，以及 Run `354151297747783680`、1 个会话、2 条消息、1 个预算快照、7 条 Run SSE 和 7 条 Runtime 事件；事务提交成功。 |
+| 外部索引与对象 | Milvus 精确删除 10 个本轮 `embedding_id`，删除后目标查询为 `0`；Redis 删除 3 个本轮精确 key；MinIO 删除 `foodmate-private/knowledge/public/354150620275412992/README.md`，对象查询无结果。 |
+| 反向验证 | PostgreSQL 目标批次/条目/文档/chunk/Outbox/Inbox/SSE/Run/会话/消息查询均为 `0`；本轮 4 条 `operation_audits` 保留作为真实执行证据；Java 与 Python 容器 health 状态仍为 `healthy`。 |
+| 保护范围 | 未删除管理员、用户、历史知识文档、历史 Run、全局审计、未确认用途的 `tmp/pdfs/` 和 `tmp/resume-pdf-review-20260903/`；Milvus collection 中其余历史实体保留。 |
+| 结论 | 本轮真实付费 Embedding + Milvus + DeepSeek Chat 的业务闭环证据已落档，测试数据已完成精确清理；性能压测、组件重启、ACK/重复投递故障注入、SSE 故障恢复和生产环境验证继续按计划暂缓。 |
