@@ -4,7 +4,7 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## 当前复核状态（2026-09-02）
+## 当前复核状态（2026-09-05）
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
 
@@ -19,7 +19,7 @@
 - [ ] 生产级长压、多实例 Agent 业务吞吐、队列积压/重复执行、PostgreSQL 进程重启，以及 Outbox/Inbox ACK 丢失、租约接管和 SSE 故障恢复仍待执行。
 - [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
 - [x] D112 使用历史凭据完成 Docker `agent-runtime` 的 SiliconFlow `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 显式 `/v1/embeddings` smoke，两个模型均返回 1024 维向量；运行时仍一次选择一个 profile，并使用独立 Milvus collection。该证据不替代当前密钥认证、长稳、成本对账或生产容量验收。
-- [ ] D114 当前凭据复验两个 Docker Embedding profile 均返回 HTTP 401 `Unauthorized`，响应摘要为 `Api key is invalid`；需在供应商侧确认或轮换密钥后重新验证，不能把历史凭据成功记录当作当前成功。
+- [x] D114/D122 曾记录的旧密钥 HTTP 401 已处理；2026-09-05 当前 Docker Embedding 密钥使用 `Qwen/Qwen3-Embedding-0.6B` smoke 返回 1024 维向量，Chat `DeepSeek-V4-Flash` smoke 也已通过。该证据不替代真实业务长稳、成本对账或生产容量验收。
 - [x] M1-5 第一切片已完成本地代码和真实 HTTP E2E：饮食记录创建/查询/编辑/删除/恢复，today/7d/30d 分析，计划创建/查询/修改/校验/保存/删除/恢复/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。
 - [x] `food_log_writer` 已完成：Proposal -> Confirm -> Execute、`confirmation_ref`/AgentRun/用户归属/参数摘要/幂等校验、复用饮食记录写入用例、`food_log_id` 回填、rejected/failed/superseded 和 create/update/delete/restore 均已有定向测试，并已通过真实 PostgreSQL HTTP 和 RocketMQ writer 回归。
 - [x] 本地 PostgreSQL 已存在 V13/V14/V15 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。营养目录 V1-V8 已人工导入 60 条 approved USDA 数据，V2/V4/V5/V7/V8 已导入 60 条 approved USDA foodPortions 规则，V6 已导入 75 条精确质量换算并通过校验；V8 seed/validation 和定向 Java 测试 `2/2` 通过，未覆盖的密度单位仍不推断。

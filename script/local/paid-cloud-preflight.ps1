@@ -54,7 +54,8 @@ import sys
 from paid_execution import PaidExecutionSession
 
 session = PaidExecutionSession.from_environment()
-session.begin_scenario(sys.argv[1])
+# python -c 的第一个参数是 base64 源代码，业务场景位于第二个参数。
+session.begin_scenario(sys.argv[2])
 print(json.dumps({
     "paid_execution": session.settings.enabled,
     "scenario": session.scenarios[0],

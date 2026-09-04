@@ -1962,3 +1962,15 @@
 | 前置门禁 | 同一轮变更前置回归：Application `228/228`、Infrastructure `113/113`（20 条条件跳过）、API `68/68` 通过；新增测试仅补充失效边界，不改变已通过的业务路径。 |
 | 数据边界 | 不保存原文、Prompt、Token、凭据或完整请求；只保存受限来源 ID。未执行性能压测、依赖重启、ACK 丢失、重复投递、SSE 故障恢复或生产操作。 |
 | 结论 | 记忆意图分层、来源抑制和失效摘要重建已取得代码、定向业务测试及本地数据库 validation 证据；Docker Java/Python 容器 readiness 已通过。性能、依赖重启、ACK/重复投递和 SSE 故障恢复仍按范围暂缓。 |
+
+## D122 Docker 真实云配置门禁与启动脚本修复（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 修复 `paid-cloud-preflight.ps1` 的参数错位：base64 源代码使用 `sys.argv[1]`，场景使用 `sys.argv[2]`；RocketMQ Topic 初始化新增幂等存在性回读和 `mqadmin updateTopic` 30 秒有界调用，避免重复 Topic 阻塞 `agent-runtime` 启动。 |
+| 付费门禁 | `script/local/paid-cloud-preflight.ps1 -Scenario rag -ExecutePaid` 通过；容器内报告 `paid_execution=true`、`scenario=rag`、`max_scenarios=4`、`max_total_cost_cny=5`、`no_retry=true`、`require_cloud=true`。 |
+| Chat smoke | `siliconflow-docker-chat-smoke.ps1 -Tier standard -ExecuteRequest` 通过；provider 为 `cloud_primary`，模型为 `deepseek-ai/DeepSeek-V4-Flash`，返回 `23` tokens，延迟 `945.12 ms`。 |
+| Embedding smoke | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest` 通过；模型为 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `185.0 ms`。 |
+| Runtime | `agent-runtime` readiness HTTP 200；Redis checkpoint、RocketMQ producer/consumer 和 Milvus local RAG 均为 ready。 |
+| 业务边界 | 本轮只验证当前密钥和 Docker 云端点的最小请求，没有重复调用完整业务链路；真实 RAG/SQL/写确认链路以 D117、D119、D120 的直接证据为准。未执行压测、组件故障注入、ACK/重复投递、备份恢复或生产操作。 |
+| 结论 | 当前密钥的 Docker Chat 与 Embedding 认证已恢复，付费预检和 Runtime 启动门禁可正常工作；真实业务闭环的稳定性、性能和故障专项继续后置。 |

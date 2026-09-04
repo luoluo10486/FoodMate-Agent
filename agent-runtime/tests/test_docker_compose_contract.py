@@ -119,6 +119,16 @@ class DockerComposeContractTests(TestCase):
         self.assertNotIn("--api-key", script.lower())
         self.assertNotIn("$ApiKey", script)
 
+    def test_rocketmq_topic_init_is_idempotent_and_bounds_topic_creation(self):
+        script = (self.ROOT / "docker" / "rocketmq" / "init-topics.sh").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("ensure_topic()", script)
+        self.assertIn('if wait_for_topic "$topic"; then', script)
+        self.assertIn('timeout 30 "$MQADMIN" updateTopic', script)
+        self.assertIn("跳过重复创建", script)
+
     def test_java_governance_fallback_is_explicitly_mapped_from_docker_scope(self):
         compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
         example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
