@@ -1998,3 +1998,14 @@
 | 验证 | PowerShell parser 通过；`real-rag-e2e.tests.ps1` 返回 `real_rag_e2e_contract=passed`；`real-meal-plan-e2e.tests.ps1` 返回 `real_meal_plan_e2e_contract=passed`；`git diff --check` 通过。 |
 | 本轮执行边界 | 未执行真实付费 R3，不产生新增云费用；因此不把 R3 真实云闭环标记为完成。未执行性能压测、组件重启、ACK/重复投递故障注入、备份恢复、生产操作或发布回滚。 |
 | Git | `ea7a9c13 feat(agent): add bounded paid meal plan acceptance runner`。 |
+
+## D125 R3 入口业务门禁与 SSE 路径复核（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| R3 预检 | `script/local/real-meal-plan-e2e.ps1` 无参数返回 `status=preflight_passed`；容器内 Chat 路由为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，endpoint/key 已配置，fallback 为 `false`；未创建 Run、未调用付费模型。 |
+| Python 业务测试 | 项目 `.venv` 执行 `python -B -m pytest -q -p no:cacheprovider`：`212 passed、2 skipped、2 warnings、6 subtests passed`。 |
+| Java SSE 测试 | `mvnw.cmd -pl foodmate-api -am test '-Dtest=RunStreamControllerTest,ChatControllerTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：`ChatControllerTest=2/2`、`RunStreamControllerTest=1/1`，Reactor `BUILD SUCCESS`。 |
+| 配置与契约 | `real-rag-e2e.tests.ps1`、`real-meal-plan-e2e.tests.ps1` 均通过；`docker compose ... config --quiet` 通过；脚本和文档 `git diff --check` 通过。 |
+| 路径结论 | 当前创建 Run 使用 `POST /api/chat/runs`，持久化 SSE 使用 `GET /api/agent-runs/{runId}/stream`；RAG 入口已同步修正为该路径，历史执行记录中的旧路径仅作为历史事实保留。 |
+| 付费边界 | 当前进程未提供 `FOODMATE_E2E_ADMIN_USERNAME`/`FOODMATE_E2E_ADMIN_PASSWORD`，本轮未执行真实付费 R3，不产生新增云费用；R3 仍需执行人显式注入管理员凭据并传入 `-ExecutePaid` 后才能形成真实云闭环证据。 |
