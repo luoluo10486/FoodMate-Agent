@@ -7,6 +7,7 @@ from sql_planner import (
     ModelRouterSqlPlanner,
     SqlPlannerError,
     planner_from_environment,
+    normalize_candidate_sql,
     validate_candidate_sql,
 )
 
@@ -46,6 +47,15 @@ class DeterministicSqlPlannerTests(TestCase):
         with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_LIMIT_REQUIRED"):
             validate_candidate_sql("SELECT meal_time FROM food_logs")
 
+    def test_model_sql_normalization_only_removes_safe_outer_wrappers(self):
+        self.assertEqual(
+            "SELECT meal_time FROM food_logs LIMIT 500",
+            normalize_candidate_sql("```sql\nSELECT meal_time FROM food_logs LIMIT 500;\n```")
+        )
+        self.assertEqual(
+            "SELECT meal_time FROM food_logs LIMIT 500",
+            normalize_candidate_sql("SELECT meal_time FROM food_logs LIMIT 500;")
+        )
 
 class OpenAICompatibleSqlPlannerTests(TestCase):
     class Provider:
@@ -71,6 +81,22 @@ class OpenAICompatibleSqlPlannerTests(TestCase):
         self.assertEqual("local", plan.planner_mode)
         self.assertEqual("ready", plan.status)
         self.assertEqual(("protein_g",), plan.metrics)
+
+    def test_model_plan_stores_normalized_candidate_sql(self):
+        planner = OpenAICompatibleSqlPlanner(
+            self.Provider(
+                '{"status":"ready","intent":"nutrition_summary",'
+                '"time_range":{"kind":"relative","days":"7","timezone":"Asia/Shanghai"},'
+                '"metrics":["protein_g"],"dimensions":["meal_time"],"filters":{},'
+                '"candidate_sql":"SELECT meal_time FROM food_logs LIMIT 500;",'
+                '"missing_slots":[]}'
+            ),
+            "local-model",
+        )
+
+        plan = planner.plan("最近7天蛋白质摄入")
+
+        self.assertEqual("SELECT meal_time FROM food_logs LIMIT 500", plan.candidate_sql)
 
     def test_missing_shared_chat_route_fails_without_stub_fallback(self):
         with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_CONFIG_MISSING"):

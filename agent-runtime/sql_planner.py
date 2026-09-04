@@ -108,6 +108,7 @@ class SqlPlan:
         else:
             if not isinstance(candidate_sql, str):
                 raise SqlPlannerError("SQL_PLANNER_RESPONSE_INVALID", "ready response has no candidate SQL")
+            candidate_sql = normalize_candidate_sql(candidate_sql)
             validate_candidate_sql(candidate_sql)
         return cls(
             status,
@@ -341,7 +342,7 @@ class ModelRouterSqlPlanner:
     """
 
     mode = "local"
-    version = "m2-2-router-v1"
+    version = "m2-2-router-v2"
     _allowed_tiers = frozenset({"standard", "high", "economy"})
 
     def __init__(self, router: ModelRouter, tier: str, timeout_seconds: float):
@@ -438,7 +439,7 @@ def _planner_prompt(question: str, intent_hint: str | None) -> str:
             "security_rules": [
                 "Return JSON only and never execute a query.",
                 "Use only the listed tables and columns.",
-                "Return one SELECT or WITH query ending in LIMIT <= 500.",
+                "Return one SELECT or WITH query ending in LIMIT <= 500, with no semicolon and no Markdown code fence.",
                 "Never select user_id, notes, items_json, nutrition_json, or any unlisted field.",
                 "Java adds the current-user and is_deleted predicates; do not invent another user or tenant.",
                 "A Java AST guard will reject writes, subqueries, unknown fields, sensitive fields, and unbounded queries.",
@@ -546,3 +547,14 @@ def validate_candidate_sql(statement: str) -> None:
     limit = int(re.search(r"\blimit\s+([1-9][0-9]{0,2})\s*$", lowered).group(1))
     if limit > MAX_LIMIT:
         raise SqlPlannerError("SQL_PLANNER_LIMIT_INVALID", "candidate SQL limit is too large")
+
+
+def normalize_candidate_sql(statement: str) -> str:
+    """移除模型常见的无语义外壳，保留 Java AST 的严格校验边界。"""
+    value = str(statement or "").strip()
+    fenced = re.fullmatch(r"```(?:sql)?\s*([\s\S]*?)\s*```", value, re.IGNORECASE)
+    if fenced:
+        value = fenced.group(1).strip()
+    if value.endswith(";"):
+        value = value[:-1].rstrip()
+    return value
