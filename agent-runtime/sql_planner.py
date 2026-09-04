@@ -342,7 +342,7 @@ class ModelRouterSqlPlanner:
     """
 
     mode = "local"
-    version = "m2-2-router-v2"
+    version = "m2-2-router-v3"
     _allowed_tiers = frozenset({"standard", "high", "economy"})
 
     def __init__(self, router: ModelRouter, tier: str, timeout_seconds: float):
@@ -474,6 +474,26 @@ def _planner_prompt(question: str, intent_hint: str | None) -> str:
                     "is_deleted",
                 ],
             },
+            "approved_sql_examples": {
+                "nutrition_summary": (
+                    "SELECT SUM(i.protein_g) AS protein_g FROM food_logs f "
+                    "JOIN food_log_items i ON i.food_log_id = f.food_log_id "
+                    "WHERE f.meal_time >= CURRENT_TIMESTAMP - INTERVAL '7 days' "
+                    "GROUP BY f.meal_time ORDER BY f.meal_time DESC LIMIT 500"
+                ),
+                "meal_plan": "SELECT plan_name, days, budget, status, updated_at FROM meal_plans ORDER BY updated_at DESC LIMIT 500",
+                "shopping_list": "SELECT shopping_list_id, meal_plan_id, status, updated_at FROM shopping_lists ORDER BY updated_at DESC LIMIT 500",
+                "nutrition_food": (
+                    "SELECT standard_name, basis_unit, calories_kcal_per_100, protein_g_per_100 "
+                    "FROM nutrition_foods WHERE review_status = 'approved' "
+                    "ORDER BY standard_name LIMIT 500"
+                ),
+            },
+            "sql_generation_constraints": [
+                "Copy the matching approved_sql_examples shape and change only approved columns or the relative day literal when needed.",
+                "Do not invent aliases, aggregate names, date functions, log_time, total_calories, total_protein_g, total_fat_g, or total_carbs_g.",
+                "For nutrition_summary, use meal_time for both the time filter and grouping; use only calories_kcal, protein_g, fat_g, or carbs_g aggregates.",
+            ],
             "allowed_intents": ["nutrition_summary", "meal_plan", "shopping_list", "nutrition_food"],
             "required_output": {
                 "status": "ready or need_clarification",

@@ -8,6 +8,7 @@ from sql_planner import (
     SqlPlannerError,
     planner_from_environment,
     normalize_candidate_sql,
+    _planner_prompt,
     validate_candidate_sql,
 )
 
@@ -97,6 +98,13 @@ class OpenAICompatibleSqlPlannerTests(TestCase):
         plan = planner.plan("最近7天蛋白质摄入")
 
         self.assertEqual("SELECT meal_time FROM food_logs LIMIT 500", plan.candidate_sql)
+
+    def test_prompt_pins_sql_to_the_authorized_schema_examples(self):
+        prompt = _planner_prompt("最近7天蛋白质摄入", None)
+
+        self.assertIn("meal_time for both the time filter and grouping", prompt)
+        self.assertIn("log_time", prompt)
+        self.assertIn("SELECT SUM(i.protein_g) AS protein_g", prompt)
 
     def test_missing_shared_chat_route_fails_without_stub_fallback(self):
         with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_CONFIG_MISSING"):
