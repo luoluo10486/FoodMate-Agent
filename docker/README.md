@@ -205,6 +205,24 @@ AgentRun 的 SSE 回放得到唯一 `run.completed`，终态中的计划 ID 必�
 默认只软删除本轮计划和自动创建的会话；`-KeepData` 仅用于明确需要保留业务证据的单轮执行。
 入口是业务正确性检查，不执行压测、组件重启、ACK/重复投递故障注入、备份恢复或生产操作。
 
+#### 真实饮食记录业务闭环验收入口
+
+`script/local/real-food-log-e2e.ps1` 是受限的 R2 业务验收入口。无参数执行只检查 Compose、Java/Python readiness、Docker Chat 的 `high` 档云路由和付费门禁，不登录、不创建 Run、不调用模型：
+
+```powershell
+.\script\local\real-food-log-e2e.ps1
+```
+
+真实执行必须显式传入 `-ExecutePaid`，管理员凭据只能从当前 PowerShell 进程的
+`FOODMATE_E2E_ADMIN_USERNAME`、`FOODMATE_E2E_ADMIN_PASSWORD` 读取。入口固定为一个
+`food-log` 场景，累计预算上限 5 CNY，关闭 fallback 和自动重试。脚本通过真实
+`POST /api/chat/runs` 创建 AgentRun，读取
+`GET /api/agent-runs/{runId}/stream`，断言云模型生成 `food_log_writer` 的
+`run.clarification_requested`，再将安全的餐食时间、餐次、备注和食材参数同时传给
+approval confirm/execute。
+
+成功条件是 Java 返回绑定当前 Run 的 `food_log`，至少一条食材营养状态为 `matched`，并从同一 Run 的 SSE 回放得到唯一 `run.completed`，终态中的记录 ID 必须与 Java 执行结果一致。默认只软删除本轮饮食记录和自动创建的会话；`-KeepData` 仅用于明确需要保留业务证据的单轮执行。入口是业务正确性检查，不执行压测、组件重启、ACK/重复投递故障注入、备份恢复或生产操作。
+
 ## RocketMQ
 
 `rocketmq-namesrv` + `rocketmq-broker` 是 Java 控制面与 Python Runtime 的异步主通道（[ADR-0005](../docxs/决策/ADR-0005-RocketMQ异步主通道.md)）。本地只部署单 NameServer + 单 Broker，不配置集群、TLS 或 ACL。

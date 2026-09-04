@@ -2009,3 +2009,13 @@
 | 配置与契约 | `real-rag-e2e.tests.ps1`、`real-meal-plan-e2e.tests.ps1` 均通过；`docker compose ... config --quiet` 通过；脚本和文档 `git diff --check` 通过。 |
 | 路径结论 | 当前创建 Run 使用 `POST /api/chat/runs`，持久化 SSE 使用 `GET /api/agent-runs/{runId}/stream`；RAG 入口已同步修正为该路径，历史执行记录中的旧路径仅作为历史事实保留。 |
 | 付费边界 | 当前进程未提供 `FOODMATE_E2E_ADMIN_USERNAME`/`FOODMATE_E2E_ADMIN_PASSWORD`，本轮未执行真实付费 R3，不产生新增云费用；R3 仍需执行人显式注入管理员凭据并传入 `-ExecutePaid` 后才能形成真实云闭环证据。 |
+
+## D126 R2 真实饮食记录业务闭环验收入口（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 新增 `script/local/real-food-log-e2e.ps1` 及契约测试；入口使用当前持久化 SSE 路径 `/api/agent-runs/{runId}/stream`。 |
+| 业务路径 | 覆盖真实 `POST /api/chat/runs`、`run.clarification_requested`、`food_log_writer`、approval confirm/execute、Java `food_logs` 查询、营养 `matched` 快照和唯一 `run.completed`；确认与执行复用同一份安全业务参数。 |
+| 付费门禁 | R2 固定 `food-log` 单场景、累计 5 CNY、云 provider、无 fallback 和无自动重试；管理员账号密码只从当前 PowerShell 进程读取，不接受脚本参数。 |
+| 默认行为 | 无参数仅做 Docker Compose、Java/Python readiness、high Chat 云路由和付费门禁预检；付费执行默认软删除本轮记录和会话，`-KeepData` 才保留。 |
+| 本轮执行边界 | 未执行真实付费 R2，不产生新增云费用；因此不把 R2 真实云闭环标记为完成。未执行性能压测、组件重启、ACK/重复投递故障注入、备份恢复、生产操作或发布回滚。 |
