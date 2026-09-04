@@ -515,7 +515,7 @@ try {
         $report.run_id = [string](Get-Field $runData @("run_id", "runId"))
         $sessionId = [string](Get-Field $runData @("session_id", "sessionId"))
         if ([string]::IsNullOrWhiteSpace($report.run_id)) { throw "AgentRun id is missing" }
-        $runEvents = @(Read-Sse "$JavaBaseUrl/api/chat/runs/$($report.run_id)/stream" "0" $csrf 180)
+        $runEvents = @(Read-Sse "$JavaBaseUrl/api/agent-runs/$($report.run_id)/stream" "0" $csrf 180)
         $completedEvents = @($runEvents | Where-Object event_type -eq "run.completed")
         $terminalEvents = @($runEvents | Where-Object { @("run.completed", "run.failed", "run.cancelled") -contains $_.event_type })
         if ($completedEvents.Count -ne 1 -or $terminalEvents.Count -ne 1) { throw "AgentRun SSE did not produce exactly one completed terminal event" }
@@ -531,7 +531,7 @@ try {
         [void](Assert-Citations $runCitations ([long[]]$documentIds))
         $uniqueSseIds = @($runEvents | ForEach-Object sse_event_id | Select-Object -Unique)
         if ($uniqueSseIds.Count -ne $runEvents.Count) { throw "AgentRun SSE returned duplicate event ids" }
-        $runReplay = @(Read-Sse "$JavaBaseUrl/api/chat/runs/$($report.run_id)/stream" ([string]$runEvents[0].sse_event_id) $csrf 60)
+        $runReplay = @(Read-Sse "$JavaBaseUrl/api/agent-runs/$($report.run_id)/stream" ([string]$runEvents[0].sse_event_id) $csrf 60)
         if (@($runReplay | Where-Object { $_.sse_event_id -eq $runEvents[0].sse_event_id }).Count -ne 0) { throw "AgentRun Last-Event-ID replay returned the cursor event" }
         if (@($runReplay | Where-Object event_type -eq "run.completed").Count -ne 1) { throw "AgentRun Last-Event-ID replay did not include the terminal event" }
         $report.run_sse = [ordered]@{ event_count = $runEvents.Count; terminal_event_count = $terminalEvents.Count; citation_count = $runCitations.Count; cloud_model_event_count = $cloudModelEvents.Count; replay_count = $runReplay.Count; terminal = "run.completed" }

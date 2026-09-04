@@ -12,7 +12,7 @@ if ($scriptText -notmatch 'Assert-RealRagConfig') { throw "R1 script must fail c
 if ($scriptText -notmatch 'foodmate-knowledge-index-v1|knowledge-documents/upload-batches') { throw "R1 script must use the real knowledge batch API" }
 if ($scriptText -notmatch 'knowledge.index.indexed|knowledge.batch.progress') { throw "R1 script must assert persisted batch SSE progress" }
 if ($scriptText -notmatch 'api/knowledge-base/search') { throw "R1 script must assert Java-authoritative public search" }
-if ($scriptText -notmatch 'run.completed|api/chat/runs/.*/stream') { throw "R1 script must assert completed AgentRun SSE citations" }
+if ($scriptText -notmatch 'run.completed|api/agent-runs/.*/stream') { throw "R1 script must assert completed AgentRun SSE citations" }
 if ($scriptText -notmatch 'run.model_usage|configured cloud Chat provider/model') { throw "R1 script must assert actual cloud Chat usage" }
 if ($scriptText -notmatch '/disable|/restore|/delete') { throw "R1 script must assert document visibility lifecycle" }
 if ($scriptText -notmatch 'Last-Event-ID') { throw "R1 script must exercise SSE replay" }
