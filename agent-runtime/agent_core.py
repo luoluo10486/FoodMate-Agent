@@ -232,10 +232,14 @@ class DeterministicRouter:
         # enter the write-oriented route.
         if any(word in text for word in ("分析", "营养", "蛋白质", "热量")):
             return RouteDecision("analysis", "complex", risk)
-        if any(word in text for word in ("记录", "吃了", "早餐", "午餐", "晚餐")):
-            return RouteDecision("record", "complex" if len(text) > 60 else "simple", risk)
+        # Planning requests commonly mention breakfast/lunch/dinner while
+        # describing the requested schedule. Resolve the explicit resource
+        # operation before meal names so those requests do not enter the log
+        # writer route.
         if any(word in text for word in ("计划", "食谱", "购物清单")):
             return RouteDecision("planning", "complex", risk, ("days",) if "天" not in text else ())
+        if any(word in text for word in ("记录", "吃了", "早餐", "午餐", "晚餐")):
+            return RouteDecision("record", "complex" if len(text) > 60 else "simple", risk)
         return RouteDecision("knowledge_qna", "simple", risk)
 
 

@@ -17,6 +17,16 @@ from proposal_protocol import Proposal, validate_proposal
 
 
 class ToolProtocolTests(unittest.TestCase):
+    def test_explicit_meal_plan_route_wins_over_meal_name(self):
+        planning = DeterministicRouter().route(
+            "请制定一个 2 天的餐食计划，安排每天早餐、午餐和晚餐"
+        )
+        self.assertEqual("planning", planning.intent)
+        self.assertEqual((), planning.missing_slots)
+
+        recording = DeterministicRouter().route("记录早餐：燕麦 50g")
+        self.assertEqual("record", recording.intent)
+
     def test_real_model_food_log_candidate_is_strict_and_requires_java_confirmation(self):
         class Router:
             def tier_for(self, *_args):
