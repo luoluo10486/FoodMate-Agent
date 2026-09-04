@@ -20,7 +20,7 @@ public interface ConversationSummaryRepository {
 
     record MessageSnapshot(long messageId, int sequence, String role, String content) {}
 
-    record SummarySnapshot(long id, int version, int sourceCount) {}
+    record SummarySnapshot(long id, int version, int sourceCount, boolean invalidated) {}
 
     record NewSummary(
             long id,

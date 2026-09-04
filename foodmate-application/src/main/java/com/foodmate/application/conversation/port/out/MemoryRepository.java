@@ -10,6 +10,8 @@ public interface MemoryRepository {
 
     boolean hasDifferentValue(long userId, String type, String key, String valueJson);
 
+    boolean hasSuppressedSourceMessages(long userId, List<String> sourceMessageIds);
+
     void insert(NewMemory memory);
 
     List<MemorySnapshot> findVisible(long userId, int limit);
@@ -33,7 +35,8 @@ public interface MemoryRepository {
             BigDecimal confidence,
             String source,
             String scope,
-            String confirmationStatus) {}
+            String confirmationStatus,
+            String sourceMessageIdsJson) {}
 
     record MemorySnapshot(
             long memoryId,

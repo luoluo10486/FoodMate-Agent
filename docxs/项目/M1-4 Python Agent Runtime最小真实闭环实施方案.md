@@ -319,7 +319,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 - 已实现：Java Redis admission/queued Outbox/lease/reconciler，摘要元数据 CAS、最近 8 条 Context 装配和长期记忆候选校验写入。
 - 已实现：长期记忆管理 API 支持用户查询、修改、逻辑删除和冲突确认；冲突状态不会进入 Agent Context。
 - 已实现：消息更正/删除 API 会使摘要失效；下一次超过最近 8 条阈值时按有效权威消息重建。Python 已加入最小 Step Validator，Proposal 协议拒绝非只读 SQL。
-- 已实现：当前状态图由 `agent_core.py` 的固定 `WorkflowGraph` 定义，`langgraph_adapter.py` 提供可选白名单编译适配；记忆变更后的完整派生失效、生产级 aging 防饥饿和长时间容量验证仍未完成。
+- 已实现：当前状态图由 `agent_core.py` 的固定 `WorkflowGraph` 定义，`langgraph_adapter.py` 提供可选白名单编译适配；长期记忆按 AgentRun 意图分层读取，V31 来源消息/抑制标记会联动过滤近期消息、摘要重建和长期记忆。生产级 aging 防饥饿和长时间容量验证仍未完成。
 
 ## 6. 实施顺序与当前状态
 
@@ -467,7 +467,7 @@ RocketMQ 只负责跨服务可靠运输；Redis 负责准入、优先级、lease
 
 ### P3 记忆与摘要治理
 
-实施状态（2026-07-29）：最近 8 条原始消息、结构化摘要（goals/constraints/decisions/open_questions/source_message_ids）、摘要 CAS/digest、计划型 7 天 TTL、临时型 24 小时 TTL、过期记忆过滤及长期记忆注入上限 8 条已实现并编译验证。按意图的精细检索与删除记忆后的摘要关联失效仍待完成。
+实施状态（2026-09-05）：最近 8 条原始消息、结构化摘要（goals/constraints/decisions/open_questions/source_message_ids）、摘要 CAS/digest、计划型 7 天 TTL、临时型 24 小时 TTL、过期记忆过滤及长期记忆注入上限 8 条已实现并编译验证。当前 AgentRun 按 cooking/nutrition/record/planning/general 做确定性类型分层；V31 保存候选来源消息和更正/删除后的抑制来源，过滤近期消息、摘要重建和长期记忆 Context，防止旧事实再生。V31 已在本地 Docker PostgreSQL 执行并通过 validation：既有记忆 0 行，新增字段、索引和数组约束均存在。
 
 - 保持最近 8 条原始消息；第 9 条消息触发摘要更新。
 - 摘要改为结构化字段：目标、已确认约束、决定、待确认问题和来源消息 ID；保留版本/CAS/digest。

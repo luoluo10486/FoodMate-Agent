@@ -35,7 +35,9 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
                 store.findEffectiveMessages(sessionId);
         if (messages.size() <= RAW_MESSAGE_LIMIT) return;
         ConversationSummaryRepository.SummarySnapshot current = store.lockSummary(sessionId);
-        if (current != null && messages.size() == current.sourceCount() + RAW_MESSAGE_LIMIT) return;
+        if (current != null
+                && !current.invalidated()
+                && messages.size() == current.sourceCount() + RAW_MESSAGE_LIMIT) return;
         List<ConversationSummaryRepository.MessageSnapshot> oldMessages =
                 messages.subList(0, messages.size() - RAW_MESSAGE_LIMIT);
         int from = oldMessages.getFirst().sequence();

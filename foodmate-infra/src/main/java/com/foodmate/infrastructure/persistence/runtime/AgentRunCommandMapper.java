@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
@@ -26,7 +28,34 @@ public interface AgentRunCommandMapper {
     void bindMessage(long runId, long messageId);
 
     @Select(
-            "SELECT message_id::text AS messageId,role,content,sequence_no AS sequenceNo FROM messages WHERE session_id=#{sessionId} AND is_deleted=FALSE ORDER BY sequence_no DESC LIMIT 8")
+            """
+            SELECT message.message_id::text AS messageId, message.role, message.content,
+                   message.sequence_no AS sequenceNo
+            FROM messages message
+            JOIN sessions session ON session.session_id = message.session_id
+            WHERE message.session_id=#{sessionId}
+              AND message.is_deleted=FALSE
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM user_memories memory
+                  WHERE memory.user_id = session.user_id
+                    AND (
+                        memory.is_deleted = TRUE
+                        OR memory.suppressed_source_message_ids &lt;&gt; '[]'::jsonb
+                    )
+                    AND EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements_text(
+                            COALESCE(memory.source_message_ids, '[]'::jsonb)
+                            || COALESCE(memory.suppressed_source_message_ids, '[]'::jsonb)
+                        ) source_id
+                        WHERE source_id.value = message.message_id::text
+                    )
+              )
+            ORDER BY message.sequence_no DESC
+            LIMIT 8
+            """)
+    @Options(useCache = false)
     List<RecentMessageRow> recentMessages(long sessionId);
 
     @Select(
@@ -34,8 +63,49 @@ public interface AgentRunCommandMapper {
     SummarySnapshot summary(long sessionId);
 
     @Select(
-            "SELECT memory_id::text AS memoryId,memory_type AS memoryType,memory_key AS memoryKey,memory_value::text AS memoryValue,confidence,scope FROM user_memories WHERE user_id=#{userId} AND is_deleted=FALSE AND confirmation_status='confirmed' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND memory_type IN ('preference','constraint','routine','plan','cooking_skill','budget_habit','time_habit','interaction_preference','user_rule') ORDER BY updated_at DESC LIMIT 8")
-    List<MemoryContextRow> memories(long userId);
+            """
+            <script>
+            SELECT memory.memory_id::text AS memoryId,
+                   memory.memory_type AS memoryType,
+                   memory.memory_key AS memoryKey,
+                   memory.memory_value::text AS memoryValue,
+                   memory.confidence,
+                   memory.scope
+            FROM user_memories memory
+            WHERE memory.user_id=#{userId}
+              AND memory.is_deleted=FALSE
+              AND memory.confirmation_status='confirmed'
+              AND (memory.expires_at IS NULL OR memory.expires_at>CURRENT_TIMESTAMP)
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM jsonb_array_elements_text(COALESCE(memory.source_message_ids, '[]'::jsonb)) source_id
+                  JOIN messages message ON message.message_id::text = source_id.value
+                  WHERE message.is_deleted = TRUE
+              )
+              AND memory.memory_type IN
+              <choose>
+                  <when test="intent == 'planning'">
+                      ('preference','constraint','routine','plan','cooking_skill','budget_habit','time_habit','user_rule')
+                  </when>
+                  <when test="intent == 'cooking'">
+                      ('preference','constraint','routine','cooking_skill','interaction_preference','user_rule')
+                  </when>
+                  <when test="intent == 'record'">
+                      ('preference','constraint','routine','budget_habit','user_rule')
+                  </when>
+                  <when test="intent == 'nutrition'">
+                      ('preference','constraint','budget_habit','user_rule')
+                  </when>
+                  <otherwise>
+                      ('preference','constraint','routine','interaction_preference','user_rule')
+                  </otherwise>
+              </choose>
+            ORDER BY memory.updated_at DESC
+            LIMIT 8
+            </script>
+            """)
+    @Options(useCache = false)
+    List<MemoryContextRow> memories(@Param("userId") long userId, @Param("intent") String intent);
 
     @Insert(
             "INSERT INTO agent_run_dispatches(agent_run_dispatch_id,agent_run_id,dispatch_id,attempt,active_epoch,fencing_token,admission_epoch,deadline_at) VALUES (#{id},#{runId},#{dispatchId},1,1,#{fence},0,#{deadline})")

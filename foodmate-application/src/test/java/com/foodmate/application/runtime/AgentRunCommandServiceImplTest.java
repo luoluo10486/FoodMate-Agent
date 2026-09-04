@@ -106,12 +106,19 @@ class AgentRunCommandServiceImplTest {
                 .thenReturn(
                         List.of(
                                 new AgentRunCommandRepository.RecentMessageRow(
-                                        "1", "user", "hello", 1)));
-        when(store.memories(7L)).thenReturn(List.of());
+                                        "1", "user", "please arrange a meal plan", 1)));
+        when(store.memories(7L, "planning")).thenReturn(List.of());
         when(accounts.addMessage(anyLong(), anyLong(), anyString(), anyString(), any(), any()))
                 .thenReturn(
                         new UserAccountService.MessageRecord(
-                                101L, 9L, 100L, "user", "hello", "{}", 1, Instant.now()));
+                                101L,
+                                9L,
+                                100L,
+                                "user",
+                                "please arrange a meal plan",
+                                "{}",
+                                1,
+                                Instant.now()));
         when(admission.admit("100", 7L, 9L, 0))
                 .thenReturn(
                         new AgentAdmissionService.Admission(
@@ -161,9 +168,10 @@ class AgentRunCommandServiceImplTest {
                         provider(audit),
                         provider(governance));
 
-        service.createUserMessageRunDetails(7L, 9L, "hello", "trace-1");
+        service.createUserMessageRunDetails(7L, 9L, "please arrange a meal plan", "trace-1");
 
         verify(governance).resolve("agent_run", "chat");
+        verify(store).memories(7L, "planning");
         verify(store)
                 .insertOutbox(
                         anyLong(),

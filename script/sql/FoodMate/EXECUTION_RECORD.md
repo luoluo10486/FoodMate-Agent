@@ -1950,3 +1950,15 @@
 | 业务门禁 | `mvnw.cmd verify`：`BUILD SUCCESS`，Shared `12`、Application `228`、Infrastructure `113`（20 条条件跳过）、API `68`、Bootstrap `59`（37 条条件跳过）；项目 `.venv` Python `210 passed、2 skipped、2 warnings、6 subtests passed`；前端 `npm.cmd run typecheck` 通过；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过。 |
 | 运行态 | Docker 应用和依赖容器继续 healthy；未执行迁移、truncate、备份恢复、宽泛删除、性能压测、组件重启、ACK 丢失/重复投递故障注入或生产操作。 |
 | 结论 | 当前凭据下 Docker 真实 Embedding、真实 Chat AgentRun、业务写入和 SSE 回放均有可复核证据；M2-1 公共知识库和 M2-2 SQL Agent 业务闭环可以按“已验证”记录。性能、完整故障恢复、生产容量、备份恢复和发布回滚继续后置。 |
+
+## D121 M1-4 记忆治理来源失效与意图分层（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Java 21；未启动或重启 Docker 依赖，未读取或输出 API Key、Prompt、回答正文或用户业务内容。 |
+| 实现 | `user_memories` 增加 `source_message_ids` 和 `suppressed_source_message_ids` 契约；Java 记忆候选保存受限来源 ID，修改/删除后阻止来源消息进入近期 Context、摘要重建和重复候选写入；AgentRun 按 `cooking`、`nutrition`、`record`、`planning`、`general` 做类型分层检索。 |
+| 迁移 | 已对本地 Docker PostgreSQL 执行 `V31__m1_4_memory_invalidation_boundary.sql`；validation 结果为 `memory_rows=0`、空值/非数组计数均为 `0`，两个 GIN 索引和数组约束均存在；未清理或修改既有数据。 |
+| Java 业务验证 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am test -Dtest=MemoryCandidateServiceImplTest,SessionSummaryServiceImplTest,AgentRunCommandServiceImplTest,FlywayV31MigrationScriptTest -Dsurefire.failIfNoSpecifiedTests=false`：`11/11` 通过。 |
+| 前置门禁 | 同一轮变更前置回归：Application `228/228`、Infrastructure `113/113`（20 条条件跳过）、API `68/68` 通过；新增测试仅补充失效边界，不改变已通过的业务路径。 |
+| 数据边界 | 不保存原文、Prompt、Token、凭据或完整请求；只保存受限来源 ID。未执行性能压测、依赖重启、ACK 丢失、重复投递、SSE 故障恢复或生产操作。 |
+| 结论 | 记忆意图分层、来源抑制和失效摘要重建已取得代码、定向业务测试及本地数据库 validation 证据；Docker Java/Python 容器 readiness 已通过。性能、依赖重启、ACK/重复投递和 SSE 故障恢复仍按范围暂缓。 |

@@ -105,7 +105,8 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
         try {
             boolean persisted = false;
             for (MemoryCandidate candidate : candidates) {
-                if (!allowed(candidate)) continue;
+                List<String> sourceMessageIds = sourceMessageIds(candidate);
+                if (!allowed(userId, candidate, sourceMessageIds)) continue;
                 String type = text(candidate.memoryType(), 32);
                 String key = text(candidate.memoryKey(), 64);
                 String scope = text(candidate.scope(), 32);
@@ -127,7 +128,8 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
                                 confidence,
                                 text(candidate.source(), 32),
                                 scope,
-                                conflict ? "conflict" : "confirmed"));
+                                conflict ? "conflict" : "confirmed",
+                                sourceMessageIdsJson(sourceMessageIds)));
                 persisted = true;
             }
             if (persisted) {
@@ -276,8 +278,8 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
         }
     }
 
-    private boolean allowed(MemoryCandidate candidate) {
-        if (candidate == null || candidate.sourceMessageIds().isEmpty()) return false;
+    private boolean allowed(long userId, MemoryCandidate candidate, List<String> sourceMessageIds) {
+        if (candidate == null || sourceMessageIds.isEmpty()) return false;
         String type = text(candidate.memoryType(), 32);
         String key = text(candidate.memoryKey(), 64);
         if (type == null || key == null) return false;
@@ -288,7 +290,30 @@ public class MemoryCandidateServiceImpl implements MemoryCandidateService {
         // 权威业务事实必须留在领域表；高影响健康事实不能由模型候选自动升级。
         return ALLOWED_MEMORY_TYPES.contains(normalizedType)
                 && !containsAny(searchable, RESERVED_ENTITY_TERMS)
-                && !containsAny(searchable, HIGH_IMPACT_TERMS);
+                && !containsAny(searchable, HIGH_IMPACT_TERMS)
+                && !store.hasSuppressedSourceMessages(userId, sourceMessageIds);
+    }
+
+    private static List<String> sourceMessageIds(MemoryCandidate candidate) {
+        if (candidate == null) return List.of();
+        return candidate.sourceMessageIds().stream()
+                .filter(id -> id != null && id.matches("[A-Za-z0-9._:-]{1,128}"))
+                .distinct()
+                .limit(32)
+                .toList();
+    }
+
+    private String sourceMessageIdsJson(List<String> sourceMessageIds) {
+        try {
+            return mapper.writeValueAsString(
+                    sourceMessageIds.stream()
+                            .filter(id -> id != null && !id.isBlank() && id.length() <= 128)
+                            .distinct()
+                            .limit(32)
+                            .toList());
+        } catch (JsonProcessingException exception) {
+            return "[]";
+        }
     }
 
     private static boolean containsAny(String value, List<String> terms) {

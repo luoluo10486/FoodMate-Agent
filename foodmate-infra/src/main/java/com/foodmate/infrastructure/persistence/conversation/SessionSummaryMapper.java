@@ -25,9 +25,28 @@ public interface SessionSummaryMapper {
 
     @Select(
             """
-            SELECT message_id AS messageId, sequence_no AS sequence, role, content
-            FROM messages
-            WHERE session_id = #{sessionId} AND is_deleted = FALSE
+            SELECT message.message_id AS messageId, message.sequence_no AS sequence,
+                   message.role, message.content
+            FROM messages message
+            JOIN sessions session ON session.session_id = message.session_id
+            WHERE message.session_id = #{sessionId} AND message.is_deleted = FALSE
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM user_memories memory
+                  WHERE memory.user_id = session.user_id
+                    AND (
+                        memory.is_deleted = TRUE
+                        OR memory.suppressed_source_message_ids &lt;&gt; '[]'::jsonb
+                    )
+                    AND EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements_text(
+                            COALESCE(memory.source_message_ids, '[]'::jsonb)
+                            || COALESCE(memory.suppressed_source_message_ids, '[]'::jsonb)
+                        ) source_id
+                        WHERE source_id.value = message.message_id::text
+                    )
+              )
             ORDER BY sequence_no
             """)
     @Options(useCache = false)
@@ -35,7 +54,8 @@ public interface SessionSummaryMapper {
 
     @Select(
             """
-            SELECT summary_id AS id, version, source_message_count AS sourceCount
+            SELECT summary_id AS id, version, source_message_count AS sourceCount,
+                   invalidated_at IS NOT NULL AS invalidated
             FROM session_summaries
             WHERE session_id = #{sessionId} AND is_deleted = FALSE
             FOR UPDATE
