@@ -1,21 +1,24 @@
 # M2-2 Java Tool Gateway 与 SQL Agent 实施方案
 
-更新时间：2026-08-27
+更新时间：2026-09-04
 状态：核心代码、业务测试和本地真实数据库/运行时联调已完成；性能与故障门禁后置
 上位计划：[M2剩余功能执行计划.md](M2剩余功能执行计划.md)
 
-## 当前实现状态（2026-08-27）
+## 当前实现状态（2026-09-04）
 
 | 范围 | 状态 | 证据边界 |
 |---|---|---|
 | Tool Registry/Policy | 已实现 | 七个工具的注册目录、版本解析、风险/确认策略和统一入口已接入 |
 | Schema Catalog/SQL Guard | 已实现 | 授权 Catalog、JSqlParser AST 只读校验、用户范围、字段/表白名单和执行边界已有 Java 定向测试 |
-| 双模式 Planner | 已实现 | Python deterministic stub 与 OpenAI-compatible structured planner 共用 QueryPlan/Proposal 契约，配置失败不回退 |
+| 双模式 Planner | 已实现 | `local-stub` 使用 deterministic Planner；`local` 复用共享 `ModelRouter` 的 OpenAI-compatible structured planner，共用 QueryPlan/Proposal 契约，配置失败不回退 |
+| 共享模型路由 | 已接入 | SQL Planner 使用既有 `FOODMATE_MODEL_TIER_*`、provider、价格审计和 ProviderAttempt；请求场景标记为 `sql_planner`，不再读取独立 SQL API Key/Base URL/Model |
 | 分析 AgentRun | 本地业务闭环已验证 | 在本地 PostgreSQL/RocketMQ 和宿主 Java/Python 上完成 `time_parser -> database_query -> Composer` 多轮 AgentRun；SQL 审计、事件序列和终态已断言 |
 
 当前 M2-2 的业务范围已完成。本地联调使用 deterministic Planner/Composer 和随机隔离测试数据，验证了真实 PostgreSQL 数据查询、Java/Python/RocketMQ 跨运行时回写、SQL 审计、空数据语义和多轮事件连续性；不包含真实云模型稳定性、性能压测或故障矩阵。
 
-当前功能版门禁复核：Java Application `200/200`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）通过；Python `.venv` 为 `124 passed、1 skipped、2 warnings`。带历史日期的执行证据保留原样，最新轮次和跳过边界见 [EXECUTION_RECORD.md](../../script/sql/FoodMate/EXECUTION_RECORD.md)。
+当前功能版门禁复核：Java Application `226/226`、Infrastructure `111/111`（20 skipped）、API `68/68`、Bootstrap `59/59`（37 skipped）通过；Python `.venv` 为 `206 passed、2 skipped、6 subtests passed`。本轮 SQL Planner 共享路由测试使用离线 provider stub，不产生真实供应商调用；带历史日期的执行证据和跳过边界见 [EXECUTION_RECORD.md](../../script/sql/FoodMate/EXECUTION_RECORD.md)。
+
+本轮实现将真实 SQL Planner 的模型配置收敛到已有 Chat 路由：默认 tier、provider base URL、API Key、模型价格和失败审计均由 `ModelRouter` 统一管理。`local` 模式会拒绝 deterministic 主路由和 deterministic fallback，结构化响应不符合 QueryPlan 契约时失败关闭；`local-stub` 不读取云密钥。SQL Planner 的 token、成本、provider attempt 和路由摘要进入 AgentRun 用量，但不保存完整 Prompt、模型回答或 SQL 参数原文。
 
 ## 2026-08-23 业务收尾证据
 
@@ -90,7 +93,7 @@ Catalog 版本进入 proposal/request hash。版本变化后旧 proposal 不直�
 
 ### 6.2 local
 
-复用 OpenAI-compatible ModelService structured output。输出和 stub 使用同一 QueryPlan/SqlProposal DTO。缺少模型配置、超时或响应不符合 Schema 时失败关闭，不自动执行 stub 查询。
+复用共享 `ModelRouter` 的 OpenAI-compatible structured output。输出和 stub 使用同一 QueryPlan/SqlProposal DTO，并以 `sql_planner` 作为调用场景。缺少模型配置、价格审计或超时，或者响应不符合 Schema 时失败关闭，不自动执行 stub 查询。
 
 ## 7. Java SQL Guard
 

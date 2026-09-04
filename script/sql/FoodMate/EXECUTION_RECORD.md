@@ -1906,3 +1906,17 @@
 | 业务验证 | `mvnw.cmd verify`：全 Reactor 构建成功，Java Shared `12/12`、Application `221/221`、Infrastructure `111/111`（20 条条件跳过）、API `68/68`、Bootstrap `59/59`（37 条条件跳过）；Python `.venv` 全量 `198 passed, 2 skipped`；前端 `npm.cmd run typecheck` 通过；Spotless 和 `git diff --check` 通过。 |
 | 数据边界 | 本轮仅使用已有测试 Run/Approval 及新增 food log 事实，未执行迁移、truncate、备份恢复或性能/故障注入；新增业务事实按当前真实闭环证据保留，未做宽泛清理。 |
 | 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> Java Proposal -> 管理员确认 -> Java 营养业务写入 -> `run.completed`/SSE 的审批写入闭环已取得直接证据；真实餐食计划闭环、SQL Agent 扩展以及性能、重启、ACK 丢失和组合故障门禁仍未完成。 |
+
+## D118 SQL Agent 共享 Chat Router 实现与业务门禁（2026-09-04）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/real-sql-agent-e2e`；未调用真实云模型、真实 Embedding 或生产服务。 |
+| 实现范围 | `local-stub` 保持 deterministic Planner；`local` SQL Planner 改为复用共享 `ModelRouter`，沿用 `FOODMATE_MODEL_TIER_*`、provider、价格审计和 ProviderAttempt，不再读取独立 SQL API Key、Base URL 或 Model 配置。 |
+| 安全边界 | SQL Planner 仅生成结构化 QueryPlan；Java 继续执行 Schema 白名单、JSqlParser AST 只读校验、当前用户范围、LIMIT 和 SQL 审计。`local` 拒绝 deterministic 主路由及 fallback，模型结构化响应无效时失败关闭。 |
+| 运行时配置 | Docker 新增 `FOODMATE_DOCKER_SQL_PLANNER_MODE`、`FOODMATE_DOCKER_SQL_PLANNER_TIER` 和 `FOODMATE_DOCKER_SQL_PLANNER_TIMEOUT_SECONDS`；Docker SQL Planner 不需要额外 API Key。 |
+| 用量审计 | SQL Planner 的 token、成本、路由和 provider attempt 纳入 AgentRun 模型用量；同一 AgentRun 的 SQL 计划缓存，避免 `time_parser -> database_query` 多轮重复调用模型。 |
+| Java 门禁 | `mvnw.cmd verify`：全 Reactor 构建成功；Java Shared `12/12`、Application `226/226`、Infrastructure `111/111`（20 条条件跳过）、API `68/68`、Bootstrap `59/59`（37 条条件跳过）。 |
+| Python 门禁 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider`：`206 passed、2 skipped、6 subtests passed`；未写入 `.pyc`。 |
+| 配置门禁 | `docker compose --env-file .env -f docker/compose.yml config --quiet`：通过。 |
+| 证据边界 | 本轮离线 provider 测试只证明共享路由、结构化契约、用量映射和 fail-closed 业务行为；没有发起真实 SQL Agent 付费 Chat 请求，因此不将 M2-2 真实云调用标记为完成。性能压测、组件重启、ACK 丢失、重复投递、SSE 故障恢复和生产验证继续后置。 |
