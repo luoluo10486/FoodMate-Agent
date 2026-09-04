@@ -1937,3 +1937,16 @@
 | 数据清理 | 已精确清理本轮创建的 `6` 个随机管理员账号及关联 Session、AgentRun、消息、Runtime Inbox/Outbox、Proposal Inbox、SQL 审计、SSE 事实和认证令牌；反向核验 `users=0`、`sessions=0`、`runs=0`、`runtime_events=0`、`proposals=0`、`sql_audits=0`。统一 `operation_audits` 按审计保留约定保留；历史 `codex_sql_real_*` 账号未触碰。 |
 | 暂缓范围 | 未执行性能压测、组件重启矩阵、Outbox/Inbox ACK 丢失、重复投递故障注入、SSE 断线恢复、生产容量、备份恢复或发布回滚；本记录只证明一次真实付费 SQL Agent 主链路业务闭环。 |
 | 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> SQL Proposal -> Java 只读校验与执行 -> SQL 审计 -> `run.completed`/SSE 的 SQL Agent 业务闭环已取得直接证据；餐食计划扩展及性能/故障恢复门禁仍按路线后置。 |
+
+## D120 真实云闭环 SSE 回放、Embedding smoke 与全量业务门禁复核（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/real-sql-agent-e2e`；Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy。密钥只由 Docker Compose 从本地忽略 `.env` 注入，未输出、写入仓库或执行记录。 |
+| SSE 完整流 | 管理员 Run `354336612697509888` 的 `GET /api/chat/runs/{runId}/stream` 返回 HTTP `200`；完整回放 15 个事件，15 个 `sse_event_id` 全部唯一，`run.completed` 终态 1 个。 |
+| SSE Last-Event-ID | 使用第 5 个事件 `sse_354336629667663872` 作为 `Last-Event-ID` 回放返回 HTTP `200`，得到后续 10 个事件；首尾 ID 与完整流一致，10 个 ID 全部唯一，`run.completed` 终态 1 个。此次验证是业务回放契约复核，不扩展解释为组件断线故障矩阵。 |
+| Docker 真实 Embedding | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：`Qwen/Qwen3-Embedding-0.6B` 返回向量维度 `1024`、`prompt_tokens=5`，延迟 `296.18 ms`，`embedding_smoke_status=passed`。未保存向量正文。 |
+| 数据库事实 | 同一 Run `status=completed/result_type=normal`；Runtime Inbox V2 `15/15` 为 `applied`、事件序号 `1..15`、终态 1 个；SSE Outbox `15` 条、终态 1 个且 `sse_event_id` 唯一；模型用量为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`、`1166` tokens、成本约 `0.002021 CNY`、状态 `success`。 |
+| 业务门禁 | `mvnw.cmd verify`：`BUILD SUCCESS`，Shared `12`、Application `228`、Infrastructure `113`（20 条条件跳过）、API `68`、Bootstrap `59`（37 条条件跳过）；项目 `.venv` Python `210 passed、2 skipped、2 warnings、6 subtests passed`；前端 `npm.cmd run typecheck` 通过；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过。 |
+| 运行态 | Docker 应用和依赖容器继续 healthy；未执行迁移、truncate、备份恢复、宽泛删除、性能压测、组件重启、ACK 丢失/重复投递故障注入或生产操作。 |
+| 结论 | 当前凭据下 Docker 真实 Embedding、真实 Chat AgentRun、业务写入和 SSE 回放均有可复核证据；M2-1 公共知识库和 M2-2 SQL Agent 业务闭环可以按“已验证”记录。性能、完整故障恢复、生产容量、备份恢复和发布回滚继续后置。 |
