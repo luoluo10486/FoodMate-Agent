@@ -1797,3 +1797,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 已使用 `visual-qa=1` 在本地浏览器实际打开并检查 Login、Register、Forgot Password、Reset Password 和 Token Invalid 页面；字体状态和 Figma SVG 资产可见，页面主要结构无明显溢出。此次检查没有伪造新的 PNG 或 diff 文件，现有聚合证据保持不变。
 - [x] 当前代码验证为全量 Vitest `39/39` 测试文件、`239/239` 用例通过，typecheck、build 和 `git diff --check` 通过。
 - [ ] 本轮只完成 Auth Token 语义收口和浏览器复核，不能将认证画板或全量画板标记为 `PASS`。当前 105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`；Figma 动画上下文未重新调用，原因是 Education 计划的 Figma MCP 调用额度已达到上限；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
+
+## 15. 2026-09-05 DPR 1 视觉证据复采集
+
+本轮复采集历史运行时 `actualDpr=1.25` 的 11 张画板，采用本地 Chrome `152.0.7977.77` 和 CDP 截图；Figma 文件保持只读。
+
+- [x] 新增 `foodmate-ui/scripts/capture-figma-dpr1.mjs`，通过 `--force-device-scale-factor=1` 和 `Emulation.setDeviceMetricsOverride` 固定 `devicePixelRatio=1` 以及目标页面 viewport；采集前等待 `document.fonts.ready`，并记录字体、无溢出和实际 URL。
+- [x] 11 张画板均已生成新浏览器 PNG：`dpr1-workspace-home-v2-browser-2026-09-05.png`、`dpr1-diet-records-v2-browser-2026-09-05.png`、`dpr1-intake-analysis-v2-browser-2026-09-05.png`、`dpr1-register-page-browser-2026-09-05.png`、三个 Agent 状态页、两个 Chat 历史页、Chat 搜索结果页和 `dpr1-profile-security-browser-2026-09-05.png`。
+- [x] `figma-105-mapping.json` 已将 11 项切换到最新 DPR 1 PNG，并同步实际 `dpr=1`、目标 viewport、Chrome 版本和字体状态；`figma-105-runtime-checks.json` 汇总为 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`，无结构错误。
+- [x] 已使用 `scripts/png-diff.mjs` 重新计算全量结果；105 项均为同尺寸 `COMPARED`，例如 `agent-budget-limit` 差异比例 `11.7329%`、`intake-analysis-v2` `7.5602%`、`register-page` `53.4744%`，具体数值以 `figma-105-diff-results.json` 为准。
+- [x] `npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [ ] DPR 复采集只关闭了运行时分辨率门禁；由于 105 项自动 diff 和人工视觉复核仍未达到全部通过条件，聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能据此标记像素级 `PASS`。Figma 动画上下文仍未重新调用，原因是 Education 计划的 Figma MCP 调用额度已达到上限；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
