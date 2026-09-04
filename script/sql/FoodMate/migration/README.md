@@ -49,6 +49,8 @@
 
 `V29__m2_1_embedding_trace.sql`：为知识导入条目追加受限长度的 Embedding 供应商 Trace 关联标识，用于受控排障；不保存 API Key、请求正文或响应正文。配套校验为 `validation/V29__m2_1_embedding_trace_validation.sql`，rollback 为只读前置检查 `rollback/R29__m2_1_embedding_trace_precheck.sql`。
 
+`V30__m2_2_meal_plan_tool_schema_fix.sql`：新增 `meal_plan.save_plan` 注册表 v2 Schema，修正幂等键位于 Proposal payload 而非业务 input 的契约不一致；保留 v1 历史 Schema，不删除任何业务数据。配套校验为 `validation/V30__m2_2_meal_plan_tool_schema_fix_validation.sql`，rollback 为只读前置检查 `rollback/R30__m2_2_meal_plan_tool_schema_fix_precheck.sql`。
+
 ## 配套文件矩阵
 
 | 版本 | validation | rollback | 处理边界 |
@@ -62,6 +64,7 @@
 | V27 | 有 | 有（只读前置检查） | 清理执行对账事实；不执行清理或删除既有数据 |
 | V28 | 有 | 有（只读前置检查） | M2-1 索引重试追加 Outbox 事实；不删除既有消息 |
 | V29 | 有 | 有（只读前置检查） | M2-1 Embedding 供应商 Trace 关联事实；不删除既有数据 |
+| V30 | 有 | 有（只读前置检查） | 修正 `meal_plan.save_plan` 注册表 Schema；保留 v1 历史行和既有业务数据 |
 
 该矩阵描述文件现状，不代表任何迁移已在当前数据库执行。实际执行状态、validation 输出、失败与补偿必须以 `../EXECUTION_RECORD.md` 为准。历史版本若需补充校验，优先新增只读 SQL 文档；若需修复结构，创建更高版本迁移，不原地修改已执行脚本，不执行宽泛删除或 `TRUNCATE`。
 

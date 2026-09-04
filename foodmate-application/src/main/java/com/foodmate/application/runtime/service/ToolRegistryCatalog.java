@@ -109,7 +109,7 @@ public final class ToolRegistryCatalog {
                         10000,
                         false,
                         true,
-                        "{\"plan\":{\"type\":\"object\"},\"idempotencyKey\":{\"type\":\"string\",\"maxLength\":128}}",
+                        "{\"plan\":{\"type\":\"object\"}}",
                         "{\"status\":{\"type\":\"string\"},\"resourceId\":{\"type\":\"string\"}}"));
     }
 
