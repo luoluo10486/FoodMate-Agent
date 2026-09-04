@@ -1986,3 +1986,15 @@
 | 业务测试 | PowerShell parser 通过；`real-rag-e2e.tests.ps1` 返回 `real_rag_e2e_contract=passed`；项目 `.venv` 执行 `python -B -m pytest -q -p no:cacheprovider`：`212 passed、2 skipped、2 warnings、6 subtests passed`；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；`git diff --check` 通过。 |
 | 未执行 | 本轮未再次执行真实付费 RAG 上传/索引/Chat 闭环，未产生新增供应商费用；D115/D120 保留的真实付费 RAG 证据仍是当前业务闭环依据。未执行性能压测、组件重启、ACK/重复投递故障注入、生产操作、备份恢复或发布回滚。 |
 | 结论 | M2-1 真实 RAG 业务验收已有安全、受限且可重复的执行入口，当前配置预检和业务门禁通过；要新增一轮付费证据，必须由执行人显式提供管理员账号密码并运行 `-ExecutePaid`。 |
+
+## D124 R3 真实餐食计划业务闭环验收入口（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 新增 `script/local/real-meal-plan-e2e.ps1` 及契约测试；同时修正 `real-rag-e2e.ps1` 的持久化 SSE 路径为 `/api/agent-runs/{runId}/stream`。 |
+| 业务路径 | 入口覆盖真实 `POST /api/chat/runs`、AgentRun SSE、`run.clarification_requested`、`meal_plan.save_plan`、approval confirm/execute、Java `meal_plans`、购物清单和唯一 `run.completed`；确认与执行复用同一 `{"plan": ...}` 参数。 |
+| 付费门禁 | R3 固定 `meal-plan` 单场景、累计 5 CNY、云 provider、无 fallback 和无自动重试；管理员账号密码只从当前 PowerShell 进程读取，不接受脚本参数。 |
+| 默认行为 | 无参数仅做 Docker Compose、Java/Python readiness、high Chat 云路由和付费门禁预检；付费执行默认软删除本轮餐食计划和会话，`-KeepData` 才保留。 |
+| 验证 | PowerShell parser 通过；`real-rag-e2e.tests.ps1` 返回 `real_rag_e2e_contract=passed`；`real-meal-plan-e2e.tests.ps1` 返回 `real_meal_plan_e2e_contract=passed`；`git diff --check` 通过。 |
+| 本轮执行边界 | 未执行真实付费 R3，不产生新增云费用；因此不把 R3 真实云闭环标记为完成。未执行性能压测、组件重启、ACK/重复投递故障注入、备份恢复、生产操作或发布回滚。 |
+| Git | `ea7a9c13 feat(agent): add bounded paid meal plan acceptance runner`。 |

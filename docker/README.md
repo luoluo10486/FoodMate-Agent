@@ -169,6 +169,42 @@ try {
 
 两个 Embedding profile 是互斥的运行配置，不会混写同一 collection。切换时先选择一个 profile 和对应 collection，重新创建 Runtime，并对需要检索的文档重新索引；旧 collection 可保留用于回滚或在确认无引用后单独清理。
 
+#### 真实餐食计划业务闭环验收入口
+
+`script/local/real-meal-plan-e2e.ps1` 是受限的 R3 业务验收入口。无参数执行只检查 Compose、Java/Python readiness、Docker Chat 的 `high` 档云路由和付费门禁，不登录、不创建 Run、不调用模型：
+
+```powershell
+.\script\local\real-meal-plan-e2e.ps1
+```
+
+真实执行必须显式传入 `-ExecutePaid`，管理员账号和密码只能从当前 PowerShell 进程的
+`FOODMATE_E2E_ADMIN_USERNAME`、`FOODMATE_E2E_ADMIN_PASSWORD` 读取。入口固定为一个
+`meal-plan` 场景，累计预算上限 5 CNY，关闭 fallback 和自动重试。它通过真实
+`POST /api/chat/runs` 创建 AgentRun，然后读取
+`GET /api/agent-runs/{runId}/stream`，断言云模型生成 `run.clarification_requested`、
+`meal_plan.save_plan` 确认请求，再以同一份 `{"plan": ...}` 调用 approval confirm/execute。
+
+```powershell
+$env:FOODMATE_E2E_ADMIN_USERNAME = Read-Host "FoodMate admin username"
+$securePassword = Read-Host "FoodMate admin password" -AsSecureString
+$passwordPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+    $env:FOODMATE_E2E_ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPtr)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPtr)
+}
+try {
+    .\script\local\real-meal-plan-e2e.ps1 -ExecutePaid
+} finally {
+    Remove-Item Env:FOODMATE_E2E_ADMIN_USERNAME,Env:FOODMATE_E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+成功条件是 Java 返回 `saved` 的 `meal_plan`、已绑定的购物清单，以及从同一
+AgentRun 的 SSE 回放得到唯一 `run.completed`，终态中的计划 ID 必须与 Java 执行结果一致。
+默认只软删除本轮计划和自动创建的会话；`-KeepData` 仅用于明确需要保留业务证据的单轮执行。
+入口是业务正确性检查，不执行压测、组件重启、ACK/重复投递故障注入、备份恢复或生产操作。
+
 ## RocketMQ
 
 `rocketmq-namesrv` + `rocketmq-broker` 是 Java 控制面与 Python Runtime 的异步主通道（[ADR-0005](../docxs/决策/ADR-0005-RocketMQ异步主通道.md)）。本地只部署单 NameServer + 单 Broker，不配置集群、TLS 或 ACL。
