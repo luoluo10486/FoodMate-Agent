@@ -48,7 +48,8 @@ class KnowledgeMapperContractTest {
     }
 
     @Test
-    void indexedResultKeepsProviderTracePersistenceCompatibleWithPreV29Databases() throws Exception {
+    void indexedResultKeepsProviderTracePersistenceCompatibleWithPreV29Databases()
+            throws Exception {
         String sql =
                 KnowledgeMapper.class
                         .getMethod(

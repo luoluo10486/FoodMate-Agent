@@ -36,10 +36,12 @@ import { createSession, loadSessionMessages, sendUserMessage, type RealMessage }
 import {
   cancelAgentRun,
   confirmAgentWrite,
+  executeAgentWrite,
   extendAgentRunBudget,
   openAgentRunStream,
   rejectAgentWrite,
   recoverAgentRun,
+  type AgentRunEvent,
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
 
@@ -288,6 +290,19 @@ function ChatSurface({
       </div>
     </WorkspaceLayout>
   );
+}
+
+function approvalParameters(details: NonNullable<AgentRunEvent['details']>) {
+  return {
+    meal_time: details.meal_time,
+    meal_type: details.meal_type,
+    notes: details.notes ?? null,
+    items: (details.items ?? []).map((item) => ({
+      name: item.name,
+      amount: item.amount,
+      unit: item.unit,
+    })),
+  };
 }
 
 export function ChatPage() {
@@ -1658,6 +1673,11 @@ function RealChatPage() {
   const [error, setError] = useState<string>();
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
+  const [approval, setApproval] = useState<{
+    id: string;
+    details: NonNullable<AgentRunEvent['details']>;
+  }>();
+  const [approvalSubmitting, setApprovalSubmitting] = useState(false);
   const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
   const messagesRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<{ close: () => void }>();
@@ -1672,6 +1692,8 @@ function RealChatPage() {
     setAssistantMessageId(undefined);
     setBudgetConfirmation(false);
     setCheckpointAvailable(false);
+    setApproval(undefined);
+    setApprovalSubmitting(false);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
     if (!sessionId) {
       setLoading(false);
@@ -1715,6 +1737,7 @@ function RealChatPage() {
         if (eventType === 'run.completed') {
           setRunStatus('completed');
           setCheckpointAvailable(false);
+          setApproval(undefined);
           setAssistantText((current) => payload.answer ?? current);
           if (sessionId) {
             void loadSessionMessages(sessionId).then((rows) => {
@@ -1739,8 +1762,14 @@ function RealChatPage() {
           return;
         }
         if (eventType === 'run.checkpoint_saved') {
-          setRunStatus('waiting_user');
-          setCheckpointAvailable(true);
+          if (payload.approval_request_id) {
+            setRunStatus('waiting_user');
+            setCheckpointAvailable(false);
+            setApproval({ id: payload.approval_request_id, details: payload.details ?? {} });
+          } else {
+            setRunStatus('waiting_user');
+            setCheckpointAvailable(true);
+          }
           return;
         }
         if (eventType === 'run.failed') {
@@ -1761,6 +1790,10 @@ function RealChatPage() {
         }
         if (eventType === 'run.clarification_requested') {
           setRunStatus('waiting_user');
+          if (payload.approval_request_id) {
+            setCheckpointAvailable(false);
+            setApproval({ id: payload.approval_request_id, details: payload.details ?? {} });
+          }
           return;
         }
         setRunStatus(payload.status ?? eventType.replace('run.', ''));
@@ -1892,7 +1925,45 @@ function RealChatPage() {
           ) : null}
         </MessageBubble>
       ) : null}
-      {checkpointAvailable && activeRunId ? (
+      {approval && activeRunId ? (
+        <div className={styles.cardWrap}>
+          <ConfirmationCard
+            title="请确认将这条内容写入饮食日志"
+            helperText="确认后才会创建饮食记录；取消不会修改业务数据。"
+            state={approvalSubmitting ? 'disabled' : 'normal'}
+            data={[
+              { label: '餐型', value: approval.details.meal_type ?? '未识别' },
+              {
+                label: '时间',
+                value: approval.details.meal_time ?? '未识别',
+              },
+              {
+                label: '食物',
+                value: (approval.details.items ?? [])
+                  .map((item) => `${item.name ?? '未命名'} ${item.amount ?? ''}${item.unit ?? ''}`)
+                  .join('、'),
+              },
+            ]}
+            onConfirm={() => {
+              const parameters = approvalParameters(approval.details);
+              setApprovalSubmitting(true);
+              void confirmAgentWrite(approval.id, parameters)
+                .then(() => executeAgentWrite(approval.id, parameters))
+                .catch((reason) => setError(reason instanceof Error ? reason.message : '饮食记录写入失败'))
+                .finally(() => setApprovalSubmitting(false));
+            }}
+            onEdit={() => setError('请发送一条新消息修改食物和份量。')}
+            onCancel={() => {
+              const parameters = approvalParameters(approval.details);
+              setApprovalSubmitting(true);
+              void rejectAgentWrite(approval.id, parameters)
+                .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
+                .finally(() => setApprovalSubmitting(false));
+            }}
+          />
+        </div>
+      ) : null}
+      {checkpointAvailable && !approval && activeRunId ? (
         <div className={styles.cardWrap}>
           <ConfirmationCard
             title="运行已暂停，可从检查点继续"

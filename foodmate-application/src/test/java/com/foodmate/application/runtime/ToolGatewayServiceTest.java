@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.service.ToolGatewayService;
@@ -18,6 +19,7 @@ import com.foodmate.application.runtime.service.impl.ToolGatewayServiceImpl;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -170,6 +172,41 @@ class ToolGatewayServiceTest {
         assertEquals("confirmation_required", result.status());
         assertEquals("TOOL_CONFIRMATION_REQUIRED", result.errorCode());
         verifyNoInteractions(approvals);
+    }
+
+    @Test
+    void agentWriterCreatesPendingApprovalFromAnUnconfirmedProposal() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.propose(eq(7L), any()))
+                .thenReturn(
+                        new ApprovalService.ProposalView(
+                                100L,
+                                "create",
+                                "food_log",
+                                null,
+                                "digest",
+                                "pending",
+                                Instant.parse("2026-09-04T05:00:00Z"),
+                                null,
+                                null));
+        ToolGatewayService service =
+                new ToolGatewayServiceImpl(
+                        store,
+                        () -> 99L,
+                        approvals,
+                        new com.fasterxml.jackson.databind.ObjectMapper(),
+                        null,
+                        null,
+                        null,
+                        Mockito.mock(OperationAuditService.class));
+
+        var result = service.execute(writerProposal(null));
+
+        assertEquals("confirmation_required", result.status());
+        assertEquals("100", result.confirmationRef());
+        assertEquals("100", result.rows().getFirst().path("approval_request_id").asText());
+        verify(approvals).propose(eq(7L), any());
     }
 
     @Test

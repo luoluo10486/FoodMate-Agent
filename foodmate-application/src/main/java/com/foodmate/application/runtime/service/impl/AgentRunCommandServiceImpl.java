@@ -209,7 +209,8 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                             sessionSummary,
                             longTermMemories,
                             null,
-                            "public_published");
+                            "public_published",
+                            true);
             int maxTotalTokens =
                     governanceSnapshot == null
                             ? budgetDefaults.maxTotalTokens()

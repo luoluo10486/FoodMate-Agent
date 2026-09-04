@@ -1891,3 +1891,18 @@
 | 反向验证 | PostgreSQL 目标批次/条目/文档/chunk/Outbox/Inbox/SSE/Run/会话/消息查询均为 `0`；本轮 4 条 `operation_audits` 保留作为真实执行证据；Java 与 Python 容器 health 状态仍为 `healthy`。 |
 | 保护范围 | 未删除管理员、用户、历史知识文档、历史 Run、全局审计、未确认用途的 `tmp/pdfs/` 和 `tmp/resume-pdf-review-20260903/`；Milvus collection 中其余历史实体保留。 |
 | 结论 | 本轮真实付费 Embedding + Milvus + DeepSeek Chat 的业务闭环证据已落档，测试数据已完成精确清理；性能压测、组件重启、ACK/重复投递故障注入、SSE 故障恢复和生产环境验证继续按计划暂缓。 |
+
+## D117 真实云 Chat 驱动 food_log_writer 审批写入闭环（2026-09-04）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 保持运行；临时认证会话仅在当前 PowerShell 进程使用，未输出 Cookie、API Key、完整 Prompt 或模型回答。 |
+| 真实 Chat | 已由 `deepseek-ai/DeepSeek-V4-Flash` 生成 `food_log_writer` Proposal；Run `354172422154358784`，Proposal `prop_food_log_773c60f91c1b63d5842da390`，Approval `354172435995561984`。 |
+| 失败记录 | 首次使用 SSE 确认卡中的安全展示摘要调用确认接口，Java 按参数摘要校验返回 `409 CONFLICT`，审批仍为 `pending`，没有产生业务写入；随后从 Java Proposal Inbox 读取原始结构化参数并按原始字段顺序重试。 |
+| 审批与业务写入 | 原始参数确认成功，随后执行成功；Approval 状态为 `executed`，资源 `food_log_id=354175290076827648`；`food_logs` 新增 1 条 `agent` 来源记录，revision 为 `1`。 |
+| 营养事实 | 该 food log 包含 3 条 `food_log_items`，3/3 为 `matched`，0 条为 `pending`；营养字段均已写入，合计热量 `542.5000 kcal`。 |
+| Run/SSE | AgentRun 状态为 `completed`、`result_type=normal`；Runtime Inbox 事件 `11` 条、`event_seq=1..11`，其中 `run.completed=1`；SSE Outbox `11` 条、`stream_seq=1..11`、唯一事件 ID `11` 个，其中终态 `run.completed=1`；助手终态消息存在。 |
+| 统一审计 | 当前审批事实对应 `approval.propose`、`approval.confirm`、`approval.execute` 和 `food_log.create` 成功审计各 1 条；审计未保存密码、令牌、Prompt、完整回答或原始请求。 |
+| 业务验证 | `mvnw.cmd verify`：全 Reactor 构建成功，Java Shared `12/12`、Application `221/221`、Infrastructure `111/111`（20 条条件跳过）、API `68/68`、Bootstrap `59/59`（37 条条件跳过）；Python `.venv` 全量 `198 passed, 2 skipped`；前端 `npm.cmd run typecheck` 通过；Spotless 和 `git diff --check` 通过。 |
+| 数据边界 | 本轮仅使用已有测试 Run/Approval 及新增 food log 事实，未执行迁移、truncate、备份恢复或性能/故障注入；新增业务事实按当前真实闭环证据保留，未做宽泛清理。 |
+| 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> Java Proposal -> 管理员确认 -> Java 营养业务写入 -> `run.completed`/SSE 的审批写入闭环已取得直接证据；真实餐食计划闭环、SQL Agent 扩展以及性能、重启、ACK 丢失和组合故障门禁仍未完成。 |

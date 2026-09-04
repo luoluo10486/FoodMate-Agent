@@ -212,6 +212,98 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertIsNotNone(checkpoint)
         self.assertEqual("execution", checkpoint[1]["current_node"])
 
+    def test_food_log_approval_enters_waiting_user_without_republishing_proposal(self):
+        events = []
+        published = []
+        proposal = Proposal(
+            "food-proposal",
+            "approval-run",
+            "tool",
+            "v1",
+            {"invocation_id": "food-invocation", "idempotency_key": "food-key"},
+            True,
+            tool_name="food_log_writer",
+            input={
+                "meal_time": "2026-09-04T04:00:00Z",
+                "meal_type": "lunch",
+                "notes": None,
+                "items": [{"name": "rice", "amount": 150, "unit": "g"}],
+            },
+        ).as_dict()
+        execution = SimpleNamespace(
+            proposals=[proposal],
+            model_attempts=[],
+            route=SimpleNamespace(intent="record", complexity="simple", risk_level="low"),
+            eval=SimpleNamespace(result="pass", reason="TOOL_CONFIRMATION_REQUIRED"),
+            usage=SimpleNamespace(tokens=10, cost_cny=0.0, model_calls=1),
+            budget_mode="normal",
+            budget_actions={},
+            workflow={},
+            memory_candidates=[],
+        )
+
+        class Publisher:
+            def publish(self, value):
+                published.append(value)
+                runtime_server._on_result(
+                    {
+                        "proposal_id": value["proposal_id"],
+                        "invocation_id": value["payload"]["invocation_id"],
+                        "status": "confirmation_required",
+                        "error_code": "TOOL_CONFIRMATION_REQUIRED",
+                        "confirmation_ref": "approval-1",
+                        "rows": [
+                            {
+                                "approval_request_id": "approval-1",
+                                "operation": "create",
+                                "resource_type": "food_log",
+                                "meal_type": "lunch",
+                                "items": [{"name": "rice", "amount": 150, "unit": "g"}],
+                            }
+                        ],
+                    }
+                )
+
+        command = {
+            "run_id": "approval-run",
+            "dispatch_id": "approval-dispatch",
+            "deadline_at": "2099-01-01T00:00:00Z",
+            "attempt": 1,
+            "message": {"content": "记录今天午餐：米饭 150g"},
+        }
+        with patch.object(
+            runtime_server, "run_deterministic", return_value=execution
+        ) as run, patch.object(
+            runtime_server,
+            "emit",
+            side_effect=lambda *args: events.append(
+                (args[2], args[3], args[4] if len(args) > 4 else {})
+            ),
+        ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
+            runtime_server.execute(command)
+
+        self.assertEqual([proposal], published)
+        self.assertEqual(1, run.call_count)
+        self.assertEqual(
+            [
+                "run.accepted",
+                "run.routed",
+                "run.checkpoint_saved",
+                "run.tool_started",
+                "run.tool_finished",
+                "run.checkpoint_saved",
+                "run.eval_decided",
+                "run.clarification_requested",
+            ],
+            [event_type for _, event_type, _ in events],
+        )
+        self.assertEqual(list(range(1, len(events) + 1)), [seq for seq, _, _ in events])
+        clarification = events[-1][2]
+        self.assertEqual("approval-1", clarification["approval_request_id"])
+        self.assertEqual("rice", clarification["details"]["items"][0]["name"])
+        self.assertNotIn("prompt", json.dumps(clarification))
+        self.assertNotIn("idempotency_key", json.dumps(clarification))
+
     def test_context_assembly_event_contains_only_authorized_source_ids(self):
         events = []
         command = {

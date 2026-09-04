@@ -18,6 +18,15 @@ export type AgentRunEvent = {
   requires_confirmation?: boolean;
   budget_actions?: { requires_confirmation?: boolean };
   confirmation_ref?: string;
+  approval_request_id?: string;
+  operation?: string;
+  resource_type?: string;
+  details?: {
+    meal_time?: string;
+    meal_type?: string;
+    notes?: string | null;
+    items?: Array<{ name?: string; amount?: number; unit?: string }>;
+  };
   retryable?: boolean;
   citations?: Array<{
     citation_id: string;
@@ -232,6 +241,27 @@ export async function confirmAgentWrite(
   });
   const body = (await response.json()) as { success?: boolean; data?: unknown; error?: { message?: string } };
   if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '写入确认失败，请稍后重试。');
+  return body.data;
+}
+
+export async function executeAgentWrite(
+  approvalRequestId: string | number,
+  parameters: Record<string, unknown>,
+): Promise<unknown> {
+  const csrf = document.cookie
+    .split('; ')
+    .find((value) => value.startsWith('foodmate_csrf='))
+    ?.split('=')
+    .slice(1)
+    .join('=');
+  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/execute`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+    body: JSON.stringify(parameters),
+  });
+  const body = (await response.json()) as { success?: boolean; data?: unknown; error?: { message?: string } };
+  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '写入执行失败，请稍后重试。');
   return body.data;
 }
 

@@ -9,6 +9,7 @@ import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.conversation.service.MemoryCandidateService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository;
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.ActiveDispatch;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository.DispatchRow;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository.RunOwner;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
@@ -18,6 +19,10 @@ import com.foodmate.shared.runtime.enums.DispatchState;
 import com.foodmate.shared.runtime.enums.RunStatus;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHolder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -190,6 +195,71 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
     }
 
     @Override
+    @Transactional
+    public synchronized EventResult completeAgentWrite(
+            long runId,
+            long approvalRequestId,
+            Long resourceId,
+            String requestId,
+            String traceId,
+            boolean written) {
+        String runIdText = Long.toString(runId);
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("answer", written ? "已记录饮食日志。" : "已取消写入，本次未修改饮食记录。\n");
+        payload.put("status", "completed");
+        payload.put("result_type", "normal");
+        payload.put("approval_request_id", Long.toString(approvalRequestId));
+        if (written && resourceId != null) payload.put("food_log_id", Long.toString(resourceId));
+        if (!written) payload.put("write_skipped", true);
+        if (store == null) {
+            long sequence = memorySequence.getOrDefault(runIdText, 0L) + 1;
+            V1RunEvent event =
+                    new V1RunEvent(
+                            "v1",
+                            runIdText,
+                            "approval-" + approvalRequestId,
+                            1,
+                            "approval-completed-" + approvalRequestId,
+                            sequence,
+                            requestId == null ? "approval-request" : requestId,
+                            traceId == null ? "approval-trace" : traceId,
+                            digest(payload.toString()),
+                            Instant.now(),
+                            "run.completed",
+                            payload);
+            return acceptMemory(event);
+        }
+        if (!store.runExists(runId))
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_STATE_CONFLICT", "run does not exist");
+        if (RunStatus.COMPLETED.code().equals(store.status(runId)))
+            return new EventResult(
+                    runIdText, "approval-completed-" + approvalRequestId, true, "completed");
+        if (!RunStatus.WAITING_USER.code().equals(store.status(runId)))
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_STATE_CONFLICT", "run is not waiting for approval");
+        ActiveDispatch dispatch = store.activeDispatch(runId);
+        if (dispatch == null || dispatch.lastEventSeq() < 1)
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_STATE_CONFLICT", "active dispatch is missing");
+        V1RunEvent event =
+                new V1RunEvent(
+                        "v1",
+                        runIdText,
+                        dispatch.dispatchId(),
+                        dispatch.attempt(),
+                        "approval-completed-" + approvalRequestId,
+                        dispatch.lastEventSeq() + 1,
+                        requestId == null ? "approval-request" : requestId,
+                        traceId == null ? "approval-trace" : traceId,
+                        digest(payload.toString()),
+                        Instant.now(),
+                        "run.completed",
+                        payload);
+        return accept(event);
+    }
+
+    @Override
     public synchronized List<V1RunEvent> events(String runId) {
         if (store == null) return List.copyOf(memoryEvents.getOrDefault(runId, List.of()));
         return store.events(parseRunId(runId)).stream()
@@ -330,6 +400,19 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
         } catch (JsonProcessingException e) {
             throw new com.foodmate.shared.runtime.RuntimeException(
                     "RUNTIME_CONTRACT_INVALID", "payload is not JSON");
+        }
+    }
+
+    private String digest(String value) {
+        try {
+            return "sha256:"
+                    + java.util.HexFormat.of()
+                            .formatHex(
+                                    MessageDigest.getInstance("SHA-256")
+                                            .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_CONTRACT_INVALID", "event digest is unavailable");
         }
     }
 

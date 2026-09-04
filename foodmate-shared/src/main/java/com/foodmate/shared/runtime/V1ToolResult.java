@@ -15,7 +15,8 @@ public record V1ToolResult(
         @JsonProperty("error_code") String errorCode,
         List<JsonNode> rows,
         @JsonProperty("sql_audit_id") String sqlAuditId,
-        @JsonProperty("tool_name") String toolName) {
+        @JsonProperty("tool_name") String toolName,
+        @JsonProperty("confirmation_ref") String confirmationRef) {
     public V1ToolResult(
             String schemaVersion,
             String proposalId,
@@ -34,6 +35,7 @@ public record V1ToolResult(
                 status,
                 errorCode,
                 rows,
+                null,
                 null,
                 null);
     }
@@ -58,6 +60,32 @@ public record V1ToolResult(
                 errorCode,
                 rows,
                 sqlAuditId,
+                null,
+                null);
+    }
+
+    public V1ToolResult(
+            String schemaVersion,
+            String proposalId,
+            String requestHash,
+            String runId,
+            String invocationId,
+            String status,
+            String errorCode,
+            List<JsonNode> rows,
+            String sqlAuditId,
+            String toolName) {
+        this(
+                schemaVersion,
+                proposalId,
+                requestHash,
+                runId,
+                invocationId,
+                status,
+                errorCode,
+                rows,
+                sqlAuditId,
+                toolName,
                 null);
     }
 }

@@ -13,6 +13,7 @@ import os
 import re
 import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
@@ -758,6 +759,116 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
     return [proposal]
 
 
+def generate_food_log_writer_proposal(
+    command: dict[str, Any],
+    route: RouteDecision,
+    router: ModelRouter,
+    governed_route: dict[str, object] | None = None,
+) -> tuple[list[dict[str, Any]], list[ProviderAttempt]]:
+    """让真实模型提取候选字段；Java 仍负责审批、授权和持久化。"""
+    authorized = command.get("authorized_context") or {}
+    if route.intent != "record" or authorized.get("food_log_writer_authorized") is not True:
+        return [], []
+    question = str((command.get("message") or {}).get("content", "")).strip()
+    today = datetime.now(timezone.utc).date().isoformat()
+    prompt = json.dumps(
+        {
+            "task": "extract_food_log_candidate",
+            "current_date_utc": today,
+            "user_message": question,
+            "rules": [
+                "Only create a candidate for a food log create operation.",
+                "Return JSON only and no markdown.",
+                "meal_time must be an ISO-8601 UTC instant; infer a stated relative day from current_date_utc.",
+                "meal_type must be one of breakfast, lunch, dinner, snack.",
+                "items must contain the food name, a positive numeric amount and a unit.",
+                "If food items, amount, meal type or time cannot be determined, return needs_clarification with the missing field names.",
+            ],
+            "required_output": {
+                "operation": "create",
+                "meal_time": "ISO-8601 UTC string",
+                "meal_type": "breakfast|lunch|dinner|snack",
+                "notes": "short optional string",
+                "items": [{"name": "food", "amount": 100, "unit": "g"}],
+                "needs_clarification": [],
+            },
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    tier = router.tier_for("tool_proposal", route.complexity, route.risk_level, "normal")
+    try:
+        response, attempts = router.invoke(
+            ModelRequest(
+                scene="tool_proposal",
+                prompt=prompt,
+                max_output_tokens=512,
+                temperature=0.0,
+                response_format={"type": "json_object"},
+                extra_body={"enable_thinking": False},
+                deadline_at=command.get("deadline_at"),
+                timeout_seconds=_model_timeout_seconds("TOOL_PROPOSAL", 30.0),
+            ),
+            tier,
+            router.fallback_tiers_for(tier),
+            governed_route=governed_route,
+        )
+        raw = response.content.strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE)
+        value = json.loads(raw)
+        if not isinstance(value, dict) or value.get("operation") != "create":
+            raise ValueError("operation")
+        missing = value.get("needs_clarification") or []
+        if missing:
+            raise ModelProviderError(
+                "FOOD_LOG_PROPOSAL_NEEDS_CLARIFICATION",
+                "food log details require clarification",
+            )
+        input_value = {
+            "meal_time": value.get("meal_time"),
+            "meal_type": value.get("meal_type"),
+            "notes": value.get("notes"),
+            "items": [
+                {
+                    "name": item.get("name", item.get("raw_name")),
+                    "amount": item.get("amount"),
+                    "unit": item.get("unit"),
+                }
+                for item in (value.get("items") or [])
+                if isinstance(item, dict)
+            ],
+        }
+        canonical = json.dumps(input_value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        invocation_id = "food_log_" + hashlib.sha256(
+            (str(command["run_id"]) + ":" + canonical).encode("utf-8")
+        ).hexdigest()[:24]
+        idempotency_key = "food_" + hashlib.sha256(
+            (str(command["run_id"]) + ":" + canonical).encode("utf-8")
+        ).hexdigest()[:32]
+        proposal = Proposal(
+            proposal_id="prop_" + invocation_id,
+            run_id=str(command["run_id"]),
+            proposal_type="tool",
+            schema_version="v1",
+            payload={"invocation_id": invocation_id, "idempotency_key": idempotency_key},
+            requires_confirmation=True,
+            tool_name="food_log_writer",
+            input=input_value,
+        )
+        validate_proposal(Proposal(**proposal.as_dict()))
+        return [proposal.as_dict()], attempts
+    except ModelProviderError as error:
+        error.attempts = locals().get("attempts", [])
+        raise
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+        failure = ModelProviderError(
+            "FOOD_LOG_PROPOSAL_INVALID", "model food log candidate is invalid"
+        )
+        failure.attempts = locals().get("attempts", [])
+        raise failure from error
+
+
 class InMemoryCheckpoint:
     """本地开发 checkpoint；生产接入 Redis 时复用相同 CAS 接口。"""
 
@@ -881,8 +992,45 @@ def run_deterministic(
             graph.as_dict(),
             [],
         )
+    router = model_router or ModelRouter()
+    governed_route = options.get("model_snapshot")
+    if not isinstance(governed_route, dict):
+        governed_route = None
+    proposal_attempts: list[ProviderAttempt] = []
     try:
-        proposals = generate_tool_proposals(command, route)
+        if route.intent == "record" and (command.get("authorized_context") or {}).get(
+            "food_log_writer_authorized"
+        ) is True and not (command.get("authorized_context") or {}).get(
+            "food_log_writer_request"
+        ):
+            proposals, proposal_attempts = generate_food_log_writer_proposal(
+                command, route, router, governed_route
+            )
+        else:
+            proposals = generate_tool_proposals(command, route)
+        # 候选写入必须先停在 Java 审批边界，不能先生成一条看似已完成的回答。
+        if any(
+            item.get("tool_name") == "food_log_writer" and not item.get("confirmation_ref")
+            for item in proposals
+        ):
+            usage.tokens += sum(attempt.total_tokens or 0 for attempt in proposal_attempts)
+            usage.cost_cny += float(sum((attempt.cost_cny or 0) for attempt in proposal_attempts))
+            usage.model_calls += len(proposal_attempts)
+            policy = budget_policy(usage, budget)
+            return AgentExecution(
+                route,
+                plan,
+                context,
+                "",
+                EvalDecision("pass", "TOOL_CONFIRMATION_REQUIRED"),
+                usage,
+                policy.mode,
+                [],
+                proposal_attempts,
+                policy.as_dict(),
+                graph.as_dict(),
+                proposals,
+            )
     except SqlPlannerError as error:
         if error.code == "SQL_PLANNER_TIME_RANGE_REQUIRED":
             answer = "为了分析摄入情况，请补充时间范围，例如最近 7 天。"
@@ -903,11 +1051,7 @@ def run_deterministic(
             )
         raise
     candidate = DeterministicComposer().compose(content, route, context, mode)
-    router = model_router or ModelRouter()
     tier = router.tier_for("composer", route.complexity, route.risk_level, mode)
-    governed_route = options.get("model_snapshot")
-    if not isinstance(governed_route, dict):
-        governed_route = None
     deadline_at = command.get("deadline_at")
     composer_timeout = _model_timeout_seconds("COMPOSER", 45.0)
     try:

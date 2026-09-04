@@ -66,7 +66,31 @@ public record V1RunCommand(
             @JsonProperty("session_summary") SessionSummary sessionSummary,
             @JsonProperty("long_term_memories") List<MemoryContext> longTermMemories,
             @JsonProperty("sql_read_request") SqlReadRequest sqlReadRequest,
-            @JsonProperty("knowledge_scope") String knowledgeScope) {
+            @JsonProperty("knowledge_scope") String knowledgeScope,
+            @JsonProperty("food_log_writer_authorized") boolean foodLogWriterAuthorized) {
+        public AuthorizedContext(
+                String sessionId,
+                String timezone,
+                String locale,
+                String toolContractVersion,
+                List<RecentMessage> recentMessages,
+                SessionSummary sessionSummary,
+                List<MemoryContext> longTermMemories,
+                SqlReadRequest sqlReadRequest,
+                String knowledgeScope) {
+            this(
+                    sessionId,
+                    timezone,
+                    locale,
+                    toolContractVersion,
+                    recentMessages,
+                    sessionSummary,
+                    longTermMemories,
+                    sqlReadRequest,
+                    knowledgeScope,
+                    false);
+        }
+
         public AuthorizedContext {
             recentMessages = recentMessages == null ? List.of() : List.copyOf(recentMessages);
             longTermMemories = longTermMemories == null ? List.of() : List.copyOf(longTermMemories);

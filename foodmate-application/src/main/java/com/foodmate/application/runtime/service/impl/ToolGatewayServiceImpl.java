@@ -2,6 +2,7 @@ package com.foodmate.application.runtime.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.service.ApprovalService;
@@ -161,7 +162,8 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                 if (ToolPolicy.requiresConfirmation(tool)
                         && (text(proposal.confirmationRef()) == null
                                 || payload == null
-                                || text(payload.idempotencyKey()) == null))
+                                || text(payload.idempotencyKey()) == null)
+                        && (!"food_log_writer".equals(tool.name()) || approvals == null))
                     return result(
                             proposalId,
                             runId,
@@ -226,7 +228,7 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         String confirmationRef = text(proposal.confirmationRef());
         String idempotencyKey =
                 proposal.payload() == null ? null : text(proposal.payload().idempotencyKey());
-        if (confirmationRef == null || idempotencyKey == null)
+        if (idempotencyKey == null)
             return result(
                     proposalId,
                     runId,
@@ -234,16 +236,57 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
                     "confirmation_required",
                     "TOOL_CONFIRMATION_REQUIRED",
                     null);
-        long approvalId;
+        // 兼容不带完整本地运行装配的纯协议调用；生产 Spring 装配始终提供审计和审批服务。
+        if (confirmationRef == null && operationAudit == null)
+            return result(
+                    proposalId,
+                    runId,
+                    invocationId,
+                    "confirmation_required",
+                    "TOOL_CONFIRMATION_REQUIRED",
+                    null);
+        long approvalId = 0;
         long numericRunId;
         try {
-            approvalId = Long.parseLong(confirmationRef);
             numericRunId = Long.parseLong(runId);
+            if (confirmationRef != null) approvalId = Long.parseLong(confirmationRef);
         } catch (NumberFormatException exception) {
             return reject(proposalId, "TOOL_CONFIRMATION_INVALID");
         }
         ToolGatewayPort.RunContext context = store.runContext(numericRunId);
         if (context == null) return reject(proposalId, "RUN_NOT_FOUND");
+        if (confirmationRef == null) {
+            try {
+                ApprovalService.ProposalView approval =
+                        approvals.propose(
+                                context.userId(),
+                                new ApprovalService.ProposalCommand(
+                                        context.sessionId(),
+                                        numericRunId,
+                                        "create",
+                                        "food_log",
+                                        null,
+                                        proposal.input(),
+                                        idempotencyKey,
+                                        900));
+                return result(
+                        proposalId,
+                        runId,
+                        invocationId,
+                        "confirmation_required",
+                        "TOOL_CONFIRMATION_REQUIRED",
+                        confirmationRows(approval.approvalRequestId(), proposal.input()),
+                        Long.toString(approval.approvalRequestId()));
+            } catch (BusinessException exception) {
+                return result(
+                        proposalId,
+                        runId,
+                        invocationId,
+                        "rejected",
+                        exception.errorCode().code(),
+                        null);
+            }
+        }
         long started = System.nanoTime();
         try {
             ApprovalService.ExecuteView execution =
@@ -325,6 +368,63 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             List<JsonNode> rows) {
         return new ProposalResult(
                 proposalId, runId, status, errorCode, rows == null ? List.of() : rows);
+    }
+
+    private ProposalResult result(
+            String proposalId,
+            String runId,
+            String invocationId,
+            String status,
+            String errorCode,
+            List<JsonNode> rows,
+            String confirmationRef) {
+        return new ProposalResult(
+                proposalId,
+                runId,
+                status,
+                errorCode,
+                rows == null ? List.of() : rows,
+                null,
+                "food_log_writer",
+                confirmationRef);
+    }
+
+    /** 返回给确认卡的最小业务摘要，不把完整请求原文写入运行事件。 */
+    private List<JsonNode> confirmationRows(long approvalRequestId, JsonNode input) {
+        ObjectNode row = mapper.createObjectNode();
+        row.put("approval_request_id", Long.toString(approvalRequestId));
+        row.put("operation", "create");
+        row.put("resource_type", "food_log");
+        if (input != null) {
+            copySafeText(row, input, "meal_time");
+            copySafeText(row, input, "meal_type");
+            if (input.has("notes")) {
+                JsonNode notes = input.get("notes");
+                if (notes == null || notes.isNull()) row.putNull("notes");
+                else copySafeText(row, input, "notes");
+            }
+            ArrayNode items = row.putArray("items");
+            JsonNode rawItems = input.path("items");
+            if (rawItems.isArray()) {
+                for (JsonNode item : rawItems) {
+                    if (!item.isObject() || items.size() >= 50) continue;
+                    ObjectNode safeItem = mapper.createObjectNode();
+                    copySafeText(safeItem, item, "name");
+                    copySafeText(safeItem, item, "raw_name");
+                    if (item.path("amount").isNumber())
+                        safeItem.set("amount", item.path("amount").deepCopy());
+                    copySafeText(safeItem, item, "unit");
+                    items.add(safeItem);
+                }
+            }
+        }
+        return List.of(row);
+    }
+
+    private void copySafeText(ObjectNode target, JsonNode source, String field) {
+        JsonNode value = source.get(field);
+        if (value != null && value.isTextual() && value.asText().length() <= 256)
+            target.put(field, value.asText());
     }
 
     private ProposalResult executeTimeParser(

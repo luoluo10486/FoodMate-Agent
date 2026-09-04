@@ -8,6 +8,15 @@ import java.util.List;
 public interface V1RuntimeEventService {
     EventResult accept(V1RunEvent event);
 
+    /** 在 Agent 写入审批完成后追加唯一终态事件。 */
+    EventResult completeAgentWrite(
+            long runId,
+            long approvalRequestId,
+            Long resourceId,
+            String requestId,
+            String traceId,
+            boolean written);
+
     List<V1RunEvent> events(String runId);
 
     boolean exists(String runId);

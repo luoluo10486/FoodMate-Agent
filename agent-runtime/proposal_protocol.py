@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 import hashlib
 import json
 from typing import Any
@@ -105,6 +106,13 @@ def validate_proposal(proposal: Proposal) -> None:
             raise ValueError("TOOL_NAME_NOT_ALLOWED")
         if proposal.tool_name in {"database_query", "time_parser", "calculator", "plan_validator"}:
             return
+        if proposal.tool_name == "food_log_writer" and not proposal.confirmation_ref:
+            _validate_food_log_input(proposal.input)
+            if not proposal.requires_confirmation:
+                raise ValueError("TOOL_CONFIRMATION_REQUIRED")
+            if not proposal.payload.get("idempotency_key"):
+                raise ValueError("TOOL_IDEMPOTENCY_KEY_REQUIRED")
+            return
         if not proposal.confirmation_ref:
             raise ValueError("TOOL_CONFIRMATION_REF_REQUIRED")
         if not isinstance(proposal.input, dict):
@@ -132,3 +140,37 @@ def validate_proposal(proposal: Proposal) -> None:
             canonical["input"] = proposal.input
         if proposal.request_hash != _request_hash(canonical):
             raise ValueError("PROPOSAL_REQUEST_HASH_INVALID")
+
+
+def _validate_food_log_input(value: dict[str, Any] | None) -> None:
+    """对模型候选做窄 schema 校验；Java 仍是最终授权和写入边界。"""
+    if not isinstance(value, dict):
+        raise ValueError("TOOL_INPUT_INVALID")
+    meal_time = value.get("meal_time")
+    meal_type = value.get("meal_type")
+    items = value.get("items")
+    if not isinstance(meal_time, str) or len(meal_time) > 64:
+        raise ValueError("TOOL_INPUT_INVALID")
+    try:
+        datetime.fromisoformat(meal_time.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError("TOOL_INPUT_INVALID") from error
+    if meal_type not in {"breakfast", "lunch", "dinner", "snack"}:
+        raise ValueError("TOOL_INPUT_INVALID")
+    if not isinstance(items, list) or not items or len(items) > 50:
+        raise ValueError("TOOL_INPUT_INVALID")
+    notes = value.get("notes")
+    if notes is not None and (not isinstance(notes, str) or len(notes) > 2_000):
+        raise ValueError("TOOL_INPUT_INVALID")
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError("TOOL_INPUT_INVALID")
+        name = item.get("name", item.get("raw_name"))
+        amount = item.get("amount")
+        unit = item.get("unit")
+        if not isinstance(name, str) or not name.strip() or len(name) > 256:
+            raise ValueError("TOOL_INPUT_INVALID")
+        if not isinstance(amount, (int, float)) or isinstance(amount, bool) or amount <= 0:
+            raise ValueError("TOOL_INPUT_INVALID")
+        if not isinstance(unit, str) or not unit.strip() or len(unit) > 32:
+            raise ValueError("TOOL_INPUT_INVALID")

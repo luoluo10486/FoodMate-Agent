@@ -4,11 +4,68 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parents[1]))
 
-from agent_core import Context, DeterministicComposer, DeterministicRouter, generate_tool_proposals
+from agent_core import (
+    Context,
+    DeterministicComposer,
+    DeterministicRouter,
+    generate_food_log_writer_proposal,
+    generate_tool_proposals,
+)
+from model_provider import ModelResponse
 from proposal_protocol import Proposal, validate_proposal
 
 
 class ToolProtocolTests(unittest.TestCase):
+    def test_real_model_food_log_candidate_is_strict_and_requires_java_confirmation(self):
+        class Router:
+            def tier_for(self, *_args):
+                return "high"
+
+            def fallback_tiers_for(self, _tier):
+                return ()
+
+            def invoke(self, *_args, **_kwargs):
+                return (
+                    ModelResponse(
+                        '{"operation":"create","meal_time":"2026-09-04T04:00:00Z",'
+                        '"meal_type":"lunch","notes":null,'
+                        '"items":[{"name":"rice","amount":150,"unit":"g"}]}',
+                        10,
+                        20,
+                    ),
+                    [],
+                )
+
+        route = DeterministicRouter().route("记录午餐：米饭 150g")
+        proposals, attempts = generate_food_log_writer_proposal(
+            {
+                "run_id": "run-1",
+                "dispatch_id": "dispatch-1",
+                "deadline_at": "2026-09-04T05:00:00Z",
+                "message": {"content": "记录午餐：米饭 150g"},
+                "authorized_context": {"food_log_writer_authorized": True},
+            },
+            route,
+            Router(),
+        )
+
+        self.assertEqual([], attempts)
+        self.assertEqual("food_log_writer", proposals[0]["tool_name"])
+        self.assertTrue(proposals[0]["requires_confirmation"])
+        self.assertNotIn("confirmation_ref", proposals[0])
+        validate_proposal(Proposal(**proposals[0]))
+
+    def test_food_log_candidate_cannot_be_created_without_java_authorization(self):
+        route = DeterministicRouter().route("记录午餐：米饭 150g")
+        proposals, attempts = generate_food_log_writer_proposal(
+            {"run_id": "run-1", "message": {"content": "记录午餐：米饭 150g"}},
+            route,
+            object(),
+        )
+
+        self.assertEqual([], proposals)
+        self.assertEqual([], attempts)
+
     def test_calculator_proposal_is_valid_and_requires_no_confirmation(self):
         proposal = Proposal(
             "p-calc",

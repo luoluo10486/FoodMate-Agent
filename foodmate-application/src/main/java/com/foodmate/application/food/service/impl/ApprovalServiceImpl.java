@@ -8,6 +8,7 @@ import com.foodmate.application.food.port.out.ApprovalRequestRepository;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.application.food.service.MealPlanService;
+import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.food.enums.MealType;
@@ -48,6 +49,7 @@ public class ApprovalServiceImpl implements ApprovalService {
     private final TransactionTemplate executionTransactions;
     private final TransactionTemplate failureTransactions;
     private final OperationAuditService auditService;
+    private final V1RuntimeEventService runtimeEvents;
 
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
@@ -76,7 +78,6 @@ public class ApprovalServiceImpl implements ApprovalService {
         this(store, plans, foods, ids, mapper, transactionManager, null);
     }
 
-    @Autowired
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
             MealPlanService plans,
@@ -85,6 +86,20 @@ public class ApprovalServiceImpl implements ApprovalService {
             ObjectMapper mapper,
             PlatformTransactionManager transactionManager,
             org.springframework.beans.factory.ObjectProvider<OperationAuditService> auditProvider) {
+        this(store, plans, foods, ids, mapper, transactionManager, auditProvider, null);
+    }
+
+    @Autowired
+    public ApprovalServiceImpl(
+            ApprovalRequestRepository store,
+            MealPlanService plans,
+            FoodLogService foods,
+            IdGenerator ids,
+            ObjectMapper mapper,
+            PlatformTransactionManager transactionManager,
+            org.springframework.beans.factory.ObjectProvider<OperationAuditService> auditProvider,
+            org.springframework.beans.factory.ObjectProvider<V1RuntimeEventService>
+                    runtimeEventsProvider) {
         this.store = store;
         this.plans = plans;
         this.foods = foods;
@@ -93,6 +108,8 @@ public class ApprovalServiceImpl implements ApprovalService {
         this.executionTransactions = transactionTemplate(transactionManager);
         this.failureTransactions = failureTransactionTemplate(transactionManager);
         this.auditService = auditProvider == null ? null : auditProvider.getIfAvailable();
+        this.runtimeEvents =
+                runtimeEventsProvider == null ? null : runtimeEventsProvider.getIfAvailable();
     }
 
     private static TransactionTemplate transactionTemplate(PlatformTransactionManager manager) {
@@ -260,6 +277,14 @@ public class ApprovalServiceImpl implements ApprovalService {
                 "approval.reject",
                 approval.parametersDigest(),
                 approval.idempotencyKey() + ":reject");
+        if (approval.agentRunId() != null && runtimeEvents != null)
+            runtimeEvents.completeAgentWrite(
+                    approval.agentRunId(),
+                    approval.approvalRequestId(),
+                    null,
+                    approval.requestId(),
+                    approval.traceId(),
+                    false);
         return view(require(userId, approvalRequestId));
     }
 
@@ -380,6 +405,14 @@ public class ApprovalServiceImpl implements ApprovalService {
                 "approval.execute",
                 approval.parametersDigest(),
                 approval.idempotencyKey() + ":execute");
+        if (runtimeEvents != null && approval.agentRunId() != null)
+            runtimeEvents.completeAgentWrite(
+                    approval.agentRunId(),
+                    approval.approvalRequestId(),
+                    resourceId,
+                    approval.requestId(),
+                    approval.traceId(),
+                    true);
         return new ExecuteView(approvalRequestId, approval.operation(), "executed", resourceId);
     }
 

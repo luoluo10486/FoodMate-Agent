@@ -642,6 +642,61 @@ def execute(command):
                      })
                 next_sequence += 1
             all_results.extend(results)
+            approval_result = next(
+                (
+                    item
+                    for item in results
+                    if item.get("tool_name") == "food_log_writer"
+                    and item.get("status") == "confirmation_required"
+                    and item.get("confirmation_ref")
+                ),
+                None,
+            )
+            if approval_result is not None:
+                checkpoint_payload = _save_clarification_checkpoint(command)
+                checkpoint_payload["approval_request_id"] = approval_result["confirmation_ref"]
+                emit(
+                    command,
+                    prefix + "-approval-checkpoint",
+                    next_sequence,
+                    "run.checkpoint_saved",
+                    checkpoint_payload,
+                )
+                next_sequence += 1
+                _record_model_attempts(execution.model_attempts)
+                for index, attempt in enumerate(execution.model_attempts, start=1):
+                    emit(
+                        command,
+                        prefix + f"-model-{index}",
+                        next_sequence,
+                        "run.model_usage",
+                        attempt.event_payload(),
+                    )
+                    next_sequence += 1
+                emit(
+                    command,
+                    prefix + "-approval-eval",
+                    next_sequence,
+                    "run.eval_decided",
+                    _eval_payload(execution),
+                )
+                next_sequence += 1
+                safe_details = (approval_result.get("rows") or [{}])[0]
+                emit(
+                    command,
+                    prefix + "-approval-required",
+                    next_sequence,
+                    "run.clarification_requested",
+                    {
+                        "reason": "TOOL_CONFIRMATION_REQUIRED",
+                        "tool_name": "food_log_writer",
+                        "approval_request_id": approval_result["confirmation_ref"],
+                        "operation": "create",
+                        "resource_type": "food_log",
+                        "details": safe_details,
+                    },
+                )
+                return
             _mark_tool_results_applied(command, all_results)
             resumed = dict(command)
             resumed["_checkpoint_key"] = (
