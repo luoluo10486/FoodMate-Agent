@@ -10,6 +10,26 @@ MQADMIN="/home/rocketmq/rocketmq-${ROCKETMQ_VERSION}/bin/mqadmin"
 NAMESRV="${NAMESRV_ADDR:-foodmate-rocketmq-namesrv:9876}"
 BROKER="${BROKER_ADDR:-127.0.0.1:10911}"
 
+# RocketMQ 的 Topic 元数据在 updateTopic 返回后可能尚未立即出现在 topicList。
+# 轮询有限次数，既避免启动竞态，也避免初始化脚本永久等待。
+wait_for_topic() {
+    topic="$1"
+    attempt=0
+    while [ "$attempt" -lt 30 ]; do
+        topic_list=$(mktemp)
+        if timeout 10 "$MQADMIN" topicList -n "$NAMESRV" >"$topic_list" 2>/dev/null; then
+            if grep -F -x "$topic" "$topic_list" >/dev/null; then
+                rm -f "$topic_list"
+                return 0
+            fi
+        fi
+        rm -f "$topic_list"
+        attempt=$((attempt + 1))
+        sleep 1
+    done
+    return 1
+}
+
 # RocketMQ 5.x gRPC PushConsumer uses group-only retry topics. The older
 # remoting client may create a topic containing the source topic as well, but
 # the Python runtime queries these group-only topics during consumption.
@@ -19,7 +39,7 @@ for group in \
     retry_topic="%RETRY%${group}"
     echo "[foodmate] creating gRPC retry topic ${retry_topic}"
     "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$retry_topic" -r 1 -w 1 -p 6 -a +message.type=NORMAL || true
-    if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -x "$retry_topic" >/dev/null; then
+    if ! wait_for_topic "$retry_topic"; then
         echo "[foodmate] gRPC retry topic ${retry_topic} is not visible" >&2
         exit 1
     fi
@@ -48,7 +68,7 @@ fi
 # 每个对象创建后都要回读校验，否则「初始化成功」会掩盖 Topic 根本不存在。
 echo "[foodmate] 创建 RocketMQ Proxy 系统 Topic DefaultHeartBeatSyncerTopic"
 "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "DefaultHeartBeatSyncerTopic" -r 1 -w 1 -p 6 -a +message.type=NORMAL || true
-if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -x "DefaultHeartBeatSyncerTopic" >/dev/null; then
+if ! wait_for_topic "DefaultHeartBeatSyncerTopic"; then
     echo "[foodmate] Proxy 系统 Topic 初始化失败" >&2
     exit 1
 fi
@@ -68,7 +88,7 @@ for topic in \
     # 单实例只领取一个分配队列时，Producer 把消息随机写到未领取队列。
     "$MQADMIN" updateTopic -n "$NAMESRV" -b "$BROKER" -t "$topic" -r "${TOPIC_QUEUE_COUNT:-1}" -w "${TOPIC_QUEUE_COUNT:-1}" -p 6 -a +message.type=NORMAL || true
     # Topic 名只允许 ^[%|a-zA-Z0-9_-]+$，点号会被 Broker 拒绝，因此契约使用连字符。
-    if ! timeout 30 "$MQADMIN" topicList -n "$NAMESRV" 2>/dev/null | grep -x "$topic" >/dev/null; then
+    if ! wait_for_topic "$topic"; then
         echo "[foodmate] Topic ${topic} 创建后不可见，初始化失败" >&2
         exit 1
     fi
