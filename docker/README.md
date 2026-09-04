@@ -137,6 +137,8 @@ Remove-Item Env:FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY
 
 Chat 密钥使用独立的 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY` 注入，不能复用 Embedding 密钥。修改 `.env` 或进程变量后必须重新创建 `agent-runtime`；单独 `restart` 不会更新容器环境变量。可用 `docker inspect foodmate-agent-runtime` 检查 `FOODMATE_RAG_MODE`、profile、model 和 collection，但不要输出任何 `*_API_KEY`、密码或令牌。
 
+真实业务闭环的付费调用必须单独开启 `FOODMATE_DOCKER_PAID_EXECUTION_ENABLED=true`，并保持最多 4 个场景、累计 5 CNY、无 fallback/自动重试和云 provider 门禁。可先运行 `script/local/paid-cloud-preflight.ps1 -Scenario rag` 做非付费配置校验；只有显式传入 `-ExecutePaid` 才会在当前脚本进程内启用容器门禁并重建 Runtime。预检只输出模型、状态和配置是否存在，不输出密钥，也不等同于业务链路完成。
+
 两个 Embedding profile 是互斥的运行配置，不会混写同一 collection。切换时先选择一个 profile 和对应 collection，重新创建 Runtime，并对需要检索的文档重新索引；旧 collection 可保留用于回滚或在确认无引用后单独清理。
 
 ## RocketMQ

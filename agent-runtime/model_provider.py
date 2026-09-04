@@ -293,6 +293,11 @@ class ModelRouter:
             input_price_per_million,
             output_price_per_million,
         ) in candidates:
+            if self._paid_execution_enabled() and self._paid_requires_cloud() and alias.provider_code == "deterministic":
+                raise ModelProviderError(
+                    "PAID_CLOUD_PROVIDER_REQUIRED",
+                    "paid execution requires a configured cloud provider",
+                )
             self._require_audited_price(
                 alias,
                 input_price_per_million,
@@ -376,8 +381,10 @@ class ModelRouter:
             ]
             fallback_provider = str(governed_route.get("fallback_provider_code") or "").strip()
             fallback_model = str(governed_route.get("fallback_model_name") or "").strip()
-            if fallback_provider and fallback_model and self._enabled(
-                "FOODMATE_MODEL_FALLBACK_ENABLED", True
+            if (
+                fallback_provider
+                and fallback_model
+                and self._fallback_enabled()
             ):
                 candidates.append(
                     (
@@ -390,9 +397,7 @@ class ModelRouter:
                     )
                 )
             return tuple(candidates)
-        tiers = (tier,) + (
-            fallback_tiers if self._enabled("FOODMATE_MODEL_FALLBACK_ENABLED", True) else ()
-        )
+        tiers = (tier,) + (fallback_tiers if self._fallback_enabled() else ())
         return tuple((self._alias(candidate), None, None, None, None, None) for candidate in tiers)
 
     def tier_for(self, scene: str, complexity: str, risk_level: str, budget_mode: str) -> str:
@@ -548,6 +553,20 @@ class ModelRouter:
 
     def _enabled(self, key: str, default: bool) -> bool:
         return self.environment.get(key, str(default)).lower() == "true"
+
+    def _paid_execution_enabled(self) -> bool:
+        return self._enabled("FOODMATE_PAID_EXECUTION_ENABLED", False)
+
+    def _paid_requires_cloud(self) -> bool:
+        return self._enabled("FOODMATE_PAID_REQUIRE_CLOUD", True)
+
+    def _fallback_enabled(self) -> bool:
+        """真实付费轮次默认关闭 fallback，避免一次失败扩大费用和语义漂移。"""
+        if self._paid_execution_enabled() and self._enabled(
+            "FOODMATE_PAID_NO_RETRY", True
+        ):
+            return False
+        return self._enabled("FOODMATE_MODEL_FALLBACK_ENABLED", True)
 
     @staticmethod
     def _status(error: ModelProviderError) -> str:
