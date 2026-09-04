@@ -20,6 +20,8 @@ public class ModelGovernanceService {
     private final String budgetPolicyVersion;
     private final int maxTotalTokens;
     private final BigDecimal maxCostCny;
+    private final BigDecimal inputPricePerMillion;
+    private final BigDecimal outputPricePerMillion;
     private final int maxModelCalls;
     private final int maxStepRetries;
     private final int modelTimeoutMs;
@@ -38,7 +40,11 @@ public class ModelGovernanceService {
             @Value("${FOODMATE_AGENT_MAX_COST_CNY_PER_RUN:0.50}") BigDecimal maxCostCny,
             @Value("${FOODMATE_AGENT_MAX_MODEL_CALLS:12}") int maxModelCalls,
             @Value("${FOODMATE_AGENT_MAX_STEP_RETRIES:2}") int maxStepRetries,
-            @Value("${foodmate.model.timeout-ms:15000}") int modelTimeoutMs) {
+            @Value("${foodmate.model.timeout-ms:15000}") int modelTimeoutMs,
+            @Value("${foodmate.model.governance.input-price-per-million:0}")
+                    BigDecimal inputPricePerMillion,
+            @Value("${foodmate.model.governance.output-price-per-million:0}")
+                    BigDecimal outputPricePerMillion) {
         this.store = storeProvider == null ? null : storeProvider.getIfAvailable();
         this.providerCode = required(providerCode, "default provider");
         this.modelName = required(modelName, "default model");
@@ -54,8 +60,16 @@ public class ModelGovernanceService {
         if (maxCostCny == null || maxCostCny.signum() < 0) {
             throw new IllegalStateException("model governance cost budget is invalid");
         }
+        if (inputPricePerMillion == null
+                || outputPricePerMillion == null
+                || inputPricePerMillion.signum() < 0
+                || outputPricePerMillion.signum() < 0) {
+            throw new IllegalStateException("model governance model price is invalid");
+        }
         this.maxTotalTokens = maxTotalTokens;
         this.maxCostCny = maxCostCny;
+        this.inputPricePerMillion = inputPricePerMillion;
+        this.outputPricePerMillion = outputPricePerMillion;
         this.maxModelCalls = maxModelCalls;
         this.maxStepRetries = maxStepRetries;
         this.modelTimeoutMs = modelTimeoutMs;
@@ -80,8 +94,8 @@ public class ModelGovernanceService {
                 null,
                 null,
                 priceVersion,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
+                inputPricePerMillion,
+                outputPricePerMillion,
                 budgetPolicyVersion,
                 maxTotalTokens,
                 maxCostCny,

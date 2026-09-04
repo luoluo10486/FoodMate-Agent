@@ -24,7 +24,9 @@ class ModelGovernanceServiceTest {
                         new BigDecimal("0.50"),
                         12,
                         2,
-                        15000);
+                        15000,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO);
 
         ModelGovernanceSnapshot snapshot = service.resolve("agent_run", "chat");
 
@@ -72,13 +74,40 @@ class ModelGovernanceServiceTest {
                         new BigDecimal("0.50"),
                         12,
                         2,
-                        15000);
+                        15000,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO);
 
         ModelGovernanceSnapshot snapshot = service.resolve("agent_run", "chat");
 
         assertEquals("provider-a", snapshot.providerCode());
         assertEquals("route-7", snapshot.routeVersion());
         assertEquals(100, snapshot.maxTotalTokens());
+    }
+
+    @Test
+    void environmentFallbackPreservesConfiguredCloudPrices() {
+        ModelGovernanceService service =
+                new ModelGovernanceService(
+                        null,
+                        "cloud_primary",
+                        "deepseek-ai/DeepSeek-V4-Flash",
+                        "env-v1",
+                        "siliconflow-v1",
+                        "budget-v1",
+                        30000,
+                        new BigDecimal("0.50"),
+                        12,
+                        2,
+                        15000,
+                        new BigDecimal("1.000"),
+                        new BigDecimal("2.000"));
+
+        ModelGovernanceSnapshot snapshot = service.resolve("agent_run", "chat");
+
+        assertEquals(new BigDecimal("1.000"), snapshot.inputPricePerMillion());
+        assertEquals(new BigDecimal("2.000"), snapshot.outputPricePerMillion());
+        assertEquals("siliconflow-v1", snapshot.priceVersion());
     }
 
     private static final class FixedProvider

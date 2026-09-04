@@ -105,3 +105,29 @@ class DockerComposeContractTests(TestCase):
         self.assertIn("--force-recreate agent-runtime", script)
         self.assertNotIn("--api-key", script.lower())
         self.assertNotIn("$ApiKey", script)
+
+    def test_java_governance_fallback_is_explicitly_mapped_from_docker_scope(self):
+        compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+        application = (
+            self.ROOT
+            / "foodmate-bootstrap"
+            / "src"
+            / "main"
+            / "resources"
+            / "application.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "FOODMATE_MODEL_GOVERNANCE_DEFAULT_PROVIDER: ${FOODMATE_DOCKER_MODEL_GOVERNANCE_DEFAULT_PROVIDER:-deterministic}",
+            compose,
+        )
+        self.assertIn("FOODMATE_DOCKER_MODEL_GOVERNANCE_DEFAULT_PROVIDER=deterministic", example)
+        self.assertIn(
+            "default-provider: ${FOODMATE_MODEL_GOVERNANCE_DEFAULT_PROVIDER:deterministic}",
+            application,
+        )
+        self.assertIn(
+            "input-price-per-million: ${FOODMATE_MODEL_GOVERNANCE_INPUT_PRICE_PER_MILLION:0}",
+            application,
+        )
