@@ -546,7 +546,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
 
   const selectDetail = (nextSelection?: DetailSelection) => {
     setSelection(nextSelection);
-    if (nextSelection?.type === 'trace' && nextSelection.row.traceId !== '-') {
+    if (isRealMode && nextSelection?.type === 'trace' && nextSelection.row.traceId !== '-') {
       setTraceDetail(undefined);
       setTraceDetailLoading(true);
     } else {
