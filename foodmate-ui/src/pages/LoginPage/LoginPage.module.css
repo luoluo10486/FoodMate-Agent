@@ -1076,7 +1076,8 @@
   min-height: 100dvh;
   place-items: center;
   overflow: auto;
-  --auth-accent: var(--fm-color-success);
+  --auth-brand: var(--fm-color-success);
+  --auth-primary: var(--fm-color-success);
   --auth-diagonal: var(--fm-auth-mint);
   background: var(--fm-auth-pink);
   color: var(--fm-auth-ink);
@@ -1110,7 +1111,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #a6d997;
+  background: var(--auth-brand);
   box-shadow: none;
 }
 
@@ -1125,7 +1126,7 @@
 }
 
 .authPage-token .authDiagonal {
-  background: #dfeedb;
+  background: var(--auth-diagonal);
   clip-path: polygon(0 0, calc(100% + 8px) 0, 0 100%);
 }
 
@@ -1219,13 +1220,13 @@
   height: 52px;
   border-color: rgb(166 217 151 / 50%);
   border-radius: 16px;
-  background: var(--fm-color-success);
+  background: var(--auth-primary);
   box-shadow: 0 6px 8px rgb(72 199 142 / 20%);
 }
 
 .tokenCard .authPrimary:hover,
 .tokenCard .authPrimary:focus-visible {
-  background: var(--fm-color-success);
+  background: var(--auth-primary);
 }
 
 .tokenBackRow {
@@ -1256,14 +1257,14 @@
 }
 
 .authPage-register .authPrimary {
-  border-color: var(--auth-accent);
-  background: var(--auth-accent);
+  border-color: var(--auth-primary);
+  background: var(--auth-primary);
 }
 
 .authPage-register .authPrimary:hover,
 .authPage-register .authPrimary:focus-visible {
-  border-color: var(--auth-accent);
-  background: var(--auth-accent);
+  border-color: var(--auth-primary);
+  background: var(--auth-primary);
 }
 
 .authCard {
@@ -1310,7 +1311,7 @@
   height: 40px;
   place-items: center;
   border-radius: 10px;
-  background: var(--auth-accent);
+  background: var(--auth-brand);
   box-shadow: 0 4px 4px rgb(72 199 142 / 25%);
   color: #ffffff;
 }
@@ -1473,9 +1474,9 @@
 .authPrimary {
   width: 100%;
   height: 50px;
-  border: 1.5px solid #48c78e;
+  border: 1.5px solid var(--auth-primary);
   border-radius: 14px;
-  background: #48c78e;
+  background: var(--auth-primary);
   box-shadow: 0 6px 6px rgb(72 199 142 / 25%);
   color: #ffffff;
   font-family: var(--fm-font);
@@ -1485,8 +1486,8 @@
 
 .authPrimary:hover,
 .authPrimary:focus-visible {
-  border-color: #48c78e;
-  background: #48c78e;
+  border-color: var(--auth-primary);
+  background: var(--auth-primary);
   color: #ffffff;
 }
 

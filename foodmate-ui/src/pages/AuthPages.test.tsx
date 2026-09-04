@@ -227,7 +227,8 @@ describe('authentication pages', () => {
 
     expect(screen.getByRole('main')).toHaveStyle({
       '--auth-diagonal': '#dfeedb',
-      '--auth-accent': '#a6d997',
+      '--auth-brand': '#a6d997',
+      '--auth-primary': '#a6d997',
     });
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-user.svg"]')).toBeInTheDocument();
@@ -314,11 +315,13 @@ describe('authentication pages', () => {
     expect(screen.getByRole('status')).toHaveTextContent('重置邮件请求已完成');
   });
 
-  it('uses the Figma accent token for the forgot-password brand mark', () => {
+  it('separates the Figma brand and primary tokens on forgot-password', () => {
     renderAuth('/forgot-password');
 
     expect(screen.getByRole('main')).toHaveStyle({
-      '--auth-accent': '#48c78e',
+      '--auth-diagonal': '#c5f0d6',
+      '--auth-brand': '#a6d997',
+      '--auth-primary': '#48c78e',
     });
   });
 
@@ -338,11 +341,13 @@ describe('authentication pages', () => {
     expect(screen.getByRole('heading', { name: '重置密码' })).toBeInTheDocument();
   });
 
-  it('uses the Figma accent token for the reset-password brand mark', () => {
+  it('separates the Figma brand and primary tokens on reset-password', () => {
     renderAuth('/reset-password');
 
     expect(screen.getByRole('main')).toHaveStyle({
-      '--auth-accent': '#48c78e',
+      '--auth-diagonal': '#c5f0d6',
+      '--auth-brand': '#a6d997',
+      '--auth-primary': '#48c78e',
     });
   });
 });

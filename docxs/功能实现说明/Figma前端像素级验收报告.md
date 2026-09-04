@@ -1787,3 +1787,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - 采集配置集中在 `foodmate-ui/scripts/figma-acceptance-config.mjs`：目标 DPR 为 `1`，语言为 `zh-CN`，主题为 light，并登记 `1440×1024`、`1440×900`、`1366×768`、`1024×768` 和 `390×844`。
 - `npm run qa:figma:validate` 校验 105 条映射的必填字段、视口、PNG 文件头与尺寸，以及 runtime 的 viewport/geometry/text/DPR 汇总；追加 `--strict` 才会把未满足全部门禁的结果作为失败退出。
 - 当前旧证据实际汇总仍为 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`，所以校验结论为 `DPR_RECAPTURE_REQUIRED`；105 项继续为 `DIFF_REVIEW`，不能标记为 `PASS`。
+
+## 14. 2026-09-05 Auth 页面品牌色与主操作色收口
+
+本轮依据 Figma 节点 `647:214`、`680:216`、`680:275`、`680:307` 和 `680:738` 复核认证页面；仅修改前端 Token，不修改 Figma 文件。
+
+- [x] `AuthShell` 已将品牌标记色和主操作色拆为独立的 `--auth-brand`、`--auth-primary`，并为注册、找回密码、重置密码和 Token 状态页提供显式 Figma Token；登录页保持原有登录状态专属 Token。
+- [x] 当前目标值为：注册页 `diagonal=#dfeedb, brand=#a6d997, primary=#a6d997`；找回密码和重置密码页 `diagonal=#c5f0d6, brand=#a6d997, primary=#48c78e`；Token 状态页 `diagonal=#dfeedb, brand=#a6d997, primary=#a6d997`。
+- [x] 已使用 `visual-qa=1` 在本地浏览器实际打开并检查 Login、Register、Forgot Password、Reset Password 和 Token Invalid 页面；字体状态和 Figma SVG 资产可见，页面主要结构无明显溢出。此次检查没有伪造新的 PNG 或 diff 文件，现有聚合证据保持不变。
+- [x] 当前代码验证为全量 Vitest `39/39` 测试文件、`239/239` 用例通过，typecheck、build 和 `git diff --check` 通过。
+- [ ] 本轮只完成 Auth Token 语义收口和浏览器复核，不能将认证画板或全量画板标记为 `PASS`。当前 105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`；Figma 动画上下文未重新调用，原因是 Education 计划的 Figma MCP 调用额度已达到上限；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。

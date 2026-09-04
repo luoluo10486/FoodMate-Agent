@@ -9,34 +9,30 @@ export type AuthVariant = 'login' | 'register' | 'forgot' | 'reset' | 'token';
 
 type AuthShellStyle = CSSProperties & {
   '--auth-diagonal'?: string;
-  '--auth-accent'?: string;
+  '--auth-brand'?: string;
+  '--auth-primary'?: string;
 };
 
 type AuthShellTokens = {
-  diagonal?: string;
-  accent: string;
+  diagonal: string;
+  brand: string;
+  primary: string;
 };
+
+type AuthShellTokenVariant = Exclude<AuthVariant, 'login'>;
 
 const fieldIconSources = {
   user: '/assets/figma/auth/foodmate-register-user.svg',
   mail: '/assets/figma/auth/foodmate-register-mail.svg',
 } as const;
 
-export function AuthShell({ variant, children }: { variant: AuthVariant; children: ReactNode }) {
-  const tokens: AuthShellTokens | undefined =
-    variant === 'register'
-      ? authShellFigmaTokens.register
-      : variant === 'forgot'
-        ? authShellFigmaTokens.forgot
-        : variant === 'reset'
-          ? authShellFigmaTokens.reset
-          : undefined;
-  const style = tokens
-    ? ({
-        '--auth-diagonal': tokens.diagonal,
-        '--auth-accent': tokens.accent,
-      } as AuthShellStyle)
-    : undefined;
+export function AuthShell({ variant, children }: { variant: AuthShellTokenVariant; children: ReactNode }) {
+  const tokens: AuthShellTokens = authShellFigmaTokens[variant];
+  const style = {
+    '--auth-diagonal': tokens.diagonal,
+    '--auth-brand': tokens.brand,
+    '--auth-primary': tokens.primary,
+  } as AuthShellStyle;
 
   return (
     <main className={`${styles.authPage} ${styles[`authPage-${variant}`]}`} style={style}>
