@@ -127,6 +127,9 @@ export function WorkspaceLayout({
   const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
   const displayedSessions = sidebarFixture?.sessions ?? sessions;
   const displayedSessionQuery = sidebarFixture?.searchValue ?? sessionQuery;
+  // 窗口控制点只属于当前 Figma Home/Chat fixture，不进入普通业务壳层。
+  const showFixtureWindowControls =
+    designChat || Boolean(sidebarFixture && activeModule === 'home' && !showKnowledgeTopNav);
 
   useEffect(() => {
     if (!realMode) return;
@@ -229,6 +232,11 @@ export function WorkspaceLayout({
         className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${sidebarFixture && !showKnowledgeTopNav ? styles.figmaFixture : ''}`}
       >
         <aside className={`${styles.sidebar} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}>
+          {showFixtureWindowControls ? (
+            <div className={styles.windowControls} data-name="window-controls" aria-hidden="true">
+              <img src="/assets/figma/workspace/window-controls.svg" alt="" />
+            </div>
+          ) : null}
           <div className={styles.sidebarBrand}>
             <BrandLogo showTagline />
           </div>

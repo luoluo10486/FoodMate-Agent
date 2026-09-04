@@ -45,6 +45,10 @@ import {
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
 
+const FIGMA_CHAT_SIDEBAR_AVATAR = '/assets/figma/workspace/home-sidebar-avatar.png';
+const FIGMA_CHAT_TOPBAR_AVATAR = '/assets/figma/agent-chat/figma-v2-topbar-avatar.png';
+const FIGMA_CHAT_MESSAGE_AVATAR = '/assets/figma/agent-chat/figma-v2-message-avatar.png';
+
 type ChatMessage = {
   id: string;
   role: Message['role'];
@@ -2031,13 +2035,19 @@ function MockChatPage() {
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       pageVariant={isFigmaFixture ? 'figma-default' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIGMA_CHAT_SIDEBAR_AVATAR : undefined}
+      topAvatarSrc={isFigmaFixture ? FIGMA_CHAT_TOPBAR_AVATAR : undefined}
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}
       placeholder="追问或添加自定义指令..."
     >
       {agent.messages.map((message, index) => (
-        <MessageBubble key={message.id} message={{ ...message, wide: isFigmaFixture }}>
+        <MessageBubble
+          key={message.id}
+          message={{ ...message, wide: isFigmaFixture }}
+          userAvatarSrc={isFigmaFixture ? FIGMA_CHAT_MESSAGE_AVATAR : undefined}
+        >
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
             <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />
           ) : null}

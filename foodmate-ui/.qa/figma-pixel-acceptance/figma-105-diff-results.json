@@ -7,10 +7,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 349887,
-      "differentRatio": 0.23728230794270833,
-      "meanAbsoluteError": 3.553197733561198,
-      "rmse": 18.56371263966464,
+      "differentPixels": 349634,
+      "differentRatio": 0.23711073133680555,
+      "meanAbsoluteError": 3.4866924709743925,
+      "rmse": 18.329592388990505,
       "maxChannelDelta": 254
     },
     "agent-chat-v2": {
@@ -18,11 +18,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 378986,
-      "differentRatio": 0.2570163302951389,
-      "meanAbsoluteError": 3.1629041883680555,
-      "rmse": 17.558624822305962,
-      "maxChannelDelta": 255
+      "differentPixels": 215261,
+      "differentRatio": 0.14598320855034722,
+      "meanAbsoluteError": 3.046647644042969,
+      "rmse": 18.42222799391299,
+      "maxChannelDelta": 236
     },
     "diet-records-v2": {
       "status": "COMPARED",

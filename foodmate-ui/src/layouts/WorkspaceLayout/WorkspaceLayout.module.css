@@ -7,7 +7,7 @@
   background: var(--fm-bg);
 }
 
-/* Keep design fixtures at the Figma baseline without rendering desktop window controls. */
+/* Figma fixture 只覆盖设计稿专属的表面颜色。 */
 .figmaFixture {
   --fm-fixture-sidebar-active-surface: #fdf6ef;
   --fm-fixture-session-active-surface: #fffdf5;
@@ -20,12 +20,22 @@
   box-shadow: inset 1px 0 0 var(--fm-border);
 }
 
-.figmaFixture .sidebar {
-  padding-top: 52px;
+.figmaFixture .sidebar,
+.designChat .sidebar {
+  padding-top: 24px;
 }
 
-.designChat .sidebar {
-  padding-top: 52px;
+/* 窗口控制点是 Figma 画板装饰，不参与导航和键盘交互。 */
+.windowControls {
+  width: 52px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+.windowControls img {
+  display: block;
+  width: 52px;
+  height: 12px;
 }
 
 /* Figma node 640:428 uses separate neutral surfaces for active navigation and session rows. */

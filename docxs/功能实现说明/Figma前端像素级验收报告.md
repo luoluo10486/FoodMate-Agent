@@ -1808,3 +1808,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 已使用 `scripts/png-diff.mjs` 重新计算全量结果；105 项均为同尺寸 `COMPARED`，例如 `agent-budget-limit` 差异比例 `11.7329%`、`intake-analysis-v2` `7.5602%`、`register-page` `53.4744%`，具体数值以 `figma-105-diff-results.json` 为准。
 - [x] `npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
 - [ ] DPR 复采集只关闭了运行时分辨率门禁；由于 105 项自动 diff 和人工视觉复核仍未达到全部通过条件，聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能据此标记像素级 `PASS`。Figma 动画上下文仍未重新调用，原因是 Education 计划的 Figma MCP 调用额度已达到上限；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
+
+## 16. 2026-09-05 Workspace Home 与 Agent Chat 共享壳层复采集
+
+本轮依据实时 Figma 节点 `640:256` 和 `640:428`，只收口前端共享壳层及其验收证据，Figma 文件保持只读。
+
+- [x] `WorkspaceLayout` fixture 已对齐 `260px` 侧栏、`24px` 侧栏内边距和 `52×12px` 窗口控制点；Home 使用节点 `989:3` 的“任务入口与状态”面板，Chat 使用 `780px` 助手内容边界及 `764×143px` 内嵌确认卡。
+- [x] Home 和 Chat 已分别使用对应的 Figma 导出头像资源；资源 SHA-256 已登记在 [前端已完成实现清单](./前端已完成实现清单.md) 的第 198 节，避免以真人默认头像或未确认字形替代设计资源。
+- [x] 使用 Chrome CDP 重新采集 `dpr1-workspace-home-v2-browser-2026-09-05.png` 和 `dpr1-agent-chat-v2-browser-2026-09-05.png`；两项均为 `1440×1024`、DPR `1`、字体 `loaded`、无页面横向溢出，几何和文字检查通过。
+- [x] `scripts/png-diff.mjs` 重新计算结果：`workspace-home-v2` 为 `349634/1474560` 个差异像素、差异比例 `23.7111%`、`MAE=3.486692`、`RMSE=18.329592`、最大通道差异 `254`；`agent-chat-v2` 为 `215261/1474560` 个差异像素、差异比例 `14.5983%`、`MAE=3.046648`、`RMSE=18.422228`、最大通道差异 `236`。
+- [x] `figma-105-mapping.json` 和 `figma-105-diff-results.json` 已切换到本次浏览器证据；105 项汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，结构校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [x] 本大点完成后集中执行前端质量门禁：`npm run test` 为 `39/39` 个测试文件、`240/240` 个用例通过，`npm run typecheck`、`npm run build`、`npm run format:check`、`npm run lint` 和 `git diff --check` 均通过；既有 React/Radix `act(...)` 提示不影响退出码。
+- [ ] 自动 diff 和人工视觉复核仍显示图标、字体光栅化及局部组合差异，本轮不能把 DPR/几何通过替代像素级 `PASS`；shadcn 全量逐页视觉收口尚未完成，iconfont 继续为 `BLOCKED`。

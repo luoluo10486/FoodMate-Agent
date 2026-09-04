@@ -16,7 +16,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { DEFAULT_AVATARS } from '../../lib/avatar';
 import { getAuthUser } from '../../services/authService';
 import { getHomeSessions, getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
 import type { SessionSummary } from '../../types/session';
@@ -50,6 +49,9 @@ const figmaSidebarSessions: SessionSummary[] = [
   { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45' },
   { id: 'breakfast-smoothie', title: '早餐奶昔配方', subtitle: '12:45' },
 ];
+
+const FIGMA_HOME_SIDEBAR_AVATAR = '/assets/figma/workspace/home-sidebar-avatar.png';
+const FIGMA_HOME_TOPBAR_AVATAR = '/assets/figma/workspace/home-topbar-avatar.png';
 
 type HomeState = 'default' | 'loading' | 'empty' | 'error' | 'input-states';
 
@@ -176,8 +178,8 @@ export function HomePage() {
       activeModule="home"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
-      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIGMA_HOME_SIDEBAR_AVATAR : undefined}
+      topAvatarSrc={isFigmaFixture ? FIGMA_HOME_TOPBAR_AVATAR : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >

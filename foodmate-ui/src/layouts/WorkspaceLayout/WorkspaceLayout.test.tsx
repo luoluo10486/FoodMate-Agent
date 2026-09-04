@@ -81,7 +81,7 @@ describe('WorkspaceLayout shell controls', () => {
     expect(topbarMark).not.toHaveTextContent('F');
     expect(sidebarMark).toHaveTextContent('F');
     expect(container.firstElementChild).toHaveClass('designChat');
-    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
   });
 
   it('uses the Figma selection surface colors for the design chat fixture', () => {
@@ -143,7 +143,7 @@ describe('WorkspaceLayout shell controls', () => {
     expect(container.querySelector('aside .brand > span')).toHaveTextContent('F');
   });
 
-  it('does not render desktop window controls in the Figma fixture shell', () => {
+  it('renders desktop window controls in the Home Figma fixture shell', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>
         <WorkspaceLayout showKnowledgeTopNav={false} sidebarFixture={{ sessions: [] }}>
@@ -152,8 +152,11 @@ describe('WorkspaceLayout shell controls', () => {
       </MemoryRouter>,
     );
 
-    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
-    expect(container.innerHTML).not.toMatch(/window-controls|traffic-light|#ff3b30|#ffcc00|#34c759/i);
+    expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-name="window-controls"] img')).toHaveAttribute(
+      'src',
+      '/assets/figma/workspace/window-controls.svg',
+    );
   });
 
   it('supports the Profile Figma sidebar composition without search or collapse controls', () => {

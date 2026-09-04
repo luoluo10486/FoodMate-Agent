@@ -248,6 +248,23 @@ describe('ChatPage Agent remaining states', () => {
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
   });
 
+  it('uses the Figma avatar assets for the default Chat fixture shell', () => {
+    renderState('figma-v2');
+
+    expect(document.querySelector('aside .avatar img')).toHaveAttribute(
+      'src',
+      '/assets/figma/workspace/home-sidebar-avatar.png',
+    );
+    expect(document.querySelector('main header .topAvatar img')).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/figma-v2-topbar-avatar.png',
+    );
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/figma-v2-message-avatar.png',
+    );
+  });
+
   it('renders write confirmation details and records confirm/cancel actions', () => {
     renderState('write-confirmation');
     expect(screen.getByRole('heading', { name: '确认写入以下记录' })).toBeInTheDocument();
