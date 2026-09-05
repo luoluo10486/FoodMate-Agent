@@ -62,10 +62,10 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 49199,
-      "differentRatio": 0.03796219135802469,
-      "meanAbsoluteError": 0.5660353009259259,
-      "rmse": 7.555450226492131,
+      "differentPixels": 49181,
+      "differentRatio": 0.0379483024691358,
+      "meanAbsoluteError": 0.5646219135802469,
+      "rmse": 7.545320579956891,
       "maxChannelDelta": 213
     },
     "register-page": {
@@ -95,10 +95,10 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 50090,
-      "differentRatio": 0.03864969135802469,
-      "meanAbsoluteError": 1.0935389660493826,
-      "rmse": 10.593789344950427,
+      "differentPixels": 43994,
+      "differentRatio": 0.03394598765432099,
+      "meanAbsoluteError": 0.5838902391975309,
+      "rmse": 6.760528326133749,
       "maxChannelDelta": 213
     },
     "login-submitting": {
@@ -106,32 +106,32 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 77813,
-      "differentRatio": 0.0600408950617284,
-      "meanAbsoluteError": 0.6661766975308642,
-      "rmse": 7.112977239950187,
-      "maxChannelDelta": 213
+      "differentPixels": 84492,
+      "differentRatio": 0.06519444444444444,
+      "meanAbsoluteError": 0.7992249228395062,
+      "rmse": 7.58069841280643,
+      "maxChannelDelta": 207
     },
     "login-field-error": {
       "status": "COMPARED",
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 77562,
-      "differentRatio": 0.059847222222222225,
-      "meanAbsoluteError": 2.176948688271605,
-      "rmse": 15.160966877698357,
-      "maxChannelDelta": 213
+      "differentPixels": 78785,
+      "differentRatio": 0.0607908950617284,
+      "meanAbsoluteError": 2.224974922839506,
+      "rmse": 15.282294635328416,
+      "maxChannelDelta": 209
     },
     "login-credential-error": {
       "status": "COMPARED",
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 95329,
-      "differentRatio": 0.07355632716049383,
-      "meanAbsoluteError": 2.1808225308641975,
-      "rmse": 14.229756006991776,
+      "differentPixels": 98248,
+      "differentRatio": 0.07580864197530864,
+      "meanAbsoluteError": 2.493721450617284,
+      "rmse": 15.558759181519537,
       "maxChannelDelta": 213
     },
     "login-account-locked": {
@@ -139,10 +139,10 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 82274,
-      "differentRatio": 0.06348302469135803,
-      "meanAbsoluteError": 1.1531003086419753,
-      "rmse": 10.919069763067766,
+      "differentPixels": 83365,
+      "differentRatio": 0.06432484567901235,
+      "meanAbsoluteError": 1.1684502314814815,
+      "rmse": 10.882797527364227,
       "maxChannelDelta": 213
     },
     "login-account-disabled": {
@@ -150,10 +150,10 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 108831,
-      "differentRatio": 0.08397453703703704,
-      "meanAbsoluteError": 1.501751736111111,
-      "rmse": 11.600172703522272,
+      "differentPixels": 109933,
+      "differentRatio": 0.08482484567901234,
+      "meanAbsoluteError": 1.5188398919753086,
+      "rmse": 11.574948337351044,
       "maxChannelDelta": 213
     },
     "login-service-unavailable": {
@@ -161,10 +161,10 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 80034,
-      "differentRatio": 0.06175462962962963,
-      "meanAbsoluteError": 1.1308368055555555,
-      "rmse": 10.875566910865661,
+      "differentPixels": 81136,
+      "differentRatio": 0.06260493827160493,
+      "meanAbsoluteError": 1.147924961419753,
+      "rmse": 10.848657884435223,
       "maxChannelDelta": 213
     },
     "token-invalid": {

@@ -30,6 +30,19 @@ async function waitForJson(url) {
   throw new Error(`Chrome 调试端点未就绪: ${url}`);
 }
 
+async function removeProfileWithRetry(profilePath) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      if (existsSync(profilePath)) rmSync(profilePath, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (attempt === 5) throw error;
+      // Windows 需要等待 Chrome 子进程释放 profile 锁，重试只针对本次采集的临时目录。
+      await sleep(500);
+    }
+  }
+}
+
 function parseViewport(value) {
   const match = /^(\d+)x(\d+)$/.exec(value);
   if (!match) throw new Error(`无法解析验收视口: ${value}`);
@@ -178,7 +191,7 @@ async function capture(item, index) {
   } finally {
     chrome.kill();
     await sleep(250);
-    if (existsSync(profilePath)) rmSync(profilePath, { recursive: true, force: true });
+    await removeProfileWithRetry(profilePath);
   }
 }
 

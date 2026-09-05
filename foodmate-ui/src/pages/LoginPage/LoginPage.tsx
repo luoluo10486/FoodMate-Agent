@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -33,6 +32,16 @@ type LoginState =
   | 'account-locked'
   | 'account-disabled'
   | 'service-unavailable';
+
+const loginStateClassNames: Record<LoginState, string> = {
+  default: '',
+  submitting: styles.authPageLoginSubmitting,
+  'field-error': styles.authPageLoginFieldError,
+  'credential-error': styles.authPageLoginCredentialError,
+  'account-locked': styles.authPageLoginAccountLocked,
+  'account-disabled': styles.authPageLoginAccountDisabled,
+  'service-unavailable': styles.authPageLoginServiceUnavailable,
+};
 
 function loginAsset(state: LoginState, name: 'user' | 'lock' | 'eye' | 'line') {
   const suffix =
@@ -131,7 +140,7 @@ export function LoginPage() {
       const page = pageRef.current;
       if (
         visualQaEnabled ||
-        state !== 'default' ||
+        visualState !== 'default' ||
         !page ||
         window.matchMedia('(prefers-reduced-motion: reduce)').matches
       )
@@ -168,7 +177,7 @@ export function LoginPage() {
         .to('[data-login-motion="diagonal"]', { x: 0, y: 0, duration: 0.4, ease: FIGMA_LOGIN_SPRING_EASE }, 2.3)
         .to('[data-login-motion="diagonal"]', { x: 0, y: 0, duration: 1.8, ease: 'none' }, 2.7);
     },
-    { scope: pageRef, dependencies: [state, visualQaEnabled] },
+    { scope: pageRef, dependencies: [visualState, visualQaEnabled] },
   );
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -185,9 +194,14 @@ export function LoginPage() {
     }
   };
 
+  const stateClassName = loginStateClassNames[visualState];
+  const stateLayoutClassName = visualState === 'default' ? '' : styles.authPageLoginState;
+
   return (
     <main
-      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : state === 'field-error' ? styles.authPageLoginFieldError : state === 'credential-error' ? styles.authPageLoginCredentialError : state === 'account-locked' ? styles.authPageLoginAccountLocked : state === 'account-disabled' ? styles.authPageLoginAccountDisabled : state === 'service-unavailable' ? styles.authPageLoginServiceUnavailable : ''}`}
+      className={[styles.authPage, styles['authPage-login'], stateLayoutClassName, stateClassName]
+        .filter(Boolean)
+        .join(' ')}
       ref={pageRef}
     >
       <div className={styles.authDiagonal} aria-hidden="true" data-login-motion="diagonal" />
@@ -372,7 +386,7 @@ export function LoginPage() {
               type="button"
               onClick={() => navigate('/register')}
             >
-              注册
+              {visualState === 'default' ? '注册' : '立即注册'}
             </Button>
           </div>
         </div>

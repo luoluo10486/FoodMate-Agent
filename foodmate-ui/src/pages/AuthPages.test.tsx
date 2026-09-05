@@ -40,6 +40,13 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: buttonText })).toHaveProperty('disabled', disabled);
   });
 
+  it('uses the Figma exception-state registration copy', () => {
+    renderAuth('/login?state=service-unavailable');
+
+    expect(screen.getByRole('button', { name: '立即注册' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '注册' })).not.toBeInTheDocument();
+  });
+
   it('uses the Figma submitting assets and example values', () => {
     renderAuth('/login?state=submitting');
 
