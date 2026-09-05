@@ -1922,3 +1922,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 对应证据仍使用 `1440×1024`、DPR `1`、字体 `loaded` 和无页面横向溢出条件；当前代表性 diff 为 Workspace Home `23.7111% / MAE 3.486692 / RMSE 18.329592 / maxChannelDelta 254`，Agent Chat `14.5983% / MAE 3.046648 / RMSE 18.422228 / maxChannelDelta 236`，二者均为 `DIFF_REVIEW`。
 - [x] `npm run qa:figma:validate` 的当前结构结果为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 自动 diff 仍为非零，且字体光栅化、头像、图标和局部组合差异尚未全部消除；本节不能将 Workspace Home、Agent Chat 或全量 105 张画板标记为像素级 `PASS`，shadcn 全量逐页视觉迁移和 iconfont 资源登记仍未完成。
+
+## 205. 2026-09-05 Knowledge 与 Profile 当前头像证据
+
+本节登记实时 Figma 节点 `795:838`、`806:1119` 对应的前端头像资源和浏览器证据。Figma 文件保持只读；本节不把资源替换或结构检查误写成像素级通过。
+
+- [x] Knowledge 使用 `FIGMA_KNOWLEDGE_AVATARS`；Profile 使用 `FIGMA_PROFILE_AVATARS`，分别覆盖侧栏、顶栏和资料卡头像。Profile 资源 SHA-256 已登记在 [前端已完成实现清单](./前端已完成实现清单.md) 的第 204 节。
+- [x] Profile 的 19 个状态与 Knowledge 的 3 个映射状态均登记 `1440×1024`、DPR `1`、字体加载完成和 Chrome `152.0.7977.77` 浏览器证据；独立 Knowledge 默认内容区证据同时保留。
+- [x] Profile 空头像回退逻辑已修正：仅在 fixture 明确传入头像时覆盖真实用户头像；真实模式仍按用户头像和性别默认头像解析。
+- [x] 105 项映射和自动 diff 输入已同步，结构校验通过：`total=105`、`structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [ ] 105 项自动 diff 汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；Knowledge 默认内容区 diff 为 `38.7247% / MAE 3.447377 / RMSE 17.079127 / maxChannelDelta 240`，Profile 与 Knowledge 仍需逐项人工视觉复核，不能标记 `PASS`。
+- [ ] iconfont 实体包、CSS 映射、来源和许可证仍缺失，继续保持 `BLOCKED`；shadcn 全量逐页视觉迁移也未完成。

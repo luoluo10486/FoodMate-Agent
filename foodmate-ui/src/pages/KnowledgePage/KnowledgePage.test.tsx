@@ -44,10 +44,11 @@ describe('KnowledgePage', () => {
   });
 
   it('uses the Figma shell fixture for the default page', () => {
-    renderPage('/knowledge?state=default');
+    const { container } = renderPage('/knowledge?state=default');
 
     expect(screen.getByRole('button', { name: 'Anddy' })).toBeInTheDocument();
     expect(screen.getByText('Anddy 的工作区')).toBeInTheDocument();
+    expect(container.querySelectorAll('img[src="/assets/figma/knowledge/user-avatar.png"]')).toHaveLength(2);
     expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /每周饮食微调/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();

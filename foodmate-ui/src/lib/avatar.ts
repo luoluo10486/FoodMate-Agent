@@ -9,6 +9,19 @@ export const FIGMA_WORKSPACE_AVATARS = {
   topbar: '/assets/figma/workspace/home-topbar-avatar.png',
 } as const;
 
+// Knowledge Figma fixture 在侧栏和顶栏使用同一份导出头像资源。
+export const FIGMA_KNOWLEDGE_AVATARS = {
+  sidebar: '/assets/figma/knowledge/user-avatar.png',
+  topbar: '/assets/figma/knowledge/user-avatar.png',
+} as const;
+
+// Profile Figma fixture 分别登记侧栏、顶栏和个人资料卡的导出头像资源。
+export const FIGMA_PROFILE_AVATARS = {
+  sidebar: '/assets/figma/profile/sidebar-avatar.png',
+  topbar: '/assets/figma/profile/topbar-avatar.png',
+  main: '/assets/figma/profile/main-avatar.png',
+} as const;
+
 export function getDefaultAvatarForGender(gender?: string): string | undefined {
   const normalized = gender?.trim().toLowerCase();
   if (normalized === '女' || normalized === 'female' || normalized === 'f') return DEFAULT_AVATARS.female;
