@@ -37,7 +37,7 @@ function parseViewport(value) {
 }
 
 function targetUrl(item) {
-  const query = item.queryState ? `${item.queryState}&visual-qa=1` : 'visual-qa=1';
+  const query = item.queryState && item.queryState !== 'null' ? `${item.queryState}&visual-qa=1` : 'visual-qa=1';
   return `http://127.0.0.1:5174${item.frontendRoute}${item.frontendRoute.includes('?') ? '&' : '?'}${query}`;
 }
 
@@ -137,6 +137,24 @@ async function capture(item, index) {
     });
     // Vite 首次导航期间会重建执行上下文，稳定等待后再读取页面运行时数据。
     await sleep(1000);
+    await evaluate(
+      client,
+      `new Promise((resolve, reject) => {
+        const deadline = Date.now() + 10000;
+        const check = () => {
+          if (document.querySelector('main')) {
+            resolve(true);
+            return;
+          }
+          if (Date.now() >= deadline) {
+            reject(new Error('页面主内容未加载完成'));
+            return;
+          }
+          window.setTimeout(check, 100);
+        };
+        check();
+      })`,
+    );
     await evaluate(client, 'document.fonts.ready.then(() => new Promise((resolve) => setTimeout(resolve, 300)))');
     const metrics = await evaluate(
       client,

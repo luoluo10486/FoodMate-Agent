@@ -1191,7 +1191,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "http://127.0.0.1:5174/register?null&visual-qa=1",
+      "url": "http://127.0.0.1:5174/register?visual-qa=1",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -2056,7 +2056,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "http://127.0.0.1:5174/reset-password?null&visual-qa=1",
+      "url": "http://127.0.0.1:5174/reset-password?visual-qa=1",
       "viewport": {
         "width": 1440,
         "height": 900
@@ -2895,7 +2895,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "http://127.0.0.1:5174/forgot-password?null&visual-qa=1",
+      "url": "http://127.0.0.1:5174/forgot-password?visual-qa=1",
       "viewport": {
         "width": 1440,
         "height": 900

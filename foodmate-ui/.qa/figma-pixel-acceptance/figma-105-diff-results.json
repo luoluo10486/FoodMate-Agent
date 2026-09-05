@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04",
+  "generatedAt": "2026-09-05",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -62,10 +62,10 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 46000,
-      "differentRatio": 0.035493827160493825,
-      "meanAbsoluteError": 0.5632710262345679,
-      "rmse": 7.556085752945383,
+      "differentPixels": 49199,
+      "differentRatio": 0.03796219135802469,
+      "meanAbsoluteError": 0.5660353009259259,
+      "rmse": 7.555450226492131,
       "maxChannelDelta": 213
     },
     "register-page": {
@@ -73,21 +73,21 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 693028,
-      "differentRatio": 0.5347438271604938,
-      "meanAbsoluteError": 4.9250185185185185,
-      "rmse": 12.976234063200424,
-      "maxChannelDelta": 202
+      "differentPixels": 55443,
+      "differentRatio": 0.04278009259259259,
+      "meanAbsoluteError": 0.5676884645061728,
+      "rmse": 6.677208144381532,
+      "maxChannelDelta": 198
     },
     "forgot-password-page": {
       "status": "COMPARED",
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 41263,
-      "differentRatio": 0.03183873456790123,
-      "meanAbsoluteError": 0.6985582561728395,
-      "rmse": 7.5587435574086435,
+      "differentPixels": 39046,
+      "differentRatio": 0.030128086419753085,
+      "meanAbsoluteError": 0.648710262345679,
+      "rmse": 7.311507978505739,
       "maxChannelDelta": 188
     },
     "reset-password-page": {
@@ -95,10 +95,10 @@
       "width": 1440,
       "height": 900,
       "pixelCount": 1296000,
-      "differentPixels": 52684,
-      "differentRatio": 0.040651234567901234,
-      "meanAbsoluteError": 1.279848186728395,
-      "rmse": 12.070848778739526,
+      "differentPixels": 50090,
+      "differentRatio": 0.03864969135802469,
+      "meanAbsoluteError": 1.0935389660493826,
+      "rmse": 10.593789344950427,
       "maxChannelDelta": 213
     },
     "login-submitting": {

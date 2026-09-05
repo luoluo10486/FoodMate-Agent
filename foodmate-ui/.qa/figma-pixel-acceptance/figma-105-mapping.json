@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-09-04",
+    "capturedAt": "2026-09-05",
     "figmaMcp": "get_metadata",
     "lastUpdated": "2026-09-05"
   },
@@ -507,7 +507,7 @@
       "frontendRoute": "/login",
       "queryState": "state=v2",
       "browserViewport": "1440x900",
-      "figmaPng": "docxs/设计/figma-png/login-v2.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/auth-login-647-214-live-2026-09-05.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-v2-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#login-v2",
       "status": "DIFF_REVIEW",
@@ -561,7 +561,7 @@
       "frontendRoute": "/register",
       "queryState": null,
       "browserViewport": "1440x900",
-      "figmaPng": "docxs/设计/figma-png/register-page.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/auth-register-680-216-live-2026-09-05.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-register-page-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#register-page",
       "status": "DIFF_REVIEW",
@@ -635,7 +635,7 @@
         "viewport": "1440x900",
         "fonts": "loaded",
         "bodyOverflow": false,
-        "url": "http://127.0.0.1:5174/register?null&visual-qa=1"
+        "url": "http://127.0.0.1:5174/register?visual-qa=1"
       }
     },
     {
@@ -648,7 +648,7 @@
       "frontendRoute": "/forgot-password",
       "queryState": null,
       "browserViewport": "1440x900",
-      "figmaPng": "docxs/设计/figma-png/forgot-password-page.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/auth-forgot-680-275-live-2026-09-05.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-forgot-password-page-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#forgot-password-page",
       "status": "DIFF_REVIEW",
@@ -708,7 +708,7 @@
         "viewport": "1440x900",
         "fonts": "loaded",
         "bodyOverflow": false,
-        "url": "http://127.0.0.1:5174/forgot-password?null&visual-qa=1"
+        "url": "http://127.0.0.1:5174/forgot-password?visual-qa=1"
       }
     },
     {
@@ -721,7 +721,7 @@
       "frontendRoute": "/reset-password",
       "queryState": null,
       "browserViewport": "1440x900",
-      "figmaPng": "docxs/设计/figma-png/reset-password-page.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/auth-reset-680-307-live-2026-09-05.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-reset-password-page-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#reset-password-page",
       "status": "DIFF_REVIEW",
@@ -781,7 +781,7 @@
         "viewport": "1440x900",
         "fonts": "loaded",
         "bodyOverflow": false,
-        "url": "http://127.0.0.1:5174/reset-password?null&visual-qa=1"
+        "url": "http://127.0.0.1:5174/reset-password?visual-qa=1"
       }
     },
     {
@@ -1118,7 +1118,7 @@
       "frontendRoute": "/token-status",
       "queryState": "state=invalid",
       "browserViewport": "1440x900",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured/token-invalid-figma-current-2026-08-29.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/auth-token-invalid-680-738-live-2026-09-05.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-invalid-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#token-invalid",
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/token-invalid-current-diff-2026-08-29.json",

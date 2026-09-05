@@ -107,6 +107,23 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 3. 只有在自动 diff、几何检查、文字检查和人工复核都满足时，才将单页从 `DIFF_REVIEW` 改为 `PASS`。
 4. iconfont 资源登记必须在收到真实包、CSS、来源和许可证后单独关闭，不能用 Lucide 或虚构字体替代。
 
+## 7.1 2026-09-05 Auth 实时 Figma 参考与 Login Motion 证据
+
+本节补充认证主画板的最新实时 Figma PNG 与浏览器 PNG。此前报告中的旧版认证 PNG 和历史截图保留为历史记录；本节路径为本次复采集的当前证据。Figma 文件保持只读。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | 视口 / DPR | diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---:|---|
+| Login | `647:214` | `recaptured-figma/auth-login-647-214-live-2026-09-05.png` | `recaptured/dpr1-login-v2-browser-2026-09-05.png` | `1440×900 / 1` | `3.7962%` | `0.566035` | `7.555450` | `213` | `DIFF_REVIEW` |
+| Register | `680:216` | `recaptured-figma/auth-register-680-216-live-2026-09-05.png` | `recaptured/dpr1-register-page-browser-2026-09-05.png` | `1440×900 / 1` | `4.2780%` | `0.567688` | `6.677208` | `198` | `DIFF_REVIEW` |
+| Forgot Password | `680:275` | `recaptured-figma/auth-forgot-680-275-live-2026-09-05.png` | `recaptured/dpr1-forgot-password-page-browser-2026-09-05.png` | `1440×900 / 1` | `3.0128%` | `0.648710` | `7.311507` | `188` | `DIFF_REVIEW` |
+| Reset Password | `680:307` | `recaptured-figma/auth-reset-680-307-live-2026-09-05.png` | `recaptured/dpr1-reset-password-page-browser-2026-09-05.png` | `1440×900 / 1` | `3.8650%` | `1.093539` | `10.593789` | `213` | `DIFF_REVIEW` |
+| Token Invalid | `680:738` | `recaptured-figma/auth-token-invalid-680-738-live-2026-09-05.png` | `recaptured/dpr1-token-invalid-browser-2026-09-05.png` | `1440×900 / 1` | `1.8195%` | `0.101208` | `2.509056` | `204` | `DIFF_REVIEW` |
+
+- [x] 五张 Figma 参考图与五张浏览器图均为 `1440×900`，浏览器使用 Chrome CDP、DPR `1`、字体 `loaded` 和 `visual-qa=1`；页面主内容已加载，无横向溢出。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和运行时 URL 记录已同步；三条空 query 页面不再登记 `?null&visual-qa=1`。
+- [x] Login 实时 Motion 数据来自 `get_motion_context(fileKey=MX18RZCfAmgprNzxItkHUH,nodeId=647:214,recursive=true)`：时间线 `4500ms`、`loopMode=loop`，包含 `647:275`、`660:212`、`647:236`、`647:237`、`647:240`、`647:250`、`647:253` 和 `647:278`；代码侧继续使用 GSAP 适配这些关键帧。
+- [ ] 五张当前参考图对比均存在非零差异，且尚未全部完成独立人工视觉复核，因此保持 `DIFF_REVIEW`；不能以 DPR、几何和字体检查通过替代像素级 `PASS`。
+
 ## 8. 餐食规划状态补充验收
 
 ## 9. 2026-09-02 Admin 操作审计页当前证据
