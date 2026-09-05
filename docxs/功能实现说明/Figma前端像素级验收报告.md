@@ -1838,6 +1838,22 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 本大点完成后集中执行前端质量门禁：`npm run test` 为 `39/39` 个测试文件、`240/240` 个用例通过，`npm run typecheck`、`npm run build`、`npm run format:check`、`npm run lint` 和 `git diff --check` 均通过；既有 React/Radix `act(...)` 提示不影响退出码。
 - [ ] 自动 diff 和人工视觉复核仍显示图标、字体光栅化及局部组合差异，本轮不能把 DPR/几何通过替代像素级 `PASS`；shadcn 全量逐页视觉收口尚未完成，iconfont 继续为 `BLOCKED`。
 
+## 20. 2026-09-05 Diet Records、Intake Analysis、Meal Planning 头像资源收口
+
+本大点重新读取实时 Figma 节点 `640:588`、`640:773` 和 `640:901`，并收口三个业务页面 fixture 的头像资源和主画板证据。Figma 文件保持只读，真实模式的性别默认头像不受影响。
+
+| 画板 | Figma 节点 | 浏览器入口 | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| Diet Records | `640:588` | `/analysis?view=records&state=v2` | `1440×1024 / 1` | `7.9734%` | `2.546144` | `16.834996` | `227` | `DIFF_REVIEW` |
+| Intake Analysis | `640:773` | `/analysis?state=v2` | `1440×1024 / 1` | `7.5430%` | `2.004188` | `14.243366` | `211` | `DIFF_REVIEW` |
+| Meal Planning | `640:901` | `/planning?state=v2` | `1440×1024 / 1` | `10.8512%` | `1.887898` | `12.687881` | `204` | `DIFF_REVIEW` |
+
+- [x] 三个 fixture 统一使用 `FIGMA_WORKSPACE_AVATARS`：侧栏为 `/assets/figma/workspace/home-sidebar-avatar.png`，顶栏为 `/assets/figma/workspace/home-topbar-avatar.png`；未使用真人默认头像，未创建虚构 iconfont 字形。
+- [x] 三个主画板浏览器 PNG 均在字体加载完成、页面无横向溢出和 DPR 1 条件下重新登记；尺寸均为 `1440×1024`，自动 diff 输入有效。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已同步本批次证据；全量汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] 本大点完成后集中执行四个直接相关测试文件，共 `29/29` 个用例通过；`npm run typecheck`、`npm run build`、`npm run lint`、`npm run format:check`、`npm run qa:figma:validate` 和 `git diff --check` 均通过。
+- [ ] 三个主画板仍有非零像素差异，不能用几何、字体和 DPR 门禁通过替代像素级 `PASS`；后续继续处理 Knowledge、Profile、Admin 画板，shadcn 全量逐页迁移和 iconfont 资源登记仍未完成。
+
 ## 17. 2026-09-05 Auth 页面组最新证据同步
 
 本轮对 Auth 页面组的 13 个 Figma 画板使用现有 Figma PNG 与最新浏览器 PNG 重新建立一一对应的 diff 证据。Figma 文件保持只读，浏览器采集使用 `visual-qa=1`，关闭动画和动态时间。
