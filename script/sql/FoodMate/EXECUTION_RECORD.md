@@ -2019,3 +2019,16 @@
 | 付费门禁 | R2 固定 `food-log` 单场景、累计 5 CNY、云 provider、无 fallback 和无自动重试；管理员账号密码只从当前 PowerShell 进程读取，不接受脚本参数。 |
 | 默认行为 | 无参数仅做 Docker Compose、Java/Python readiness、high Chat 云路由和付费门禁预检；付费执行默认软删除本轮记录和会话，`-KeepData` 才保留。 |
 | 本轮执行边界 | 未执行真实付费 R2，不产生新增云费用；因此不把 R2 真实云闭环标记为完成。未执行性能压测、组件重启、ACK/重复投递故障注入、备份恢复、生产操作或发布回滚。 |
+
+## D127 R4 真实云 SQL Agent 业务验收入口与预检复核（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 新增 `script/local/real-sql-agent-e2e.ps1` 及契约测试。入口默认只执行 Compose 配置、Java/Python readiness、SQL Planner/Composer 云路由和付费门禁预检；只有显式 `-ExecutePaid` 才会登录管理员、创建 Run 并调用真实云 Chat。管理员凭据仅从当前 PowerShell 进程读取，不接受命令行凭据参数。 |
+| 真实闭环覆盖 | 显式付费路径覆盖真实 Chat -> SQL Planner -> `time_parser`/`database_query` -> Java Schema/AST/用户范围/只读 Guard -> PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE，并验证 `Last-Event-ID` 回放。 |
+| 安全与费用边界 | 固定单个 `sql-agent` 场景、累计预算上限 5 CNY、要求 `cloud_primary`、关闭 fallback 和自动重试；脚本不输出或记录 API Key、密码、Prompt、完整回答或 SQL 原文，默认只软删除本轮会话。 |
+| 本轮预检 | `powershell.exe -NoProfile -NonInteractive -File .\script\local\real-sql-agent-e2e.ps1` 返回 `status=preflight_passed`；SQL Planner/Composer 均为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，`FOODMATE_SQL_PLANNER_MODE=local`，fallback 为 `false`，价格审计为 `true`；未创建 Run、未调用付费模型。 |
+| 业务测试 | `real-sql-agent-e2e.tests.ps1` 返回 `real_sql_agent_e2e_contract=passed`；PowerShell 5.1 解析通过；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；本轮未改动 Java/Python 核心实现，因此沿用前置业务测试证据。 |
+| 付费边界 | 当前进程未提供 `FOODMATE_E2E_ADMIN_USERNAME`/`FOODMATE_E2E_ADMIN_PASSWORD`，本轮未执行真实付费 SQL Agent，不产生新增供应商费用；要新增 R4 真实云证据，必须由执行人显式注入管理员凭据并运行 `-ExecutePaid`。 |
+| 暂缓范围 | 未执行性能压测、组件重启、ACK 丢失/重复投递故障注入、SSE 断线故障矩阵、备份恢复、生产容量或发布回滚。 |
+| 结论 | R4 真实 SQL Agent 业务验收入口已经具备可重复、受限和脱敏的执行条件；本轮只证明配置与业务门禁预检通过，不把 R4 真实云主链路标记为本轮新增完成证据。 |
