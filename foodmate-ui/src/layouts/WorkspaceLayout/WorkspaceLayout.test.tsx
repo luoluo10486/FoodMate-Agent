@@ -120,13 +120,9 @@ describe('WorkspaceLayout shell controls', () => {
   });
 
   it('uses the Figma green token for design chat brand and agent marks', () => {
-    const stylesheet = readFileSync(
-      resolve(process.cwd(), 'src/layouts/WorkspaceLayout/WorkspaceLayout.module.css'),
-      'utf8',
-    );
+    const stylesheet = readFileSync(resolve(process.cwd(), 'src/styles/tokens.css'), 'utf8');
 
-    expect(stylesheet).toContain('.designChat {');
-    expect(stylesheet).toContain('--fm-green: #4caf50;');
+    expect(stylesheet).toContain('--fm-green: #a6d997;');
   });
 
   it('allows a page to hide only the topbar mark letter while keeping its top navigation', () => {

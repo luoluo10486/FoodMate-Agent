@@ -632,7 +632,7 @@
 }
 
 .designChatPage {
-  --fm-fixture-assistant-surface: #f9fafb;
+  --fm-fixture-assistant-surface: #f4f6f5;
   --fm-fixture-composer-input-surface: #fcfcfc;
 }
 
@@ -645,27 +645,25 @@
   line-height: 1.5;
 }
 
-/* Figma agent-chat-v2 uses Noto Sans SC for the assistant body; keep the
-   monospace treatment scoped to source and trace text instead. */
+/* Figma agent-chat-v2 的助手正文使用 Noto Sans SC；等宽字体只保留给来源和运行轨迹。 */
 .designChatPage .assistant .messageText {
   font-family: var(--fm-font);
 }
 
-/* Figma node 640:428 lets the default assistant surface reach the trace
-   boundary; keep this geometry isolated from other chat fixtures. */
+/* Figma 节点 640:428 的助手内容区固定为 560px，右侧空白属于画板布局。 */
 .figmaDefaultPage .assistantBody {
-  width: 780px;
-  flex: 0 0 780px;
+  width: 560px;
+  flex: 0 0 560px;
 }
 
 .figmaDefaultPage .assistant .messageBubble {
-  gap: 10px;
-  padding-right: 0;
+  gap: 12px;
+  padding-right: 16px;
 }
 
 .figmaDefaultPage .assistant .messageText {
-  overflow: hidden;
-  white-space: nowrap;
+  overflow: visible;
+  white-space: pre-wrap;
 }
 
 .figmaDefaultPage .assistant .source {
@@ -891,7 +889,7 @@
   color: #57635c;
   font-size: 13px;
   line-height: 18px;
-  white-space: nowrap;
+  white-space: pre;
 }
 
 .messageActions .actionGreen {

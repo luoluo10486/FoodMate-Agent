@@ -76,7 +76,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；后续 in-app 浏览器实际 DPR 为 `1.25` 的当前版本复核，运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。当前 `figma-105-runtime-checks.json` 已通过 DPR 1 复采集，运行时汇总为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；这只关闭分辨率门禁，不能替代自动 diff 和人工视觉复核，因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 
@@ -1895,3 +1895,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 19 项 PNG 尺寸均为 `1440×1024`，全量校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；运行时几何、文字和 DPR 门禁均通过。
 - [ ] 19 项均为非零 diff，且尚未完成逐项人工视觉复核，全部保持 `DIFF_REVIEW`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能提前标记 PASS。
 - [ ] 本批次不关闭 shadcn 全量逐页视觉迁移或 iconfont 阻塞；标准命令图标继续使用 Lucide，iconfont 仍为 `BLOCKED`。
+
+## 19. 2026-09-05 Workspace Home 与 Agent Chat 当前代码收口
+
+本节记录本轮当前工作区代码改动对应的验收口径，覆盖实时 Figma 节点 `640:256` 和 `640:428`。Figma 文件保持只读；本节不吸收后端 Mapper、Admin 并行改动或临时 SQL 文件。
+
+- [x] Workspace Home fixture 继续使用 `260px` 侧栏和 `24px` 侧栏内边距；在 `1101px~1399px` 中等桌面范围隐藏工作区搜索，避免导航和账户操作发生布局挤压。
+- [x] Agent Chat fixture 的助手正文当前按 `560px` 固定宽度实现，助手消息外层背景按 `#f4f6f5` 实现，正文使用 `Noto Sans SC` 并允许自然换行；来源和运行轨迹继续使用等宽字体。
+- [x] Chat 消息操作区文案和间隔按当前 Figma fixture 收口；写入确认、预算追加、重试、取消和 SSE 状态的真实服务逻辑不因视觉调整改变。
+- [x] 对应证据仍使用 `1440×1024`、DPR `1`、字体 `loaded` 和无页面横向溢出条件；当前代表性 diff 为 Workspace Home `23.7111% / MAE 3.486692 / RMSE 18.329592 / maxChannelDelta 254`，Agent Chat `14.5983% / MAE 3.046648 / RMSE 18.422228 / maxChannelDelta 236`，二者均为 `DIFF_REVIEW`。
+- [x] `npm run qa:figma:validate` 的当前结构结果为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 自动 diff 仍为非零，且字体光栅化、头像、图标和局部组合差异尚未全部消除；本节不能将 Workspace Home、Agent Chat 或全量 105 张画板标记为像素级 `PASS`，shadcn 全量逐页视觉迁移和 iconfont 资源登记仍未完成。

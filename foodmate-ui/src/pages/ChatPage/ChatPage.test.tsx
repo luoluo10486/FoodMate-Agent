@@ -132,24 +132,19 @@ describe('ChatPage Figma 默认状态', () => {
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
   });
 
-  it('uses the full-width assistant surface for the Figma default response', () => {
-    render(
-      <MemoryRouter initialEntries={['/chat?state=figma-v2']}>
-        <Routes>
-          <Route path="/chat/:session_id?" element={<ChatPage />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+  it('uses the Figma 560px assistant content width for the default response', () => {
+    const stylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
 
-    const assistantBody = document.querySelector(`[class*="${styles.assistantBody}"]`);
-    expect(assistantBody).toHaveClass(styles.assistantBodyWide);
+    expect(stylesheet).toContain('.figmaDefaultPage .assistantBody {');
+    expect(stylesheet).toContain('width: 560px;');
+    expect(stylesheet).toContain('flex: 0 0 560px;');
   });
 
   it('uses the Figma neutral surface for the assistant message body', () => {
     const stylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
 
     expect(stylesheet).toContain('.designChatPage .assistant .messageBubble');
-    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f9fafb;');
+    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f4f6f5;');
   });
 
   it('uses the Figma surface for the Composer input row in the fixture', () => {
@@ -161,6 +156,21 @@ describe('ChatPage Figma 默认状态', () => {
 
     expect(pageStylesheet).toContain('--fm-fixture-composer-input-surface: #fcfcfc;');
     expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
+  });
+
+  it('keeps the Figma default message action guidance under the assistant answer', () => {
+    renderChatState('figma-v2');
+
+    expect(screen.getByRole('region', { name: '消息操作' })).toBeInTheDocument();
+    expect(
+      screen.getByText((content) => content.includes('用户消息：编辑') && content.includes('重试')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText((content) => content.includes('Agent 回答：复制') && content.includes('继续提问')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText((content) => content.includes('右侧面板：运行') && content.includes('原始 JSON')),
+    ).toBeInTheDocument();
   });
 });
 
