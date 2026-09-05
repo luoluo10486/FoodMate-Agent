@@ -179,6 +179,12 @@ async function capture(item, index) {
         url: window.location.pathname + window.location.search
       })`,
     );
+    // Figma 参考图不包含浏览器焦点描边，截图前只移除当前焦点，不改变生产样式。
+    await evaluate(client, `(() => {
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement) activeElement.blur();
+      return true;
+    })()`);
     const screenshot = await client.send('Page.captureScreenshot', { format: 'png', fromSurface: true });
     writeFileSync(outputPath, Buffer.from(screenshot.data, 'base64'));
     socket.close();

@@ -14,6 +14,16 @@ function renderRegistry() {
   );
 }
 
+function renderOperationFixture(state: string) {
+  return render(
+    <MemoryRouter initialEntries={[`/admin?state=${state}`]}>
+      <Routes>
+        <Route path="/admin/*" element={<AdminPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 describe('Admin tool registry', () => {
   it('matches the Figma registry structure and query route', () => {
     renderRegistry();
@@ -70,5 +80,29 @@ describe('Admin tool registry', () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('操作成功'), { timeout: 1200 });
     expect(screen.getByRole('alert')).toHaveTextContent('nutrition_lookup');
+  });
+
+  it('matches Figma disabled controls for the operator permission fixture', () => {
+    renderOperationFixture('op-no-permission');
+
+    expect(screen.getByText('管理员：Operator（无写权限）')).toBeInTheDocument();
+    const actionButtons = screen.getAllByRole('button', { name: '停用工具' });
+    expect(actionButtons).toHaveLength(4);
+    expect(actionButtons.every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
+    expect(actionButtons.every((button) => button.className.includes('registryActionDisabled'))).toBe(true);
+    expect(actionButtons.every((button) => button.querySelector('svg'))).toBe(true);
+  });
+
+  it('keeps the disabled tool row and attention actions in the success fixture', () => {
+    renderOperationFixture('op-success');
+
+    expect(screen.getByText('已停用')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '启用工具' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '停用工具' })).toHaveLength(3);
+    expect(
+      screen
+        .getAllByRole('button', { name: '停用工具' })
+        .every((button) => button.className.includes('registryActionAttention')),
+    ).toBe(true);
   });
 });

@@ -1974,3 +1974,23 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `figma-105-mapping.json` 已将 `admin-overview` 指向本次截图，`figma-105-diff-results.json` 已重新生成；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [x] `npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；本轮没有把结构门禁通过误写成像素级通过。
 - [ ] Admin Overview 仍有非零自动 diff，默认头像、字体光栅化和局部像素差异尚未消除，继续保持 `DIFF_REVIEW`；Admin 其余画板、shadcn 全量逐页视觉迁移和 iconfont 实体资源登记仍未完成。
+
+## 22. 2026-09-05 Admin 工具注册表及六种操作状态视觉收口
+
+本批次依据实时 Figma 节点 `692:3847`、`692:4319`、`692:4539`、`692:4766`、`692:4995` 和 `692:5207`，重新采集同尺寸浏览器证据并完成 Admin 工具注册表操作状态的视觉收口。Figma 文件保持只读。
+
+| 画板 | Figma 节点 | 前端入口 | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| `admin-tool-registry` | `692:3847` | `/admin?state=tool-registry` | `1440×1024 / 1` | `15.8801%` | `4.020725` | `21.038847` | `244` | `DIFF_REVIEW` |
+| `admin-op-no-permission` | `692:4319` | `/admin?state=op-no-permission` | `1440×1024 / 1` | `15.4554%` | `3.861192` | `20.391081` | `244` | `DIFF_REVIEW` |
+| `admin-op-confirm` | `692:4539` | `/admin?state=op-confirm` | `1440×1024 / 1` | `17.4894%` | `2.171402` | `11.933188` | `224` | `DIFF_REVIEW` |
+| `admin-op-submitting` | `692:4766` | `/admin?state=op-submitting` | `1440×1024 / 1` | `15.9030%` | `2.179733` | `11.955242` | `224` | `DIFF_REVIEW` |
+| `admin-op-success` | `692:4995` | `/admin?state=op-success` | `1440×1024 / 1` | `14.9661%` | `3.823359` | `20.513058` | `253` | `DIFF_REVIEW` |
+| `admin-op-failed` | `692:5207` | `/admin?state=op-failed` | `1440×1024 / 1` | `17.1870%` | `2.490198` | `13.233070` | `204` | `DIFF_REVIEW` |
+
+- [x] 6 张浏览器 PNG 均使用 Chrome `152.0.7977.77`、`1440×1024`、DPR `1`、字体 `loaded` 和无页面横向溢出条件；证据位于 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/`。
+- [x] 工具注册表表格按 Figma 使用 `58px` 数据行和 `68px / 68px / 48px / 72px` 末四列轨道；行内操作按钮为 `26px`，图标为 `14px`。
+- [x] 确认和提交中状态使用 Figma 的 `37px` 操作按钮与 `14px` 进度说明行高；失败态使用错误图标、纯黑 `40%` 遮罩和“关闭”按钮；无权限态保留 Operator 身份和禁用操作按钮。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已同步本批次主证据。`npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`，全量汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] 本批次完成后集中执行 `npm run test`（`39/39` 文件、`247/247` 用例）、`npm run typecheck`、`npm run build`、`npm run lint`、`npm run format:check` 和 `git diff --check`，均通过。
+- [ ] 六个目标画板的自动 diff 均非零，人工复核结论继续保持 `DIFF_REVIEW`；本批次不宣称 Admin 或 105 张画板达到像素级 `PASS`。shadcn 全量逐页迁移尚未完成，iconfont 实体包、CSS 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。

@@ -776,6 +776,8 @@ export function AdminPage() {
     requestedFixture === 'trace';
   const detailTitle =
     requestedFixture === 'tool-calls' || requestedFixture === 'sql-audit' ? '工具调用与 SQL 审计' : 'Agent 运行控制台';
+  const isOperatorFixture = requestedFixture === 'op-no-permission';
+  const hasWriteAccess = canManage && !isOperatorFixture;
   const [pendingAction, setPendingAction] = useState<AdminActionPayload>();
   const [operationStatus, setOperationStatus] = useState<AdminOperationState>('idle');
   const [operationError, setOperationError] = useState<AdminOperationError>();
@@ -807,7 +809,7 @@ export function AdminPage() {
     setOperationError(undefined);
     setNotice('');
     setPendingAction(payload);
-    if (!canManage) {
+    if (!hasWriteAccess) {
       setOperationStatus('no-permission');
       return;
     }
@@ -904,7 +906,7 @@ export function AdminPage() {
             const isActive = fixtureNavKey
               ? item.key === fixtureNavKey
               : isAdminNavItemActive(item.path, pathname, search);
-            const isLocked = Boolean(item.adminOnly && !canManage);
+            const isLocked = Boolean(item.adminOnly && !hasWriteAccess);
             return (
               <Link
                 aria-current={isActive ? 'page' : undefined}
@@ -931,7 +933,7 @@ export function AdminPage() {
         <div className={styles.sidebarFooter}>
           <div className={styles.privilegeBox}>
             <span className={styles.privilegeDot} aria-hidden="true" />
-            <strong>{canManage ? '管理员：完全权限' : '操作员：只读'}</strong>
+            <strong>{hasWriteAccess ? '管理员：完全权限' : '管理员：Operator（无写权限）'}</strong>
           </div>
           <Link className={styles.workspaceLink} to={ROUTES.HOME}>
             返回 Agent 工作区
