@@ -58,7 +58,7 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1,
+        "actualDpr": 1.0000000149011612,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -112,7 +112,7 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -5312,7 +5312,7 @@
       "queryState": "state=overview",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/admin-overview-current-2026-08-31.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-grid-browser-2026-08-31-rgba.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-admin-overview-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-overview",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -5322,7 +5322,7 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -5341,8 +5341,18 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-31",
-        "conclusion": "依据实时 Figma 节点 1005:2、1005:3、1005:7、1005:11，将三张分析卡固定为 344px 并使用 inset 描边；浏览器实测卡片位置为 x=308/668/1028、y=782、w=344、h=180，字体已加载、页面无溢出，前端左上角红黄绿窗口装饰候选为 0。默认男性头像按用户要求使用项目默认资产，不替换为 Figma 真人头像；头像、图标和浏览器光栅化差异仍存在，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-05",
+        "conclusion": "已依据实时 Figma 节点 995:977 复核概览总量和分页文案，浏览器改为显示 12,480 条系统结果；最新截图为 1440x1024、DPR 1、字体 loaded、页面无横向溢出，三张分析卡位置为 x=308/668/1028、y=782、w=344、h=180。默认男性头像按用户要求使用项目默认资产，不替换为 Figma 真人头像；最新 diff 为 10.6799%，头像、字体和浏览器光栅化差异仍存在，保留 DIFF_REVIEW。"
+      },
+      "dpr1Capture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "dpr": 1,
+        "viewport": "1440x1024",
+        "fonts": "loaded",
+        "bodyOverflow": false,
+        "url": "http://127.0.0.1:5174/admin?state=overview&visual-qa=1"
       },
       "additionalVisualEvidence": [
         {

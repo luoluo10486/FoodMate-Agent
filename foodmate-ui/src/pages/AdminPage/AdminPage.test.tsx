@@ -25,6 +25,7 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('成功率')).toBeInTheDocument();
     expect(screen.getByText('91.4%')).toBeInTheDocument();
     expect(screen.getByText('$128.45')).toBeInTheDocument();
+    expect(screen.getByText('显示第 1 到 6 条，共 12,480 条结果')).toBeInTheDocument();
     expect(screen.getAllByText('查看详情')).toHaveLength(6);
     expect(screen.getByRole('button', { name: '复制 run_889a4' })).toBeInTheDocument();
 

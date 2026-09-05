@@ -1960,3 +1960,17 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `figma-105-diff-results.json` 已重新生成，自动比较输入为 `105/105`；全量校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
 - [x] Auth 相关代码、测试和采集脚本门禁已完成：Vitest `39/39` 文件、`245/245` 用例，typecheck、build、lint、format:check 和 `git diff --check` 均通过。
 - [ ] Auth 13 项 diff 均为非零差异，仍需继续处理字体、头像、图标和浏览器光栅化差异；因此不能标记像素级 `PASS`。105 项汇总继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 仍为 `BLOCKED`。
+
+## 21. 2026-09-05 Admin Overview 分页总量证据
+
+本轮依据实时 Figma 节点 `995:977` 对 Admin Overview mock 分页总量进行视觉修正和同尺寸复采集。Figma 文件保持只读，用户指定的男性默认头像继续使用项目默认资源，不替换为 Figma 中的真人头像。
+
+| 画板 | Figma 节点 | 前端入口 | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| `admin-overview` | `995:977` | `/admin?state=overview&visual-qa=1` | `1440×1024 / 1` | `10.6799%` | `2.591621` | `15.781021` | `238` | `DIFF_REVIEW` |
+
+- [x] Figma 设计稿显示 `显示第 1 到 6 条，共 12,480 条结果`；浏览器 mock 不再把六条首屏数据误报为总量，且数字统一显示千位分隔符。
+- [x] 浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/dpr1-admin-overview-browser-2026-09-05.png`；截图尺寸 `1440×1024`，DPR `1`，字体状态 `loaded`，页面无横向溢出。
+- [x] `figma-105-mapping.json` 已将 `admin-overview` 指向本次截图，`figma-105-diff-results.json` 已重新生成；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] `npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；本轮没有把结构门禁通过误写成像素级通过。
+- [ ] Admin Overview 仍有非零自动 diff，默认头像、字体光栅化和局部像素差异尚未消除，继续保持 `DIFF_REVIEW`；Admin 其余画板、shadcn 全量逐页视觉迁移和 iconfont 实体资源登记仍未完成。

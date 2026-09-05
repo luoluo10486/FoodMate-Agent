@@ -32,6 +32,8 @@ type OverviewRow = {
 
 const overviewMetrics: OverviewMetric[] = adminOverviewMetrics;
 const overviewRows: OverviewRow[] = adminOverviewRows;
+// Figma 概览页展示的是系统总量，mock 行只负责还原首屏可见记录。
+const overviewFixtureTotal = 12480;
 
 function queryRowsToOverviewRows(rows: AdminQueryRun[]): OverviewRow[] {
   return rows.map((row, index) => ({
@@ -105,6 +107,10 @@ function copyRunId(runId: string) {
   if (navigator.clipboard) void navigator.clipboard.writeText(runId);
 }
 
+function formatResultCount(value: number) {
+  return value.toLocaleString('en-US');
+}
+
 export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refreshNonce?: number }) {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [metrics, setMetrics] = useState<OverviewMetric[]>(overviewMetrics);
@@ -113,7 +119,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
   const [degradedFilter, setDegradedFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(overviewRows.length);
+  const [total, setTotal] = useState(isRealMode ? 0 : overviewFixtureTotal);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
@@ -311,7 +317,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
       <section className={styles.overviewPagination} aria-label="运行结果分页">
         <span>
           {total
-            ? `显示第 ${(page - 1) * pageSize + 1} 到 ${Math.min(page * pageSize, total)} 条，共 ${total} 条结果`
+            ? `显示第 ${(page - 1) * pageSize + 1} 到 ${Math.min(page * pageSize, total)} 条，共 ${formatResultCount(total)} 条结果`
             : '暂无结果'}
         </span>
         <div className={styles.overviewPageButtons}>
