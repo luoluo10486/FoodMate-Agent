@@ -390,7 +390,7 @@ try {
 
         $context = New-ApiContext
         $csrf = Invoke-Login $context
-        $prompt = "Analyze my protein and calorie intake for the last 7 days by meal type. Use only my saved food logs. Read-only query; do not modify records or invent data."
+        $prompt = "请分析我最近 7 天按餐次的蛋白质和热量摄入，只查询我已保存的饮食记录。只读查询，不要修改记录，也不要编造数据。"
         $runResponse = Invoke-Api -ApiContext $context -Method "POST" -Url "$JavaBaseUrl/api/chat/runs" -Payload @{ prompt = $prompt } -Headers @{ "X-CSRF-Token" = $csrf }
         $runData = Get-Field $runResponse @("data")
         $report.run_id = [string](Get-Field $runData @("run_id", "runId"))

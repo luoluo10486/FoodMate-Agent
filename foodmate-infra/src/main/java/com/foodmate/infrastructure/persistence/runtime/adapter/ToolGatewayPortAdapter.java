@@ -3,6 +3,7 @@ package com.foodmate.infrastructure.persistence.runtime.adapter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
+import com.foodmate.application.runtime.port.out.ToolGatewayPort.ToolCall;
 import com.foodmate.infrastructure.persistence.runtime.ToolGatewayMapper;
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
@@ -74,5 +75,10 @@ public class ToolGatewayPortAdapter implements ToolGatewayPort {
     @Override
     public void audit(Audit audit) {
         mapper.audit(audit);
+    }
+
+    @Override
+    public void recordToolCall(ToolCall toolCall) {
+        mapper.recordToolCall(toolCall);
     }
 }

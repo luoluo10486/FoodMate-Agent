@@ -2046,3 +2046,15 @@
 | 统一审计 | 本轮数据库核对到 `agent_run.create=1`、`approval.propose/confirm/execute=3`、`meal_plan.create=1`、`meal_plan.save=1` 和上下文装配审计；审批确认参数摘要可稳定复用，未保存密码、令牌、Prompt、完整回答或 API Key。 |
 | 数据清理 | 脚本默认清理成功：餐食计划及购物清单 `is_deleted=true`，会话软删除；审批和 Run 审计事实按保留约定保留。未执行迁移、truncate、备份恢复、性能压测、组件重启、ACK/重复投递故障注入或生产操作。 |
 | 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> Java Proposal -> 管理员确认/执行 -> 餐食计划与购物清单 -> `run.completed`/SSE 的 R3 业务闭环已取得直接证据；本轮修复了真实云调用超过短 SSE 超时时的验收脚本误清理问题。 |
+
+## D129 R4 真实云 SQL Agent 只读查询闭环（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；临时管理员凭据仅在当前 PowerShell 进程注入，未写入 `.env`、日志或本记录。 |
+| 镜像与启动 | Java Docker 镜像重建成功；`foodmate` 和 `agent-runtime` 重新创建并通过 readiness；RocketMQ Topic/consumer group 初始化成功；未执行迁移、truncate 或数据卷清理。 |
+| 真实 Chat 与 SQL Planner | 付费门禁为单场景、累计上限 `5 CNY`、`no_retry=true`、`require_cloud=true`；Planner 和 Composer 均实际使用 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，共记录 `4` 条成功模型用量事件。 |
+| Run/SSE | Run `354576587540140032`、Session `354576587418505216`；初始 SSE `18` 条，事件 ID 唯一，唯一终态为 `run.completed`；`Last-Event-ID` 回放返回 `1` 条终态事件，未出现重复终态。 |
+| SQL Agent 工具与审计 | ToolCall 实际包含 `time_parser`、`database_query`；PostgreSQL `sql_query_audits` 共 `2` 条，`executed=2`、`failed=0`；工具持久化仅保存输入/语句摘要、结果状态、行数、SQL 审计 ID、错误码和关联标识，不保存原始 SQL、Prompt、完整结果或凭据。 |
+| 数据清理 | 验收脚本默认软删除本轮 Session，清理成功；Run、ToolCall 和 SQL 审计事实按保留约定保留用于复核。 |
+| 结论 | 真实 SiliconFlow Chat -> SQL Planner -> Java `time_parser`/`database_query` Guard -> PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE 回放的 R4 业务闭环已取得直接证据；本轮修复并持久化 ToolCall 安全事实。未执行性能压测、组件故障注入、ACK/重复投递专项、备份恢复、生产操作或发布回滚。 |

@@ -1,6 +1,7 @@
 package com.foodmate.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.eq;
@@ -96,6 +97,12 @@ class ToolGatewayServiceTest {
         assertEquals("succeeded", result.status());
         assertEquals(1, result.rows().size());
         verify(store).audit(any(ToolGatewayPort.Audit.class));
+        ArgumentCaptor<ToolGatewayPort.ToolCall> toolCall =
+                ArgumentCaptor.forClass(ToolGatewayPort.ToolCall.class);
+        verify(store).recordToolCall(toolCall.capture());
+        assertEquals("database_query", toolCall.getValue().toolName());
+        assertEquals("success", toolCall.getValue().status());
+        assertFalse(toolCall.getValue().inputJson().contains("SELECT 1"));
     }
 
     @Test

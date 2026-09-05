@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Java Tool Gateway：Python 只提交 Proposal，Java 负责权限、SQL Guard、执行和审计。 */
 @Service
@@ -128,7 +129,19 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
     }
 
     @Override
+    @Transactional
     public ProposalResult execute(ProposalCommand proposal) {
+        long started = System.nanoTime();
+        ProposalResult result = null;
+        try {
+            result = executeInternal(proposal);
+            return result;
+        } finally {
+            recordToolCallFact(proposal, result, (System.nanoTime() - started) / 1_000_000);
+        }
+    }
+
+    private ProposalResult executeInternal(ProposalCommand proposal) {
         if (proposal == null) return reject(null, "PROPOSAL_NOT_ALLOWED");
         String proposalId = text(proposal.proposalId());
         String runId = text(proposal.runId());
@@ -216,6 +229,70 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         }
         if (!"sql_read".equals(type)) return reject(proposalId, "PROPOSAL_NOT_ALLOWED");
         return executeValidated(proposalId, runId, statement, invocationId);
+    }
+
+    /** 工具执行只记录安全摘要，原始 SQL、问题和业务载荷分别留在专用审计边界。 */
+    private void recordToolCallFact(
+            ProposalCommand proposal, ProposalResult result, long latencyMs) {
+        if (proposal == null || result == null || text(result.toolName()) == null) return;
+        long runId;
+        try {
+            runId = Long.parseLong(text(proposal.runId()));
+        } catch (NumberFormatException exception) {
+            return;
+        }
+        ObjectNode input = mapper.createObjectNode();
+        String statement =
+                proposal.payload() == null ? null : text(proposal.payload().statement());
+        String inputDigest =
+                proposal.input() == null
+                        ? digest(statement)
+                        : digest(proposal.input().toString());
+        input.put("input_digest", inputDigest);
+        input.put("input_kind", proposal.input() == null ? "statement" : "json");
+        if (statement != null && !statement.isBlank())
+            input.put("statement_digest", digest(statement));
+
+        ObjectNode output = mapper.createObjectNode();
+        String resultStatus = text(result.status());
+        output.put("status", resultStatus == null ? "failed" : resultStatus);
+        output.put("row_count", result.rows() == null ? 0 : result.rows().size());
+        if (result.sqlAuditId() != null) output.put("sql_audit_id", result.sqlAuditId());
+        if (result.errorCode() != null) output.put("error_code", result.errorCode());
+        int boundedLatency = (int) Math.min(Integer.MAX_VALUE, Math.max(0L, latencyMs));
+        store.recordToolCall(
+                new ToolGatewayPort.ToolCall(
+                        ids.nextId(),
+                        runId,
+                        text(result.toolName()),
+                        "v1",
+                        safeJson(input),
+                        safeJson(output),
+                        persistedToolCallStatus(resultStatus),
+                        boundedLatency,
+                        result.errorCode(),
+                        truncateTrace("proposal:" + text(proposal.proposalId()))));
+    }
+
+    private static String persistedToolCallStatus(String status) {
+        return switch (status == null ? "failed" : status) {
+            case "succeeded", "success" -> "success";
+            case "confirmation_required", "pending" -> "pending";
+            case "cancelled" -> "cancelled";
+            default -> "failed";
+        };
+    }
+
+    private String safeJson(JsonNode value) {
+        try {
+            return mapper.writeValueAsString(value);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {
+            return "{}";
+        }
+    }
+
+    private static String truncateTrace(String value) {
+        return value.substring(0, Math.min(64, value.length()));
     }
 
     private ProposalResult executeApprovalWrite(
