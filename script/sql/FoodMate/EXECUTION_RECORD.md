@@ -2032,3 +2032,17 @@
 | 付费边界 | 当前进程未提供 `FOODMATE_E2E_ADMIN_USERNAME`/`FOODMATE_E2E_ADMIN_PASSWORD`，本轮未执行真实付费 SQL Agent，不产生新增供应商费用；要新增 R4 真实云证据，必须由执行人显式注入管理员凭据并运行 `-ExecutePaid`。 |
 | 暂缓范围 | 未执行性能压测、组件重启、ACK 丢失/重复投递故障注入、SSE 断线故障矩阵、备份恢复、生产容量或发布回滚。 |
 | 结论 | R4 真实 SQL Agent 业务验收入口已经具备可重复、受限和脱敏的执行条件；本轮只证明配置与业务门禁预检通过，不把 R4 真实云主链路标记为本轮新增完成证据。 |
+
+## D128 R3 真实云餐食计划审批写入闭环（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；临时管理员凭据仅在当前 PowerShell 进程注入，未写入 `.env`、日志或本记录。 |
+| 镜像与启动 | Java Docker 镜像重建成功；Runtime 使用已构建镜像启动并通过 readiness。RocketMQ 初始化容器在最后的 `topicList` 信息步骤存在约 2 分钟延迟，本轮验收对 Runtime 重建使用 `--no-deps`，未修改初始化脚本或消息数据。 |
+| 失败记录与修复 | 首轮付费 R3 Run `354559592874643456` 因验收脚本 SSE 客户端固定 45 秒超时提前清理会话，后续工具调用得到 `RUN_NOT_FOUND`；将 `real-meal-plan-e2e.ps1` 的客户端超时改为跟随 `RunTimeoutSeconds` 后，脚本契约测试通过。该轮未产生餐食计划写入。 |
+| 真实 Chat | 第二轮显式 `-ExecutePaid` 通过付费门禁；Run `354561396886736896`、Session `354561396828016640`，provider 为 `cloud_primary`，模型为 `deepseek-ai/DeepSeek-V4-Flash`，`run.model_usage` 成功事件 `1` 条，未启用 fallback。 |
+| 审批与业务写入 | `run.clarification_requested` 正常返回 Approval `354561413936582656`；状态从 `pending` 经 `confirm` 到 `executed`；生成 `meal_plan_id=354561416176340992`，状态 `saved`、`days=1`、revision `3`；购物清单生成 `14` 个条目。 |
+| Run/SSE | Run 最终 `completed/result_type=normal`；初始 SSE `14` 条并包含唯一模型用量事件，确认执行后终态 SSE `1` 条；全量持久化 SSE `15` 条、`stream_seq=1..15`、事件 ID 全部唯一，`run.completed=1`，未出现重复终态。R3 餐食计划终态不包含知识库引用字段，RAG 引用以 R1 记录为准。 |
+| 统一审计 | 本轮数据库核对到 `agent_run.create=1`、`approval.propose/confirm/execute=3`、`meal_plan.create=1`、`meal_plan.save=1` 和上下文装配审计；审批确认参数摘要可稳定复用，未保存密码、令牌、Prompt、完整回答或 API Key。 |
+| 数据清理 | 脚本默认清理成功：餐食计划及购物清单 `is_deleted=true`，会话软删除；审批和 Run 审计事实按保留约定保留。未执行迁移、truncate、备份恢复、性能压测、组件重启、ACK/重复投递故障注入或生产操作。 |
+| 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> Java Proposal -> 管理员确认/执行 -> 餐食计划与购物清单 -> `run.completed`/SSE 的 R3 业务闭环已取得直接证据；本轮修复了真实云调用超过短 SSE 超时时的验收脚本误清理问题。 |

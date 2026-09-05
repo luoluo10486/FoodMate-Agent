@@ -99,11 +99,11 @@ function New-HttpFailure([string]$Method, [int]$StatusCode, [string]$Body) {
     return $exception
 }
 
-function New-ApiContext {
+function New-ApiContext([int]$TimeoutSeconds = 45) {
     $handler = [System.Net.Http.HttpClientHandler]::new()
     $handler.CookieContainer = [System.Net.CookieContainer]::new()
     $client = [System.Net.Http.HttpClient]::new($handler)
-    $client.Timeout = [TimeSpan]::FromSeconds(45)
+    $client.Timeout = [TimeSpan]::FromSeconds([math]::Max(45, $TimeoutSeconds))
     return [pscustomobject]@{ Handler = $handler; Client = $client }
 }
 
@@ -388,9 +388,13 @@ try {
             throw "paid execution gate is not fail-closed for meal-plan"
         }
 
-        $context = New-ApiContext
+        # The SSE request lives for the whole AgentRun. Cloud proposal generation
+        # may exceed the short timeout used by ordinary control-plane requests.
+        $context = New-ApiContext ($RunTimeoutSeconds + 30)
         $csrf = Invoke-Login $context
-        $prompt = "请为我生成一个7天的家庭餐食计划，2人，每日预算不超过200元，目标是均衡蛋白质和蔬菜；请给出早餐、午餐、晚餐和食材，生成候选后等待我确认保存。"
+        # Keep the paid acceptance payload small enough for the configured model
+        # output budget while still exercising the complete plan workflow.
+        $prompt = "请为我生成一个1天的家庭餐食计划，2人，当日预算不超过200元，目标是均衡蛋白质和蔬菜；必须给出早餐、午餐、晚餐及各自食材，生成候选后等待我确认保存。"
         $runResponse = Invoke-Api $context "POST" "$JavaBaseUrl/api/chat/runs" @{ prompt = $prompt } $null @{ "X-CSRF-Token" = $csrf }
         $runData = Get-Field $runResponse @("data")
         $report.run_id = [string](Get-Field $runData @("run_id", "runId"))
