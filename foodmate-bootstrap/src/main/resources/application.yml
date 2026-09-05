@@ -95,6 +95,14 @@ foodmate:
     default-chat-model: qwen-plus
     default-embed-model: text-embedding-v4
     timeout-ms: 15000
+    governance:
+      default-provider: ${FOODMATE_MODEL_GOVERNANCE_DEFAULT_PROVIDER:deterministic}
+      default-model: ${FOODMATE_MODEL_GOVERNANCE_DEFAULT_MODEL:qwen-plus}
+      route-version: ${FOODMATE_MODEL_GOVERNANCE_ROUTE_VERSION:env-v1}
+      price-version: ${FOODMATE_MODEL_GOVERNANCE_PRICE_VERSION:env-v1}
+      budget-policy-version: ${FOODMATE_MODEL_GOVERNANCE_BUDGET_POLICY_VERSION:env-v1}
+      input-price-per-million: ${FOODMATE_MODEL_GOVERNANCE_INPUT_PRICE_PER_MILLION:0}
+      output-price-per-million: ${FOODMATE_MODEL_GOVERNANCE_OUTPUT_PRICE_PER_MILLION:0}
   gateway:
     base-url: http://model-gateway.internal
     api-key: ${MODEL_GATEWAY_KEY:}

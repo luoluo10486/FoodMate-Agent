@@ -2,6 +2,7 @@ package com.foodmate.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -18,11 +19,15 @@ import com.foodmate.application.conversation.service.SessionSummaryService;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.command.AgentRunBudgetDefaults;
 import com.foodmate.application.runtime.port.out.AgentRunCommandRepository;
+import com.foodmate.application.runtime.port.out.ModelGovernanceRepository.ModelGovernanceSnapshot;
+import com.foodmate.application.runtime.service.ModelGovernanceService;
 import com.foodmate.application.runtime.service.impl.AgentRunCommandServiceImpl;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.RuntimeException;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -85,6 +90,100 @@ class AgentRunCommandServiceImplTest {
                         isNull(),
                         isNull(),
                         any());
+    }
+
+    @Test
+    void creationSerializesGovernedModelSnapshotIntoDispatchPayload() {
+        AgentRunCommandRepository store = mock(AgentRunCommandRepository.class);
+        UserAccountService accounts = mock(UserAccountService.class);
+        AgentRunBudgetDefaults budgets = mock(AgentRunBudgetDefaults.class);
+        AgentAdmissionService admission = mock(AgentAdmissionService.class);
+        SessionSummaryService summaries = mock(SessionSummaryService.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        ModelGovernanceService governance = mock(ModelGovernanceService.class);
+        when(store.waitingRun(9L)).thenReturn(null);
+        when(store.recentMessages(9L))
+                .thenReturn(
+                        List.of(
+                                new AgentRunCommandRepository.RecentMessageRow(
+                                        "1", "user", "please arrange a meal plan", 1)));
+        when(store.memories(7L, "planning")).thenReturn(List.of());
+        when(accounts.addMessage(anyLong(), anyLong(), anyString(), anyString(), any(), any()))
+                .thenReturn(
+                        new UserAccountService.MessageRecord(
+                                101L,
+                                9L,
+                                100L,
+                                "user",
+                                "please arrange a meal plan",
+                                "{}",
+                                1,
+                                Instant.now()));
+        when(admission.admit("100", 7L, 9L, 0))
+                .thenReturn(
+                        new AgentAdmissionService.Admission(
+                                AgentAdmissionService.State.ACTIVE, List.of()));
+        when(budgets.maxTotalTokens()).thenReturn(1000);
+        when(budgets.maxCostCny()).thenReturn(new BigDecimal("1.00"));
+        when(budgets.maxStepRetries()).thenReturn(1);
+        when(budgets.maxReplans()).thenReturn(1);
+        when(budgets.maxAnswerRewrites()).thenReturn(1);
+        when(budgets.maxTotalSteps()).thenReturn(10);
+        when(budgets.maxModelCalls()).thenReturn(3);
+        when(budgets.queueTimeoutSeconds()).thenReturn(30);
+        when(budgets.executionTimeoutSeconds()).thenReturn(120);
+        when(budgets.nodeTimeoutSeconds()).thenReturn(30);
+        when(budgets.waitingUserTimeoutSeconds()).thenReturn(3600);
+        when(budgets.configVersion()).thenReturn("test-budget-v1");
+        when(governance.resolve("agent_run", "chat"))
+                .thenReturn(
+                        new ModelGovernanceSnapshot(
+                                "agent_run",
+                                "chat",
+                                "route-v1",
+                                "cloud_primary",
+                                "deepseek-ai/DeepSeek-V4-Flash",
+                                null,
+                                null,
+                                "price-v1",
+                                new BigDecimal("1.00"),
+                                new BigDecimal("2.00"),
+                                "budget-v1",
+                                1000,
+                                new BigDecimal("1.00"),
+                                3,
+                                1,
+                                30000,
+                                Instant.EPOCH));
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+
+        AgentRunCommandServiceImpl service =
+                new AgentRunCommandServiceImpl(
+                        provider(store),
+                        () -> 100L,
+                        accounts,
+                        budgets,
+                        admission,
+                        summaries,
+                        provider(audit),
+                        provider(governance));
+
+        service.createUserMessageRunDetails(7L, 9L, "please arrange a meal plan", "trace-1");
+
+        verify(governance).resolve("agent_run", "chat");
+        verify(store).memories(7L, "planning");
+        verify(store)
+                .insertOutbox(
+                        anyLong(),
+                        anyLong(),
+                        anyLong(),
+                        anyString(),
+                        any(Instant.class),
+                        payload.capture(),
+                        anyString());
+        assertTrue(payload.getValue().contains("\"provider_code\":\"cloud_primary\""));
+        assertTrue(payload.getValue().contains("\"model_name\":\"deepseek-ai/DeepSeek-V4-Flash\""));
+        assertTrue(payload.getValue().contains("\"price_version\":\"price-v1\""));
     }
 
     private static AgentRunCommandServiceImpl service(

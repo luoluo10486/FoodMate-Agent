@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-31",
+  "generatedAt": "2026-09-05",
   "tool": "Codex Browser runtime DOM inspection (recaptured evidence)",
   "rules": {
     "viewport": "mapping.browserViewport",
@@ -11,7 +11,7 @@
   "summary": {
     "total": 105,
     "viewportPass": 105,
-    "dprPass": 94,
+    "dprPass": 105,
     "geometryPass": 105,
     "textPass": 105,
     "textReview": 0,
@@ -40,7 +40,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-budget-limit": {
       "artboardName": "agent-budget-limit",
@@ -50,8 +51,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -60,7 +61,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/chat?state=budget-limit",
+      "url": "http://127.0.0.1:5174/chat?state=budget-limit&visual-qa=1",
       "windowControls": 0,
       "trafficLightColors": 0,
       "budgetGeometry": {
@@ -71,8 +72,14 @@
         "secondaryButton": "x=521.4,y=550.8,width=84,height=32"
       },
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-budget-limit-browser-2026-09-05.png"
       }
     },
     "admin-op-no-permission": {
@@ -96,7 +103,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "login-v2": {
       "artboardName": "login-v2",
@@ -106,7 +114,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -115,10 +123,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=v2",
+      "url": "http://127.0.0.1:5174/login?state=v2&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-v2-browser-2026-09-05.png"
       }
     },
     "meal-plan-conflict": {
@@ -142,7 +157,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "meal-plan-wizard-step2": {
       "artboardName": "meal-plan-wizard-step2",
@@ -165,7 +181,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-knowledge-format-error": {
       "artboardName": "admin-knowledge-format-error",
@@ -188,7 +205,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "intake-analysis-v2": {
       "artboardName": "intake-analysis-v2",
@@ -198,8 +216,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -229,10 +247,16 @@
         "paginationRect": "x=24,y=598,width=212,height=22"
       },
       "textOverflow": [],
-      "url": "/analysis?state=v2",
+      "url": "http://127.0.0.1:5174/analysis?state=v2&visual-qa=1",
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-v2-browser-2026-09-05.png"
       }
     },
     "agent-tool-failed-retryable": {
@@ -243,8 +267,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -253,7 +277,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/chat?state=tool-failed-retryable",
+      "url": "http://127.0.0.1:5174/chat?state=tool-failed-retryable&visual-qa=1",
       "windowControls": 0,
       "trafficLightColors": 0,
       "failureGeometry": {
@@ -263,8 +287,14 @@
         "skipButton": "x=430.8,y=353.8,width=97,height=32"
       },
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-tool-failed-retryable-browser-2026-09-05.png"
       }
     },
     "profile-security-password-success": {
@@ -288,7 +318,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-trash": {
       "artboardName": "agent-chat-trash",
@@ -311,7 +342,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-nav-loading": {
       "artboardName": "agent-chat-nav-loading",
@@ -334,7 +366,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-knowledge-upload-failed": {
       "artboardName": "admin-knowledge-upload-failed",
@@ -357,7 +390,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "login-credential-error": {
       "artboardName": "login-credential-error",
@@ -367,7 +401,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -376,10 +410,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=credential-error",
+      "url": "http://127.0.0.1:5174/login?state=credential-error&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-credential-error-browser-2026-09-05.png"
       }
     },
     "diet-records-loading": {
@@ -403,7 +444,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "user-knowledge-search-failed": {
       "artboardName": "user-knowledge-search-failed",
@@ -445,7 +487,8 @@
         }
       },
       "windowControls": 0,
-      "overflowCount": 0
+      "overflowCount": 0,
+      "dprPass": true
     },
     "token-used": {
       "artboardName": "token-used",
@@ -455,7 +498,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -464,10 +507,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/token-status?state=used",
+      "url": "http://127.0.0.1:5174/token-status?state=used&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-used-browser-2026-09-05.png"
       }
     },
     "meal-planning-loading": {
@@ -491,7 +541,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "intake-analysis-error": {
       "artboardName": "intake-analysis-error",
@@ -514,7 +565,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-privacy-export-queued": {
       "artboardName": "profile-privacy-export-queued",
@@ -537,7 +589,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "workspace-home-error": {
       "artboardName": "workspace-home-error",
@@ -560,7 +613,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-deleted-resources": {
       "artboardName": "admin-deleted-resources",
@@ -583,7 +637,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-privacy-export-running": {
       "artboardName": "profile-privacy-export-running",
@@ -606,7 +661,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "user-knowledge-source-unavailable": {
       "artboardName": "user-knowledge-source-unavailable",
@@ -648,7 +704,8 @@
         }
       },
       "windowControls": 0,
-      "overflowCount": 0
+      "overflowCount": 0,
+      "dprPass": true
     },
     "profile-security-logout-confirm": {
       "artboardName": "profile-security-logout-confirm",
@@ -671,7 +728,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "workspace-home-input-states": {
       "artboardName": "workspace-home-input-states",
@@ -694,7 +752,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-basic-unsaved-leave-confirmation": {
       "artboardName": "profile-basic-unsaved-leave-confirmation",
@@ -753,8 +812,12 @@
         "bodyOverflow": false,
         "rootOverflow": false,
         "windowControls": 0,
-        "buttons": ["继续编辑", "放弃并离开"]
-      }
+        "buttons": [
+          "继续编辑",
+          "放弃并离开"
+        ]
+      },
+      "dprPass": true
     },
     "meal-planning-error": {
       "artboardName": "meal-planning-error",
@@ -777,7 +840,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "workspace-home-empty": {
       "artboardName": "workspace-home-empty",
@@ -800,7 +864,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-running-stop": {
       "artboardName": "agent-chat-running-stop",
@@ -823,7 +888,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-privacy": {
       "artboardName": "profile-privacy",
@@ -846,7 +912,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-archived": {
       "artboardName": "agent-chat-archived",
@@ -869,7 +936,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-safety-degraded": {
       "artboardName": "agent-safety-degraded",
@@ -879,8 +947,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -889,7 +957,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/chat?state=safety-degraded",
+      "url": "http://127.0.0.1:5174/chat?state=safety-degraded&visual-qa=1",
       "windowControls": 0,
       "trafficLightColors": 0,
       "safetyGeometry": {
@@ -898,8 +966,14 @@
         "response": "x=344,y=301,width=560,height=125.1"
       },
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-safety-degraded-browser-2026-09-05.png"
       }
     },
     "admin-op-submitting": {
@@ -923,7 +997,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-redesign-default": {
       "artboardName": "agent-chat-redesign-default",
@@ -946,7 +1021,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "meal-plan-shopping-list": {
       "artboardName": "meal-plan-shopping-list",
@@ -969,7 +1045,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-basic-avatar-uploading": {
       "artboardName": "profile-basic-avatar-uploading",
@@ -992,7 +1069,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "login-account-locked": {
       "artboardName": "login-account-locked",
@@ -1002,7 +1080,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1011,10 +1089,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=account-locked",
+      "url": "http://127.0.0.1:5174/login?state=account-locked&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-account-locked-browser-2026-09-05.png"
       }
     },
     "profile-memories-empty": {
@@ -1038,7 +1123,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-knowledge-size-error": {
       "artboardName": "admin-knowledge-size-error",
@@ -1061,7 +1147,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-model-usage": {
       "artboardName": "admin-model-usage",
@@ -1084,7 +1171,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "register-page": {
       "artboardName": "register-page",
@@ -1094,7 +1182,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1103,12 +1191,18 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/register",
+      "url": "http://127.0.0.1:5174/register?visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
       },
-      "dprPass": false
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-register-page-browser-2026-09-05.png"
+      }
     },
     "agent-chat-pagination": {
       "artboardName": "agent-chat-pagination",
@@ -1131,7 +1225,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-v2": {
       "artboardName": "agent-chat-v2",
@@ -1186,7 +1281,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-privacy-deletion-submitting": {
       "artboardName": "profile-privacy-deletion-submitting",
@@ -1209,7 +1305,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-history-page-3": {
       "artboardName": "agent-chat-history-page-3",
@@ -1219,8 +1316,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1229,10 +1326,16 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/chat?state=history-page-3",
+      "url": "http://127.0.0.1:5174/chat?state=history-page-3&visual-qa=1",
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-history-page-3-browser-2026-09-05.png"
       }
     },
     "agent-empty": {
@@ -1256,7 +1359,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-completed-with-citations": {
       "artboardName": "agent-completed-with-citations",
@@ -1279,7 +1383,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-tool-registry": {
       "artboardName": "admin-tool-registry",
@@ -1302,7 +1407,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "login-submitting": {
       "artboardName": "login-submitting",
@@ -1312,7 +1418,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1321,10 +1427,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=submitting",
+      "url": "http://127.0.0.1:5174/login?state=submitting&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-submitting-browser-2026-09-05.png"
       }
     },
     "profile-privacy-deletion-failed": {
@@ -1348,7 +1461,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-security": {
       "artboardName": "profile-security",
@@ -1358,8 +1472,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1368,10 +1482,10 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/profile?state=security",
+      "url": "http://127.0.0.1:5174/profile?state=security&visual-qa=1",
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
       },
       "windowControls": 0,
       "securityGeometry": {
@@ -1380,6 +1494,12 @@
         "activityCardCount": 0,
         "securityAccentCount": 0,
         "sessionAccentCount": 0
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-profile-security-browser-2026-09-05.png"
       }
     },
     "login-field-error": {
@@ -1390,7 +1510,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1399,10 +1519,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=field-error",
+      "url": "http://127.0.0.1:5174/login?state=field-error&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-field-error-browser-2026-09-05.png"
       }
     },
     "profile-security-password-failed": {
@@ -1426,7 +1553,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "token-invalid": {
       "artboardName": "token-invalid",
@@ -1436,7 +1564,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1445,10 +1573,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/token-status?state=invalid",
+      "url": "http://127.0.0.1:5174/token-status?state=invalid&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-invalid-browser-2026-09-05.png"
       }
     },
     "agent-awaiting-clarification": {
@@ -1481,7 +1616,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-tool-calls": {
       "artboardName": "admin-tool-calls",
@@ -1504,7 +1640,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "workspace-home-loading": {
       "artboardName": "workspace-home-loading",
@@ -1527,7 +1664,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-operation-audit": {
       "artboardName": "admin-operation-audit",
@@ -1550,7 +1688,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "diet-records-v2": {
       "artboardName": "diet-records-v2",
@@ -1560,8 +1699,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1574,10 +1713,16 @@
       "recordDetailCount": 1,
       "extraActionBarCount": 0,
       "textOverflow": [],
-      "url": "/analysis?view=records&state=v2",
+      "url": "http://127.0.0.1:5174/analysis?view=records&state=v2&visual-qa=1",
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-v2-browser-2026-09-05.png"
       }
     },
     "agent-chat-viewport-1366x768": {
@@ -1601,7 +1746,8 @@
       "viewport": {
         "height": 768,
         "width": 1366
-      }
+      },
+      "dprPass": true
     },
     "diet-records-empty": {
       "artboardName": "diet-records-empty",
@@ -1624,7 +1770,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "login-service-unavailable": {
       "artboardName": "login-service-unavailable",
@@ -1634,7 +1781,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1643,10 +1790,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=service-unavailable",
+      "url": "http://127.0.0.1:5174/login?state=service-unavailable&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-service-unavailable-browser-2026-09-05.png"
       }
     },
     "admin-op-success": {
@@ -1670,7 +1824,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "intake-analysis-empty": {
       "artboardName": "intake-analysis-empty",
@@ -1693,7 +1848,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-op-confirm": {
       "artboardName": "admin-op-confirm",
@@ -1716,7 +1872,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-knowledge-uploading": {
       "artboardName": "admin-knowledge-uploading",
@@ -1739,7 +1896,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-basic": {
       "artboardName": "profile-basic",
@@ -1806,7 +1964,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-user-detail": {
       "artboardName": "admin-user-detail",
@@ -1829,7 +1988,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-trace": {
       "artboardName": "admin-trace",
@@ -1852,7 +2012,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-nav-hover-preview": {
       "artboardName": "agent-chat-nav-hover-preview",
@@ -1875,7 +2036,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "reset-password-page": {
       "artboardName": "reset-password-page",
@@ -1885,7 +2047,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -1894,10 +2056,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/reset-password",
+      "url": "http://127.0.0.1:5174/reset-password?visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-reset-password-page-browser-2026-09-05.png"
       }
     },
     "intake-analysis-loading": {
@@ -1921,7 +2090,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "workspace-home-v2": {
       "artboardName": "workspace-home-v2",
@@ -1931,7 +2101,7 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1940,7 +2110,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/?state=figma-v2",
+      "url": "http://127.0.0.1:5174/?state=figma-v2&visual-qa=1",
       "figmaSidebar": {
         "sessionSearch": false,
         "sessionItems": 0,
@@ -1950,8 +2120,15 @@
         "trafficLightColors": 0
       },
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-workspace-home-v2-browser-2026-09-05.png"
       }
     },
     "profile-privacy-export-expired": {
@@ -1975,7 +2152,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-privacy-deletion-success": {
       "artboardName": "profile-privacy-deletion-success",
@@ -1998,7 +2176,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "user-knowledge-empty": {
       "artboardName": "user-knowledge-empty",
@@ -2033,8 +2212,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -2043,10 +2222,16 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/chat?state=history-page-2",
+      "url": "http://127.0.0.1:5174/chat?state=history-page-2&visual-qa=1",
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-history-page-2-browser-2026-09-05.png"
       }
     },
     "meal-planning-v2": {
@@ -2116,7 +2301,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "meal-plan-wizard-step1": {
       "artboardName": "meal-plan-wizard-step1",
@@ -2139,7 +2325,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-planning": {
       "artboardName": "agent-planning",
@@ -2171,7 +2358,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-tool-executing": {
       "artboardName": "agent-tool-executing",
@@ -2194,7 +2382,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-run-detail": {
       "artboardName": "admin-run-detail",
@@ -2217,7 +2406,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-renamed": {
       "artboardName": "agent-chat-renamed",
@@ -2240,7 +2430,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-sse-reconnecting": {
       "artboardName": "agent-sse-reconnecting",
@@ -2263,7 +2454,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-user-cancelled": {
       "artboardName": "agent-user-cancelled",
@@ -2286,7 +2478,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-overview": {
       "artboardName": "admin-overview",
@@ -2316,7 +2509,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "meal-plan-wizard-step3": {
       "artboardName": "meal-plan-wizard-step3",
@@ -2339,7 +2533,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-basic-avatar-failed": {
       "artboardName": "profile-basic-avatar-failed",
@@ -2362,7 +2557,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-privacy-delete-confirm": {
       "artboardName": "profile-privacy-delete-confirm",
@@ -2385,7 +2581,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "login-account-disabled": {
       "artboardName": "login-account-disabled",
@@ -2395,7 +2592,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -2404,10 +2601,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/login?state=account-disabled",
+      "url": "http://127.0.0.1:5174/login?state=account-disabled&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-login-account-disabled-browser-2026-09-05.png"
       }
     },
     "admin-knowledge-indexing": {
@@ -2431,7 +2635,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "profile-memories": {
       "artboardName": "profile-memories",
@@ -2466,7 +2671,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "token-expired": {
       "artboardName": "token-expired",
@@ -2476,7 +2682,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -2485,10 +2691,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/token-status?state=expired",
+      "url": "http://127.0.0.1:5174/token-status?state=expired&visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-token-expired-browser-2026-09-05.png"
       }
     },
     "agent-chat-session-actions": {
@@ -2512,7 +2725,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-write-confirmation": {
       "artboardName": "agent-write-confirmation",
@@ -2535,7 +2749,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "meal-plan-generating": {
       "artboardName": "meal-plan-generating",
@@ -2558,7 +2773,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-op-failed": {
       "artboardName": "admin-op-failed",
@@ -2581,7 +2797,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "diet-records-error": {
       "artboardName": "diet-records-error",
@@ -2604,7 +2821,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "admin-sql-audit": {
       "artboardName": "admin-sql-audit",
@@ -2627,7 +2845,8 @@
       "viewport": {
         "height": 1024,
         "width": 1440
-      }
+      },
+      "dprPass": true
     },
     "agent-chat-search-results": {
       "artboardName": "agent-chat-search-results",
@@ -2637,8 +2856,8 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.25,
-      "dprPass": false,
+      "dpr": 1,
+      "dprPass": true,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -2647,10 +2866,16 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/chat?state=search-results",
+      "url": "http://127.0.0.1:5174/chat?state=search-results&visual-qa=1",
       "viewport": {
-        "height": 1024,
-        "width": 1440
+        "width": 1440,
+        "height": 1024
+      },
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-search-results-browser-2026-09-05.png"
       }
     },
     "forgot-password-page": {
@@ -2661,7 +2886,7 @@
         "scrollHeight": 900,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 900,
@@ -2670,10 +2895,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "/forgot-password",
+      "url": "http://127.0.0.1:5174/forgot-password?visual-qa=1",
       "viewport": {
-        "height": 900,
-        "width": 1440
+        "width": 1440,
+        "height": 900
+      },
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-05",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.77",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-forgot-password-page-browser-2026-09-05.png"
       }
     }
   }

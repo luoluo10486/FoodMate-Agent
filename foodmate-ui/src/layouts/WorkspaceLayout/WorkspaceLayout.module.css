@@ -7,30 +7,39 @@
   background: var(--fm-bg);
 }
 
-/* Keep design fixtures at the Figma baseline without rendering desktop window controls. */
+/* Figma fixture 只覆盖设计稿专属的表面颜色。 */
 .figmaFixture {
   --fm-fixture-sidebar-active-surface: #fdf6ef;
   --fm-fixture-session-active-surface: #fffdf5;
   --fm-fixture-top-nav-active-surface: #fffefc;
 }
 
-/* Keep the Figma fixture rail at its 340px canvas boundary without letting the divider consume layout space. */
+/* Figma fixture 右侧轨道保持 340px 画板边界，分隔线不额外占用布局宽度。 */
 .figmaFixture .rightRail {
   border-left: 0;
   box-shadow: inset 1px 0 0 var(--fm-border);
 }
 
-.figmaFixture .sidebar {
-  padding-top: 52px;
-}
-
+.figmaFixture .sidebar,
 .designChat .sidebar {
-  padding-top: 52px;
+  padding-top: 24px;
 }
 
-/* Figma node 640:428 uses separate neutral surfaces for active navigation and session rows. */
+/* 窗口控制点是 Figma 画板装饰，不参与导航和键盘交互。 */
+.windowControls {
+  width: 52px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+.windowControls img {
+  display: block;
+  width: 52px;
+  height: 12px;
+}
+
+/* Figma 节点 640:428 使用独立的中性导航和会话选中表面。 */
 .designChat {
-  --fm-green: #4caf50;
   --fm-fixture-sidebar-active-surface: #fbf7f2;
   --fm-fixture-session-active-surface: #fffcf9;
   --fm-fixture-top-nav-active-surface: #fffefc;
@@ -662,6 +671,11 @@
 }
 
 @media (min-width: 1101px) and (max-width: 1399px) {
+  /* 中等桌面宽度优先保留导航和账户操作，工作区搜索框按 Figma 响应式规则隐藏。 */
+  .withRail .workspaceSearch {
+    display: none;
+  }
+
   .withWideRail .workspaceSearch {
     display: none;
   }

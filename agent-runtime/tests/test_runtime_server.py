@@ -24,6 +24,14 @@ class RuntimeContractTests(unittest.TestCase):
         runtime_server._dispatches.clear()
         runtime_server._result_waiters.clear()
         runtime_server._checkpoint = InMemoryCheckpoint()
+        runtime_server._model_router = ModelRouter(
+            {
+                "FOODMATE_MODEL_TIER_STANDARD": "deterministic:local",
+                "FOODMATE_MODEL_TIER_HIGH": "deterministic:local",
+                "FOODMATE_MODEL_TIER_ECONOMY": "deterministic:local",
+                "FOODMATE_MODEL_TIER_EVAL": "deterministic:local",
+            }
+        )
 
     def test_execute_emits_ordered_lifecycle(self):
         events = []
@@ -211,6 +219,98 @@ class RuntimeContractTests(unittest.TestCase):
         checkpoint = runtime_server._checkpoint.load("waiting-run:waiting-dispatch")
         self.assertIsNotNone(checkpoint)
         self.assertEqual("execution", checkpoint[1]["current_node"])
+
+    def test_food_log_approval_enters_waiting_user_without_republishing_proposal(self):
+        events = []
+        published = []
+        proposal = Proposal(
+            "food-proposal",
+            "approval-run",
+            "tool",
+            "v1",
+            {"invocation_id": "food-invocation", "idempotency_key": "food-key"},
+            True,
+            tool_name="food_log_writer",
+            input={
+                "meal_time": "2026-09-04T04:00:00Z",
+                "meal_type": "lunch",
+                "notes": None,
+                "items": [{"name": "rice", "amount": 150, "unit": "g"}],
+            },
+        ).as_dict()
+        execution = SimpleNamespace(
+            proposals=[proposal],
+            model_attempts=[],
+            route=SimpleNamespace(intent="record", complexity="simple", risk_level="low"),
+            eval=SimpleNamespace(result="pass", reason="TOOL_CONFIRMATION_REQUIRED"),
+            usage=SimpleNamespace(tokens=10, cost_cny=0.0, model_calls=1),
+            budget_mode="normal",
+            budget_actions={},
+            workflow={},
+            memory_candidates=[],
+        )
+
+        class Publisher:
+            def publish(self, value):
+                published.append(value)
+                runtime_server._on_result(
+                    {
+                        "proposal_id": value["proposal_id"],
+                        "invocation_id": value["payload"]["invocation_id"],
+                        "status": "confirmation_required",
+                        "error_code": "TOOL_CONFIRMATION_REQUIRED",
+                        "confirmation_ref": "approval-1",
+                        "rows": [
+                            {
+                                "approval_request_id": "approval-1",
+                                "operation": "create",
+                                "resource_type": "food_log",
+                                "meal_type": "lunch",
+                                "items": [{"name": "rice", "amount": 150, "unit": "g"}],
+                            }
+                        ],
+                    }
+                )
+
+        command = {
+            "run_id": "approval-run",
+            "dispatch_id": "approval-dispatch",
+            "deadline_at": "2099-01-01T00:00:00Z",
+            "attempt": 1,
+            "message": {"content": "记录今天午餐：米饭 150g"},
+        }
+        with patch.object(
+            runtime_server, "run_deterministic", return_value=execution
+        ) as run, patch.object(
+            runtime_server,
+            "emit",
+            side_effect=lambda *args: events.append(
+                (args[2], args[3], args[4] if len(args) > 4 else {})
+            ),
+        ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
+            runtime_server.execute(command)
+
+        self.assertEqual([proposal], published)
+        self.assertEqual(1, run.call_count)
+        self.assertEqual(
+            [
+                "run.accepted",
+                "run.routed",
+                "run.checkpoint_saved",
+                "run.tool_started",
+                "run.tool_finished",
+                "run.checkpoint_saved",
+                "run.eval_decided",
+                "run.clarification_requested",
+            ],
+            [event_type for _, event_type, _ in events],
+        )
+        self.assertEqual(list(range(1, len(events) + 1)), [seq for seq, _, _ in events])
+        clarification = events[-1][2]
+        self.assertEqual("approval-1", clarification["approval_request_id"])
+        self.assertEqual("rice", clarification["details"]["items"][0]["name"])
+        self.assertNotIn("prompt", json.dumps(clarification))
+        self.assertNotIn("idempotency_key", json.dumps(clarification))
 
     def test_context_assembly_event_contains_only_authorized_source_ids(self):
         events = []
@@ -419,6 +519,57 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertEqual(database["payload"]["statement"], database["input"]["candidate_sql"])
         validate_proposal(Proposal(**database))
 
+    def test_real_sql_planner_uses_shared_router_once_across_tool_rounds(self):
+        class Provider(ModelProvider):
+            provider_code = "cloud_primary"
+
+            def __init__(self):
+                self.calls = []
+
+            def complete(self, _model_name, request):
+                self.calls.append(request.scene)
+                return ModelResponse(
+                    '{"status":"ready","intent":"nutrition_summary",'
+                    '"time_range":{"kind":"relative","days":"7","timezone":"Asia/Shanghai"},'
+                    '"metrics":["protein_g"],"dimensions":["meal_time"],"filters":{},'
+                    '"candidate_sql":"SELECT meal_time FROM food_logs LIMIT 500","missing_slots":[]}',
+                    12,
+                    10,
+                    "sql-request-1",
+                )
+
+        provider = Provider()
+        router = ModelRouter(
+            {
+                "FOODMATE_SQL_PLANNER_MODE": "local",
+                "FOODMATE_MODEL_TIER_STANDARD": "cloud_primary:chat-model",
+                "FOODMATE_MODEL_FALLBACK_ENABLED": "false",
+            },
+            lambda _provider_code: provider,
+        )
+        command = {
+            "run_id": "analysis-real-1",
+            "dispatch_id": "d-real-1",
+            "message": {"content": "分析最近7天蛋白质摄入"},
+            "authorized_context": {"sql_read_request": {"invocation_id": "inv-analysis"}},
+        }
+
+        first = run_deterministic(command, model_router=router)
+        time_proposal = first.proposals[0]
+        completed = {
+            "tool_name": "time_parser",
+            "invocation_id": time_proposal["payload"]["invocation_id"],
+            "status": "succeeded",
+            "rows": [{"days": 7}],
+        }
+        command["authorized_context"]["tool_results"] = [completed]
+        second = run_deterministic(command, model_router=router)
+
+        self.assertEqual(1, provider.calls.count("sql_planner"))
+        self.assertEqual("database_query", second.proposals[0]["tool_name"])
+        self.assertEqual("local", second.proposals[0]["input"]["planner_mode"])
+        self.assertEqual(1, sum(attempt.scene == "sql_planner" for attempt in first.model_attempts))
+
     def test_analysis_fallback_database_invocation_is_unique_per_run(self):
         completed = {
             "tool_name": "time_parser",
@@ -521,7 +672,7 @@ class RuntimeContractTests(unittest.TestCase):
         first = SimpleNamespace(proposals=[proposal], route=route, plan=SimpleNamespace(plan_version="v1"), workflow={"nodes": []}, model_attempts=[], usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1))
         second = SimpleNamespace(proposals=[], route=route, plan=SimpleNamespace(plan_version="v1"), workflow={"nodes": []}, model_attempts=[], usage=SimpleNamespace(tokens=2, cost_cny=0.0, model_calls=1), answer="ok", eval=SimpleNamespace(result="pass", reason="ok"), budget_mode="normal", budget_actions={}, memory_candidates=[])
 
-        def run(command, _checkpoint):
+        def run(command, _checkpoint, **_kwargs):
             commands.append(command)
             return first if len(commands) == 1 else second
 
@@ -618,7 +769,7 @@ class RuntimeContractTests(unittest.TestCase):
                 runtime_server._on_result(result)
 
         command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
-        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store: commands.append(value) or executions[len(commands) - 1]), patch.object(
+        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store, **_kwargs: commands.append(value) or executions[len(commands) - 1]), patch.object(
             runtime_server, "emit", side_effect=lambda *args: (event_ids.append(args[1]), events.append(args[3]))
         ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
             runtime_server.execute(command)
@@ -798,7 +949,7 @@ class RuntimeContractTests(unittest.TestCase):
             workflow={},
             memory_candidates=[],
         )
-        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store: captured.append(value) or execution), patch.object(
+        with patch.object(runtime_server, "run_deterministic", side_effect=lambda value, _store, **_kwargs: captured.append(value) or execution), patch.object(
             runtime_server, "emit"
         ):
             runtime_server.execute(command)

@@ -35,7 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { DEFAULT_AVATARS, getDefaultAvatarForGender } from '@/lib/avatar';
+import { FIGMA_PROFILE_AVATARS, getDefaultAvatarForGender } from '@/lib/avatar';
 import { getAuthUser, logout } from '@/services/authService';
 import {
   changePassword,
@@ -660,13 +660,15 @@ function BasicTab({
   authUser,
   realMode,
   figmaFixture = false,
+  fixtureAvatarSrc,
 }: {
   authUser: AuthUser;
   realMode: boolean;
   figmaFixture?: boolean;
+  fixtureAvatarSrc?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [avatarPreview, setAvatarPreview] = useState(authUser.avatarUrl ?? '');
+  const [avatarPreview, setAvatarPreview] = useState(authUser.avatarUrl || fixtureAvatarSrc || '');
   const [avatarFileName, setAvatarFileName] = useState('');
   const [avatarState, setAvatarState] = useState<AsyncState>('idle');
   const [profileForm, setProfileForm] = useState(() => profileFromUser(authUser));
@@ -780,7 +782,7 @@ function BasicTab({
 
   if (loading) return <div className={styles.loadingPanel}>正在加载个人资料...</div>;
 
-  const avatarSource = avatarPreview || getDefaultAvatarForGender(profileForm.gender);
+  const avatarSource = avatarPreview || (!figmaFixture ? getDefaultAvatarForGender(profileForm.gender) : undefined);
 
   return (
     <div className={styles.basicLayout}>
@@ -2042,8 +2044,8 @@ export function ProfilePage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       profileActiveTab={isFigmaFixture ? activeTab : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
-      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIGMA_PROFILE_AVATARS.sidebar : undefined}
+      topAvatarSrc={isFigmaFixture ? FIGMA_PROFILE_AVATARS.topbar : undefined}
       hideSessionHistory={isFigmaFixture}
       sidebarFixture={
         isFigmaFixture
@@ -2065,6 +2067,7 @@ export function ProfilePage() {
             authUser={displayedUser}
             realMode={isFigmaFixture ? false : realMode}
             figmaFixture={isFigmaFixture}
+            fixtureAvatarSrc={isFigmaFixture ? FIGMA_PROFILE_AVATARS.main : undefined}
           />
         ) : null}
         {activeTab === 'memories' ? (

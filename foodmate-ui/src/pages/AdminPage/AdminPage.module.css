@@ -349,14 +349,14 @@
 }
 
 .operationOverlay {
-  background: rgba(51, 51, 51, 0.4) !important;
+  background: rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: none !important;
 }
 
 .operationBanner {
   display: flex !important;
   width: 100%;
-  min-height: 48px;
+  min-height: 40px;
   align-items: center;
   gap: 12px;
   padding: 12px 32px !important;
@@ -461,7 +461,7 @@
 }
 
 .operationErrorIcon {
-  background: rgba(255, 117, 118, 0.08);
+  background: #ffe9e9;
   color: #d67676;
 }
 
@@ -472,7 +472,7 @@
 .operationDialogBody {
   display: flex !important;
   flex-direction: column;
-  gap: 11px;
+  gap: 16px;
   width: 100%;
   padding: 0 !important;
   color: #333333 !important;
@@ -506,7 +506,7 @@
   background: #f4f6f5 !important;
   color: #333333;
   font-size: 12px;
-  line-height: 16px;
+  line-height: 14px;
   box-shadow: none !important;
 }
 
@@ -532,9 +532,10 @@
 }
 
 .operationDialogActions :global(button) {
-  height: 40px;
-  min-height: 40px;
-  padding: 10px 18px;
+  height: 37px;
+  min-height: 37px;
+  gap: 6px;
+  padding: 9px 17px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 700;
@@ -552,8 +553,8 @@
 }
 
 .operationPrimaryButton svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .operationProgressTrack {
@@ -562,6 +563,13 @@
   overflow: hidden;
   border-radius: 999px;
   background: #f4f6f5;
+}
+
+.operationProgressGroup {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .operationProgressValue {
@@ -575,7 +583,12 @@
 .operationProgressLabel {
   color: #6b7280;
   font-size: 12px !important;
-  line-height: 16px !important;
+  line-height: 14px !important;
+}
+
+.operationSubmittingButton svg {
+  width: 14px;
+  height: 14px;
 }
 
 .operationSubmittingButton {
@@ -589,12 +602,12 @@
 .operationDebugBox {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
   padding: 12px;
   border-radius: 8px;
   background: #f4f6f5;
-  color: #333333;
+  color: #6b7280;
   font-family: 'Space Mono', Consolas, monospace;
   font-size: 11px;
   line-height: 16px;
@@ -1673,7 +1686,7 @@
 }
 
 .registryTable :global(td) {
-  height: 55px;
+  height: 58px;
   color: #333333;
   font-size: 13px;
   line-height: 19px;
@@ -1681,7 +1694,7 @@
 }
 
 .registryTable :global(tbody tr) {
-  height: 55px;
+  height: 58px;
   border-bottom: 1px solid #f4f6f5;
   background: #ffffff;
 }
@@ -1735,22 +1748,22 @@
 
 .registryTable :global(th:nth-child(7)),
 .registryTable :global(td:nth-child(7)) {
-  width: 84px;
+  width: 68px;
 }
 
 .registryTable :global(th:nth-child(8)),
 .registryTable :global(td:nth-child(8)) {
-  width: 84px;
+  width: 68px;
 }
 
 .registryTable :global(th:nth-child(9)),
 .registryTable :global(td:nth-child(9)) {
-  width: 84px;
+  width: 48px;
 }
 
 .registryTable :global(th:nth-child(10)),
 .registryTable :global(td:nth-child(10)) {
-  width: 112px;
+  width: 72px;
 }
 
 .registryTable :global(th:last-child),
@@ -1853,9 +1866,13 @@
 }
 
 .registryActionButton {
-  height: 28px !important;
-  min-height: 28px !important;
-  padding: 6px 12px !important;
+  display: inline-flex !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 10px !important;
   border: 1px solid #f4f6f5 !important;
   border-radius: 6px !important;
   background: #ffffff !important;
@@ -1869,6 +1886,30 @@
 
 .registryActionButton:hover {
   background: #f4f6f5 !important;
+}
+
+.registryActionAttention {
+  border-color: #ff7576 !important;
+  color: #d67676 !important;
+}
+
+.registryActionAttention:hover {
+  background: #fff5f5 !important;
+}
+
+.registryActionButton:disabled,
+.registryActionDisabled {
+  border-color: #f4f6f5 !important;
+  background: #f4f6f5 !important;
+  color: #6b7280 !important;
+  cursor: not-allowed;
+  opacity: 1 !important;
+}
+
+.registryActionButton svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
 }
 
 .registryPagination {

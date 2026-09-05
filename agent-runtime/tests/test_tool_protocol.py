@@ -4,11 +4,84 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parents[1]))
 
-from agent_core import Context, DeterministicComposer, DeterministicRouter, generate_tool_proposals
+from agent_core import (
+    Context,
+    DeterministicComposer,
+    DeterministicRouter,
+    generate_meal_plan_proposal,
+    generate_food_log_writer_proposal,
+    generate_tool_proposals,
+)
+from model_provider import ModelResponse
 from proposal_protocol import Proposal, validate_proposal
 
 
 class ToolProtocolTests(unittest.TestCase):
+    def test_explicit_meal_plan_route_wins_over_meal_name(self):
+        planning = DeterministicRouter().route(
+            "请制定一个 2 天的餐食计划，安排每天早餐、午餐和晚餐"
+        )
+        self.assertEqual("planning", planning.intent)
+        self.assertEqual((), planning.missing_slots)
+
+        constrained = DeterministicRouter().route(
+            "请生成 7 天餐食计划，目标是均衡蛋白质和蔬菜"
+        )
+        self.assertEqual("planning", constrained.intent)
+
+        recording = DeterministicRouter().route("记录早餐：燕麦 50g")
+        self.assertEqual("record", recording.intent)
+
+    def test_real_model_food_log_candidate_is_strict_and_requires_java_confirmation(self):
+        class Router:
+            def tier_for(self, *_args):
+                return "high"
+
+            def fallback_tiers_for(self, _tier):
+                return ()
+
+            def invoke(self, *_args, **_kwargs):
+                return (
+                    ModelResponse(
+                        '{"operation":"create","meal_time":"2026-09-04T04:00:00Z",'
+                        '"meal_type":"lunch","notes":null,'
+                        '"items":[{"name":"rice","amount":150,"unit":"g"}]}',
+                        10,
+                        20,
+                    ),
+                    [],
+                )
+
+        route = DeterministicRouter().route("记录午餐：米饭 150g")
+        proposals, attempts = generate_food_log_writer_proposal(
+            {
+                "run_id": "run-1",
+                "dispatch_id": "dispatch-1",
+                "deadline_at": "2026-09-04T05:00:00Z",
+                "message": {"content": "记录午餐：米饭 150g"},
+                "authorized_context": {"food_log_writer_authorized": True},
+            },
+            route,
+            Router(),
+        )
+
+        self.assertEqual([], attempts)
+        self.assertEqual("food_log_writer", proposals[0]["tool_name"])
+        self.assertTrue(proposals[0]["requires_confirmation"])
+        self.assertNotIn("confirmation_ref", proposals[0])
+        validate_proposal(Proposal(**proposals[0]))
+
+    def test_food_log_candidate_cannot_be_created_without_java_authorization(self):
+        route = DeterministicRouter().route("记录午餐：米饭 150g")
+        proposals, attempts = generate_food_log_writer_proposal(
+            {"run_id": "run-1", "message": {"content": "记录午餐：米饭 150g"}},
+            route,
+            object(),
+        )
+
+        self.assertEqual([], proposals)
+        self.assertEqual([], attempts)
+
     def test_calculator_proposal_is_valid_and_requires_no_confirmation(self):
         proposal = Proposal(
             "p-calc",
@@ -79,6 +152,82 @@ class ToolProtocolTests(unittest.TestCase):
                     input={"plan": []},
                 )
             )
+
+    def test_real_model_meal_plan_candidate_stops_at_java_validation(self):
+        class Router:
+            def tier_for(self, *_args):
+                return "high"
+
+            def fallback_tiers_for(self, _tier):
+                return ()
+
+            def invoke(self, *_args, **_kwargs):
+                return (
+                    ModelResponse(
+                        '{"operation":"create","plan":{"plan_name":"一日均衡餐",'
+                        '"people":1,"days":1,"budget":80,"calorie_target":1800,'
+                        '"protein_target":90,"allergens":["花生"],"dislikes":["香菜"],'
+                        '"days_plan":[{"breakfast":{"ingredients":[{"name":"燕麦","amount":50,"unit":"g"}]},'
+                        '"lunch":{"ingredients":[{"name":"鸡胸肉","amount":150,"unit":"g"}]},'
+                        '"dinner":{"ingredients":[{"name":"鸡蛋","amount":2,"unit":"个"}]}}]}}',
+                        20,
+                        40,
+                    ),
+                    [],
+                )
+
+        route = DeterministicRouter().route("计划 1 天三餐，预算 80 元，忌口香菜")
+        proposals, attempts = generate_meal_plan_proposal(
+            {
+                "run_id": "run-plan-1",
+                "dispatch_id": "dispatch-plan-1",
+                "deadline_at": "2026-09-04T05:00:00Z",
+                "message": {"content": "计划 1 天三餐，预算 80 元，忌口香菜"},
+                "authorized_context": {"meal_plan_writer_authorized": True},
+            },
+            route,
+            Router(),
+        )
+
+        self.assertEqual([], attempts)
+        self.assertEqual("plan_validator", proposals[0]["tool_name"])
+        self.assertFalse(proposals[0]["requires_confirmation"])
+        validate_proposal(Proposal(**proposals[0]))
+
+    def test_validated_meal_plan_candidate_transitions_to_save_confirmation(self):
+        route = DeterministicRouter().route("计划 1 天三餐")
+        plan = {
+            "plan_name": "一日计划",
+            "people": 1,
+            "days": 1,
+            "budget": 50,
+            "allergens": [],
+            "dislikes": [],
+            "days_plan": [{"breakfast": {}, "lunch": {}, "dinner": {}}],
+        }
+        proposals = generate_tool_proposals(
+            {
+                "run_id": "run-plan-2",
+                "message": {"content": "计划 1 天三餐"},
+                "authorized_context": {
+                    "tool_results": [
+                        {
+                            "tool_name": "plan_validator",
+                            "status": "succeeded",
+                            "rows": [{"valid": True}],
+                            "plan": plan,
+                        }
+                    ]
+                },
+            },
+            route,
+        )
+
+        self.assertEqual("meal_plan.save_plan", proposals[0]["tool_name"])
+        self.assertTrue(proposals[0]["requires_confirmation"])
+        self.assertEqual(plan, proposals[0]["input"]["plan"])
+        validate_proposal(Proposal(**proposals[0]))
+
     def test_deterministic_calculation_route_builds_authorized_proposal(self):
         route = DeterministicRouter().route("20 * 1.1")
         proposals = generate_tool_proposals({"run_id": "run-1", "message": {"content": "20 * 1.1"}}, route)

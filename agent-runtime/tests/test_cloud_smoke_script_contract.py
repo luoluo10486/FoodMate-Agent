@@ -133,3 +133,11 @@ class CloudSmokeScriptContractTests(TestCase):
         self.assertIn("FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY", script)
         self.assertNotIn("ApiKey", script)
         self.assertIn("SupportsShouldProcess", script)
+
+    def test_paid_cloud_preflight_passes_scenario_after_encoded_source_argument(self):
+        script = (self.ROOT / "script" / "local" / "paid-cloud-preflight.ps1").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("session.begin_scenario(sys.argv[2])", script)
+        self.assertNotIn("session.begin_scenario(sys.argv[1])", script)

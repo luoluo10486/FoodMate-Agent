@@ -6,6 +6,93 @@
   background: var(--fm-bg);
 }
 
+/* Home Figma fixture 的内部尺寸只作用于设计稿复核，不改变真实首页的交互尺寸。 */
+.figmaHomePage .taskComposer {
+  grid-template-columns: 20px minmax(0, 1fr) 40px;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 100px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+}
+
+.figmaHomePage .attachmentButton {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0;
+}
+
+.figmaHomePage .sendButton {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  background: linear-gradient(90deg, #f79009, #f97066);
+}
+
+.figmaHomePage .sendButton:hover,
+.figmaHomePage .sendButton:disabled {
+  background: linear-gradient(90deg, #f79009, #f97066);
+}
+
+.figmaHomePage .sendButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.figmaHomePage .quickButton {
+  width: 100px;
+  min-width: 100px;
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.figmaHomePage .quickGreen {
+  border-color: rgba(166, 217, 151, 0.25);
+  background: rgba(166, 217, 151, 0.08);
+}
+
+.figmaHomePage .quickPurple {
+  border-color: rgba(236, 204, 255, 0.25);
+  background: rgba(236, 204, 255, 0.08);
+}
+
+.figmaHomePage .quickRed {
+  border-color: rgba(255, 117, 118, 0.25);
+  background: rgba(255, 117, 118, 0.08);
+}
+
+.figmaHomePage .quickBlue {
+  border-color: rgba(128, 224, 230, 0.25);
+  background: rgba(128, 224, 230, 0.08);
+}
+
+.figmaHomePage .quickOrange {
+  border-color: rgba(199, 150, 84, 0.25);
+  background: rgba(255, 246, 226, 0.08);
+}
+
+.quickEmoji {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fm-font);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.figmaHomePage .progress {
+  width: 56px;
+  height: 56px;
+}
+
+.figmaHomePage .progress::after {
+  inset: 8px;
+}
+
 .intro {
   display: flex;
   min-height: 59px;

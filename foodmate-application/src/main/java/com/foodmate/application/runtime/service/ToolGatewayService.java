@@ -15,14 +15,15 @@ public interface ToolGatewayService {
             String errorCode,
             List<JsonNode> rows,
             @JsonProperty("sql_audit_id") String sqlAuditId,
-            @JsonProperty("tool_name") String toolName) {
+            @JsonProperty("tool_name") String toolName,
+            @JsonProperty("confirmation_ref") String confirmationRef) {
         public ProposalResult(
                 String proposalId,
                 String runId,
                 String status,
                 String errorCode,
                 List<JsonNode> rows) {
-            this(proposalId, runId, status, errorCode, rows, null, null);
+            this(proposalId, runId, status, errorCode, rows, null, null, null);
         }
 
         public ProposalResult(
@@ -32,7 +33,18 @@ public interface ToolGatewayService {
                 String errorCode,
                 List<JsonNode> rows,
                 String sqlAuditId) {
-            this(proposalId, runId, status, errorCode, rows, sqlAuditId, null);
+            this(proposalId, runId, status, errorCode, rows, sqlAuditId, null, null);
+        }
+
+        public ProposalResult(
+                String proposalId,
+                String runId,
+                String status,
+                String errorCode,
+                List<JsonNode> rows,
+                String sqlAuditId,
+                String toolName) {
+            this(proposalId, runId, status, errorCode, rows, sqlAuditId, toolName, null);
         }
     }
 

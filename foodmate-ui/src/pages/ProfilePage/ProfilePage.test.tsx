@@ -56,7 +56,7 @@ describe('ProfilePage', () => {
   });
 
   it('uses the Figma profile fixture for the default mock entry', () => {
-    renderPage('/profile');
+    const { container } = renderPage('/profile');
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('anddy_operator_9')).toBeInTheDocument();
@@ -66,11 +66,15 @@ describe('ProfilePage', () => {
     expect(screen.queryByText('早餐奶昔配方')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
     expect(screen.getByText('饮食与身体目标')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(screen.getByRole('img', { name: '个人头像' })).toHaveAttribute(
+      'src',
+      '/assets/figma/profile/main-avatar.png',
+    );
     expect(screen.getByRole('button', { name: 'Anddy' }).querySelector('img')).toHaveAttribute(
       'src',
-      '/assets/avatars/default-male.svg',
+      '/assets/figma/profile/topbar-avatar.png',
     );
+    expect(container.querySelector('.profile img')).toHaveAttribute('src', '/assets/figma/profile/sidebar-avatar.png');
     expect(document.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
   });
 

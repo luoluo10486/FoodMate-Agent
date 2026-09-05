@@ -49,6 +49,9 @@ describe('PlanningPage', () => {
     expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
     expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/workspace/home-sidebar-avatar.png"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/workspace/home-topbar-avatar.png"]')).toBeInTheDocument();
+    expect(screen.getByLabelText('餐食规划')).toHaveAttribute('data-figma-node-id', '640:974');
   });
 
   it('keeps the account dock in the Figma planning fixture', () => {

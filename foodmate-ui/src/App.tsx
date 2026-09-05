@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom';
 import { NoticeHost } from './components/ui/notice-host';
+import { isVisualQaEnabled } from './lib/visualQa';
 
 const HomePage = lazy(() => import('./pages/HomePage/HomePage').then((module) => ({ default: module.HomePage })));
 const ChatPage = lazy(() => import('./pages/ChatPage/ChatPage').then((module) => ({ default: module.ChatPage })));
@@ -39,9 +40,29 @@ function AnalysisRoute() {
   return searchParams.get('view') === 'records' ? <DietRecordsPage /> : <AnalysisPage />;
 }
 
+function VisualQaMode() {
+  const location = useLocation();
+  const enabled = isVisualQaEnabled(location.search);
+
+  useEffect(() => {
+    if (enabled) {
+      document.documentElement.dataset.visualQa = 'true';
+    } else {
+      delete document.documentElement.dataset.visualQa;
+    }
+
+    return () => {
+      delete document.documentElement.dataset.visualQa;
+    };
+  }, [enabled]);
+
+  return null;
+}
+
 export function App() {
   return (
     <Suspense fallback={<div style={{ padding: 32 }}>FoodMate 正在准备工作台...</div>}>
+      <VisualQaMode />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/chat/:session_id?" element={<ChatPage />} />

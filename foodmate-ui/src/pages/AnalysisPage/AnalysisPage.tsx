@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DEFAULT_AVATARS } from '../../lib/avatar';
+import { FIGMA_WORKSPACE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
 import type { SessionSummary } from '../../types/session';
@@ -271,8 +271,8 @@ export function AnalysisPage() {
       activeModule="analysis"
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
-      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.sidebar : undefined}
+      topAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.topbar : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
@@ -280,6 +280,7 @@ export function AnalysisPage() {
         <section
           className={`${styles.analysisBody} ${isFigmaFixture ? styles.figmaAnalysis : ''} ${isFigmaFixture && visibleState === 'default' ? styles.figmaDefault : ''}`}
           aria-label="摄入分析"
+          data-figma-node-id="640:974"
         >
           <header
             className={`${styles.filterRow} ${isFigmaFixture ? styles.figmaFilterRow : ''} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}
@@ -344,7 +345,7 @@ export function AnalysisPage() {
             <ErrorAnalysis detail={isRealMode ? realError : undefined} onReload={reloadAnalysis} />
           ) : null}
           {visibleState === 'default' && isRealMode && realData ? (
-            <section className={styles.metrics} aria-label="分析摘要">
+            <section className={styles.metrics} aria-label="分析摘要" data-figma-node-id="640:674">
               <article className={styles.metricCard}>
                 <span>区间总能量</span>
                 <strong>{realCalories.toLocaleString('zh-CN')} kcal</strong>
@@ -360,7 +361,7 @@ export function AnalysisPage() {
             </section>
           ) : null}
           {visibleState === 'default' && !isRealMode ? (
-            <section className={styles.metrics} aria-label="分析摘要">
+            <section className={styles.metrics} aria-label="分析摘要" data-figma-node-id="640:674">
               <article className={styles.metricCard}>
                 <span>日均能量</span>
                 <div className={styles.metricValueRow}>
@@ -380,7 +381,7 @@ export function AnalysisPage() {
           ) : null}
 
           {visibleState === 'default' && isRealMode && realData ? (
-            <section className={styles.chartCard} aria-labelledby="calorie-chart-title">
+            <section className={styles.chartCard} aria-labelledby="calorie-chart-title" data-figma-node-id="640:711">
               <h2 id="calorie-chart-title">区间能量摄入与目标对比</h2>
               <div className={styles.chartArea}>
                 <div className={styles.legend} aria-label="图例">
@@ -407,7 +408,7 @@ export function AnalysisPage() {
             </section>
           ) : null}
           {visibleState === 'default' && !isRealMode ? (
-            <section className={styles.chartCard} aria-labelledby="calorie-chart-title">
+            <section className={styles.chartCard} aria-labelledby="calorie-chart-title" data-figma-node-id="640:711">
               <h2 id="calorie-chart-title">能量摄入与目标对比</h2>
               <div className={styles.chartArea}>
                 <div className={styles.legend} aria-label="图例">
@@ -434,7 +435,7 @@ export function AnalysisPage() {
           ) : null}
 
           {visibleState === 'default' && isRealMode && realData ? (
-            <section className={styles.insightCard} aria-labelledby="insight-title">
+            <section className={styles.insightCard} aria-labelledby="insight-title" data-figma-node-id="640:712">
               <h2 id="insight-title">营养洞察（基于已匹配记录）</h2>
               <div className={styles.insights}>
                 <p>
@@ -458,7 +459,7 @@ export function AnalysisPage() {
             </section>
           ) : null}
           {visibleState === 'default' && !isRealMode ? (
-            <section className={styles.insightCard} aria-labelledby="insight-title">
+            <section className={styles.insightCard} aria-labelledby="insight-title" data-figma-node-id="640:712">
               <h2 id="insight-title">营养洞察（由 Agent 生成）</h2>
               <div className={styles.insights}>
                 <p>
@@ -494,7 +495,7 @@ export function AnalysisPage() {
         </section>
 
         {visibleState === 'default' && isRealMode && realData ? (
-          <section className={styles.qualityPanel} aria-label="分析维度与数据质量">
+          <section className={styles.qualityPanel} aria-label="分析维度与数据质量" data-figma-node-id="975:3">
             <h2>分析维度与数据质量</h2>
             <p>
               统计范围：{realData.range === '7d' ? '最近 7 天' : '最近 30 天'} · 已匹配 {realData.matched_items} /{' '}

@@ -8,6 +8,27 @@ import java.util.List;
 public interface V1RuntimeEventService {
     EventResult accept(V1RunEvent event);
 
+    /** 兼容既有饮食记录审批的终态事件入口。 */
+    EventResult completeAgentWrite(
+            long runId,
+            long approvalRequestId,
+            Long resourceId,
+            String requestId,
+            String traceId,
+            boolean written);
+
+    /** 为不同业务写入生成带资源摘要的唯一终态事件。 */
+    EventResult completeAgentWrite(
+            long runId,
+            long approvalRequestId,
+            Long resourceId,
+            String requestId,
+            String traceId,
+            String resourceType,
+            String operation,
+            Long secondaryResourceId,
+            boolean written);
+
     List<V1RunEvent> events(String runId);
 
     boolean exists(String runId);

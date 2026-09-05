@@ -18,7 +18,7 @@ public interface AgentRunCommandRepository {
 
     SummarySnapshot summary(long sessionId);
 
-    List<MemoryContextRow> memories(long userId);
+    List<MemoryContextRow> memories(long userId, String intent);
 
     void insertDispatch(long id, long runId, String dispatchId, String fence, Instant deadline);
 

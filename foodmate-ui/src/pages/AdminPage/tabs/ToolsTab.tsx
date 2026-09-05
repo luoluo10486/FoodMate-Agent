@@ -114,7 +114,15 @@ function ToolRegistrySection({
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const isFigmaOperationFixture = operationFixture && !isRealMode;
   const [tools, setTools] = useState<ToolRegistryRow[]>(
-    isRealMode ? [] : isFigmaOperationFixture ? adminToolRegistryRows.slice(0, 4) : adminToolRegistryRows,
+    isRealMode
+      ? []
+      : isFigmaOperationFixture
+        ? adminToolRegistryRows
+            .slice(0, 4)
+            .map((tool, index) =>
+              operationStatus === 'success' && index === 0 ? { ...tool, status: 'disabled' } : tool,
+            )
+        : adminToolRegistryRows,
   );
   const [statusFilter, setStatusFilter] = useState('all');
   const [riskFilter, setRiskFilter] = useState('all');
@@ -123,6 +131,7 @@ function ToolRegistrySection({
   const [page, setPage] = useState(1);
   const [selectedTool, setSelectedTool] = useState<ToolRegistryRow>();
   const showOperationActions = operationStatus !== 'idle';
+  const operationActionDisabled = operationStatus === 'submitting' || operationStatus === 'no-permission';
 
   const createToolAction = (record: ToolRegistryRow): AdminActionPayload => {
     const nextStatus = record.status === 'active' ? 'disabled' : 'active';
@@ -229,9 +238,13 @@ function ToolRegistrySection({
           {showOperationActions ? (
             <Button
               variant="outline"
-              className={styles.registryActionButton}
+              className={`${styles.registryActionButton} ${
+                isFigmaOperationFixture && operationStatus !== 'no-permission' && record.status === 'active'
+                  ? styles.registryActionAttention
+                  : ''
+              } ${operationActionDisabled ? styles.registryActionDisabled : ''}`}
               size="sm"
-              disabled={operationStatus === 'submitting' || operationStatus === 'no-permission'}
+              disabled={operationActionDisabled}
               onClick={() => onAction(createToolAction(record))}
             >
               {operationStatus === 'no-permission' ? <Lock aria-hidden="true" /> : null}

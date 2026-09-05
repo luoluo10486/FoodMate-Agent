@@ -65,7 +65,7 @@ public interface KnowledgeMapper {
             @Param("size") long size);
 
     @Insert(
-            "WITH source AS (SELECT CAST(#{payload} AS jsonb) AS requested_payload), base AS (SELECT requested_payload,CASE WHEN requested_payload='{}'::jsonb THEN COALESCE((SELECT payload_json FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' ORDER BY outbox_id DESC LIMIT 1),requested_payload) ELSE requested_payload END AS payload FROM source) INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) SELECT #{outboxId},#{itemId},'foodmate-knowledge-index-v1',jsonb_set(payload,'{attempt}',CASE WHEN requested_payload='{}'::jsonb THEN '1'::jsonb WHEN payload ? 'attempt' THEN payload->'attempt' ELSE '1'::jsonb END,true) FROM base")
+            "WITH source AS (SELECT CAST(#{payload} AS jsonb) AS requested_payload), base AS (SELECT requested_payload,CASE WHEN requested_payload='{}'::jsonb THEN COALESCE((SELECT payload_json FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' ORDER BY outbox_id DESC LIMIT 1),requested_payload) ELSE requested_payload END AS payload FROM source) INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) SELECT #{outboxId},#{itemId},'foodmate-knowledge-index-v1',jsonb_set(payload,'{attempt}',CASE WHEN requested_payload='{}'::jsonb THEN '1'::jsonb WHEN jsonb_exists(payload,'attempt') THEN payload->'attempt' ELSE '1'::jsonb END,true) FROM base")
     void insertIndexOutbox(
             @Param("outboxId") long outboxId,
             @Param("itemId") long itemId,
@@ -155,7 +155,10 @@ public interface KnowledgeMapper {
             @Param("version") String version);
 
     @Update(
-            "UPDATE knowledge_import_items i SET index_status='indexed',attempt_count=GREATEST(i.attempt_count,#{attempt}),chunk_count=#{chunkCount},indexed_at=CURRENT_TIMESTAMP,error_code=NULL,error_summary=NULL,token_count=#{tokenCount},cost_amount=#{costAmount},model_version=#{modelVersion},provider_trace_id=#{providerTraceId},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
+            // provider_trace_id is introduced by V29 and is not present in older local databases.
+            // Keep the authoritative state transition usable before V29; the adapter persists the
+            // optional trace in a separate guarded statement when the column exists.
+            "UPDATE knowledge_import_items i SET index_status='indexed',attempt_count=GREATEST(i.attempt_count,#{attempt}),chunk_count=#{chunkCount},indexed_at=CURRENT_TIMESTAMP,error_code=NULL,error_summary=NULL,token_count=#{tokenCount},cost_amount=#{costAmount},model_version=#{modelVersion},updated_at=CURRENT_TIMESTAMP FROM knowledge_documents d WHERE i.item_id=#{itemId} AND i.document_id=#{documentId} AND d.document_id=i.document_id AND d.version=#{version} AND i.index_status<>'indexed' AND #{attempt}>=i.attempt_count")
     int markItemIndexed(
             @Param("itemId") long itemId,
             @Param("documentId") long documentId,
@@ -166,6 +169,15 @@ public interface KnowledgeMapper {
             @Param("costAmount") java.math.BigDecimal costAmount,
             @Param("modelVersion") String modelVersion,
             @Param("providerTraceId") String providerTraceId);
+
+    @Select(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='knowledge_import_items' AND column_name='provider_trace_id')")
+    boolean hasProviderTraceIdColumn();
+
+    @Update(
+            "UPDATE knowledge_import_items SET provider_trace_id=#{providerTraceId},updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId}")
+    void updateProviderTraceId(
+            @Param("itemId") long itemId, @Param("providerTraceId") String providerTraceId);
 
     @Update(
             "UPDATE knowledge_documents SET status='indexed',indexed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND version=#{version} AND is_deleted=FALSE")

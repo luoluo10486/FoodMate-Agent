@@ -196,6 +196,19 @@
   content: '';
 }
 
+.progressRingWithAsset::before {
+  display: none;
+}
+
+.progressRingAsset {
+  position: absolute;
+  inset: 8px;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  display: block;
+}
+
 .progressRing span {
   position: relative;
   z-index: 1;
@@ -524,6 +537,9 @@
 }
 
 .mealHeading h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin: 0;
   color: var(--fm-ink);
   font-family: var(--fm-font);
@@ -531,6 +547,16 @@
   font-weight: 700;
   line-height: 22px;
   white-space: nowrap;
+}
+
+.mealIcon {
+  display: inline-grid;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  place-items: center;
+  font-size: 15px;
+  line-height: 16px;
 }
 
 .mealHeading > span {

@@ -1,5 +1,6 @@
 package com.foodmate.infrastructure.persistence.runtime;
 
+import com.foodmate.application.runtime.port.out.RuntimeEventRepository.ActiveDispatch;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository.DispatchRow;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository.EventRow;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository.RunOwner;
@@ -25,6 +26,10 @@ public interface V1RuntimeEventMapper {
     @Select(
             "SELECT agent_run_dispatch_id AS id,last_event_seq AS lastEventSeq,dispatch_arbitration_state AS state,attempt FROM agent_run_dispatches WHERE agent_run_id=#{runId} AND dispatch_id=#{dispatchId}")
     DispatchRow dispatch(long runId, String dispatchId);
+
+    @Select(
+            "SELECT d.dispatch_id AS dispatchId,d.attempt,d.last_event_seq AS lastEventSeq FROM agent_runs r JOIN agent_run_dispatches d ON d.agent_run_dispatch_id=r.active_dispatch_id WHERE r.agent_run_id=#{runId} AND d.dispatch_arbitration_state='active'")
+    ActiveDispatch activeDispatch(long runId);
 
     @Insert(
             "INSERT INTO runtime_event_inbox_v2(runtime_event_inbox_id,agent_run_id,dispatch_id,attempt,event_id,event_seq,event_type,occurred_at,payload_json,request_hash,processing_status,applied_at) VALUES (#{id},#{runId},#{event.dispatchId},#{event.attempt},#{event.eventId},#{event.eventSeq},#{event.eventType},#{event.occurredAt},CAST(#{payload} AS jsonb),#{event.requestHash},'applied',CURRENT_TIMESTAMP)")

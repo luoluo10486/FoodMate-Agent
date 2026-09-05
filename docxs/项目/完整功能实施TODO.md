@@ -4,9 +4,15 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## 当前复核状态（2026-09-02）
+## 当前复核状态（2026-09-05）
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
+
+### 当前真实云业务证据边界
+
+- R1 公共知识库、R2 饮食记录、R3 餐食计划和 R4 只读 SQL Agent 均已有真实云业务闭环证据；对应 Docker 验收入口分别为 `real-rag-e2e.ps1`、`real-food-log-e2e.ps1`、`real-meal-plan-e2e.ps1` 和 `real-sql-agent-e2e.ps1`。
+- 四条入口都保留云 provider、预算、无 fallback、无自动重试和安全清理门禁；只有显式付费执行才会调用供应商，普通预检不能替代业务证据。
+- 当前任务只推进业务正确性和可复现验收，不把性能压测、依赖重启、ACK 丢失、重复投递、生产部署、备份恢复、硬删除和发布回滚写成已完成。
 
 - [x] 本地 Docker PostgreSQL E2E：注册、登录、Cookie/CSRF、会话创建、消息持久化/读取。
 - [x] Java PostgreSQL Outbox -> RocketMQ -> Consumer：真实传输、`request_hash`、`dispatch_id`、`run_id` 已验证。
@@ -19,13 +25,13 @@
 - [ ] 生产级长压、多实例 Agent 业务吞吐、队列积压/重复执行、PostgreSQL 进程重启，以及 Outbox/Inbox ACK 丢失、租约接管和 SSE 故障恢复仍待执行。
 - [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
 - [x] D112 使用历史凭据完成 Docker `agent-runtime` 的 SiliconFlow `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 显式 `/v1/embeddings` smoke，两个模型均返回 1024 维向量；运行时仍一次选择一个 profile，并使用独立 Milvus collection。该证据不替代当前密钥认证、长稳、成本对账或生产容量验收。
-- [ ] D114 当前凭据复验两个 Docker Embedding profile 均返回 HTTP 401 `Unauthorized`，响应摘要为 `Api key is invalid`；需在供应商侧确认或轮换密钥后重新验证，不能把历史凭据成功记录当作当前成功。
+- [x] D114/D122 曾记录的旧密钥 HTTP 401 已处理；2026-09-05 当前 Docker Embedding 密钥使用 `Qwen/Qwen3-Embedding-0.6B` smoke 返回 1024 维向量，Chat `DeepSeek-V4-Flash` smoke 也已通过。该证据不替代真实业务长稳、成本对账或生产容量验收。
 - [x] M1-5 第一切片已完成本地代码和真实 HTTP E2E：饮食记录创建/查询/编辑/删除/恢复，today/7d/30d 分析，计划创建/查询/修改/校验/保存/删除/恢复/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。
 - [x] `food_log_writer` 已完成：Proposal -> Confirm -> Execute、`confirmation_ref`/AgentRun/用户归属/参数摘要/幂等校验、复用饮食记录写入用例、`food_log_id` 回填、rejected/failed/superseded 和 create/update/delete/restore 均已有定向测试，并已通过真实 PostgreSQL HTTP 和 RocketMQ writer 回归。
 - [x] 本地 PostgreSQL 已存在 V13/V14/V15 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。营养目录 V1-V8 已人工导入 60 条 approved USDA 数据，V2/V4/V5/V7/V8 已导入 60 条 approved USDA foodPortions 规则，V6 已导入 75 条精确质量换算并通过校验；V8 seed/validation 和定向 Java 测试 `2/2` 通过，未覆盖的密度单位仍不推断。
 - [x] M1-5 Java 写确认扩展已实现：`food_log_writer` 支持 create/update/delete/restore，确认状态支持 rejected/failed/superseded，Tool Gateway 校验工具名/type 并映射结果状态；Java 定向测试覆盖拒绝、失败回滚记录、supersede 和三种资源写操作。
 - [x] 完成 M1-5 写确认扩展的真实 HTTP/MQ 跨进程回归：HTTP 与 RocketMQ 各 11 个用例通过，覆盖 rejected、failed 回滚与失败审计、superseded、update/delete/restore、revision 冲突、成功 Proposal 幂等重放，以及官方 foodPortions 换算 matched/pending 和数据库快照断言；每个用例使用随机用户、Session、AgentRun、Proposal 和幂等键隔离。
-- [x] M2-1/M2-2/M2-3 业务范围已完成：公共知识库 deterministic 上传/索引/发布/检索/引用、只读 SQL Agent 多轮闭环、管理后台真实查询/写操作/模型治理和受控脱敏导出均已有代码与业务测试证据；真实云服务、性能和故障验证不属于当前完成门槛。
+- [x] M2-1/M2-2/M2-3 业务范围已完成：公共知识库真实 Embedding/Milvus 上传/索引/发布/检索/引用、真实云只读 SQL Agent、多数核心管理查询/写操作/模型治理和受控脱敏导出均已有代码与业务证据；性能和故障验证不属于当前完成门槛。
 - [x] M3 业务治理代码切片已完成：运营审计快照、DLQ 安全摘要/人工重放契约、保留策略、legal hold、审批、对象/向量清理、失败补偿和受控数据库清理已具备定向业务测试；`hard_delete_enabled=false` 默认关闭。
 - [ ] M3 真实生产依赖清理、数据库不可逆硬删除、生产压测、漏洞扫描、密钥轮换、渗透测试、发布回滚和生产告警仍未完成；本地隔离 PostgreSQL 硬删除和 Docker 备份恢复已有证据，但不得替代生产演练。
 
@@ -168,11 +174,11 @@ M1-4 前置门禁已完成：Python pytest 通过，Java 全模块 Maven 测试�
 - [x] 完成长期记忆候选链路：Python 只产生带来源、类型、置信度、作用域和有效期的候选，Java 校验后写入 `user_memories`，不得把模型推测、一次性参数、审批或医疗判断自动记忆。
 - [x] 提供长期记忆查看、更正、删除和冲突确认 API；冲突记忆默认不进入 Agent Context，用户确认后才恢复可用。
 - [x] 将确定性文本摘要升级为结构化摘要：已输出 `goals`、`constraints`、`decisions`、`open_questions` 和 `source_message_ids`，并保留摘要版本、来源 digest 与 CAS；摘要模型和失败降级策略仍属于后续增强。
-- [x] 长期记忆读取已按用户归属、白名单类型、确认状态和有效期过滤，当前查询/注入上限为 8 条；按更细意图的检索排序仍属于后续增强。
-- [x] 建立最小记忆治理：计划型记忆已自动分配 7 天 TTL，临时型记忆已自动分配 24 小时 TTL，过期记录已从冲突判断和 Context 读取中排除；推断衰减、来源失效、用户遗忘、删除防再生及 active memory 上限配置化仍待完成。
+- [x] 长期记忆读取已按用户归属、白名单类型、确认状态、有效期和当前 AgentRun 意图过滤，当前查询/注入上限为 8 条；检索仍是确定性的类型分层，不引入高成本语义向量。
+- [x] 建立最小记忆治理：计划型记忆已自动分配 7 天 TTL，临时型记忆已自动分配 24 小时 TTL，过期记录已从冲突判断和 Context 读取中排除；V31 增加来源消息与删除/更正抑制标记，防止被撤回事实重新生成。推断衰减、用户遗忘和 active memory 上限配置化仍待完成。
 - [x] 明确三层数据边界：周食谱、饮食日志、Profile、过敏/医疗限制等保留在领域表；Java 记忆候选白名单拒绝权威实体类型/字段和高影响健康事实，Context 查询只读取允许的长期记忆类型。
 - [x] M1 不引入 `pgvector`；仅当结构化检索经 Eval 证明召回不足后作为可选增强评估。
-- [x] 删除或更正长期记忆后使相关摘要和 Context 引用失效；完整缓存传播和删除防再生仍属于后续增强。
+- [x] 删除或更正长期记忆后使相关摘要和 Context 引用失效；V31 通过来源消息抑制、摘要重建过滤和关闭查询缓存防止旧事实再生。V31 迁移需在目标本地数据库人工执行并按执行台账留证。
 - [x] 为每次 Context 装配保存可审计来源 ID：Python 通过非终态 `run.context_assembled` 只回传 `message_id/summary_id/memory_id/citation_id`，Java 在同一事件事务写入统一审计；不保存 Chain-of-Thought、完整 Prompt 或正文。
 - [x] 完成 Redis 协调：用户默认最多 2 个 Session 并发、全局默认 20 个 active Run、全局队列默认 100；同 Session 单 active Run 由 PostgreSQL 保证，不创建 Session 级 Redis permit。当前已接入 Lua/ZSET lease，未引入进程内 semaphore。
 - [ ] 完成生产级优先队列、permit lease、aging、防饥饿和 Redis 故障关闭；当前已实现有限 priority + FIFO aging 基础和协调不可用 503，仍缺 Redis 故障注入与长期防饥饿验证。

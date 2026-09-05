@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.foodmate.application.common.service.OperationAuditService;
+import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
 import com.foodmate.application.runtime.service.ToolGatewayService;
@@ -18,6 +19,7 @@ import com.foodmate.application.runtime.service.ToolRegistryService;
 import com.foodmate.application.runtime.service.impl.ToolGatewayServiceImpl;
 import com.foodmate.application.runtime.service.impl.ToolRegistryServiceImpl;
 import com.foodmate.shared.id.IdGenerator;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -62,6 +64,70 @@ class ToolPolicyGatewayServiceTest {
         assertEquals("confirmation_required", result.status());
         assertEquals("TOOL_CONFIRMATION_REQUIRED", result.errorCode());
         verifyNoInteractions(store);
+    }
+
+    @Test
+    void mealPlanWriterReadsIdempotencyKeyFromProposalPayload() {
+        var definition =
+                new ToolRegistryRepository.ToolDefinition(
+                        720007L,
+                        "meal_plan.save_plan",
+                        "Save meal plan",
+                        "Persist a validated meal plan for the current user.",
+                        "write",
+                        "high",
+                        "user",
+                        "active",
+                        "v2",
+                        "v2",
+                        "{\"type\":\"object\",\"properties\":{\"plan\":{\"type\":\"object\"}},\"required\":[\"plan\"],\"additionalProperties\":false}",
+                        "{\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"}}}",
+                        "{\"roles\":[\"user\",\"operator\",\"admin\",\"superadmin\"],\"approval\":\"required\",\"scope\":\"user\"}",
+                        10000,
+                        false,
+                        true,
+                        Instant.parse("2026-09-05T00:00:00Z"));
+        when(registryStore.findCurrent("meal_plan.save_plan")).thenReturn(definition);
+        ApprovalService approvals = mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.propose(eq(7L), any()))
+                .thenReturn(
+                        new ApprovalService.ProposalView(
+                                101L,
+                                "save_plan",
+                                "meal_plan",
+                                null,
+                                "digest",
+                                "pending",
+                                Instant.parse("2026-09-05T01:00:00Z"),
+                                null,
+                                null));
+
+        var result =
+                new ToolGatewayServiceImpl(
+                                store,
+                                ids,
+                                approvals,
+                                new com.fasterxml.jackson.databind.ObjectMapper(),
+                                registry(),
+                                null,
+                                null,
+                                audit)
+                        .execute(
+                                new ToolGatewayService.ProposalCommand(
+                                        "proposal-plan-v2",
+                                        "42",
+                                        "tool",
+                                        "v1",
+                                        "meal_plan.save_plan",
+                                        null,
+                                        mealPlanInput(),
+                                        new ToolGatewayService.ProposalPayload(
+                                                "", "inv-plan-v2", "plan-key-v2")));
+
+        assertEquals("confirmation_required", result.status());
+        assertEquals("101", result.confirmationRef());
+        verify(approvals).propose(eq(7L), any());
     }
 
     @Test
@@ -210,5 +276,20 @@ class ToolPolicyGatewayServiceTest {
 
     private static com.fasterxml.jackson.databind.node.ObjectNode object() {
         return JsonNodeFactory.instance.objectNode();
+    }
+
+    private static com.fasterxml.jackson.databind.node.ObjectNode mealPlanInput() {
+        var plan = JsonNodeFactory.instance.objectNode();
+        plan.put("plan_name", "一日计划");
+        plan.put("people", 1);
+        plan.put("days", 1);
+        plan.put("budget", 80);
+        plan.putArray("allergens");
+        plan.putArray("dislikes");
+        var day = plan.putArray("days_plan").addObject();
+        day.putObject("breakfast");
+        day.putObject("lunch");
+        day.putObject("dinner");
+        return JsonNodeFactory.instance.objectNode().set("plan", plan);
     }
 }

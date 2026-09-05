@@ -23,6 +23,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
@@ -53,7 +54,6 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         this(store, ids, accounts, budgetDefaults, admission, summaries, null, null);
     }
 
-    @Autowired
     public AgentRunCommandServiceImpl(
             ObjectProvider<AgentRunCommandRepository> store,
             IdGenerator ids,
@@ -65,6 +65,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         this(store, ids, accounts, budgetDefaults, admission, summaries, auditProvider, null);
     }
 
+    @Autowired
     public AgentRunCommandServiceImpl(
             ObjectProvider<AgentRunCommandRepository> store,
             IdGenerator ids,
@@ -185,7 +186,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                                     summary.contentDigest(),
                                     summary.version());
             List<V1RunCommand.MemoryContext> longTermMemories =
-                    store.memories(userId).stream()
+                    store.memories(userId, memoryIntent(content)).stream()
                             .map(
                                     memory ->
                                             new V1RunCommand.MemoryContext(
@@ -209,7 +210,9 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                             sessionSummary,
                             longTermMemories,
                             null,
-                            "public_published");
+                            "public_published",
+                            true,
+                            true);
             int maxTotalTokens =
                     governanceSnapshot == null
                             ? budgetDefaults.maxTotalTokens()
@@ -333,6 +336,31 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                     Map.of("session_id", sessionId));
             throw exception;
         }
+    }
+
+    /** 根据当前用户意图缩小长期记忆范围，避免无关偏好污染 Agent Context。 */
+    private static String memoryIntent(String content) {
+        String normalized = content == null ? "" : content.toLowerCase(Locale.ROOT);
+        if (containsAny(normalized, "怎么做", "如何做", "烹饪", "做法", "cook", "recipe")) {
+            return "cooking";
+        }
+        if (containsAny(normalized, "营养", "热量", "卡路里", "蛋白质", "nutrition", "calorie")) {
+            return "nutrition";
+        }
+        if (containsAny(normalized, "记录", "吃了", "摄入", "饮食记录", "food log", "intake")) {
+            return "record";
+        }
+        if (containsAny(normalized, "计划", "食谱", "菜单", "安排", "meal plan", "weekly menu")) {
+            return "planning";
+        }
+        return "general";
+    }
+
+    private static boolean containsAny(String value, String... terms) {
+        for (String term : terms) {
+            if (value.contains(term)) return true;
+        }
+        return false;
     }
 
     private void supersedeParentRun(long parentRunId, long continuationRunId, long userId) {

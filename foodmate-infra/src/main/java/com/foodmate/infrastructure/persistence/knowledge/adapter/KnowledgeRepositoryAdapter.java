@@ -174,6 +174,9 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                                     result.providerTraceId())
                             == 1;
             if (changed) {
+                if (result.providerTraceId() != null && mapper.hasProviderTraceIdColumn()) {
+                    mapper.updateProviderTraceId(result.itemId(), result.providerTraceId());
+                }
                 replaceKnowledgeChunks(result);
                 mapper.markDocumentIndexed(result.documentId(), result.version());
             }

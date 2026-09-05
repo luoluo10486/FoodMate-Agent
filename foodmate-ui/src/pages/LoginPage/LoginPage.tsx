@@ -1,15 +1,22 @@
-import { EyeOff } from 'lucide-react';
-import { useState } from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
+import { CustomEase } from 'gsap/CustomEase';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { notify } from '../../lib/notice';
+import { isVisualQaEnabled } from '../../lib/visualQa';
 import { getLoginDefaults, login } from '../../services/authService';
 import styles from './LoginPage.module.css';
+
+gsap.registerPlugin(CustomEase);
+
+const FIGMA_LOGIN_CUBIC_EASE = CustomEase.create('foodmate-login-figma-cubic', 'M0,0 C0.16,1 0.3,1 1,1');
+const FIGMA_LOGIN_SCALE_EASE = CustomEase.create('foodmate-login-figma-scale', 'M0,0 C0,0 0.2,1 1,1');
+const FIGMA_LOGIN_SPRING_EASE = (progress: number) =>
+  1 - Math.exp(-progress * 7.4426) * (Math.cos(progress * 10.5254) + 0.7071 * Math.sin(progress * 10.5254));
 
 type LoginValues = {
   username: string;
@@ -25,6 +32,16 @@ type LoginState =
   | 'account-locked'
   | 'account-disabled'
   | 'service-unavailable';
+
+const loginStateClassNames: Record<LoginState, string> = {
+  default: '',
+  submitting: styles.authPageLoginSubmitting,
+  'field-error': styles.authPageLoginFieldError,
+  'credential-error': styles.authPageLoginCredentialError,
+  'account-locked': styles.authPageLoginAccountLocked,
+  'account-disabled': styles.authPageLoginAccountDisabled,
+  'service-unavailable': styles.authPageLoginServiceUnavailable,
+};
 
 function loginAsset(state: LoginState, name: 'user' | 'lock' | 'eye' | 'line') {
   const suffix =
@@ -103,6 +120,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const pageRef = useRef<HTMLElement>(null);
   const [searchParams] = useSearchParams();
+  const visualQaEnabled = isVisualQaEnabled(searchParams.toString());
   const defaults = getLoginDefaults();
   const requestedState = searchParams.get('state') as LoginState | null;
   const state = requestedState && loginStates.has(requestedState) ? requestedState : 'default';
@@ -120,31 +138,46 @@ export function LoginPage() {
   useGSAP(
     () => {
       const page = pageRef.current;
-      if (!page || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (
+        visualQaEnabled ||
+        visualState !== 'default' ||
+        !page ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      )
+        return;
 
-      // Preserve the Figma entrance timing, then leave the login form interactive and stable.
-      const timeline = gsap.timeline();
+      // 按 Figma 节点 647:214 的 4.5 秒循环时间线同步背景、品牌和表单的出现节奏。
+      const timeline = gsap.timeline({ repeat: -1, repeatDelay: 0 });
       timeline
         .set('[data-login-motion="diagonal"]', { x: -1800, y: -1000 })
-        .set('[data-login-motion="logo"]', { rotate: 0, scale: 12, x: 90, y: 207 })
+        .set('[data-login-motion="logo"]', { rotate: 0, scaleX: 12, scaleY: 12, x: 90, y: 207 })
         .set('[data-login-motion="wordmark"]', { autoAlpha: 0, y: 8 })
         .set('[data-login-motion="welcome"]', { autoAlpha: 0, y: 15 })
         .set('[data-login-motion="fields"]', { autoAlpha: 0, y: 15 })
         .set('[data-login-motion="submit"]', { autoAlpha: 0, y: 12 })
         .set('[data-login-motion="divider"]', { autoAlpha: 0 })
         .set('[data-login-motion="signup"]', { autoAlpha: 0, y: 8 })
-        .to('[data-login-motion="logo"]', { rotate: 360, duration: 1.5, ease: 'none' }, 0)
-        .to('[data-login-motion="logo"]', { scale: 1, x: 0, y: 0, duration: 0.8, ease: 'power3.out' }, 2)
-        .to('[data-login-motion="wordmark"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 2.8)
-        .to('[data-login-motion="welcome"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 3.2)
-        .to('[data-login-motion="fields"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 3.4)
-        .to('[data-login-motion="submit"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 3.6)
-        .to('[data-login-motion="divider"]', { autoAlpha: 1, duration: 0.3, ease: 'power3.out' }, 3.8)
-        .to('[data-login-motion="signup"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 3.9)
-        .to('[data-login-motion="diagonal"]', { x: 0, y: 0, duration: 0.4, ease: 'elastic.out(1, 0.45)' }, 2.3)
-        .to({}, { duration: 0.2 });
+        .to('[data-login-motion="logo"]', { rotate: 120, duration: 0.5, ease: 'none' }, 0)
+        .to('[data-login-motion="logo"]', { rotate: 240, duration: 0.5, ease: 'none' }, 0.5)
+        .to('[data-login-motion="logo"]', { rotate: 360, duration: 0.5, ease: FIGMA_LOGIN_CUBIC_EASE }, 1)
+        .to('[data-login-motion="logo"]', { rotate: 360, duration: 3, ease: 'none' }, 1.5)
+        .to('[data-login-motion="logo"]', { scaleX: 12, scaleY: 12, x: 90, y: 207, duration: 2, ease: 'none' }, 0)
+        .to(
+          '[data-login-motion="logo"]',
+          { scaleX: 1, scaleY: 1, x: 0, y: 0, duration: 0.8, ease: FIGMA_LOGIN_SCALE_EASE },
+          2,
+        )
+        .to('[data-login-motion="logo"]', { scaleX: 1, scaleY: 1, x: 0, y: 0, duration: 1.7, ease: 'none' }, 2.8)
+        .to('[data-login-motion="wordmark"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: FIGMA_LOGIN_CUBIC_EASE }, 2.8)
+        .to('[data-login-motion="welcome"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: FIGMA_LOGIN_CUBIC_EASE }, 3.2)
+        .to('[data-login-motion="fields"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: FIGMA_LOGIN_CUBIC_EASE }, 3.4)
+        .to('[data-login-motion="submit"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: FIGMA_LOGIN_CUBIC_EASE }, 3.6)
+        .to('[data-login-motion="divider"]', { autoAlpha: 1, duration: 0.3, ease: FIGMA_LOGIN_CUBIC_EASE }, 3.8)
+        .to('[data-login-motion="signup"]', { autoAlpha: 1, y: 0, duration: 0.4, ease: FIGMA_LOGIN_CUBIC_EASE }, 3.9)
+        .to('[data-login-motion="diagonal"]', { x: 0, y: 0, duration: 0.4, ease: FIGMA_LOGIN_SPRING_EASE }, 2.3)
+        .to('[data-login-motion="diagonal"]', { x: 0, y: 0, duration: 1.8, ease: 'none' }, 2.7);
     },
-    { scope: pageRef },
+    { scope: pageRef, dependencies: [visualState, visualQaEnabled] },
   );
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -161,9 +194,14 @@ export function LoginPage() {
     }
   };
 
+  const stateClassName = loginStateClassNames[visualState];
+  const stateLayoutClassName = visualState === 'default' ? '' : styles.authPageLoginState;
+
   return (
     <main
-      className={`${styles.authPage} ${styles['authPage-login']} ${state === 'submitting' ? styles.authPageLoginSubmitting : state === 'field-error' ? styles.authPageLoginFieldError : state === 'credential-error' ? styles.authPageLoginCredentialError : state === 'account-locked' ? styles.authPageLoginAccountLocked : state === 'account-disabled' ? styles.authPageLoginAccountDisabled : state === 'service-unavailable' ? styles.authPageLoginServiceUnavailable : ''}`}
+      className={[styles.authPage, styles['authPage-login'], stateLayoutClassName, stateClassName]
+        .filter(Boolean)
+        .join(' ')}
       ref={pageRef}
     >
       <div className={styles.authDiagonal} aria-hidden="true" data-login-motion="diagonal" />
@@ -282,7 +320,7 @@ export function LoginPage() {
                     aria-label={showPassword ? '隐藏密码' : '显示密码'}
                     onClick={() => setShowPassword((value) => !value)}
                   >
-                    {showPassword ? <EyeOff aria-hidden="true" /> : <img src={loginAsset(visualState, 'eye')} alt="" />}
+                    <img src={loginAsset(visualState, 'eye')} alt="" />
                   </Button>
                 }
                 value={loginValues.password}
@@ -348,7 +386,7 @@ export function LoginPage() {
               type="button"
               onClick={() => navigate('/register')}
             >
-              注册
+              {visualState === 'default' ? '注册' : '立即注册'}
             </Button>
           </div>
         </div>

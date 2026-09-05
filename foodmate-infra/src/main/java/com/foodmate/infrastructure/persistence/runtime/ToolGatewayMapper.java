@@ -2,6 +2,7 @@ package com.foodmate.infrastructure.persistence.runtime;
 
 import com.foodmate.application.runtime.port.out.ToolGatewayPort.Audit;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort.RunContext;
+import com.foodmate.application.runtime.port.out.ToolGatewayPort.ToolCall;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
@@ -20,4 +21,8 @@ public interface ToolGatewayMapper {
     @Insert(
             "INSERT INTO sql_query_audits(sql_audit_id,agent_run_id,sql_text,status,row_count,reject_reason,latency_ms,trace_id,created_by,updated_by) VALUES (#{id},#{runId},#{statement},#{status},#{rows},#{reason},#{latencyMs},#{traceId},0,0)")
     void audit(Audit audit);
+
+    @Insert(
+            "INSERT INTO tool_calls(tool_call_id,agent_run_id,tool_name,tool_version,input_json,output_json,status,latency_ms,error_code,trace_id) VALUES (#{id},#{runId},#{toolName},#{toolVersion},CAST(#{inputJson} AS jsonb),CAST(#{outputJson} AS jsonb),#{status},#{latencyMs},#{errorCode},#{traceId})")
+    void recordToolCall(ToolCall toolCall);
 }

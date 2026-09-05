@@ -311,18 +311,49 @@ public class MealPlanServiceImpl implements MealPlanService {
     @Override
     @Transactional
     public ShoppingListView shoppingList(long userId, long mealPlanId) {
-        MealPlanRepository.PlanSnapshot plan = requirePlan(userId, mealPlanId);
-        if (!"saved".equals(plan.status()))
-            throw new BusinessException(ErrorCode.CONFLICT, "只有 saved 计划可以生成购物清单");
-        MealPlanRepository.ShoppingListSnapshot existing =
-                store.findOwnedShoppingList(userId, mealPlanId);
-        if (existing != null) return shoppingView(existing);
-        ArrayNode items = aggregateShoppingItems(read(plan.planJson()));
-        long id = ids.nextId();
-        store.insertShoppingList(
-                new MealPlanRepository.ShoppingListWrite(
-                        id, mealPlanId, userId, json(items), "generated"));
-        return shoppingView(store.findOwnedShoppingList(userId, mealPlanId));
+        String digest = digest("shopping_list", mealPlanId);
+        try {
+            MealPlanRepository.PlanSnapshot plan = requirePlan(userId, mealPlanId);
+            if (!"saved".equals(plan.status()))
+                throw new BusinessException(ErrorCode.CONFLICT, "只有 saved 计划可以生成购物清单");
+            MealPlanRepository.ShoppingListSnapshot existing =
+                    store.findOwnedShoppingList(userId, mealPlanId);
+            ShoppingListView result;
+            if (existing != null) {
+                result = shoppingView(existing);
+            } else {
+                ArrayNode items = aggregateShoppingItems(read(plan.planJson()));
+                long id = ids.nextId();
+                if (store.insertShoppingList(
+                                new MealPlanRepository.ShoppingListWrite(
+                                        id, mealPlanId, userId, json(items), "generated"))
+                        != 1) throw new BusinessException(ErrorCode.INTERNAL_ERROR, "购物清单写入失败");
+                result = shoppingView(store.findOwnedShoppingList(userId, mealPlanId));
+            }
+            audit.record(
+                    userId,
+                    "shopping_list",
+                    Long.toString(result.shoppingListId()),
+                    "meal_plan.shopping_list",
+                    "success",
+                    null,
+                    digest,
+                    null,
+                    Map.of("meal_plan_id", mealPlanId, "status", result.status()));
+            return result;
+        } catch (RuntimeException exception) {
+            audit.recordFailure(
+                    userId,
+                    "shopping_list",
+                    Long.toString(mealPlanId),
+                    "meal_plan.shopping_list",
+                    "failed",
+                    errorCode(exception),
+                    digest,
+                    null,
+                    Map.of("meal_plan_id", mealPlanId));
+            throw exception;
+        }
     }
 
     @Override

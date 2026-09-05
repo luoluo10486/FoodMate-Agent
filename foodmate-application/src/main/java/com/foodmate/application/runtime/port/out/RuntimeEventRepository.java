@@ -12,6 +12,8 @@ public interface RuntimeEventRepository {
 
     DispatchRow dispatch(long runId, String dispatchId);
 
+    ActiveDispatch activeDispatch(long runId);
+
     void insertEvent(long id, long runId, V1RunEvent event, String payload);
 
     void updateDispatch(long runId, String dispatchId, long seq, String status);
@@ -84,6 +86,8 @@ public interface RuntimeEventRepository {
     boolean publicCitationVisible(long documentId, String version);
 
     record DispatchRow(long id, long lastEventSeq, String state, int attempt) {}
+
+    record ActiveDispatch(String dispatchId, int attempt, long lastEventSeq) {}
 
     record EventRow(
             String eventId,

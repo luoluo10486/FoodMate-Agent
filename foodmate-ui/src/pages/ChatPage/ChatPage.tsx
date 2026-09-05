@@ -36,12 +36,18 @@ import { createSession, loadSessionMessages, sendUserMessage, type RealMessage }
 import {
   cancelAgentRun,
   confirmAgentWrite,
+  executeAgentWrite,
   extendAgentRunBudget,
   openAgentRunStream,
   rejectAgentWrite,
   recoverAgentRun,
+  type AgentRunEvent,
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
+
+const FIGMA_CHAT_SIDEBAR_AVATAR = '/assets/figma/workspace/home-sidebar-avatar.png';
+const FIGMA_CHAT_TOPBAR_AVATAR = '/assets/figma/agent-chat/figma-v2-topbar-avatar.png';
+const FIGMA_CHAT_MESSAGE_AVATAR = '/assets/figma/agent-chat/figma-v2-message-avatar.png';
 
 type ChatMessage = {
   id: string;
@@ -288,6 +294,19 @@ function ChatSurface({
       </div>
     </WorkspaceLayout>
   );
+}
+
+function approvalParameters(details: NonNullable<AgentRunEvent['details']>) {
+  return {
+    meal_time: details.meal_time,
+    meal_type: details.meal_type,
+    notes: details.notes ?? null,
+    items: (details.items ?? []).map((item) => ({
+      name: item.name,
+      amount: item.amount,
+      unit: item.unit,
+    })),
+  };
 }
 
 export function ChatPage() {
@@ -1658,6 +1677,11 @@ function RealChatPage() {
   const [error, setError] = useState<string>();
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
+  const [approval, setApproval] = useState<{
+    id: string;
+    details: NonNullable<AgentRunEvent['details']>;
+  }>();
+  const [approvalSubmitting, setApprovalSubmitting] = useState(false);
   const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
   const messagesRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<{ close: () => void }>();
@@ -1672,6 +1696,8 @@ function RealChatPage() {
     setAssistantMessageId(undefined);
     setBudgetConfirmation(false);
     setCheckpointAvailable(false);
+    setApproval(undefined);
+    setApprovalSubmitting(false);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
     if (!sessionId) {
       setLoading(false);
@@ -1715,6 +1741,7 @@ function RealChatPage() {
         if (eventType === 'run.completed') {
           setRunStatus('completed');
           setCheckpointAvailable(false);
+          setApproval(undefined);
           setAssistantText((current) => payload.answer ?? current);
           if (sessionId) {
             void loadSessionMessages(sessionId).then((rows) => {
@@ -1739,8 +1766,14 @@ function RealChatPage() {
           return;
         }
         if (eventType === 'run.checkpoint_saved') {
-          setRunStatus('waiting_user');
-          setCheckpointAvailable(true);
+          if (payload.approval_request_id) {
+            setRunStatus('waiting_user');
+            setCheckpointAvailable(false);
+            setApproval({ id: payload.approval_request_id, details: payload.details ?? {} });
+          } else {
+            setRunStatus('waiting_user');
+            setCheckpointAvailable(true);
+          }
           return;
         }
         if (eventType === 'run.failed') {
@@ -1761,6 +1794,10 @@ function RealChatPage() {
         }
         if (eventType === 'run.clarification_requested') {
           setRunStatus('waiting_user');
+          if (payload.approval_request_id) {
+            setCheckpointAvailable(false);
+            setApproval({ id: payload.approval_request_id, details: payload.details ?? {} });
+          }
           return;
         }
         setRunStatus(payload.status ?? eventType.replace('run.', ''));
@@ -1892,7 +1929,45 @@ function RealChatPage() {
           ) : null}
         </MessageBubble>
       ) : null}
-      {checkpointAvailable && activeRunId ? (
+      {approval && activeRunId ? (
+        <div className={styles.cardWrap}>
+          <ConfirmationCard
+            title="请确认将这条内容写入饮食日志"
+            helperText="确认后才会创建饮食记录；取消不会修改业务数据。"
+            state={approvalSubmitting ? 'disabled' : 'normal'}
+            data={[
+              { label: '餐型', value: approval.details.meal_type ?? '未识别' },
+              {
+                label: '时间',
+                value: approval.details.meal_time ?? '未识别',
+              },
+              {
+                label: '食物',
+                value: (approval.details.items ?? [])
+                  .map((item) => `${item.name ?? '未命名'} ${item.amount ?? ''}${item.unit ?? ''}`)
+                  .join('、'),
+              },
+            ]}
+            onConfirm={() => {
+              const parameters = approvalParameters(approval.details);
+              setApprovalSubmitting(true);
+              void confirmAgentWrite(approval.id, parameters)
+                .then(() => executeAgentWrite(approval.id, parameters))
+                .catch((reason) => setError(reason instanceof Error ? reason.message : '饮食记录写入失败'))
+                .finally(() => setApprovalSubmitting(false));
+            }}
+            onEdit={() => setError('请发送一条新消息修改食物和份量。')}
+            onCancel={() => {
+              const parameters = approvalParameters(approval.details);
+              setApprovalSubmitting(true);
+              void rejectAgentWrite(approval.id, parameters)
+                .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
+                .finally(() => setApprovalSubmitting(false));
+            }}
+          />
+        </div>
+      ) : null}
+      {checkpointAvailable && !approval && activeRunId ? (
         <div className={styles.cardWrap}>
           <ConfirmationCard
             title="运行已暂停，可从检查点继续"
@@ -1960,13 +2035,19 @@ function MockChatPage() {
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       pageVariant={isFigmaFixture ? 'figma-default' : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIGMA_CHAT_SIDEBAR_AVATAR : undefined}
+      topAvatarSrc={isFigmaFixture ? FIGMA_CHAT_TOPBAR_AVATAR : undefined}
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}
       placeholder="追问或添加自定义指令..."
     >
       {agent.messages.map((message, index) => (
-        <MessageBubble key={message.id} message={{ ...message, wide: isFigmaFixture }}>
+        <MessageBubble
+          key={message.id}
+          message={{ ...message, wide: isFigmaFixture }}
+          userAvatarSrc={isFigmaFixture ? FIGMA_CHAT_MESSAGE_AVATAR : undefined}
+        >
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
             <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />
           ) : null}
@@ -1999,15 +2080,16 @@ function MockChatPage() {
       ) : null}
       {agent.card.type === 'confirmation' ? null : null}
       {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
-      {!isFigmaFixture ? (
+      {/* Figma 640:428 的说明面板属于默认画板内容，只在 fixture 中复现。 */}
+      {isFigmaFixture ? (
         <section className={styles.messageActions} aria-label="消息操作">
           <h2>消息操作</h2>
-          <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
-          <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
+          <p>{'用户消息：编辑  ·  复制  ·  重试（保留原消息并新建一次运行）'}</p>
+          <p>{'Agent 回答：复制  ·  查看引用  ·  查看运行详情  ·  继续提问'}</p>
           <p className={styles.actionGreen}>
-            工具失败时显示重试；运行中发送按钮切换停止；写入确认/预算追加仍需确认后继续。
+            工具失败时显示重试；运行中发送按钮切换停止；写入确认 / 预算追加仍需确认后继续。
           </p>
-          <p>右侧面板：运行 · 工具 · 引用 · 原始 JSON 默认折叠并隐藏敏感参数。</p>
+          <p>{'右侧面板：运行  ·  工具  ·  引用     原始 JSON 默认折叠并隐藏敏感参数。'}</p>
         </section>
       ) : null}
     </ChatSurface>

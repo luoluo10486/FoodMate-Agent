@@ -3,11 +3,15 @@ package com.foodmate.application.food.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.ApprovalRequestRepository;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.application.food.service.MealPlanService;
+import com.foodmate.application.runtime.service.PlanValidator;
+import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.food.enums.MealType;
@@ -26,6 +30,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -48,6 +53,7 @@ public class ApprovalServiceImpl implements ApprovalService {
     private final TransactionTemplate executionTransactions;
     private final TransactionTemplate failureTransactions;
     private final OperationAuditService auditService;
+    private final V1RuntimeEventService runtimeEvents;
 
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
@@ -76,7 +82,6 @@ public class ApprovalServiceImpl implements ApprovalService {
         this(store, plans, foods, ids, mapper, transactionManager, null);
     }
 
-    @Autowired
     public ApprovalServiceImpl(
             ApprovalRequestRepository store,
             MealPlanService plans,
@@ -85,6 +90,20 @@ public class ApprovalServiceImpl implements ApprovalService {
             ObjectMapper mapper,
             PlatformTransactionManager transactionManager,
             org.springframework.beans.factory.ObjectProvider<OperationAuditService> auditProvider) {
+        this(store, plans, foods, ids, mapper, transactionManager, auditProvider, null);
+    }
+
+    @Autowired
+    public ApprovalServiceImpl(
+            ApprovalRequestRepository store,
+            MealPlanService plans,
+            FoodLogService foods,
+            IdGenerator ids,
+            ObjectMapper mapper,
+            PlatformTransactionManager transactionManager,
+            org.springframework.beans.factory.ObjectProvider<OperationAuditService> auditProvider,
+            org.springframework.beans.factory.ObjectProvider<V1RuntimeEventService>
+                    runtimeEventsProvider) {
         this.store = store;
         this.plans = plans;
         this.foods = foods;
@@ -93,6 +112,8 @@ public class ApprovalServiceImpl implements ApprovalService {
         this.executionTransactions = transactionTemplate(transactionManager);
         this.failureTransactions = failureTransactionTemplate(transactionManager);
         this.auditService = auditProvider == null ? null : auditProvider.getIfAvailable();
+        this.runtimeEvents =
+                runtimeEventsProvider == null ? null : runtimeEventsProvider.getIfAvailable();
     }
 
     private static TransactionTemplate transactionTemplate(PlatformTransactionManager manager) {
@@ -260,6 +281,7 @@ public class ApprovalServiceImpl implements ApprovalService {
                 "approval.reject",
                 approval.parametersDigest(),
                 approval.idempotencyKey() + ":reject");
+        completeAgentWrite(approval, null, null, false);
         return view(require(userId, approvalRequestId));
     }
 
@@ -325,27 +347,74 @@ public class ApprovalServiceImpl implements ApprovalService {
             throw toolConflict("工具幂等键与确认事实不一致", "TOOL_IDEMPOTENCY_CONFLICT");
         requireOperation(approval);
         requireDigest(approval, digestForExecution(approval, parameters));
-        if ("executed".equals(approval.status()))
+        if ("executed".equals(approval.status())) {
+            Long shoppingListId = null;
+            if ("meal_plan".equals(approval.resourceType())
+                    && approval.resourceId() != null
+                    && plans != null) {
+                MealPlanService.ShoppingListView shoppingList =
+                        plans.shoppingList(userId, approval.resourceId());
+                shoppingListId = shoppingList == null ? null : shoppingList.shoppingListId();
+            }
             return new ExecuteView(
                     approval.approvalRequestId(),
                     approval.operation(),
                     approval.status(),
-                    approval.resourceId());
+                    approval.resourceId(),
+                    shoppingListId);
+        }
         ensureExecutable(approval, userId);
         if (!"confirmed".equals(approval.status()))
             throw toolConflict("写操作尚未确认", "TOOL_CONFIRMATION_REQUIRED");
         if ("save_plan".equals(approval.operation()) && approval.resourceId() == null)
-            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "save_plan 缺少计划 ID");
+            requireMealPlanCandidate(parameters);
         if ("food_log".equals(approval.resourceType()) && foods == null)
             throw new BusinessException(
                     ErrorCode.INVALID_ARGUMENT, "food log service is unavailable");
+        if ("meal_plan".equals(approval.resourceType()) && plans == null)
+            throw new BusinessException(
+                    ErrorCode.INVALID_ARGUMENT, "meal plan service is unavailable");
+        if ("save_plan".equals(approval.operation()) && approval.resourceId() == null) {
+            PlanValidator.Validation validation = PlanValidator.evaluate(parameters.get("plan"));
+            if (!validation.valid())
+                throw toolConflict("餐食计划未通过 Java 约束校验", "PLAN_CONSTRAINTS_UNSATISFIED");
+        }
         if (store.markExecuted(userId, approvalRequestId, Instant.now()) != 1)
             throw new BusinessException(ErrorCode.CONFLICT, "确认请求执行状态已变化");
         businessAttempted[0] = true;
         // 状态占用和业务写入处于同一事务，避免并发执行重复调用业务写入。
         Long resourceId = approval.resourceId();
+        Long secondaryResourceId = null;
         if ("save_plan".equals(approval.operation())) {
-            plans.save(userId, approval.resourceId(), businessSaveKey(approval.idempotencyKey()));
+            if (resourceId == null) {
+                JsonNode plan = parameters.get("plan");
+                MealPlanService.PlanView created =
+                        plans.create(
+                                userId,
+                                mealPlanCommand(
+                                        approval.sessionId(),
+                                        plan,
+                                        businessPlanCreateKey(approval.idempotencyKey())));
+                plans.validate(userId, created.mealPlanId());
+                MealPlanService.PlanView saved =
+                        plans.save(
+                                userId,
+                                created.mealPlanId(),
+                                businessSaveKey(approval.idempotencyKey()));
+                resourceId = saved == null ? created.mealPlanId() : saved.mealPlanId();
+                if (store.updateExecutedResource(
+                                userId, approvalRequestId, resourceId, Instant.now())
+                        != 1)
+                    throw new BusinessException(
+                            ErrorCode.CONFLICT, "created meal plan could not be bound");
+                MealPlanService.ShoppingListView shoppingList =
+                        plans.shoppingList(userId, resourceId);
+                if (shoppingList == null)
+                    throw new BusinessException(ErrorCode.INTERNAL_ERROR, "购物清单写入后无法读取");
+                secondaryResourceId = shoppingList.shoppingListId();
+            } else {
+                plans.save(userId, resourceId, businessSaveKey(approval.idempotencyKey()));
+            }
         } else if ("create".equals(approval.operation())) {
             resourceId = createFoodLog(userId, approval, parameters);
             bindCreatedResource(userId, approvalRequestId, resourceId);
@@ -380,7 +449,13 @@ public class ApprovalServiceImpl implements ApprovalService {
                 "approval.execute",
                 approval.parametersDigest(),
                 approval.idempotencyKey() + ":execute");
-        return new ExecuteView(approvalRequestId, approval.operation(), "executed", resourceId);
+        completeAgentWrite(approval, resourceId, secondaryResourceId, true);
+        return new ExecuteView(
+                approvalRequestId,
+                approval.operation(),
+                "executed",
+                resourceId,
+                secondaryResourceId);
     }
 
     private void recordFailure(long userId, long approvalRequestId) {
@@ -427,8 +502,10 @@ public class ApprovalServiceImpl implements ApprovalService {
             throw new BusinessException(
                     ErrorCode.INVALID_ARGUMENT,
                     "当前只支持 meal_plan.save_plan 或 food_log.create/update/delete/restore");
-        if (mealPlan && (command.resourceId() == null || command.resourceId() <= 0))
+        if (mealPlan && command.resourceId() != null && command.resourceId() <= 0)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "确认资源 ID 无效");
+        if (mealPlan && command.resourceId() == null)
+            requireMealPlanCandidate(command.parameters());
         if (foodLog && "create".equals(command.operation()) && command.resourceId() != null)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "food_log.create 不应绑定已有资源");
         if (foodLog
@@ -459,6 +536,11 @@ public class ApprovalServiceImpl implements ApprovalService {
                                 .contains(approval.operation());
         if (!mealPlan && !foodLog)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "当前不支持该确认写操作");
+    }
+
+    private void requireMealPlanCandidate(JsonNode parameters) {
+        if (parameters == null || !parameters.path("plan").isObject())
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "餐食计划候选不能为空");
     }
 
     private void ensurePending(ApprovalRequestRepository.ApprovalSnapshot approval, long userId) {
@@ -525,15 +607,33 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     private String digest(Object... values) {
         try {
+            JsonNode valueTree = mapper.valueToTree(Arrays.asList(values));
+            String canonical = mapper.writeValueAsString(canonicalize(valueTree));
             return HexFormat.of()
                     .formatHex(
                             MessageDigest.getInstance("SHA-256")
                                     .digest(
-                                            mapper.writeValueAsString(Arrays.asList(values))
-                                                    .getBytes(StandardCharsets.UTF_8)));
-        } catch (JsonProcessingException | NoSuchAlgorithmException exception) {
+                                            canonical.getBytes(StandardCharsets.UTF_8)));
+        } catch (JsonProcessingException | NoSuchAlgorithmException | IllegalArgumentException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "确认参数摘要计算失败");
         }
+    }
+
+    /** 参数摘要必须与 JSON 对象的字段插入顺序无关，但数组顺序仍然具有业务含义。 */
+    private JsonNode canonicalize(JsonNode value) {
+        if (value == null || value.isValueNode()) return value;
+        if (value.isArray()) {
+            ArrayNode result = mapper.createArrayNode();
+            value.forEach(item -> result.add(canonicalize(item)));
+            return result;
+        }
+        ObjectNode result = mapper.createObjectNode();
+        TreeSet<String> fields = new TreeSet<>();
+        value.fieldNames().forEachRemaining(fields::add);
+        for (String field : fields) {
+            result.set(field, canonicalize(value.get(field)));
+        }
+        return result;
     }
 
     private void audit(
@@ -552,6 +652,34 @@ public class ApprovalServiceImpl implements ApprovalService {
                 Map.of());
     }
 
+    private void completeAgentWrite(
+            ApprovalRequestRepository.ApprovalSnapshot approval,
+            Long resourceId,
+            Long secondaryResourceId,
+            boolean written) {
+        if (approval.agentRunId() == null || runtimeEvents == null) return;
+        if ("meal_plan".equals(approval.resourceType())) {
+            runtimeEvents.completeAgentWrite(
+                    approval.agentRunId(),
+                    approval.approvalRequestId(),
+                    resourceId,
+                    approval.requestId(),
+                    approval.traceId(),
+                    "meal_plan",
+                    approval.operation(),
+                    secondaryResourceId,
+                    written);
+            return;
+        }
+        runtimeEvents.completeAgentWrite(
+                approval.agentRunId(),
+                approval.approvalRequestId(),
+                resourceId,
+                approval.requestId(),
+                approval.traceId(),
+                written);
+    }
+
     private static String errorCode(RuntimeException exception) {
         if (exception instanceof BusinessException business) return business.errorCode().code();
         if (exception instanceof com.foodmate.shared.runtime.RuntimeException runtime)
@@ -563,6 +691,10 @@ public class ApprovalServiceImpl implements ApprovalService {
         return "plan_" + digest("meal_plan.save", approvalKey);
     }
 
+    private String businessPlanCreateKey(String approvalKey) {
+        return "plan_create_" + digest("meal_plan.create", approvalKey);
+    }
+
     private String businessFoodLogKey(String operation, String approvalKey) {
         return "food_" + digest("food_log." + operation, approvalKey);
     }
@@ -572,6 +704,56 @@ public class ApprovalServiceImpl implements ApprovalService {
             throw new BusinessException(
                     ErrorCode.INVALID_ARGUMENT, "food log resource id is required");
         return approval.resourceId();
+    }
+
+    private MealPlanService.CreateCommand mealPlanCommand(
+            Long sessionId, JsonNode plan, String idempotencyKey) {
+        return new MealPlanService.CreateCommand(
+                sessionId,
+                text(plan, "plan_name"),
+                requiredInt(plan, "people"),
+                requiredInt(plan, "days"),
+                number(plan, "budget"),
+                optionalInt(plan, "calorie_target"),
+                optionalInt(plan, "protein_target"),
+                strings(plan.get("allergens")),
+                strings(plan.get("dislikes")),
+                plan.get("days_plan"),
+                idempotencyKey);
+    }
+
+    private static int requiredInt(JsonNode object, String field) {
+        Integer value = optionalInt(object, field);
+        if (value == null || value <= 0)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "餐食计划 " + field + " 无效");
+        return value;
+    }
+
+    private static Integer optionalInt(JsonNode object, String field) {
+        JsonNode value = object == null ? null : object.get(field);
+        if (value == null || value.isNull()) return null;
+        if (!value.canConvertToInt())
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "餐食计划 " + field + " 无效");
+        return value.asInt();
+    }
+
+    private static java.math.BigDecimal number(JsonNode object, String field) {
+        JsonNode value = object == null ? null : object.get(field);
+        if (value == null || value.isNull()) return null;
+        if (!value.isNumber())
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "餐食计划 " + field + " 无效");
+        return value.decimalValue();
+    }
+
+    private static List<String> strings(JsonNode value) {
+        if (value == null || !value.isArray()) return List.of();
+        List<String> result = new ArrayList<>();
+        for (JsonNode item : value) {
+            if (!item.isTextual() || item.asText().isBlank())
+                throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "餐食计划约束无效");
+            result.add(item.asText());
+        }
+        return List.copyOf(result);
     }
 
     private static long revision(JsonNode parameters) {

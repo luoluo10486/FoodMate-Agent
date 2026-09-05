@@ -1,4 +1,3 @@
-import { Eye } from 'lucide-react';
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -9,34 +8,33 @@ export type AuthVariant = 'login' | 'register' | 'forgot' | 'reset' | 'token';
 
 type AuthShellStyle = CSSProperties & {
   '--auth-diagonal'?: string;
-  '--auth-accent'?: string;
+  '--auth-brand'?: string;
+  '--auth-primary'?: string;
 };
 
 type AuthShellTokens = {
-  diagonal?: string;
-  accent: string;
+  diagonal: string;
+  brand: string;
+  primary: string;
 };
+
+type AuthShellTokenVariant = Exclude<AuthVariant, 'login'>;
+
+// 认证页面的图标必须绑定对应 Figma 画板导出的资源，避免状态页复用错误字形。
+const defaultDividerLineSource = '/assets/figma/auth/foodmate-register-line.svg';
 
 const fieldIconSources = {
   user: '/assets/figma/auth/foodmate-register-user.svg',
   mail: '/assets/figma/auth/foodmate-register-mail.svg',
 } as const;
 
-export function AuthShell({ variant, children }: { variant: AuthVariant; children: ReactNode }) {
-  const tokens: AuthShellTokens | undefined =
-    variant === 'register'
-      ? authShellFigmaTokens.register
-      : variant === 'forgot'
-        ? authShellFigmaTokens.forgot
-        : variant === 'reset'
-          ? authShellFigmaTokens.reset
-          : undefined;
-  const style = tokens
-    ? ({
-        '--auth-diagonal': tokens.diagonal,
-        '--auth-accent': tokens.accent,
-      } as AuthShellStyle)
-    : undefined;
+export function AuthShell({ variant, children }: { variant: AuthShellTokenVariant; children: ReactNode }) {
+  const tokens: AuthShellTokens = authShellFigmaTokens[variant];
+  const style = {
+    '--auth-diagonal': tokens.diagonal,
+    '--auth-brand': tokens.brand,
+    '--auth-primary': tokens.primary,
+  } as AuthShellStyle;
 
   return (
     <main className={`${styles.authPage} ${styles[`authPage-${variant}`]}`} style={style}>
@@ -174,7 +172,7 @@ export function PasswordField({
             aria-label={show ? `隐藏${label}` : `显示${label}`}
             onClick={onToggle}
           >
-            {show ? <img src={visibleIconSrc} alt="" /> : <Eye aria-hidden="true" />}
+            <img src={visibleIconSrc} alt="" />
           </Button>
         }
         value={value}
@@ -193,10 +191,12 @@ export function AuthSubmit({ children, disabled = false }: { children: ReactNode
   );
 }
 
-export function AuthDivider() {
+export function AuthDivider({ lineSrc = defaultDividerLineSource }: { lineSrc?: string }) {
   return (
     <div className={styles.authDivider} aria-hidden="true">
+      <img src={lineSrc} alt="" />
       <span>或者</span>
+      <img src={lineSrc} alt="" />
     </div>
   );
 }

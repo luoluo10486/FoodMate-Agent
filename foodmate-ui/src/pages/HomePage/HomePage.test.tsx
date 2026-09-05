@@ -29,7 +29,7 @@ describe('HomePage session cards', () => {
   });
 
   it('renders the Figma workspace shell with its Chat session list', () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/?state=figma-v2']}>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -41,6 +41,18 @@ describe('HomePage session cards', () => {
     expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
     expect(screen.getByLabelText('会话分页')).toBeInTheDocument();
+    expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
+    expect(container.querySelector('aside .avatar img')).toHaveAttribute(
+      'src',
+      '/assets/figma/workspace/home-sidebar-avatar.png',
+    );
+    expect(container.querySelector('main header .topAvatar img')).toHaveAttribute(
+      'src',
+      '/assets/figma/workspace/home-topbar-avatar.png',
+    );
+    const quickAction = screen.getByRole('button', { name: '记录饮食' });
+    expect(within(quickAction).getByText('🍽')).toBeInTheDocument();
+    expect(quickAction.querySelector('svg')).not.toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', { name: '主导航' })).queryByRole('link', { name: '知识库' }),
     ).toBeNull();
@@ -58,7 +70,7 @@ describe('HomePage session cards', () => {
     expect(screen.getByRole('heading', { name: '待确认队列' }).closest('article')).toHaveClass('pendingPanel');
   });
 
-  it('renders the Figma workspace implementation notes panel', () => {
+  it('renders the Figma workspace task status panel', () => {
     render(
       <MemoryRouter initialEntries={['/?state=figma-v2']}>
         <Routes>

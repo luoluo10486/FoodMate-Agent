@@ -22,6 +22,9 @@ public interface ToolGatewayPort {
     /** Persists a redacted SQL operation fact. */
     void audit(Audit audit);
 
+    /** Persists the safe execution summary used by the operational tool-call view. */
+    default void recordToolCall(ToolCall toolCall) {}
+
     record Audit(
             long id,
             long runId,
@@ -30,6 +33,19 @@ public interface ToolGatewayPort {
             Integer rows,
             String reason,
             long latencyMs,
+            String traceId) {}
+
+    /** Tool execution fact; input and output contain summaries rather than business payloads. */
+    record ToolCall(
+            long id,
+            long runId,
+            String toolName,
+            String toolVersion,
+            String inputJson,
+            String outputJson,
+            String status,
+            Integer latencyMs,
+            String errorCode,
             String traceId) {}
 
     /** Non-secret authorization scope used to bind a SQL execution. */

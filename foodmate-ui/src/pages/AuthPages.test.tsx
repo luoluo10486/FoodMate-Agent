@@ -40,6 +40,13 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: buttonText })).toHaveProperty('disabled', disabled);
   });
 
+  it('uses the Figma exception-state registration copy', () => {
+    renderAuth('/login?state=service-unavailable');
+
+    expect(screen.getByRole('button', { name: '立即注册' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '注册' })).not.toBeInTheDocument();
+  });
+
   it('uses the Figma submitting assets and example values', () => {
     renderAuth('/login?state=submitting');
 
@@ -227,9 +234,10 @@ describe('authentication pages', () => {
 
     expect(screen.getByRole('main')).toHaveStyle({
       '--auth-diagonal': '#dfeedb',
-      '--auth-accent': '#a6d997',
+      '--auth-brand': '#a6d997',
+      '--auth-primary': '#a6d997',
     });
-    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-leaf.svg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-leaf.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-user.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-mail.svg"]')).toBeInTheDocument();
     expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-register-lock.svg"]')).toHaveLength(2);
@@ -242,6 +250,7 @@ describe('authentication pages', () => {
     expect(screen.getByLabelText('密码')).toHaveValue('Foodmate123');
     expect(screen.getByLabelText('确认密码')).toHaveValue('Foodmate123');
     expect(screen.getByText('至少 8 个字符')).toHaveClass(/passwordRuleValid/);
+    expect(document.querySelectorAll('img[src="/assets/figma/auth/foodmate-register-line.svg"]')).toHaveLength(2);
   });
 
   it('does not prefill the registration form in real mode', () => {
@@ -288,7 +297,7 @@ describe('authentication pages', () => {
     await user.click(toggle);
     expect(password).toHaveAttribute('type', 'text');
     expect(screen.getByLabelText('隐藏密码')).toHaveClass('inline-flex');
-    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-eye.svg"]')).not.toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-eye.svg"]')).toBeInTheDocument();
   });
 
   it('keeps account support and service recovery actions available as shadcn buttons', () => {
@@ -314,11 +323,13 @@ describe('authentication pages', () => {
     expect(screen.getByRole('status')).toHaveTextContent('重置邮件请求已完成');
   });
 
-  it('uses the Figma accent token for the forgot-password brand mark', () => {
+  it('separates the Figma brand and primary tokens on forgot-password', () => {
     renderAuth('/forgot-password');
 
     expect(screen.getByRole('main')).toHaveStyle({
-      '--auth-accent': '#48c78e',
+      '--auth-diagonal': '#c5f0d6',
+      '--auth-brand': '#a6d997',
+      '--auth-primary': '#48c78e',
     });
   });
 
@@ -338,11 +349,13 @@ describe('authentication pages', () => {
     expect(screen.getByRole('heading', { name: '重置密码' })).toBeInTheDocument();
   });
 
-  it('uses the Figma accent token for the reset-password brand mark', () => {
+  it('separates the Figma brand and primary tokens on reset-password', () => {
     renderAuth('/reset-password');
 
     expect(screen.getByRole('main')).toHaveStyle({
-      '--auth-accent': '#48c78e',
+      '--auth-diagonal': '#c5f0d6',
+      '--auth-brand': '#a6d997',
+      '--auth-primary': '#48c78e',
     });
   });
 });

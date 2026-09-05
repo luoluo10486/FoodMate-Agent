@@ -1,38 +1,78 @@
-.page {
+/* Auth 页面均以 Figma 画板为唯一视觉来源，共享壳层只负责稳定布局。 */
+.authPage {
   position: relative;
   display: grid;
   min-height: 100dvh;
+  box-sizing: border-box;
   place-items: center;
-  overflow: hidden;
-  background: #ffd6e0;
+  overflow: auto;
+  font-family: var(--fm-font);
+  background: var(--fm-auth-pink);
+  color: var(--fm-auth-ink);
   isolation: isolate;
 }
 
-.mintDiagonal {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: #c5f0d6;
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-  animation: mintDiagonal 4.5s linear infinite;
+.authPage * {
+  box-sizing: border-box;
 }
 
-.card {
-  position: relative;
+.authDiagonal {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--fm-auth-mint);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.authPage-register .authDiagonal,
+.authPage-token .authDiagonal {
+  background: var(--auth-diagonal);
+}
+
+.authPage-token .authDiagonal {
+  clip-path: polygon(0 0, calc(100% + 8px) 0, 0 100%);
+}
+
+.authCard {
+  display: flex;
+  width: 460px;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 24px;
+  padding: 40px;
+  border-radius: 24px;
+}
+
+/* 登录默认态保留画板的 400x471 固定节奏，异常态由共享状态布局接管。 */
+.authPage-login .authCard {
   display: grid;
-  width: min(400px, calc(100vw - 48px));
+  width: 400px;
   height: 471px;
   gap: 0;
   padding: 0;
-  color: #2a3439;
   transform: translateX(-30px);
 }
 
+.authPage.authPageLoginState .authCard {
+  display: flex;
+  width: 460px;
+  height: auto;
+  gap: 24px;
+  padding: 40px;
+  transform: none;
+}
+
+/* 登录品牌和标题 */
 .brand {
   display: grid;
   justify-items: center;
   width: 100%;
   height: 163px;
+}
+
+.authPage.authPageLoginState .brand {
+  height: auto;
+  gap: 20px;
 }
 
 .loginBrand {
@@ -43,28 +83,32 @@
   margin-bottom: 20px;
 }
 
+.authPage.authPageLoginState .loginBrand {
+  margin-bottom: 0;
+}
+
+.logoPlaceholder,
+.loginMark,
+.authMark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
 .logoPlaceholder {
   width: 40px;
   height: 40px;
-  border: 1.5px dashed #999;
+  border: 1.5px dashed #999999;
   border-radius: 8px;
   background: #d9d9d9;
 }
 
 .loginMark {
-  display: grid;
   width: 40px;
   height: 40px;
-  place-items: center;
-  border-radius: 8px;
-  background: #2e7d32;
+  border-radius: 10px;
+  background: var(--fm-color-success);
   color: #ffffff;
-}
-
-.loginMark svg {
-  width: 22px;
-  height: 22px;
-  stroke-width: 1.7;
 }
 
 .loginMark img {
@@ -72,7 +116,9 @@
   height: 22px;
 }
 
-.wordmark {
+.wordmark,
+.authWordmark {
+  color: var(--fm-auth-ink);
   font-family: 'Montserrat', sans-serif;
   font-size: 22px;
   font-weight: 900;
@@ -80,7 +126,8 @@
   white-space: nowrap;
 }
 
-.wordmark span:last-child {
+.wordmark span:last-child,
+.authWordmark span:last-child {
   color: #2e7d32;
 }
 
@@ -92,31 +139,43 @@
   text-align: center;
 }
 
+.authPage.authPageLoginState .welcome {
+  gap: 6px;
+}
+
 .welcome p {
   margin: 0;
-  color: #2a3439;
+  color: var(--fm-auth-ink);
   font-size: 32px;
   font-weight: 700;
   line-height: 1.2;
 }
 
+.authPage.authPageLoginState .welcome p {
+  font-size: 28px;
+  line-height: normal;
+}
+
 .welcome span {
-  color: #4a5568;
+  color: var(--fm-auth-copy);
   font-size: 14px;
   line-height: 1.4;
 }
 
+.authPage.authPageLoginState .welcome span {
+  color: #5a6672;
+  line-height: normal;
+}
+
+/* 登录表单：控件本体使用共享 shadcn Input/Button，页面只提供 Figma 视觉 Token。 */
 .form {
   display: grid;
   width: 100%;
   height: 208px;
 }
 
-.loginFields {
-  display: grid;
-  height: 156px;
-  gap: 14px;
-  padding-bottom: 8px;
+.authPage.authPageLoginState .form {
+  height: auto;
 }
 
 .field {
@@ -128,6 +187,18 @@
   display: none;
 }
 
+.loginFields {
+  display: grid;
+  height: 156px;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+
+.authPage.authPageLoginState .loginFields {
+  height: auto;
+  padding-bottom: 0;
+}
+
 .figmaInput {
   height: 52px !important;
   border: 1.5px solid var(--fm-auth-control-border) !important;
@@ -135,6 +206,7 @@
   background: var(--fm-auth-control) !important;
   box-shadow: var(--fm-auth-control-shadow) !important;
   color: var(--fm-auth-ink) !important;
+  font-family: var(--fm-font);
   font-size: 14px !important;
 }
 
@@ -151,768 +223,16 @@
 }
 
 .figmaInputError {
-  border-color: #ff3b3d !important;
-  color: #ff3b3d !important;
+  border-color: var(--fm-auth-error) !important;
+  color: var(--fm-auth-error-strong) !important;
 }
 
 .figmaInputError::placeholder {
-  color: #ff3b3d;
+  color: var(--fm-auth-error-strong);
 }
 
-.loginAlert {
-  display: flex;
-  width: 100%;
-  min-height: 54px;
-  box-sizing: border-box;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 12px 16px;
-  border: 1px solid;
-  border-radius: 14px;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.loginAlert > svg {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
-
-.loginAlert strong,
-.loginAlert span,
-.loginAlert button {
-  display: block;
-}
-
-.loginAlert strong {
-  font-weight: 700;
-}
-
-.loginAlert span {
-  margin-top: 2px;
-}
-
-.loginAlertAction {
-  display: block !important;
-  width: fit-content;
-  height: auto !important;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0 !important;
-  background: transparent;
-  color: inherit;
-  box-shadow: none !important;
-  font: inherit;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.loginAlertError {
-  border-color: #ff3b3d;
-  background: #ffd3d4;
-  color: #ff3b3d;
-}
-
-.loginAlertWarning {
-  border-color: #f0a11b;
-  background: #ffebc2;
-  color: #e17b11;
-}
-
-.loginAlertInfo {
-  border-color: #64748b;
-  background: #dfe7f2;
-  color: #536276;
-}
-
-.loginFieldError {
-  margin-top: -8px;
-  color: #ff3b3d;
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.loginSpinner {
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
-  animation: loginSpin 1s linear infinite;
-  vertical-align: -4px;
-}
-
-.authPage.authPageLoginSubmitting .authCard {
-  display: flex;
-  width: 460px;
-  height: auto;
-  gap: 24px;
-  padding: 40px;
-  transform: none;
-}
-
-.authPage.authPageLoginSubmitting .brand {
-  height: auto;
-  gap: 20px;
-}
-
-.authPage.authPageLoginSubmitting .loginBrand {
-  margin-bottom: 0;
-}
-
-.authPage.authPageLoginSubmitting .welcome {
-  gap: 6px;
-}
-
-.authPage.authPageLoginSubmitting .welcome p {
-  font-size: 28px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginSubmitting .welcome span {
-  color: #5a6672;
-  line-height: normal;
-}
-
-.authPage.authPageLoginSubmitting .form {
-  height: auto;
-}
-
-.authPage.authPageLoginSubmitting .field {
-  opacity: 0.7;
-}
-
-.authPage.authPageLoginSubmitting .figmaInput {
-  background: rgba(237, 242, 247, 0.65) !important;
-}
-
-.authPage.authPageLoginSubmitting .options {
-  opacity: 0.5;
-}
-
-.authPage.authPageLoginSubmitting .primaryActionDisabled {
-  border-color: #cbd5e0 !important;
-  background: #cbd5e0 !important;
-  box-shadow: none;
-  color: #718096 !important;
-  opacity: 0.75 !important;
-}
-
-.authPage.authPageLoginSubmitting .loginSpinner {
-  animation: none;
-}
-
-.authPage.authPageLoginSubmitting .actions {
-  display: flex;
-  height: auto;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.authPage.authPageLoginSubmitting .divider {
-  height: auto;
-  padding: 12px 0;
-  font-size: 13px;
-}
-
-.authPage.authPageLoginSubmitting .signupRow {
-  min-height: 0;
-}
-
-.authPage.authPageLoginSubmitting .signupButton {
-  height: auto;
-  padding: 10px 24px;
-  border: 1px solid rgba(51, 51, 51, 0.12);
-  border-radius: 22px;
-  background: rgba(51, 51, 51, 0.03);
-}
-
-.authPage.authPageLoginFieldError .authCard {
-  display: flex;
-  width: 460px;
-  height: auto;
-  gap: 24px;
-  padding: 40px;
-  transform: none;
-}
-
-.authPage.authPageLoginFieldError .brand {
-  height: auto;
-  gap: 20px;
-}
-
-.authPage.authPageLoginFieldError .loginBrand {
-  margin-bottom: 0;
-}
-
-.authPage.authPageLoginFieldError .welcome {
-  gap: 6px;
-}
-
-.authPage.authPageLoginFieldError .welcome p {
-  font-size: 28px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginFieldError .welcome span {
-  color: #5a6672;
-  line-height: normal;
-}
-
-.authPage.authPageLoginFieldError .form {
-  height: auto;
-}
-
-.authPage.authPageLoginFieldError .loginFields {
-  height: auto;
-  padding-bottom: 0;
-}
-
-.authPage.authPageLoginFieldError .field {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.authPage.authPageLoginFieldError .figmaInput {
-  background: rgba(255, 255, 255, 0.65) !important;
-}
-
-.authPage.authPageLoginFieldError .figmaInputError {
-  border-color: #f97066 !important;
-  color: #e53e3e !important;
-}
-
-.authPage.authPageLoginFieldError .figmaInputError::placeholder {
-  color: #e53e3e;
-}
-
-.authPage.authPageLoginFieldError .loginFieldError {
-  margin-top: 0;
-  color: #e53e3e;
-  font-size: 12px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginFieldError .primaryAction {
-  border-color: #48c78e;
-  background: #48c78e;
-  box-shadow: 0 6px 8px rgba(46, 125, 50, 0.25);
-  color: #ffffff;
-}
-
-.authPage.authPageLoginFieldError .primaryAction:hover {
-  background: #48c78e;
-}
-
-.authPage.authPageLoginFieldError .actions {
-  display: flex;
-  height: auto;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.authPage.authPageLoginFieldError .divider {
-  height: auto;
-  padding: 12px 0;
-  font-size: 13px;
-}
-
-.authPage.authPageLoginFieldError .signupRow {
-  min-height: 0;
-}
-
-.authPage.authPageLoginFieldError .signupButton {
-  height: auto;
-  padding: 10px 24px;
-  border: 1px solid rgba(51, 51, 51, 0.12);
-  border-radius: 22px;
-  background: rgba(51, 51, 51, 0.03);
-}
-
-.authPage.authPageLoginCredentialError .authCard {
-  display: flex;
-  width: 460px;
-  height: auto;
-  gap: 24px;
-  padding: 40px;
-  transform: none;
-}
-
-.authPage.authPageLoginCredentialError .brand {
-  height: auto;
-  gap: 20px;
-}
-
-.authPage.authPageLoginCredentialError .loginBrand {
-  margin-bottom: 0;
-}
-
-.authPage.authPageLoginCredentialError .welcome {
-  gap: 6px;
-}
-
-.authPage.authPageLoginCredentialError .welcome p {
-  font-size: 28px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginCredentialError .welcome span {
-  color: #5a6672;
-  line-height: normal;
-}
-
-.authPage.authPageLoginCredentialError .form {
-  height: auto;
-  gap: 24px;
-}
-
-.authPage.authPageLoginCredentialError .loginAlert {
-  min-height: 0;
-  padding: 16px;
-  border-color: #f97066;
-  border-radius: 12px;
-  background: #fff5f5;
-  color: #e53e3e;
-  font-size: 14px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginCredentialError .loginAlert > img {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
-
-.authPage.authPageLoginCredentialError .loginFields {
-  height: auto;
-  padding-bottom: 0;
-}
-
-.authPage.authPageLoginCredentialError .figmaInput {
-  border-color: #e2e8f0 !important;
-  background: rgba(255, 255, 255, 0.65) !important;
-  color: #2a3439 !important;
-}
-
-.authPage.authPageLoginCredentialError .primaryAction {
-  border-color: #48c78e;
-  background: #48c78e;
-  box-shadow: 0 6px 8px rgba(46, 125, 50, 0.25);
-  color: #ffffff;
-}
-
-.authPage.authPageLoginCredentialError .primaryAction:hover {
-  background: #48c78e;
-}
-
-.authPage.authPageLoginCredentialError .actions {
-  display: flex;
-  height: auto;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.authPage.authPageLoginCredentialError .divider {
-  height: auto;
-  padding: 12px 0;
-  font-size: 13px;
-}
-
-.authPage.authPageLoginCredentialError .signupRow {
-  min-height: 0;
-}
-
-.authPage.authPageLoginCredentialError .signupButton {
-  height: auto;
-  padding: 10px 24px;
-  border: 1px solid rgba(51, 51, 51, 0.12);
-  border-radius: 22px;
-  background: rgba(51, 51, 51, 0.03);
-}
-
-.authPage.authPageLoginAccountLocked .authCard {
-  display: flex;
-  width: 460px;
-  height: auto;
-  gap: 24px;
-  padding: 40px;
-  transform: none;
-}
-
-.authPage.authPageLoginAccountLocked .brand {
-  height: auto;
-  gap: 20px;
-}
-
-.authPage.authPageLoginAccountLocked .loginBrand {
-  margin-bottom: 0;
-}
-
-.authPage.authPageLoginAccountLocked .welcome {
-  gap: 6px;
-}
-
-.authPage.authPageLoginAccountLocked .welcome p {
-  font-size: 28px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginAccountLocked .welcome span {
-  color: #5a6672;
-  line-height: normal;
-}
-
-.authPage.authPageLoginAccountLocked .form {
-  height: auto;
-  gap: 24px;
-}
-
-.authPage.authPageLoginAccountLocked .loginAlert {
-  min-height: 0;
-  padding: 16px;
-  border-color: #dd6b20;
-  border-radius: 12px;
-  background: #feebc8;
-  color: #dd6b20;
-  font-size: 14px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginAccountLocked .loginAlert > img {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
-
-.authPage.authPageLoginAccountLocked .loginAlert span {
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.4;
-  opacity: 0.9;
-}
-
-.authPage.authPageLoginAccountLocked .loginFields {
-  height: auto;
-  padding-bottom: 0;
-}
-
-.authPage.authPageLoginAccountLocked .field {
-  opacity: 0.7;
-}
-
-.authPage.authPageLoginAccountLocked .options {
-  display: none;
-}
-
-.authPage.authPageLoginAccountLocked .figmaInput {
-  border-color: #f4f6f5 !important;
-  background: rgba(237, 242, 247, 0.65) !important;
-}
-
-.authPage.authPageLoginAccountLocked .primaryActionDisabled {
-  border-color: #cbd5e0 !important;
-  background: #cbd5e0 !important;
-  box-shadow: none;
-  color: #718096 !important;
-  opacity: 1 !important;
-}
-
-.authPage.authPageLoginAccountLocked .actions {
-  display: flex;
-  height: auto;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.authPage.authPageLoginAccountLocked .divider {
-  height: auto;
-  padding: 12px 0;
-  font-size: 13px;
-}
-
-.authPage.authPageLoginAccountLocked .signupRow {
-  min-height: 0;
-}
-
-.authPage.authPageLoginAccountLocked .signupButton {
-  height: auto;
-  padding: 10px 24px;
-  border: 1px solid rgba(51, 51, 51, 0.12);
-  border-radius: 22px;
-  background: rgba(51, 51, 51, 0.03);
-}
-
-.authPage.authPageLoginAccountDisabled .authCard {
-  display: flex;
-  width: 460px;
-  height: auto;
-  gap: 24px;
-  padding: 40px;
-  transform: none;
-}
-
-.authPage.authPageLoginAccountDisabled .brand {
-  height: auto;
-  gap: 20px;
-}
-
-.authPage.authPageLoginAccountDisabled .loginBrand {
-  margin-bottom: 0;
-}
-
-.authPage.authPageLoginAccountDisabled .welcome {
-  gap: 6px;
-}
-
-.authPage.authPageLoginAccountDisabled .welcome p {
-  font-size: 28px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginAccountDisabled .welcome span {
-  color: #5a6672;
-  line-height: normal;
-}
-
-.authPage.authPageLoginAccountDisabled .form {
-  height: auto;
-  gap: 24px;
-}
-
-.authPage.authPageLoginAccountDisabled .loginAlert {
-  min-height: 0;
-  padding: 16px;
-  border-color: #f97066;
-  border-radius: 12px;
-  background: #fff5f5;
-  color: #e53e3e;
-  font-size: 14px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginAccountDisabled .loginAlert > img {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
-
-.authPage.authPageLoginAccountDisabled .loginAlert span {
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.4;
-  opacity: 0.9;
-}
-
-.authPage.authPageLoginAccountDisabled .loginAlertAction {
-  height: auto !important;
-  min-height: 0;
-  margin-top: 4px;
-  padding: 0;
-  color: #e53e3e;
-  font-size: 12px;
-  line-height: normal;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.authPage.authPageLoginAccountDisabled .loginFields {
-  height: auto;
-  padding-bottom: 0;
-}
-
-.authPage.authPageLoginAccountDisabled .field {
-  opacity: 0.7;
-}
-
-.authPage.authPageLoginAccountDisabled .options {
-  display: none;
-}
-
-.authPage.authPageLoginAccountDisabled .figmaInput {
-  border-color: #f4f6f5 !important;
-  background: rgba(237, 242, 247, 0.65) !important;
-}
-
-.authPage.authPageLoginAccountDisabled .primaryActionDisabled {
-  border-color: #cbd5e0 !important;
-  background: #cbd5e0 !important;
-  box-shadow: none;
-  color: #718096 !important;
-  opacity: 1 !important;
-}
-
-.authPage.authPageLoginAccountDisabled .actions {
-  display: flex;
-  height: auto;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.authPage.authPageLoginAccountDisabled .divider {
-  height: auto;
-  padding: 12px 0;
-  font-size: 13px;
-}
-
-.authPage.authPageLoginAccountDisabled .signupRow {
-  min-height: 0;
-}
-
-.authPage.authPageLoginAccountDisabled .signupButton {
-  height: auto;
-  padding: 10px 24px;
-  border: 1px solid rgba(51, 51, 51, 0.12);
-  border-radius: 22px;
-  background: rgba(51, 51, 51, 0.03);
-}
-
-.authPage.authPageLoginServiceUnavailable .authCard {
-  display: flex;
-  width: 460px;
-  height: auto;
-  gap: 24px;
-  padding: 40px;
-  transform: none;
-}
-
-.authPage.authPageLoginServiceUnavailable .brand {
-  height: auto;
-  gap: 20px;
-}
-
-.authPage.authPageLoginServiceUnavailable .loginBrand {
-  margin-bottom: 0;
-}
-
-.authPage.authPageLoginServiceUnavailable .welcome {
-  gap: 6px;
-}
-
-.authPage.authPageLoginServiceUnavailable .welcome p {
-  font-size: 28px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginServiceUnavailable .welcome span {
-  color: #5a6672;
-  line-height: normal;
-}
-
-.authPage.authPageLoginServiceUnavailable .form {
-  height: auto;
-  gap: 24px;
-}
-
-.authPage.authPageLoginServiceUnavailable .loginAlert {
-  min-height: 0;
-  padding: 16px;
-  border-color: #6b7280;
-  border-radius: 12px;
-  background: #e2e8f0;
-  color: #718096;
-  font-size: 14px;
-  line-height: normal;
-}
-
-.authPage.authPageLoginServiceUnavailable .loginAlert > img {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
-
-.authPage.authPageLoginServiceUnavailable .loginAlert span {
-  margin-top: 4px;
-  color: #718096;
-  font-size: 12px;
-  line-height: 1.4;
-  opacity: 0.9;
-}
-
-.authPage.authPageLoginServiceUnavailable .loginAlertAction {
-  height: auto !important;
-  min-height: 0;
-  margin-top: 4px;
-  padding: 0;
-  color: #718096;
-  font-size: 12px;
-  line-height: normal;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.authPage.authPageLoginServiceUnavailable .loginFields {
-  height: auto;
-  padding-bottom: 0;
-}
-
-.authPage.authPageLoginServiceUnavailable .field {
-  opacity: 0.7;
-}
-
-.authPage.authPageLoginServiceUnavailable .options {
-  display: none;
-}
-
-.authPage.authPageLoginServiceUnavailable .figmaInput {
-  border-color: #f4f6f5 !important;
-  background: rgba(237, 242, 247, 0.65) !important;
-}
-
-.authPage.authPageLoginServiceUnavailable .primaryActionDisabled {
-  border-color: #cbd5e0 !important;
-  background: #cbd5e0 !important;
-  box-shadow: none;
-  color: #718096 !important;
-  opacity: 1 !important;
-}
-
-.authPage.authPageLoginServiceUnavailable .actions {
-  display: flex;
-  height: auto;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.authPage.authPageLoginServiceUnavailable .divider {
-  height: auto;
-  padding: 12px 0;
-  font-size: 13px;
-}
-
-.authPage.authPageLoginServiceUnavailable .signupRow {
-  min-height: 0;
-}
-
-.authPage.authPageLoginServiceUnavailable .signupButton {
-  height: auto;
-  padding: 10px 24px;
-  border: 1px solid rgba(51, 51, 51, 0.12);
-  border-radius: 22px;
-  background: rgba(51, 51, 51, 0.03);
-}
-
-.primaryActionDisabled {
-  border-color: #c5d0dd !important;
-  background: #c5d0dd !important;
-  box-shadow: none;
-  color: #6f8299 !important;
-}
-
-@keyframes loginSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.passwordToggle {
+.passwordToggle,
+.authPasswordToggle {
   display: grid;
   width: 24px;
   height: 24px;
@@ -926,26 +246,23 @@
   cursor: pointer;
 }
 
-.passwordToggle:hover {
+.passwordToggle:hover,
+.authPasswordToggle:hover {
   background: rgb(255 255 255 / 45%);
 }
 
-.passwordToggle svg {
-  width: 18px;
-  height: 18px;
-}
-
-.passwordToggle img {
+.passwordToggle img,
+.authPasswordToggle img {
   width: 18px;
   height: 18px;
 }
 
 .options {
   display: flex;
+  min-height: 16px;
   align-items: center;
   justify-content: flex-end;
   height: 16px;
-  min-height: 16px;
   padding-right: 2px;
 }
 
@@ -963,6 +280,210 @@
   color: #5a6672;
 }
 
+.loginFieldError {
+  display: block;
+  margin-top: 0;
+  color: var(--fm-auth-error-strong);
+  font-size: 12px;
+  line-height: normal;
+}
+
+.authPageLoginFieldError .field {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.authPageLoginFieldError .figmaInput {
+  background: var(--fm-auth-control) !important;
+}
+
+.authPageLoginFieldError .figmaInputError {
+  border-color: var(--fm-auth-error) !important;
+}
+
+.authPageLoginFieldError .primaryAction {
+  border-color: var(--fm-auth-success-action);
+  background: var(--fm-auth-success-action);
+  box-shadow: var(--fm-auth-success-shadow);
+}
+
+/* 登录状态提示框按 Figma 的 error / warning / info 三种语义分组。 */
+.loginAlert {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: normal;
+}
+
+.loginAlert > img {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.loginAlert > div {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.loginAlert strong,
+.loginAlert span,
+.loginAlert button {
+  display: block;
+}
+
+.loginAlert strong {
+  font-weight: 700;
+}
+
+.loginAlert span {
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.loginAlertError {
+  border-color: var(--fm-auth-error);
+  background: var(--fm-auth-error-surface);
+  color: var(--fm-auth-error-strong);
+}
+
+.loginAlertWarning {
+  border-color: var(--fm-auth-warning);
+  background: var(--fm-auth-warning-surface);
+  color: var(--fm-auth-warning);
+}
+
+.loginAlertInfo {
+  border-color: var(--fm-auth-info-border);
+  background: var(--fm-auth-info-surface);
+  color: var(--fm-auth-info);
+}
+
+.loginAlertAction {
+  display: block !important;
+  width: fit-content;
+  height: auto !important;
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0 !important;
+  background: transparent;
+  box-shadow: none !important;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: normal;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.authPageLoginAccountDisabled .loginAlertAction,
+.authPageLoginServiceUnavailable .loginAlertAction {
+  margin-top: 0;
+}
+
+.authPageLoginCredentialError .form,
+.authPageLoginAccountLocked .form,
+.authPageLoginAccountDisabled .form,
+.authPageLoginServiceUnavailable .form {
+  gap: 24px;
+}
+
+.authPageLoginCredentialError .figmaInput {
+  border-color: #e2e8f0 !important;
+}
+
+.authPageLoginSubmitting .field,
+.authPageLoginAccountLocked .field,
+.authPageLoginAccountDisabled .field,
+.authPageLoginServiceUnavailable .field {
+  opacity: 0.7;
+}
+
+.authPageLoginSubmitting .figmaInput,
+.authPageLoginAccountLocked .figmaInput,
+.authPageLoginAccountDisabled .figmaInput,
+.authPageLoginServiceUnavailable .figmaInput {
+  border-color: var(--fm-auth-disabled-border) !important;
+  background: var(--fm-auth-disabled-surface) !important;
+}
+
+.authPageLoginSubmitting .options {
+  opacity: 0.5;
+}
+
+.authPageLoginAccountLocked .options,
+.authPageLoginAccountDisabled .options,
+.authPageLoginServiceUnavailable .options {
+  display: none;
+}
+
+.authPageLoginAccountLocked .loginAlert,
+.authPageLoginAccountDisabled .loginAlert,
+.authPageLoginServiceUnavailable .loginAlert {
+  font-size: 14px;
+}
+
+.authPageLoginSubmitting .loginAlert,
+.authPageLoginFieldError .loginAlert,
+.authPageLoginCredentialError .loginAlert,
+.authPageLoginAccountLocked .loginAlert,
+.authPageLoginAccountDisabled .loginAlert,
+.authPageLoginServiceUnavailable .loginAlert {
+  border-radius: 12px;
+}
+
+.authPageLoginSubmitting .primaryActionDisabled,
+.authPageLoginAccountLocked .primaryActionDisabled,
+.authPageLoginAccountDisabled .primaryActionDisabled,
+.authPageLoginServiceUnavailable .primaryActionDisabled {
+  border-color: #cbd5e0 !important;
+  background: #cbd5e0 !important;
+  box-shadow: none;
+  color: var(--fm-auth-disabled-text) !important;
+  opacity: 1 !important;
+}
+
+.authPageLoginSubmitting .primaryActionDisabled {
+  opacity: 0.75 !important;
+}
+
+@keyframes loginSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loginSpinner {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  animation: loginSpin 1s linear infinite;
+  vertical-align: -4px;
+}
+
+.authPageLoginSubmitting .loginSpinner {
+  animation: none;
+}
+
+/* 登录底部操作区 */
 .primaryAction {
   width: 100%;
   height: 52px;
@@ -972,12 +493,22 @@
   background: var(--fm-auth-action);
   box-shadow: var(--fm-auth-action-shadow);
   color: rgb(255 255 255 / 94%);
+  font-family: var(--fm-font);
   font-size: 16px;
   font-weight: 700;
 }
 
-.primaryAction:hover {
+.primaryAction:hover,
+.primaryAction:focus-visible {
+  border-color: var(--fm-auth-action-border);
   background: rgba(72, 199, 142, 0.82);
+}
+
+.primaryActionDisabled {
+  border-color: #c5d0dd !important;
+  background: #c5d0dd !important;
+  box-shadow: none;
+  color: #6f8299 !important;
 }
 
 .actions {
@@ -987,23 +518,44 @@
   padding-top: 0;
 }
 
-.divider {
+.authPage.authPageLoginState .actions {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 56px;
-  color: #6f7e89;
-  font-size: 14px;
+  height: auto;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.divider span {
+.divider,
+.authDivider {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  color: #5a6672;
+  font-family: var(--fm-font);
+  font-size: 13px;
+}
+
+.divider {
+  height: 56px;
+}
+
+.authPage.authPageLoginState .divider {
+  height: auto;
+  padding: 12px 0;
+}
+
+.divider span,
+.authDivider span {
   white-space: nowrap;
 }
 
-.divider img {
-  width: 175px;
+.divider img,
+.authDivider img {
+  display: block;
   height: 1px;
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 0;
 }
 
 .signupRow {
@@ -1011,6 +563,10 @@
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
+}
+
+.authPage.authPageLoginState .signupRow {
+  min-height: 0;
 }
 
 .signupPrompt {
@@ -1024,269 +580,28 @@
   border: 1.5px solid rgb(255 255 255 / 60%);
   border-radius: 22px;
   background: rgb(255 255 255 / 40%);
-  color: #2a3439;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.note {
-  color: #6b7280;
-  font-size: 12px;
-  text-align: center;
-}
-
-.backButton {
-  position: absolute;
-  top: -24px;
-  left: 0;
-  height: 28px;
-  padding: 0 6px;
-  color: #5a6672;
-}
-
-@keyframes mintDiagonal {
-  0%,
-  51.11% {
-    clip-path: polygon(0 0, 100% 0, 0 100%);
-  }
-
-  60%,
-  100% {
-    clip-path: polygon(0 0, 100% 0, 0 100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mintDiagonal {
-    animation: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .card {
-    width: min(400px, calc(100vw - 32px));
-    transform: none;
-  }
-}
-
-/* Figma authentication flows: 680:216, 680:275 and 680:307. */
-.authPage {
-  position: relative;
-  display: grid;
-  min-height: 100dvh;
-  place-items: center;
-  overflow: auto;
-  --auth-accent: var(--fm-color-success);
-  --auth-diagonal: var(--fm-auth-mint);
-  background: var(--fm-auth-pink);
   color: var(--fm-auth-ink);
-  isolation: isolate;
-}
-
-.tokenCard {
-  display: flex;
-  width: min(460px, calc(100vw - 32px));
-  box-sizing: border-box;
-  flex-direction: column;
-  align-items: center;
-  gap: 32px;
-  padding: 40px;
-  text-align: center;
-}
-
-.tokenCard .authHeader {
-  gap: 0;
-}
-
-.authPage-token .authBrand {
-  gap: 10px;
-}
-
-.tokenCard .authHeading {
-  display: none;
-}
-
-.authPage-token .authMark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: #a6d997;
-  box-shadow: none;
-}
-
-.authPage-token .authMark img {
-  width: 18px;
-  height: 18px;
-}
-
-.authPage-token .authWordmark {
-  font-size: 20px;
-  line-height: normal;
-}
-
-.authPage-token .authDiagonal {
-  background: #dfeedb;
-  clip-path: polygon(0 0, calc(100% + 8px) 0, 0 100%);
-}
-
-.tokenContent {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 20px;
-  align-items: center;
-}
-
-.tokenIcon {
-  display: grid;
-  width: 64px;
-  height: 64px;
-  place-items: center;
-  border-radius: 999px;
-}
-
-.tokenIcon svg {
-  width: 30px;
-  height: 30px;
-  stroke-width: 1.7;
-}
-
-.tokenIcon img {
-  width: 32px;
-  height: 32px;
-}
-
-.tokenIcon-invalid {
-  background: rgb(255 117 118 / 10%);
-  color: var(--fm-color-danger);
-}
-
-.tokenIcon-expired {
-  background: rgb(255 218 147 / 10%);
-  color: #ffae00;
-}
-
-.tokenIcon-used {
-  background: rgb(128 224 230 / 10%);
-  color: var(--fm-color-info-strong);
-}
-
-.tokenMessage {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 12px;
-  align-items: center;
-  text-align: center;
-}
-
-.tokenMessage h1 {
-  margin: 0;
-  color: #333333;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 29px;
-}
-
-.tokenMessage p {
-  width: 100%;
-  margin: 0;
-  color: #5a6672;
   font-size: 14px;
-  line-height: 1.6;
-}
-
-.tokenActions {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 16px;
-  align-items: stretch;
-}
-
-.tokenSupport {
-  width: 100%;
-  height: 52px;
-  border: 1.5px solid #8a94a0;
-  border-radius: 16px;
-  background: transparent;
-  color: #333333;
-  font-size: 16px;
   font-weight: 700;
 }
 
-.tokenCard .authPrimary {
-  height: 52px;
-  border-color: rgb(166 217 151 / 50%);
-  border-radius: 16px;
-  background: var(--fm-color-success);
-  box-shadow: 0 6px 8px rgb(72 199 142 / 20%);
+.authPage.authPageLoginState .signupButton {
+  height: auto;
+  padding: 10px 24px;
+  border: 1px solid rgb(51 51 51 / 12%);
+  background: rgb(51 51 51 / 3%);
 }
 
-.tokenCard .authPrimary:hover,
-.tokenCard .authPrimary:focus-visible {
-  background: var(--fm-color-success);
-}
-
-.tokenBackRow {
-  display: flex;
-  width: 100%;
-  height: 25px;
-  box-sizing: border-box;
-  justify-content: center;
-  padding-top: 8px;
-}
-
-.tokenCard .authBackLink {
-  height: 17px;
-  min-height: 17px;
-  line-height: 17px;
-}
-
-.authDiagonal {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background: var(--fm-auth-mint);
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-}
-
-.authPage-register .authDiagonal {
-  background: var(--auth-diagonal);
-}
-
+/* 注册、找回密码、重置密码共享组件 */
 .authPage-register .authPrimary {
-  border-color: var(--auth-accent);
-  background: var(--auth-accent);
+  border-color: var(--auth-primary);
+  background: var(--auth-primary);
 }
 
 .authPage-register .authPrimary:hover,
 .authPage-register .authPrimary:focus-visible {
-  border-color: var(--auth-accent);
-  background: var(--auth-accent);
-}
-
-.authCard {
-  display: flex;
-  width: 460px;
-  box-sizing: border-box;
-  flex-direction: column;
-  gap: 24px;
-  padding: 40px;
-  border-radius: 24px;
-}
-
-.authPage-login .authCard {
-  display: grid;
-  width: 400px;
-  height: 471px;
-  gap: 0;
-  padding: 0;
-  transform: translateX(-30px);
-}
-
-.authPage-reset .authCard {
-  gap: 28px;
+  border-color: var(--auth-primary);
+  background: var(--auth-primary);
 }
 
 .authHeader {
@@ -1305,37 +620,17 @@
 }
 
 .authMark {
-  display: grid;
   width: 40px;
   height: 40px;
-  place-items: center;
   border-radius: 10px;
-  background: var(--auth-accent);
+  background: var(--auth-brand);
   box-shadow: 0 4px 4px rgb(72 199 142 / 25%);
   color: #ffffff;
-}
-
-.authMark svg {
-  width: 22px;
-  height: 22px;
-  stroke-width: 1.7;
 }
 
 .authMark img {
   width: 22px;
   height: 22px;
-}
-
-.authWordmark {
-  color: #2a3439;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 22px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.authWordmark span:last-child {
-  color: #2e7d32;
 }
 
 .authHeading {
@@ -1363,14 +658,19 @@
   line-height: 1.4;
 }
 
+.authPage-forgot .authHeading,
+.authPage-reset .authHeading {
+  gap: 8px;
+}
+
 .authPage-forgot .authHeading h1,
 .authPage-reset .authHeading h1 {
-  color: #2a3439;
+  color: var(--fm-auth-ink);
 }
 
 .authPage-forgot .authHeading p,
 .authPage-reset .authHeading p {
-  color: #4a5568;
+  color: var(--fm-auth-copy);
 }
 
 .authForm {
@@ -1380,15 +680,25 @@
   gap: 14px;
 }
 
-.authPage-register .authForm {
+.authPage-register .authForm,
+.authPage-forgot .authForm,
+.authPage-reset .authForm {
   display: contents;
 }
 
-.registerFields {
+.registerFields,
+.resetFields {
   display: flex;
   width: 100%;
   flex-direction: column;
+}
+
+.registerFields {
   gap: 14px;
+}
+
+.resetFields {
+  gap: 16px;
 }
 
 .registerActions {
@@ -1416,15 +726,15 @@
 
 .authPage-forgot .authFieldLabel,
 .authPage-reset .authFieldLabel {
-  color: #9daab5;
+  color: var(--fm-auth-placeholder);
+  line-height: normal;
 }
 
 .authInput {
   height: 50px !important;
-  box-sizing: border-box;
   border: 1.5px solid #ffffff !important;
   border-radius: 12px !important;
-  background: rgb(255 255 255 / 65%) !important;
+  background: var(--fm-auth-control) !important;
   box-shadow: 0 2px 6px rgb(0 0 0 / 10%) !important;
   color: #333333 !important;
   font-family: var(--fm-font);
@@ -1443,39 +753,12 @@
     0 0 0 2px rgb(72 199 142 / 24%) !important;
 }
 
-.authPasswordToggle {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  padding: 3px;
-  place-items: center;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: #6f7e89;
-  cursor: pointer;
-}
-
-.authPasswordToggle:hover {
-  background: rgb(255 255 255 / 45%);
-}
-
-.authPasswordToggle svg {
-  width: 18px;
-  height: 18px;
-}
-
-.authPasswordToggle img {
-  width: 18px;
-  height: 18px;
-}
-
 .authPrimary {
   width: 100%;
   height: 50px;
-  border: 1.5px solid #48c78e;
+  border: 1.5px solid var(--auth-primary);
   border-radius: 14px;
-  background: #48c78e;
+  background: var(--auth-primary);
   box-shadow: 0 6px 6px rgb(72 199 142 / 25%);
   color: #ffffff;
   font-family: var(--fm-font);
@@ -1485,13 +768,74 @@
 
 .authPrimary:hover,
 .authPrimary:focus-visible {
-  border-color: #48c78e;
-  background: #48c78e;
+  border-color: var(--auth-primary);
+  background: var(--auth-primary);
   color: #ffffff;
 }
 
 .authPrimary:disabled {
   opacity: 0.72;
+}
+
+.authActionStack {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.authBackLink {
+  width: fit-content;
+  height: auto;
+  min-height: 18px;
+  padding: 0;
+  color: #5a6672;
+  font-family: var(--fm-font);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.authBackLink:hover,
+.authBackLink:focus-visible {
+  background: transparent;
+  color: #5a6672;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.authDivider {
+  height: 40px;
+}
+
+.authLinkRow {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  color: #6b7280;
+  font-family: var(--fm-font);
+  font-size: 14px;
+}
+
+.authSecondary {
+  height: 38px;
+  padding: 0 24px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 19px;
+  background: var(--fm-auth-control);
+  color: #333333;
+  font-family: var(--fm-font);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.authSecondary:hover,
+.authSecondary:focus-visible {
+  background: rgb(255 255 255 / 80%);
+  color: #333333;
 }
 
 .passwordRules {
@@ -1507,24 +851,20 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #89b27c;
+  color: var(--fm-color-success-strong);
   font-family: var(--fm-font);
   font-size: 12px;
   line-height: 1.2;
 }
 
 .passwordRule {
-  color: #9daab5;
-}
-
-.passwordRule svg,
-.passwordRuleValid svg {
-  width: 14px;
-  height: 14px;
+  color: var(--fm-auth-placeholder);
 }
 
 .passwordRule img,
-.passwordRuleValid img {
+.passwordRuleValid img,
+.passwordRule svg,
+.passwordRuleValid svg {
   width: 14px;
   height: 14px;
 }
@@ -1534,7 +874,7 @@
   width: 100%;
   flex-direction: column;
   gap: 8px;
-  color: #4a5568;
+  color: var(--fm-auth-copy);
   font-family: var(--fm-font);
   font-size: 12px;
 }
@@ -1560,116 +900,10 @@
   height: 100%;
   flex: 1;
   border-radius: 3px;
-  background: #a6d997;
+  background: var(--fm-color-success);
 }
 
-.authActionStack {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 20px;
-  align-items: center;
-}
-
-.authPage-forgot .authForm {
-  display: contents;
-}
-
-.authPage-forgot .authHeading {
-  gap: 8px;
-}
-
-.authPage-forgot .authFieldLabel {
-  line-height: normal;
-}
-
-.authPage-reset .authForm {
-  display: contents;
-}
-
-.authPage-reset .authHeading {
-  gap: 8px;
-}
-
-.authPage-reset .authFieldLabel {
-  line-height: normal;
-}
-
-.resetFields {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.authBackLink {
-  width: fit-content;
-  height: auto;
-  min-height: 18px;
-  padding: 0;
-  color: #5a6672;
-  font-family: var(--fm-font);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 18px;
-}
-
-.authBackLink:hover,
-.authBackLink:focus-visible {
-  background: transparent;
-  color: #5a6672;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.authDivider {
-  display: flex;
-  width: 100%;
-  height: 40px;
-  align-items: center;
-  gap: 12px;
-  color: #5a6672;
-  font-family: var(--fm-font);
-  font-size: 13px;
-}
-
-.authDivider::before,
-.authDivider::after {
-  height: 1px;
-  flex: 1;
-  background: rgb(90 102 114 / 20%);
-  content: '';
-}
-
-.authLinkRow {
-  display: flex;
-  width: 100%;
-  min-height: 38px;
-  align-items: center;
-  justify-content: space-between;
-  color: #6b7280;
-  font-family: var(--fm-font);
-  font-size: 14px;
-}
-
-.authSecondary {
-  height: 38px;
-  padding: 0 24px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 19px;
-  background: rgb(255 255 255 / 65%);
-  color: #333333;
-  font-family: var(--fm-font);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.authSecondary:hover,
-.authSecondary:focus-visible {
-  background: rgb(255 255 255 / 80%);
-  color: #333333;
-}
-
+/* 找回密码成功态与 Figma 的双卡布局保持相同宽度和间距。 */
 .forgotContainer {
   display: flex;
   align-items: flex-start;
@@ -1709,13 +943,8 @@
   height: 56px;
   place-items: center;
   border-radius: 28px;
-  background: #c5f0d6;
-  color: #89b27c;
-}
-
-.successIcon svg {
-  width: 28px;
-  height: 28px;
+  background: var(--fm-auth-mint);
+  color: var(--fm-color-success-strong);
 }
 
 .successIcon img {
@@ -1728,7 +957,7 @@
   height: 46px;
   border: 0;
   border-radius: 12px;
-  background: #48c78e;
+  background: var(--fm-auth-success-action);
   box-shadow: none;
   color: #ffffff;
   font-size: 14px;
@@ -1737,7 +966,7 @@
 
 .successActionButton:hover,
 .successActionButton:focus-visible {
-  background: #48c78e;
+  background: var(--fm-auth-success-action);
   color: #ffffff;
 }
 
@@ -1753,7 +982,7 @@
 .successCard p {
   min-height: 42px;
   margin: 0;
-  color: #4a5568;
+  color: var(--fm-auth-copy);
   font-family: var(--fm-font);
   font-size: 14px;
   line-height: 1.5;
@@ -1764,6 +993,153 @@
   font-family: var(--fm-font);
   font-size: 12px;
   line-height: 18px;
+}
+
+/* Token 状态页是单卡布局，图标和主按钮尺寸直接对应 Figma 节点。 */
+.tokenCard {
+  display: flex;
+  width: min(460px, calc(100vw - 32px));
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  padding: 40px;
+  text-align: center;
+}
+
+.tokenCard .authHeader {
+  gap: 0;
+}
+
+.tokenCard .authHeading {
+  display: none;
+}
+
+.authPage-token .authBrand {
+  gap: 10px;
+}
+
+.authPage-token .authMark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--auth-brand);
+  box-shadow: none;
+}
+
+.authPage-token .authMark img {
+  width: 18px;
+  height: 18px;
+}
+
+.authPage-token .authWordmark {
+  font-size: 20px;
+  line-height: normal;
+}
+
+.tokenContent {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.tokenIcon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.tokenIcon img {
+  width: 32px;
+  height: 32px;
+}
+
+.tokenIcon-invalid {
+  background: rgb(255 117 118 / 10%);
+}
+
+.tokenIcon-expired {
+  background: rgb(255 218 147 / 10%);
+}
+
+.tokenIcon-used {
+  background: rgb(128 224 230 / 10%);
+}
+
+.tokenMessage {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+}
+
+.tokenMessage h1 {
+  margin: 0;
+  color: #333333;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 29px;
+}
+
+.tokenMessage p {
+  width: 100%;
+  margin: 0;
+  color: #5a6672;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.tokenActions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.tokenCard .authPrimary {
+  height: 52px;
+  border-color: rgb(166 217 151 / 50%);
+  border-radius: 16px;
+  background: var(--auth-primary);
+  box-shadow: 0 6px 8px rgb(72 199 142 / 20%);
+}
+
+.tokenCard .authPrimary:hover,
+.tokenCard .authPrimary:focus-visible {
+  background: var(--auth-primary);
+}
+
+.tokenSupport {
+  width: 100%;
+  height: 52px;
+  border: 1.5px solid #8a94a0;
+  border-radius: 16px;
+  background: transparent;
+  color: #333333;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tokenBackRow {
+  display: flex;
+  width: 100%;
+  height: 25px;
+  box-sizing: border-box;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.tokenCard .authBackLink {
+  height: 17px;
+  min-height: 17px;
+  line-height: 17px;
 }
 
 @media (max-width: 980px) {
@@ -1784,7 +1160,6 @@
 @media (max-width: 520px) {
   .authPage {
     align-items: start;
-    box-sizing: border-box;
     padding: 32px 16px;
   }
 
@@ -1818,7 +1193,17 @@
     padding: 0;
   }
 
+  .authPage.authPageLoginState .authCard {
+    height: auto;
+  }
+
   .forgotContainer {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loginSpinner {
+    animation: none;
   }
 }

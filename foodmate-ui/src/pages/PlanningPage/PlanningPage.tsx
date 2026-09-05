@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { DEFAULT_AVATARS } from '../../lib/avatar';
+import { FIGMA_WORKSPACE_AVATARS } from '../../lib/avatar';
 import type { SessionSummary } from '../../types/session';
 import {
   createMealPlan,
@@ -313,8 +313,8 @@ function DefaultPlanningView({ plan }: { plan?: MealPlan }) {
   const dayButtonColumns = { gridTemplateColumns: `repeat(${dayCount}, minmax(0, 1fr))` };
 
   return (
-    <main className={styles.planMain} aria-label="餐食规划">
-      <section className={styles.planBanner} aria-labelledby="plan-title">
+    <main className={styles.planMain} aria-label="餐食规划" data-figma-node-id="640:974">
+      <section className={styles.planBanner} aria-labelledby="plan-title" data-figma-node-id="640:975">
         <div className={styles.planSummary}>
           <h1 id="plan-title">{planName}</h1>
           <div className={styles.planMeta}>
@@ -338,7 +338,7 @@ function DefaultPlanningView({ plan }: { plan?: MealPlan }) {
         </div>
       </section>
 
-      <section className={styles.scheduleSection} aria-labelledby="schedule-title">
+      <section className={styles.scheduleSection} aria-labelledby="schedule-title" data-figma-node-id="640:988">
         <h2 id="schedule-title">每周日程</h2>
         <div className={styles.scheduleGrid} style={scheduleColumns}>
           <div className={styles.scheduleSpacer} aria-hidden="true" />
@@ -420,7 +420,7 @@ function PlanSidebar({
   };
 
   return (
-    <aside className={styles.planSidebar} aria-label="计划校验与购物清单">
+    <aside className={styles.planSidebar} aria-label="计划校验与购物清单" data-figma-node-id="640:1077">
       <section className={styles.constraintSection} aria-labelledby="constraints-title">
         <h2 id="constraints-title">约束校验</h2>
         <div className={styles.constraintList}>
@@ -680,8 +680,8 @@ export function PlanningPage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       topbarVariant={isFigmaFixture && view === 'list' ? 'planning-list' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
-      topAvatarSrc={isFigmaFixture ? DEFAULT_AVATARS.male : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.sidebar : undefined}
+      topAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.topbar : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >

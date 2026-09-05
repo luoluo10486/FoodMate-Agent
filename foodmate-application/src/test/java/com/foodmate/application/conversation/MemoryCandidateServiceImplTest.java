@@ -55,7 +55,34 @@ class MemoryCandidateServiceImplTest {
         assertEquals("diet", captor.getValue().key());
         assertEquals("{\"value\":\"low-salt\"}", captor.getValue().valueJson());
         assertEquals(new BigDecimal("0.90"), captor.getValue().confidence());
+        assertEquals("[\"message-1\"]", captor.getValue().sourceMessageIdsJson());
         verify(summaries).invalidateForUser(7L);
+    }
+
+    @Test
+    void suppressedSourceCannotCreateMemoryAgain() throws Exception {
+        MemoryRepository repository = mock(MemoryRepository.class);
+        SessionSummaryService summaries = mock(SessionSummaryService.class);
+        when(repository.findRunOwner(42L)).thenReturn(7L);
+        when(repository.hasSuppressedSourceMessages(7L, List.of("message-1"))).thenReturn(true);
+        MemoryCandidateServiceImpl service =
+                new MemoryCandidateServiceImpl(repository, () -> 99L, summaries);
+
+        service.persistFromCompletedRun(
+                42L,
+                new MemoryCandidateService.CompletedRunPayload(
+                        List.of(
+                                new MemoryCandidateService.MemoryCandidate(
+                                        "preference",
+                                        "diet",
+                                        mapper.readTree("{\"value\":\"low-salt\"}"),
+                                        new BigDecimal("0.90"),
+                                        "conversation",
+                                        "user",
+                                        List.of("message-1")))));
+
+        verify(repository, org.mockito.Mockito.never()).insert(any());
+        org.mockito.Mockito.verifyNoInteractions(summaries);
     }
 
     @Test

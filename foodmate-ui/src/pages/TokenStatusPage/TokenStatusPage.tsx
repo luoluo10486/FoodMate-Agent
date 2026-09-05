@@ -24,9 +24,15 @@ const tokenStates: Record<TokenState, { title: string; description: string; acti
 };
 
 const tokenIcons: Record<TokenState, string> = {
-  invalid: '/assets/figma/auth/token-alert-triangle.svg',
-  expired: '/assets/figma/auth/token-clock.svg',
-  used: '/assets/figma/auth/token-info.svg',
+  invalid: '/assets/figma/auth/token-invalid-alert-triangle.svg',
+  expired: '/assets/figma/auth/token-expired-clock.svg',
+  used: '/assets/figma/auth/token-used-info.svg',
+};
+
+const tokenBrandIcons: Record<TokenState, string> = {
+  invalid: '/assets/figma/auth/token-invalid-fork-knife.svg',
+  expired: '/assets/figma/auth/token-expired-fork-knife.svg',
+  used: '/assets/figma/auth/token-used-fork-knife.svg',
 };
 
 export function TokenStatusPage() {
@@ -39,7 +45,7 @@ export function TokenStatusPage() {
   return (
     <AuthShell variant="token">
       <section className={styles.tokenCard} aria-labelledby="token-title">
-        <AuthBrand title="" subtitle="" mark="utensils" />
+        <AuthBrand title="" subtitle="" mark="utensils" iconSrc={tokenBrandIcons[state]} />
         <div className={styles.tokenContent}>
           <div className={`${styles.tokenIcon} ${styles[`tokenIcon-${state}`]}`} aria-hidden="true">
             <img src={tokenIcons[state]} alt="" />

@@ -31,7 +31,7 @@ function AffectedResources() {
         以下关联资源将受直接影响：
       </strong>
       <span>• 3 个正在活跃调用的 Agent 任务</span>
-      <span>• 2 个开发中的工作流模板</span>
+      <span>• 2 个开发中的工作流模版</span>
     </Card>
   );
 }
@@ -128,13 +128,26 @@ export function AdminOperationStatus({
           </DialogHeader>
           <DialogDescription asChild id="operation-submitting-description" className={styles.operationDialogBody}>
             <div>
-              <p>
-                正在{action?.action} <strong>{action?.targetLabel}</strong>，请稍候。
-              </p>
-              <div className={styles.operationProgressTrack} aria-label="操作提交进度">
-                <span className={styles.operationProgressValue} />
+              {isToolDisable ? (
+                <>
+                  <p>
+                    您正在尝试{action?.action} <strong>{action?.targetLabel}</strong>。
+                  </p>
+                  <p className={styles.operationDialogMuted}>
+                    停用后，所有关联的 Agent 运行将无法在调用流中激活此工具。
+                  </p>
+                </>
+              ) : (
+                <p>
+                  正在{action?.action} <strong>{action?.targetLabel}</strong>，请稍候。
+                </p>
+              )}
+              <div className={styles.operationProgressGroup}>
+                <div className={styles.operationProgressTrack} aria-label="操作提交进度">
+                  <span className={styles.operationProgressValue} />
+                </div>
+                <p className={styles.operationProgressLabel}>正在通知关联的服务集群同步状态...</p>
               </div>
-              <p className={styles.operationProgressLabel}>正在通知关联的服务集群同步状态...</p>
             </div>
           </DialogDescription>
           <DialogFooter className={styles.operationDialogActions}>
@@ -159,7 +172,7 @@ export function AdminOperationStatus({
         aria-describedby="operation-failed-description"
       >
         <DialogHeader className={styles.operationDialogHeader}>
-          <span className={`${styles.operationIconWrapper} ${styles.operationWarningIcon}`}>
+          <span className={`${styles.operationIconWrapper} ${styles.operationErrorIcon}`}>
             <XCircle aria-hidden="true" />
           </span>
           <DialogTitle>操作失败</DialogTitle>
@@ -169,7 +182,11 @@ export function AdminOperationStatus({
             <p>
               <strong>{error?.message ?? '操作未完成，请检查服务状态后重试。'}</strong>
             </p>
-            <p className={styles.operationDialogMuted}>服务端未确认本次变更，当前配置未改变。请检查错误码后重试。</p>
+            <p className={styles.operationDialogMuted}>
+              {isToolDisable
+                ? '请求发送后，healthy-cluster-0 节点未能及时返回响应。当前配置未改变，请稍后重试。'
+                : '服务端未确认本次变更，当前配置未改变。请检查错误码后重试。'}
+            </p>
             <div className={styles.operationDebugBox}>
               <span>ERROR_CODE: {error?.code ?? 'REGISTRY_TIMEOUT_504'}</span>
               <span>REQUEST_ID: {error?.requestId ?? 'req-foodmate-9082ac918'}</span>
@@ -178,7 +195,7 @@ export function AdminOperationStatus({
         </DialogDescription>
         <DialogFooter className={styles.operationDialogActions}>
           <Button variant="outline" onClick={onDismiss}>
-            取消
+            关闭
           </Button>
           <Button className={styles.operationPrimaryButton} onClick={onRetry}>
             <RefreshCw aria-hidden="true" />

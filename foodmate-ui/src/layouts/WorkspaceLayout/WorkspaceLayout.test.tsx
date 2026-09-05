@@ -81,7 +81,7 @@ describe('WorkspaceLayout shell controls', () => {
     expect(topbarMark).not.toHaveTextContent('F');
     expect(sidebarMark).toHaveTextContent('F');
     expect(container.firstElementChild).toHaveClass('designChat');
-    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
   });
 
   it('uses the Figma selection surface colors for the design chat fixture', () => {
@@ -120,13 +120,9 @@ describe('WorkspaceLayout shell controls', () => {
   });
 
   it('uses the Figma green token for design chat brand and agent marks', () => {
-    const stylesheet = readFileSync(
-      resolve(process.cwd(), 'src/layouts/WorkspaceLayout/WorkspaceLayout.module.css'),
-      'utf8',
-    );
+    const stylesheet = readFileSync(resolve(process.cwd(), 'src/styles/tokens.css'), 'utf8');
 
-    expect(stylesheet).toContain('.designChat {');
-    expect(stylesheet).toContain('--fm-green: #4caf50;');
+    expect(stylesheet).toContain('--fm-green: #a6d997;');
   });
 
   it('allows a page to hide only the topbar mark letter while keeping its top navigation', () => {
@@ -143,7 +139,7 @@ describe('WorkspaceLayout shell controls', () => {
     expect(container.querySelector('aside .brand > span')).toHaveTextContent('F');
   });
 
-  it('does not render desktop window controls in the Figma fixture shell', () => {
+  it('renders desktop window controls in the Home Figma fixture shell', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>
         <WorkspaceLayout showKnowledgeTopNav={false} sidebarFixture={{ sessions: [] }}>
@@ -152,8 +148,27 @@ describe('WorkspaceLayout shell controls', () => {
       </MemoryRouter>,
     );
 
-    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
-    expect(container.innerHTML).not.toMatch(/window-controls|traffic-light|#ff3b30|#ffcc00|#34c759/i);
+    expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-name="window-controls"] img')).toHaveAttribute(
+      'src',
+      '/assets/figma/workspace/window-controls.svg',
+    );
+  });
+
+  it.each([
+    ['records', '/analysis?view=records&state=v2'],
+    ['analysis', '/analysis?state=v2'],
+    ['planning', '/planning?state=v2'],
+  ] as const)('renders desktop window controls in the %s Figma fixture shell', (activeModule, entry) => {
+    const { container } = render(
+      <MemoryRouter initialEntries={[entry]}>
+        <WorkspaceLayout activeModule={activeModule} showKnowledgeTopNav={false} sidebarFixture={{ sessions: [] }}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
   });
 
   it('supports the Profile Figma sidebar composition without search or collapse controls', () => {

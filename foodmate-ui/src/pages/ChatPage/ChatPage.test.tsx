@@ -132,24 +132,19 @@ describe('ChatPage Figma 默认状态', () => {
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
   });
 
-  it('uses the full-width assistant surface for the Figma default response', () => {
-    render(
-      <MemoryRouter initialEntries={['/chat?state=figma-v2']}>
-        <Routes>
-          <Route path="/chat/:session_id?" element={<ChatPage />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+  it('uses the Figma 560px assistant content width for the default response', () => {
+    const stylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
 
-    const assistantBody = document.querySelector(`[class*="${styles.assistantBody}"]`);
-    expect(assistantBody).toHaveClass(styles.assistantBodyWide);
+    expect(stylesheet).toContain('.figmaDefaultPage .assistantBody {');
+    expect(stylesheet).toContain('width: 560px;');
+    expect(stylesheet).toContain('flex: 0 0 560px;');
   });
 
   it('uses the Figma neutral surface for the assistant message body', () => {
     const stylesheet = readFileSync(resolve(process.cwd(), 'src/pages/ChatPage/ChatPage.module.css'), 'utf8');
 
     expect(stylesheet).toContain('.designChatPage .assistant .messageBubble');
-    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f9fafb;');
+    expect(stylesheet).toContain('--fm-fixture-assistant-surface: #f4f6f5;');
   });
 
   it('uses the Figma surface for the Composer input row in the fixture', () => {
@@ -161,6 +156,14 @@ describe('ChatPage Figma 默认状态', () => {
 
     expect(pageStylesheet).toContain('--fm-fixture-composer-input-surface: #fcfcfc;');
     expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
+  });
+
+  it('renders the Figma message action guidance in the default canvas', () => {
+    renderChatState('figma-v2');
+
+    expect(screen.getByRole('region', { name: '消息操作' })).toBeInTheDocument();
+    expect(screen.getByText(/用户消息：编辑/)).toBeInTheDocument();
+    expect(screen.getByText(/右侧面板：运行/)).toBeInTheDocument();
   });
 });
 
@@ -246,6 +249,23 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('[2] 用户饮食记录 2024-03-08~03-14')).toBeInTheDocument();
     expect(screen.queryByRole('complementary', { name: '运行轨迹' })).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
+  });
+
+  it('uses the Figma avatar assets for the default Chat fixture shell', () => {
+    renderState('figma-v2');
+
+    expect(document.querySelector('aside .avatar img')).toHaveAttribute(
+      'src',
+      '/assets/figma/workspace/home-sidebar-avatar.png',
+    );
+    expect(document.querySelector('main header .topAvatar img')).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/figma-v2-topbar-avatar.png',
+    );
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute(
+      'src',
+      '/assets/figma/agent-chat/figma-v2-message-avatar.png',
+    );
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {

@@ -217,7 +217,7 @@ public interface AdminOperationalQueryMapper {
 
     @Select(
             "<script>SELECT provider_code AS provider,model_name AS"
-                    + " model,scene,COALESCE((usage_json-&gt;&gt;'total_tokens'),'0') AS"
+                    + " model,scene,COALESCE((usage_json->>'total_tokens'),'0') AS"
                     + " tokens,cost_amount AS cost,latency_ms,status FROM model_usage_logs WHERE"
                     + " is_deleted=FALSE<if test='q.text != null and q.text != &quot;&quot;'> AND"
                     + " (provider_code ILIKE CONCAT('%',#{q.text},'%') OR model_name ILIKE"
@@ -233,7 +233,7 @@ public interface AdminOperationalQueryMapper {
 
     @Select(
             "<script>SELECT provider_code AS provider,model_name AS"
-                    + " model,scene,COALESCE((usage_json-&gt;&gt;'total_tokens'),'0') AS"
+                    + " model,scene,COALESCE((usage_json->>'total_tokens'),'0') AS"
                     + " tokens,cost_amount AS cost,latency_ms,status FROM model_usage_logs WHERE"
                     + " is_deleted=FALSE<if test='q.text != null and q.text != &quot;&quot;'> AND"
                     + " (provider_code ILIKE CONCAT('%',#{q.text},'%') OR model_name ILIKE"

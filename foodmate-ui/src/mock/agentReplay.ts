@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AgentRunView } from '../types/agent';
 import type { Message } from '../types/session';
+import { getVisualQaNow } from '../lib/visualQa';
 import { ROUTES } from '../constants/routes';
 import {
   type AgentCard,
@@ -89,7 +90,7 @@ export function useMockAgentReplay(
       {
         id: `${event}-${Date.now()}-${current.length}`,
         event: event as MockRunEvent['event'],
-        createdAt: new Date().toISOString(),
+        createdAt: getVisualQaNow().toISOString(),
       },
     ]);
   }, []);
@@ -198,7 +199,7 @@ export function useMockAgentReplay(
       setRunning(true);
       setRun({
         ...baseRun,
-        id: `run-${Date.now()}`,
+        id: `run-${getVisualQaNow().getTime()}`,
         status: 'routing',
         intent: mode,
         toolCalls: [],

@@ -58,6 +58,19 @@ class DockerComposeContractTests(TestCase):
         self.assertNotIn("FOODMATE_DOCKER_MODEL_PROVIDER_SILICONFLOW_API_KEY=", example)
         self.assertNotIn("FOODMATE_MODEL_PROVIDER_SILICONFLOW_API_KEY", compose)
 
+    def test_sql_planner_switches_to_shared_chat_route(self):
+        compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "FOODMATE_SQL_PLANNER_MODE: ${FOODMATE_DOCKER_SQL_PLANNER_MODE:-stub}",
+            compose,
+        )
+        self.assertIn("FOODMATE_DOCKER_SQL_PLANNER_MODE=stub", example)
+        self.assertIn("FOODMATE_DOCKER_SQL_PLANNER_TIER=standard", example)
+        self.assertNotIn("FOODMATE_SQL_PLANNER_API_KEY", compose)
+        self.assertNotIn("FOODMATE_DOCKER_SQL_PLANNER_API_KEY", example)
+
     def test_docker_readme_documents_the_python_service_startup(self):
         readme = (self.ROOT / "docker" / "README.md").read_text(encoding="utf-8")
 
@@ -86,3 +99,58 @@ class DockerComposeContractTests(TestCase):
         self.assertIn("FOODMATE_DOCKER_HTTP_PROXY=", example)
         self.assertIn("FOODMATE_DOCKER_NO_PROXY=", example)
         self.assertIn("FOODMATE_DOCKER_HTTPS_PROXY", readme)
+
+    def test_paid_execution_gate_is_docker_scoped_and_disabled_by_default(self):
+        compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+        script = (self.ROOT / "script" / "local" / "paid-cloud-preflight.ps1").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            "FOODMATE_PAID_EXECUTION_ENABLED: ${FOODMATE_DOCKER_PAID_EXECUTION_ENABLED:-false}",
+            compose,
+        )
+        self.assertIn("FOODMATE_DOCKER_PAID_EXECUTION_ENABLED=false", example)
+        self.assertIn("FOODMATE_DOCKER_PAID_MAX_TOTAL_COST_CNY=5", example)
+        self.assertIn("[switch]$ExecutePaid", script)
+        self.assertIn("PaidExecutionSession", script)
+        self.assertIn("--force-recreate agent-runtime", script)
+        self.assertNotIn("--api-key", script.lower())
+        self.assertNotIn("$ApiKey", script)
+
+    def test_rocketmq_topic_init_is_idempotent_and_bounds_topic_creation(self):
+        script = (self.ROOT / "docker" / "rocketmq" / "init-topics.sh").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("ensure_topic()", script)
+        self.assertIn('if wait_for_topic "$topic"; then', script)
+        self.assertIn('timeout 30 "$MQADMIN" updateTopic', script)
+        self.assertIn("跳过重复创建", script)
+
+    def test_java_governance_fallback_is_explicitly_mapped_from_docker_scope(self):
+        compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+        application = (
+            self.ROOT
+            / "foodmate-bootstrap"
+            / "src"
+            / "main"
+            / "resources"
+            / "application.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "FOODMATE_MODEL_GOVERNANCE_DEFAULT_PROVIDER: ${FOODMATE_DOCKER_MODEL_GOVERNANCE_DEFAULT_PROVIDER:-deterministic}",
+            compose,
+        )
+        self.assertIn("FOODMATE_DOCKER_MODEL_GOVERNANCE_DEFAULT_PROVIDER=deterministic", example)
+        self.assertIn(
+            "default-provider: ${FOODMATE_MODEL_GOVERNANCE_DEFAULT_PROVIDER:deterministic}",
+            application,
+        )
+        self.assertIn(
+            "input-price-per-million: ${FOODMATE_MODEL_GOVERNANCE_INPUT_PRICE_PER_MILLION:0}",
+            application,
+        )

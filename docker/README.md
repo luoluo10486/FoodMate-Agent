@@ -48,7 +48,7 @@ Invoke-WebRequest http://localhost:8080/actuator/health/readiness
 Invoke-WebRequest http://localhost:9002/foodmate/internal/health/ready
 ```
 
-Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。Compose 默认将四档 Agent 模型路由设为 `deterministic:local`；需要真实 Chat 时，在被忽略的根目录 `.env` 中显式设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD/HIGH/EVAL=cloud_primary:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_*` 端点、API Key 和已审计价格配置。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
+ Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。Compose 默认将四档 Agent 模型路由设为 `deterministic:local`；需要真实 Chat 时，在被忽略的根目录 `.env` 中显式设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD/HIGH/EVAL=cloud_primary:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_*` 端点、API Key 和已审计价格配置。启用真实 SQL Agent 时再设置 `FOODMATE_DOCKER_SQL_PLANNER_MODE=local`，它复用同一套 Chat 路由和价格治理，不需要 SQL 专用 API Key。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
 
 应用容器不会自动执行数据库迁移。启动前应确认 V16-V29 已按 `script/sql/FoodMate` 的顺序实际执行，启动后再检查 Java 和 Python readiness，以及应用日志中的 Outbox/Worker 状态。修改 Python 源码后必须重新执行 `up -d --build agent-runtime`，仅重启不会更新镜像内容。停止时使用 `docker compose ... down` 保留数据卷，除非明确需要销毁本地卷并另行确认。
 
@@ -137,7 +137,120 @@ Remove-Item Env:FOODMATE_DOCKER_RAG_EMBEDDING_API_KEY
 
 Chat 密钥使用独立的 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY` 注入，不能复用 Embedding 密钥。修改 `.env` 或进程变量后必须重新创建 `agent-runtime`；单独 `restart` 不会更新容器环境变量。可用 `docker inspect foodmate-agent-runtime` 检查 `FOODMATE_RAG_MODE`、profile、model 和 collection，但不要输出任何 `*_API_KEY`、密码或令牌。
 
+真实业务闭环的付费调用必须单独开启 `FOODMATE_DOCKER_PAID_EXECUTION_ENABLED=true`，并保持最多 4 个场景、累计 5 CNY、无 fallback/自动重试和云 provider 门禁。可先运行 `script/local/paid-cloud-preflight.ps1 -Scenario rag` 做非付费配置校验；只有显式传入 `-ExecutePaid` 才会在当前脚本进程内启用容器门禁并重建 Runtime。预检只输出模型、状态和配置是否存在，不输出密钥，也不等同于业务链路完成。
+
+#### 真实 RAG 业务闭环验收入口
+
+`script/local/real-rag-e2e.ps1` 是受限的 R1 业务验收入口，不承担压测、长稳、组件重启、ACK 丢失或重复投递故障矩阵。无参数执行只做 Compose、Java/Python readiness、真实 RAG 配置和付费门禁预检，不登录、不上传文件、不调用云模型：
+
+```powershell
+.\script\local\real-rag-e2e.ps1
+```
+
+显式执行真实付费闭环前，管理员账号和密码只能注入当前 PowerShell 进程；不要作为脚本参数、命令行参数或日志内容传递。脚本会使用 `.env` 中已经配置的 Chat/Embedding Key，自动将 Docker 运行时置为真实 local 模式，单轮最多 1 个场景、预算上限 5 CNY、禁止自动重试，并在默认结束路径软删除本轮文档和会话：
+
+```powershell
+$env:FOODMATE_E2E_ADMIN_USERNAME = Read-Host "FoodMate admin username"
+$securePassword = Read-Host "FoodMate admin password" -AsSecureString
+$passwordPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+    $env:FOODMATE_E2E_ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPtr)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPtr)
+}
+try {
+    .\script\local\real-rag-e2e.ps1 -ExecutePaid
+} finally {
+    Remove-Item Env:FOODMATE_E2E_ADMIN_USERNAME,Env:FOODMATE_E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+入口会验证批次上传、Java Index Outbox/RocketMQ、Python 解析和真实 Embedding/Milvus、Java 结果回写、批次 SSE、显式发布、公共检索、真实 Chat AgentRun、`run.completed` 引用、SSE `Last-Event-ID` 回放，以及下线后的不可检索。默认使用 3 份隔离 Markdown 样例；也可通过 `-DocumentPaths` 传入 1 至 5 个不超过 20 MB 的 PDF/DOCX/Markdown/TXT 文件。脚本只输出脱敏状态、模型标识、数量和稳定错误摘要，不输出 API Key、密码、Prompt、回答、原文、对象键或供应商原始响应。
+
 两个 Embedding profile 是互斥的运行配置，不会混写同一 collection。切换时先选择一个 profile 和对应 collection，重新创建 Runtime，并对需要检索的文档重新索引；旧 collection 可保留用于回滚或在确认无引用后单独清理。
+
+#### 真实餐食计划业务闭环验收入口
+
+`script/local/real-meal-plan-e2e.ps1` 是受限的 R3 业务验收入口。无参数执行只检查 Compose、Java/Python readiness、Docker Chat 的 `high` 档云路由和付费门禁，不登录、不创建 Run、不调用模型：
+
+```powershell
+.\script\local\real-meal-plan-e2e.ps1
+```
+
+真实执行必须显式传入 `-ExecutePaid`，管理员账号和密码只能从当前 PowerShell 进程的
+`FOODMATE_E2E_ADMIN_USERNAME`、`FOODMATE_E2E_ADMIN_PASSWORD` 读取。入口固定为一个
+`meal-plan` 场景，累计预算上限 5 CNY，关闭 fallback 和自动重试。它通过真实
+`POST /api/chat/runs` 创建 AgentRun，然后读取
+`GET /api/agent-runs/{runId}/stream`，断言云模型生成 `run.clarification_requested`、
+`meal_plan.save_plan` 确认请求，再以同一份 `{"plan": ...}` 调用 approval confirm/execute。
+
+```powershell
+$env:FOODMATE_E2E_ADMIN_USERNAME = Read-Host "FoodMate admin username"
+$securePassword = Read-Host "FoodMate admin password" -AsSecureString
+$passwordPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+    $env:FOODMATE_E2E_ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPtr)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPtr)
+}
+try {
+    .\script\local\real-meal-plan-e2e.ps1 -ExecutePaid
+} finally {
+    Remove-Item Env:FOODMATE_E2E_ADMIN_USERNAME,Env:FOODMATE_E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+成功条件是 Java 返回 `saved` 的 `meal_plan`、已绑定的购物清单，以及从同一
+AgentRun 的 SSE 回放得到唯一 `run.completed`，终态中的计划 ID 必须与 Java 执行结果一致。
+默认只软删除本轮计划和自动创建的会话；`-KeepData` 仅用于明确需要保留业务证据的单轮执行。
+入口是业务正确性检查，不执行压测、组件重启、ACK/重复投递故障注入、备份恢复或生产操作。
+
+#### 真实饮食记录业务闭环验收入口
+
+`script/local/real-food-log-e2e.ps1` 是受限的 R2 业务验收入口。无参数执行只检查 Compose、Java/Python readiness、Docker Chat 的 `high` 档云路由和付费门禁，不登录、不创建 Run、不调用模型：
+
+```powershell
+.\script\local\real-food-log-e2e.ps1
+```
+
+真实执行必须显式传入 `-ExecutePaid`，管理员凭据只能从当前 PowerShell 进程的
+`FOODMATE_E2E_ADMIN_USERNAME`、`FOODMATE_E2E_ADMIN_PASSWORD` 读取。入口固定为一个
+`food-log` 场景，累计预算上限 5 CNY，关闭 fallback 和自动重试。脚本通过真实
+`POST /api/chat/runs` 创建 AgentRun，读取
+`GET /api/agent-runs/{runId}/stream`，断言云模型生成 `food_log_writer` 的
+`run.clarification_requested`，再将安全的餐食时间、餐次、备注和食材参数同时传给
+approval confirm/execute。
+
+成功条件是 Java 返回绑定当前 Run 的 `food_log`，至少一条食材营养状态为 `matched`，并从同一 Run 的 SSE 回放得到唯一 `run.completed`，终态中的记录 ID 必须与 Java 执行结果一致。默认只软删除本轮饮食记录和自动创建的会话；`-KeepData` 仅用于明确需要保留业务证据的单轮执行。入口是业务正确性检查，不执行压测、组件重启、ACK/重复投递故障注入、备份恢复或生产操作。
+
+#### 真实 SQL Agent 业务闭环验收入口
+
+`script/local/real-sql-agent-e2e.ps1` 是受限的 R4 只读 SQL Agent 验收入口。无参数执行只检查 Compose 配置、Java/Python readiness、SQL Planner/Composer 的真实云路由和付费门禁，不登录、不创建 Run、不调用模型：
+
+```powershell
+.\script\local\real-sql-agent-e2e.ps1
+```
+
+真实执行必须显式传入 `-ExecutePaid`。管理员账号和密码只能从当前 PowerShell 进程的
+`FOODMATE_E2E_ADMIN_USERNAME`、`FOODMATE_E2E_ADMIN_PASSWORD` 读取，不能作为脚本参数或写入日志。脚本固定一个 `sql-agent` 场景、累计预算上限 5 CNY、要求 `cloud_primary`、关闭 fallback 和自动重试；Chat Key 继续由本地忽略的 `.env` 供 Compose 注入：
+
+```powershell
+$env:FOODMATE_E2E_ADMIN_USERNAME = Read-Host "FoodMate admin username"
+$securePassword = Read-Host "FoodMate admin password" -AsSecureString
+$passwordPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+    $env:FOODMATE_E2E_ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPtr)
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPtr)
+}
+try {
+    .\script\local\real-sql-agent-e2e.ps1 -ExecutePaid
+} finally {
+    Remove-Item Env:FOODMATE_E2E_ADMIN_USERNAME,Env:FOODMATE_E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+入口验证真实 Chat -> SQL Planner -> `time_parser`/`database_query` -> Java Schema/AST/用户范围/只读 Guard -> PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE，并使用 `Last-Event-ID` 回放终态。输出只包含脱敏状态、模型标识、工具名、审计计数和 SSE 数量，不包含 API Key、密码、Prompt、完整回答或 SQL 原文；默认只软删除本轮会话。该入口只验收业务正确性，不执行压测、组件重启、ACK/重复投递故障注入、备份恢复或生产操作。
 
 ## RocketMQ
 

@@ -1,6 +1,7 @@
 package com.foodmate.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.eq;
@@ -11,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.service.ToolGatewayService;
@@ -18,8 +20,10 @@ import com.foodmate.application.runtime.service.impl.ToolGatewayServiceImpl;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 class ToolGatewayServiceTest {
@@ -93,6 +97,12 @@ class ToolGatewayServiceTest {
         assertEquals("succeeded", result.status());
         assertEquals(1, result.rows().size());
         verify(store).audit(any(ToolGatewayPort.Audit.class));
+        ArgumentCaptor<ToolGatewayPort.ToolCall> toolCall =
+                ArgumentCaptor.forClass(ToolGatewayPort.ToolCall.class);
+        verify(store).recordToolCall(toolCall.capture());
+        assertEquals("database_query", toolCall.getValue().toolName());
+        assertEquals("success", toolCall.getValue().status());
+        assertFalse(toolCall.getValue().inputJson().contains("SELECT 1"));
     }
 
     @Test
@@ -170,6 +180,92 @@ class ToolGatewayServiceTest {
         assertEquals("confirmation_required", result.status());
         assertEquals("TOOL_CONFIRMATION_REQUIRED", result.errorCode());
         verifyNoInteractions(approvals);
+    }
+
+    @Test
+    void agentWriterCreatesPendingApprovalFromAnUnconfirmedProposal() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.propose(eq(7L), any()))
+                .thenReturn(
+                        new ApprovalService.ProposalView(
+                                100L,
+                                "create",
+                                "food_log",
+                                null,
+                                "digest",
+                                "pending",
+                                Instant.parse("2026-09-04T05:00:00Z"),
+                                null,
+                                null));
+        ToolGatewayService service =
+                new ToolGatewayServiceImpl(
+                        store,
+                        () -> 99L,
+                        approvals,
+                        new com.fasterxml.jackson.databind.ObjectMapper(),
+                        null,
+                        null,
+                        null,
+                        Mockito.mock(OperationAuditService.class));
+
+        var result = service.execute(writerProposal(null));
+
+        assertEquals("confirmation_required", result.status());
+        assertEquals("100", result.confirmationRef());
+        assertEquals("100", result.rows().getFirst().path("approval_request_id").asText());
+        verify(approvals).propose(eq(7L), any());
+    }
+
+    @Test
+    void agentMealPlanCreatesMealPlanApprovalFromAnUnconfirmedProposal() {
+        ApprovalService approvals = Mockito.mock(ApprovalService.class);
+        when(store.runContext(42L)).thenReturn(new ToolGatewayPort.RunContext(7L, 8L));
+        when(approvals.propose(eq(7L), any()))
+                .thenReturn(
+                        new ApprovalService.ProposalView(
+                                101L,
+                                "save_plan",
+                                "meal_plan",
+                                null,
+                                "digest",
+                                "pending",
+                                Instant.parse("2026-09-04T05:00:00Z"),
+                                null,
+                                null));
+        ToolGatewayService service =
+                new ToolGatewayServiceImpl(
+                        store,
+                        () -> 99L,
+                        approvals,
+                        new com.fasterxml.jackson.databind.ObjectMapper(),
+                        null,
+                        null,
+                        null,
+                        Mockito.mock(OperationAuditService.class));
+
+        var result =
+                service.execute(
+                        new ToolGatewayService.ProposalCommand(
+                                "proposal-plan",
+                                "42",
+                                "tool",
+                                "v1",
+                                "meal_plan.save_plan",
+                                null,
+                                mealPlanInput(),
+                                new ToolGatewayService.ProposalPayload(
+                                        "", "inv-plan", "plan-key")));
+
+        assertEquals("confirmation_required", result.status());
+        assertEquals("meal_plan.save_plan", result.toolName());
+        assertEquals("101", result.confirmationRef());
+        ArgumentCaptor<ApprovalService.ProposalCommand> command =
+                ArgumentCaptor.forClass(ApprovalService.ProposalCommand.class);
+        verify(approvals).propose(eq(7L), command.capture());
+        assertEquals("save_plan", command.getValue().operation());
+        assertEquals("meal_plan", command.getValue().resourceType());
+        assertEquals(null, command.getValue().resourceId());
     }
 
     @Test
@@ -367,6 +463,21 @@ class ToolGatewayServiceTest {
         input.put("meal_type", "lunch");
         input.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
         return input;
+    }
+
+    private static JsonNode mealPlanInput() {
+        var plan = JsonNodeFactory.instance.objectNode();
+        plan.put("plan_name", "一日计划");
+        plan.put("people", 1);
+        plan.put("days", 1);
+        plan.put("budget", 80);
+        plan.putArray("allergens");
+        plan.putArray("dislikes");
+        var day = plan.putArray("days_plan").addObject();
+        day.putObject("breakfast");
+        day.putObject("lunch");
+        day.putObject("dinner");
+        return JsonNodeFactory.instance.objectNode().set("plan", plan);
     }
 
     private static ToolGatewayService.ProposalCommand proposal(String sql) {

@@ -1864,3 +1864,208 @@
 | 影响范围 | 两次请求均未取得向量，不能据此确认当前密钥下 BGE 或 Qwen 的真实 Embedding 业务调用；未使用旧密钥静默替换，也未继续重复请求。 |
 | 业务测试 | Python RAG/Worker/云 smoke 契约测试：`77 passed, 4 subtests passed`；该结果只证明本地业务和配置契约，不替代供应商认证。 |
 | 结论 | Docker Python Runtime 启动链路和两个 profile 配置正常，当前密钥需要在 SiliconFlow 控制台确认有效性或轮换后再进行真实请求复验；D112 的成功记录仍仅代表当时使用的历史密钥。 |
+
+## D115 Docker 真实公共知识库与 Chat 引用闭环（2026-09-04）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus；管理员会话仅在当前 PowerShell 进程使用，未输出 Cookie、API Key、回答正文或原文。 |
+| Java 修复与测试 | 修正知识索引 Outbox SQL 的 PostgreSQL JSONB 存在性判断，兼容尚未执行 V29 的本地数据库；`KnowledgeMapperContractTest` 与 `KnowledgeRepositoryAdapterTest` 定向测试 `9/9` 通过。 |
+| Java Docker 部署 | `mvnw.cmd -pl foodmate-bootstrap -am package -DskipTests` 和 `docker compose --env-file .env -f docker/compose.yml build foodmate` 均 `BUILD SUCCESS`；重建后的 `foodmate` readiness 为 `healthy`，未重启或改动依赖服务及持久化卷。 |
+| Python Runtime | `/foodmate/internal/health/ready` 返回 HTTP `200`；实际模式为 `local`，后端为 Milvus，Embedding provider 为 `openai-compatible`，模型为 `Qwen/Qwen3-Embedding-0.6B`；RocketMQ producer/consumer 与 Redis 均 ready。 |
+| 上传批次 | 使用管理员账号和随机幂等键提交 1 个 Markdown 文件；批次 `354150618522193920`，文档 `354150620275412992`，条目 `354150620275412993`；来源类型为允许的 `admin_upload`。 |
+| 真实索引 | Java Index Outbox `foodmate-knowledge-index-v1` 为 `published/attempt=1`；Python 从 MinIO 读取并解析，真实 Embedding 返回 `1024` 维并写入 Milvus；Java 消费结果后条目和文档均为 `indexed`，批次为 `completed`，chunk `10`，token `2116`，成本摘要 `0.00014812`，模型版本为 `Qwen/Qwen3-Embedding-0.6B`；结果 Inbox 为单条幂等事实。 |
+| 显式发布与检索 | 文档由管理员显式发布；Visibility Outbox `foodmate-knowledge-visibility-v1` 为 `published/attempt=1`。`POST /api/knowledge-base/search` 返回该文档的 2 条安全引用，未暴露 MinIO 地址或对象键。 |
+| 真实 Chat AgentRun | 创建 Run `354151297747783680`；`run.model_usage` 记录 `cloud_primary / deepseek-ai/DeepSeek-V4-Flash`、`total_tokens=481`、状态 `success`。`/api/chat/runs/{runId}/stream` 使用 `Last-Event-ID: 0` 回放 7 个连续事件，唯一终态为 `run.completed`，其中包含 2 条引用；PostgreSQL SSE Outbox `stream_seq=1..7`、唯一 SSE ID `7` 个、终态事件 `1` 个。 |
+| 失败记录 | 首轮测试中使用不允许的来源类型和自动上传 MIME 各触发一次稳定 `INVALID_ARGUMENT`，未创建批次或对象；修正为 `admin_upload` 并使用显式 `text/markdown` 后成功。 |
+| 清理边界 | 证据核对完成后，仅清理本轮上述批次、文档、条目、chunk、Outbox/Inbox、SSE 事实、Run 及 MinIO/Milvus 测试索引；不执行迁移、truncate、备份恢复或现有数据宽泛删除。 |
+| 暂缓范围 | 未执行性能压测、组件重启、ACK 丢失/重复投递故障注入、生产环境容量或发布回滚；本记录只证明一次真实付费主链路业务闭环。 |
+
+## D116 本轮真实闭环测试数据定点清理（2026-09-04）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker PostgreSQL、Redis、MinIO、Milvus、RocketMQ、Java 和 Python 容器保持运行；未执行迁移、truncate、备份恢复或宽泛删除。 |
+| PostgreSQL 清理 | 在一个 `BEGIN/COMMIT` 事务中按外键依赖删除本轮批次 `354150618522193920`、文档 `354150620275412992`、条目 `354150620275412993`、10 个 chunk、索引/结果/可见性 Outbox、2 条批次 SSE，以及 Run `354151297747783680`、1 个会话、2 条消息、1 个预算快照、7 条 Run SSE 和 7 条 Runtime 事件；事务提交成功。 |
+| 外部索引与对象 | Milvus 精确删除 10 个本轮 `embedding_id`，删除后目标查询为 `0`；Redis 删除 3 个本轮精确 key；MinIO 删除 `foodmate-private/knowledge/public/354150620275412992/README.md`，对象查询无结果。 |
+| 反向验证 | PostgreSQL 目标批次/条目/文档/chunk/Outbox/Inbox/SSE/Run/会话/消息查询均为 `0`；本轮 4 条 `operation_audits` 保留作为真实执行证据；Java 与 Python 容器 health 状态仍为 `healthy`。 |
+| 保护范围 | 未删除管理员、用户、历史知识文档、历史 Run、全局审计、未确认用途的 `tmp/pdfs/` 和 `tmp/resume-pdf-review-20260903/`；Milvus collection 中其余历史实体保留。 |
+| 结论 | 本轮真实付费 Embedding + Milvus + DeepSeek Chat 的业务闭环证据已落档，测试数据已完成精确清理；性能压测、组件重启、ACK/重复投递故障注入、SSE 故障恢复和生产环境验证继续按计划暂缓。 |
+
+## D117 真实云 Chat 驱动 food_log_writer 审批写入闭环（2026-09-04）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 保持运行；临时认证会话仅在当前 PowerShell 进程使用，未输出 Cookie、API Key、完整 Prompt 或模型回答。 |
+| 真实 Chat | 已由 `deepseek-ai/DeepSeek-V4-Flash` 生成 `food_log_writer` Proposal；Run `354172422154358784`，Proposal `prop_food_log_773c60f91c1b63d5842da390`，Approval `354172435995561984`。 |
+| 失败记录 | 首次使用 SSE 确认卡中的安全展示摘要调用确认接口，Java 按参数摘要校验返回 `409 CONFLICT`，审批仍为 `pending`，没有产生业务写入；随后从 Java Proposal Inbox 读取原始结构化参数并按原始字段顺序重试。 |
+| 审批与业务写入 | 原始参数确认成功，随后执行成功；Approval 状态为 `executed`，资源 `food_log_id=354175290076827648`；`food_logs` 新增 1 条 `agent` 来源记录，revision 为 `1`。 |
+| 营养事实 | 该 food log 包含 3 条 `food_log_items`，3/3 为 `matched`，0 条为 `pending`；营养字段均已写入，合计热量 `542.5000 kcal`。 |
+| Run/SSE | AgentRun 状态为 `completed`、`result_type=normal`；Runtime Inbox 事件 `11` 条、`event_seq=1..11`，其中 `run.completed=1`；SSE Outbox `11` 条、`stream_seq=1..11`、唯一事件 ID `11` 个，其中终态 `run.completed=1`；助手终态消息存在。 |
+| 统一审计 | 当前审批事实对应 `approval.propose`、`approval.confirm`、`approval.execute` 和 `food_log.create` 成功审计各 1 条；审计未保存密码、令牌、Prompt、完整回答或原始请求。 |
+| 业务验证 | `mvnw.cmd verify`：全 Reactor 构建成功，Java Shared `12/12`、Application `221/221`、Infrastructure `111/111`（20 条条件跳过）、API `68/68`、Bootstrap `59/59`（37 条条件跳过）；Python `.venv` 全量 `198 passed, 2 skipped`；前端 `npm.cmd run typecheck` 通过；Spotless 和 `git diff --check` 通过。 |
+| 数据边界 | 本轮仅使用已有测试 Run/Approval 及新增 food log 事实，未执行迁移、truncate、备份恢复或性能/故障注入；新增业务事实按当前真实闭环证据保留，未做宽泛清理。 |
+| 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> Java Proposal -> 管理员确认 -> Java 营养业务写入 -> `run.completed`/SSE 的审批写入闭环已取得直接证据；真实餐食计划闭环、SQL Agent 扩展以及性能、重启、ACK 丢失和组合故障门禁仍未完成。 |
+
+## D118 SQL Agent 共享 Chat Router 实现与业务门禁（2026-09-04）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/real-sql-agent-e2e`；未调用真实云模型、真实 Embedding 或生产服务。 |
+| 实现范围 | `local-stub` 保持 deterministic Planner；`local` SQL Planner 改为复用共享 `ModelRouter`，沿用 `FOODMATE_MODEL_TIER_*`、provider、价格审计和 ProviderAttempt，不再读取独立 SQL API Key、Base URL 或 Model 配置。 |
+| 安全边界 | SQL Planner 仅生成结构化 QueryPlan；Java 继续执行 Schema 白名单、JSqlParser AST 只读校验、当前用户范围、LIMIT 和 SQL 审计。`local` 拒绝 deterministic 主路由及 fallback，模型结构化响应无效时失败关闭。 |
+| 运行时配置 | Docker 新增 `FOODMATE_DOCKER_SQL_PLANNER_MODE`、`FOODMATE_DOCKER_SQL_PLANNER_TIER` 和 `FOODMATE_DOCKER_SQL_PLANNER_TIMEOUT_SECONDS`；Docker SQL Planner 不需要额外 API Key。 |
+| 用量审计 | SQL Planner 的 token、成本、路由和 provider attempt 纳入 AgentRun 模型用量；同一 AgentRun 的 SQL 计划缓存，避免 `time_parser -> database_query` 多轮重复调用模型。 |
+| Java 门禁 | `mvnw.cmd verify`：全 Reactor 构建成功；Java Shared `12/12`、Application `226/226`、Infrastructure `111/111`（20 条条件跳过）、API `68/68`、Bootstrap `59/59`（37 条条件跳过）。 |
+| Python 门禁 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider`：`206 passed、2 skipped、6 subtests passed`；未写入 `.pyc`。 |
+| 配置门禁 | `docker compose --env-file .env -f docker/compose.yml config --quiet`：通过。 |
+| 证据边界 | 本轮离线 provider 测试只证明共享路由、结构化契约、用量映射和 fail-closed 业务行为；没有发起真实 SQL Agent 付费 Chat 请求，因此不将 M2-2 真实云调用标记为完成。性能压测、组件重启、ACK 丢失、重复投递、SSE 故障恢复和生产验证继续后置。 |
+
+## D119 真实云 SQL Agent 只读分析闭环（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/real-sql-agent-e2e`；Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均保持 healthy；Chat API Key 仅从当前进程注入，未输出或写入仓库。 |
+| 真实 Chat | 使用 SiliconFlow `deepseek-ai/DeepSeek-V4-Flash` 执行问题“分析最近7天蛋白质摄入”；Run `354317208152707072`，Session `354317208098181120`，测试账号为随机账号 `codex_sql_paid_37fbde2552a845d9ad07889d9210f730`。 |
+| AgentRun 结果 | Run 最终状态为 `completed`；Runtime 产生 `18` 条事件，终态事件 `1` 条；SSE 存在 `run.completed` 终态事件。 |
+| 模型用量 | `run.model_usage` 记录 `sql_planner=1`、`composer=3`、`eval=0`；真实请求通过共享 Cloud Router，未启用 deterministic Planner fallback。 |
+| SQL Proposal | 生成并执行 `2` 个 Proposal：`time_parser` 和 `database_query`；两者均成功，Java 侧继续执行只读 SQL、Schema 白名单、当前用户范围和 LIMIT 安全校验。 |
+| SQL 审计 | SQL 查询审计 `2` 条，结果均为 `executed`；统一操作审计 `7` 条；没有发现 `SQL_SCHEMA_DENIED` 或未授权查询。 |
+| 业务终态 | 助手终态消息 `1` 条；`run.completed` 通过现有 Runtime -> Java Inbox -> SSE 投影链路输出，未泄露密码、令牌、完整 Prompt、完整回答或高基数标识到 metrics 标签。 |
+| 缺陷修复 | 首次真实模型响应包含末尾分号/完整 Markdown SQL 围栏，已在安全解析边界归一化；同时收紧 Planner 提示词到 Java 授权 Schema，未放宽 JSqlParser AST、字段白名单或用户范围校验。 |
+| 测试门禁 | SQL Planner 定向测试 `14 passed`；Python 全量业务测试 `209 passed, 2 skipped, 6 subtests passed`；两个 `integration` marker warning 不影响通过。Java 全量 `mvnw.cmd verify` 与 Docker Compose 校验沿用 D117/D118 已通过证据。 |
+| 数据清理 | 已精确清理本轮创建的 `6` 个随机管理员账号及关联 Session、AgentRun、消息、Runtime Inbox/Outbox、Proposal Inbox、SQL 审计、SSE 事实和认证令牌；反向核验 `users=0`、`sessions=0`、`runs=0`、`runtime_events=0`、`proposals=0`、`sql_audits=0`。统一 `operation_audits` 按审计保留约定保留；历史 `codex_sql_real_*` 账号未触碰。 |
+| 暂缓范围 | 未执行性能压测、组件重启矩阵、Outbox/Inbox ACK 丢失、重复投递故障注入、SSE 断线恢复、生产容量、备份恢复或发布回滚；本记录只证明一次真实付费 SQL Agent 主链路业务闭环。 |
+| 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> SQL Proposal -> Java 只读校验与执行 -> SQL 审计 -> `run.completed`/SSE 的 SQL Agent 业务闭环已取得直接证据；餐食计划扩展及性能/故障恢复门禁仍按路线后置。 |
+
+## D120 真实云闭环 SSE 回放、Embedding smoke 与全量业务门禁复核（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/real-sql-agent-e2e`；Docker Compose `foodmate`、`agent-runtime`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy。密钥只由 Docker Compose 从本地忽略 `.env` 注入，未输出、写入仓库或执行记录。 |
+| SSE 完整流 | 管理员 Run `354336612697509888` 的 `GET /api/chat/runs/{runId}/stream` 返回 HTTP `200`；完整回放 15 个事件，15 个 `sse_event_id` 全部唯一，`run.completed` 终态 1 个。 |
+| SSE Last-Event-ID | 使用第 5 个事件 `sse_354336629667663872` 作为 `Last-Event-ID` 回放返回 HTTP `200`，得到后续 10 个事件；首尾 ID 与完整流一致，10 个 ID 全部唯一，`run.completed` 终态 1 个。此次验证是业务回放契约复核，不扩展解释为组件断线故障矩阵。 |
+| Docker 真实 Embedding | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest`：`Qwen/Qwen3-Embedding-0.6B` 返回向量维度 `1024`、`prompt_tokens=5`，延迟 `296.18 ms`，`embedding_smoke_status=passed`。未保存向量正文。 |
+| 数据库事实 | 同一 Run `status=completed/result_type=normal`；Runtime Inbox V2 `15/15` 为 `applied`、事件序号 `1..15`、终态 1 个；SSE Outbox `15` 条、终态 1 个且 `sse_event_id` 唯一；模型用量为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`、`1166` tokens、成本约 `0.002021 CNY`、状态 `success`。 |
+| 业务门禁 | `mvnw.cmd verify`：`BUILD SUCCESS`，Shared `12`、Application `228`、Infrastructure `113`（20 条条件跳过）、API `68`、Bootstrap `59`（37 条条件跳过）；项目 `.venv` Python `210 passed、2 skipped、2 warnings、6 subtests passed`；前端 `npm.cmd run typecheck` 通过；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过。 |
+| 运行态 | Docker 应用和依赖容器继续 healthy；未执行迁移、truncate、备份恢复、宽泛删除、性能压测、组件重启、ACK 丢失/重复投递故障注入或生产操作。 |
+| 结论 | 当前凭据下 Docker 真实 Embedding、真实 Chat AgentRun、业务写入和 SSE 回放均有可复核证据；M2-1 公共知识库和 M2-2 SQL Agent 业务闭环可以按“已验证”记录。性能、完整故障恢复、生产容量、备份恢复和发布回滚继续后置。 |
+
+## D121 M1-4 记忆治理来源失效与意图分层（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Java 21；未启动或重启 Docker 依赖，未读取或输出 API Key、Prompt、回答正文或用户业务内容。 |
+| 实现 | `user_memories` 增加 `source_message_ids` 和 `suppressed_source_message_ids` 契约；Java 记忆候选保存受限来源 ID，修改/删除后阻止来源消息进入近期 Context、摘要重建和重复候选写入；AgentRun 按 `cooking`、`nutrition`、`record`、`planning`、`general` 做类型分层检索。 |
+| 迁移 | 已对本地 Docker PostgreSQL 执行 `V31__m1_4_memory_invalidation_boundary.sql`；validation 结果为 `memory_rows=0`、空值/非数组计数均为 `0`，两个 GIN 索引和数组约束均存在；未清理或修改既有数据。 |
+| Java 业务验证 | `mvnw.cmd -pl foodmate-application,foodmate-infra -am test -Dtest=MemoryCandidateServiceImplTest,SessionSummaryServiceImplTest,AgentRunCommandServiceImplTest,FlywayV31MigrationScriptTest -Dsurefire.failIfNoSpecifiedTests=false`：`11/11` 通过。 |
+| 前置门禁 | 同一轮变更前置回归：Application `228/228`、Infrastructure `113/113`（20 条条件跳过）、API `68/68` 通过；新增测试仅补充失效边界，不改变已通过的业务路径。 |
+| 数据边界 | 不保存原文、Prompt、Token、凭据或完整请求；只保存受限来源 ID。未执行性能压测、依赖重启、ACK 丢失、重复投递、SSE 故障恢复或生产操作。 |
+| 结论 | 记忆意图分层、来源抑制和失效摘要重建已取得代码、定向业务测试及本地数据库 validation 证据；Docker Java/Python 容器 readiness 已通过。性能、依赖重启、ACK/重复投递和 SSE 故障恢复仍按范围暂缓。 |
+
+## D122 Docker 真实云配置门禁与启动脚本修复（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 修复 `paid-cloud-preflight.ps1` 的参数错位：base64 源代码使用 `sys.argv[1]`，场景使用 `sys.argv[2]`；RocketMQ Topic 初始化新增幂等存在性回读和 `mqadmin updateTopic` 30 秒有界调用，避免重复 Topic 阻塞 `agent-runtime` 启动。 |
+| 付费门禁 | `script/local/paid-cloud-preflight.ps1 -Scenario rag -ExecutePaid` 通过；容器内报告 `paid_execution=true`、`scenario=rag`、`max_scenarios=4`、`max_total_cost_cny=5`、`no_retry=true`、`require_cloud=true`。 |
+| Chat smoke | `siliconflow-docker-chat-smoke.ps1 -Tier standard -ExecuteRequest` 通过；provider 为 `cloud_primary`，模型为 `deepseek-ai/DeepSeek-V4-Flash`，返回 `23` tokens，延迟 `945.12 ms`。 |
+| Embedding smoke | `siliconflow-docker-embedding-smoke.ps1 -EmbeddingProfile qwen3-embedding-0.6b -ExecuteRequest` 通过；模型为 `Qwen/Qwen3-Embedding-0.6B`，向量维度 `1024`，`prompt_tokens=5`，延迟 `185.0 ms`。 |
+| Runtime | `agent-runtime` readiness HTTP 200；Redis checkpoint、RocketMQ producer/consumer 和 Milvus local RAG 均为 ready。 |
+| 业务边界 | 本轮只验证当前密钥和 Docker 云端点的最小请求，没有重复调用完整业务链路；真实 RAG/SQL/写确认链路以 D117、D119、D120 的直接证据为准。未执行压测、组件故障注入、ACK/重复投递、备份恢复或生产操作。 |
+| 结论 | 当前密钥的 Docker Chat 与 Embedding 认证已恢复，付费预检和 Runtime 启动门禁可正常工作；真实业务闭环的稳定性、性能和故障专项继续后置。 |
+
+## D123 真实 RAG 业务闭环可重复执行入口与预检复核（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 新增 `script/local/real-rag-e2e.ps1` 及契约测试。入口默认只执行 Compose 配置、Java/Python readiness、真实 RAG 配置和付费门禁预检；只有显式 `-ExecutePaid` 才会登录管理员、上传隔离文档并运行 R1 真实业务闭环。管理员凭据仅从当前 PowerShell 进程环境读取，不接受命令行凭据参数。 |
+| 真实闭环覆盖 | 显式付费执行路径覆盖批次上传、Java Index Outbox/RocketMQ、Python 解析/真实 Embedding/Milvus、Java 结果回写、批次 SSE、显式发布、公共检索、真实 Chat AgentRun、`run.completed` 引用、SSE `Last-Event-ID` 回放和下线后的不可检索；默认使用 3 份隔离 Markdown 样例，也支持 1 至 5 个 PDF/DOCX/Markdown/TXT 文件。 |
+| 安全边界 | 脚本不输出或记录 API Key、密码、Prompt、回答、原文、对象键或供应商原始响应；默认只软删除本轮文档和自动创建的会话。付费执行固定单场景、累计 5 CNY、云 provider 门禁和无自动重试。 |
+| 本轮预检 | `powershell.exe -NoProfile -NonInteractive -File .\script\local\real-rag-e2e.ps1` 返回 `status=preflight_passed`；RAG 为 `local`，Embedding 为 `openai-compatible/Qwen/Qwen3-Embedding-0.6B`，Milvus collection 已配置，Chat 为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，Chat/Embedding Key 均已配置但未输出。 |
+| 业务测试 | PowerShell parser 通过；`real-rag-e2e.tests.ps1` 返回 `real_rag_e2e_contract=passed`；项目 `.venv` 执行 `python -B -m pytest -q -p no:cacheprovider`：`212 passed、2 skipped、2 warnings、6 subtests passed`；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；`git diff --check` 通过。 |
+| 未执行 | 本轮未再次执行真实付费 RAG 上传/索引/Chat 闭环，未产生新增供应商费用；D115/D120 保留的真实付费 RAG 证据仍是当前业务闭环依据。未执行性能压测、组件重启、ACK/重复投递故障注入、生产操作、备份恢复或发布回滚。 |
+| 结论 | M2-1 真实 RAG 业务验收已有安全、受限且可重复的执行入口，当前配置预检和业务门禁通过；要新增一轮付费证据，必须由执行人显式提供管理员账号密码并运行 `-ExecutePaid`。 |
+
+## D124 R3 真实餐食计划业务闭环验收入口（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 新增 `script/local/real-meal-plan-e2e.ps1` 及契约测试；同时修正 `real-rag-e2e.ps1` 的持久化 SSE 路径为 `/api/agent-runs/{runId}/stream`。 |
+| 业务路径 | 入口覆盖真实 `POST /api/chat/runs`、AgentRun SSE、`run.clarification_requested`、`meal_plan.save_plan`、approval confirm/execute、Java `meal_plans`、购物清单和唯一 `run.completed`；确认与执行复用同一 `{"plan": ...}` 参数。 |
+| 付费门禁 | R3 固定 `meal-plan` 单场景、累计 5 CNY、云 provider、无 fallback 和无自动重试；管理员账号密码只从当前 PowerShell 进程读取，不接受脚本参数。 |
+| 默认行为 | 无参数仅做 Docker Compose、Java/Python readiness、high Chat 云路由和付费门禁预检；付费执行默认软删除本轮餐食计划和会话，`-KeepData` 才保留。 |
+| 验证 | PowerShell parser 通过；`real-rag-e2e.tests.ps1` 返回 `real_rag_e2e_contract=passed`；`real-meal-plan-e2e.tests.ps1` 返回 `real_meal_plan_e2e_contract=passed`；`git diff --check` 通过。 |
+| 本轮执行边界 | 未执行真实付费 R3，不产生新增云费用；因此不把 R3 真实云闭环标记为完成。未执行性能压测、组件重启、ACK/重复投递故障注入、备份恢复、生产操作或发布回滚。 |
+| Git | `ea7a9c13 feat(agent): add bounded paid meal plan acceptance runner`。 |
+
+## D125 R3 入口业务门禁与 SSE 路径复核（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| R3 预检 | `script/local/real-meal-plan-e2e.ps1` 无参数返回 `status=preflight_passed`；容器内 Chat 路由为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，endpoint/key 已配置，fallback 为 `false`；未创建 Run、未调用付费模型。 |
+| Python 业务测试 | 项目 `.venv` 执行 `python -B -m pytest -q -p no:cacheprovider`：`212 passed、2 skipped、2 warnings、6 subtests passed`。 |
+| Java SSE 测试 | `mvnw.cmd -pl foodmate-api -am test '-Dtest=RunStreamControllerTest,ChatControllerTest' '-Dsurefire.failIfNoSpecifiedTests=false'`：`ChatControllerTest=2/2`、`RunStreamControllerTest=1/1`，Reactor `BUILD SUCCESS`。 |
+| 配置与契约 | `real-rag-e2e.tests.ps1`、`real-meal-plan-e2e.tests.ps1` 均通过；`docker compose ... config --quiet` 通过；脚本和文档 `git diff --check` 通过。 |
+| 路径结论 | 当前创建 Run 使用 `POST /api/chat/runs`，持久化 SSE 使用 `GET /api/agent-runs/{runId}/stream`；RAG 入口已同步修正为该路径，历史执行记录中的旧路径仅作为历史事实保留。 |
+| 付费边界 | 当前进程未提供 `FOODMATE_E2E_ADMIN_USERNAME`/`FOODMATE_E2E_ADMIN_PASSWORD`，本轮未执行真实付费 R3，不产生新增云费用；R3 仍需执行人显式注入管理员凭据并传入 `-ExecutePaid` 后才能形成真实云闭环证据。 |
+
+## D126 R2 真实饮食记录业务闭环验收入口（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 新增 `script/local/real-food-log-e2e.ps1` 及契约测试；入口使用当前持久化 SSE 路径 `/api/agent-runs/{runId}/stream`。 |
+| 业务路径 | 覆盖真实 `POST /api/chat/runs`、`run.clarification_requested`、`food_log_writer`、approval confirm/execute、Java `food_logs` 查询、营养 `matched` 快照和唯一 `run.completed`；确认与执行复用同一份安全业务参数。 |
+| 付费门禁 | R2 固定 `food-log` 单场景、累计 5 CNY、云 provider、无 fallback 和无自动重试；管理员账号密码只从当前 PowerShell 进程读取，不接受脚本参数。 |
+| 默认行为 | 无参数仅做 Docker Compose、Java/Python readiness、high Chat 云路由和付费门禁预检；付费执行默认软删除本轮记录和会话，`-KeepData` 才保留。 |
+| 本轮执行边界 | 未执行真实付费 R2，不产生新增云费用；因此不把 R2 真实云闭环标记为完成。未执行性能压测、组件重启、ACK/重复投递故障注入、备份恢复、生产操作或发布回滚。 |
+
+## D127 R4 真实云 SQL Agent 业务验收入口与预检复核（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 实现 | 新增 `script/local/real-sql-agent-e2e.ps1` 及契约测试。入口默认只执行 Compose 配置、Java/Python readiness、SQL Planner/Composer 云路由和付费门禁预检；只有显式 `-ExecutePaid` 才会登录管理员、创建 Run 并调用真实云 Chat。管理员凭据仅从当前 PowerShell 进程读取，不接受命令行凭据参数。 |
+| 真实闭环覆盖 | 显式付费路径覆盖真实 Chat -> SQL Planner -> `time_parser`/`database_query` -> Java Schema/AST/用户范围/只读 Guard -> PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE，并验证 `Last-Event-ID` 回放。 |
+| 安全与费用边界 | 固定单个 `sql-agent` 场景、累计预算上限 5 CNY、要求 `cloud_primary`、关闭 fallback 和自动重试；脚本不输出或记录 API Key、密码、Prompt、完整回答或 SQL 原文，默认只软删除本轮会话。 |
+| 本轮预检 | `powershell.exe -NoProfile -NonInteractive -File .\script\local\real-sql-agent-e2e.ps1` 返回 `status=preflight_passed`；SQL Planner/Composer 均为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，`FOODMATE_SQL_PLANNER_MODE=local`，fallback 为 `false`，价格审计为 `true`；未创建 Run、未调用付费模型。 |
+| 业务测试 | `real-sql-agent-e2e.tests.ps1` 返回 `real_sql_agent_e2e_contract=passed`；PowerShell 5.1 解析通过；`docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；本轮未改动 Java/Python 核心实现，因此沿用前置业务测试证据。 |
+| 付费边界 | 当前进程未提供 `FOODMATE_E2E_ADMIN_USERNAME`/`FOODMATE_E2E_ADMIN_PASSWORD`，本轮未执行真实付费 SQL Agent，不产生新增供应商费用；要新增 R4 真实云证据，必须由执行人显式注入管理员凭据并运行 `-ExecutePaid`。 |
+| 暂缓范围 | 未执行性能压测、组件重启、ACK 丢失/重复投递故障注入、SSE 断线故障矩阵、备份恢复、生产容量或发布回滚。 |
+| 结论 | R4 真实 SQL Agent 业务验收入口已经具备可重复、受限和脱敏的执行条件；本轮只证明配置与业务门禁预检通过，不把 R4 真实云主链路标记为本轮新增完成证据。 |
+
+## D128 R3 真实云餐食计划审批写入闭环（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；临时管理员凭据仅在当前 PowerShell 进程注入，未写入 `.env`、日志或本记录。 |
+| 镜像与启动 | Java Docker 镜像重建成功；Runtime 使用已构建镜像启动并通过 readiness。RocketMQ 初始化容器在最后的 `topicList` 信息步骤存在约 2 分钟延迟，本轮验收对 Runtime 重建使用 `--no-deps`，未修改初始化脚本或消息数据。 |
+| 失败记录与修复 | 首轮付费 R3 Run `354559592874643456` 因验收脚本 SSE 客户端固定 45 秒超时提前清理会话，后续工具调用得到 `RUN_NOT_FOUND`；将 `real-meal-plan-e2e.ps1` 的客户端超时改为跟随 `RunTimeoutSeconds` 后，脚本契约测试通过。该轮未产生餐食计划写入。 |
+| 真实 Chat | 第二轮显式 `-ExecutePaid` 通过付费门禁；Run `354561396886736896`、Session `354561396828016640`，provider 为 `cloud_primary`，模型为 `deepseek-ai/DeepSeek-V4-Flash`，`run.model_usage` 成功事件 `1` 条，未启用 fallback。 |
+| 审批与业务写入 | `run.clarification_requested` 正常返回 Approval `354561413936582656`；状态从 `pending` 经 `confirm` 到 `executed`；生成 `meal_plan_id=354561416176340992`，状态 `saved`、`days=1`、revision `3`；购物清单生成 `14` 个条目。 |
+| Run/SSE | Run 最终 `completed/result_type=normal`；初始 SSE `14` 条并包含唯一模型用量事件，确认执行后终态 SSE `1` 条；全量持久化 SSE `15` 条、`stream_seq=1..15`、事件 ID 全部唯一，`run.completed=1`，未出现重复终态。R3 餐食计划终态不包含知识库引用字段，RAG 引用以 R1 记录为准。 |
+| 统一审计 | 本轮数据库核对到 `agent_run.create=1`、`approval.propose/confirm/execute=3`、`meal_plan.create=1`、`meal_plan.save=1` 和上下文装配审计；审批确认参数摘要可稳定复用，未保存密码、令牌、Prompt、完整回答或 API Key。 |
+| 数据清理 | 脚本默认清理成功：餐食计划及购物清单 `is_deleted=true`，会话软删除；审批和 Run 审计事实按保留约定保留。未执行迁移、truncate、备份恢复、性能压测、组件重启、ACK/重复投递故障注入或生产操作。 |
+| 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> Java Proposal -> 管理员确认/执行 -> 餐食计划与购物清单 -> `run.completed`/SSE 的 R3 业务闭环已取得直接证据；本轮修复了真实云调用超过短 SSE 超时时的验收脚本误清理问题。 |
+
+## D129 R4 真实云 SQL Agent 只读查询闭环（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；临时管理员凭据仅在当前 PowerShell 进程注入，未写入 `.env`、日志或本记录。 |
+| 镜像与启动 | Java Docker 镜像重建成功；`foodmate` 和 `agent-runtime` 重新创建并通过 readiness；RocketMQ Topic/consumer group 初始化成功；未执行迁移、truncate 或数据卷清理。 |
+| 真实 Chat 与 SQL Planner | 付费门禁为单场景、累计上限 `5 CNY`、`no_retry=true`、`require_cloud=true`；Planner 和 Composer 均实际使用 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，共记录 `4` 条成功模型用量事件。 |
+| Run/SSE | Run `354576587540140032`、Session `354576587418505216`；初始 SSE `18` 条，事件 ID 唯一，唯一终态为 `run.completed`；`Last-Event-ID` 回放返回 `1` 条终态事件，未出现重复终态。 |
+| SQL Agent 工具与审计 | ToolCall 实际包含 `time_parser`、`database_query`；PostgreSQL `sql_query_audits` 共 `2` 条，`executed=2`、`failed=0`；工具持久化仅保存输入/语句摘要、结果状态、行数、SQL 审计 ID、错误码和关联标识，不保存原始 SQL、Prompt、完整结果或凭据。 |
+| 数据清理 | 验收脚本默认软删除本轮 Session，清理成功；Run、ToolCall 和 SQL 审计事实按保留约定保留用于复核。 |
+| 结论 | 真实 SiliconFlow Chat -> SQL Planner -> Java `time_parser`/`database_query` Guard -> PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE 回放的 R4 业务闭环已取得直接证据；本轮修复并持久化 ToolCall 安全事实。未执行性能压测、组件故障注入、ACK/重复投递专项、备份恢复、生产操作或发布回滚。 |
+
+## D130 R2 真实云饮食记录确认写入闭环（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；临时管理员凭据仅在当前 PowerShell 进程注入，未写入 `.env`、日志或本记录。 |
+| 付费门禁与真实 Chat | 固定 `food-log` 单场景，累计上限 `5 CNY`，`no_retry=true`、`require_cloud=true`；真实 Chat 使用 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，初始 SSE 记录 `1` 条成功模型用量事件。 |
+| Proposal 与确认边界 | Run `354580490440675328`、Session `354580490373566464`；初始 SSE `10` 条，返回唯一 `run.clarification_requested` 和 Approval `354580499823333376`，在确认前没有终态；Approval 初始状态为 `pending`，操作为 `create/food_log`，随后才提交 confirm/execute。 |
+| 业务写入与终态 | Java 执行生成 `food_log_id=354580501375225856`，查询回读 revision `1`、2 条明细、其中 1 条营养匹配、餐次为 `lunch`；执行后的终态 SSE 为唯一 `run.completed`，并校验返回的饮食记录 ID 与 Java 执行结果一致。 |
+| 数据清理 | 验收脚本默认清理成功：本轮饮食记录软删除、Session 软删除，未执行迁移、truncate、备份恢复、性能压测、组件重启或 ACK/重复投递故障注入。 |
+| 结论 | 真实 SiliconFlow Chat -> `food_log_writer` Proposal -> Java Approval confirm/execute -> PostgreSQL 饮食记录与营养匹配 -> `run.completed`/SSE 的 R2 业务闭环已取得直接证据；拒绝/重复确认等分支继续由既有业务回归覆盖。 |

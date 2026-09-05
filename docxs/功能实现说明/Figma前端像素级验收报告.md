@@ -1,6 +1,6 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-08-31
+更新时间：2026-09-05
 
 ## 1. 结论
 
@@ -49,8 +49,8 @@
 
 | 页面/状态 | Figma 节点 | 尺寸 | 差异比例 | RMSE | 结论 |
 |---|---|---:|---:|---:|---|
-| Workspace Home | `640:256` | 1440×1024 | 37.58% | 17.11 | `DIFF_REVIEW` |
-| Agent Chat | `640:428` | 1440×1024 | 40.60% | 20.51 | `DIFF_REVIEW` |
+| Workspace Home | `640:256` | 1440×1024 | 24.4219% | 19.28 | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | 1440×1024 | 11.7176% | 17.25 | `DIFF_REVIEW` |
 | Diet Records | `640:588` | 1440×1024 | 37.94% | 17.38 | `DIFF_REVIEW` |
 | Intake Analysis | `640:773` | 1440×1024 | 28.07% | 18.50 | `DIFF_REVIEW` |
 | Meal Planning | `640:901` | 1440×1024 | 23.83% | 16.80 | `DIFF_REVIEW` |
@@ -76,7 +76,7 @@ Login 的高差异比例主要来自大面积抗锯齿、透明叠加和斜向�
 
 Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独立前端路由或 query 状态、同尺寸浏览器视口和 PNG 证据；当前 `UNMAPPED=0`、`SIZE_MISMATCH=0`。完整逐项清单不在本报告重复展开，以映射 JSON 作为机器可读的唯一清单来源。
 
-每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。2026-08-18 基线运行时检查曾记录 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；后续 in-app 浏览器实际 DPR 为 `1.25` 的当前版本复核，运行时检查为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`。因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
+每一项均记录 Figma 节点 ID、画板名称、画板尺寸、前端路由、query 状态、浏览器视口、Figma PNG、浏览器 PNG、diff JSON 锚点和人工复核结论。当前 `figma-105-runtime-checks.json` 已通过 DPR 1 复采集，运行时汇总为 `geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`；这只关闭分辨率门禁，不能替代自动 diff 和人工视觉复核，因此仍不能将 `DIFF_REVIEW` 改为 `PASS`。
 
 ## 6. 其它检查
 
@@ -106,6 +106,23 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 2. 使用同一视口、同一 DPR、同一字体加载完成条件补采或修正存在差异的浏览器截图。
 3. 只有在自动 diff、几何检查、文字检查和人工复核都满足时，才将单页从 `DIFF_REVIEW` 改为 `PASS`。
 4. iconfont 资源登记必须在收到真实包、CSS、来源和许可证后单独关闭，不能用 Lucide 或虚构字体替代。
+
+## 7.1 2026-09-05 Auth 实时 Figma 参考与 Login Motion 证据
+
+本节补充认证主画板的最新实时 Figma PNG 与浏览器 PNG。此前报告中的旧版认证 PNG 和历史截图保留为历史记录；本节路径为本次复采集的当前证据。Figma 文件保持只读。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | 视口 / DPR | diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---:|---|
+| Login | `647:214` | `recaptured-figma/auth-login-647-214-live-2026-09-05.png` | `recaptured/dpr1-login-v2-browser-2026-09-05.png` | `1440×900 / 1` | `3.7962%` | `0.566035` | `7.555450` | `213` | `DIFF_REVIEW` |
+| Register | `680:216` | `recaptured-figma/auth-register-680-216-live-2026-09-05.png` | `recaptured/dpr1-register-page-browser-2026-09-05.png` | `1440×900 / 1` | `4.2780%` | `0.567688` | `6.677208` | `198` | `DIFF_REVIEW` |
+| Forgot Password | `680:275` | `recaptured-figma/auth-forgot-680-275-live-2026-09-05.png` | `recaptured/dpr1-forgot-password-page-browser-2026-09-05.png` | `1440×900 / 1` | `3.0128%` | `0.648710` | `7.311507` | `188` | `DIFF_REVIEW` |
+| Reset Password | `680:307` | `recaptured-figma/auth-reset-680-307-live-2026-09-05.png` | `recaptured/dpr1-reset-password-page-browser-2026-09-05.png` | `1440×900 / 1` | `3.8650%` | `1.093539` | `10.593789` | `213` | `DIFF_REVIEW` |
+| Token Invalid | `680:738` | `recaptured-figma/auth-token-invalid-680-738-live-2026-09-05.png` | `recaptured/dpr1-token-invalid-browser-2026-09-05.png` | `1440×900 / 1` | `1.8195%` | `0.101208` | `2.509056` | `204` | `DIFF_REVIEW` |
+
+- [x] 五张 Figma 参考图与五张浏览器图均为 `1440×900`，浏览器使用 Chrome CDP、DPR `1`、字体 `loaded` 和 `visual-qa=1`；页面主内容已加载，无横向溢出。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和运行时 URL 记录已同步；三条空 query 页面不再登记 `?null&visual-qa=1`。
+- [x] Login 实时 Motion 数据来自 `get_motion_context(fileKey=MX18RZCfAmgprNzxItkHUH,nodeId=647:214,recursive=true)`：时间线 `4500ms`、`loopMode=loop`，包含 `647:275`、`660:212`、`647:236`、`647:237`、`647:240`、`647:250`、`647:253` 和 `647:278`；代码侧继续使用 GSAP 适配这些关键帧。
+- [ ] 五张当前参考图对比均存在非零差异，且尚未全部完成独立人工视觉复核，因此保持 `DIFF_REVIEW`；不能以 DPR、几何和字体检查通过替代像素级 `PASS`。
 
 ## 8. 餐食规划状态补充验收
 
@@ -1777,3 +1794,218 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 已登记原始浏览器 JPEG `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/admin-overview-analytics-grid-browser-2026-08-31.jpg`、RGBA PNG `admin-overview-analytics-grid-browser-2026-08-31-rgba.png` 和独立 diff `admin-overview-analytics-grid-2026-08-31-diff.json`；同尺寸结果为 `differentPixels=466371`、差异比例 `31.6278%`、`MAE=2.613027`、`RMSE=14.310728`、最大通道差异 `230`，继续为 `DIFF_REVIEW`。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步本次证据；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本节只关闭分析卡固定网格和边界偏移，不关闭该画板或 105 张画板像素级 `PASS`；头像、图标、浏览器光栅化差异、shadcn 全量逐页迁移和 iconfont 实体资源登记仍未完成，iconfont 继续为 `BLOCKED`。
+
+## 13. 2026-09-05 视觉验收采集环境固定
+
+本节只固定前端浏览器采集约束，不修改 Figma 文件，也不重写已有 PNG 或 diff 结果。
+
+- 访问任意验收路由时追加 `?visual-qa=1`（已有 query 时使用 `&visual-qa=1`），应用会设置 `data-visual-qa="true"`。
+- 该模式关闭 CSS 动画、GSAP 入场时间线、过渡、滚动动画和输入光标闪烁；mock Agent 时间固定为 `2024-03-14 12:46`，真实模式仍使用真实时间和真实接口。
+- 采集配置集中在 `foodmate-ui/scripts/figma-acceptance-config.mjs`：目标 DPR 为 `1`，语言为 `zh-CN`，主题为 light，并登记 `1440×1024`、`1440×900`、`1366×768`、`1024×768` 和 `390×844`。
+- `npm run qa:figma:validate` 校验 105 条映射的必填字段、视口、PNG 文件头与尺寸，以及 runtime 的 viewport/geometry/text/DPR 汇总；追加 `--strict` 才会把未满足全部门禁的结果作为失败退出。
+- 当前旧证据实际汇总仍为 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`，所以校验结论为 `DPR_RECAPTURE_REQUIRED`；105 项继续为 `DIFF_REVIEW`，不能标记为 `PASS`。
+
+## 14. 2026-09-05 Auth 页面品牌色与主操作色收口
+
+本轮依据 Figma 节点 `647:214`、`680:216`、`680:275`、`680:307` 和 `680:738` 复核认证页面；仅修改前端 Token，不修改 Figma 文件。
+
+- [x] `AuthShell` 已将品牌标记色和主操作色拆为独立的 `--auth-brand`、`--auth-primary`，并为注册、找回密码、重置密码和 Token 状态页提供显式 Figma Token；登录页保持原有登录状态专属 Token。
+- [x] 当前目标值为：注册页 `diagonal=#dfeedb, brand=#a6d997, primary=#a6d997`；找回密码和重置密码页 `diagonal=#c5f0d6, brand=#a6d997, primary=#48c78e`；Token 状态页 `diagonal=#dfeedb, brand=#a6d997, primary=#a6d997`。
+- [x] 已使用 `visual-qa=1` 在本地浏览器实际打开并检查 Login、Register、Forgot Password、Reset Password 和 Token Invalid 页面；字体状态和 Figma SVG 资产可见，页面主要结构无明显溢出。此次检查没有伪造新的 PNG 或 diff 文件，现有聚合证据保持不变。
+- [x] 当前代码验证为全量 Vitest `39/39` 测试文件、`239/239` 用例通过，typecheck、build 和 `git diff --check` 通过。
+- [ ] 本轮只完成 Auth Token 语义收口和浏览器复核，不能将认证画板或全量画板标记为 `PASS`。当前 105 张汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，运行时 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=94/105`；Figma 动画上下文未重新调用，原因是 Education 计划的 Figma MCP 调用额度已达到上限；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
+
+## 15. 2026-09-05 DPR 1 视觉证据复采集
+
+本轮复采集历史运行时 `actualDpr=1.25` 的 11 张画板，采用本地 Chrome `152.0.7977.77` 和 CDP 截图；Figma 文件保持只读。
+
+- [x] 新增 `foodmate-ui/scripts/capture-figma-dpr1.mjs`，通过 `--force-device-scale-factor=1` 和 `Emulation.setDeviceMetricsOverride` 固定 `devicePixelRatio=1` 以及目标页面 viewport；采集前等待 `document.fonts.ready`，并记录字体、无溢出和实际 URL。
+- [x] 11 张画板均已生成新浏览器 PNG：`dpr1-workspace-home-v2-browser-2026-09-05.png`、`dpr1-diet-records-v2-browser-2026-09-05.png`、`dpr1-intake-analysis-v2-browser-2026-09-05.png`、`dpr1-register-page-browser-2026-09-05.png`、三个 Agent 状态页、两个 Chat 历史页、Chat 搜索结果页和 `dpr1-profile-security-browser-2026-09-05.png`。
+- [x] `figma-105-mapping.json` 已将 11 项切换到最新 DPR 1 PNG，并同步实际 `dpr=1`、目标 viewport、Chrome 版本和字体状态；`figma-105-runtime-checks.json` 汇总为 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`，无结构错误。
+- [x] 已使用 `scripts/png-diff.mjs` 重新计算全量结果；105 项均为同尺寸 `COMPARED`，例如 `agent-budget-limit` 差异比例 `11.7329%`、`intake-analysis-v2` `7.5602%`、`register-page` `53.4744%`，具体数值以 `figma-105-diff-results.json` 为准。
+- [x] `npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [ ] DPR 复采集只关闭了运行时分辨率门禁；由于 105 项自动 diff 和人工视觉复核仍未达到全部通过条件，聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能据此标记像素级 `PASS`。Figma 动画上下文仍未重新调用，原因是 Education 计划的 Figma MCP 调用额度已达到上限；shadcn 全量逐页迁移未完成，iconfont 继续为 `BLOCKED`。
+
+## 16. 2026-09-05 Workspace Home 与 Agent Chat 共享壳层复采集
+
+本轮依据实时 Figma 节点 `640:256` 和 `640:428`，只收口前端共享壳层及其验收证据，Figma 文件保持只读。
+
+- [x] `WorkspaceLayout` fixture 已对齐 `260px` 侧栏、`24px` 侧栏内边距和 `52×12px` 窗口控制点；Home 使用节点 `989:3` 的“任务入口与状态”面板，Chat 使用 `780px` 助手内容边界及 `764×143px` 内嵌确认卡。
+- [x] Home 和 Chat 已分别使用对应的 Figma 导出头像资源；资源 SHA-256 已登记在 [前端已完成实现清单](./前端已完成实现清单.md) 的第 198 节，避免以真人默认头像或未确认字形替代设计资源。
+- [x] 使用 Chrome CDP 重新采集 `dpr1-workspace-home-v2-browser-2026-09-05.png` 和 `dpr1-agent-chat-v2-browser-2026-09-05.png`；两项均为 `1440×1024`、DPR `1`、字体 `loaded`、无页面横向溢出，几何和文字检查通过。
+- [x] `scripts/png-diff.mjs` 重新计算结果：`workspace-home-v2` 为 `349634/1474560` 个差异像素、差异比例 `23.7111%`、`MAE=3.486692`、`RMSE=18.329592`、最大通道差异 `254`；`agent-chat-v2` 为 `215261/1474560` 个差异像素、差异比例 `14.5983%`、`MAE=3.046648`、`RMSE=18.422228`、最大通道差异 `236`。
+- [x] `figma-105-mapping.json` 和 `figma-105-diff-results.json` 已切换到本次浏览器证据；105 项汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，结构校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [x] 本大点完成后集中执行前端质量门禁：`npm run test` 为 `39/39` 个测试文件、`240/240` 个用例通过，`npm run typecheck`、`npm run build`、`npm run format:check`、`npm run lint` 和 `git diff --check` 均通过；既有 React/Radix `act(...)` 提示不影响退出码。
+- [ ] 自动 diff 和人工视觉复核仍显示图标、字体光栅化及局部组合差异，本轮不能把 DPR/几何通过替代像素级 `PASS`；shadcn 全量逐页视觉收口尚未完成，iconfont 继续为 `BLOCKED`。
+
+## 20. 2026-09-05 Diet Records、Intake Analysis、Meal Planning 头像资源收口
+
+本大点重新读取实时 Figma 节点 `640:588`、`640:773` 和 `640:901`，并收口三个业务页面 fixture 的头像资源和主画板证据。Figma 文件保持只读，真实模式的性别默认头像不受影响。
+
+| 画板 | Figma 节点 | 浏览器入口 | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| Diet Records | `640:588` | `/analysis?view=records&state=v2` | `1440×1024 / 1` | `7.9734%` | `2.546144` | `16.834996` | `227` | `DIFF_REVIEW` |
+| Intake Analysis | `640:773` | `/analysis?state=v2` | `1440×1024 / 1` | `7.5430%` | `2.004188` | `14.243366` | `211` | `DIFF_REVIEW` |
+| Meal Planning | `640:901` | `/planning?state=v2` | `1440×1024 / 1` | `10.8512%` | `1.887898` | `12.687881` | `204` | `DIFF_REVIEW` |
+
+- [x] 三个 fixture 统一使用 `FIGMA_WORKSPACE_AVATARS`：侧栏为 `/assets/figma/workspace/home-sidebar-avatar.png`，顶栏为 `/assets/figma/workspace/home-topbar-avatar.png`；未使用真人默认头像，未创建虚构 iconfont 字形。
+- [x] 三个主画板浏览器 PNG 均在字体加载完成、页面无横向溢出和 DPR 1 条件下重新登记；尺寸均为 `1440×1024`，自动 diff 输入有效。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已同步本批次证据；全量汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] 本大点完成后集中执行四个直接相关测试文件，共 `29/29` 个用例通过；`npm run typecheck`、`npm run build`、`npm run lint`、`npm run format:check`、`npm run qa:figma:validate` 和 `git diff --check` 均通过。
+- [ ] 三个主画板仍有非零像素差异，不能用几何、字体和 DPR 门禁通过替代像素级 `PASS`；后续继续处理 Knowledge、Profile、Admin 画板，shadcn 全量逐页迁移和 iconfont 资源登记仍未完成。
+
+## 17. 2026-09-05 Auth 页面组最新证据同步
+
+本轮对 Auth 页面组的 13 个 Figma 画板使用现有 Figma PNG 与最新浏览器 PNG 重新建立一一对应的 diff 证据。Figma 文件保持只读，浏览器采集使用 `visual-qa=1`，关闭动画和动态时间。
+
+| 画板 | 前端入口 | 视口 / DPR | diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---:|---:|---:|---:|---:|---|
+| `login-v2` | `/login?state=default` | `1440×900 / 1` | `3.5494%` | `0.563271` | `7.556086` | `213` | `DIFF_REVIEW` |
+| `register-page` | `/register` | `1440×900 / 1` | `53.4744%` | `4.925019` | `12.976234` | `202` | `DIFF_REVIEW` |
+| `forgot-password-page` | `/forgot-password` | `1440×900 / 1` | `3.1839%` | `0.698558` | `7.558744` | `188` | `DIFF_REVIEW` |
+| `reset-password-page` | `/reset-password` | `1440×900 / 1` | `4.0651%` | `1.279848` | `12.070849` | `213` | `DIFF_REVIEW` |
+| `login-submitting` | `/login?state=submitting` | `1440×900 / 1` | `6.0041%` | `0.666177` | `7.112977` | `213` | `DIFF_REVIEW` |
+| `login-field-error` | `/login?state=field-error` | `1440×900 / 1` | `5.9847%` | `2.176949` | `15.160967` | `213` | `DIFF_REVIEW` |
+| `login-credential-error` | `/login?state=credential-error` | `1440×900 / 1` | `7.3556%` | `2.180823` | `14.229756` | `213` | `DIFF_REVIEW` |
+| `login-account-locked` | `/login?state=account-locked` | `1440×900 / 1` | `6.3483%` | `1.153100` | `10.919070` | `213` | `DIFF_REVIEW` |
+| `login-account-disabled` | `/login?state=account-disabled` | `1440×900 / 1` | `8.3975%` | `1.501752` | `11.600173` | `213` | `DIFF_REVIEW` |
+| `login-service-unavailable` | `/login?state=service-unavailable` | `1440×900 / 1` | `6.1755%` | `1.130837` | `10.875567` | `213` | `DIFF_REVIEW` |
+| `token-invalid` | `/token-status?state=invalid` | `1440×900 / 1` | `1.8195%` | `0.101208` | `2.509056` | `204` | `DIFF_REVIEW` |
+| `token-expired` | `/token-status?state=expired` | `1440×900 / 1` | `1.8706%` | `0.115650` | `2.707871` | `204` | `DIFF_REVIEW` |
+| `token-used` | `/token-status?state=used` | `1440×900 / 1` | `1.9593%` | `0.147349` | `3.025545` | `187` | `DIFF_REVIEW` |
+
+- [x] 最新浏览器证据已登记在 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/dpr1-*-browser-2026-09-05.png`；Figma 参考图和浏览器图尺寸均匹配，13 项均为 `COMPARED`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 已同步；全量运行时检查为 `viewportPass=105/105`、`geometryPass=105/105`、`textPass=105/105`、`dprPass=105/105`、`errors=0`。
+- [x] Auth 视觉资源边界已保持可追溯：品牌标记、字段图标、密码可见性、分隔线和 Token 状态图标使用 Figma 导出文件；未创建虚构 iconfont 字体、字形或 Unicode 映射。
+- [ ] 13 项 diff 均存在非零差异，且最新截图尚未完成逐项人工视觉复核，故不能标记 `PASS`；本次只完成证据更新，不宣称 Auth 页面组像素级验收完成。
+- [ ] 105 张画板聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；shadcn 全量逐页视觉迁移尚未完成，iconfont 仍为 `BLOCKED`。
+
+## 18. 2026-09-05 Diet Records、Intake Analysis、Meal Planning 批次复采集
+
+本轮依据 Figma 节点 `640:588`、`640:773`、`640:901` 及对应状态节点，补齐三组业务页面的 DPR 1 浏览器证据。Figma 设计稿保持只读；所有浏览器 PNG 均在 `1440×1024`、DPR `1`、字体加载完成和视觉验收模式下采集。
+
+| 画板 | 前端入口 | diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---:|---:|---:|---:|---|
+| `diet-records-v2` | `/analysis?view=records&state=v2` | `7.9746%` | `2.597864` | `17.036879` | `246` | `DIFF_REVIEW` |
+| `diet-records-loading` | `/analysis?view=records&state=loading` | `19.2645%` | `2.586917` | `15.479344` | `255` | `DIFF_REVIEW` |
+| `diet-records-empty` | `/analysis?view=records&state=empty` | `10.1311%` | `2.385595` | `16.457653` | `255` | `DIFF_REVIEW` |
+| `diet-records-error` | `/analysis?view=records&state=error` | `8.8559%` | `2.114887` | `15.650741` | `255` | `DIFF_REVIEW` |
+| `intake-analysis-v2` | `/analysis?state=v2` | `7.5442%` | `2.055728` | `14.479771` | `242` | `DIFF_REVIEW` |
+| `intake-analysis-loading` | `/analysis?state=loading` | `19.0972%` | `2.396458` | `15.153815` | `255` | `DIFF_REVIEW` |
+| `intake-analysis-empty` | `/analysis?state=empty` | `30.4776%` | `3.608765` | `17.122086` | `255` | `DIFF_REVIEW` |
+| `intake-analysis-error` | `/analysis?state=error` | `8.1003%` | `1.976565` | `14.977629` | `255` | `DIFF_REVIEW` |
+| `meal-planning-v2` | `/planning?state=v2` | `23.1532%` | `2.243974` | `12.938152` | `234` | `DIFF_REVIEW` |
+| `meal-planning-loading` | `/planning?state=loading` | `7.5538%` | `0.971944` | `9.799762` | `249` | `DIFF_REVIEW` |
+| `meal-planning-empty` | `/planning?state=empty` | `5.5347%` | `1.080543` | `10.454680` | `249` | `DIFF_REVIEW` |
+| `meal-planning-error` | `/planning?state=error` | `10.1912%` | `2.254055` | `15.862731` | `249` | `DIFF_REVIEW` |
+| `meal-plan-list` | `/planning?state=list` | `6.9485%` | `2.152352` | `14.802715` | `236` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step1` | `/planning?state=wizard-step1` | `35.9497%` | `5.390206` | `25.307971` | `255` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step2` | `/planning?state=wizard-step2` | `35.3477%` | `5.733976` | `26.049840` | `250` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step3` | `/planning?state=wizard-step3` | `38.1058%` | `6.312309` | `27.371345` | `255` | `DIFF_REVIEW` |
+| `meal-plan-conflict` | `/planning?state=conflict` | `31.6232%` | `7.547086` | `30.701595` | `255` | `DIFF_REVIEW` |
+| `meal-plan-shopping-list` | `/planning?state=shopping-list` | `21.4598%` | `4.122252` | `21.045152` | `255` | `DIFF_REVIEW` |
+| `meal-plan-generating` | `/planning?state=generating` | `9.5041%` | `3.033991` | `19.434948` | `255` | `DIFF_REVIEW` |
+
+- [x] `WorkspaceLayout.test.tsx` 新增 records、analysis、planning fixture 壳层回归；三条入口均确认窗口控制点存在，普通壳层条件不变。
+- [x] `figma-105-mapping.json` 已将 19 项切换至 `recaptured/dpr1-*-browser-2026-09-05.png`；`figma-105-diff-results.json` 已由 `scripts/generate-figma-105-diff.mjs` 重新生成，自动比较输入为 `105/105`。
+- [x] 19 项 PNG 尺寸均为 `1440×1024`，全量校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；运行时几何、文字和 DPR 门禁均通过。
+- [ ] 19 项均为非零 diff，且尚未完成逐项人工视觉复核，全部保持 `DIFF_REVIEW`；105 张画板汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能提前标记 PASS。
+- [ ] 本批次不关闭 shadcn 全量逐页视觉迁移或 iconfont 阻塞；标准命令图标继续使用 Lucide，iconfont 仍为 `BLOCKED`。
+
+## 19. 2026-09-05 Workspace Home 与 Agent Chat 当前代码收口
+
+本节记录本轮当前工作区代码改动对应的验收口径，覆盖实时 Figma 节点 `640:256` 和 `640:428`。Figma 文件保持只读；本节不吸收后端 Mapper、Admin 并行改动或临时 SQL 文件。
+
+- [x] Workspace Home fixture 继续使用 `260px` 侧栏和 `24px` 侧栏内边距；在 `1101px~1399px` 中等桌面范围隐藏工作区搜索，避免导航和账户操作发生布局挤压。
+- [x] Agent Chat fixture 的助手正文当前按 `560px` 固定宽度实现，助手消息外层背景按 `#f4f6f5` 实现，正文使用 `Noto Sans SC` 并允许自然换行；来源和运行轨迹继续使用等宽字体。
+- [x] Chat 消息操作区文案和间隔按当前 Figma fixture 收口；写入确认、预算追加、重试、取消和 SSE 状态的真实服务逻辑不因视觉调整改变。
+- [x] 对应证据仍使用 `1440×1024`、DPR `1`、字体 `loaded` 和无页面横向溢出条件；当前代表性 diff 为 Workspace Home `23.7111% / MAE 3.486692 / RMSE 18.329592 / maxChannelDelta 254`，Agent Chat `14.5983% / MAE 3.046648 / RMSE 18.422228 / maxChannelDelta 236`，二者均为 `DIFF_REVIEW`。
+- [x] `npm run qa:figma:validate` 的当前结构结果为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 自动 diff 仍为非零，且字体光栅化、头像、图标和局部组合差异尚未全部消除；本节不能将 Workspace Home、Agent Chat 或全量 105 张画板标记为像素级 `PASS`，shadcn 全量逐页视觉迁移和 iconfont 资源登记仍未完成。
+
+## 205. 2026-09-05 Knowledge 与 Profile 当前头像证据
+
+本节登记实时 Figma 节点 `795:838`、`806:1119` 对应的前端头像资源和浏览器证据。Figma 文件保持只读；本节不把资源替换或结构检查误写成像素级通过。
+
+- [x] Knowledge 使用 `FIGMA_KNOWLEDGE_AVATARS`；Profile 使用 `FIGMA_PROFILE_AVATARS`，分别覆盖侧栏、顶栏和资料卡头像。Profile 资源 SHA-256 已登记在 [前端已完成实现清单](./前端已完成实现清单.md) 的第 204 节。
+- [x] Profile 的 19 个状态与 Knowledge 的 3 个映射状态均登记 `1440×1024`、DPR `1`、字体加载完成和 Chrome `152.0.7977.77` 浏览器证据；独立 Knowledge 默认内容区证据同时保留。
+- [x] Profile 空头像回退逻辑已修正：仅在 fixture 明确传入头像时覆盖真实用户头像；真实模式仍按用户头像和性别默认头像解析。
+- [x] 105 项映射和自动 diff 输入已同步，结构校验通过：`total=105`、`structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [ ] 105 项自动 diff 汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；Knowledge 默认内容区 diff 为 `38.7247% / MAE 3.447377 / RMSE 17.079127 / maxChannelDelta 240`，Profile 与 Knowledge 仍需逐项人工视觉复核，不能标记 `PASS`。
+- [ ] iconfont 实体包、CSS 映射、来源和许可证仍缺失，继续保持 `BLOCKED`；shadcn 全量逐页视觉迁移也未完成。
+
+## 206. 2026-09-05 Auth 页面组当前证据与状态收口
+
+本节记录 Auth 页面当前代码与实时 Figma 状态节点的复核结果。Figma 文件保持只读；浏览器证据由 `scripts/capture-figma-dpr1.mjs` 使用 Chrome CDP 重新采集，统一关闭动态时间和登录装饰动画。
+
+| 画板 | Figma 状态节点 | 前端入口 | diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---|
+| `login-v2` | `647:214` | `/login?state=v2` | `3.7948%` | `0.564622` | `7.545321` | `213` | `DIFF_REVIEW` |
+| `register-page` | `680:216` | `/register` | `4.2780%` | `0.567688` | `6.677208` | `198` | `DIFF_REVIEW` |
+| `forgot-password-page` | `680:275` | `/forgot-password` | `3.0128%` | `0.648710` | `7.311508` | `188` | `DIFF_REVIEW` |
+| `reset-password-page` | `680:307` | `/reset-password` | `3.3946%` | `0.583890` | `6.760528` | `213` | `DIFF_REVIEW` |
+| `login-submitting` | `680:408` | `/login?state=submitting` | `6.5194%` | `0.799225` | `7.580698` | `207` | `DIFF_REVIEW` |
+| `login-field-error` | `680:445` | `/login?state=field-error` | `6.0791%` | `2.224975` | `15.282295` | `209` | `DIFF_REVIEW` |
+| `login-credential-error` | `680:483` | `/login?state=credential-error` | `7.5809%` | `2.493721` | `15.558759` | `213` | `DIFF_REVIEW` |
+| `login-account-locked` | `680:524` | `/login?state=account-locked` | `6.4325%` | `1.168450` | `10.882798` | `213` | `DIFF_REVIEW` |
+| `login-account-disabled` | `680:564` | `/login?state=account-disabled` | `8.4825%` | `1.518840` | `11.574948` | `213` | `DIFF_REVIEW` |
+| `login-service-unavailable` | `680:606` | `/login?state=service-unavailable` | `6.2605%` | `1.147925` | `10.848658` | `213` | `DIFF_REVIEW` |
+| `token-invalid` | `680:738` | `/token-status?state=invalid` | `1.8195%` | `0.101208` | `2.509056` | `204` | `DIFF_REVIEW` |
+| `token-expired` | `680:757` | `/token-status?state=expired` | `1.8706%` | `0.115650` | `2.707871` | `204` | `DIFF_REVIEW` |
+| `token-used` | `680:776` | `/token-status?state=used` | `1.9593%` | `0.147349` | `3.025545` | `187` | `DIFF_REVIEW` |
+
+- [x] 13 个浏览器 PNG 均为 `1440×900`、DPR `1`、字体 `loaded`、无页面横向溢出；证据路径为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/dpr1-*-browser-2026-09-05.png`。
+- [x] 实时 Figma 上下文确认登录状态使用 `#ffd6e0`、`#c5f0d6`、`#a6d997`、`#48c78e`、`#cbd5e0` 及错误/警告/信息语义色；代码继续通过 Auth Token 和 Figma 导出 SVG 资源映射。
+- [x] 登录动画按 `647:214` 的 `4500ms` 无限循环和分段时间点实现；视觉验收模式不启动动画，避免截图污染。
+- [x] `figma-105-diff-results.json` 已重新生成，自动比较输入为 `105/105`；全量校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [x] Auth 相关代码、测试和采集脚本门禁已完成：Vitest `39/39` 文件、`245/245` 用例，typecheck、build、lint、format:check 和 `git diff --check` 均通过。
+- [ ] Auth 13 项 diff 均为非零差异，仍需继续处理字体、头像、图标和浏览器光栅化差异；因此不能标记像素级 `PASS`。105 项汇总继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 仍为 `BLOCKED`。
+
+## 21. 2026-09-05 Admin Overview 分页总量证据
+
+本轮依据实时 Figma 节点 `995:977` 对 Admin Overview mock 分页总量进行视觉修正和同尺寸复采集。Figma 文件保持只读，用户指定的男性默认头像继续使用项目默认资源，不替换为 Figma 中的真人头像。
+
+| 画板 | Figma 节点 | 前端入口 | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| `admin-overview` | `995:977` | `/admin?state=overview&visual-qa=1` | `1440×1024 / 1` | `10.6799%` | `2.591621` | `15.781021` | `238` | `DIFF_REVIEW` |
+
+- [x] Figma 设计稿显示 `显示第 1 到 6 条，共 12,480 条结果`；浏览器 mock 不再把六条首屏数据误报为总量，且数字统一显示千位分隔符。
+- [x] 浏览器证据为 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/dpr1-admin-overview-browser-2026-09-05.png`；截图尺寸 `1440×1024`，DPR `1`，字体状态 `loaded`，页面无横向溢出。
+- [x] `figma-105-mapping.json` 已将 `admin-overview` 指向本次截图，`figma-105-diff-results.json` 已重新生成；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] `npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`；本轮没有把结构门禁通过误写成像素级通过。
+- [ ] Admin Overview 仍有非零自动 diff，默认头像、字体光栅化和局部像素差异尚未消除，继续保持 `DIFF_REVIEW`；Admin 其余画板、shadcn 全量逐页视觉迁移和 iconfont 实体资源登记仍未完成。
+
+## 22. 2026-09-05 Admin 工具注册表及六种操作状态视觉收口
+
+本批次依据实时 Figma 节点 `692:3847`、`692:4319`、`692:4539`、`692:4766`、`692:4995` 和 `692:5207`，重新采集同尺寸浏览器证据并完成 Admin 工具注册表操作状态的视觉收口。Figma 文件保持只读。
+
+| 画板 | Figma 节点 | 前端入口 | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| `admin-tool-registry` | `692:3847` | `/admin?state=tool-registry` | `1440×1024 / 1` | `15.8801%` | `4.020725` | `21.038847` | `244` | `DIFF_REVIEW` |
+| `admin-op-no-permission` | `692:4319` | `/admin?state=op-no-permission` | `1440×1024 / 1` | `15.4554%` | `3.861192` | `20.391081` | `244` | `DIFF_REVIEW` |
+| `admin-op-confirm` | `692:4539` | `/admin?state=op-confirm` | `1440×1024 / 1` | `17.4894%` | `2.171402` | `11.933188` | `224` | `DIFF_REVIEW` |
+| `admin-op-submitting` | `692:4766` | `/admin?state=op-submitting` | `1440×1024 / 1` | `15.9030%` | `2.179733` | `11.955242` | `224` | `DIFF_REVIEW` |
+| `admin-op-success` | `692:4995` | `/admin?state=op-success` | `1440×1024 / 1` | `14.9661%` | `3.823359` | `20.513058` | `253` | `DIFF_REVIEW` |
+| `admin-op-failed` | `692:5207` | `/admin?state=op-failed` | `1440×1024 / 1` | `17.1870%` | `2.490198` | `13.233070` | `204` | `DIFF_REVIEW` |
+
+- [x] 6 张浏览器 PNG 均使用 Chrome `152.0.7977.77`、`1440×1024`、DPR `1`、字体 `loaded` 和无页面横向溢出条件；证据位于 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/`。
+- [x] 工具注册表表格按 Figma 使用 `58px` 数据行和 `68px / 68px / 48px / 72px` 末四列轨道；行内操作按钮为 `26px`，图标为 `14px`。
+- [x] 确认和提交中状态使用 Figma 的 `37px` 操作按钮与 `14px` 进度说明行高；失败态使用错误图标、纯黑 `40%` 遮罩和“关闭”按钮；无权限态保留 Operator 身份和禁用操作按钮。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已同步本批次主证据。`npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`，全量汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] 本批次完成后集中执行 `npm run test`（`39/39` 文件、`247/247` 用例）、`npm run typecheck`、`npm run build`、`npm run lint`、`npm run format:check` 和 `git diff --check`，均通过。
+- [ ] 六个目标画板的自动 diff 均非零，人工复核结论继续保持 `DIFF_REVIEW`；本批次不宣称 Admin 或 105 张画板达到像素级 `PASS`。shadcn 全量逐页迁移尚未完成，iconfont 实体包、CSS 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 23. 2026-09-05 Workspace Home 与 Agent Chat 当前 Figma 证据校正
+
+本节记录实时重新读取 Figma 节点 `640:256` 和 `640:428` 后的 Workspace Home 与 Agent Chat 当前证据。Figma 文件保持只读；旧版 PNG 保留为历史记录，不替代当前主映射。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---:|---|
+| Workspace Home | `640:256` | `recaptured-figma/workspace-home-v2-figma-2026-09-05.png` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-05.png` | `1440×1024 / 1` | `24.4219%` | `3.798675` | `19.280955` | `248` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `recaptured-figma/agent-chat-v2-figma-2026-09-05.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-05.png` | `1440×1024 / 1` | `11.7176%` | `2.906090` | `17.246569` | `211` | `DIFF_REVIEW` |
+
+- [x] Home fixture 的快捷操作、输入框、发送按钮、指标进度环和待确认队列文案继续按实时 Figma 颜色、尺寸和内容收口；相关 CSS 仅在 `state=figma-v2` 作用域生效。
+- [x] 实时 Figma `640:428` 明确包含 `983:3 agent::message-actions` 说明面板；Chat fixture 已恢复面板结构、文案、边框、间距和移动端适配，真实模式不渲染该设计说明面板。
+- [x] 两页浏览器证据均由 Chrome `152.0.7977.77` 在 `1440×1024`、DPR `1`、字体 `loaded` 和无页面横向溢出条件下采集；`figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步同版本路径。
+- [x] 全量结构校验仍为 `total=105`、`structuralPass=true`、`strictDprPass=true`、`errors=[]`；全量自动比较输入为 `105/105`。
+- [ ] 两页仍存在非零像素差异，不能将局部视觉收口、几何检查或构建通过替代像素级 `PASS`；全量汇总保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。shadcn 全量逐页视觉迁移尚未完成，iconfont 继续为 `BLOCKED`。

@@ -66,6 +66,21 @@
   --fm-auth-control-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   --fm-auth-action-shadow: 0 6px 16px rgba(72, 199, 142, 0.25);
 
+  /* Figma login state tokens: 680:408 through 680:606. */
+  --fm-auth-success-action: #48c78e;
+  --fm-auth-success-shadow: 0 6px 8px rgba(46, 125, 50, 0.25);
+  --fm-auth-error: #f97066;
+  --fm-auth-error-strong: #e53e3e;
+  --fm-auth-error-surface: #fff5f5;
+  --fm-auth-warning: #dd6b20;
+  --fm-auth-warning-surface: #feebc8;
+  --fm-auth-info: #718096;
+  --fm-auth-info-border: #6b7280;
+  --fm-auth-info-surface: #e2e8f0;
+  --fm-auth-disabled-surface: rgba(237, 242, 247, 0.65);
+  --fm-auth-disabled-border: #f4f6f5;
+  --fm-auth-disabled-text: #718096;
+
   /* Figma spacing, radius and elevation foundations. */
   --space-1: 4px;
   --space-2: 8px;

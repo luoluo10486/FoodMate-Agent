@@ -13,11 +13,12 @@ import os
 import re
 import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
 from proposal_protocol import Proposal, validate_proposal
-from sql_planner import SqlPlannerError, planner_from_environment
+from sql_planner import SqlPlan, SqlPlannerError, planner_from_environment
 
 
 def _digest(value: Any) -> str:
@@ -226,6 +227,11 @@ class DeterministicRouter:
             "计算" in text and any(character.isdigit() for character in text)
         ):
             return RouteDecision("calculation", "complex", risk)
+        # Planning requests commonly mention breakfast/lunch/dinner while
+        # describing the requested schedule. An explicit plan request wins
+        # over analytical words such as "蛋白质" in its constraints.
+        if any(word in text for word in ("计划", "食谱", "购物清单")):
+            return RouteDecision("planning", "complex", risk, ("days",) if "天" not in text else ())
         # Analysis questions often describe the absence of records. Match the
         # requested operation before the noun "记录" so those questions do not
         # enter the write-oriented route.
@@ -233,8 +239,6 @@ class DeterministicRouter:
             return RouteDecision("analysis", "complex", risk)
         if any(word in text for word in ("记录", "吃了", "早餐", "午餐", "晚餐")):
             return RouteDecision("record", "complex" if len(text) > 60 else "simple", risk)
-        if any(word in text for word in ("计划", "食谱", "购物清单")):
-            return RouteDecision("planning", "complex", risk, ("days",) if "天" not in text else ())
         return RouteDecision("knowledge_qna", "simple", risk)
 
 
@@ -533,7 +537,13 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
     return candidates[:max_candidates]
 
 
-def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> list[dict[str, Any]]:
+def generate_tool_proposals(
+    command: dict[str, Any],
+    route: RouteDecision,
+    model_router: ModelRouter | None = None,
+    governed_route: dict[str, object] | None = None,
+    attempts_out: list[ProviderAttempt] | None = None,
+) -> list[dict[str, Any]]:
     """只包装 Java 授权的工具请求；Python 不自行确认或拼接业务写入。"""
     authorized = command.get("authorized_context") or {}
     tool_results = list(authorized.get("tool_results") or ())
@@ -606,32 +616,57 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
             ),
             None,
         )
-        if completed is not None:
+        if completed is None:
+            request = authorized.get("plan_validator_request")
+            plan = request.get("plan") if isinstance(request, dict) else None
+            if not isinstance(plan, dict):
+                return []
+            invocation_id = str(request.get("invocation_id") or "")
+            if not invocation_id:
+                invocation_id = "plan_validate_" + hashlib.sha256(
+                    (str(command["run_id"]) + ":" + json.dumps(plan, ensure_ascii=False, sort_keys=True)).encode("utf-8")
+                ).hexdigest()[:24]
+            proposal = Proposal(
+                proposal_id="prop_" + invocation_id,
+                run_id=str(command["run_id"]),
+                proposal_type="tool",
+                schema_version="v1",
+                payload={
+                    "statement": "",
+                    "invocation_id": invocation_id,
+                    "idempotency_key": "plan_validate_"
+                    + hashlib.sha256((str(command["run_id"]) + invocation_id).encode("utf-8")).hexdigest()[:32],
+                },
+                requires_confirmation=False,
+                tool_name="plan_validator",
+                input={"plan": plan},
+            ).as_dict()
+            validate_proposal(Proposal(**proposal))
+            return [proposal]
+        if completed.get("status") != "succeeded" or not (completed.get("rows") or [{}])[0].get("valid"):
             return []
-        request = authorized.get("plan_validator_request")
-        plan = request.get("plan") if isinstance(request, dict) else None
+        plan = completed.get("plan")
         if not isinstance(plan, dict):
             return []
-        invocation_id = str(request.get("invocation_id") or "")
-        if not invocation_id:
-            invocation_id = "plan_validate_" + hashlib.sha256(
-                (str(command["run_id"]) + ":" + json.dumps(plan, ensure_ascii=False, sort_keys=True)).encode("utf-8")
-            ).hexdigest()[:24]
+        canonical = json.dumps(plan, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        invocation_id = "plan_save_" + hashlib.sha256(
+            (str(command["run_id"]) + ":" + canonical).encode("utf-8")
+        ).hexdigest()[:24]
         proposal = Proposal(
             proposal_id="prop_" + invocation_id,
             run_id=str(command["run_id"]),
             proposal_type="tool",
             schema_version="v1",
             payload={
-                "statement": "",
-                "invocation_id": invocation_id,
-                "idempotency_key": "plan_validate_"
-                + hashlib.sha256((str(command["run_id"]) + invocation_id).encode("utf-8")).hexdigest()[:32],
-            },
-            requires_confirmation=False,
-            tool_name="plan_validator",
-            input={"plan": plan},
-        ).as_dict()
+                    "statement": "",
+                    "invocation_id": invocation_id,
+                    "idempotency_key": "plan_save_"
+                    + hashlib.sha256((str(command["run_id"]) + canonical).encode("utf-8")).hexdigest()[:32],
+                },
+                requires_confirmation=True,
+                tool_name="meal_plan.save_plan",
+                input={"plan": plan},
+            ).as_dict()
         validate_proposal(Proposal(**proposal))
         return [proposal]
     request = authorized.get("sql_read_request") or {}
@@ -640,13 +675,6 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
             return []
     if route.intent == "analysis":
         question = str((command.get("message") or {}).get("content", ""))
-        plan = planner_from_environment().plan(question)
-        if plan.status == "need_clarification":
-            raise SqlPlannerError(
-                "SQL_PLANNER_TIME_RANGE_REQUIRED",
-                "analysis query requires a time range",
-                plan.missing_slots,
-            )
         database_result = next(
             (
                 item
@@ -658,6 +686,36 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
         )
         if database_result is not None:
             return []
+        plan = None
+        cached_plan = authorized.get("_sql_planner_plan")
+        if isinstance(cached_plan, dict):
+            try:
+                plan = SqlPlan.from_model_output(
+                    cached_plan,
+                    str(cached_plan.get("planner_mode") or ""),
+                    str(cached_plan.get("planner_version") or ""),
+                )
+            except SqlPlannerError:
+                plan = None
+        if plan is None:
+            planner_environment = (
+                getattr(model_router, "environment", None) if model_router is not None else None
+            )
+            planner = planner_from_environment(planner_environment, model_router)
+            if model_router is not None and hasattr(planner, "plan_with_attempts"):
+                plan, planner_attempts = planner.plan_with_attempts(question, governed_route=governed_route)
+                if attempts_out is not None:
+                    attempts_out.extend(planner_attempts)
+            else:
+                plan = planner.plan(question)
+            if isinstance(authorized, dict):
+                authorized["_sql_planner_plan"] = plan.as_dict()
+        if plan.status == "need_clarification":
+            raise SqlPlannerError(
+                "SQL_PLANNER_TIME_RANGE_REQUIRED",
+                "analysis query requires a time range",
+                plan.missing_slots,
+            )
         time_result = next(
             (item for item in reversed(tool_results) if item.get("tool_name") == "time_parser"),
             None,
@@ -756,6 +814,255 @@ def generate_tool_proposals(command: dict[str, Any], route: RouteDecision) -> li
         proposal["payload"], proposal["requires_confirmation"], proposal["request_hash"],
     ))
     return [proposal]
+
+
+def generate_food_log_writer_proposal(
+    command: dict[str, Any],
+    route: RouteDecision,
+    router: ModelRouter,
+    governed_route: dict[str, object] | None = None,
+) -> tuple[list[dict[str, Any]], list[ProviderAttempt]]:
+    """让真实模型提取候选字段；Java 仍负责审批、授权和持久化。"""
+    authorized = command.get("authorized_context") or {}
+    if route.intent != "record" or authorized.get("food_log_writer_authorized") is not True:
+        return [], []
+    question = str((command.get("message") or {}).get("content", "")).strip()
+    today = datetime.now(timezone.utc).date().isoformat()
+    prompt = json.dumps(
+        {
+            "task": "extract_food_log_candidate",
+            "current_date_utc": today,
+            "user_message": question,
+            "rules": [
+                "Only create a candidate for a food log create operation.",
+                "Return JSON only and no markdown.",
+                "meal_time must be an ISO-8601 UTC instant; infer a stated relative day from current_date_utc.",
+                "meal_type must be one of breakfast, lunch, dinner, snack.",
+                "items must contain the food name, a positive numeric amount and a unit.",
+                "If food items, amount, meal type or time cannot be determined, return needs_clarification with the missing field names.",
+            ],
+            "required_output": {
+                "operation": "create",
+                "meal_time": "ISO-8601 UTC string",
+                "meal_type": "breakfast|lunch|dinner|snack",
+                "notes": "short optional string",
+                "items": [{"name": "food", "amount": 100, "unit": "g"}],
+                "needs_clarification": [],
+            },
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    tier = router.tier_for("tool_proposal", route.complexity, route.risk_level, "normal")
+    try:
+        response, attempts = router.invoke(
+            ModelRequest(
+                scene="tool_proposal",
+                prompt=prompt,
+                max_output_tokens=512,
+                temperature=0.0,
+                response_format={"type": "json_object"},
+                extra_body={"enable_thinking": False},
+                deadline_at=command.get("deadline_at"),
+                timeout_seconds=_model_timeout_seconds("TOOL_PROPOSAL", 30.0),
+            ),
+            tier,
+            router.fallback_tiers_for(tier),
+            governed_route=governed_route,
+        )
+        raw = response.content.strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE)
+        value = json.loads(raw)
+        if not isinstance(value, dict) or value.get("operation") != "create":
+            raise ValueError("operation")
+        missing = value.get("needs_clarification") or []
+        if missing:
+            raise ModelProviderError(
+                "FOOD_LOG_PROPOSAL_NEEDS_CLARIFICATION",
+                "food log details require clarification",
+            )
+        input_value = {
+            "meal_time": value.get("meal_time"),
+            "meal_type": value.get("meal_type"),
+            "notes": value.get("notes"),
+            "items": [
+                {
+                    "name": item.get("name", item.get("raw_name")),
+                    "amount": item.get("amount"),
+                    "unit": item.get("unit"),
+                }
+                for item in (value.get("items") or [])
+                if isinstance(item, dict)
+            ],
+        }
+        canonical = json.dumps(input_value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        invocation_id = "food_log_" + hashlib.sha256(
+            (str(command["run_id"]) + ":" + canonical).encode("utf-8")
+        ).hexdigest()[:24]
+        idempotency_key = "food_" + hashlib.sha256(
+            (str(command["run_id"]) + ":" + canonical).encode("utf-8")
+        ).hexdigest()[:32]
+        proposal = Proposal(
+            proposal_id="prop_" + invocation_id,
+            run_id=str(command["run_id"]),
+            proposal_type="tool",
+            schema_version="v1",
+            payload={"invocation_id": invocation_id, "idempotency_key": idempotency_key},
+            requires_confirmation=True,
+            tool_name="food_log_writer",
+            input=input_value,
+        )
+        validate_proposal(Proposal(**proposal.as_dict()))
+        return [proposal.as_dict()], attempts
+    except ModelProviderError as error:
+        error.attempts = locals().get("attempts", [])
+        raise
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+        failure = ModelProviderError(
+            "FOOD_LOG_PROPOSAL_INVALID", "model food log candidate is invalid"
+        )
+        failure.attempts = locals().get("attempts", [])
+        raise failure from error
+
+
+def generate_meal_plan_proposal(
+    command: dict[str, Any],
+    route: RouteDecision,
+    router: ModelRouter,
+    governed_route: dict[str, object] | None = None,
+) -> tuple[list[dict[str, Any]], list[ProviderAttempt]]:
+    """让真实模型生成餐食计划候选，校验与确认仍由 Java 负责。"""
+    authorized = command.get("authorized_context") or {}
+    if route.intent != "planning" or authorized.get("meal_plan_writer_authorized") is not True:
+        return [], []
+    question = str((command.get("message") or {}).get("content", "")).strip()
+    prompt = json.dumps(
+        {
+            "task": "generate_meal_plan_candidate",
+            "user_goal": question,
+            "rules": [
+                "Return JSON only and no markdown.",
+                "Generate a complete plan with breakfast, lunch and dinner for every day.",
+                "Respect all explicitly stated allergens and dislikes; never add an allergen.",
+                "Keep people between 1 and 20 and days between 1 and 7.",
+                "Use estimated_cost, calories_kcal and protein_g when known, and include ingredients for shopping list generation.",
+                "Do not claim the plan is saved or validated; it is only a candidate for Java validation.",
+            ],
+            "required_output": {
+                "operation": "create",
+                "plan": {
+                    "plan_name": "short plan name",
+                    "people": 1,
+                    "days": 1,
+                    "budget": 100,
+                    "calorie_target": 1800,
+                    "protein_target": 100,
+                    "allergens": [],
+                    "dislikes": [],
+                    "days_plan": [
+                        {
+                            "breakfast": {
+                                "name": "meal",
+                                "ingredients": [{"name": "food", "amount": 100, "unit": "g", "estimated_cost": 5}],
+                                "calories_kcal": 500,
+                                "protein_g": 25,
+                            },
+                            "lunch": {},
+                            "dinner": {},
+                        }
+                    ],
+                },
+            },
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    tier = router.tier_for("tool_proposal", route.complexity, route.risk_level, "normal")
+    try:
+        response, attempts = router.invoke(
+            ModelRequest(
+                scene="tool_proposal",
+                prompt=prompt,
+                max_output_tokens=2_048,
+                temperature=0.0,
+                response_format={"type": "json_object"},
+                extra_body={"enable_thinking": False},
+                deadline_at=command.get("deadline_at"),
+                timeout_seconds=_model_timeout_seconds("TOOL_PROPOSAL", 45.0),
+            ),
+            tier,
+            router.fallback_tiers_for(tier),
+            governed_route=governed_route,
+        )
+        raw = response.content.strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE)
+        value = json.loads(raw)
+        if not isinstance(value, dict) or value.get("operation") != "create":
+            raise ValueError("operation")
+        plan = value.get("plan")
+        _validate_meal_plan_candidate(plan)
+        canonical = json.dumps(plan, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        invocation_id = "plan_validate_" + hashlib.sha256(
+            (str(command["run_id"]) + ":" + canonical).encode("utf-8")
+        ).hexdigest()[:24]
+        proposal = Proposal(
+            proposal_id="prop_" + invocation_id,
+            run_id=str(command["run_id"]),
+            proposal_type="tool",
+            schema_version="v1",
+            payload={
+                "invocation_id": invocation_id,
+                "idempotency_key": "plan_validate_"
+                + hashlib.sha256((str(command["run_id"]) + canonical).encode("utf-8")).hexdigest()[:32],
+            },
+            requires_confirmation=False,
+            tool_name="plan_validator",
+            input={"plan": plan},
+        ).as_dict()
+        validate_proposal(Proposal(**proposal))
+        return [proposal], attempts
+    except ModelProviderError as error:
+        error.attempts = locals().get("attempts", [])
+        raise
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+        failure = ModelProviderError(
+            "MEAL_PLAN_PROPOSAL_INVALID", "model meal plan candidate is invalid"
+        )
+        failure.attempts = locals().get("attempts", [])
+        raise failure from error
+
+
+def _validate_meal_plan_candidate(value: Any) -> None:
+    """在发布 Java Proposal 前拒绝明显不完整的模型结构。"""
+    if not isinstance(value, dict) or len(json.dumps(value, ensure_ascii=False)) > 200_000:
+        raise ValueError("plan")
+    people = value.get("people")
+    days = value.get("days")
+    days_plan = value.get("days_plan")
+    if (
+        not isinstance(people, int)
+        or isinstance(people, bool)
+        or not 1 <= people <= 20
+        or not isinstance(days, int)
+        or isinstance(days, bool)
+        or not 1 <= days <= 7
+        or not isinstance(days_plan, list)
+        or len(days_plan) != days
+    ):
+        raise ValueError("plan")
+    for field in ("allergens", "dislikes"):
+        values = value.get(field, [])
+        if not isinstance(values, list) or len(values) > 64 or any(
+            not isinstance(item, str) or not item.strip() or len(item) > 128 for item in values
+        ):
+            raise ValueError("plan")
+    for day in days_plan:
+        if not isinstance(day, dict) or any(
+            not isinstance(day.get(meal), dict) for meal in ("breakfast", "lunch", "dinner")
+        ):
+            raise ValueError("plan")
 
 
 class InMemoryCheckpoint:
@@ -881,8 +1188,60 @@ def run_deterministic(
             graph.as_dict(),
             [],
         )
+    router = model_router or ModelRouter()
+    governed_route = options.get("model_snapshot")
+    if not isinstance(governed_route, dict):
+        governed_route = None
+    proposal_attempts: list[ProviderAttempt] = []
     try:
-        proposals = generate_tool_proposals(command, route)
+        if route.intent == "record" and (command.get("authorized_context") or {}).get(
+            "food_log_writer_authorized"
+        ) is True and not (command.get("authorized_context") or {}).get(
+            "food_log_writer_request"
+        ):
+            proposals, proposal_attempts = generate_food_log_writer_proposal(
+                command, route, router, governed_route
+            )
+        elif route.intent == "planning" and (command.get("authorized_context") or {}).get(
+            "meal_plan_writer_authorized"
+        ) is True and not (command.get("authorized_context") or {}).get(
+            "plan_validator_request"
+        ) and not any(item.get("tool_name") == "plan_validator" for item in context.tool_results):
+            proposals, proposal_attempts = generate_meal_plan_proposal(
+                command, route, router, governed_route
+            )
+        else:
+            proposals = generate_tool_proposals(
+                command,
+                route,
+                router,
+                governed_route,
+                proposal_attempts,
+            )
+        # 候选写入必须先停在 Java 审批边界，不能先生成一条看似已完成的回答。
+        if any(
+            item.get("tool_name") in {"food_log_writer", "plan_validator", "meal_plan.save_plan"}
+            and not item.get("confirmation_ref")
+            for item in proposals
+        ):
+            usage.tokens += sum(attempt.total_tokens or 0 for attempt in proposal_attempts)
+            usage.cost_cny += float(sum((attempt.cost_cny or 0) for attempt in proposal_attempts))
+            usage.model_calls += len(proposal_attempts)
+            policy = budget_policy(usage, budget)
+            return AgentExecution(
+                route,
+                plan,
+                context,
+                "",
+                EvalDecision("pass", "TOOL_CONFIRMATION_REQUIRED"),
+                usage,
+                policy.mode,
+                [],
+                proposal_attempts,
+                policy.as_dict(),
+                graph.as_dict(),
+                proposals,
+            )
     except SqlPlannerError as error:
         if error.code == "SQL_PLANNER_TIME_RANGE_REQUIRED":
             answer = "为了分析摄入情况，请补充时间范围，例如最近 7 天。"
@@ -896,22 +1255,18 @@ def run_deterministic(
                 usage,
                 mode,
                 [],
-                [],
+                proposal_attempts,
                 policy.as_dict(),
                 graph.as_dict(),
                 [],
             )
         raise
     candidate = DeterministicComposer().compose(content, route, context, mode)
-    router = model_router or ModelRouter()
     tier = router.tier_for("composer", route.complexity, route.risk_level, mode)
-    governed_route = options.get("model_snapshot")
-    if not isinstance(governed_route, dict):
-        governed_route = None
     deadline_at = command.get("deadline_at")
     composer_timeout = _model_timeout_seconds("COMPOSER", 45.0)
     try:
-        response, attempts = router.invoke(
+        response, composer_attempts = router.invoke(
             ModelRequest(
                 scene="composer",
                 prompt=candidate,
@@ -926,9 +1281,10 @@ def run_deterministic(
     except ModelProviderError:
         # 不能静默伪造云模型回答；上层会把该失败写为可观测终态。
         raise
+    attempts = list(proposal_attempts) + list(composer_attempts)
     usage.tokens = sum(attempt.total_tokens or 0 for attempt in attempts)
     usage.cost_cny = float(sum((attempt.cost_cny or 0) for attempt in attempts))
-    usage.model_calls = 1
+    usage.model_calls = len(proposal_attempts) + 1
     policy = budget_policy(usage, budget)
     mode = policy.mode
     answer = response.content
@@ -968,6 +1324,7 @@ def run_deterministic(
                     timeout_seconds=_model_timeout_seconds("EVAL", 20.0),
                 ), eval_tier,
                     router.fallback_tiers_for(eval_tier),
+                    governed_route=governed_route,
                 )
                 attempts.extend(judge_attempts)
                 usage.tokens += sum(attempt.total_tokens or 0 for attempt in judge_attempts)

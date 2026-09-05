@@ -76,6 +76,10 @@ public class LocalStubPersistenceConfig {
                 return false;
             }
 
+            public boolean hasSuppressedSourceMessages(long userId, List<String> sourceMessageIds) {
+                return false;
+            }
+
             public void insert(NewMemory memory) {
                 throw unavailable();
             }

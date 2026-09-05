@@ -19,7 +19,12 @@ describe('TokenStatusPage', () => {
     expect(screen.getByRole('button', { name: '重新发送重置邮件' })).toBeInTheDocument();
     expect(
       document.querySelector(
-        `img[src="/assets/figma/auth/token-${state === 'invalid' ? 'alert-triangle' : state === 'expired' ? 'clock' : 'info'}.svg"]`,
+        `img[src="/assets/figma/auth/token-${state === 'invalid' ? 'invalid-alert-triangle' : state === 'expired' ? 'expired-clock' : 'used-info'}.svg"]`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector(
+        `img[src="/assets/figma/auth/token-${state === 'invalid' ? 'invalid-fork-knife' : state === 'expired' ? 'expired-fork-knife' : 'used-fork-knife'}.svg"]`,
       ),
     ).toBeInTheDocument();
   });

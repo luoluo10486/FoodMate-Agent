@@ -21,7 +21,8 @@ LOGGER = logging.getLogger("foodmate.agent-runtime")
 
 from agent_core import DeterministicPlanner, DeterministicRouter, InMemoryCheckpoint, run_deterministic, split_answer
 from eval.metrics import EvalMetrics, RuntimeMetrics
-from model_provider import ModelProviderError
+from model_provider import ModelProviderError, ModelRouter
+from sql_planner import SqlPlannerError
 from recovery_protocol import checkpoint_digest, validate_recovery_command
 from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, build_local_embedder
 
@@ -45,6 +46,7 @@ _eval_metrics = EvalMetrics()
 _runtime_metrics = RuntimeMetrics()
 _runtime_started_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 _mq_runtime = None
+_model_router = ModelRouter()
 MAX_EVENT_ID_LENGTH = 64
 DEFAULT_STREAM_CHUNK_MAX_BYTES = 2048
 DEFAULT_STREAM_CHUNK_INTERVAL_MS = 150
@@ -461,6 +463,10 @@ def _enrich_tool_result(result: dict, proposal: dict) -> dict:
             "dimensions": list(raw_plan.get("dimensions") or ()),
             "filters": dict(raw_plan.get("filters") or {}),
         }
+    if tool_name == "plan_validator":
+        raw_input = proposal.get("input") or {}
+        if isinstance(raw_input.get("plan"), dict):
+            enriched["plan"] = raw_input["plan"]
     return enriched
 
 
@@ -588,7 +594,9 @@ def execute(command):
             next_sequence += 1
 
         execution_command["_context_observer"] = observe_context
-        execution = run_deterministic(execution_command, _checkpoint)
+        execution = run_deterministic(
+            execution_command, _checkpoint, model_router=_model_router
+        )
         all_results: list[dict] = []
         while execution.proposals:
             if _proposal_publisher is None:
@@ -642,6 +650,63 @@ def execute(command):
                      })
                 next_sequence += 1
             all_results.extend(results)
+            approval_result = next(
+                (
+                    item
+                    for item in results
+                    if item.get("tool_name") in {"food_log_writer", "meal_plan.save_plan"}
+                    and item.get("status") == "confirmation_required"
+                    and item.get("confirmation_ref")
+                ),
+                None,
+            )
+            if approval_result is not None:
+                checkpoint_payload = _save_clarification_checkpoint(command)
+                checkpoint_payload["approval_request_id"] = approval_result["confirmation_ref"]
+                emit(
+                    command,
+                    prefix + "-approval-checkpoint",
+                    next_sequence,
+                    "run.checkpoint_saved",
+                    checkpoint_payload,
+                )
+                next_sequence += 1
+                _record_model_attempts(execution.model_attempts)
+                for index, attempt in enumerate(execution.model_attempts, start=1):
+                    emit(
+                        command,
+                        prefix + f"-model-{index}",
+                        next_sequence,
+                        "run.model_usage",
+                        attempt.event_payload(),
+                    )
+                    next_sequence += 1
+                emit(
+                    command,
+                    prefix + "-approval-eval",
+                    next_sequence,
+                    "run.eval_decided",
+                    _eval_payload(execution),
+                )
+                next_sequence += 1
+                tool_name = str(approval_result.get("tool_name") or "")
+                is_meal_plan = tool_name == "meal_plan.save_plan"
+                safe_details = (approval_result.get("rows") or [{}])[0]
+                emit(
+                    command,
+                    prefix + "-approval-required",
+                    next_sequence,
+                    "run.clarification_requested",
+                    {
+                        "reason": "TOOL_CONFIRMATION_REQUIRED",
+                        "tool_name": tool_name,
+                        "approval_request_id": approval_result["confirmation_ref"],
+                        "operation": "save_plan" if is_meal_plan else "create",
+                        "resource_type": "meal_plan" if is_meal_plan else "food_log",
+                        "details": safe_details,
+                    },
+                )
+                return
             _mark_tool_results_applied(command, all_results)
             resumed = dict(command)
             resumed["_checkpoint_key"] = (
@@ -661,7 +726,9 @@ def execute(command):
                 authorized["database_query_plan"] = query_result["query_plan"]
             resumed["authorized_context"] = authorized
             resumed["_context_observer"] = observe_context
-            follow_up = run_deterministic(resumed, _checkpoint)
+            follow_up = run_deterministic(
+                resumed, _checkpoint, model_router=_model_router
+            )
             follow_up.model_attempts = execution.model_attempts + follow_up.model_attempts
             follow_up.usage.tokens += execution.usage.tokens
             follow_up.usage.cost_cny += execution.usage.cost_cny
@@ -712,6 +779,28 @@ def execute(command):
         })
         _record_execution_eval(execution, int((time.monotonic() - started) * 1000))
         _runtime_metrics.record("dispatch", "success", "completed", int((time.monotonic() - started) * 1000))
+    except SqlPlannerError as error:
+        # SQL 规划属于受控业务错误，保留具体错误码和已发生的模型 attempt，
+        # 让 Java 能区分配置、供应商和候选计划校验失败。
+        _record_model_attempts(error.attempts)
+        for index, attempt in enumerate(error.attempts, start=1):
+            emit(
+                command,
+                prefix + f"-model-{index}",
+                next_sequence,
+                "run.model_usage",
+                attempt.event_payload(),
+            )
+            next_sequence += 1
+        _record_provider_failure(error, int((time.monotonic() - started) * 1000))
+        emit(
+            command,
+            prefix + "-failed",
+            next_sequence,
+            "run.failed",
+            {"code": error.code, "retryable": error.retryable},
+        )
+        _runtime_metrics.record("dispatch", "failed", error.code, int((time.monotonic() - started) * 1000))
     except ModelProviderError as error:
         # 模型失败也必须回到 Java 状态机，不能由 Runtime 静默吞掉。
         _record_model_attempts(error.attempts)
