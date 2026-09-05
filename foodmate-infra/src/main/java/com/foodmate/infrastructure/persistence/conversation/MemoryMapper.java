@@ -32,7 +32,7 @@ public interface MemoryMapper {
                   AND memory_key = #{key}
                   AND is_deleted = FALSE
                   AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
-                  AND memory_value::text &lt;&gt; CAST(#{valueJson} AS jsonb)::text
+                  AND memory_value::text <> CAST(#{valueJson} AS jsonb)::text
             )
             """)
     boolean hasDifferentValue(
@@ -96,7 +96,7 @@ public interface MemoryMapper {
             FROM user_memories memory
             WHERE memory.user_id = #{userId}
               AND memory.is_deleted = FALSE
-              AND (memory.expires_at IS NULL OR memory.expires_at &gt; CURRENT_TIMESTAMP)
+              AND (memory.expires_at IS NULL OR memory.expires_at > CURRENT_TIMESTAMP)
               AND NOT EXISTS (
                   SELECT 1
                   FROM jsonb_array_elements_text(COALESCE(memory.source_message_ids, '[]'::jsonb)) source_id

@@ -29,11 +29,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 117572,
-      "differentRatio": 0.07973361545138889,
-      "meanAbsoluteError": 2.5461441040039063,
-      "rmse": 16.83499560819938,
-      "maxChannelDelta": 227
+      "differentPixels": 116873,
+      "differentRatio": 0.07925957573784723,
+      "meanAbsoluteError": 2.544205729166667,
+      "rmse": 16.83367254840767,
+      "maxChannelDelta": 219
     },
     "intake-analysis-v2": {
       "status": "COMPARED",
@@ -51,10 +51,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 160008,
-      "differentRatio": 0.10851236979166666,
-      "meanAbsoluteError": 1.8878975762261285,
-      "rmse": 12.687881258543205,
+      "differentPixels": 160454,
+      "differentRatio": 0.10881483289930556,
+      "meanAbsoluteError": 1.9396082560221355,
+      "rmse": 12.962410174093016,
       "maxChannelDelta": 204
     },
     "login-v2": {

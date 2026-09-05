@@ -2929,8 +2929,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-      "reviewedAt": "2026-09-05",
-      "conclusion": "最新浏览器证据已对齐工具注册表筛选、统计卡、十列表格和行内操作结构；仍存在头像、侧栏图标、文字光栅化和局部间距差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-05",
+        "conclusion": "最新浏览器证据已对齐工具注册表筛选、统计卡、十列表格和行内操作结构；仍存在头像、侧栏图标、文字光栅化和局部间距差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3059,8 +3059,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-      "reviewedAt": "2026-09-05",
-      "conclusion": "Operator 无权限横幅、双筛选、四行注册表、锁定操作按钮和侧栏权限标识均已进入最新证据；头像、图标、字体光栅化和局部密度仍有差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-05",
+        "conclusion": "Operator 无权限横幅、双筛选、四行注册表、锁定操作按钮和侧栏权限标识均已进入最新证据；头像、图标、字体光栅化和局部密度仍有差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3103,8 +3103,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-      "reviewedAt": "2026-09-05",
-      "conclusion": "确认弹窗、影响资源说明、黑色 40% 遮罩、按钮尺寸和底层注册表均已按最新 Figma 证据收口；仍有头像、图标、字体光栅化和局部像素差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-05",
+        "conclusion": "确认弹窗、影响资源说明、黑色 40% 遮罩、按钮尺寸和底层注册表均已按最新 Figma 证据收口；仍有头像、图标、字体光栅化和局部像素差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3147,8 +3147,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-      "reviewedAt": "2026-09-05",
-      "conclusion": "提交中弹窗、进度条、服务集群同步说明、禁用按钮和底层注册表均已按最新 Figma 证据收口；仍有头像、图标、字体光栅化和局部像素差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-05",
+        "conclusion": "提交中弹窗、进度条、服务集群同步说明、禁用按钮和底层注册表均已按最新 Figma 证据收口；仍有头像、图标、字体光栅化和局部像素差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3191,8 +3191,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-      "reviewedAt": "2026-09-05",
-      "conclusion": "成功横幅、首行已停用状态、启用操作和最新注册表结构均已进入证据；仍有头像、侧栏图标、字体光栅化和局部间距差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-05",
+        "conclusion": "成功横幅、首行已停用状态、启用操作和最新注册表结构均已进入证据；仍有头像、侧栏图标、字体光栅化和局部间距差异，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -3235,8 +3235,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-      "reviewedAt": "2026-09-05",
-      "conclusion": "失败弹窗已包含错误码、请求 ID、healthy-cluster-0 超时原因、关闭和重新尝试操作，底层注册表结构已同步；仍有头像、图标、字体光栅化和局部像素差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-05",
+        "conclusion": "失败弹窗已包含错误码、请求 ID、healthy-cluster-0 超时原因、关闭和重新尝试操作，底层注册表结构已同步；仍有头像、图标、字体光栅化和局部像素差异，保留 DIFF_REVIEW。"
       }
     },
     {

@@ -73,6 +73,8 @@ describe('DietRecordsPage', () => {
     expect(screen.getByRole('heading', { name: '记录详情 · 待确认记录可在这里补充后保存' })).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/workspace/home-sidebar-avatar.png"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/workspace/home-topbar-avatar.png"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/figma/diet-records/metric-ring-energy.svg"]')).toBeInTheDocument();
+    expect(screen.getByLabelText('饮食记录')).toHaveAttribute('data-figma-node-id', '640:660');
     expect(screen.queryByRole('button', { name: '记录一餐' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '分析这一天' })).not.toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: '+ 添加食物' })[0]);

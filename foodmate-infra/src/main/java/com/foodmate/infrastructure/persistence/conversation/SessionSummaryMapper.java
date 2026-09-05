@@ -36,7 +36,7 @@ public interface SessionSummaryMapper {
                   WHERE memory.user_id = session.user_id
                     AND (
                         memory.is_deleted = TRUE
-                        OR memory.suppressed_source_message_ids &lt;&gt; '[]'::jsonb
+                        OR memory.suppressed_source_message_ids <> '[]'::jsonb
                     )
                     AND EXISTS (
                         SELECT 1

@@ -24,6 +24,11 @@ class ToolProtocolTests(unittest.TestCase):
         self.assertEqual("planning", planning.intent)
         self.assertEqual((), planning.missing_slots)
 
+        constrained = DeterministicRouter().route(
+            "请生成 7 天餐食计划，目标是均衡蛋白质和蔬菜"
+        )
+        self.assertEqual("planning", constrained.intent)
+
         recording = DeterministicRouter().route("记录早餐：燕麦 50g")
         self.assertEqual("record", recording.intent)
 

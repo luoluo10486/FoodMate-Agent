@@ -227,17 +227,16 @@ class DeterministicRouter:
             "计算" in text and any(character.isdigit() for character in text)
         ):
             return RouteDecision("calculation", "complex", risk)
+        # Planning requests commonly mention breakfast/lunch/dinner while
+        # describing the requested schedule. An explicit plan request wins
+        # over analytical words such as "蛋白质" in its constraints.
+        if any(word in text for word in ("计划", "食谱", "购物清单")):
+            return RouteDecision("planning", "complex", risk, ("days",) if "天" not in text else ())
         # Analysis questions often describe the absence of records. Match the
         # requested operation before the noun "记录" so those questions do not
         # enter the write-oriented route.
         if any(word in text for word in ("分析", "营养", "蛋白质", "热量")):
             return RouteDecision("analysis", "complex", risk)
-        # Planning requests commonly mention breakfast/lunch/dinner while
-        # describing the requested schedule. Resolve the explicit resource
-        # operation before meal names so those requests do not enter the log
-        # writer route.
-        if any(word in text for word in ("计划", "食谱", "购物清单")):
-            return RouteDecision("planning", "complex", risk, ("days",) if "天" not in text else ())
         if any(word in text for word in ("记录", "吃了", "早餐", "午餐", "晚餐")):
             return RouteDecision("record", "complex" if len(text) > 60 else "simple", risk)
         return RouteDecision("knowledge_qna", "simple", risk)

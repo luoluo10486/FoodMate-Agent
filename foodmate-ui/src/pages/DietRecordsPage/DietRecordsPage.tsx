@@ -114,6 +114,14 @@ const metrics: Metric[] = [
   { label: '脂肪目标', value: '44', unit: '/ 70 g', percentage: 62, tone: 'red' },
 ] as const;
 
+// 默认 fixture 使用 Figma 导出的进度环，避免浏览器 conic-gradient 光栅化造成视觉偏差。
+const figmaMetricAssets: Record<Metric['tone'], string> = {
+  purple: '/assets/figma/diet-records/metric-ring-energy.svg',
+  green: '/assets/figma/diet-records/metric-ring-protein.svg',
+  orange: '/assets/figma/diet-records/metric-ring-carbs.svg',
+  red: '/assets/figma/diet-records/metric-ring-fat.svg',
+};
+
 const emptyMetrics = metrics.map((metric) => ({ ...metric, value: '0', percentage: 0 }));
 
 const figmaSidebarSessions: SessionSummary[] = [
@@ -192,10 +200,23 @@ function mapWeekLogs(logs: FoodLog[], date: Date): WeekDay[] {
   });
 }
 
-function ProgressRing({ percentage, tone }: { percentage: number; tone: Metric['tone'] }) {
+function ProgressRing({
+  percentage,
+  tone,
+  assetSrc,
+}: {
+  percentage: number;
+  tone: Metric['tone'];
+  assetSrc?: string;
+}) {
   const style = { '--progress': percentage } as CSSProperties;
   return (
-    <div className={`${styles.progressRing} ${styles[tone]}`} style={style} aria-label={`${percentage}% 完成`}>
+    <div
+      className={`${styles.progressRing} ${styles[tone]} ${assetSrc ? styles.progressRingWithAsset : ''}`}
+      style={style}
+      aria-label={`${percentage}% 完成`}
+    >
+      {assetSrc ? <img className={styles.progressRingAsset} src={assetSrc} alt="" aria-hidden="true" /> : null}
       <span>{percentage}%</span>
     </div>
   );
@@ -515,7 +536,10 @@ export function DietRecordsPage() {
       <header className={styles.mealHeader}>
         <div className={styles.mealHeading}>
           <h2>
-            {meal.icon} {meal.title}
+            <span className={styles.mealIcon} aria-hidden="true">
+              {meal.icon}
+            </span>
+            <span>{meal.title}</span>
           </h2>
           <span>{meal.time}</span>
         </div>
@@ -585,7 +609,7 @@ export function DietRecordsPage() {
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
       <div className={`${styles.page} fm-enter`}>
-        <section className={styles.recordsBody} aria-label="饮食记录">
+        <section className={styles.recordsBody} aria-label="饮食记录" data-figma-node-id="640:660">
           <header className={styles.dateToolbar}>
             <div className={styles.dateNavigation}>
               <Button
@@ -700,7 +724,7 @@ export function DietRecordsPage() {
             </section>
           ) : (
             <>
-              <section className={styles.metrics} aria-label="营养指标">
+              <section className={styles.metrics} aria-label="营养指标" data-figma-node-id="640:674">
                 {recordMetrics.map((metric) => (
                   <article className={styles.metricCard} key={metric.label}>
                     <div className={styles.metricCopy}>
@@ -710,7 +734,11 @@ export function DietRecordsPage() {
                         <small>{metric.unit}</small>
                       </div>
                     </div>
-                    <ProgressRing percentage={metric.percentage} tone={metric.tone} />
+                    <ProgressRing
+                      percentage={metric.percentage}
+                      tone={metric.tone}
+                      assetSrc={isFigmaFixture && recordsState !== 'empty' ? figmaMetricAssets[metric.tone] : undefined}
+                    />
                   </article>
                 ))}
               </section>
@@ -733,7 +761,7 @@ export function DietRecordsPage() {
                   </Button>
                 </section>
               ) : (
-                <section className={styles.meals} aria-label="餐次记录">
+                <section className={styles.meals} aria-label="餐次记录" data-figma-node-id="640:711">
                   {isRealMode && view === 'week'
                     ? weekDays.map((day) => (
                         <section className={styles.weekDay} key={day.date.toISOString()} aria-label="周视图日期">
@@ -835,7 +863,7 @@ export function DietRecordsPage() {
         ) : null}
 
         {visibleState === 'default' && !isRealMode ? (
-          <section className={styles.entryDetail} aria-label="记录详情">
+          <section className={styles.entryDetail} aria-label="记录详情" data-figma-node-id="974:3">
             <h2>{'记录详情  ·  待确认记录可在这里补充后保存'}</h2>
             <p>{'蓝莓燕麦粥  ·  早餐  ·  08:30  ·  估算值'}</p>
             <p>{'份量  350  |  单位  g  |  热量  420 kcal  |  蛋白质  18 g  |  来源  USDA  |  估算状态  待确认'}</p>

@@ -3,6 +3,8 @@ package com.foodmate.application.food.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.ApprovalRequestRepository;
 import com.foodmate.application.food.service.ApprovalService;
@@ -28,6 +30,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -604,15 +607,33 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     private String digest(Object... values) {
         try {
+            JsonNode valueTree = mapper.valueToTree(Arrays.asList(values));
+            String canonical = mapper.writeValueAsString(canonicalize(valueTree));
             return HexFormat.of()
                     .formatHex(
                             MessageDigest.getInstance("SHA-256")
                                     .digest(
-                                            mapper.writeValueAsString(Arrays.asList(values))
-                                                    .getBytes(StandardCharsets.UTF_8)));
-        } catch (JsonProcessingException | NoSuchAlgorithmException exception) {
+                                            canonical.getBytes(StandardCharsets.UTF_8)));
+        } catch (JsonProcessingException | NoSuchAlgorithmException | IllegalArgumentException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "确认参数摘要计算失败");
         }
+    }
+
+    /** 参数摘要必须与 JSON 对象的字段插入顺序无关，但数组顺序仍然具有业务含义。 */
+    private JsonNode canonicalize(JsonNode value) {
+        if (value == null || value.isValueNode()) return value;
+        if (value.isArray()) {
+            ArrayNode result = mapper.createArrayNode();
+            value.forEach(item -> result.add(canonicalize(item)));
+            return result;
+        }
+        ObjectNode result = mapper.createObjectNode();
+        TreeSet<String> fields = new TreeSet<>();
+        value.fieldNames().forEachRemaining(fields::add);
+        for (String field : fields) {
+            result.set(field, canonicalize(value.get(field)));
+        }
+        return result;
     }
 
     private void audit(

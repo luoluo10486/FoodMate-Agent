@@ -1,7 +1,7 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$JavaBaseUrl = "http://127.0.0.1:8080",
-    [int]$RunTimeoutSeconds = 180,
+    [int]$RunTimeoutSeconds = 300,
     [switch]$ExecutePaid,
     [switch]$KeepData
 )
@@ -20,16 +20,14 @@ $report = [ordered]@{
     started_at = (Get-Date).ToUniversalTime().ToString("o")
     paid_gate = $null
     chat = $null
+    sql_planner = $null
     run_id = $null
     session_id = $null
-    approval_request_id = $null
-    run_initial_sse = $null
-    run_terminal_sse = $null
-    approval = $null
-    food_log = $null
+    sse = $null
+    tool_calls = $null
+    sql_audit = $null
     cleanup = [ordered]@{
         requested = (-not $KeepData)
-        food_log_deleted = $false
         session_soft_deleted = $false
         errors = @()
     }
@@ -38,9 +36,6 @@ $report = [ordered]@{
 }
 
 $context = $null
-$foodLogId = $null
-$foodLogRevision = $null
-$sessionId = $null
 $paidEnvironmentNames = @(
     "FOODMATE_DOCKER_PAID_EXECUTION_ENABLED",
     "FOODMATE_DOCKER_PAID_MAX_SCENARIOS",
@@ -60,28 +55,14 @@ function Get-Field([object]$Object, [string[]]$Names) {
     return $null
 }
 
-function Get-CanonicalInstantText([object]$Value) {
-    if ($Value -is [DateTimeOffset]) {
-        $utc = $Value.ToUniversalTime()
-        $format = if ($utc.Millisecond -eq 0) { "yyyy-MM-dd'T'HH:mm:ss'Z'" } else { "yyyy-MM-dd'T'HH:mm:ss.fff'Z'" }
-        return $utc.ToString($format, [Globalization.CultureInfo]::InvariantCulture)
-    }
-    if ($Value -is [DateTime]) {
-        $utc = ([DateTime]$Value).ToUniversalTime()
-        $format = if ($utc.Millisecond -eq 0) { "yyyy-MM-dd'T'HH:mm:ss'Z'" } else { "yyyy-MM-dd'T'HH:mm:ss.fff'Z'" }
-        return $utc.ToString($format, [Globalization.CultureInfo]::InvariantCulture)
-    }
-    return [string]$Value
-}
-
 function Get-SafeSummary([object]$ErrorRecord) {
     $exception = if ($null -ne $ErrorRecord.Exception) { $ErrorRecord.Exception } else { $ErrorRecord }
     $message = if ($null -ne $exception) { [string]$exception.Message } else { "unknown error" }
     if (-not [string]::IsNullOrWhiteSpace($AdminPassword)) { $message = $message.Replace($AdminPassword, "[redacted]") }
     if (-not [string]::IsNullOrWhiteSpace($AdminUsername)) { $message = $message.Replace($AdminUsername, "[redacted]") }
-    $message = [regex]::Replace($message, "(?i)(api[_ -]?key|authorization|bearer|password|token)s*[:=]s*S+", '$1=[redacted]')
-    $message = [regex]::Replace($message, "(?i)https?://[^s]+", "[url]")
-    $message = [regex]::Replace($message, "s+", " ").Trim()
+    $message = [regex]::Replace($message, '(?i)(api[_ -]?key|authorization|bearer|password|token)s*[:=]\s*\S+', '$1=[redacted]')
+    $message = [regex]::Replace($message, '(?i)https?://\S+', "[url]")
+    $message = [regex]::Replace($message, '\s+', " ").Trim()
     if ([string]::IsNullOrWhiteSpace($message)) { $message = "unknown error" }
     if ($message.Length -gt 256) { $message = $message.Substring(0, 256) }
     return $message
@@ -92,7 +73,7 @@ function Get-ErrorCode([object]$ErrorRecord) {
     if ($null -ne $exception -and $null -ne $exception.Data -and $exception.Data.Contains("foodmate_error_code")) {
         return [string]$exception.Data["foodmate_error_code"]
     }
-    return "FOOD_LOG_E2E_FAILED"
+    return "SQL_AGENT_E2E_FAILED"
 }
 
 function Add-CleanupError([string]$Message) {
@@ -131,7 +112,7 @@ function Invoke-Api(
     $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::new($Method), $Url)
     try {
         if ($null -ne $Payload) {
-            $body = $Payload | ConvertTo-Json -Depth 24 -Compress
+            $body = $Payload | ConvertTo-Json -Depth 32 -Compress
             $request.Content = [System.Net.Http.StringContent]::new($body, [Text.Encoding]::UTF8, "application/json")
         } elseif ($null -ne $Content) {
             $request.Content = $Content
@@ -178,34 +159,45 @@ function Invoke-AgentPython([string]$Source, [string[]]$Arguments = @()) {
     return (($output -join [Environment]::NewLine).Trim())
 }
 
-function Get-ChatConfig {
+function Get-SqlAgentConfig {
     $source = @'
 import json
 import os
 
-alias = os.environ.get("FOODMATE_MODEL_TIER_HIGH", "").strip()
-provider, separator, model = alias.partition(":")
+def alias_for(tier):
+    raw = os.environ.get("FOODMATE_MODEL_TIER_" + tier.upper(), "").strip()
+    provider, separator, model = raw.partition(":")
+    return {"provider": provider, "model": model if separator else ""}
+
+planner_tier = os.environ.get("FOODMATE_SQL_PLANNER_TIER", "standard").strip().lower()
 print(json.dumps({
-    "provider": provider,
-    "model": model if separator else "",
+    "mode": os.environ.get("FOODMATE_SQL_PLANNER_MODE", "").strip().lower(),
+    "planner_tier": planner_tier,
+    "planner_route": alias_for(planner_tier),
+    "composer_route": alias_for("high"),
     "base_url_configured": bool(os.environ.get("FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_BASE_URL", "").strip()),
     "key_configured": bool(os.environ.get("FOODMATE_MODEL_PROVIDER_CLOUD_PRIMARY_API_KEY", "").strip()),
     "fallback_enabled": os.environ.get("FOODMATE_MODEL_FALLBACK_ENABLED", "false").strip().lower(),
+    "price_audit_required": os.environ.get("FOODMATE_MODEL_PRICE_AUDIT_REQUIRED", "false").strip().lower(),
 }, sort_keys=True))
 '@
     return (Invoke-AgentPython $source) | ConvertFrom-Json
 }
 
-function Assert-RealChatConfig([object]$Config) {
-    if ([string]$Config.provider -ne "cloud_primary" -or
-        [string]::IsNullOrWhiteSpace([string]$Config.model) -or
-        -not [bool]$Config.base_url_configured -or
-        -not [bool]$Config.key_configured) {
-        throw "real food log execution requires a configured cloud Chat provider"
+function Assert-RealSqlConfig([object]$Config) {
+    if ([string]$Config.mode -ne "local") { throw "real SQL Agent execution requires FOODMATE_SQL_PLANNER_MODE=local" }
+    $planner = $Config.planner_route
+    $composer = $Config.composer_route
+    foreach ($route in @($planner, $composer)) {
+        if ([string]$route.provider -ne "cloud_primary" -or [string]::IsNullOrWhiteSpace([string]$route.model)) {
+            throw "real SQL Agent execution requires cloud Chat routes for planner and composer"
+        }
     }
-    if ([string]$Config.fallback_enabled -ne "false") {
-        throw "food log paid execution requires model fallback to be disabled"
+    if (-not [bool]$Config.base_url_configured -or -not [bool]$Config.key_configured) {
+        throw "real SQL Agent execution requires a configured cloud Chat provider"
     }
+    if ([string]$Config.fallback_enabled -ne "false") { throw "SQL Agent paid execution requires model fallback to be disabled" }
+    if ([string]$Config.price_audit_required -ne "true") { throw "SQL Agent paid execution requires model price audit" }
 }
 
 function Invoke-PaidGate {
@@ -214,7 +206,7 @@ import json
 from paid_execution import PaidExecutionSession
 
 session = PaidExecutionSession.from_environment()
-session.begin_scenario("food-log")
+session.begin_scenario("sql-agent")
 print(json.dumps({
     "enabled": session.settings.enabled,
     "max_scenarios": session.settings.max_scenarios,
@@ -235,9 +227,7 @@ function Wait-HttpReady([string]$Name, [string]$Url, [int]$TimeoutSeconds = 90) 
             $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 10
             if ($response.StatusCode -eq 200) { return }
             $last = "HTTP $($response.StatusCode)"
-        } catch {
-            $last = Get-SafeSummary $_
-        }
+        } catch { $last = Get-SafeSummary $_ }
         Start-Sleep -Seconds 2
     } while ((Get-Date).ToUniversalTime() -lt $deadline)
     throw "$Name readiness did not recover: $last"
@@ -304,63 +294,50 @@ function Read-Sse(
 }
 
 function Assert-UniqueSseIds([object[]]$Events) {
-    if ($Events.Count -eq 0) { throw "AgentRun SSE returned no persisted events" }
+    if ($Events.Count -eq 0) { throw "SQL Agent SSE returned no persisted events" }
     $ids = @($Events | ForEach-Object { [string]$_.sse_event_id })
-    if (@($ids | Select-Object -Unique).Count -ne $ids.Count) { throw "AgentRun SSE returned duplicate event ids" }
+    if (@($ids | Select-Object -Unique).Count -ne $ids.Count) { throw "SQL Agent SSE returned duplicate event ids" }
     return $ids
 }
 
-function Assert-CloudModelUsage([object[]]$Events, [object]$Config) {
-    $matches = @($Events | Where-Object {
-            if ($_.event_type -ne "run.model_usage") { return $false }
-            $provider = [string](Get-Field $_.payload @("provider_code", "provider"))
-            $model = [string](Get-Field $_.payload @("model_name", "model"))
-            $provider -eq [string]$Config.provider -and $model -eq [string]$Config.model
-        })
-    if ($matches.Count -eq 0) { throw "AgentRun did not record the configured cloud Chat provider/model" }
-    return $matches.Count
+function Assert-CloudUsage([object[]]$Events, [object]$Config) {
+    $usage = @($Events | Where-Object event_type -eq "run.model_usage")
+    $scenes = @{}
+    foreach ($scene in @("sql_planner", "composer")) {
+        $match = $usage | Where-Object {
+            [string](Get-Field $_.payload @("scene")) -eq $scene -and
+            [string](Get-Field $_.payload @("provider_code", "provider")) -eq "cloud_primary"
+        } | Select-Object -First 1
+        if ($null -eq $match) { throw "SQL Agent did not record a cloud model usage event for $scene" }
+        $scenes[$scene] = [ordered]@{
+            provider = [string](Get-Field $match.payload @("provider_code", "provider"))
+            model = [string](Get-Field $match.payload @("model_name", "model"))
+            status = [string](Get-Field $match.payload @("status"))
+        }
+        if ($scenes[$scene].model -ne [string]$Config.composer_route.model -and $scene -eq "composer") {
+            throw "SQL Agent composer used an unexpected configured model"
+        }
+        if ($scenes[$scene].model -ne [string]$Config.planner_route.model -and $scene -eq "sql_planner") {
+            throw "SQL Agent planner used an unexpected configured model"
+        }
+    }
+    return [ordered]@{ total_model_usage_events = $usage.Count; scenes = $scenes }
 }
 
-function Get-FoodLogParameters([object]$Payload) {
-    $details = Get-Field $Payload @("details")
-    $items = @(Get-Field $details @("items"))
-    if ($items.Count -lt 1 -or $items.Count -gt 100) { throw "food log clarification item count is invalid" }
-    $safeItems = [System.Collections.Generic.List[object]]::new()
-    foreach ($item in $items) {
-        $name = [string](Get-Field $item @("name", "raw_name"))
-        $amount = Get-Field $item @("amount")
-        $unit = [string](Get-Field $item @("unit"))
-        if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($unit)) { throw "food log item metadata is incomplete" }
-        try { if ([decimal]$amount -le 0) { throw "amount" } } catch { throw "food log item amount is invalid" }
-        [void]$safeItems.Add([ordered]@{ name = $name; amount = $amount; unit = $unit })
-    }
-    $mealTime = Get-CanonicalInstantText (Get-Field $details @("meal_time"))
-    $mealType = [string](Get-Field $details @("meal_type"))
-    if ([string]::IsNullOrWhiteSpace($mealTime) -or @("breakfast", "lunch", "dinner", "snack") -notcontains $mealType) { throw "food log clarification fields are invalid" }
-    return [ordered]@{
-        meal_time = $mealTime
-        meal_type = $mealType
-        notes = Get-Field $details @("notes")
-        items = @($safeItems)
-    }
-}
-
-function Assert-FoodLogResponse([object]$Response, [string]$ExpectedId, [string]$ExpectedRunId) {
-    $data = Get-Field $Response @("data")
-    if ([string](Get-Field $data @("food_log_id", "foodLogId")) -ne $ExpectedId) { throw "food log response id does not match execution result" }
-    if ([string](Get-Field $data @("agent_run_id", "agentRunId")) -ne $ExpectedRunId) { throw "food log is not bound to the AgentRun" }
-    $items = @(Get-Field $data @("items"))
-    if ($items.Count -eq 0) { throw "food log has no persisted items" }
-    $matched = @($items | Where-Object { [string](Get-Field $_ @("nutrition_status", "nutritionStatus")) -eq "matched" })
-    if ($matched.Count -eq 0) { throw "food log has no nutrition-matched item" }
-    return [pscustomobject]@{ data = $data; item_count = $items.Count; matched_item_count = $matched.Count }
+function Invoke-PostgresJson([long]$RunId) {
+    $query = "SELECT json_build_object('sql_audits', (SELECT json_build_object('total', COUNT(*), 'executed', COUNT(*) FILTER (WHERE status='executed'), 'failed', COUNT(*) FILTER (WHERE status NOT IN ('executed'))) FROM sql_query_audits WHERE agent_run_id=$RunId AND is_deleted=FALSE), 'tool_calls', (SELECT COALESCE(json_agg(tool_name ORDER BY tool_call_id), '[]'::json) FROM tool_calls WHERE agent_run_id=$RunId AND is_deleted=FALSE));"
+    $raw = & docker exec foodmate-postgres psql -U postgres -d FoodMate -At -v ON_ERROR_STOP=1 -c $query 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "PostgreSQL SQL Agent evidence query failed" }
+    $text = ($raw -join [Environment]::NewLine).Trim()
+    if ([string]::IsNullOrWhiteSpace($text)) { throw "PostgreSQL SQL Agent evidence query returned no result" }
+    try { return $text | ConvertFrom-Json } catch { throw "PostgreSQL SQL Agent evidence query returned invalid JSON" }
 }
 
 try {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw "Docker CLI is required" }
     if (-not (Test-Path -LiteralPath $composeFile -PathType Leaf)) { throw "Docker Compose file is missing" }
     if (-not (Test-Path -LiteralPath $envFile -PathType Leaf)) { throw "project .env is missing" }
-    if ($RunTimeoutSeconds -lt 60 -or $RunTimeoutSeconds -gt 900) { throw "RunTimeoutSeconds must be between 60 and 900" }
+    if ($RunTimeoutSeconds -lt 120 -or $RunTimeoutSeconds -gt 900) { throw "RunTimeoutSeconds must be between 120 and 900" }
 
     if ($ExecutePaid) {
         foreach ($name in $paidEnvironmentNames) {
@@ -385,84 +362,82 @@ try {
     if ([string]::IsNullOrWhiteSpace($agentPort)) { $agentPort = "9002" }
     Wait-HttpReady "agent-runtime" "http://127.0.0.1:$agentPort/foodmate/internal/health/ready"
 
-    $chatConfig = Get-ChatConfig
-    Assert-RealChatConfig $chatConfig
+    $config = Get-SqlAgentConfig
+    Assert-RealSqlConfig $config
     $report.chat = [ordered]@{
-        provider = [string]$chatConfig.provider
-        model = [string]$chatConfig.model
-        base_url_configured = [bool]$chatConfig.base_url_configured
-        key_configured = [bool]$chatConfig.key_configured
-        fallback_enabled = [string]$chatConfig.fallback_enabled
+        provider = [string]$config.composer_route.provider
+        model = [string]$config.composer_route.model
+        base_url_configured = [bool]$config.base_url_configured
+        key_configured = [bool]$config.key_configured
+        fallback_enabled = [string]$config.fallback_enabled
+    }
+    $report.sql_planner = [ordered]@{
+        mode = [string]$config.mode
+        tier = [string]$config.planner_tier
+        provider = [string]$config.planner_route.provider
+        model = [string]$config.planner_route.model
+        price_audit_required = [string]$config.price_audit_required
     }
     if (-not $ExecutePaid) {
         $report.finished_at = (Get-Date).ToUniversalTime().ToString("o")
         $report.status = "preflight_passed"
     } else {
         $report.paid_gate = Invoke-PaidGate
-        if (-not $report.paid_gate.enabled -or $report.paid_gate.scenario -ne "food-log" -or
+        if (-not $report.paid_gate.enabled -or $report.paid_gate.scenario -ne "sql-agent" -or
             -not $report.paid_gate.require_cloud -or -not $report.paid_gate.no_retry) {
-            throw "paid execution gate is not fail-closed for food-log"
+            throw "paid execution gate is not fail-closed for sql-agent"
         }
 
         $context = New-ApiContext
         $csrf = Invoke-Login $context
-        $prompt = "请记录我今天午餐吃了熟米饭150克和鸡胸肉120克，时间按今天中午处理；请提取为饮食记录候选，生成后等待我确认，不要假装已经保存。"
+        $prompt = "请分析我最近7天的蛋白质和热量摄入，按餐次汇总。只使用我已经保存的饮食记录，只读查询，不要修改记录，也不要编造数据。"
         $runResponse = Invoke-Api $context "POST" "$JavaBaseUrl/api/chat/runs" @{ prompt = $prompt } $null @{ "X-CSRF-Token" = $csrf }
         $runData = Get-Field $runResponse @("data")
         $report.run_id = [string](Get-Field $runData @("run_id", "runId"))
-        $sessionId = [string](Get-Field $runData @("session_id", "sessionId"))
-        $report.session_id = $sessionId
-        if ([string]::IsNullOrWhiteSpace($report.run_id)) { throw "AgentRun id is missing" }
+        $report.session_id = [string](Get-Field $runData @("session_id", "sessionId"))
+        if ([string]::IsNullOrWhiteSpace($report.run_id) -or [string]::IsNullOrWhiteSpace($report.session_id)) { throw "SQL Agent Run identifiers are missing" }
+        $runIdNumber = 0L
+        if (-not [long]::TryParse($report.run_id, [ref]$runIdNumber) -or $runIdNumber -lt 1) { throw "SQL Agent Run id is invalid" }
 
-        $initialEvents = @(Read-Sse "$JavaBaseUrl/api/agent-runs/$($report.run_id)/stream" "0" $csrf $RunTimeoutSeconds @("run.clarification_requested", "run.completed", "run.failed", "run.cancelled"))
-        $initialIds = @(Assert-UniqueSseIds $initialEvents)
-        $report.run_initial_sse = [ordered]@{
-            event_count = $initialEvents.Count
-            first_event_id = $initialIds[0]
-            last_event_id = $initialIds[-1]
-            cloud_model_event_count = Assert-CloudModelUsage $initialEvents $chatConfig
-        }
-        $clarifications = @($initialEvents | Where-Object event_type -eq "run.clarification_requested")
-        $initialTerminals = @($initialEvents | Where-Object { @("run.completed", "run.failed", "run.cancelled") -contains $_.event_type })
-        if ($clarifications.Count -ne 1 -or $initialTerminals.Count -ne 0) { throw "food log AgentRun did not stop at exactly one confirmation clarification" }
-        $report.approval_request_id = [string](Get-Field $clarifications[0].payload @("approval_request_id"))
-        if ([string]::IsNullOrWhiteSpace($report.approval_request_id)) { throw "food log approval request id is missing" }
-        $parameters = Get-FoodLogParameters $clarifications[0].payload
-
-        $approval = Invoke-Api $context "GET" "$JavaBaseUrl/api/approvals/$($report.approval_request_id)"
-        $approvalData = Get-Field $approval @("data")
-        if ([string](Get-Field $approvalData @("status")) -ne "pending") { throw "food log approval is not pending" }
-        if ([string](Get-Field $approvalData @("operation")) -ne "create" -or [string](Get-Field $approvalData @("resource_type", "resourceType")) -ne "food_log") { throw "food log approval contract is invalid" }
-        $report.approval = [ordered]@{ status_before_confirm = [string](Get-Field $approvalData @("status")); operation = [string](Get-Field $approvalData @("operation")); resource_type = [string](Get-Field $approvalData @("resource_type", "resourceType")) }
-
-        $confirmed = Invoke-Api $context "POST" "$JavaBaseUrl/api/approvals/$($report.approval_request_id)/confirm" $parameters $null @{ "X-CSRF-Token" = $csrf }
-        $confirmedData = Get-Field $confirmed @("data")
-        if ([string](Get-Field $confirmedData @("status")) -ne "confirmed") { throw "food log approval confirmation did not succeed" }
-        $executed = Invoke-Api $context "POST" "$JavaBaseUrl/api/approvals/$($report.approval_request_id)/execute" $parameters $null @{ "X-CSRF-Token" = $csrf }
-        $executedData = Get-Field $executed @("data")
-        if ([string](Get-Field $executedData @("status")) -ne "executed") { throw "food log approval execution did not succeed" }
-        $foodLogId = [string](Get-Field $executedData @("resource_id", "resourceId"))
-        if ([string]::IsNullOrWhiteSpace($foodLogId)) { throw "executed food log id is missing" }
-        $report.food_log_id = $foodLogId
-
-        $terminalEvents = @(Read-Sse "$JavaBaseUrl/api/agent-runs/$($report.run_id)/stream" $initialIds[-1] $csrf $RunTimeoutSeconds @("run.completed", "run.failed", "run.cancelled"))
-        $terminalIds = @(Assert-UniqueSseIds $terminalEvents)
-        $completedEvents = @($terminalEvents | Where-Object event_type -eq "run.completed")
-        $terminalTypes = @($terminalEvents | Where-Object { @("run.completed", "run.failed", "run.cancelled") -contains $_.event_type })
-        if ($completedEvents.Count -ne 1 -or $terminalTypes.Count -ne 1) { throw "food log AgentRun did not produce exactly one completed terminal event" }
+        $events = @(Read-Sse "$JavaBaseUrl/api/agent-runs/$($report.run_id)/stream" "0" $csrf $RunTimeoutSeconds @("run.completed", "run.failed", "run.cancelled"))
+        $eventIds = @(Assert-UniqueSseIds $events)
+        $terminalEvents = @($events | Where-Object { @("run.completed", "run.failed", "run.cancelled") -contains $_.event_type })
+        $completedEvents = @($events | Where-Object event_type -eq "run.completed")
+        if ($completedEvents.Count -ne 1 -or $terminalEvents.Count -ne 1) { throw "SQL Agent did not produce exactly one completed terminal event" }
         $completedPayload = $completedEvents[0].payload
-        if ([string](Get-Field $completedPayload @("food_log_id", "foodLogId")) -ne $foodLogId) { throw "run.completed food log id does not match Java execution" }
-        $report.run_terminal_sse = [ordered]@{ event_count = $terminalEvents.Count; first_event_id = $terminalIds[0]; last_event_id = $terminalIds[-1]; terminal = "run.completed" }
+        $answer = [string](Get-Field $completedPayload @("answer"))
+        if ([string]::IsNullOrWhiteSpace($answer)) { throw "SQL Agent run.completed answer is empty" }
+        if ([string](Get-Field $completedPayload @("result_type")) -notin @("normal", "safety_degraded")) { throw "SQL Agent terminal result type is invalid" }
+        $report.sse = [ordered]@{
+            event_count = $events.Count
+            first_event_id = $eventIds[0]
+            last_event_id = $eventIds[-1]
+            terminal_event_count = $terminalEvents.Count
+            terminal = "run.completed"
+            cloud_usage = Assert-CloudUsage $events $config
+        }
 
-        $from = (Get-Date).ToUniversalTime().AddDays(-2).ToString("o")
-        $to = (Get-Date).ToUniversalTime().AddDays(2).ToString("o")
-        $logsResponse = Invoke-Api $context "GET" "$JavaBaseUrl/api/food-logs`?from=$([uri]::EscapeDataString($from))`&to=$([uri]::EscapeDataString($to))"
-        $logs = @(Get-Field $logsResponse @("data"))
-        $matchingLog = $logs | Where-Object { [string](Get-Field $_ @("food_log_id", "foodLogId")) -eq $foodLogId } | Select-Object -First 1
-        if ($null -eq $matchingLog) { throw "Java food log query did not return the executed record" }
-        $foodLogCheck = Assert-FoodLogResponse ([pscustomobject]@{ data = $matchingLog }) $foodLogId $report.run_id
-        $foodLogRevision = [long](Get-Field $matchingLog @("revision"))
-        $report.food_log = [ordered]@{ id = $foodLogId; revision = $foodLogRevision; item_count = $foodLogCheck.item_count; matched_item_count = $foodLogCheck.matched_item_count; meal_type = [string](Get-Field $matchingLog @("meal_type", "mealType")) }
+        $evidence = Invoke-PostgresJson $runIdNumber
+        $toolNames = @((Get-Field $evidence @("tool_calls"))) | ForEach-Object { [string]$_ }
+        foreach ($requiredTool in @("time_parser", "database_query")) {
+            if ($toolNames -notcontains $requiredTool) { throw "SQL Agent did not execute required tool: $requiredTool" }
+        }
+        $sqlAudits = Get-Field $evidence @("sql_audits")
+        if ([int](Get-Field $sqlAudits @("total")) -lt 1 -or [int](Get-Field $sqlAudits @("executed")) -lt 1) { throw "SQL Agent did not create an executed SQL audit" }
+        $report.tool_calls = [ordered]@{ names = $toolNames; required = @("time_parser", "database_query") }
+        $report.sql_audit = [ordered]@{
+            total = [int](Get-Field $sqlAudits @("total"))
+            executed = [int](Get-Field $sqlAudits @("executed"))
+            failed = [int](Get-Field $sqlAudits @("failed"))
+        }
+
+        if ($eventIds.Count -lt 2) { throw "SQL Agent SSE stream is too short for replay assertion" }
+        $replayEvents = @(Read-Sse "$JavaBaseUrl/api/agent-runs/$($report.run_id)/stream" $eventIds[$eventIds.Count - 2] $csrf $RunTimeoutSeconds @("run.completed", "run.failed", "run.cancelled"))
+        $replayIds = @(Assert-UniqueSseIds $replayEvents)
+        if (@($replayEvents | Where-Object event_type -eq "run.completed").Count -ne 1) { throw "SQL Agent Last-Event-ID replay did not return the terminal event" }
+        if ($replayIds[-1] -ne $eventIds[-1]) { throw "SQL Agent Last-Event-ID replay ended at a different event" }
+        $report.sse.replay_event_count = $replayEvents.Count
+        $report.sse.replay_terminal_count = @($replayEvents | Where-Object event_type -eq "run.completed").Count
         $report.status = "passed"
     }
 } catch {
@@ -472,16 +447,9 @@ try {
 } finally {
     if (-not $KeepData -and $null -ne $context) {
         try { $csrfForCleanup = Get-Csrf $context } catch { $csrfForCleanup = $null }
-        if (-not [string]::IsNullOrWhiteSpace([string]$foodLogId) -and $null -ne $csrfForCleanup -and $null -ne $foodLogRevision) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$report.session_id) -and $null -ne $csrfForCleanup) {
             try {
-                $cleanupKey = "codex-r2-food-log-cleanup-" + [guid]::NewGuid().ToString("N")
-                [void](Invoke-Api $context "DELETE" "$JavaBaseUrl/api/food-logs/$foodLogId`?revision=$foodLogRevision" $null $null @{ "X-CSRF-Token" = $csrfForCleanup; "Idempotency-Key" = $cleanupKey })
-                $report.cleanup.food_log_deleted = $true
-            } catch { Add-CleanupError "food log cleanup failed" }
-        }
-        if (-not [string]::IsNullOrWhiteSpace([string]$sessionId) -and $null -ne $csrfForCleanup) {
-            try {
-                [void](Invoke-Api $context "DELETE" "$JavaBaseUrl/api/sessions/$sessionId" $null $null @{ "X-CSRF-Token" = $csrfForCleanup })
+                [void](Invoke-Api $context "DELETE" "$JavaBaseUrl/api/sessions/$($report.session_id)" $null @{ "X-CSRF-Token" = $csrfForCleanup })
                 $report.cleanup.session_soft_deleted = $true
             } catch { Add-CleanupError "session cleanup failed" }
         }
@@ -501,5 +469,6 @@ try {
 }
 
 $report.cleanup.errors = @($report.cleanup.errors)
-Write-Output ($report | ConvertTo-Json -Depth 20)
+Write-Output ($report | ConvertTo-Json -Depth 24)
 if ($report.status -eq "failed") { exit 1 }
+

@@ -152,6 +152,27 @@ class ApprovalServiceImplTest {
     }
 
     @Test
+    void equivalentJsonObjectOrderProducesTheSameParametersDigest() {
+        ApprovalService service =
+                service(
+                        mock(ApprovalRequestRepository.class),
+                        mock(MealPlanService.class),
+                        ids(100L));
+        ObjectNode first = mapper.createObjectNode();
+        ObjectNode firstPlan = first.putObject("plan");
+        firstPlan.put("days", 1).put("people", 2);
+        firstPlan.putArray("allergens");
+        ObjectNode second = mapper.createObjectNode();
+        ObjectNode secondPlan = second.putObject("plan");
+        secondPlan.putArray("allergens");
+        secondPlan.put("people", 2).put("days", 1);
+
+        assertEquals(
+                service.parametersDigest("save_plan", "meal_plan", null, first),
+                service.parametersDigest("save_plan", "meal_plan", null, second));
+    }
+
+    @Test
     void expiredProposalCannotBeConfirmed() {
         ApprovalRequestRepository repository =
                 org.mockito.Mockito.mock(ApprovalRequestRepository.class);
