@@ -8,6 +8,12 @@
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
 
+### 当前真实云业务证据边界
+
+- R1 公共知识库与 R4 只读 SQL Agent 已有真实云业务闭环证据；对应的 Docker 验收入口分别为 `script/local/real-rag-e2e.ps1` 和 `script/local/real-sql-agent-e2e.ps1`。
+- R2 饮食记录和 R3 餐食计划已经完成真实云验收入口、云 provider/预算/无 fallback 门禁和安全清理逻辑，但新增付费实跑必须由执行人显式提供当前 PowerShell 管理员凭据；预检不能替代付费业务证据。
+- 当前任务只推进业务正确性和可复现验收，不把性能压测、依赖重启、ACK 丢失、重复投递、生产部署、备份恢复、硬删除和发布回滚写成已完成。
+
 - [x] 本地 Docker PostgreSQL E2E：注册、登录、Cookie/CSRF、会话创建、消息持久化/读取。
 - [x] Java PostgreSQL Outbox -> RocketMQ -> Consumer：真实传输、`request_hash`、`dispatch_id`、`run_id` 已验证。
 - [x] Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result：成功、失败 `SQL_EXECUTION_FAILED` 和重复 Proposal 幂等已验证。
