@@ -2058,3 +2058,14 @@
 | SQL Agent 工具与审计 | ToolCall 实际包含 `time_parser`、`database_query`；PostgreSQL `sql_query_audits` 共 `2` 条，`executed=2`、`failed=0`；工具持久化仅保存输入/语句摘要、结果状态、行数、SQL 审计 ID、错误码和关联标识，不保存原始 SQL、Prompt、完整结果或凭据。 |
 | 数据清理 | 验收脚本默认软删除本轮 Session，清理成功；Run、ToolCall 和 SQL 审计事实按保留约定保留用于复核。 |
 | 结论 | 真实 SiliconFlow Chat -> SQL Planner -> Java `time_parser`/`database_query` Guard -> PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE 回放的 R4 业务闭环已取得直接证据；本轮修复并持久化 ToolCall 安全事实。未执行性能压测、组件故障注入、ACK/重复投递专项、备份恢复、生产操作或发布回滚。 |
+
+## D130 R2 真实云饮食记录确认写入闭环（2026-09-05）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；临时管理员凭据仅在当前 PowerShell 进程注入，未写入 `.env`、日志或本记录。 |
+| 付费门禁与真实 Chat | 固定 `food-log` 单场景，累计上限 `5 CNY`，`no_retry=true`、`require_cloud=true`；真实 Chat 使用 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`，初始 SSE 记录 `1` 条成功模型用量事件。 |
+| Proposal 与确认边界 | Run `354580490440675328`、Session `354580490373566464`；初始 SSE `10` 条，返回唯一 `run.clarification_requested` 和 Approval `354580499823333376`，在确认前没有终态；Approval 初始状态为 `pending`，操作为 `create/food_log`，随后才提交 confirm/execute。 |
+| 业务写入与终态 | Java 执行生成 `food_log_id=354580501375225856`，查询回读 revision `1`、2 条明细、其中 1 条营养匹配、餐次为 `lunch`；执行后的终态 SSE 为唯一 `run.completed`，并校验返回的饮食记录 ID 与 Java 执行结果一致。 |
+| 数据清理 | 验收脚本默认清理成功：本轮饮食记录软删除、Session 软删除，未执行迁移、truncate、备份恢复、性能压测、组件重启或 ACK/重复投递故障注入。 |
+| 结论 | 真实 SiliconFlow Chat -> `food_log_writer` Proposal -> Java Approval confirm/execute -> PostgreSQL 饮食记录与营养匹配 -> `run.completed`/SSE 的 R2 业务闭环已取得直接证据；拒绝/重复确认等分支继续由既有业务回归覆盖。 |
