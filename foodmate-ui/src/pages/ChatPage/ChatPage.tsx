@@ -2080,6 +2080,7 @@ function MockChatPage() {
       ) : null}
       {agent.card.type === 'confirmation' ? null : null}
       {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
+      {/* Figma 640:428 的说明面板属于默认画板内容，只在 fixture 中复现。 */}
       {isFigmaFixture ? (
         <section className={styles.messageActions} aria-label="消息操作">
           <h2>消息操作</h2>

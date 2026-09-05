@@ -50,6 +50,9 @@ describe('HomePage session cards', () => {
       'src',
       '/assets/figma/workspace/home-topbar-avatar.png',
     );
+    const quickAction = screen.getByRole('button', { name: '记录饮食' });
+    expect(within(quickAction).getByText('🍽')).toBeInTheDocument();
+    expect(quickAction.querySelector('svg')).not.toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', { name: '主导航' })).queryByRole('link', { name: '知识库' }),
     ).toBeNull();

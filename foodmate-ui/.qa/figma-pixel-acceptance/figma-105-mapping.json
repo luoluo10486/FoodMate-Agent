@@ -44,7 +44,7 @@
       "frontendRoute": "/",
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma-2026-09-05.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-workspace-home-v2-browser-2026-09-05.png",
       "browserCapture": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-status-followup-2026-08-30.jpg",
       "mobileBrowserJpg": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-pruned-browser-390x844-2026-08-30.jpg",
@@ -77,8 +77,8 @@
       "manualReview": {
         "status": "MINOR_RENDERING_DIFF_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-30",
-        "conclusion": "已按 Figma 节点 640:256 恢复前端 fixture 中的窗口控制点、会话搜索、Agent 会话列表、分页和‘任务入口与状态’面板；顶部彩色头像与底部男性头像使用对应的 Figma 导出资源。1440×1024 页面无溢出，图标、字体光栅化和其它局部渲染差异仍存在，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-05",
+        "conclusion": "实时 Figma 节点 640:256 的窗口控制点、会话搜索、Agent 会话列表、分页、任务入口与状态面板已与当前浏览器证据复核；1440×1024 页面无溢出，图标、字体光栅化和其它局部渲染差异仍存在，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
         "capturedAt": "2026-09-05",
@@ -101,7 +101,7 @@
       "frontendRoute": "/chat",
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-chat-v2.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-chat-v2-figma-2026-09-05.png",
       "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-05.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
@@ -131,8 +131,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-30",
-        "conclusion": "The refreshed browser fixture uses the Figma green token #4CAF50 for the brand and Agent marks, renders the 52x12px window controls, extends the assistant surface from x=340 to the main-content boundary with a 780px body, and renders the 764x143px inline confirmation card at x=356,y=313. The sidebar, topbar, and user-message avatars use the corresponding Figma exports. The assistant text and source remain inside the body, while icon rasterization and remaining browser rendering differences are still visible, so retain DIFF_REVIEW."
+        "reviewedAt": "2026-09-05",
+        "conclusion": "实时 Figma 节点 640:428 的助手正文、内嵌写入确认卡和 983:3 消息操作说明面板已与当前浏览器证据复核；侧栏、顶栏和用户消息头像使用已登记资源，1440×1024 页面无溢出，图标、字体光栅化和其它局部渲染差异仍存在，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
         "capturedAt": "2026-09-05",

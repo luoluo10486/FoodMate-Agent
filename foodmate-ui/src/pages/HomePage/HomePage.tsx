@@ -33,9 +33,16 @@ const pendingItems = [
     id: 'beef',
     title: '牛油果酸面包吐司',
     detail: '记录为 340 千卡 · 置信度：94%',
+    figmaDetail: '记录为 340千卡 · 置信度：94%',
     prompt: '确认记录牛油果酸面包吐司',
   },
-  { id: 'fish', title: '煎三文鱼碗', detail: '记录为 620 千卡 · 置信度：88%', prompt: '确认记录煎三文鱼碗' },
+  {
+    id: 'fish',
+    title: '煎三文鱼碗',
+    detail: '记录为 620 千卡 · 置信度：88%',
+    figmaDetail: '记录为 620千卡 · 置信度：88%',
+    prompt: '确认记录煎三文鱼碗',
+  },
 ];
 
 const figmaSidebarSessions: SessionSummary[] = [
@@ -137,24 +144,27 @@ export function HomePage() {
 
   const quickActions = useMemo(
     () => [
-      { label: '记录饮食', prompt: recommendedPrompts[0], icon: Utensils, tone: 'green' },
+      { label: '记录饮食', prompt: recommendedPrompts[0], icon: Utensils, figmaIcon: '🍽', tone: 'green' },
       {
         label: '分析摄入',
         prompt: taskCards.find((task) => task.id === 'analysis')?.prompt ?? recommendedPrompts[2],
         icon: BarChart3,
+        figmaIcon: '📊',
         tone: 'purple',
       },
       {
         label: '创建计划',
         prompt: taskCards.find((task) => task.id === 'planning')?.prompt ?? recommendedPrompts[1],
         icon: CalendarDays,
+        figmaIcon: '📋',
         tone: 'red',
       },
-      { label: '搜索知识', prompt: recommendedPrompts[3], icon: Search, tone: 'blue' },
+      { label: '搜索知识', prompt: recommendedPrompts[3], icon: Search, figmaIcon: '🔍', tone: 'blue' },
       {
         label: '快速计算',
         prompt: taskCards.find((task) => task.id === 'calorie')?.prompt ?? '计算这份食物的热量',
         icon: Calculator,
+        figmaIcon: '🧮',
         tone: 'orange',
       },
     ],
@@ -183,7 +193,7 @@ export function HomePage() {
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
-      <div className={`${styles.page} fm-enter`}>
+      <div className={`${styles.page} ${isFigmaFixture ? styles.figmaHomePage : ''} fm-enter`}>
         <section className={styles.intro}>
           <div>
             <h1>👋 早上好，{isFigmaFixture ? 'Anddy' : currentUser.displayName}！</h1>
@@ -246,14 +256,20 @@ export function HomePage() {
         ) : (
           <>
             <section className={styles.quickActions} aria-label="快速操作">
-              {quickActions.map(({ icon: Icon, label, prompt: actionPrompt, tone }) => (
+              {quickActions.map(({ icon: Icon, figmaIcon, label, prompt: actionPrompt, tone }) => (
                 <Button
                   className={`${styles.quickButton} ${styles[`quick${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
                   key={label}
                   variant="outline"
                   onClick={() => setPrompt(actionPrompt)}
                 >
-                  <Icon aria-hidden="true" />
+                  {isFigmaFixture ? (
+                    <span className={styles.quickEmoji} aria-hidden="true">
+                      {figmaIcon}
+                    </span>
+                  ) : (
+                    <Icon aria-hidden="true" />
+                  )}
                   <span>{label}</span>
                 </Button>
               ))}
@@ -317,7 +333,7 @@ export function HomePage() {
                       >
                         <span>
                           <strong>{item.title}</strong>
-                          <small>{confirmed ? '已提交确认' : item.detail}</small>
+                          <small>{confirmed ? '已提交确认' : isFigmaFixture ? item.figmaDetail : item.detail}</small>
                         </span>
                         <Button
                           className={styles.confirmButton}

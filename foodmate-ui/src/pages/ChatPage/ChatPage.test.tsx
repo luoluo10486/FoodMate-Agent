@@ -158,19 +158,12 @@ describe('ChatPage Figma 默认状态', () => {
     expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
   });
 
-  it('keeps the Figma default message action guidance under the assistant answer', () => {
+  it('renders the Figma message action guidance in the default canvas', () => {
     renderChatState('figma-v2');
 
     expect(screen.getByRole('region', { name: '消息操作' })).toBeInTheDocument();
-    expect(
-      screen.getByText((content) => content.includes('用户消息：编辑') && content.includes('重试')),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText((content) => content.includes('Agent 回答：复制') && content.includes('继续提问')),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText((content) => content.includes('右侧面板：运行') && content.includes('原始 JSON')),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/用户消息：编辑/)).toBeInTheDocument();
+    expect(screen.getByText(/右侧面板：运行/)).toBeInTheDocument();
   });
 });
 

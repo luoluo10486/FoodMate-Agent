@@ -49,8 +49,8 @@
 
 | 页面/状态 | Figma 节点 | 尺寸 | 差异比例 | RMSE | 结论 |
 |---|---|---:|---:|---:|---|
-| Workspace Home | `640:256` | 1440×1024 | 37.58% | 17.11 | `DIFF_REVIEW` |
-| Agent Chat | `640:428` | 1440×1024 | 40.60% | 20.51 | `DIFF_REVIEW` |
+| Workspace Home | `640:256` | 1440×1024 | 24.4219% | 19.28 | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | 1440×1024 | 11.7176% | 17.25 | `DIFF_REVIEW` |
 | Diet Records | `640:588` | 1440×1024 | 37.94% | 17.38 | `DIFF_REVIEW` |
 | Intake Analysis | `640:773` | 1440×1024 | 28.07% | 18.50 | `DIFF_REVIEW` |
 | Meal Planning | `640:901` | 1440×1024 | 23.83% | 16.80 | `DIFF_REVIEW` |
@@ -1994,3 +1994,18 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已同步本批次主证据。`npm run qa:figma:validate` 返回 `structuralPass=true`、`strictDprPass=true`、`errors=[]`，全量汇总为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [x] 本批次完成后集中执行 `npm run test`（`39/39` 文件、`247/247` 用例）、`npm run typecheck`、`npm run build`、`npm run lint`、`npm run format:check` 和 `git diff --check`，均通过。
 - [ ] 六个目标画板的自动 diff 均非零，人工复核结论继续保持 `DIFF_REVIEW`；本批次不宣称 Admin 或 105 张画板达到像素级 `PASS`。shadcn 全量逐页迁移尚未完成，iconfont 实体包、CSS 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 23. 2026-09-05 Workspace Home 与 Agent Chat 当前 Figma 证据校正
+
+本节记录实时重新读取 Figma 节点 `640:256` 和 `640:428` 后的 Workspace Home 与 Agent Chat 当前证据。Figma 文件保持只读；旧版 PNG 保留为历史记录，不替代当前主映射。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---:|---|
+| Workspace Home | `640:256` | `recaptured-figma/workspace-home-v2-figma-2026-09-05.png` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-05.png` | `1440×1024 / 1` | `24.4219%` | `3.798675` | `19.280955` | `248` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `recaptured-figma/agent-chat-v2-figma-2026-09-05.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-05.png` | `1440×1024 / 1` | `11.7176%` | `2.906090` | `17.246569` | `211` | `DIFF_REVIEW` |
+
+- [x] Home fixture 的快捷操作、输入框、发送按钮、指标进度环和待确认队列文案继续按实时 Figma 颜色、尺寸和内容收口；相关 CSS 仅在 `state=figma-v2` 作用域生效。
+- [x] 实时 Figma `640:428` 明确包含 `983:3 agent::message-actions` 说明面板；Chat fixture 已恢复面板结构、文案、边框、间距和移动端适配，真实模式不渲染该设计说明面板。
+- [x] 两页浏览器证据均由 Chrome `152.0.7977.77` 在 `1440×1024`、DPR `1`、字体 `loaded` 和无页面横向溢出条件下采集；`figma-105-mapping.json` 与 `figma-105-diff-results.json` 已同步同版本路径。
+- [x] 全量结构校验仍为 `total=105`、`structuralPass=true`、`strictDprPass=true`、`errors=[]`；全量自动比较输入为 `105/105`。
+- [ ] 两页仍存在非零像素差异，不能将局部视觉收口、几何检查或构建通过替代像素级 `PASS`；全量汇总保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。shadcn 全量逐页视觉迁移尚未完成，iconfont 继续为 `BLOCKED`。
