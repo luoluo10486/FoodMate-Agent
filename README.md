@@ -30,7 +30,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 
 完整的边界、状态机、预算、Eval、写确认与退回规则见：[架构总览](./docxs/架构/架构总览.md)、[Agent 运行架构](./docxs/架构/Agent运行架构.md)、[M1-5 实施方案](./docxs/项目/M1-5核心饮食业务与写确认实施方案.md)、[ADR-0005](./docxs/决策/ADR-0005-RocketMQ异步主通道.md)。
 
-## 当前真实状态（2026-09-06）
+## 当前真实状态（2026-09-07）
 
 以下仅记录已经运行验证的事实；“已实现”不等于已经完成完整生产闭环。
 
@@ -45,7 +45,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 | K4 营养候选确认 | 已完成业务切片 | `GET /api/nutrition-foods/search` 返回受限候选；中文烹饪前缀会归一化，多个生熟/部位候选不会自动猜测，饮食写入支持显式 `nutrition_food_id` 或 `pending_confirmation`；V34 已在本地 PostgreSQL 执行并通过校验。 |
 | 营养语义索引 | 1,000 条 approved/official 目录已通过真实 Qwen Embedding 建立独立 Milvus 集合 `foodmate_nutrition_foods`；Runtime 营养检索只返回候选 ID，饮食写入和营养数值仍回源 PostgreSQL 精确匹配。 |
 | M1-5 写确认 | `meal_plan.save_plan` 和 `food_log_writer` 的 create/update/delete/restore 已完成 Proposal -> Confirm -> Execute；reject、failed、superseded、revision 冲突、失败回滚/审计和幂等重放已通过真实 PostgreSQL HTTP/RocketMQ 回归。 |
-| Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库已完成批量上传、异步索引、发布可见性和 `public_published` 安全引用。默认仍是 `deterministic:local`；2026-09-06 的 D134 已用当前配置完成一次 Docker 真实 Embedding + Milvus + Chat AgentRun 引用闭环。D114 的 HTTP 401 是历史凭据边界，不再代表当前凭据；两个 profile 仍使用独立 Milvus collection，长稳、正式价格审计和生产 RAG 治理仍未完成。 |
+| Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库已完成批量上传、异步索引、发布可见性和 `public_published` 安全引用。R5 进一步用 9 份正式资料完成主题覆盖审计和隔离 K2/local-stub 验收，生成 50 个 chunk；本轮未重建正式数据库批次、未写入 Milvus、未调用真实 Embedding。默认仍是 `deterministic:local`；2026-09-06 的 D134 已用当前配置完成一次 Docker 真实 Embedding + Milvus + Chat AgentRun 引用闭环。D114 的 HTTP 401 是历史凭据边界，不再代表当前凭据；两个 profile 仍使用独立 Milvus collection，长稳、正式价格审计和生产 RAG 治理仍未完成。 |
 | 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。一次性请求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
 | 恢复与 M1-6 本地门禁 | 已验证 Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启/Topic 初始化、双 JVM 有界读取和 Java 重启回读；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵仍未完成。 |
 | 前端 | G1-G6 页面代码边界、追问/确认/失败/取消/SSE 状态、真实管理查询和知识库批次/RAG 引用接入已完成；真实聊天历史会话现在会恢复最近 Run 并回放终态引用，新增定向测试通过。2026-09-06 G0 复核中，Vitest 单 worker 为 `43` 个测试文件、`264/264` 通过，typecheck 和 build 通过；D137 对 `RunsTab` 两个测试文件定向验证为 4/4 通过。 |

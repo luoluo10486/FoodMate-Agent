@@ -2380,3 +2380,17 @@
 | SQL 文件 | 新增 `seed/V37__m2_6_sql_agent_execution_catalog_seed.sql` 和 `validation/V37__m2_6_sql_agent_execution_catalog_validation.sql`；只登记 Catalog 字段，不修改旧 seed、业务数据或迁移历史。 |
 | 未执行范围 | V36/V37 尚未在当前 PostgreSQL 人工执行；未进行真实 AgentRun -> Java SQL 执行 -> 审计 -> SSE 跨进程联调，未启动 Docker，未执行性能、重启、ACK 丢失、重复投递或生产验证。 |
 | 结论 | R4 代码和业务契约验证完成；R8 集中验收仍需真实数据库结构和跨进程证据，不能将本轮定向测试写成真实数据库闭环。 |
+
+## D156 R5 公共知识主题覆盖与 K2 local-stub 业务验收（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；使用项目 `agent-runtime\\.venv`；未启动或重启 Docker 依赖，未调用真实 Chat/Embedding。 |
+| 资料质量 | manifest 中 9 份 WHO 中文 Markdown 均通过来源 URL、内容摘要、重复、UTF-8、敏感信息和 Front Matter 校验；补充“餐次与搭配”章节，并明确标注为 FoodMate 应用层归纳，不冒充 WHO 固定食谱。 |
+| K2 切分 | 通过 `script/data/knowledge/validate_public_rag_r5.py` 使用正式 `parse_document` 和 `chunk_markdown` 生成 `50` 个 chunk；目标 `700`、硬上限 `1000`、重叠 `80`；所有 chunk 有 `section_path`，最长 `207` 字符；长段落探针产生 `2` 对重叠。 |
+| 主题和检索 | 覆盖膳食基础、食材特点与选择、烹饪与保存、三餐与加餐搭配、控盐糖/纤维/蛋白和食品安全；6 个固定查询命中预期章节，随机查询 `zzzxqv-abcmnop-r5` 返回 `0` 条。 |
+| 可见性与幂等 | 隔离 `StubIndex` 验证 `tenant_id=0/public_published/published/indexed/current_version/未删除` 过滤；旧版本和下线文档不可检索；重复 upsert 前后均为 `52` 个唯一 chunk，不增加重复实体。 |
+| 解析边界 | Markdown 解析器新增剥离已闭合 Front Matter，避免来源元数据进入 chunk；资料摘要改按规范化 LF 文本计算，修复 Windows 换行导致的误报。 |
+| 业务测试 | R5 新增测试 `3 passed`；知识库既有 manifest/RAG/Worker 定向回归为 `72 passed`、`4` 个子断言通过；`git diff --check` 通过。 |
+| 数据与费用边界 | 本轮只在内存 stub 生成和检索 chunk；未写入 PostgreSQL、Redis、Milvus 或 RocketMQ，未执行真实数据库批次重索引，真实 Embedding 保持待授权；不涉及性能、重启、ACK/重复投递故障或生产验证。 |
+| 结论 | R5 的公共内容覆盖和 K2 local-stub 业务门禁完成；正式数据库旧批次不作为本轮 K2 证据，真实 Embedding/Milvus 重索引继续后置。 |
