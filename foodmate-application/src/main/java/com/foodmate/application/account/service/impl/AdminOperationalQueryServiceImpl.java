@@ -130,6 +130,11 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                 request.visibility(),
                 sort,
                 request.direction(),
+                request.role(),
+                request.resourceType(),
+                request.from(),
+                request.action(),
+                request.targetType(),
                 request.size(),
                 (request.page() - 1) * request.size());
     }
@@ -271,7 +276,9 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                 row.resourceId(),
                 row.ownerRef(),
                 row.deletedAt(),
-                row.reason());
+                row.reason(),
+                row.restorable(),
+                row.revision());
     }
 
     private OperationAudit operationAudit(AdminOperationalQueryRepository.OperationAuditRow row) {

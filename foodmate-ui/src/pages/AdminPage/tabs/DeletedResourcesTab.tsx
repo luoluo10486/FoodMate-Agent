@@ -17,7 +17,7 @@ import styles from '../AdminPage.module.css';
 import { AdminOnlyNotice } from './AdminComponents';
 import { type DeletedRow, adminDeletedRows, canRestoreResources } from './AdminShared';
 import type { AdminActionPayload } from './types';
-import { loadAdminDeletedResources, restoreAdminResource } from '../../../services/adminService';
+import { loadAdminDeletedResourcesPage, restoreAdminResource } from '../../../services/adminService';
 
 const deletedTotal = 19;
 const pageSize = 4;
@@ -143,22 +143,32 @@ export function DeletedSection({
   const [page, setPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<DeletedRow>();
   const [loadError, setLoadError] = useState('');
+  const [totalResources, setTotalResources] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? 0 : deletedTotal);
 
   useEffect(() => {
     if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
-    loadAdminDeletedResources()
-      .then((items) => {
+    loadAdminDeletedResourcesPage({
+      page,
+      size: pageSize,
+      query: query.trim() || undefined,
+      resourceType: resourceFilter,
+      from: timeFilter === 'all' ? undefined : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+      .then((result) => {
         setLoadError('');
-        setRows(items);
+        setRows(result.items);
+        setTotalResources(result.total);
       })
       .catch((error) => {
         setRows([]);
+        setTotalResources(0);
         setLoadError(error instanceof Error ? error.message : '软删除资源加载失败');
       });
-  }, [refreshNonce]);
+  }, [page, query, refreshNonce, resourceFilter, timeFilter]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
+    if (import.meta.env.VITE_AGENT_MODE === 'real') return rows;
     return rows.filter((row) => {
       const matchesType = resourceFilter === 'all' || resourceTypeKey(row.resourceType) === resourceFilter;
       const matchesDeletedBy = deletedByFilter === 'all' || row.deletedBy === deletedByFilter;
@@ -172,9 +182,13 @@ export function DeletedSection({
 
   const hasFilter =
     resourceFilter !== 'all' || deletedByFilter !== 'all' || timeFilter !== '30d' || Boolean(query.trim());
-  const totalResults = import.meta.env.VITE_AGENT_MODE === 'real' || hasFilter ? filteredRows.length : deletedTotal;
+  const totalResults =
+    import.meta.env.VITE_AGENT_MODE === 'real' ? totalResources : hasFilter ? filteredRows.length : deletedTotal;
   const pageCount = Math.max(1, Math.ceil(totalResults / pageSize));
-  const visibleRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
+  const visibleRows =
+    import.meta.env.VITE_AGENT_MODE === 'real'
+      ? filteredRows
+      : filteredRows.slice((page - 1) * pageSize, page * pageSize);
   const rangeStart = totalResults === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = Math.min(page * pageSize, totalResults);
 
@@ -299,7 +313,7 @@ export function DeletedSection({
           <DeletedFilterSelect
             label="删除者"
             value={deletedByFilter}
-            options={deletedByOptions}
+            options={import.meta.env.VITE_AGENT_MODE === 'real' ? [{ value: 'all', label: '全部' }] : deletedByOptions}
             onChange={setFilter(setDeletedByFilter)}
             ariaLabel="删除者筛选"
             className={styles.deletedFilterActor}
@@ -362,7 +376,9 @@ export function DeletedSection({
           >
             上一页
           </Button>
-          {Array.from({ length: pageCount }, (_, index) => index + 1).map((value) => (
+          {Array.from({ length: import.meta.env.VITE_AGENT_MODE === 'real' ? 1 : pageCount }, (_, index) =>
+            import.meta.env.VITE_AGENT_MODE === 'real' ? page : index + 1,
+          ).map((value) => (
             <Button
               variant="outline"
               className={`${styles.deletedPageButton} ${page === value ? styles.deletedPageActive : ''}`}

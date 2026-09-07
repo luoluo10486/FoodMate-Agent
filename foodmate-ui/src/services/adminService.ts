@@ -581,31 +581,45 @@ export type AdminQueryParams = {
   size?: number;
   query?: string;
   status?: string;
+  visibility?: string;
+  role?: string;
+  resourceType?: string;
+  from?: string;
+  action?: string;
+  targetType?: string;
   sort?: string;
   direction?: 'asc' | 'desc';
+};
+
+export type AdminPageResult<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
 };
 
 export async function loadAdminQuery<T>(resource: string, params: AdminQueryParams = {}) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
   const search = new URLSearchParams();
   search.set('page', String(params.page ?? 1));
-  search.set('size', String(params.size ?? 100));
+  search.set('size', String(params.size ?? 20));
   if (params.query) search.set('query', params.query);
   if (params.status && params.status !== 'all') search.set('status', params.status);
+  if (params.visibility && params.visibility !== 'all') search.set('visibility', params.visibility);
+  if (params.role && params.role !== 'all') search.set('role', params.role);
+  if (params.resourceType && params.resourceType !== 'all') search.set('resource_type', params.resourceType);
+  if (params.from) search.set('from', params.from);
+  if (params.action && params.action !== 'all') search.set('action', params.action);
+  if (params.targetType && params.targetType !== 'all') search.set('target_type', params.targetType);
   if (params.sort) search.set('sort', params.sort);
   if (params.direction) search.set('direction', params.direction);
   return apiRequest<AdminOperationalQueryResponse<T>>(`/api/admin/queries/${resource}?${search.toString()}`);
 }
 
 /** 管理端知识库使用专用分页查询，避免把 dashboard 概览当成明细数据源。 */
-export async function loadAdminKnowledge(params: AdminQueryParams = {}): Promise<{
-  items: AdminKnowledgeRow[];
-  total: number;
-  page: number;
-  size: number;
-}> {
+export async function loadAdminKnowledge(params: AdminQueryParams = {}): Promise<AdminPageResult<AdminKnowledgeRow>> {
   const data = await loadAdminQuery<AdminKnowledgeResponse>('knowledge', {
-    size: 100,
+    size: 20,
     ...params,
   });
   return {
@@ -627,34 +641,51 @@ type AdminDeletedQueryItem = {
   owner_ref: string;
   deleted_at: string | null;
   reason: string;
+  restorable?: boolean;
   revision?: number;
 };
 
-export async function loadAdminDeletedResources(): Promise<AdminDeletedRow[]> {
+export async function loadAdminDeletedResourcesPage(
+  params: AdminQueryParams = {},
+): Promise<AdminPageResult<AdminDeletedRow>> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  const data = await apiRequest<AdminOperationalQueryResponse<AdminDeletedQueryItem>>(
-    '/api/admin/queries/deleted?size=100',
-  );
-  return data.items.map((row, index) => ({
-    key: `deleted-${row.resource_id ?? index}`,
-    resourceType: row.resource_type,
-    resourceId: text(row.resource_id),
-    summary: row.reason || '-',
-    owner: row.owner_ref || '-',
-    deletedBy: '-',
-    deletedAt: text(row.deleted_at),
-    restorable: true,
-    reason: row.reason || '-',
-    revision: row.revision ?? 1,
-  }));
+  const data = await loadAdminQuery<AdminDeletedQueryItem>('deleted', params);
+  return {
+    items: data.items.map((row, index) => ({
+      key: `deleted-${row.resource_id ?? index}`,
+      resourceType: row.resource_type,
+      resourceId: text(row.resource_id),
+      summary: row.reason || '-',
+      owner: row.owner_ref || '-',
+      deletedBy: '-',
+      deletedAt: text(row.deleted_at),
+      restorable: row.restorable ?? false,
+      reason: row.reason || '-',
+      revision: row.revision ?? 1,
+    })),
+    total: data.total,
+    page: data.page,
+    size: data.size,
+  };
+}
+
+export async function loadAdminDeletedResources(): Promise<AdminDeletedRow[]> {
+  return (await loadAdminDeletedResourcesPage({ size: 20 })).items;
+}
+
+export async function loadAdminOperationAuditsPage(
+  params: AdminQueryParams = {},
+): Promise<AdminPageResult<AdminOperationAuditResponse>> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  const data = await loadAdminQuery<AdminOperationAuditResponse>('operation-audits', {
+    size: 20,
+    ...params,
+  });
+  return data;
 }
 
 export async function loadAdminOperationAudits(): Promise<AdminOperationAuditResponse[]> {
-  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  const data = await apiRequest<AdminOperationalQueryResponse<AdminOperationAuditResponse>>(
-    '/api/admin/queries/operation-audits?size=100',
-  );
-  return data.items;
+  return (await loadAdminOperationAuditsPage()).items;
 }
 
 export type AdminExportStatus = {
@@ -801,34 +832,56 @@ type AdminUserResponse = {
   created_at?: string;
 };
 
-export async function loadAdminUsers(): Promise<AdminUserRow[]> {
-  if (import.meta.env.VITE_AGENT_MODE !== 'real') return adminUserRows;
-  const data = await apiRequest<AdminUserResponse[]>('/api/admin/users');
-  return data.map((user) => ({
+function normalizeAdminUser(user: AdminUserResponse | AdminQueryUser): AdminUserRow {
+  return {
     key: `user-${user.user_id}`,
     userId: String(user.user_id),
     username: user.username,
-    displayName: user.nickname ?? user.username,
+    displayName: 'nickname' in user ? (user.nickname ?? user.username) : user.username,
     role: user.role,
     status: user.status,
-    email: user.email,
-    phone: user.phone ?? '-',
-    gender: user.gender ?? '-',
-    heightCm: user.height_cm ?? 0,
-    weightKg: user.weight_kg ?? 0,
-    activityLevel: user.activity_level ?? '-',
-    dietGoal: user.diet_goal ?? '-',
-    calorieTarget: user.calorie_target ?? 0,
-    proteinTarget: user.protein_target ?? 0,
-    allergens: user.allergens ?? '-',
-    dislikes: user.dislikes ?? '-',
-    preferredUnits: user.preferred_units ?? '-',
-    loginFailedCount: user.login_failed_count ?? 0,
-    lockedUntil: user.locked_until ?? '-',
-    lastLoginAt: user.last_login_at ?? '-',
-    createdAt: user.created_at ?? '-',
+    email: 'email' in user ? user.email : user.email_ref || '-',
+    phone: 'phone' in user ? (user.phone ?? '-') : '-',
+    gender: 'gender' in user ? (user.gender ?? '-') : '-',
+    heightCm: 'height_cm' in user ? (user.height_cm ?? 0) : 0,
+    weightKg: 'weight_kg' in user ? (user.weight_kg ?? 0) : 0,
+    activityLevel: 'activity_level' in user ? (user.activity_level ?? '-') : '-',
+    dietGoal: 'diet_goal' in user ? (user.diet_goal ?? '-') : '-',
+    calorieTarget: 'calorie_target' in user ? (user.calorie_target ?? 0) : 0,
+    proteinTarget: 'protein_target' in user ? (user.protein_target ?? 0) : 0,
+    allergens: 'allergens' in user ? (user.allergens ?? '-') : '-',
+    dislikes: 'dislikes' in user ? (user.dislikes ?? '-') : '-',
+    preferredUnits: 'preferred_units' in user ? (user.preferred_units ?? '-') : '-',
+    loginFailedCount: 'login_failed_count' in user ? (user.login_failed_count ?? 0) : 0,
+    lockedUntil: 'locked_until' in user ? (user.locked_until ?? '-') : '-',
+    lastLoginAt: 'last_login_at' in user ? (user.last_login_at ?? '-') : '-',
+    createdAt: 'created_at' in user ? (user.created_at ?? '-') : '-',
     revision: user.revision ?? 1,
-  }));
+  };
+}
+
+type AdminQueryUser = {
+  user_id: number;
+  username: string;
+  role: string;
+  status: string;
+  email_ref: string | null;
+  revision?: number;
+};
+
+export async function loadAdminUsersPage(params: AdminQueryParams = {}): Promise<AdminPageResult<AdminUserRow>> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') {
+    const items = adminUserRows as AdminUserRow[];
+    return { items, total: items.length, page: 1, size: items.length };
+  }
+  const data = await loadAdminQuery<AdminQueryUser>('users', { size: 20, ...params });
+  return { ...data, items: data.items.map(normalizeAdminUser) };
+}
+
+export async function loadAdminUsers(): Promise<AdminUserRow[]> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') return adminUserRows;
+  const data = await apiRequest<AdminUserResponse[]>('/api/admin/users');
+  return data.map(normalizeAdminUser);
 }
 
 export async function loadAdminUserDetail(userId: string): Promise<AdminUserDetail> {

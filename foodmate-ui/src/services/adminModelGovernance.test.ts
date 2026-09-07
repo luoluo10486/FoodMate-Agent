@@ -131,8 +131,8 @@ describe('admin model governance API', () => {
 
     await expect(loadAdminOperationAudits()).resolves.toHaveLength(1);
     await expect(loadAdminDeletedResources()).resolves.toMatchObject([{ resourceId: '7', revision: 4 }]);
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/admin/queries/operation-audits?size=100');
-    expect(fetchMock.mock.calls[1][0]).toBe('/api/admin/queries/deleted?size=100');
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/admin/queries/operation-audits?page=1&size=20');
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/admin/queries/deleted?page=1&size=20');
   });
 
   it('sends a confirmed revision when restoring a real resource', async () => {

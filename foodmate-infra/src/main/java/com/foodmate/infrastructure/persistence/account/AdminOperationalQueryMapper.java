@@ -23,22 +23,27 @@ import org.apache.ibatis.annotations.Select;
 public interface AdminOperationalQueryMapper {
     @Select(
             "<script>SELECT user_id,username,role,status,CASE WHEN email IS NULL THEN NULL ELSE"
-                    + " CONCAT('email-',MD5(email)) END AS email_ref FROM users WHERE"
-                    + " is_deleted=FALSE<if test='q.text != null and q.text != &quot;&quot;'> AND"
-                    + " username ILIKE CONCAT('%',#{q.text},'%')</if><if test='q.status != null and"
-                    + " q.status != &quot;&quot;'> AND status=#{q.status}</if> ORDER BY <choose><when"
-                    + " test=\"q.sort == 'username'\">username</when><when test=\"q.sort =="
-                    + " 'status'\">status</when><otherwise>created_at</otherwise></choose>"
-                    + " <choose><when test=\"q.direction =="
-                    + " 'asc'\">ASC</when><otherwise>DESC</otherwise></choose>,user_id DESC LIMIT"
-                    + " #{q.limit} OFFSET #{q.offset}</script>")
+                + " CONCAT('email-',MD5(email)) END AS email_ref FROM users WHERE"
+                + " is_deleted=FALSE<if test='q.text != null and q.text != &quot;&quot;'> AND"
+                + " username ILIKE CONCAT('%',#{q.text},'%')</if><if test='q.status != null and"
+                + " q.status != &quot;&quot;'> AND status=#{q.status}</if><if test='q.role != null"
+                + " and q.role != &quot;&quot;'> AND role=#{q.role}</if><if test='q.from != null"
+                + " and q.from != &quot;&quot;'> AND created_at &gt;= CAST(#{q.from} AS"
+                + " TIMESTAMP)</if> ORDER BY <choose><when test=\"q.sort =="
+                + " 'username'\">username</when><when test=\"q.sort =="
+                + " 'status'\">status</when><otherwise>created_at</otherwise></choose>"
+                + " <choose><when test=\"q.direction =="
+                + " 'asc'\">ASC</when><otherwise>DESC</otherwise></choose>,user_id DESC LIMIT"
+                + " #{q.limit} OFFSET #{q.offset}</script>")
     List<UserRow> users(@Param("q") Query query);
 
     @Select(
             "<script>SELECT COUNT(*) FROM users WHERE is_deleted=FALSE<if test='q.text != null and"
-                    + " q.text != &quot;&quot;'> AND username ILIKE CONCAT('%',#{q.text},'%')</if><if"
-                    + " test='q.status != null and q.status != &quot;&quot;'> AND"
-                    + " status=#{q.status}</if></script>")
+                + " q.text != &quot;&quot;'> AND username ILIKE CONCAT('%',#{q.text},'%')</if><if"
+                + " test='q.status != null and q.status != &quot;&quot;'> AND"
+                + " status=#{q.status}</if><if test='q.role != null and q.role != &quot;&quot;'>"
+                + " AND role=#{q.role}</if><if test='q.from != null and q.from != &quot;&quot;'>"
+                + " AND created_at &gt;= CAST(#{q.from} AS TIMESTAMP)</if></script>")
     long countUsers(@Param("q") Query query);
 
     @Select(
@@ -272,66 +277,84 @@ public interface AdminOperationalQueryMapper {
     long countKnowledge(@Param("q") Query query);
 
     @Select(
-            "<script>SELECT resource_type,resource_id,owner_ref,deleted_at,reason FROM (SELECT"
-                    + " 'user' AS resource_type,user_id AS resource_id,CONCAT('user-',MD5(CAST(user_id"
-                    + " AS TEXT))) AS owner_ref,deleted_at,'account_deleted' AS reason FROM users WHERE"
-                    + " is_deleted=TRUE UNION ALL SELECT"
-                    + " 'knowledge_document',document_id,CONCAT('user-',MD5(CAST(COALESCE(created_by,0)"
-                    + " AS TEXT))),deleted_at,'knowledge_document_deleted' FROM knowledge_documents"
-                    + " WHERE is_deleted=TRUE UNION ALL SELECT"
-                    + " 'food_log',food_log_id,CONCAT('user-',MD5(CAST(user_id AS"
-                    + " TEXT))),deleted_at,'food_log_deleted' FROM food_logs WHERE is_deleted=TRUE"
-                    + " UNION ALL SELECT 'meal_plan',meal_plan_id,CONCAT('user-',MD5(CAST(user_id AS"
-                    + " TEXT))),deleted_at,'meal_plan_deleted' FROM meal_plans WHERE is_deleted=TRUE"
-                    + " UNION ALL SELECT 'message',message_id,CONCAT('user-',MD5(CAST(created_by AS"
-                    + " TEXT))),deleted_at,'message_deleted' FROM messages WHERE is_deleted=TRUE)"
-                    + " deleted_resources WHERE 1=1<if test='q.text != null and q.text !="
-                    + " &quot;&quot;'> AND (resource_type ILIKE CONCAT('%',#{q.text},'%') OR owner_ref"
-                    + " ILIKE CONCAT('%',#{q.text},'%'))</if> ORDER BY <choose><when test=\"q.sort =="
-                    + " 'resource_type'\">resource_type</when><otherwise>deleted_at</otherwise></choose>"
-                    + " <choose><when test=\"q.direction =="
-                    + " 'asc'\">ASC</when><otherwise>DESC</otherwise></choose>,resource_id DESC LIMIT"
-                    + " #{q.limit} OFFSET #{q.offset}</script>")
+            "<script>SELECT"
+                + " resource_type,resource_id,owner_ref,deleted_at,reason,restorable,revision FROM"
+                + " (SELECT 'user' AS resource_type,user_id AS"
+                + " resource_id,CONCAT('user-',MD5(CAST(user_id AS TEXT))) AS"
+                + " owner_ref,deleted_at,'account_deleted' AS reason,TRUE AS restorable,revision"
+                + " FROM users WHERE is_deleted=TRUE UNION ALL SELECT"
+                + " 'knowledge_document',document_id,CONCAT('user-',MD5(CAST(COALESCE(created_by,0)"
+                + " AS TEXT))),deleted_at,'knowledge_document_deleted',TRUE,revision FROM"
+                + " knowledge_documents WHERE is_deleted=TRUE UNION ALL SELECT"
+                + " 'food_log',food_log_id,CONCAT('user-',MD5(CAST(user_id AS"
+                + " TEXT))),deleted_at,'food_log_deleted',TRUE,revision FROM food_logs WHERE"
+                + " is_deleted=TRUE UNION ALL SELECT"
+                + " 'meal_plan',meal_plan_id,CONCAT('user-',MD5(CAST(user_id AS"
+                + " TEXT))),deleted_at,'meal_plan_deleted',TRUE,revision FROM meal_plans WHERE"
+                + " is_deleted=TRUE UNION ALL SELECT"
+                + " 'message',message_id,CONCAT('user-',MD5(CAST(created_by AS"
+                + " TEXT))),deleted_at,'message_deleted',TRUE,revision FROM messages WHERE"
+                + " is_deleted=TRUE) deleted_resources WHERE 1=1<if test='q.text != null and q.text"
+                + " != &quot;&quot;'> AND (resource_type ILIKE CONCAT('%',#{q.text},'%') OR"
+                + " owner_ref ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.resourceType != null"
+                + " and q.resourceType != &quot;&quot;'> AND"
+                + " resource_type=#{q.resourceType}</if><if test='q.from != null and q.from !="
+                + " &quot;&quot;'> AND deleted_at &gt;= CAST(#{q.from} AS TIMESTAMP)</if> ORDER BY"
+                + " <choose><when test=\"q.sort =="
+                + " 'resource_type'\">resource_type</when><otherwise>deleted_at</otherwise></choose>"
+                + " <choose><when test=\"q.direction =="
+                + " 'asc'\">ASC</when><otherwise>DESC</otherwise></choose>,resource_id DESC LIMIT"
+                + " #{q.limit} OFFSET #{q.offset}</script>")
     List<DeletedRow> deleted(@Param("q") Query query);
 
     @Select(
             "<script>SELECT COUNT(*) FROM (SELECT user_id AS"
-                    + " resource_id,CONCAT('user-',MD5(CAST(user_id AS TEXT))) AS owner_ref,'user' AS"
-                    + " resource_type FROM users WHERE is_deleted=TRUE UNION ALL SELECT"
-                    + " document_id,CONCAT('user-',MD5(CAST(COALESCE(created_by,0) AS"
-                    + " TEXT))),'knowledge_document' FROM knowledge_documents WHERE is_deleted=TRUE"
-                    + " UNION ALL SELECT food_log_id,CONCAT('user-',MD5(CAST(user_id AS"
-                    + " TEXT))),'food_log' FROM food_logs WHERE is_deleted=TRUE UNION ALL SELECT"
-                    + " meal_plan_id,CONCAT('user-',MD5(CAST(user_id AS TEXT))),'meal_plan' FROM"
-                    + " meal_plans WHERE is_deleted=TRUE UNION ALL SELECT"
-                    + " message_id,CONCAT('user-',MD5(CAST(created_by AS TEXT))),'message' FROM"
-                    + " messages WHERE is_deleted=TRUE) deleted_resources WHERE 1=1<if test='q.text !="
-                    + " null and q.text != &quot;&quot;'> AND (resource_type ILIKE"
-                    + " CONCAT('%',#{q.text},'%') OR owner_ref ILIKE"
-                    + " CONCAT('%',#{q.text},'%'))</if></script>")
+                + " resource_id,CONCAT('user-',MD5(CAST(user_id AS TEXT))) AS owner_ref,'user' AS"
+                + " resource_type,deleted_at FROM users WHERE is_deleted=TRUE UNION ALL SELECT"
+                + " document_id,CONCAT('user-',MD5(CAST(COALESCE(created_by,0) AS"
+                + " TEXT))),'knowledge_document',deleted_at FROM knowledge_documents WHERE is_deleted=TRUE"
+                + " UNION ALL SELECT food_log_id,CONCAT('user-',MD5(CAST(user_id AS"
+                + " TEXT))),'food_log',deleted_at FROM food_logs WHERE is_deleted=TRUE UNION ALL SELECT"
+                + " meal_plan_id,CONCAT('user-',MD5(CAST(user_id AS TEXT))),'meal_plan',deleted_at FROM"
+                + " meal_plans WHERE is_deleted=TRUE UNION ALL SELECT"
+                + " message_id,CONCAT('user-',MD5(CAST(created_by AS TEXT))),'message',deleted_at FROM"
+                + " messages WHERE is_deleted=TRUE) deleted_resources WHERE 1=1<if test='q.text !="
+                + " null and q.text != &quot;&quot;'> AND (resource_type ILIKE"
+                + " CONCAT('%',#{q.text},'%') OR owner_ref ILIKE CONCAT('%',#{q.text},'%'))</if><if"
+                + " test='q.resourceType != null and q.resourceType != &quot;&quot;'> AND"
+                + " resource_type=#{q.resourceType}</if><if test='q.from != null and q.from !="
+                + " &quot;&quot;'> AND deleted_at &gt;= CAST(#{q.from} AS TIMESTAMP)</if></script>")
     long countDeleted(@Param("q") Query query);
 
     @Select(
             "<script>SELECT"
-                    + " operator_id,action,target_type,target_id,result,request_id,trace_id,created_at"
-                    + " FROM operation_audits WHERE is_deleted=FALSE<if test='q.text != null and q.text"
-                    + " != &quot;&quot;'> AND (action ILIKE CONCAT('%',#{q.text},'%') OR target_type"
-                    + " ILIKE CONCAT('%',#{q.text},'%') OR target_id ILIKE"
-                    + " CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and q.status !="
-                    + " &quot;&quot;'> AND result=#{q.status}</if> ORDER BY <choose><when test=\"q.sort"
-                    + " == 'result'\">result</when><when test=\"q.sort =="
-                    + " 'action'\">action</when><otherwise>created_at</otherwise></choose>"
-                    + " <choose><when test=\"q.direction =="
-                    + " 'asc'\">ASC</when><otherwise>DESC</otherwise></choose>,operation_audit_id DESC"
-                    + " LIMIT #{q.limit} OFFSET #{q.offset}</script>")
+                + " operator_id,action,target_type,target_id,result,request_id,trace_id,created_at"
+                + " FROM operation_audits WHERE is_deleted=FALSE<if test='q.text != null and q.text"
+                + " != &quot;&quot;'> AND (action ILIKE CONCAT('%',#{q.text},'%') OR target_type"
+                + " ILIKE CONCAT('%',#{q.text},'%') OR target_id ILIKE"
+                + " CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and q.status !="
+                + " &quot;&quot;'> AND result=#{q.status}</if><if test='q.action != null and"
+                + " q.action != &quot;&quot;'> AND action=#{q.action}</if><if test='q.targetType !="
+                + " null and q.targetType != &quot;&quot;'> AND target_type=#{q.targetType}</if><if"
+                + " test='q.from != null and q.from != &quot;&quot;'> AND created_at &gt;="
+                + " CAST(#{q.from} AS TIMESTAMP)</if> ORDER BY <choose><when test=\"q.sort =="
+                + " 'result'\">result</when><when test=\"q.sort =="
+                + " 'action'\">action</when><otherwise>created_at</otherwise></choose>"
+                + " <choose><when test=\"q.direction =="
+                + " 'asc'\">ASC</when><otherwise>DESC</otherwise></choose>,operation_audit_id DESC"
+                + " LIMIT #{q.limit} OFFSET #{q.offset}</script>")
     List<OperationAuditRow> operationAudits(@Param("q") Query query);
 
     @Select(
             "<script>SELECT COUNT(*) FROM operation_audits WHERE is_deleted=FALSE<if test='q.text"
-                    + " != null and q.text != &quot;&quot;'> AND (action ILIKE"
-                    + " CONCAT('%',#{q.text},'%') OR target_type ILIKE CONCAT('%',#{q.text},'%') OR"
-                    + " target_id ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and"
-                    + " q.status != &quot;&quot;'> AND result=#{q.status}</if></script>")
+                + " != null and q.text != &quot;&quot;'> AND (action ILIKE"
+                + " CONCAT('%',#{q.text},'%') OR target_type ILIKE CONCAT('%',#{q.text},'%') OR"
+                + " target_id ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and"
+                + " q.status != &quot;&quot;'> AND result=#{q.status}</if><if test='q.action !="
+                + " null and q.action != &quot;&quot;'> AND action=#{q.action}</if><if"
+                + " test='q.targetType != null and q.targetType != &quot;&quot;'> AND"
+                + " target_type=#{q.targetType}</if><if test='q.from != null and q.from !="
+                + " &quot;&quot;'> AND created_at &gt;= CAST(#{q.from} AS TIMESTAMP)</if></script>")
     long countOperationAudits(@Param("q") Query query);
 
     @Select(

@@ -7,7 +7,9 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.account.enums.UserRole;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
+
 import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,13 +38,29 @@ public class AdminOperationalQueryController extends AuthenticatedControllerSupp
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String visibility,
             @RequestParam(required = false) String sort,
-            @RequestParam(defaultValue = "desc") String direction) {
+            @RequestParam(defaultValue = "desc") String direction,
+            @RequestParam(required = false) String role,
+            @RequestParam(name = "resource_type", required = false) String resourceType,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String action,
+            @RequestParam(name = "target_type", required = false) String targetType) {
         requireAnyRole(request, UserRole.ADMIN, UserRole.OPERATOR, UserRole.SUPERADMIN);
         var result =
                 queries.query(
                         resource,
                         new AdminOperationalQueryService.Request(
-                                page, size, query, status, visibility, sort, direction));
+                                page,
+                                size,
+                                query,
+                                status,
+                                visibility,
+                                sort,
+                                direction,
+                                role,
+                                resourceType,
+                                from,
+                                action,
+                                targetType));
         return ApiResponse.success(
                 AdminOperationalQueryResponse.from(resource, result),
                 TraceContextHolder.currentOrNew());

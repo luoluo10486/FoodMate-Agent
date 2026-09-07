@@ -13,7 +13,7 @@ import { adminOperationAuditRows, canViewAudit, statusTag } from './AdminShared'
 import {
   downloadAdminExport,
   loadAdminExportStatus,
-  loadAdminOperationAudits,
+  loadAdminOperationAuditsPage,
   requestAdminExport,
   type AdminExportStatus,
 } from '../../../services/adminService';
@@ -589,6 +589,7 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const mockRows = (adminOperationAuditRows as AuditSource[]).map(normalizeAuditRow);
   const [realRows, setRealRows] = useState<AuditRecord[]>([]);
+  const [totalRows, setTotalRows] = useState(isRealMode ? 0 : mockRows.length);
   const [loadError, setLoadError] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
   const [targetFilter, setTargetFilter] = useState('all');
@@ -651,11 +652,24 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
 
   useEffect(() => {
     if (!isRealMode) return;
-    loadAdminOperationAudits()
-      .then((items) => {
+    loadAdminOperationAuditsPage({
+      page,
+      size: pageSize,
+      query: query.trim() || undefined,
+      status: resultFilter,
+      action: actionFilter,
+      targetType: targetFilter,
+      from:
+        timeFilter === 'all'
+          ? undefined
+          : new Date(
+              Date.now() - (timeFilter === '24h' ? 1 : timeFilter === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+    })
+      .then((result) => {
         setLoadError('');
         setRealRows(
-          items.map((row, index) =>
+          result.items.map((row, index) =>
             normalizeAuditRow({
               ...row,
               key: `operation-${row.request_id || index}`,
@@ -663,12 +677,14 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
             }),
           ),
         );
+        setTotalRows(result.total);
       })
       .catch((error) => {
         setRealRows([]);
+        setTotalRows(0);
         setLoadError(error instanceof Error ? error.message : '操作审计加载失败');
       });
-  }, [isRealMode, refreshNonce]);
+  }, [actionFilter, isRealMode, page, query, refreshNonce, resultFilter, targetFilter, timeFilter]);
 
   const rows = isRealMode ? realRows : mockRows;
 
@@ -688,6 +704,7 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
   );
 
   const filteredRows = useMemo(() => {
+    if (isRealMode) return rows;
     const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((row) => {
       const searchable = [
@@ -711,13 +728,14 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
         (!normalizedQuery || searchable.includes(normalizedQuery))
       );
     });
-  }, [actionFilter, query, resultFilter, rows, targetFilter, timeFilter]);
+  }, [actionFilter, isRealMode, query, resultFilter, rows, targetFilter, timeFilter]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const resultCount = isRealMode ? totalRows : filteredRows.length;
+  const pageCount = Math.max(1, Math.ceil(resultCount / pageSize));
   const safePage = Math.min(page, pageCount);
-  const visibleRows = filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const rangeStart = filteredRows.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const rangeEnd = Math.min(safePage * pageSize, filteredRows.length);
+  const visibleRows = isRealMode ? filteredRows : filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const rangeStart = resultCount === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(safePage * pageSize, resultCount);
 
   const resetPage = (setter: (value: string) => void) => (value: string) => {
     setter(value);
@@ -866,7 +884,7 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
 
       <section className={styles.auditPagination} aria-label="操作审计分页">
         <span>
-          显示第 {rangeStart} 到 {rangeEnd} 条，共 {filteredRows.length} 条结果
+          显示第 {rangeStart} 到 {rangeEnd} 条，共 {resultCount} 条结果
         </span>
         <div className={styles.auditPageButtons}>
           <Button

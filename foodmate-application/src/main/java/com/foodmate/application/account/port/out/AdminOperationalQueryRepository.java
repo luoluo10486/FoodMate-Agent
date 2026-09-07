@@ -64,6 +64,11 @@ public interface AdminOperationalQueryRepository {
             String visibility,
             String sort,
             String direction,
+            String role,
+            String resourceType,
+            String from,
+            String action,
+            String targetType,
             int limit,
             int offset) {}
 
@@ -153,7 +158,9 @@ public interface AdminOperationalQueryRepository {
             Long resourceId,
             String ownerRef,
             Instant deletedAt,
-            String reason) {}
+            String reason,
+            boolean restorable,
+            long revision) {}
 
     record OperationAuditRow(
             Long operatorId,

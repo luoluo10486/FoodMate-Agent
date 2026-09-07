@@ -2405,3 +2405,15 @@
 | Java 验证 | `mvnw.cmd -pl foodmate-application,foodmate-shared,foodmate-infra -am -Dtest=AgentRunCommandServiceImplTest,MemoryCandidateServiceImplTest,V1RunCommandTest -Dsurefire.failIfNoSpecifiedTests=false test`：`15/15`，`BUILD SUCCESS`；验证状态字段进入 dispatch payload，摘要失效调用保持通过。 |
 | 数据与费用边界 | 未启动 Docker，未调用真实付费 Chat/Embedding，未执行迁移、数据库写入、性能压测、组件重启、ACK/重复投递故障注入、SSE 故障恢复、备份恢复或生产操作；未生成并提交 Python 缓存。 |
 | 结论 | R6 的业务代码和防御性上下文门禁完成；真实 PostgreSQL 跨进程修改/删除/过期回读证据按 R8 集中验收处理，不能由本轮定向测试替代。 |
+
+## D158 R7 管理端真实分页与服务端筛选（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；使用现有 Java/Maven Wrapper 和 `foodmate-ui` 项目依赖；未启动或重启 Docker 依赖。 |
+| 实现范围 | 管理端用户、知识库、软删除资源、操作审计使用真实分页查询；Run、Tool Call、SQL、Trace、DLQ 按当前页签按需请求；角色、资源类型、时间、动作和目标筛选下推服务端；软删除列表读取后端 `restorable/revision`。 |
+| 前端验证 | `foodmate-ui` 全量业务测试 `46` 个文件、`299 passed`；`npm.cmd run typecheck` 通过；`npm.cmd run build` 通过。 |
+| Java 验证 | `AdminOperationalQueryServiceImplTest` 定向测试 `9/9` 通过；受影响模块编译通过；本轮修改文件的 Spotless 检查通过。 |
+| 数据与安全边界 | 未修改 PostgreSQL、Redis、RocketMQ、Milvus、MinIO 或用户数据；真实模式继续不回退 fixture，查询结果只返回既有安全字段。 |
+| 未执行范围 | 未执行性能压测、长稳、组件重启、ACK 丢失、重复投递、SSE 故障恢复、备份恢复、生产部署或发布回滚；全模块 Spotless 的既有无关格式问题未在本轮扩大修复。 |
+| 结论 | R7 管理分页与服务端筛选业务门禁完成；R8 集中跨端验收、数据库人工迁移执行和生产级能力仍按计划后置。 |

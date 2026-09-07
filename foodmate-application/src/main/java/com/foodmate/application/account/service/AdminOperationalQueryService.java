@@ -25,13 +25,46 @@ public interface AdminOperationalQueryService {
             String status,
             String visibility,
             String sort,
-            String direction) {
+            String direction,
+            String role,
+            String resourceType,
+            String from,
+            String action,
+            String targetType) {
+        public Request(
+                int page,
+                int size,
+                String query,
+                String status,
+                String visibility,
+                String sort,
+                String direction) {
+            this(
+                    page,
+                    size,
+                    query,
+                    status,
+                    visibility,
+                    sort,
+                    direction,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
+        }
+
         public Request normalized() {
             int safePage = page < 1 ? 1 : Math.min(page, 1_000_000);
             int safeSize = size < 1 ? 20 : Math.min(size, 100);
             String safeQuery = normalize(query, 128);
             String safeStatus = normalize(status, 32);
             String safeVisibility = normalize(visibility, 32);
+            String safeRole = normalize(role, 32);
+            String safeResourceType = normalize(resourceType, 64);
+            String safeFrom = normalize(from, 40);
+            String safeAction = normalize(action, 64);
+            String safeTargetType = normalize(targetType, 64);
             String safeSort = normalize(sort, 32);
             if (safeSort != null) safeSort = safeSort.toLowerCase(Locale.ROOT);
             String safeDirection = normalize(direction, 4);
@@ -47,7 +80,12 @@ public interface AdminOperationalQueryService {
                     safeStatus,
                     safeVisibility,
                     safeSort,
-                    safeDirection == null ? "desc" : safeDirection.toLowerCase());
+                    safeDirection == null ? "desc" : safeDirection.toLowerCase(),
+                    safeRole,
+                    safeResourceType,
+                    safeFrom,
+                    safeAction,
+                    safeTargetType);
         }
 
         private static String normalize(String value, int maxLength) {
@@ -161,7 +199,9 @@ public interface AdminOperationalQueryService {
             Long resourceId,
             String ownerRef,
             Instant deletedAt,
-            String reason) {}
+            String reason,
+            boolean restorable,
+            long revision) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record OperationAudit(
