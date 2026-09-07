@@ -444,6 +444,7 @@ function PlanSidebar({
   onShoppingListChange?: (value: ShoppingList) => void;
 }) {
   const [updatingItemId, setUpdatingItemId] = useState<string>();
+  const [fixturePurchasedItems, setFixturePurchasedItems] = useState<Record<string, boolean>>({});
 
   const toggleShoppingItem = (item: ShoppingList['items'][number]) => {
     if (!plan || !item.shopping_list_item_id || !onShoppingListChange || updatingItemId) return;
@@ -453,6 +454,11 @@ function PlanSidebar({
       .then(onShoppingListChange)
       .catch(() => undefined)
       .finally(() => setUpdatingItemId(undefined));
+  };
+
+  const toggleFixtureShoppingItem = (itemKey: string, checked: boolean) => {
+    // Fixture 购物清单只维护当前页面的勾选状态，不伪造真实购物清单接口结果。
+    setFixturePurchasedItems((current) => ({ ...current, [itemKey]: checked }));
   };
 
   return (
@@ -528,11 +534,14 @@ function PlanSidebar({
               <h3>{group.label}</h3>
               <div className={styles.shoppingItems}>
                 {group.items.map((item) => (
-                  <div className={styles.shoppingRow} key={item}>
+                  <div className={styles.shoppingRow} key={`${group.label}-${item}`}>
                     <Checkbox
                       aria-label={item}
-                      checked={false}
+                      checked={fixturePurchasedItems[`${group.label}-${item}`] ?? false}
                       className={styles.shoppingCheckbox}
+                      onCheckedChange={(checked) =>
+                        toggleFixtureShoppingItem(`${group.label}-${item}`, checked === true)
+                      }
                     />
                     <span>{item}</span>
                   </div>

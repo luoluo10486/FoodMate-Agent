@@ -2663,3 +2663,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] Auth 控件基础设施仍使用 shadcn/Radix；既有 Figma SVG 资源路径保持不变。
 - [ ] 13 个 Auth 相关画板仍存在非零 diff，当前聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，本节不宣称像素级通过。
 - [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 2026-09-07 Meal Planning 基线与头像运行时复核
+
+本节只记录 Meal Planning Fixture 交互修复和默认头像运行时复核，不重新采集或验收全部 105 个画板。
+
+- [x] Fixture 购物清单 Checkbox 已恢复本地交互状态；真实计划分支继续调用既有购物清单更新接口。
+- [x] Chrome 实际检查四个本地开发端口 `5174/5175/5176/5177` 的 Workspace 页面，头像 DOM 均只发现 `/assets/avatars/default-male.svg`；没有发现人物 PNG/JPG、Figma MCP 人物资源或旧上传路径。
+- [x] 男性默认头像 `default-male.svg` SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性默认头像 `default-female.svg` SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 认证页 `*-user.svg` 只作为输入框前置装饰图标，不计入人物头像验收；真实模式上传头像仍受 `/api/users/me/avatar` 和 `blob:` 白名单控制。
+- [ ] 本节不改变 105 项视觉结论；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 仍为 `BLOCKED`。
