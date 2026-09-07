@@ -195,9 +195,15 @@ class ContextBuilder:
         ),
     }
 
-    def __init__(self, max_recent_messages: int = 8, max_context_tokens: int = 12000):
+    def __init__(
+        self,
+        max_recent_messages: int = 8,
+        max_context_tokens: int = 12000,
+        now_provider: Any = None,
+    ):
         self.max_recent_messages = max_recent_messages
         self.max_context_tokens = max_context_tokens
+        self._now_provider = now_provider or (lambda: datetime.now(timezone.utc))
 
     @staticmethod
     def _estimate_tokens(messages: tuple[dict[str, Any], ...], summary: dict[str, Any] | None, memories: tuple[dict[str, Any], ...], tool_results: tuple[dict[str, Any], ...] = ()) -> int:
@@ -220,6 +226,8 @@ class ContextBuilder:
             # 兼容只携带 memory_id 的旧回放事件；真实 Java 授权上下文必须带类型。
             if not memory_id or (memory_type and memory_type not in allowed_types):
                 continue
+            if self._memory_is_deleted(item) or not self._memory_is_current(item):
+                continue
             if item.get("confirmation_status") not in (None, "confirmed"):
                 continue
             dedup_key = (memory_type, memory_key or memory_id)
@@ -230,6 +238,34 @@ class ContextBuilder:
             if len(result) >= 8:
                 break
         return tuple(result)
+
+    @staticmethod
+    def _memory_is_deleted(item: dict[str, Any]) -> bool:
+        """删除标记只接受明确的真值，避免字符串 false 被 Python 当作真值。"""
+        value = item.get("is_deleted")
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        return str(value).strip().lower() in {"true", "1", "yes"}
+
+    def _memory_is_current(self, item: dict[str, Any]) -> bool:
+        """过期时间无法安全解析时拒绝注入，防止旧事实绕过 Java 过滤。"""
+        expires_at = item.get("expires_at")
+        if expires_at in (None, ""):
+            return True
+        if isinstance(expires_at, datetime):
+            parsed = expires_at
+        elif isinstance(expires_at, str):
+            try:
+                parsed = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            except ValueError:
+                return False
+        else:
+            return False
+        if parsed.tzinfo is None:
+            return False
+        return parsed.astimezone(timezone.utc) > self._now_provider().astimezone(timezone.utc)
 
     def build(self, command: dict[str, Any], route: RouteDecision) -> Context:
         authorized = command.get("authorized_context") or {}

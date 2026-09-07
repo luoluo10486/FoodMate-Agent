@@ -85,5 +85,19 @@ public interface AgentRunCommandRepository {
             String memoryKey,
             String memoryValue,
             java.math.BigDecimal confidence,
-            String scope) {}
+            String scope,
+            String confirmationStatus,
+            java.time.Instant expiresAt,
+            Boolean isDeleted) {
+        /** 保持本地测试适配器和旧调用方的构造兼容。 */
+        public MemoryContextRow(
+                String memoryId,
+                String memoryType,
+                String memoryKey,
+                String memoryValue,
+                java.math.BigDecimal confidence,
+                String scope) {
+            this(memoryId, memoryType, memoryKey, memoryValue, confidence, scope, null, null, null);
+        }
+    }
 }

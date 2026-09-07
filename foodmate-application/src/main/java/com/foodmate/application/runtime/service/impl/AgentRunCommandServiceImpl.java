@@ -195,7 +195,10 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                                                     memory.memoryKey(),
                                                     memory.memoryValue(),
                                                     memory.confidence(),
-                                                    memory.scope()))
+                                                    memory.scope(),
+                                                    memory.confirmationStatus(),
+                                                    memory.expiresAt(),
+                                                    memory.isDeleted()))
                             .toList();
             // 最近消息已经作为授权上下文随命令发送。不要再为同一份上下文创建 SQL
             // Proposal：messages 不属于 database_query 的业务 Catalog，且 Python 不应为上下文读取

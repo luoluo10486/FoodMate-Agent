@@ -107,7 +107,19 @@ class AgentRunCommandServiceImplTest {
                         List.of(
                                 new AgentRunCommandRepository.RecentMessageRow(
                                         "1", "user", "please arrange a meal plan", 1)));
-        when(store.memories(7L, "planning")).thenReturn(List.of());
+        when(store.memories(7L, "planning"))
+                .thenReturn(
+                        List.of(
+                                new AgentRunCommandRepository.MemoryContextRow(
+                                        "memory-1",
+                                        "preference",
+                                        "diet",
+                                        "{\"value\":\"low-salt\"}",
+                                        new BigDecimal("0.90"),
+                                        "user",
+                                        "confirmed",
+                                        Instant.parse("2026-12-01T00:00:00Z"),
+                                        false)));
         when(accounts.addMessage(anyLong(), anyLong(), anyString(), anyString(), any(), any()))
                 .thenReturn(
                         new UserAccountService.MessageRecord(
@@ -184,6 +196,9 @@ class AgentRunCommandServiceImplTest {
         assertTrue(payload.getValue().contains("\"provider_code\":\"cloud_primary\""));
         assertTrue(payload.getValue().contains("\"model_name\":\"deepseek-ai/DeepSeek-V4-Flash\""));
         assertTrue(payload.getValue().contains("\"price_version\":\"price-v1\""));
+        assertTrue(payload.getValue().contains("\"memory_id\":\"memory-1\""));
+        assertTrue(payload.getValue().contains("\"confirmation_status\":\"confirmed\""));
+        assertTrue(payload.getValue().contains("\"expires_at\":"));
     }
 
     private static AgentRunCommandServiceImpl service(

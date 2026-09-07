@@ -46,7 +46,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 | 营养语义索引 | 1,000 条 approved/official 目录已通过真实 Qwen Embedding 建立独立 Milvus 集合 `foodmate_nutrition_foods`；Runtime 营养检索只返回候选 ID，饮食写入和营养数值仍回源 PostgreSQL 精确匹配。 |
 | M1-5 写确认 | `meal_plan.save_plan` 和 `food_log_writer` 的 create/update/delete/restore 已完成 Proposal -> Confirm -> Execute；reject、failed、superseded、revision 冲突、失败回滚/审计和幂等重放已通过真实 PostgreSQL HTTP/RocketMQ 回归。 |
 | Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库已完成批量上传、异步索引、发布可见性和 `public_published` 安全引用。R5 进一步用 9 份正式资料完成主题覆盖审计和隔离 K2/local-stub 验收，生成 50 个 chunk；本轮未重建正式数据库批次、未写入 Milvus、未调用真实 Embedding。默认仍是 `deterministic:local`；2026-09-06 的 D134 已用当前配置完成一次 Docker 真实 Embedding + Milvus + Chat AgentRun 引用闭环。D114 的 HTTP 401 是历史凭据边界，不再代表当前凭据；两个 profile 仍使用独立 Milvus collection，长稳、正式价格审计和生产 RAG 治理仍未完成。 |
-| 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。一次性请求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
+| 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。修改、确认和删除会使摘要失效；Java 与 Python 共同过滤未确认、已删除、过期、来源被抑制的记忆，非法过期时间 fail-closed。一次性请求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
 | 恢复与 M1-6 本地门禁 | 已验证 Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启/Topic 初始化、双 JVM 有界读取和 Java 重启回读；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵仍未完成。 |
 | 前端 | G1-G6 页面代码边界、追问/确认/失败/取消/SSE 状态、真实管理查询和知识库批次/RAG 引用接入已完成；真实聊天历史会话现在会恢复最近 Run 并回放终态引用，新增定向测试通过。2026-09-06 G0 复核中，Vitest 单 worker 为 `43` 个测试文件、`264/264` 通过，typecheck 和 build 通过；D137 对 `RunsTab` 两个测试文件定向验证为 4/4 通过。 |
 | Java 回归 | 当前 Java 全量业务门禁、Spotless、ArchUnit 和 Alibaba 可执行规范子集均通过；HTTP 与 RocketMQ `food_log_writer` 回归各 11/11，包含官方 foodPortions 换算 matched/pending 数据库断言。具体运行批次和跳过项以 [`EXECUTION_RECORD.md`](./script/sql/FoodMate/EXECUTION_RECORD.md) 为准。 |
@@ -173,6 +173,12 @@ npm run dev
 - Java 对同一 `memory_type + memory_key` 的相同 JSON 做幂等去重，不同值写为 `conflict`；用户确认后同 key 其他活动值转为 `rejected`。手动修改要求 JSON 对象，并会触发摘要失效和重建边界。
 - Python ContextBuilder 和 Java 查询共同执行意图白名单、确认状态、未过期、未删除、来源抑制、最近 8 条消息及最多 8 条长期记忆约束。
 - K3 业务测试：Python `57 passed`；Java `16/16`；未执行真实云服务、性能压测、组件重启、ACK/重复投递故障矩阵或备份恢复。
+
+## 2026-09-07 R6 记忆修改后的下一轮生效
+
+- `V1RunCommand.MemoryContext` 和 Java AgentRun 查询结果携带确认状态、过期时间和删除标记；Java 仍是授权事实来源，Python 只做防御性收窄。
+- Runtime 对已删除、已过期和无法解析过期时间的记忆不注入 Context；过期边界使用受控时间验证，避免等待真实时间或暴露完整 Prompt。
+- Python 记忆上下文测试 `6/6`，Java Shared/Application/Infrastructure 定向测试和构建 `15/15` 通过；本轮未启动 Docker、未调用真实付费模型/Embedding、未执行数据库迁移或故障/性能测试。
 
 ## 2026-09-06 K5 SQL Agent 饮食分析覆盖
 

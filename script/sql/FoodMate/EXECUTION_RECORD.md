@@ -2394,3 +2394,14 @@
 | 业务测试 | R5 新增测试 `3 passed`；知识库既有 manifest/RAG/Worker 定向回归为 `72 passed`、`4` 个子断言通过；`git diff --check` 通过。 |
 | 数据与费用边界 | 本轮只在内存 stub 生成和检索 chunk；未写入 PostgreSQL、Redis、Milvus 或 RocketMQ，未执行真实数据库批次重索引，真实 Embedding 保持待授权；不涉及性能、重启、ACK/重复投递故障或生产验证。 |
 | 结论 | R5 的公共内容覆盖和 K2 local-stub 业务门禁完成；正式数据库旧批次不作为本轮 K2 证据，真实 Embedding/Milvus 重索引继续后置。 |
+
+## D157 R6 记忆修改后的下一轮生效（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 实现范围 | `V1RunCommand.MemoryContext` 和 Java AgentRun 授权查询携带 `confirmation_status`、`expires_at`、`is_deleted`；Java 继续过滤删除、未确认、过期、来源消息已删除和不匹配意图的记忆。Python `ContextBuilder` 再次过滤已删除、已过期和无法解析过期时间的记录。 |
+| 摘要失效 | 既有 `MemoryCandidateServiceImpl` 的修改、确认、删除路径均调用 `SessionSummaryService.invalidateForUser`；下一次 Run 重新查询授权上下文，不复用失效摘要。 |
+| Python 验证 | 使用 `agent-runtime\\.venv` 执行 `pytest agent-runtime\\tests\\test_memory_context.py agent-runtime\\tests\\test_runtime_server.py`：`61 passed`；覆盖修改后新事实保留、删除/过期/非法时间排除、过期边界、意图类型和重复 key。 |
+| Java 验证 | `mvnw.cmd -pl foodmate-application,foodmate-shared,foodmate-infra -am -Dtest=AgentRunCommandServiceImplTest,MemoryCandidateServiceImplTest,V1RunCommandTest -Dsurefire.failIfNoSpecifiedTests=false test`：`15/15`，`BUILD SUCCESS`；验证状态字段进入 dispatch payload，摘要失效调用保持通过。 |
+| 数据与费用边界 | 未启动 Docker，未调用真实付费 Chat/Embedding，未执行迁移、数据库写入、性能压测、组件重启、ACK/重复投递故障注入、SSE 故障恢复、备份恢复或生产操作；未生成并提交 Python 缓存。 |
+| 结论 | R6 的业务代码和防御性上下文门禁完成；真实 PostgreSQL 跨进程修改/删除/过期回读证据按 R8 集中验收处理，不能由本轮定向测试替代。 |

@@ -80,7 +80,10 @@ public interface AgentRunCommandMapper {
                    memory.memory_key AS memoryKey,
                    memory.memory_value::text AS memoryValue,
                    memory.confidence,
-                   memory.scope
+                   memory.scope,
+                   memory.confirmation_status AS confirmationStatus,
+                   memory.expires_at AS expiresAt,
+                   memory.is_deleted AS isDeleted
             FROM user_memories memory
             WHERE memory.user_id=#{userId}
               AND memory.is_deleted=FALSE
