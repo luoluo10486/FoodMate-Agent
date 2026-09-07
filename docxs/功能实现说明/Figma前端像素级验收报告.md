@@ -13,6 +13,15 @@
 - [x] 增量 diff 分别为 Workspace Home `11.8536% / MAE 3.031582 / RMSE 17.905353 / maxChannelDelta 252`、Agent Chat `12.0546% / MAE 2.988293 / RMSE 17.545000 / maxChannelDelta 236`，两项均为同尺寸 `COMPARED`，结论保持 `DIFF_REVIEW`。
 - [ ] 本批次没有重新采集其余 103 个画板；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 
+## 1.0.6 2026-09-07 默认头像来源白名单收口
+
+- [x] 默认头像仍为用户提供的 `default-male.svg` 与 `default-female.svg`；两份文件的 SHA-256 与附件登记值一致。
+- [x] 运行时头像解析只保留登记 SVG、后端 `/api/users/me/avatar` 和本地 `blob:` 预览；历史 `/uploads`、外部 CDN、Figma 人物资源和旧缓存不会进入人物头像 DOM。
+- [x] `AvatarImage` 的 Fixture 分支只接受 `DEFAULT_AVATARS` 中的两份登记 SVG；Workspace、Chat、Knowledge、Diet Records、Intake Analysis、Meal Planning、Profile 和 Admin 的 Fixture 常量均已回归校验。
+- [x] 只对 Workspace Home 和 Agent Chat 做增量 DOM 检查：5174/5175 两个开发服务的实际人物头像来源均为 `/assets/avatars/default-male.svg`；没有重新采集 105 个画板。
+- [x] 头像相关回归测试 `14/14` 通过，未新增或修改 Figma 画板截图证据。
+- [ ] 本增量只确认头像来源策略，不改变 105 项像素结论；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.0.4 2026-09-07 默认头像资源彻底隔离
 
 - [x] 男性和女性默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。

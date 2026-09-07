@@ -16,11 +16,21 @@ describe('avatar defaults', () => {
     expect(getDefaultAvatarForGender('female')).toBe(DEFAULT_AVATARS.female);
   });
 
-  it('does not guess an avatar for an unset gender and preserves uploaded avatars', () => {
+  it('does not guess an avatar for an unset gender and preserves trusted uploaded avatars', () => {
     expect(getDefaultAvatarForGender('-')).toBeUndefined();
-    expect(resolveAvatarUrl('/uploads/profile.png', '女')).toBe('/uploads/profile.png');
+    expect(resolveAvatarUrl('/api/users/me/avatar', '女')).toBe('/api/users/me/avatar');
+    expect(resolveAvatarUrl('/api/users/me/avatar?download=1', '男')).toBe('/api/users/me/avatar?download=1');
+    expect(resolveAvatarUrl('blob:http://localhost/avatar-preview', '女')).toBe('blob:http://localhost/avatar-preview');
     expect(resolveAvatarUrl('', '女')).toBe(DEFAULT_AVATARS.female);
     expect(resolveAvatarUrl('', '-')).toBe(DEFAULT_AVATARS.male);
+  });
+
+  it('replaces untrusted legacy image URLs with the gender-specific default', () => {
+    expect(resolveAvatarUrl('/uploads/profile.png', '女')).toBe(DEFAULT_AVATARS.female);
+    expect(resolveAvatarUrl('https://cdn.example.com/person.png', '男')).toBe(DEFAULT_AVATARS.male);
+    expect(resolveAvatarUrl('/.qa/figma-pixel-acceptance/legacy-avatars/profile/main-avatar.png', '女')).toBe(
+      DEFAULT_AVATARS.female,
+    );
   });
 
   it('replaces legacy Figma person assets with the registered gender defaults', () => {
@@ -56,16 +66,18 @@ describe('avatar defaults', () => {
   });
 
   it('uses the supplied SVG assets for all Figma fixture avatars', () => {
-    const maleFixtureAvatars = [
+    const fixtureAvatars = [
       ...Object.values(FIGMA_WORKSPACE_AVATARS),
       ...Object.values(FIGMA_KNOWLEDGE_AVATARS),
       ...Object.values(FIGMA_PROFILE_AVATARS),
       ...Object.values(FIGMA_ADMIN_AVATARS),
       FIGMA_CHAT_AVATARS.sidebar,
       FIGMA_CHAT_AVATARS.topbar,
+      FIGMA_CHAT_AVATARS.message,
     ];
 
-    expect(maleFixtureAvatars.every((avatar) => avatar === DEFAULT_AVATARS.male)).toBe(true);
+    expect(fixtureAvatars.every((avatar) => Object.values(DEFAULT_AVATARS).includes(avatar))).toBe(true);
+    expect(fixtureAvatars.filter((avatar) => avatar === DEFAULT_AVATARS.male).length).toBeGreaterThan(0);
     expect(FIGMA_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.female);
   });
 });

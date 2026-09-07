@@ -10,7 +10,7 @@ type AvatarImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
 
 /**
  * 统一渲染用户头像。
- * Fixture 模式只使用登记的默认 SVG，真实模式才允许展示用户明确上传的头像。
+ * Fixture 模式只使用登记的默认 SVG，真实模式只展示后端头像接口返回的上传头像或本地预览。
  */
 export function AvatarImage({ avatarUrl, gender, defaultOnly = false, onError, ...props }: AvatarImageProps) {
   const avatarKey = `${avatarUrl ?? ''}\u0000${gender ?? ''}\u0000${defaultOnly ? 'default-only' : 'uploaded-allowed'}`;
