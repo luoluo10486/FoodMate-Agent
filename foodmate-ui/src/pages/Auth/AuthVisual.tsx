@@ -10,12 +10,28 @@ type AuthShellStyle = CSSProperties & {
   '--auth-diagonal'?: string;
   '--auth-brand'?: string;
   '--auth-primary'?: string;
+  '--auth-card-width'?: string;
+  '--auth-card-radius'?: string;
+  '--auth-control-height'?: string;
+  '--auth-control-radius'?: string;
+  '--auth-primary-height'?: string;
+  '--auth-primary-radius'?: string;
+  '--auth-brand-size'?: string;
+  '--auth-brand-radius'?: string;
 };
 
 type AuthShellTokens = {
   diagonal: string;
   brand: string;
   primary: string;
+  cardWidth: string;
+  cardRadius: string;
+  controlHeight: string;
+  controlRadius: string;
+  primaryHeight: string;
+  primaryRadius: string;
+  brandSize: string;
+  brandRadius: string;
 };
 
 type AuthShellTokenVariant = Exclude<AuthVariant, 'login'>;
@@ -34,6 +50,14 @@ export function AuthShell({ variant, children }: { variant: AuthShellTokenVarian
     '--auth-diagonal': tokens.diagonal,
     '--auth-brand': tokens.brand,
     '--auth-primary': tokens.primary,
+    '--auth-card-width': tokens.cardWidth,
+    '--auth-card-radius': tokens.cardRadius,
+    '--auth-control-height': tokens.controlHeight,
+    '--auth-control-radius': tokens.controlRadius,
+    '--auth-primary-height': tokens.primaryHeight,
+    '--auth-primary-radius': tokens.primaryRadius,
+    '--auth-brand-size': tokens.brandSize,
+    '--auth-brand-radius': tokens.brandRadius,
   } as AuthShellStyle;
 
   return (

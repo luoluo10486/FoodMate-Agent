@@ -236,6 +236,12 @@ describe('authentication pages', () => {
       '--auth-diagonal': '#dfeedb',
       '--auth-brand': '#a6d997',
       '--auth-primary': '#a6d997',
+      '--auth-card-width': '460px',
+      '--auth-card-radius': '24px',
+      '--auth-control-height': '50px',
+      '--auth-control-radius': '12px',
+      '--auth-primary-height': '50px',
+      '--auth-primary-radius': '14px',
     });
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-leaf.svg"]')).toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-register-user.svg"]')).toBeInTheDocument();
@@ -330,6 +336,8 @@ describe('authentication pages', () => {
       '--auth-diagonal': '#c5f0d6',
       '--auth-brand': '#a6d997',
       '--auth-primary': '#48c78e',
+      '--auth-card-width': '440px',
+      '--auth-control-height': '50px',
     });
   });
 
@@ -356,6 +364,8 @@ describe('authentication pages', () => {
       '--auth-diagonal': '#c5f0d6',
       '--auth-brand': '#a6d997',
       '--auth-primary': '#48c78e',
+      '--auth-card-width': '460px',
+      '--auth-control-height': '50px',
     });
   });
 });

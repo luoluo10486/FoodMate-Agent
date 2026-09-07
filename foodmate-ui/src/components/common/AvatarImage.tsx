@@ -11,7 +11,11 @@ type AvatarImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
  * 有效的真实用户头像仍优先展示，加载失败后回退到项目登记的默认 SVG。
  */
 export function AvatarImage({ avatarUrl, gender, onError, ...props }: AvatarImageProps) {
-  const [failed, setFailed] = useState(false);
+  const avatarKey = `${avatarUrl ?? ''}\u0000${gender ?? ''}`;
+  const [failure, setFailure] = useState<{ key: string; failed: boolean }>({ key: avatarKey, failed: false });
+  // 按输入签名派生失败状态，地址或性别变化后无需通过 Effect 触发二次渲染。
+  const failed = failure.key === avatarKey && failure.failed;
+
   const source = resolveAvatarUrl(failed ? undefined : avatarUrl, gender);
 
   return (
@@ -19,7 +23,7 @@ export function AvatarImage({ avatarUrl, gender, onError, ...props }: AvatarImag
       {...props}
       src={source}
       onError={(event) => {
-        setFailed(true);
+        setFailure({ key: avatarKey, failed: true });
         onError?.(event);
       }}
     />

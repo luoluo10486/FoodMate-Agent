@@ -36,7 +36,8 @@ export const FIGMA_CHAT_AVATARS = {
 } as const;
 
 // 历史 Figma 导出的人物素材只用于设计证据，运行时不允许再次作为头像来源。
-const legacyFigmaAvatarPattern = /\/assets\/figma\/.*\/(?:[^/]*(?:avatar|user)[^/]*)\.(?:png|jpe?g|webp|svg)$/i;
+// 头像参数只要来自 Figma 资源域或本地 Figma 资源目录，就统一回退到登记的默认 SVG。
+const legacyFigmaAvatarPattern = /(?:\/assets\/figma\/|figma\.com\/api\/mcp\/asset\/)/i;
 
 export function getDefaultAvatarForGender(gender?: string): string | undefined {
   const normalized = gender?.trim().toLowerCase();

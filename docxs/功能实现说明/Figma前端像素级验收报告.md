@@ -1,8 +1,16 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-06
+更新时间：2026-09-07
 
-> 资源策略说明（2026-09-06）：本轮已将前端默认/fixture 人物头像统一切换为项目登记的 `default-male.svg` 与 `default-female.svg`。本报告及 `.qa/figma-pixel-acceptance/` 中已有的包含旧真人头像的 PNG 仍属于历史验收证据；本轮没有对 105 个画板全量复采集，因此相关 diff 不能用于证明头像策略变更后的最新像素结果。
+> 资源策略说明（2026-09-07）：前端默认/fixture 人物头像统一使用项目登记的 `default-male.svg` 与 `default-female.svg`。历史 Figma 真人 PNG 已从 `public/assets/figma/**` 移至 `.qa/figma-pixel-acceptance/legacy-avatars/`，仅作为验收证据保留，不再属于 Vite 可直接访问的运行时资源；认证页 `*-user.svg` 仍是输入框人物图标，不属于头像。由于本轮没有对 105 个画板全量复采集，旧 diff 不能用于证明头像策略变更后的最新像素结果。
+
+## 1.0.4 2026-09-07 默认头像资源彻底隔离
+
+- [x] 男性和女性默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] `resolveAvatarUrl` 拒绝所有本地 Figma 资源目录和 Figma MCP 资源 URL，不再依赖头像文件名是否包含 `avatar`、`user` 或 `profile`。
+- [x] 20 个历史 Figma 真人 PNG 已移至 `foodmate-ui/.qa/figma-pixel-acceptance/legacy-avatars/`；它们不再位于 `foodmate-ui/public/assets/figma/**`，不会被 Vite 作为运行时静态资源提供。
+- [x] 已同步更新头像解析回归断言，覆盖无头像、男女默认头像、真实上传头像、旧 Figma 路径和不带人物关键词的 Figma URL。
+- [ ] 本大点不重新采集全部 105 个画板；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 
 ## 1.0.3 2026-09-06 头像运行时统一渲染与回退收口
 
@@ -11,7 +19,7 @@
 - [x] 统一组件补充真实头像加载失败回退；Profile 不再渲染首字母，Admin Fixture 用户不再因空头像显示首字母。
 - [x] Chrome 实际检查 `/`、`/chat?state=figma-v2`、`/chat?state=write-confirmation`、`/chat?state=sse-reconnecting`、`/profile?state=basic`、`/admin?state=user-detail` 和 `/admin?state=overview`；头像 DOM 来源仅出现两份登记 SVG。
 - [x] 默认男性 SVG SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，默认女性 SVG SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`；`foodmate-ui/dist` 未发现旧 Figma 人物头像路径。
-- [x] 本大点统一验证通过：Vitest `44/44` 个测试文件、`274/274` 个用例，typecheck、lint、format、production build、Figma 证据结构校验和 `git diff --check` 均通过。
+- [x] 本大点统一验证通过：Vitest `44/44` 个测试文件、`275/275` 个用例，typecheck、lint、format、production build、Figma 证据结构校验和 `git diff --check` 均通过。
 - [ ] 本大点只确认运行时头像入口，没有重新采集全部 105 个画板；旧 PNG 仍仅作为历史 Figma/验收证据，105 项视觉聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 
 ## 1.0.1 2026-09-06 默认头像运行时资源收口
@@ -103,7 +111,7 @@
 | Knowledge Source Unavailable | `795:1151` | `/knowledge?state=source-unavailable` | `recaptured/dpr1-user-knowledge-source-unavailable-browser-2026-09-06.png` | `1440×1024 / 1` | 39.4018% | 1.575112 | 10.423397 | 204 | `DIFF_REVIEW` |
 
 - [x] Knowledge fixture 已通过 `FigmaWorkspaceAsset` 使用独立 `foodmate-ui/public/assets/figma/workspace/knowledge/` SVG 目录，避免把其它工作台画板资源混入当前页面。
-- [x] 新增 `foodmate-ui/public/assets/figma/knowledge/sidebar-avatar.png` 和 `topbar-avatar.png`，分别对应 Figma 侧栏和顶栏示例头像。
+- [x] Knowledge 历史 Figma 侧栏头像和顶栏头像已归档到 `foodmate-ui/.qa/figma-pixel-acceptance/legacy-avatars/knowledge/`；当前运行时统一使用登记的男性 SVG。
 - [x] 三项浏览器截图均使用 Chrome `152.0.7977.77`、`1440×1024`、DPR `1`、字体加载完成且无横向溢出；三项 mapping、diff JSON 和运行时记录已同步到 2026-09-06。
 - [x] 本批次统一门禁通过：Vitest `40/40` 个测试文件、`257/257` 个用例，`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check`。
 - [ ] 三项自动 diff 均为非零，且人工复核确认字体、头像、图标和浏览器光栅化差异仍存在，全部继续保持 `DIFF_REVIEW`，不能标记像素级 `PASS`。
@@ -748,8 +756,8 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 ## 53. 2026-08-23 餐食规划列表顶部头像资源复核
 
-- [x] 实时读取 Figma `692:2662` 的原始图片资产，确认顶部用户头像应使用 Figma 返回的男性肖像，而不是旧的渐变字标图；新增本地资源 `foodmate-ui/public/assets/figma/planning/meal-plan-list-topbar-avatar.png`。
-- [x] `/planning?state=list` 浏览器实测顶部头像 `src` 为 `/assets/figma/planning/meal-plan-list-topbar-avatar.png`，图片加载完成；Figma 设计稿未修改，业务默认头像资源未改写。
+- [x] 实时读取 Figma `692:2662` 的原始图片资产，确认顶部用户头像曾使用 Figma 返回的男性肖像；该历史素材现已归档到 `foodmate-ui/.qa/figma-pixel-acceptance/legacy-avatars/planning/meal-plan-list-topbar-avatar.png`。
+- [x] `/planning?state=list` 当前运行时顶部头像统一使用 `/assets/avatars/default-male.svg`；历史 Figma 人物素材仅保留在验收证据目录，Figma 设计稿未修改。
 - [x] 当前浏览器 RGBA 证据为 `foodmate-ui/.qa/figma-pixel-acceptance/meal-plan-list-browser-current-rgba.png`，PNG diff 为 `28.3485% / MAE 3.9456 / RMSE 19.3731`，保持 `DIFF_REVIEW`。
 - [ ] 卡片几何、内容密度、字体和图标光栅化仍需继续验收；iconfont 实体资源继续为 `BLOCKED`。
 
@@ -1977,7 +1985,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | Intake Analysis | `640:773` | `/analysis?state=v2` | `1440×1024 / 1` | `7.5430%` | `2.004188` | `14.243366` | `211` | `DIFF_REVIEW` |
 | Meal Planning | `640:901` | `/planning?state=v2` | `1440×1024 / 1` | `10.8512%` | `1.887898` | `12.687881` | `204` | `DIFF_REVIEW` |
 
-- [x] 三个 fixture 统一使用 `FIGMA_WORKSPACE_AVATARS`：侧栏为 `/assets/figma/workspace/home-sidebar-avatar.png`，顶栏为 `/assets/figma/workspace/home-topbar-avatar.png`；未使用真人默认头像，未创建虚构 iconfont 字形。
+- [x] 三个 fixture 统一使用 `FIGMA_WORKSPACE_AVATARS`：侧栏和顶栏均为 `/assets/avatars/default-male.svg`；历史真人 PNG 已归档，未创建虚构 iconfont 字形。
 - [x] 三个主画板浏览器 PNG 均在字体加载完成、页面无横向溢出和 DPR 1 条件下重新登记；尺寸均为 `1440×1024`，自动 diff 输入有效。
 - [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 已同步本批次证据；全量汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [x] 本大点完成后集中执行四个直接相关测试文件，共 `29/29` 个用例通过；`npm run typecheck`、`npm run build`、`npm run lint`、`npm run format:check`、`npm run qa:figma:validate` 和 `git diff --check` 均通过。
@@ -2295,7 +2303,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 | Admin Knowledge Size Error | `997:160` | `/admin?state=knowledge-size-error` | `dpr1-admin-knowledge-size-error-browser-2026-09-06.png` | `1440×1024 / 1` | 59.9767% | 2.552692 | 13.012652 | 204 | `DIFF_REVIEW` |
 
 - [x] 21 项浏览器证据均由 Chrome `152.0.7977.77` 在 `1440×1024`、DPR `1`、字体 `loaded` 和无横向溢出条件下采集；浏览器 PNG、运行时检查和 `figma-105-diff-results.json` 已同步到 `2026-09-06` 证据路径。
-- [x] 新增资源 `foodmate-ui/public/assets/figma/admin/admin-sidebar-avatar.png` 的 SHA-256 为 `EC63D2CDB253B2E58A36075163731E98F7CD3032BB50C0DC94F22BBC339F45AF`。
+- [x] 历史资源 `foodmate-ui/.qa/figma-pixel-acceptance/legacy-avatars/admin/admin-sidebar-avatar.png` 的 SHA-256 为 `EC63D2CDB253B2E58A36075163731E98F7CD3032BB50C0DC94F22BBC339F45AF`，仅用于验收证据；运行时 Admin 头像使用登记的男性 SVG。
 - [x] 新增资源 `foodmate-ui/public/assets/figma/admin/overview/copy.svg` 的 SHA-256 为 `C23E71416B45E9528A605ECD8CA8D2029CB2D0DE09AEBBD09285C78792CB6F5E`；User Detail 使用的 Figma 用户头像继续沿用既有登记。
 - [x] Admin 资源接入没有创建虚构 iconfont 字体、glyph 或 Unicode 映射；标准命令图标继续使用 Lucide 或已登记的 Figma SVG 资源。
 - [ ] 21 项自动 diff 均为非零差异，不能标记为像素级 `PASS`；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
@@ -2582,4 +2590,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 16 个 Figma PNG 和 16 个浏览器 PNG 均存在且尺寸一致；mapping、diff JSON 和人工复核字段已同步，自动 diff、几何检查、文字检查和人工视觉结论均可追溯。
 - [x] 人工复核确认主要结构、状态语义和交互入口存在；弹层位置/尺寸、字体光栅化、头像、遮罩和局部颜色仍存在差异，因此全部保持 `DIFF_REVIEW`。
 - [ ] 本节不代表其余画板重新采集或完成 105 项全量人工视觉复核；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍未提供，继续保持 `BLOCKED`。
+# 2026-09-07 认证 Token 与头像运行时隔离增量记录
+
+本节只记录 Auth Token 和头像解析层的增量变更，不重新验收全部 105 个画板，Figma 文件保持只读。
+
+- [x] 已通过 Figma 设计转代码上下文读取节点 `647:214`、`680:216`、`680:275`、`680:307`、`680:738`、`680:757`、`680:776`，确认认证页面的 `#ffd6e0` 背景、对应斜切层色值、`Noto Sans SC`、`Montserrat Black`、卡片宽度、控件高度和圆角。
+- [x] Login 节点的动画上下文已读取：总时长 `4500ms`、循环模式 `loop`；代码继续使用现有 GSAP 时间线，未重新创建另一套动效，也未修改 Figma。
+- [x] Auth 页面 Token 已集中注入 CSS 自定义属性；Register/Forgot/Reset/Token 的卡片、控件、主按钮和品牌标记尺寸由对应 Figma variant 驱动。
+- [x] 头像解析现在同时拦截本地 `/assets/figma/**` 人物素材和绝对 Figma MCP 人物资源；真实模式的 `foodmate_auth_user` 本地缓存读取也会重新归一化，避免旧缓存导致页面继续显示历史真人头像。
+- [x] `AvatarImage` 地址或性别变化时会清除上一地址的失败状态；失败回退仍使用 `default-male.svg` 或 `default-female.svg`。
+- [ ] 本节没有重新采集全部画板；105 项汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，后续只复采集受本批次影响的画板。
 - [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍未提供，继续保持 `BLOCKED`。

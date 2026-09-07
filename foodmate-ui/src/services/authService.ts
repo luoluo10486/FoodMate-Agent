@@ -1,5 +1,6 @@
 import { mockAuthStatus, mockAuthUser, mockLoginDefaults, mockAuthScenarios } from '../mock/auth';
 import type { AuthUser, LoginFormValues } from '../mock/auth';
+import { resolveAvatarUrl } from '../lib/avatar';
 import { apiRequest } from './apiClient';
 
 export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'forbidden';
@@ -29,7 +30,11 @@ export function getAuthStatus(): AuthStatus {
 export function getAuthUser(): AuthUser {
   if (import.meta.env.VITE_AGENT_MODE === 'real') {
     const saved = localStorage.getItem('foodmate_auth_user');
-    if (saved) return JSON.parse(saved) as AuthUser;
+    if (saved) {
+      const user = JSON.parse(saved) as AuthUser;
+      // 本地缓存可能来自旧版本 Fixture，读取时也必须经过统一头像解析层。
+      return { ...user, avatarUrl: resolveAvatarUrl(user.avatarUrl, user.gender) };
+    }
   }
   return mockAuthUser;
 }
@@ -43,7 +48,7 @@ function toAuthUser(data: AuthResponse | CurrentUserResponse): AuthUser {
     email: 'email' in data ? data.email : mockAuthUser.email,
     role: data.role as AuthUser['role'],
     status: 'status' in data ? data.status : 'active',
-    avatarUrl: 'avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl,
+    avatarUrl: resolveAvatarUrl('avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl, mockAuthUser.gender),
   };
 }
 
