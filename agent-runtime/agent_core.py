@@ -523,8 +523,10 @@ class DeterministicComposer:
             "fat_g": "脂肪（g）",
             "carbs_g": "碳水（g）",
             "occurrence_count": "出现次数",
-            "completion_ratio": "计划生命周期完成度",
-            "missing_item_groups": "待确认购物清单数",
+            "executable_meal_count": "可执行餐次数",
+            "completed_meal_count": "已完成餐次数",
+            "completion_ratio": "实际执行完成度",
+            "pending_item_count": "待购买项数量",
         }
         metrics = "、".join(
             metric_labels.get(str(item), str(item)) for item in plan.get("metrics") or ()
@@ -560,15 +562,34 @@ class DeterministicComposer:
             )
             return f"时间范围：{range_text}。统计口径：按有效饮食明细计数。结果：{details}。"
         if intent == "meal_plan_completion":
-            details = "、".join(
-                f"{str(row.get('plan_name') or row.get('meal_plan_id') or '未命名计划')}"
-                f" {float(row.get('completion_ratio', 0)) * 100:g}%"
-                for row in rows[:6]
+            details = []
+            for row in rows[:6]:
+                executable = int(float(row.get("executable_meal_count") or 0))
+                completed = int(float(row.get("completed_meal_count") or 0))
+                ratio_value = row.get("completion_ratio")
+                ratio = (
+                    float(ratio_value)
+                    if ratio_value is not None
+                    else (completed / executable if executable else 0.0)
+                )
+                details.append(
+                    f"{str(row.get('plan_name') or row.get('meal_plan_id') or '未命名计划')} "
+                    f"{completed}/{executable} 餐，{ratio * 100:g}%"
+                )
+            return (
+                "统计口径：实际执行完成度=已关联有效饮食记录的餐次数/可执行餐次数；"
+                "计划生命周期状态不代表执行完成度。结果："
+                + "、".join(details)
+                + "。"
             )
-            return f"统计口径：计划状态完成度（已保存 100%、已校验 50%、草稿 0%）。结果：{details}。"
         if intent == "shopping_list_missing":
-            pending = sum(int(row.get("missing_item_groups") or 0) for row in rows)
-            return f"统计口径：未确认清单视为待处理清单。结果：{pending} 个清单仍有待确认项。"
+            pending = sum(int(float(row.get("pending_item_count") or 0)) for row in rows)
+            if pending == 0:
+                return "统计口径：只统计购物清单中 purchased=false 的未勾选项，不代表真实库存。结果：没有未勾选的购物项。"
+            return (
+                "统计口径：只统计购物清单中 purchased=false 的未勾选项，不代表真实库存。"
+                f"结果：共有 {pending} 个待购买项。"
+            )
         safe_rows = json.dumps(rows[:20], ensure_ascii=False, separators=(",", ":"), default=str)
         if len(safe_rows) > 2_000:
             safe_rows = safe_rows[:2_000] + "..."

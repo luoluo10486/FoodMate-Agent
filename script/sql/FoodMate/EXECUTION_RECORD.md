@@ -2368,3 +2368,15 @@
 | 迁移边界 | 已创建 `migration/V36__m2_6_plan_execution_and_shopping_items.sql`、对应 `validation` 和 `rollback` 前置检查；当前任务未执行 PostgreSQL 迁移、未清理现有数据，待人工按项目迁移流程执行并复核。 |
 | 其他边界 | 未启动或重启 Docker 依赖，未执行性能压测、ACK/重复投递故障注入、SSE 故障恢复、备份恢复、生产验证或真实付费模型调用；保留工作区其他用户改动。 |
 | 结论 | R3 业务代码、API 契约和前端主路径已通过定向验证；数据库真实运行证据不在本轮完成判定内，R4 及后续业务项继续按计划推进。 |
+
+## D155 R4 SQL Agent 实际执行统计口径（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 实现范围 | 计划完成度改为 `meal_plan_meals` 可执行餐次与有效 `food_logs.meal_plan_meal_id` 已完成餐次的 `COUNT(DISTINCT ...)` 比值；购物缺项改为 `shopping_list_items.purchased=false` 的未勾选条目数量；Java Catalog 加入计划餐次、购物项和饮食记录关联字段。 |
+| Java 守卫 | 左连接右表的 `is_deleted/user_id` 条件注入到 `ON`，保留零完成餐次和零待购项的主表行；参数顺序按最终 SQL 文本保持绑定一致。 |
+| SQL Agent 业务验证 | `agent-runtime` 使用项目 Python 解释器执行 SQL Planner `18/18`、Tool/Composer `15/15`，均通过；未调用真实 Chat/Embedding。 |
+| Java 业务验证 | `mvnw.cmd -pl foodmate-application -am test "-Dtest=SqlSchemaCatalogServiceTest,JSqlParserQueryGuardTest,SqlQueryPlanValidatorTest" "-Dsurefire.failIfNoSpecifiedTests=false"`：`16/16` 通过，`BUILD SUCCESS`。 |
+| SQL 文件 | 新增 `seed/V37__m2_6_sql_agent_execution_catalog_seed.sql` 和 `validation/V37__m2_6_sql_agent_execution_catalog_validation.sql`；只登记 Catalog 字段，不修改旧 seed、业务数据或迁移历史。 |
+| 未执行范围 | V36/V37 尚未在当前 PostgreSQL 人工执行；未进行真实 AgentRun -> Java SQL 执行 -> 审计 -> SSE 跨进程联调，未启动 Docker，未执行性能、重启、ACK 丢失、重复投递或生产验证。 |
+| 结论 | R4 代码和业务契约验证完成；R8 集中验收仍需真实数据库结构和跨进程证据，不能将本轮定向测试写成真实数据库闭环。 |

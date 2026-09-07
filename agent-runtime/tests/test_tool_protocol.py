@@ -293,6 +293,69 @@ class ToolProtocolTests(unittest.TestCase):
         self.assertIn("没有找到该食材", answer)
         self.assertNotIn("0 次", answer)
 
+    def test_analysis_composer_reports_execution_completion_and_pending_items(self):
+        composer = DeterministicComposer()
+        base_context = {
+            "messages": ({"message_id": "m-analysis"},),
+            "summary": None,
+            "memories": (),
+            "unresolved_slots": (),
+            "sources": {
+                "message_id": ("m-analysis",),
+                "summary_id": (),
+                "memory_id": (),
+                "citation_id": (),
+                "invocation_id": ("inv-db",),
+            },
+        }
+        route = DeterministicRouter().route("查看我的餐食计划完成度")
+        plan_context = Context(
+            **base_context,
+            tool_results=(
+                {
+                    "tool_name": "database_query",
+                    "status": "succeeded",
+                    "rows": [
+                        {
+                            "plan_name": "本周计划",
+                            "executable_meal_count": 3,
+                            "completed_meal_count": 1,
+                            "completion_ratio": 1 / 3,
+                        }
+                    ],
+                },
+            ),
+            analysis_plan={
+                "intent": "meal_plan_completion",
+                "metrics": ["executable_meal_count", "completed_meal_count", "completion_ratio"],
+                "dimensions": [],
+            },
+        )
+        answer = composer.compose("查看我的餐食计划完成度", route, plan_context, "normal")
+        self.assertIn("1/3 餐", answer)
+        self.assertIn("实际执行完成度", answer)
+        self.assertNotIn("已保存 100%", answer)
+
+        shopping_route = DeterministicRouter().route("查看购物清单缺项")
+        shopping_context = Context(
+            **base_context,
+            tool_results=(
+                {
+                    "tool_name": "database_query",
+                    "status": "succeeded",
+                    "rows": [{"pending_item_count": 2}],
+                },
+            ),
+            analysis_plan={
+                "intent": "shopping_list_missing",
+                "metrics": ["pending_item_count"],
+                "dimensions": [],
+            },
+        )
+        shopping_answer = composer.compose("查看购物清单缺项", shopping_route, shopping_context, "normal")
+        self.assertIn("2 个待购买项", shopping_answer)
+        self.assertIn("不代表真实库存", shopping_answer)
+
     def test_planning_route_builds_validator_proposal_from_authorized_plan(self):
         route = DeterministicRouter().route("计划 1 天的三餐")
         plan = {

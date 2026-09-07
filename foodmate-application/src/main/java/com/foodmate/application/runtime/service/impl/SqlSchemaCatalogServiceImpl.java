@@ -26,7 +26,9 @@ public class SqlSchemaCatalogServiceImpl implements SqlSchemaCatalogService {
                     "food_logs", Scope.USER,
                     "food_log_items", Scope.USER_VIA_FOOD_LOG,
                     "meal_plans", Scope.USER,
+                    "meal_plan_meals", Scope.USER,
                     "shopping_lists", Scope.USER,
+                    "shopping_list_items", Scope.USER,
                     "nutrition_foods", Scope.PUBLIC,
                     "knowledge_documents", Scope.TENANT);
 

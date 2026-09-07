@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.BooleanValue;
@@ -186,6 +187,8 @@ public class JSqlParserQueryGuard implements SqlQueryGuard {
             long trustedUserId,
             Set<String> cteNames) {
         Expression predicate = plain.getWhere();
+        List<Object> joinParameters = new ArrayList<>();
+        List<Object> whereParameters = new ArrayList<>();
         for (Table source : sourceTables) {
             String sourceName = normalize(source.getUnquotedName());
             if (sourceName == null || cteNames.contains(sourceName)) continue;
@@ -195,22 +198,24 @@ public class JSqlParserQueryGuard implements SqlQueryGuard {
                 throw new BusinessException(ErrorCode.SQL_SCHEMA_DENIED);
             String qualifier =
                     source.getAlias() == null ? source.getName() : source.getAlias().getName();
-            predicate =
-                    and(
-                            predicate,
-                            new EqualsTo(
-                                    new Column(new Table(qualifier), "is_deleted"),
-                                    new BooleanValue(false)));
+            Join leftJoin = leftJoinFor(plain, source);
+            List<Object> scopeParameters = leftJoin == null ? whereParameters : joinParameters;
+            Expression deletedPredicate =
+                    new EqualsTo(
+                            new Column(new Table(qualifier), "is_deleted"),
+                            new BooleanValue(false));
+            if (leftJoin == null) predicate = and(predicate, deletedPredicate);
+            else leftJoin.setOnExpression(and(leftJoin.getOnExpression(), deletedPredicate));
             if (table.scope() == Scope.USER) {
                 if (!index.hasField(table, "user_id"))
                     throw new BusinessException(ErrorCode.SQL_SCHEMA_DENIED);
-                predicate =
-                        and(
-                                predicate,
-                                new EqualsTo(
-                                        new Column(new Table(qualifier), "user_id"),
-                                        new JdbcParameter()));
-                parameters.add(trustedUserId);
+                Expression userPredicate =
+                        new EqualsTo(
+                                new Column(new Table(qualifier), "user_id"),
+                                new JdbcParameter());
+                if (leftJoin == null) predicate = and(predicate, userPredicate);
+                else leftJoin.setOnExpression(and(leftJoin.getOnExpression(), userPredicate));
+                scopeParameters.add(trustedUserId);
             } else if (table.scope() == Scope.USER_VIA_FOOD_LOG) {
                 if (!index.hasField(table, "food_log_id")
                         || !hasFoodLogParentJoin(plain, source, sourceTables, index))
@@ -218,15 +223,17 @@ public class JSqlParserQueryGuard implements SqlQueryGuard {
             } else if (table.scope() == Scope.TENANT) {
                 if (!index.hasField(table, "tenant_id"))
                     throw new BusinessException(ErrorCode.SQL_SCHEMA_DENIED);
-                predicate =
-                        and(
-                                predicate,
-                                new EqualsTo(
-                                        new Column(new Table(qualifier), "tenant_id"),
-                                        new JdbcParameter()));
-                parameters.add(0L);
+                Expression tenantPredicate =
+                        new EqualsTo(
+                                new Column(new Table(qualifier), "tenant_id"),
+                                new JdbcParameter());
+                if (leftJoin == null) predicate = and(predicate, tenantPredicate);
+                else leftJoin.setOnExpression(and(leftJoin.getOnExpression(), tenantPredicate));
+                scopeParameters.add(0L);
             }
         }
+        parameters.addAll(joinParameters);
+        parameters.addAll(whereParameters);
         plain.setWhere(predicate);
         if (plain.getLimit() == null)
             plain.setLimit(
@@ -235,6 +242,26 @@ public class JSqlParserQueryGuard implements SqlQueryGuard {
         else if (plain.getLimit().getRowCount() == null
                 || !isBoundedLimit(plain.getLimit().getRowCount()))
             throw new BusinessException(ErrorCode.SQL_GUARD_DENIED);
+    }
+
+    /** 将右表范围条件放入左连接的 ON，保留零完成餐次和零待购项的主表结果。 */
+    private static Join leftJoinFor(PlainSelect plain, Table source) {
+        if (plain.getJoins() == null) return null;
+        return plain.getJoins().stream()
+                .filter(
+                        join ->
+                                join.isLeft()
+                                        && join.getRightItem() instanceof Table right
+                                        && sameTable(right, source))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static boolean sameTable(Table left, Table right) {
+        return normalize(left.getUnquotedName()).equals(normalize(right.getUnquotedName()))
+                && Objects.equals(
+                        normalize(left.getAlias() == null ? null : left.getAlias().getName()),
+                        normalize(right.getAlias() == null ? null : right.getAlias().getName()));
     }
 
     private static boolean hasFoodLogParentJoin(
