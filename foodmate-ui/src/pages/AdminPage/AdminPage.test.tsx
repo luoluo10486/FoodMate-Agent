@@ -87,6 +87,14 @@ describe('AdminPage overview', () => {
     expect(document.querySelectorAll('[data-figma-asset="admin-overview-copy"]')).toHaveLength(6);
   });
 
+  it('keeps the mock admin shell on the registered default avatar when stale user data exists', () => {
+    renderAdmin();
+
+    const avatar = document.querySelector('.userAvatar img');
+    expect(avatar).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(avatar).toHaveAttribute('data-avatar-policy', 'default-only');
+  });
+
   it('uses the registered Figma filter icons while preserving shadcn Select behavior', () => {
     renderAdmin();
 

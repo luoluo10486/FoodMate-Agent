@@ -2622,3 +2622,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 六页运行时 DOM 未出现 `/assets/figma/**`、Figma MCP 资源或其他人物图片地址；Figma 历史真人素材仅保留在 `.qa/figma-pixel-acceptance/legacy-avatars/` 验收目录。
 - [x] 修正女性消息头像的性别参数和页面级断言，断言现在区分共享壳层男性账号头像与状态页消息头像，不再错误要求整页所有头像都必须是同一性别。
 - [ ] 该复核不改变像素差异结论；105 项仍为 `DIFF_REVIEW`，不因头像资源替换标记为 `PASS`。
+
+## 2026-09-07 默认头像运行时策略补强
+
+本次只补强 Mock/Fixture 的运行时头像来源，不重新采集全部 105 个画板。真实模式中用户明确上传的头像仍属于业务资源，不按默认头像替换规则处理。
+
+- [x] Workspace、Profile 和 Admin 的非真实模式现在统一使用 `default-only`，旧缓存头像和历史 Figma 人物 URL 不会进入默认壳层。
+- [x] 默认人物资源固定为 `default-male.svg` 与 `default-female.svg`；资源 SHA-256 分别为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D` 和 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 页面级回归断言覆盖共享 Workspace 壳层、Admin 默认壳层和历史上传 URL 被拦截的场景。
+- [ ] 本次不把默认头像资源替换误写成像素级通过；105 项聚合继续保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 仍保持 `BLOCKED`，不使用未登记的字体、glyph 或 Unicode 映射。
