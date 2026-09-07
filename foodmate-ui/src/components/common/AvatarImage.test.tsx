@@ -49,12 +49,12 @@ describe('AvatarImage', () => {
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
   });
 
-  it('preserves an explicitly registered female Fixture asset even with a male account gender', () => {
+  it('uses the gender-matched default when a Fixture override has the wrong gender', () => {
     const { container } = render(
       <AvatarImage avatarUrl="/assets/avatars/default-female.svg" defaultOnly gender="男" alt="头像" />,
     );
 
-    expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+    expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
   });
 
   it('always uses a registered default for a design Chat fixture', () => {

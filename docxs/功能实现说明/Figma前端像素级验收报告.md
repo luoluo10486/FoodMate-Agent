@@ -22,6 +22,15 @@
 - [x] 头像相关回归测试 `14/14` 通过，未新增或修改 Figma 画板截图证据。
 - [ ] 本增量只确认头像来源策略，不改变 105 项像素结论；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 
+## 1.0.7 2026-09-07 默认头像性别匹配收口
+
+- [x] `AvatarImage` 的 Fixture/默认头像分支现在只依据账号性别选择登记的男性或女性 SVG；即使调用方传入另一性别的默认 SVG，也会在 DOM 输出前归一化为匹配性别的资源。
+- [x] 真实用户主动上传头像的接口和本地预览路径未改变；这类头像不属于默认头像，加载失败仍按性别回退到登记 SVG。
+- [x] 认证页的 `foodmate-*-user.svg` 是输入框内 18×18 用户线性图标，不是人物头像；该资源继续保留用于 Figma 输入控件视觉还原。
+- [x] `AvatarImage.test.tsx` 与 `avatar.test.ts` 定向测试为 `2/2` 文件、`14/14` 用例通过，`npm run typecheck` 和 `git diff --check` 通过。
+- [x] 浏览器实际检查 `/?state=figma-v2` 与 `/chat?state=safety-degraded`：男性工作台头像和女性安全降级消息头像均来自本批次登记的 SVG；未新增截图或改变 Figma 画板。
+- [ ] 本批次只复核头像运行时入口，不重新采集全部 105 个画板；全量视觉聚合继续保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.0.4 2026-09-07 默认头像资源彻底隔离
 
 - [x] 男性和女性默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
