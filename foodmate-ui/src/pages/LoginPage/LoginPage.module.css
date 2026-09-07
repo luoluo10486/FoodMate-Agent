@@ -624,7 +624,7 @@
   height: var(--auth-brand-size, 40px);
   border-radius: var(--auth-brand-radius, 10px);
   background: var(--auth-brand);
-  box-shadow: 0 4px 4px rgb(72 199 142 / 25%);
+  box-shadow: var(--fm-auth-brand-shadow);
   color: #ffffff;
 }
 
@@ -732,10 +732,10 @@
 
 .authInput {
   height: var(--auth-control-height, 50px) !important;
-  border: 1.5px solid #ffffff !important;
+  border: 1.5px solid var(--fm-auth-form-control-border) !important;
   border-radius: var(--auth-control-radius, 12px) !important;
   background: var(--fm-auth-control) !important;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 10%) !important;
+  box-shadow: var(--fm-auth-form-control-shadow) !important;
   color: #333333 !important;
   font-family: var(--fm-font);
   font-size: 14px !important;
@@ -749,7 +749,7 @@
 .authInput:focus-visible {
   border-color: rgb(255 255 255 / 90%) !important;
   box-shadow:
-    0 2px 6px rgb(0 0 0 / 10%),
+    var(--fm-auth-form-control-shadow),
     0 0 0 2px rgb(72 199 142 / 24%) !important;
 }
 
@@ -759,7 +759,7 @@
   border: 1.5px solid var(--auth-primary);
   border-radius: var(--auth-primary-radius, 14px);
   background: var(--auth-primary);
-  box-shadow: 0 6px 6px rgb(72 199 142 / 25%);
+  box-shadow: var(--fm-auth-primary-shadow);
   color: #ffffff;
   font-family: var(--fm-font);
   font-size: 16px;

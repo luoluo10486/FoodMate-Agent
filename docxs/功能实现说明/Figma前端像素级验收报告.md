@@ -2644,3 +2644,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 相关测试共 `52/52` 个用例通过，类型、格式和定向 lint 检查纳入本大点验收。
 - [ ] 本节不改变 Figma 像素结论；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] iconfont 仍为 `BLOCKED`，不使用未登记的实体字体、glyph 或 Unicode 映射。
+
+## 2026-09-07 Auth 页面组语义 Token 收口
+
+本节只记录 Auth 页面组的语义 Token 收口，不重新采集或人工验收全部 105 个画板，Figma 文件保持只读。
+
+- [x] 已重新读取并依据节点 `647:214`、`680:216`、`680:275`、`680:307` 和 `680:738` 核对认证页背景、控件边框、控件阴影、品牌标记阴影和主操作阴影。
+- [x] `foodmate-ui/src/styles/tokens.css` 新增认证表单控件和品牌/主操作阴影语义 Token，`LoginPage.module.css` 通过 Token 使用这些已核对值；没有引入现有页面反推的视觉值。
+- [x] Auth 控件基础设施仍使用 shadcn/Radix；既有 Figma SVG 资源路径保持不变。
+- [ ] 13 个 Auth 相关画板仍存在非零 diff，当前聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，本节不宣称像素级通过。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
