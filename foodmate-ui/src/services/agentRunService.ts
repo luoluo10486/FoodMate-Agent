@@ -50,6 +50,8 @@ export type AgentStreamOptions = {
   onError?: (connection: AgentStreamConnection) => void;
 };
 
+const terminalEventTypes = new Set(['run.completed', 'run.failed', 'run.cancelled', 'run.superseded']);
+
 const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
 
 export function openAgentRunStream(
@@ -101,7 +103,8 @@ export function openAgentRunStream(
     if (closed || terminal) return;
     const lastEventId = connection.lastEventId;
     const suffix = lastEventId ? `?lastEventId=${encodeURIComponent(lastEventId)}` : '';
-    publishState(connection.attempt === 1 ? 'connecting' : 'reconnecting');
+    const nextState = connection.attempt === 1 ? 'connecting' : 'reconnecting';
+    if (connection.state !== nextState) publishState(nextState);
     const nextSource = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream${suffix}`, {
       withCredentials: true,
     });
@@ -120,10 +123,13 @@ export function openAgentRunStream(
         const eventId = message.lastEventId || payload.sse_event_id || payload.event_id || '';
         if (eventId && seen.has(eventId)) return;
         if (eventId) seen.add(eventId);
-        if (eventId && eventId !== connection.lastEventId) connection = { ...connection, lastEventId: eventId };
+        if (eventId && eventId !== connection.lastEventId) {
+          // 游标变化也必须通知页面，保证连接状态面板和下一次续接使用同一份 ID。
+          publishState(connection.state, { lastEventId: eventId });
+        }
         const eventType = payload.event_type || registeredType;
         onEvent(eventType, payload, eventId);
-        if (['run.completed', 'run.failed', 'run.cancelled', 'run.superseded'].includes(eventType)) {
+        if (terminalEventTypes.has(eventType)) {
           terminal = true;
           closeSource();
           publishState('closed');
@@ -131,13 +137,15 @@ export function openAgentRunStream(
       });
     }
     nextSource.onerror = () => {
-      if (closed || terminal) return;
+      // EventSource 在 close 后仍可能派发一次异步 error，不能为旧连接再安排重连。
+      if (closed || terminal || source !== nextSource) return;
       closeSource();
       if (connection.attempt >= maxAttempts) {
         publishState('exhausted');
         options.onError?.(connection);
         return;
       }
+      if (reconnectTimer !== undefined) return;
       const attempt = connection.attempt + 1;
       publishState('reconnecting', { attempt });
       reconnectTimer = window.setTimeout(() => {
@@ -148,6 +156,8 @@ export function openAgentRunStream(
     };
   };
 
+  // 建立 EventSource 前先发布初始连接状态，页面可以立即显示连接中的运行态。
+  options.onStateChange?.(connection);
   connect();
   return { close, getConnection: () => connection };
 }

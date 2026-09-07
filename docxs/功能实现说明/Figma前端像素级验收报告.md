@@ -2632,3 +2632,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 页面级回归断言覆盖共享 Workspace 壳层、Admin 默认壳层和历史上传 URL 被拦截的场景。
 - [ ] 本次不把默认头像资源替换误写成像素级通过；105 项聚合继续保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] iconfont 仍保持 `BLOCKED`，不使用未登记的字体、glyph 或 Unicode 映射。
+
+## 2026-09-07 Agent SSE 连接生命周期补强
+
+本节记录前端 SSE 生命周期代码和交互证据，不重新采集全部 105 个画板，Figma 文件保持只读，后端 SSE 协议保持不变。
+
+- [x] 连接状态、重连次数、最大尝试次数和最新事件游标均通过 `AgentStreamConnection` 回调进入 Chat 页面。
+- [x] 浏览器事件 ID优先使用 `MessageEvent.lastEventId`，兼容 `sse_event_id`/`event_id`，相同事件 ID不会重复追加文本；重连时通过 `lastEventId` 续接。
+- [x] 四种运行终态关闭 EventSource；旧连接延迟 error、重复重连计时器、页面卸载和会话切换均有定向回归覆盖。
+- [x] 重连耗尽显示专用稳定错误提示，保留已接收内容并移除重复通用错误提示；用户取消先关闭 SSE，取消接口成功后才显示 `cancelled`。
+- [x] 相关测试共 `52/52` 个用例通过，类型、格式和定向 lint 检查纳入本大点验收。
+- [ ] 本节不改变 Figma 像素结论；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 仍为 `BLOCKED`，不使用未登记的实体字体、glyph 或 Unicode 映射。

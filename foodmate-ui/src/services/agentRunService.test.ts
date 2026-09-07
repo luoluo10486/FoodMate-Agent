@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { AgentStreamConnection } from '../types/agent';
 import { openAgentRunStream } from './agentRunService';
 
 class FakeEventSource {
@@ -95,6 +96,37 @@ describe('openAgentRunStream', () => {
     expect(FakeEventSource.instances[1].url).toContain('lastEventId=message-id');
     expect(stream.getConnection().lastEventId).toBe('message-id');
     stream.close();
+  });
+
+  it('publishes the latest event cursor through the connection callback', () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const states: AgentStreamConnection[] = [];
+    openAgentRunStream('42', () => undefined, {
+      onStateChange: (connection) => states.push(connection),
+    });
+
+    const source = FakeEventSource.instances[0];
+    source.open();
+    source.emit('run.answer_stream', { sse_event_id: 'evt-7', text: '部分文本' });
+
+    expect(states.at(-1)).toMatchObject({ state: 'connected', lastEventId: 'evt-7' });
+  });
+
+  it('ignores a delayed error from an obsolete EventSource', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const stream = openAgentRunStream('42', () => undefined, { reconnectDelayMs: 10, maxAttempts: 3 });
+    const first = FakeEventSource.instances[0];
+
+    first.fail();
+    vi.advanceTimersByTime(10);
+    const second = FakeEventSource.instances[1];
+    first.fail();
+    vi.advanceTimersByTime(10);
+
+    expect(FakeEventSource.instances).toHaveLength(2);
+    second.fail();
+    expect(stream.getConnection().attempt).toBe(3);
   });
 
   it.each(['run.failed', 'run.cancelled', 'run.superseded'])(

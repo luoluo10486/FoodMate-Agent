@@ -3,7 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatPage } from './ChatPage';
 
-const { loadSessionMessages, openAgentRunStream } = vi.hoisted(() => ({
+const { cancelAgentRun, loadSessionMessages, openAgentRunStream } = vi.hoisted(() => ({
+  cancelAgentRun: vi.fn(),
   loadSessionMessages: vi.fn(),
   openAgentRunStream: vi.fn(),
 }));
@@ -17,7 +18,7 @@ vi.mock('../../services/agentRunService', async () => {
   const actual = await vi.importActual<typeof import('../../services/agentRunService')>(
     '../../services/agentRunService',
   );
-  return { ...actual, openAgentRunStream };
+  return { ...actual, cancelAgentRun, openAgentRunStream };
 });
 
 vi.mock('../../services/authService', async () => {
@@ -47,6 +48,7 @@ vi.mock('../../services/authService', async () => {
 describe('ChatPage 真实历史会话回放', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
+    cancelAgentRun.mockReset();
     loadSessionMessages.mockReset();
     openAgentRunStream.mockReset();
     openAgentRunStream.mockImplementation((_runId: string, onEvent: (type: string, payload: unknown) => void) => {
@@ -146,5 +148,120 @@ describe('ChatPage 真实历史会话回放', () => {
     view.unmount();
 
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it('完成终态回放后不会因为刷新消息重新建立同一条 SSE 订阅', async () => {
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        role: 'user',
+        content: '请继续分析。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+        agent_run_id: 'run-1',
+      },
+    ]);
+    openAgentRunStream.mockImplementation((_runId: string, onEvent: (type: string, payload: unknown) => void) => {
+      onEvent('run.completed', { event_type: 'run.completed', answer: '已完成分析。' });
+      return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(loadSessionMessages).toHaveBeenCalledTimes(2));
+    expect(openAgentRunStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('用户停止真实运行时先关闭 SSE，取消接口成功后再展示 cancelled 状态', async () => {
+    const close = vi.fn();
+    cancelAgentRun.mockResolvedValue(undefined);
+    openAgentRunStream.mockImplementation(
+      (
+        _runId: string,
+        onEvent: (type: string, payload: unknown) => void,
+        options: { onStateChange?: (connection: { state: string; attempt: number; maxAttempts: number }) => void },
+      ) => {
+        options.onStateChange?.({ state: 'connected', attempt: 1, maxAttempts: 5 });
+        onEvent('run.answer_stream', { event_type: 'run.answer_stream', text: '已接收部分回答' });
+        return { close, getConnection: () => ({ state: 'connected', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        role: 'user',
+        content: '请继续分析。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+        agent_run_id: 'run-1',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole('button', { name: '停止生成' })).toBeInTheDocument());
+    screen.getByRole('button', { name: '停止生成' }).click();
+
+    expect(close).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('run-1'));
+    expect(screen.getByRole('button', { name: '发送消息' })).toBeInTheDocument();
+  });
+
+  it('SSE 重连耗尽后展示稳定错误且不再保持生成态', async () => {
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        role: 'user',
+        content: '请继续分析。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+        agent_run_id: 'run-1',
+      },
+    ]);
+    openAgentRunStream.mockImplementation(
+      (
+        _runId: string,
+        _onEvent: (type: string, payload: unknown) => void,
+        options: {
+          onStateChange?: (connection: { state: string; attempt: number; maxAttempts: number }) => void;
+          onError?: (connection: { state: string; attempt: number; maxAttempts: number }) => void;
+        },
+      ) => {
+        const exhausted = { state: 'exhausted', attempt: 5, maxAttempts: 5 } as const;
+        options.onStateChange?.(exhausted);
+        options.onError?.(exhausted);
+        return { close: vi.fn(), getConnection: () => exhausted };
+      },
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalled());
+    expect(await screen.findByRole('alert')).toHaveTextContent('连接重试已耗尽');
+    expect(screen.getByRole('button', { name: '发送消息' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '停止生成' })).not.toBeInTheDocument();
   });
 });
