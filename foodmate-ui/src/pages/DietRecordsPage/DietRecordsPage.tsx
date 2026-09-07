@@ -32,6 +32,7 @@ import {
   updateFoodLog,
   type FoodLog,
 } from '../../services/foodLogService';
+import { searchNutritionFoods, type NutritionFoodCandidate } from '../../services/nutritionFoodService';
 import type { SessionSummary } from '../../types/session';
 import styles from './DietRecordsPage.module.css';
 
@@ -336,6 +337,10 @@ export function DietRecordsPage() {
   const [foodName, setFoodName] = useState('');
   const [foodAmount, setFoodAmount] = useState('1');
   const [foodUnit, setFoodUnit] = useState('份');
+  const [nutritionFoodId, setNutritionFoodId] = useState<string>();
+  const [nutritionCandidates, setNutritionCandidates] = useState<NutritionFoodCandidate[]>([]);
+  const [nutritionCandidatesLoading, setNutritionCandidatesLoading] = useState(false);
+  const [nutritionCandidatesError, setNutritionCandidatesError] = useState<string>();
   const [deletedLogs, setDeletedLogs] = useState<FoodLog[]>([]);
   const [deletedLoading, setDeletedLoading] = useState(false);
   const [deletedError, setDeletedError] = useState<string>();
@@ -381,6 +386,9 @@ export function DietRecordsPage() {
     setFoodName('');
     setFoodAmount('1');
     setFoodUnit('份');
+    setNutritionFoodId(undefined);
+    setNutritionCandidates([]);
+    setNutritionCandidatesError(undefined);
   };
 
   const openEditDialog = (logId: string) => {
@@ -391,8 +399,12 @@ export function DietRecordsPage() {
     setEditingLogId(log.food_log_id);
     setDialogMealId(log.meal_type as MealSection['id']);
     setFoodName(firstItem.raw_name);
+    setNutritionFoodId(firstItem.nutrition_food_id ?? undefined);
     setFoodAmount(String(firstItem.amount));
     setFoodUnit(firstItem.unit);
+    setNutritionFoodId(undefined);
+    setNutritionCandidates([]);
+    setNutritionCandidatesError(undefined);
   };
 
   const closeFoodDialog = () => {
@@ -402,6 +414,46 @@ export function DietRecordsPage() {
     setFoodName('');
     setFoodAmount('1');
     setFoodUnit('份');
+    setNutritionFoodId(undefined);
+    setNutritionCandidates([]);
+    setNutritionCandidatesError(undefined);
+  };
+
+  useEffect(() => {
+    if (!isRealMode || dialogMealId == null || foodName.trim().length < 2) {
+      setNutritionCandidates([]);
+      setNutritionCandidatesError(undefined);
+      setNutritionCandidatesLoading(false);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setNutritionCandidatesLoading(true);
+      setNutritionCandidatesError(undefined);
+      void searchNutritionFoods(foodName.trim())
+        .then((candidates) => {
+          if (active) setNutritionCandidates(candidates);
+        })
+        .catch((cause) => {
+          if (active) {
+            setNutritionCandidates([]);
+            setNutritionCandidatesError(cause instanceof Error ? cause.message : '营养候选加载失败');
+          }
+        })
+        .finally(() => {
+          if (active) setNutritionCandidatesLoading(false);
+        });
+    }, 300);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [dialogMealId, foodName, isRealMode]);
+
+  const selectNutritionCandidate = (candidate: NutritionFoodCandidate) => {
+    setNutritionFoodId(candidate.nutrition_food_id);
+    setFoodName(candidate.chinese_name?.trim() || candidate.standard_name);
+    setNotice(`已选择${candidate.chinese_name?.trim() || candidate.standard_name}，保存时将按目录营养值计算。`);
   };
 
   const addFood = () => {
@@ -424,8 +476,18 @@ export function DietRecordsPage() {
           notes: current.notes ?? undefined,
           items: current.items.map((item, index) =>
             index === 0
-              ? { raw_name: name, amount, unit }
-              : { raw_name: item.raw_name, amount: asNumber(item.amount), unit: item.unit },
+              ? {
+                  raw_name: name,
+                  amount,
+                  unit,
+                  ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
+                }
+              : {
+                  raw_name: item.raw_name,
+                  amount: asNumber(item.amount),
+                  unit: item.unit,
+                  ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
+                },
           ),
         })
           .then((updated) => {
@@ -441,7 +503,14 @@ export function DietRecordsPage() {
       void createFoodLog({
         meal_time: new Date(dialogDate).toISOString(),
         meal_type: dialogMealId,
-        items: [{ raw_name: name, amount, unit }],
+        items: [
+          {
+            raw_name: name,
+            amount,
+            unit,
+            ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
+          },
+        ],
       })
         .then((created) => {
           setRealLogs((current) => [...current, created]);
@@ -942,11 +1011,42 @@ export function DietRecordsPage() {
             placeholder="例如：煮鸡蛋 2 个"
             aria-label="食物名称"
             value={foodName}
-            onChange={(event) => setFoodName(event.target.value)}
+            onChange={(event) => {
+              setFoodName(event.target.value);
+              setNutritionFoodId(undefined);
+            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') addFood();
             }}
           />
+          {isRealMode ? (
+            <div className={styles.nutritionCandidates} aria-label="营养目录候选">
+              {nutritionCandidatesLoading ? <p>正在查找营养目录…</p> : null}
+              {nutritionCandidatesError ? <p role="alert">{nutritionCandidatesError}</p> : null}
+              {!nutritionCandidatesLoading && !nutritionCandidatesError && nutritionCandidates.length > 0 ? (
+                <ul>
+                  {nutritionCandidates.map((candidate) => (
+                    <li key={candidate.nutrition_food_id}>
+                      <Button
+                        type="button"
+                        variant={nutritionFoodId === candidate.nutrition_food_id ? 'secondary' : 'ghost'}
+                        onClick={() => selectNutritionCandidate(candidate)}
+                      >
+                        <span>{candidate.chinese_name?.trim() || candidate.standard_name}</span>
+                        <small>
+                          {candidate.food_form || '未标注形态'} · {candidate.basis_unit} · {candidate.source_name || '目录来源未知'}
+                        </small>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {!nutritionCandidatesLoading && !nutritionCandidatesError && foodName.trim().length >= 2 && nutritionCandidates.length === 0 ? (
+                <p>没有可靠候选，保存后会标记为待确认，不会猜测营养值。</p>
+              ) : null}
+              {nutritionFoodId ? <p>已选择明确营养目录，服务端将按目录和单位换算计算。</p> : null}
+            </div>
+          ) : null}
           <Input
             type="number"
             min="0.001"

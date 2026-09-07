@@ -145,7 +145,7 @@ public interface FoodLogMapper {
             @Param("includeDeleted") boolean includeDeleted);
 
     @Select(
-            "SELECT i.food_log_item_id AS foodLogItemId,i.item_order AS itemOrder,i.raw_name AS rawName,i.amount,i.unit,i.nutrition_status AS nutritionStatus,i.calories_kcal AS caloriesKcal,i.protein_g AS proteinG,i.fat_g AS fatG,i.carbs_g AS carbsG FROM food_log_items i WHERE i.food_log_id=#{foodLogId} AND i.is_deleted=FALSE ORDER BY i.item_order")
+            "SELECT i.food_log_item_id AS foodLogItemId,i.item_order AS itemOrder,i.raw_name AS rawName,i.nutrition_food_id AS nutritionFoodId,i.amount,i.unit,i.nutrition_status AS nutritionStatus,i.calories_kcal AS caloriesKcal,i.protein_g AS proteinG,i.fat_g AS fatG,i.carbs_g AS carbsG FROM food_log_items i WHERE i.food_log_id=#{foodLogId} AND i.is_deleted=FALSE ORDER BY i.item_order")
     List<FoodLogItemSnapshot> findItems(long foodLogId);
 
     @Update(

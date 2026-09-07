@@ -174,13 +174,39 @@ public interface FoodLogRepository {
             long foodLogItemId,
             int itemOrder,
             String rawName,
+            Long nutritionFoodId,
             BigDecimal amount,
             String unit,
             String nutritionStatus,
             BigDecimal caloriesKcal,
             BigDecimal proteinG,
             BigDecimal fatG,
-            BigDecimal carbsG) {}
+            BigDecimal carbsG) {
+        public FoodLogItemSnapshot(
+                long foodLogItemId,
+                int itemOrder,
+                String rawName,
+                BigDecimal amount,
+                String unit,
+                String nutritionStatus,
+                BigDecimal caloriesKcal,
+                BigDecimal proteinG,
+                BigDecimal fatG,
+                BigDecimal carbsG) {
+            this(
+                    foodLogItemId,
+                    itemOrder,
+                    rawName,
+                    null,
+                    amount,
+                    unit,
+                    nutritionStatus,
+                    caloriesKcal,
+                    proteinG,
+                    fatG,
+                    carbsG);
+        }
+    }
 
     record IdempotencyRecord(String parametersDigest, String result, String responseJson) {}
 }

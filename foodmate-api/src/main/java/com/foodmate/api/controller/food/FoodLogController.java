@@ -140,6 +140,9 @@ public class FoodLogController extends AuthenticatedControllerSupport {
                                                 Long.toString(item.foodLogItemId()),
                                                 item.itemOrder(),
                                                 item.rawName(),
+                                                item.nutritionFoodId() == null
+                                                        ? null
+                                                        : Long.toString(item.nutritionFoodId()),
                                                 item.amount(),
                                                 item.unit(),
                                                 item.nutritionStatus(),

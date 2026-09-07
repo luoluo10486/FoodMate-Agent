@@ -675,6 +675,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                                                 item.foodLogItemId(),
                                                 item.itemOrder(),
                                                 item.rawName(),
+                                                item.nutritionFoodId(),
                                                 item.amount(),
                                                 item.unit(),
                                                 item.nutritionStatus(),

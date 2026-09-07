@@ -26,11 +26,37 @@ public record FoodLogResponse(
             String foodLogItemId,
             int itemOrder,
             String rawName,
+            String nutritionFoodId,
             BigDecimal amount,
             String unit,
             String nutritionStatus,
             BigDecimal caloriesKcal,
             BigDecimal proteinG,
             BigDecimal fatG,
-            BigDecimal carbsG) {}
+            BigDecimal carbsG) {
+        public Item(
+                String foodLogItemId,
+                int itemOrder,
+                String rawName,
+                BigDecimal amount,
+                String unit,
+                String nutritionStatus,
+                BigDecimal caloriesKcal,
+                BigDecimal proteinG,
+                BigDecimal fatG,
+                BigDecimal carbsG) {
+            this(
+                    foodLogItemId,
+                    itemOrder,
+                    rawName,
+                    null,
+                    amount,
+                    unit,
+                    nutritionStatus,
+                    caloriesKcal,
+                    proteinG,
+                    fatG,
+                    carbsG);
+        }
+    }
 }
