@@ -100,7 +100,8 @@ const figmaUserRows: AdminUserView[] = [
     status: 'active',
     avatarUrl: '',
     phone: '-',
-    gender: '-',
+    // Figma fixture 的女性示例必须明确性别，才能使用登记的女性默认头像。
+    gender: '女',
     heightCm: 0,
     weightKg: 0,
     activityLevel: '-',
@@ -126,7 +127,7 @@ const figmaUserRows: AdminUserView[] = [
     status: 'disabled',
     avatarUrl: '',
     phone: '-',
-    gender: '-',
+    gender: '男',
     heightCm: 0,
     weightKg: 0,
     activityLevel: '-',

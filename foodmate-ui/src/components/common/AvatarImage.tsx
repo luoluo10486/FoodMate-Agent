@@ -1,5 +1,5 @@
 import { useState, type ImgHTMLAttributes } from 'react';
-import { resolveAvatarUrl } from '../../lib/avatar';
+import { DEFAULT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
 
 type AvatarImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
   avatarUrl?: string;
@@ -17,11 +17,18 @@ export function AvatarImage({ avatarUrl, gender, onError, ...props }: AvatarImag
   const failed = failure.key === avatarKey && failure.failed;
 
   const source = resolveAvatarUrl(failed ? undefined : avatarUrl, gender);
+  const sourceKind =
+    source === DEFAULT_AVATARS.female
+      ? 'default-female'
+      : source === DEFAULT_AVATARS.male
+        ? 'default-male'
+        : 'uploaded';
 
   return (
     <img
       {...props}
       src={source}
+      data-avatar-source={sourceKind}
       onError={(event) => {
         setFailure({ key: avatarKey, failed: true });
         onError?.(event);

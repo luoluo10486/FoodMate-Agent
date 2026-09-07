@@ -46,6 +46,15 @@ describe('avatar defaults', () => {
     expect(resolveAvatarUrl('https://www.figma.com/api/mcp/asset/abc123/image.png', 'male')).toBe(DEFAULT_AVATARS.male);
   });
 
+  it('replaces URL-encoded Figma asset paths before they reach the DOM', () => {
+    expect(resolveAvatarUrl('https://www.figma.com/api/mcp/asset%2Favatar-person.png', 'female')).toBe(
+      DEFAULT_AVATARS.female,
+    );
+    expect(resolveAvatarUrl('/assets%252Ffigma%252Fprofile%252Favatar-person.png', 'female')).toBe(
+      DEFAULT_AVATARS.female,
+    );
+  });
+
   it('uses the supplied SVG assets for all Figma fixture avatars', () => {
     const maleFixtureAvatars = [
       ...Object.values(FIGMA_WORKSPACE_AVATARS),

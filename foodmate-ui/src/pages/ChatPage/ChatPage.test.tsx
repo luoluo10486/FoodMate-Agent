@@ -260,6 +260,7 @@ describe('ChatPage Agent remaining states', () => {
       '/assets/avatars/default-male.svg',
     );
     expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-female');
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {

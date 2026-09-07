@@ -4,6 +4,15 @@
 
 > 资源策略说明（2026-09-07）：前端默认/fixture 人物头像统一使用项目登记的 `default-male.svg` 与 `default-female.svg`。历史 Figma 真人 PNG 已从 `public/assets/figma/**` 移至 `.qa/figma-pixel-acceptance/legacy-avatars/`，仅作为验收证据保留，不再属于 Vite 可直接访问的运行时资源；认证页 `*-user.svg` 仍是输入框人物图标，不属于头像。由于本轮没有对 105 个画板全量复采集，旧 diff 不能用于证明头像策略变更后的最新像素结果。
 
+## 1.0.5 2026-09-07 默认头像二次编码拦截与增量证据
+
+- [x] `default-male.svg` 与 `default-female.svg` 已分别与用户附件逐字节核对，SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D` 和 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] `resolveAvatarUrl` 最多解码三层后再判断 Figma 本地资源目录和 MCP 资源域，避免缓存或路由参数的重复编码绕过头像策略；真实用户上传头像仍保留。
+- [x] 本地运行时头像入口继续统一经过 `AvatarImage`/`resolveAvatarUrl`；旧人物 PNG 只存在于 `.qa/figma-pixel-acceptance/legacy-avatars/`，不再是 Vite 可访问资源。
+- [x] 只对受影响的 Workspace Home `640:256` 和 Agent Chat `640:428` 增量采集浏览器证据：`recaptured/dpr1-workspace-home-v2-browser-2026-09-07.png` 与 `recaptured/dpr1-agent-chat-v2-browser-2026-09-07.png`。
+- [x] 增量 diff 分别为 Workspace Home `11.8536% / MAE 3.031582 / RMSE 17.905353 / maxChannelDelta 252`、Agent Chat `12.0546% / MAE 2.988293 / RMSE 17.545000 / maxChannelDelta 236`，两项均为同尺寸 `COMPARED`，结论保持 `DIFF_REVIEW`。
+- [ ] 本批次没有重新采集其余 103 个画板；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.0.4 2026-09-07 默认头像资源彻底隔离
 
 - [x] 男性和女性默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
