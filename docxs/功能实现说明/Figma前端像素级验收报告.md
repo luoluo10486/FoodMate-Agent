@@ -2673,3 +2673,15 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 男性默认头像 `default-male.svg` SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性默认头像 `default-female.svg` SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
 - [x] 认证页 `*-user.svg` 只作为输入框前置装饰图标，不计入人物头像验收；真实模式上传头像仍受 `/api/users/me/avatar` 和 `blob:` 白名单控制。
 - [ ] 本节不改变 105 项视觉结论；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 仍为 `BLOCKED`。
+
+## 2026-09-07 Meal Planning 向导单列结构增量复核
+
+本节只复核 Figma 节点 `692:2801`、`692:2934`、`692:3078` 对应的向导布局，以及同一页面组的冲突、购物清单和生成中运行时入口；没有重新采集或验收全部 105 个画板。
+
+- [x] Fixture 和真实模式向导均已移除 Figma 不包含的右侧校验面板；`wizardGrid` 改为单列居中，桌面卡片按 Figma 的垂直位置下移，移动端保留独立响应式覆盖。
+- [x] 步骤 2 的四个偏好 Chip 均在浏览器可访问树和截图中完整出现；冲突解决、购物清单勾选/导出入口和生成中取消入口未因布局变更丢失。
+- [x] 主按钮、活动 Stepper 圆点和完成连接线使用 `#4caf50` 及对应语义 hover/soft Token；未创建 iconfont glyph 或未登记 Unicode 映射。
+- [x] 浏览器运行时头像审计仍只发现登记的默认男性 SVG；女性默认 SVG 已单独打开核验，真实上传头像白名单仍保持 `/api/users/me/avatar` 和 `blob:`。
+- [x] 受影响前端测试 `4/4` 文件、`41/41` 用例通过；typecheck、生产 build、定向 ESLint、定向 Prettier 和 `git diff --check` 通过。
+- [ ] 本节没有产生新的 PNG/diff 文件，不能据此把三张向导画板或其它画板改为 `PASS`；105 项聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍未提供，继续保持 `BLOCKED`。

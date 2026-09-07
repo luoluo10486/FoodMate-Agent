@@ -174,7 +174,6 @@ function RealWizardStep({
               <FlowButton onClick={() => onNavigate('wizard-step2')}>下一步: 膳食约束</FlowButton>
             </div>
           </section>
-          <ValidationPanel step={1} />
         </div>
       </div>
     );
@@ -242,7 +241,6 @@ function RealWizardStep({
               <FlowButton onClick={() => onNavigate('wizard-step3')}>下一步: 确认并生成</FlowButton>
             </div>
           </section>
-          <ValidationPanel step={2} />
         </div>
       </div>
     );
@@ -297,7 +295,6 @@ function RealWizardStep({
             </FlowButton>
           </div>
         </section>
-        <ValidationPanel step={3} />
       </div>
     </div>
   );
@@ -381,55 +378,6 @@ function FlowStepper({ currentStep, onNavigate }: { currentStep: number; onNavig
   );
 }
 
-function ValidationPanel({ step }: { step: 1 | 2 | 3 }) {
-  const content = {
-    1: {
-      title: '草稿与必填校验',
-      lines: [
-        '必填项  ✓ 已完成',
-        '日期关系：06-01 至 06-07',
-        '能量 / 蛋白目标  ·  2,200 / 130g',
-        '预算阈值：¥120 / 天',
-        '当前状态：草稿 · 可保存后稍后继续',
-      ],
-      tone: 'green',
-    },
-    2: {
-      title: '约束已记录',
-      lines: [
-        '偏好：低碳水 · 高蛋白 · 中 / 日轻食',
-        '过敏源：花生、海鲜、乳制品',
-        '单餐耗时上限：30 分钟',
-        '发现冲突时：展示影响范围与放宽建议。',
-        '当前状态：草稿 · 可保存后稍后继续',
-      ],
-      tone: 'orange',
-    },
-    3: {
-      title: '生成前检查',
-      lines: [
-        '✓ 目标、日期、预算、过敏源均已确认',
-        '生成将创建 7 天餐表、营养摘要和购物清单。',
-        '预计耗时：10–15 秒 · 状态：queued → running',
-        '失败时保留约束草稿，可重试或返回修改。',
-        '确认后进入生成中页面；生成完成可查看计划与购物清单。',
-      ],
-      tone: 'green',
-    },
-  }[step];
-
-  return (
-    <aside className={`${styles.validationPanel} ${content.tone === 'orange' ? styles.validationOrange : ''}`}>
-      <h2>{content.title}</h2>
-      <div className={styles.validationLines}>
-        {content.lines.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </div>
-    </aside>
-  );
-}
-
 function WizardShell({
   currentStep,
   onNavigate,
@@ -442,10 +390,7 @@ function WizardShell({
   return (
     <div className={styles.wizardPage}>
       <FlowStepper currentStep={currentStep} onNavigate={onNavigate} />
-      <div className={styles.wizardGrid}>
-        {children}
-        <ValidationPanel step={currentStep} />
-      </div>
+      <div className={styles.wizardGrid}>{children}</div>
     </div>
   );
 }
