@@ -107,7 +107,12 @@ function MessageBubble({
             <div className={styles.messageBubble}>{message.content}</div>
             <span className={styles.srOnly}>你</span>
             <span className={styles.userAvatar} aria-hidden="true">
-              <AvatarImage avatarUrl={userAvatar} gender={authUser.gender} alt="" />
+              <AvatarImage
+                avatarUrl={userAvatar}
+                defaultOnly={Boolean(userAvatarSrc) || import.meta.env.VITE_AGENT_MODE !== 'real'}
+                gender={authUser.gender}
+                alt=""
+              />
             </span>
           </div>
           <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
@@ -260,12 +265,15 @@ function ChatSurface({
   pageOverlay,
   sidebarFixture,
 }: ChatSurfaceProps) {
+  // 所有设计态 Chat 页面共享同一组 Figma 壳层资源和默认头像策略。
+  const resolvedFixtureVariant = fixtureVariant ?? (designChat ? 'chat' : undefined);
+
   return (
     <WorkspaceLayout
       activeModule="chat"
       avatarSrc={avatarSrc}
       designChat={designChat}
-      fixtureVariant={fixtureVariant}
+      fixtureVariant={resolvedFixtureVariant}
       displayNameOverride={displayNameOverride}
       profileIdOverride={profileIdOverride}
       pageOverlay={pageOverlay}
@@ -299,7 +307,7 @@ function ChatSurface({
           onChange={onChange}
           onSend={onSend}
           onStop={onStop}
-          fixtureVariant={fixtureVariant}
+          fixtureVariant={resolvedFixtureVariant}
         />
       </div>
     </WorkspaceLayout>
@@ -457,7 +465,7 @@ function PlanningStatePage() {
         <div className={styles.planningUserLine}>
           <div className={styles.planningUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.planningUserAvatar} aria-hidden="true">
-            <AvatarImage avatarUrl={planningAvatarSrc} gender="男" alt="" />
+            <AvatarImage avatarUrl={planningAvatarSrc} defaultOnly gender="男" alt="" />
           </span>
         </div>
         <div className={styles.planningMessageMeta}>Anddy · 12:45 PM</div>
@@ -571,7 +579,7 @@ function ToolExecutingStatePage() {
         <div className={styles.executingUserLine}>
           <div className={styles.executingUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.executingUserAvatar} aria-hidden="true">
-            <AvatarImage avatarUrl={executingAvatarSrc} gender="男" alt="" />
+            <AvatarImage avatarUrl={executingAvatarSrc} defaultOnly gender="男" alt="" />
           </span>
         </div>
         <div className={styles.executingMessageMeta}>Anddy · 12:45 PM</div>
@@ -643,7 +651,7 @@ function AwaitingClarificationStatePage() {
         <div className={styles.awaitingUserLine}>
           <div className={styles.awaitingUserBubble}>记录一下我的午餐</div>
           <span className={styles.awaitingUserAvatar} aria-hidden="true">
-            <AvatarImage avatarUrl={awaitingMessageAvatarSrc} gender="男" alt="" />
+            <AvatarImage avatarUrl={awaitingMessageAvatarSrc} defaultOnly gender="男" alt="" />
           </span>
         </div>
         <div className={styles.awaitingMessageMeta}>Anddy · 12:45 PM</div>
@@ -1273,13 +1281,15 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const fixtureSidebar = isWriteConfirmation
     ? { ...historyFixture('history-page-2').sidebar, currentPage: 1 }
     : undefined;
-  const fixtureSidebarAvatarSrc = isWriteConfirmation ? DEFAULT_AVATARS.male : undefined;
-  const fixtureTopAvatarSrc = isWriteConfirmation ? DEFAULT_AVATARS.male : undefined;
+  // 所有 Agent 状态画板使用登记的男性默认头像作为示例账号头像。
+  const fixtureSidebarAvatarSrc = DEFAULT_AVATARS.male;
+  const fixtureTopAvatarSrc = DEFAULT_AVATARS.male;
   const fixtureMessageAvatarSrc = isWriteConfirmation
     ? DEFAULT_AVATARS.male
-    : state === 'sse-reconnecting'
-      ? DEFAULT_AVATARS.male
-      : undefined;
+    : state === 'safety-degraded'
+      ? DEFAULT_AVATARS.female
+      : DEFAULT_AVATARS.male;
+  const fixtureMessageGender = state === 'safety-degraded' ? '女' : '男';
 
   const report = (nextAction: FixtureAction, message: string) => {
     setAction(nextAction);
@@ -1646,7 +1656,13 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
           </div>
           {fixtureMessageAvatarSrc ? (
             <span className={styles.fixtureUserAvatar} aria-hidden="true">
-              <AvatarImage avatarUrl={fixtureMessageAvatarSrc} gender="男" alt="" />
+              <AvatarImage
+                avatarUrl={fixtureMessageAvatarSrc}
+                data-avatar-role="fixture-message"
+                defaultOnly
+                gender={fixtureMessageGender}
+                alt=""
+              />
             </span>
           ) : null}
         </div>

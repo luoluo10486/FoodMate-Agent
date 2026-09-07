@@ -618,7 +618,12 @@ function UserDetailCard({
       </div>
       <div className={styles.userDetailIdentity}>
         <div className={styles.userDetailAvatar} aria-hidden="true">
-          <AvatarImage avatarUrl={avatarSource} gender={profile?.gender || user.gender} alt="" />
+          <AvatarImage
+            avatarUrl={avatarSource}
+            defaultOnly={isMockMode}
+            gender={profile?.gender || user.gender}
+            alt=""
+          />
         </div>
         <div className={styles.userDetailName}>
           <strong>{displayName}</strong>

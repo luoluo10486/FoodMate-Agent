@@ -30,4 +30,34 @@ describe('AvatarImage', () => {
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
   });
+
+  it('keeps Fixture avatars on the registered SVG assets', () => {
+    const { container } = render(
+      <AvatarImage avatarUrl="https://cdn.example.com/legacy-person.png" defaultOnly gender="女" alt="头像" />,
+    );
+    const image = container.querySelector('img');
+
+    expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+    expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
+    expect(image).toHaveAttribute('data-avatar-source', 'default-female');
+  });
+
+  it('preserves an explicitly registered female Fixture asset even with a male account gender', () => {
+    const { container } = render(
+      <AvatarImage avatarUrl="/assets/avatars/default-female.svg" defaultOnly gender="男" alt="头像" />,
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+  });
+
+  it('always uses a registered default for a design Chat fixture', () => {
+    const { container } = render(
+      <AvatarImage avatarUrl="/assets/figma/agent-chat/user-avatar.png" defaultOnly gender="男" alt="头像" />,
+    );
+    const image = container.querySelector('img');
+
+    expect(image).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
+    expect(image?.getAttribute('src')).not.toContain('/assets/figma/');
+  });
 });

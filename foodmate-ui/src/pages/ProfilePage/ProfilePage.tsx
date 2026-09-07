@@ -782,6 +782,7 @@ function BasicTab({
               <AvatarImage
                 className={styles.avatarImage}
                 avatarUrl={avatarSource}
+                defaultOnly={figmaFixture}
                 gender={profileForm.gender}
                 alt="个人头像"
               />

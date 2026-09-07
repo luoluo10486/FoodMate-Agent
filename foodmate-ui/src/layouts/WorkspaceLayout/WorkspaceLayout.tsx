@@ -362,7 +362,12 @@ export function WorkspaceLayout({
             </div>
             <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
               <div className={styles.avatar}>
-                <AvatarImage avatarUrl={sidebarAvatar} gender={authUser.gender} alt="" />
+                <AvatarImage
+                  avatarUrl={sidebarAvatar}
+                  defaultOnly={Boolean(fixtureVariant || designChat)}
+                  gender={authUser.gender}
+                  alt=""
+                />
               </div>
               <div>
                 <strong>
@@ -470,7 +475,12 @@ export function WorkspaceLayout({
                 <DropdownMenuTrigger asChild>
                   <Button className={styles.userButton} variant="ghost" type="button">
                     <span className={styles.topAvatar}>
-                      <AvatarImage avatarUrl={topAvatar} gender={authUser.gender} alt="" />
+                      <AvatarImage
+                        avatarUrl={topAvatar}
+                        defaultOnly={Boolean(fixtureVariant || designChat)}
+                        gender={authUser.gender}
+                        alt=""
+                      />
                     </span>
                     <span>{displayName}</span>
                   </Button>

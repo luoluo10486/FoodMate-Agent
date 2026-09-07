@@ -2611,3 +2611,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] `AvatarImage` 地址或性别变化时会清除上一地址的失败状态；失败回退仍使用 `default-male.svg` 或 `default-female.svg`。
 - [ ] 本节没有重新采集全部画板；105 项汇总仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，后续只复采集受本批次影响的画板。
 - [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍未提供，继续保持 `BLOCKED`。
+
+## 2026-09-07 Agent 头像运行时复核
+
+本节只复核默认头像资源和 Agent 状态页运行时 DOM，不重新验收全部 105 个画板，Figma 文件保持只读。
+
+- [x] 用户提供的男性和女性 SVG 已通过 SHA-256 校验：`default-male.svg` 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，`default-female.svg` 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 浏览器检查 `/chat?state=write-confirmation`、`budget-limit`、`tool-failed-retryable`、`safety-degraded`、`user-cancelled` 和 `sse-reconnecting`；六页所有 `data-avatar-policy="default-only"` 图片均来自两份登记 SVG。
+- [x] `safety-degraded` 的用户消息头像为 `/assets/avatars/default-female.svg`，其余默认用户消息头像和共享工作台账号头像为 `/assets/avatars/default-male.svg`。
+- [x] 六页运行时 DOM 未出现 `/assets/figma/**`、Figma MCP 资源或其他人物图片地址；Figma 历史真人素材仅保留在 `.qa/figma-pixel-acceptance/legacy-avatars/` 验收目录。
+- [x] 修正女性消息头像的性别参数和页面级断言，断言现在区分共享壳层男性账号头像与状态页消息头像，不再错误要求整页所有头像都必须是同一性别。
+- [ ] 该复核不改变像素差异结论；105 项仍为 `DIFF_REVIEW`，不因头像资源替换标记为 `PASS`。

@@ -981,7 +981,12 @@ export function AdminPage() {
           </Link>
           <div className={styles.userSection}>
             <div className={styles.userAvatar}>
-              <AvatarImage avatarUrl={adminAvatarSource} gender={authUser.gender} alt="" />
+              <AvatarImage
+                avatarUrl={adminAvatarSource}
+                defaultOnly={Boolean(requestedFixture)}
+                gender={authUser.gender}
+                alt=""
+              />
             </div>
             <div className={styles.userMetadata}>
               <strong>{fixtureUser.displayName}&apos;s Lab</strong>
