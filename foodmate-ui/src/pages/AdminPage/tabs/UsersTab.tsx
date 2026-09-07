@@ -208,7 +208,6 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
   useEffect(() => {
     if (isMockMode) return;
     let active = true;
-    setLoadError('');
     loadAdminUsersPage({
       page,
       size: pageSize,
@@ -218,6 +217,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
     })
       .then((result) => {
         if (!active) return;
+        setLoadError('');
         const items = result.items as AdminUserView[];
         setUsers(items);
         setTotalUsers(result.total);

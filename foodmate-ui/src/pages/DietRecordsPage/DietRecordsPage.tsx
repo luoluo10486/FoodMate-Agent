@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -358,7 +358,7 @@ export function DietRecordsPage() {
   const [nutritionCandidatesLoading, setNutritionCandidatesLoading] = useState(false);
   const [nutritionCandidatesError, setNutritionCandidatesError] = useState<string>();
   const [compositeDishes, setCompositeDishes] = useState<CompositeDish[]>([]);
-  const [compositeDishesLoading, setCompositeDishesLoading] = useState(false);
+  const [compositeDishesLoading, setCompositeDishesLoading] = useState(isRealMode);
   const [compositeDishesError, setCompositeDishesError] = useState<string>();
   const [selectedCompositeDishId, setSelectedCompositeDishId] = useState<string>();
   const [compositeDishServings, setCompositeDishServings] = useState('1');
@@ -409,8 +409,6 @@ export function DietRecordsPage() {
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
-    setCompositeDishesLoading(true);
-    setCompositeDishesError(undefined);
     void loadCompositeDishes()
       .then((dishes) => {
         if (active) setCompositeDishes(dishes.filter((dish) => !dish.deleted));
@@ -429,20 +427,23 @@ export function DietRecordsPage() {
   const selectedMeal = useMemo(() => meals.find((meal) => meal.id === dialogMealId), [dialogMealId, meals]);
   const weekDays = useMemo(() => mapWeekLogs(realLogs, selectedDate), [realLogs, selectedDate]);
 
-  const openFoodDialog = (mealId: MealSection['id'], date = selectedDate) => {
-    setDialogMode('create');
-    setEditingLogId(undefined);
-    setDialogMealId(mealId);
-    setDialogDate(date);
-    setFoodName('');
-    setFoodAmount('1');
-    setFoodUnit('份');
-    setNutritionFoodId(undefined);
-    setNutritionCandidates([]);
-    setNutritionCandidatesError(undefined);
-    setSelectedCompositeDishId(undefined);
-    setCompositeDishServings('1');
-  };
+  const openFoodDialog = useCallback(
+    (mealId: MealSection['id'], date = selectedDate) => {
+      setDialogMode('create');
+      setEditingLogId(undefined);
+      setDialogMealId(mealId);
+      setDialogDate(date);
+      setFoodName('');
+      setFoodAmount('1');
+      setFoodUnit('份');
+      setNutritionFoodId(undefined);
+      setNutritionCandidates([]);
+      setNutritionCandidatesError(undefined);
+      setSelectedCompositeDishId(undefined);
+      setCompositeDishServings('1');
+    },
+    [selectedDate],
+  );
 
   const openEditDialog = (logId: string) => {
     const log = realLogs.find((candidate) => candidate.food_log_id === logId);
@@ -483,11 +484,15 @@ export function DietRecordsPage() {
       !['breakfast', 'lunch', 'dinner', 'snack'].includes(linkedMealType ?? '')
     )
       return;
+    // URL 参数驱动打开编辑对话框，属于外部导航状态同步，允许在此处更新表单状态。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     openFoodDialog(linkedMealType as MealSection['id']);
-  }, [dialogMealId, isRealMode, linkedMealPlanMealId, linkedMealType]);
+  }, [dialogMealId, isRealMode, linkedMealPlanMealId, linkedMealType, openFoodDialog]);
 
   useEffect(() => {
     if (!isRealMode || dialogMealId == null || selectedCompositeDishId || foodName.trim().length < 2) {
+      // 输入不满足检索条件时清除上一次异步请求的候选结果，避免展示过期数据。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNutritionCandidates([]);
       setNutritionCandidatesError(undefined);
       setNutritionCandidatesLoading(false);
@@ -557,9 +562,7 @@ export function DietRecordsPage() {
 
   const updateDishComponent = (index: number, patch: Partial<CompositeDishDraftComponent>) => {
     setDishComponents((current) =>
-      current.map((component, componentIndex) =>
-        componentIndex === index ? { ...component, ...patch } : component,
-      ),
+      current.map((component, componentIndex) => (componentIndex === index ? { ...component, ...patch } : component)),
     );
   };
 
@@ -1312,14 +1315,18 @@ export function DietRecordsPage() {
                       >
                         <span>{candidate.chinese_name?.trim() || candidate.standard_name}</span>
                         <small>
-                          {candidate.food_form || '未标注形态'} · {candidate.basis_unit} · {candidate.source_name || '目录来源未知'}
+                          {candidate.food_form || '未标注形态'} · {candidate.basis_unit} ·{' '}
+                          {candidate.source_name || '目录来源未知'}
                         </small>
                       </Button>
                     </li>
                   ))}
                 </ul>
               ) : null}
-              {!nutritionCandidatesLoading && !nutritionCandidatesError && foodName.trim().length >= 2 && nutritionCandidates.length === 0 ? (
+              {!nutritionCandidatesLoading &&
+              !nutritionCandidatesError &&
+              foodName.trim().length >= 2 &&
+              nutritionCandidates.length === 0 ? (
                 <p>没有可靠候选，保存后会标记为待确认，不会猜测营养值。</p>
               ) : null}
               {nutritionFoodId ? <p>已选择明确营养目录，服务端将按目录和单位换算计算。</p> : null}
@@ -1349,7 +1356,7 @@ export function DietRecordsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-          </Dialog>
+      </Dialog>
 
       <Dialog open={dishDialogOpen} onOpenChange={(open) => !open && closeDishEditor()}>
         <DialogContent>
@@ -1410,7 +1417,9 @@ export function DietRecordsPage() {
                     variant="ghost"
                     size="icon"
                     aria-label={`删除第${index + 1}项食材`}
-                    onClick={() => setDishComponents((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                    onClick={() =>
+                      setDishComponents((current) => current.filter((_, itemIndex) => itemIndex !== index))
+                    }
                   >
                     <Trash2 aria-hidden="true" />
                   </Button>
@@ -1430,7 +1439,8 @@ export function DietRecordsPage() {
                           setDishCandidateMap((current) => ({ ...current, [index]: [] }));
                         }}
                       >
-                        {candidate.chinese_name?.trim() || candidate.standard_name} · {candidate.food_form || '未标注形态'}
+                        {candidate.chinese_name?.trim() || candidate.standard_name} ·{' '}
+                        {candidate.food_form || '未标注形态'}
                       </Button>
                     ))}
                   </div>
@@ -1446,7 +1456,11 @@ export function DietRecordsPage() {
             <Plus aria-hidden="true" />
             添加食材
           </Button>
-          {dishError ? <p className={styles.dishError} role="alert">{dishError}</p> : null}
+          {dishError ? (
+            <p className={styles.dishError} role="alert">
+              {dishError}
+            </p>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={closeDishEditor}>
               取消

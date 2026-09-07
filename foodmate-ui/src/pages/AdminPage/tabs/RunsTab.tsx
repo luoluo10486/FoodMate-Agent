@@ -841,17 +841,6 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     { title: '首次发现', dataIndex: 'firstSeenAt' },
   ];
 
-  const activeRows =
-    activeTab === 'agent-runs'
-      ? filteredRuns
-      : activeTab === 'tool-calls'
-        ? filteredToolCalls
-        : activeTab === 'sql-audits'
-          ? filteredSqlAudits
-          : activeTab === 'traces'
-            ? filteredTraces
-            : filteredDlq;
-
   return (
     <>
       <section className={styles.sectionCards} aria-label="运行治理指标">

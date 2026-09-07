@@ -6,9 +6,7 @@ describe('compositeDishService', () => {
 
   it('loads user-owned composite dishes', async () => {
     const data = [{ composite_dish_id: '10', dish_name: '鸡肉饭', components: [] }];
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(loadCompositeDishes()).resolves.toEqual(data);
@@ -17,9 +15,7 @@ describe('compositeDishService', () => {
 
   it('sends the ingredient catalog IDs when creating a dish', async () => {
     const data = { composite_dish_id: '10', dish_name: '鸡肉饭' };
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     await createCompositeDish({

@@ -23,9 +23,7 @@ describe('nutritionFoodService', () => {
         source_version: '2025',
       },
     ];
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(searchNutritionFoods('鸡胸肉', 6)).resolves.toEqual(data);
