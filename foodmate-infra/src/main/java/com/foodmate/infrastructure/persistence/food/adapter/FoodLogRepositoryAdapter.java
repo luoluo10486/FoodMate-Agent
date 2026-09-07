@@ -124,6 +124,10 @@ public class FoodLogRepositoryAdapter implements FoodLogRepository {
                 row.deleted(),
                 row.createdAt(),
                 row.updatedAt(),
+                row.compositeDishId(),
+                row.compositeDishRevision(),
+                row.compositeDishServings(),
+                row.compositeDishSnapshotJson(),
                 mapper.findItems(row.foodLogId()));
     }
 }

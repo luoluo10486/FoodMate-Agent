@@ -32,6 +32,13 @@ import {
   updateFoodLog,
   type FoodLog,
 } from '../../services/foodLogService';
+import {
+  createCompositeDish,
+  deleteCompositeDish,
+  loadCompositeDishes,
+  updateCompositeDish,
+  type CompositeDish,
+} from '../../services/compositeDishService';
 import { searchNutritionFoods, type NutritionFoodCandidate } from '../../services/nutritionFoodService';
 import type { SessionSummary } from '../../types/session';
 import styles from './DietRecordsPage.module.css';
@@ -45,6 +52,13 @@ type FoodItem = {
   fat: string;
   logId?: string;
   revision?: number;
+};
+
+type CompositeDishDraftComponent = {
+  nutritionFoodId?: string;
+  rawName: string;
+  amount: string;
+  unit: string;
 };
 
 type MealSection = {
@@ -341,6 +355,21 @@ export function DietRecordsPage() {
   const [nutritionCandidates, setNutritionCandidates] = useState<NutritionFoodCandidate[]>([]);
   const [nutritionCandidatesLoading, setNutritionCandidatesLoading] = useState(false);
   const [nutritionCandidatesError, setNutritionCandidatesError] = useState<string>();
+  const [compositeDishes, setCompositeDishes] = useState<CompositeDish[]>([]);
+  const [compositeDishesLoading, setCompositeDishesLoading] = useState(false);
+  const [compositeDishesError, setCompositeDishesError] = useState<string>();
+  const [selectedCompositeDishId, setSelectedCompositeDishId] = useState<string>();
+  const [compositeDishServings, setCompositeDishServings] = useState('1');
+  const [dishDialogOpen, setDishDialogOpen] = useState(false);
+  const [editingDishId, setEditingDishId] = useState<string>();
+  const [dishName, setDishName] = useState('');
+  const [dishTotalServings, setDishTotalServings] = useState('2');
+  const [dishComponents, setDishComponents] = useState<CompositeDishDraftComponent[]>([
+    { rawName: '', amount: '', unit: 'g' },
+  ]);
+  const [dishCandidateMap, setDishCandidateMap] = useState<Record<number, NutritionFoodCandidate[]>>({});
+  const [dishSaving, setDishSaving] = useState(false);
+  const [dishError, setDishError] = useState<string>();
   const [deletedLogs, setDeletedLogs] = useState<FoodLog[]>([]);
   const [deletedLoading, setDeletedLoading] = useState(false);
   const [deletedError, setDeletedError] = useState<string>();
@@ -375,6 +404,26 @@ export function DietRecordsPage() {
     };
   }, [isRealMode, realReloadNonce, selectedDate, view]);
 
+  useEffect(() => {
+    if (!isRealMode) return;
+    let active = true;
+    setCompositeDishesLoading(true);
+    setCompositeDishesError(undefined);
+    void loadCompositeDishes()
+      .then((dishes) => {
+        if (active) setCompositeDishes(dishes.filter((dish) => !dish.deleted));
+      })
+      .catch((cause) => {
+        if (active) setCompositeDishesError(cause instanceof Error ? cause.message : '复合菜加载失败');
+      })
+      .finally(() => {
+        if (active) setCompositeDishesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isRealMode]);
+
   const selectedMeal = useMemo(() => meals.find((meal) => meal.id === dialogMealId), [dialogMealId, meals]);
   const weekDays = useMemo(() => mapWeekLogs(realLogs, selectedDate), [realLogs, selectedDate]);
 
@@ -389,6 +438,8 @@ export function DietRecordsPage() {
     setNutritionFoodId(undefined);
     setNutritionCandidates([]);
     setNutritionCandidatesError(undefined);
+    setSelectedCompositeDishId(undefined);
+    setCompositeDishServings('1');
   };
 
   const openEditDialog = (logId: string) => {
@@ -402,9 +453,10 @@ export function DietRecordsPage() {
     setNutritionFoodId(firstItem.nutrition_food_id ?? undefined);
     setFoodAmount(String(firstItem.amount));
     setFoodUnit(firstItem.unit);
-    setNutritionFoodId(undefined);
     setNutritionCandidates([]);
     setNutritionCandidatesError(undefined);
+    setSelectedCompositeDishId(log.composite_dish_id ?? undefined);
+    setCompositeDishServings(String(log.composite_dish_servings ?? '1'));
   };
 
   const closeFoodDialog = () => {
@@ -417,10 +469,12 @@ export function DietRecordsPage() {
     setNutritionFoodId(undefined);
     setNutritionCandidates([]);
     setNutritionCandidatesError(undefined);
+    setSelectedCompositeDishId(undefined);
+    setCompositeDishServings('1');
   };
 
   useEffect(() => {
-    if (!isRealMode || dialogMealId == null || foodName.trim().length < 2) {
+    if (!isRealMode || dialogMealId == null || selectedCompositeDishId || foodName.trim().length < 2) {
       setNutritionCandidates([]);
       setNutritionCandidatesError(undefined);
       setNutritionCandidatesLoading(false);
@@ -448,7 +502,7 @@ export function DietRecordsPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [dialogMealId, foodName, isRealMode]);
+  }, [dialogMealId, foodName, isRealMode, selectedCompositeDishId]);
 
   const selectNutritionCandidate = (candidate: NutritionFoodCandidate) => {
     setNutritionFoodId(candidate.nutrition_food_id);
@@ -456,10 +510,114 @@ export function DietRecordsPage() {
     setNotice(`已选择${candidate.chinese_name?.trim() || candidate.standard_name}，保存时将按目录营养值计算。`);
   };
 
+  const selectCompositeDish = (dish: CompositeDish) => {
+    setSelectedCompositeDishId(dish.composite_dish_id);
+    setFoodName(dish.dish_name);
+    setFoodUnit('份');
+    setNutritionFoodId(undefined);
+    setCompositeDishServings('1');
+    setNotice(`已选择${dish.dish_name}，服务端将按食用份数保存营养快照。`);
+  };
+
+  const openDishEditor = (dish?: CompositeDish) => {
+    setDishError(undefined);
+    setEditingDishId(dish?.composite_dish_id);
+    setDishName(dish?.dish_name ?? '');
+    setDishTotalServings(String(dish?.total_servings ?? '2'));
+    setDishComponents(
+      dish?.components.map((component) => ({
+        nutritionFoodId: component.nutrition_food_id,
+        rawName: component.raw_name,
+        amount: String(component.amount),
+        unit: component.unit,
+      })) ?? [{ rawName: '', amount: '', unit: 'g' }],
+    );
+    setDishCandidateMap({});
+    setDishDialogOpen(true);
+  };
+
+  const closeDishEditor = () => {
+    setDishDialogOpen(false);
+    setEditingDishId(undefined);
+    setDishError(undefined);
+  };
+
+  const updateDishComponent = (index: number, patch: Partial<CompositeDishDraftComponent>) => {
+    setDishComponents((current) =>
+      current.map((component, componentIndex) =>
+        componentIndex === index ? { ...component, ...patch } : component,
+      ),
+    );
+  };
+
+  const saveDish = () => {
+    const servings = Number(dishTotalServings);
+    if (!dishName.trim() || !Number.isFinite(servings) || servings <= 0) {
+      setDishError('请填写菜名和有效的总份数。');
+      return;
+    }
+    if (
+      dishComponents.some(
+        (component) =>
+          !component.nutritionFoodId ||
+          !component.rawName.trim() ||
+          !Number.isFinite(Number(component.amount)) ||
+          Number(component.amount) <= 0 ||
+          !component.unit.trim(),
+      )
+    ) {
+      setDishError('每项食材都必须选择营养目录并填写有效用量。');
+      return;
+    }
+    const request = {
+      dish_name: dishName.trim(),
+      total_servings: servings,
+      components: dishComponents.map((component) => ({
+        nutrition_food_id: Number(component.nutritionFoodId),
+        raw_name: component.rawName.trim(),
+        amount: Number(component.amount),
+        unit: component.unit.trim(),
+      })),
+    };
+    setDishSaving(true);
+    setDishError(undefined);
+    const operation = editingDishId
+      ? updateCompositeDish(
+          editingDishId,
+          compositeDishes.find((dish) => dish.composite_dish_id === editingDishId)?.revision ?? 0,
+          request,
+        )
+      : createCompositeDish(request);
+    void operation
+      .then((saved) => {
+        setCompositeDishes((current) => [
+          saved,
+          ...current.filter((dish) => dish.composite_dish_id !== saved.composite_dish_id),
+        ]);
+        setNotice(`${saved.dish_name} 已保存。`);
+        closeDishEditor();
+      })
+      .catch((cause) => setDishError(cause instanceof Error ? cause.message : '复合菜保存失败'))
+      .finally(() => setDishSaving(false));
+  };
+
+  const removeDish = (dish: CompositeDish) => {
+    void deleteCompositeDish(dish.composite_dish_id, dish.revision)
+      .then(() => {
+        setCompositeDishes((current) => current.filter((item) => item.composite_dish_id !== dish.composite_dish_id));
+        if (selectedCompositeDishId === dish.composite_dish_id) setSelectedCompositeDishId(undefined);
+        setNotice(`${dish.dish_name} 已删除，历史饮食记录不受影响。`);
+      })
+      .catch((cause) => setNotice(cause instanceof Error ? cause.message : '复合菜删除失败'));
+  };
+
   const addFood = () => {
+    const selectedDish = selectedCompositeDishId
+      ? compositeDishes.find((dish) => dish.composite_dish_id === selectedCompositeDishId)
+      : undefined;
     const name = foodName.trim();
-    if (!name || !dialogMealId) return;
-    const amount = Number(foodAmount);
+    if ((!name && !selectedDish) || !dialogMealId) return;
+    const amount = Number(selectedDish ? compositeDishServings : foodAmount);
     const unit = foodUnit.trim();
     if (!Number.isFinite(amount) || amount <= 0 || !unit) {
       setNotice('请填写有效的份量和单位。');
@@ -474,21 +632,26 @@ export function DietRecordsPage() {
           meal_time: current.meal_time,
           meal_type: current.meal_type,
           notes: current.notes ?? undefined,
-          items: current.items.map((item, index) =>
-            index === 0
-              ? {
-                  raw_name: name,
-                  amount,
-                  unit,
-                  ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
-                }
-              : {
-                  raw_name: item.raw_name,
-                  amount: asNumber(item.amount),
-                  unit: item.unit,
-                  ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
-                },
-          ),
+          composite_dish_id: selectedDish?.composite_dish_id,
+          composite_dish_revision: selectedDish?.revision,
+          composite_dish_servings: selectedDish ? amount : undefined,
+          items: selectedDish
+            ? []
+            : current.items.map((item, index) =>
+                index === 0
+                  ? {
+                      raw_name: name,
+                      amount,
+                      unit,
+                      ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
+                    }
+                  : {
+                      raw_name: item.raw_name,
+                      amount: asNumber(item.amount),
+                      unit: item.unit,
+                      ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
+                    },
+              ),
         })
           .then((updated) => {
             const nextLogs = realLogs.map((log) => (log.food_log_id === updated.food_log_id ? updated : log));
@@ -503,19 +666,24 @@ export function DietRecordsPage() {
       void createFoodLog({
         meal_time: new Date(dialogDate).toISOString(),
         meal_type: dialogMealId,
-        items: [
-          {
-            raw_name: name,
-            amount,
-            unit,
-            ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
-          },
-        ],
+        composite_dish_id: selectedDish?.composite_dish_id,
+        composite_dish_revision: selectedDish?.revision,
+        composite_dish_servings: selectedDish ? amount : undefined,
+        items: selectedDish
+          ? []
+          : [
+              {
+                raw_name: name,
+                amount,
+                unit,
+                ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
+              },
+            ],
       })
         .then((created) => {
           setRealLogs((current) => [...current, created]);
           setMeals(mapFoodLogs([...realLogs, created]));
-          setNotice(`${name} 已提交，营养值将由服务端估算。`);
+          setNotice(`${name} 已提交，营养值由服务端权威计算。`);
           closeFoodDialog();
         })
         .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录保存失败'));
@@ -917,6 +1085,63 @@ export function DietRecordsPage() {
           </section>
         ) : null}
 
+        {isRealMode ? (
+          <section className={styles.compositeDishPanel} aria-label="我的复合菜">
+            <header className={styles.compositeDishPanelHeader}>
+              <div>
+                <h2>我的复合菜</h2>
+                <p>保存常用食材组成，记录时按实际食用份数计算。</p>
+              </div>
+              <Button type="button" variant="outline" onClick={() => openDishEditor()}>
+                <Plus aria-hidden="true" />
+                新建复合菜
+              </Button>
+            </header>
+            {compositeDishesLoading ? <p className={styles.deletedState}>正在加载复合菜…</p> : null}
+            {compositeDishesError ? (
+              <p className={styles.deletedState} role="alert">
+                {compositeDishesError}
+              </p>
+            ) : null}
+            {!compositeDishesLoading && !compositeDishesError && compositeDishes.length === 0 ? (
+              <p className={styles.deletedState}>还没有保存的复合菜。</p>
+            ) : null}
+            <div className={styles.compositeDishList}>
+              {compositeDishes.map((dish) => (
+                <article className={styles.compositeDishCard} key={dish.composite_dish_id}>
+                  <div>
+                    <strong>{dish.dish_name}</strong>
+                    <span>
+                      {Number(dish.calories_kcal_per_serving).toFixed(0)} kcal/份 · {dish.components.length} 项食材 · 共{' '}
+                      {dish.total_servings} 份
+                    </span>
+                  </div>
+                  <div className={styles.compositeDishActions}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        openFoodDialog('breakfast');
+                        selectCompositeDish(dish);
+                      }}
+                    >
+                      记录这道菜
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => openDishEditor(dish)}>
+                      <Pencil aria-hidden="true" />
+                      编辑
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => removeDish(dish)}>
+                      <Trash2 aria-hidden="true" />
+                      删除
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {isRealMode && showDeleted ? (
           <section className={styles.deletedPanel} aria-label="已删除饮食记录">
             <header className={styles.deletedHeader}>
@@ -1006,6 +1231,33 @@ export function DietRecordsPage() {
                 : `添加到 ${selectedMeal?.title ?? '当前餐次'}，营养值将在确认后估算。`}
             </DialogDescription>
           </DialogHeader>
+          {isRealMode && compositeDishes.length > 0 ? (
+            <div className={styles.compositeDishPicker} aria-label="选择复合菜">
+              <div className={styles.compositeDishPickerHeader}>
+                <strong>选择已保存的复合菜</strong>
+                {selectedCompositeDishId ? (
+                  <Button type="button" variant="ghost" onClick={() => setSelectedCompositeDishId(undefined)}>
+                    改为单项食材
+                  </Button>
+                ) : null}
+              </div>
+              <div className={styles.compositeDishOptions}>
+                {compositeDishes.map((dish) => (
+                  <Button
+                    key={dish.composite_dish_id}
+                    type="button"
+                    variant={selectedCompositeDishId === dish.composite_dish_id ? 'secondary' : 'outline'}
+                    onClick={() => selectCompositeDish(dish)}
+                  >
+                    <span>{dish.dish_name}</span>
+                    <small>
+                      {Number(dish.calories_kcal_per_serving).toFixed(0)} kcal/份 · {dish.total_servings} 份
+                    </small>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <Input
             autoFocus
             placeholder="例如：煮鸡蛋 2 个"
@@ -1014,11 +1266,22 @@ export function DietRecordsPage() {
             onChange={(event) => {
               setFoodName(event.target.value);
               setNutritionFoodId(undefined);
+              setSelectedCompositeDishId(undefined);
             }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') addFood();
             }}
           />
+          {selectedCompositeDishId ? (
+            <Input
+              type="number"
+              min="0.001"
+              step="0.001"
+              aria-label="复合菜食用份数"
+              value={compositeDishServings}
+              onChange={(event) => setCompositeDishServings(event.target.value)}
+            />
+          ) : null}
           {isRealMode ? (
             <div className={styles.nutritionCandidates} aria-label="营养目录候选">
               {nutritionCandidatesLoading ? <p>正在查找营养目录…</p> : null}
@@ -1068,6 +1331,113 @@ export function DietRecordsPage() {
             </Button>
             <Button onClick={addFood} disabled={!foodName.trim() || !foodAmount.trim() || !foodUnit.trim()}>
               {dialogMode === 'edit' ? '保存' : '添加'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+          </Dialog>
+
+      <Dialog open={dishDialogOpen} onOpenChange={(open) => !open && closeDishEditor()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingDishId ? '编辑复合菜' : '新建复合菜'}</DialogTitle>
+            <DialogDescription>只保存食材组成和用量，不推断烹饪损耗或熟重。</DialogDescription>
+          </DialogHeader>
+          <Input
+            aria-label="复合菜名称"
+            placeholder="例如：鸡肉蔬菜饭"
+            value={dishName}
+            onChange={(event) => setDishName(event.target.value)}
+          />
+          <Input
+            type="number"
+            min="0.001"
+            step="0.001"
+            aria-label="复合菜总份数"
+            placeholder="成品总份数"
+            value={dishTotalServings}
+            onChange={(event) => setDishTotalServings(event.target.value)}
+          />
+          <div className={styles.dishComponentEditor} aria-label="复合菜食材组成">
+            {dishComponents.map((component, index) => (
+              <div className={styles.dishComponentRow} key={`${index}-${component.nutritionFoodId ?? 'new'}`}>
+                <Input
+                  aria-label={`第${index + 1}项食材名称`}
+                  placeholder="搜索食材，例如：鸡胸肉"
+                  value={component.rawName}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    updateDishComponent(index, { rawName: value, nutritionFoodId: undefined });
+                    if (value.trim().length >= 2) {
+                      void searchNutritionFoods(value.trim())
+                        .then((candidates) => setDishCandidateMap((current) => ({ ...current, [index]: candidates })))
+                        .catch(() => setDishCandidateMap((current) => ({ ...current, [index]: [] })));
+                    }
+                  }}
+                />
+                <Input
+                  type="number"
+                  min="0.001"
+                  step="0.001"
+                  aria-label={`第${index + 1}项食材用量`}
+                  placeholder="用量"
+                  value={component.amount}
+                  onChange={(event) => updateDishComponent(index, { amount: event.target.value })}
+                />
+                <Input
+                  aria-label={`第${index + 1}项食材单位`}
+                  placeholder="单位"
+                  value={component.unit}
+                  onChange={(event) => updateDishComponent(index, { unit: event.target.value })}
+                />
+                {dishComponents.length > 1 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`删除第${index + 1}项食材`}
+                    onClick={() => setDishComponents((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                ) : null}
+                {(dishCandidateMap[index] ?? []).length > 0 ? (
+                  <div className={styles.dishCandidates}>
+                    {(dishCandidateMap[index] ?? []).map((candidate) => (
+                      <Button
+                        key={candidate.nutrition_food_id}
+                        type="button"
+                        variant={component.nutritionFoodId === candidate.nutrition_food_id ? 'secondary' : 'ghost'}
+                        onClick={() => {
+                          updateDishComponent(index, {
+                            nutritionFoodId: candidate.nutrition_food_id,
+                            rawName: candidate.chinese_name?.trim() || candidate.standard_name,
+                          });
+                          setDishCandidateMap((current) => ({ ...current, [index]: [] }));
+                        }}
+                      >
+                        {candidate.chinese_name?.trim() || candidate.standard_name} · {candidate.food_form || '未标注形态'}
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setDishComponents((current) => [...current, { rawName: '', amount: '', unit: 'g' }])}
+          >
+            <Plus aria-hidden="true" />
+            添加食材
+          </Button>
+          {dishError ? <p className={styles.dishError} role="alert">{dishError}</p> : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeDishEditor}>
+              取消
+            </Button>
+            <Button type="button" onClick={saveDish} disabled={dishSaving}>
+              {dishSaving ? '保存中…' : '保存复合菜'}
             </Button>
           </DialogFooter>
         </DialogContent>

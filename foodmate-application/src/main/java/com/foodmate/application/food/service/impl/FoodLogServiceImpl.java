@@ -3,6 +3,7 @@ package com.foodmate.application.food.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.common.service.OperationAuditService;
+import com.foodmate.application.food.port.out.CompositeDishRepository;
 import com.foodmate.application.food.port.out.FoodLogRepository;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.application.food.service.NutritionNameNormalizer;
@@ -34,16 +35,27 @@ public class FoodLogServiceImpl implements FoodLogService {
     private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 128;
 
     private final FoodLogRepository store;
+    private final CompositeDishRepository compositeDishes;
     private final IdGenerator ids;
     private final OperationAuditService audit;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     @org.springframework.beans.factory.annotation.Autowired
     public FoodLogServiceImpl(
-            FoodLogRepository store, IdGenerator ids, OperationAuditService audit) {
+            FoodLogRepository store,
+            IdGenerator ids,
+            OperationAuditService audit,
+            CompositeDishRepository compositeDishes) {
         this.store = store;
         this.ids = ids;
         this.audit = Objects.requireNonNull(audit, "OperationAuditService is required");
+        this.compositeDishes = compositeDishes;
+    }
+
+    /** 兼容不启用复合菜端口的单元测试和基础调用方。 */
+    public FoodLogServiceImpl(
+            FoodLogRepository store, IdGenerator ids, OperationAuditService audit) {
+        this(store, ids, audit, null);
     }
 
     @Transactional
@@ -63,6 +75,12 @@ public class FoodLogServiceImpl implements FoodLogService {
 
             long foodLogId = ids.nextId();
             targetId = Long.toString(foodLogId);
+            CompositeDishRepository.DishSnapshot compositeDish =
+                    resolveCompositeDish(
+                            userId,
+                            command.compositeDishId(),
+                            command.compositeDishRevision(),
+                            command.compositeDishServings());
             reservationAttempted = true;
             if (reserveAudit(userId, key, digest, "food_log.create", foodLogId) != 1)
                 return replayOrConflict(userId, key, digest);
@@ -78,34 +96,48 @@ public class FoodLogServiceImpl implements FoodLogService {
                                     command.notes(),
                                     command.source(),
                                     key,
-                                    1))
+                                    1,
+                                    command.compositeDishId(),
+                                    compositeDish == null ? null : compositeDish.revision(),
+                                    command.compositeDishServings(),
+                                    compositeDish == null
+                                            ? "{}"
+                                            : compositeDishSnapshot(
+                                                    compositeDish,
+                                                    command.compositeDishServings())))
                     != 1) {
                 throw new BusinessException(ErrorCode.CONFLICT, "饮食记录关联资源不存在");
             }
-            for (int i = 0; i < command.items().size(); i++) {
-                ItemCommand item = command.items().get(i);
-                FoodLogRepository.FoodLogItemWrite nutrition =
-                        nutrition(item, foodLogId, i, userId);
+            if (compositeDish != null) {
                 store.insertItem(
-                        new FoodLogRepository.FoodLogItemWrite(
-                                ids.nextId(),
-                                nutrition.foodLogId(),
-                                nutrition.itemOrder(),
-                                nutrition.rawName(),
-                                nutrition.amount(),
-                                nutrition.unit(),
-                                nutrition.userId(),
-                                nutrition.nutritionFoodId(),
-                                nutrition.normalizedAmount(),
-                                nutrition.normalizedUnit(),
-                                nutrition.conversionId(),
-                                nutrition.caloriesKcal(),
-                                nutrition.proteinG(),
-                                nutrition.fatG(),
-                                nutrition.carbsG(),
-                                nutrition.nutritionStatus(),
-                                nutrition.nutritionSource(),
-                                nutrition.nutritionVersion()));
+                        compositeDishItem(
+                                compositeDish, command.compositeDishServings(), foodLogId, userId));
+            } else {
+                for (int i = 0; i < command.items().size(); i++) {
+                    ItemCommand item = command.items().get(i);
+                    FoodLogRepository.FoodLogItemWrite nutrition =
+                            nutrition(item, foodLogId, i, userId);
+                    store.insertItem(
+                            new FoodLogRepository.FoodLogItemWrite(
+                                    ids.nextId(),
+                                    nutrition.foodLogId(),
+                                    nutrition.itemOrder(),
+                                    nutrition.rawName(),
+                                    nutrition.amount(),
+                                    nutrition.unit(),
+                                    nutrition.userId(),
+                                    nutrition.nutritionFoodId(),
+                                    nutrition.normalizedAmount(),
+                                    nutrition.normalizedUnit(),
+                                    nutrition.conversionId(),
+                                    nutrition.caloriesKcal(),
+                                    nutrition.proteinG(),
+                                    nutrition.fatG(),
+                                    nutrition.carbsG(),
+                                    nutrition.nutritionStatus(),
+                                    nutrition.nutritionSource(),
+                                    nutrition.nutritionVersion()));
+                }
             }
             FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
             completeAudit(userId, key, auditSummary(result));
@@ -140,6 +172,12 @@ public class FoodLogServiceImpl implements FoodLogService {
 
             FoodLogRepository.FoodLogSnapshot current = requireSnapshot(userId, foodLogId, false);
             requireRevision(current, revision);
+            CompositeDishRepository.DishSnapshot compositeDish =
+                    resolveCompositeDish(
+                            userId,
+                            command.compositeDishId(),
+                            command.compositeDishRevision(),
+                            command.compositeDishServings());
             reservationAttempted = true;
             if (reserveAudit(userId, key, digest, "food_log.update", foodLogId) != 1)
                 return replayOrConflict(userId, key, digest);
@@ -151,35 +189,49 @@ public class FoodLogServiceImpl implements FoodLogService {
                                     revision,
                                     command.mealTime(),
                                     command.mealType().code(),
-                                    command.notes()))
+                                    command.notes(),
+                                    command.compositeDishId(),
+                                    compositeDish == null ? null : compositeDish.revision(),
+                                    command.compositeDishServings(),
+                                    compositeDish == null
+                                            ? "{}"
+                                            : compositeDishSnapshot(
+                                                    compositeDish,
+                                                    command.compositeDishServings())))
                     != 1) {
                 throw new BusinessException(ErrorCode.CONFLICT, "饮食记录已被修改");
             }
             store.softDeleteItems(userId, foodLogId);
-            for (int i = 0; i < command.items().size(); i++) {
-                ItemCommand item = command.items().get(i);
-                FoodLogRepository.FoodLogItemWrite nutrition =
-                        nutrition(item, foodLogId, i, userId);
+            if (compositeDish != null) {
                 store.insertItem(
-                        new FoodLogRepository.FoodLogItemWrite(
-                                ids.nextId(),
-                                nutrition.foodLogId(),
-                                nutrition.itemOrder(),
-                                nutrition.rawName(),
-                                nutrition.amount(),
-                                nutrition.unit(),
-                                nutrition.userId(),
-                                nutrition.nutritionFoodId(),
-                                nutrition.normalizedAmount(),
-                                nutrition.normalizedUnit(),
-                                nutrition.conversionId(),
-                                nutrition.caloriesKcal(),
-                                nutrition.proteinG(),
-                                nutrition.fatG(),
-                                nutrition.carbsG(),
-                                nutrition.nutritionStatus(),
-                                nutrition.nutritionSource(),
-                                nutrition.nutritionVersion()));
+                        compositeDishItem(
+                                compositeDish, command.compositeDishServings(), foodLogId, userId));
+            } else {
+                for (int i = 0; i < command.items().size(); i++) {
+                    ItemCommand item = command.items().get(i);
+                    FoodLogRepository.FoodLogItemWrite nutrition =
+                            nutrition(item, foodLogId, i, userId);
+                    store.insertItem(
+                            new FoodLogRepository.FoodLogItemWrite(
+                                    ids.nextId(),
+                                    nutrition.foodLogId(),
+                                    nutrition.itemOrder(),
+                                    nutrition.rawName(),
+                                    nutrition.amount(),
+                                    nutrition.unit(),
+                                    nutrition.userId(),
+                                    nutrition.nutritionFoodId(),
+                                    nutrition.normalizedAmount(),
+                                    nutrition.normalizedUnit(),
+                                    nutrition.conversionId(),
+                                    nutrition.caloriesKcal(),
+                                    nutrition.proteinG(),
+                                    nutrition.fatG(),
+                                    nutrition.carbsG(),
+                                    nutrition.nutritionStatus(),
+                                    nutrition.nutritionSource(),
+                                    nutrition.nutritionVersion()));
+                }
             }
             FoodLogView result = view(requireSnapshot(userId, foodLogId, false));
             completeAudit(userId, key, auditSummary(result));
@@ -292,8 +344,18 @@ public class FoodLogServiceImpl implements FoodLogService {
     private void validateCreate(long userId, CreateCommand command) {
         if (command == null || command.mealTime() == null || command.mealType() == null)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "用餐时间和餐别不能为空");
-        if (command.items().isEmpty() || command.items().size() > MAX_ITEMS)
+        boolean hasCompositeDish = command.compositeDishId() != null;
+        if ((!hasCompositeDish && command.items().isEmpty())
+                || command.items().size() > MAX_ITEMS
+                || (hasCompositeDish && !command.items().isEmpty()))
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "食材明细数量无效");
+        if (hasCompositeDish
+                && (command.compositeDishServings() == null
+                        || command.compositeDishServings().signum() <= 0
+                        || command.compositeDishServings().scale() > 3
+                        || (command.compositeDishRevision() != null
+                                && command.compositeDishRevision() <= 0)))
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "复合菜份数或版本无效");
         if (command.notes() != null && command.notes().length() > 4000)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "备注过长");
         if (command.sessionId() != null && !store.sessionOwned(userId, command.sessionId()))
@@ -320,8 +382,18 @@ public class FoodLogServiceImpl implements FoodLogService {
     private void validateUpdate(UpdateCommand command) {
         if (command == null || command.mealTime() == null || command.mealType() == null)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "用餐时间和餐别不能为空");
-        if (command.items().isEmpty() || command.items().size() > MAX_ITEMS)
+        boolean hasCompositeDish = command.compositeDishId() != null;
+        if ((!hasCompositeDish && command.items().isEmpty())
+                || command.items().size() > MAX_ITEMS
+                || (hasCompositeDish && !command.items().isEmpty()))
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "食材明细数量无效");
+        if (hasCompositeDish
+                && (command.compositeDishServings() == null
+                        || command.compositeDishServings().signum() <= 0
+                        || command.compositeDishServings().scale() > 3
+                        || (command.compositeDishRevision() != null
+                                && command.compositeDishRevision() <= 0)))
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "复合菜份数或版本无效");
         if (command.notes() != null && command.notes().length() > 4000)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "备注过长");
         for (ItemCommand item : command.items()) {
@@ -403,9 +475,71 @@ public class FoodLogServiceImpl implements FoodLogService {
                 nutritionVersion);
     }
 
+    private CompositeDishRepository.DishSnapshot resolveCompositeDish(
+            long userId, Long compositeDishId, Long expectedRevision, BigDecimal servings) {
+        if (compositeDishId == null) return null;
+        if (compositeDishes == null)
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "复合菜服务未配置");
+        CompositeDishRepository.DishSnapshot dish =
+                compositeDishes.findOwned(userId, compositeDishId, false);
+        if (dish == null) throw new BusinessException(ErrorCode.NOT_FOUND, "复合菜不存在");
+        if (expectedRevision != null && dish.revision() != expectedRevision)
+            throw new BusinessException(ErrorCode.CONFLICT, "复合菜版本已变化，请重新选择");
+        return dish;
+    }
+
+    private FoodLogRepository.FoodLogItemWrite compositeDishItem(
+            CompositeDishRepository.DishSnapshot dish,
+            BigDecimal servings,
+            long foodLogId,
+            long userId) {
+        BigDecimal multiplier = servings.setScale(8, RoundingMode.HALF_UP);
+        return new FoodLogRepository.FoodLogItemWrite(
+                ids.nextId(),
+                foodLogId,
+                0,
+                dish.dishName(),
+                servings,
+                "份",
+                userId,
+                null,
+                multiplier,
+                "serving",
+                null,
+                dish.caloriesKcalPerServing()
+                        .multiply(multiplier)
+                        .setScale(4, RoundingMode.HALF_UP),
+                dish.proteinGPerServing().multiply(multiplier).setScale(4, RoundingMode.HALF_UP),
+                dish.fatGPerServing().multiply(multiplier).setScale(4, RoundingMode.HALF_UP),
+                dish.carbsGPerServing().multiply(multiplier).setScale(4, RoundingMode.HALF_UP),
+                "matched",
+                "composite_dish:" + dish.compositeDishId(),
+                "revision:" + dish.revision());
+    }
+
+    private String compositeDishSnapshot(
+            CompositeDishRepository.DishSnapshot dish, BigDecimal servings) {
+        try {
+            return mapper.writeValueAsString(
+                    Map.of(
+                            "dish_id", dish.compositeDishId(),
+                            "dish_name", dish.dishName(),
+                            "revision", dish.revision(),
+                            "servings", servings,
+                            "calories_kcal_per_serving", dish.caloriesKcalPerServing(),
+                            "protein_g_per_serving", dish.proteinGPerServing(),
+                            "fat_g_per_serving", dish.fatGPerServing(),
+                            "carbs_g_per_serving", dish.carbsGPerServing(),
+                            "nutrition_source", dish.nutritionSource()));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("无法保存复合菜营养快照", exception);
+        }
+    }
+
     private NutritionResolution resolveNutritionFood(ItemCommand item, String rawName) {
         if (item.nutritionFoodId() != null) {
-            if (item.nutritionFoodId() <= 0) return new NutritionResolution(null, "pending_confirmation");
+            if (item.nutritionFoodId() <= 0)
+                return new NutritionResolution(null, "pending_confirmation");
             FoodLogRepository.NutritionFoodLookup selected =
                     store.findNutritionFoodById(item.nutritionFoodId());
             return selected == null
@@ -582,6 +716,9 @@ public class FoodLogServiceImpl implements FoodLogService {
                 command.mealTime(),
                 command.mealType().code(),
                 command.notes(),
+                command.compositeDishId(),
+                command.compositeDishRevision(),
+                command.compositeDishServings(),
                 command.items());
     }
 
@@ -593,6 +730,9 @@ public class FoodLogServiceImpl implements FoodLogService {
                 command.mealTime(),
                 command.mealType().code(),
                 command.notes(),
+                command.compositeDishId(),
+                command.compositeDishRevision(),
+                command.compositeDishServings(),
                 command.items());
     }
 
@@ -664,6 +804,9 @@ public class FoodLogServiceImpl implements FoodLogService {
                 MealType.fromCode(value.mealType()),
                 value.notes(),
                 value.source(),
+                value.compositeDishId(),
+                value.compositeDishRevision(),
+                value.compositeDishServings(),
                 value.revision(),
                 value.deleted(),
                 value.createdAt(),

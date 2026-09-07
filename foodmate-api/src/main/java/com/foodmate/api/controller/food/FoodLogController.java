@@ -49,15 +49,20 @@ public class FoodLogController extends AuthenticatedControllerSupport {
                         body.mealType(),
                         body.notes(),
                         idempotencyKey,
-                        body.items().stream()
-                                .map(
-                                        item ->
-                                                new FoodLogService.ItemCommand(
-                                                        item.rawName(),
-                                                        item.amount(),
-                                                        item.unit(),
-                                                        item.nutritionFoodId()))
-                                .toList());
+                        "manual",
+                        body.compositeDishId(),
+                        body.compositeDishRevision(),
+                        body.compositeDishServings(),
+                        (body.items() == null ? List.<FoodLogCreateRequest.Item>of() : body.items())
+                                .stream()
+                                        .map(
+                                                item ->
+                                                        new FoodLogService.ItemCommand(
+                                                                item.rawName(),
+                                                                item.amount(),
+                                                                item.unit(),
+                                                                item.nutritionFoodId()))
+                                        .toList());
         return ok(map(foods.create(user(request).userId(), command)));
     }
 
@@ -85,15 +90,19 @@ public class FoodLogController extends AuthenticatedControllerSupport {
                         body.mealType(),
                         body.notes(),
                         idempotencyKey,
-                        body.items().stream()
-                                .map(
-                                        item ->
-                                                new FoodLogService.ItemCommand(
-                                                        item.rawName(),
-                                                        item.amount(),
-                                                        item.unit(),
-                                                        item.nutritionFoodId()))
-                                .toList());
+                        body.compositeDishId(),
+                        body.compositeDishRevision(),
+                        body.compositeDishServings(),
+                        (body.items() == null ? List.<FoodLogUpdateRequest.Item>of() : body.items())
+                                .stream()
+                                        .map(
+                                                item ->
+                                                        new FoodLogService.ItemCommand(
+                                                                item.rawName(),
+                                                                item.amount(),
+                                                                item.unit(),
+                                                                item.nutritionFoodId()))
+                                        .toList());
         return ok(map(foods.update(user(request).userId(), foodLogId, revision, command)));
     }
 
@@ -129,6 +138,9 @@ public class FoodLogController extends AuthenticatedControllerSupport {
                 value.mealType().code(),
                 value.notes(),
                 value.source(),
+                value.compositeDishId() == null ? null : Long.toString(value.compositeDishId()),
+                value.compositeDishRevision(),
+                value.compositeDishServings(),
                 value.revision(),
                 value.deleted(),
                 value.createdAt(),

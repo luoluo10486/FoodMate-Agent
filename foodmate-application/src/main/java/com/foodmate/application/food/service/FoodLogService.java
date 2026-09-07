@@ -29,6 +29,9 @@ public interface FoodLogService {
             String notes,
             String idempotencyKey,
             String source,
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
             List<ItemCommand> items) {
         public CreateCommand(
                 Long sessionId,
@@ -38,7 +41,41 @@ public interface FoodLogService {
                 String notes,
                 String idempotencyKey,
                 List<ItemCommand> items) {
-            this(sessionId, agentRunId, mealTime, mealType, notes, idempotencyKey, "manual", items);
+            this(
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    idempotencyKey,
+                    "manual",
+                    null,
+                    null,
+                    null,
+                    items);
+        }
+
+        public CreateCommand(
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                MealType mealType,
+                String notes,
+                String idempotencyKey,
+                String source,
+                List<ItemCommand> items) {
+            this(
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    idempotencyKey,
+                    source,
+                    null,
+                    null,
+                    null,
+                    items);
         }
 
         public CreateCommand {
@@ -52,7 +89,19 @@ public interface FoodLogService {
             MealType mealType,
             String notes,
             String idempotencyKey,
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
             List<ItemCommand> items) {
+        public UpdateCommand(
+                Instant mealTime,
+                MealType mealType,
+                String notes,
+                String idempotencyKey,
+                List<ItemCommand> items) {
+            this(mealTime, mealType, notes, idempotencyKey, null, null, null, items);
+        }
+
         public UpdateCommand {
             items = items == null ? List.of() : List.copyOf(items);
         }
@@ -72,11 +121,45 @@ public interface FoodLogService {
             MealType mealType,
             String notes,
             String source,
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
             long revision,
             boolean deleted,
             Instant createdAt,
             Instant updatedAt,
             List<ItemView> items) {
+        public FoodLogView(
+                long foodLogId,
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                MealType mealType,
+                String notes,
+                String source,
+                long revision,
+                boolean deleted,
+                Instant createdAt,
+                Instant updatedAt,
+                List<ItemView> items) {
+            this(
+                    foodLogId,
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    source,
+                    null,
+                    null,
+                    null,
+                    revision,
+                    deleted,
+                    createdAt,
+                    updatedAt,
+                    items);
+        }
+
         public FoodLogView {
             items = items == null ? List.of() : List.copyOf(items);
         }

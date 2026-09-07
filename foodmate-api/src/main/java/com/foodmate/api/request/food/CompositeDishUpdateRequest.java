@@ -2,31 +2,24 @@ package com.foodmate.api.request.food;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.foodmate.shared.food.enums.MealType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 
-/** 饮食记录创建请求参数。 */
+/** 用户复合菜更新请求。 */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record FoodLogCreateRequest(
-        Long sessionId,
-        Long agentRunId,
-        @NotNull Instant mealTime,
-        @NotNull MealType mealType,
-        @Size(max = 4000) String notes,
-        Long compositeDishId,
-        Long compositeDishRevision,
-        @Positive BigDecimal compositeDishServings,
-        @Valid List<Item> items) {
+public record CompositeDishUpdateRequest(
+        @NotNull @Size(min = 1, max = 128) String dishName,
+        @NotNull @Positive BigDecimal totalServings,
+        @NotEmpty @Valid List<Component> components) {
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record Item(
+    public record Component(
+            @NotNull @Positive Long nutritionFoodId,
             @NotNull @Size(min = 1, max = 255) String rawName,
             @NotNull @Positive BigDecimal amount,
-            @NotNull @Size(min = 1, max = 32) String unit,
-            Long nutritionFoodId) {}
+            @NotNull @Size(min = 1, max = 32) String unit) {}
 }

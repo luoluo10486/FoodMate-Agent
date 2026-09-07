@@ -27,6 +27,10 @@ public interface FoodLogMapper {
             String mealType,
             String notes,
             String source,
+            Long compositeDishId,
+            Long compositeDishRevision,
+            java.math.BigDecimal compositeDishServings,
+            String compositeDishSnapshotJson,
             long revision,
             boolean deleted,
             Instant createdAt,
@@ -113,11 +117,11 @@ public interface FoodLogMapper {
             @Param("targetUnit") String targetUnit);
 
     @Insert(
-            "INSERT INTO food_logs(food_log_id,user_id,session_id,agent_run_id,meal_time,meal_type,notes,source,idempotency_key,revision,created_by,updated_by) VALUES (#{foodLogId},#{userId},#{sessionId},#{agentRunId},#{mealTime},#{mealType},#{notes},#{source},#{idempotencyKey},#{revision},#{userId},#{userId})")
+            "INSERT INTO food_logs(food_log_id,user_id,session_id,agent_run_id,meal_time,meal_type,notes,source,idempotency_key,revision,composite_dish_id,composite_dish_revision,composite_dish_servings,composite_dish_snapshot_json,created_by,updated_by) VALUES (#{foodLogId},#{userId},#{sessionId},#{agentRunId},#{mealTime},#{mealType},#{notes},#{source},#{idempotencyKey},#{revision},#{compositeDishId},#{compositeDishRevision},#{compositeDishServings},CAST(#{compositeDishSnapshotJson} AS jsonb),#{userId},#{userId})")
     int insertFoodLog(FoodLogWrite write);
 
     @Update(
-            "UPDATE food_logs SET meal_time=#{mealTime},meal_type=#{mealType},notes=#{notes},updated_at=CURRENT_TIMESTAMP,updated_by=#{userId},revision=revision+1 WHERE food_log_id=#{foodLogId} AND user_id=#{userId} AND revision=#{expectedRevision} AND is_deleted=FALSE")
+            "UPDATE food_logs SET meal_time=#{mealTime},meal_type=#{mealType},notes=#{notes},composite_dish_id=#{compositeDishId},composite_dish_revision=#{compositeDishRevision},composite_dish_servings=#{compositeDishServings},composite_dish_snapshot_json=CAST(#{compositeDishSnapshotJson} AS jsonb),updated_at=CURRENT_TIMESTAMP,updated_by=#{userId},revision=revision+1 WHERE food_log_id=#{foodLogId} AND user_id=#{userId} AND revision=#{expectedRevision} AND is_deleted=FALSE")
     int updateFoodLog(UpdateFoodLogWrite write);
 
     @Update(
@@ -129,16 +133,16 @@ public interface FoodLogMapper {
     void insertItem(FoodLogItemWrite item);
 
     @Select(
-            "SELECT f.food_log_id AS foodLogId,f.user_id AS userId,f.session_id AS sessionId,f.agent_run_id AS agentRunId,f.meal_time AS mealTime,f.meal_type AS mealType,f.notes,f.source,f.revision,f.is_deleted AS deleted,f.created_at AS createdAt,f.updated_at AS updatedAt FROM food_logs f WHERE f.user_id=#{userId} AND f.is_deleted=FALSE AND f.meal_time>=#{from} AND f.meal_time<#{to} ORDER BY f.meal_time DESC")
+            "SELECT f.food_log_id AS foodLogId,f.user_id AS userId,f.session_id AS sessionId,f.agent_run_id AS agentRunId,f.meal_time AS mealTime,f.meal_type AS mealType,f.notes,f.source,f.composite_dish_id AS compositeDishId,f.composite_dish_revision AS compositeDishRevision,f.composite_dish_servings AS compositeDishServings,f.composite_dish_snapshot_json::text AS compositeDishSnapshotJson,f.revision,f.is_deleted AS deleted,f.created_at AS createdAt,f.updated_at AS updatedAt FROM food_logs f WHERE f.user_id=#{userId} AND f.is_deleted=FALSE AND f.meal_time>=#{from} AND f.meal_time<#{to} ORDER BY f.meal_time DESC")
     List<FoodLogRow> findVisible(
             @Param("userId") long userId, @Param("from") Instant from, @Param("to") Instant to);
 
     @Select(
-            "SELECT f.food_log_id AS foodLogId,f.user_id AS userId,f.session_id AS sessionId,f.agent_run_id AS agentRunId,f.meal_time AS mealTime,f.meal_type AS mealType,f.notes,f.source,f.revision,f.is_deleted AS deleted,f.created_at AS createdAt,f.updated_at AS updatedAt FROM food_logs f WHERE f.user_id=#{userId} AND f.is_deleted=TRUE ORDER BY f.updated_at DESC,f.food_log_id DESC")
+            "SELECT f.food_log_id AS foodLogId,f.user_id AS userId,f.session_id AS sessionId,f.agent_run_id AS agentRunId,f.meal_time AS mealTime,f.meal_type AS mealType,f.notes,f.source,f.composite_dish_id AS compositeDishId,f.composite_dish_revision AS compositeDishRevision,f.composite_dish_servings AS compositeDishServings,f.composite_dish_snapshot_json::text AS compositeDishSnapshotJson,f.revision,f.is_deleted AS deleted,f.created_at AS createdAt,f.updated_at AS updatedAt FROM food_logs f WHERE f.user_id=#{userId} AND f.is_deleted=TRUE ORDER BY f.updated_at DESC,f.food_log_id DESC")
     List<FoodLogRow> findDeleted(@Param("userId") long userId);
 
     @Select(
-            "SELECT f.food_log_id AS foodLogId,f.user_id AS userId,f.session_id AS sessionId,f.agent_run_id AS agentRunId,f.meal_time AS mealTime,f.meal_type AS mealType,f.notes,f.source,f.revision,f.is_deleted AS deleted,f.created_at AS createdAt,f.updated_at AS updatedAt FROM food_logs f WHERE f.food_log_id=#{foodLogId} AND f.user_id=#{userId} AND f.is_deleted=#{includeDeleted}")
+            "SELECT f.food_log_id AS foodLogId,f.user_id AS userId,f.session_id AS sessionId,f.agent_run_id AS agentRunId,f.meal_time AS mealTime,f.meal_type AS mealType,f.notes,f.source,f.composite_dish_id AS compositeDishId,f.composite_dish_revision AS compositeDishRevision,f.composite_dish_servings AS compositeDishServings,f.composite_dish_snapshot_json::text AS compositeDishSnapshotJson,f.revision,f.is_deleted AS deleted,f.created_at AS createdAt,f.updated_at AS updatedAt FROM food_logs f WHERE f.food_log_id=#{foodLogId} AND f.user_id=#{userId} AND f.is_deleted=#{includeDeleted}")
     FoodLogRow findOwned(
             @Param("userId") long userId,
             @Param("foodLogId") long foodLogId,

@@ -49,7 +49,39 @@ public interface FoodLogRepository {
             String notes,
             String source,
             String idempotencyKey,
-            long revision) {}
+            long revision,
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
+            String compositeDishSnapshotJson) {
+        public FoodLogWrite(
+                long foodLogId,
+                long userId,
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                String mealType,
+                String notes,
+                String source,
+                String idempotencyKey,
+                long revision) {
+            this(
+                    foodLogId,
+                    userId,
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    source,
+                    idempotencyKey,
+                    revision,
+                    null,
+                    null,
+                    null,
+                    "{}");
+        }
+    }
 
     record UpdateFoodLogWrite(
             long userId,
@@ -57,7 +89,31 @@ public interface FoodLogRepository {
             long expectedRevision,
             Instant mealTime,
             String mealType,
-            String notes) {}
+            String notes,
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
+            String compositeDishSnapshotJson) {
+        public UpdateFoodLogWrite(
+                long userId,
+                long foodLogId,
+                long expectedRevision,
+                Instant mealTime,
+                String mealType,
+                String notes) {
+            this(
+                    userId,
+                    foodLogId,
+                    expectedRevision,
+                    mealTime,
+                    mealType,
+                    notes,
+                    null,
+                    null,
+                    null,
+                    "{}");
+        }
+    }
 
     record FoodLogItemWrite(
             long foodLogItemId,
@@ -168,7 +224,45 @@ public interface FoodLogRepository {
             boolean deleted,
             Instant createdAt,
             Instant updatedAt,
-            List<FoodLogItemSnapshot> items) {}
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
+            String compositeDishSnapshotJson,
+            List<FoodLogItemSnapshot> items) {
+        public FoodLogSnapshot(
+                long foodLogId,
+                long userId,
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                String mealType,
+                String notes,
+                String source,
+                long revision,
+                boolean deleted,
+                Instant createdAt,
+                Instant updatedAt,
+                List<FoodLogItemSnapshot> items) {
+            this(
+                    foodLogId,
+                    userId,
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    source,
+                    revision,
+                    deleted,
+                    createdAt,
+                    updatedAt,
+                    null,
+                    null,
+                    null,
+                    "{}",
+                    items);
+        }
+    }
 
     record FoodLogItemSnapshot(
             long foodLogItemId,

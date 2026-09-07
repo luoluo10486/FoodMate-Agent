@@ -20,6 +20,9 @@ export type FoodLog = {
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | string;
   notes: string | null;
   source: string;
+  composite_dish_id?: string | null;
+  composite_dish_revision?: number | null;
+  composite_dish_servings?: number | string | null;
   revision: number;
   deleted: boolean;
   items: FoodLogItem[];
@@ -29,6 +32,9 @@ export type FoodLogWriteRequest = {
   meal_time: string;
   meal_type: FoodLog['meal_type'];
   notes?: string;
+  composite_dish_id?: string;
+  composite_dish_revision?: number;
+  composite_dish_servings?: number;
   items: Array<{ raw_name: string; amount: number; unit: string; nutrition_food_id?: string }>;
 };
 

@@ -12,6 +12,7 @@ import {
   updateFoodLog,
 } from '../../services/foodLogService';
 import { searchNutritionFoods } from '../../services/nutritionFoodService';
+import { loadCompositeDishes } from '../../services/compositeDishService';
 
 vi.mock('../../services/foodLogService', () => ({
   createFoodLog: vi.fn(),
@@ -24,6 +25,13 @@ vi.mock('../../services/foodLogService', () => ({
 
 vi.mock('../../services/nutritionFoodService', () => ({
   searchNutritionFoods: vi.fn(),
+}));
+
+vi.mock('../../services/compositeDishService', () => ({
+  loadCompositeDishes: vi.fn(),
+  createCompositeDish: vi.fn(),
+  updateCompositeDish: vi.fn(),
+  deleteCompositeDish: vi.fn(),
 }));
 
 const log = {
@@ -65,6 +73,7 @@ describe('DietRecordsPage real mode', () => {
       'foodmate_auth_user',
       JSON.stringify({ id: '7', username: 'tester', displayName: 'Tester', role: 'user', status: 'active' }),
     );
+    vi.mocked(loadCompositeDishes).mockResolvedValue([]);
   });
 
   afterEach(() => {

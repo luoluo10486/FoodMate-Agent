@@ -1015,6 +1015,140 @@
   text-align: right;
 }
 
+.compositeDishPanel {
+  display: grid;
+  gap: 16px;
+  width: calc(100% - 48px);
+  margin: 0 24px 24px;
+  padding: 20px;
+  border: 1px solid #dce5df;
+  border-radius: 16px;
+  background: #fbfdfb;
+}
+
+.compositeDishPanelHeader,
+.compositeDishPickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.compositeDishPanelHeader h2,
+.compositeDishPanelHeader p {
+  margin: 0;
+}
+
+.compositeDishPanelHeader h2 {
+  color: #25342b;
+  font-size: 17px;
+}
+
+.compositeDishPanelHeader p {
+  margin-top: 4px;
+  color: #758179;
+  font-size: 12px;
+}
+
+.compositeDishList,
+.compositeDishOptions {
+  display: grid;
+  gap: 8px;
+}
+
+.compositeDishCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid #e3ebe5;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.compositeDishCard > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.compositeDishCard span {
+  color: #758179;
+  font-size: 12px;
+}
+
+.compositeDishActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.compositeDishPicker {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.compositeDishPickerHeader {
+  color: #536158;
+  font-size: 12px;
+}
+
+.compositeDishOptions {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.compositeDishOptions button {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-height: 54px;
+  text-align: left;
+}
+
+.compositeDishOptions small {
+  color: #758179;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.dishComponentEditor {
+  display: grid;
+  gap: 10px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.dishComponentRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 90px auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.dishCandidates {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 2px;
+  max-height: 120px;
+  overflow: auto;
+  padding: 2px 0 4px;
+}
+
+.dishCandidates button {
+  justify-content: flex-start;
+  font-size: 12px;
+  text-align: left;
+}
+
+.dishError {
+  margin: 0;
+  color: #b34545;
+  font-size: 12px;
+}
+
 @media (max-width: 1100px) {
   .metrics,
   .loadingMetrics {
@@ -1145,5 +1279,29 @@
     min-height: 300px;
     padding-top: 56px;
     padding-bottom: 56px;
+  }
+
+  .compositeDishPanel {
+    width: calc(100% - 32px);
+    margin: 0 16px 20px;
+    padding: 16px;
+  }
+
+  .compositeDishPanelHeader,
+  .compositeDishCard {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .compositeDishActions {
+    justify-content: flex-start;
+  }
+
+  .dishComponentRow {
+    grid-template-columns: minmax(0, 1fr) 1fr;
+  }
+
+  .dishComponentRow > button {
+    justify-self: start;
   }
 }
