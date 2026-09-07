@@ -334,6 +334,8 @@ export function DietRecordsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const recordsState = getRecordsState(searchParams.get('state'));
+  const linkedMealPlanMealId = searchParams.get('mealPlanMealId') ?? undefined;
+  const linkedMealType = searchParams.get('mealType');
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'v2' || recordsState !== 'default');
   const isFigmaStateFixture = isFigmaFixture && recordsState !== 'default';
@@ -472,6 +474,17 @@ export function DietRecordsPage() {
     setSelectedCompositeDishId(undefined);
     setCompositeDishServings('1');
   };
+
+  useEffect(() => {
+    if (
+      !isRealMode ||
+      !linkedMealPlanMealId ||
+      dialogMealId != null ||
+      !['breakfast', 'lunch', 'dinner', 'snack'].includes(linkedMealType ?? '')
+    )
+      return;
+    openFoodDialog(linkedMealType as MealSection['id']);
+  }, [dialogMealId, isRealMode, linkedMealPlanMealId, linkedMealType]);
 
   useEffect(() => {
     if (!isRealMode || dialogMealId == null || selectedCompositeDishId || foodName.trim().length < 2) {
@@ -632,6 +645,7 @@ export function DietRecordsPage() {
           meal_time: current.meal_time,
           meal_type: current.meal_type,
           notes: current.notes ?? undefined,
+          meal_plan_meal_id: linkedMealPlanMealId ?? current.meal_plan_meal_id ?? undefined,
           composite_dish_id: selectedDish?.composite_dish_id,
           composite_dish_revision: selectedDish?.revision,
           composite_dish_servings: selectedDish ? amount : undefined,
@@ -666,6 +680,7 @@ export function DietRecordsPage() {
       void createFoodLog({
         meal_time: new Date(dialogDate).toISOString(),
         meal_type: dialogMealId,
+        meal_plan_meal_id: linkedMealPlanMealId,
         composite_dish_id: selectedDish?.composite_dish_id,
         composite_dish_revision: selectedDish?.revision,
         composite_dish_servings: selectedDish ? amount : undefined,

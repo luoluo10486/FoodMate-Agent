@@ -59,6 +59,8 @@ V33 不属于 Flyway 迁移，而是人工执行的生成式 seed：`seed/genera
 
 `V34__m2_4_nutrition_match_confirmation.sql`：为食材明细增加 `pending_confirmation` 状态和候选查询索引。候选存在多个生熟/部位形态时不自动猜测，必须由用户选择目录 ID；迁移不改写既有明细。配套校验为 `validation/V34__m2_4_nutrition_match_confirmation_validation.sql`，回滚为只读前置检查 `rollback/R34__m2_4_nutrition_match_confirmation_precheck.sql`。
 
+`V36__m2_6_plan_execution_and_shopping_items.sql`：为餐食计划增加稳定餐次、饮食记录关联和稳定购物项购买状态；计划更新保留未变条目的购买状态，数量或单位变化由数据库重置购买确认。该脚本只创建增量结构，需人工执行；配套校验为 `validation/V36__m2_6_plan_execution_and_shopping_items_validation.sql`，回滚为只读前置检查 `rollback/R36__m2_6_plan_execution_and_shopping_items_precheck.sql`。
+
 ## 配套文件矩阵
 
 | 版本 | validation | rollback | 处理边界 |
@@ -77,6 +79,7 @@ V33 不属于 Flyway 迁移，而是人工执行的生成式 seed：`seed/genera
 | V32 | 有 | 有（只读前置检查） | USDA 营养目录重建结构契约；只增加约束和索引 |
 | V33 seed | 有 | 有（只读前置检查） | USDA 食材与 foodPortion 生成种子；按稳定 ID 幂等，淘汰项只允许确认后软删除 |
 | V34 | 有 | 有（只读前置检查） | 营养候选人工确认状态和候选查询索引；不自动选择生熟/部位形态 |
+| V36 | 有 | 有（只读前置检查） | 餐食计划稳定餐次、饮食记录关联和购物项购买状态；只增加结构，不清理既有业务数据 |
 
 该矩阵描述文件现状，不代表任何迁移已在当前数据库执行。实际执行状态、validation 输出、失败与补偿必须以 `../EXECUTION_RECORD.md` 为准。历史版本若需补充校验，优先新增只读 SQL 文档；若需修复结构，创建更高版本迁移，不原地修改已执行脚本，不执行宽泛删除或 `TRUNCATE`。
 

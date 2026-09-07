@@ -3,10 +3,12 @@ package com.foodmate.api.request.food;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.foodmate.shared.food.enums.MealType;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -17,6 +19,7 @@ public record FoodLogUpdateRequest(
         @NotNull Instant mealTime,
         @NotNull MealType mealType,
         @Size(max = 4000) String notes,
+        Long mealPlanMealId,
         Long compositeDishId,
         Long compositeDishRevision,
         @Positive BigDecimal compositeDishServings,

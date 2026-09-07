@@ -20,6 +20,7 @@ export type FoodLog = {
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | string;
   notes: string | null;
   source: string;
+  meal_plan_meal_id?: string | null;
   composite_dish_id?: string | null;
   composite_dish_revision?: number | null;
   composite_dish_servings?: number | string | null;
@@ -32,6 +33,7 @@ export type FoodLogWriteRequest = {
   meal_time: string;
   meal_type: FoodLog['meal_type'];
   notes?: string;
+  meal_plan_meal_id?: string;
   composite_dish_id?: string;
   composite_dish_revision?: number;
   composite_dish_servings?: number;

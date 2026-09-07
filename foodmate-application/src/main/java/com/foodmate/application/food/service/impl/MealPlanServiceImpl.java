@@ -12,6 +12,13 @@ import com.foodmate.application.food.service.MealPlanService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
@@ -26,11 +33,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /** 餐食计划应用服务；计划内容可以来自模型，但状态和校验由 Java 决定。 */
 @Service
@@ -92,6 +94,7 @@ public class MealPlanServiceImpl implements MealPlanService {
                     != 1) {
                 throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划写入失败");
             }
+            synchronizeMealSlots(userId, id, 1, command.daysPlan());
             PlanView result =
                     view(key == null ? requirePlan(userId, id) : requirePlan(userId, id, false));
             if (key != null) completeAudit(userId, key, auditSummary(result));
@@ -104,13 +107,23 @@ public class MealPlanServiceImpl implements MealPlanService {
     }
 
     @Override
+    @Transactional
     public PlanView get(long userId, long mealPlanId) {
-        return view(requirePlan(userId, mealPlanId, false));
+        MealPlanRepository.PlanSnapshot plan = requirePlan(userId, mealPlanId, false);
+        ensureMealSlots(plan);
+        return view(plan);
     }
 
     @Override
+    @Transactional
     public List<PlanView> list(long userId) {
-        return store.findOwnedPlans(userId, true).stream().map(this::view).toList();
+        return store.findOwnedPlans(userId, true).stream()
+                .map(
+                        plan -> {
+                            ensureMealSlots(plan);
+                            return view(plan);
+                        })
+                .toList();
     }
 
     @Override
@@ -144,7 +157,10 @@ public class MealPlanServiceImpl implements MealPlanService {
                     != 1) {
                 throw new BusinessException(ErrorCode.CONFLICT, "餐食计划版本已变化");
             }
-            store.softDeleteShoppingList(userId, mealPlanId);
+            long nextRevision = revision + 1;
+            synchronizeMealSlots(userId, mealPlanId, nextRevision, command.daysPlan());
+            if (!refreshShoppingList(userId, mealPlanId, command.daysPlan()))
+                store.softDeleteShoppingList(userId, mealPlanId);
             PlanView result = view(requirePlan(userId, mealPlanId, false));
             completeAudit(userId, key, auditSummary(result));
             return result;
@@ -215,6 +231,7 @@ public class MealPlanServiceImpl implements MealPlanService {
                             : store.updatePlanStatus(
                                     userId, mealPlanId, revision, status, json(validation));
             if (updated != 1) throw new BusinessException(ErrorCode.CONFLICT, "餐食计划状态已变化");
+            synchronizeMealSlots(userId, mealPlanId, revision + 1, read(plan.planJson()));
             PlanView result =
                     view(
                             legacyRepositoryPath
@@ -318,9 +335,9 @@ public class MealPlanServiceImpl implements MealPlanService {
                 throw new BusinessException(ErrorCode.CONFLICT, "只有 saved 计划可以生成购物清单");
             MealPlanRepository.ShoppingListSnapshot existing =
                     store.findOwnedShoppingList(userId, mealPlanId);
-            ShoppingListView result;
+            MealPlanRepository.ShoppingListSnapshot list;
             if (existing != null) {
-                result = shoppingView(existing);
+                list = existing;
             } else {
                 ArrayNode items = aggregateShoppingItems(read(plan.planJson()));
                 long id = ids.nextId();
@@ -328,8 +345,14 @@ public class MealPlanServiceImpl implements MealPlanService {
                                 new MealPlanRepository.ShoppingListWrite(
                                         id, mealPlanId, userId, json(items), "generated"))
                         != 1) throw new BusinessException(ErrorCode.INTERNAL_ERROR, "购物清单写入失败");
-                result = shoppingView(store.findOwnedShoppingList(userId, mealPlanId));
+                list = store.findOwnedShoppingList(userId, mealPlanId);
             }
+            synchronizeShoppingItems(
+                    userId, mealPlanId, list, aggregateShoppingItems(read(plan.planJson())));
+            ShoppingListView result =
+                    shoppingView(
+                            list,
+                            store.findShoppingItems(userId, mealPlanId, list.shoppingListId()));
             audit.record(
                     userId,
                     "shopping_list",
@@ -354,6 +377,79 @@ public class MealPlanServiceImpl implements MealPlanService {
                     Map.of("meal_plan_id", mealPlanId));
             throw exception;
         }
+    }
+
+    @Override
+    @Transactional
+    public ShoppingListView setShoppingItemPurchased(
+            long userId,
+            long mealPlanId,
+            long shoppingListItemId,
+            boolean purchased,
+            String idempotencyKey) {
+        String key = idempotencyKey;
+        String digest = null;
+        AuditAttempt attempt = new AuditAttempt();
+        try {
+            key = requireIdempotencyKey(idempotencyKey);
+            digest = digest("shopping_item", mealPlanId, shoppingListItemId, purchased);
+            MealPlanRepository.IdempotencyRecord previous = store.findIdempotency(userId, key);
+            if (previous != null) {
+                requireSameDigest(previous, digest);
+                if ("success".equals(previous.result())) return shoppingList(userId, mealPlanId);
+                throw new BusinessException(ErrorCode.CONFLICT, "幂等请求正在处理中");
+            }
+            MealPlanRepository.PlanSnapshot plan = requirePlan(userId, mealPlanId, false);
+            if (!"saved".equals(plan.status()))
+                throw new BusinessException(ErrorCode.CONFLICT, "只有 saved 计划可以更新购物项");
+            attempt.reservationAttempted = true;
+            if (audit.reserve(
+                            userId,
+                            "shopping_list_item",
+                            Long.toString(shoppingListItemId),
+                            "meal_plan.shopping_item.purchased",
+                            digest,
+                            key,
+                            Map.of("meal_plan_id", mealPlanId))
+                    != 1) throw new BusinessException(ErrorCode.CONFLICT, "幂等请求已被其他请求占用");
+            attempt.reserved = true;
+            MealPlanRepository.ShoppingListSnapshot list =
+                    store.findOwnedShoppingList(userId, mealPlanId);
+            if (list == null
+                    || store.findShoppingItems(userId, mealPlanId, list.shoppingListId()).stream()
+                            .noneMatch(item -> item.shoppingListItemId() == shoppingListItemId))
+                throw new BusinessException(ErrorCode.NOT_FOUND, "购物项不存在");
+            if (store.updateShoppingItemPurchased(userId, shoppingListItemId, purchased) != 1)
+                throw new BusinessException(ErrorCode.CONFLICT, "购物项状态已变化");
+            ShoppingListView result = shoppingList(userId, mealPlanId);
+            completeAudit(userId, key, shoppingAuditSummary(shoppingListItemId, purchased));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(
+                    userId,
+                    Long.toString(shoppingListItemId),
+                    "meal_plan.shopping_item.purchased",
+                    key,
+                    digest,
+                    attempt,
+                    exception,
+                    "shopping_list_item");
+            throw exception;
+        }
+    }
+
+    @Override
+    @Transactional
+    public ProgressView progress(long userId, long mealPlanId) {
+        MealPlanRepository.PlanSnapshot source = requirePlan(userId, mealPlanId, false);
+        ensureMealSlots(source);
+        PlanView plan = view(source);
+        return new ProgressView(
+                mealPlanId,
+                plan.executableMealCount(),
+                plan.completedMealCount(),
+                plan.completionRatio(),
+                plan.mealSlots());
     }
 
     @Override
@@ -576,6 +672,126 @@ public class MealPlanServiceImpl implements MealPlanService {
         return result;
     }
 
+    private void synchronizeMealSlots(
+            long userId, long mealPlanId, long planRevision, JsonNode planJson) {
+        if (planJson == null || !planJson.isArray()) return;
+        List<MealPlanRepository.MealSlotSnapshot> existing =
+                safeList(store.findMealSlots(userId, mealPlanId));
+        List<String> activeKeys = new ArrayList<>();
+        List<String> mealTypes = List.of("breakfast", "lunch", "dinner");
+        for (int dayIndex = 0; dayIndex < planJson.size(); dayIndex++) {
+            int currentDayIndex = dayIndex;
+            JsonNode day = planJson.get(dayIndex);
+            if (day == null || !day.isObject()) continue;
+            for (String mealType : mealTypes) {
+                JsonNode meal = day.get(mealType);
+                if (meal == null || !meal.isObject()) continue;
+                String slotKey = currentDayIndex + ":" + mealType;
+                activeKeys.add(slotKey);
+                MealPlanRepository.MealSlotSnapshot previous =
+                        existing.stream()
+                                .filter(
+                                        value ->
+                                                value.dayIndex() == currentDayIndex
+                                                        && value.mealType().equals(mealType))
+                                .findFirst()
+                                .orElse(null);
+                store.upsertMealSlot(
+                        new MealPlanRepository.MealSlotWrite(
+                                previous == null ? ids.nextId() : previous.mealPlanMealId(),
+                                mealPlanId,
+                                userId,
+                                currentDayIndex,
+                                mealType,
+                                meal.path("name").asText(null),
+                                json(meal),
+                                planRevision));
+            }
+        }
+        store.softDeleteMealSlotsNotInKeys(userId, mealPlanId, activeKeys);
+    }
+
+    /** 兼容迁移前创建的计划，首次读取时补齐稳定餐次身份。 */
+    private void ensureMealSlots(MealPlanRepository.PlanSnapshot plan) {
+        if (safeList(store.findMealSlots(plan.userId(), plan.mealPlanId())).isEmpty()
+                && hasMealSlots(read(plan.planJson()))) {
+            synchronizeMealSlots(
+                    plan.userId(), plan.mealPlanId(), plan.revision(), read(plan.planJson()));
+        }
+    }
+
+    private boolean hasMealSlots(JsonNode planJson) {
+        if (planJson == null || !planJson.isArray()) return false;
+        for (JsonNode day : planJson) {
+            if (day == null || !day.isObject()) continue;
+            for (String mealType : REQUIRED_MEALS) {
+                if (day.path(mealType).isObject()) return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean refreshShoppingList(long userId, long mealPlanId, JsonNode planJson) {
+        MealPlanRepository.ShoppingListSnapshot list =
+                store.findOwnedShoppingList(userId, mealPlanId);
+        if (list == null) return false;
+        synchronizeShoppingItems(userId, mealPlanId, list, aggregateShoppingItems(planJson));
+        return true;
+    }
+
+    private void synchronizeShoppingItems(
+            long userId,
+            long mealPlanId,
+            MealPlanRepository.ShoppingListSnapshot list,
+            ArrayNode items) {
+        if (list == null) return;
+        List<String> activeKeys = new ArrayList<>();
+        for (JsonNode item : items) {
+            String name = item.path("name").asText("").trim();
+            String unit = item.path("unit").asText("g").trim();
+            if (name.isBlank()) continue;
+            String itemKey = shoppingItemKey(name, unit);
+            activeKeys.add(itemKey);
+            store.upsertShoppingItem(
+                    new MealPlanRepository.ShoppingItemWrite(
+                            ids.nextId(),
+                            list.shoppingListId(),
+                            mealPlanId,
+                            userId,
+                            itemKey,
+                            name,
+                            decimal(item.get("amount")),
+                            unit));
+        }
+        store.softDeleteShoppingItemsNotInKeys(userId, list.shoppingListId(), activeKeys);
+        List<MealPlanRepository.ShoppingItemSnapshot> current =
+                safeList(store.findShoppingItems(userId, mealPlanId, list.shoppingListId()));
+        if (!current.isEmpty())
+            store.updateShoppingListItems(
+                    userId, list.shoppingListId(), json(shoppingItemsJson(current)));
+    }
+
+    private static String shoppingItemKey(String name, String unit) {
+        return name.trim().toLowerCase(Locale.ROOT) + "|" + unit.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private ArrayNode shoppingItemsJson(List<MealPlanRepository.ShoppingItemSnapshot> items) {
+        ArrayNode result = JsonNodeFactory.instance.arrayNode();
+        for (MealPlanRepository.ShoppingItemSnapshot item : items) {
+            ObjectNode node = result.addObject();
+            node.put("shopping_list_item_id", item.shoppingListItemId());
+            node.put("item_key", item.itemKey());
+            node.put("name", item.itemName());
+            if (item.amount() == null) node.putNull("amount");
+            else node.put("amount", item.amount());
+            node.put("unit", item.unit());
+            node.put("purchased", item.purchased());
+            if (item.purchasedAt() == null) node.putNull("purchased_at");
+            else node.put("purchased_at", item.purchasedAt().toString());
+        }
+        return result;
+    }
+
     private ArrayNode aggregateShoppingItems(JsonNode plan) {
         ArrayNode result = JsonNodeFactory.instance.arrayNode();
         if (!plan.isArray()) return result;
@@ -629,6 +845,30 @@ public class MealPlanServiceImpl implements MealPlanService {
 
     private PlanView view(MealPlanRepository.PlanSnapshot plan) {
         JsonNode constraints = read(plan.constraintsJson());
+        List<MealPlanRepository.MealSlotSnapshot> slots =
+                safeList(store.findMealSlots(plan.userId(), plan.mealPlanId()));
+        List<MealSlotView> mealSlots =
+                slots.stream()
+                        .map(
+                                value ->
+                                        new MealSlotView(
+                                                Long.toString(value.mealPlanMealId()),
+                                                value.dayIndex(),
+                                                value.mealType(),
+                                                value.mealName(),
+                                                read(value.mealJson()),
+                                                value.foodLogCount(),
+                                                value.foodLogCount() > 0))
+                        .toList();
+        int completed = (int) mealSlots.stream().filter(MealSlotView::completed).count();
+        BigDecimal ratio =
+                mealSlots.isEmpty()
+                        ? BigDecimal.ZERO
+                        : BigDecimal.valueOf(completed)
+                                .divide(
+                                        BigDecimal.valueOf(mealSlots.size()),
+                                        4,
+                                        RoundingMode.HALF_UP);
         return new PlanView(
                 plan.mealPlanId(),
                 plan.sessionId(),
@@ -643,18 +883,32 @@ public class MealPlanServiceImpl implements MealPlanService {
                 plan.revision(),
                 plan.deleted(),
                 plan.createdAt(),
-                plan.updatedAt());
+                plan.updatedAt(),
+                mealSlots,
+                mealSlots.size(),
+                completed,
+                ratio);
     }
 
-    private ShoppingListView shoppingView(MealPlanRepository.ShoppingListSnapshot value) {
+    private ShoppingListView shoppingView(
+            MealPlanRepository.ShoppingListSnapshot value,
+            List<MealPlanRepository.ShoppingItemSnapshot> itemSnapshots) {
         if (value == null) throw new BusinessException(ErrorCode.INTERNAL_ERROR, "购物清单写入后无法读取");
+        JsonNode items =
+                itemSnapshots == null || itemSnapshots.isEmpty()
+                        ? read(value.itemsJson())
+                        : shoppingItemsJson(itemSnapshots);
         return new ShoppingListView(
                 value.shoppingListId(),
                 value.mealPlanId(),
-                read(value.itemsJson()),
+                items,
                 value.status(),
                 value.createdAt(),
                 value.updatedAt());
+    }
+
+    private static <T> List<T> safeList(List<T> values) {
+        return values == null ? List.of() : values;
     }
 
     private MealPlanRepository.PlanSnapshot requirePlan(long userId, long mealPlanId) {
@@ -721,18 +975,32 @@ public class MealPlanServiceImpl implements MealPlanService {
             String digest,
             AuditAttempt attempt,
             RuntimeException exception) {
+        recordFailureIfNeeded(
+                userId, targetId, action, key, digest, attempt, exception, "meal_plan");
+    }
+
+    private void recordFailureIfNeeded(
+            long userId,
+            String targetId,
+            String action,
+            String key,
+            String digest,
+            AuditAttempt attempt,
+            RuntimeException exception,
+            String targetType) {
         if (userId <= 0
                 || key == null
                 || key.isBlank()
                 || key.length() > MAX_IDEMPOTENCY_KEY_LENGTH) return;
         if (attempt.reserved) {
-            recordFailureAfterRollback(userId, targetId, action, key, digest, exception);
+            recordFailureAfterRollback(
+                    userId, targetId, action, key, digest, exception, targetType);
             return;
         }
         if (attempt.reservationAttempted || store.findIdempotency(userId, key) != null) return;
         audit.recordFailure(
                 userId,
-                "meal_plan",
+                targetType,
                 targetId,
                 action,
                 "failed",
@@ -748,12 +1016,13 @@ public class MealPlanServiceImpl implements MealPlanService {
             String action,
             String key,
             String digest,
-            RuntimeException exception) {
+            RuntimeException exception,
+            String targetType) {
         Runnable record =
                 () ->
                         audit.recordFailure(
                                 userId,
-                                "meal_plan",
+                                targetType,
                                 targetId,
                                 action,
                                 "failed",
@@ -873,6 +1142,18 @@ public class MealPlanServiceImpl implements MealPlanService {
                             "status", view.status()));
         } catch (JsonProcessingException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "餐食计划审计摘要无效");
+        }
+    }
+
+    private String shoppingAuditSummary(long shoppingListItemId, boolean purchased) {
+        try {
+            return mapper.writeValueAsString(
+                    Map.of(
+                            "resource_id", shoppingListItemId,
+                            "purchased", purchased,
+                            "status", "active"));
+        } catch (JsonProcessingException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "购物项审计摘要无效");
         }
     }
 

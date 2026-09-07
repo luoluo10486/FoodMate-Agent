@@ -11,6 +11,13 @@ import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.food.enums.MealType;
 import com.foodmate.shared.id.IdGenerator;
+
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.MessageDigest;
@@ -21,11 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /** Java 权威饮食记录写入用例；手工页面和后续 Agent 工具必须复用此服务。 */
 @Service
@@ -81,6 +83,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                             command.compositeDishId(),
                             command.compositeDishRevision(),
                             command.compositeDishServings());
+            resolveMealPlanMeal(userId, command.mealPlanMealId(), command.mealType());
             reservationAttempted = true;
             if (reserveAudit(userId, key, digest, "food_log.create", foodLogId) != 1)
                 return replayOrConflict(userId, key, digest);
@@ -97,6 +100,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                                     command.source(),
                                     key,
                                     1,
+                                    command.mealPlanMealId(),
                                     command.compositeDishId(),
                                     compositeDish == null ? null : compositeDish.revision(),
                                     command.compositeDishServings(),
@@ -178,6 +182,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                             command.compositeDishId(),
                             command.compositeDishRevision(),
                             command.compositeDishServings());
+            resolveMealPlanMeal(userId, command.mealPlanMealId(), command.mealType());
             reservationAttempted = true;
             if (reserveAudit(userId, key, digest, "food_log.update", foodLogId) != 1)
                 return replayOrConflict(userId, key, digest);
@@ -190,6 +195,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                                     command.mealTime(),
                                     command.mealType().code(),
                                     command.notes(),
+                                    command.mealPlanMealId(),
                                     command.compositeDishId(),
                                     compositeDish == null ? null : compositeDish.revision(),
                                     command.compositeDishServings(),
@@ -362,6 +368,8 @@ public class FoodLogServiceImpl implements FoodLogService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "来源会话不存在");
         if (command.agentRunId() != null && !store.agentRunOwned(userId, command.agentRunId()))
             throw new BusinessException(ErrorCode.NOT_FOUND, "来源 AgentRun 不存在");
+        if (command.mealPlanMealId() != null && command.mealPlanMealId() <= 0)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "计划餐次无效");
         for (ItemCommand item : command.items()) {
             if (item == null
                     || item.rawName() == null
@@ -396,6 +404,8 @@ public class FoodLogServiceImpl implements FoodLogService {
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "复合菜份数或版本无效");
         if (command.notes() != null && command.notes().length() > 4000)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "备注过长");
+        if (command.mealPlanMealId() != null && command.mealPlanMealId() <= 0)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "计划餐次无效");
         for (ItemCommand item : command.items()) {
             if (item == null
                     || item.rawName() == null
@@ -416,6 +426,16 @@ public class FoodLogServiceImpl implements FoodLogService {
     private String requireIdempotencyKey(String value) {
         if (value == null || value.isBlank() || value.length() > MAX_IDEMPOTENCY_KEY_LENGTH)
             throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "Idempotency-Key 无效");
+        return value;
+    }
+
+    private FoodLogRepository.MealPlanMealLookup resolveMealPlanMeal(
+            long userId, Long mealPlanMealId, MealType mealType) {
+        if (mealPlanMealId == null) return null;
+        FoodLogRepository.MealPlanMealLookup value = store.findMealPlanMeal(userId, mealPlanMealId);
+        if (value == null) throw new BusinessException(ErrorCode.NOT_FOUND, "计划餐次不存在");
+        if (!value.mealType().equals(mealType.code()))
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "饮食记录餐别与计划餐次不一致");
         return value;
     }
 
@@ -716,6 +736,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                 command.mealTime(),
                 command.mealType().code(),
                 command.notes(),
+                command.mealPlanMealId(),
                 command.compositeDishId(),
                 command.compositeDishRevision(),
                 command.compositeDishServings(),
@@ -730,6 +751,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                 command.mealTime(),
                 command.mealType().code(),
                 command.notes(),
+                command.mealPlanMealId(),
                 command.compositeDishId(),
                 command.compositeDishRevision(),
                 command.compositeDishServings(),
@@ -804,6 +826,7 @@ public class FoodLogServiceImpl implements FoodLogService {
                 MealType.fromCode(value.mealType()),
                 value.notes(),
                 value.source(),
+                value.mealPlanMealId(),
                 value.compositeDishId(),
                 value.compositeDishRevision(),
                 value.compositeDishServings(),

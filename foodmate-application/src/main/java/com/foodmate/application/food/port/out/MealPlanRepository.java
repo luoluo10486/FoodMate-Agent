@@ -39,6 +39,27 @@ public interface MealPlanRepository {
 
     ShoppingListSnapshot findOwnedShoppingList(long userId, long mealPlanId);
 
+    ShoppingListSnapshot findLatestShoppingList(long userId, long mealPlanId);
+
+    int updateShoppingListItems(long userId, long shoppingListId, String itemsJson);
+
+    int deactivateMealSlots(long userId, long mealPlanId);
+
+    int softDeleteMealSlotsNotInKeys(long userId, long mealPlanId, List<String> activeSlotKeys);
+
+    MealSlotSnapshot upsertMealSlot(MealSlotWrite slot);
+
+    List<MealSlotSnapshot> findMealSlots(long userId, long mealPlanId);
+
+    ShoppingItemSnapshot upsertShoppingItem(ShoppingItemWrite item);
+
+    List<ShoppingItemSnapshot> findShoppingItems(long userId, long mealPlanId, long shoppingListId);
+
+    int softDeleteShoppingItemsNotInKeys(
+            long userId, long shoppingListId, List<String> activeItemKeys);
+
+    int updateShoppingItemPurchased(long userId, long shoppingListItemId, boolean purchased);
+
     record PlanWrite(
             long mealPlanId,
             long userId,
@@ -148,6 +169,51 @@ public interface MealPlanRepository {
             String itemsJson,
             String status,
             Instant createdAt,
+            Instant updatedAt) {}
+
+    record MealSlotWrite(
+            long mealPlanMealId,
+            long mealPlanId,
+            long userId,
+            int dayIndex,
+            String mealType,
+            String mealName,
+            String mealJson,
+            long planRevision) {}
+
+    record MealSlotSnapshot(
+            long mealPlanMealId,
+            long mealPlanId,
+            long userId,
+            int dayIndex,
+            String mealType,
+            String mealName,
+            String mealJson,
+            long planRevision,
+            int foodLogCount,
+            Instant updatedAt) {}
+
+    record ShoppingItemWrite(
+            long shoppingListItemId,
+            long shoppingListId,
+            long mealPlanId,
+            long userId,
+            String itemKey,
+            String itemName,
+            BigDecimal amount,
+            String unit) {}
+
+    record ShoppingItemSnapshot(
+            long shoppingListItemId,
+            long shoppingListId,
+            long mealPlanId,
+            long userId,
+            String itemKey,
+            String itemName,
+            BigDecimal amount,
+            String unit,
+            boolean purchased,
+            Instant purchasedAt,
             Instant updatedAt) {}
 
     record IdempotencyRecord(String parametersDigest, String result, String responseJson) {}

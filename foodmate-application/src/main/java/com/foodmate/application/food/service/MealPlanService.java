@@ -1,6 +1,7 @@
 package com.foodmate.application.food.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -36,6 +37,15 @@ public interface MealPlanService {
     PlanView save(long userId, long mealPlanId, long revision, String idempotencyKey);
 
     ShoppingListView shoppingList(long userId, long mealPlanId);
+
+    ShoppingListView setShoppingItemPurchased(
+            long userId,
+            long mealPlanId,
+            long shoppingListItemId,
+            boolean purchased,
+            String idempotencyKey);
+
+    ProgressView progress(long userId, long mealPlanId);
 
     record CreateCommand(
             Long sessionId,
@@ -121,7 +131,11 @@ public interface MealPlanService {
             long revision,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt) {
+            Instant updatedAt,
+            List<MealSlotView> mealSlots,
+            int executableMealCount,
+            int completedMealCount,
+            BigDecimal completionRatio) {
         public PlanView(
                 long mealPlanId,
                 Long sessionId,
@@ -149,9 +163,65 @@ public interface MealPlanService {
                     1,
                     false,
                     createdAt,
-                    updatedAt);
+                    updatedAt,
+                    List.of(),
+                    0,
+                    0,
+                    BigDecimal.ZERO);
+        }
+
+        public PlanView(
+                long mealPlanId,
+                Long sessionId,
+                String planName,
+                int people,
+                int days,
+                BigDecimal budget,
+                JsonNode constraints,
+                JsonNode daysPlan,
+                JsonNode validation,
+                String status,
+                long revision,
+                boolean deleted,
+                Instant createdAt,
+                Instant updatedAt) {
+            this(
+                    mealPlanId,
+                    sessionId,
+                    planName,
+                    people,
+                    days,
+                    budget,
+                    constraints,
+                    daysPlan,
+                    validation,
+                    status,
+                    revision,
+                    deleted,
+                    createdAt,
+                    updatedAt,
+                    List.of(),
+                    0,
+                    0,
+                    BigDecimal.ZERO);
         }
     }
+
+    record MealSlotView(
+            String mealPlanMealId,
+            int dayIndex,
+            String mealType,
+            String mealName,
+            JsonNode meal,
+            int foodLogCount,
+            boolean completed) {}
+
+    record ProgressView(
+            long mealPlanId,
+            int executableMealCount,
+            int completedMealCount,
+            BigDecimal completionRatio,
+            List<MealSlotView> mealSlots) {}
 
     record ShoppingListView(
             long shoppingListId,

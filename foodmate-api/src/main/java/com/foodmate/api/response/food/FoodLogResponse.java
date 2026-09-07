@@ -2,6 +2,7 @@ package com.foodmate.api.response.food;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -16,6 +17,7 @@ public record FoodLogResponse(
         String mealType,
         String notes,
         String source,
+        String mealPlanMealId,
         String compositeDishId,
         Long compositeDishRevision,
         BigDecimal compositeDishServings,
@@ -48,6 +50,43 @@ public record FoodLogResponse(
                 null,
                 null,
                 null,
+                null,
+                revision,
+                deleted,
+                createdAt,
+                updatedAt,
+                items);
+    }
+
+    /** R2 复合菜响应的兼容构造函数。 */
+    public FoodLogResponse(
+            String foodLogId,
+            String sessionId,
+            String agentRunId,
+            Instant mealTime,
+            String mealType,
+            String notes,
+            String source,
+            String compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
+            long revision,
+            boolean deleted,
+            Instant createdAt,
+            Instant updatedAt,
+            List<Item> items) {
+        this(
+                foodLogId,
+                sessionId,
+                agentRunId,
+                mealTime,
+                mealType,
+                notes,
+                source,
+                null,
+                compositeDishId,
+                compositeDishRevision,
+                compositeDishServings,
                 revision,
                 deleted,
                 createdAt,

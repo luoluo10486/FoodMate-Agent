@@ -2356,3 +2356,15 @@
 | 业务验证 | `cd foodmate-ui; npm.cmd test -- --maxWorkers=1 --run src/pages/AdminPage/AdminPage.test.tsx src/pages/AdminPage/tabs/ToolsTab.real.test.tsx src/pages/AdminPage/tabs/UsersTab.test.tsx`：3 个测试文件、`32/32` 通过；`npm.cmd run typecheck` 通过。 |
 | 数据边界 | 未修改 PostgreSQL、Redis、Milvus、RocketMQ、`.env` 或任何用户已有 Figma QA 文件；未增加测试数据。 |
 | 结论 | 管理端 real 模式的页面事实来源统一为服务端接口，fixture 仅保留给显式设计预览/测试状态。 |
+
+## D154 R3 计划执行与购物项业务闭环（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 实现范围 | 新增 V36 计划餐次和购物项增量脚本；饮食记录支持 `meal_plan_meal_id` 关联；计划返回稳定餐次、可执行餐次数、完成数和完成率；购物项支持稳定 ID、购买状态持久化、数量变化重置购买确认；旧计划读取时惰性补齐餐次；购物项写入统一用户归属、保存状态、幂等审计和失败审计。 |
+| Java 应用验证 | `mvnw.cmd -pl foodmate-application -am "-Dtest=MealPlanServiceImplTest,FoodLogServiceImplTest,FoodLogCompositeDishTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`32/32` 通过，`BUILD SUCCESS`。 |
+| Java API 验证 | `mvnw.cmd -pl foodmate-api -am "-Dtest=MealPlanControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`4/4` 通过，`BUILD SUCCESS`。 |
+| 前端验证 | `foodmate-ui` 执行计划页/饮食记录页业务测试：`13/13` 通过；`npm.cmd run typecheck` 通过。 |
+| 迁移边界 | 已创建 `migration/V36__m2_6_plan_execution_and_shopping_items.sql`、对应 `validation` 和 `rollback` 前置检查；当前任务未执行 PostgreSQL 迁移、未清理现有数据，待人工按项目迁移流程执行并复核。 |
+| 其他边界 | 未启动或重启 Docker 依赖，未执行性能压测、ACK/重复投递故障注入、SSE 故障恢复、备份恢复、生产验证或真实付费模型调用；保留工作区其他用户改动。 |
+| 结论 | R3 业务代码、API 契约和前端主路径已通过定向验证；数据库真实运行证据不在本轮完成判定内，R4 及后续业务项继续按计划推进。 |

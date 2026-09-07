@@ -10,7 +10,9 @@ import {
   createMealPlan,
   loadMealPlans,
   loadShoppingList,
+  updateShoppingItemPurchased,
   type MealPlan,
+  type MealPlanMealSlot,
   type MealPlanDraft,
   type ShoppingList,
 } from '../../services/planningService';
@@ -23,10 +25,13 @@ type PlanningView = 'default' | 'loading' | 'empty' | 'error' | MealPlanningFlow
 type Meal = {
   name?: string;
   kcal?: string;
+  mealPlanMealId?: string;
+  completed?: boolean;
 };
 
 type MealRow = {
   label: string;
+  mealType?: string;
   meals: Meal[];
 };
 
@@ -59,7 +64,7 @@ function firstText(value: Record<string, unknown>, keys: string[]) {
   return undefined;
 }
 
-function realMeal(value: unknown): Meal {
+function realMeal(value: unknown, slot?: MealPlanMealSlot): Meal {
   const meal = objectValue(value);
   if (!meal) return {};
   const directName = firstText(meal, ['name', 'title', 'dish_name', 'dishName']);
@@ -73,6 +78,8 @@ function realMeal(value: unknown): Meal {
   return {
     name: directName ?? (ingredientNames.length ? ingredientNames.join('、') : undefined),
     kcal,
+    mealPlanMealId: slot?.meal_plan_meal_id,
+    completed: slot?.completed,
   };
 }
 
@@ -81,7 +88,13 @@ function realSchedule(plan: MealPlan) {
   const scheduleDays = planDays.map((_, index) => ({ key: String(index), label: `第${index + 1}天` }));
   const rows = mealSlots.map<MealRow>(({ key, label }) => ({
     label,
-    meals: planDays.map((day) => realMeal(objectValue(day)?.[key])),
+    mealType: key,
+    meals: planDays.map((day, index) =>
+      realMeal(
+        objectValue(day)?.[key],
+        (plan.meal_slots ?? []).find((slot) => slot.day_index === index && slot.meal_type === key),
+      ),
+    ),
   }));
   return { days: scheduleDays, rows };
 }
@@ -293,7 +306,13 @@ function PlanningFeedbackView({ kind, onPrimary, onSecondary }: PlanningFeedback
   );
 }
 
-function DefaultPlanningView({ plan }: { plan?: MealPlan }) {
+function DefaultPlanningView({
+  plan,
+  onOpenMeal,
+}: {
+  plan?: MealPlan;
+  onOpenMeal?: (mealPlanMealId: string, mealType: string) => void;
+}) {
   const schedule = plan ? realSchedule(plan) : { days, rows: mealRows };
   const [activeDay, setActiveDay] = useState<DayKey>(plan ? (schedule.days[0]?.key ?? '0') : '14');
   const [notice, setNotice] = useState('');
@@ -369,6 +388,15 @@ function DefaultPlanningView({ plan }: { plan?: MealPlan }) {
                   <article className={styles.mealCard} key={`${row.label}-${index}`}>
                     <strong>{meal.name}</strong>
                     <span>{meal.kcal}</span>
+                    {meal.mealPlanMealId && onOpenMeal ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => onOpenMeal(meal.mealPlanMealId as string, row.mealType ?? '')}
+                      >
+                        {meal.completed ? '已记录，查看饮食记录' : '记录这餐'}
+                      </Button>
+                    ) : null}
                   </article>
                 ) : (
                   <Button
@@ -408,15 +436,23 @@ function PlanSidebar({
   plan,
   shoppingList,
   shoppingLoading,
+  onShoppingListChange,
 }: {
   plan?: MealPlan;
   shoppingList?: ShoppingList;
   shoppingLoading?: boolean;
+  onShoppingListChange?: (value: ShoppingList) => void;
 }) {
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [updatingItemId, setUpdatingItemId] = useState<string>();
 
-  const toggleShoppingItem = (item: string) => {
-    setCheckedItems((current) => ({ ...current, [item]: !current[item] }));
+  const toggleShoppingItem = (item: ShoppingList['items'][number]) => {
+    if (!plan || !item.shopping_list_item_id || !onShoppingListChange || updatingItemId) return;
+    const nextPurchased = !item.purchased;
+    setUpdatingItemId(item.shopping_list_item_id);
+    void updateShoppingItemPurchased(plan.meal_plan_id, item.shopping_list_item_id, nextPurchased)
+      .then(onShoppingListChange)
+      .catch(() => undefined)
+      .finally(() => setUpdatingItemId(undefined));
   };
 
   return (
@@ -468,14 +504,15 @@ function PlanSidebar({
           ) : shoppingList?.items?.length ? (
             <div className={styles.shoppingItems}>
               {shoppingList.items.map((item, index) => {
-                const label = shoppingItemLabel(item);
+                const label = shoppingItemLabel(item as Record<string, unknown>);
                 return (
-                  <div className={styles.shoppingRow} key={`${label}-${index}`}>
+                  <div className={styles.shoppingRow} key={item.shopping_list_item_id ?? `${label}-${index}`}>
                     <Checkbox
                       aria-label={label}
-                      checked={Boolean(checkedItems[label])}
+                      checked={Boolean(item.purchased)}
+                      disabled={!item.shopping_list_item_id || Boolean(updatingItemId)}
                       className={styles.shoppingCheckbox}
-                      onCheckedChange={() => toggleShoppingItem(label)}
+                      onCheckedChange={() => toggleShoppingItem(item)}
                     />
                     <span>{label}</span>
                   </div>
@@ -494,9 +531,8 @@ function PlanSidebar({
                   <div className={styles.shoppingRow} key={item}>
                     <Checkbox
                       aria-label={item}
-                      checked={Boolean(checkedItems[item])}
+                      checked={false}
                       className={styles.shoppingCheckbox}
-                      onCheckedChange={() => toggleShoppingItem(item)}
                     />
                     <span>{item}</span>
                   </div>
@@ -646,7 +682,14 @@ export function PlanningPage() {
     ) : view === 'empty' || realPlans.length === 0 ? (
       <PlanningFeedbackView kind="empty" onPrimary={() => navigate('/planning?state=wizard-step1')} />
     ) : (
-      <DefaultPlanningView plan={selectedPlan} />
+      <DefaultPlanningView
+        plan={selectedPlan}
+        onOpenMeal={(mealPlanMealId, mealType) =>
+          navigate(
+            `/diet-records?mealPlanMealId=${encodeURIComponent(mealPlanMealId)}&mealType=${encodeURIComponent(mealType)}`,
+          )
+        }
+      />
     )
   ) : view === 'loading' ? (
     <PlanLoadingView />
@@ -676,6 +719,7 @@ export function PlanningPage() {
             plan={isRealMode ? selectedPlan : undefined}
             shoppingList={isRealMode ? realShoppingList : undefined}
             shoppingLoading={isRealMode ? realShoppingLoading : false}
+            onShoppingListChange={isRealMode ? setRealShoppingList : undefined}
           />
         ) : undefined
       }

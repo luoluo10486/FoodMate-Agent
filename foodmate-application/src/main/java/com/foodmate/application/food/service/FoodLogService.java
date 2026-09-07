@@ -1,6 +1,7 @@
 package com.foodmate.application.food.service;
 
 import com.foodmate.shared.food.enums.MealType;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -29,6 +30,7 @@ public interface FoodLogService {
             String notes,
             String idempotencyKey,
             String source,
+            Long mealPlanMealId,
             Long compositeDishId,
             Long compositeDishRevision,
             BigDecimal compositeDishServings,
@@ -49,6 +51,7 @@ public interface FoodLogService {
                     notes,
                     idempotencyKey,
                     "manual",
+                    null,
                     null,
                     null,
                     null,
@@ -75,6 +78,35 @@ public interface FoodLogService {
                     null,
                     null,
                     null,
+                    null,
+                    items);
+        }
+
+        /** R2 复合菜调用方的兼容构造函数；计划餐次关联使用完整构造函数。 */
+        public CreateCommand(
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                MealType mealType,
+                String notes,
+                String idempotencyKey,
+                String source,
+                Long compositeDishId,
+                Long compositeDishRevision,
+                BigDecimal compositeDishServings,
+                List<ItemCommand> items) {
+            this(
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    idempotencyKey,
+                    source,
+                    null,
+                    compositeDishId,
+                    compositeDishRevision,
+                    compositeDishServings,
                     items);
         }
 
@@ -89,6 +121,7 @@ public interface FoodLogService {
             MealType mealType,
             String notes,
             String idempotencyKey,
+            Long mealPlanMealId,
             Long compositeDishId,
             Long compositeDishRevision,
             BigDecimal compositeDishServings,
@@ -99,7 +132,29 @@ public interface FoodLogService {
                 String notes,
                 String idempotencyKey,
                 List<ItemCommand> items) {
-            this(mealTime, mealType, notes, idempotencyKey, null, null, null, items);
+            this(mealTime, mealType, notes, idempotencyKey, null, null, null, null, items);
+        }
+
+        /** R2 复合菜调用方的兼容构造函数。 */
+        public UpdateCommand(
+                Instant mealTime,
+                MealType mealType,
+                String notes,
+                String idempotencyKey,
+                Long compositeDishId,
+                Long compositeDishRevision,
+                BigDecimal compositeDishServings,
+                List<ItemCommand> items) {
+            this(
+                    mealTime,
+                    mealType,
+                    notes,
+                    idempotencyKey,
+                    null,
+                    compositeDishId,
+                    compositeDishRevision,
+                    compositeDishServings,
+                    items);
         }
 
         public UpdateCommand {
@@ -121,6 +176,7 @@ public interface FoodLogService {
             MealType mealType,
             String notes,
             String source,
+            Long mealPlanMealId,
             Long compositeDishId,
             Long compositeDishRevision,
             BigDecimal compositeDishServings,
@@ -153,6 +209,43 @@ public interface FoodLogService {
                     null,
                     null,
                     null,
+                    null,
+                    revision,
+                    deleted,
+                    createdAt,
+                    updatedAt,
+                    items);
+        }
+
+        /** R2 复合菜响应的兼容构造函数。 */
+        public FoodLogView(
+                long foodLogId,
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                MealType mealType,
+                String notes,
+                String source,
+                Long compositeDishId,
+                Long compositeDishRevision,
+                BigDecimal compositeDishServings,
+                long revision,
+                boolean deleted,
+                Instant createdAt,
+                Instant updatedAt,
+                List<ItemView> items) {
+            this(
+                    foodLogId,
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    source,
+                    null,
+                    compositeDishId,
+                    compositeDishRevision,
+                    compositeDishServings,
                     revision,
                     deleted,
                     createdAt,
