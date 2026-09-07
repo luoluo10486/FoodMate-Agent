@@ -175,6 +175,7 @@ public class CompositeDishServiceImpl implements CompositeDishService {
             reserved = reserve(userId, compositeDishId, "composite_dish.delete", digest, key);
             if (dishes.softDelete(userId, compositeDishId, revision) != 1)
                 throw new BusinessException(ErrorCode.CONFLICT, "复合菜版本已变化");
+            dishes.softDeleteItems(userId, compositeDishId);
             audit.complete(userId, key, "{}");
         } catch (RuntimeException exception) {
             recordFailure(

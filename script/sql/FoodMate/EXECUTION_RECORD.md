@@ -2417,3 +2417,15 @@
 | 数据与安全边界 | 未修改 PostgreSQL、Redis、RocketMQ、Milvus、MinIO 或用户数据；真实模式继续不回退 fixture，查询结果只返回既有安全字段。 |
 | 未执行范围 | 未执行性能压测、长稳、组件重启、ACK 丢失、重复投递、SSE 故障恢复、备份恢复、生产部署或发布回滚；全模块 Spotless 的既有无关格式问题未在本轮扩大修复。 |
 | 结论 | R7 管理分页与服务端筛选业务门禁完成；R8 集中跨端验收、数据库人工迁移执行和生产级能力仍按计划后置。 |
+
+## D159 R8 复合菜与计划执行真实业务验收（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、PostgreSQL、Redis、RocketMQ、MinIO 已运行；Java 容器使用本轮代码重新构建并恢复 `healthy`。未执行性能压测、依赖故障重启、ACK 丢失、重复投递或生产操作。 |
+| 数据库迁移 | V38、V39 已随本地 Java 容器启动后的迁移流程实际生效。V38 validation：约束存在，`invalid_matched_snapshot_rows=0`，复合菜快照 `5/5` 合法；V39 validation：活动明细顺序重复 `0`，活动顺序唯一索引存在。 |
+| Java 定向测试 | `CompositeDishServiceImplTest`、`FoodLogCompositeDishTest`：`2/2` 通过。删除复合菜现在同步软删除组成明细；复合菜版本更新可复用旧明细顺序。 |
+| 真实业务验收 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\script\\local\\_r8_business_acceptance.ps1`：营养候选、复合菜创建/更新、餐食计划创建/校验/保存、购物项勾选、按份饮食记录、完成率 `1/3`、历史营养快照 `393.0000 kcal` 均通过，最终 `status=passed`。验收脚本随后删除，不作为项目文件保留。 |
+| 首次失败与修复 | 首次跨端验收发现复合菜聚合饮食明细被旧 `food_log_items` 约束拒绝，以及版本更新软删除旧明细后无法插入相同 `item_order`；新增 V38/V39 和 `CompositeDishServiceImpl` 删除联动后重新构建并复验通过。 |
+| 测试数据清理 | 仅针对用户 `1788628850360127` 且名称以 `R8 Composite Rice` 开头、父记录已软删除的数据，将遗留活动组成明细 `12` 条软删除；未执行 `TRUNCATE`，未删除其他用户或正式业务数据，复核活动残留为 `0`。 |
+| 未完成边界 | R8 中 SQL Agent 跨进程真实调用、公共知识真实 Embedding/Milvus 索引与版本替换、记忆跨进程回读和真实浏览器布局证据不由本轮脚本替代；真实 Embedding/Milvus 仍按用户要求暂缓。生产性能、可靠性和运维项继续后置。 |

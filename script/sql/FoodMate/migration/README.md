@@ -63,6 +63,10 @@ V33 不属于 Flyway 迁移，而是人工执行的生成式 seed：`seed/genera
 
 `seed/V37__m2_6_sql_agent_execution_catalog_seed.sql`：为 SQL Agent 增量登记 `food_logs.meal_plan_meal_id`、`meal_plan_meals` 和 `shopping_list_items` 的非敏感只读字段；它不是结构迁移，不修改业务数据，不得替代 V36。配套只读校验为 `validation/V37__m2_6_sql_agent_execution_catalog_validation.sql`，执行前需确认 V36 结构已存在。
 
+`V38__m2_6_composite_food_log_snapshot.sql`：修正复合菜饮食记录聚合项与旧营养明细约束的冲突。普通食材仍必须关联营养目录；复合菜仅允许使用 `composite_dish:<id>` 与 `revision:<n>` 的安全聚合快照。配套校验为 `validation/V38__m2_6_composite_food_log_snapshot_validation.sql`，回滚为只读前置检查 `rollback/R38__m2_6_composite_food_log_snapshot_precheck.sql`。
+
+`V39__m2_6_composite_dish_item_active_order.sql`：将复合菜组成明细顺序唯一性收敛到活动行，允许更新时保留旧版本软删除并写入相同顺序的新明细。配套校验为 `validation/V39__m2_6_composite_dish_item_active_order_validation.sql`，回滚为只读前置检查 `rollback/R39__m2_6_composite_dish_item_active_order_precheck.sql`。
+
 ## 配套文件矩阵
 
 | 版本 | validation | rollback | 处理边界 |
@@ -83,6 +87,8 @@ V33 不属于 Flyway 迁移，而是人工执行的生成式 seed：`seed/genera
 | V34 | 有 | 有（只读前置检查） | 营养候选人工确认状态和候选查询索引；不自动选择生熟/部位形态 |
 | V36 | 有 | 有（只读前置检查） | 餐食计划稳定餐次、饮食记录关联和购物项购买状态；只增加结构，不清理既有业务数据 |
 | V37 seed | 有 | 不适用 | SQL Agent 计划执行和购物项只读 Catalog 增量；依赖 V36，不能代替结构迁移 |
+| V38 | 有 | 有（只读前置检查） | 复合菜饮食记录聚合营养快照约束修正；普通食材约束不变，不修改既有数据 |
+| V39 | 有 | 有（只读前置检查） | 复合菜组成明细活动顺序唯一约束；保留软删除历史，允许复合菜版本更新 |
 
 该矩阵描述文件现状，不代表任何迁移已在当前数据库执行。实际执行状态、validation 输出、失败与补偿必须以 `../EXECUTION_RECORD.md` 为准。历史版本若需补充校验，优先新增只读 SQL 文档；若需修复结构，创建更高版本迁移，不原地修改已执行脚本，不执行宽泛删除或 `TRUNCATE`。
 
