@@ -4,6 +4,7 @@ export type FoodLogItem = {
   food_log_item_id: string;
   item_order: number;
   raw_name: string;
+  nutrition_food_id?: string | null;
   amount: number | string;
   unit: string;
   nutrition_status: string;
@@ -19,6 +20,10 @@ export type FoodLog = {
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | string;
   notes: string | null;
   source: string;
+  meal_plan_meal_id?: string | null;
+  composite_dish_id?: string | null;
+  composite_dish_revision?: number | null;
+  composite_dish_servings?: number | string | null;
   revision: number;
   deleted: boolean;
   items: FoodLogItem[];
@@ -28,7 +33,11 @@ export type FoodLogWriteRequest = {
   meal_time: string;
   meal_type: FoodLog['meal_type'];
   notes?: string;
-  items: Array<{ raw_name: string; amount: number; unit: string }>;
+  meal_plan_meal_id?: string;
+  composite_dish_id?: string;
+  composite_dish_revision?: number;
+  composite_dish_servings?: number;
+  items: Array<{ raw_name: string; amount: number; unit: string; nutrition_food_id?: string }>;
 };
 
 export async function loadFoodLogs(from: string, to: string): Promise<FoodLog[]> {

@@ -135,8 +135,11 @@ export function WorkspaceLayout({
   const canAccessAdmin = isAuthenticated && ['admin', 'operator', 'superadmin'].includes(authUser.role);
   const defaultAvatar = resolveAvatarUrl(avatarSrc ?? authUser.avatarUrl, authUser.gender);
   // 所有布局覆盖头像都必须经过统一解析，阻断历史 Figma 人物素材绕过默认资源策略。
-  const sidebarAvatar = resolveAvatarUrl(sidebarAvatarSrc, authUser.gender) || defaultAvatar;
-  const topAvatar = resolveAvatarUrl(topAvatarSrc, authUser.gender) || defaultAvatar;
+  // 只有传入 Fixture 覆盖头像时才使用覆盖值，真实模式默认沿用用户上传头像。
+  const sidebarAvatar = sidebarAvatarSrc ? resolveAvatarUrl(sidebarAvatarSrc, authUser.gender) : defaultAvatar;
+  const topAvatar = topAvatarSrc ? resolveAvatarUrl(topAvatarSrc, authUser.gender) : defaultAvatar;
+  // Mock/Fixture 页面没有真实用户上传语义，必须只展示登记的男女默认 SVG。
+  const defaultOnlyAvatar = !realMode || Boolean(fixtureVariant || designChat);
   const displayName = displayNameOverride ?? (isAuthenticated ? authUser.displayName : '登录');
   const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
   const displayedSessions = sidebarFixture?.sessions ?? sessions;
@@ -362,7 +365,12 @@ export function WorkspaceLayout({
             </div>
             <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
               <div className={styles.avatar}>
-                <AvatarImage avatarUrl={sidebarAvatar} gender={authUser.gender} alt="" />
+                <AvatarImage
+                  avatarUrl={sidebarAvatar}
+                  defaultOnly={defaultOnlyAvatar}
+                  gender={authUser.gender}
+                  alt=""
+                />
               </div>
               <div>
                 <strong>
@@ -470,7 +478,12 @@ export function WorkspaceLayout({
                 <DropdownMenuTrigger asChild>
                   <Button className={styles.userButton} variant="ghost" type="button">
                     <span className={styles.topAvatar}>
-                      <AvatarImage avatarUrl={topAvatar} gender={authUser.gender} alt="" />
+                      <AvatarImage
+                        avatarUrl={topAvatar}
+                        defaultOnly={defaultOnlyAvatar}
+                        gender={authUser.gender}
+                        alt=""
+                      />
                     </span>
                     <span>{displayName}</span>
                   </Button>

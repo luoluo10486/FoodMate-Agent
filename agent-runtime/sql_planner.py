@@ -193,7 +193,7 @@ class DeterministicSqlPlanner:
     """Maps a small nutrition-query vocabulary to reviewed SQL templates."""
 
     mode = "stub"
-    version = "m2-2-deterministic-v1"
+    version = "m2-2-deterministic-v2"
 
     def plan(self, question: str, intent_hint: str | None = None) -> SqlPlan:
         text = str(question or "").strip()
@@ -313,9 +313,9 @@ class DeterministicSqlPlanner:
         if intent == "food_occurrence":
             return ("occurrence_count",)
         if intent == "meal_plan_completion":
-            return ("completion_ratio",)
+            return ("executable_meal_count", "completed_meal_count", "completion_ratio")
         if intent == "shopping_list_missing":
-            return ("missing_item_groups",)
+            return ("pending_item_count",)
         if intent != "nutrition_summary":
             return ()
         mapping = (
@@ -398,15 +398,24 @@ class DeterministicSqlPlanner:
             )
         if intent == "meal_plan_completion":
             return (
-                "SELECT meal_plan_id, plan_name, days, status, "
-                "CASE WHEN status = 'saved' THEN 1.0 WHEN status = 'validated' THEN 0.5 ELSE 0.0 END "
-                "AS completion_ratio FROM meal_plans LIMIT 500"
+                "SELECT p.meal_plan_id, p.plan_name, "
+                "COUNT(DISTINCT m.meal_plan_meal_id) AS executable_meal_count, "
+                "COUNT(DISTINCT f.meal_plan_meal_id) AS completed_meal_count, "
+                "CASE WHEN COUNT(DISTINCT m.meal_plan_meal_id) = 0 THEN 0.0 "
+                "ELSE COUNT(DISTINCT f.meal_plan_meal_id) * 1.0 / COUNT(DISTINCT m.meal_plan_meal_id) END "
+                "AS completion_ratio FROM meal_plans p "
+                "LEFT JOIN meal_plan_meals m ON m.meal_plan_id = p.meal_plan_id "
+                "LEFT JOIN food_logs f ON f.meal_plan_meal_id = m.meal_plan_meal_id "
+                "GROUP BY p.meal_plan_id, p.plan_name ORDER BY p.meal_plan_id DESC LIMIT 500"
             )
         if intent == "shopping_list_missing":
             return (
-                "SELECT shopping_list_id, meal_plan_id, status, "
-                "CASE WHEN status = 'confirmed' THEN 0 ELSE 1 END AS missing_item_groups "
-                "FROM shopping_lists ORDER BY shopping_list_id DESC LIMIT 500"
+                "SELECT s.shopping_list_id, s.meal_plan_id, "
+                "COUNT(CASE WHEN i.purchased = FALSE THEN i.shopping_list_item_id END) "
+                "AS pending_item_count FROM shopping_lists s "
+                "LEFT JOIN shopping_list_items i ON i.shopping_list_id = s.shopping_list_id "
+                "GROUP BY s.shopping_list_id, s.meal_plan_id "
+                "ORDER BY s.shopping_list_id DESC LIMIT 500"
             )
         if intent == "meal_plan":
             return "SELECT meal_plan_id, plan_name, days, status, updated_at FROM meal_plans ORDER BY updated_at DESC LIMIT 500"
@@ -444,7 +453,7 @@ class OpenAICompatibleSqlPlanner:
     """供协议单测注入 Provider 的结构化规划器。"""
 
     mode = "local"
-    version = "m2-2-model-v1"
+    version = "m2-2-model-v2"
 
     def __init__(self, provider: Any, model_name: str):
         if provider is None or not model_name:
@@ -500,7 +509,7 @@ class ModelRouterSqlPlanner:
     """
 
     mode = "local"
-    version = "m2-2-router-v3"
+    version = "m2-2-router-v4"
     _allowed_tiers = frozenset({"standard", "high", "economy"})
 
     def __init__(self, router: ModelRouter, tier: str, timeout_seconds: float):
@@ -603,7 +612,13 @@ def _planner_prompt(question: str, intent_hint: str | None) -> str:
                 "A Java AST guard will reject writes, subqueries, unknown fields, sensitive fields, and unbounded queries.",
             ],
             "approved_schema": {
-                "food_logs": ["food_log_id", "meal_time", "meal_type", "is_deleted"],
+                "food_logs": [
+                    "food_log_id",
+                    "meal_plan_meal_id",
+                    "meal_time",
+                    "meal_type",
+                    "is_deleted",
+                ],
                 "food_log_items": [
                     "food_log_item_id",
                     "food_log_id",
@@ -618,7 +633,25 @@ def _planner_prompt(question: str, intent_hint: str | None) -> str:
                     "is_deleted",
                 ],
                 "meal_plans": ["meal_plan_id", "plan_name", "days", "status", "updated_at", "is_deleted"],
+                "meal_plan_meals": [
+                    "meal_plan_meal_id",
+                    "meal_plan_id",
+                    "day_index",
+                    "meal_type",
+                    "meal_name",
+                    "is_deleted",
+                ],
                 "shopping_lists": ["shopping_list_id", "meal_plan_id", "status", "is_deleted"],
+                "shopping_list_items": [
+                    "shopping_list_item_id",
+                    "shopping_list_id",
+                    "meal_plan_id",
+                    "item_name",
+                    "amount",
+                    "unit",
+                    "purchased",
+                    "is_deleted",
+                ],
                 "nutrition_foods": [
                     "nutrition_food_id",
                     "standard_name",
@@ -647,14 +680,23 @@ def _planner_prompt(question: str, intent_hint: str | None) -> str:
                     "ORDER BY COUNT(i.food_log_item_id) DESC LIMIT 500"
                 ),
                 "meal_plan_completion": (
-                    "SELECT meal_plan_id, plan_name, days, status, "
-                    "CASE WHEN status = 'saved' THEN 1.0 WHEN status = 'validated' THEN 0.5 ELSE 0.0 END "
-                    "AS completion_ratio FROM meal_plans LIMIT 500"
+                    "SELECT p.meal_plan_id, p.plan_name, "
+                    "COUNT(DISTINCT m.meal_plan_meal_id) AS executable_meal_count, "
+                    "COUNT(DISTINCT f.meal_plan_meal_id) AS completed_meal_count, "
+                    "CASE WHEN COUNT(DISTINCT m.meal_plan_meal_id) = 0 THEN 0.0 "
+                    "ELSE COUNT(DISTINCT f.meal_plan_meal_id) * 1.0 / COUNT(DISTINCT m.meal_plan_meal_id) END "
+                    "AS completion_ratio FROM meal_plans p "
+                    "LEFT JOIN meal_plan_meals m ON m.meal_plan_id = p.meal_plan_id "
+                    "LEFT JOIN food_logs f ON f.meal_plan_meal_id = m.meal_plan_meal_id "
+                    "GROUP BY p.meal_plan_id, p.plan_name ORDER BY p.meal_plan_id DESC LIMIT 500"
                 ),
                 "shopping_list_missing": (
-                    "SELECT shopping_list_id, meal_plan_id, status, "
-                    "CASE WHEN status = 'confirmed' THEN 0 ELSE 1 END AS missing_item_groups "
-                    "FROM shopping_lists ORDER BY shopping_list_id DESC LIMIT 500"
+                    "SELECT s.shopping_list_id, s.meal_plan_id, "
+                    "COUNT(CASE WHEN i.purchased = FALSE THEN i.shopping_list_item_id END) "
+                    "AS pending_item_count FROM shopping_lists s "
+                    "LEFT JOIN shopping_list_items i ON i.shopping_list_id = s.shopping_list_id "
+                    "GROUP BY s.shopping_list_id, s.meal_plan_id "
+                    "ORDER BY s.shopping_list_id DESC LIMIT 500"
                 ),
                 "meal_plan": "SELECT meal_plan_id, plan_name, days, status, updated_at FROM meal_plans ORDER BY updated_at DESC LIMIT 500",
                 "shopping_list": "SELECT shopping_list_id, meal_plan_id, status FROM shopping_lists ORDER BY shopping_list_id DESC LIMIT 500",
@@ -669,8 +711,8 @@ def _planner_prompt(question: str, intent_hint: str | None) -> str:
                 "Do not invent aliases, aggregate names, date functions, log_time, total_calories, total_protein_g, total_fat_g, or total_carbs_g.",
                 "For nutrition_summary, use meal_time for both the time filter and grouping when grouping is explicitly requested; otherwise return a total. log_time is not an approved field. Use only calories_kcal, protein_g, fat_g, or carbs_g aggregates.",
                 "For food_occurrence, use raw_name equality and COUNT(food_log_item_id); never use a fuzzy match or expose user_id.",
-                "For meal_plan_completion, completion_ratio is saved=1, validated=0.5, draft=0; this is the lifecycle completion definition.",
-                "For shopping_list_missing, missing_item_groups is 0 for confirmed and 1 for an unconfirmed list; it is not a count of raw shopping items.",
+                "For meal_plan_completion, count non-deleted meal_plan_meals as executable meals and distinct non-deleted food_logs linked by meal_plan_meal_id as completed meals; zero executable meals has a 0 ratio. Do not use meal plan lifecycle status as execution progress.",
+                "For shopping_list_missing, count shopping_list_items where purchased = false; this is a pending checklist count, not an inventory or stock count.",
             ],
             "allowed_intents": [
                 "nutrition_summary",

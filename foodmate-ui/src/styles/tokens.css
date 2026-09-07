@@ -41,6 +41,9 @@
   --fm-color-border-subtle: #e2e7ee;
   --fm-color-surface-soft: #f4f6f5;
   --fm-color-surface-success: #f0faf4;
+  --fm-planning-primary: #4caf50;
+  --fm-planning-primary-hover: #429947;
+  --fm-planning-primary-soft: #d9f2dc;
   --fm-color-surface-warning: #fff6e2;
   --fm-color-surface-danger: #fff5f5;
   --fm-color-info-strong: #80e0e6;
@@ -64,6 +67,10 @@
   --fm-auth-control: rgba(255, 255, 255, 0.65);
   --fm-auth-control-border: rgba(255, 255, 255, 0.6);
   --fm-auth-control-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --fm-auth-form-control-border: #ffffff;
+  --fm-auth-form-control-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  --fm-auth-brand-shadow: 0 4px 4px rgba(72, 199, 142, 0.25);
+  --fm-auth-primary-shadow: 0 6px 6px rgba(72, 199, 142, 0.25);
   --fm-auth-action-shadow: 0 6px 16px rgba(72, 199, 142, 0.25);
 
   /* Figma login state tokens: 680:408 through 680:606. */

@@ -150,7 +150,21 @@ public record V1RunCommand(
             @JsonProperty("memory_key") String memoryKey,
             @JsonProperty("memory_value") String memoryValue,
             BigDecimal confidence,
-            String scope) {}
+            String scope,
+            @JsonProperty("confirmation_status") String confirmationStatus,
+            @JsonProperty("expires_at") Instant expiresAt,
+            @JsonProperty("is_deleted") Boolean isDeleted) {
+        /** 保持旧版命令构造方式兼容；数据库授权查询会填充完整状态字段。 */
+        public MemoryContext(
+                String memoryId,
+                String memoryType,
+                String memoryKey,
+                String memoryValue,
+                BigDecimal confidence,
+                String scope) {
+            this(memoryId, memoryType, memoryKey, memoryValue, confidence, scope, null, null, null);
+        }
+    }
 
     /** 可选的 Java 授权只读 SQL 请求。 */
     public record SqlReadRequest(

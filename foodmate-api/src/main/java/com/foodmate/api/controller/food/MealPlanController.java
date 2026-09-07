@@ -3,15 +3,17 @@ package com.foodmate.api.controller.food;
 import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
 import com.foodmate.api.request.food.MealPlanCreateRequest;
 import com.foodmate.api.request.food.MealPlanUpdateRequest;
+import com.foodmate.api.request.food.ShoppingItemPurchasedRequest;
 import com.foodmate.api.response.food.MealPlanResponse;
 import com.foodmate.api.response.food.ShoppingListResponse;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.food.service.MealPlanService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.util.List;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /** 餐食计划和购物清单接口。 */
 @RestController
@@ -146,6 +150,29 @@ public class MealPlanController extends AuthenticatedControllerSupport {
         return ok(map(plans.shoppingList(user(request).userId(), mealPlanId)));
     }
 
+    @GetMapping("/{mealPlanId}/progress")
+    public ApiResponse<MealPlanService.ProgressView> progress(
+            HttpServletRequest request, @PathVariable long mealPlanId) {
+        return ok(plans.progress(user(request).userId(), mealPlanId));
+    }
+
+    @PatchMapping("/{mealPlanId}/shopping-list/items/{shoppingListItemId}")
+    public ApiResponse<ShoppingListResponse> updateShoppingItem(
+            HttpServletRequest request,
+            @PathVariable long mealPlanId,
+            @PathVariable long shoppingListItemId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody ShoppingItemPurchasedRequest body) {
+        return ok(
+                map(
+                        plans.setShoppingItemPurchased(
+                                user(request).userId(),
+                                mealPlanId,
+                                shoppingListItemId,
+                                body.purchased(),
+                                idempotencyKey)));
+    }
+
     private <T> ApiResponse<T> ok(T value) {
         return ApiResponse.success(value, TraceContextHolder.currentOrNew());
     }
@@ -165,7 +192,22 @@ public class MealPlanController extends AuthenticatedControllerSupport {
                 value.revision(),
                 value.deleted(),
                 value.createdAt(),
-                value.updatedAt());
+                value.updatedAt(),
+                value.mealSlots().stream()
+                        .map(
+                                slot ->
+                                        new MealPlanResponse.MealSlot(
+                                                slot.mealPlanMealId(),
+                                                slot.dayIndex(),
+                                                slot.mealType(),
+                                                slot.mealName(),
+                                                slot.meal(),
+                                                slot.foodLogCount(),
+                                                slot.completed()))
+                        .toList(),
+                value.executableMealCount(),
+                value.completedMealCount(),
+                value.completionRatio());
     }
 
     private ShoppingListResponse map(MealPlanService.ShoppingListView value) {

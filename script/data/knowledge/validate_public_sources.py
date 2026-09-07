@@ -16,12 +16,9 @@ PLACEHOLDER_PATTERN = re.compile(r"(?i)(?:local test material|codex-public-|exam
 
 
 def sha256(path: Path) -> str:
-    """计算资料文件摘要，用于发现内容被替换或损坏。"""
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for block in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+    """按规范化 LF 文本计算摘要，避免 Windows 换行转换造成误报。"""
+    text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def front_matter(path: Path) -> dict[str, str]:

@@ -162,12 +162,48 @@ class JSqlParserQueryGuardTest {
                 List.of(
                         "SELECT SUM(i.calories_kcal) AS calories_kcal FROM food_logs f JOIN food_log_items i ON i.food_log_id = f.food_log_id WHERE f.meal_time >= CURRENT_DATE AND f.meal_time < CURRENT_DATE + INTERVAL '1 day' LIMIT 500",
                         "SELECT i.raw_name AS food_name, COUNT(i.food_log_item_id) AS occurrence_count FROM food_logs f JOIN food_log_items i ON i.food_log_id = f.food_log_id WHERE f.meal_time >= CURRENT_TIMESTAMP - INTERVAL '7 days' AND i.raw_name = '鸡胸肉' GROUP BY i.raw_name ORDER BY COUNT(i.food_log_item_id) DESC LIMIT 500",
-                        "SELECT meal_plan_id, plan_name, days, status, CASE WHEN status = 'saved' THEN 1.0 WHEN status = 'validated' THEN 0.5 ELSE 0.0 END AS completion_ratio FROM meal_plans LIMIT 500",
-                        "SELECT shopping_list_id, meal_plan_id, status, CASE WHEN status = 'confirmed' THEN 0 ELSE 1 END AS missing_item_groups FROM shopping_lists ORDER BY shopping_list_id DESC LIMIT 500")) {
+                        "SELECT meal_plan_id, plan_name, days, status FROM meal_plans LIMIT 500")) {
             SqlQueryGuard.GuardedQuery query = guard.guard(sql, catalogWithCoreAnalysis(), 42L);
             org.junit.jupiter.api.Assertions.assertTrue(query.statement().contains("is_deleted = false"));
             org.junit.jupiter.api.Assertions.assertTrue(query.parameters().contains(42L));
         }
+    }
+
+    @Test
+    void acceptsExecutionProgressTemplatesAndPreservesPlansWithoutChildRows() {
+        String completionSql =
+                "SELECT p.meal_plan_id, p.plan_name, COUNT(DISTINCT m.meal_plan_meal_id) AS executable_meal_count, "
+                + "COUNT(DISTINCT f.meal_plan_meal_id) AS completed_meal_count, "
+                        + "CASE WHEN COUNT(DISTINCT m.meal_plan_meal_id) = 0 THEN 0.0 ELSE "
+                        + "COUNT(DISTINCT f.meal_plan_meal_id) * 1.0 / COUNT(DISTINCT m.meal_plan_meal_id) END "
+                        + "AS completion_ratio FROM meal_plans p "
+                        + "LEFT JOIN meal_plan_meals m ON m.meal_plan_id = p.meal_plan_id "
+                        + "LEFT JOIN food_logs f ON f.meal_plan_meal_id = m.meal_plan_meal_id "
+                        + "GROUP BY p.meal_plan_id, p.plan_name ORDER BY p.meal_plan_id DESC LIMIT 500";
+        SqlQueryGuard.GuardedQuery completion =
+                guard.guard(completionSql, catalogWithExecutionAnalysis(), 42L);
+        assertEquals(List.of(42L, 42L, 42L), completion.parameters());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                completion.statement().contains("m.user_id = ?"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                completion.statement().contains("f.user_id = ?"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                completion.statement().contains("p.user_id = ?"));
+
+        String shoppingSql =
+                "SELECT s.shopping_list_id, s.meal_plan_id, "
+                        + "COUNT(CASE WHEN i.purchased = FALSE THEN i.shopping_list_item_id END) "
+                        + "AS pending_item_count FROM shopping_lists s "
+                        + "LEFT JOIN shopping_list_items i ON i.shopping_list_id = s.shopping_list_id "
+                        + "GROUP BY s.shopping_list_id, s.meal_plan_id "
+                        + "ORDER BY s.shopping_list_id DESC LIMIT 500";
+        SqlQueryGuard.GuardedQuery shopping =
+                guard.guard(shoppingSql, catalogWithExecutionAnalysis(), 42L);
+        assertEquals(List.of(42L, 42L), shopping.parameters());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                shopping.statement().contains("i.user_id = ?"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                shopping.statement().contains("s.user_id = ?"));
     }
 
     private static CatalogView catalog() {
@@ -253,6 +289,59 @@ class JSqlParserQueryGuardTest {
                                         field("meal_plan_id"),
                                         field("user_id"),
                                         field("status"),
+                                        field("is_deleted")))));
+    }
+
+    private static CatalogView catalogWithExecutionAnalysis() {
+        return new CatalogView(
+                1L,
+                "catalog-v1",
+                List.of(
+                        new TableView(
+                                "public",
+                                "meal_plans",
+                                Scope.USER,
+                                List.of(
+                                        field("meal_plan_id"),
+                                        field("user_id"),
+                                        field("plan_name"),
+                                        field("is_deleted"))),
+                        new TableView(
+                                "public",
+                                "meal_plan_meals",
+                                Scope.USER,
+                                List.of(
+                                        field("meal_plan_meal_id"),
+                                        field("meal_plan_id"),
+                                        field("user_id"),
+                                        field("is_deleted"))),
+                        new TableView(
+                                "public",
+                                "food_logs",
+                                Scope.USER,
+                                List.of(
+                                        field("food_log_id"),
+                                        field("meal_plan_meal_id"),
+                                        field("user_id"),
+                                        field("is_deleted"))),
+                        new TableView(
+                                "public",
+                                "shopping_lists",
+                                Scope.USER,
+                                List.of(
+                                        field("shopping_list_id"),
+                                        field("meal_plan_id"),
+                                        field("user_id"),
+                                        field("is_deleted"))),
+                        new TableView(
+                                "public",
+                                "shopping_list_items",
+                                Scope.USER,
+                                List.of(
+                                        field("shopping_list_item_id"),
+                                        field("shopping_list_id"),
+                                        field("user_id"),
+                                        field("purchased"),
                                         field("is_deleted")))));
     }
 

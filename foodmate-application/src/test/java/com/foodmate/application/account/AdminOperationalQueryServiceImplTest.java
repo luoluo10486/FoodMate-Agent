@@ -9,13 +9,15 @@ import static org.mockito.Mockito.when;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
 import com.foodmate.application.account.service.impl.AdminOperationalQueryServiceImpl;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 
 class AdminOperationalQueryServiceImplTest {
     private AdminOperationalQueryRepository store;
@@ -42,6 +44,25 @@ class AdminOperationalQueryServiceImplTest {
         assertEquals("desc", query.getValue().direction());
         assertEquals(100, query.getValue().limit());
         assertEquals(100, query.getValue().offset());
+    }
+
+    @Test
+    void forwardsUserRoleFilterWithoutExpandingUserQueryScope() {
+        when(store.users(any())).thenReturn(List.of());
+        when(store.countUsers(any())).thenReturn(0L);
+
+        service.query(
+                "users",
+                new AdminOperationalQueryService.Request(
+                        1, 20, "admin", "active", null, null, "desc", "admin", null, null, null,
+                        null));
+
+        ArgumentCaptor<AdminOperationalQueryRepository.Query> query =
+                ArgumentCaptor.forClass(AdminOperationalQueryRepository.Query.class);
+        verify(store).users(query.capture());
+        assertEquals("admin", query.getValue().role());
+        assertEquals("active", query.getValue().status());
+        assertEquals("admin", query.getValue().text());
     }
 
     @Test
@@ -124,7 +145,8 @@ class AdminOperationalQueryServiceImplTest {
                                 new AdminOperationalQueryRepository.TraceRow(
                                         "trace-1",
                                         42L,
-                                        "java.control-plane -> python.agent-runtime -> model -> sse",
+                                        "java.control-plane -> python.agent-runtime -> model ->"
+                                            + " sse",
                                         "completed",
                                         Instant.parse("2026-08-28T00:00:00Z"),
                                         new BigDecimal("18.5"),

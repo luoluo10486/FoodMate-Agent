@@ -11,6 +11,8 @@ import {
   restoreFoodLog,
   updateFoodLog,
 } from '../../services/foodLogService';
+import { searchNutritionFoods } from '../../services/nutritionFoodService';
+import { loadCompositeDishes } from '../../services/compositeDishService';
 
 vi.mock('../../services/foodLogService', () => ({
   createFoodLog: vi.fn(),
@@ -19,6 +21,17 @@ vi.mock('../../services/foodLogService', () => ({
   loadFoodLogs: vi.fn(),
   restoreFoodLog: vi.fn(),
   updateFoodLog: vi.fn(),
+}));
+
+vi.mock('../../services/nutritionFoodService', () => ({
+  searchNutritionFoods: vi.fn(),
+}));
+
+vi.mock('../../services/compositeDishService', () => ({
+  loadCompositeDishes: vi.fn(),
+  createCompositeDish: vi.fn(),
+  updateCompositeDish: vi.fn(),
+  deleteCompositeDish: vi.fn(),
 }));
 
 const log = {
@@ -60,6 +73,7 @@ describe('DietRecordsPage real mode', () => {
       'foodmate_auth_user',
       JSON.stringify({ id: '7', username: 'tester', displayName: 'Tester', role: 'user', status: 'active' }),
     );
+    vi.mocked(loadCompositeDishes).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -98,6 +112,52 @@ describe('DietRecordsPage real mode', () => {
       expect(createFoodLog).toHaveBeenCalledWith(expect.objectContaining({ meal_type: 'breakfast' })),
     );
     expect(screen.getByText('新食物')).toBeInTheDocument();
+  });
+
+  it('submits the explicitly selected nutrition catalog candidate', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(searchNutritionFoods).mockResolvedValue([
+      {
+        nutrition_food_id: '171477',
+        standard_name: 'Chicken breast, cooked',
+        chinese_name: '熟鸡胸肉',
+        category: 'Poultry',
+        food_form: 'cooked',
+        basis_unit: 'g',
+        calories_kcal_per_100: 165,
+        protein_g_per_100: 31,
+        fat_g_per_100: 3.6,
+        carbs_g_per_100: 0,
+        source_name: 'USDA FoodData Central',
+        source_version: '2025',
+      },
+    ]);
+    vi.mocked(createFoodLog).mockResolvedValue({
+      ...log,
+      food_log_id: '13',
+      items: [{ ...log.items[0], raw_name: '熟鸡胸肉', nutrition_food_id: '171477' }],
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '记录一餐' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '记录一餐' }));
+    await user.type(screen.getByRole('textbox', { name: '食物名称' }), '鸡胸肉');
+    await waitFor(() => expect(screen.getByRole('button', { name: /熟鸡胸肉/ })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /熟鸡胸肉/ }));
+    await user.clear(screen.getByRole('spinbutton', { name: '食物份量' }));
+    await user.type(screen.getByRole('spinbutton', { name: '食物份量' }), '150');
+    await user.clear(screen.getByRole('textbox', { name: '食物单位' }));
+    await user.type(screen.getByRole('textbox', { name: '食物单位' }), 'g');
+    await user.click(screen.getByRole('button', { name: /^添加$/ }));
+
+    await waitFor(() =>
+      expect(createFoodLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [{ raw_name: '熟鸡胸肉', amount: 150, unit: 'g', nutrition_food_id: '171477' }],
+        }),
+      ),
+    );
   });
 
   it('deletes a real log with the server revision', async () => {

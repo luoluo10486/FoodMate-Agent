@@ -57,12 +57,12 @@ describe('KnowledgeSection real mode', () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
       const method = (init?.method ?? 'GET').toUpperCase();
-      if (path === '/api/admin/queries/knowledge?page=1&size=100') {
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
         return Promise.resolve(
           new Response(
             JSON.stringify({
               success: true,
-              data: { resource: 'knowledge', items: dashboard.knowledge, total: 1, page: 1, size: 100 },
+              data: { resource: 'knowledge', items: dashboard.knowledge, total: 1, page: 1, size: 20 },
             }),
             { status: 200 },
           ),

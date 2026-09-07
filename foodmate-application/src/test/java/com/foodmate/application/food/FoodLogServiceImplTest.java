@@ -23,11 +23,13 @@ import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.food.enums.MealType;
 import com.foodmate.shared.id.IdGenerator;
+
+import org.junit.jupiter.api.Test;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.Test;
 
 class FoodLogServiceImplTest {
     private static final Instant MEAL_TIME = Instant.parse("2026-08-12T12:00:00Z");
@@ -218,6 +220,72 @@ class FoodLogServiceImplTest {
     }
 
     @Test
+    void linksFoodLogToOwnedMealPlanMeal() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findMealPlanMeal(7L, 700L))
+                .thenReturn(new FoodLogRepository.MealPlanMealLookup(700L, 100L, 0, "lunch"));
+        when(repository.insertFoodLog(any())).thenReturn(1);
+        when(repository.findOwned(7L, 100L, false)).thenReturn(snapshotWithEmptyItems());
+        FoodLogService service = service(repository, ids(100L, 101L));
+
+        service.create(
+                7L,
+                new FoodLogService.CreateCommand(
+                        null,
+                        null,
+                        MEAL_TIME,
+                        MealType.LUNCH,
+                        null,
+                        "planned-meal-1",
+                        "manual",
+                        700L,
+                        null,
+                        null,
+                        null,
+                        List.of(
+                                new FoodLogService.ItemCommand(
+                                        "rice", new BigDecimal("100"), "g"))));
+
+        var write = org.mockito.ArgumentCaptor.forClass(FoodLogRepository.FoodLogWrite.class);
+        verify(repository).insertFoodLog(write.capture());
+        assertEquals(700L, write.getValue().mealPlanMealId());
+    }
+
+    @Test
+    void rejectsMealPlanMealNotOwnedByCurrentUser() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findMealPlanMeal(7L, 700L)).thenReturn(null);
+        FoodLogService service = service(repository, ids(100L));
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () ->
+                                service.create(
+                                        7L,
+                                        new FoodLogService.CreateCommand(
+                                                null,
+                                                null,
+                                                MEAL_TIME,
+                                                MealType.LUNCH,
+                                                null,
+                                                "planned-meal-owner",
+                                                "manual",
+                                                700L,
+                                                null,
+                                                null,
+                                                null,
+                                                List.of(
+                                                        new FoodLogService.ItemCommand(
+                                                                "rice",
+                                                                new BigDecimal("100"),
+                                                                "g")))));
+
+        assertEquals(ErrorCode.NOT_FOUND, exception.errorCode());
+        verify(repository, never()).insertFoodLog(any());
+    }
+
+    @Test
     void calculatesNutritionFromApprovedDirectorySnapshot() {
         FoodLogRepository repository = mock(FoodLogRepository.class);
         when(repository.findNutritionFood("rice"))
@@ -265,7 +333,9 @@ class FoodLogServiceImplTest {
                         MealType.LUNCH,
                         null,
                         "nutrition-ambiguous",
-                        List.of(new FoodLogService.ItemCommand("煮鸡胸肉", new BigDecimal("100"), "g"))));
+                        List.of(
+                                new FoodLogService.ItemCommand(
+                                        "煮鸡胸肉", new BigDecimal("100"), "g"))));
 
         var item = org.mockito.ArgumentCaptor.forClass(FoodLogRepository.FoodLogItemWrite.class);
         verify(repository).insertItem(item.capture());

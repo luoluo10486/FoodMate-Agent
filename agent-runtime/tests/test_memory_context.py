@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 
 from agent_core import Context, ContextBuilder, RouteDecision, generate_memory_candidates
 
@@ -63,6 +64,59 @@ class MemoryContextTest(unittest.TestCase):
 
         self.assertEqual(("m1",), context.sources["memory_id"])
         self.assertEqual(("m1",), tuple(item["memory_id"] for item in context.memories))
+
+    def test_context_excludes_deleted_expired_and_invalid_memories(self):
+        command = {
+            "authorized_context": {
+                "long_term_memories": [
+                    {"memory_id": "active", "memory_type": "preference", "memory_key": "diet"},
+                    {
+                        "memory_id": "deleted",
+                        "memory_type": "preference",
+                        "memory_key": "deleted",
+                        "is_deleted": True,
+                    },
+                    {
+                        "memory_id": "expired",
+                        "memory_type": "preference",
+                        "memory_key": "expired",
+                        "expires_at": "2026-09-06T23:59:59Z",
+                    },
+                    {
+                        "memory_id": "invalid-time",
+                        "memory_type": "preference",
+                        "memory_key": "invalid-time",
+                        "expires_at": "not-a-timestamp",
+                    },
+                ]
+            }
+        }
+
+        context = ContextBuilder(
+            now_provider=lambda: datetime(2026, 9, 7, tzinfo=timezone.utc)
+        ).build(command, RouteDecision("planning", "simple", "low"))
+
+        self.assertEqual(("active",), context.sources["memory_id"])
+
+    def test_context_keeps_memory_until_expiration_boundary(self):
+        command = {
+            "authorized_context": {
+                "long_term_memories": [
+                    {
+                        "memory_id": "future",
+                        "memory_type": "preference",
+                        "memory_key": "diet",
+                        "expires_at": "2026-09-07T00:00:01Z",
+                    }
+                ]
+            }
+        }
+
+        context = ContextBuilder(
+            now_provider=lambda: datetime(2026, 9, 7, tzinfo=timezone.utc)
+        ).build(command, RouteDecision("planning", "simple", "low"))
+
+        self.assertEqual(("future",), context.sources["memory_id"])
 
     def test_source_falls_back_to_latest_context_source_for_legacy_message_shape(self):
         content = "我喜欢清淡"

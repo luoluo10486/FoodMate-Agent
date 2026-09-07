@@ -62,6 +62,34 @@ describe('PlanningPage', () => {
     expect(screen.getByText('Anddy 的工作区')).toBeInTheDocument();
   });
 
+  it('keeps wizard fixtures aligned with the single-card Figma composition', () => {
+    const wizardStates = ['wizard-step1', 'wizard-step2', 'wizard-step3'] as const;
+    for (const state of wizardStates) {
+      const { unmount } = renderPage(`/planning?state=${state}`);
+
+      expect(screen.queryByText('草稿与必填校验')).not.toBeInTheDocument();
+      expect(screen.queryByText('约束已记录')).not.toBeInTheDocument();
+      expect(screen.queryByText('生成前检查')).not.toBeInTheDocument();
+      expect(document.querySelectorAll('img[data-avatar-source]')).toHaveLength(2);
+      expect(
+        [...document.querySelectorAll('img[data-avatar-source]')].every(
+          (image) => image.getAttribute('src') === '/assets/avatars/default-male.svg',
+        ),
+      ).toBe(true);
+
+      unmount();
+    }
+  });
+
+  it('keeps all preference chips visible in the constraint step', () => {
+    renderPage('/planning?state=wizard-step2');
+
+    expect(screen.getByRole('checkbox', { name: '低碳水 (Low Carb)' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: '高蛋白 (High Protein)' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: '无麸质 (Gluten Free)' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: '纯素食 (Vegan)' })).toBeInTheDocument();
+  });
+
   it('renders all four planning constraint statuses', () => {
     renderPage('/planning?state=v2');
 

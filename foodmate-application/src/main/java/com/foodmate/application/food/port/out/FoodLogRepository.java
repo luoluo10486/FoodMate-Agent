@@ -10,6 +10,8 @@ public interface FoodLogRepository {
 
     boolean agentRunOwned(long userId, long agentRunId);
 
+    MealPlanMealLookup findMealPlanMeal(long userId, long mealPlanMealId);
+
     NutritionFoodLookup findNutritionFood(String normalizedName);
 
     NutritionFoodLookup findNutritionFoodById(long nutritionFoodId);
@@ -49,7 +51,74 @@ public interface FoodLogRepository {
             String notes,
             String source,
             String idempotencyKey,
-            long revision) {}
+            long revision,
+            Long mealPlanMealId,
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
+            String compositeDishSnapshotJson) {
+        public FoodLogWrite(
+                long foodLogId,
+                long userId,
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                String mealType,
+                String notes,
+                String source,
+                String idempotencyKey,
+                long revision,
+                Long compositeDishId,
+                Long compositeDishRevision,
+                BigDecimal compositeDishServings,
+                String compositeDishSnapshotJson) {
+            this(
+                    foodLogId,
+                    userId,
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    source,
+                    idempotencyKey,
+                    revision,
+                    null,
+                    compositeDishId,
+                    compositeDishRevision,
+                    compositeDishServings,
+                    compositeDishSnapshotJson);
+        }
+
+        public FoodLogWrite(
+                long foodLogId,
+                long userId,
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                String mealType,
+                String notes,
+                String source,
+                String idempotencyKey,
+                long revision) {
+            this(
+                    foodLogId,
+                    userId,
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    source,
+                    idempotencyKey,
+                    revision,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "{}");
+        }
+    }
 
     record UpdateFoodLogWrite(
             long userId,
@@ -57,7 +126,58 @@ public interface FoodLogRepository {
             long expectedRevision,
             Instant mealTime,
             String mealType,
-            String notes) {}
+            String notes,
+            Long mealPlanMealId,
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
+            String compositeDishSnapshotJson) {
+        public UpdateFoodLogWrite(
+                long userId,
+                long foodLogId,
+                long expectedRevision,
+                Instant mealTime,
+                String mealType,
+                String notes,
+                Long compositeDishId,
+                Long compositeDishRevision,
+                BigDecimal compositeDishServings,
+                String compositeDishSnapshotJson) {
+            this(
+                    userId,
+                    foodLogId,
+                    expectedRevision,
+                    mealTime,
+                    mealType,
+                    notes,
+                    null,
+                    compositeDishId,
+                    compositeDishRevision,
+                    compositeDishServings,
+                    compositeDishSnapshotJson);
+        }
+
+        public UpdateFoodLogWrite(
+                long userId,
+                long foodLogId,
+                long expectedRevision,
+                Instant mealTime,
+                String mealType,
+                String notes) {
+            this(
+                    userId,
+                    foodLogId,
+                    expectedRevision,
+                    mealTime,
+                    mealType,
+                    notes,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "{}");
+        }
+    }
 
     record FoodLogItemWrite(
             long foodLogItemId,
@@ -164,23 +284,131 @@ public interface FoodLogRepository {
             String mealType,
             String notes,
             String source,
+            Long mealPlanMealId,
             long revision,
             boolean deleted,
             Instant createdAt,
             Instant updatedAt,
-            List<FoodLogItemSnapshot> items) {}
+            Long compositeDishId,
+            Long compositeDishRevision,
+            BigDecimal compositeDishServings,
+            String compositeDishSnapshotJson,
+            List<FoodLogItemSnapshot> items) {
+        public FoodLogSnapshot(
+                long foodLogId,
+                long userId,
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                String mealType,
+                String notes,
+                String source,
+                long revision,
+                boolean deleted,
+                Instant createdAt,
+                Instant updatedAt,
+                Long compositeDishId,
+                Long compositeDishRevision,
+                BigDecimal compositeDishServings,
+                String compositeDishSnapshotJson,
+                List<FoodLogItemSnapshot> items) {
+            this(
+                    foodLogId,
+                    userId,
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    source,
+                    null,
+                    revision,
+                    deleted,
+                    createdAt,
+                    updatedAt,
+                    compositeDishId,
+                    compositeDishRevision,
+                    compositeDishServings,
+                    compositeDishSnapshotJson,
+                    items);
+        }
+
+        public FoodLogSnapshot(
+                long foodLogId,
+                long userId,
+                Long sessionId,
+                Long agentRunId,
+                Instant mealTime,
+                String mealType,
+                String notes,
+                String source,
+                long revision,
+                boolean deleted,
+                Instant createdAt,
+                Instant updatedAt,
+                List<FoodLogItemSnapshot> items) {
+            this(
+                    foodLogId,
+                    userId,
+                    sessionId,
+                    agentRunId,
+                    mealTime,
+                    mealType,
+                    notes,
+                    source,
+                    null,
+                    revision,
+                    deleted,
+                    createdAt,
+                    updatedAt,
+                    null,
+                    null,
+                    null,
+                    "{}",
+                    items);
+        }
+    }
 
     record FoodLogItemSnapshot(
             long foodLogItemId,
             int itemOrder,
             String rawName,
+            Long nutritionFoodId,
             BigDecimal amount,
             String unit,
             String nutritionStatus,
             BigDecimal caloriesKcal,
             BigDecimal proteinG,
             BigDecimal fatG,
-            BigDecimal carbsG) {}
+            BigDecimal carbsG) {
+        public FoodLogItemSnapshot(
+                long foodLogItemId,
+                int itemOrder,
+                String rawName,
+                BigDecimal amount,
+                String unit,
+                String nutritionStatus,
+                BigDecimal caloriesKcal,
+                BigDecimal proteinG,
+                BigDecimal fatG,
+                BigDecimal carbsG) {
+            this(
+                    foodLogItemId,
+                    itemOrder,
+                    rawName,
+                    null,
+                    amount,
+                    unit,
+                    nutritionStatus,
+                    caloriesKcal,
+                    proteinG,
+                    fatG,
+                    carbsG);
+        }
+    }
 
     record IdempotencyRecord(String parametersDigest, String result, String responseJson) {}
+
+    record MealPlanMealLookup(
+            long mealPlanMealId, long mealPlanId, int dayIndex, String mealType) {}
 }

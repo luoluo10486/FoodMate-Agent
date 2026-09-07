@@ -78,12 +78,16 @@ describe('Admin user details', () => {
     expect(screen.getByRole('row', { name: /usr_889d4/ })).toBeInTheDocument();
   });
 
-  it('uses the male default avatar when a fixture user has no gender or avatar', async () => {
+  it('uses the female default avatar for the female fixture user', async () => {
     const user = userEvent.setup();
     renderUsers();
 
     await user.click(await screen.findByRole('row', { name: /usr_112b9/ }));
 
-    expect(document.querySelector('.userDetailAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(document.querySelector('.userDetailAvatar img')).toHaveAttribute(
+      'src',
+      '/assets/avatars/default-female.svg',
+    );
+    expect(document.querySelector('.userDetailAvatar img')).toHaveAttribute('data-avatar-source', 'default-female');
   });
 });

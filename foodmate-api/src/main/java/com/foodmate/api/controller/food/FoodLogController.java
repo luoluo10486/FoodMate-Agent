@@ -8,10 +8,10 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.time.Instant;
-import java.util.List;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Instant;
+import java.util.List;
 
 /** 手工饮食记录接口；用户归属由会话决定。 */
 @RestController
@@ -49,15 +52,21 @@ public class FoodLogController extends AuthenticatedControllerSupport {
                         body.mealType(),
                         body.notes(),
                         idempotencyKey,
-                        body.items().stream()
-                                .map(
-                                        item ->
-                                                new FoodLogService.ItemCommand(
-                                                        item.rawName(),
-                                                        item.amount(),
-                                                        item.unit(),
-                                                        item.nutritionFoodId()))
-                                .toList());
+                        "manual",
+                        body.mealPlanMealId(),
+                        body.compositeDishId(),
+                        body.compositeDishRevision(),
+                        body.compositeDishServings(),
+                        (body.items() == null ? List.<FoodLogCreateRequest.Item>of() : body.items())
+                                .stream()
+                                        .map(
+                                                item ->
+                                                        new FoodLogService.ItemCommand(
+                                                                item.rawName(),
+                                                                item.amount(),
+                                                                item.unit(),
+                                                                item.nutritionFoodId()))
+                                        .toList());
         return ok(map(foods.create(user(request).userId(), command)));
     }
 
@@ -85,15 +94,20 @@ public class FoodLogController extends AuthenticatedControllerSupport {
                         body.mealType(),
                         body.notes(),
                         idempotencyKey,
-                        body.items().stream()
-                                .map(
-                                        item ->
-                                                new FoodLogService.ItemCommand(
-                                                        item.rawName(),
-                                                        item.amount(),
-                                                        item.unit(),
-                                                        item.nutritionFoodId()))
-                                .toList());
+                        body.mealPlanMealId(),
+                        body.compositeDishId(),
+                        body.compositeDishRevision(),
+                        body.compositeDishServings(),
+                        (body.items() == null ? List.<FoodLogUpdateRequest.Item>of() : body.items())
+                                .stream()
+                                        .map(
+                                                item ->
+                                                        new FoodLogService.ItemCommand(
+                                                                item.rawName(),
+                                                                item.amount(),
+                                                                item.unit(),
+                                                                item.nutritionFoodId()))
+                                        .toList());
         return ok(map(foods.update(user(request).userId(), foodLogId, revision, command)));
     }
 
@@ -129,6 +143,10 @@ public class FoodLogController extends AuthenticatedControllerSupport {
                 value.mealType().code(),
                 value.notes(),
                 value.source(),
+                value.mealPlanMealId() == null ? null : Long.toString(value.mealPlanMealId()),
+                value.compositeDishId() == null ? null : Long.toString(value.compositeDishId()),
+                value.compositeDishRevision(),
+                value.compositeDishServings(),
                 value.revision(),
                 value.deleted(),
                 value.createdAt(),
@@ -140,6 +158,9 @@ public class FoodLogController extends AuthenticatedControllerSupport {
                                                 Long.toString(item.foodLogItemId()),
                                                 item.itemOrder(),
                                                 item.rawName(),
+                                                item.nutritionFoodId() == null
+                                                        ? null
+                                                        : Long.toString(item.nutritionFoodId()),
                                                 item.amount(),
                                                 item.unit(),
                                                 item.nutritionStatus(),

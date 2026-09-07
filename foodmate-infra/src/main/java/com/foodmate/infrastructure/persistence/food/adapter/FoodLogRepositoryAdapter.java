@@ -5,9 +5,11 @@ import com.foodmate.application.food.port.out.FoodLogRepository;
 import com.foodmate.application.food.port.out.FoodLogRepository.NutritionFoodCandidate;
 import com.foodmate.application.food.service.NutritionNameNormalizer;
 import com.foodmate.infrastructure.persistence.food.FoodLogMapper;
-import java.util.List;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 /** 将饮食记录 MyBatis 映射暴露为 application 端口。 */
 @Repository
@@ -29,6 +31,11 @@ public class FoodLogRepositoryAdapter implements FoodLogRepository {
     @Override
     public boolean agentRunOwned(long userId, long agentRunId) {
         return mapper.agentRunOwned(userId, agentRunId);
+    }
+
+    @Override
+    public MealPlanMealLookup findMealPlanMeal(long userId, long mealPlanMealId) {
+        return mapper.findMealPlanMeal(userId, mealPlanMealId);
     }
 
     @Override
@@ -120,10 +127,15 @@ public class FoodLogRepositoryAdapter implements FoodLogRepository {
                 row.mealType(),
                 row.notes(),
                 row.source(),
+                row.mealPlanMealId(),
                 row.revision(),
                 row.deleted(),
                 row.createdAt(),
                 row.updatedAt(),
+                row.compositeDishId(),
+                row.compositeDishRevision(),
+                row.compositeDishServings(),
+                row.compositeDishSnapshotJson(),
                 mapper.findItems(row.foodLogId()));
     }
 }

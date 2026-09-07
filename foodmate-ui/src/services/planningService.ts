@@ -23,12 +23,36 @@ export type MealPlan = {
   deleted: boolean;
   created_at: string;
   updated_at: string;
+  meal_slots?: MealPlanMealSlot[];
+  executable_meal_count?: number;
+  completed_meal_count?: number;
+  completion_ratio?: number | string;
+};
+
+export type MealPlanMealSlot = {
+  meal_plan_meal_id: string;
+  day_index: number;
+  meal_type: string;
+  meal_name: string | null;
+  meal: Record<string, unknown>;
+  food_log_count: number;
+  completed: boolean;
+};
+
+export type ShoppingListItem = {
+  shopping_list_item_id?: string;
+  item_key?: string;
+  name: string;
+  amount?: number | string | null;
+  unit?: string | null;
+  purchased?: boolean;
+  purchased_at?: string | null;
 };
 
 export type ShoppingList = {
   shopping_list_id: string;
   meal_plan_id: string;
-  items: Array<Record<string, unknown>>;
+  items: ShoppingListItem[];
   status: string;
   created_at: string;
   updated_at: string;
@@ -74,6 +98,21 @@ export async function loadMealPlan(mealPlanId: string): Promise<MealPlan> {
 
 export async function loadShoppingList(mealPlanId: string): Promise<ShoppingList> {
   return apiRequest<ShoppingList>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}/shopping-list`);
+}
+
+export async function updateShoppingItemPurchased(
+  mealPlanId: string,
+  shoppingListItemId: string,
+  purchased: boolean,
+): Promise<ShoppingList> {
+  return apiRequest<ShoppingList>(
+    `/api/meal-plans/${encodeURIComponent(mealPlanId)}/shopping-list/items/${encodeURIComponent(shoppingListItemId)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Idempotency-Key': idempotencyKey('shopping-item') },
+      body: JSON.stringify({ purchased }),
+    },
+  );
 }
 
 function planDays(startDate: string, endDate: string) {

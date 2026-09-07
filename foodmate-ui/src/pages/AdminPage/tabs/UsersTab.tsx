@@ -43,7 +43,7 @@ import {
 import type { AdminActionPayload } from './types';
 import {
   loadAdminUserDetail,
-  loadAdminUsers,
+  loadAdminUsersPage,
   revokeAdminUserSessions,
   type AdminUserDetail,
   updateAdminUserStatus,
@@ -100,7 +100,8 @@ const figmaUserRows: AdminUserView[] = [
     status: 'active',
     avatarUrl: '',
     phone: '-',
-    gender: '-',
+    // Figma fixture 的女性示例必须明确性别，才能使用登记的女性默认头像。
+    gender: '女',
     heightCm: 0,
     weightKg: 0,
     activityLevel: '-',
@@ -126,7 +127,7 @@ const figmaUserRows: AdminUserView[] = [
     status: 'disabled',
     avatarUrl: '',
     phone: '-',
-    gender: '-',
+    gender: '男',
     heightCm: 0,
     weightKg: 0,
     activityLevel: '-',
@@ -196,6 +197,9 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('active');
   const [filtersChanged, setFiltersChanged] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(isMockMode ? figmaUserRows.length : 0);
+  const pageSize = 20;
   const [selectedDetail, setSelectedDetail] = useState<AdminUserDetail>();
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
@@ -203,17 +207,33 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
 
   useEffect(() => {
     if (isMockMode) return;
-    loadAdminUsers()
-      .then((items) => {
-        setUsers(items as AdminUserView[]);
-        setSelectedUser(items[0] as AdminUserView | undefined);
+    let active = true;
+    loadAdminUsersPage({
+      page,
+      size: pageSize,
+      query: query.trim() || undefined,
+      role: roleFilter,
+      status: filtersChanged ? statusFilter : undefined,
+    })
+      .then((result) => {
+        if (!active) return;
+        setLoadError('');
+        const items = result.items as AdminUserView[];
+        setUsers(items);
+        setTotalUsers(result.total);
+        setSelectedUser(items[0]);
       })
       .catch((error) => {
+        if (!active) return;
         setUsers([]);
+        setTotalUsers(0);
         setSelectedUser(undefined);
         setLoadError(error instanceof Error ? error.message : '用户列表加载失败');
       });
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [filtersChanged, page, query, roleFilter, statusFilter]);
 
   useEffect(() => {
     if (isMockMode || !selectedUserId) return;
@@ -239,6 +259,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
   }, [selectedUserId]);
 
   const visibleUsers = useMemo(() => {
+    if (!isMockMode) return users;
     const normalizedQuery = query.trim().toLowerCase();
     return users.filter((user) => {
       const matchesQuery =
@@ -254,6 +275,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
   const updateFilter = (setter: (value: string) => void, value: string) => {
     setter(value);
     setFiltersChanged(true);
+    setPage(1);
   };
 
   const requestUserStatus = (record: AdminUserView, action: string, status: string) => {
@@ -306,7 +328,10 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
               className={styles.usersSearchInput}
               aria-label="搜索用户名、ID或邮箱"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
               placeholder="搜索用户名、ID或邮箱..."
             />
           </label>
@@ -351,6 +376,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
               setRoleFilter('all');
               setStatusFilter('active');
               setFiltersChanged(false);
+              setPage(1);
             }}
           >
             重置筛选
@@ -391,18 +417,31 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
         </div>
 
         <div className={styles.usersPagination}>
-          <span>Showing 1-{visibleUsers.length} of 1,284 users</span>
+          <span>
+            显示第 {totalUsers === 0 ? 0 : (page - 1) * pageSize + 1} 到 {Math.min(page * pageSize, totalUsers)} 条，共{' '}
+            {totalUsers.toLocaleString('zh-CN')} 条用户
+          </span>
           <div>
-            <Button variant="outline" size="sm" type="button" disabled aria-label="上一页">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              disabled={page <= 1}
+              aria-label="上一页"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
               上一页
             </Button>
             <Button variant="outline" size="sm" className={styles.usersPageActive} type="button" aria-current="page">
-              1
+              {page}
             </Button>
-            <Button variant="outline" size="sm" type="button">
-              2
-            </Button>
-            <Button variant="outline" size="sm" type="button">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              disabled={page >= Math.max(1, Math.ceil(totalUsers / pageSize))}
+              onClick={() => setPage((current) => Math.min(Math.max(1, Math.ceil(totalUsers / pageSize)), current + 1))}
+            >
               下一页
             </Button>
           </div>
@@ -617,7 +656,12 @@ function UserDetailCard({
       </div>
       <div className={styles.userDetailIdentity}>
         <div className={styles.userDetailAvatar} aria-hidden="true">
-          <AvatarImage avatarUrl={avatarSource} gender={profile?.gender || user.gender} alt="" />
+          <AvatarImage
+            avatarUrl={avatarSource}
+            defaultOnly={isMockMode}
+            gender={profile?.gender || user.gender}
+            alt=""
+          />
         </div>
         <div className={styles.userDetailName}>
           <strong>{displayName}</strong>

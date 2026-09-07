@@ -1,4 +1,4 @@
-import { FileText, UploadCloud } from 'lucide-react';
+import { FileText, Search, UploadCloud } from 'lucide-react';
 import { ChangeEvent, DragEvent, useEffect, useId, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import styles from '../AdminPage.module.css';
 import { type KnowledgeRow, canManage } from './AdminShared';
 import type { AdminActionPayload } from './types';
@@ -122,6 +124,12 @@ export function KnowledgeSection({
   const [loading, setLoading] = useState(isRealMode);
   const [loadError, setLoadError] = useState('');
   const [localRefreshNonce, setLocalRefreshNonce] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalDocuments, setTotalDocuments] = useState(isRealMode ? 0 : figmaKnowledgeRows.length);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [visibilityFilter, setVisibilityFilter] = useState('all');
+  const pageSize = 20;
   const fileInputId = useId();
 
   useEffect(() => {
@@ -139,16 +147,24 @@ export function KnowledgeSection({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
-    loadAdminKnowledge()
+    loadAdminKnowledge({
+      page,
+      size: pageSize,
+      query: query.trim() || undefined,
+      status: statusFilter,
+      visibility: visibilityFilter,
+    })
       .then((result) => {
         if (!active) return;
         const rows = result.items as KnowledgeRow[];
         setDocuments(rows);
+        setTotalDocuments(result.total);
         setSelectedDoc(rows[0]);
       })
       .catch((cause) => {
         if (!active) return;
         setDocuments([]);
+        setTotalDocuments(0);
         setSelectedDoc(undefined);
         setLoadError(cause instanceof Error ? cause.message : '知识库数据加载失败');
       })
@@ -158,7 +174,7 @@ export function KnowledgeSection({
     return () => {
       active = false;
     };
-  }, [isRealMode, localRefreshNonce, refreshNonce]);
+  }, [isRealMode, localRefreshNonce, page, query, refreshNonce, statusFilter, visibilityFilter]);
 
   const notify = (message: string, tone: 'warning' | 'success') => {
     window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone } }));
@@ -276,6 +292,56 @@ export function KnowledgeSection({
             onChange={(event: ChangeEvent<HTMLInputElement>) => event.target.files && selectFiles(event.target.files)}
           />
         </label>
+        {isRealMode ? (
+          <section className={styles.auditFilters} aria-label="知识库筛选">
+            <label className={styles.auditSearch}>
+              <Search aria-hidden="true" />
+              <Input
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="搜索标题或来源"
+                aria-label="搜索知识库文档"
+              />
+            </label>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger aria-label="索引状态筛选">
+                <SelectValue placeholder="索引状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部索引状态</SelectItem>
+                <SelectItem value="indexed">已索引</SelectItem>
+                <SelectItem value="indexing">索引中</SelectItem>
+                <SelectItem value="index_failed">索引失败</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={visibilityFilter}
+              onValueChange={(value) => {
+                setVisibilityFilter(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger aria-label="可见性筛选">
+                <SelectValue placeholder="可见性" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部可见性</SelectItem>
+                <SelectItem value="draft">草稿</SelectItem>
+                <SelectItem value="published">已发布</SelectItem>
+                <SelectItem value="disabled">已下线</SelectItem>
+              </SelectContent>
+            </Select>
+          </section>
+        ) : null}
         <Card className={styles.knowledgeTableCard}>
           <div className={styles.knowledgeTableHeader}>
             <span>文档 ID</span>
@@ -316,6 +382,28 @@ export function KnowledgeSection({
             <div className={styles.knowledgeTableEmpty}>暂无可展示的知识库文档</div>
           )}
         </Card>
+        {isRealMode ? (
+          <nav className={styles.deletedPagination} aria-label="知识库文档分页">
+            <span>
+              显示第 {totalDocuments === 0 ? 0 : (page - 1) * pageSize + 1} 到{' '}
+              {Math.min(page * pageSize, totalDocuments)} 条，共 {totalDocuments} 条结果
+            </span>
+            <div className={styles.deletedPageButtons}>
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>
+                上一页
+              </Button>
+              <span aria-label={`第 ${page} 页`}>{page}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= Math.max(1, Math.ceil(totalDocuments / pageSize))}
+                onClick={() => setPage((value) => value + 1)}
+              >
+                下一页
+              </Button>
+            </div>
+          </nav>
+        ) : null}
       </div>
       <Card className={styles.knowledgeInsights}>
         <strong className={styles.knowledgeInsightsTitle}>文档向量洞察</strong>

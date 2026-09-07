@@ -765,6 +765,7 @@ function renderSection(
 
 export function AdminPage() {
   const authUser = getAuthUser();
+  const isMockMode = import.meta.env.VITE_AGENT_MODE !== 'real';
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const requestedFixture = getAdminFixtureState(new URLSearchParams(search).get('state'));
@@ -981,7 +982,12 @@ export function AdminPage() {
           </Link>
           <div className={styles.userSection}>
             <div className={styles.userAvatar}>
-              <AvatarImage avatarUrl={adminAvatarSource} gender={authUser.gender} alt="" />
+              <AvatarImage
+                avatarUrl={adminAvatarSource}
+                defaultOnly={isMockMode || Boolean(requestedFixture)}
+                gender={authUser.gender}
+                alt=""
+              />
             </div>
             <div className={styles.userMetadata}>
               <strong>{fixtureUser.displayName}&apos;s Lab</strong>

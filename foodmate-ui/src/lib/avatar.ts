@@ -38,6 +38,30 @@ export const FIGMA_CHAT_AVATARS = {
 // 历史 Figma 导出的人物素材只用于设计证据，运行时不允许再次作为头像来源。
 // 头像参数只要来自 Figma 资源域或本地 Figma 资源目录，就统一回退到登记的默认 SVG。
 const legacyFigmaAvatarPattern = /(?:\/assets\/figma\/|figma\.com\/api\/mcp\/asset\/)/i;
+const uploadedAvatarPathPattern = /^\/api\/users\/me\/avatar(?:[/?#]|$)/i;
+const localPreviewPattern = /^blob:/i;
+
+function isLegacyFigmaAvatarUrl(value: string): boolean {
+  let decoded = value;
+  // 最多解码三层，覆盖路由参数和缓存序列化造成的重复编码。
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (legacyFigmaAvatarPattern.test(decoded)) return true;
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) return false;
+      decoded = next;
+    } catch {
+      // 非法编码的地址按普通资源处理，图片加载失败后再回退到默认头像。
+      return false;
+    }
+  }
+  return legacyFigmaAvatarPattern.test(decoded);
+}
+
+/** 只接受后端头像接口和浏览器本地预览作为用户主动上传头像。 */
+function isTrustedUploadedAvatarUrl(value: string): boolean {
+  return uploadedAvatarPathPattern.test(value) || localPreviewPattern.test(value);
+}
 
 export function getDefaultAvatarForGender(gender?: string): string | undefined {
   const normalized = gender?.trim().toLowerCase();
@@ -50,7 +74,8 @@ export function resolveAvatarUrl(avatarUrl?: string, gender?: string): string {
   const genderDefault = getDefaultAvatarForGender(gender) ?? DEFAULT_AVATARS.male;
   const candidate = avatarUrl?.trim();
   if (!candidate) return genderDefault;
-  if (!legacyFigmaAvatarPattern.test(candidate)) return candidate;
-  // 遗留素材无法作为默认头像继续展示；性别未知时使用项目统一男性默认头像。
+  if (candidate === DEFAULT_AVATARS.male || candidate === DEFAULT_AVATARS.female) return candidate;
+  if (!isLegacyFigmaAvatarUrl(candidate) && isTrustedUploadedAvatarUrl(candidate)) return candidate;
+  // 未登记的历史人物素材、外部图片和旧缓存都不能作为默认头像继续展示。
   return genderDefault;
 }

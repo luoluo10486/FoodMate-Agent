@@ -30,7 +30,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 
 完整的边界、状态机、预算、Eval、写确认与退回规则见：[架构总览](./docxs/架构/架构总览.md)、[Agent 运行架构](./docxs/架构/Agent运行架构.md)、[M1-5 实施方案](./docxs/项目/M1-5核心饮食业务与写确认实施方案.md)、[ADR-0005](./docxs/决策/ADR-0005-RocketMQ异步主通道.md)。
 
-## 当前真实状态（2026-09-06）
+## 当前真实状态（2026-09-07）
 
 以下仅记录已经运行验证的事实；“已实现”不等于已经完成完整生产闭环。
 
@@ -40,15 +40,15 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 | M1-2/M1-3 基础链路 | PostgreSQL E2E 已验证注册、登录、Cookie/CSRF、会话创建、消息持久化和读取；Java -> Python deterministic stub -> Java -> SSE 最小闭环已验证。 |
 | 异步传输 | Java PostgreSQL Outbox -> RocketMQ -> Consumer 的真实 E2E 已验证 envelope、`request_hash`、`dispatch_id` 与 `run_id`。 |
 | Tool/SQL 闭环 | Proposal -> Java Tool Gateway -> 只读 SQL / 审计 -> Result 的真实 E2E 已验证；SQL 失败会记录 `SQL_EXECUTION_FAILED`，重复 Proposal 不重复执行。 |
-| SQL Agent 饮食分析 | 已补齐今日热量、近 7 天蛋白质、指定食材出现次数、餐食计划完成度和待确认购物清单查询；缺少时间/食材、字段不支持和空结果均有明确澄清或安全空态，Java 继续执行 SQL Schema、用户范围、AST、LIMIT 和审计校验。 |
+| SQL Agent 饮食分析 | 已补齐今日热量、近 7 天蛋白质、指定食材出现次数、按实际餐次执行统计的计划完成度和按未勾选明细统计的购物缺项；缺少时间/食材、字段不支持和空结果均有明确澄清或安全空态，Java 继续执行 SQL Schema、用户范围、AST、LIMIT 和审计校验。 |
 | M1-5 饮食业务 | 饮食记录创建、查询、编辑、删除、恢复，today/7d/30d 分析，餐食计划生命周期和购物清单已接入 Java/SQL/API；本地 PostgreSQL 当前有 1,000 条 approved/official USDA 食材和 1,518 条 approved USDA foodPortion 换算，规范键、来源 ID 和换算规则均通过校验，matched/pending 分支保持可用。 |
 | K4 营养候选确认 | 已完成业务切片 | `GET /api/nutrition-foods/search` 返回受限候选；中文烹饪前缀会归一化，多个生熟/部位候选不会自动猜测，饮食写入支持显式 `nutrition_food_id` 或 `pending_confirmation`；V34 已在本地 PostgreSQL 执行并通过校验。 |
 | 营养语义索引 | 1,000 条 approved/official 目录已通过真实 Qwen Embedding 建立独立 Milvus 集合 `foodmate_nutrition_foods`；Runtime 营养检索只返回候选 ID，饮食写入和营养数值仍回源 PostgreSQL 精确匹配。 |
 | M1-5 写确认 | `meal_plan.save_plan` 和 `food_log_writer` 的 create/update/delete/restore 已完成 Proposal -> Confirm -> Execute；reject、failed、superseded、revision 冲突、失败回滚/审计和幂等重放已通过真实 PostgreSQL HTTP/RocketMQ 回归。 |
-| Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库已完成批量上传、异步索引、发布可见性和 `public_published` 安全引用。默认仍是 `deterministic:local`；2026-09-06 的 D134 已用当前配置完成一次 Docker 真实 Embedding + Milvus + Chat AgentRun 引用闭环。D114 的 HTTP 401 是历史凭据边界，不再代表当前凭据；两个 profile 仍使用独立 Milvus collection，长稳、正式价格审计和生产 RAG 治理仍未完成。 |
-| 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。一次性请求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
+| Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库已完成批量上传、异步索引、发布可见性和 `public_published` 安全引用。R5 进一步用 9 份正式资料完成主题覆盖审计和隔离 K2/local-stub 验收，生成 50 个 chunk；本轮未重建正式数据库批次、未写入 Milvus、未调用真实 Embedding。默认仍是 `deterministic:local`；2026-09-06 的 D134 已用当前配置完成一次 Docker 真实 Embedding + Milvus + Chat AgentRun 引用闭环。D114 的 HTTP 401 是历史凭据边界，不再代表当前凭据；两个 profile 仍使用独立 Milvus collection，长稳、正式价格审计和生产 RAG 治理仍未完成。 |
+| 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。修改、确认和删除会使摘要失效；Java 与 Python 共同过滤未确认、已删除、过期、来源被抑制的记忆，非法过期时间 fail-closed。一次性请求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
 | 恢复与 M1-6 本地门禁 | 已验证 Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启/Topic 初始化、双 JVM 有界读取和 Java 重启回读；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵仍未完成。 |
-| 前端 | G1-G6 页面代码边界、追问/确认/失败/取消/SSE 状态、真实管理查询和知识库批次/RAG 引用接入已完成；真实聊天历史会话现在会恢复最近 Run 并回放终态引用，新增定向测试通过。2026-09-06 G0 复核中，Vitest 单 worker 为 `43` 个测试文件、`264/264` 通过，typecheck 和 build 通过；D137 对 `RunsTab` 两个测试文件定向验证为 4/4 通过。 |
+| 前端 | G1-G6 页面代码边界、追问/确认/失败/取消/SSE 状态、真实管理查询和知识库批次/RAG 引用接入已完成；真实聊天历史会话现在会恢复最近 Run 并回放终态引用，管理端 R7 已补齐服务端分页和筛选。2026-09-07 前端全量业务门禁为 `46` 个测试文件、`299/299` 通过，typecheck 和 build 通过。 |
 | Java 回归 | 当前 Java 全量业务门禁、Spotless、ArchUnit 和 Alibaba 可执行规范子集均通过；HTTP 与 RocketMQ `food_log_writer` 回归各 11/11，包含官方 foodPortions 换算 matched/pending 数据库断言。具体运行批次和跳过项以 [`EXECUTION_RECORD.md`](./script/sql/FoodMate/EXECUTION_RECORD.md) 为准。 |
 | 本轮容器复核 | D150（2026-09-06）使用 `.env` 成功构建并启动 `foodmate` 镜像；容器 readiness 为 healthy，`admin@foodmate.local` 登录返回 admin 会话；数据库只读复核确认探针账号为 0、管理员密码哈希为 BCrypt，复核时的营养目录和知识库记录仍保留。 |
 
@@ -174,9 +174,15 @@ npm run dev
 - Python ContextBuilder 和 Java 查询共同执行意图白名单、确认状态、未过期、未删除、来源抑制、最近 8 条消息及最多 8 条长期记忆约束。
 - K3 业务测试：Python `57 passed`；Java `16/16`；未执行真实云服务、性能压测、组件重启、ACK/重复投递故障矩阵或备份恢复。
 
+## 2026-09-07 R6 记忆修改后的下一轮生效
+
+- `V1RunCommand.MemoryContext` 和 Java AgentRun 查询结果携带确认状态、过期时间和删除标记；Java 仍是授权事实来源，Python 只做防御性收窄。
+- Runtime 对已删除、已过期和无法解析过期时间的记忆不注入 Context；过期边界使用受控时间验证，避免等待真实时间或暴露完整 Prompt。
+- Python 记忆上下文测试 `6/6`，Java Shared/Application/Infrastructure 定向测试和构建 `15/15` 通过；本轮未启动 Docker、未调用真实付费模型/Embedding、未执行数据库迁移或故障/性能测试。
+
 ## 2026-09-06 K5 SQL Agent 饮食分析覆盖
 
-- SQL Planner 现在支持今日热量、近 7 天蛋白质、指定食材出现次数、餐食计划生命周期完成度和待确认购物清单统计；指定早餐、午餐或晚餐时，食材次数统计会保留餐次过滤。
+- SQL Planner 现在支持今日热量、近 7 天蛋白质、指定食材出现次数、基于稳定计划餐次与有效饮食记录的实际执行完成度和基于未勾选明细的购物缺项统计；指定早餐、午餐或晚餐时，食材次数统计会保留餐次过滤。
 - 缺少时间范围、食材名称歧义或不支持的营养字段会进入明确澄清；数据库返回空结果时说明数据为空原因，不把空结果伪装成数值或趋势。
 - 计划读取和购物清单读取进入只读 SQL Agent；计划生成、保存和饮食写入仍经过原有确认流程。Java 继续执行结构化计划校验、JSqlParser 用户范围/软删除注入、只读和 LIMIT 约束，并记录 SQL 专用审计。
 - 本轮业务验证：Python `87 passed`；Java `SqlQueryPlanValidatorTest` 与 `JSqlParserQueryGuardTest` 共 `12/12`；未执行性能压测、依赖重启、ACK/重复投递故障注入或生产验证。

@@ -260,6 +260,7 @@ describe('ChatPage Agent remaining states', () => {
       '/assets/avatars/default-male.svg',
     );
     expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-female');
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {
@@ -278,6 +279,29 @@ describe('ChatPage Agent remaining states', () => {
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '确认写入' }));
     expect(screen.getByRole('status')).toHaveTextContent('fixture 已记录确认动作');
+  });
+
+  it.each([
+    ['write-confirmation', '/assets/avatars/default-male.svg'],
+    ['budget-limit', '/assets/avatars/default-male.svg'],
+    ['tool-failed-retryable', '/assets/avatars/default-male.svg'],
+    ['safety-degraded', '/assets/avatars/default-female.svg'],
+    ['user-cancelled', '/assets/avatars/default-male.svg'],
+    ['sse-reconnecting', '/assets/avatars/default-male.svg'],
+  ])('uses the registered %s fixture user avatar', (state, expectedSource) => {
+    renderState(state);
+
+    const avatarImages = Array.from(document.querySelectorAll('[data-avatar-policy="default-only"]'));
+    expect(avatarImages.length).toBeGreaterThan(0);
+    expect(
+      avatarImages.every((image) =>
+        ['/assets/avatars/default-male.svg', '/assets/avatars/default-female.svg'].includes(
+          image.getAttribute('src') ?? '',
+        ),
+      ),
+    ).toBe(true);
+    expect(document.querySelector('[data-avatar-role="fixture-message"]')).toHaveAttribute('src', expectedSource);
+    expect(avatarImages.every((image) => !image.getAttribute('src')?.includes('/assets/figma/'))).toBe(true);
   });
 
   it('renders budget limit choices and keeps the current Run action explicit', () => {

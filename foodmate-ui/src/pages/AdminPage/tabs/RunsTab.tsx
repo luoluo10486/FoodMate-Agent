@@ -80,6 +80,7 @@ type DetailSelection =
 const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
 
 const emptyDashboard: DashboardState = { runs: [], toolCalls: [], sqlAudits: [], traces: [], dlq: [] };
+const governancePageSize = 20;
 
 const mockDashboard: DashboardState = {
   runs: adminAuditRows,
@@ -542,6 +543,9 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [traceDetail, setTraceDetail] = useState<AdminTraceDetail>();
   const [traceDetailLoading, setTraceDetailLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
   const activeTab = tabFromSearch(searchParams);
 
   const selectDetail = (nextSelection?: DetailSelection) => {
@@ -561,33 +565,52 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     // The effect owns the request lifecycle, so clearing the previous error starts a new subscription.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError('');
-    Promise.all([
-      loadAdminQuery<AdminQueryRun>('runs'),
-      loadAdminQuery<AdminQueryToolCall>('tool-calls'),
-      loadAdminQuery<AdminQuerySqlAudit>('sql-audits'),
-      loadAdminQuery<AdminQueryTrace>('traces'),
-      loadAdminQuery<AdminQueryDlq>('dlq'),
-    ])
-      .then(([runs, toolCalls, sqlAudits, traces, dlq]) => {
-        if (mounted)
-          setDashboard({
-            runs: runs.items.map(queryRunRow),
-            toolCalls: toolCalls.items.map(queryToolCallRow),
-            sqlAudits: sqlAudits.items.map(querySqlAuditRow),
-            traces: traces.items.map(queryTraceRow),
-            dlq: dlq.items.map(queryDlqRow),
-          });
+    // 运行治理只加载当前页签，避免把五类运营明细一次性拉入浏览器。
+    const status = resultFilter === 'error' ? 'failed' : statusFilter;
+    const params = {
+      page,
+      size: governancePageSize,
+      query: query.trim() || undefined,
+      status,
+    };
+    setLoading(true);
+    const request =
+      activeTab === 'agent-runs'
+        ? loadAdminQuery<AdminQueryRun>('runs', params)
+        : activeTab === 'tool-calls'
+          ? loadAdminQuery<AdminQueryToolCall>('tool-calls', params)
+          : activeTab === 'sql-audits'
+            ? loadAdminQuery<AdminQuerySqlAudit>('sql-audits', params)
+            : activeTab === 'traces'
+              ? loadAdminQuery<AdminQueryTrace>('traces', params)
+              : loadAdminQuery<AdminQueryDlq>('dlq', params);
+    request
+      .then((result) => {
+        if (!mounted) return;
+        setTotal(result.total);
+        const nextDashboard = { ...emptyDashboard };
+        if (activeTab === 'agent-runs') nextDashboard.runs = (result.items as AdminQueryRun[]).map(queryRunRow);
+        if (activeTab === 'tool-calls')
+          nextDashboard.toolCalls = (result.items as AdminQueryToolCall[]).map(queryToolCallRow);
+        if (activeTab === 'sql-audits')
+          nextDashboard.sqlAudits = (result.items as AdminQuerySqlAudit[]).map(querySqlAuditRow);
+        if (activeTab === 'traces') nextDashboard.traces = (result.items as AdminQueryTrace[]).map(queryTraceRow);
+        if (activeTab === 'dlq') nextDashboard.dlq = (result.items as AdminQueryDlq[]).map(queryDlqRow);
+        setDashboard(nextDashboard);
       })
       .catch((error) => {
         if (mounted) {
           setDashboard(emptyDashboard);
           setLoadError(error instanceof Error ? error.message : '运行治理数据加载失败');
         }
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
       });
     return () => {
       mounted = false;
     };
-  }, [refreshNonce]);
+  }, [activeTab, errorFilter, page, query, refreshNonce, resultFilter, statusFilter]);
 
   useEffect(() => {
     if (!isRealMode || selection?.type !== 'trace' || selection.row.traceId === '-') {
@@ -613,82 +636,92 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const normalizedError = errorFilter.trim().toLowerCase();
   const filteredRuns = useMemo(
     () =>
-      dashboard.runs.filter((row) => {
-        const resultMatches =
-          resultFilter === 'all' ||
-          row.resultType === resultFilter ||
-          (resultFilter === 'error' && row.status === 'failed');
-        return (
-          matchesCommon(
-            [row.runId, row.user, row.userId, row.sessionId, row.traceId, row.intent, row.stage, row.model],
-            row.status,
-            row.errorCode,
-            normalizedQuery,
-            statusFilter,
-            normalizedError,
-          ) && resultMatches
-        );
-      }),
+      isRealMode
+        ? dashboard.runs
+        : dashboard.runs.filter((row) => {
+            const resultMatches =
+              resultFilter === 'all' ||
+              row.resultType === resultFilter ||
+              (resultFilter === 'error' && row.status === 'failed');
+            return (
+              matchesCommon(
+                [row.runId, row.user, row.userId, row.sessionId, row.traceId, row.intent, row.stage, row.model],
+                row.status,
+                row.errorCode,
+                normalizedQuery,
+                statusFilter,
+                normalizedError,
+              ) && resultMatches
+            );
+          }),
     [dashboard.runs, normalizedQuery, normalizedError, resultFilter, statusFilter],
   );
 
   const filteredToolCalls = useMemo(
     () =>
-      dashboard.toolCalls.filter((row) =>
-        matchesCommon(
-          [row.callId, row.runId, row.toolName, row.traceId, row.requestId],
-          row.status,
-          row.errorCode,
-          normalizedQuery,
-          statusFilter,
-          normalizedError,
-        ),
-      ),
+      isRealMode
+        ? dashboard.toolCalls
+        : dashboard.toolCalls.filter((row) =>
+            matchesCommon(
+              [row.callId, row.runId, row.toolName, row.traceId, row.requestId],
+              row.status,
+              row.errorCode,
+              normalizedQuery,
+              statusFilter,
+              normalizedError,
+            ),
+          ),
     [dashboard.toolCalls, normalizedQuery, normalizedError, statusFilter],
   );
 
   const filteredSqlAudits = useMemo(
     () =>
-      dashboard.sqlAudits.filter((row) =>
-        matchesCommon(
-          [row.auditId, row.actor, row.statement, row.traceId, row.queryHash, row.policy],
-          row.result,
-          row.errorCode,
-          normalizedQuery,
-          statusFilter,
-          normalizedError,
-        ),
-      ),
+      isRealMode
+        ? dashboard.sqlAudits
+        : dashboard.sqlAudits.filter((row) =>
+            matchesCommon(
+              [row.auditId, row.actor, row.statement, row.traceId, row.queryHash, row.policy],
+              row.result,
+              row.errorCode,
+              normalizedQuery,
+              statusFilter,
+              normalizedError,
+            ),
+          ),
     [dashboard.sqlAudits, normalizedQuery, normalizedError, statusFilter],
   );
 
   const filteredTraces = useMemo(
     () =>
-      dashboard.traces.filter((row) =>
-        matchesCommon(
-          [row.traceId, row.runId, row.entry, row.rootService],
-          row.status,
-          row.errorCode,
-          normalizedQuery,
-          statusFilter,
-          normalizedError,
-        ),
-      ),
+      isRealMode
+        ? dashboard.traces
+        : dashboard.traces.filter((row) =>
+            matchesCommon(
+              [row.traceId, row.runId, row.entry, row.rootService],
+              row.status,
+              row.errorCode,
+              normalizedQuery,
+              statusFilter,
+              normalizedError,
+            ),
+          ),
     [dashboard.traces, normalizedQuery, normalizedError, statusFilter],
   );
 
   const filteredDlq = useMemo(
     () =>
-      dashboard.dlq.filter((row) =>
-        matchesCommon(
-          [row.dlqId, row.consumerGroup, row.sourceTopic, row.messageId, row.runId, row.dispatchId, row.eventId],
-          row.reconciliationState,
-          row.errorCode,
-          normalizedQuery,
-          statusFilter,
-          normalizedError,
-        ),
-      ),
+      isRealMode
+        ? dashboard.dlq
+        : dashboard.dlq.filter((row) =>
+            matchesCommon(
+              [row.dlqId, row.consumerGroup, row.sourceTopic, row.messageId, row.runId, row.dispatchId, row.eventId],
+              row.reconciliationState,
+              row.errorCode,
+              normalizedQuery,
+              statusFilter,
+              normalizedError,
+            ),
+          ),
     [dashboard.dlq, normalizedQuery, normalizedError, statusFilter],
   );
 
@@ -703,6 +736,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     else if (tab === 'tool-calls') next.set('tab', 'tool');
     else if (tab === 'dlq') next.set('tab', 'dlq');
     else next.delete('tab');
+    setPage(1);
     setSearchParams(next, { replace: true });
   };
   const resetFilters = () => {
@@ -710,6 +744,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     setStatusFilter('all');
     setResultFilter('all');
     setErrorFilter('');
+    setPage(1);
   };
   const statusOptions =
     activeTab === 'dlq'
@@ -806,17 +841,6 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     { title: '首次发现', dataIndex: 'firstSeenAt' },
   ];
 
-  const activeRows =
-    activeTab === 'agent-runs'
-      ? filteredRuns
-      : activeTab === 'tool-calls'
-        ? filteredToolCalls
-        : activeTab === 'sql-audits'
-          ? filteredSqlAudits
-          : activeTab === 'traces'
-            ? filteredTraces
-            : filteredDlq;
-
   return (
     <>
       <section className={styles.sectionCards} aria-label="运行治理指标">
@@ -834,13 +858,22 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
               id="run-governance-query"
               value={query}
               placeholder="Run ID / user / session / trace"
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
             />
           </span>
         </label>
         <label className={styles.runFilterField}>
           <span>状态</span>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className={styles.runFilterControl} aria-label="运行状态筛选">
               <SelectValue />
             </SelectTrigger>
@@ -856,7 +889,13 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
         </label>
         <label className={styles.runFilterField}>
           <span>结果类型</span>
-          <Select value={resultFilter} onValueChange={setResultFilter}>
+          <Select
+            value={resultFilter}
+            onValueChange={(value) => {
+              setResultFilter(value);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className={styles.runFilterControl} aria-label="结果类型筛选">
               <SelectValue />
             </SelectTrigger>
@@ -873,7 +912,10 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             id="run-governance-error"
             value={errorFilter}
             placeholder="例如 SQL_POLICY"
-            onChange={(event) => setErrorFilter(event.target.value)}
+            onChange={(event) => {
+              setErrorFilter(event.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <Button aria-label="重置筛选" size="icon" title="重置筛选" variant="ghost" onClick={resetFilters}>
@@ -887,7 +929,7 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             <strong>运行治理</strong>
             <p className={styles.runTableDescription}>通过 Run ID、Session ID、Tool Call 和 Trace ID 追踪一次执行。</p>
           </div>
-          <Badge variant="outline">{activeRows.length} 条记录</Badge>
+          <Badge variant="outline">共 {total} 条记录</Badge>
         </div>
         <Tabs value={activeTab} onValueChange={changeTab}>
           <TabsList aria-label="运行治理视图" className={styles.runTabsList}>
@@ -954,6 +996,36 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
           </TabsContent>
         </Tabs>
       </Card>
+
+      {isRealMode ? (
+        <nav className={styles.auditPagination} aria-label="运行治理分页">
+          <span>
+            显示第 {total === 0 ? 0 : (page - 1) * governancePageSize + 1} 到{' '}
+            {Math.min(page * governancePageSize, total)} 条，共 {total} 条结果
+          </span>
+          <div className={styles.auditPageButtons}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || page <= 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+            >
+              上一页
+            </Button>
+            <span aria-label={`第 ${page} 页，共 ${Math.max(1, Math.ceil(total / governancePageSize))} 页`}>
+              {page} / {Math.max(1, Math.ceil(total / governancePageSize))}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || page >= Math.max(1, Math.ceil(total / governancePageSize))}
+              onClick={() => setPage((value) => value + 1)}
+            >
+              下一页
+            </Button>
+          </div>
+        </nav>
+      ) : null}
 
       <RunDetailSheet
         selection={selection}

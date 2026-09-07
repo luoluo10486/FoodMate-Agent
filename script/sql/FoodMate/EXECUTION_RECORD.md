@@ -2356,3 +2356,76 @@
 | 业务验证 | `cd foodmate-ui; npm.cmd test -- --maxWorkers=1 --run src/pages/AdminPage/AdminPage.test.tsx src/pages/AdminPage/tabs/ToolsTab.real.test.tsx src/pages/AdminPage/tabs/UsersTab.test.tsx`：3 个测试文件、`32/32` 通过；`npm.cmd run typecheck` 通过。 |
 | 数据边界 | 未修改 PostgreSQL、Redis、Milvus、RocketMQ、`.env` 或任何用户已有 Figma QA 文件；未增加测试数据。 |
 | 结论 | 管理端 real 模式的页面事实来源统一为服务端接口，fixture 仅保留给显式设计预览/测试状态。 |
+
+## D154 R3 计划执行与购物项业务闭环（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 实现范围 | 新增 V36 计划餐次和购物项增量脚本；饮食记录支持 `meal_plan_meal_id` 关联；计划返回稳定餐次、可执行餐次数、完成数和完成率；购物项支持稳定 ID、购买状态持久化、数量变化重置购买确认；旧计划读取时惰性补齐餐次；购物项写入统一用户归属、保存状态、幂等审计和失败审计。 |
+| Java 应用验证 | `mvnw.cmd -pl foodmate-application -am "-Dtest=MealPlanServiceImplTest,FoodLogServiceImplTest,FoodLogCompositeDishTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`32/32` 通过，`BUILD SUCCESS`。 |
+| Java API 验证 | `mvnw.cmd -pl foodmate-api -am "-Dtest=MealPlanControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`：`4/4` 通过，`BUILD SUCCESS`。 |
+| 前端验证 | `foodmate-ui` 执行计划页/饮食记录页业务测试：`13/13` 通过；`npm.cmd run typecheck` 通过。 |
+| 迁移边界 | 已创建 `migration/V36__m2_6_plan_execution_and_shopping_items.sql`、对应 `validation` 和 `rollback` 前置检查；当前任务未执行 PostgreSQL 迁移、未清理现有数据，待人工按项目迁移流程执行并复核。 |
+| 其他边界 | 未启动或重启 Docker 依赖，未执行性能压测、ACK/重复投递故障注入、SSE 故障恢复、备份恢复、生产验证或真实付费模型调用；保留工作区其他用户改动。 |
+| 结论 | R3 业务代码、API 契约和前端主路径已通过定向验证；数据库真实运行证据不在本轮完成判定内，R4 及后续业务项继续按计划推进。 |
+
+## D155 R4 SQL Agent 实际执行统计口径（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 实现范围 | 计划完成度改为 `meal_plan_meals` 可执行餐次与有效 `food_logs.meal_plan_meal_id` 已完成餐次的 `COUNT(DISTINCT ...)` 比值；购物缺项改为 `shopping_list_items.purchased=false` 的未勾选条目数量；Java Catalog 加入计划餐次、购物项和饮食记录关联字段。 |
+| Java 守卫 | 左连接右表的 `is_deleted/user_id` 条件注入到 `ON`，保留零完成餐次和零待购项的主表行；参数顺序按最终 SQL 文本保持绑定一致。 |
+| SQL Agent 业务验证 | `agent-runtime` 使用项目 Python 解释器执行 SQL Planner `18/18`、Tool/Composer `15/15`，均通过；未调用真实 Chat/Embedding。 |
+| Java 业务验证 | `mvnw.cmd -pl foodmate-application -am test "-Dtest=SqlSchemaCatalogServiceTest,JSqlParserQueryGuardTest,SqlQueryPlanValidatorTest" "-Dsurefire.failIfNoSpecifiedTests=false"`：`16/16` 通过，`BUILD SUCCESS`。 |
+| SQL 文件 | 新增 `seed/V37__m2_6_sql_agent_execution_catalog_seed.sql` 和 `validation/V37__m2_6_sql_agent_execution_catalog_validation.sql`；只登记 Catalog 字段，不修改旧 seed、业务数据或迁移历史。 |
+| 未执行范围 | V36/V37 尚未在当前 PostgreSQL 人工执行；未进行真实 AgentRun -> Java SQL 执行 -> 审计 -> SSE 跨进程联调，未启动 Docker，未执行性能、重启、ACK 丢失、重复投递或生产验证。 |
+| 结论 | R4 代码和业务契约验证完成；R8 集中验收仍需真实数据库结构和跨进程证据，不能将本轮定向测试写成真实数据库闭环。 |
+
+## D156 R5 公共知识主题覆盖与 K2 local-stub 业务验收（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；使用项目 `agent-runtime\\.venv`；未启动或重启 Docker 依赖，未调用真实 Chat/Embedding。 |
+| 资料质量 | manifest 中 9 份 WHO 中文 Markdown 均通过来源 URL、内容摘要、重复、UTF-8、敏感信息和 Front Matter 校验；补充“餐次与搭配”章节，并明确标注为 FoodMate 应用层归纳，不冒充 WHO 固定食谱。 |
+| K2 切分 | 通过 `script/data/knowledge/validate_public_rag_r5.py` 使用正式 `parse_document` 和 `chunk_markdown` 生成 `50` 个 chunk；目标 `700`、硬上限 `1000`、重叠 `80`；所有 chunk 有 `section_path`，最长 `207` 字符；长段落探针产生 `2` 对重叠。 |
+| 主题和检索 | 覆盖膳食基础、食材特点与选择、烹饪与保存、三餐与加餐搭配、控盐糖/纤维/蛋白和食品安全；6 个固定查询命中预期章节，随机查询 `zzzxqv-abcmnop-r5` 返回 `0` 条。 |
+| 可见性与幂等 | 隔离 `StubIndex` 验证 `tenant_id=0/public_published/published/indexed/current_version/未删除` 过滤；旧版本和下线文档不可检索；重复 upsert 前后均为 `52` 个唯一 chunk，不增加重复实体。 |
+| 解析边界 | Markdown 解析器新增剥离已闭合 Front Matter，避免来源元数据进入 chunk；资料摘要改按规范化 LF 文本计算，修复 Windows 换行导致的误报。 |
+| 业务测试 | R5 新增测试 `3 passed`；知识库既有 manifest/RAG/Worker 定向回归为 `72 passed`、`4` 个子断言通过；`git diff --check` 通过。 |
+| 数据与费用边界 | 本轮只在内存 stub 生成和检索 chunk；未写入 PostgreSQL、Redis、Milvus 或 RocketMQ，未执行真实数据库批次重索引，真实 Embedding 保持待授权；不涉及性能、重启、ACK/重复投递故障或生产验证。 |
+| 结论 | R5 的公共内容覆盖和 K2 local-stub 业务门禁完成；正式数据库旧批次不作为本轮 K2 证据，真实 Embedding/Milvus 重索引继续后置。 |
+
+## D157 R6 记忆修改后的下一轮生效（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 实现范围 | `V1RunCommand.MemoryContext` 和 Java AgentRun 授权查询携带 `confirmation_status`、`expires_at`、`is_deleted`；Java 继续过滤删除、未确认、过期、来源消息已删除和不匹配意图的记忆。Python `ContextBuilder` 再次过滤已删除、已过期和无法解析过期时间的记录。 |
+| 摘要失效 | 既有 `MemoryCandidateServiceImpl` 的修改、确认、删除路径均调用 `SessionSummaryService.invalidateForUser`；下一次 Run 重新查询授权上下文，不复用失效摘要。 |
+| Python 验证 | 使用 `agent-runtime\\.venv` 执行 `pytest agent-runtime\\tests\\test_memory_context.py agent-runtime\\tests\\test_runtime_server.py`：`61 passed`；覆盖修改后新事实保留、删除/过期/非法时间排除、过期边界、意图类型和重复 key。 |
+| Java 验证 | `mvnw.cmd -pl foodmate-application,foodmate-shared,foodmate-infra -am -Dtest=AgentRunCommandServiceImplTest,MemoryCandidateServiceImplTest,V1RunCommandTest -Dsurefire.failIfNoSpecifiedTests=false test`：`15/15`，`BUILD SUCCESS`；验证状态字段进入 dispatch payload，摘要失效调用保持通过。 |
+| 数据与费用边界 | 未启动 Docker，未调用真实付费 Chat/Embedding，未执行迁移、数据库写入、性能压测、组件重启、ACK/重复投递故障注入、SSE 故障恢复、备份恢复或生产操作；未生成并提交 Python 缓存。 |
+| 结论 | R6 的业务代码和防御性上下文门禁完成；真实 PostgreSQL 跨进程修改/删除/过期回读证据按 R8 集中验收处理，不能由本轮定向测试替代。 |
+
+## D158 R7 管理端真实分页与服务端筛选（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；使用现有 Java/Maven Wrapper 和 `foodmate-ui` 项目依赖；未启动或重启 Docker 依赖。 |
+| 实现范围 | 管理端用户、知识库、软删除资源、操作审计使用真实分页查询；Run、Tool Call、SQL、Trace、DLQ 按当前页签按需请求；角色、资源类型、时间、动作和目标筛选下推服务端；软删除列表读取后端 `restorable/revision`。 |
+| 前端验证 | `foodmate-ui` 全量业务测试 `46` 个文件、`299 passed`；`npm.cmd run typecheck` 通过；`npm.cmd run build` 通过。 |
+| Java 验证 | `AdminOperationalQueryServiceImplTest` 定向测试 `9/9` 通过；受影响模块编译通过；本轮修改文件的 Spotless 检查通过。 |
+| 数据与安全边界 | 未修改 PostgreSQL、Redis、RocketMQ、Milvus、MinIO 或用户数据；真实模式继续不回退 fixture，查询结果只返回既有安全字段。 |
+| 未执行范围 | 未执行性能压测、长稳、组件重启、ACK 丢失、重复投递、SSE 故障恢复、备份恢复、生产部署或发布回滚；全模块 Spotless 的既有无关格式问题未在本轮扩大修复。 |
+| 结论 | R7 管理分页与服务端筛选业务门禁完成；R8 集中跨端验收、数据库人工迁移执行和生产级能力仍按计划后置。 |
+
+## D159 R8 复合菜与计划执行真实业务验收（2026-09-07）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker Compose `foodmate`、PostgreSQL、Redis、RocketMQ、MinIO 已运行；Java 容器使用本轮代码重新构建并恢复 `healthy`。未执行性能压测、依赖故障重启、ACK 丢失、重复投递或生产操作。 |
+| 数据库迁移 | V38、V39 已随本地 Java 容器启动后的迁移流程实际生效。V38 validation：约束存在，`invalid_matched_snapshot_rows=0`，复合菜快照 `5/5` 合法；V39 validation：活动明细顺序重复 `0`，活动顺序唯一索引存在。 |
+| Java 定向测试 | `CompositeDishServiceImplTest`、`FoodLogCompositeDishTest`：`2/2` 通过。删除复合菜现在同步软删除组成明细；复合菜版本更新可复用旧明细顺序。 |
+| 真实业务验收 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\script\\local\\_r8_business_acceptance.ps1`：营养候选、复合菜创建/更新、餐食计划创建/校验/保存、购物项勾选、按份饮食记录、完成率 `1/3`、历史营养快照 `393.0000 kcal` 均通过，最终 `status=passed`。验收脚本随后删除，不作为项目文件保留。 |
+| 首次失败与修复 | 首次跨端验收发现复合菜聚合饮食明细被旧 `food_log_items` 约束拒绝，以及版本更新软删除旧明细后无法插入相同 `item_order`；新增 V38/V39 和 `CompositeDishServiceImpl` 删除联动后重新构建并复验通过。 |
+| 测试数据清理 | 仅针对用户 `1788628850360127` 且名称以 `R8 Composite Rice` 开头、父记录已软删除的数据，将遗留活动组成明细 `12` 条软删除；未执行 `TRUNCATE`，未删除其他用户或正式业务数据，复核活动残留为 `0`。 |
+| 未完成边界 | R8 中 SQL Agent 跨进程真实调用、公共知识真实 Embedding/Milvus 索引与版本替换、记忆跨进程回读和真实浏览器布局证据不由本轮脚本替代；真实 Embedding/Milvus 仍按用户要求暂缓。生产性能、可靠性和运维项继续后置。 |

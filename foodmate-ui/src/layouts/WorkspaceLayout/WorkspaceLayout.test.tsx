@@ -171,6 +171,23 @@ describe('WorkspaceLayout shell controls', () => {
     );
   });
 
+  it('forces mock shell avatars to the registered SVGs even when a stale upload is supplied', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout avatarSrc="/uploads/legacy-person.png">
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('aside .avatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(container.querySelector('main header .topAvatar img')).toHaveAttribute(
+      'src',
+      '/assets/avatars/default-male.svg',
+    );
+    expect(container.querySelectorAll('[data-avatar-policy="default-only"]')).toHaveLength(2);
+  });
+
   it.each([
     ['records', '/analysis?view=records&state=v2'],
     ['analysis', '/analysis?state=v2'],

@@ -66,15 +66,22 @@ class DeterministicSqlPlannerTests(TestCase):
         self.assertEqual("need_clarification", ambiguous.status)
         self.assertEqual(("food_name",), ambiguous.missing_slots)
 
-    def test_plan_completion_and_shopping_missing_use_documented_status_semantics(self):
+    def test_plan_completion_and_shopping_missing_use_execution_item_semantics(self):
         completion = self.planner.plan("我的餐食计划完成度")
         self.assertEqual("meal_plan_completion", completion.intent)
         self.assertIn("completion_ratio", completion.candidate_sql)
-        self.assertIn("status = 'saved'", completion.candidate_sql)
+        self.assertIn("meal_plan_meals", completion.candidate_sql)
+        self.assertIn("food_logs", completion.candidate_sql)
+        self.assertIn("executable_meal_count", completion.candidate_sql)
+        self.assertIn("completed_meal_count", completion.candidate_sql)
+        self.assertNotIn("status = 'saved'", completion.candidate_sql)
 
         shopping = self.planner.plan("查看购物清单缺项")
         self.assertEqual("shopping_list_missing", shopping.intent)
-        self.assertIn("missing_item_groups", shopping.candidate_sql)
+        self.assertIn("shopping_list_items", shopping.candidate_sql)
+        self.assertIn("purchased = FALSE", shopping.candidate_sql)
+        self.assertIn("pending_item_count", shopping.candidate_sql)
+        self.assertNotIn("missing_item_groups", shopping.candidate_sql)
 
     def test_unsupported_nutrition_field_fails_closed(self):
         with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_FIELD_UNSUPPORTED"):

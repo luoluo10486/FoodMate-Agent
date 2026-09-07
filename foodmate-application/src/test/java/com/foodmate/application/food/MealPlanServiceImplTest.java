@@ -22,11 +22,13 @@ import com.foodmate.application.food.service.impl.MealPlanServiceImpl;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 class MealPlanServiceImplTest {
     private static final Instant NOW = Instant.parse("2026-08-12T12:00:00Z");
@@ -207,6 +209,94 @@ class MealPlanServiceImplTest {
     }
 
     @Test
+    void calculatesCompletionFromExecutableMealSlotsAndValidFoodLogs() {
+        MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
+        when(repository.findOwnedPlan(7L, 100L, false)).thenReturn(plan("saved"));
+        when(repository.findMealSlots(7L, 100L))
+                .thenReturn(List.of(mealSlot(1001L, "breakfast", 1), mealSlot(1002L, "lunch", 0)));
+        MealPlanService service = service(repository, ids(100L));
+
+        MealPlanService.ProgressView result = service.progress(7L, 100L);
+
+        assertEquals(2, result.executableMealCount());
+        assertEquals(1, result.completedMealCount());
+        assertEquals(new BigDecimal("0.5000"), result.completionRatio());
+    }
+
+    @Test
+    void updatePassesChangedShoppingAmountToPersistenceForPurchaseReset() {
+        MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
+        when(repository.findIdempotency(7L, "plan-update-shopping")).thenReturn(null);
+        when(repository.findOwnedPlan(7L, 100L, false))
+                .thenReturn(plan("saved", 2, false))
+                .thenReturn(plan("draft", 3, false));
+        when(repository.updatePlan(any())).thenReturn(1);
+        when(repository.findMealSlots(7L, 100L)).thenReturn(List.of());
+        when(repository.findOwnedShoppingList(7L, 100L))
+                .thenReturn(
+                        new MealPlanRepository.ShoppingListSnapshot(
+                                200L, 100L, 7L, "[]", "generated", NOW, NOW));
+        when(repository.findShoppingItems(7L, 100L, 200L))
+                .thenReturn(
+                        List.of(
+                                new MealPlanRepository.ShoppingItemSnapshot(
+                                        300L,
+                                        200L,
+                                        100L,
+                                        7L,
+                                        "鸡蛋|个",
+                                        "鸡蛋",
+                                        new BigDecimal("1.000"),
+                                        "个",
+                                        true,
+                                        NOW,
+                                        NOW)));
+        OperationAuditService audit = auditService();
+        MealPlanService service = new MealPlanServiceImpl(repository, ids(400L), mapper, audit);
+
+        service.update(7L, 100L, 2L, updateCommand("plan-update-shopping"));
+
+        var item = ArgumentCaptor.forClass(MealPlanRepository.ShoppingItemWrite.class);
+        verify(repository).upsertShoppingItem(item.capture());
+        assertEquals(new BigDecimal("3.000"), item.getValue().amount());
+        assertEquals("鸡蛋|个", item.getValue().itemKey());
+    }
+
+    @Test
+    void updatesShoppingItemWithIdempotentAudit() {
+        MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
+        when(repository.findIdempotency(7L, "shopping-purchased-1")).thenReturn(null);
+        when(repository.findOwnedPlan(7L, 100L, false)).thenReturn(plan("saved"));
+        when(repository.findOwnedPlan(7L, 100L)).thenReturn(plan("saved"));
+        MealPlanRepository.ShoppingListSnapshot list =
+                new MealPlanRepository.ShoppingListSnapshot(
+                        200L, 100L, 7L, "[]", "generated", NOW, NOW);
+        MealPlanRepository.ShoppingItemSnapshot item =
+                new MealPlanRepository.ShoppingItemSnapshot(
+                        300L,
+                        200L,
+                        100L,
+                        7L,
+                        "鸡蛋|个",
+                        "鸡蛋",
+                        new BigDecimal("3.000"),
+                        "个",
+                        false,
+                        null,
+                        NOW);
+        when(repository.findOwnedShoppingList(7L, 100L)).thenReturn(list);
+        when(repository.findShoppingItems(7L, 100L, 200L)).thenReturn(List.of(item));
+        when(repository.updateShoppingItemPurchased(7L, 300L, true)).thenReturn(1);
+        OperationAuditService audit = auditService();
+        MealPlanService service = new MealPlanServiceImpl(repository, ids(400L), mapper, audit);
+
+        service.setShoppingItemPurchased(7L, 100L, 300L, true, "shopping-purchased-1");
+
+        verify(repository).updateShoppingItemPurchased(7L, 300L, true);
+        verify(audit).complete(eq(7L), eq("shopping-purchased-1"), any());
+    }
+
+    @Test
     void deleteRejectsStaleRevisionBeforeWriting() {
         MealPlanRepository repository = org.mockito.Mockito.mock(MealPlanRepository.class);
         when(repository.findIdempotency(7L, "plan-delete-1")).thenReturn(null);
@@ -297,6 +387,12 @@ class MealPlanServiceImplTest {
         } catch (Exception exception) {
             throw new AssertionError(exception);
         }
+    }
+
+    private MealPlanRepository.MealSlotSnapshot mealSlot(
+            long id, String mealType, int foodLogCount) {
+        return new MealPlanRepository.MealSlotSnapshot(
+                id, 100L, 7L, 0, mealType, mealType, "{}", 1, foodLogCount, NOW);
     }
 
     private ArrayNode validDaysPlan(String... ingredientNames) {

@@ -852,7 +852,10 @@ def parse_document(filename: str, content: bytes) -> str:
         raise RagError("RAG_EMPTY_DOCUMENT", "document is empty")
     if suffix in {".md", ".txt"}:
         try:
-            return _reject_personal_data(content.decode("utf-8").strip())
+            text = content.decode("utf-8").strip()
+            if suffix == ".md":
+                text = _strip_markdown_front_matter(text)
+            return _reject_personal_data(text)
         except UnicodeDecodeError as error:
             raise RagError("RAG_TEXT_ENCODING_INVALID", "text document must be UTF-8") from error
     if suffix == ".pdf":
@@ -910,6 +913,18 @@ def parse_document(filename: str, content: bytes) -> str:
         except (OSError, zipfile.BadZipFile, ElementTree.ParseError) as error:
             raise RagError("RAG_DOCX_PARSE_FAILED", "DOCX could not be parsed safely") from error
     raise RagError("RAG_DOCUMENT_TYPE_UNSUPPORTED", "unsupported knowledge document type")
+
+
+def _strip_markdown_front_matter(text: str) -> str:
+    """剥离已闭合的 Markdown Front Matter，避免来源元数据进入正文索引。"""
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    if not lines or lines[0].strip() != "---":
+        return text
+    try:
+        end = next(index for index in range(1, len(lines)) if lines[index].strip() == "---")
+    except StopIteration:
+        return text
+    return "\n".join(lines[end + 1 :]).strip()
 
 
 def _reject_personal_data(text: str) -> str:

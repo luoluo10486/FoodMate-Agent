@@ -107,7 +107,12 @@ function MessageBubble({
             <div className={styles.messageBubble}>{message.content}</div>
             <span className={styles.srOnly}>你</span>
             <span className={styles.userAvatar} aria-hidden="true">
-              <AvatarImage avatarUrl={userAvatar} gender={authUser.gender} alt="" />
+              <AvatarImage
+                avatarUrl={userAvatar}
+                defaultOnly={Boolean(userAvatarSrc) || import.meta.env.VITE_AGENT_MODE !== 'real'}
+                gender={authUser.gender}
+                alt=""
+              />
             </span>
           </div>
           <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
@@ -260,12 +265,15 @@ function ChatSurface({
   pageOverlay,
   sidebarFixture,
 }: ChatSurfaceProps) {
+  // 所有设计态 Chat 页面共享同一组 Figma 壳层资源和默认头像策略。
+  const resolvedFixtureVariant = fixtureVariant ?? (designChat ? 'chat' : undefined);
+
   return (
     <WorkspaceLayout
       activeModule="chat"
       avatarSrc={avatarSrc}
       designChat={designChat}
-      fixtureVariant={fixtureVariant}
+      fixtureVariant={resolvedFixtureVariant}
       displayNameOverride={displayNameOverride}
       profileIdOverride={profileIdOverride}
       pageOverlay={pageOverlay}
@@ -299,7 +307,7 @@ function ChatSurface({
           onChange={onChange}
           onSend={onSend}
           onStop={onStop}
-          fixtureVariant={fixtureVariant}
+          fixtureVariant={resolvedFixtureVariant}
         />
       </div>
     </WorkspaceLayout>
@@ -457,7 +465,7 @@ function PlanningStatePage() {
         <div className={styles.planningUserLine}>
           <div className={styles.planningUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.planningUserAvatar} aria-hidden="true">
-            <AvatarImage avatarUrl={planningAvatarSrc} gender="男" alt="" />
+            <AvatarImage avatarUrl={planningAvatarSrc} defaultOnly gender="男" alt="" />
           </span>
         </div>
         <div className={styles.planningMessageMeta}>Anddy · 12:45 PM</div>
@@ -571,7 +579,7 @@ function ToolExecutingStatePage() {
         <div className={styles.executingUserLine}>
           <div className={styles.executingUserBubble}>帮我分析这周的蛋白质摄入情况</div>
           <span className={styles.executingUserAvatar} aria-hidden="true">
-            <AvatarImage avatarUrl={executingAvatarSrc} gender="男" alt="" />
+            <AvatarImage avatarUrl={executingAvatarSrc} defaultOnly gender="男" alt="" />
           </span>
         </div>
         <div className={styles.executingMessageMeta}>Anddy · 12:45 PM</div>
@@ -643,7 +651,7 @@ function AwaitingClarificationStatePage() {
         <div className={styles.awaitingUserLine}>
           <div className={styles.awaitingUserBubble}>记录一下我的午餐</div>
           <span className={styles.awaitingUserAvatar} aria-hidden="true">
-            <AvatarImage avatarUrl={awaitingMessageAvatarSrc} gender="男" alt="" />
+            <AvatarImage avatarUrl={awaitingMessageAvatarSrc} defaultOnly gender="男" alt="" />
           </span>
         </div>
         <div className={styles.awaitingMessageMeta}>Anddy · 12:45 PM</div>
@@ -1273,13 +1281,15 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const fixtureSidebar = isWriteConfirmation
     ? { ...historyFixture('history-page-2').sidebar, currentPage: 1 }
     : undefined;
-  const fixtureSidebarAvatarSrc = isWriteConfirmation ? DEFAULT_AVATARS.male : undefined;
-  const fixtureTopAvatarSrc = isWriteConfirmation ? DEFAULT_AVATARS.male : undefined;
+  // 所有 Agent 状态画板使用登记的男性默认头像作为示例账号头像。
+  const fixtureSidebarAvatarSrc = DEFAULT_AVATARS.male;
+  const fixtureTopAvatarSrc = DEFAULT_AVATARS.male;
   const fixtureMessageAvatarSrc = isWriteConfirmation
     ? DEFAULT_AVATARS.male
-    : state === 'sse-reconnecting'
-      ? DEFAULT_AVATARS.male
-      : undefined;
+    : state === 'safety-degraded'
+      ? DEFAULT_AVATARS.female
+      : DEFAULT_AVATARS.male;
+  const fixtureMessageGender = state === 'safety-degraded' ? '女' : '男';
 
   const report = (nextAction: FixtureAction, message: string) => {
     setAction(nextAction);
@@ -1646,7 +1656,13 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
           </div>
           {fixtureMessageAvatarSrc ? (
             <span className={styles.fixtureUserAvatar} aria-hidden="true">
-              <AvatarImage avatarUrl={fixtureMessageAvatarSrc} gender="男" alt="" />
+              <AvatarImage
+                avatarUrl={fixtureMessageAvatarSrc}
+                data-avatar-role="fixture-message"
+                defaultOnly
+                gender={fixtureMessageGender}
+                alt=""
+              />
             </span>
           ) : null}
         </div>
@@ -1692,13 +1708,30 @@ function RealChatPage() {
     details: NonNullable<AgentRunEvent['details']>;
   }>();
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
   const messagesRef = useRef<HTMLDivElement>(null);
+  const messagesStateRef = useRef<RealMessage[]>([]);
   const streamRef = useRef<{ close: () => void }>();
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    // 在订阅新 Run 前同步历史消息，避免回放时重复追加已持久化的回答。
+    messagesStateRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    // Reset state when the route changes; the following stream subscription owns these values.
+    // 路由切换先关闭旧 Run，避免旧会话的事件继续写入新会话状态。
+    streamRef.current?.close();
+    streamRef.current = undefined;
+    // 路由变化时重置状态，后续由新的 SSE 订阅接管这些值。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveRunId(undefined);
     setRunStatus('idle');
@@ -1709,6 +1742,7 @@ function RealChatPage() {
     setCheckpointAvailable(false);
     setApproval(undefined);
     setApprovalSubmitting(false);
+    setCancelling(false);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
     if (!sessionId) {
       setLoading(false);
@@ -1742,16 +1776,18 @@ function RealChatPage() {
 
   useEffect(() => {
     if (!activeRunId) return undefined;
-    const hasPersistedAnswer = messages.some(
+    let streamActive = true;
+    const hasPersistedAnswer = messagesStateRef.current.some(
       (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
     );
-    // The stream subscription establishes the queued state before receiving runtime events.
+    // SSE 订阅建立后先进入排队状态，再接收运行事件。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRunStatus('queued');
     setAssistantText('');
     const stream = openAgentRunStream(
       activeRunId,
       (eventType, payload) => {
+        if (!streamActive || !mountedRef.current) return;
         if (eventType === 'run.answer_stream') {
           setRunStatus('validating');
           if (!hasPersistedAnswer) setAssistantText((current) => current + (payload.text ?? ''));
@@ -1823,19 +1859,23 @@ function RealChatPage() {
       },
       {
         maxAttempts: 5,
-        onStateChange: setConnection,
-        onError: (nextConnection) => {
-          if (nextConnection.state === 'exhausted') setError('运行事件连接重试已达上限，请刷新页面后重试。');
-          else setError(undefined);
+        onStateChange: (nextConnection) => {
+          if (streamActive && mountedRef.current) setConnection(nextConnection);
+        },
+        onError: () => {
+          if (!streamActive || !mountedRef.current) return;
+          // exhausted 使用专用连接提示，避免与通用错误卡片重复展示两个 alert。
+          setError(undefined);
         },
       },
     );
     streamRef.current = stream;
     return () => {
+      streamActive = false;
       stream.close();
-      streamRef.current = undefined;
+      if (streamRef.current === stream) streamRef.current = undefined;
     };
-  }, [activeRunId, messages, sessionId]);
+  }, [activeRunId, sessionId]);
 
   const send = async () => {
     const content = input.trim();
@@ -1890,14 +1930,31 @@ function RealChatPage() {
       messagesRef={messagesRef}
       input={input}
       running={
-        runStatus !== 'idle' && !['completed', 'failed', 'cancelled', 'waiting_user', 'superseded'].includes(runStatus)
+        runStatus !== 'idle' &&
+        !['completed', 'failed', 'cancelled', 'waiting_user', 'superseded'].includes(runStatus) &&
+        !['closed', 'exhausted'].includes(connection.state) &&
+        !cancelling
       }
-      disabled={loading || sending}
+      disabled={loading || sending || cancelling}
       onChange={setInput}
       onSend={() => void send()}
       onStop={() => {
+        if (cancelling || !activeRunId) return;
         streamRef.current?.close();
-        if (activeRunId) void cancelAgentRun(activeRunId);
+        setCancelling(true);
+        void cancelAgentRun(activeRunId)
+          .then(() => {
+            if (!mountedRef.current) return;
+            setRunStatus('cancelled');
+            setCheckpointAvailable(false);
+            setConnection((current) => ({ ...current, state: 'closed' }));
+          })
+          .catch((reason) => {
+            if (mountedRef.current) setError(reason instanceof Error ? reason.message : '取消运行失败');
+          })
+          .finally(() => {
+            if (mountedRef.current) setCancelling(false);
+          });
       }}
       placeholder="追问或添加自定义指令..."
     >
@@ -1923,6 +1980,15 @@ function RealChatPage() {
           <div>
             <strong>连接重试已耗尽</strong>
             <span>如果持续失败，请刷新页面</span>
+          </div>
+        </div>
+      ) : null}
+      {cancelling ? (
+        <div className={styles.connectionNotice} role="status" aria-live="polite">
+          <LoaderCircle aria-hidden="true" />
+          <div>
+            <strong>正在取消当前运行...</strong>
+            <span>已停止接收新的运行事件，等待服务确认。</span>
           </div>
         </div>
       ) : null}
