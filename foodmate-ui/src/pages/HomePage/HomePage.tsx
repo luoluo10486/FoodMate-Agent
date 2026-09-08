@@ -178,6 +178,25 @@ function HomeInputStatesPanel() {
   );
 }
 
+function HomeTaskAndInputStatesPanel({ nodeId }: { nodeId: '989:3' | '1015:248' }) {
+  return (
+    <section
+      className={`${styles.statusPanel} ${styles.taskAndInputStatesPanel}`}
+      aria-labelledby="task-and-input-states-title"
+      data-node-id={nodeId}
+      data-name="workspace::task-and-input-states"
+    >
+      <h2 id="task-and-input-states-title">任务入口与状态</h2>
+      <p>输入器：空输入时发送禁用 · 有内容时启用 · Agent 运行中切换为停止 · 附件解析中显示进度</p>
+      <p>高频任务点击后带入输入器；继续任务打开原会话；查看全部进入会话列表。</p>
+      <p className={styles.statusGreen}>
+        Tools / Agents 面板可展开查看健康状态；待处理事项覆盖写入确认、预算追加、记忆确认和失败任务。
+      </p>
+      <p className={styles.statusMuted}>摘要局部失败支持重试，不替换已有成功数据；空态不展示虚构营养或任务数据。</p>
+    </section>
+  );
+}
+
 export function HomePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -444,6 +463,9 @@ export function HomePage() {
             </section>
 
             {isHomeStateFixture ? <HomeInputStatesPanel /> : null}
+            {isFigmaFixture ? (
+              <HomeTaskAndInputStatesPanel nodeId={homeState === 'input-states' ? '1015:248' : '989:3'} />
+            ) : null}
           </>
         )}
       </div>

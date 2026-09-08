@@ -2812,3 +2812,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 真实用户上传头像的白名单仍为 `/api/users/me/avatar` 和 `blob:`；这不是默认头像资源，加载失败时按当前性别回退到登记 SVG。
 - [x] `/api/users/me` 已补充 `gender` 字段，前端可以按真实资料选择男性或女性默认头像；历史 Figma 真人图片仍只作为 QA 证据保留。
 - [ ] 本次不重新验收 105 个画板；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能因头像契约修复改写为 `PASS`。
+
+## 1.1.7 Workspace/Home 任务入口与状态面板恢复（2026-09-09）
+
+本批次使用 Figma `get_design_context` 读取节点 `989:3` 和 `1015:4`，确认“任务入口与状态”面板分别落在 `989:3` 与 `1015:248`；仅修改前端，不修改 Figma 文件，也不重新采集 105 个画板。
+
+- [x] 面板使用 Figma 确认的 `#fcfcfa` 背景、`#e3ede3` 边框、`#292e2b` 标题、`#57635c` 普通说明、`#478052` 成功说明、`#858c85` 弱说明、`15px/12px Noto Sans SC` 字体层级和 `1116×150` 结构。
+- [x] 默认 Home 和 Input States 页面已分别绑定正确节点元数据；Input States 页面保留原有 `1015:260` 输入器状态面板。
+- [x] Home 运行时 DOM 核验使用本地浏览器 `1280×720`、DPR `1.25`：两种入口均出现任务面板，面板高度为 `150px`，页面无横向溢出。该核验不是 Figma 像素级截图证据。
+- [x] 同次运行时审计的 `[data-avatar-role]` 头像来源均为 `/assets/avatars/default-male.svg`；`public/assets/avatars` 运行时实体仍只有男性和女性两份登记 SVG。
+- [x] Home 定向测试 `8/8`，`typecheck`、`lint`、`format:check`、`build` 和 `git diff --check` 通过。
+- [ ] 本批次只收口 Workspace/Home 面板和 Fixture 头像来源证据；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能以 DOM 核验替代 Figma PNG diff 和人工视觉复核。

@@ -180,4 +180,12 @@
   --fm-figma-workspace-rail-width: 320px;
   --fm-figma-workspace-wide-rail-width: 340px;
   --fm-figma-workspace-padding: 24px;
+
+  /* Figma 节点 989:3 / 1015:248 的工作台任务状态面板 Token。 */
+  --fm-figma-task-panel-surface: #fcfcfa;
+  --fm-figma-task-panel-border: #e3ede3;
+  --fm-figma-task-panel-title: #292e2b;
+  --fm-figma-task-panel-copy: #57635c;
+  --fm-figma-task-panel-success: #478052;
+  --fm-figma-task-panel-muted: #858c85;
 }
