@@ -51,7 +51,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 | 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。修改、确认和删除会使摘要失效；Java 与 Python 共同过滤未确认、已删除、过期、来源被抑制的记忆，非法过期时间 fail-closed。一次性请求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
 | R6 记忆真实回读 | `real-memory-e2e.ps1` 已通过真实 Java `/api/memories` + PostgreSQL 业务验收：修改后的新值可见，过期和删除后的记录均从 API 与 Java 上下文过滤中排除，`memory.update`/`memory.delete` 审计事实闭合；不调用 Chat/Embedding。 |
 | 恢复与 M1-6 本地门禁 | 已验证 Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启/Topic 初始化、双 JVM 有界读取和 Java 重启回读；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵仍未完成。 |
-| 前端 | G1-G6 页面代码边界、追问/确认/失败/取消/SSE 状态、真实管理查询和知识库批次/RAG 引用接入已完成；真实聊天历史会话现在会恢复最近 Run 并回放终态引用，管理端 R7 已补齐服务端分页和筛选。2026-09-08 已实际浏览复核饮食记录、摄入分析、餐食规划、知识库、记忆管理和管理概览，桌面关键控件可见，移动视口未发现页面级横向溢出。前端全量业务门禁为 `46` 个测试文件、`299/299` 通过，typecheck 和 build 通过。 |
+| 前端 | G1-G6 页面代码边界、追问/确认/失败/取消/SSE 状态、真实管理查询和知识库批次/RAG 引用接入已完成；真实聊天历史会话现在会恢复最近 Run 并回放终态引用，管理端 R7 已补齐服务端分页和筛选。2026-09-08 已实际浏览复核饮食记录、摄入分析、餐食规划、知识库、记忆管理和管理概览，桌面关键控件可见，移动视口未发现页面级横向溢出。前端全量业务门禁为 `46` 个测试文件、`303/303` 通过，typecheck 和 build 通过。 |
 | M3 数据保留治理 | 管理 API、legal hold、清理 preflight、任务依赖与结果对账的业务门禁已复核；2026-09-08 定向测试 `30/30` 通过。默认硬删除关闭，未执行现有数据实际清理；生产备份/回滚、真实依赖清理演练和运维门禁后置。 |
 | Java 回归 | 当前 Java 全量业务门禁、Spotless、ArchUnit 和 Alibaba 可执行规范子集均通过；HTTP 与 RocketMQ `food_log_writer` 回归各 11/11，包含官方 foodPortions 换算 matched/pending 数据库断言。具体运行批次和跳过项以 [`EXECUTION_RECORD.md`](./script/sql/FoodMate/EXECUTION_RECORD.md) 为准。 |
 | 本轮容器复核 | D150（2026-09-06）使用 `.env` 成功构建并启动 `foodmate` 镜像；容器 readiness 为 healthy，`admin@foodmate.local` 登录返回 admin 会话；数据库只读复核确认探针账号为 0、管理员密码哈希为 BCrypt，复核时的营养目录和知识库记录仍保留。 |
@@ -69,6 +69,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 - 管理端真实模式已覆盖工具注册表、工具调用、用户详情、知识库批次和运行治理的加载中、空数据、接口错误与重试；真实接口无 fixture 回退。知识库批次仍使用真实上传、详情、SSE、失败重试、发布、下线、恢复和软删除接口。
 - 聊天页真实模式已消费 `run.completed.citations`，引用区域可展开；SSE 重连继续使用 `Last-Event-ID` 去重。饮食记录、餐食计划、公共知识库 RAG、只读 SQL Agent 和管理核心切片均以业务正确性作为当前完成口径。
 - 本次前端集中复核命令为 `cd foodmate-ui; npm.cmd test -- --maxWorkers=1` 和 `npm.cmd run build`，分别得到 `43/43` 测试文件、`264/264` 测试通过及 Vite 构建通过。单 worker 是本机资源受限时的稳定复核方式，不代表性能结论。
+- 2026-09-08 D172 集中业务门禁：Java `foodmate-shared`/`foodmate-application`/`foodmate-infra`/`foodmate-api` 合计 `457` tests，失败/错误 `0`，Infrastructure 条件跳过 `20`；Python `246 passed、2 skipped、2 warnings、6 subtests passed`；前端 `46` 个测试文件、`303 passed`，typecheck、build 和 Docker Compose config 均通过。该结果只代表业务正确性，不代表性能或生产可靠性。
 - 性能压测、长稳、依赖重启、ACK 丢失、重复投递、生产容量、备份恢复、Kubernetes、发布回滚和正式生产监控仍明确后置。
 
 ## 本地启动

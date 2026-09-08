@@ -2571,3 +2571,14 @@
 | API 事实 | `AdminRetentionControllerTest` 验证清理申请、superadmin 审批拒绝、operator 读取 preflight 和 superadmin release hold；preflight 不返回目标引用、对象键、向量或原文。 |
 | 数据与边界 | 未执行迁移、TRUNCATE、现有库硬删除、对象存储/向量物理清理、备份恢复、性能压测、组件重启、ACK/重复投递故障注入或生产操作；未修改用户已有未提交文件。 |
 | 结论 | M3 的可审计治理契约和受控任务编排已有新鲜业务测试证据；真实依赖清理演练、备份/回滚和生产运维能力继续后置，不能据此宣称 M3 生产强化完成。 |
+
+## D172 全计划业务门禁集中复核（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；使用项目 Java 21、Python `.venv` 和前端依赖；未调用真实 Embedding/Chat，未修改现有业务数据。 |
+| Java 验证 | `.\\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am test`：Shared `12`、Application `254`、Infrastructure `119`（其中 `20` 条条件跳过）、API `72`；合计执行 `457` tests，失败/错误 `0`；Maven reactor `BUILD SUCCESS`。 |
+| Python 验证 | 在 `agent-runtime` 执行 `.\\venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider`：`246 passed、2 skipped、6 subtests passed`；存在 `2` 个既有 `integration` marker warning，未发起真实外部服务调用。 |
+| 前端验证 | 在 `foodmate-ui` 执行 `npm.cmd test -- --maxWorkers=1`：`46` 个测试文件、`303 passed`；`npm.cmd run typecheck` 通过；`npm.cmd run build` 通过，Vite 转换 `2018` 个模块。单 worker 仅用于本机业务回归稳定性，不作为性能结论。 |
+| 配置验证 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；PostgreSQL 只读检查未执行迁移，当前应用遵循人工 SQL 迁移约定。 |
+| 计划结论 | R1-R4、R6-R8 及 M3 可审计业务门禁均有代码和业务测试证据；R5 正式 WHO 资料已完成 `stub + Redis` K2 索引，但真实 Embedding/Milvus 全量重建仍待用户授权。压测、长稳、完整重启/ACK/重复投递故障矩阵、生产部署、备份恢复和发布回滚继续后置。 |
