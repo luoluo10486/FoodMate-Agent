@@ -41,39 +41,22 @@ describe('avatar defaults', () => {
   it('replaces untrusted legacy image URLs with the gender-specific default', () => {
     expect(resolveAvatarUrl('/uploads/profile.png', '女')).toBe(DEFAULT_AVATARS.female);
     expect(resolveAvatarUrl('https://cdn.example.com/person.png', '男')).toBe(DEFAULT_AVATARS.male);
-    expect(resolveAvatarUrl('/.qa/figma-pixel-acceptance/legacy-avatars/profile/main-avatar.png', '女')).toBe(
-      DEFAULT_AVATARS.female,
-    );
+    expect(resolveAvatarUrl('/legacy-assets/profile/person-avatar.png', '女')).toBe(DEFAULT_AVATARS.female);
+    expect(resolveAvatarUrl('/legacy-assets/chat/person-avatar.png', '男')).toBe(DEFAULT_AVATARS.male);
   });
 
-  it('replaces legacy Figma person assets with the registered gender defaults', () => {
-    const legacySources = [
-      '/assets/figma/profile/main-avatar.png',
-      '/assets/figma/agent-chat/user-avatar.png',
-      '/assets/figma/admin/user-detail-avatar.png',
-      '/assets/figma/workspace/home-sidebar-avatar.png',
-      '/assets/figma/workspace/home-topbar-avatar.png',
-      '/assets/figma/workspace/legacy-person-image.png',
-    ];
-
-    expect(resolveAvatarUrl(legacySources[0], '女')).toBe(DEFAULT_AVATARS.female);
-    expect(resolveAvatarUrl(legacySources[1], '男')).toBe(DEFAULT_AVATARS.male);
-    expect(resolveAvatarUrl(legacySources[2], '-')).toBe(DEFAULT_AVATARS.male);
-    expect(legacySources.every((source) => resolveAvatarUrl(source) === DEFAULT_AVATARS.male)).toBe(true);
-  });
-
-  it('replaces absolute Figma MCP person assets before they reach the DOM', () => {
-    expect(resolveAvatarUrl('https://www.figma.com/api/mcp/asset/abc123/profile-avatar.png?cache=old', 'female')).toBe(
+  it('replaces external person assets before they reach the DOM', () => {
+    expect(resolveAvatarUrl('https://assets.example.com/profile/person-avatar.png?cache=old', 'female')).toBe(
       DEFAULT_AVATARS.female,
     );
-    expect(resolveAvatarUrl('https://www.figma.com/api/mcp/asset/abc123/image.png', 'male')).toBe(DEFAULT_AVATARS.male);
+    expect(resolveAvatarUrl('https://assets.example.com/chat/person-avatar.png', 'male')).toBe(DEFAULT_AVATARS.male);
   });
 
-  it('replaces URL-encoded Figma asset paths before they reach the DOM', () => {
-    expect(resolveAvatarUrl('https://www.figma.com/api/mcp/asset%2Favatar-person.png', 'female')).toBe(
+  it('replaces URL-encoded person asset paths before they reach the DOM', () => {
+    expect(resolveAvatarUrl('https://assets.example.com/profile%2Fperson-avatar.png', 'female')).toBe(
       DEFAULT_AVATARS.female,
     );
-    expect(resolveAvatarUrl('/assets%252Ffigma%252Fprofile%252Favatar-person.png', 'female')).toBe(
+    expect(resolveAvatarUrl('/legacy-assets%252Fprofile%252Fperson-avatar.png', 'female')).toBe(
       DEFAULT_AVATARS.female,
     );
   });

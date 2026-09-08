@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { AvatarImage } from './AvatarImage';
 
 describe('AvatarImage', () => {
-  it('replaces legacy Figma person assets before rendering', () => {
+  it('replaces legacy person assets before rendering', () => {
     const { container } = render(
-      <AvatarImage avatarUrl="/assets/figma/profile/main-avatar.png" gender="女" alt="头像" />,
+      <AvatarImage avatarUrl="/legacy-assets/profile/person-avatar.png" gender="女" alt="头像" />,
     );
 
     expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
@@ -15,9 +15,9 @@ describe('AvatarImage', () => {
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-registered', 'true');
   });
 
-  it('rejects encoded Figma asset URLs and keeps the gender-specific default', () => {
+  it('rejects encoded person asset URLs and keeps the gender-specific default', () => {
     const { container } = render(
-      <AvatarImage avatarUrl="https://www.figma.com/api/mcp/asset%2Favatar-person.png" gender="male" alt="头像" />,
+      <AvatarImage avatarUrl="https://assets.example.com/profile%2Fperson-avatar.png" gender="male" alt="头像" />,
     );
 
     expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
@@ -64,13 +64,13 @@ describe('AvatarImage', () => {
 
   it('always uses a registered default for a design Chat fixture', () => {
     const { container } = render(
-      <AvatarImage avatarUrl="/assets/figma/agent-chat/user-avatar.png" defaultOnly gender="男" alt="头像" />,
+      <AvatarImage avatarUrl="/legacy-assets/chat/person-avatar.png" defaultOnly gender="男" alt="头像" />,
     );
     const image = container.querySelector('img');
 
     expect(image).toHaveAttribute('src', '/assets/avatars/default-male.svg');
     expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
     expect(image).toHaveAttribute('data-avatar-asset', '/assets/avatars/default-male.svg');
-    expect(image?.getAttribute('src')).not.toContain('/assets/figma/');
+    expect(image?.getAttribute('src')).not.toContain('/legacy-assets/');
   });
 });

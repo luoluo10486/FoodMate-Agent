@@ -261,10 +261,7 @@ describe('ChatPage Agent remaining states', () => {
     );
     expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-female');
-    expect(document.querySelector('.userAvatar img')).not.toHaveAttribute(
-      'src',
-      '/assets/figma/agent-chat/user-avatar.png',
-    );
+    expect(document.querySelector('.userAvatar img')).not.toHaveAttribute('src', '/legacy-assets/chat/person-avatar.png');
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {

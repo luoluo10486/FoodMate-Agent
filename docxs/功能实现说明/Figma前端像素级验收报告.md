@@ -2,6 +2,14 @@
 
 更新时间：2026-09-08
 
+## 1.1.3 默认头像资源再次复核（2026-09-09）
+
+- [x] 当前本地 Vite 服务 `127.0.0.1:5174` 实际打开首页和 Agent Chat 后，人物头像只使用 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`；页面内 Agent 绿色方块是状态标识，不是人物头像。
+- [x] 两份默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 头像回归测试中的旧人物路径已替换为不可访问的遗留路径示例；历史真人 PNG 继续只保留在 `.qa/figma-pixel-acceptance/legacy-avatars/`，不属于 Vite `public` 运行时资源。
+- [x] 真实模式的 `/api/users/me/avatar` 和 `blob:` 仅表示用户主动上传/预览头像，不作为默认头像资源；上传头像加载失败时仍回退到性别对应的登记 SVG。
+- [ ] 本次只复核头像资源，不重新验收 105 个画板；全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.1.2 Auth 登录页 Token 增量收口（2026-09-08）
 
 - [x] 对照 Figma 节点 `647:214`，将登录默认态仍散落在页面 CSS 中的品牌、辅助文字、图标、聚焦、悬停和禁用语义值归入 `tokens.css`；颜色值未改变。
