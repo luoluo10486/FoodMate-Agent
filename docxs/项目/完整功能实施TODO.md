@@ -4,7 +4,7 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## 当前复核状态（2026-09-06）
+## 当前复核状态（2026-09-08）
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
 
@@ -23,7 +23,7 @@
 - [x] 本地双 JVM 子项已复验：`script/local/m1-6-dual-jvm.ps1` 启动 `18080/18081` 两个独立 Java JVM，共享 PostgreSQL 完成认证会话读取；最近一次 160/160 成功、错误率 0%、吞吐 51.538 req/s、P50/P95/P99 为 17.107/57.937/94.523 ms，并完成 Java 重启后的 PostgreSQL 回读。
 - [x] 本地依赖恢复子项已验证：Python readiness HTTP 200，Redis checkpoint、Redis、RocketMQ event/proposal producer、command/result consumer 均 ready；Redis AOF 探针在容器重启后保留，RocketMQ NameServer/Broker/Proxy 重启后 healthy 且 Topic/group 初始化成功。
 - [ ] 生产级长压、多实例 Agent 业务吞吐、队列积压/重复执行、PostgreSQL 进程重启，以及 Outbox/Inbox ACK 丢失、租约接管和 SSE 故障恢复仍待执行。
-- [ ] 真实供应商生产价格表仍待人工从官方价格表确认并配置；代码已增加价格审计 fail-closed，默认继续使用 deterministic stub。
+- [x] 已完成一次真实 SiliconFlow Chat/Embedding 业务调用并记录模型、usage 和成本；正式供应商价格表人工核准、账单抽样对账和长期稳定性仍未完成，默认开发配置仍可使用 deterministic stub。
 - [x] D112 使用历史凭据完成 Docker `agent-runtime` 的 SiliconFlow `BAAI/bge-m3` 与 `Qwen/Qwen3-Embedding-0.6B` 显式 `/v1/embeddings` smoke，两个模型均返回 1024 维向量；运行时仍一次选择一个 profile，并使用独立 Milvus collection。该证据不替代当前密钥认证、长稳、成本对账或生产容量验收。
 - [x] D114/D122 曾记录的旧密钥 HTTP 401 已处理；2026-09-05 当前 Docker Embedding 密钥使用 `Qwen/Qwen3-Embedding-0.6B` smoke 返回 1024 维向量，Chat `DeepSeek-V4-Flash` smoke 也已通过。该证据不替代真实业务长稳、成本对账或生产容量验收。
 - [x] M1-5 第一切片已完成本地代码和真实 HTTP E2E：饮食记录创建/查询/编辑/删除/恢复，today/7d/30d 分析，计划创建/查询/修改/校验/保存/删除/恢复/购物清单，以及 `meal_plan.save_plan` Proposal -> Confirm -> Execute。
@@ -31,7 +31,7 @@
 - [x] 本地 PostgreSQL 已存在 V13/V14/V15/V32 结构；本轮只读复核确认 `food_logs` 旧 JSON 字段已移除、关键表/约束/索引存在。V33 已导入 1,000 条 approved/official USDA 食材和 1,518 条 approved foodPortion 规则，V32/V33 validation 通过，规范键、来源 ID、规则唯一性和非法值均为 `0`；未覆盖的密度单位仍不推断。旧生成版本中不再入选的记录只做软删除，未执行 `TRUNCATE` 或宽泛删除。
 - [x] M1-5 Java 写确认扩展已实现：`food_log_writer` 支持 create/update/delete/restore，确认状态支持 rejected/failed/superseded，Tool Gateway 校验工具名/type 并映射结果状态；Java 定向测试覆盖拒绝、失败回滚记录、supersede 和三种资源写操作。
 - [x] 完成 M1-5 写确认扩展的真实 HTTP/MQ 跨进程回归：HTTP 与 RocketMQ 各 11 个用例通过，覆盖 rejected、failed 回滚与失败审计、superseded、update/delete/restore、revision 冲突、成功 Proposal 幂等重放，以及官方 foodPortions 换算 matched/pending 和数据库快照断言；每个用例使用随机用户、Session、AgentRun、Proposal 和幂等键隔离。
-- [x] M2-1/M2-2/M2-3 业务范围已完成：公共知识库真实 Embedding/Milvus 上传/索引/发布/检索/引用、真实云只读 SQL Agent、多数核心管理查询/写操作/模型治理和受控脱敏导出均已有代码与业务证据；性能和故障验证不属于当前完成门槛。
+- [x] M2-1/M2-2/M2-3 业务范围已完成：公共知识库真实 Embedding/Milvus 上传/索引/发布/检索/引用、真实云只读 SQL Agent、多数核心管理查询/写操作/模型治理和受控脱敏导出均已有代码与业务证据；性能、长稳和故障验证不属于当前完成门槛。
 - [x] M3 业务治理代码切片已完成：运营审计快照、DLQ 安全摘要/人工重放契约、保留策略、legal hold、审批、对象/向量清理、失败补偿和受控数据库清理已具备定向业务测试；`hard_delete_enabled=false` 默认关闭。
 
 ### 当前前端业务复核（2026-09-06）
@@ -82,7 +82,7 @@
 当前不能宣称完成的部分：
 
 - Python Runtime 的 Router、Planner、Tool Proposal、Result 回注、Eval 和恢复闭环已具备本地实现与验证；生产 RAG、完整业务 Tool/SQL 场景、云模型长时间稳定性和生产级治理仍未形成完整闭环。
-- 业务知识库的 Java/Python 核心索引、stub/local 检索、可见性和前端引用已实现并通过业务测试；deterministic 本地依赖下的上传/索引/发布/引用闭环已验证。真实云 embedding、统一生产可观测性、账单审计和发布流程仍未形成生产闭环。
+- 业务知识库的 Java/Python 核心索引、stub/local 检索、可见性和前端引用已实现并通过业务测试；D174 已完成正式 WHO 资料的真实云 embedding、Milvus、发布、检索和 Chat 引用业务闭环。统一生产可观测性、账单审计、长稳和发布流程仍未形成生产闭环。
 
 ## 4. 里程碑与发布门槛
 
