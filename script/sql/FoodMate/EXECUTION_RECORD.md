@@ -2442,3 +2442,16 @@
 | 数据清理 | 验收脚本默认清理成功，会话 `355529009968189440` 已软删除；Run、ToolCall、SQL 审计和模型用量事实保留用于复核。 |
 | 未执行范围 | 未执行性能压测、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递故障注入、备份恢复、生产部署或发布回滚；真实 Embedding/Milvus 知识库重建仍按用户要求暂缓。 |
 | 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> SQL Planner -> `time_parser`/`database_query` -> Java 只读 Guard 与 PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE 回放的 SQL Agent 业务闭环已取得新的直接证据。 |
+
+## D161 R1 营养候选与饮食记录真实业务验收（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker `foodmate`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；管理员凭据只通过当前 PowerShell 进程注入，未写入仓库或执行记录。 |
+| 执行命令 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\script\\local\\real-nutrition-catalog-e2e.ps1`；脚本默认只清理本轮生成的饮食记录。 |
+| 候选搜索 | `GET /api/nutrition-foods/search` 查询“米饭”和“鸡胸肉”成功；明确选择 USDA 目录 `168878`（熟制白米）和 `171477`（熟制烤鸡胸肉），分别从 `12` 和 `4` 个候选中选出，未依赖模型猜测。 |
+| 饮食记录 | `POST /api/food-logs` 显式提交两个 `nutrition_food_id`，返回 `food_log_id=355540800953651200`、2 条明细且 `matched=2`；`GET /api/nutrition-analysis?range=today` 返回 `total_items=2`、`matched_items=2`、`coverage=1.0000`。 |
+| PostgreSQL 事实 | 记录最终通过正式 DELETE API 软删除，回读为 `is_deleted=true`、`revision=2`；`food_log_items` 的 2 条历史明细保留。对应 `operation_audits` 包含 `food_log.create=success` 与 `food_log.delete=success`，目标均为该记录。 |
+| 脚本兼容性 | 修复 Windows PowerShell 5.1 对 UTF-8 中文脚本和异步 HTTP 流的兼容性；`real-nutrition-catalog-e2e.tests.ps1`、`real-food-log-e2e.tests.ps1` 契约测试通过，两个入口的 PowerShell 5.1 解析均通过。 |
+| 未执行范围 | 未执行性能压测、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递、备份恢复、生产部署或真实 Embedding 重建。 |
+| 结论 | R1 的营养候选搜索 -> 明确目录 ID -> 饮食记录匹配 -> 营养分析 -> 软删除清理真实业务链路已通过；营养目录 PostgreSQL 权威值和统一审计事实闭合。 |

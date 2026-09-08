@@ -7,6 +7,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# 某些 PowerShell 运行时不会自动加载 System.Net.Http，显式加载后再解析强类型参数。
+Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $composeFile = Join-Path $repoRoot "docker/compose.yml"
 $envFile = Join-Path $repoRoot ".env"
@@ -265,7 +267,8 @@ function Read-Sse(
             $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
             throw (New-HttpFailure "GET" ([int]$response.StatusCode) $body)
         }
-        $reader = [IO.StreamReader]::new($response.Content.ReadAsStream())
+        $stream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+        $reader = [IO.StreamReader]::new($stream)
         $deadline = (Get-Date).ToUniversalTime().AddSeconds($TimeoutSeconds)
         $lineTask = $null
         while ((Get-Date).ToUniversalTime() -lt $deadline) {
@@ -460,8 +463,8 @@ try {
         $logs = @(Get-Field $logsResponse @("data"))
         $matchingLog = $logs | Where-Object { [string](Get-Field $_ @("food_log_id", "foodLogId")) -eq $foodLogId } | Select-Object -First 1
         if ($null -eq $matchingLog) { throw "Java food log query did not return the executed record" }
-        $foodLogCheck = Assert-FoodLogResponse ([pscustomobject]@{ data = $matchingLog }) $foodLogId $report.run_id
         $foodLogRevision = [long](Get-Field $matchingLog @("revision"))
+        $foodLogCheck = Assert-FoodLogResponse ([pscustomobject]@{ data = $matchingLog }) $foodLogId $report.run_id
         $report.food_log = [ordered]@{ id = $foodLogId; revision = $foodLogRevision; item_count = $foodLogCheck.item_count; matched_item_count = $foodLogCheck.matched_item_count; meal_type = [string](Get-Field $matchingLog @("meal_type", "mealType")) }
         $report.status = "passed"
     }
