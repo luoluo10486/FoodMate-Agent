@@ -2559,3 +2559,15 @@
 | 检索证据 | Java `/api/knowledge-base/search` 查询“健康”返回 `4` 条安全引用；引用包含文档、版本、章节和片段，不包含对象地址、对象键、API Key、Authorization 或 Prompt。 |
 | 费用与边界 | 本轮未调用真实 Embedding/Chat，未写入 Milvus，未执行性能压测、依赖重启、ACK 丢失、重复投递故障注入、备份恢复或生产操作；真实 `local + openai-compatible + Milvus` 正式重建仍需另行授权。 |
 | 结论 | 正式 WHO 资料的当前业务索引已按 K2 切分规则完成 `stub + Redis` 重建并可通过 Java 检索；真实向量版本继续保持待授权，不能把本轮结果表述为真实 Embedding/Milvus 重建。 |
+
+## D171 M3 保留治理业务门禁复核（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；使用 Java 21 和 Maven Wrapper；未开启清理执行开关，未修改现有数据库数据。 |
+| 执行命令 | `.\\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am test "-Dtest=DataRetentionServiceImplTest,DataRetentionDeliveryServiceImplTest,DataRetentionTaskPublisherTest,DataRetentionResultMessageProcessorTest,DataRetentionDatabasePurgeAdapterTest,AdminRetentionControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false"`。 |
+| 测试结果 | Application：`20/20`（Delivery `5/5`、Result Processor `2/2`、Retention Service `5/5`、Task Publisher `8/8`）；Infrastructure：`6/6`；API：`4/4`；合计 `30/30`，失败 `0`，跳过 `0`；Maven reactor `BUILD SUCCESS`。 |
+| 业务覆盖 | 验证管理员/超管角色边界、确认摘要、Idempotency-Key 幂等、active legal hold 阻断、清理 preflight 脱敏、对象/向量/数据库任务依赖顺序、失败重试、外部结果重复消费幂等和默认硬删除关闭/缺少备份校验不执行。 |
+| API 事实 | `AdminRetentionControllerTest` 验证清理申请、superadmin 审批拒绝、operator 读取 preflight 和 superadmin release hold；preflight 不返回目标引用、对象键、向量或原文。 |
+| 数据与边界 | 未执行迁移、TRUNCATE、现有库硬删除、对象存储/向量物理清理、备份恢复、性能压测、组件重启、ACK/重复投递故障注入或生产操作；未修改用户已有未提交文件。 |
+| 结论 | M3 的可审计治理契约和受控任务编排已有新鲜业务测试证据；真实依赖清理演练、备份/回滚和生产运维能力继续后置，不能据此宣称 M3 生产强化完成。 |
