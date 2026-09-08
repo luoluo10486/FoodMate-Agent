@@ -77,7 +77,11 @@ class KnowledgeIndexWorker:
             result = {"item_id": item_id, "document_id": document_id, "version": version, "status": "index_failed", "error_code": "RAG_ATTEMPT_INVALID", "error_summary": "knowledge index attempt is invalid", "attempt": 3}
             self.result_publisher(result)
             return result
+        reindex_id = str(payload.get("reindex_id", "")).strip()
         key = (item_id, version, self.settings.mode)
+        if reindex_id:
+            # 管理员显式重建必须产生新的完成事实；普通重复消息仍复用基础幂等键。
+            key = (*key, "reindex:" + reindex_id)
         if attempt > 3:
             result = {"item_id": item_id, "document_id": document_id, "version": version, "status": "index_failed", "error_code": "RAG_ATTEMPTS_EXHAUSTED", "error_summary": "knowledge index retry limit exceeded", "attempt": attempt}
             self.result_publisher(result)

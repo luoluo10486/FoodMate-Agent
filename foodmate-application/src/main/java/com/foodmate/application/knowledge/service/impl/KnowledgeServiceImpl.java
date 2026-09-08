@@ -341,7 +341,13 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                                     () ->
                                             new IllegalArgumentException(
                                                     "knowledge document is not part of this batch"));
-            if (store.reindexItem(item.itemId(), batchId, operatorId, ids.nextId(), "{}") != 1)
+            long outboxId = ids.nextId();
+            long reindexId = ids.nextId();
+            String payload =
+                    "{\"reindex_id\":\""
+                            + reindexId
+                            + "\",\"attempt\":1}";
+            if (store.reindexItem(item.itemId(), batchId, operatorId, outboxId, payload) != 1)
                 throw new IllegalArgumentException("knowledge import item is not reindexable");
             audit(
                     operatorId,

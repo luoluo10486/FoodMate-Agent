@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 /** 校验知识索引 Outbox 的重试 SQL 不会重排历史事实。 */
 class KnowledgeMapperContractTest {
     @Test
-    void manualRetryStartsAtAttemptOneWhenItCopiesTheLatestPayload() throws Exception {
+    void manualRetryMergesAnExplicitPayloadIntoTheLatestMessage() throws Exception {
         String sql =
                 Method.class
                         .cast(
@@ -20,10 +20,10 @@ class KnowledgeMapperContractTest {
                         .value()[0];
 
         assertTrue(sql.contains("requested_payload='{}'::jsonb"));
+        assertTrue(sql.contains("previous_payload || requested_payload"));
         assertTrue(sql.contains("jsonb_set(payload,'{attempt}'"));
         assertTrue(sql.contains("jsonb_exists(payload,'attempt')"));
-        assertTrue(!sql.contains("payload ? 'attempt'"));
-        assertTrue(sql.contains("'1'::jsonb"));
+        assertTrue(sql.contains("requested_payload='{}'::jsonb THEN '1'::jsonb"));
         assertTrue(sql.contains("ORDER BY outbox_id DESC LIMIT 1"));
     }
 

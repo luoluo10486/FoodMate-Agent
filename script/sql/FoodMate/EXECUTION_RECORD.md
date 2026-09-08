@@ -2547,3 +2547,15 @@
 | 前端业务测试 | `foodmate-ui` 的 TypeScript `typecheck` 通过；复合菜、饮食记录服务和页面定向 Vitest `4` 个文件、`24/24` 通过。|
 | 数据库 validation | V35 表/字段/索引存在；V38 `chk_food_log_items_matched_snapshot` 存在、非法 matched 快照 `0`、复合菜快照 `5/5` 合法；V39 活动明细顺序唯一索引存在、活动顺序重复 `0`。只读查询确认 `composite_dishes=7`、`composite_dish_items=18`、本轮复合菜关联活动饮食记录为 `0`，复合菜测试记录和组成明细均已软删除。|
 | 数据保护与结论 | 未执行迁移、TRUNCATE、宽泛删除或数据库硬删除；历史饮食记录快照仍保留。复合菜创建/更新、营养目录回源、按份量记录和历史营养快照的业务闭环及前端入口已取得定向证据；正式可用复合菜数据需要后续通过真实用户流程创建，不能复用本轮已软删除测试数据。|
+
+## D170 M2-1 正式 WHO 批次 K2 stub 重索引收口（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 容器均恢复为 healthy。重索引阶段临时覆盖 Runtime 为 `stub + Redis`，未读取真实 Embedding Key，未写入 Milvus；结束后已恢复 `.env` 对应的 `local + openai-compatible` 运行态。 |
+| 执行入口 | 管理员登录后，逐条调用批次 `354847677655027712` 的 `POST /api/admin/knowledge-upload-batches/{batchId}/documents/{documentId}/reindex`，随后通过批次详情等待 Java 消费 `foodmate-knowledge-index-result-v1` 并回写权威状态。 |
+| 索引结果 | 9/9 个正式 WHO 文档条目为 `indexed`，批次为 `completed`；9 条结果 Inbox 事实均存在，9 条最新索引 Outbox 均为 `published`，每条本轮尝试次数为 `1`。K2 Markdown Front Matter 已剥离。 |
+| 数据对账 | PostgreSQL 活动 chunk `49`、历史软删除 chunk `232`；活动 chunk 中 Front Matter/来源元数据误入正文的命中数为 `0`。Redis `foodmate:rag:stub:chunks` 中对应活动索引为 `49` 条，9 个文档全部为 `published/indexed/current_version/tenant_id=0/public_published`。 |
+| 检索证据 | Java `/api/knowledge-base/search` 查询“健康”返回 `4` 条安全引用；引用包含文档、版本、章节和片段，不包含对象地址、对象键、API Key、Authorization 或 Prompt。 |
+| 费用与边界 | 本轮未调用真实 Embedding/Chat，未写入 Milvus，未执行性能压测、依赖重启、ACK 丢失、重复投递故障注入、备份恢复或生产操作；真实 `local + openai-compatible + Milvus` 正式重建仍需另行授权。 |
+| 结论 | 正式 WHO 资料的当前业务索引已按 K2 切分规则完成 `stub + Redis` 重建并可通过 Java 检索；真实向量版本继续保持待授权，不能把本轮结果表述为真实 Embedding/Milvus 重建。 |

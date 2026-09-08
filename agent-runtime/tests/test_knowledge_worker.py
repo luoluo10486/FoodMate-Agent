@@ -3,7 +3,7 @@ import sys
 from types import ModuleType, SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
-from knowledge_worker import KnowledgeIndexWorker, _MemoryCompletionStore
+from knowledge_worker import KnowledgeIndexWorker, StubIndex, _MemoryCompletionStore
 from knowledge_rag import DeletionResult, DeterministicEmbedder, EmbeddingResult, RagError, RagSettings
 
 
@@ -55,6 +55,45 @@ class KnowledgeIndexWorkerTests(TestCase):
         self.assertEqual(first["chunk_count"], len(first["chunks"]))
         self.assertEqual("emb_", first["chunks"][0]["embedding_id"][:4])
         self.assertEqual(2, len(published))
+
+    def test_explicit_reindex_reads_the_document_again_and_uses_a_new_completion_fact(self):
+        reads = []
+
+        def read_object(_):
+            reads.append(len(reads) + 1)
+            if len(reads) == 1:
+                return ("guide.md", b"---\ntitle: old metadata\n---\n# Old\nOld content.")
+            return ("guide.md", b"---\ntitle: new metadata\n---\n# New\nNew content.")
+
+        index = StubIndex()
+        worker = KnowledgeIndexWorker(
+            read_object,
+            settings=RagSettings.from_environment({"FOODMATE_RAG_MODE": "stub"}),
+            completed_store=_MemoryCompletionStore(),
+            stub_index=index,
+        )
+
+        first = worker.handle_index(
+            {"item_id": "i-reindex", "document_id": "d-reindex", "version": "v1", "mode": "stub"}
+        )
+        second = worker.handle_index(
+            {
+                "item_id": "i-reindex",
+                "document_id": "d-reindex",
+                "version": "v1",
+                "mode": "stub",
+                "reindex_id": "rebuild-2",
+                "attempt": 1,
+            }
+        )
+
+        self.assertEqual("indexed", first["status"])
+        self.assertEqual("indexed", second["status"])
+        self.assertFalse(second.get("duplicate", False))
+        self.assertEqual(2, len(reads))
+        self.assertNotIn("title: new metadata", second["chunks"][0]["text"])
+        self.assertIn("New content", second["chunks"][0]["text"])
+        self.assertEqual("New content.", next(iter(index._chunks.values()))[1].text)
 
     def test_completion_claim_uses_nx_and_does_not_overwrite_processing(self):
         published = []

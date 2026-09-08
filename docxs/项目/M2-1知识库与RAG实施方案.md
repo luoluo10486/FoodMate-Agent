@@ -215,3 +215,9 @@ RocketMQ 新增 `knowledge.index.requested`、`knowledge.index.completed`、`kno
 stub 和 Redis stub 关键词检索现在同时考虑标题、章节路径和正文；候选最多 `12` 条，重排最多 `6` 条，最终最多 `4` 条且每文档最多 `2` 条。中文分词同时保留单字和二元词，支持“钠”等单字营养主题，同时继续支持“低盐饮食”等短语。Milvus 查询仍使用原有公共范围、发布、索引、当前版本和未删除过滤。
 
 K2 业务测试为 `70 passed`、`4` 个子断言通过，覆盖章节层级、段落边界、重叠、稳定 ID、标题/章节检索、固定主题样例和无命中。D144 正式批次未在本轮重复重索引，因此现有 PostgreSQL/Redis 的 `58` 个 chunk 仍是 K1 快照；后续新索引任务会使用本策略。真实 Embedding、性能和故障验证继续后置。
+
+## 2026-09-08 D170 正式资料 K2 stub 重索引证据
+
+批次 `354847677655027712` 的 9 份 WHO 中文资料已通过正式管理员重索引接口按 K2 切分规则重新索引。9/9 条目为 `indexed`，批次为 `completed`；PostgreSQL 活动 chunk 为 `49`，历史软删除 chunk 为 `232`，活动 Front Matter 命中为 `0`；Redis stub 对应活动索引为 `49` 条。Java 公共检索查询“健康”返回 `4` 条安全引用，且引用不包含对象存储地址、对象键或凭据字段。
+
+本轮只使用 `stub + Redis`，没有读取真实 Embedding Key、没有写入 Milvus；验证结束后 Docker Runtime 已恢复 `local + openai-compatible` 配置。真实 Embedding/Milvus 正式重建、性能和故障验证继续后置。
