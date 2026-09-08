@@ -2,6 +2,14 @@
 
 更新时间：2026-09-08
 
+## 1.1.1 默认头像全路由运行时审计（2026-09-08）
+
+- [x] 在本地服务 `127.0.0.1:5188` 逐路由检查 Workspace、Chat 默认态和六类 Agent 状态、Profile、Admin、Planning、Analysis、Knowledge；所有人物头像 `<img>` 的 `src` 仅为 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`。
+- [x] 未发现人物头像绕过 `AvatarImage` 的直接 `.png/.jpg/.jpeg/.webp`、CSS `background-image` 或外部图片地址；页面中其它 `/assets/figma/**/*.svg` 均为界面图标。
+- [x] 男性默认头像 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性默认头像 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`，与用户提供附件一致。
+- [x] 认证页 `foodmate-*-user.svg` 仅作为输入框装饰图标，不属于人物头像；历史真人 PNG 只保留在 QA 证据目录，不属于 Vite 运行时资源。
+- [ ] 本次仅做头像增量审计，没有重新生成 105 个画板的全量截图和 diff；全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.1.0 Workspace/Home 与 Agent Chat 共享壳层及默认头像收口（2026-09-08）
 
 - [x] Fixture 工作台、Chat、Profile 和 Admin 壳层均通过 `AvatarImage` 进入人物头像 DOM；Fixture 不再接受历史 Figma 人物地址或当前登录缓存性别覆盖。
