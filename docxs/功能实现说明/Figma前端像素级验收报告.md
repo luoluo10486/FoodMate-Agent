@@ -2754,3 +2754,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 统一门禁已通过：Vitest `46/46` 文件、`303/303` 用例，typecheck、format、lint、build、Figma 证据结构校验和 `git diff --check` 均通过。
 - [ ] 本节没有新增 Figma/浏览器 PNG，因此不能改变任何画板结论；当前全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本节不代表 105 项全量人工复核完成，也不解除 iconfont `BLOCKED`；真实字体包、CSS 映射、来源和许可证仍待提供。
+
+## 2026-09-08 默认头像资源运行时证据契约
+
+本节只登记头像运行时来源修复，不新增 Figma 或浏览器 PNG，也不改变既有像素差异结论。
+
+- [x] `public/assets/avatars/default-male.svg` 与 `default-female.svg` 是运行时默认人物头像的唯一登记资源；`public/assets` 未发现其它人物图片资源。
+- [x] `AvatarImage` 输出实际资源路径、来源类型和契约标记；Fixture 页面要求 `data-avatar-contract="registered-default-svg"`，并只允许两份登记 SVG。
+- [x] 真实用户上传头像的白名单仍为 `/api/users/me/avatar` 和 `blob:`；这不是默认头像资源，加载失败时按当前性别回退到登记 SVG。
+- [x] `/api/users/me` 已补充 `gender` 字段，前端可以按真实资料选择男性或女性默认头像；历史 Figma 真人图片仍只作为 QA 证据保留。
+- [ ] 本次不重新验收 105 个画板；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能因头像契约修复改写为 `PASS`。

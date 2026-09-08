@@ -10,6 +10,8 @@ describe('AvatarImage', () => {
 
     expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-source', 'default-female');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-asset', '/assets/avatars/default-female.svg');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-registered', 'true');
   });
 
@@ -48,6 +50,7 @@ describe('AvatarImage', () => {
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
+    expect(image).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
     expect(image).toHaveAttribute('data-avatar-registered', 'true');
   });
 
@@ -67,6 +70,7 @@ describe('AvatarImage', () => {
 
     expect(image).toHaveAttribute('src', '/assets/avatars/default-male.svg');
     expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
+    expect(image).toHaveAttribute('data-avatar-asset', '/assets/avatars/default-male.svg');
     expect(image?.getAttribute('src')).not.toContain('/assets/figma/');
   });
 });

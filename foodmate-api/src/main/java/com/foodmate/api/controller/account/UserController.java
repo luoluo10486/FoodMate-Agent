@@ -38,6 +38,7 @@ public class UserController extends AuthenticatedControllerSupport {
     @GetMapping
     public ApiResponse<UserResponse> me(jakarta.servlet.http.HttpServletRequest request) {
         UserAccountService.UserRecord user = user(request);
+        UserAccountService.ProfileRecord profile = accounts.profile(user.userId());
         return ApiResponse.success(
                 new UserResponse(
                         user.userId(),
@@ -46,6 +47,7 @@ public class UserController extends AuthenticatedControllerSupport {
                         user.nickname(),
                         user.role(),
                         user.status(),
+                        profile.gender(),
                         personal == null ? null : personal.avatarResourceUrl(user.userId())),
                 TraceContextHolder.currentOrNew());
     }

@@ -2,6 +2,7 @@ import { useState, type ImgHTMLAttributes } from 'react';
 import {
   DEFAULT_AVATARS,
   getDefaultAvatarForGender,
+  getAvatarSourceKind,
   isRegisteredDefaultAvatar,
   resolveAvatarUrl,
 } from '../../lib/avatar';
@@ -27,12 +28,7 @@ export function AvatarImage({ avatarUrl, gender, defaultOnly = false, onError, .
   const source = resolveAvatarUrl(defaultOnly || failed ? undefined : avatarUrl, gender);
   // Fixture/默认头像不接受调用方覆盖，避免男性账号展示女性头像或反之。
   const displaySource = defaultOnly || failed ? genderDefault : source;
-  const sourceKind =
-    displaySource === DEFAULT_AVATARS.female
-      ? 'default-female'
-      : displaySource === DEFAULT_AVATARS.male
-        ? 'default-male'
-        : 'uploaded';
+  const sourceKind = getAvatarSourceKind(displaySource);
   const isRegisteredDefault = isRegisteredDefaultAvatar(displaySource);
 
   return (
@@ -41,6 +37,8 @@ export function AvatarImage({ avatarUrl, gender, defaultOnly = false, onError, .
       src={displaySource}
       data-avatar-source={sourceKind}
       data-avatar-policy={defaultOnly ? 'default-only' : 'uploaded-allowed'}
+      data-avatar-asset={displaySource}
+      data-avatar-contract={isRegisteredDefault ? 'registered-default-svg' : 'trusted-upload'}
       data-avatar-registered={isRegisteredDefault ? 'true' : 'false'}
       onError={(event) => {
         setFailure({ key: avatarKey, failed: true });

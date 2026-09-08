@@ -6,6 +6,8 @@ export const DEFAULT_AVATARS = {
 /** 运行时默认头像白名单，所有 Fixture 人物头像必须从这里选择。 */
 export const REGISTERED_DEFAULT_AVATARS = Object.values(DEFAULT_AVATARS);
 
+export type AvatarSourceKind = 'default-male' | 'default-female' | 'uploaded';
+
 // Figma 工作台示例账号使用项目登记的男性默认头像，避免运行时加载真人素材。
 export const FIXTURE_WORKSPACE_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
@@ -68,6 +70,12 @@ function isTrustedUploadedAvatarUrl(value: string): boolean {
 
 export function isRegisteredDefaultAvatar(value: string): boolean {
   return REGISTERED_DEFAULT_AVATARS.includes(value as (typeof REGISTERED_DEFAULT_AVATARS)[number]);
+}
+
+export function getAvatarSourceKind(value: string): AvatarSourceKind {
+  if (value === DEFAULT_AVATARS.female) return 'default-female';
+  if (value === DEFAULT_AVATARS.male) return 'default-male';
+  return 'uploaded';
 }
 
 export function getDefaultAvatarForGender(gender?: string): string | undefined {

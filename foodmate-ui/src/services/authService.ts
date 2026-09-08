@@ -4,7 +4,13 @@ import { resolveAvatarUrl } from '../lib/avatar';
 import { apiRequest } from './apiClient';
 
 export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'forbidden';
-type AuthResponse = { username: string; role: string; user_id: number; session_expires_at: string };
+type AuthResponse = {
+  username: string;
+  role: string;
+  user_id: number;
+  session_expires_at: string;
+  gender?: string;
+};
 type CurrentUserResponse = {
   user_id: number;
   username: string;
@@ -12,6 +18,7 @@ type CurrentUserResponse = {
   nickname?: string;
   role: string;
   status: AuthUser['status'];
+  gender?: string;
   avatar_url?: string;
 };
 
@@ -45,6 +52,7 @@ export function getAuthUser(): AuthUser {
 }
 
 function toAuthUser(data: AuthResponse | CurrentUserResponse): AuthUser {
+  const gender = data.gender ?? mockAuthUser.gender;
   return {
     ...mockAuthUser,
     id: String(data.user_id),
@@ -53,7 +61,8 @@ function toAuthUser(data: AuthResponse | CurrentUserResponse): AuthUser {
     email: 'email' in data ? data.email : mockAuthUser.email,
     role: data.role as AuthUser['role'],
     status: 'status' in data ? data.status : 'active',
-    avatarUrl: resolveAvatarUrl('avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl, mockAuthUser.gender),
+    gender,
+    avatarUrl: resolveAvatarUrl('avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl, gender),
   };
 }
 

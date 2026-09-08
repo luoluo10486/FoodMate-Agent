@@ -7,6 +7,7 @@ import {
   FIXTURE_PROFILE_AVATARS,
   FIXTURE_WORKSPACE_AVATARS,
   getDefaultAvatarForGender,
+  getAvatarSourceKind,
   resolveAvatarUrl,
 } from './avatar';
 
@@ -14,6 +15,12 @@ describe('avatar defaults', () => {
   it('maps male and female gender values to the supplied assets', () => {
     expect(getDefaultAvatarForGender('男')).toBe(DEFAULT_AVATARS.male);
     expect(getDefaultAvatarForGender('female')).toBe(DEFAULT_AVATARS.female);
+  });
+
+  it('exposes only the two registered SVG assets as default source kinds', () => {
+    expect(getAvatarSourceKind(DEFAULT_AVATARS.male)).toBe('default-male');
+    expect(getAvatarSourceKind(DEFAULT_AVATARS.female)).toBe('default-female');
+    expect(getAvatarSourceKind('/api/users/me/avatar')).toBe('uploaded');
   });
 
   it('does not guess an avatar for an unset gender and preserves trusted uploaded avatars', () => {
