@@ -1,6 +1,23 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-08
+更新时间：2026-09-09
+
+## 1.1.4 Workspace/Home、Agent Chat 当前截图与头像证据更新（2026-09-09）
+
+本批次只重新采集 Workspace/Home 与 Agent Chat 两项受影响画板，不重新验收其余画板。浏览器证据使用当前运行时代码，Figma 文件保持只读。
+
+| 画板 | Figma 节点 | 浏览器 PNG | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace Home | `640:256` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-09.png` | `1440×1024 / 1` | `21.6216%` | `2.865324` | `17.380218` | `252` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-09.png` | `1440×1024 / 1` | `18.6469%` | `2.807689` | `16.940715` | `236` | `DIFF_REVIEW` |
+
+- [x] 两项截图均由 Chrome `152.0.7977.77` 采集，字体状态为 `loaded`，DPR 为 `1`，页面无横向溢出。
+- [x] 当前 DOM 审计确认人物头像只来自 `/assets/avatars/default-male.svg` 和 `/assets/avatars/default-female.svg`；最新截图中不再使用历史真人 PNG。
+- [x] Workspace/Home 侧栏和顶栏、Agent Chat 默认男性示例账号使用登记的男性 SVG；`safety-degraded` 状态的用户消息使用登记的女性 SVG。
+- [x] 两份默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 历史真人 PNG 仅保留在 `.qa/figma-pixel-acceptance/legacy-avatars/`；认证页 `foodmate-*-user.svg` 是输入框装饰图标，不属于人物头像。
+- [ ] 两项自动 diff 仍为非零，文字、局部布局、图标光栅化和内容密度差异仍需后续视觉收口，不能标记为像素级 `PASS`。
+- [ ] 本批次不代表其余 103 个画板重新采集或完成全量人工复核；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 
 ## 1.1.3 默认头像资源再次复核（2026-09-09）
 

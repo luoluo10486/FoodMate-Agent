@@ -158,12 +158,12 @@ describe('ChatPage Figma 默认状态', () => {
     expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
   });
 
-  it('renders the Figma message action guidance in the default canvas', () => {
+  it('does not render implementation notes in the default Figma canvas', () => {
     renderChatState('figma-v2');
 
-    expect(screen.getByRole('region', { name: '消息操作' })).toBeInTheDocument();
-    expect(screen.getByText(/用户消息：编辑/)).toBeInTheDocument();
-    expect(screen.getByText(/右侧面板：运行/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '消息操作' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/用户消息：编辑/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/右侧面板：运行/)).not.toBeInTheDocument();
   });
 });
 
@@ -259,9 +259,12 @@ describe('ChatPage Agent remaining states', () => {
       'src',
       '/assets/avatars/default-male.svg',
     );
-    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
-    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-female');
-    expect(document.querySelector('.userAvatar img')).not.toHaveAttribute('src', '/legacy-assets/chat/person-avatar.png');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-male');
+    expect(document.querySelector('.userAvatar img')).not.toHaveAttribute(
+      'src',
+      '/legacy-assets/chat/person-avatar.png',
+    );
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {

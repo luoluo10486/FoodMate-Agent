@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-09-06",
+    "capturedAt": "2026-09-09",
     "figmaMcp": "get_metadata",
     "lastUpdated": "2026-09-06"
   },
@@ -45,7 +45,7 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/workspace-home-v2-figma-2026-09-05.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-workspace-home-v2-browser-2026-09-07.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-workspace-home-v2-browser-2026-09-09.png",
       "browserCapture": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-status-followup-2026-08-30.jpg",
       "mobileBrowserJpg": ".qa/figma-pixel-acceptance/recaptured/workspace-home-v2-sidebar-pruned-browser-390x844-2026-08-30.jpg",
       "mobileBrowserViewport": "390x844",
@@ -77,11 +77,11 @@
       "manualReview": {
         "status": "MINOR_RENDERING_DIFF_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-07",
-        "conclusion": "实时 Figma 节点 640:256 的窗口控制点、会话搜索、导航 SVG、Agent 会话列表、分页、营养环、输入器和状态面板已与 1440×1024、DPR 1 浏览器证据复核；运行时头像已切换为登记的男性默认 SVG，页面无溢出，但文字和局部布局仍存在可见差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-09",
+        "conclusion": "实时 Figma 节点 640:256 已使用 2026-09-09 重新采集的 1440×1024、DPR 1 浏览器证据复核；运行时侧栏和顶栏头像均为登记的男性默认 SVG，页面无溢出，但文字和局部布局仍存在可见差异，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
-        "capturedAt": "2026-09-07",
+        "capturedAt": "2026-09-09",
         "tool": "Chrome CDP Page.captureScreenshot",
         "browser": "Chrome/152.0.7977.77",
         "dpr": 1,
@@ -102,7 +102,7 @@
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-chat-v2-figma-2026-09-05.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-07.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-09.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -131,11 +131,11 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-07",
-        "conclusion": "实时 Figma 节点 640:428 的助手正文、内嵌写入确认卡和 983:3 消息操作说明面板已与 1440×1024、DPR 1 浏览器证据复核；侧栏、顶栏、会话状态点和 Composer 继续使用对应 Chat SVG 资源，用户消息头像已切换为登记的女性默认 SVG，页面无溢出，但文字和局部布局仍存在可见差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-09",
+        "conclusion": "实时 Figma 节点 640:428 已使用 2026-09-09 重新采集的 1440×1024、DPR 1 浏览器证据复核；侧栏、顶栏和默认男性示例账号的用户消息头像均为登记的男性默认 SVG，安全降级状态另使用登记的女性默认 SVG，页面无溢出，但文字和局部布局仍存在可见差异，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
-        "capturedAt": "2026-09-07",
+        "capturedAt": "2026-09-09",
         "tool": "Chrome CDP Page.captureScreenshot",
         "browser": "Chrome/152.0.7977.77",
         "dpr": 1,
@@ -2064,7 +2064,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-loading",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-09-06 浏览器截图已完成人工视觉复核；仍存在字体、局部几何和浏览器光栅化差异，保留 DIFF_REVIEW",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2108,7 +2108,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-09-06 浏览器截图已完成人工视觉复核；仍存在字体、局部几何和浏览器光栅化差异，保留 DIFF_REVIEW",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2152,7 +2152,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-error",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-09-06 浏览器截图已完成人工视觉复核；仍存在字体、局部几何和浏览器光栅化差异，保留 DIFF_REVIEW",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -6155,7 +6155,7 @@
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#workspace-home-input-states",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "2026-09-06 浏览器截图已完成人工视觉复核；仍存在字体、局部几何和浏览器光栅化差异，保留 DIFF_REVIEW",
+      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",

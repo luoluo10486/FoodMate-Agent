@@ -33,11 +33,16 @@ export const FIXTURE_ADMIN_AVATARS = {
   userDetail: DEFAULT_AVATARS.male,
 } as const;
 
-// Chat Figma fixture 同时包含男性账号头像和女性消息示例头像。
+// Chat 默认 Figma fixture 的账号和用户消息均为男性示例；安全降级状态单独使用女性消息头像。
 export const FIXTURE_CHAT_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
-  message: DEFAULT_AVATARS.female,
+  message: DEFAULT_AVATARS.male,
+} as const;
+
+export const FIXTURE_CHAT_AVATAR_GENDERS = {
+  defaultMessage: '男',
+  safetyDegradedMessage: '女',
 } as const;
 
 // 历史 Figma 导出的人物素材只用于设计证据，运行时不允许再次作为头像来源。

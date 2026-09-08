@@ -56,9 +56,7 @@ describe('avatar defaults', () => {
     expect(resolveAvatarUrl('https://assets.example.com/profile%2Fperson-avatar.png', 'female')).toBe(
       DEFAULT_AVATARS.female,
     );
-    expect(resolveAvatarUrl('/legacy-assets%252Fprofile%252Fperson-avatar.png', 'female')).toBe(
-      DEFAULT_AVATARS.female,
-    );
+    expect(resolveAvatarUrl('/legacy-assets%252Fprofile%252Fperson-avatar.png', 'female')).toBe(DEFAULT_AVATARS.female);
   });
 
   it('uses the supplied SVG assets for all Figma fixture avatars', () => {
@@ -74,6 +72,6 @@ describe('avatar defaults', () => {
 
     expect(fixtureAvatars.every((avatar) => Object.values(DEFAULT_AVATARS).includes(avatar))).toBe(true);
     expect(fixtureAvatars.filter((avatar) => avatar === DEFAULT_AVATARS.male).length).toBeGreaterThan(0);
-    expect(FIXTURE_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.female);
+    expect(FIXTURE_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.male);
   });
 });

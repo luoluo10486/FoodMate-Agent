@@ -67,7 +67,7 @@ describe('HomePage session cards', () => {
     expect(screen.getByRole('heading', { name: '待确认队列' }).closest('article')).toHaveClass('pendingPanel');
   });
 
-  it('renders the Figma workspace task status panel', () => {
+  it('does not render implementation notes inside the Figma workspace page', () => {
     render(
       <MemoryRouter initialEntries={['/?state=figma-v2']}>
         <Routes>
@@ -76,7 +76,7 @@ describe('HomePage session cards', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: '任务入口与状态' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '任务入口与状态' })).not.toBeInTheDocument();
   });
 });
 

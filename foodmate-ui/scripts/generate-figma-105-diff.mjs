@@ -9,6 +9,9 @@ const evidenceRoot = join(uiRoot, '.qa', 'figma-pixel-acceptance');
 const mappingPath = join(evidenceRoot, 'figma-105-mapping.json');
 const resultsPath = join(evidenceRoot, 'figma-105-diff-results.json');
 const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const captureDate = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+}).format(new Date());
 
 function isPng(filePath) {
   if (!filePath || !existsSync(filePath)) return false;
@@ -132,7 +135,7 @@ mapping.summary = {
   sizeMismatch,
   automatedDiffInputs: compared,
 };
-mapping.source.capturedAt = new Date().toISOString().slice(0, 10);
+mapping.source.capturedAt = captureDate;
 
 writeFileSync(mappingPath, `${JSON.stringify(mapping, null, 2)}${String.fromCharCode(10)}`);
 writeFileSync(
