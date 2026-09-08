@@ -34,7 +34,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 
 以下仅记录已经运行验证的事实；“已实现”不等于已经完成完整生产闭环。
 
-> **公共知识索引状态口径**：D167 已在当前 Docker 运行态使用真实 Embedding、Milvus 和 Chat 完成 3 份隔离资料的完整 RAG 业务闭环；批次 `355606503966642176` 完成，3/3 条目为 `indexed`，检索和 `run.completed` 均返回引用，测试资料已软删除且 Milvus 查询无残留。D166 的 9 份 WHO 正式资料仍是 `stub + Redis` 结果回写闭环；正式资料的真实 Embedding/Milvus 全量重建仍等待用户明确授权。这里的公共知识状态不影响已经存在的 Java/Python 代码、营养目录独立向量索引或 `local-stub` 业务测试。
+> **公共知识索引状态口径**：D167 已在当前 Docker 运行态使用真实 Embedding、Milvus 和 Chat 完成 3 份隔离资料的完整 RAG 业务闭环；批次 `355606503966642176` 完成，3/3 条目为 `indexed`，检索和 `run.completed` 均返回引用。测试资料已软删除，Milvus 保留 6 个物理实体但均已同步为 `visibility=deleted`、`deleted=true`，按公共检索过滤返回 0；物理实体清理属于独立保留清理任务。D166 的 9 份 WHO 正式资料仍是 `stub + Redis` 结果回写闭环；正式资料的真实 Embedding/Milvus 全量重建仍等待用户明确授权。这里的公共知识状态不影响已经存在的 Java/Python 代码、营养目录独立向量索引或 `local-stub` 业务测试。
 
 | 范围 | 已验证事实 |
 |---|---|
@@ -150,7 +150,7 @@ npm run dev
 ## 2026-09-06 本地测试事实清理
 
 - 工具注册表已复核为 7 个正式工具，`e2e_tool_*` 测试残留和无引用注册均为 0；工具用途、注册表查看入口和具体执行事实入口见 [`工具注册与执行链路说明`](./docxs/实现/工具注册与执行链路说明.md)。
-- 本地公共知识 RAG 的历史测试向量和 stub 索引已按保护脚本清理，当前公共 Milvus 实际可查询记录为 0，Redis `foodmate:rag:stub:chunks` 为 0；Milvus 集合定义保留，便于后续重新导入正式知识。
+- 本地公共知识 RAG 的历史测试向量和 stub 索引已按保护脚本处理，当前公共 Milvus 可检索记录为 0；D167 的 6 个物理实体保留在集合中并统一标记为 `deleted=true`，Redis `foodmate:rag:stub:chunks` 为 0。Milvus 集合定义保留，便于后续重新导入正式知识；物理删除需走保留清理任务。
 - 营养目录 Milvus `foodmate_nutrition_foods` 保持 1,000 条真实向量，PostgreSQL 营养食材和单位换算参考数据保持可用；本轮未清理营养数据。
 - 后续可使用 `script/sql/FoodMate/maintenance/cleanup-local-rag-indexes.ps1` 的 dry-run/确认执行模式维护外部索引，不使用 `docker compose down -v`。
 

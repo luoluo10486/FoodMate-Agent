@@ -2523,6 +2523,17 @@
 | 索引闭环 | 批次 `355606503966642176` 上传 3 份隔离 Markdown，3/3 条目为 `indexed`，批次为 `completed`；每个条目生成 2 个 chunk。知识批次记录 `116` 个 embedding token，成本 `0.00000812`。|
 | 批次 SSE 与可见性 | 批次 SSE 返回 `6` 条事实，其中 `3` 条 indexed；`Last-Event-ID` 回放返回 `5` 条后续事件。3 个文档均完成 published -> disabled -> draft -> deleted 状态链路，Java 权威状态和下线检索过滤通过。|
 | 检索与 Chat | Java 公共检索命中 `4` 条安全引用；AgentRun `355606691196178432` 为 `completed/normal`，SSE `8` 条、序号 `1..8` 连续且唯一，唯一终态为 `run.completed`，终态包含 `4` 条引用；真实 Chat provider/model 事件存在，`Last-Event-ID` 回放返回 `7` 条后续事件。|
-| 清理与复核 | 默认清理成功，3 个文档和会话均已软删除；PostgreSQL 本轮文档活动 chunk 为 `0`，Milvus 按 3 个文档查询返回空，目标 collection 保留供正式索引使用。模型用量、审计和索引 Inbox 事实保留用于本地复核。|
+| 清理与复核 | 默认清理成功，3 个文档和会话均已软删除；PostgreSQL 本轮文档活动 chunk 为 `0`。后续复核发现 Milvus 仍保留 6 个物理实体，已补齐为 `visibility=deleted`、`deleted=true`，按公共检索过滤返回 `0`；物理实体保留供独立保留清理任务处理。模型用量、审计和索引 Inbox 事实保留用于本地复核。|
 | 边界 | 本轮验证的是当前 Docker 真实模式下的隔离资料业务闭环，不是 9 份 WHO 正式资料的全量真实重建；正式资料重建仍等待明确授权。未执行性能压测、组件重启、ACK 丢失、重复投递故障注入、备份恢复、生产部署或发布回滚。|
 | 结论 | 真实 Embedding -> Milvus -> Java 结果回写 -> 显式发布 -> 公共检索 -> 真实 Chat AgentRun -> `run.completed` 引用 -> 下线过滤与 SSE 回放闭环取得直接 Docker 证据。 |
+
+## D168 M2-1 Milvus 可见性投影复核与分页修复（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 触发原因 | D167 的“Milvus 查询无残留”表述与直接读取集合的事实不一致。复核发现目标集合仍有 `6` 个物理实体；PostgreSQL 中 3 个隔离文档均为 `deleted`，活动知识 chunk 为 `0`。 |
+| 投影复核 | 仅针对 D167 的 3 个文档、版本 `codex-r1-v1` 补发删除可见性投影到 Milvus metadata；复核结果为 `6/6` 个实体均为 `visibility=deleted`、`deleted=true`，固定公共检索过滤返回 `0`。物理实体没有直接删除，后续由独立保留清理任务处理。 |
+| 代码修复 | `MilvusIndex` 增加 `query_iterator` 分页读取，避免默认查询上限造成可见性更新或清理不完整；`published` 投影找不到已索引目标时抛出稳定 `RAG_MILVUS_VISIBILITY_TARGET_NOT_FOUND`，交由 RocketMQ 重试；`disabled/draft/deleted` 在目标已物理清理时保持幂等。稳定 `RagError` 不再被通用写入异常覆盖。 |
+| Python 验证 | `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest agent-runtime/tests/test_knowledge_rag.py -q`：`50 passed、4 subtests passed`；覆盖分页可见性更新、目标缺失重试错误码、维度/模型隔离、删除和检索过滤。 |
+| 边界 | 未执行物理 Milvus purge、正式 WHO 资料全量真实重建、性能压测、组件重启、ACK/重复投递故障注入、备份恢复或生产操作；未修改营养目录和用户业务数据。 |
+| 结论 | 当前证据应表述为“Milvus 物理实体保留但已不可检索”，不再表述为“无物理残留”；D167 的真实 RAG 业务闭环结论不变，正式公共资料真实索引仍等待授权。 |

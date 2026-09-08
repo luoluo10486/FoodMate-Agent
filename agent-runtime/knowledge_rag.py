@@ -1033,6 +1033,36 @@ class MilvusIndex:
                 "Milvus collection embedding identity does not match the configured provider",
             )
 
+    def _query_all(self, filter_expression: str, output_fields: list[str]) -> list[dict]:
+        """分页读取全部匹配实体，避免默认查询上限造成部分投影或清理。"""
+        query_iterator = getattr(self.client, "query_iterator", None)
+        if callable(query_iterator):
+            iterator = query_iterator(
+                collection_name=self.collection,
+                batch_size=1000,
+                limit=-1,
+                filter=filter_expression,
+                output_fields=output_fields,
+            )
+            rows: list[dict] = []
+            try:
+                while True:
+                    batch = iterator.next()
+                    if not batch:
+                        break
+                    rows.extend(batch)
+            finally:
+                close = getattr(iterator, "close", None)
+                if callable(close):
+                    close()
+            return rows
+        return self.client.query(
+            collection_name=self.collection,
+            filter=filter_expression,
+            output_fields=output_fields,
+            limit=10000,
+        )
+
     def upsert(self, title: str, chunks: Iterable[KnowledgeChunk], vectors: list[list[float]]) -> None:
         chunks = list(chunks)
         if not vectors or len(chunks) != len(vectors) or any(len(vector) != len(vectors[0]) for vector in vectors):
@@ -1054,7 +1084,30 @@ class MilvusIndex:
             if not self.client.has_collection(self.collection):
                 return
             version_filter = "" if version is None else f' and version == "{_milvus_string(version)}"'
-            rows = self.client.query(collection_name=self.collection, filter=f'document_id == "{_milvus_string(document_id)}"{version_filter}', output_fields=["embedding_id", "vector", "embedding_fingerprint", "document_id", "title", "version", "section_path", "text", "tenant_id", "scope", "indexed", "visibility", "deleted", "current_version"])
+            rows = self._query_all(
+                f'document_id == "{_milvus_string(document_id)}"{version_filter}',
+                [
+                    "embedding_id",
+                    "vector",
+                    "embedding_fingerprint",
+                    "document_id",
+                    "title",
+                    "version",
+                    "section_path",
+                    "text",
+                    "tenant_id",
+                    "scope",
+                    "indexed",
+                    "visibility",
+                    "deleted",
+                    "current_version",
+                ],
+            )
+            if not rows and visibility == "published":
+                raise RagError(
+                    "RAG_MILVUS_VISIBILITY_TARGET_NOT_FOUND",
+                    "Milvus visibility target is not indexed",
+                )
             for row in rows:
                 row["visibility"] = visibility
                 row["deleted"] = deleted
@@ -1062,6 +1115,8 @@ class MilvusIndex:
             if rows:
                 self.client.upsert(collection_name=self.collection, data=rows)
                 self._flush()
+        except RagError:
+            raise
         except Exception as error:
             raise RagError("RAG_MILVUS_WRITE_FAILED", "Milvus visibility update failed") from error
 
@@ -1069,20 +1124,16 @@ class MilvusIndex:
         try:
             if not self.client.has_collection(self.collection):
                 return DeletionResult("milvus", 0, True)
-            rows = self.client.query(
-                collection_name=self.collection,
-                filter=f'document_id == "{_milvus_string(document_id)}" and version == "{_milvus_string(version)}"',
-                output_fields=["embedding_id"],
+            filter_expression = (
+                f'document_id == "{_milvus_string(document_id)}" '
+                f'and version == "{_milvus_string(version)}"'
             )
+            rows = self._query_all(filter_expression, ["embedding_id"])
             ids = [row["embedding_id"] for row in rows if row.get("embedding_id")]
             if ids:
                 self.client.delete(collection_name=self.collection, ids=ids)
                 self._flush()
-            remaining = self.client.query(
-                collection_name=self.collection,
-                filter=f'document_id == "{_milvus_string(document_id)}" and version == "{_milvus_string(version)}"',
-                output_fields=["embedding_id"],
-            )
+            remaining = self._query_all(filter_expression, ["embedding_id"])
             return DeletionResult("milvus", len(ids), not remaining)
         except Exception as error:
             raise RagError("RAG_MILVUS_DELETE_FAILED", "Milvus vector delete failed") from error
