@@ -2455,3 +2455,15 @@
 | 脚本兼容性 | 修复 Windows PowerShell 5.1 对 UTF-8 中文脚本和异步 HTTP 流的兼容性；`real-nutrition-catalog-e2e.tests.ps1`、`real-food-log-e2e.tests.ps1` 契约测试通过，两个入口的 PowerShell 5.1 解析均通过。 |
 | 未执行范围 | 未执行性能压测、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递、备份恢复、生产部署或真实 Embedding 重建。 |
 | 结论 | R1 的营养候选搜索 -> 明确目录 ID -> 饮食记录匹配 -> 营养分析 -> 软删除清理真实业务链路已通过；营养目录 PostgreSQL 权威值和统一审计事实闭合。 |
+
+## D162 R6 记忆修改、过期与删除真实回读（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker `foodmate` 与 `foodmate-postgres` healthy；管理员凭据只通过当前 PowerShell 进程注入，未写入仓库或执行记录。 |
+| 执行命令 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\script\\local\\real-memory-e2e.ps1`；脚本只创建一个随机隔离记忆键，结束时精确软删除该记忆。 |
+| 跨进程回读 | 通过真实 `/api/memories` 回读 PostgreSQL：初始记忆可见；`PATCH /api/memories/{memoryId}` 后 `memory_value` 为 `r6-new` 且可见；将同一记录设置为过去时间后 API 不再返回。 |
+| 上下文门禁 | 对同一 `memory_id` 按 Java `AgentRunCommandMapper.memories` 的 `confirmed`、未删除、未过期和类型白名单条件执行 PostgreSQL 回读；有效阶段为 `1`，过期阶段为 `0`，删除阶段仍为 `0`。未输出完整 Prompt 或记忆正文到执行记录。 |
+| 审计事实 | `memory.update=success`、`memory.delete=success` 各 `1` 条；最终数据库记录为 `is_deleted=true`，测试数据未留下活动记忆。 |
+| 业务门禁 | `real-memory-e2e.tests.ps1` 契约测试通过，PowerShell 5.1 解析通过；本轮未调用 Chat/Embedding，不执行性能压测、依赖重启、ACK 丢失、重复投递、备份恢复或生产操作。 |
+| 结论 | 记忆修改、过期、删除 -> Java API/PostgreSQL 权威状态 -> 下一次上下文过滤的业务边界已取得真实本地证据；Python 上下文防御性过滤的既有 `61 passed` 证据继续有效。 |
