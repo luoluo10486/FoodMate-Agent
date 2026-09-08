@@ -2593,3 +2593,15 @@
 | 费用估算 | Worker `_estimate_tokens` 估算 `1,292` 个 embedding token；按当前本机价格快照 `0.07 CNY/百万 Token` 估算约 `0.00009044 CNY`。单批 9 文件低于 20 文件上限，预计低于单批 `100,000` token/`1 CNY` 和单日 `1,000,000` token/`10 CNY` 限额；最终以供应商 usage 和任务结果为准。 |
 | 安全边界 | 本轮未调用真实 Embedding/Chat，未写入 Milvus，未改变正式 `stub + Redis` 批次，未执行数据库清理、迁移、TRUNCATE、性能压测、重启矩阵、ACK/重复投递故障注入、备份恢复或生产操作。 |
 | 结论 | 配置来源和预算前置检查通过；正式 WHO 资料的真实 Embedding/Milvus 全量重建保持“待用户明确授权”。获授权后需再次确认 API Key、模型指纹和隔离 collection，再执行真实批次并回读 usage、9/9 状态、引用与下线过滤。 |
+
+## D174 R5 正式 WHO 真实 Embedding/Milvus 与 Chat 闭环（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker `foodmate`、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；本轮在用户已明确授权后执行真实 Embedding。未执行性能压测、长稳、组件重启、ACK 丢失、重复投递故障注入、备份恢复或生产操作。 |
+| Java 修复与部署 | 修复重索引消息继承旧 payload `mode=stub` 的问题，重索引显式写入当前 `local` 模式；Java 镜像构建成功并重启，readiness/health 恢复 healthy。相关修复提交：`6d2d4f69`。 |
+| 索引执行 | 对既有正式批次 `354847677655027712` 的 9 个 WHO 文档逐条调用管理端 `reindex`。Java Index Outbox 最新 9 条均为 `published`、`mode=local`；Python 使用 SiliconFlow `Qwen/Qwen3-Embedding-0.6B`，Java 消费 `foodmate-knowledge-index-result-v1` 后 9/9 条目 `indexed`，批次 `completed`。 |
+| PostgreSQL 结果 | 活动 chunk `49`，索引结果 Inbox `9` 条，最新索引尝试每条 `1` 次；模型版本 `Qwen/Qwen3-Embedding-0.6B`；embedding token `3,088`，成本 `0.00021616 CNY`。旧 stub Outbox 事实保留为历史记录，不与本轮真实结果混淆。 |
+| Milvus 结果 | 目标 collection 为 `foodmate_knowledge_chunks_qwen3_embedding_0_6b`，实际向量维度 `1024`；对应本批次实体 `49` 个且 embedding ID 唯一。补发 9 个幂等 publish 可见性事实后，49/49 均为 `tenant_id=0`、`public_published`、`published`、`indexed=true`、`deleted=false`、当前版本。 |
+| 检索与 Chat | Java 公共检索实际返回 WHO 安全引用；管理员 AgentRun `355711261717041152` 返回 `7` 个 SSE 事件，唯一终态为 `run.completed`，包含 `4` 条引用；`run.model_usage` 确认 Chat 为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`。引用仅含标题、版本、章节和安全片段，不含对象地址、对象键、API Key 或 Prompt。 |
+| 文档与结论 | `script/data/knowledge/public/manifest.json` 已登记真实模式、模型、collection、批次、49 chunks、3,088 tokens、成本和索引时间；README、M2 剩余计划、非生产业务计划、路线图、本地开发指南和测试策略已同步。结论：正式 WHO 资料的本地真实向量业务闭环完成；性能、长稳、价格账单对账、故障矩阵、生产容量和运维治理继续后置。 |

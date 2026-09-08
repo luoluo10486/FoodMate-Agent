@@ -2,7 +2,16 @@
   "dataset": "FoodMate public nutrition knowledge",
   "dataset_version": "2026-09-06",
   "purpose": "公共知识库业务验收与本地 RAG 资料基线",
-  "embedding_status": "未构建向量",
+  "embedding_status": "已完成真实向量索引",
+  "embedding_mode": "local-openai-compatible",
+  "embedding_provider": "SiliconFlow",
+  "embedding_model": "Qwen/Qwen3-Embedding-0.6B",
+  "embedding_collection": "foodmate_knowledge_chunks_qwen3_embedding_0_6b",
+  "embedding_batch_id": "354847677655027712",
+  "embedding_chunk_count": 49,
+  "embedding_token_count": 3088,
+  "embedding_cost_cny": "0.00021616",
+  "embedding_indexed_at": "2026-09-08T21:41:01+08:00",
   "documents": [
     {
       "file": "who-healthy-diet-zh.md",

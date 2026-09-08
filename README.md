@@ -34,7 +34,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 
 以下仅记录已经运行验证的事实；“已实现”不等于已经完成完整生产闭环。
 
-> **公共知识索引状态口径**：D170 已将正式批次 `354847677655027712` 的 9 份 WHO 资料按 K2 规则使用 `stub + Redis` 重索引并发布，9/9 条目为 `indexed`，PostgreSQL 活动 chunk `49`，Redis 活动索引 `49` 条，Java 公共检索返回安全引用；重建阶段未调用真实 Embedding、未写入 Milvus。D167 仍保留 3 份隔离资料的真实 Embedding、Milvus 和 Chat 完整 RAG 业务闭环证据。正式 WHO 资料的真实 Embedding/Milvus 全量重建仍等待用户明确授权。这里的公共知识状态不影响已经存在的 Java/Python 代码、营养目录独立向量索引或 `local-stub` 业务测试。
+> **公共知识索引状态口径**：D174 已将正式批次 `354847677655027712` 的 9 份 WHO 资料按 K2 规则使用真实 `local + openai-compatible` 重建，9/9 条目为 `indexed`，PostgreSQL 活动 chunk `49`，Milvus `foodmate_knowledge_chunks_qwen3_embedding_0_6b` 中对应实体 `49` 个，Java 公共检索返回安全引用；Embedding 使用 `Qwen/Qwen3-Embedding-0.6B`，供应商回报 `3,088` token、成本 `0.00021616 CNY`。随后通过幂等发布补发可见性投影，Milvus 对应实体全部为 `published`。D174 还完成一次真实 Chat AgentRun，`run.completed` 返回 `4` 条 WHO 引用，Chat 路由为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`。这只证明本地单次业务闭环，不代表长稳、性能或生产治理完成。
 
 | 范围 | 已验证事实 |
 |---|---|
@@ -47,7 +47,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 | K4 营养候选确认 | 已完成业务切片 | `GET /api/nutrition-foods/search` 返回受限候选；中文烹饪前缀会归一化，多个生熟/部位候选不会自动猜测，饮食写入支持显式 `nutrition_food_id` 或 `pending_confirmation`；V34 已在本地 PostgreSQL 执行并通过校验。 |
 | 营养语义索引 | 1,000 条 approved/official 目录已通过真实 Qwen Embedding 建立独立 Milvus 集合 `foodmate_nutrition_foods`；Runtime 营养检索只返回候选 ID，饮食写入和营养数值仍回源 PostgreSQL 精确匹配。 |
 | M1-5 写确认 | `meal_plan.save_plan` 和 `food_log_writer` 的 create/update/delete/restore 已完成 Proposal -> Confirm -> Execute；reject、failed、superseded、revision 冲突、失败回滚/审计和幂等重放已通过真实 PostgreSQL HTTP/RocketMQ 回归。 |
-| Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库的批量上传、异步索引、发布可见性和 `public_published` 安全引用代码已完成。D170 已将 9 份 WHO 正式资料按 K2 规则完成 stub/Redis 重索引并通过 Java 检索复核；D167 当前 Docker 真实模式已完成 3 份隔离资料的真实 Embedding -> Milvus -> Java 回写 -> 发布 -> 检索 -> Chat 引用闭环，并通过 SSE 回放和下线过滤。正式 WHO 资料的真实 Embedding/Milvus 全量重建仍等待授权；长稳、正式价格审计和生产 RAG 治理仍未完成。 |
+| Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库的批量上传、异步索引、发布可见性和 `public_published` 安全引用代码已完成。D174 已完成 9 份 WHO 正式资料的真实 `Qwen/Qwen3-Embedding-0.6B -> Milvus -> Java 回写 -> 发布投影 -> 公共检索`，并完成一次真实 Chat AgentRun 的 `run.completed` 引用输出；长稳、正式价格审计和生产 RAG 治理仍未完成。 |
 | 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。修改、确认和删除会使摘要失效；Java 与 Python 共同过滤未确认、已删除、过期、来源被抑制的记忆，非法过期时间 fail-closed。一次性请求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
 | R6 记忆真实回读 | `real-memory-e2e.ps1` 已通过真实 Java `/api/memories` + PostgreSQL 业务验收：修改后的新值可见，过期和删除后的记录均从 API 与 Java 上下文过滤中排除，`memory.update`/`memory.delete` 审计事实闭合；不调用 Chat/Embedding。 |
 | 恢复与 M1-6 本地门禁 | 已验证 Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启/Topic 初始化、双 JVM 有界读取和 Java 重启回读；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵仍未完成。 |
