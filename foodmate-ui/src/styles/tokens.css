@@ -87,6 +87,26 @@
   --fm-auth-primary-shadow: 0 6px 6px rgba(72, 199, 142, 0.25);
   --fm-auth-action-shadow: 0 6px 16px rgba(72, 199, 142, 0.25);
 
+  /* Auth 其余画板复用的 Figma 中性色和透明层，避免页面 CSS 重复写入色值。 */
+  --fm-auth-text-base: #333333;
+  --fm-auth-text-label: #6b7280;
+  --fm-auth-text-link: #5a6672;
+  --fm-auth-text-success: #2e7d32;
+  --fm-auth-solid-text: #ffffff;
+  --fm-auth-neutral-border: #e2e8f0;
+  --fm-auth-disabled-control: #cbd5e0;
+  --fm-auth-support-border: #8a94a0;
+  --fm-auth-glass-border: rgb(255 255 255 / 60%);
+  --fm-auth-glass-surface: rgb(255 255 255 / 40%);
+  --fm-auth-secondary-border: rgb(51 51 51 / 12%);
+  --fm-auth-secondary-surface: rgb(51 51 51 / 3%);
+  --fm-auth-secondary-hover: rgb(255 255 255 / 80%);
+  --fm-auth-token-invalid-surface: rgb(255 117 118 / 10%);
+  --fm-auth-token-expired-surface: rgb(255 218 147 / 10%);
+  --fm-auth-token-used-surface: rgb(128 224 230 / 10%);
+  --fm-auth-token-border: rgb(166 217 151 / 50%);
+  --fm-auth-token-shadow: 0 6px 8px rgb(72 199 142 / 20%);
+
   /* Figma login state tokens: 680:408 through 680:606. */
   --fm-auth-success-action: #48c78e;
   --fm-auth-success-shadow: 0 6px 8px rgba(46, 125, 50, 0.25);

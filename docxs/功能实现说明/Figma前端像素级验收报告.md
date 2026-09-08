@@ -2,6 +2,17 @@
 
 更新时间：2026-09-09
 
+## 1.1.6 Auth 页面组语义 Token 收口门禁完成（2026-09-09）
+
+本批次只收口 Auth 页面组的 CSS 语义 Token，不重新采集全部 105 个画板，Figma 文件保持只读。
+
+- [x] 对照节点 `647:214`、`680:216`、`680:275`、`680:307` 和 `680:738`，将中性色、辅助文字、控件边框、透明层、Token 状态背景和阴影统一登记到 `foodmate-ui/src/styles/tokens.css`。
+- [x] `foodmate-ui/src/pages/LoginPage/LoginPage.module.css` 只替换为语义 Token 引用；颜色数值、字体、尺寸、圆角、布局和 Login Motion 时序保持 Figma 已核对结果。
+- [x] Auth 定向测试为 2 个测试文件、28/28 个用例通过；`typecheck`、`lint`、`format:check`、`build` 和 `git diff --check` 通过。
+- [x] 现有 Auth 画板证据仍为同尺寸非零 diff，继续保持 `DIFF_REVIEW`；本批次不把 Token 重构当作像素级 `PASS`。
+- [ ] 全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，本批次没有重新验收其它画板。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.5 Fixture 默认头像全局资源保护收口（2026-09-09）
 
 本批次只处理运行时人物头像资源边界，不重新采集全部 105 个画板。默认头像继续使用用户提供的两份 SVG；Figma 文件保持只读。
