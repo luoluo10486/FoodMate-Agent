@@ -2513,3 +2513,16 @@
 | 重放证据 | 先用安全的 `attempt=1` 结果探针定位并验证修复，再补发其余 8 条已完成索引事实；9/9 条目最终 `attempt_count=1`，未新增重复 chunk。旧探针曾因 `attempt=0` 被正确拒绝，证明结果契约校验生效。 |
 | 数据与费用边界 | 未执行数据库清理、迁移、TRUNCATE、备份恢复、性能压测、组件重启矩阵、ACK 丢失/重复投递故障注入或生产操作；未调用真实 Chat/Embedding。保留用户已有未提交 UI 与脚本改动。 |
 | 结论 | M2-1 stub/Redis 的 Java 结果消费、权威状态回写、批次收敛和幂等重放本轮取得直接 Docker 证据；真实 `local/openai-compatible + Milvus` 正式公共索引重建仍等待用户授权。 |
+
+## D167 M2-1 真实 RAG 隔离批次业务闭环（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Docker `foodmate`、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy。Runtime 使用 `local + openai-compatible`，Embedding 为 `Qwen/Qwen3-Embedding-0.6B`，Milvus collection 为 `foodmate_knowledge_chunks_qwen3_embedding_0_6b`，Chat 为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`。|
+| 执行命令 | 先运行 `script/local/real-rag-e2e.ps1` 进行免费预检，再在当前 PowerShell 进程注入管理员凭据并运行 `script/local/real-rag-e2e.ps1 -ExecutePaid`；脚本固定单场景、累计预算上限 `5 CNY`、`no_retry=true`、`require_cloud=true`，凭据未写入日志、仓库或本记录。|
+| 索引闭环 | 批次 `355606503966642176` 上传 3 份隔离 Markdown，3/3 条目为 `indexed`，批次为 `completed`；每个条目生成 2 个 chunk。知识批次记录 `116` 个 embedding token，成本 `0.00000812`。|
+| 批次 SSE 与可见性 | 批次 SSE 返回 `6` 条事实，其中 `3` 条 indexed；`Last-Event-ID` 回放返回 `5` 条后续事件。3 个文档均完成 published -> disabled -> draft -> deleted 状态链路，Java 权威状态和下线检索过滤通过。|
+| 检索与 Chat | Java 公共检索命中 `4` 条安全引用；AgentRun `355606691196178432` 为 `completed/normal`，SSE `8` 条、序号 `1..8` 连续且唯一，唯一终态为 `run.completed`，终态包含 `4` 条引用；真实 Chat provider/model 事件存在，`Last-Event-ID` 回放返回 `7` 条后续事件。|
+| 清理与复核 | 默认清理成功，3 个文档和会话均已软删除；PostgreSQL 本轮文档活动 chunk 为 `0`，Milvus 按 3 个文档查询返回空，目标 collection 保留供正式索引使用。模型用量、审计和索引 Inbox 事实保留用于本地复核。|
+| 边界 | 本轮验证的是当前 Docker 真实模式下的隔离资料业务闭环，不是 9 份 WHO 正式资料的全量真实重建；正式资料重建仍等待明确授权。未执行性能压测、组件重启、ACK 丢失、重复投递故障注入、备份恢复、生产部署或发布回滚。|
+| 结论 | 真实 Embedding -> Milvus -> Java 结果回写 -> 显式发布 -> 公共检索 -> 真实 Chat AgentRun -> `run.completed` 引用 -> 下线过滤与 SSE 回放闭环取得直接 Docker 证据。 |
