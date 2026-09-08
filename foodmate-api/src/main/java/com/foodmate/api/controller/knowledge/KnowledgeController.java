@@ -176,6 +176,18 @@ public class KnowledgeController extends AuthenticatedControllerSupport {
         return ok(new StatusUpdateResponse(true, "pending"));
     }
 
+    @PostMapping("/knowledge-upload-batches/{batchId}/documents/{documentId}/reindex")
+    public ApiResponse<StatusUpdateResponse> reindex(
+            @PathVariable long batchId, @PathVariable long documentId, HttpServletRequest request) {
+        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        knowledge.reindexItem(
+                batchId,
+                documentId,
+                operator.userId(),
+                TraceContextHolder.currentOrNew().traceId());
+        return ok(new StatusUpdateResponse(true, "pending"));
+    }
+
     @GetMapping(
             value = "/knowledge-upload-batches/{batchId}/events",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)

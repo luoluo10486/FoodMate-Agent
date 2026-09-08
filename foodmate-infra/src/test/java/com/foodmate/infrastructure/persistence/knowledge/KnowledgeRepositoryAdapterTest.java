@@ -152,6 +152,24 @@ class KnowledgeRepositoryAdapterTest {
     }
 
     @Test
+    void reindexResetsIndexedItemAndEmitsDistinctReplayableFact() {
+        when(mapper.resetItemForReindex(11L, 77L)).thenReturn(1);
+        when(mapper.job(77L)).thenReturn(new KnowledgeRepository.JobView(77L, "indexing", 1, 0, 0));
+        when(ids.nextId()).thenReturn(901L, 902L);
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                1, adapter.reindexItem(11L, 77L, 7L, 903L, "{}"));
+
+        verify(mapper).deleteResultInbox(11L);
+        verify(mapper).insertIndexOutbox(903L, 11L, "{}");
+        verify(mapper).refreshJob(11L);
+        verify(mapper)
+                .insertJobEvent(eq(901L), eq(77L), eq(11L), eq("knowledge.index.reindex"), any());
+        verify(mapper)
+                .insertJobEvent(eq(902L), eq(77L), eq(11L), eq("knowledge.batch.progress"), any());
+    }
+
+    @Test
     void failedIndexRetriesTwiceThenStopsAtThirdAttempt() {
         when(mapper.resultMatchesItem(11L, 12L, "v1")).thenReturn(1);
         when(mapper.resultPayloadHash(eq(11L), eq("v1"), anyInt())).thenReturn(null);

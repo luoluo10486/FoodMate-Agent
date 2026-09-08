@@ -2,7 +2,9 @@
 param(
     [string]$JavaBaseUrl = "http://127.0.0.1:8080",
     [string]$SourceDirectory = "",
-    [int]$BatchTimeoutSeconds = 600
+    [int]$BatchTimeoutSeconds = 600,
+    [string]$SourceVersion = "",
+    [string]$IdempotencyKey = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,6 +22,18 @@ if ($documents.Count -gt 20) { throw "单批公共知识库文档不能超过 20
 if ($BatchTimeoutSeconds -lt 60 -or $BatchTimeoutSeconds -gt 1800) {
     throw "BatchTimeoutSeconds 必须在 60 到 1800 秒之间"
 }
+$effectiveSourceVersion = if ([string]::IsNullOrWhiteSpace($SourceVersion)) {
+    [string]$manifest.dataset_version
+} else {
+    $SourceVersion.Trim()
+}
+if ($effectiveSourceVersion.Length -gt 128) { throw "SourceVersion 不能超过 128 个字符" }
+$effectiveIdempotencyKey = if ([string]::IsNullOrWhiteSpace($IdempotencyKey)) {
+    "foodmate-public-who-$effectiveSourceVersion"
+} else {
+    $IdempotencyKey.Trim()
+}
+if ($effectiveIdempotencyKey.Length -gt 128) { throw "IdempotencyKey 不能超过 128 个字符" }
 
 $adminUsername = [Environment]::GetEnvironmentVariable("FOODMATE_E2E_ADMIN_USERNAME", "Process")
 $adminPassword = [Environment]::GetEnvironmentVariable("FOODMATE_E2E_ADMIN_PASSWORD", "Process")
@@ -91,14 +105,13 @@ try {
         })
     $csrf = Get-CsrfToken
 
-    $idempotencyKey = "foodmate-public-who-$($manifest.dataset_version)"
     $multipart = [System.Net.Http.MultipartFormDataContent]::new()
     $fields = [ordered]@{
         source_type = "public_reuse"
         source_name = "世界卫生组织公共营养资料"
-        source_version = [string]$manifest.dataset_version
+        source_version = $effectiveSourceVersion
         license_notice = "保留官方来源链接，仅用于个人项目本地知识库；不代表世界卫生组织认可 FoodMate。"
-        idempotency_key = $idempotencyKey
+        idempotency_key = $effectiveIdempotencyKey
     }
     foreach ($field in $fields.GetEnumerator()) {
         $part = [System.Net.Http.StringContent]::new([string]$field.Value, [Text.Encoding]::UTF8)

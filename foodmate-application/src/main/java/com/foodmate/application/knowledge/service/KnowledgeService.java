@@ -35,6 +35,9 @@ public interface KnowledgeService {
     /** 在管理员操作下重新排队一个失败条目。 */
     void retryItem(long batchId, long documentId, long operatorId, String traceId);
 
+    /** 在管理员操作下重新索引已完成或失败的条目，保留旧分块直到新结果成功回写。 */
+    void reindexItem(long batchId, long documentId, long operatorId, String traceId);
+
     record ImportBatch(
             String idempotencyKey,
             String sourceType,

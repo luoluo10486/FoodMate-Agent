@@ -251,6 +251,10 @@ public interface KnowledgeMapper {
             "UPDATE knowledge_import_items SET index_status='pending',attempt_count=0,chunk_count=NULL,indexed_at=NULL,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND job_id=#{jobId} AND index_status='index_failed'")
     int resetItem(@Param("itemId") long itemId, @Param("jobId") long jobId);
 
+    @Update(
+            "UPDATE knowledge_import_items SET index_status='pending',attempt_count=0,chunk_count=NULL,indexed_at=NULL,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND job_id=#{jobId} AND index_status IN ('indexed','index_failed')")
+    int resetItemForReindex(@Param("itemId") long itemId, @Param("jobId") long jobId);
+
     @org.apache.ibatis.annotations.Delete(
             "DELETE FROM knowledge_index_result_inbox WHERE item_id=#{itemId}")
     void deleteResultInbox(long itemId);

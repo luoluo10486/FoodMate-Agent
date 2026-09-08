@@ -328,6 +328,32 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         }
     }
 
+    @Override
+    @Transactional
+    public void reindexItem(long batchId, long documentId, long operatorId, String traceId) {
+        try {
+            BatchDetail detail = batch(batchId);
+            KnowledgeRepository.ItemView item =
+                    detail.items().stream()
+                            .filter(value -> value.documentId() == documentId)
+                            .findFirst()
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalArgumentException(
+                                                    "knowledge document is not part of this batch"));
+            if (store.reindexItem(item.itemId(), batchId, operatorId, ids.nextId(), "{}") != 1)
+                throw new IllegalArgumentException("knowledge import item is not reindexable");
+            audit(
+                    operatorId,
+                    traceId,
+                    "knowledge.import_item.reindex",
+                    Long.toString(item.documentId()));
+        } catch (RuntimeException exception) {
+            failure(operatorId, traceId, "knowledge.import_item.reindex", id(documentId), exception);
+            throw exception;
+        }
+    }
+
     private void audit(long operatorId, String traceId, String action, String documentId) {
         if (audit == null) return;
         audit.record(

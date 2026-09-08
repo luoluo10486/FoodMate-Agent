@@ -48,6 +48,19 @@ class KnowledgeMapperContractTest {
     }
 
     @Test
+    void reindexAllowsOnlyIndexedOrFailedItems() throws Exception {
+        String sql =
+                KnowledgeMapper.class
+                        .getMethod("resetItemForReindex", long.class, long.class)
+                        .getAnnotation(Update.class)
+                        .value()[0];
+
+        assertTrue(sql.contains("index_status IN ('indexed','index_failed')"));
+        assertTrue(sql.contains("attempt_count=0"));
+        assertTrue(sql.contains("chunk_count=NULL"));
+    }
+
+    @Test
     void indexedResultKeepsProviderTracePersistenceCompatibleWithPreV29Databases()
             throws Exception {
         String sql =

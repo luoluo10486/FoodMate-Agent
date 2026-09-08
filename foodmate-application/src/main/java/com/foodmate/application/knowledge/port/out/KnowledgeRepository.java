@@ -97,6 +97,9 @@ public interface KnowledgeRepository {
     /** 重置一个失败条目并创建下一条索引 Outbox 事实。 */
     int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload);
 
+    /** 重置一个已索引或失败条目并创建可追踪的重索引 Outbox 事实。 */
+    int reindexItem(long itemId, long jobId, long operatorId, long outboxId, String payload);
+
     /** 一条可发布的持久化消息。 */
     record OutboxRow(long outboxId, long itemOrDocumentId, String topic, String payload) {}
 
