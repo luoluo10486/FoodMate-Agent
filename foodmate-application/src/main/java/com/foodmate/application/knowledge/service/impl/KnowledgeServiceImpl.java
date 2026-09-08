@@ -146,12 +146,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                             .map(file -> validateFile(file, safeFilename(file.filename())))
                             .toList();
             jobId = ids.nextId();
-            String mode =
-                    System.getenv()
-                            .getOrDefault("FOODMATE_RAG_MODE", "stub")
-                            .toLowerCase(Locale.ROOT);
-            if (!mode.equals("stub") && !mode.equals("local"))
-                throw new IllegalArgumentException("invalid RAG mode");
+            String mode = currentRagMode();
             store.insertImportJob(
                     new KnowledgeRepository.ImportJob(
                             jobId,
@@ -344,7 +339,9 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             long outboxId = ids.nextId();
             long reindexId = ids.nextId();
             String payload =
-                    "{\"reindex_id\":\""
+                    "{\"mode\":\""
+                            + currentRagMode()
+                            + "\",\"reindex_id\":\""
                             + reindexId
                             + "\",\"attempt\":1}";
             if (store.reindexItem(item.itemId(), batchId, operatorId, outboxId, payload) != 1)
@@ -373,6 +370,16 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 null,
                 null,
                 Map.of());
+    }
+
+    /** 返回当前 Java/Python 知识索引必须一致的运行模式。 */
+    private String currentRagMode() {
+        String mode =
+                System.getenv().getOrDefault("FOODMATE_RAG_MODE", "stub").toLowerCase(Locale.ROOT);
+        if (!mode.equals("stub") && !mode.equals("local")) {
+            throw new IllegalArgumentException("invalid RAG mode");
+        }
+        return mode;
     }
 
     private void failure(

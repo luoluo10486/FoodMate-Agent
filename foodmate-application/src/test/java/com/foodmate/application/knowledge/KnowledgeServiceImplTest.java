@@ -426,7 +426,12 @@ class KnowledgeServiceImplTest {
                                         1,
                                         null)));
         when(ids.nextId()).thenReturn(99L, 100L);
-        when(repository.reindexItem(88L, 77L, 7L, 99L, "{\"reindex_id\":\"100\",\"attempt\":1}"))
+        when(repository.reindexItem(
+                        88L,
+                        77L,
+                        7L,
+                        99L,
+                        "{\"mode\":\"stub\",\"reindex_id\":\"100\",\"attempt\":1}"))
                 .thenReturn(1);
         KnowledgeServiceImpl service =
                 new KnowledgeServiceImpl(
@@ -439,7 +444,12 @@ class KnowledgeServiceImplTest {
         service.reindexItem(77L, 42L, 7L, "trace-1");
 
         verify(repository)
-                .reindexItem(88L, 77L, 7L, 99L, "{\"reindex_id\":\"100\",\"attempt\":1}");
+                .reindexItem(
+                        88L,
+                        77L,
+                        7L,
+                        99L,
+                        "{\"mode\":\"stub\",\"reindex_id\":\"100\",\"attempt\":1}");
         verify(audit)
                 .record(
                         any(TraceContext.class),
