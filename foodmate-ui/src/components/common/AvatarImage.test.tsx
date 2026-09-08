@@ -1,6 +1,10 @@
 import { fireEvent, render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AvatarImage } from './AvatarImage';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe('AvatarImage', () => {
   it('replaces legacy person assets before rendering', () => {
@@ -25,6 +29,7 @@ describe('AvatarImage', () => {
   });
 
   it('falls back to the gender default when a real avatar fails to load', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
     const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" gender="女" alt="头像" />);
     const image = container.querySelector('img');
 
@@ -32,6 +37,16 @@ describe('AvatarImage', () => {
     fireEvent.error(image!);
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
+  });
+
+  it('forces registered defaults in Fixture mode even when defaultOnly is omitted', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'mock');
+    const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" gender="女" alt="头像" />);
+    const image = container.querySelector('img');
+
+    expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+    expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
+    expect(image).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
   });
 
   it('replaces an unknown person URL before it reaches the DOM', () => {

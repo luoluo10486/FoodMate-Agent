@@ -2,6 +2,18 @@
 
 更新时间：2026-09-09
 
+## 1.1.5 Fixture 默认头像全局资源保护收口（2026-09-09）
+
+本批次只处理运行时人物头像资源边界，不重新采集全部 105 个画板。默认头像继续使用用户提供的两份 SVG；Figma 文件保持只读。
+
+- [x] `AvatarImage` 在 `VITE_AGENT_MODE !== real` 时强制启用 `default-only` 策略，所有 Fixture 人物头像最终只能输出 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`。
+- [x] `public/assets/avatars/` 和生产构建产物 `dist/assets/avatars/` 均只有上述两份 SVG；男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 定向浏览器页面加载和头像相关回归覆盖主要 Fixture 页面；10 个测试文件、150/150 个用例通过，`typecheck`、`lint`、`format:check`、`build` 和 `git diff --check` 均通过。
+- [x] 认证页 `foodmate-*-user.svg` 仅用于输入框装饰，Workspace/Admin/Agent 的其它 Figma SVG 仅为界面图标，不属于人物头像。
+- [x] 真实模式的 `/api/users/me/avatar` 和 `blob:` 仍保留给用户主动上传和本地预览；这不改变默认 Fixture 头像的资源白名单。
+- [ ] 本批次没有重新生成 105 个画板的全量截图和 diff；全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.4 Workspace/Home、Agent Chat 当前截图与头像证据更新（2026-09-09）
 
 本批次只重新采集 Workspace/Home 与 Agent Chat 两项受影响画板，不重新验收其余画板。浏览器证据使用当前运行时代码，Figma 文件保持只读。
