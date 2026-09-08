@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_AVATARS,
-  FIGMA_ADMIN_AVATARS,
-  FIGMA_CHAT_AVATARS,
-  FIGMA_KNOWLEDGE_AVATARS,
-  FIGMA_PROFILE_AVATARS,
-  FIGMA_WORKSPACE_AVATARS,
+  FIXTURE_ADMIN_AVATARS,
+  FIXTURE_CHAT_AVATARS,
+  FIXTURE_KNOWLEDGE_AVATARS,
+  FIXTURE_PROFILE_AVATARS,
+  FIXTURE_WORKSPACE_AVATARS,
   getDefaultAvatarForGender,
   resolveAvatarUrl,
 } from './avatar';
@@ -73,17 +73,17 @@ describe('avatar defaults', () => {
 
   it('uses the supplied SVG assets for all Figma fixture avatars', () => {
     const fixtureAvatars = [
-      ...Object.values(FIGMA_WORKSPACE_AVATARS),
-      ...Object.values(FIGMA_KNOWLEDGE_AVATARS),
-      ...Object.values(FIGMA_PROFILE_AVATARS),
-      ...Object.values(FIGMA_ADMIN_AVATARS),
-      FIGMA_CHAT_AVATARS.sidebar,
-      FIGMA_CHAT_AVATARS.topbar,
-      FIGMA_CHAT_AVATARS.message,
+      ...Object.values(FIXTURE_WORKSPACE_AVATARS),
+      ...Object.values(FIXTURE_KNOWLEDGE_AVATARS),
+      ...Object.values(FIXTURE_PROFILE_AVATARS),
+      ...Object.values(FIXTURE_ADMIN_AVATARS),
+      FIXTURE_CHAT_AVATARS.sidebar,
+      FIXTURE_CHAT_AVATARS.topbar,
+      FIXTURE_CHAT_AVATARS.message,
     ];
 
     expect(fixtureAvatars.every((avatar) => Object.values(DEFAULT_AVATARS).includes(avatar))).toBe(true);
     expect(fixtureAvatars.filter((avatar) => avatar === DEFAULT_AVATARS.male).length).toBeGreaterThan(0);
-    expect(FIGMA_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.female);
+    expect(FIXTURE_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.female);
   });
 });

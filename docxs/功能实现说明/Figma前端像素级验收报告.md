@@ -2,6 +2,16 @@
 
 更新时间：2026-09-08
 
+## 1.1.0 Workspace/Home 与 Agent Chat 共享壳层及默认头像收口（2026-09-08）
+
+- [x] Fixture 工作台、Chat、Profile 和 Admin 壳层均通过 `AvatarImage` 进入人物头像 DOM；Fixture 不再接受历史 Figma 人物地址或当前登录缓存性别覆盖。
+- [x] Chat 历史 Fixture 用户消息使用男性默认 SVG，安全降级消息使用女性默认 SVG；真实模式仍允许后端上传头像和浏览器 `blob:` 预览。
+- [x] 本地浏览器 `127.0.0.1:5182` 已审计 Workspace、六类 Agent 状态、Profile、Admin、Diet Records、Meal Planning 和 Knowledge；人物头像来源只为 `/assets/avatars/default-male.svg`、`/assets/avatars/default-female.svg`。
+- [x] 两份默认头像已与用户附件核对：男性 SHA-256 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性 SHA-256 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 认证页 `foodmate-*-user.svg`、导航图标、状态图标和 Agent 标识不是人物头像，未纳入默认头像资源替换。
+- [x] 本大点自动门禁为 Vitest `303/303`、typecheck、format、lint、build、git diff check 通过；Figma 证据结构校验为 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [ ] 本次只完成共享壳层和头像增量审计，没有重新采集全部 105 个画板；105 项继续为 `DIFF_REVIEW`，不得据此标记像素级 `PASS`。
+
 ## 1.0.9 Chat Fixture 头像性别契约修复（2026-09-08）
 
 - [x] `figma-v2` Chat Fixture 的消息头像现在显式传入女性性别，运行时输出用户提供的 `default-female.svg`；侧栏和顶栏仍输出用户提供的 `default-male.svg`。

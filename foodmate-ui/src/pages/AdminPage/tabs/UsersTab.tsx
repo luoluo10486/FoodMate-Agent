@@ -48,7 +48,7 @@ import {
   type AdminUserDetail,
   updateAdminUserStatus,
 } from '../../../services/adminService';
-import { FIGMA_ADMIN_AVATARS, resolveAvatarUrl } from '../../../lib/avatar';
+import { FIXTURE_ADMIN_AVATARS, resolveAvatarUrl } from '../../../lib/avatar';
 import { AvatarImage } from '../../../components/common/AvatarImage';
 
 const isMockMode = import.meta.env.VITE_AGENT_MODE !== 'real';
@@ -70,7 +70,7 @@ const figmaUserRows: AdminUserView[] = [
     displayName: 'Anddy 实验室',
     role: 'admin',
     status: 'active',
-    avatarUrl: FIGMA_ADMIN_AVATARS.userDetail,
+    avatarUrl: FIXTURE_ADMIN_AVATARS.userDetail,
     phone: '-',
     gender: '男',
     heightCm: 0,

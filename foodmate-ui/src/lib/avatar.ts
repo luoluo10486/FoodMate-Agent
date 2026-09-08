@@ -4,32 +4,32 @@ export const DEFAULT_AVATARS = {
 } as const;
 
 // Figma 工作台示例账号使用项目登记的男性默认头像，避免运行时加载真人素材。
-export const FIGMA_WORKSPACE_AVATARS = {
+export const FIXTURE_WORKSPACE_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
 } as const;
 
 // Knowledge Figma fixture 使用项目登记的男性默认头像。
-export const FIGMA_KNOWLEDGE_AVATARS = {
+export const FIXTURE_KNOWLEDGE_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
 } as const;
 
 // Profile Figma fixture 的示例账号为男性，所有默认头像统一使用男性资源。
-export const FIGMA_PROFILE_AVATARS = {
+export const FIXTURE_PROFILE_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
   main: DEFAULT_AVATARS.male,
 } as const;
 
 // Admin Figma fixture 的示例账号为男性，统一使用男性默认头像。
-export const FIGMA_ADMIN_AVATARS = {
+export const FIXTURE_ADMIN_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   userDetail: DEFAULT_AVATARS.male,
 } as const;
 
 // Chat Figma fixture 同时包含男性账号头像和女性消息示例头像。
-export const FIGMA_CHAT_AVATARS = {
+export const FIXTURE_CHAT_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
   message: DEFAULT_AVATARS.female,
