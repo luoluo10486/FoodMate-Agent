@@ -63,6 +63,10 @@ function isTrustedUploadedAvatarUrl(value: string): boolean {
   return uploadedAvatarPathPattern.test(value) || localPreviewPattern.test(value);
 }
 
+function isRegisteredDefaultAvatar(value: string): boolean {
+  return value === DEFAULT_AVATARS.male || value === DEFAULT_AVATARS.female;
+}
+
 export function getDefaultAvatarForGender(gender?: string): string | undefined {
   const normalized = gender?.trim().toLowerCase();
   if (normalized === '女' || normalized === 'female' || normalized === 'f') return DEFAULT_AVATARS.female;
@@ -74,7 +78,8 @@ export function resolveAvatarUrl(avatarUrl?: string, gender?: string): string {
   const genderDefault = getDefaultAvatarForGender(gender) ?? DEFAULT_AVATARS.male;
   const candidate = avatarUrl?.trim();
   if (!candidate) return genderDefault;
-  if (candidate === DEFAULT_AVATARS.male || candidate === DEFAULT_AVATARS.female) return candidate;
+  // 历史缓存可能保留另一性别的默认 SVG，读取时必须按当前性别重新归一化。
+  if (isRegisteredDefaultAvatar(candidate)) return genderDefault;
   if (!isLegacyFigmaAvatarUrl(candidate) && isTrustedUploadedAvatarUrl(candidate)) return candidate;
   // 未登记的历史人物素材、外部图片和旧缓存都不能作为默认头像继续展示。
   return genderDefault;

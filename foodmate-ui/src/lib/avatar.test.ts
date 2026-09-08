@@ -25,6 +25,12 @@ describe('avatar defaults', () => {
     expect(resolveAvatarUrl('', '-')).toBe(DEFAULT_AVATARS.male);
   });
 
+  it('normalizes a stale registered default to the current gender', () => {
+    expect(resolveAvatarUrl(DEFAULT_AVATARS.female, '男')).toBe(DEFAULT_AVATARS.male);
+    expect(resolveAvatarUrl(DEFAULT_AVATARS.male, '女')).toBe(DEFAULT_AVATARS.female);
+    expect(resolveAvatarUrl(DEFAULT_AVATARS.female, '-')).toBe(DEFAULT_AVATARS.male);
+  });
+
   it('replaces untrusted legacy image URLs with the gender-specific default', () => {
     expect(resolveAvatarUrl('/uploads/profile.png', '女')).toBe(DEFAULT_AVATARS.female);
     expect(resolveAvatarUrl('https://cdn.example.com/person.png', '男')).toBe(DEFAULT_AVATARS.male);

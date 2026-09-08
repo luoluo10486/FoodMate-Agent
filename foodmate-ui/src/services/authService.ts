@@ -33,7 +33,12 @@ export function getAuthUser(): AuthUser {
     if (saved) {
       const user = JSON.parse(saved) as AuthUser;
       // 本地缓存可能来自旧版本 Fixture，读取时也必须经过统一头像解析层。
-      return { ...user, avatarUrl: resolveAvatarUrl(user.avatarUrl, user.gender) };
+      const normalizedUser = { ...user, avatarUrl: resolveAvatarUrl(user.avatarUrl, user.gender) };
+      // 归一化后回写缓存，避免旧人物地址在后续页面切换中再次进入头像参数。
+      if (normalizedUser.avatarUrl !== user.avatarUrl) {
+        localStorage.setItem('foodmate_auth_user', JSON.stringify(normalizedUser));
+      }
+      return normalizedUser;
     }
   }
   return mockAuthUser;

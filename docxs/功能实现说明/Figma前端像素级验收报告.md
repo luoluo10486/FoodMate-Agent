@@ -1,6 +1,13 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-07
+更新时间：2026-09-08
+
+## 1.0.8 2026-09-08 默认头像缓存归一化与运行时复核
+
+- [x] `resolveAvatarUrl` 会将缓存中残留的另一性别默认 SVG 归一化为当前性别的登记资源；真实模式读取 `foodmate_auth_user` 后会回写归一化结果。
+- [x] 全新本地服务 `127.0.0.1:5180` 已实际检查 Workspace、Chat、Profile、Admin、Diet Records、Meal Planning 和 Knowledge 路由；运行时人物头像来源仅为 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`。
+- [x] 认证页 `foodmate-*-user.svg` 只作为输入框内 18×18 用户线性图标，不属于人物头像；历史真人 PNG 仅保留在 QA 证据目录。
+- [ ] 本批次只复核运行时头像来源，不重新采集全部 105 个画板；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 
 > 资源策略说明（2026-09-07）：前端默认/fixture 人物头像统一使用项目登记的 `default-male.svg` 与 `default-female.svg`。历史 Figma 真人 PNG 已从 `public/assets/figma/**` 移至 `.qa/figma-pixel-acceptance/legacy-avatars/`，仅作为验收证据保留，不再属于 Vite 可直接访问的运行时资源；认证页 `*-user.svg` 仍是输入框人物图标，不属于头像。由于本轮没有对 105 个画板全量复采集，旧 diff 不能用于证明头像策略变更后的最新像素结果。
 
