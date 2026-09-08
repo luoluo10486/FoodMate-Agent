@@ -12,11 +12,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /** 消费 Python 索引结果，并以幂等方式更新 Java 所拥有的知识库状态。 */
 @Service
 public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
+    private static final Logger log = LoggerFactory.getLogger(KnowledgeIndexResultMessageProcessor.class);
     private final KnowledgeDeliveryService service;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -42,25 +45,39 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
             String modelVersion = node.path("model_version").asText(null);
             String providerTraceId = optionalTraceId(node.get("provider_trace_id"));
             List<KnowledgeRepository.IndexChunk> chunks = parseChunks(node.path("chunks"));
-            if (!("indexed".equals(status) || "index_failed".equals(status))
-                    || itemId <= 0
-                    || documentId <= 0
-                    || version.isBlank()
-                    || attempt < 1
-                    || attempt > 3
-                    || chunkCount < 0
-                    || tokenCount < 0
-                    || ("indexed".equals(status)
-                            && (modelVersion == null
-                                    || modelVersion.isBlank()
-                                    || chunkCount == 0
-                                    || chunks.size() != chunkCount))
-                    || ("index_failed".equals(status) && !chunks.isEmpty())
-                    || ("index_failed".equals(status)
-                            && (errorCode == null || errorCode.isBlank())))
+            String rejectionReason = rejectionReason(
+                    status,
+                    itemId,
+                    documentId,
+                    version,
+                    attempt,
+                    chunkCount,
+                    tokenCount,
+                    modelVersion,
+                    errorCode,
+                    chunks);
+            if (rejectionReason != null) {
+                log.warn(
+                        "knowledge index result rejected: reason={}, item_id={}, document_id={}, version={}, status={}, attempt={}",
+                        rejectionReason,
+                        itemId,
+                        documentId,
+                        version,
+                        status,
+                        attempt);
                 return MqConsumeDecision.REJECT;
+            }
             BigDecimal costAmount = new BigDecimal(node.path("cost_amount").asText("0"));
-            if (costAmount.signum() < 0) return MqConsumeDecision.REJECT;
+            if (costAmount.signum() < 0) {
+                log.warn(
+                        "knowledge index result rejected: reason=negative_cost, item_id={}, document_id={}, version={}, status={}, attempt={}",
+                        itemId,
+                        documentId,
+                        version,
+                        status,
+                        attempt);
+                return MqConsumeDecision.REJECT;
+            }
             service.accept(
                     new KnowledgeRepository.IndexResult(
                             itemId,
@@ -82,8 +99,46 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                 | IllegalArgumentException error) {
             return MqConsumeDecision.REJECT;
         } catch (RuntimeException error) {
+            log.warn(
+                    "knowledge index result processing failed: message_id={}, error_type={}, error_message={}",
+                    context.messageId(),
+                    error.getClass().getSimpleName(),
+                    safeLogMessage(error.getMessage()));
             return MqConsumeDecision.RETRY;
         }
+    }
+
+    private String safeLogMessage(String value) {
+        if (value == null || value.isBlank()) return "unknown";
+        String normalized = value.replaceAll("[\\r\\n\\t]+", " ").trim();
+        return normalized.length() <= 256 ? normalized : normalized.substring(0, 256);
+    }
+
+    private String rejectionReason(
+            String status,
+            long itemId,
+            long documentId,
+            String version,
+            int attempt,
+            int chunkCount,
+            long tokenCount,
+            String modelVersion,
+            String errorCode,
+            List<KnowledgeRepository.IndexChunk> chunks) {
+        if (!("indexed".equals(status) || "index_failed".equals(status))) return "status";
+        if (itemId <= 0 || documentId <= 0) return "identifier";
+        if (version.isBlank()) return "version";
+        if (attempt < 1 || attempt > 3) return "attempt";
+        if (chunkCount < 0) return "chunk_count";
+        if (tokenCount < 0) return "token_count";
+        if ("indexed".equals(status)
+                && (modelVersion == null
+                        || modelVersion.isBlank()
+                        || chunkCount == 0
+                        || chunks.size() != chunkCount)) return "indexed_chunk_fact";
+        if ("index_failed".equals(status) && !chunks.isEmpty()) return "failed_chunks";
+        if ("index_failed".equals(status) && (errorCode == null || errorCode.isBlank())) return "failed_error_code";
+        return null;
     }
 
     private String safeErrorSummary(String value, String errorCode) {

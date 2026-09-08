@@ -185,7 +185,7 @@ public interface KnowledgeMapper {
             @Param("documentId") long documentId, @Param("version") String version);
 
     @Update(
-            "UPDATE knowledge_chunks SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND document_version=#{version} AND is_deleted=FALSE")
+            "UPDATE knowledge_chunks SET is_deleted=TRUE,embedding_id=NULL,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND document_version=#{version} AND is_deleted=FALSE")
     void softDeleteVersionChunks(
             @Param("documentId") long documentId, @Param("version") String version);
 

@@ -2500,3 +2500,16 @@
 | 安全边界 | 本轮未调用真实 Chat/Embedding，未写入 PostgreSQL/Redis/Milvus/RocketMQ，未修改或提交用户已有的 `script/local/real-food-log-e2e.tests.ps1`。 |
 | 验证 | 文档变更完成后执行 `git diff --check`；不重复运行业务全量测试，因为本轮只调整状态文字和执行台账。 |
 | 结论 | 其余业务已验收；公共知识真实索引待授权；生产性能、可靠性和运维能力继续暂缓。 |
+
+## D166 M2-1 Java 索引结果回写与 Redis stub 批次复验（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Docker `foodmate`、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy。Runtime 本轮固定为 `stub + Redis`，未读取真实 Embedding Key，未写入 Milvus。 |
+| 触发问题 | Java 消费 `foodmate-knowledge-index-result-v1` 时，重复回写同一版本会因软删除 chunk 仍保留全局唯一 `embedding_id` 而触发 PostgreSQL `uk_knowledge_chunks_embedding_id` 冲突，条目停留在 `pending`。 |
+| 修复 | 结果消费者增加仅含消息 ID、状态和稳定标识的安全拒绝/异常日志；知识持久化适配器软删除旧版本 chunk 时释放 `embedding_id`，使同一稳定索引事实可安全重放。未记录正文、Prompt、API Key 或完整异常响应。 |
+| Java 验证 | `mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra -am test "-Dtest=KnowledgeIndexResultMessageProcessorTest,KnowledgeRepositoryAdapterTest,KnowledgeMapperContractTest" "-Dsurefire.failIfNoSpecifiedTests=false"`：`11/11` 通过；受影响模块编译通过；本地 Spring Boot JAR 打包成功并临时注入 Docker 容器后 readiness/health 为 healthy。 |
+| 业务结果 | 批次 `354847677655027712` 的 9 份 WHO 公共营养 Markdown 全部 `indexed`，批次状态为 `completed`；PostgreSQL 活动 chunk `58`，索引结果 Inbox `9` 条，批次 SSE outbox `54` 条；Java RocketMQ 结果消费组 `Diff=0`。 |
+| 重放证据 | 先用安全的 `attempt=1` 结果探针定位并验证修复，再补发其余 8 条已完成索引事实；9/9 条目最终 `attempt_count=1`，未新增重复 chunk。旧探针曾因 `attempt=0` 被正确拒绝，证明结果契约校验生效。 |
+| 数据与费用边界 | 未执行数据库清理、迁移、TRUNCATE、备份恢复、性能压测、组件重启矩阵、ACK 丢失/重复投递故障注入或生产操作；未调用真实 Chat/Embedding。保留用户已有未提交 UI 与脚本改动。 |
+| 结论 | M2-1 stub/Redis 的 Java 结果消费、权威状态回写、批次收敛和幂等重放本轮取得直接 Docker 证据；真实 `local/openai-compatible + Milvus` 正式公共索引重建仍等待用户授权。 |
