@@ -1221,6 +1221,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               wide: isNavigationState,
             }}
             userAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
+            userAvatarGender="男"
           />
           <MessageBubble
             message={{
