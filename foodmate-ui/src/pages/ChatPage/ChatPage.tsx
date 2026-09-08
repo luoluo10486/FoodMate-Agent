@@ -90,15 +90,19 @@ function MessageBubble({
   message,
   children,
   userAvatarSrc,
+  userAvatarGender,
 }: {
   message: ChatMessage;
   children?: ReactNode;
   userAvatarSrc?: string;
+  userAvatarGender?: string;
 }) {
   const isUser = message.role === 'user';
   const authUser = getAuthUser();
   // 消息头像也走统一解析，避免历史 Fixture 路径通过组件参数直接渲染。
-  const userAvatar = resolveAvatarUrl(userAvatarSrc ?? authUser.avatarUrl, authUser.gender);
+  // 设计 Fixture 的消息性别可能与当前登录账号不同，优先采用消息自身登记的性别。
+  const resolvedGender = userAvatarGender ?? authUser.gender;
+  const userAvatar = resolveAvatarUrl(userAvatarSrc ?? authUser.avatarUrl, resolvedGender);
   return (
     <article className={`${styles.message} ${isUser ? styles.user : styles.assistant}`}>
       {isUser ? (
@@ -110,7 +114,7 @@ function MessageBubble({
               <AvatarImage
                 avatarUrl={userAvatar}
                 defaultOnly={Boolean(userAvatarSrc) || import.meta.env.VITE_AGENT_MODE !== 'real'}
-                gender={authUser.gender}
+                gender={resolvedGender}
                 alt=""
               />
             </span>
@@ -2137,6 +2141,7 @@ function MockChatPage() {
           key={message.id}
           message={{ ...message, wide: isFigmaFixture }}
           userAvatarSrc={isFigmaFixture ? FIGMA_CHAT_MESSAGE_AVATAR : undefined}
+          userAvatarGender={isFigmaFixture ? '女' : undefined}
         >
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
             <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />

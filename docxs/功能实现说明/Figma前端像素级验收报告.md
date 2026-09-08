@@ -2,6 +2,13 @@
 
 更新时间：2026-09-08
 
+## 1.0.9 Chat Fixture 头像性别契约修复（2026-09-08）
+
+- [x] `figma-v2` Chat Fixture 的消息头像现在显式传入女性性别，运行时输出用户提供的 `default-female.svg`；侧栏和顶栏仍输出用户提供的 `default-male.svg`。
+- [x] 本地 `127.0.0.1:5181` 浏览器 DOM 抽查覆盖 Workspace、六类 Agent 状态、Profile、Admin、Diet Records、Meal Planning 和 Knowledge；人物头像元素只出现 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`。
+- [x] 认证页 `foodmate-*-user.svg`、导航图标和 Agent 绿色标识均不是人物头像；历史真人 PNG 仍只保留在 QA 证据目录，不进入运行时人物头像 DOM。
+- [ ] 本批次未重新采集全部 105 个画板，未改变任何全量像素结论；聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.0.8 2026-09-08 默认头像缓存归一化与运行时复核
 
 - [x] `resolveAvatarUrl` 会将缓存中残留的另一性别默认 SVG 归一化为当前性别的登记资源；真实模式读取 `foodmate_auth_user` 后会回写归一化结果。
