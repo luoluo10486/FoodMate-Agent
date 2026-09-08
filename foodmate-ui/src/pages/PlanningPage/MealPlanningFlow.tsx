@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MealPlan, MealPlanDraft } from '../../services/planningService';
 import styles from './MealPlanningFlow.module.css';
 
@@ -636,34 +637,32 @@ function PlanListView({
         </div>
         <FlowButton onClick={() => onNavigate('wizard-step1')}>+ 新建膳食计划</FlowButton>
       </header>
-      <div className={styles.listTabs} role="tablist" aria-label="计划状态" data-figma-role="planning-list-tabs">
-        {(realPlans
-          ? [
-              ['active', '已保存'],
-              ['validated', '已校验'],
-              ['draft', '草稿箱'],
-              ['archived', '已删除'],
-            ]
-          : [
-              ['active', '进行中'],
-              ['draft', '草稿箱'],
-              ['archived', '已归档'],
-            ]
-        ).map(([key, label]) => (
-          <Button
-            className={tab === key ? styles.listTabActive : ''}
-            variant="ghost"
-            key={key}
-            type="button"
-            role="tab"
-            data-figma-role="planning-list-tab"
-            aria-selected={tab === key}
-            onClick={() => setTab(key as typeof tab)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
+      <Tabs className={styles.tabsRoot} value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
+        <TabsList aria-label="计划状态" className={styles.listTabs} data-figma-role="planning-list-tabs">
+          {(realPlans
+            ? [
+                ['active', '已保存'],
+                ['validated', '已校验'],
+                ['draft', '草稿箱'],
+                ['archived', '已删除'],
+              ]
+            : [
+                ['active', '进行中'],
+                ['draft', '草稿箱'],
+                ['archived', '已归档'],
+              ]
+          ).map(([key, label]) => (
+            <TabsTrigger
+              className={tab === key ? styles.listTabActive : ''}
+              key={key}
+              value={key}
+              data-figma-role="planning-list-tab"
+            >
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
       <div className={styles.planList}>
         {visiblePlans.map((plan) => (
           <article className={styles.planListCard} key={plan.id}>

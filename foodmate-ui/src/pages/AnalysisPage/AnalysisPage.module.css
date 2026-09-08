@@ -87,6 +87,16 @@
   font-weight: 700;
 }
 
+.tabsRoot {
+  display: contents;
+}
+
+.filters [data-state='active'].rangeActive {
+  /* Figma 胶囊页签的活动面不使用 shadcn 默认阴影。 */
+  background: rgba(236, 204, 255, 0.08);
+  box-shadow: none;
+}
+
 .filters .filterPill {
   width: 84px;
   height: 32px;

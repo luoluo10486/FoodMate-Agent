@@ -2718,3 +2718,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 受影响前端测试 `4/4` 文件、`41/41` 用例通过；typecheck、生产 build、定向 ESLint、定向 Prettier 和 `git diff --check` 通过。
 - [ ] 本节没有产生新的 PNG/diff 文件，不能据此把三张向导画板或其它画板改为 `PASS`；105 项聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍未提供，继续保持 `BLOCKED`。
+
+## 2026-09-08 Diet Records、Intake Analysis、Meal Planning 页签控件语义收口
+
+本节记录三个工作区页面组的控件语义收口，不重新采集 105 个画板。Figma 文件保持只读；本次没有新增 PNG 或 diff JSON，也不以组件替换结果替代像素证据。
+
+- [x] 依据实时节点 `640:588`、`640:773`、`640:901`，将饮食记录视图、摄入分析范围、餐食规划日期和规划列表筛选统一迁移到现有 shadcn/Radix Tabs。
+- [x] 原有 Figma 视觉 CSS 保持有效：胶囊容器、活动色、边框、圆角、日期网格和列表底部分隔线均未由 shadcn 默认值覆盖；默认活动阴影已显式关闭。
+- [x] 浏览器可访问性树确认 `/analysis?state=v2` 的分析范围包含 `7 天`、`30 天`、`90 天` 三个标准 Tab，选中态由 `aria-selected` 和 Radix `data-state` 同步提供。
+- [x] 统一门禁已通过：Vitest `46/46` 文件、`303/303` 用例，typecheck、format、lint、build、Figma 证据结构校验和 `git diff --check` 均通过。
+- [ ] 本节没有新增 Figma/浏览器 PNG，因此不能改变任何画板结论；当前全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本节不代表 105 项全量人工复核完成，也不解除 iconfont `BLOCKED`；真实字体包、CSS 映射、来源和许可证仍待提供。
