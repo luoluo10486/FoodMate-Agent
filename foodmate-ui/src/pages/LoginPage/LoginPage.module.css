@@ -98,9 +98,9 @@
 .logoPlaceholder {
   width: 40px;
   height: 40px;
-  border: 1.5px dashed #999999;
+  border: 1.5px dashed var(--fm-auth-logo-placeholder-border);
   border-radius: 8px;
-  background: #d9d9d9;
+  background: var(--fm-auth-logo-placeholder-surface);
 }
 
 .loginMark {
@@ -108,7 +108,7 @@
   height: 40px;
   border-radius: 10px;
   background: var(--fm-color-success);
-  color: #ffffff;
+  color: var(--fm-auth-action-text);
 }
 
 .loginMark img {
@@ -128,7 +128,7 @@
 
 .wordmark span:last-child,
 .authWordmark span:last-child {
-  color: #2e7d32;
+  color: var(--fm-auth-wordmark-accent);
 }
 
 .welcome {
@@ -163,7 +163,7 @@
 }
 
 .authPage.authPageLoginState .welcome span {
-  color: #5a6672;
+  color: var(--fm-auth-text-muted);
   line-height: normal;
 }
 
@@ -216,10 +216,8 @@
 }
 
 .figmaInput:focus-visible {
-  border-color: rgb(255 255 255 / 90%) !important;
-  box-shadow:
-    0 2px 8px rgb(0 0 0 / 10%),
-    0 0 0 2px rgb(72 199 142 / 24%) !important;
+  border-color: var(--fm-auth-control-focus-border) !important;
+  box-shadow: var(--fm-auth-control-focus-shadow) !important;
 }
 
 .figmaInputError {
@@ -242,13 +240,13 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #6f7e89;
+  color: var(--fm-auth-icon-muted);
   cursor: pointer;
 }
 
 .passwordToggle:hover,
 .authPasswordToggle:hover {
-  background: rgb(255 255 255 / 45%);
+  background: var(--fm-auth-control-hover-surface);
 }
 
 .passwordToggle img,
@@ -269,7 +267,7 @@
 .forgotButton {
   height: auto;
   padding: 0;
-  color: #5a6672;
+  color: var(--fm-auth-text-muted);
   font-size: 13px;
   font-weight: 500;
   line-height: 16px;
@@ -277,7 +275,7 @@
 
 .forgotButton:hover {
   background: transparent;
-  color: #5a6672;
+  color: var(--fm-auth-text-muted);
 }
 
 .loginFieldError {
@@ -492,7 +490,7 @@
   border-radius: 16px;
   background: var(--fm-auth-action);
   box-shadow: var(--fm-auth-action-shadow);
-  color: rgb(255 255 255 / 94%);
+  color: var(--fm-auth-action-text);
   font-family: var(--fm-font);
   font-size: 16px;
   font-weight: 700;
@@ -501,14 +499,14 @@
 .primaryAction:hover,
 .primaryAction:focus-visible {
   border-color: var(--fm-auth-action-border);
-  background: rgba(72, 199, 142, 0.82);
+  background: var(--fm-auth-action-hover);
 }
 
 .primaryActionDisabled {
-  border-color: #c5d0dd !important;
-  background: #c5d0dd !important;
+  border-color: var(--fm-auth-submit-disabled-border) !important;
+  background: var(--fm-auth-submit-disabled-surface) !important;
   box-shadow: none;
-  color: #6f8299 !important;
+  color: var(--fm-auth-submit-disabled-text) !important;
 }
 
 .actions {
@@ -531,7 +529,7 @@
   width: 100%;
   align-items: center;
   gap: 12px;
-  color: #5a6672;
+  color: var(--fm-auth-text-muted);
   font-family: var(--fm-font);
   font-size: 13px;
 }
@@ -570,7 +568,7 @@
 }
 
 .signupPrompt {
-  color: #5a6672;
+  color: var(--fm-auth-text-muted);
   font-size: 14px;
 }
 

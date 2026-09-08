@@ -2,6 +2,13 @@
 
 更新时间：2026-09-08
 
+## 1.1.2 Auth 登录页 Token 增量收口（2026-09-08）
+
+- [x] 对照 Figma 节点 `647:214`，将登录默认态仍散落在页面 CSS 中的品牌、辅助文字、图标、聚焦、悬停和禁用语义值归入 `tokens.css`；颜色值未改变。
+- [x] 既有登录画板证据为 `1440×900`、DPR 1、字体加载完成、无页面溢出；自动 diff 为 `3.7948%`，MAE `0.564625`，RMSE `7.545339`，最大通道差异 `213`。
+- [x] 差异主要保留为字体和浏览器光栅化差异，页面几何与交互结构已人工核对；结论继续为 `DIFF_REVIEW`，不标记为 `PASS`。
+- [ ] 本次为 Auth 增量收口，不重新生成 105 个画板的全量截图和 diff；全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.1.1 默认头像全路由运行时审计（2026-09-08）
 
 - [x] 在本地服务 `127.0.0.1:5188` 逐路由检查 Workspace、Chat 默认态和六类 Agent 状态、Profile、Admin、Planning、Analysis、Knowledge；所有人物头像 `<img>` 的 `src` 仅为 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`。
