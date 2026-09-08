@@ -2582,3 +2582,14 @@
 | 前端验证 | 在 `foodmate-ui` 执行 `npm.cmd test -- --maxWorkers=1`：`46` 个测试文件、`303 passed`；`npm.cmd run typecheck` 通过；`npm.cmd run build` 通过，Vite 转换 `2018` 个模块。单 worker 仅用于本机业务回归稳定性，不作为性能结论。 |
 | 配置验证 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；PostgreSQL 只读检查未执行迁移，当前应用遵循人工 SQL 迁移约定。 |
 | 计划结论 | R1-R4、R6-R8 及 M3 可审计业务门禁均有代码和业务测试证据；R5 正式 WHO 资料已完成 `stub + Redis` K2 索引，但真实 Embedding/Milvus 全量重建仍待用户授权。压测、长稳、完整重启/ACK/重复投递故障矩阵、生产部署、备份恢复和发布回滚继续后置。 |
+
+## D173 R5 正式真实 Embedding 授权前置复核（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；只读检查仓库配置、9 份正式 WHO 资料和当前 K2 解析结果，未修改数据库、Redis、RocketMQ、Milvus 或 MinIO。 |
+| 配置核对 | 根 `.env` 使用 `FOODMATE_DOCKER_RAG_*` 主机侧变量，Compose 映射为容器内 `FOODMATE_RAG_*`；当前为 `local + openai-compatible`、SiliconFlow `Qwen/Qwen3-Embedding-0.6B`，目标 collection 为 `foodmate_knowledge_chunks_qwen3_embedding_0_6b`。API Key 仅确认已配置，不写入本记录。 |
+| 资料与切分 | manifest 为 9 份 WHO 中文 Markdown，`embedding_status` 仍为“未构建向量”；使用 `parse_document` 和 K2 `chunk_markdown` 计算解析正文约 `5,735` 字符、`50` 个 chunk，未调用真实 Embedding。 |
+| 费用估算 | Worker `_estimate_tokens` 估算 `1,292` 个 embedding token；按当前本机价格快照 `0.07 CNY/百万 Token` 估算约 `0.00009044 CNY`。单批 9 文件低于 20 文件上限，预计低于单批 `100,000` token/`1 CNY` 和单日 `1,000,000` token/`10 CNY` 限额；最终以供应商 usage 和任务结果为准。 |
+| 安全边界 | 本轮未调用真实 Embedding/Chat，未写入 Milvus，未改变正式 `stub + Redis` 批次，未执行数据库清理、迁移、TRUNCATE、性能压测、重启矩阵、ACK/重复投递故障注入、备份恢复或生产操作。 |
+| 结论 | 配置来源和预算前置检查通过；正式 WHO 资料的真实 Embedding/Milvus 全量重建保持“待用户明确授权”。获授权后需再次确认 API Key、模型指纹和隔离 collection，再执行真实批次并回读 usage、9/9 状态、引用与下线过滤。 |
