@@ -169,6 +169,7 @@ describe('WorkspaceLayout shell controls', () => {
       'src',
       '/assets/avatars/default-male.svg',
     );
+    expect(container.querySelector('[data-shell-avatar-policy="default-only"]')).toBeInTheDocument();
   });
 
   it('forces mock shell avatars to the registered SVGs even when a stale upload is supplied', () => {
@@ -186,6 +187,34 @@ describe('WorkspaceLayout shell controls', () => {
       '/assets/avatars/default-male.svg',
     );
     expect(container.querySelectorAll('[data-avatar-policy="default-only"]')).toHaveLength(2);
+    expect(container.querySelector('[data-avatar-role="workspace-sidebar"]')).toHaveAttribute(
+      'src',
+      '/assets/avatars/default-male.svg',
+    );
+    expect(container.querySelector('[data-avatar-role="workspace-topbar"]')).toHaveAttribute(
+      'src',
+      '/assets/avatars/default-male.svg',
+    );
+  });
+
+  it('keeps an explicit Figma Fixture shell on the default-only avatar policy', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout avatarSrc="/api/users/me/avatar" fixtureVariant="home" sidebarFixture={{ sessions: [] }}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('[data-shell-avatar-policy="default-only"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-avatar-role="workspace-sidebar"]')).toHaveAttribute(
+      'src',
+      '/assets/avatars/default-male.svg',
+    );
+    expect(container.querySelector('[data-avatar-role="workspace-topbar"]')).toHaveAttribute(
+      'src',
+      '/assets/avatars/default-male.svg',
+    );
   });
 
   it.each([

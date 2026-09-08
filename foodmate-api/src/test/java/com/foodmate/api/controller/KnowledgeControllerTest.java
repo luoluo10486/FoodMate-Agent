@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -104,6 +105,22 @@ class KnowledgeControllerTest {
                                 .content("{\"status\":\"indexed\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code", is("FORBIDDEN")));
+    }
+
+    @Test
+    void adminCanRequestDocumentReindex() throws Exception {
+        when(accounts.requireSessionUser("admin-session")).thenReturn(user("admin"));
+
+        mvc.perform(
+                        post("/api/admin/knowledge-upload-batches/77/documents/42/reindex")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "admin-session")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.updated", is(true)))
+                .andExpect(jsonPath("$.data.status", is("pending")));
+
+        verify(knowledge).reindexItem(anyLong(), anyLong(), anyLong(), anyString());
     }
 
     private UserAccountService.UserRecord user(String role) {

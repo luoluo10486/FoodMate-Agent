@@ -17,7 +17,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { FigmaWorkspaceAsset } from '../../components/workspace/FigmaWorkspaceAsset';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { FIGMA_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import { getAuthUser } from '../../services/authService';
 import { getHomeSessions, getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
 import type { SessionSummary } from '../../types/session';
@@ -64,8 +64,8 @@ const figmaHomeStateSidebarSessions: SessionSummary[] = [
   { id: 'hydration-electrolytes', title: '补水与电解质', subtitle: '12:45' },
 ];
 
-const FIGMA_HOME_SIDEBAR_AVATAR = FIGMA_WORKSPACE_AVATARS.sidebar;
-const FIGMA_HOME_TOPBAR_AVATAR = FIGMA_WORKSPACE_AVATARS.topbar;
+const FIXTURE_HOME_SIDEBAR_AVATAR = FIXTURE_WORKSPACE_AVATARS.sidebar;
+const FIXTURE_HOME_TOPBAR_AVATAR = FIXTURE_WORKSPACE_AVATARS.topbar;
 
 type HomeState = 'default' | 'loading' | 'empty' | 'error' | 'input-states';
 
@@ -250,8 +250,8 @@ export function HomePage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       fixtureVariant={isFigmaFixture ? 'home' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? FIGMA_HOME_SIDEBAR_AVATAR : undefined}
-      topAvatarSrc={isFigmaFixture ? FIGMA_HOME_TOPBAR_AVATAR : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_HOME_SIDEBAR_AVATAR : undefined}
+      topAvatarSrc={isFigmaFixture ? FIXTURE_HOME_TOPBAR_AVATAR : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={
         isFigmaFixture ? { currentPage: 1, sessionCountLabel: '共 15 条会话', sessions: stateSessions } : undefined

@@ -62,11 +62,25 @@
   --fm-auth-ink: #2a3439;
   --fm-auth-copy: #4a5568;
   --fm-auth-placeholder: #9daab5;
+  /* 登录画板 647:214 的品牌、控件和辅助文字语义 Token。 */
+  --fm-auth-logo-placeholder-border: #999999;
+  --fm-auth-logo-placeholder-surface: #d9d9d9;
+  --fm-auth-wordmark-accent: #2e7d32;
+  --fm-auth-text-muted: #5a6672;
+  --fm-auth-icon-muted: #6f7e89;
+  --fm-auth-control-focus-border: rgb(255 255 255 / 90%);
+  --fm-auth-control-focus-shadow: 0 2px 8px rgb(0 0 0 / 10%), 0 0 0 2px rgb(72 199 142 / 24%);
+  --fm-auth-control-hover-surface: rgb(255 255 255 / 45%);
   --fm-auth-action: rgba(72, 199, 142, 0.7);
   --fm-auth-action-border: rgba(72, 199, 142, 0.5);
+  --fm-auth-action-hover: rgba(72, 199, 142, 0.82);
+  --fm-auth-action-text: rgb(255 255 255 / 94%);
   --fm-auth-control: rgba(255, 255, 255, 0.65);
   --fm-auth-control-border: rgba(255, 255, 255, 0.6);
   --fm-auth-control-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --fm-auth-submit-disabled-border: #c5d0dd;
+  --fm-auth-submit-disabled-surface: #c5d0dd;
+  --fm-auth-submit-disabled-text: #6f8299;
   --fm-auth-form-control-border: #ffffff;
   --fm-auth-form-control-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   --fm-auth-brand-shadow: 0 4px 4px rgba(72, 199, 142, 0.25);

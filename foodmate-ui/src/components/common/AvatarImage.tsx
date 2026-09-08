@@ -1,5 +1,10 @@
 import { useState, type ImgHTMLAttributes } from 'react';
-import { DEFAULT_AVATARS, getDefaultAvatarForGender, resolveAvatarUrl } from '../../lib/avatar';
+import {
+  DEFAULT_AVATARS,
+  getDefaultAvatarForGender,
+  isRegisteredDefaultAvatar,
+  resolveAvatarUrl,
+} from '../../lib/avatar';
 
 type AvatarImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
   avatarUrl?: string;
@@ -28,6 +33,7 @@ export function AvatarImage({ avatarUrl, gender, defaultOnly = false, onError, .
       : displaySource === DEFAULT_AVATARS.male
         ? 'default-male'
         : 'uploaded';
+  const isRegisteredDefault = isRegisteredDefaultAvatar(displaySource);
 
   return (
     <img
@@ -35,6 +41,7 @@ export function AvatarImage({ avatarUrl, gender, defaultOnly = false, onError, .
       src={displaySource}
       data-avatar-source={sourceKind}
       data-avatar-policy={defaultOnly ? 'default-only' : 'uploaded-allowed'}
+      data-avatar-registered={isRegisteredDefault ? 'true' : 'false'}
       onError={(event) => {
         setFailure({ key: avatarKey, failed: true });
         onError?.(event);

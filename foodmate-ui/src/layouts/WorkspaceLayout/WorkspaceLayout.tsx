@@ -133,13 +133,16 @@ export function WorkspaceLayout({
   const currentAuth = authScenarios.find((item) => item.status === authStatus) ?? authScenarios[0];
   const isAuthenticated = authStatus === 'authenticated';
   const canAccessAdmin = isAuthenticated && ['admin', 'operator', 'superadmin'].includes(authUser.role);
-  const defaultAvatar = resolveAvatarUrl(avatarSrc ?? authUser.avatarUrl, authUser.gender);
+  const isFixtureLayout = Boolean(fixtureVariant || designChat || sidebarFixture);
+  // Figma 工作台的示例账号固定为男性；不能让当前登录缓存的性别改变 Fixture 视觉和资源来源。
+  const layoutAvatarGender = isFixtureLayout ? '男' : authUser.gender;
+  const defaultAvatar = resolveAvatarUrl(avatarSrc ?? authUser.avatarUrl, layoutAvatarGender);
   // 所有布局覆盖头像都必须经过统一解析，阻断历史 Figma 人物素材绕过默认资源策略。
   // 只有传入 Fixture 覆盖头像时才使用覆盖值，真实模式默认沿用用户上传头像。
-  const sidebarAvatar = sidebarAvatarSrc ? resolveAvatarUrl(sidebarAvatarSrc, authUser.gender) : defaultAvatar;
-  const topAvatar = topAvatarSrc ? resolveAvatarUrl(topAvatarSrc, authUser.gender) : defaultAvatar;
+  const sidebarAvatar = sidebarAvatarSrc ? resolveAvatarUrl(sidebarAvatarSrc, layoutAvatarGender) : defaultAvatar;
+  const topAvatar = topAvatarSrc ? resolveAvatarUrl(topAvatarSrc, layoutAvatarGender) : defaultAvatar;
   // Mock/Fixture 页面没有真实用户上传语义，必须只展示登记的男女默认 SVG。
-  const defaultOnlyAvatar = !realMode || Boolean(fixtureVariant || designChat);
+  const defaultOnlyAvatar = !realMode || isFixtureLayout;
   const displayName = displayNameOverride ?? (isAuthenticated ? authUser.displayName : '登录');
   const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
   const displayedSessions = sidebarFixture?.sessions ?? sessions;
@@ -250,6 +253,8 @@ export function WorkspaceLayout({
     <TooltipProvider delayDuration={300}>
       <div
         className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${isFigmaSidebarFixture ? styles.figmaFixture : ''} ${sidebarFixture?.hideSessionPagination ? styles.compactSessionFixture : ''}`}
+        data-shell-avatar-policy={defaultOnlyAvatar ? 'default-only' : 'uploaded-allowed'}
+        data-shell-avatar-assets="default-male.svg,default-female.svg"
       >
         <aside className={`${styles.sidebar} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}>
           {showFixtureWindowControls ? (
@@ -366,9 +371,10 @@ export function WorkspaceLayout({
             <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
               <div className={styles.avatar}>
                 <AvatarImage
-                  avatarUrl={sidebarAvatar}
+                  avatarUrl={defaultOnlyAvatar ? undefined : sidebarAvatar}
+                  data-avatar-role="workspace-sidebar"
                   defaultOnly={defaultOnlyAvatar}
-                  gender={authUser.gender}
+                  gender={layoutAvatarGender}
                   alt=""
                 />
               </div>
@@ -479,9 +485,10 @@ export function WorkspaceLayout({
                   <Button className={styles.userButton} variant="ghost" type="button">
                     <span className={styles.topAvatar}>
                       <AvatarImage
-                        avatarUrl={topAvatar}
+                        avatarUrl={defaultOnlyAvatar ? undefined : topAvatar}
+                        data-avatar-role="workspace-topbar"
                         defaultOnly={defaultOnlyAvatar}
-                        gender={authUser.gender}
+                        gender={layoutAvatarGender}
                         alt=""
                       />
                     </span>

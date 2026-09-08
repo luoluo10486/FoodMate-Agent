@@ -10,6 +10,7 @@ describe('AvatarImage', () => {
 
     expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-source', 'default-female');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-registered', 'true');
   });
 
   it('rejects encoded Figma asset URLs and keeps the gender-specific default', () => {
@@ -47,6 +48,7 @@ describe('AvatarImage', () => {
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
+    expect(image).toHaveAttribute('data-avatar-registered', 'true');
   });
 
   it('uses the gender-matched default when a Fixture override has the wrong gender', () => {

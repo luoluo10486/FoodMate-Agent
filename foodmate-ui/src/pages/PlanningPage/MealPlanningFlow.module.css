@@ -143,6 +143,16 @@
   font-weight: 700;
 }
 
+.tabsRoot {
+  display: contents;
+}
+
+.listTabs [data-state='active'].listTabActive {
+  /* 列表筛选活动面沿用 Figma 绿色语义，不叠加 Tabs 默认阴影。 */
+  background: rgba(223, 238, 219, 0.1);
+  box-shadow: none;
+}
+
 .planList {
   display: grid;
   min-width: 0;

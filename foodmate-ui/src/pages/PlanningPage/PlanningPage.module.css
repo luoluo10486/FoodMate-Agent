@@ -653,6 +653,16 @@
   color: #c79654;
 }
 
+.tabsRoot {
+  display: contents;
+}
+
+.dayButtons [data-state='active'].dayButtonActive {
+  /* 日期卡是 Figma 的独立边框页签，不使用 shadcn 的默认活动阴影。 */
+  background: rgba(255, 246, 226, 0.1);
+  box-shadow: none;
+}
+
 .mealRow {
   display: contents;
 }

@@ -65,7 +65,7 @@ public interface KnowledgeMapper {
             @Param("size") long size);
 
     @Insert(
-            "WITH source AS (SELECT CAST(#{payload} AS jsonb) AS requested_payload), base AS (SELECT requested_payload,CASE WHEN requested_payload='{}'::jsonb THEN COALESCE((SELECT payload_json FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' ORDER BY outbox_id DESC LIMIT 1),requested_payload) ELSE requested_payload END AS payload FROM source) INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) SELECT #{outboxId},#{itemId},'foodmate-knowledge-index-v1',jsonb_set(payload,'{attempt}',CASE WHEN requested_payload='{}'::jsonb THEN '1'::jsonb WHEN jsonb_exists(payload,'attempt') THEN payload->'attempt' ELSE '1'::jsonb END,true) FROM base")
+            "WITH source AS (SELECT CAST(#{payload} AS jsonb) AS requested_payload), base AS (SELECT requested_payload,COALESCE((SELECT payload_json FROM knowledge_index_outbox WHERE item_id=#{itemId} AND topic='foodmate-knowledge-index-v1' ORDER BY outbox_id DESC LIMIT 1),'{}'::jsonb) AS previous_payload FROM source), merged AS (SELECT requested_payload,CASE WHEN requested_payload='{}'::jsonb THEN previous_payload ELSE previous_payload || requested_payload END AS payload FROM base) INSERT INTO knowledge_index_outbox(outbox_id,item_id,topic,payload_json) SELECT #{outboxId},#{itemId},'foodmate-knowledge-index-v1',jsonb_set(payload,'{attempt}',CASE WHEN requested_payload='{}'::jsonb THEN '1'::jsonb WHEN jsonb_exists(payload,'attempt') THEN payload->'attempt' ELSE '1'::jsonb END,true) FROM merged")
     void insertIndexOutbox(
             @Param("outboxId") long outboxId,
             @Param("itemId") long itemId,
@@ -185,7 +185,7 @@ public interface KnowledgeMapper {
             @Param("documentId") long documentId, @Param("version") String version);
 
     @Update(
-            "UPDATE knowledge_chunks SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND document_version=#{version} AND is_deleted=FALSE")
+            "UPDATE knowledge_chunks SET is_deleted=TRUE,embedding_id=NULL,deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE document_id=#{documentId} AND document_version=#{version} AND is_deleted=FALSE")
     void softDeleteVersionChunks(
             @Param("documentId") long documentId, @Param("version") String version);
 
@@ -250,6 +250,10 @@ public interface KnowledgeMapper {
     @Update(
             "UPDATE knowledge_import_items SET index_status='pending',attempt_count=0,chunk_count=NULL,indexed_at=NULL,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND job_id=#{jobId} AND index_status='index_failed'")
     int resetItem(@Param("itemId") long itemId, @Param("jobId") long jobId);
+
+    @Update(
+            "UPDATE knowledge_import_items SET index_status='pending',attempt_count=0,chunk_count=NULL,indexed_at=NULL,error_code=NULL,error_summary=NULL,updated_at=CURRENT_TIMESTAMP WHERE item_id=#{itemId} AND job_id=#{jobId} AND index_status IN ('indexed','index_failed')")
+    int resetItemForReindex(@Param("itemId") long itemId, @Param("jobId") long jobId);
 
     @org.apache.ibatis.annotations.Delete(
             "DELETE FROM knowledge_index_result_inbox WHERE item_id=#{itemId}")

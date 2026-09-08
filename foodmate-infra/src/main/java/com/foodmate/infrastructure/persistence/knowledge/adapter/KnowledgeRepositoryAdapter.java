@@ -293,7 +293,33 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
 
     @Override
     public int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload) {
-        int changed = mapper.resetItem(itemId, jobId);
+        return enqueueItem(
+                mapper.resetItem(itemId, jobId),
+                itemId,
+                jobId,
+                outboxId,
+                payload,
+                "retry");
+    }
+
+    @Override
+    public int reindexItem(long itemId, long jobId, long operatorId, long outboxId, String payload) {
+        return enqueueItem(
+                mapper.resetItemForReindex(itemId, jobId),
+                itemId,
+                jobId,
+                outboxId,
+                payload,
+                "reindex");
+    }
+
+    private int enqueueItem(
+            int changed,
+            long itemId,
+            long jobId,
+            long outboxId,
+            String payload,
+            String eventName) {
         if (changed == 1) {
             mapper.deleteResultInbox(itemId);
             mapper.insertIndexOutbox(outboxId, itemId, payload);
@@ -302,7 +328,7 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
                     ids.nextId(),
                     jobId,
                     itemId,
-                    "knowledge.index.retry",
+                    "knowledge.index." + eventName,
                     "{\"item_id\":" + itemId + ",\"status\":\"pending\"}");
             JobView progress = mapper.job(jobId);
             mapper.insertJobEvent(

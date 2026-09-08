@@ -3,33 +3,36 @@ export const DEFAULT_AVATARS = {
   female: '/assets/avatars/default-female.svg',
 } as const;
 
+/** 运行时默认头像白名单，所有 Fixture 人物头像必须从这里选择。 */
+export const REGISTERED_DEFAULT_AVATARS = Object.values(DEFAULT_AVATARS);
+
 // Figma 工作台示例账号使用项目登记的男性默认头像，避免运行时加载真人素材。
-export const FIGMA_WORKSPACE_AVATARS = {
+export const FIXTURE_WORKSPACE_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
 } as const;
 
 // Knowledge Figma fixture 使用项目登记的男性默认头像。
-export const FIGMA_KNOWLEDGE_AVATARS = {
+export const FIXTURE_KNOWLEDGE_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
 } as const;
 
 // Profile Figma fixture 的示例账号为男性，所有默认头像统一使用男性资源。
-export const FIGMA_PROFILE_AVATARS = {
+export const FIXTURE_PROFILE_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
   main: DEFAULT_AVATARS.male,
 } as const;
 
 // Admin Figma fixture 的示例账号为男性，统一使用男性默认头像。
-export const FIGMA_ADMIN_AVATARS = {
+export const FIXTURE_ADMIN_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   userDetail: DEFAULT_AVATARS.male,
 } as const;
 
 // Chat Figma fixture 同时包含男性账号头像和女性消息示例头像。
-export const FIGMA_CHAT_AVATARS = {
+export const FIXTURE_CHAT_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
   message: DEFAULT_AVATARS.female,
@@ -63,6 +66,10 @@ function isTrustedUploadedAvatarUrl(value: string): boolean {
   return uploadedAvatarPathPattern.test(value) || localPreviewPattern.test(value);
 }
 
+export function isRegisteredDefaultAvatar(value: string): boolean {
+  return REGISTERED_DEFAULT_AVATARS.includes(value as (typeof REGISTERED_DEFAULT_AVATARS)[number]);
+}
+
 export function getDefaultAvatarForGender(gender?: string): string | undefined {
   const normalized = gender?.trim().toLowerCase();
   if (normalized === '女' || normalized === 'female' || normalized === 'f') return DEFAULT_AVATARS.female;
@@ -74,7 +81,8 @@ export function resolveAvatarUrl(avatarUrl?: string, gender?: string): string {
   const genderDefault = getDefaultAvatarForGender(gender) ?? DEFAULT_AVATARS.male;
   const candidate = avatarUrl?.trim();
   if (!candidate) return genderDefault;
-  if (candidate === DEFAULT_AVATARS.male || candidate === DEFAULT_AVATARS.female) return candidate;
+  // 历史缓存可能保留另一性别的默认 SVG，读取时必须按当前性别重新归一化。
+  if (isRegisteredDefaultAvatar(candidate)) return genderDefault;
   if (!isLegacyFigmaAvatarUrl(candidate) && isTrustedUploadedAvatarUrl(candidate)) return candidate;
   // 未登记的历史人物素材、外部图片和旧缓存都不能作为默认头像继续展示。
   return genderDefault;

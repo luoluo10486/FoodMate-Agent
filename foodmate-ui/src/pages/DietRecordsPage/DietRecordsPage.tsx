@@ -21,7 +21,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { FIGMA_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import {
   createFoodLog,
@@ -880,8 +881,8 @@ export function DietRecordsPage() {
       fixtureVariant={isFigmaFixture ? 'diet-records' : undefined}
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.sidebar : undefined}
-      topAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.topbar : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.sidebar : undefined}
+      topAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.topbar : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       showWindowControls={isFigmaFixture && recordsState === 'default'}
       sidebarFixture={
@@ -930,28 +931,16 @@ export function DietRecordsPage() {
                 <ChevronRight aria-hidden="true" />
               </Button>
             </div>
-            <div className={styles.viewSwitch} role="tablist" aria-label="记录视图">
-              <Button
-                className={view === 'day' ? styles.viewActive : ''}
-                variant="ghost"
-                type="button"
-                role="tab"
-                aria-selected={view === 'day'}
-                onClick={() => setView('day')}
-              >
-                日视图
-              </Button>
-              <Button
-                className={view === 'week' ? styles.viewActive : ''}
-                variant="ghost"
-                type="button"
-                role="tab"
-                aria-selected={view === 'week'}
-                onClick={() => setView('week')}
-              >
-                周视图
-              </Button>
-            </div>
+            <Tabs className={styles.tabsRoot} value={view} onValueChange={(value) => setView(value as 'day' | 'week')}>
+              <TabsList aria-label="记录视图" className={styles.viewSwitch}>
+                <TabsTrigger className={view === 'day' ? styles.viewActive : ''} value="day">
+                  日视图
+                </TabsTrigger>
+                <TabsTrigger className={view === 'week' ? styles.viewActive : ''} value="week">
+                  周视图
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </header>
 
           {visibleState === 'loading' ? (

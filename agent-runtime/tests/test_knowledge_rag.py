@@ -65,6 +65,33 @@ class _MilvusClient:
         self.deletes.append(kwargs)
 
 
+class _QueryIterator:
+    def __init__(self, rows):
+        self.rows = rows
+        self.closed = False
+
+    def next(self):
+        if not self.rows:
+            return []
+        return self.rows.pop(0)
+
+    def close(self):
+        self.closed = True
+
+
+class _PaginatedMilvusClient(_MilvusClient):
+    def __init__(self):
+        super().__init__()
+        self.rows.append({**self.rows[0], "embedding_id": "old-2"})
+        self.iterator = None
+
+    def query_iterator(self, **kwargs):
+        self.filters.append(kwargs["filter"])
+        rows = [dict(row) for row in self.rows if row["version"] == "v1"]
+        self.iterator = _QueryIterator([[row] for row in rows])
+        return self.iterator
+
+
 class _VectorMilvusClient:
     def __init__(self, dimension=None):
         self.dimension = dimension
@@ -111,6 +138,28 @@ class MilvusIndexTests(TestCase):
         self.assertEqual(['document_id == "d1" and version == "v1"'], index.client.filters)
         self.assertEqual("published", index.client.upserts[0][0]["visibility"])
         self.assertEqual("v1", index.client.upserts[0][0]["version"])
+
+    def test_visibility_update_reads_all_paginated_entities(self):
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _PaginatedMilvusClient()
+        index.collection = "public_knowledge"
+
+        index.update_visibility("d1", "published", False, True, "v1")
+
+        self.assertEqual(2, len(index.client.upserts[0]))
+        self.assertTrue(index.client.iterator.closed)
+        self.assertTrue(all(row["visibility"] == "published" for row in index.client.upserts[0]))
+
+    def test_visibility_update_retries_when_non_deleted_target_is_not_indexed(self):
+        index = MilvusIndex.__new__(MilvusIndex)
+        index.client = _MilvusClient()
+        index.client.rows = []
+        index.collection = "public_knowledge"
+
+        with self.assertRaisesRegex(RagError, "not indexed") as raised:
+            index.update_visibility("d1", "published", False, True, "v1")
+
+        self.assertEqual("RAG_MILVUS_VISIBILITY_TARGET_NOT_FOUND", raised.exception.code)
 
     def test_upsert_initializes_collection_from_actual_vector_dimension(self):
         settings = RagSettings(

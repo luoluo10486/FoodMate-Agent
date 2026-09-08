@@ -392,7 +392,7 @@ class KnowledgeServiceImplTest {
         assertThrows(
                 IllegalArgumentException.class, () -> service.retryItem(77L, 42L, 7L, "trace-1"));
 
-        verify(audit)
+                verify(audit)
                 .recordFailure(
                         any(TraceContext.class),
                         eq(7L),
@@ -401,6 +401,64 @@ class KnowledgeServiceImplTest {
                         eq("knowledge.import_item.retry"),
                         eq("failed"),
                         eq("INVALID_ARGUMENT"),
+                        isNull(),
+                        isNull(),
+                        any());
+    }
+
+    @Test
+    void reindexIndexedItemCreatesAuditAndQueuesNewFact() {
+        KnowledgeRepository repository = mock(KnowledgeRepository.class);
+        ObjectStoragePort storage = mock(ObjectStoragePort.class);
+        IdGenerator ids = mock(IdGenerator.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        when(repository.job(77L))
+                .thenReturn(new KnowledgeRepository.JobView(77L, "completed", 1, 1, 0));
+        when(repository.jobItems(77L))
+                .thenReturn(
+                        java.util.List.of(
+                                new KnowledgeRepository.ItemView(
+                                        88L,
+                                        42L,
+                                        "guide.md",
+                                        "uploaded",
+                                        "indexed",
+                                        1,
+                                        null)));
+        when(ids.nextId()).thenReturn(99L, 100L);
+        when(repository.reindexItem(
+                        88L,
+                        77L,
+                        7L,
+                        99L,
+                        "{\"mode\":\"stub\",\"reindex_id\":\"100\",\"attempt\":1}"))
+                .thenReturn(1);
+        KnowledgeServiceImpl service =
+                new KnowledgeServiceImpl(
+                        provider(repository),
+                        provider(storage),
+                        provider(ids),
+                        "foodmate-private",
+                        provider(audit));
+
+        service.reindexItem(77L, 42L, 7L, "trace-1");
+
+        verify(repository)
+                .reindexItem(
+                        88L,
+                        77L,
+                        7L,
+                        99L,
+                        "{\"mode\":\"stub\",\"reindex_id\":\"100\",\"attempt\":1}");
+        verify(audit)
+                .record(
+                        any(TraceContext.class),
+                        eq(7L),
+                        eq("knowledge_document"),
+                        eq("42"),
+                        eq("knowledge.import_item.reindex"),
+                        eq("success"),
+                        isNull(),
                         isNull(),
                         isNull(),
                         any());

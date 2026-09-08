@@ -457,7 +457,14 @@ public class LocalStubPersistenceConfig {
             public void insertJobEvent(
                     long eventId, long jobId, Long itemId, String eventType, String payload) {}
 
+            @Override
             public int retryItem(
+                    long itemId, long jobId, long operatorId, long outboxId, String payload) {
+                return 0;
+            }
+
+            @Override
+            public int reindexItem(
                     long itemId, long jobId, long operatorId, long outboxId, String payload) {
                 return 0;
             }

@@ -48,7 +48,7 @@ import {
   type AdminUserDetail,
   updateAdminUserStatus,
 } from '../../../services/adminService';
-import { FIGMA_ADMIN_AVATARS, resolveAvatarUrl } from '../../../lib/avatar';
+import { FIXTURE_ADMIN_AVATARS, resolveAvatarUrl } from '../../../lib/avatar';
 import { AvatarImage } from '../../../components/common/AvatarImage';
 
 const isMockMode = import.meta.env.VITE_AGENT_MODE !== 'real';
@@ -70,7 +70,7 @@ const figmaUserRows: AdminUserView[] = [
     displayName: 'Anddy 实验室',
     role: 'admin',
     status: 'active',
-    avatarUrl: FIGMA_ADMIN_AVATARS.userDetail,
+    avatarUrl: FIXTURE_ADMIN_AVATARS.userDetail,
     phone: '-',
     gender: '男',
     heightCm: 0,
@@ -634,6 +634,8 @@ function UserDetailCard({
       }));
   const displayName = profile?.display_name || user.displayName;
   const avatarSource = resolveAvatarUrl(user.avatarUrl, profile?.gender || user.gender);
+  // Figma 用户详情使用登记的默认头像；真实用户详情仍允许展示后端上传头像。
+  const isFixtureUser = isMockMode || user.key.startsWith('figma-');
 
   return (
     <Card className={styles.userDetailCard}>
@@ -658,7 +660,7 @@ function UserDetailCard({
         <div className={styles.userDetailAvatar} aria-hidden="true">
           <AvatarImage
             avatarUrl={avatarSource}
-            defaultOnly={isMockMode}
+            defaultOnly={isFixtureUser}
             gender={profile?.gender || user.gender}
             alt=""
           />

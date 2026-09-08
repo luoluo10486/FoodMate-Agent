@@ -109,6 +109,16 @@
   font-weight: 700;
 }
 
+.tabsRoot {
+  display: contents;
+}
+
+.viewSwitch [data-state='active'].viewActive {
+  /* Figma 视图切换保留原有浅色活动面，不叠加 Tabs 默认阴影。 */
+  background: #fbf4ff;
+  box-shadow: none;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

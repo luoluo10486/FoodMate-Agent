@@ -29,7 +29,7 @@ import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
 import { ErrorState } from '../../components/common/ErrorState';
 import { AvatarImage } from '../../components/common/AvatarImage';
-import { DEFAULT_AVATARS, FIGMA_CHAT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
+import { DEFAULT_AVATARS, FIXTURE_CHAT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
@@ -46,9 +46,9 @@ import {
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
 
-const FIGMA_CHAT_SIDEBAR_AVATAR = FIGMA_CHAT_AVATARS.sidebar;
-const FIGMA_CHAT_TOPBAR_AVATAR = FIGMA_CHAT_AVATARS.topbar;
-const FIGMA_CHAT_MESSAGE_AVATAR = FIGMA_CHAT_AVATARS.message;
+const FIXTURE_CHAT_SIDEBAR_AVATAR = FIXTURE_CHAT_AVATARS.sidebar;
+const FIXTURE_CHAT_TOPBAR_AVATAR = FIXTURE_CHAT_AVATARS.topbar;
+const FIXTURE_CHAT_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.message;
 
 type ChatMessage = {
   id: string;
@@ -90,15 +90,20 @@ function MessageBubble({
   message,
   children,
   userAvatarSrc,
+  userAvatarGender,
 }: {
   message: ChatMessage;
   children?: ReactNode;
   userAvatarSrc?: string;
+  userAvatarGender?: string;
 }) {
   const isUser = message.role === 'user';
   const authUser = getAuthUser();
   // 消息头像也走统一解析，避免历史 Fixture 路径通过组件参数直接渲染。
-  const userAvatar = resolveAvatarUrl(userAvatarSrc ?? authUser.avatarUrl, authUser.gender);
+  // 设计 Fixture 的消息性别可能与当前登录账号不同，优先采用消息自身登记的性别。
+  const resolvedGender = userAvatarGender ?? authUser.gender;
+  const userAvatar = resolveAvatarUrl(userAvatarSrc ?? authUser.avatarUrl, resolvedGender);
+  const fixtureAvatar = import.meta.env.VITE_AGENT_MODE !== 'real' || Boolean(userAvatarSrc || userAvatarGender);
   return (
     <article className={`${styles.message} ${isUser ? styles.user : styles.assistant}`}>
       {isUser ? (
@@ -108,9 +113,10 @@ function MessageBubble({
             <span className={styles.srOnly}>你</span>
             <span className={styles.userAvatar} aria-hidden="true">
               <AvatarImage
-                avatarUrl={userAvatar}
-                defaultOnly={Boolean(userAvatarSrc) || import.meta.env.VITE_AGENT_MODE !== 'real'}
-                gender={authUser.gender}
+                avatarUrl={fixtureAvatar ? undefined : userAvatar}
+                data-avatar-role={fixtureAvatar ? 'fixture-message' : 'authenticated-message'}
+                defaultOnly={fixtureAvatar}
+                gender={resolvedGender}
                 alt=""
               />
             </span>
@@ -1217,6 +1223,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               wide: isNavigationState,
             }}
             userAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
+            userAvatarGender="男"
           />
           <MessageBubble
             message={{
@@ -2125,8 +2132,8 @@ function MockChatPage() {
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       pageVariant={isFigmaFixture ? 'figma-default' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? FIGMA_CHAT_SIDEBAR_AVATAR : undefined}
-      topAvatarSrc={isFigmaFixture ? FIGMA_CHAT_TOPBAR_AVATAR : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_SIDEBAR_AVATAR : undefined}
+      topAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_TOPBAR_AVATAR : undefined}
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}
@@ -2136,7 +2143,8 @@ function MockChatPage() {
         <MessageBubble
           key={message.id}
           message={{ ...message, wide: isFigmaFixture }}
-          userAvatarSrc={isFigmaFixture ? FIGMA_CHAT_MESSAGE_AVATAR : undefined}
+          userAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_MESSAGE_AVATAR : undefined}
+          userAvatarGender={isFigmaFixture ? '女' : undefined}
         >
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
             <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />

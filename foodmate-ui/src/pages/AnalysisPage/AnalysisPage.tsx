@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FIGMA_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
 import type { SessionSummary } from '../../types/session';
@@ -272,8 +273,8 @@ export function AnalysisPage() {
       fixtureVariant={isFigmaFixture ? 'analysis' : undefined}
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.sidebar : undefined}
-      topAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.topbar : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.sidebar : undefined}
+      topAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.topbar : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       sidebarFixture={isFigmaFixture ? { sessions: figmaSidebarSessions } : undefined}
     >
@@ -286,44 +287,42 @@ export function AnalysisPage() {
           <header
             className={`${styles.filterRow} ${isFigmaFixture ? styles.figmaFilterRow : ''} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}
           >
-            <div className={styles.filters} role="tablist" aria-label="分析范围">
-              {(isRealMode ? ranges.filter((item) => item.key !== '90d') : ranges).map((item) => (
-                <Button
-                  className={range === item.key ? styles.rangeActive : ''}
-                  variant="ghost"
-                  key={item.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={range === item.key}
-                  onClick={() => setRange(item.key)}
-                  disabled={visibleState === 'loading' || visibleState === 'error'}
-                >
-                  {item.label}
-                </Button>
-              ))}
-              {showAdvancedFilters ? (
-                <>
-                  <Button
-                    className={styles.filterPill}
-                    variant="ghost"
-                    type="button"
-                    onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
-                    disabled={isRealMode}
+            <Tabs className={styles.tabsRoot} value={range} onValueChange={(value) => setRange(value as RangeKey)}>
+              <TabsList aria-label="分析范围" className={styles.filters}>
+                {(isRealMode ? ranges.filter((item) => item.key !== '90d') : ranges).map((item) => (
+                  <TabsTrigger
+                    className={range === item.key ? styles.rangeActive : ''}
+                    key={item.key}
+                    value={item.key}
+                    disabled={visibleState === 'loading' || visibleState === 'error'}
                   >
-                    自定义范围
-                  </Button>
-                  <Button
-                    className={styles.filterPill}
-                    variant="ghost"
-                    type="button"
-                    onClick={() => setNotice('当前分析覆盖全部餐次。')}
-                    disabled={isRealMode}
-                  >
-                    全部餐次
-                  </Button>
-                </>
-              ) : null}
-            </div>
+                    {item.label}
+                  </TabsTrigger>
+                ))}
+                {showAdvancedFilters ? (
+                  <>
+                    <Button
+                      className={styles.filterPill}
+                      variant="ghost"
+                      type="button"
+                      onClick={() => setNotice('自定义范围将在真实记录接入后启用。')}
+                      disabled={isRealMode}
+                    >
+                      自定义范围
+                    </Button>
+                    <Button
+                      className={styles.filterPill}
+                      variant="ghost"
+                      type="button"
+                      onClick={() => setNotice('当前分析覆盖全部餐次。')}
+                      disabled={isRealMode}
+                    >
+                      全部餐次
+                    </Button>
+                  </>
+                ) : null}
+              </TabsList>
+            </Tabs>
             <Button
               className={styles.exportButton}
               variant="ghost"

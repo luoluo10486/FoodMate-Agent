@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ROUTES } from '../../constants/routes';
-import { FIGMA_ADMIN_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
+import { FIXTURE_ADMIN_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
 import { AvatarImage } from '../../components/common/AvatarImage';
 import { adminOperationAuditRows } from '../../services/adminService';
 import { getAuthUser } from '../../services/authService';
@@ -808,10 +808,12 @@ export function AdminPage() {
   const fixtureUser = requestedFixture
     ? { displayName: 'Anddy', id: '1234567' }
     : { displayName: authUser.displayName, id: authUser.id };
+  // Figma 管理台示例账号固定使用男性默认头像，不受登录缓存性别影响。
+  const adminAvatarGender = requestedFixture ? '男' : authUser.gender;
   // 管理后台的 Fixture 和真实用户头像都统一从解析层进入 DOM。
   const adminAvatarSource = resolveAvatarUrl(
-    requestedFixture ? FIGMA_ADMIN_AVATARS.sidebar : authUser.avatarUrl,
-    authUser.gender,
+    requestedFixture ? FIXTURE_ADMIN_AVATARS.sidebar : authUser.avatarUrl,
+    adminAvatarGender,
   );
   const fixtureOperationStatus: AdminOperationState | undefined = requestedFixture?.startsWith('op-')
     ? requestedFixture.replace('op-', '') === 'no-permission'
@@ -985,7 +987,7 @@ export function AdminPage() {
               <AvatarImage
                 avatarUrl={adminAvatarSource}
                 defaultOnly={isMockMode || Boolean(requestedFixture)}
-                gender={authUser.gender}
+                gender={adminAvatarGender}
                 alt=""
               />
             </div>

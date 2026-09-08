@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { FIGMA_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import type { SessionSummary } from '../../types/session';
 import {
   createMealPlan,
@@ -361,24 +362,26 @@ function DefaultPlanningView({
         <h2 id="schedule-title">每周日程</h2>
         <div className={styles.scheduleGrid} style={scheduleColumns}>
           <div className={styles.scheduleSpacer} aria-hidden="true" />
-          <div className={styles.dayButtons} role="tablist" aria-label="每周日程日期" style={dayButtonColumns}>
-            {schedule.days.map((day) => (
-              <Button
-                className={`${styles.dayButton} ${activeDay === day.key ? styles.dayButtonActive : ''}`}
-                variant="ghost"
-                key={day.key}
-                type="button"
-                role="tab"
-                aria-selected={activeDay === day.key}
-                onClick={() => {
-                  setActiveDay(day.key);
-                  announce(`已查看${day.label}的计划。`);
-                }}
-              >
-                {day.label}
-              </Button>
-            ))}
-          </div>
+          <Tabs
+            className={styles.tabsRoot}
+            value={activeDay}
+            onValueChange={(value) => {
+              setActiveDay(value);
+              announce(`已查看${schedule.days.find((day) => day.key === value)?.label ?? ''}的计划。`);
+            }}
+          >
+            <TabsList aria-label="每周日程日期" className={styles.dayButtons} style={dayButtonColumns}>
+              {schedule.days.map((day) => (
+                <TabsTrigger
+                  className={`${styles.dayButton} ${activeDay === day.key ? styles.dayButtonActive : ''}`}
+                  key={day.key}
+                  value={day.key}
+                >
+                  {day.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           {schedule.rows.map((row) => (
             <div className={styles.mealRow} key={row.label}>
@@ -736,8 +739,8 @@ export function PlanningPage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       topbarVariant={isFigmaFixture && view === 'list' ? 'planning-list' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.sidebar : undefined}
-      topAvatarSrc={isFigmaFixture ? FIGMA_WORKSPACE_AVATARS.topbar : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.sidebar : undefined}
+      topAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.topbar : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       hideSessionHistory={isPlanningErrorFixture}
       sidebarFixture={

@@ -2429,3 +2429,179 @@
 | 首次失败与修复 | 首次跨端验收发现复合菜聚合饮食明细被旧 `food_log_items` 约束拒绝，以及版本更新软删除旧明细后无法插入相同 `item_order`；新增 V38/V39 和 `CompositeDishServiceImpl` 删除联动后重新构建并复验通过。 |
 | 测试数据清理 | 仅针对用户 `1788628850360127` 且名称以 `R8 Composite Rice` 开头、父记录已软删除的数据，将遗留活动组成明细 `12` 条软删除；未执行 `TRUNCATE`，未删除其他用户或正式业务数据，复核活动残留为 `0`。 |
 | 未完成边界 | R8 中 SQL Agent 跨进程真实调用、公共知识真实 Embedding/Milvus 索引与版本替换、记忆跨进程回读和真实浏览器布局证据不由本轮脚本替代；真实 Embedding/Milvus 仍按用户要求暂缓。生产性能、可靠性和运维项继续后置。 |
+
+## D160 R4 SQL Agent 真实云跨进程复验（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Docker Compose 的 Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy。管理员凭据只通过当前 PowerShell 进程注入，未写入仓库、日志或本记录。 |
+| 执行命令 | `script/local/real-sql-agent-e2e.ps1 -ExecutePaid`；付费门禁限制为 1 个场景、累计上限 `5 CNY`、`no_retry=true`、`require_cloud=true`。本轮修复 PowerShell 的 `System.Net.Http` 加载和异步流读取兼容性后重新执行。 |
+| 真实 Chat 与 SQL Planner | Planner 和 Composer 均实际使用 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`；PostgreSQL `model_usage_logs` 回读到 `sql_planner=1`、`composer=3`，均为 `success`，未使用 fallback。 |
+| Run/SSE | Run `355529010014326784`、Session `355529009968189440`；Run 最终为 `completed/normal`。完整 SSE 为 `stream_seq=1..18`，18 个事件 ID 全部唯一，唯一终态为 `run.completed`；使用末尾前一事件的 `Last-Event-ID` 回放返回 1 个终态事件，脚本校验通过。 |
+| SQL Agent 工具与审计 | ToolCall 实际包含 `time_parser`、`database_query`，均为 `success`；PostgreSQL `sql_query_audits` 为 `executed=2`、失败 `0`。 |
+| 数据清理 | 验收脚本默认清理成功，会话 `355529009968189440` 已软删除；Run、ToolCall、SQL 审计和模型用量事实保留用于复核。 |
+| 未执行范围 | 未执行性能压测、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递故障注入、备份恢复、生产部署或发布回滚；真实 Embedding/Milvus 知识库重建仍按用户要求暂缓。 |
+| 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> SQL Planner -> `time_parser`/`database_query` -> Java 只读 Guard 与 PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE 回放的 SQL Agent 业务闭环已取得新的直接证据。 |
+
+## D161 R1 营养候选与饮食记录真实业务验收（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker `foodmate`、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；管理员凭据只通过当前 PowerShell 进程注入，未写入仓库或执行记录。 |
+| 执行命令 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\script\\local\\real-nutrition-catalog-e2e.ps1`；脚本默认只清理本轮生成的饮食记录。 |
+| 候选搜索 | `GET /api/nutrition-foods/search` 查询“米饭”和“鸡胸肉”成功；明确选择 USDA 目录 `168878`（熟制白米）和 `171477`（熟制烤鸡胸肉），分别从 `12` 和 `4` 个候选中选出，未依赖模型猜测。 |
+| 饮食记录 | `POST /api/food-logs` 显式提交两个 `nutrition_food_id`，返回 `food_log_id=355540800953651200`、2 条明细且 `matched=2`；`GET /api/nutrition-analysis?range=today` 返回 `total_items=2`、`matched_items=2`、`coverage=1.0000`。 |
+| PostgreSQL 事实 | 记录最终通过正式 DELETE API 软删除，回读为 `is_deleted=true`、`revision=2`；`food_log_items` 的 2 条历史明细保留。对应 `operation_audits` 包含 `food_log.create=success` 与 `food_log.delete=success`，目标均为该记录。 |
+| 脚本兼容性 | 修复 Windows PowerShell 5.1 对 UTF-8 中文脚本和异步 HTTP 流的兼容性；`real-nutrition-catalog-e2e.tests.ps1`、`real-food-log-e2e.tests.ps1` 契约测试通过，两个入口的 PowerShell 5.1 解析均通过。 |
+| 未执行范围 | 未执行性能压测、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递、备份恢复、生产部署或真实 Embedding 重建。 |
+| 结论 | R1 的营养候选搜索 -> 明确目录 ID -> 饮食记录匹配 -> 营养分析 -> 软删除清理真实业务链路已通过；营养目录 PostgreSQL 权威值和统一审计事实闭合。 |
+
+## D162 R6 记忆修改、过期与删除真实回读（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker `foodmate` 与 `foodmate-postgres` healthy；管理员凭据只通过当前 PowerShell 进程注入，未写入仓库或执行记录。 |
+| 执行命令 | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\script\\local\\real-memory-e2e.ps1`；脚本只创建一个随机隔离记忆键，结束时精确软删除该记忆。 |
+| 跨进程回读 | 通过真实 `/api/memories` 回读 PostgreSQL：初始记忆可见；`PATCH /api/memories/{memoryId}` 后 `memory_value` 为 `r6-new` 且可见；将同一记录设置为过去时间后 API 不再返回。 |
+| 上下文门禁 | 对同一 `memory_id` 按 Java `AgentRunCommandMapper.memories` 的 `confirmed`、未删除、未过期和类型白名单条件执行 PostgreSQL 回读；有效阶段为 `1`，过期阶段为 `0`，删除阶段仍为 `0`。未输出完整 Prompt 或记忆正文到执行记录。 |
+| 审计事实 | `memory.update=success`、`memory.delete=success` 各 `1` 条；最终数据库记录为 `is_deleted=true`，测试数据未留下活动记忆。 |
+| 业务门禁 | `real-memory-e2e.tests.ps1` 契约测试通过，PowerShell 5.1 解析通过；本轮未调用 Chat/Embedding，不执行性能压测、依赖重启、ACK 丢失、重复投递、备份恢复或生产操作。 |
+| 结论 | 记忆修改、过期、删除 -> Java API/PostgreSQL 权威状态 -> 下一次上下文过滤的业务边界已取得真实本地证据；Python 上下文防御性过滤的既有 `61 passed` 证据继续有效。 |
+
+## D163 R7 关键业务页面浏览器复核（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；使用本地 Vite 前端和实际浏览器页面，未修改用户未提交的前端文件。 |
+| 桌面页面 | 实际打开并检查 `/analysis?view=records`、`/analysis`、`/planning`、`/knowledge`、`/profile/memories` 和 `/admin`；饮食记录、营养摘要、计划餐次/购物清单、知识库引用详情、记忆状态以及管理概览均正常渲染。 |
+| 业务控件 | 可访问性树确认主导航、日期/视图切换、分析范围、计划操作、知识库搜索/筛选、记忆状态/编辑/删除以及管理筛选/刷新/分页控件存在；没有把页面静态文本当作写入成功证据。 |
+| 布局检查 | 桌面截图未发现关键内容遮挡或不可操作控件；此前移动视口 `390x844` 对关键路由的检查确认 `document/body/root` 未产生页面级横向溢出。餐食规划内部内容的业务滚动不计为页面级溢出。 |
+| 前端门禁 | 依赖本轮前已取得：业务测试 `46` 个文件、`299 passed`；`typecheck` 和 `build` 通过。本轮只补充浏览器运行时观察，不重复执行无新增价值的全量测试。 |
+| 未执行范围 | 未做像素级 Figma `PASS`、跨浏览器兼容矩阵、性能压测、组件重启、ACK 丢失、重复投递、备份恢复、生产部署或发布回滚；公共知识真实 Embedding/Milvus 版本替换仍等待授权。 |
+| 结论 | R7 的分页/筛选真实接口与关键业务页面布局门禁取得证据；页面视觉像素差异和生产级能力仍按计划保持未完成，不将 R8 整体标记为完成。 |
+
+## D164 R7 前端 Fixture 头像阻断修复与复验（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 触发问题 | 对当前工作区未提交的头像策略改动执行定向门禁时，`ChatAuxStatePage` 引用了未定义的 `isFigmaFixture`；Chat Fixture 15 个用例失败，TypeScript 检查同时报 `TS2304`。 |
+| 修复 | 将该辅助状态的消息头像性别改为显式 Fixture 男性值；不改变真实模式用户头像解析，也不覆盖其余用户未提交改动。 |
+| 复验 | `foodmate-ui` 的 WorkspaceLayout、AdminPage、ChatPage、HomePage、ProfilePage 共 5 个测试文件 `114/114` 通过；`npm.cmd run typecheck` 通过；浏览器 `/chat?state=figma-v2` 正常显示确认卡、运行轨迹和消息操作。 |
+| 提交 | 修复单独提交为 `f78c9488 fix(ui): 修复聊天Fixture头像性别边界`；其他用户改动仍保持未提交。 |
+| 未执行范围 | 未执行全量前端测试、像素级 Figma `PASS`、跨浏览器兼容矩阵、性能测试或生产前端门禁；这些不属于本次阻断修复的必要范围。 |
+| 结论 | R7 相关前端业务门禁恢复通过；R8 文档收口具备新增阻断修复证据，真实公共知识 Embedding/Milvus 版本替换继续等待授权。 |
+
+## D165 文档状态口径一致性复核（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 复核范围 | `README.md`、`docxs/项目/路线图.md`、`docxs/项目/M2剩余功能执行计划.md`、`docxs/实现/后端建设现状.md`、`docxs/项目/本地开发指南.md` 与本执行记录的当前状态入口。 |
+| 口径修正 | 明确区分营养目录独立 Milvus 向量、R5 隔离 `local-stub` 内容验收、D134 历史一次性真实 Embedding/Milvus/Chat 业务证据，以及当前正式公共资料尚未重建且等待授权。保留历史执行记录，不将历史证据改写为当前正式索引状态。 |
+| 安全边界 | 本轮未调用真实 Chat/Embedding，未写入 PostgreSQL/Redis/Milvus/RocketMQ，未修改或提交用户已有的 `script/local/real-food-log-e2e.tests.ps1`。 |
+| 验证 | 文档变更完成后执行 `git diff --check`；不重复运行业务全量测试，因为本轮只调整状态文字和执行台账。 |
+| 结论 | 其余业务已验收；公共知识真实索引待授权；生产性能、可靠性和运维能力继续暂缓。 |
+
+## D166 M2-1 Java 索引结果回写与 Redis stub 批次复验（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Docker `foodmate`、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy。Runtime 本轮固定为 `stub + Redis`，未读取真实 Embedding Key，未写入 Milvus。 |
+| 触发问题 | Java 消费 `foodmate-knowledge-index-result-v1` 时，重复回写同一版本会因软删除 chunk 仍保留全局唯一 `embedding_id` 而触发 PostgreSQL `uk_knowledge_chunks_embedding_id` 冲突，条目停留在 `pending`。 |
+| 修复 | 结果消费者增加仅含消息 ID、状态和稳定标识的安全拒绝/异常日志；知识持久化适配器软删除旧版本 chunk 时释放 `embedding_id`，使同一稳定索引事实可安全重放。未记录正文、Prompt、API Key 或完整异常响应。 |
+| Java 验证 | `mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra -am test "-Dtest=KnowledgeIndexResultMessageProcessorTest,KnowledgeRepositoryAdapterTest,KnowledgeMapperContractTest" "-Dsurefire.failIfNoSpecifiedTests=false"`：`11/11` 通过；受影响模块编译通过；本地 Spring Boot JAR 打包成功并临时注入 Docker 容器后 readiness/health 为 healthy。 |
+| 业务结果 | 批次 `354847677655027712` 的 9 份 WHO 公共营养 Markdown 全部 `indexed`，批次状态为 `completed`；PostgreSQL 活动 chunk `58`，索引结果 Inbox `9` 条，批次 SSE outbox `54` 条；Java RocketMQ 结果消费组 `Diff=0`。 |
+| 重放证据 | 先用安全的 `attempt=1` 结果探针定位并验证修复，再补发其余 8 条已完成索引事实；9/9 条目最终 `attempt_count=1`，未新增重复 chunk。旧探针曾因 `attempt=0` 被正确拒绝，证明结果契约校验生效。 |
+| 数据与费用边界 | 未执行数据库清理、迁移、TRUNCATE、备份恢复、性能压测、组件重启矩阵、ACK 丢失/重复投递故障注入或生产操作；未调用真实 Chat/Embedding。保留用户已有未提交 UI 与脚本改动。 |
+| 结论 | M2-1 stub/Redis 的 Java 结果消费、权威状态回写、批次收敛和幂等重放本轮取得直接 Docker 证据；真实 `local/openai-compatible + Milvus` 正式公共索引重建仍等待用户授权。 |
+
+## D167 M2-1 真实 RAG 隔离批次业务闭环（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Docker `foodmate`、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy。Runtime 使用 `local + openai-compatible`，Embedding 为 `Qwen/Qwen3-Embedding-0.6B`，Milvus collection 为 `foodmate_knowledge_chunks_qwen3_embedding_0_6b`，Chat 为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`。|
+| 执行命令 | 先运行 `script/local/real-rag-e2e.ps1` 进行免费预检，再在当前 PowerShell 进程注入管理员凭据并运行 `script/local/real-rag-e2e.ps1 -ExecutePaid`；脚本固定单场景、累计预算上限 `5 CNY`、`no_retry=true`、`require_cloud=true`，凭据未写入日志、仓库或本记录。|
+| 索引闭环 | 批次 `355606503966642176` 上传 3 份隔离 Markdown，3/3 条目为 `indexed`，批次为 `completed`；每个条目生成 2 个 chunk。知识批次记录 `116` 个 embedding token，成本 `0.00000812`。|
+| 批次 SSE 与可见性 | 批次 SSE 返回 `6` 条事实，其中 `3` 条 indexed；`Last-Event-ID` 回放返回 `5` 条后续事件。3 个文档均完成 published -> disabled -> draft -> deleted 状态链路，Java 权威状态和下线检索过滤通过。|
+| 检索与 Chat | Java 公共检索命中 `4` 条安全引用；AgentRun `355606691196178432` 为 `completed/normal`，SSE `8` 条、序号 `1..8` 连续且唯一，唯一终态为 `run.completed`，终态包含 `4` 条引用；真实 Chat provider/model 事件存在，`Last-Event-ID` 回放返回 `7` 条后续事件。|
+| 清理与复核 | 默认清理成功，3 个文档和会话均已软删除；脚本当时只统计了公共可见结果，后续直接查询确认 PostgreSQL 仍保留这 3 个文档的 6 个历史 chunk，以支持恢复，但文档状态过滤后不可检索。Milvus 仍保留 6 个物理实体，已补齐为 `visibility=deleted`、`deleted=true`，按公共检索过滤返回 `0`；物理实体保留供独立保留清理任务处理。模型用量、审计和索引 Inbox 事实保留用于本地复核。|
+| 边界 | 本轮验证的是当前 Docker 真实模式下的隔离资料业务闭环，不是 9 份 WHO 正式资料的全量真实重建；正式资料重建仍等待明确授权。未执行性能压测、组件重启、ACK 丢失、重复投递故障注入、备份恢复、生产部署或发布回滚。|
+| 结论 | 真实 Embedding -> Milvus -> Java 结果回写 -> 显式发布 -> 公共检索 -> 真实 Chat AgentRun -> `run.completed` 引用 -> 下线过滤与 SSE 回放闭环取得直接 Docker 证据。 |
+
+## D168 M2-1 Milvus 可见性投影复核与分页修复（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 触发原因 | D167 的“Milvus 查询无残留”表述与直接读取集合的事实不一致。复核发现目标集合仍有 `6` 个物理实体；PostgreSQL 中 3 个隔离文档均为 `deleted`，对应历史 chunk 共 `6` 个且保留为非物理删除状态。 |
+| 投影复核 | 仅针对 D167 的 3 个文档、版本 `codex-r1-v1` 补发删除可见性投影到 Milvus metadata；复核结果为 `6/6` 个实体均为 `visibility=deleted`、`deleted=true`，固定公共检索过滤返回 `0`。物理实体没有直接删除，后续由独立保留清理任务处理。 |
+| 代码修复 | `MilvusIndex` 增加 `query_iterator` 分页读取，避免默认查询上限造成可见性更新或清理不完整；`published` 投影找不到已索引目标时抛出稳定 `RAG_MILVUS_VISIBILITY_TARGET_NOT_FOUND`，交由 RocketMQ 重试；`disabled/draft/deleted` 在目标已物理清理时保持幂等。稳定 `RagError` 不再被通用写入异常覆盖。 |
+| Python 验证 | `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest agent-runtime/tests/test_knowledge_rag.py -q`：`50 passed、4 subtests passed`；覆盖分页可见性更新、目标缺失重试错误码、维度/模型隔离、删除和检索过滤。 |
+| 边界 | 未执行物理 Milvus purge、正式 WHO 资料全量真实重建、性能压测、组件重启、ACK/重复投递故障注入、备份恢复或生产操作；未修改营养目录和用户业务数据。 |
+| 结论 | 当前证据应表述为“Milvus 物理实体保留但已不可检索，PostgreSQL 历史 chunk 保留但受文档状态过滤”，不再表述为“无物理残留”；D167 的真实 RAG 业务闭环结论不变，正式公共资料真实索引仍等待授权。 |
+
+## D169 R2 复合菜业务闭环与数据库只读验收（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker `foodmate`、PostgreSQL、Redis、RocketMQ、Milvus 和 Python Runtime 保持 healthy；未修改或提交用户已有的 `script/local/real-food-log-e2e.tests.ps1`。|
+| Java 业务测试 | `mvnw.cmd -pl foodmate-application,foodmate-api -am test -Dtest=CompositeDishServiceImplTest,FoodLogCompositeDishTest,FoodLogServiceImplTest,FoodLogControllerTest -Dsurefire.failIfNoSpecifiedTests=false` 通过；Application `21/21`、API `3/3`。|
+| 前端业务测试 | `foodmate-ui` 的 TypeScript `typecheck` 通过；复合菜、饮食记录服务和页面定向 Vitest `4` 个文件、`24/24` 通过。|
+| 数据库 validation | V35 表/字段/索引存在；V38 `chk_food_log_items_matched_snapshot` 存在、非法 matched 快照 `0`、复合菜快照 `5/5` 合法；V39 活动明细顺序唯一索引存在、活动顺序重复 `0`。只读查询确认 `composite_dishes=7`、`composite_dish_items=18`、本轮复合菜关联活动饮食记录为 `0`，复合菜测试记录和组成明细均已软删除。|
+| 数据保护与结论 | 未执行迁移、TRUNCATE、宽泛删除或数据库硬删除；历史饮食记录快照仍保留。复合菜创建/更新、营养目录回源、按份量记录和历史营养快照的业务闭环及前端入口已取得定向证据；正式可用复合菜数据需要后续通过真实用户流程创建，不能复用本轮已软删除测试数据。|
+
+## D170 M2-1 正式 WHO 批次 K2 stub 重索引收口（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 容器均恢复为 healthy。重索引阶段临时覆盖 Runtime 为 `stub + Redis`，未读取真实 Embedding Key，未写入 Milvus；结束后已恢复 `.env` 对应的 `local + openai-compatible` 运行态。 |
+| 执行入口 | 管理员登录后，逐条调用批次 `354847677655027712` 的 `POST /api/admin/knowledge-upload-batches/{batchId}/documents/{documentId}/reindex`，随后通过批次详情等待 Java 消费 `foodmate-knowledge-index-result-v1` 并回写权威状态。 |
+| 索引结果 | 9/9 个正式 WHO 文档条目为 `indexed`，批次为 `completed`；9 条结果 Inbox 事实均存在，9 条最新索引 Outbox 均为 `published`，每条本轮尝试次数为 `1`。K2 Markdown Front Matter 已剥离。 |
+| 数据对账 | PostgreSQL 活动 chunk `49`、历史软删除 chunk `232`；活动 chunk 中 Front Matter/来源元数据误入正文的命中数为 `0`。Redis `foodmate:rag:stub:chunks` 中对应活动索引为 `49` 条，9 个文档全部为 `published/indexed/current_version/tenant_id=0/public_published`。 |
+| 检索证据 | Java `/api/knowledge-base/search` 查询“健康”返回 `4` 条安全引用；引用包含文档、版本、章节和片段，不包含对象地址、对象键、API Key、Authorization 或 Prompt。 |
+| 费用与边界 | 本轮未调用真实 Embedding/Chat，未写入 Milvus，未执行性能压测、依赖重启、ACK 丢失、重复投递故障注入、备份恢复或生产操作；真实 `local + openai-compatible + Milvus` 正式重建仍需另行授权。 |
+| 结论 | 正式 WHO 资料的当前业务索引已按 K2 切分规则完成 `stub + Redis` 重建并可通过 Java 检索；真实向量版本继续保持待授权，不能把本轮结果表述为真实 Embedding/Milvus 重建。 |
+
+## D171 M3 保留治理业务门禁复核（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；使用 Java 21 和 Maven Wrapper；未开启清理执行开关，未修改现有数据库数据。 |
+| 执行命令 | `.\\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am test "-Dtest=DataRetentionServiceImplTest,DataRetentionDeliveryServiceImplTest,DataRetentionTaskPublisherTest,DataRetentionResultMessageProcessorTest,DataRetentionDatabasePurgeAdapterTest,AdminRetentionControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false"`。 |
+| 测试结果 | Application：`20/20`（Delivery `5/5`、Result Processor `2/2`、Retention Service `5/5`、Task Publisher `8/8`）；Infrastructure：`6/6`；API：`4/4`；合计 `30/30`，失败 `0`，跳过 `0`；Maven reactor `BUILD SUCCESS`。 |
+| 业务覆盖 | 验证管理员/超管角色边界、确认摘要、Idempotency-Key 幂等、active legal hold 阻断、清理 preflight 脱敏、对象/向量/数据库任务依赖顺序、失败重试、外部结果重复消费幂等和默认硬删除关闭/缺少备份校验不执行。 |
+| API 事实 | `AdminRetentionControllerTest` 验证清理申请、superadmin 审批拒绝、operator 读取 preflight 和 superadmin release hold；preflight 不返回目标引用、对象键、向量或原文。 |
+| 数据与边界 | 未执行迁移、TRUNCATE、现有库硬删除、对象存储/向量物理清理、备份恢复、性能压测、组件重启、ACK/重复投递故障注入或生产操作；未修改用户已有未提交文件。 |
+| 结论 | M3 的可审计治理契约和受控任务编排已有新鲜业务测试证据；真实依赖清理演练、备份/回滚和生产运维能力继续后置，不能据此宣称 M3 生产强化完成。 |
+
+## D172 全计划业务门禁集中复核（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；使用项目 Java 21、Python `.venv` 和前端依赖；未调用真实 Embedding/Chat，未修改现有业务数据。 |
+| Java 验证 | `.\\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am test`：Shared `12`、Application `254`、Infrastructure `119`（其中 `20` 条条件跳过）、API `72`；合计执行 `457` tests，失败/错误 `0`；Maven reactor `BUILD SUCCESS`。 |
+| Python 验证 | 在 `agent-runtime` 执行 `.\\venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider`：`246 passed、2 skipped、6 subtests passed`；存在 `2` 个既有 `integration` marker warning，未发起真实外部服务调用。 |
+| 前端验证 | 在 `foodmate-ui` 执行 `npm.cmd test -- --maxWorkers=1`：`46` 个测试文件、`303 passed`；`npm.cmd run typecheck` 通过；`npm.cmd run build` 通过，Vite 转换 `2018` 个模块。单 worker 仅用于本机业务回归稳定性，不作为性能结论。 |
+| 配置验证 | `docker compose --env-file .env -f docker/compose.yml config --quiet` 通过；PostgreSQL 只读检查未执行迁移，当前应用遵循人工 SQL 迁移约定。 |
+| 计划结论 | R1-R4、R6-R8 及 M3 可审计业务门禁均有代码和业务测试证据；R5 正式 WHO 资料已完成 `stub + Redis` K2 索引，但真实 Embedding/Milvus 全量重建仍待用户授权。压测、长稳、完整重启/ACK/重复投递故障矩阵、生产部署、备份恢复和发布回滚继续后置。 |
+
+## D173 R5 正式真实 Embedding 授权前置复核（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；只读检查仓库配置、9 份正式 WHO 资料和当前 K2 解析结果，未修改数据库、Redis、RocketMQ、Milvus 或 MinIO。 |
+| 配置核对 | 根 `.env` 使用 `FOODMATE_DOCKER_RAG_*` 主机侧变量，Compose 映射为容器内 `FOODMATE_RAG_*`；当前为 `local + openai-compatible`、SiliconFlow `Qwen/Qwen3-Embedding-0.6B`，目标 collection 为 `foodmate_knowledge_chunks_qwen3_embedding_0_6b`。API Key 仅确认已配置，不写入本记录。 |
+| 资料与切分 | manifest 为 9 份 WHO 中文 Markdown，`embedding_status` 仍为“未构建向量”；使用 `parse_document` 和 K2 `chunk_markdown` 计算解析正文约 `5,735` 字符、`50` 个 chunk，未调用真实 Embedding。 |
+| 费用估算 | Worker `_estimate_tokens` 估算 `1,292` 个 embedding token；按当前本机价格快照 `0.07 CNY/百万 Token` 估算约 `0.00009044 CNY`。单批 9 文件低于 20 文件上限，预计低于单批 `100,000` token/`1 CNY` 和单日 `1,000,000` token/`10 CNY` 限额；最终以供应商 usage 和任务结果为准。 |
+| 安全边界 | 本轮未调用真实 Embedding/Chat，未写入 Milvus，未改变正式 `stub + Redis` 批次，未执行数据库清理、迁移、TRUNCATE、性能压测、重启矩阵、ACK/重复投递故障注入、备份恢复或生产操作。 |
+| 结论 | 配置来源和预算前置检查通过；正式 WHO 资料的真实 Embedding/Milvus 全量重建保持“待用户明确授权”。获授权后需再次确认 API Key、模型指纹和隔离 collection，再执行真实批次并回读 usage、9/9 状态、引用与下线过滤。 |
+
+## D174 R5 正式 WHO 真实 Embedding/Milvus 与 Chat 闭环（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；Docker `foodmate`、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy；本轮在用户已明确授权后执行真实 Embedding。未执行性能压测、长稳、组件重启、ACK 丢失、重复投递故障注入、备份恢复或生产操作。 |
+| Java 修复与部署 | 修复重索引消息继承旧 payload `mode=stub` 的问题，重索引显式写入当前 `local` 模式；Java 镜像构建成功并重启，readiness/health 恢复 healthy。相关修复提交：`6d2d4f69`。 |
+| 索引执行 | 对既有正式批次 `354847677655027712` 的 9 个 WHO 文档逐条调用管理端 `reindex`。Java Index Outbox 最新 9 条均为 `published`、`mode=local`；Python 使用 SiliconFlow `Qwen/Qwen3-Embedding-0.6B`，Java 消费 `foodmate-knowledge-index-result-v1` 后 9/9 条目 `indexed`，批次 `completed`。 |
+| PostgreSQL 结果 | 活动 chunk `49`，索引结果 Inbox `9` 条，最新索引尝试每条 `1` 次；模型版本 `Qwen/Qwen3-Embedding-0.6B`；embedding token `3,088`，成本 `0.00021616 CNY`。旧 stub Outbox 事实保留为历史记录，不与本轮真实结果混淆。 |
+| Milvus 结果 | 目标 collection 为 `foodmate_knowledge_chunks_qwen3_embedding_0_6b`，实际向量维度 `1024`；对应本批次实体 `49` 个且 embedding ID 唯一。补发 9 个幂等 publish 可见性事实后，49/49 均为 `tenant_id=0`、`public_published`、`published`、`indexed=true`、`deleted=false`、当前版本。 |
+| 检索与 Chat | Java 公共检索实际返回 WHO 安全引用；管理员 AgentRun `355711261717041152` 返回 `7` 个 SSE 事件，唯一终态为 `run.completed`，包含 `4` 条引用；`run.model_usage` 确认 Chat 为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`。引用仅含标题、版本、章节和安全片段，不含对象地址、对象键、API Key 或 Prompt。 |
+| 文档与结论 | `script/data/knowledge/public/manifest.json` 已登记真实模式、模型、collection、批次、49 chunks、3,088 tokens、成本和索引时间；README、M2 剩余计划、非生产业务计划、路线图、本地开发指南和测试策略已同步。结论：正式 WHO 资料的本地真实向量业务闭环完成；性能、长稳、价格账单对账、故障矩阵、生产容量和运维治理继续后置。 |

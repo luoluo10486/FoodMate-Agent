@@ -146,12 +146,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                             .map(file -> validateFile(file, safeFilename(file.filename())))
                             .toList();
             jobId = ids.nextId();
-            String mode =
-                    System.getenv()
-                            .getOrDefault("FOODMATE_RAG_MODE", "stub")
-                            .toLowerCase(Locale.ROOT);
-            if (!mode.equals("stub") && !mode.equals("local"))
-                throw new IllegalArgumentException("invalid RAG mode");
+            String mode = currentRagMode();
             store.insertImportJob(
                     new KnowledgeRepository.ImportJob(
                             jobId,
@@ -328,6 +323,40 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         }
     }
 
+    @Override
+    @Transactional
+    public void reindexItem(long batchId, long documentId, long operatorId, String traceId) {
+        try {
+            BatchDetail detail = batch(batchId);
+            KnowledgeRepository.ItemView item =
+                    detail.items().stream()
+                            .filter(value -> value.documentId() == documentId)
+                            .findFirst()
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalArgumentException(
+                                                    "knowledge document is not part of this batch"));
+            long outboxId = ids.nextId();
+            long reindexId = ids.nextId();
+            String payload =
+                    "{\"mode\":\""
+                            + currentRagMode()
+                            + "\",\"reindex_id\":\""
+                            + reindexId
+                            + "\",\"attempt\":1}";
+            if (store.reindexItem(item.itemId(), batchId, operatorId, outboxId, payload) != 1)
+                throw new IllegalArgumentException("knowledge import item is not reindexable");
+            audit(
+                    operatorId,
+                    traceId,
+                    "knowledge.import_item.reindex",
+                    Long.toString(item.documentId()));
+        } catch (RuntimeException exception) {
+            failure(operatorId, traceId, "knowledge.import_item.reindex", id(documentId), exception);
+            throw exception;
+        }
+    }
+
     private void audit(long operatorId, String traceId, String action, String documentId) {
         if (audit == null) return;
         audit.record(
@@ -341,6 +370,16 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 null,
                 null,
                 Map.of());
+    }
+
+    /** 返回当前 Java/Python 知识索引必须一致的运行模式。 */
+    private String currentRagMode() {
+        String mode =
+                System.getenv().getOrDefault("FOODMATE_RAG_MODE", "stub").toLowerCase(Locale.ROOT);
+        if (!mode.equals("stub") && !mode.equals("local")) {
+            throw new IllegalArgumentException("invalid RAG mode");
+        }
+        return mode;
     }
 
     private void failure(

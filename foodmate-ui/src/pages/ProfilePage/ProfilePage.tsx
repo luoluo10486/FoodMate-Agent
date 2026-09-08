@@ -37,7 +37,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { FigmaWorkspaceAsset } from '@/components/workspace/FigmaWorkspaceAsset';
 import { AvatarImage } from '@/components/common/AvatarImage';
 import { cn } from '@/lib/utils';
-import { FIGMA_PROFILE_AVATARS, resolveAvatarUrl } from '@/lib/avatar';
+import { FIXTURE_PROFILE_AVATARS, resolveAvatarUrl } from '@/lib/avatar';
 import { getAuthUser, logout } from '@/services/authService';
 import {
   changePassword,
@@ -533,7 +533,8 @@ function ProfileFixtureOverlay({ state, onDismiss }: { state: ProfileFixtureStat
 function profileFromUser(user: AuthUser): ProfileForm {
   return {
     displayName: `${user.displayName} 的工作区`,
-    gender: '男',
+    // 真实用户头像跟随认证资料性别；Figma Fixture 用户由页面显式固定性别。
+    gender: user.gender || '男',
     heightCm: String(user.profile.heightCm),
     weightKg: String(user.profile.weightKg),
     activityLevel: normalizeActivityLevel(user.profile.activityLevel),
@@ -2147,8 +2148,8 @@ export function ProfilePage() {
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       profileActiveTab={isFigmaFixture ? activeTab : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? FIGMA_PROFILE_AVATARS.sidebar : undefined}
-      topAvatarSrc={isFigmaFixture ? FIGMA_PROFILE_AVATARS.topbar : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_PROFILE_AVATARS.sidebar : undefined}
+      topAvatarSrc={isFigmaFixture ? FIXTURE_PROFILE_AVATARS.topbar : undefined}
       topbarShowMarkLetter={!isFigmaFixture}
       showWindowControls={isFigmaFixture}
       // Profile 画板使用独立导出的壳层资源，真实模式继续使用 Lucide fallback。
@@ -2173,7 +2174,7 @@ export function ProfilePage() {
             authUser={displayedUser}
             realMode={isFigmaFixture ? false : realMode}
             figmaFixture={isFigmaFixture}
-            fixtureAvatarSrc={isFigmaFixture ? FIGMA_PROFILE_AVATARS.main : undefined}
+            fixtureAvatarSrc={isFigmaFixture ? FIXTURE_PROFILE_AVATARS.main : undefined}
           />
         ) : null}
         {activeTab === 'memories' ? (
