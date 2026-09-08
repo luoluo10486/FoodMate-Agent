@@ -254,6 +254,7 @@ export function WorkspaceLayout({
       <div
         className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${isFigmaSidebarFixture ? styles.figmaFixture : ''} ${sidebarFixture?.hideSessionPagination ? styles.compactSessionFixture : ''}`}
         data-shell-avatar-policy={defaultOnlyAvatar ? 'default-only' : 'uploaded-allowed'}
+        data-shell-avatar-assets="default-male.svg,default-female.svg"
       >
         <aside className={`${styles.sidebar} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}>
           {showFixtureWindowControls ? (

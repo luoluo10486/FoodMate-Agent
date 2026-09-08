@@ -2702,6 +2702,16 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [ ] 本节不改变 Figma 像素结论；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] iconfont 仍为 `BLOCKED`，不使用未登记的实体字体、glyph 或 Unicode 映射。
 
+## 2026-09-08 Workspace/Home 与 Agent Chat 共享壳层头像契约收口
+
+本次只复核 Figma 节点 `640:256`、`640:428` 对应的运行时头像来源，不重新采集 105 个画板，也不把历史 Figma 真人头像恢复到运行时。
+
+- [x] 男性默认头像 `default-male.svg` SHA-256：`EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`。
+- [x] 女性默认头像 `default-female.svg` SHA-256：`6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 两份哈希均与用户提供的 SVG 附件逐字节一致；运行时默认头像白名单只包含这两个路径。
+- [x] DOM 审计标记已补充：头像节点使用 `data-avatar-registered`，共享壳层使用 `data-shell-avatar-assets`；Admin Fixture 用户详情也被强制纳入 `defaultOnly`。
+- [ ] 既有 `Workspace Home` 与 `Agent Chat` PNG 差异仍保留 `DIFF_REVIEW`，本次没有新增像素 diff，也没有改写任何 `PASS` 结论。
+
 ## 2026-09-07 Auth 页面组语义 Token 收口
 
 本节只记录 Auth 页面组的语义 Token 收口，不重新采集或人工验收全部 105 个画板，Figma 文件保持只读。
