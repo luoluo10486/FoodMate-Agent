@@ -2429,3 +2429,16 @@
 | 首次失败与修复 | 首次跨端验收发现复合菜聚合饮食明细被旧 `food_log_items` 约束拒绝，以及版本更新软删除旧明细后无法插入相同 `item_order`；新增 V38/V39 和 `CompositeDishServiceImpl` 删除联动后重新构建并复验通过。 |
 | 测试数据清理 | 仅针对用户 `1788628850360127` 且名称以 `R8 Composite Rice` 开头、父记录已软删除的数据，将遗留活动组成明细 `12` 条软删除；未执行 `TRUNCATE`，未删除其他用户或正式业务数据，复核活动残留为 `0`。 |
 | 未完成边界 | R8 中 SQL Agent 跨进程真实调用、公共知识真实 Embedding/Milvus 索引与版本替换、记忆跨进程回读和真实浏览器布局证据不由本轮脚本替代；真实 Embedding/Milvus 仍按用户要求暂缓。生产性能、可靠性和运维项继续后置。 |
+
+## D160 R4 SQL Agent 真实云跨进程复验（2026-09-08）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Docker Compose 的 Java、Python Runtime、PostgreSQL、Redis、RocketMQ、MinIO 和 Milvus 均为 healthy。管理员凭据只通过当前 PowerShell 进程注入，未写入仓库、日志或本记录。 |
+| 执行命令 | `script/local/real-sql-agent-e2e.ps1 -ExecutePaid`；付费门禁限制为 1 个场景、累计上限 `5 CNY`、`no_retry=true`、`require_cloud=true`。本轮修复 PowerShell 的 `System.Net.Http` 加载和异步流读取兼容性后重新执行。 |
+| 真实 Chat 与 SQL Planner | Planner 和 Composer 均实际使用 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`；PostgreSQL `model_usage_logs` 回读到 `sql_planner=1`、`composer=3`，均为 `success`，未使用 fallback。 |
+| Run/SSE | Run `355529010014326784`、Session `355529009968189440`；Run 最终为 `completed/normal`。完整 SSE 为 `stream_seq=1..18`，18 个事件 ID 全部唯一，唯一终态为 `run.completed`；使用末尾前一事件的 `Last-Event-ID` 回放返回 1 个终态事件，脚本校验通过。 |
+| SQL Agent 工具与审计 | ToolCall 实际包含 `time_parser`、`database_query`，均为 `success`；PostgreSQL `sql_query_audits` 为 `executed=2`、失败 `0`。 |
+| 数据清理 | 验收脚本默认清理成功，会话 `355529009968189440` 已软删除；Run、ToolCall、SQL 审计和模型用量事实保留用于复核。 |
+| 未执行范围 | 未执行性能压测、吞吐/延迟/积压统计、组件重启、ACK 丢失、重复投递故障注入、备份恢复、生产部署或发布回滚；真实 Embedding/Milvus 知识库重建仍按用户要求暂缓。 |
+| 结论 | 真实 SiliconFlow Chat -> Python Runtime -> RocketMQ -> SQL Planner -> `time_parser`/`database_query` -> Java 只读 Guard 与 PostgreSQL SQL 审计 -> Composer -> `run.completed`/SSE 回放的 SQL Agent 业务闭环已取得新的直接证据。 |
