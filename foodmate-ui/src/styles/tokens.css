@@ -188,4 +188,12 @@
   --fm-figma-task-panel-copy: #57635c;
   --fm-figma-task-panel-success: #478052;
   --fm-figma-task-panel-muted: #858c85;
+
+  /* Figma 节点 983:3 的 Agent 消息操作面板 Token。 */
+  --fm-figma-chat-actions-surface: #fcfcfa;
+  --fm-figma-chat-actions-border: #e0ebe3;
+  --fm-figma-chat-actions-title: #29302e;
+  --fm-figma-chat-actions-copy: #57635c;
+  --fm-figma-chat-actions-note: #876e45;
+  --fm-figma-chat-actions-muted: #66736b;
 }

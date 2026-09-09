@@ -72,6 +72,7 @@ describe('avatar defaults', () => {
 
     expect(fixtureAvatars.every((avatar) => Object.values(DEFAULT_AVATARS).includes(avatar))).toBe(true);
     expect(fixtureAvatars.filter((avatar) => avatar === DEFAULT_AVATARS.male).length).toBeGreaterThan(0);
-    expect(FIXTURE_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.male);
+    expect(FIXTURE_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.female);
+    expect(FIXTURE_CHAT_AVATARS.agentStateMessage).toBe(DEFAULT_AVATARS.male);
   });
 });

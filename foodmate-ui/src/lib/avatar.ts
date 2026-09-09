@@ -33,15 +33,18 @@ export const FIXTURE_ADMIN_AVATARS = {
   userDetail: DEFAULT_AVATARS.male,
 } as const;
 
-// Chat 默认 Figma fixture 的账号和用户消息均为男性示例；安全降级状态单独使用女性消息头像。
+// Chat 默认 Figma fixture 的账号使用男性示例，默认用户消息按 Figma 640:428 使用女性头像。
 export const FIXTURE_CHAT_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
-  message: DEFAULT_AVATARS.male,
+  message: DEFAULT_AVATARS.female,
+  // 六个 Agent 状态画板的普通用户消息继续使用男性示例头像。
+  agentStateMessage: DEFAULT_AVATARS.male,
 } as const;
 
 export const FIXTURE_CHAT_AVATAR_GENDERS = {
-  defaultMessage: '男',
+  defaultMessage: '女',
+  agentStateMessage: '男',
   safetyDegradedMessage: '女',
 } as const;
 

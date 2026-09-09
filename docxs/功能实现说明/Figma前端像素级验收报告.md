@@ -2,6 +2,18 @@
 
 更新时间：2026-09-09
 
+## 1.1.7 Chat 默认态头像与消息操作面板实现记录（2026-09-09）
+
+本批次只修改 Chat Fixture 的资源契约和页面结构，不重新采集全部 105 个画板，Figma 文件保持只读。
+
+- [x] Figma `640:428` 默认 Chat 的侧栏头像和顶栏头像使用登记的男性默认 SVG，用户消息使用登记的女性默认 SVG；六个 Agent 状态画板继续按既有男性/女性状态契约渲染。
+- [x] Figma 节点 `983:3` 的“消息操作”面板已在 `figma-v2` 和 `redesign-default` 两个默认 Fixture 中实现，面板文案、颜色、边框、圆角、间距和响应式换行均登记到前端语义 Token/CSS。
+- [x] 运行时默认头像仍只允许 `/assets/avatars/default-male.svg` 和 `/assets/avatars/default-female.svg`；真实模式主动上传头像仍保留独立入口。
+- [x] 仅增量复采 `agent-chat-v2` 和 `agent-chat-redesign-default`：两项均为 `1440×1024`、DPR 1、字体 `loaded`、页面无横向溢出，并生成当前浏览器 PNG 与同尺寸 PNG diff。
+- [x] `agent-chat-v2` diff 为 `11.9678% / MAE 2.849176 / RMSE 17.062276 / maxChannelDelta 236`；`agent-chat-redesign-default` diff 为 `55.6938% / MAE 5.774089 / RMSE 23.669611 / maxChannelDelta 255`；两项均保持 `DIFF_REVIEW`。
+- [ ] 本批次不重新验收全部 105 个画板；全量聚合继续保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，现有非零差异不能标记为像素级 `PASS`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.6 Auth 页面组语义 Token 收口门禁完成（2026-09-09）
 
 本批次只收口 Auth 页面组的 CSS 语义 Token，不重新采集全部 105 个画板，Figma 文件保持只读。
@@ -32,11 +44,11 @@
 | 画板 | Figma 节点 | 浏览器 PNG | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
 |---|---|---|---|---:|---:|---:|---:|---|
 | Workspace Home | `640:256` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-09.png` | `1440×1024 / 1` | `21.6216%` | `2.865324` | `17.380218` | `252` | `DIFF_REVIEW` |
-| Agent Chat | `640:428` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-09.png` | `1440×1024 / 1` | `18.6469%` | `2.807689` | `16.940715` | `236` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-09.png` | `1440×1024 / 1` | `11.9678%` | `2.849176` | `17.062276` | `236` | `DIFF_REVIEW` |
 
-- [x] 两项截图均由 Chrome `152.0.7977.77` 采集，字体状态为 `loaded`，DPR 为 `1`，页面无横向溢出。
+- [x] 两项截图均由 Chrome `152.0.7977.83` 采集，字体状态为 `loaded`，DPR 为 `1`，页面无横向溢出。
 - [x] 当前 DOM 审计确认人物头像只来自 `/assets/avatars/default-male.svg` 和 `/assets/avatars/default-female.svg`；最新截图中不再使用历史真人 PNG。
-- [x] Workspace/Home 侧栏和顶栏、Agent Chat 默认男性示例账号使用登记的男性 SVG；`safety-degraded` 状态的用户消息使用登记的女性 SVG。
+- [x] Workspace/Home 侧栏和顶栏使用登记的男性 SVG；Agent Chat 默认态用户消息使用登记的女性 SVG，`safety-degraded` 状态的用户消息继续使用登记的女性 SVG。
 - [x] 两份默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
 - [x] 历史真人 PNG 仅保留在 `.qa/figma-pixel-acceptance/legacy-avatars/`；认证页 `foodmate-*-user.svg` 是输入框装饰图标，不属于人物头像。
 - [ ] 两项自动 diff 仍为非零，文字、局部布局、图标光栅化和内容密度差异仍需后续视觉收口，不能标记为像素级 `PASS`。
@@ -2823,3 +2835,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 同次运行时审计的 `[data-avatar-role]` 头像来源均为 `/assets/avatars/default-male.svg`；`public/assets/avatars` 运行时实体仍只有男性和女性两份登记 SVG。
 - [x] Home 定向测试 `8/8`，`typecheck`、`lint`、`format:check`、`build` 和 `git diff --check` 通过。
 - [ ] 本批次只收口 Workspace/Home 面板和 Fixture 头像来源证据；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能以 DOM 核验替代 Figma PNG diff 和人工视觉复核。
+
+## 2026-09-09 Chat 默认头像最终运行时复核
+
+本节只记录当前 Chat/Home 批次的最终运行时和质量门禁结果，不重新验收全部 105 个画板，也不修改 Figma 文件。
+
+- [x] 用户提供的男性和女性 SVG 与 `foodmate-ui/public/assets/avatars/default-male.svg`、`default-female.svg` 逐字节一致；SHA-256 分别为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D` 和 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] Chrome 实际检查 Home、Chat 默认态以及 `write-confirmation`、`budget-limit`、`tool-failed-retryable`、`safety-degraded`、`user-cancelled`、`sse-reconnecting`；人物头像节点全部使用登记 SVG，并带有 `data-avatar-policy="default-only"`、`data-avatar-registered="true"`。
+- [x] Chat 默认态消息头像使用女性登记 SVG；六个 Agent 状态中 `safety-degraded` 使用女性登记 SVG，其余状态使用男性登记 SVG；共享 Workspace 壳层继续使用男性登记 SVG。
+- [x] 认证页 `foodmate-*-user.svg` 仅作为输入框装饰图标，历史真人素材仅保留在 QA 证据目录，不属于运行时头像来源。
+- [x] 最终统一门禁为 Vitest `46/46` 个测试文件、`304/304` 个用例通过；`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。
+- [ ] 本次运行时复核不改变像素差异结论；105 项仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能用 DOM 资源审计替代 Figma PNG diff 和人工视觉复核。

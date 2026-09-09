@@ -49,6 +49,7 @@ import styles from './ChatPage.module.css';
 const FIXTURE_CHAT_SIDEBAR_AVATAR = FIXTURE_CHAT_AVATARS.sidebar;
 const FIXTURE_CHAT_TOPBAR_AVATAR = FIXTURE_CHAT_AVATARS.topbar;
 const FIXTURE_CHAT_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.message;
+const FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.agentStateMessage;
 
 type ChatMessage = {
   id: string;
@@ -210,6 +211,20 @@ function InlineConfirmationCard({ onConfirm, onCancel }: { onConfirm: () => void
           取消
         </Button>
       </div>
+    </section>
+  );
+}
+
+function MessageActionsPanel() {
+  return (
+    <section className={styles.messageActions} aria-labelledby="figma-message-actions-title" data-node-id="983:3">
+      <h2 id="figma-message-actions-title">消息操作</h2>
+      <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
+      <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
+      <p className={styles.messageActionsNote}>
+        工具失败时显示重试；运行中发送按钮切换停止；写入确认 / 预算追加仍需确认后继续。
+      </p>
+      <p className={styles.messageActionsMuted}>右侧面板：运行 · 工具 · 引用 原始 JSON 默认折叠并隐藏敏感参数。</p>
     </section>
   );
 }
@@ -1244,6 +1259,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               />
             )}
           </MessageBubble>
+          {isRedesignDefault ? <MessageActionsPanel /> : null}
         </>
       ) : (
         <>
@@ -1291,15 +1307,12 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   // 所有 Agent 状态画板使用登记的男性默认头像作为示例账号头像。
   const fixtureSidebarAvatarSrc = DEFAULT_AVATARS.male;
   const fixtureTopAvatarSrc = DEFAULT_AVATARS.male;
-  const fixtureMessageAvatarSrc = isWriteConfirmation
-    ? DEFAULT_AVATARS.male
-    : state === 'safety-degraded'
-      ? DEFAULT_AVATARS.female
-      : DEFAULT_AVATARS.male;
+  const fixtureMessageAvatarSrc =
+    state === 'safety-degraded' ? DEFAULT_AVATARS.female : FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR;
   const fixtureMessageGender =
     state === 'safety-degraded'
       ? FIXTURE_CHAT_AVATAR_GENDERS.safetyDegradedMessage
-      : FIXTURE_CHAT_AVATAR_GENDERS.defaultMessage;
+      : FIXTURE_CHAT_AVATAR_GENDERS.agentStateMessage;
 
   const report = (nextAction: FixtureAction, message: string) => {
     setAction(nextAction);
@@ -2181,6 +2194,7 @@ function MockChatPage() {
       ) : null}
       {agent.card.type === 'confirmation' ? null : null}
       {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
+      {isFigmaFixture ? <MessageActionsPanel /> : null}
     </ChatSurface>
   );
 }

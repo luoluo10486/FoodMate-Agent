@@ -158,12 +158,12 @@ describe('ChatPage Figma 默认状态', () => {
     expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
   });
 
-  it('does not render implementation notes in the default Figma canvas', () => {
+  it('renders the registered message actions panel in the default Figma canvas', () => {
     renderChatState('figma-v2');
 
-    expect(screen.queryByRole('region', { name: '消息操作' })).not.toBeInTheDocument();
-    expect(screen.queryByText(/用户消息：编辑/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/右侧面板：运行/)).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '消息操作' })).toHaveAttribute('data-node-id', '983:3');
+    expect(screen.getByText(/用户消息：编辑/)).toBeInTheDocument();
+    expect(screen.getByText(/右侧面板：运行/)).toBeInTheDocument();
   });
 });
 
@@ -259,8 +259,8 @@ describe('ChatPage Agent remaining states', () => {
       'src',
       '/assets/avatars/default-male.svg',
     );
-    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
-    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-male');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-female');
     expect(document.querySelector('.userAvatar img')).not.toHaveAttribute(
       'src',
       '/legacy-assets/chat/person-avatar.png',
@@ -508,8 +508,9 @@ describe('ChatPage Figma navigation fixtures', () => {
     expect(screen.getByText('查询扩展')).toBeInTheDocument();
     expect(screen.queryByText('查询扩展 (Query Expansion)')).not.toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: '消息操作' })).not.toBeInTheDocument();
-    expect(screen.queryByText(/右侧面板：运行 · 工具 · 引用/)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '消息操作' })).toBeInTheDocument();
+    expect(document.querySelector('[data-node-id="983:3"]')).toBeInTheDocument();
+    expect(screen.getByText(/右侧面板：运行 · 工具 · 引用/)).toBeInTheDocument();
   });
 
   it.each(['nav-loading', 'nav-hover-preview', 'pagination'])(

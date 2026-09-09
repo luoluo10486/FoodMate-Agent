@@ -1080,7 +1080,7 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -1094,7 +1094,13 @@
         "height": 1024,
         "width": 1440
       },
-      "dprPass": true
+      "dprPass": true,
+      "recapture": {
+        "capturedAt": "2026-09-09",
+        "tool": "Chrome CDP Page.captureScreenshot",
+        "browser": "Chrome/152.0.7977.83",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-redesign-default-browser-2026-09-09.png"
+      }
     },
     "meal-plan-shopping-list": {
       "artboardName": "meal-plan-shopping-list",
@@ -1322,7 +1328,7 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "dprPass": true,
       "fonts": "loaded",
       "root": {
@@ -1347,10 +1353,10 @@
       },
       "bodyOverflow": false,
       "recapture": {
-        "capturedAt": "2026-09-06",
+        "capturedAt": "2026-09-09",
         "tool": "Chrome CDP Page.captureScreenshot",
-        "browser": "Chrome/152.0.7977.77",
-        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-06.png"
+        "browser": "Chrome/152.0.7977.83",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-09.png"
       }
     },
     "profile-security-password-submitting": {

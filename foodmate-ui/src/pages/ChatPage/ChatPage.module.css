@@ -869,6 +869,53 @@
   padding: 0;
 }
 
+.messageActions {
+  display: flex;
+  width: 100%;
+  min-height: 150px;
+  flex: 0 0 150px;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 18px;
+  border: 1px solid var(--fm-figma-chat-actions-border);
+  border-radius: 14px;
+  background: var(--fm-figma-chat-actions-surface);
+}
+
+.messageActions h2,
+.messageActions p {
+  margin: 0;
+}
+
+.messageActions h2 {
+  color: var(--fm-figma-chat-actions-title);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.messageActions p {
+  color: var(--fm-figma-chat-actions-copy);
+  font-size: 13px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.messageActions .messageActionsNote,
+.messageActions .messageActionsMuted {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.messageActions .messageActionsNote {
+  color: var(--fm-figma-chat-actions-note);
+}
+
+.messageActions .messageActionsMuted {
+  color: var(--fm-figma-chat-actions-muted);
+}
+
 .cardWrap {
   width: min(560px, calc(100% - 48px));
   margin-left: 48px;
@@ -2122,6 +2169,10 @@
   .fixtureActionMessage,
   .connectionNotice {
     width: calc(100% - 48px);
+  }
+
+  .messageActions {
+    flex-basis: auto;
   }
 
   .fixtureAssistantRow {
