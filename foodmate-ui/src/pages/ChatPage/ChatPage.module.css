@@ -869,48 +869,56 @@
   padding: 0;
 }
 
-.cardWrap {
-  width: min(560px, calc(100% - 48px));
-  margin-left: 48px;
-}
-
-/* Figma 640:428 的默认画板包含消息操作说明，仅用于可复现的设计 fixture。 */
 .messageActions {
   display: flex;
-  width: min(796px, 100%);
-  height: 150px;
-  flex: 0 0 auto;
+  width: 100%;
+  min-height: 150px;
+  flex: 0 0 150px;
+  box-sizing: border-box;
   flex-direction: column;
   gap: 7px;
-  margin-top: 5px;
   padding: 14px 18px;
-  border: 1px solid #e0ebe3;
+  border: 1px solid var(--fm-figma-chat-actions-border);
   border-radius: 14px;
-  background: #fcfcfa;
-  overflow: hidden;
+  background: var(--fm-figma-chat-actions-surface);
+}
+
+.messageActions h2,
+.messageActions p {
+  margin: 0;
 }
 
 .messageActions h2 {
-  height: 20px;
-  margin: 0;
-  color: #29302e;
+  color: var(--fm-figma-chat-actions-title);
   font-size: 15px;
-  font-weight: 400;
+  font-weight: 700;
   line-height: 20px;
 }
 
 .messageActions p {
-  height: 18px;
-  margin: 0;
-  color: #57635c;
+  color: var(--fm-figma-chat-actions-copy);
   font-size: 13px;
   line-height: 18px;
-  white-space: pre;
+  overflow-wrap: anywhere;
 }
 
-.messageActions .actionGreen {
-  color: #876e45;
+.messageActions .messageActionsNote,
+.messageActions .messageActionsMuted {
   font-size: 12px;
+  line-height: 18px;
+}
+
+.messageActions .messageActionsNote {
+  color: var(--fm-figma-chat-actions-note);
+}
+
+.messageActions .messageActionsMuted {
+  color: var(--fm-figma-chat-actions-muted);
+}
+
+.cardWrap {
+  width: min(560px, calc(100% - 48px));
+  margin-left: 48px;
 }
 
 .tracePanel {
@@ -1205,25 +1213,6 @@
   .inlineConfirmation {
     height: auto;
     min-height: 142px;
-  }
-
-  .messageActions {
-    width: 100%;
-    height: auto;
-    min-height: 150px;
-    overflow: visible;
-  }
-
-  .messageActions p {
-    height: auto;
-    min-height: 18px;
-    flex: 0 0 auto;
-    white-space: normal;
-  }
-
-  .messageActions h2 {
-    height: auto;
-    flex: 0 0 auto;
   }
 }
 
@@ -2180,6 +2169,10 @@
   .fixtureActionMessage,
   .connectionNotice {
     width: calc(100% - 48px);
+  }
+
+  .messageActions {
+    flex-basis: auto;
   }
 
   .fixtureAssistantRow {

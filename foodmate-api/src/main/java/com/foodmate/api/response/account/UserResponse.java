@@ -12,4 +12,5 @@ public record UserResponse(
         String nickname,
         String role,
         String status,
+        String gender,
         String avatarUrl) {}

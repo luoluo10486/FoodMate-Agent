@@ -405,7 +405,7 @@
 }
 
 .authPageLoginCredentialError .figmaInput {
-  border-color: #e2e8f0 !important;
+  border-color: var(--fm-auth-neutral-border) !important;
 }
 
 .authPageLoginSubmitting .field,
@@ -452,8 +452,8 @@
 .authPageLoginAccountLocked .primaryActionDisabled,
 .authPageLoginAccountDisabled .primaryActionDisabled,
 .authPageLoginServiceUnavailable .primaryActionDisabled {
-  border-color: #cbd5e0 !important;
-  background: #cbd5e0 !important;
+  border-color: var(--fm-auth-disabled-control) !important;
+  background: var(--fm-auth-disabled-control) !important;
   box-shadow: none;
   color: var(--fm-auth-disabled-text) !important;
   opacity: 1 !important;
@@ -575,9 +575,9 @@
 .signupButton {
   height: 44px;
   padding: 0 28px;
-  border: 1.5px solid rgb(255 255 255 / 60%);
+  border: 1.5px solid var(--fm-auth-glass-border);
   border-radius: 22px;
-  background: rgb(255 255 255 / 40%);
+  background: var(--fm-auth-glass-surface);
   color: var(--fm-auth-ink);
   font-size: 14px;
   font-weight: 700;
@@ -586,8 +586,8 @@
 .authPage.authPageLoginState .signupButton {
   height: auto;
   padding: 10px 24px;
-  border: 1px solid rgb(51 51 51 / 12%);
-  background: rgb(51 51 51 / 3%);
+  border: 1px solid var(--fm-auth-secondary-border);
+  background: var(--fm-auth-secondary-surface);
 }
 
 /* 注册、找回密码、重置密码共享组件 */
@@ -623,7 +623,7 @@
   border-radius: var(--auth-brand-radius, 10px);
   background: var(--auth-brand);
   box-shadow: var(--fm-auth-brand-shadow);
-  color: #ffffff;
+  color: var(--fm-auth-solid-text);
 }
 
 .authMark img {
@@ -640,7 +640,7 @@
 
 .authHeading h1 {
   margin: 0;
-  color: #333333;
+  color: var(--fm-auth-text-base);
   font-family: var(--fm-font);
   font-size: 28px;
   font-weight: 700;
@@ -649,7 +649,7 @@
 
 .authHeading p {
   margin: 0;
-  color: #6b7280;
+  color: var(--fm-auth-text-label);
   font-family: var(--fm-font);
   font-size: 14px;
   font-weight: 400;
@@ -715,7 +715,7 @@
 }
 
 .authFieldLabel {
-  color: #6b7280;
+  color: var(--fm-auth-text-label);
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 500;
@@ -734,13 +734,13 @@
   border-radius: var(--auth-control-radius, 12px) !important;
   background: var(--fm-auth-control) !important;
   box-shadow: var(--fm-auth-form-control-shadow) !important;
-  color: #333333 !important;
+  color: var(--fm-auth-text-base) !important;
   font-family: var(--fm-font);
   font-size: 14px !important;
 }
 
 .authInput::placeholder {
-  color: #6b7280;
+  color: var(--fm-auth-text-label);
   opacity: 1;
 }
 
@@ -758,7 +758,7 @@
   border-radius: var(--auth-primary-radius, 14px);
   background: var(--auth-primary);
   box-shadow: var(--fm-auth-primary-shadow);
-  color: #ffffff;
+  color: var(--fm-auth-solid-text);
   font-family: var(--fm-font);
   font-size: 16px;
   font-weight: 700;
@@ -768,7 +768,7 @@
 .authPrimary:focus-visible {
   border-color: var(--auth-primary);
   background: var(--auth-primary);
-  color: #ffffff;
+  color: var(--fm-auth-solid-text);
 }
 
 .authPrimary:disabled {
@@ -788,7 +788,7 @@
   height: auto;
   min-height: 18px;
   padding: 0;
-  color: #5a6672;
+  color: var(--fm-auth-text-link);
   font-family: var(--fm-font);
   font-size: 14px;
   font-weight: 500;
@@ -798,7 +798,7 @@
 .authBackLink:hover,
 .authBackLink:focus-visible {
   background: transparent;
-  color: #5a6672;
+  color: var(--fm-auth-text-link);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -813,7 +813,7 @@
   min-height: 38px;
   align-items: center;
   justify-content: space-between;
-  color: #6b7280;
+  color: var(--fm-auth-text-label);
   font-family: var(--fm-font);
   font-size: 14px;
 }
@@ -821,10 +821,10 @@
 .authSecondary {
   height: 38px;
   padding: 0 24px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--fm-auth-neutral-border);
   border-radius: 19px;
   background: var(--fm-auth-control);
-  color: #333333;
+  color: var(--fm-auth-text-base);
   font-family: var(--fm-font);
   font-size: 13px;
   font-weight: 700;
@@ -832,8 +832,8 @@
 
 .authSecondary:hover,
 .authSecondary:focus-visible {
-  background: rgb(255 255 255 / 80%);
-  color: #333333;
+  background: var(--fm-auth-secondary-hover);
+  color: var(--fm-auth-text-base);
 }
 
 .passwordRules {
@@ -884,7 +884,7 @@
 }
 
 .passwordStrength strong {
-  color: #2e7d32;
+  color: var(--fm-auth-text-success);
   font-weight: 700;
 }
 
@@ -957,7 +957,7 @@
   border-radius: 12px;
   background: var(--fm-auth-success-action);
   box-shadow: none;
-  color: #ffffff;
+  color: var(--fm-auth-solid-text);
   font-size: 14px;
   font-weight: 700;
 }
@@ -965,12 +965,12 @@
 .successActionButton:hover,
 .successActionButton:focus-visible {
   background: var(--fm-auth-success-action);
-  color: #ffffff;
+  color: var(--fm-auth-solid-text);
 }
 
 .successCard h1 {
   margin: 0;
-  color: #2e7d32;
+  color: var(--fm-auth-text-success);
   font-family: var(--fm-font);
   font-size: 22px;
   font-weight: 700;
@@ -987,7 +987,7 @@
 }
 
 .successLive {
-  color: #2e7d32;
+  color: var(--fm-auth-text-success);
   font-family: var(--fm-font);
   font-size: 12px;
   line-height: 18px;
@@ -1057,15 +1057,15 @@
 }
 
 .tokenIcon-invalid {
-  background: rgb(255 117 118 / 10%);
+  background: var(--fm-auth-token-invalid-surface);
 }
 
 .tokenIcon-expired {
-  background: rgb(255 218 147 / 10%);
+  background: var(--fm-auth-token-expired-surface);
 }
 
 .tokenIcon-used {
-  background: rgb(128 224 230 / 10%);
+  background: var(--fm-auth-token-used-surface);
 }
 
 .tokenMessage {
@@ -1079,7 +1079,7 @@
 
 .tokenMessage h1 {
   margin: 0;
-  color: #333333;
+  color: var(--fm-auth-text-base);
   font-size: 24px;
   font-weight: 700;
   line-height: 29px;
@@ -1088,7 +1088,7 @@
 .tokenMessage p {
   width: 100%;
   margin: 0;
-  color: #5a6672;
+  color: var(--fm-auth-text-link);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -1103,10 +1103,10 @@
 
 .tokenCard .authPrimary {
   height: 52px;
-  border-color: rgb(166 217 151 / 50%);
+  border-color: var(--fm-auth-token-border);
   border-radius: 16px;
   background: var(--auth-primary);
-  box-shadow: 0 6px 8px rgb(72 199 142 / 20%);
+  box-shadow: var(--fm-auth-token-shadow);
 }
 
 .tokenCard .authPrimary:hover,
@@ -1117,10 +1117,10 @@
 .tokenSupport {
   width: 100%;
   height: 52px;
-  border: 1.5px solid #8a94a0;
+  border: 1.5px solid var(--fm-auth-support-border);
   border-radius: 16px;
   background: transparent;
-  color: #333333;
+  color: var(--fm-auth-text-base);
   font-size: 16px;
   font-weight: 700;
 }

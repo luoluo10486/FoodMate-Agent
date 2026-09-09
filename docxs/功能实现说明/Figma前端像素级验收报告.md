@@ -1,6 +1,66 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-08
+更新时间：2026-09-09
+
+## 1.1.7 Chat 默认态头像与消息操作面板实现记录（2026-09-09）
+
+本批次只修改 Chat Fixture 的资源契约和页面结构，不重新采集全部 105 个画板，Figma 文件保持只读。
+
+- [x] Figma `640:428` 默认 Chat 的侧栏头像和顶栏头像使用登记的男性默认 SVG，用户消息使用登记的女性默认 SVG；六个 Agent 状态画板继续按既有男性/女性状态契约渲染。
+- [x] Figma 节点 `983:3` 的“消息操作”面板已在 `figma-v2` 和 `redesign-default` 两个默认 Fixture 中实现，面板文案、颜色、边框、圆角、间距和响应式换行均登记到前端语义 Token/CSS。
+- [x] 运行时默认头像仍只允许 `/assets/avatars/default-male.svg` 和 `/assets/avatars/default-female.svg`；真实模式主动上传头像仍保留独立入口。
+- [x] 仅增量复采 `agent-chat-v2` 和 `agent-chat-redesign-default`：两项均为 `1440×1024`、DPR 1、字体 `loaded`、页面无横向溢出，并生成当前浏览器 PNG 与同尺寸 PNG diff。
+- [x] `agent-chat-v2` diff 为 `11.9678% / MAE 2.849176 / RMSE 17.062276 / maxChannelDelta 236`；`agent-chat-redesign-default` diff 为 `55.6938% / MAE 5.774089 / RMSE 23.669611 / maxChannelDelta 255`；两项均保持 `DIFF_REVIEW`。
+- [ ] 本批次不重新验收全部 105 个画板；全量聚合继续保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，现有非零差异不能标记为像素级 `PASS`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.6 Auth 页面组语义 Token 收口门禁完成（2026-09-09）
+
+本批次只收口 Auth 页面组的 CSS 语义 Token，不重新采集全部 105 个画板，Figma 文件保持只读。
+
+- [x] 对照节点 `647:214`、`680:216`、`680:275`、`680:307` 和 `680:738`，将中性色、辅助文字、控件边框、透明层、Token 状态背景和阴影统一登记到 `foodmate-ui/src/styles/tokens.css`。
+- [x] `foodmate-ui/src/pages/LoginPage/LoginPage.module.css` 只替换为语义 Token 引用；颜色数值、字体、尺寸、圆角、布局和 Login Motion 时序保持 Figma 已核对结果。
+- [x] Auth 定向测试为 2 个测试文件、28/28 个用例通过；`typecheck`、`lint`、`format:check`、`build` 和 `git diff --check` 通过。
+- [x] 现有 Auth 画板证据仍为同尺寸非零 diff，继续保持 `DIFF_REVIEW`；本批次不把 Token 重构当作像素级 `PASS`。
+- [ ] 全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，本批次没有重新验收其它画板。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.5 Fixture 默认头像全局资源保护收口（2026-09-09）
+
+本批次只处理运行时人物头像资源边界，不重新采集全部 105 个画板。默认头像继续使用用户提供的两份 SVG；Figma 文件保持只读。
+
+- [x] `AvatarImage` 在 `VITE_AGENT_MODE !== real` 时强制启用 `default-only` 策略，所有 Fixture 人物头像最终只能输出 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`。
+- [x] `public/assets/avatars/` 和生产构建产物 `dist/assets/avatars/` 均只有上述两份 SVG；男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 定向浏览器页面加载和头像相关回归覆盖主要 Fixture 页面；10 个测试文件、150/150 个用例通过，`typecheck`、`lint`、`format:check`、`build` 和 `git diff --check` 均通过。
+- [x] 认证页 `foodmate-*-user.svg` 仅用于输入框装饰，Workspace/Admin/Agent 的其它 Figma SVG 仅为界面图标，不属于人物头像。
+- [x] 真实模式的 `/api/users/me/avatar` 和 `blob:` 仍保留给用户主动上传和本地预览；这不改变默认 Fixture 头像的资源白名单。
+- [ ] 本批次没有重新生成 105 个画板的全量截图和 diff；全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.4 Workspace/Home、Agent Chat 当前截图与头像证据更新（2026-09-09）
+
+本批次只重新采集 Workspace/Home 与 Agent Chat 两项受影响画板，不重新验收其余画板。浏览器证据使用当前运行时代码，Figma 文件保持只读。
+
+| 画板 | Figma 节点 | 浏览器 PNG | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace Home | `640:256` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-09.png` | `1440×1024 / 1` | `21.6216%` | `2.865324` | `17.380218` | `252` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-09.png` | `1440×1024 / 1` | `11.9678%` | `2.849176` | `17.062276` | `236` | `DIFF_REVIEW` |
+
+- [x] 两项截图均由 Chrome `152.0.7977.83` 采集，字体状态为 `loaded`，DPR 为 `1`，页面无横向溢出。
+- [x] 当前 DOM 审计确认人物头像只来自 `/assets/avatars/default-male.svg` 和 `/assets/avatars/default-female.svg`；最新截图中不再使用历史真人 PNG。
+- [x] Workspace/Home 侧栏和顶栏使用登记的男性 SVG；Agent Chat 默认态用户消息使用登记的女性 SVG，`safety-degraded` 状态的用户消息继续使用登记的女性 SVG。
+- [x] 两份默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 历史真人 PNG 仅保留在 `.qa/figma-pixel-acceptance/legacy-avatars/`；认证页 `foodmate-*-user.svg` 是输入框装饰图标，不属于人物头像。
+- [ ] 两项自动 diff 仍为非零，文字、局部布局、图标光栅化和内容密度差异仍需后续视觉收口，不能标记为像素级 `PASS`。
+- [ ] 本批次不代表其余 103 个画板重新采集或完成全量人工复核；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 1.1.3 默认头像资源再次复核（2026-09-09）
+
+- [x] 当前本地 Vite 服务 `127.0.0.1:5174` 实际打开首页和 Agent Chat 后，人物头像只使用 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`；页面内 Agent 绿色方块是状态标识，不是人物头像。
+- [x] 两份默认 SVG 与用户附件逐字节一致：男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 头像回归测试中的旧人物路径已替换为不可访问的遗留路径示例；历史真人 PNG 继续只保留在 `.qa/figma-pixel-acceptance/legacy-avatars/`，不属于 Vite `public` 运行时资源。
+- [x] 真实模式的 `/api/users/me/avatar` 和 `blob:` 仅表示用户主动上传/预览头像，不作为默认头像资源；上传头像加载失败时仍回退到性别对应的登记 SVG。
+- [ ] 本次只复核头像资源，不重新验收 105 个画板；全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 
 ## 1.1.2 Auth 登录页 Token 增量收口（2026-09-08）
 
@@ -2754,3 +2814,35 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 统一门禁已通过：Vitest `46/46` 文件、`303/303` 用例，typecheck、format、lint、build、Figma 证据结构校验和 `git diff --check` 均通过。
 - [ ] 本节没有新增 Figma/浏览器 PNG，因此不能改变任何画板结论；当前全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] 本节不代表 105 项全量人工复核完成，也不解除 iconfont `BLOCKED`；真实字体包、CSS 映射、来源和许可证仍待提供。
+
+## 2026-09-08 默认头像资源运行时证据契约
+
+本节只登记头像运行时来源修复，不新增 Figma 或浏览器 PNG，也不改变既有像素差异结论。
+
+- [x] `public/assets/avatars/default-male.svg` 与 `default-female.svg` 是运行时默认人物头像的唯一登记资源；`public/assets` 未发现其它人物图片资源。
+- [x] `AvatarImage` 输出实际资源路径、来源类型和契约标记；Fixture 页面要求 `data-avatar-contract="registered-default-svg"`，并只允许两份登记 SVG。
+- [x] 真实用户上传头像的白名单仍为 `/api/users/me/avatar` 和 `blob:`；这不是默认头像资源，加载失败时按当前性别回退到登记 SVG。
+- [x] `/api/users/me` 已补充 `gender` 字段，前端可以按真实资料选择男性或女性默认头像；历史 Figma 真人图片仍只作为 QA 证据保留。
+- [ ] 本次不重新验收 105 个画板；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能因头像契约修复改写为 `PASS`。
+
+## 1.1.7 Workspace/Home 任务入口与状态面板恢复（2026-09-09）
+
+本批次使用 Figma `get_design_context` 读取节点 `989:3` 和 `1015:4`，确认“任务入口与状态”面板分别落在 `989:3` 与 `1015:248`；仅修改前端，不修改 Figma 文件，也不重新采集 105 个画板。
+
+- [x] 面板使用 Figma 确认的 `#fcfcfa` 背景、`#e3ede3` 边框、`#292e2b` 标题、`#57635c` 普通说明、`#478052` 成功说明、`#858c85` 弱说明、`15px/12px Noto Sans SC` 字体层级和 `1116×150` 结构。
+- [x] 默认 Home 和 Input States 页面已分别绑定正确节点元数据；Input States 页面保留原有 `1015:260` 输入器状态面板。
+- [x] Home 运行时 DOM 核验使用本地浏览器 `1280×720`、DPR `1.25`：两种入口均出现任务面板，面板高度为 `150px`，页面无横向溢出。该核验不是 Figma 像素级截图证据。
+- [x] 同次运行时审计的 `[data-avatar-role]` 头像来源均为 `/assets/avatars/default-male.svg`；`public/assets/avatars` 运行时实体仍只有男性和女性两份登记 SVG。
+- [x] Home 定向测试 `8/8`，`typecheck`、`lint`、`format:check`、`build` 和 `git diff --check` 通过。
+- [ ] 本批次只收口 Workspace/Home 面板和 Fixture 头像来源证据；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能以 DOM 核验替代 Figma PNG diff 和人工视觉复核。
+
+## 2026-09-09 Chat 默认头像最终运行时复核
+
+本节只记录当前 Chat/Home 批次的最终运行时和质量门禁结果，不重新验收全部 105 个画板，也不修改 Figma 文件。
+
+- [x] 用户提供的男性和女性 SVG 与 `foodmate-ui/public/assets/avatars/default-male.svg`、`default-female.svg` 逐字节一致；SHA-256 分别为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D` 和 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] Chrome 实际检查 Home、Chat 默认态以及 `write-confirmation`、`budget-limit`、`tool-failed-retryable`、`safety-degraded`、`user-cancelled`、`sse-reconnecting`；人物头像节点全部使用登记 SVG，并带有 `data-avatar-policy="default-only"`、`data-avatar-registered="true"`。
+- [x] Chat 默认态消息头像使用女性登记 SVG；六个 Agent 状态中 `safety-degraded` 使用女性登记 SVG，其余状态使用男性登记 SVG；共享 Workspace 壳层继续使用男性登记 SVG。
+- [x] 认证页 `foodmate-*-user.svg` 仅作为输入框装饰图标，历史真人素材仅保留在 QA 证据目录，不属于运行时头像来源。
+- [x] 最终统一门禁为 Vitest `46/46` 个测试文件、`304/304` 个用例通过；`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。
+- [ ] 本次运行时复核不改变像素差异结论；105 项仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能用 DOM 资源审计替代 Figma PNG diff 和人工视觉复核。

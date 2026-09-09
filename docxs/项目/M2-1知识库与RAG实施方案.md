@@ -1,20 +1,20 @@
 # M2-1 知识库与 RAG 实施方案
 
-状态：deterministic 本地业务闭环已验收，生产强化与性能/故障验证后置
+状态：正式 WHO 公共资料的真实 Embedding/Milvus/Chat 业务闭环已验收，生产强化与性能/故障验证后置
 
-对应路线图：[完整功能实施TODO.md](完整功能实施TODO.md) 的 M2-1；上位执行顺序见 [M2剩余功能执行计划.md](M2剩余功能执行计划.md)。数据和接口字段以 [数据库设计.md](../数据/数据库设计.md) 与 [接口与数据规范.md](../契约/接口与数据规范.md) 为准。V16/V17、Java 知识投递、Python 解析/Redis stub/Milvus adapter、管理批次入口和 AgentRun citation 已完成 deterministic 本地业务闭环，Docker 应用容器的 stub/local deterministic 业务复验也已完成；真实 embedding/云模型、性能和故障矩阵继续后置。
+对应路线图：[完整功能实施TODO.md](完整功能实施TODO.md) 的 M2-1；上位执行顺序见 [M2剩余功能执行计划.md](M2剩余功能执行计划.md)。数据和接口字段以 [数据库设计.md](../数据/数据库设计.md) 与 [接口与数据规范.md](../契约/接口与数据规范.md) 为准。V16/V17、Java 知识投递、Python 解析/Redis stub/Milvus adapter、管理批次入口和 AgentRun citation 已完成业务闭环；D174 又使用真实 `openai-compatible` Embedding、Milvus 和 Chat 完成正式 WHO 资料验证。性能、长稳、价格对账和故障矩阵继续后置。
 
-## 当前实现状态（2026-08-27）
+## 当前实现状态（2026-09-08）
 
 | 能力 | 当前状态 | 剩余门槛 |
 |---|---|---|
 | 数据与任务 | V16/V17 已建立导入任务、索引/可见性 Outbox、结果 Inbox 和批次 SSE；本地迁移与状态收敛已核验 | 生产级迁移编排和故障矩阵后置 |
-| Java 投递 | 索引/可见性 relay、结果消费、状态回写和管理 API 已在 PostgreSQL/RocketMQ 业务路径验证 | Docker 应用容器启动和业务复验已完成，长期运行与生产化编排后置 |
-| Python Worker | 四格式解析、Redis stub、Milvus 与 visibility 消费已验证；stub Worker 实际完成 MinIO 读取和结果回写 | 真实 embedding provider 和 Milvus 生产强化后置 |
-| Agent 引用 | RunCommand 固定公共 scope，Runtime 输出 citations，Java 二次可见性过滤已验证 | 云模型、性能和组件故障验证后置 |
+| Java 投递 | 索引/可见性 relay、结果消费、状态回写和管理 API 已在 PostgreSQL/RocketMQ 业务路径验证；D174 已完成正式资料的真实结果回写 | 长期运行与生产化编排后置 |
+| Python Worker | 四格式解析、Redis stub、Milvus、真实 openai-compatible embedding 与 visibility 消费已验证 | 真实云服务长稳、价格对账和生产强化后置 |
+| Agent 引用 | RunCommand 固定公共 scope，Runtime 输出 citations，Java 二次可见性过滤已验证；D174 完成真实 Chat `run.completed` 引用 | 长稳、性能和组件故障验证后置 |
 | 管理端 | 批次上传、进度查询、SSE/重试、发布/下线/恢复和聊天引用已完成业务验收 | UI 视觉细节和生产发布治理后置 |
 
-2026-08-27 当前业务门禁复核：Java 全量 `clean verify` 的 Application `200/200`、Infrastructure `81/81`（17 skipped）、API `64/64`、Bootstrap `58/58`（37 skipped）通过；Python `.venv` 为 `124 passed、1 skipped、2 warnings`；前端 38 个测试文件 `196/196`，lint/typecheck/build 通过。上述结果只证明功能版业务正确性，不扩大为真实云服务、性能或故障恢复门禁。
+2026-09-08 当前业务门禁复核：历史功能版业务测试、D174 正式真实 RAG 业务证据和前端真实接口复核均已记录；本方案只把业务正确性作为完成门槛，不扩大为云服务长稳、性能或故障恢复门禁。
 
 当前 M2-1 完成门槛只要求业务正确性。吞吐、延迟、队列容量、依赖重启和组合故障测试统一后置。
 
@@ -221,3 +221,9 @@ K2 业务测试为 `70 passed`、`4` 个子断言通过，覆盖章节层级、�
 批次 `354847677655027712` 的 9 份 WHO 中文资料已通过正式管理员重索引接口按 K2 切分规则重新索引。9/9 条目为 `indexed`，批次为 `completed`；PostgreSQL 活动 chunk 为 `49`，历史软删除 chunk 为 `232`，活动 Front Matter 命中为 `0`；Redis stub 对应活动索引为 `49` 条。Java 公共检索查询“健康”返回 `4` 条安全引用，且引用不包含对象存储地址、对象键或凭据字段。
 
 本轮只使用 `stub + Redis`，没有读取真实 Embedding Key、没有写入 Milvus；验证结束后 Docker Runtime 已恢复 `local + openai-compatible` 配置。真实 Embedding/Milvus 正式重建、性能和故障验证继续后置。
+
+## 2026-09-08 D174 正式资料真实 Embedding/Milvus 与 Chat 闭环
+
+正式批次 `354847677655027712` 的 9 份 WHO 中文资料已按 K2 规则使用 `local + openai-compatible` 完成重建。Embedding 模型为 `Qwen/Qwen3-Embedding-0.6B`，Milvus collection 为 `foodmate_knowledge_chunks_qwen3_embedding_0_6b`；9/9 条目为 `indexed`，PostgreSQL 活动 chunk `49`，Milvus 对应实体 `49`，供应商 usage `3,088` token，成本 `0.00021616 CNY`。
+
+随后通过幂等发布补发可见性投影，Milvus 对应实体均为公共已发布当前版本。Java 公共检索实际返回安全引用；管理员真实 AgentRun `355711261717041152` 产生唯一 `run.completed`，包含 `4` 条引用，Chat 路由为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`。本证据只覆盖一次本地业务闭环，不覆盖长稳、性能、账单对账、依赖故障矩阵或生产治理。

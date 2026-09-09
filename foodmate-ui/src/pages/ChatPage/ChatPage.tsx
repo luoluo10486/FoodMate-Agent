@@ -29,7 +29,7 @@ import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
 import { ErrorState } from '../../components/common/ErrorState';
 import { AvatarImage } from '../../components/common/AvatarImage';
-import { DEFAULT_AVATARS, FIXTURE_CHAT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
+import { DEFAULT_AVATARS, FIXTURE_CHAT_AVATAR_GENDERS, FIXTURE_CHAT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
@@ -49,6 +49,7 @@ import styles from './ChatPage.module.css';
 const FIXTURE_CHAT_SIDEBAR_AVATAR = FIXTURE_CHAT_AVATARS.sidebar;
 const FIXTURE_CHAT_TOPBAR_AVATAR = FIXTURE_CHAT_AVATARS.topbar;
 const FIXTURE_CHAT_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.message;
+const FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.agentStateMessage;
 
 type ChatMessage = {
   id: string;
@@ -210,6 +211,20 @@ function InlineConfirmationCard({ onConfirm, onCancel }: { onConfirm: () => void
           取消
         </Button>
       </div>
+    </section>
+  );
+}
+
+function MessageActionsPanel() {
+  return (
+    <section className={styles.messageActions} aria-labelledby="figma-message-actions-title" data-node-id="983:3">
+      <h2 id="figma-message-actions-title">消息操作</h2>
+      <p>用户消息：编辑 · 复制 · 重试（保留原消息并新建一次运行）</p>
+      <p>Agent 回答：复制 · 查看引用 · 查看运行详情 · 继续提问</p>
+      <p className={styles.messageActionsNote}>
+        工具失败时显示重试；运行中发送按钮切换停止；写入确认 / 预算追加仍需确认后继续。
+      </p>
+      <p className={styles.messageActionsMuted}>右侧面板：运行 · 工具 · 引用 原始 JSON 默认折叠并隐藏敏感参数。</p>
     </section>
   );
 }
@@ -1244,6 +1259,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               />
             )}
           </MessageBubble>
+          {isRedesignDefault ? <MessageActionsPanel /> : null}
         </>
       ) : (
         <>
@@ -1291,12 +1307,12 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   // 所有 Agent 状态画板使用登记的男性默认头像作为示例账号头像。
   const fixtureSidebarAvatarSrc = DEFAULT_AVATARS.male;
   const fixtureTopAvatarSrc = DEFAULT_AVATARS.male;
-  const fixtureMessageAvatarSrc = isWriteConfirmation
-    ? DEFAULT_AVATARS.male
-    : state === 'safety-degraded'
-      ? DEFAULT_AVATARS.female
-      : DEFAULT_AVATARS.male;
-  const fixtureMessageGender = state === 'safety-degraded' ? '女' : '男';
+  const fixtureMessageAvatarSrc =
+    state === 'safety-degraded' ? DEFAULT_AVATARS.female : FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR;
+  const fixtureMessageGender =
+    state === 'safety-degraded'
+      ? FIXTURE_CHAT_AVATAR_GENDERS.safetyDegradedMessage
+      : FIXTURE_CHAT_AVATAR_GENDERS.agentStateMessage;
 
   const report = (nextAction: FixtureAction, message: string) => {
     setAction(nextAction);
@@ -2144,7 +2160,7 @@ function MockChatPage() {
           key={message.id}
           message={{ ...message, wide: isFigmaFixture }}
           userAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_MESSAGE_AVATAR : undefined}
-          userAvatarGender={isFigmaFixture ? '女' : undefined}
+          userAvatarGender={isFigmaFixture ? FIXTURE_CHAT_AVATAR_GENDERS.defaultMessage : undefined}
         >
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
             <InlineConfirmationCard onConfirm={agent.confirmWrite} onCancel={agent.cancelWrite} />
@@ -2178,18 +2194,7 @@ function MockChatPage() {
       ) : null}
       {agent.card.type === 'confirmation' ? null : null}
       {agent.card.type === 'error' ? <ErrorState message={agent.card.message} /> : null}
-      {/* Figma 640:428 的说明面板属于默认画板内容，只在 fixture 中复现。 */}
-      {isFigmaFixture ? (
-        <section className={styles.messageActions} aria-label="消息操作">
-          <h2>消息操作</h2>
-          <p>{'用户消息：编辑  ·  复制  ·  重试（保留原消息并新建一次运行）'}</p>
-          <p>{'Agent 回答：复制  ·  查看引用  ·  查看运行详情  ·  继续提问'}</p>
-          <p className={styles.actionGreen}>
-            工具失败时显示重试；运行中发送按钮切换停止；写入确认 / 预算追加仍需确认后继续。
-          </p>
-          <p>{'右侧面板：运行  ·  工具  ·  引用     原始 JSON 默认折叠并隐藏敏感参数。'}</p>
-        </section>
-      ) : null}
+      {isFigmaFixture ? <MessageActionsPanel /> : null}
     </ChatSurface>
   );
 }

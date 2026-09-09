@@ -156,8 +156,8 @@ describe('WorkspaceLayout shell controls', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>
         <WorkspaceLayout
-          sidebarAvatarSrc="/assets/figma/workspace/home-sidebar-avatar.png"
-          topAvatarSrc="/assets/figma/workspace/home-topbar-avatar.png"
+          sidebarAvatarSrc="/legacy-assets/workspace/sidebar-person-avatar.png"
+          topAvatarSrc="/legacy-assets/workspace/topbar-person-avatar.png"
         >
           <div>页面内容</div>
         </WorkspaceLayout>

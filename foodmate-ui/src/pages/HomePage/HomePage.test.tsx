@@ -67,7 +67,7 @@ describe('HomePage session cards', () => {
     expect(screen.getByRole('heading', { name: '待确认队列' }).closest('article')).toHaveClass('pendingPanel');
   });
 
-  it('renders the Figma workspace task status panel', () => {
+  it('renders the Figma task and input status panel in the default workspace', () => {
     render(
       <MemoryRouter initialEntries={['/?state=figma-v2']}>
         <Routes>
@@ -77,6 +77,17 @@ describe('HomePage session cards', () => {
     );
 
     expect(screen.getByRole('heading', { name: '任务入口与状态' })).toBeInTheDocument();
+    expect(screen.getByText(/附件解析中显示进度/)).toBeInTheDocument();
+    expect(screen.getByText(/待处理事项覆盖写入确认/)).toBeInTheDocument();
+    const fixtureAvatars = Array.from(document.querySelectorAll('[data-avatar-role]'));
+    expect(fixtureAvatars.length).toBeGreaterThan(0);
+    expect(
+      fixtureAvatars.every((avatar) =>
+        ['/assets/avatars/default-male.svg', '/assets/avatars/default-female.svg'].includes(
+          avatar.getAttribute('src') ?? '',
+        ),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -113,6 +124,7 @@ describe('HomePage Figma 状态', () => {
     );
 
     expect(screen.getByRole('heading', { name: '输入器状态' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '任务入口与状态' })).toBeInTheDocument();
     expect(screen.getByText('空输入 · 发送禁用')).toBeInTheDocument();
     expect(screen.getByText('模板已带入 · 可发送')).toBeInTheDocument();
     expect(screen.getByText('运行中 · 可停止')).toBeInTheDocument();

@@ -2605,3 +2605,14 @@
 | Milvus 结果 | 目标 collection 为 `foodmate_knowledge_chunks_qwen3_embedding_0_6b`，实际向量维度 `1024`；对应本批次实体 `49` 个且 embedding ID 唯一。补发 9 个幂等 publish 可见性事实后，49/49 均为 `tenant_id=0`、`public_published`、`published`、`indexed=true`、`deleted=false`、当前版本。 |
 | 检索与 Chat | Java 公共检索实际返回 WHO 安全引用；管理员 AgentRun `355711261717041152` 返回 `7` 个 SSE 事件，唯一终态为 `run.completed`，包含 `4` 条引用；`run.model_usage` 确认 Chat 为 `cloud_primary/deepseek-ai/DeepSeek-V4-Flash`。引用仅含标题、版本、章节和安全片段，不含对象地址、对象键、API Key 或 Prompt。 |
 | 文档与结论 | `script/data/knowledge/public/manifest.json` 已登记真实模式、模型、collection、批次、49 chunks、3,088 tokens、成本和索引时间；README、M2 剩余计划、非生产业务计划、路线图、本地开发指南和测试策略已同步。结论：正式 WHO 资料的本地真实向量业务闭环完成；性能、长稳、价格账单对账、故障矩阵、生产容量和运维治理继续后置。 |
+
+## D175 非生产业务计划收口复核（2026-09-09）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；未调用真实 Chat/Embedding，未写入 PostgreSQL、Redis、RocketMQ、Milvus 或 MinIO。 |
+| 代码收口 | 修正 `foodmate-ui/src/services/agentService.ts` 中与当前实现不符的旧注释，明确 `VITE_AGENT_MODE=real` 使用真实 API/SSE，其他模式使用确定性本地预览回放；未改变运行逻辑。 |
+| 前端业务门禁 | 在 `foodmate-ui` 执行 `npm.cmd test -- --run src/pages/ChatPage/ChatPage.real.test.tsx`：`1` 个测试文件、`5/5` 通过；`npm.cmd run typecheck` 通过。真实模式引用回放、SSE 关闭、终态去重、取消和重连耗尽场景均通过。 |
+| Python 业务门禁 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider tests\\test_knowledge_rag.py tests\\test_runtime_server.py`：`105 passed、4 subtests passed`；未调用真实外部服务。 |
+| 真实模式检查 | 真实聊天主页面直接渲染 `RealChatPage`；`useAgentReplay` 仅按 `VITE_AGENT_MODE` 选择真实或本地预览，未发现真实模式下的业务 mock 回退。 |
+| 边界与结论 | 本轮未重复执行 Java 全量门禁，沿用 D172 的 Java 业务证据；未执行性能压测、依赖重启、ACK/重复投递故障注入、备份恢复、生产部署或发布回滚。非生产业务闭环收口复核完成，生产强化范围继续后置。 |

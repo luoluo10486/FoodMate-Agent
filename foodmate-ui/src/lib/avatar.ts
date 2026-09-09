@@ -6,6 +6,8 @@ export const DEFAULT_AVATARS = {
 /** 运行时默认头像白名单，所有 Fixture 人物头像必须从这里选择。 */
 export const REGISTERED_DEFAULT_AVATARS = Object.values(DEFAULT_AVATARS);
 
+export type AvatarSourceKind = 'default-male' | 'default-female' | 'uploaded';
+
 // Figma 工作台示例账号使用项目登记的男性默认头像，避免运行时加载真人素材。
 export const FIXTURE_WORKSPACE_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
@@ -31,11 +33,19 @@ export const FIXTURE_ADMIN_AVATARS = {
   userDetail: DEFAULT_AVATARS.male,
 } as const;
 
-// Chat Figma fixture 同时包含男性账号头像和女性消息示例头像。
+// Chat 默认 Figma fixture 的账号使用男性示例，默认用户消息按 Figma 640:428 使用女性头像。
 export const FIXTURE_CHAT_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
   message: DEFAULT_AVATARS.female,
+  // 六个 Agent 状态画板的普通用户消息继续使用男性示例头像。
+  agentStateMessage: DEFAULT_AVATARS.male,
+} as const;
+
+export const FIXTURE_CHAT_AVATAR_GENDERS = {
+  defaultMessage: '女',
+  agentStateMessage: '男',
+  safetyDegradedMessage: '女',
 } as const;
 
 // 历史 Figma 导出的人物素材只用于设计证据，运行时不允许再次作为头像来源。
@@ -68,6 +78,12 @@ function isTrustedUploadedAvatarUrl(value: string): boolean {
 
 export function isRegisteredDefaultAvatar(value: string): boolean {
   return REGISTERED_DEFAULT_AVATARS.includes(value as (typeof REGISTERED_DEFAULT_AVATARS)[number]);
+}
+
+export function getAvatarSourceKind(value: string): AvatarSourceKind {
+  if (value === DEFAULT_AVATARS.female) return 'default-female';
+  if (value === DEFAULT_AVATARS.male) return 'default-male';
+  return 'uploaded';
 }
 
 export function getDefaultAvatarForGender(gender?: string): string | undefined {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-07",
+  "generatedAt": "2026-09-09",
   "tool": "scripts/png-diff.mjs",
   "results": {
     "workspace-home-v2": {
@@ -7,10 +7,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 174789,
-      "differentRatio": 0.118536376953125,
-      "meanAbsoluteError": 3.031582472059462,
-      "rmse": 17.905353474434218,
+      "differentPixels": 318823,
+      "differentRatio": 0.21621568467881944,
+      "meanAbsoluteError": 2.8653244018554687,
+      "rmse": 17.380217527319076,
       "maxChannelDelta": 252
     },
     "agent-chat-v2": {
@@ -18,10 +18,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 177752,
-      "differentRatio": 0.12054578993055555,
-      "meanAbsoluteError": 2.988292778862847,
-      "rmse": 17.545000473809527,
+      "differentPixels": 176472,
+      "differentRatio": 0.119677734375,
+      "meanAbsoluteError": 2.8491758558485243,
+      "rmse": 17.062275745872853,
       "maxChannelDelta": 236
     },
     "diet-records-v2": {
@@ -326,11 +326,11 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 965888,
-      "differentRatio": 0.6550347222222223,
-      "meanAbsoluteError": 5.54589114718967,
-      "rmse": 22.633373361963187,
-      "maxChannelDelta": 249
+      "differentPixels": 821239,
+      "differentRatio": 0.5569383409288194,
+      "meanAbsoluteError": 5.774088880750868,
+      "rmse": 23.669611315146533,
+      "maxChannelDelta": 255
     },
     "agent-chat-nav-loading": {
       "status": "COMPARED",

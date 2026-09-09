@@ -1,21 +1,27 @@
 import { fireEvent, render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AvatarImage } from './AvatarImage';
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe('AvatarImage', () => {
-  it('replaces legacy Figma person assets before rendering', () => {
+  it('replaces legacy person assets before rendering', () => {
     const { container } = render(
-      <AvatarImage avatarUrl="/assets/figma/profile/main-avatar.png" gender="女" alt="头像" />,
+      <AvatarImage avatarUrl="/legacy-assets/profile/person-avatar.png" gender="女" alt="头像" />,
     );
 
     expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-source', 'default-female');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-asset', '/assets/avatars/default-female.svg');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-registered', 'true');
   });
 
-  it('rejects encoded Figma asset URLs and keeps the gender-specific default', () => {
+  it('rejects encoded person asset URLs and keeps the gender-specific default', () => {
     const { container } = render(
-      <AvatarImage avatarUrl="https://www.figma.com/api/mcp/asset%2Favatar-person.png" gender="male" alt="头像" />,
+      <AvatarImage avatarUrl="https://assets.example.com/profile%2Fperson-avatar.png" gender="male" alt="头像" />,
     );
 
     expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
@@ -23,6 +29,7 @@ describe('AvatarImage', () => {
   });
 
   it('falls back to the gender default when a real avatar fails to load', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
     const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" gender="女" alt="头像" />);
     const image = container.querySelector('img');
 
@@ -30,6 +37,16 @@ describe('AvatarImage', () => {
     fireEvent.error(image!);
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
+  });
+
+  it('forces registered defaults in Fixture mode even when defaultOnly is omitted', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'mock');
+    const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" gender="女" alt="头像" />);
+    const image = container.querySelector('img');
+
+    expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+    expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
+    expect(image).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
   });
 
   it('replaces an unknown person URL before it reaches the DOM', () => {
@@ -48,6 +65,7 @@ describe('AvatarImage', () => {
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
+    expect(image).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
     expect(image).toHaveAttribute('data-avatar-registered', 'true');
   });
 
@@ -61,12 +79,13 @@ describe('AvatarImage', () => {
 
   it('always uses a registered default for a design Chat fixture', () => {
     const { container } = render(
-      <AvatarImage avatarUrl="/assets/figma/agent-chat/user-avatar.png" defaultOnly gender="男" alt="头像" />,
+      <AvatarImage avatarUrl="/legacy-assets/chat/person-avatar.png" defaultOnly gender="男" alt="头像" />,
     );
     const image = container.querySelector('img');
 
     expect(image).toHaveAttribute('src', '/assets/avatars/default-male.svg');
     expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
-    expect(image?.getAttribute('src')).not.toContain('/assets/figma/');
+    expect(image).toHaveAttribute('data-avatar-asset', '/assets/avatars/default-male.svg');
+    expect(image?.getAttribute('src')).not.toContain('/legacy-assets/');
   });
 });
