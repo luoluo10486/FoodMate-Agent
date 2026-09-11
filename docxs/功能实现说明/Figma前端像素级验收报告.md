@@ -1,6 +1,19 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-09
+更新时间：2026-09-11
+
+## 1.1.8 2026-09-11 Figma 默认头像资源真实替换
+
+本批次针对用户反馈的 Figma 人物头像与本地默认头像不一致进行资源修正。Figma 文件不再保持只读：只修改 `🎨 :: Design` 页面中已登记的默认头像容器内部矢量，不重新验收全部 105 个画板。
+
+- [x] 用户附件与本地运行时资源逐字节一致。男性默认头像 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性默认头像 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 实时 Figma 文件 `MX18RZCfAmgprNzxItkHUH`、页面 `0:1`（`🎨 :: Design`）中，名称为 `Avatar / Default Male SVG` 的 184 个容器和 `Avatar / Default Female SVG` 的 3 个容器已替换内部矢量；容器 ID、尺寸和布局保持不变。
+- [x] 回读结果：187/187 个头像容器 `childCount=1`，子节点分别为 `User-provided male default SVG` 或 `User-provided female default SVG`；Figma 页面顶层临时导入节点为 `0`。
+- [x] 受影响 Figma PNG 已重新导出：`recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png`、`recaptured-figma/agent-chat-v2-figma-2026-09-11-avatar-fixed.png`，均为 `1440×1024`。
+- [x] 本地视觉回读确认 Home 顶栏/侧栏及 Chat 消息区域显示新的男性、女性默认头像；本批次没有覆盖历史真人头像 PNG。
+- [x] 本批次统一门禁：`npm run test` 为 `46/46` 个测试文件、`306/306` 个用例通过；`typecheck`、`format:check`、`lint`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。
+- [ ] 本批次不重新采集或判定其它 103 个画板；105 项全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，资源登记继续为 `BLOCKED`。
 
 ## 1.1.7 Chat 默认态头像与消息操作面板实现记录（2026-09-09）
 

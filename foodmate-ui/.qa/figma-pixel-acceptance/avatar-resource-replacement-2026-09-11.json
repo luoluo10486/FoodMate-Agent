@@ -1,0 +1,43 @@
+{
+  "capturedAt": "2026-09-11",
+  "figmaFileKey": "MX18RZCfAmgprNzxItkHUH",
+  "figmaPageId": "0:1",
+  "figmaPageName": "Design",
+  "targetNodeName": "Avatar / Default Male SVG | Avatar / Default Female SVG",
+  "targetCount": 187,
+  "maleCount": 184,
+  "femaleCount": 3,
+  "containerPreserved": true,
+  "containerChildCountAfterReplacement": {
+    "1": 187
+  },
+  "topLevelImportedNodeCountAfterReplacement": 0,
+  "sourceAssets": {
+    "male": {
+      "runtimePath": "public/assets/avatars/default-male.svg",
+      "sha256": "EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D",
+      "sourceAttachment": "C:/Users/HP/.codex/attachments/b6ffc7bc-a72d-42a3-af76-5221ace7bb5e/pasted-text.txt"
+    },
+    "female": {
+      "runtimePath": "public/assets/avatars/default-female.svg",
+      "sha256": "6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34",
+      "sourceAttachment": "C:/Users/HP/.codex/attachments/582d1a8c-2267-415f-b4da-84e71d3f445a/pasted-text.txt"
+    }
+  },
+  "figmaScreenshots": [
+    {
+      "nodeId": "640:256",
+      "path": "recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png",
+      "width": 1440,
+      "height": 1024
+    },
+    {
+      "nodeId": "640:428",
+      "path": "recaptured-figma/agent-chat-v2-figma-2026-09-11-avatar-fixed.png",
+      "width": 1440,
+      "height": 1024
+    }
+  ],
+  "full105BoardAcceptance": "not-run",
+  "iconfontStatus": "BLOCKED"
+}

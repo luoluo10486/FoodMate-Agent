@@ -73,6 +73,7 @@ describe('DietRecordsPage real mode', () => {
       'foodmate_auth_user',
       JSON.stringify({ id: '7', username: 'tester', displayName: 'Tester', role: 'user', status: 'active' }),
     );
+    vi.mocked(searchNutritionFoods).mockResolvedValue([]);
     vi.mocked(loadCompositeDishes).mockResolvedValue([]);
   });
 

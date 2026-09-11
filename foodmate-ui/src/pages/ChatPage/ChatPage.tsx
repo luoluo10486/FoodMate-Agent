@@ -391,10 +391,7 @@ function ChatSurface({
   );
 }
 
-function approvalParameters(
-  details: NonNullable<AgentRunEvent['details']>,
-  resourceType?: string,
-) {
+function approvalParameters(details: NonNullable<AgentRunEvent['details']>, resourceType?: string) {
   if (resourceType === 'meal_plan') return { plan: details.plan ?? {} };
   return {
     meal_time: details.meal_time,
@@ -2184,35 +2181,35 @@ function RealChatPage() {
             const resourceType = approval.resourceType ?? approval.details.resource_type;
             const supported = resourceType === 'food_log' || resourceType === 'meal_plan';
             return (
-          <ConfirmationCard
-            title={resourceType === 'meal_plan' ? '请确认保存餐食计划' : '请确认将这条内容写入饮食日志'}
-            helperText={
-              resourceType === 'meal_plan'
-                ? '确认后会创建餐食计划并生成购物清单。'
-                : '确认后会创建饮食记录；取消不会修改业务数据。'
-            }
-            state={approvalSubmitting ? 'disabled' : supported ? 'normal' : 'error'}
-            errorText="当前写入类型无法识别，请重新发送需求。"
-            data={approvalData(approval.details, resourceType)}
-            onConfirm={() => {
-              if (!supported) return;
-              const parameters = approvalParameters(approval.details, resourceType);
-              setApprovalSubmitting(true);
-              void confirmAgentWrite(approval.id, parameters)
-                .then(() => executeAgentWrite(approval.id, parameters))
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '饮食记录写入失败'))
-                .finally(() => setApprovalSubmitting(false));
-            }}
-            onEdit={() => setError('请发送一条新消息修改食物和份量。')}
-            onCancel={() => {
-              if (!supported) return;
-              const parameters = approvalParameters(approval.details, resourceType);
-              setApprovalSubmitting(true);
-              void rejectAgentWrite(approval.id, parameters)
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
-                .finally(() => setApprovalSubmitting(false));
-            }}
-          />
+              <ConfirmationCard
+                title={resourceType === 'meal_plan' ? '请确认保存餐食计划' : '请确认将这条内容写入饮食日志'}
+                helperText={
+                  resourceType === 'meal_plan'
+                    ? '确认后会创建餐食计划并生成购物清单。'
+                    : '确认后会创建饮食记录；取消不会修改业务数据。'
+                }
+                state={approvalSubmitting ? 'disabled' : supported ? 'normal' : 'error'}
+                errorText="当前写入类型无法识别，请重新发送需求。"
+                data={approvalData(approval.details, resourceType)}
+                onConfirm={() => {
+                  if (!supported) return;
+                  const parameters = approvalParameters(approval.details, resourceType);
+                  setApprovalSubmitting(true);
+                  void confirmAgentWrite(approval.id, parameters)
+                    .then(() => executeAgentWrite(approval.id, parameters))
+                    .catch((reason) => setError(reason instanceof Error ? reason.message : '饮食记录写入失败'))
+                    .finally(() => setApprovalSubmitting(false));
+                }}
+                onEdit={() => setError('请发送一条新消息修改食物和份量。')}
+                onCancel={() => {
+                  if (!supported) return;
+                  const parameters = approvalParameters(approval.details, resourceType);
+                  setApprovalSubmitting(true);
+                  void rejectAgentWrite(approval.id, parameters)
+                    .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
+                    .finally(() => setApprovalSubmitting(false));
+                }}
+              />
             );
           })()}
         </div>
