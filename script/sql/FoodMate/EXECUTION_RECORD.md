@@ -2681,3 +2681,18 @@
 | 业务证据 | 文档引用当前 D174 真实 WHO Embedding/Milvus/Chat 业务闭环、D180 记忆自然表达测试和现有 Java/前端业务证据；未新增外部服务调用。 |
 | 验证与边界 | 文档改动执行 `git diff --check`；不新增数据库、Redis、RocketMQ、Milvus、MinIO 或云服务操作，也不执行性能、长稳、依赖重启、ACK/重复投递故障注入、备份恢复或生产发布验证。 |
 | Git | 本轮面试资料、README 链接、路线图、非生产计划和执行记录作为一个文档大点提交，提交信息使用 `docs(interview): 补充秋招项目面试资料`。 |
+
+## D182 非生产业务集中门禁与计划收口（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-09-11；本轮收口复核时间 `21:28`（Asia/Shanghai）。 |
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Java 21、项目 Python `.venv`、前端 Node/npm；未执行数据清理、迁移、TRUNCATE 或备份恢复。 |
+| Java 业务门禁 | 执行 `.\\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am test`：Shared `12/12`、Application `257/257`、Infrastructure `119/119`（条件跳过 `20`）、API `72/72`；失败/错误 `0`，Maven `BUILD SUCCESS`。 |
+| Java verify 复核 | 追加执行 `.\\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am verify`；Shared 测试通过，Application 测试 `257/257` 通过，但 Spotless 在 Application 阶段发现当前仓库既有 `21` 个格式问题，reactor 未继续执行 Infrastructure/API，因此本次 `verify` 为失败。未运行 `spotless:apply`，不扩大本轮改动范围。 |
+| Python 业务门禁 | 使用 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider` 执行全量回归：`247 passed、2 skipped、9 subtests passed`；未调用真实 Chat/Embedding。 |
+| 前端业务门禁 | 执行 `npm.cmd test -- --maxWorkers=1`：`46` 个测试文件、`306/306` 通过；`npm.cmd run typecheck` 和 `npm.cmd run build` 通过，Vite 转换 `2018` 个模块。 |
+| 业务范围 | 覆盖 M1-5 饮食记录/营养/餐食计划/写确认，M2-1 公共知识库 RAG，M2-2 只读 SQL Agent，M2-3 管理核心，M3 可审计治理，以及 Agent 运行轨迹、记忆自然表达和前端确认交互。 |
+| 计划结论 | 非生产业务能力的集中代码与业务门禁收口；相关文档已同步 README、路线图、TODO、架构、后端现状、测试策略和本计划。 |
+| 明确后置 | 吞吐/延迟/积压/长稳、Java/Python/PostgreSQL/Redis/RocketMQ 完整重启矩阵、Outbox/Inbox ACK 丢失与重复投递故障注入、生产容量、备份恢复、Kubernetes、staging/production、发布回滚和生产运维治理均未纳入本轮完成条件。 |
+| Git 边界 | 仅提交本轮 K8 文档收口文件；工作区既有 `.tmp-avatar-check/` 和前端 `.qa/` 截图不纳入提交。 |
