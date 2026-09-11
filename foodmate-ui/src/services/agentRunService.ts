@@ -5,6 +5,15 @@ export type AgentRunEvent = {
   sse_event_id?: string;
   event_type?: string;
   status?: string;
+  intent?: string;
+  complexity?: string;
+  risk_level?: string;
+  plan_version?: string;
+  proposal_id?: string;
+  invocation_id?: string;
+  tool_type?: string;
+  tool_name?: string;
+  latency_ms?: number;
   text?: string;
   answer?: string;
   reason?: string;
@@ -65,6 +74,11 @@ export function openAgentRunStream(
     'run.event',
     'run.accepted',
     'run.routed',
+    'run.context_assembled',
+    'run.tool_started',
+    'run.tool_finished',
+    'run.eval_decided',
+    'run.model_usage',
     'run.checkpoint_saved',
     'run.clarification_requested',
     'run.answer_stream',

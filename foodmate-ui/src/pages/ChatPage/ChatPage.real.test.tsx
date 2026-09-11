@@ -108,6 +108,55 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(screen.getByText('优先选择多样化且少加工的食物。')).not.toBeVisible();
   });
 
+  it('根据真实运行事件展示路由意图、工具名称和执行耗时', async () => {
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId: string) => void) => {
+        onEvent('run.routed', { event_type: 'run.routed', intent: 'analysis' }, 'event-1');
+        onEvent(
+          'run.tool_started',
+          { event_type: 'run.tool_started', proposal_id: 'proposal-1', tool_name: 'database_query' },
+          'event-2',
+        );
+        onEvent(
+          'run.tool_finished',
+          {
+            event_type: 'run.tool_finished',
+            proposal_id: 'proposal-1',
+            tool_name: 'database_query',
+            status: 'succeeded',
+            latency_ms: 24,
+          },
+          'event-3',
+        );
+        onEvent('run.completed', { event_type: 'run.completed', answer: '分析已完成。' }, 'event-4');
+        return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        role: 'user',
+        content: '帮我分析饮食。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+        agent_run_id: 'run-1',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('饮食数据查询')).toBeInTheDocument();
+    expect(screen.getByText('24ms')).toBeInTheDocument();
+    expect(screen.getByText('RUN ID: run-1')).toBeInTheDocument();
+  });
+
   it('卸载真实会话页面时关闭当前 SSE 订阅', async () => {
     const close = vi.fn();
     openAgentRunStream.mockImplementation((_runId: string, onEvent: (type: string, payload: unknown) => void) => {

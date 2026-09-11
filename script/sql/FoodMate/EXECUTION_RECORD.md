@@ -2616,3 +2616,14 @@
 | Python 业务门禁 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider tests\\test_knowledge_rag.py tests\\test_runtime_server.py`：`105 passed、4 subtests passed`；未调用真实外部服务。 |
 | 真实模式检查 | 真实聊天主页面直接渲染 `RealChatPage`；`useAgentReplay` 仅按 `VITE_AGENT_MODE` 选择真实或本地预览，未发现真实模式下的业务 mock 回退。 |
 | 边界与结论 | 本轮未重复执行 Java 全量门禁，沿用 D172 的 Java 业务证据；未执行性能压测、依赖重启、ACK/重复投递故障注入、备份恢复、生产部署或发布回滚。非生产业务闭环收口复核完成，生产强化范围继续后置。 |
+
+## D176 真实 Agent 运行轨迹业务收口（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | Python `run.tool_started/run.tool_finished` 事件补充安全的 `tool_name` 和工具耗时；前端真实聊天订阅路由、上下文、工具、评估和模型事件，按 `proposal_id/invocation_id` 归并工具状态，展示真实工具名称、状态和耗时。 |
+| 真实页面 | 运行意图从 `run.routed.intent` 读取；工具数量按已观测事实计算；回答时间使用事件时间，不再使用固定演示值。 |
+| 业务验证 | `foodmate-ui` 执行 `npm.cmd test -- --run src/pages/ChatPage/ChatPage.real.test.tsx`：`1` 个测试文件、`6/6` 通过；新增用例验证分析意图、`database_query` 工具名称和 `24ms` 耗时展示。`npm.cmd run typecheck` 通过。 |
+| Python 验证 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider tests\\test_runtime_server.py`：`55 passed`。 |
+| 边界 | 未调用真实 Chat/Embedding，未写入业务数据库或消息系统；未执行性能测试、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。 |
+| Git | 本轮代码、测试和执行记录作为一个大点提交；工作区原有用户 SVG 改动不纳入本提交。 |

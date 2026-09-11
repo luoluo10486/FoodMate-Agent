@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection } from '../../types/agent';
+import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection, ToolCall } from '../../types/agent';
 import type { Message } from '../../types/session';
 import type { SessionSummary } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
@@ -85,6 +85,62 @@ function formatMessageTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function normalizeRunIntent(value: string | undefined): AgentRunView['intent'] {
+  if (value === 'calculation' || value === 'record' || value === 'analysis' || value === 'planning') return value;
+  return 'knowledge_qna';
+}
+
+function toolDisplayName(name: string) {
+  const labels: Record<string, string> = {
+    calculator: '营养计算',
+    database_query: '饮食数据查询',
+    food_log_writer: '饮食记录写入',
+    knowledge_search: '知识库检索',
+    'meal_plan.save_plan': '餐食计划保存',
+    plan_validator: '计划校验',
+    time_parser: '时间范围解析',
+  };
+  return labels[name] ?? name;
+}
+
+function toolStatus(value: string | undefined): ToolCall['status'] {
+  if (value === 'succeeded' || value === 'success' || value === 'completed') return 'success';
+  if (value === 'confirmation_required' || value === 'pending') return 'pending';
+  if (value === 'timeout' || value === 'timed_out') return 'timeout';
+  if (value === 'cancelled' || value === 'canceled') return 'cancelled';
+  if (value === 'failed' || value === 'error') return 'failed';
+  return 'running';
+}
+
+function toolIdentity(payload: AgentRunEvent) {
+  return payload.proposal_id || payload.invocation_id || payload.tool_name || `tool-${Date.now()}`;
+}
+
+function mergeToolCall(current: ToolCall[], payload: AgentRunEvent, phase: 'started' | 'finished') {
+  const id = toolIdentity(payload);
+  const name = payload.tool_name || payload.tool_type || 'unknown_tool';
+  const index = current.findIndex((tool) => tool.id === id);
+  const previous = index >= 0 ? current[index] : undefined;
+  const next: ToolCall = {
+    id,
+    name,
+    displayName: toolDisplayName(name),
+    status: phase === 'started' ? 'running' : toolStatus(payload.status),
+    latencyMs: payload.latency_ms ?? previous?.latencyMs,
+    summary:
+      phase === 'started'
+        ? '正在执行'
+        : payload.error_code
+          ? `执行失败：${payload.error_code}`
+          : payload.status === 'confirmation_required'
+            ? '等待确认'
+            : '已完成',
+    error: payload.error_code,
+  };
+  if (index < 0) return [...current, next];
+  return current.map((tool, itemIndex) => (itemIndex === index ? { ...tool, ...next } : tool));
 }
 
 function MessageBubble({
@@ -1719,9 +1775,12 @@ function RealChatPage() {
   const [loading, setLoading] = useState(Boolean(sessionId));
   const [sending, setSending] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string>();
+  const [runIntent, setRunIntent] = useState<AgentRunView['intent']>('knowledge_qna');
+  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
   const [citations, setCitations] = useState<AgentRunView['citations']>([]);
   const [runStatus, setRunStatus] = useState('idle');
   const [assistantText, setAssistantText] = useState('');
+  const [assistantTime, setAssistantTime] = useState('');
   const [assistantMessageId, setAssistantMessageId] = useState<string>();
   const [error, setError] = useState<string>();
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
@@ -1757,8 +1816,11 @@ function RealChatPage() {
     // 路由变化时重置状态，后续由新的 SSE 订阅接管这些值。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveRunId(undefined);
+    setRunIntent('knowledge_qna');
+    setToolCalls([]);
     setRunStatus('idle');
     setAssistantText('');
+    setAssistantTime('');
     setAssistantMessageId(undefined);
     setCitations([]);
     setBudgetConfirmation(false);
@@ -1811,8 +1873,35 @@ function RealChatPage() {
       activeRunId,
       (eventType, payload) => {
         if (!streamActive || !mountedRef.current) return;
+        if (eventType === 'run.routed') {
+          setRunIntent(normalizeRunIntent(payload.intent));
+          setRunStatus('routed');
+          return;
+        }
+        if (eventType === 'run.context_assembled') {
+          setRunStatus('retrieving');
+          return;
+        }
+        if (eventType === 'run.tool_started') {
+          setRunStatus('executing');
+          setToolCalls((current) => mergeToolCall(current, payload, 'started'));
+          return;
+        }
+        if (eventType === 'run.tool_finished') {
+          setToolCalls((current) => mergeToolCall(current, payload, 'finished'));
+          return;
+        }
+        if (eventType === 'run.eval_decided') {
+          setRunStatus('validating');
+          return;
+        }
+        if (eventType === 'run.model_usage') {
+          setRunStatus('composing');
+          return;
+        }
         if (eventType === 'run.answer_stream') {
           setRunStatus('validating');
+          setAssistantTime((current) => current || new Date().toISOString());
           if (!hasPersistedAnswer) setAssistantText((current) => current + (payload.text ?? ''));
           return;
         }
@@ -1820,6 +1909,7 @@ function RealChatPage() {
           setRunStatus('completed');
           setCheckpointAvailable(false);
           setApproval(undefined);
+          setAssistantTime((current) => current || new Date().toISOString());
           if (!hasPersistedAnswer) setAssistantText((current) => payload.answer ?? current);
           if (sessionId) {
             void loadSessionMessages(sessionId).then((rows) => {
@@ -1928,12 +2018,12 @@ function RealChatPage() {
   const realRun: AgentRunView = {
     id: activeRunId ?? '等待运行',
     status: displayRunStatus(runStatus === 'idle' ? 'completed' : runStatus),
-    intent: 'planning',
-    toolsUsed: 0,
-    toolsTotal: 6,
-    agentsUsed: 0,
-    agentsTotal: 1,
-    toolCalls: [],
+    intent: runIntent,
+    toolsUsed: toolCalls.filter((tool) => tool.status === 'success').length,
+    toolsTotal: toolCalls.length,
+    agentsUsed: activeRunId ? 1 : 0,
+    agentsTotal: activeRunId ? 1 : 0,
+    toolCalls,
     citations,
     connection,
   };
@@ -2031,7 +2121,7 @@ function RealChatPage() {
             id: 'assistant-stream',
             role: 'assistant',
             content: assistantText,
-            time: '12:46',
+            time: assistantTime || new Date().toISOString(),
             agentRunId: activeRunId,
           }}
         >
