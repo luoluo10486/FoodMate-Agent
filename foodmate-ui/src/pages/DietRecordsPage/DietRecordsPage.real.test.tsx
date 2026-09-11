@@ -144,6 +144,7 @@ describe('DietRecordsPage real mode', () => {
     await user.click(screen.getByRole('button', { name: '记录一餐' }));
     await user.type(screen.getByRole('textbox', { name: '食物名称' }), '鸡胸肉');
     await waitFor(() => expect(screen.getByRole('button', { name: /熟鸡胸肉/ })).toBeInTheDocument());
+    expect(screen.getByText(/每 100g：165 kcal · 蛋白质 31 g/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /熟鸡胸肉/ }));
     await user.clear(screen.getByRole('spinbutton', { name: '食物份量' }));
     await user.type(screen.getByRole('spinbutton', { name: '食物份量' }), '150');

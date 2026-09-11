@@ -6,6 +6,7 @@ import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.application.food.port.out.CompositeDishRepository;
 import com.foodmate.application.food.port.out.FoodLogRepository;
 import com.foodmate.application.food.service.CompositeDishService;
+import com.foodmate.application.food.service.NutritionUnitNormalizer;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
@@ -15,7 +16,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.context.annotation.Profile;
@@ -203,7 +203,7 @@ public class CompositeDishServiceImpl implements CompositeDishService {
             FoodLogRepository.NutritionFoodLookup food =
                     foods.findNutritionFoodById(component.nutritionFoodId());
             if (food == null) throw new BusinessException(ErrorCode.NOT_FOUND, "营养目录食材不存在");
-            String sourceUnit = normalizeUnit(component.unit());
+            String sourceUnit = NutritionUnitNormalizer.normalize(component.unit());
             BigDecimal normalizedAmount = component.amount();
             Long conversionId = null;
             String normalizedUnit = food.basisUnit();
@@ -448,22 +448,6 @@ public class CompositeDishServiceImpl implements CompositeDishService {
 
     private static BigDecimal nutrient(BigDecimal factor, BigDecimal per100) {
         return factor.multiply(per100).setScale(4, RoundingMode.HALF_UP);
-    }
-
-    private static String normalizeUnit(String value) {
-        return switch (value.trim().toLowerCase(Locale.ROOT)) {
-            case "克", "g" -> "g";
-            case "公斤", "千克", "kg" -> "kg";
-            case "毫克", "mg" -> "mg";
-            case "毫升", "ml" -> "ml";
-            case "杯" -> "cup";
-            case "大号", "大个" -> "large";
-            case "中号", "中等" -> "medium";
-            case "盎司", "oz" -> "oz";
-            case "磅", "lb", "lbs" -> "lb";
-            case "汤匙", "大匙" -> "tbsp";
-            default -> value.trim().toLowerCase(Locale.ROOT);
-        };
     }
 
     private record Calculated(

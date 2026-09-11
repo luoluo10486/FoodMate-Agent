@@ -31,6 +31,17 @@ class NutritionFoodServiceImplTest {
     }
 
     @Test
+    void removesCompoundCookingPrefixBeforeSearching() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findNutritionFoodCandidates("鸡胸肉", 8)).thenReturn(List.of());
+        NutritionFoodService service = new NutritionFoodServiceImpl(repository);
+
+        service.search("煮熟 鸡胸肉", 8);
+
+        verify(repository).findNutritionFoodCandidates("鸡胸肉", 8);
+    }
+
+    @Test
     void rejectsBlankOrOutOfRangeSearch() {
         NutritionFoodService service = new NutritionFoodServiceImpl(mock(FoodLogRepository.class));
 

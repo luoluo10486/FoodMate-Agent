@@ -7,6 +7,7 @@ import com.foodmate.application.food.port.out.CompositeDishRepository;
 import com.foodmate.application.food.port.out.FoodLogRepository;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.application.food.service.NutritionNameNormalizer;
+import com.foodmate.application.food.service.NutritionUnitNormalizer;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.food.enums.MealType;
@@ -25,7 +26,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -442,7 +442,7 @@ public class FoodLogServiceImpl implements FoodLogService {
     private FoodLogRepository.FoodLogItemWrite nutrition(
             ItemCommand item, long foodLogId, int itemOrder, long userId) {
         String rawName = item.rawName().trim();
-        String sourceUnit = normalizeUnit(item.unit());
+        String sourceUnit = NutritionUnitNormalizer.normalize(item.unit());
         NutritionResolution resolution = resolveNutritionFood(item, rawName);
         FoodLogRepository.NutritionFoodLookup food = resolution.lookup();
         if (food == null) {
@@ -613,22 +613,6 @@ public class FoodLogServiceImpl implements FoodLogService {
 
     private static BigDecimal nutrient(BigDecimal factor, BigDecimal per100) {
         return factor.multiply(per100).setScale(4, RoundingMode.HALF_UP);
-    }
-
-    private static String normalizeUnit(String value) {
-        return switch (value.trim().toLowerCase(Locale.ROOT)) {
-            case "克", "g" -> "g";
-            case "公斤", "千克", "kg" -> "kg";
-            case "毫克", "mg" -> "mg";
-            case "毫升", "ml" -> "ml";
-            case "杯" -> "cup";
-            case "大号", "大个" -> "large";
-            case "中号", "中等" -> "medium";
-            case "盎司", "oz" -> "oz";
-            case "磅", "lb", "lbs" -> "lb";
-            case "汤匙", "大匙" -> "tbsp";
-            default -> value.trim().toLowerCase(Locale.ROOT);
-        };
     }
 
     private int reserveAudit(

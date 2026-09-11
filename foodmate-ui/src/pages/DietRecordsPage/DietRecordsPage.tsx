@@ -256,6 +256,12 @@ function asNumber(value: number | string | null | undefined) {
   return Number.isFinite(number) ? number : 0;
 }
 
+function candidateMetric(value: number | string | null) {
+  if (value == null || (typeof value === 'string' && value.trim() === '')) return '未知';
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString('zh-CN', { maximumFractionDigits: 1 }) : '未知';
+}
+
 function nutritionDisplayStatus(value: string): FoodItem['status'] {
   if (value === 'matched') return 'confirmed';
   if (value === 'pending_confirmation') return 'ambiguous';
@@ -352,8 +358,8 @@ export function DietRecordsPage() {
   const [editingLogId, setEditingLogId] = useState<string>();
   const [dialogDate, setDialogDate] = useState(selectedDate);
   const [foodName, setFoodName] = useState('');
-  const [foodAmount, setFoodAmount] = useState('1');
-  const [foodUnit, setFoodUnit] = useState('份');
+  const [foodAmount, setFoodAmount] = useState('100');
+  const [foodUnit, setFoodUnit] = useState('g');
   const [nutritionFoodId, setNutritionFoodId] = useState<string>();
   const [nutritionCandidates, setNutritionCandidates] = useState<NutritionFoodCandidate[]>([]);
   const [nutritionCandidatesLoading, setNutritionCandidatesLoading] = useState(false);
@@ -435,8 +441,8 @@ export function DietRecordsPage() {
       setDialogMealId(mealId);
       setDialogDate(date);
       setFoodName('');
-      setFoodAmount('1');
-      setFoodUnit('份');
+      setFoodAmount('100');
+      setFoodUnit('g');
       setNutritionFoodId(undefined);
       setNutritionCandidates([]);
       setNutritionCandidatesError(undefined);
@@ -468,8 +474,8 @@ export function DietRecordsPage() {
     setDialogMode('create');
     setEditingLogId(undefined);
     setFoodName('');
-    setFoodAmount('1');
-    setFoodUnit('份');
+    setFoodAmount('100');
+    setFoodUnit('g');
     setNutritionFoodId(undefined);
     setNutritionCandidates([]);
     setNutritionCandidatesError(undefined);
@@ -1304,8 +1310,9 @@ export function DietRecordsPage() {
                       >
                         <span>{candidate.chinese_name?.trim() || candidate.standard_name}</span>
                         <small>
-                          {candidate.food_form || '未标注形态'} · {candidate.basis_unit} ·{' '}
-                          {candidate.source_name || '目录来源未知'}
+                          {candidate.food_form || '未标注形态'} · 每 100{candidate.basis_unit}：
+                          {candidateMetric(candidate.calories_kcal_per_100)} kcal · 蛋白质{' '}
+                          {candidateMetric(candidate.protein_g_per_100)} g · {candidate.source_name || '目录来源未知'}
                         </small>
                       </Button>
                     </li>
@@ -1331,7 +1338,7 @@ export function DietRecordsPage() {
             onChange={(event) => setFoodAmount(event.target.value)}
           />
           <Input
-            placeholder="单位，例如：份、克"
+            placeholder="单位，例如：g、克、份、个、杯"
             aria-label="食物单位"
             value={foodUnit}
             onChange={(event) => setFoodUnit(event.target.value)}
