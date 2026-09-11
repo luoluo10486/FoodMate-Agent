@@ -2,6 +2,31 @@
 
 更新时间：2026-09-12
 
+## 1.1.16 2026-09-12 Diet Records、Intake Analysis、Meal Planning 页面组收口
+
+本节只记录实时 Figma 节点 `640:588`、`640:773`、`640:901` 对应的 12 个当前页面组画板。Figma PNG 和浏览器 PNG 均使用 `1440×1024` 原始尺寸；浏览器使用 DPR 1、字体加载完成和关闭动态干扰后的截图。所有画板的结构、几何、文字溢出和人工复核已完成；自动 diff 非零，因此结论统一保留 `DIFF_REVIEW`。
+
+| 画板 | Figma 节点 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---|
+| Diet Records 默认态 | `640:588` | `1440×1024 / 1` | `7.3730%` | `2.469032` | `16.609406` | `255` | `DIFF_REVIEW` |
+| Diet Records Loading | `692:1427` | `1440×1024 / 1` | `3.6902%` | `1.109848` | `11.506477` | `255` | `DIFF_REVIEW` |
+| Diet Records Empty | `692:1556` | `1440×1024 / 1` | `5.0028%` | `1.438629` | `12.877860` | `255` | `DIFF_REVIEW` |
+| Diet Records Error | `692:1685` | `1440×1024 / 1` | `3.9095%` | `1.193183` | `11.897333` | `255` | `DIFF_REVIEW` |
+| Intake Analysis 默认态 | `640:773` | `1440×1024 / 1` | `7.0345%` | `1.972557` | `14.145676` | `255` | `DIFF_REVIEW` |
+| Intake Analysis Loading | `692:1901` | `1440×1024 / 1` | `10.7850%` | `0.903571` | `9.259544` | `255` | `DIFF_REVIEW` |
+| Intake Analysis Empty | `692:2026` | `1440×1024 / 1` | `4.3848%` | `1.180694` | `11.633845` | `255` | `DIFF_REVIEW` |
+| Intake Analysis Error | `692:2139` | `1440×1024 / 1` | `3.9150%` | `0.892242` | `9.635364` | `255` | `DIFF_REVIEW` |
+| Meal Planning 默认态 | `640:901` | `1440×1024 / 1` | `10.3811%` | `1.877419` | `12.658861` | `204` | `DIFF_REVIEW` |
+| Meal Planning Loading | `692:2256` | `1440×1024 / 1` | `7.0205%` | `0.874765` | `9.182930` | `255` | `DIFF_REVIEW` |
+| Meal Planning Empty | `692:2446` | `1440×1024 / 1` | `5.0014%` | `0.983364` | `9.878826` | `255` | `DIFF_REVIEW` |
+| Meal Planning Error | `692:2542` | `1440×1024 / 1` | `5.9670%` | `1.309619` | `11.432779` | `255` | `DIFF_REVIEW` |
+
+- [x] Figma PNG 位于 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/*-live-2026-09-12.png`，浏览器 PNG 位于 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/dpr1-*-browser-2026-09-12.png`，独立 diff 位于同目录的 `*-current-diff-2026-09-12.json`。
+- [x] 12 张浏览器截图均完成人工查看；窗口控制点、完整会话侧栏、主内容状态区域和页面结构均与对应实时 Figma 画板复核，未发现新的遮挡、裁切或横向溢出。
+- [x] 12 个独立 diff JSON 均记录 `status=COMPARED`、`width=1440`、`height=1024`；映射条目均记录 `geometryCheck.status=PASS`、`textCheck.status=PASS` 和人工复核日期 `2026-09-12`。
+- [x] 页面组完成后统一门禁通过：Vitest `46/46` 个测试文件、`308/308` 个用例，typecheck、lint、format、build、Figma 证据校验和 `git diff --check` 均通过。
+- [ ] 当前 12 项 diff 均为非零，不能标记为像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.1.15 2026-09-12 Workspace/Home 与 Agent Chat 共享壳层视觉收口
 
 本节只记录 Figma 节点 `640:256`、`640:428` 的共享壳层增量验收，不重新采集其它 103 个画板。Figma 作为唯一视觉来源，shadcn/Radix 只提供基础控件能力。

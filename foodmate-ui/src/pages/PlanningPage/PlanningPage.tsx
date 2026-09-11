@@ -666,8 +666,7 @@ export function PlanningPage() {
     };
   }, [isRealMode, selectedPlan]);
   const isFigmaFixture = !isRealMode && (requestedView === 'v2' || view !== 'default');
-  // 错误态画板不包含会话搜索和历史列表，避免把默认工作台壳层带入状态稿。
-  const isPlanningErrorFixture = isFigmaFixture && view === 'error';
+  // 所有 Figma fixture 状态页都复用完整工作区侧栏，保证状态切换不改变壳层结构。
 
   const navigatePlanningView = (nextView: MealPlanningFlowView | 'default') => {
     navigate(nextView === 'default' ? '/planning' : `/planning?state=${nextView}`);
@@ -780,13 +779,10 @@ export function PlanningPage() {
       sidebarAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.sidebar : undefined}
       topAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.topbar : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
-      hideSessionHistory={isPlanningErrorFixture}
       sidebarFixture={
         isFigmaFixture
           ? {
               sessions: figmaSidebarSessions,
-              hideSessionSearch: isPlanningErrorFixture,
-              hideSessionPagination: isPlanningErrorFixture,
             }
           : undefined
       }

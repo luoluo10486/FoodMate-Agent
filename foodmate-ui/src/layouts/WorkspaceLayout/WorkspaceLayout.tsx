@@ -252,7 +252,7 @@ export function WorkspaceLayout({
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${isFigmaSidebarFixture ? styles.figmaFixture : ''} ${sidebarFixture?.hideSessionPagination ? styles.compactSessionFixture : ''}`}
+        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${isFigmaSidebarFixture ? styles.figmaFixture : ''}`}
         data-shell-avatar-policy={defaultOnlyAvatar ? 'default-only' : 'uploaded-allowed'}
         data-shell-avatar-assets="default-male.svg,default-female.svg"
       >

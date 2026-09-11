@@ -208,9 +208,10 @@
       "frontendRoute": "/analysis",
       "queryState": "view=records&state=v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-08-31.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-v2-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-v2-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-v2-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-v2",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/diet-records-v2-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -238,8 +239,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "依据实时 Figma 节点 640:588，fixture 已恢复会话搜索、Agent 会话历史、分页和底部记录详情面板，并隐藏 Figma 不包含的记录一餐/分析这一天额外操作栏；本次复采集已使用 Diet Records 独立 Figma SVG 壳层资源。1440×1024、DPR 1、字体加载、无溢出和前端窗口控制点检查通过；图标、字体光栅化及整页视觉差异仍存在，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 640:588 与本次浏览器 PNG；完整工作区侧栏、窗口控制点、会话搜索、会话历史、分页、营养记录和详情区域结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。图标、字体光栅化和局部像素差异仍存在，保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
@@ -302,9 +303,10 @@
       "frontendRoute": "/analysis",
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-v2-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-v2-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-v2-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-v2",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-v2-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -332,8 +334,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "依据实时 Figma 节点 640:773，fixture 已恢复会话搜索、活动会话和分页；本次复采集已使用 Intake Analysis 独立 Figma SVG 壳层资源。1440×1024、DPR 1、字体加载、无溢出和前端窗口控制点检查通过；图标、字体光栅化和主体视觉处理仍存在差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 640:773 与本次浏览器 PNG；完整工作区侧栏、窗口控制点、会话搜索、活动会话、分页、分析指标、图表和洞察区域结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。图标、字体光栅化和主体局部像素差异仍存在，保留 DIFF_REVIEW。"
       },
       "additionalVisualEvidence": [
         {
@@ -417,9 +419,10 @@
       "frontendRoute": "/planning",
       "queryState": "state=v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-v2-current.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-planning-v2-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-v2-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-planning-v2-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-v2",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/meal-planning-v2-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -447,8 +450,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "依据实时 Figma 节点 640:901 回读，fixture 已恢复画板中的会话搜索、9 条会话、分页和账户停靠区，并改用 Meal Planning 独立 Figma SVG 壳层资源。1440×1024、DPR 1、字体加载、无溢出和窗口控制点检查通过；计划工具栏、导航、卡片几何、字体光栅化和内容密度仍存在差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 640:901 与本次浏览器 PNG；完整工作区侧栏、窗口控制点、会话搜索、9 条会话、分页、账户停靠区、计划工具栏和餐食网格结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。图标、字体光栅化、卡片几何和内容密度局部差异仍存在，保留 DIFF_REVIEW。"
       },
       "supplementalVisualEvidence": {
         "capturedAt": "2026-08-27",
@@ -2219,9 +2222,10 @@
       "frontendRoute": "/analysis",
       "queryState": "view=records&state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-loading.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-loading-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-loading-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-loading-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-loading",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/diet-records-loading-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -2249,8 +2253,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "状态专用侧栏已按 Figma 收口；壳层身份、头像素材、字体、图标光栅化和局部像素差异仍存在，继续保持 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:1427 与本次浏览器 PNG；窗口控制点、完整会话搜索、会话历史、分页、加载骨架和主内容结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。头像、图标、字体光栅化和局部像素差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2263,9 +2267,10 @@
       "frontendRoute": "/analysis",
       "queryState": "view=records&state=empty",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-empty.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-empty-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-empty-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-empty-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-empty",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/diet-records-empty-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -2293,8 +2298,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "状态专用侧栏已按 Figma 收口；壳层身份、头像素材、字体、图标光栅化和局部像素差异仍存在，继续保持 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:1556 与本次浏览器 PNG；窗口控制点、完整会话搜索、会话历史、分页、营养指标空态和主内容结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。头像、图标、字体光栅化和局部像素差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2307,9 +2312,10 @@
       "frontendRoute": "/analysis",
       "queryState": "view=records&state=error",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/diet-records-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-error-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/diet-records-error-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-diet-records-error-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#diet-records-error",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/diet-records-error-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -2337,8 +2343,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "状态专用侧栏已按 Figma 收口；壳层身份、头像素材、字体、图标光栅化和局部像素差异仍存在，继续保持 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:1685 与本次浏览器 PNG；窗口控制点、完整会话搜索、会话历史、分页、错误提示、重试按钮和主内容结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。头像、图标、字体光栅化和局部像素差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2351,13 +2357,14 @@
       "frontendRoute": "/planning",
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-loading-figma-live-2026-08-26.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-planning-loading-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-loading-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-planning-loading-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-loading",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/meal-planning-loading-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
-      "lastVerifiedAt": "2026-09-06",
+      "lastVerifiedAt": "2026-09-12",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2382,8 +2389,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "Loading 语义、主内容几何和骨架圆角与当前 Figma 参考保持对齐；前端按约束省略窗口控制点。头像、侧栏资源和字体光栅化仍存在差异，继续保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:2256 与本次浏览器 PNG；完整会话搜索、会话历史、分页、计划页加载骨架、计划网格和右侧栏骨架结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。头像、图标、字体光栅化和局部像素差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2396,13 +2403,14 @@
       "frontendRoute": "/planning",
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/meal-planning-empty-figma-live.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-planning-empty-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-empty-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-planning-empty-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-empty",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/meal-planning-empty-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
-      "lastVerifiedAt": "2026-09-06",
+      "lastVerifiedAt": "2026-09-12",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2427,8 +2435,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "空态卡片几何、提示行、图标背景和图标颜色与当前 Figma 参考保持对齐；图标轮廓、字体、头像和壳层光栅化仍存在差异，继续保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:2446 与本次浏览器 PNG；完整会话搜索、会话历史、分页、计划空态卡片、提示行和主内容结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。头像、图标轮廓、字体光栅化和局部像素差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2441,13 +2449,14 @@
       "frontendRoute": "/planning",
       "queryState": "state=error",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/meal-planning-error.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-planning-error-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/meal-planning-error-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-planning-error-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-planning-error",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/meal-planning-error-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
-      "lastVerifiedAt": "2026-09-06",
+      "lastVerifiedAt": "2026-09-12",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
@@ -2472,8 +2481,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "Error 卡片几何、层级、错误图标色值、主操作色值以及不含会话历史的侧栏结构已与 Figma 参考复核；头像、图标轮廓和字体光栅化仍存在差异，继续保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:2542 与本次浏览器 PNG；完整会话搜索、会话历史、分页、计划错误卡片、错误码、重试/返回操作和主内容结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。头像、图标轮廓、字体光栅化和局部颜色差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2486,9 +2495,10 @@
       "frontendRoute": "/analysis",
       "queryState": "state=loading",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-loading-live-2026-09-06.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-loading-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-loading-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-loading-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-loading",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-loading-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -2516,8 +2526,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "当前 Figma 与 DPR1 浏览器截图确认指标、图表、洞察和骨架几何保持对齐；头像、图标处理、字体光栅化仍有差异，继续保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:1901 与本次浏览器 PNG；完整会话搜索、会话历史、分页、分析指标、图表、洞察和加载骨架结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。头像、图标处理、字体光栅化和局部像素差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2530,9 +2540,10 @@
       "frontendRoute": "/analysis",
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-empty-live-2026-09-06.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-empty-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-empty-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-empty-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-empty",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-empty-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -2566,8 +2577,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "当前 Figma 与 DPR1 浏览器截图确认空态结构、指标卡高度、图表卡位置、308px 图表区域、文案层级、操作尺寸和图表列资源保持对齐；头像、字体和浏览器光栅化仍有差异，继续保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:2026 与本次浏览器 PNG；完整会话搜索、会话历史、分页、分析空态指标卡、图表区域、说明文案和操作按钮结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。头像、图表图标、字体光栅化和局部像素差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
@@ -2580,9 +2591,10 @@
       "frontendRoute": "/analysis",
       "queryState": "state=error",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-error-live-2026-09-06.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-error-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/intake-analysis-error-live-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-intake-analysis-error-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#intake-analysis-error",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/intake-analysis-error-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
       "evidenceNote": "Automated diff exists; see manual visual review conclusion",
@@ -2610,8 +2622,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "当前 Figma 与 DPR1 浏览器截图确认错误态结构、筛选组、卡片间距、64px 警告图标容器、17px 描述行盒、120x41px 重试按钮和内描边边界保持对齐；侧栏、头像、图标光栅化和字体差异仍存在，继续保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已查看实时 Figma 节点 692:2139 与本次浏览器 PNG；完整会话搜索、会话历史、分页、分析错误卡片、筛选组、警告图标、重试按钮和主内容结构一致，1440×1024、DPR 1、字体加载和无横向溢出检查通过。侧栏、头像、图标光栅化、字体和局部像素差异仍存在，保留 DIFF_REVIEW。"
       }
     },
     {
