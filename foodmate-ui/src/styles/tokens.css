@@ -181,6 +181,8 @@
   --fm-figma-workspace-rail-width: 320px;
   --fm-figma-workspace-wide-rail-width: 340px;
   --fm-figma-workspace-padding: 24px;
+  /* Figma Avatar 容器没有可见底色，人物 SVG 直接落在工作台表面。 */
+  --fm-figma-avatar-surface: transparent;
   --fm-figma-task-panel-offset: 54px;
 
   /* Figma 节点 989:3 / 1015:248 的工作台任务状态面板 Token。 */

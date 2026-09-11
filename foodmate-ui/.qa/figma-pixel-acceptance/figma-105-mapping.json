@@ -101,8 +101,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=figma-v2",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-chat-v2-figma-2026-09-05.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-09.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-chat-v2-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-v2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -194,7 +194,8 @@
           },
           "note": "仅收口 Figma 节点 640:428 的顶部工作台选中态背景色；浏览器实际颜色为 #FFFEFC，DPR 为 1.25，整页仍保留 DIFF_REVIEW。"
         }
-      ]
+      ],
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "640:588",
@@ -1471,8 +1472,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=write-confirmation",
       "browserViewport": "1440x1024",
-      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-2026-08-29.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-write-confirmation-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-write-confirmation-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-write-confirmation-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-write-confirmation",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1503,7 +1504,8 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-30",
         "conclusion": "The latest Figma and browser captures contain the confirmation fields, source, assumptions, and actions. The current browser capture confirms the compact 305x319 confirmation card and 265x168 details region; shell identity, avatar treatment, typography, and icon rasterization still differ, so retain DIFF_REVIEW."
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "687:918",
@@ -1515,8 +1517,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=budget-limit",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-budget-limit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-budget-limit-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-budget-limit-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-budget-limit-browser-2026-09-12.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-budget-limit",
@@ -1560,7 +1562,8 @@
         "bodyOverflow": false,
         "url": "http://127.0.0.1:5174/chat?state=budget-limit&visual-qa=1",
         "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-budget-limit-browser-2026-09-06.png"
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "687:1306",
@@ -1616,8 +1619,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=tool-failed-retryable",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-tool-failed-retryable.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-tool-failed-retryable-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-tool-failed-retryable-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-tool-failed-retryable-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-tool-failed-retryable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1659,7 +1662,8 @@
         "bodyOverflow": false,
         "url": "http://127.0.0.1:5174/chat?state=tool-failed-retryable&visual-qa=1",
         "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-tool-failed-retryable-browser-2026-09-06.png"
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-tool-failed-retryable-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "687:1563",
@@ -1671,8 +1675,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=safety-degraded",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-safety-degraded.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-safety-degraded-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-safety-degraded-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-safety-degraded-browser-2026-09-12.png",
       "mobileBrowserPng": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-browser-390x844-current.png",
       "mobileBrowserViewport": "390x844",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-safety-degraded",
@@ -1724,7 +1728,8 @@
         "bodyOverflow": false,
         "url": "http://127.0.0.1:5174/chat?state=safety-degraded&visual-qa=1",
         "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-safety-degraded-browser-2026-09-06.png"
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-safety-degraded-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "687:1684",
@@ -1736,8 +1741,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=user-cancelled",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-user-cancelled.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-user-cancelled-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-user-cancelled-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-user-cancelled-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-user-cancelled",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1803,7 +1808,8 @@
         "mobileCancellationNotice": "x=76.24,y=344.8,width=222.725,height=30 at 390x844",
         "bodyOverflow": false,
         "windowControlsCandidates": 0
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-user-cancelled-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "687:1803",
@@ -1815,8 +1821,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=sse-reconnecting",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-sse-reconnecting.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-sse-reconnecting-browser-2026-09-06.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-sse-reconnecting-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-sse-reconnecting-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-sse-reconnecting",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -1881,7 +1887,8 @@
             "windowControlsCandidates": 0
           }
         }
-      ]
+      ],
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-sse-reconnecting-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "689:217",
@@ -3344,8 +3351,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=history-page-2",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-history-page-2-browser-2026-09-05.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-chat-history-page-2-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-history-page-2-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-2",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3386,7 +3393,8 @@
         "fonts": "loaded",
         "bodyOverflow": false,
         "url": "http://127.0.0.1:5174/chat?state=history-page-2&visual-qa=1"
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-2-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "740:426",
@@ -3398,8 +3406,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=history-page-3",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-chat-history-page-3.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-history-page-3-browser-2026-09-05.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-chat-history-page-3-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-history-page-3-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-history-page-3",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -3440,7 +3448,8 @@
         "fonts": "loaded",
         "bodyOverflow": false,
         "url": "http://127.0.0.1:5174/chat?state=history-page-3&visual-qa=1"
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-history-page-3-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "742:212",
@@ -6130,8 +6139,8 @@
       "frontendRoute": "/chat",
       "queryState": "state=running-stop",
       "browserViewport": "1440x1024",
-      "figmaPng": "docxs/设计/figma-png/agent-chat-running-stop.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-running-stop-no-message-actions-browser-2026-08-30.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-chat-running-stop-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-running-stop-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-running-stop",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -6162,7 +6171,8 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-18",
         "conclusion": "The browser exposes a stop control for the running session and no longer renders the extra message-actions panel, but the complete assistant response, Trace cards, and composer/status layout still differ. Retain DIFF_REVIEW."
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-running-stop-current-diff-2026-09-12-avatar-fixed.json"
     },
     {
       "figmaNodeId": "1015:4",
@@ -6218,8 +6228,8 @@
       "frontendRoute": "/chat",
       "queryState": null,
       "browserViewport": "1366x768",
-      "figmaPng": "docxs/设计/figma-png/agent-chat-viewport-1366x768.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/agent-chat-viewport-1366x768-browser.png",
+      "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/agent-chat-viewport-1366x768-figma-2026-09-12-avatar-fixed.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-viewport-1366x768-browser-2026-09-12.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#agent-chat-viewport-1366x768",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -6250,7 +6260,8 @@
         "reviewer": "Codex",
         "reviewedAt": "2026-08-18",
         "conclusion": "The 1366x768 browser screenshot has correct viewport evidence, but differs from Figma in user identity, avatar, assistant language/content, message-actions panel, Trace layout, and overall vertical composition. Retain DIFF_REVIEW."
-      }
+      },
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-viewport-1366x768-current-diff-2026-09-12-avatar-fixed.json"
     }
   ],
   "runtimeChecks": {

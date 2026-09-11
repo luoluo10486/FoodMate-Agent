@@ -690,6 +690,11 @@
   border-color: #e8e8e8;
 }
 
+/* Figma 640:428 的消息操作面板与上一条消息之间保留 27px 的垂直节奏。 */
+.figmaDefaultPage .messageActions {
+  margin-top: 3px;
+}
+
 .designTracePanel .traceStepActive {
   border-color: transparent;
 }
@@ -736,6 +741,15 @@
   border-radius: 18px;
   overflow: hidden;
   background: var(--fm-color-avatar-surface);
+}
+
+/* Figma 头像容器填充不可见，避免默认头像外再出现一层粉色圆底。 */
+.designChatPage .userAvatar,
+.designChatPage .fixtureUserAvatar,
+.designChatPage .planningUserAvatar,
+.designChatPage .executingUserAvatar,
+.designChatPage .awaitingUserAvatar {
+  background: var(--fm-figma-avatar-surface);
 }
 
 .userAvatar img {

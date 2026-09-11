@@ -469,6 +469,12 @@
   object-fit: cover;
 }
 
+/* Figma 头像节点的容器填充为不可见，不能叠加默认粉色头像底。 */
+.figmaFixture .avatar,
+.figmaFixture .topAvatar {
+  background: var(--fm-figma-avatar-surface);
+}
+
 .deletedButton {
   width: 100%;
   justify-content: flex-start;

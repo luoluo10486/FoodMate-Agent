@@ -2,6 +2,31 @@
 
 更新时间：2026-09-12
 
+## 1.1.11 2026-09-12 Agent Chat 头像修正版定向验收
+
+本批次仅复核 11 个受当前 Chat 视觉收口影响的画板，不重新采集其它 94 个画板。Figma PNG 使用头像修正后的原始尺寸，浏览器 PNG 使用对应视口、DPR 1 和字体加载完成条件；自动 diff 均为同尺寸 `COMPARED`，人工结论全部保留 `DIFF_REVIEW`。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | diff JSON | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Agent Chat 默认态 | `640:428` | `recaptured-figma/agent-chat-v2-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-12.png` | `recaptured/agent-chat-v2-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 11.5993% | 2.851583 | 17.155352 | 211 | `DIFF_REVIEW` |
+| 写入确认 | `687:773` | `recaptured-figma/agent-write-confirmation-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-write-confirmation-browser-2026-09-12.png` | `recaptured/agent-write-confirmation-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 9.8721% | 1.941730 | 13.861204 | 255 | `DIFF_REVIEW` |
+| 预算上限 | `687:918` | `recaptured-figma/agent-budget-limit-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-budget-limit-browser-2026-09-12.png` | `recaptured/agent-budget-limit-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 11.1479% | 2.475082 | 15.987961 | 255 | `DIFF_REVIEW` |
+| 工具失败可重试 | `687:1439` | `recaptured-figma/agent-tool-failed-retryable-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-tool-failed-retryable-browser-2026-09-12.png` | `recaptured/agent-tool-failed-retryable-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 10.5202% | 2.241290 | 15.205827 | 255 | `DIFF_REVIEW` |
+| 安全降级 | `687:1563` | `recaptured-figma/agent-safety-degraded-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-safety-degraded-browser-2026-09-12.png` | `recaptured/agent-safety-degraded-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 10.9746% | 2.384059 | 15.318975 | 255 | `DIFF_REVIEW` |
+| 用户取消 | `687:1684` | `recaptured-figma/agent-user-cancelled-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-user-cancelled-browser-2026-09-12.png` | `recaptured/agent-user-cancelled-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 11.6638% | 1.886524 | 13.566194 | 255 | `DIFF_REVIEW` |
+| SSE 重连 | `687:1803` | `recaptured-figma/agent-sse-reconnecting-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-sse-reconnecting-browser-2026-09-12.png` | `recaptured/agent-sse-reconnecting-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 17.1219% | 2.386343 | 15.099326 | 255 | `DIFF_REVIEW` |
+| 历史第 2 页 | `740:212` | `recaptured-figma/agent-chat-history-page-2-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-history-page-2-browser-2026-09-12.png` | `recaptured/agent-chat-history-page-2-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 12.3038% | 2.763826 | 17.209012 | 204 | `DIFF_REVIEW` |
+| 历史第 3 页 | `740:426` | `recaptured-figma/agent-chat-history-page-3-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-history-page-3-browser-2026-09-12.png` | `recaptured/agent-chat-history-page-3-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 12.3038% | 2.763826 | 17.209012 | 204 | `DIFF_REVIEW` |
+| 运行中停止 | `1013:653` | `recaptured-figma/agent-chat-running-stop-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-running-stop-browser-2026-09-12.png` | `recaptured/agent-chat-running-stop-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 20.9517% | 3.573441 | 19.594450 | 221 | `DIFF_REVIEW` |
+| 1366×768 特殊视口 | `1029:3` | `recaptured-figma/agent-chat-viewport-1366x768-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-viewport-1366x768-browser-2026-09-12.png` | `recaptured/agent-chat-viewport-1366x768-current-diff-2026-09-12-avatar-fixed.json` | 1366×768 / 1 | 48.3260% | 6.751348 | 25.661101 | 255 | `DIFF_REVIEW` |
+
+- [x] 11 个画板的 Figma/浏览器 PNG 均存在且尺寸一致；独立 diff JSON 均可解析并记录 `COMPARED`。
+- [x] Chat 默认态、六个 Agent 状态、历史页和停止态的人物头像运行时只使用两份登记 SVG；没有把 `.qa/legacy-avatars` 历史证据当作运行时资源。
+- [x] 本批次统一门禁：Vitest `46/46` 个测试文件、`307/307` 个用例通过；`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。证据校验为 `structuralPass=true`、`strictDprPass=true`、`mappedPass=0`、`diffReview=105`、`errors=[]`。
+- [ ] 自动差异均非零，字体光栅化、共享壳层、图标和局部布局差异仍需后续页面级收口，不能标记 `PASS`。
+- [ ] 本批次只更新 11 个受影响画板，不代表 105 个画板全部重新验收；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.10 2026-09-12 默认头像策略与 Workspace/Home 定向验收
 
 本批次只复核上一批次的头像入口收口和 Workspace/Home 任务状态面板，不重新采集或判定其它画板。Figma 参考节点为 Workspace/Home `640:256` 和 Agent Chat `640:428`，浏览器采集使用 DPR 1、字体加载完成和 `visual-qa=1`。
