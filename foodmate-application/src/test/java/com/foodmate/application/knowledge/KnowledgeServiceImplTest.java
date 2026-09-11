@@ -392,7 +392,7 @@ class KnowledgeServiceImplTest {
         assertThrows(
                 IllegalArgumentException.class, () -> service.retryItem(77L, 42L, 7L, "trace-1"));
 
-                verify(audit)
+        verify(audit)
                 .recordFailure(
                         any(TraceContext.class),
                         eq(7L),
@@ -418,13 +418,7 @@ class KnowledgeServiceImplTest {
                 .thenReturn(
                         java.util.List.of(
                                 new KnowledgeRepository.ItemView(
-                                        88L,
-                                        42L,
-                                        "guide.md",
-                                        "uploaded",
-                                        "indexed",
-                                        1,
-                                        null)));
+                                        88L, 42L, "guide.md", "uploaded", "indexed", 1, null)));
         when(ids.nextId()).thenReturn(99L, 100L);
         when(repository.reindexItem(
                         88L,

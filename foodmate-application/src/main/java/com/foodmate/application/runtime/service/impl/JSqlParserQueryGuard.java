@@ -211,8 +211,7 @@ public class JSqlParserQueryGuard implements SqlQueryGuard {
                     throw new BusinessException(ErrorCode.SQL_SCHEMA_DENIED);
                 Expression userPredicate =
                         new EqualsTo(
-                                new Column(new Table(qualifier), "user_id"),
-                                new JdbcParameter());
+                                new Column(new Table(qualifier), "user_id"), new JdbcParameter());
                 if (leftJoin == null) predicate = and(predicate, userPredicate);
                 else leftJoin.setOnExpression(and(leftJoin.getOnExpression(), userPredicate));
                 scopeParameters.add(trustedUserId);
@@ -225,8 +224,7 @@ public class JSqlParserQueryGuard implements SqlQueryGuard {
                     throw new BusinessException(ErrorCode.SQL_SCHEMA_DENIED);
                 Expression tenantPredicate =
                         new EqualsTo(
-                                new Column(new Table(qualifier), "tenant_id"),
-                                new JdbcParameter());
+                                new Column(new Table(qualifier), "tenant_id"), new JdbcParameter());
                 if (leftJoin == null) predicate = and(predicate, tenantPredicate);
                 else leftJoin.setOnExpression(and(leftJoin.getOnExpression(), tenantPredicate));
                 scopeParameters.add(0L);

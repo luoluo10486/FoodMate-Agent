@@ -9,15 +9,13 @@ import static org.mockito.Mockito.when;
 import com.foodmate.application.account.port.out.AdminOperationalQueryRepository;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
 import com.foodmate.application.account.service.impl.AdminOperationalQueryServiceImpl;
-
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
 
 class AdminOperationalQueryServiceImplTest {
     private AdminOperationalQueryRepository store;
@@ -146,7 +144,7 @@ class AdminOperationalQueryServiceImplTest {
                                         "trace-1",
                                         42L,
                                         "java.control-plane -> python.agent-runtime -> model ->"
-                                            + " sse",
+                                                + " sse",
                                         "completed",
                                         Instant.parse("2026-08-28T00:00:00Z"),
                                         new BigDecimal("18.5"),

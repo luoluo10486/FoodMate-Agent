@@ -1,7 +1,6 @@
 package com.foodmate.application.food.service;
 
 import com.foodmate.shared.food.enums.MealType;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;

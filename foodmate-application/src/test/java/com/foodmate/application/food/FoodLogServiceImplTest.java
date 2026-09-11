@@ -23,13 +23,11 @@ import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.food.enums.MealType;
 import com.foodmate.shared.id.IdGenerator;
-
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.Test;
 
 class FoodLogServiceImplTest {
     private static final Instant MEAL_TIME = Instant.parse("2026-08-12T12:00:00Z");

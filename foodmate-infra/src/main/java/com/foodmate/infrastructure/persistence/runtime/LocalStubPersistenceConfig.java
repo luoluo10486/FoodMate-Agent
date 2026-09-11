@@ -706,7 +706,8 @@ public class LocalStubPersistenceConfig {
                 return 0;
             }
 
-            public List<OperationAuditRow> operationAuditsForUser(long userId, int limit, int offset) {
+            public List<OperationAuditRow> operationAuditsForUser(
+                    long userId, int limit, int offset) {
                 return List.of();
             }
 

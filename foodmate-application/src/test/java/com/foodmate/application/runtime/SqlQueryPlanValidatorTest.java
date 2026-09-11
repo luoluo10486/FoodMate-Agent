@@ -38,7 +38,8 @@ class SqlQueryPlanValidatorTest {
 
     @Test
     void acceptsCoreReadOnlyAnalysisIntents() throws Exception {
-        for (String intent : new String[] {"food_occurrence", "meal_plan_completion", "shopping_list_missing"}) {
+        for (String intent :
+                new String[] {"food_occurrence", "meal_plan_completion", "shopping_list_missing"}) {
             var plan = mapper.createObjectNode();
             plan.put("intent", intent);
             plan.put("candidate_sql", "SELECT 1 LIMIT 1");

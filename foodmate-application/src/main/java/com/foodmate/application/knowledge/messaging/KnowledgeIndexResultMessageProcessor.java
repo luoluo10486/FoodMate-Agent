@@ -19,7 +19,8 @@ import org.springframework.stereotype.Service;
 /** 消费 Python 索引结果，并以幂等方式更新 Java 所拥有的知识库状态。 */
 @Service
 public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
-    private static final Logger log = LoggerFactory.getLogger(KnowledgeIndexResultMessageProcessor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(KnowledgeIndexResultMessageProcessor.class);
     private final KnowledgeDeliveryService service;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -45,17 +46,18 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
             String modelVersion = node.path("model_version").asText(null);
             String providerTraceId = optionalTraceId(node.get("provider_trace_id"));
             List<KnowledgeRepository.IndexChunk> chunks = parseChunks(node.path("chunks"));
-            String rejectionReason = rejectionReason(
-                    status,
-                    itemId,
-                    documentId,
-                    version,
-                    attempt,
-                    chunkCount,
-                    tokenCount,
-                    modelVersion,
-                    errorCode,
-                    chunks);
+            String rejectionReason =
+                    rejectionReason(
+                            status,
+                            itemId,
+                            documentId,
+                            version,
+                            attempt,
+                            chunkCount,
+                            tokenCount,
+                            modelVersion,
+                            errorCode,
+                            chunks);
             if (rejectionReason != null) {
                 log.warn(
                         "knowledge index result rejected: reason={}, item_id={}, document_id={}, version={}, status={}, attempt={}",
@@ -137,7 +139,8 @@ public class KnowledgeIndexResultMessageProcessor implements MqMessageHandler {
                         || chunkCount == 0
                         || chunks.size() != chunkCount)) return "indexed_chunk_fact";
         if ("index_failed".equals(status) && !chunks.isEmpty()) return "failed_chunks";
-        if ("index_failed".equals(status) && (errorCode == null || errorCode.isBlank())) return "failed_error_code";
+        if ("index_failed".equals(status) && (errorCode == null || errorCode.isBlank()))
+            return "failed_error_code";
         return null;
     }
 

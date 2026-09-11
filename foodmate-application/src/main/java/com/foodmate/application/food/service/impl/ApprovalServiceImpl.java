@@ -612,9 +612,10 @@ public class ApprovalServiceImpl implements ApprovalService {
             return HexFormat.of()
                     .formatHex(
                             MessageDigest.getInstance("SHA-256")
-                                    .digest(
-                                            canonical.getBytes(StandardCharsets.UTF_8)));
-        } catch (JsonProcessingException | NoSuchAlgorithmException | IllegalArgumentException exception) {
+                                    .digest(canonical.getBytes(StandardCharsets.UTF_8)));
+        } catch (JsonProcessingException
+                | NoSuchAlgorithmException
+                | IllegalArgumentException exception) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "确认参数摘要计算失败");
         }
     }

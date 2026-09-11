@@ -2696,3 +2696,14 @@
 | 计划结论 | 非生产业务能力的集中代码与业务门禁收口；相关文档已同步 README、路线图、TODO、架构、后端现状、测试策略和本计划。 |
 | 明确后置 | 吞吐/延迟/积压/长稳、Java/Python/PostgreSQL/Redis/RocketMQ 完整重启矩阵、Outbox/Inbox ACK 丢失与重复投递故障注入、生产容量、备份恢复、Kubernetes、staging/production、发布回滚和生产运维治理均未纳入本轮完成条件。 |
 | Git 边界 | 仅提交本轮 K8 文档收口文件；工作区既有 `.tmp-avatar-check/` 和前端 `.qa/` 截图不纳入提交。 |
+
+## D183 Java 格式与 Alibaba 规范门禁收口（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Java 21；未修改数据库、Redis、RocketMQ、Milvus 或 MinIO 数据。 |
+| 代码范围 | 使用项目现有 Spotless 统一修复 Application `21` 个、Infrastructure `7` 个、API `10` 个 Java 文件的格式问题；仅涉及 import、换行、缩进和排版，不改变业务语句。 |
+| Java 业务验证 | `.\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am verify`：Shared `12/12`、Application `257/257`、Infrastructure `119/119`（条件跳过 `20`）、API `72/72`；失败/错误 `0`，Maven `BUILD SUCCESS`，Spotless 全部 clean。 |
+| Alibaba 规范验证 | `.\mvnw.cmd -B -ntp -Palibaba-code-style -DskipTests verify`：根项目及五个 Java 模块构建成功，Checkstyle 均为 `0 violations`，Spotless clean，Bootstrap repackage 通过。 |
+| 业务与安全边界 | 本轮未新增业务逻辑、外部调用或测试数据；未执行性能压测、长稳、组件重启、ACK/重复投递故障注入、备份恢复、Kubernetes、生产部署或发布回滚。 |
+| Git | 待提交内容仅包含本次 Java 格式修复和对应文档；工作区其他前端/Figma 文档改动、临时目录与截图不纳入本提交。 |

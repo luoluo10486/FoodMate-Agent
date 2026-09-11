@@ -51,6 +51,12 @@
 - 前端：执行 `npm.cmd test -- --maxWorkers=1`，`46` 个测试文件、`306 passed`；`npm.cmd run typecheck` 和 `npm.cmd run build` 通过，Vite 转换 `2018` 个模块。
 - 结论：K1-K8 业务范围的当前代码、接口和前端主路径具备集中回归证据；性能、长稳、完整依赖故障矩阵、备份恢复、Kubernetes 和生产发布治理仍保持后置，不能由本门禁推导完成。
 
+### D183 Java 规范收口（2026-09-11）
+
+- [x] 目标 reactor 执行 `.\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am verify` 通过；Shared/Application/Infrastructure/API 为 `12/257/119/72`，Infrastructure 条件跳过 `20`，失败/错误 `0`，Spotless clean。
+- [x] 执行 `.\mvnw.cmd -B -ntp -Palibaba-code-style -DskipTests verify` 通过；六个 Maven 模块 Checkstyle 均为 `0 violations`，Bootstrap repackage 通过。
+- [x] 仅统一 Java 格式与规范门禁，不修改业务逻辑；生产级性能、可靠性、运维和部署范围继续后置。
+
 ## 当前执行状态
 
 | 阶段 | 当前结论 | 说明 |

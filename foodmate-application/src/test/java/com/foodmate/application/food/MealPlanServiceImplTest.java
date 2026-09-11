@@ -22,13 +22,11 @@ import com.foodmate.application.food.service.impl.MealPlanServiceImpl;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class MealPlanServiceImplTest {
     private static final Instant NOW = Instant.parse("2026-08-12T12:00:00Z");

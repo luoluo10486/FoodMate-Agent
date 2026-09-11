@@ -45,8 +45,10 @@ class NutritionFoodServiceImplTest {
     void rejectsBlankOrOutOfRangeSearch() {
         NutritionFoodService service = new NutritionFoodServiceImpl(mock(FoodLogRepository.class));
 
-        BusinessException blank = assertThrows(BusinessException.class, () -> service.search(" ", 8));
-        BusinessException limit = assertThrows(BusinessException.class, () -> service.search("燕麦", 13));
+        BusinessException blank =
+                assertThrows(BusinessException.class, () -> service.search(" ", 8));
+        BusinessException limit =
+                assertThrows(BusinessException.class, () -> service.search("燕麦", 13));
 
         assertEquals(ErrorCode.INVALID_ARGUMENT, blank.errorCode());
         assertEquals(ErrorCode.INVALID_ARGUMENT, limit.errorCode());

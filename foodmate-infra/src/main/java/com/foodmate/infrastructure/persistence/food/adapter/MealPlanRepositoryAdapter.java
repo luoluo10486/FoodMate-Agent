@@ -3,11 +3,9 @@ package com.foodmate.infrastructure.persistence.food.adapter;
 import com.foodmate.application.common.port.out.OperationAuditPort;
 import com.foodmate.application.food.port.out.MealPlanRepository;
 import com.foodmate.infrastructure.persistence.food.MealPlanMapper;
-
+import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 /** 将餐食计划 MyBatis 映射暴露为 application 端口。 */
 @Repository

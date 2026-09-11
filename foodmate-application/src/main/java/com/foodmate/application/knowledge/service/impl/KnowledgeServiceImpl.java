@@ -352,7 +352,12 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                     "knowledge.import_item.reindex",
                     Long.toString(item.documentId()));
         } catch (RuntimeException exception) {
-            failure(operatorId, traceId, "knowledge.import_item.reindex", id(documentId), exception);
+            failure(
+                    operatorId,
+                    traceId,
+                    "knowledge.import_item.reindex",
+                    id(documentId),
+                    exception);
             throw exception;
         }
     }
