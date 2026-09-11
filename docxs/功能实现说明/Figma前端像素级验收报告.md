@@ -2,6 +2,22 @@
 
 更新时间：2026-09-12
 
+## 1.1.12 2026-09-12 Agent Chat 运行中停止态与头像来源复核
+
+本批次只复核 Figma 节点 `1013:653` 对应的运行中停止态，不重新采集其它 104 个画板。头像核验同时覆盖当前前端运行时资源、生产构建产物和实时 Figma `🎨 :: Design` 页面。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | diff JSON | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| 运行中停止 | `1013:653` | `recaptured-figma/agent-chat-running-stop-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-running-stop-browser-2026-09-12.png` | `recaptured/agent-chat-running-stop-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 19.0059% | 3.075319 | 18.045960 | 212 | `DIFF_REVIEW` |
+
+- [x] 浏览器证据确认字体状态为 `loaded`、DPR 为 `1`、页面无横向溢出；Figma 与浏览器 PNG 均为 `1440×1024`。
+- [x] 运行中停止态已修复文字停止按钮的网格溢出，保留已接收文本和运行轨迹；自动 diff 仍非零，不能标记 `PASS`。
+- [x] Figma MCP 只读回读确认 `🎨 :: Design` 页面 192 个头像容器全部使用用户提供的两份 SVG 根节点：男性 189 个、女性 3 个、可疑容器 0 个。当前 Figma 浏览器会话显示为访客态，本批次没有伪造 Figma 写入结果。
+- [x] 前端运行时和 `dist/assets/avatars/` 仅存在 `default-male.svg` 与 `default-female.svg`；男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 历史真人头像只存在于 `.qa/figma-pixel-acceptance/legacy-avatars/` 验收证据；`public/assets/figma/auth/foodmate-*-user.svg` 仅为认证输入框装饰图标。
+- [x] 本大点统一门禁：Vitest `46/46` 个测试文件、`308/308` 个用例通过；`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。当前聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.11 2026-09-12 Agent Chat 头像修正版定向验收
 
 本批次仅复核 11 个受当前 Chat 视觉收口影响的画板，不重新采集其它 94 个画板。Figma PNG 使用头像修正后的原始尺寸，浏览器 PNG 使用对应视口、DPR 1 和字体加载完成条件；自动 diff 均为同尺寸 `COMPARED`，人工结论全部保留 `DIFF_REVIEW`。

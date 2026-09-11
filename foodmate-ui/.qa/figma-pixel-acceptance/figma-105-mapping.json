@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-09-09",
+    "capturedAt": "2026-09-12",
     "figmaMcp": "get_metadata",
     "lastUpdated": "2026-09-06"
   },
@@ -6169,8 +6169,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "The browser exposes a stop control for the running session and no longer renders the extra message-actions panel, but the complete assistant response, Trace cards, and composer/status layout still differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-09-12",
+        "conclusion": "The running-stop fixture now exposes the Figma status notice, Space Mono assistant copy, and labeled stop control; remaining shell and raster differences are still confirmed, so retain DIFF_REVIEW."
       },
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-running-stop-current-diff-2026-09-12-avatar-fixed.json"
     },

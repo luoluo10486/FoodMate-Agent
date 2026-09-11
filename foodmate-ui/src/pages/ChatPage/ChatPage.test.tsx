@@ -531,6 +531,8 @@ describe('ChatPage Figma running-stop fixture', () => {
 
     expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
     expect(screen.getByText('响应合成')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('执行中 · 可随时停止');
+    expect(screen.getByText('停止运行')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '停止生成' })).toBeEnabled();
     expect(screen.queryByText('消息操作')).not.toBeInTheDocument();
   });

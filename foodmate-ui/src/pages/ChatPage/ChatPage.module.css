@@ -665,6 +665,37 @@
   font-family: var(--fm-font);
 }
 
+/* Figma 运行中停止态使用 Space Mono 展示已接收的 Agent 文本。 */
+.runningStopPage .assistant .messageText {
+  font-family: var(--fm-font-mono);
+  line-height: 20px;
+}
+
+.runningStopPage .messages {
+  padding-bottom: 18px;
+}
+
+/* Figma 运行中停止态的底部状态提示固定在消息区底部，避免挤压已接收文本。 */
+.runningStatus {
+  display: flex;
+  width: 220px;
+  height: 34px;
+  flex: 0 0 34px;
+  box-sizing: border-box;
+  align-items: center;
+  align-self: flex-start;
+  margin-top: auto;
+  margin-left: 8px;
+  padding: 0 16px;
+  border: 1px solid #f97316;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
 /* Figma 节点 640:428 的助手内容区固定为 560px，右侧空白属于画板布局。 */
 .figmaDefaultPage .assistantBody {
   width: 560px;

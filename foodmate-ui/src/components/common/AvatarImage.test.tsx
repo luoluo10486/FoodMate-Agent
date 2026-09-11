@@ -28,6 +28,15 @@ describe('AvatarImage', () => {
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-source', 'default-male');
   });
 
+  it('does not treat authentication field icons as person avatars', () => {
+    const { container } = render(
+      <AvatarImage avatarUrl="/assets/figma/auth/foodmate-login-user.svg" gender="男" alt="头像" />,
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
+  });
+
   it('falls back to the gender default when a real avatar fails to load', () => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
     const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" allowUploaded gender="女" alt="头像" />);

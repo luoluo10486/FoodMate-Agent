@@ -13,6 +13,7 @@ type ComposerProps = {
   onSend?: () => void;
   onStop?: () => void;
   fixtureVariant?: WorkspaceFixtureVariant;
+  runningLabel?: string;
 };
 
 export function Composer({
@@ -24,6 +25,7 @@ export function Composer({
   onSend,
   onStop,
   fixtureVariant,
+  runningLabel,
 }: ComposerProps) {
   const handleSubmit = () => {
     if (running) {
@@ -36,7 +38,7 @@ export function Composer({
 
   return (
     <footer className={styles.composer}>
-      <div className={styles.inputRow}>
+      <div className={`${styles.inputRow} ${running && runningLabel ? styles.inputRowRunning : ''}`}>
         <Input
           className={styles.input}
           disabled={disabled}
@@ -58,10 +60,14 @@ export function Composer({
           variant={running ? 'destructive' : 'default'}
           size="icon"
           data-state={running ? 'running' : 'idle'}
+          data-running-label={running && runningLabel ? 'true' : undefined}
           onClick={handleSubmit}
         >
           {running ? (
-            <Square />
+            <>
+              <Square />
+              {runningLabel ? <span>{runningLabel}</span> : null}
+            </>
           ) : fixtureVariant ? (
             <FigmaWorkspaceAsset variant={fixtureVariant} name="send" />
           ) : (

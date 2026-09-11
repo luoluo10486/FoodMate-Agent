@@ -306,7 +306,7 @@ type ChatSurfaceProps = {
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
   fixtureVariant?: 'chat';
-  pageVariant?: 'completed-citations' | 'figma-default';
+  pageVariant?: 'completed-citations' | 'figma-default' | 'running-stop';
   statusForStrip?: AgentDisplayStatus;
   statusVisualState?: 'user-cancelled';
   pageOverlay?: ReactNode;
@@ -362,7 +362,7 @@ function ChatSurface({
       topAvatarSrc={topAvatarSrc}
     >
       <div
-        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''} ${pageVariant === 'figma-default' ? styles.figmaDefaultPage : ''}`}
+        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''} ${pageVariant === 'figma-default' ? styles.figmaDefaultPage : ''} ${pageVariant === 'running-stop' ? styles.runningStopPage : ''}`}
       >
         <section className={styles.workspace}>
           <div className={styles.center}>
@@ -374,6 +374,11 @@ function ChatSurface({
             />
             <div className={styles.messages} ref={messagesRef}>
               {children}
+              {pageVariant === 'running-stop' ? (
+                <div className={styles.runningStatus} role="status" aria-live="polite">
+                  执行中 · 可随时停止
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
@@ -385,6 +390,7 @@ function ChatSurface({
           onChange={onChange}
           onSend={onSend}
           onStop={onStop}
+          runningLabel={pageVariant === 'running-stop' ? '停止运行' : undefined}
           fixtureVariant={resolvedFixtureVariant}
         />
       </div>
@@ -1282,10 +1288,10 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       onChange={setInput}
       onSend={() => setNotice('已保留输入内容，等待当前会话继续处理。')}
       onStop={() => setNotice('已请求停止当前 Run；已接收文本会保留。')}
-      placeholder={isRunning ? '运行中，可停止…' : '追问或添加自定义指令...'}
+      placeholder={isRunning ? '正在运行... 点击停止以中断此运行' : '追问或添加自定义指令...'}
       showTrace={!isCompletedCitations}
       designChat
-      pageVariant={isCompletedCitations ? 'completed-citations' : undefined}
+      pageVariant={isRunning ? 'running-stop' : isCompletedCitations ? 'completed-citations' : undefined}
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
