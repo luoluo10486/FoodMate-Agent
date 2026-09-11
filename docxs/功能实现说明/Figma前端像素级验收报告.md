@@ -2846,3 +2846,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 认证页 `foodmate-*-user.svg` 仅作为输入框装饰图标，历史真人素材仅保留在 QA 证据目录，不属于运行时头像来源。
 - [x] 最终统一门禁为 Vitest `46/46` 个测试文件、`304/304` 个用例通过；`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。
 - [ ] 本次运行时复核不改变像素差异结论；105 项仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能用 DOM 资源审计替代 Figma PNG diff 和人工视觉复核。
+
+## 2026-09-11 Auth 导出资源对齐证据
+
+本次只复核 Auth 页面组的 Figma 导出资源与代码引用，不重新采集全部 105 个画板。Figma 文件保持只读，既有 Auth PNG、浏览器 PNG 和 diff JSON 不因资源登记而改写结论。
+
+- [x] 临时导出目录 `foodmate-auth-assets-compare` 中的 58 个 Auth SVG 已与 `foodmate-ui/public/assets/figma/auth/` 逐一计算 SHA-256，结果为 `58/58 MATCH`。
+- [x] 资源引用核对覆盖登录默认态及 6 个登录状态、注册、找回密码、重置密码和 Token 无效/过期/已使用状态；登录提交态导出文件 `login-submitting-loader.svg` 与代码实际目标 `foodmate-login-loader.svg` 字节一致。
+- [x] Token 无效状态的导出文件名与项目资源名存在语义映射：`token-fork.svg -> token-invalid-fork-knife.svg`、`token-alert.svg -> token-invalid-alert-triangle.svg`；组件引用已按项目资源名保持一致。
+- [x] 本次 8 个变更资源的 SHA-256 已登记在《前端已完成实现清单》对应批次；运行时不引入未登记 iconfont 字体或 Unicode glyph。
+- [ ] 本次没有新增浏览器 PNG 或独立 diff JSON；Auth 13 项既有自动 diff 仍为非零并保持 `DIFF_REVIEW`，不能将资源字节一致误写成像素级 `PASS`。
+- [ ] 全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；iconfont 资源登记仍为 `BLOCKED`。
