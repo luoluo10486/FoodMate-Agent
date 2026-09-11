@@ -108,6 +108,7 @@
   --fm-auth-token-shadow: 0 6px 8px rgb(72 199 142 / 20%);
 
   /* Figma login state tokens: 680:408 through 680:606. */
+  --fm-auth-state-action: #2e7d32;
   --fm-auth-success-action: #48c78e;
   --fm-auth-success-shadow: 0 6px 8px rgba(46, 125, 50, 0.25);
   --fm-auth-error: #f97066;

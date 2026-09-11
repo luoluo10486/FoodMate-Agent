@@ -2,15 +2,49 @@
 
 更新时间：2026-09-11
 
-## 1.1.8 2026-09-11 Figma 默认头像资源真实替换
+## 1.1.9 2026-09-11 Auth 页面组增量验收
+
+本批次只重新采集 Auth 页面组的 13 个受影响画板，不重新采集或判定其它画板。浏览器截图统一使用 `1440×900`、DPR 1、字体加载完成和 `visual-qa=1`；所有自动 diff 均为同尺寸 `COMPARED`，按验收规则继续标记为 `DIFF_REVIEW`。
+
+| 画板 | Figma 节点 | 浏览器 PNG | diff JSON | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---|
+| Login | `647:214` | `recaptured/dpr1-login-v2-browser-2026-09-11.png` | `recaptured/login-v2-current-diff-2026-09-11.json` | 3.7948% | 0.564622 | 7.545321 | 213 | `DIFF_REVIEW` |
+| Register | `680:216` | `recaptured/dpr1-register-page-browser-2026-09-11.png` | `recaptured/register-page-current-diff-2026-09-11.json` | 4.2780% | 0.567688 | 6.677208 | 198 | `DIFF_REVIEW` |
+| Forgot Password | `680:275` | `recaptured/dpr1-forgot-password-page-browser-2026-09-11.png` | `recaptured/forgot-password-page-current-diff-2026-09-11.json` | 3.0128% | 0.648710 | 7.311508 | 188 | `DIFF_REVIEW` |
+| Reset Password | `680:307` | `recaptured/dpr1-reset-password-page-browser-2026-09-11.png` | `recaptured/reset-password-page-current-diff-2026-09-11.json` | 3.3946% | 0.583890 | 6.760528 | 213 | `DIFF_REVIEW` |
+| Login Submitting | `680:408` | `recaptured/dpr1-login-submitting-browser-2026-09-11.png` | `recaptured/login-submitting-current-diff-2026-09-11.json` | 6.4285% | 0.728943 | 7.079928 | 209 | `DIFF_REVIEW` |
+| Login Field Error | `680:445` | `recaptured/dpr1-login-field-error-browser-2026-09-11.png` | `recaptured/login-field-error-current-diff-2026-09-11.json` | 4.9365% | 1.849736 | 15.157097 | 209 | `DIFF_REVIEW` |
+| Login Credential Error | `680:483` | `recaptured/dpr1-login-credential-error-browser-2026-09-11.png` | `recaptured/login-credential-error-current-diff-2026-09-11.json` | 6.0190% | 1.575856 | 12.751643 | 213 | `DIFF_REVIEW` |
+| Login Account Locked | `680:524` | `recaptured/dpr1-login-account-locked-browser-2026-09-11.png` | `recaptured/login-account-locked-current-diff-2026-09-11.json` | 6.3881% | 1.169548 | 11.022478 | 213 | `DIFF_REVIEW` |
+| Login Account Disabled | `680:564` | `recaptured/dpr1-login-account-disabled-browser-2026-09-11.png` | `recaptured/login-account-disabled-current-diff-2026-09-11.json` | 8.4367% | 1.518019 | 11.695808 | 213 | `DIFF_REVIEW` |
+| Login Service Unavailable | `680:606` | `recaptured/dpr1-login-service-unavailable-browser-2026-09-11.png` | `recaptured/login-service-unavailable-current-diff-2026-09-11.json` | 6.2147% | 1.147104 | 10.977517 | 213 | `DIFF_REVIEW` |
+| Token Invalid | `680:738` | `recaptured/dpr1-token-invalid-browser-2026-09-11.png` | `recaptured/token-invalid-current-diff-2026-09-11.json` | 1.8195% | 0.101208 | 2.509056 | 204 | `DIFF_REVIEW` |
+| Token Expired | `680:757` | `recaptured/dpr1-token-expired-browser-2026-09-11.png` | `recaptured/token-expired-current-diff-2026-09-11.json` | 1.8706% | 0.115650 | 2.707871 | 204 | `DIFF_REVIEW` |
+| Token Used | `680:776` | `recaptured/dpr1-token-used-browser-2026-09-11.png` | `recaptured/token-used-current-diff-2026-09-11.json` | 1.9593% | 0.147349 | 3.025545 | 187 | `DIFF_REVIEW` |
+
+- [x] 13 个浏览器截图均由 Chrome `152.0.7977.83` 采集，DPR 为 1，字体状态为 `loaded`，`bodyOverflow=false`。
+- [x] 登录异常状态品牌标记及字段/凭据错误主按钮已使用 Figma 深绿色 `#2e7d32`；默认态既有颜色保持不变。
+- [ ] 自动 diff 均非零，人工复核和字体/浏览器光栅化差异仍需后续收口；本批次不能标记为像素级 `PASS`。
+- [ ] 本批次不影响全量汇总：`105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 1.1.8 2026-09-11 Figma 默认头像资源真实替换与 Profile 遗漏修正
 
 本批次针对用户反馈的 Figma 人物头像与本地默认头像不一致进行资源修正。Figma 文件不再保持只读：只修改 `🎨 :: Design` 页面中已登记的默认头像容器内部矢量，不重新验收全部 105 个画板。
 
 - [x] 用户附件与本地运行时资源逐字节一致。男性默认头像 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性默认头像 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
-- [x] 实时 Figma 文件 `MX18RZCfAmgprNzxItkHUH`、页面 `0:1`（`🎨 :: Design`）中，名称为 `Avatar / Default Male SVG` 的 184 个容器和 `Avatar / Default Female SVG` 的 3 个容器已替换内部矢量；容器 ID、尺寸和布局保持不变。
-- [x] 回读结果：187/187 个头像容器 `childCount=1`，子节点分别为 `User-provided male default SVG` 或 `User-provided female default SVG`；Figma 页面顶层临时导入节点为 `0`。
+- [x] 实时 Figma 文件 `MX18RZCfAmgprNzxItkHUH`、页面 `0:1`（`🎨 :: Design`）中，192 个默认头像容器已替换内部矢量：男性 189 个、女性 3 个；容器 ID、尺寸和布局保持不变。
+- [x] 回读结果：192/192 个头像容器 `childCount=1`，子节点分别为 `User-provided male default SVG` 或 `User-provided female default SVG`；旧 `Group + Vector` 头像结构为 `0`，Figma 页面顶层临时导入节点为 `0`。
+- [x] 本轮发现并修正 4 个 `108×108` Profile 大头像 `1167:2`、`1167:40`、`1167:78`、`1167:116`；此前它们仍保留旧人物路径。
 - [x] 受影响 Figma PNG 已重新导出：`recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png`、`recaptured-figma/agent-chat-v2-figma-2026-09-11-avatar-fixed.png`，均为 `1440×1024`。
-- [x] 本地视觉回读确认 Home 顶栏/侧栏及 Chat 消息区域显示新的男性、女性默认头像；本批次没有覆盖历史真人头像 PNG。
+- [x] 本地视觉回读确认 Home、Chat 和 Profile 顶栏/侧栏/主头像均显示用户提供的男性或女性 SVG；历史真人 PNG 仍不属于运行时资源。
+- [x] 4 个受影响 Profile 画板已重新采集浏览器 PNG 并生成同尺寸 diff；差异继续保持 `DIFF_REVIEW`，本轮不将头像资源修正改写为整页 `PASS`。
+
+| 画板 | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---:|---:|---:|---:|---|
+| Profile Basic Avatar Uploading | 58.4419% | 2.952574 | 12.443130 | 204 | `DIFF_REVIEW` |
+| Profile Basic Avatar Failed | 58.2741% | 3.042401 | 13.586979 | 204 | `DIFF_REVIEW` |
+| Profile Basic Unsaved Leave Confirmation | 84.8577% | 49.369571 | 66.003957 | 251 | `DIFF_REVIEW` |
+| Profile Basic | 60.1051% | 3.552096 | 18.664958 | 255 | `DIFF_REVIEW` |
 - [x] 本批次统一门禁：`npm run test` 为 `46/46` 个测试文件、`306/306` 个用例通过；`typecheck`、`format:check`、`lint`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。
 - [ ] 本批次不重新采集或判定其它 103 个画板；105 项全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，资源登记继续为 `BLOCKED`。

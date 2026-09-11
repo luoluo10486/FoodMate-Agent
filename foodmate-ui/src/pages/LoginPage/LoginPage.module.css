@@ -111,6 +111,16 @@
   color: var(--fm-auth-action-text);
 }
 
+/* Figma 登录状态画板的品牌标记统一使用深绿色，默认态仍保留占位标记。 */
+.authPageLoginSubmitting .loginMark,
+.authPageLoginFieldError .loginMark,
+.authPageLoginCredentialError .loginMark,
+.authPageLoginAccountLocked .loginMark,
+.authPageLoginAccountDisabled .loginMark,
+.authPageLoginServiceUnavailable .loginMark {
+  background: var(--fm-auth-state-action);
+}
+
 .loginMark img {
   width: 22px;
   height: 22px;
@@ -302,8 +312,14 @@
 }
 
 .authPageLoginFieldError .primaryAction {
-  border-color: var(--fm-auth-success-action);
-  background: var(--fm-auth-success-action);
+  border-color: var(--fm-auth-state-action);
+  background: var(--fm-auth-state-action);
+  box-shadow: var(--fm-auth-success-shadow);
+}
+
+.authPageLoginCredentialError .primaryAction {
+  border-color: var(--fm-auth-state-action);
+  background: var(--fm-auth-state-action);
   box-shadow: var(--fm-auth-success-shadow);
 }
 
