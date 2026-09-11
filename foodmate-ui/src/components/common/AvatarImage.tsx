@@ -12,16 +12,26 @@ type AvatarImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
   gender?: string;
   /** Fixture 头像只允许使用项目登记的男女默认 SVG。 */
   defaultOnly?: boolean;
+  /** 仅真实模式的主动上传流程可以显式展示用户上传头像，默认关闭。 */
+  allowUploaded?: boolean;
 };
 
 /**
  * 统一渲染用户头像。
- * Fixture 模式只使用与性别匹配的登记 SVG，真实模式只展示后端头像接口返回的上传头像或本地预览。
+ * 默认只使用与性别匹配的登记 SVG；真实模式必须由主动上传流程显式开启上传头像。
  */
-export function AvatarImage({ avatarUrl, gender, defaultOnly = false, onError, ...props }: AvatarImageProps) {
-  // Fixture 模式全局禁止人物上传图，防止遗漏 defaultOnly 的调用点重新加载历史真人素材。
+export function AvatarImage({
+  avatarUrl,
+  gender,
+  defaultOnly = false,
+  allowUploaded = false,
+  onError,
+  ...props
+}: AvatarImageProps) {
+  // 默认入口禁止人物上传图，只有真实上传流程显式声明后才允许加载后端头像或本地预览。
   const fixtureMode = import.meta.env.VITE_AGENT_MODE !== 'real';
-  const effectiveDefaultOnly = defaultOnly || fixtureMode;
+  const uploadedAllowed = allowUploaded && !defaultOnly && !fixtureMode;
+  const effectiveDefaultOnly = !uploadedAllowed;
   const avatarKey = `${avatarUrl ?? ''}\u0000${gender ?? ''}\u0000${effectiveDefaultOnly ? 'default-only' : 'uploaded-allowed'}`;
   const [failure, setFailure] = useState<{ key: string; failed: boolean }>({ key: avatarKey, failed: false });
   // 按输入签名派生失败状态，地址或性别变化后无需通过 Effect 触发二次渲染。

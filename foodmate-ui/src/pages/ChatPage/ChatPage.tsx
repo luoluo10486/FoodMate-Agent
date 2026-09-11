@@ -171,6 +171,7 @@ function MessageBubble({
             <span className={styles.userAvatar} aria-hidden="true">
               <AvatarImage
                 avatarUrl={fixtureAvatar ? undefined : userAvatar}
+                allowUploaded={!fixtureAvatar}
                 data-avatar-role={fixtureAvatar ? 'fixture-message' : 'authenticated-message'}
                 defaultOnly={fixtureAvatar}
                 gender={resolvedGender}

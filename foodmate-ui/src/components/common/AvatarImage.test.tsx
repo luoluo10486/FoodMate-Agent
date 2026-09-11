@@ -30,13 +30,26 @@ describe('AvatarImage', () => {
 
   it('falls back to the gender default when a real avatar fails to load', () => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
-    const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" gender="女" alt="头像" />);
+    const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" allowUploaded gender="女" alt="头像" />);
     const image = container.querySelector('img');
 
     expect(image).toHaveAttribute('src', '/api/users/me/avatar');
     fireEvent.error(image!);
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
+  });
+
+  it('keeps the registered default until a real upload flow opts in', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    const { container, rerender } = render(<AvatarImage avatarUrl="/api/users/me/avatar" gender="女" alt="头像" />);
+    const image = container.querySelector('img');
+
+    expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
+    expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
+
+    rerender(<AvatarImage avatarUrl="/api/users/me/avatar" allowUploaded gender="女" alt="头像" />);
+    expect(container.querySelector('img')).toHaveAttribute('src', '/api/users/me/avatar');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-policy', 'uploaded-allowed');
   });
 
   it('forces registered defaults in Fixture mode even when defaultOnly is omitted', () => {

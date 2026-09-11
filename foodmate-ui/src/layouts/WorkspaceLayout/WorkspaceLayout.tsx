@@ -372,6 +372,7 @@ export function WorkspaceLayout({
               <div className={styles.avatar}>
                 <AvatarImage
                   avatarUrl={defaultOnlyAvatar ? undefined : sidebarAvatar}
+                  allowUploaded={realMode && !isFixtureLayout}
                   data-avatar-role="workspace-sidebar"
                   defaultOnly={defaultOnlyAvatar}
                   gender={layoutAvatarGender}
@@ -486,6 +487,7 @@ export function WorkspaceLayout({
                     <span className={styles.topAvatar}>
                       <AvatarImage
                         avatarUrl={defaultOnlyAvatar ? undefined : topAvatar}
+                        allowUploaded={realMode && !isFixtureLayout}
                         data-avatar-role="workspace-topbar"
                         defaultOnly={defaultOnlyAvatar}
                         gender={layoutAvatarGender}

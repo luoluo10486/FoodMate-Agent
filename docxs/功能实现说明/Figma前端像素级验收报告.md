@@ -1,6 +1,22 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-11
+更新时间：2026-09-12
+
+## 1.1.10 2026-09-12 默认头像策略与 Workspace/Home 定向验收
+
+本批次只复核上一批次的头像入口收口和 Workspace/Home 任务状态面板，不重新采集或判定其它画板。Figma 参考节点为 Workspace/Home `640:256` 和 Agent Chat `640:428`，浏览器采集使用 DPR 1、字体加载完成和 `visual-qa=1`。
+
+| 画板 | Figma PNG | 浏览器 PNG | diff JSON | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace Home | `recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-12.png` | `recaptured/workspace-home-v2-current-diff-2026-09-12.json` | `1440×1024 / 1` | 11.7429% | 2.991194 | 17.876599 | 255 | `DIFF_REVIEW` |
+| Agent Chat | `recaptured-figma/agent-chat-v2-figma-2026-09-11-avatar-fixed.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-12.png` | `recaptured/agent-chat-v2-current-diff-2026-09-12.json` | `1440×1024 / 1` | 11.9505% | 2.807106 | 16.885575 | 211 | `DIFF_REVIEW` |
+
+- [x] 两项浏览器证据均由 Chrome `152.0.7977.83` 采集，字体状态为 `loaded`，页面无横向溢出；人工检查确认头像和底部任务状态面板没有产生遮挡。
+- [x] `AvatarImage` 默认策略已收口：Fixture/默认入口只输出登记的男性或女性 SVG，真实模式只有主动上传流程显式传入 `allowUploaded` 才允许后端头像或 `blob:` 预览。
+- [x] 本地资源和 `dist/assets/avatars/` 均只保留两份登记 SVG，并与用户附件逐字节一致；没有新建虚构字体、glyph 或 iconfont 映射。
+- [x] 本大点统一门禁：Vitest `46/46`、`307/307`；typecheck、lint、format、build、证据结构校验和 diff-check 均通过。证据校验为 `structuralPass=true`、`strictDprPass=true`、`mappedPass=0`、`diffReview=105`、`errors=[]`。
+- [ ] 两项自动 diff 仍为非零，因此不能标记为像素级 `PASS`；本批次不改变全量 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH` 结论。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、版本和许可证仍未提供，资源登记继续保持 `BLOCKED`。
 
 ## 1.1.9 2026-09-11 Auth 页面组增量验收
 
