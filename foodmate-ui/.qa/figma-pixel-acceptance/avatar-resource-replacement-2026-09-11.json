@@ -3,13 +3,14 @@
   "figmaFileKey": "MX18RZCfAmgprNzxItkHUH",
   "figmaPageId": "0:1",
   "figmaPageName": "Design",
-  "targetNodeName": "Avatar / Default Male SVG | Avatar / Default Female SVG",
-  "targetCount": 187,
-  "maleCount": 184,
+  "targetNodeName": "Avatar / Default Male SVG | Avatar / Default Female SVG | Avatar / Default Male SVG · Profile",
+  "targetCount": 192,
+  "maleCount": 189,
   "femaleCount": 3,
+  "profileCount": 4,
   "containerPreserved": true,
   "containerChildCountAfterReplacement": {
-    "1": 187
+    "1": 192
   },
   "topLevelImportedNodeCountAfterReplacement": 0,
   "sourceAssets": {
@@ -38,6 +39,15 @@
       "height": 1024
     }
   ],
+  "lastVerifiedAt": "2026-09-11T23:52:51.3113063+08:00",
+  "verification": {
+    "targetCount": 192,
+    "maleCount": 189,
+    "femaleCount": 3,
+    "profileCount": 4,
+    "missingRootVectorCount": 0,
+    "topLevelImportedNodeCount": 0
+  },
   "full105BoardAcceptance": "not-run",
   "iconfontStatus": "BLOCKED"
 }

@@ -45,6 +45,10 @@
 | Profile Basic Avatar Failed | 58.2741% | 3.042401 | 13.586979 | 204 | `DIFF_REVIEW` |
 | Profile Basic Unsaved Leave Confirmation | 84.8577% | 49.369571 | 66.003957 | 251 | `DIFF_REVIEW` |
 | Profile Basic | 60.1051% | 3.552096 | 18.664958 | 255 | `DIFF_REVIEW` |
+- [x] 用户反馈后的实时 Figma 再次回读确认：192/192 个头像容器只保留一个用户 SVG 根矢量，男性 189、女性 3，其中 Profile 大头像 4 个；机器证据已同步 `avatar-resource-replacement-2026-09-11.json`。
+- [x] 头像替换后的受影响页面证据：Workspace/Home 使用 `recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png` 与 `recaptured/dpr1-workspace-home-v2-browser-2026-09-11.png`，同尺寸 diff 为 `16.2534% / MAE 3.113430 / RMSE 18.072643 / maxChannelDelta 255`；Agent Chat 对应 diff 为 `11.9505% / MAE 2.807106 / RMSE 16.885575 / maxChannelDelta 211`。
+- [x] 用户反馈后的定向门禁为 8 个头像相关测试文件、135/135 个用例通过；`typecheck`、`lint`、`format:check`、`qa:figma:validate` 和 `git diff --check` 通过。本批次未执行 105 个画板的全量重新截图。
+- [ ] 上述结果只证明头像资源已替换并完成受影响页面复核；自动 diff 非零，不能将 Home、Chat 或 105 个画板标记为像素级 `PASS`。
 - [x] 本批次统一门禁：`npm run test` 为 `46/46` 个测试文件、`306/306` 个用例通过；`typecheck`、`format:check`、`lint`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。
 - [ ] 本批次不重新采集或判定其它 103 个画板；105 项全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，资源登记继续为 `BLOCKED`。
