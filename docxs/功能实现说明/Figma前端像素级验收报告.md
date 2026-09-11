@@ -2,6 +2,19 @@
 
 更新时间：2026-09-12
 
+## 1.1.13 2026-09-12 默认头像容器审计与 Figma 命名收口
+
+本批次只处理默认头像资源边界和 Figma 容器审计，不重新采集或验收全部 105 个画板。Figma 文件为 `MX18RZCfAmgprNzxItkHUH`，目标页面为 `🎨 :: Design`（节点 `0:1`）。
+
+- [x] 本地运行时和 `dist/assets/avatars/` 均只存在 `default-male.svg` 与 `default-female.svg`；两份文件分别与用户提供的 SVG 附件逐字节一致。
+- [x] 运行时代码所有人物头像入口均经过 `AvatarImage`/`resolveAvatarUrl`；Fixture 和默认入口只接受两份登记 SVG，真实模式的主动上传地址仍单独受 `allowUploaded` 控制。
+- [x] Figma `🎨 :: Design` 页面当前有 `192` 个标准 `Avatar / Default ... SVG` 容器：男性 `189` 个、女性 `3` 个；对应用户提供 SVG 根节点为男性 `189` 个、女性 `3` 个；旧头像根节点 `0` 个。
+- [x] 4 个 Profile 大头像容器 `1167:2`、`1167:40`、`1167:78`、`1167:116` 已从带 `· Profile` 后缀的名称统一为 `Avatar / Default Male SVG`，尺寸保持 `108×108`，内部子节点仍为 `User-provided male default SVG`。
+- [x] 已检查 Figma 其它页面。`🗄 :: Archive` 中的 2 个男性节点同样命名为 `User-provided male default SVG`，属于历史 Payd 归档画面；`.qa/figma-pixel-acceptance/legacy-avatars/` 只保留历史验收证据，不属于运行时资源。
+- [x] 已识别 7 张未被任何文档或证据映射引用的临时 `2026-09-11` Figma PNG；它们不属于当前证据或运行时。当前环境拒绝破坏性删除，本批次不将其记录为已清理。
+- [ ] 本批次没有重新截图其它画板，也不改变 105 项已有视觉结论；自动 diff、人工复核未完成的项目必须继续保持 `DIFF_REVIEW`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、版本和许可证仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.12 2026-09-12 Agent Chat 运行中停止态与头像来源复核
 
 本批次只复核 Figma 节点 `1013:653` 对应的运行中停止态，不重新采集其它 104 个画板。头像核验同时覆盖当前前端运行时资源、生产构建产物和实时 Figma `🎨 :: Design` 页面。
