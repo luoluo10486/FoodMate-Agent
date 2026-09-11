@@ -37,11 +37,54 @@ class MemoryContextTest(unittest.TestCase):
         self.assertTrue(all(len(item["memory_value"]) == 1 for item in candidates))
 
     def test_does_not_turn_one_shot_request_or_health_fact_into_memory(self):
-        one_shot = "今天请给我安排一份低脂晚餐计划"
+        one_shot_requests = (
+            "今天请给我安排一份低脂晚餐计划",
+            "这周晚餐吃什么",
+            "今天晚餐不要放香菜",
+        )
         health = "我有糖尿病，营养目标是每天摄入1200卡"
 
-        self.assertEqual([], generate_memory_candidates(self.context_for(one_shot), one_shot))
+        for one_shot in one_shot_requests:
+            with self.subTest(content=one_shot):
+                self.assertEqual([], generate_memory_candidates(self.context_for(one_shot), one_shot))
         self.assertEqual([], generate_memory_candidates(self.context_for(health), health))
+
+    def test_extracts_natural_stable_preferences_and_limits(self):
+        examples = (
+            "我不太喜欢香菜",
+            "我更倾向于清淡饮食",
+            "平时我喜欢吃鱼",
+            "我的预算每天不超过 80 元",
+            "每餐预算控制在 30 元以内",
+            "我只会做简单的家常菜",
+            "之后请用中文回答",
+        )
+
+        candidates = [
+            candidate
+            for content in examples
+            for candidate in generate_memory_candidates(
+                self.context_for(content), content, max_candidates=6
+            )
+        ]
+
+        by_key = {(item["memory_type"], item["memory_key"]): item for item in candidates}
+        preference_values = {
+            item["memory_value"]["preference"]
+            for item in candidates
+            if (item["memory_type"], item["memory_key"]) == ("preference", "diet_style")
+        }
+        self.assertEqual("香菜", by_key[("constraint", "avoid_foods")]["memory_value"]["foods"])
+        self.assertEqual({"清淡饮食", "吃鱼"}, preference_values)
+        self.assertEqual("80 元", by_key[("budget_habit", "daily_budget")]["memory_value"]["amount"])
+        self.assertEqual("30 元", by_key[("budget_habit", "meal_budget")]["memory_value"]["amount"])
+        self.assertIn(
+            "我只会做简单的家常菜",
+            by_key[("cooking_skill", "self_reported_level")]["memory_value"]["description"],
+        )
+        self.assertEqual(
+            "用中文", by_key[("interaction_preference", "response_style")]["memory_value"]["style"]
+        )
 
     def test_context_filters_memory_types_status_and_duplicate_keys(self):
         command = {

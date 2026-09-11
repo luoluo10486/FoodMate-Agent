@@ -2658,3 +2658,15 @@
 | 业务验证 | Java Application 定向测试 `25/25` 通过；前端 `DietRecordsPage.real.test.tsx` 为 `9/9` 通过；`npm.cmd run typecheck` 通过；本轮 Java 文件定向 Spotless 检查通过；`git diff --check` 通过。 |
 | 边界 | 未调用真实 Chat/Embedding，未执行迁移、数据库清理、性能测试、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。全模块 Spotless 仍有既存的 `21` 个历史格式问题，本轮未扩大修改范围。 |
 | Git | 本轮单位语义、候选展示、测试和执行记录作为一个大点提交；工作区其他改动不纳入本提交。 |
+
+## D180 记忆自然表达与临时要求过滤（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Python 使用 `agent-runtime\\.venv`，未调用真实 Chat/Embedding，未写入 PostgreSQL、Redis、RocketMQ、Milvus 或 MinIO。 |
+| 规则范围 | Python 候选提取新增“更倾向于”“不太喜欢”“平时喜欢”“每天不超过”“每餐以内”“只会做简单家常菜”“之后用中文”等自然表达；预算仍按 `daily_budget`/`meal_budget` 结构化保存，烹饪能力和回答风格不保存完整请求。 |
+| 临时要求边界 | 一次性时间词扩展为今天、这次/本次、本周/这周、今晚、明天、昨天、当前和现在；“这周晚餐吃什么”“今天晚餐不要放香菜”均不产生长期记忆候选。候选来源仍只接受与当前文本完全对应的用户消息，助手回答不能成为来源。 |
+| 业务测试 | `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider tests/test_memory_context.py`：`7 passed`、`3` 个子断言；公共资料状态同步测试：`12 passed`、`3` 个子断言。 |
+| 兼容性修正 | D174 已完成正式 WHO 真实向量索引后，R5 离线主题/切分校验不应继续硬编码“未构建向量”；仅允许“未构建向量”和“已完成真实向量索引”两种受支持状态，未改变付费服务调用门禁。 |
+| 边界 | 未修改 Java 记忆白名单、冲突确认、删除、TTL、来源抑制和摘要失效逻辑；未执行迁移、数据库清理、性能压测、长稳、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。 |
+| Git | 本轮自然表达、临时要求测试、公共资料状态校验和文档作为一个业务大点提交；不把本地规则扩展宣称为模型推断或生产级记忆治理。 |

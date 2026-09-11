@@ -146,8 +146,8 @@ def validate() -> dict[str, object]:
     for item in manifest_documents:
         path = root / str(item["file"])
         documents.append({**item, "text": parse_document(path.name, path.read_bytes())})
-    if source_report["embedding_status"] != "未构建向量":
-        raise AssertionError("R5 验收不允许在未授权前改变 embedding_status")
+    if source_report["embedding_status"] not in {"未构建向量", "已完成真实向量索引"}:
+        raise AssertionError("公共资料 embedding_status 不是受支持的业务状态")
 
     coverage = _topic_coverage(documents)
     chunks, document_details = _build_chunks(documents)

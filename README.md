@@ -48,7 +48,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 | 营养语义索引 | 1,000 条 approved/official 目录已通过真实 Qwen Embedding 建立独立 Milvus 集合 `foodmate_nutrition_foods`；Runtime 营养检索只返回候选 ID，饮食写入和营养数值仍回源 PostgreSQL 精确匹配。 |
 | M1-5 写确认 | `meal_plan.save_plan` 和 `food_log_writer` 的 create/update/delete/restore 已完成 Proposal -> Confirm -> Execute；reject、failed、superseded、revision 冲突、失败回滚/审计和幂等重放已通过真实 PostgreSQL HTTP/RocketMQ 回归。 |
 | Agent、Eval 与 RAG | `run.eval_decided`、预算、checkpoint、continuation、追问和安全降级已进入运行路径；公共知识库的批量上传、异步索引、发布可见性和 `public_published` 安全引用代码已完成。D174 已完成 9 份 WHO 正式资料的真实 `Qwen/Qwen3-Embedding-0.6B -> Milvus -> Java 回写 -> 发布投影 -> 公共检索`，并完成一次真实 Chat AgentRun 的 `run.completed` 引用输出；长稳、正式价格审计和生产 RAG 治理仍未完成。 |
-| 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。修改、确认和删除会使摘要失效；Java 与 Python 共同过滤未确认、已删除、过期、来源被抑制的记忆，非法过期时间 fail-closed。一次性请求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
+| 结构化记忆与上下文 | 已支持稳定偏好、忌口、预算、烹饪能力、用餐时间和回答偏好候选；自然表达覆盖“更倾向于”“不太喜欢”“每天不超过”“每餐以内”“之后用中文”等形式。Java 对来源、类型、敏感内容和同 key 冲突负责，Context 按意图白名单注入最近 8 条有效消息、摘要和最多 8 条长期记忆。修改、确认和删除会使摘要失效；Java 与 Python 共同过滤未确认、已删除、过期、来源被抑制的记忆，非法过期时间 fail-closed。今天/这周等一次性要求、完整计划、营养目标和医疗事实不会进入普通长期记忆。 |
 | R6 记忆真实回读 | `real-memory-e2e.ps1` 已通过真实 Java `/api/memories` + PostgreSQL 业务验收：修改后的新值可见，过期和删除后的记录均从 API 与 Java 上下文过滤中排除，`memory.update`/`memory.delete` 审计事实闭合；不调用 Chat/Embedding。 |
 | 恢复与 M1-6 本地门禁 | 已验证 Runtime readiness、Redis AOF 探针恢复、RocketMQ 重启/Topic 初始化、双 JVM 有界读取和 Java 重启回读；完整 PostgreSQL/Outbox/Inbox/SSE 故障矩阵仍未完成。 |
 | 前端 | G1-G6 页面代码边界、追问/确认/失败/取消/SSE 状态、真实管理查询和知识库批次/RAG 引用接入已完成；真实聊天历史会话现在会恢复最近 Run 并回放终态引用，管理端 R7 已补齐服务端分页和筛选。2026-09-08 已实际浏览复核饮食记录、摄入分析、餐食规划、知识库、记忆管理和管理概览，桌面关键控件可见，移动视口未发现页面级横向溢出。前端全量业务门禁为 `46` 个测试文件、`303/303` 通过，typecheck 和 build 通过。 |
@@ -178,6 +178,13 @@ npm run dev
 - Java 对同一 `memory_type + memory_key` 的相同 JSON 做幂等去重，不同值写为 `conflict`；用户确认后同 key 其他活动值转为 `rejected`。手动修改要求 JSON 对象，并会触发摘要失效和重建边界。
 - Python ContextBuilder 和 Java 查询共同执行意图白名单、确认状态、未过期、未删除、来源抑制、最近 8 条消息及最多 8 条长期记忆约束。
 - K3 业务测试：Python `57 passed`；Java `16/16`；未执行真实云服务、性能压测、组件重启、ACK/重复投递故障矩阵或备份恢复。
+
+## 2026-09-11 K3 自然表达与临时要求过滤
+
+- Python 记忆候选规则补充“我更倾向于清淡饮食”“我不太喜欢香菜”“平时我喜欢吃鱼”“我的预算每天不超过 80 元”“每餐预算控制在 30 元以内”“我只会做简单的家常菜”“之后请用中文回答”等自然表达，仍只生成短结构化值。
+- 一次性时间词扩展为今天、这次/本次、本周/这周、今晚、明天、昨天、当前和现在；“这周晚餐吃什么”“今天晚餐不要放香菜”等请求不会进入长期记忆。助手消息仍不能作为候选来源。
+- 定向记忆测试为 `7 passed`、`3` 个子断言；同步正式 WHO 资料状态后的公共资料校验为 `12 passed`、`3` 个子断言。Java 白名单、冲突、确认、删除和摘要失效边界未改变。
+- 本轮仍不执行性能压测、长稳、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。
 
 ## 2026-09-08 R6 记忆修改后的下一轮生效
 
