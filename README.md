@@ -28,7 +28,7 @@ FoodMate 是面向饮食记录、营养分析与备餐规划的任务型 Agent �
 
 ![FoodMate Agent 运行闭环](./docxs/架构/图/FoodMateAgent运行闭环.svg)
 
-完整的边界、状态机、预算、Eval、写确认与退回规则见：[架构总览](./docxs/架构/架构总览.md)、[Agent 运行架构](./docxs/架构/Agent运行架构.md)、[M1-5 实施方案](./docxs/项目/M1-5核心饮食业务与写确认实施方案.md)、[ADR-0005](./docxs/决策/ADR-0005-RocketMQ异步主通道.md)。
+完整的边界、状态机、预算、Eval、写确认与退回规则见：[架构总览](./docxs/架构/架构总览.md)、[Agent 运行架构](./docxs/架构/Agent运行架构.md)、[M1-5 实施方案](./docxs/项目/M1-5核心饮食业务与写确认实施方案.md)、[ADR-0005](./docxs/决策/ADR-0005-RocketMQ异步主通道.md)。秋招面试可直接使用：[FoodMate 秋招面试资料](./docxs/面试/FoodMate秋招面试资料.md)。
 
 ## 当前真实状态（2026-09-11）
 
