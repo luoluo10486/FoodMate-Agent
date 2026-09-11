@@ -82,6 +82,17 @@
   min-height: 42px;
 }
 
+/* Figma 工作台和饮食工具导航使用 Medium，设置入口也保持与导航一致的左对齐。 */
+.figmaFixture .primarySideNav .sideLink.active,
+.figmaFixture .secondarySideNav .sideLink,
+.figmaFixture .secondarySideNav .sideButton {
+  font-weight: var(--fm-figma-workspace-sidebar-nav-weight);
+}
+
+.figmaFixture .secondarySideNav .sideButton {
+  justify-content: flex-start;
+}
+
 .figmaFixture :global(.sidebar-session-section) {
   display: block;
   flex: 0 0 auto;
@@ -599,6 +610,11 @@
   color: var(--fm-ink);
   font-size: 12px;
   box-shadow: none;
+}
+
+/* Figma 工作台顶栏搜索文字为 13px，覆盖 shadcn Input 的默认字号。 */
+.figmaFixture .workspaceSearch input {
+  font-size: var(--fm-figma-workspace-search-text-size);
 }
 .workspaceSearch svg {
   position: absolute;

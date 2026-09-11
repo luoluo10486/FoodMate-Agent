@@ -982,6 +982,13 @@
   border-color: var(--fm-fixture-chat-border);
 }
 
+/* Figma 运行轨迹 Tabs 容器透明，只有当前步骤标签保留浅紫色激活面。 */
+.designTracePanel .traceTabs {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .traceTitle {
   flex: 0 0 auto;
   color: var(--fm-ink);
@@ -1019,8 +1026,9 @@
 }
 
 .traceTabs button[data-state='active'] {
-  background: rgba(236, 204, 255, 0.1);
+  background: var(--fm-figma-chat-trace-tab-active-surface);
   color: #b58cc4;
+  box-shadow: none;
 }
 
 .traceBody {

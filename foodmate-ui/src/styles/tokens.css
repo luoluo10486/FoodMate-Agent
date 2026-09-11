@@ -181,6 +181,14 @@
   --fm-figma-workspace-rail-width: 320px;
   --fm-figma-workspace-wide-rail-width: 340px;
   --fm-figma-workspace-padding: 24px;
+  --fm-figma-workspace-sidebar-nav-weight: 500;
+  --fm-figma-workspace-search-text-size: 13px;
+  --fm-figma-home-metric-label-size: 12px;
+  --fm-figma-home-metric-unit-size: 13px;
+  --fm-figma-home-metric-unit-gap: 4px;
+  --fm-figma-home-card-title-size: 14px;
+  --fm-figma-home-card-copy-size: 12px;
+  --fm-figma-chat-trace-tab-active-surface: rgba(236, 204, 255, 0.1);
   /* Figma Avatar 容器没有可见底色，人物 SVG 直接落在工作台表面。 */
   --fm-figma-avatar-surface: transparent;
   --fm-figma-task-panel-offset: 54px;

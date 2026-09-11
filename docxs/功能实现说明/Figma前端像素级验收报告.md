@@ -2,6 +2,24 @@
 
 更新时间：2026-09-12
 
+## 1.1.15 2026-09-12 Workspace/Home 与 Agent Chat 共享壳层视觉收口
+
+本节只记录 Figma 节点 `640:256`、`640:428` 的共享壳层增量验收，不重新采集其它 103 个画板。Figma 作为唯一视觉来源，shadcn/Radix 只提供基础控件能力。
+
+| 画板 | Figma 节点 | 浏览器视口 / DPR | 字体 | 横向溢出 | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace Home | `640:256` | `1440×1024 / 1` | `loaded` | `false` | `11.7603%` | `3.015898` | `17.956946` | `252` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `1440×1024 / 1` | `loaded` | `false` | `11.3300%` | `2.810838` | `17.120096` | `211` | `DIFF_REVIEW` |
+
+- [x] Workspace/Home：按 Figma 对照收口 Settings 左对齐、导航 Medium、顶栏搜索 `13px`、Home 指标字号/单位间距和活跃会话/待确认卡片文字层级。
+- [x] Agent Chat：按 Figma 对照移除运行轨迹 `TabsList` 默认灰色容器、内边距和激活阴影，仅保留激活“步骤”标签的浅紫色背景。
+- [x] 两张浏览器 PNG 均由 Chrome CDP 在 `1440×1024`、DPR `1` 下重新采集；字体状态为 `loaded`，页面无横向溢出；独立 diff JSON 已登记在 `.qa/figma-pixel-acceptance/recaptured/`。
+- [x] 已直接查看两张最新浏览器截图，确认侧栏、Home 卡片、Chat 轨迹栏和消息区没有新增遮挡或裁切。
+- [x] 本大点质量门禁通过：Vitest `46/46` 文件、`308/308` 用例，`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate`、`git diff --check` 均通过。
+- [x] 头像资源边界复核通过：运行时和 `dist` 头像目录各只有用户提供的 `default-male.svg` 与 `default-female.svg`；没有发现其它默认人物头像入口。
+- [ ] 两项 PNG diff 均非零，且截图中仍可见字体光栅化和局部视觉差异，因此不能标记 `PASS`。105 项全量汇总保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.14 2026-09-12 Auth 页面组基线复核与头像来源确认
 
 本节记录重构计划进入页面组执行后的 Auth 基线复核。范围为 Login `647:214`、Register `680:216` 和 Token Invalid `680:738` 三个代表画板；不重新采集全部 105 个画板，不把已有非零 diff 改写为 `PASS`。

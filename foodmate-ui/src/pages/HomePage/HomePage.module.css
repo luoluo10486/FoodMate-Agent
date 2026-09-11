@@ -148,6 +148,28 @@
   background: var(--fm-fixture-home-surface);
 }
 
+/* Figma Home 指标卡的文字层级与数值单位间距。 */
+.figmaHomePage .metricLabel {
+  font-size: var(--fm-figma-home-metric-label-size);
+  font-weight: 700;
+}
+
+.figmaHomePage .metricCard small {
+  margin-left: var(--fm-figma-home-metric-unit-gap);
+  font-size: var(--fm-figma-home-metric-unit-size);
+}
+
+/* Figma Home 两个信息面板的标题和辅助文字均比通用卡片字号更大一档。 */
+.figmaHomePage .sessionCard strong,
+.figmaHomePage .pendingCard strong {
+  font-size: var(--fm-figma-home-card-title-size);
+}
+
+.figmaHomePage .sessionCard small,
+.figmaHomePage .pendingCard small {
+  font-size: var(--fm-figma-home-card-copy-size);
+}
+
 .figmaHomePage .panel {
   border-color: var(--fm-fixture-home-border);
   border-radius: 20px;
