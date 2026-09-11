@@ -62,6 +62,7 @@ export type MealPlanDraft = {
   planName: string;
   startDate: string;
   endDate: string;
+  people: string;
   calories: string;
   protein: string;
   budget: string;
@@ -80,7 +81,7 @@ export async function createMealPlan(draft: MealPlanDraft): Promise<MealPlan> {
     headers: { 'Idempotency-Key': idempotencyKey('meal-plan-create') },
     body: JSON.stringify({
       plan_name: draft.planName.trim() || '我的餐食计划',
-      people: 1,
+      people: numberOrUndefined(draft.people) ?? 1,
       days,
       budget: numberOrUndefined(draft.budget),
       calorie_target: numberOrUndefined(draft.calories),

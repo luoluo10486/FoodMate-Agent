@@ -2637,3 +2637,13 @@
 | 业务验证 | `foodmate-ui` 执行 `npm.cmd test -- --run src/pages/ChatPage/ChatPage.real.test.tsx`：`1` 个测试文件、`7/7` 通过；新增餐食计划确认卡测试；`npm.cmd run typecheck` 和 `git diff --check` 通过。 |
 | 业务边界 | 继续复用现有审批确认、执行和拒绝 API；未增加新的审批状态机，未写入数据库或调用真实云模型。 |
 | Git | 本轮代码、测试和执行记录作为一个大点提交；工作区原有用户 SVG 改动不纳入本提交。 |
+
+## D178 餐食规划通过 Agent 生成候选（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | 规划页真实模式不再直接调用 `createMealPlan`；表单改为创建真实会话、发送包含日期、人数、能量、蛋白质、预算、过敏源和忌口的结构化请求，并跳转聊天页。 |
+| 业务门禁 | 只有 Agent 生成候选并通过 `plan_validator` 后，才进入既有写入确认和 `meal_plan.save_plan`；前端提示明确禁止在确认前声称计划已保存。 |
+| 业务验证 | `foodmate-ui` 执行 `npm.cmd test -- --run src/pages/PlanningPage/PlanningPage.real.test.tsx`：`1` 个测试文件、`4/4` 通过；`npm.cmd run typecheck` 通过；`git diff --check` 通过。 |
+| 边界 | 本轮未调用真实 Chat/Embedding，未写入业务数据库或消息系统；未执行性能测试、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。 |
+| Git | 本轮规划流程代码、测试和执行记录作为一个大点提交；工作区原有用户 SVG 改动不纳入本提交。 |
