@@ -2627,3 +2627,13 @@
 | Python 验证 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider tests\\test_runtime_server.py`：`55 passed`。 |
 | 边界 | 未调用真实 Chat/Embedding，未写入业务数据库或消息系统；未执行性能测试、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。 |
 | Git | 本轮代码、测试和执行记录作为一个大点提交；工作区原有用户 SVG 改动不纳入本提交。 |
+
+## D177 Agent 写入确认按业务类型展示（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | 前端读取审批事件的 `resource_type/operation/tool_name`；`food_log` 显示餐型、时间和食物明细，`meal_plan` 显示计划名称、人数、天数、目标、预算、过敏源和忌口。 |
+| 参数边界 | 饮食记录继续提交既有明细结构；餐食计划直接提交服务端安全摘要中的 `{plan: ...}`，不从展示文本反向拼装；未知资源类型进入错误态并禁止确认。 |
+| 业务验证 | `foodmate-ui` 执行 `npm.cmd test -- --run src/pages/ChatPage/ChatPage.real.test.tsx`：`1` 个测试文件、`7/7` 通过；新增餐食计划确认卡测试；`npm.cmd run typecheck` 和 `git diff --check` 通过。 |
+| 业务边界 | 继续复用现有审批确认、执行和拒绝 API；未增加新的审批状态机，未写入数据库或调用真实云模型。 |
+| Git | 本轮代码、测试和执行记录作为一个大点提交；工作区原有用户 SVG 改动不纳入本提交。 |

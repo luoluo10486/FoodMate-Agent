@@ -391,7 +391,11 @@ function ChatSurface({
   );
 }
 
-function approvalParameters(details: NonNullable<AgentRunEvent['details']>) {
+function approvalParameters(
+  details: NonNullable<AgentRunEvent['details']>,
+  resourceType?: string,
+) {
+  if (resourceType === 'meal_plan') return { plan: details.plan ?? {} };
   return {
     meal_time: details.meal_time,
     meal_type: details.meal_type,
@@ -402,6 +406,34 @@ function approvalParameters(details: NonNullable<AgentRunEvent['details']>) {
       unit: item.unit,
     })),
   };
+}
+
+function approvalData(details: NonNullable<AgentRunEvent['details']>, resourceType?: string) {
+  if (resourceType === 'meal_plan') {
+    const plan = details.plan ?? {};
+    return [
+      { label: '计划名称', value: plan.plan_name ?? '未命名计划' },
+      {
+        label: '计划范围',
+        value: `${plan.days ?? '未设置'} 天 · ${plan.people ?? '未设置'} 人`,
+      },
+      { label: '能量目标', value: plan.calorie_target == null ? '未设置' : `${plan.calorie_target} kcal/天` },
+      { label: '蛋白质目标', value: plan.protein_target == null ? '未设置' : `${plan.protein_target} g/天` },
+      { label: '预算', value: plan.budget == null ? '未设置' : `${plan.budget} 元/天` },
+      { label: '过敏源', value: plan.allergens?.join('、') || '无' },
+      { label: '忌口', value: plan.dislikes?.join('、') || '无' },
+    ];
+  }
+  return [
+    { label: '餐型', value: details.meal_type ?? '未识别' },
+    { label: '时间', value: details.meal_time ?? '未识别' },
+    {
+      label: '食物',
+      value: (details.items ?? [])
+        .map((item) => `${item.name ?? '未命名'} ${item.amount ?? ''}${item.unit ?? ''}`)
+        .join('、'),
+    },
+  ];
 }
 
 export function ChatPage() {
@@ -1787,6 +1819,9 @@ function RealChatPage() {
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
   const [approval, setApproval] = useState<{
     id: string;
+    operation?: string;
+    resourceType?: string;
+    toolName?: string;
     details: NonNullable<AgentRunEvent['details']>;
   }>();
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
@@ -1937,7 +1972,13 @@ function RealChatPage() {
           if (payload.approval_request_id) {
             setRunStatus('waiting_user');
             setCheckpointAvailable(false);
-            setApproval({ id: payload.approval_request_id, details: payload.details ?? {} });
+            setApproval({
+              id: payload.approval_request_id,
+              operation: payload.operation,
+              resourceType: payload.resource_type,
+              toolName: payload.tool_name,
+              details: payload.details ?? {},
+            });
           } else {
             setRunStatus('waiting_user');
             setCheckpointAvailable(true);
@@ -1964,7 +2005,13 @@ function RealChatPage() {
           setRunStatus('waiting_user');
           if (payload.approval_request_id) {
             setCheckpointAvailable(false);
-            setApproval({ id: payload.approval_request_id, details: payload.details ?? {} });
+            setApproval({
+              id: payload.approval_request_id,
+              operation: payload.operation,
+              resourceType: payload.resource_type,
+              toolName: payload.tool_name,
+              details: payload.details ?? {},
+            });
           }
           return;
         }
@@ -2133,25 +2180,23 @@ function RealChatPage() {
       ) : null}
       {approval && activeRunId ? (
         <div className={styles.cardWrap}>
+          {(() => {
+            const resourceType = approval.resourceType ?? approval.details.resource_type;
+            const supported = resourceType === 'food_log' || resourceType === 'meal_plan';
+            return (
           <ConfirmationCard
-            title="请确认将这条内容写入饮食日志"
-            helperText="确认后才会创建饮食记录；取消不会修改业务数据。"
-            state={approvalSubmitting ? 'disabled' : 'normal'}
-            data={[
-              { label: '餐型', value: approval.details.meal_type ?? '未识别' },
-              {
-                label: '时间',
-                value: approval.details.meal_time ?? '未识别',
-              },
-              {
-                label: '食物',
-                value: (approval.details.items ?? [])
-                  .map((item) => `${item.name ?? '未命名'} ${item.amount ?? ''}${item.unit ?? ''}`)
-                  .join('、'),
-              },
-            ]}
+            title={resourceType === 'meal_plan' ? '请确认保存餐食计划' : '请确认将这条内容写入饮食日志'}
+            helperText={
+              resourceType === 'meal_plan'
+                ? '确认后会创建餐食计划并生成购物清单。'
+                : '确认后会创建饮食记录；取消不会修改业务数据。'
+            }
+            state={approvalSubmitting ? 'disabled' : supported ? 'normal' : 'error'}
+            errorText="当前写入类型无法识别，请重新发送需求。"
+            data={approvalData(approval.details, resourceType)}
             onConfirm={() => {
-              const parameters = approvalParameters(approval.details);
+              if (!supported) return;
+              const parameters = approvalParameters(approval.details, resourceType);
               setApprovalSubmitting(true);
               void confirmAgentWrite(approval.id, parameters)
                 .then(() => executeAgentWrite(approval.id, parameters))
@@ -2160,13 +2205,16 @@ function RealChatPage() {
             }}
             onEdit={() => setError('请发送一条新消息修改食物和份量。')}
             onCancel={() => {
-              const parameters = approvalParameters(approval.details);
+              if (!supported) return;
+              const parameters = approvalParameters(approval.details, resourceType);
               setApprovalSubmitting(true);
               void rejectAgentWrite(approval.id, parameters)
                 .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
                 .finally(() => setApprovalSubmitting(false));
             }}
           />
+            );
+          })()}
         </div>
       ) : null}
       {checkpointAvailable && !approval && activeRunId ? (

@@ -30,11 +30,25 @@ export type AgentRunEvent = {
   approval_request_id?: string;
   operation?: string;
   resource_type?: string;
+  plan?: {
+    plan_name?: string;
+    people?: number;
+    days?: number;
+    budget?: number | string;
+    calorie_target?: number;
+    protein_target?: number;
+    allergens?: string[];
+    dislikes?: string[];
+    days_plan?: Array<Record<string, unknown>>;
+  };
   details?: {
+    operation?: string;
+    resource_type?: string;
     meal_time?: string;
     meal_type?: string;
     notes?: string | null;
     items?: Array<{ name?: string; amount?: number; unit?: string }>;
+    plan?: AgentRunEvent['plan'];
   };
   retryable?: boolean;
   citations?: Array<{

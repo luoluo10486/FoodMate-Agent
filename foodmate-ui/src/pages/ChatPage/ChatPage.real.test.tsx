@@ -157,6 +157,62 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(screen.getByText('RUN ID: run-1')).toBeInTheDocument();
   });
 
+  it('按 meal_plan 审批类型展示计划摘要而不是饮食记录字段', async () => {
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId: string) => void) => {
+        onEvent(
+          'run.clarification_requested',
+          {
+            event_type: 'run.clarification_requested',
+            approval_request_id: 'approval-1',
+            operation: 'save_plan',
+            resource_type: 'meal_plan',
+            tool_name: 'meal_plan.save_plan',
+            details: {
+              resource_type: 'meal_plan',
+              plan: {
+                plan_name: '高蛋白工作日计划',
+                people: 1,
+                days: 3,
+                calorie_target: 2100,
+                protein_target: 140,
+                budget: 120,
+                allergens: ['花生'],
+                dislikes: ['香菜'],
+              },
+            },
+          },
+          'event-approval',
+        );
+        return { close: vi.fn(), getConnection: () => ({ state: 'connected', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        role: 'user',
+        content: '帮我生成三天高蛋白计划。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+        agent_run_id: 'run-1',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('请确认保存餐食计划')).toBeInTheDocument();
+    expect(screen.getByText('高蛋白工作日计划')).toBeInTheDocument();
+    expect(screen.getByText('3 天 · 1 人')).toBeInTheDocument();
+    expect(screen.queryByText('食物')).not.toBeInTheDocument();
+  });
+
   it('卸载真实会话页面时关闭当前 SSE 订阅', async () => {
     const close = vi.fn();
     openAgentRunStream.mockImplementation((_runId: string, onEvent: (type: string, payload: unknown) => void) => {
