@@ -2,6 +2,16 @@
 
 更新时间：2026-09-13
 
+## 1.1.32 2026-09-13 Admin Overview 控件语义与 Chat 反馈运行时复核
+
+本节记录 Admin Overview 的 shadcn 控件迁移，以及 Chat 用户消息颜色和头像来源的运行时复核；本次没有新增 Figma PNG、浏览器 PNG 或 pixel diff，不能替代像素级验收。
+
+- [x] Admin Overview 的状态标签已由普通 `span` 迁移为 `Badge variant="outline"`，详情入口已由普通 `Link` 迁移为 `Button asChild`；Figma 视觉覆盖保留原有尺寸、颜色、边框、圆角和无阴影规则。
+- [x] Admin 定向测试 `27/27`、Chat 与头像回归测试 `50/50`、`typecheck`、生产 `build` 和 `git diff --check` 均通过。
+- [x] Chat 浏览器运行时复核确认用户气泡前景为黑色 `#000000`；Workspace 侧栏、顶栏和 Chat 用户消息都使用同一份登记男性默认 SVG，未使用历史真人头像。
+- [ ] 本节没有新增截图和 diff JSON；现有 105 个画板聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，本次不能新增或改写 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.31 2026-09-13 Knowledge 状态页底色增量验收
 
 本节只记录 Figma 节点 `795:786`、`795:968`、`795:1151` 对应的 Knowledge 状态页增量证据，不重新采集或判定其余画板。Figma 文件保持只读，状态页真实检索和引用交互不变。

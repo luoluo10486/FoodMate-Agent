@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,9 +52,12 @@ function queryRowsToOverviewRows(rows: AdminQueryRun[]): OverviewRow[] {
 
 function OverviewPill({ value, tone }: { value: string; tone: 'green' | 'coral' | 'amber' | 'neutral' | 'teal' }) {
   return (
-    <span className={`${styles.overviewPill} ${styles[`overviewPill${tone[0].toUpperCase()}${tone.slice(1)}`]}`}>
+    <Badge
+      variant="outline"
+      className={`${styles.overviewPill} ${styles[`overviewPill${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
+    >
       {value}
-    </span>
+    </Badge>
   );
 }
 
@@ -124,7 +128,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
-    // The effect owns the request lifecycle, so clearing the previous error starts a new subscription.
+    // 由 effect 统一管理请求生命周期，清除旧错误后重新开始一次请求。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError('');
     Promise.all([
@@ -298,12 +302,9 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
                     <span className={styles.overviewErrorCode}>{row.errorCode}</span>
                   </TableCell>
                   <TableCell>
-                    <Link
-                      className={styles.overviewActionButton}
-                      to={`${ROUTES.ADMIN}/runs?run=${encodeURIComponent(row.runId)}`}
-                    >
-                      查看详情
-                    </Link>
+                    <Button asChild variant="outline" size="sm" className={styles.overviewActionButton}>
+                      <Link to={`${ROUTES.ADMIN}/runs?run=${encodeURIComponent(row.runId)}`}>查看详情</Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

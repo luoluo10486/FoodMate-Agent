@@ -27,6 +27,12 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('$128.45')).toBeInTheDocument();
     expect(screen.getByText('显示第 1 到 6 条，共 12,480 条结果')).toBeInTheDocument();
     expect(screen.getAllByText('查看详情')).toHaveLength(6);
+    const detailLinks = screen.getAllByRole('link', { name: '查看详情' });
+    expect(detailLinks).toHaveLength(6);
+    expect(detailLinks.every((link) => link.matches('a[class*="overviewActionButton"]'))).toBe(true);
+    const overviewPills = Array.from(document.querySelectorAll('[class*="overviewPill"]'));
+    expect(overviewPills).toHaveLength(12);
+    expect(overviewPills.every((pill) => pill.tagName === 'DIV')).toBe(true);
     expect(screen.getByRole('button', { name: '复制 run_889a4' })).toBeInTheDocument();
 
     for (const label of [
