@@ -2,6 +2,23 @@
 
 更新时间：2026-09-13
 
+## 1.1.30 2026-09-13 Admin User Detail 增量验收
+
+本节只记录 Figma 节点 `801:215` 对应的用户详情 Fixture 增量收口，不重新采集或人工验收其余画板。Figma 文件保持只读；真实模式的用户服务、权限和会话操作边界不因 Fixture 调整改变。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Admin User Detail | `801:215` | `/admin?state=user-detail` | `docxs/设计/figma-png/admin-user-detail.png` | `recaptured/dpr1-admin-user-detail-browser-2026-09-13.png` | `recaptured/admin-user-detail-current-diff-2026-09-13.json` | `1440×1024 / 1` | `15.1837%` | `3.319421` | `20.034593` | `255` | `DIFF_REVIEW` |
+
+- [x] Fixture 侧栏当前只渲染 8 个导航项：概览、用户管理、Agent 运行、工具调用与 SQL、模型用量、知识库、删除资源、审计日志；用户管理激活态使用暖黄色。
+- [x] 详情面板当前只渲染资料、饮食、会话、历史 4 个 Tab；业务会话入口和说明卡已从该 Fixture 移除，真实用户管理页仍保留业务 Tab。
+- [x] 分页、底部账号和顶栏内边距已按画板收口；浏览器实际检查确认 `Showing 1-4 of 1,284 users`、页码 1/2、`Anddy 实验室` 和 24px 顶栏边距存在。
+- [x] 浏览器证据由 Chrome `152.0.7977.83` 采集，视口 `1440×1024`、DPR `1`、字体状态 `loaded`、页面横向/纵向溢出均为 `false`；映射、聚合 diff、独立 diff 已同步。
+- [x] Admin 定向测试 `2` 个文件、`32` 个用例、`typecheck`、`build` 已通过；本次没有执行 105 个画板全量采集。
+- [x] 头像运行时审计继续有效：人物头像只允许用户提供的 `default-male.svg`、`default-female.svg`；Figma 历史真人图只留在 QA 证据目录，认证 `foodmate-*-user.svg` 仅是字段装饰图标。
+- [ ] 自动 diff 仍为非零，且默认头像按用户要求替换后与 Figma 历史真人头像存在预期差异，不能标记像素级 `PASS`；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.29 2026-09-13 默认头像缓存入口收口
 
 本节记录用户反馈后的头像来源复核和缓存边界修正。Figma 文件保持只读；本次不重新采集 105 个画板 PNG，也不把现有差异改写为像素级通过。

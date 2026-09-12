@@ -203,6 +203,24 @@ describe('AdminPage overview', () => {
     expect(closeButton).toHaveAttribute('data-figma-asset', 'admin-user-detail-close');
     expect(closeButton.querySelector('svg circle')).toBeInTheDocument();
     expect(document.querySelector('.userDetailAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(document.querySelectorAll('img[data-avatar-registered="false"]')).toHaveLength(0);
+
+    const navigation = screen.getByRole('navigation', { name: '管理后台导航' });
+    expect(navigation.querySelectorAll('a')).toHaveLength(8);
+    expect(screen.getByRole('link', { name: '工具调用与 SQL' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '知识库' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '审计日志' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'SQL 审计' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Trace' })).not.toBeInTheDocument();
+
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getByRole('tab', { name: '会话' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: '业务会话' })).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 1-4 of 1,284 users')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '第 2 页' })).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: '用户详情 Tab' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Anddy 实验室')).toHaveLength(2);
+    expect(screen.queryByText("Anddy's Lab")).not.toBeInTheDocument();
   });
 
   it('limits operation-state fixtures to the four Figma registry rows', () => {

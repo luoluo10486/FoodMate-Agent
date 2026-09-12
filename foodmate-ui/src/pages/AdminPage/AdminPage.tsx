@@ -73,6 +73,24 @@ const knowledgeFixtureNavKeys = new Set([
   'audit',
 ]);
 
+// Figma 用户详情画板只展示与当前详情上下文直接相关的八个导航项。
+const userDetailFixtureNavKeys = new Set([
+  'overview',
+  'users',
+  'runs',
+  'tools',
+  'usage',
+  'knowledge',
+  'deleted',
+  'audit',
+]);
+
+const userDetailFixtureNavLabels: Record<string, string> = {
+  tools: '工具调用与 SQL',
+  knowledge: '知识库',
+  audit: '审计日志',
+};
+
 type KnowledgeFixtureCopy = {
   title: string;
   summary: string;
@@ -732,11 +750,12 @@ function renderSection(
   refreshNonce: number,
   operationStatus: AdminOperationState,
   figmaFixture: boolean,
+  userDetailFixture: boolean,
   knowledgeUploadRequest: number,
 ) {
   switch (sectionKey) {
     case 'users':
-      return <UsersSection onAction={onAction} />;
+      return <UsersSection figmaFixture={userDetailFixture} onAction={onAction} />;
     case 'runs':
       return <RunsSection refreshNonce={refreshNonce} />;
     case 'tools':
@@ -790,6 +809,7 @@ export function AdminPage() {
   const isDeletedRoute = pathname.endsWith('/deleted') || requestedFixture === 'deleted-resources';
   const isUsageRoute = sectionKey === 'usage';
   const isAuditFigmaRoute = sectionKey === 'audit' && import.meta.env.VITE_AGENT_MODE !== 'real';
+  const isUserDetailFixture = requestedFixture === 'user-detail';
   const isDetailFixture =
     requestedFixture === 'run-detail' ||
     requestedFixture === 'tool-calls' ||
@@ -923,8 +943,18 @@ export function AdminPage() {
     );
   }
 
+  const visibleAdminNavItems = isUserDetailFixture
+    ? adminNavItems
+        .filter((item) => userDetailFixtureNavKeys.has(item.key))
+        .map((item) => ({ ...item, label: userDetailFixtureNavLabels[item.key] ?? item.label }))
+    : isKnowledgeFixture
+      ? adminNavItems
+          .filter((item) => knowledgeFixtureNavKeys.has(item.key))
+          .map((item) => (item.key === 'tools' ? { ...item, label: '工具调用与 SQL' } : item))
+      : adminNavItems;
+
   return (
-    <div className={styles.adminShell}>
+    <div className={`${styles.adminShell} ${isUserDetailFixture ? styles.userDetailFixtureShell : ''}`}>
       <aside className={styles.adminSidebar}>
         <div className={styles.brandBlock}>
           <div className={styles.adminBrand}>
@@ -937,12 +967,7 @@ export function AdminPage() {
           <span className={styles.adminTag}>FoodMate 管理</span>
         </div>
         <nav className={styles.adminNav} aria-label="管理后台导航">
-          {(isKnowledgeFixture
-            ? adminNavItems
-                .filter((item) => knowledgeFixtureNavKeys.has(item.key))
-                .map((item) => (item.key === 'tools' ? { ...item, label: '工具调用与 SQL' } : item))
-            : adminNavItems
-          ).map((item) => {
+          {visibleAdminNavItems.map((item) => {
             const isActive = fixtureNavKey
               ? item.key === fixtureNavKey
               : isAdminNavItemActive(item.path, pathname, search);
@@ -993,7 +1018,7 @@ export function AdminPage() {
               />
             </div>
             <div className={styles.userMetadata}>
-              <strong>{fixtureUser.displayName}&apos;s Lab</strong>
+              <strong>{isUserDetailFixture ? 'Anddy 实验室' : `${fixtureUser.displayName}&apos;s Lab`}</strong>
               <small>ID: {fixtureUser.id}</small>
             </div>
           </div>
@@ -1013,7 +1038,7 @@ export function AdminPage() {
           <AdminFixtureOverlay state={requestedFixture} onDismiss={dismissFixture} />
         ) : null}
         <header
-          className={`${styles.topbar} ${isKnowledgeFixture ? styles.knowledgeFixtureTopbar : ''} ${isDetailFixture ? styles.fixtureDetailTopbar : ''}`}
+          className={`${styles.topbar} ${isKnowledgeFixture ? styles.knowledgeFixtureTopbar : ''} ${isDetailFixture || isUserDetailFixture ? styles.fixtureDetailTopbar : ''}`}
         >
           <div className={styles.topbarTitle}>
             <h1>
@@ -1136,6 +1161,7 @@ export function AdminPage() {
               refreshNonce,
               activeOperationStatus,
               isKnowledgeFixture,
+              isUserDetailFixture,
               knowledgeUploadRequest,
             )
           )}

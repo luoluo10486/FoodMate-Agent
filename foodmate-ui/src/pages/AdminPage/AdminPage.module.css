@@ -145,6 +145,17 @@
   color: #d67676;
 }
 
+/* Figma 用户详情画板的用户管理选中态使用暖黄色，不沿用通用红色强调。 */
+.userDetailFixtureShell .navButton:hover,
+.userDetailFixtureShell .navButtonActive {
+  background: #fffaf0;
+  color: #c79654;
+}
+
+.userDetailFixtureShell .navButtonActive svg {
+  color: #c79654;
+}
+
 .navButtonLocked {
   opacity: 0.72;
   cursor: not-allowed;

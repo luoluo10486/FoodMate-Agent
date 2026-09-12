@@ -60,7 +60,7 @@ type AdminUserView = UserRow & {
   revision?: number;
 };
 
-// This fixture mirrors Figma node 801:215. Real mode continues to use the API response unchanged.
+// 该 Fixture 对应 Figma 节点 801:215；真实模式继续使用 API 返回结果。
 const figmaUserRows: AdminUserView[] = [
   {
     key: 'figma-user-098a1',
@@ -187,7 +187,14 @@ const operationHistoryColumns: TableColumnProps<UserOperationHistoryRow>[] = [
   { title: '时间', dataIndex: 'createdAt' },
 ];
 
-export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
+export function UsersSection({
+  onAction,
+  figmaFixture = false,
+}: {
+  onAction: (payload: AdminActionPayload) => void;
+  figmaFixture?: boolean;
+}) {
+  const isFigmaFixture = figmaFixture && isMockMode;
   const [selectedUser, setSelectedUser] = useState<AdminUserView | undefined>(
     isMockMode ? figmaUserRows[0] : undefined,
   );
@@ -204,6 +211,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const selectedUserId = selectedUser?.userId;
+  const displayedTotalUsers = isFigmaFixture ? 1284 : totalUsers;
 
   useEffect(() => {
     if (isMockMode) return;
@@ -418,8 +426,9 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
 
         <div className={styles.usersPagination}>
           <span>
-            显示第 {totalUsers === 0 ? 0 : (page - 1) * pageSize + 1} 到 {Math.min(page * pageSize, totalUsers)} 条，共{' '}
-            {totalUsers.toLocaleString('zh-CN')} 条用户
+            {isFigmaFixture
+              ? 'Showing 1-4 of 1,284 users'
+              : `显示第 ${displayedTotalUsers === 0 ? 0 : (page - 1) * pageSize + 1} 到 ${Math.min(page * pageSize, displayedTotalUsers)} 条，共 ${displayedTotalUsers.toLocaleString('zh-CN')} 条用户`}
           </span>
           <div>
             <Button
@@ -432,15 +441,37 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
             >
               上一页
             </Button>
-            <Button variant="outline" size="sm" className={styles.usersPageActive} type="button" aria-current="page">
-              {page}
+            <Button
+              variant="outline"
+              size="sm"
+              className={page === 1 ? styles.usersPageActive : undefined}
+              type="button"
+              aria-current={page === 1 ? 'page' : undefined}
+              onClick={() => setPage(1)}
+            >
+              1
             </Button>
+            {isFigmaFixture ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className={page === 2 ? styles.usersPageActive : undefined}
+                type="button"
+                aria-label="第 2 页"
+                aria-current={page === 2 ? 'page' : undefined}
+                onClick={() => setPage(2)}
+              >
+                2
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               size="sm"
               type="button"
-              disabled={page >= Math.max(1, Math.ceil(totalUsers / pageSize))}
-              onClick={() => setPage((current) => Math.min(Math.max(1, Math.ceil(totalUsers / pageSize)), current + 1))}
+              disabled={page >= Math.max(1, Math.ceil(displayedTotalUsers / pageSize))}
+              onClick={() =>
+                setPage((current) => Math.min(Math.max(1, Math.ceil(displayedTotalUsers / pageSize)), current + 1))
+              }
             >
               下一页
             </Button>
@@ -455,6 +486,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
             detail={selectedDetail}
             detailLoading={detailLoading}
             detailError={detailError}
+            figmaFixture={isFigmaFixture}
             onRevoke={() => revokeSessions(selectedUser)}
           />
         ) : (
@@ -591,12 +623,14 @@ function UserDetailCard({
   detail,
   detailLoading,
   detailError,
+  figmaFixture,
   onRevoke,
 }: {
   user: AdminUserView;
   detail?: AdminUserDetail;
   detailLoading: boolean;
   detailError: string;
+  figmaFixture: boolean;
   onRevoke: () => void;
 }) {
   const profile = detail?.profile;
@@ -676,9 +710,9 @@ function UserDetailCard({
         <TabsList className={styles.userDetailTabsList} aria-label="用户详情分区">
           <TabsTrigger value="profile">资料</TabsTrigger>
           <TabsTrigger value="diet">饮食</TabsTrigger>
-          <TabsTrigger value="login-sessions">登录会话</TabsTrigger>
+          <TabsTrigger value="login-sessions">{figmaFixture ? '会话' : '登录会话'}</TabsTrigger>
           <TabsTrigger value="history">历史</TabsTrigger>
-          <TabsTrigger value="business-sessions">业务会话</TabsTrigger>
+          {!figmaFixture ? <TabsTrigger value="business-sessions">业务会话</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="profile" className={styles.userDetailPanel}>
           <DetailGrid
@@ -722,7 +756,7 @@ function UserDetailCard({
           />
         </TabsContent>
         <TabsContent value="login-sessions" className={styles.userDetailPanel}>
-          <DetailSectionHeading icon={<Monitor aria-hidden="true" />} title="登录会话" />
+          <DetailSectionHeading icon={<Monitor aria-hidden="true" />} title={figmaFixture ? '会话' : '登录会话'} />
           <DetailTableState
             isMockMode={isMockMode}
             loading={detailLoading}
@@ -743,17 +777,19 @@ function UserDetailCard({
             <DataTable columns={operationHistoryColumns} data={operationHistory} />
           </DetailTableState>
         </TabsContent>
-        <TabsContent value="business-sessions" className={styles.userDetailPanel}>
-          <DetailSectionHeading icon={<Utensils aria-hidden="true" />} title="业务会话" />
-          <DetailTableState
-            isMockMode={isMockMode}
-            loading={detailLoading}
-            error={detailError}
-            hasData={businessSessions.length > 0}
-          >
-            <DataTable columns={businessSessionColumns} data={businessSessions} />
-          </DetailTableState>
-        </TabsContent>
+        {!figmaFixture ? (
+          <TabsContent value="business-sessions" className={styles.userDetailPanel}>
+            <DetailSectionHeading icon={<Utensils aria-hidden="true" />} title="业务会话" />
+            <DetailTableState
+              isMockMode={isMockMode}
+              loading={detailLoading}
+              error={detailError}
+              hasData={businessSessions.length > 0}
+            >
+              <DataTable columns={businessSessionColumns} data={businessSessions} />
+            </DetailTableState>
+          </TabsContent>
+        ) : null}
       </Tabs>
       <div className={styles.userDetailActions}>
         <Button
@@ -773,15 +809,17 @@ function UserDetailCard({
           撤销所有会话
         </Button>
       </div>
-      <aside className={styles.userDetailGuidance} aria-label="用户详情 Tab">
-        <h2>用户详情 Tab</h2>
-        <p>资料 · 饮食画像 · 登录会话 · 业务会话 · 操作历史</p>
-        <p>资料字段：注册时间 · 最近登录 · 账号状态 · 角色 · 活跃会话数</p>
-        <p className={styles.userDetailGuidanceDanger}>
-          禁用 / 锁定前显示影响：撤销会话、停止新运行、保留审计记录；admin 需二次确认。
-        </p>
-        <p className={styles.userDetailGuidanceMuted}>operator：只读；无启用、禁用、锁定和撤销全部会话权限。</p>
-      </aside>
+      {!figmaFixture ? (
+        <aside className={styles.userDetailGuidance} aria-label="用户详情 Tab">
+          <h2>用户详情 Tab</h2>
+          <p>资料 · 饮食画像 · 登录会话 · 业务会话 · 操作历史</p>
+          <p>资料字段：注册时间 · 最近登录 · 账号状态 · 角色 · 活跃会话数</p>
+          <p className={styles.userDetailGuidanceDanger}>
+            禁用 / 锁定前显示影响：撤销会话、停止新运行、保留审计记录；admin 需二次确认。
+          </p>
+          <p className={styles.userDetailGuidanceMuted}>operator：只读；无启用、禁用、锁定和撤销全部会话权限。</p>
+        </aside>
+      ) : null}
     </Card>
   );
 }
