@@ -8,38 +8,41 @@ export const REGISTERED_DEFAULT_AVATARS = Object.freeze([DEFAULT_AVATARS.male, D
 
 export type AvatarSourceKind = 'default-male' | 'default-female' | 'uploaded';
 
+// 所有 Figma Fixture 的示例账号共用同一份登记头像，避免侧栏、顶栏和消息头像发生漂移。
+export const FIXTURE_ACCOUNT_AVATAR = DEFAULT_AVATARS.male;
+
 // Figma 工作台示例账号使用项目登记的男性默认头像，避免运行时加载真人素材。
 export const FIXTURE_WORKSPACE_AVATARS = {
-  sidebar: DEFAULT_AVATARS.male,
-  topbar: DEFAULT_AVATARS.male,
+  sidebar: FIXTURE_ACCOUNT_AVATAR,
+  topbar: FIXTURE_ACCOUNT_AVATAR,
 } as const;
 
 // Knowledge Figma fixture 使用项目登记的男性默认头像。
 export const FIXTURE_KNOWLEDGE_AVATARS = {
-  sidebar: DEFAULT_AVATARS.male,
-  topbar: DEFAULT_AVATARS.male,
+  sidebar: FIXTURE_ACCOUNT_AVATAR,
+  topbar: FIXTURE_ACCOUNT_AVATAR,
 } as const;
 
 // Profile Figma fixture 的示例账号为男性，所有默认头像统一使用男性资源。
 export const FIXTURE_PROFILE_AVATARS = {
-  sidebar: DEFAULT_AVATARS.male,
-  topbar: DEFAULT_AVATARS.male,
-  main: DEFAULT_AVATARS.male,
+  sidebar: FIXTURE_ACCOUNT_AVATAR,
+  topbar: FIXTURE_ACCOUNT_AVATAR,
+  main: FIXTURE_ACCOUNT_AVATAR,
 } as const;
 
 // Admin Figma fixture 的示例账号为男性，统一使用男性默认头像。
 export const FIXTURE_ADMIN_AVATARS = {
-  sidebar: DEFAULT_AVATARS.male,
-  userDetail: DEFAULT_AVATARS.male,
+  sidebar: FIXTURE_ACCOUNT_AVATAR,
+  userDetail: FIXTURE_ACCOUNT_AVATAR,
 } as const;
 
 // Chat 默认 Figma fixture 的账号使用男性示例，工作区和用户消息统一使用同一头像。
 export const FIXTURE_CHAT_AVATARS = {
-  sidebar: DEFAULT_AVATARS.male,
-  topbar: DEFAULT_AVATARS.male,
-  message: DEFAULT_AVATARS.male,
+  sidebar: FIXTURE_ACCOUNT_AVATAR,
+  topbar: FIXTURE_ACCOUNT_AVATAR,
+  message: FIXTURE_ACCOUNT_AVATAR,
   // 六个 Agent 状态画板的普通用户消息继续使用男性示例头像。
-  agentStateMessage: DEFAULT_AVATARS.male,
+  agentStateMessage: FIXTURE_ACCOUNT_AVATAR,
 } as const;
 
 export const FIXTURE_CHAT_AVATAR_GENDERS = {

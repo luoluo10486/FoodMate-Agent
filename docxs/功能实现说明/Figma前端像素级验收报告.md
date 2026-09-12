@@ -3253,3 +3253,12 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 本次 8 个变更资源的 SHA-256 已登记在《前端已完成实现清单》对应批次；运行时不引入未登记 iconfont 字体或 Unicode glyph。
 - [ ] 本次没有新增浏览器 PNG 或独立 diff JSON；Auth 13 项既有自动 diff 仍为非零并保持 `DIFF_REVIEW`，不能将资源字节一致误写成像素级 `PASS`。
 - [ ] 全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；iconfont 资源登记仍为 `BLOCKED`。
+
+## 2026-09-13 默认人物头像单一来源复核
+
+本次只复核运行时人物头像契约，不重新验收全部 105 个画板。Fixture 账号头像统一从 `FIXTURE_ACCOUNT_AVATAR` 派生，Chat 消息头像与 Workspace 壳层头像不再由独立常量分别维护。
+
+- [x] `public/assets/avatars/` 实体目录仅包含用户提供的 `default-male.svg` 与 `default-female.svg`；两份文件的 SHA-256 与附件登记值一致。
+- [x] 主要页面浏览器运行时的带头像策略标记节点均指向 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`，未出现历史人物 PNG、Figma MCP 地址或旧上传地址；默认 Chat 用户气泡实际前景色为 `rgb(0, 0, 0)`。
+- [x] Agent 绿色状态方块和认证字段用户图标已明确排除在人物头像审计之外；历史真人 PNG 继续只保留在 QA 证据目录。
+- [ ] 本次为运行时资源审计，不新增 Figma PNG 或 pixel diff；既有 105 项结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能据此标记任何画板为 `PASS`。

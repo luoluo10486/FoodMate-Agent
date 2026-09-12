@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_AVATARS,
   FIXTURE_ADMIN_AVATARS,
+  FIXTURE_ACCOUNT_AVATAR,
   FIXTURE_CHAT_AVATARS,
   FIXTURE_KNOWLEDGE_AVATARS,
   FIXTURE_PROFILE_AVATARS,
@@ -29,6 +31,10 @@ describe('avatar defaults', () => {
     expect(REGISTERED_DEFAULT_AVATARS).toEqual([DEFAULT_AVATARS.male, DEFAULT_AVATARS.female]);
     expect(REGISTERED_DEFAULT_AVATARS).toHaveLength(2);
     expect(REGISTERED_DEFAULT_AVATARS.every(isRegisteredDefaultAvatar)).toBe(true);
+    expect(readdirSync(resolve(process.cwd(), 'public/assets/avatars')).sort()).toEqual([
+      'default-female.svg',
+      'default-male.svg',
+    ]);
   });
 
   it('keeps the two supplied SVG files byte-for-byte registered', () => {
@@ -115,7 +121,12 @@ describe('avatar defaults', () => {
 
     expect(fixtureAvatars.every(isRegisteredDefaultAvatar)).toBe(true);
     expect(fixtureAvatars.filter((avatar) => avatar === DEFAULT_AVATARS.male).length).toBeGreaterThan(0);
-    expect(FIXTURE_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.male);
-    expect(FIXTURE_CHAT_AVATARS.agentStateMessage).toBe(DEFAULT_AVATARS.male);
+    expect(FIXTURE_ACCOUNT_AVATAR).toBe(DEFAULT_AVATARS.male);
+    expect(FIXTURE_WORKSPACE_AVATARS.sidebar).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_WORKSPACE_AVATARS.topbar).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_CHAT_AVATARS.sidebar).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_CHAT_AVATARS.topbar).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_CHAT_AVATARS.message).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_CHAT_AVATARS.agentStateMessage).toBe(FIXTURE_ACCOUNT_AVATAR);
   });
 });

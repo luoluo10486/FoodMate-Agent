@@ -277,6 +277,8 @@ describe('ChatPage Agent remaining states', () => {
 
     expect(userBubbleStyles).toContain('color: var(--fm-ink);');
     expect(userBubbleStyles).not.toContain('color: #ffffff;');
+    expect(pageStylesheet).toContain('--fm-figma-chat-user-text');
+    expect(pageStylesheet).toContain('.designChatPage .user .messageBubble');
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {

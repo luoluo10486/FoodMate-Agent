@@ -647,6 +647,12 @@
   background: var(--fm-fixture-assistant-surface);
 }
 
+/* 设计稿的浅黄用户气泡需要明确的黑色前景，避免用户消息在浅色表面上失焦。 */
+.designChatPage .user .messageBubble,
+.designChatPage .fixtureUserBubble {
+  color: var(--fm-figma-chat-user-text);
+}
+
 .designChatPage .messages {
   background: var(--fm-fixture-chat-bg);
 }

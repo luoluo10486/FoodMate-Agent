@@ -1401,9 +1401,9 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const fixtureSidebar = isWriteConfirmation
     ? { ...historyFixture('history-page-2').sidebar, currentPage: 1 }
     : undefined;
-  // 所有 Agent 状态画板使用登记的男性默认头像作为示例账号头像。
-  const fixtureSidebarAvatarSrc = DEFAULT_AVATARS.male;
-  const fixtureTopAvatarSrc = DEFAULT_AVATARS.male;
+  // 所有 Agent 状态画板使用与工作区相同的登记头像来源，避免状态页和消息页头像漂移。
+  const fixtureSidebarAvatarSrc = FIXTURE_CHAT_AVATARS.sidebar;
+  const fixtureTopAvatarSrc = FIXTURE_CHAT_AVATARS.topbar;
   const fixtureMessageAvatarSrc =
     state === 'safety-degraded' ? DEFAULT_AVATARS.female : FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR;
   const fixtureMessageGender =
