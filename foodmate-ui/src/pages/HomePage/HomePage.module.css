@@ -29,6 +29,11 @@
   box-shadow: 0 4px 6px rgba(51, 51, 51, 0.04);
 }
 
+/* Figma Home 的输入层与外层 Composer 共用白色表面，不叠加 shadcn 默认背景。 */
+.figmaHomePage .taskInput {
+  background: transparent;
+}
+
 .figmaHomePage .attachmentButton {
   width: 20px;
   height: 20px;

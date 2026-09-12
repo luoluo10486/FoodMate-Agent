@@ -2,6 +2,22 @@
 
 更新时间：2026-09-12
 
+## 1.1.22 2026-09-12 Workspace/Home 与 Agent Chat Composer 表面增量验收
+
+本节只记录实时 Figma 节点 `640:256`、`640:428` 的受影响页面组增量证据。Figma 参考图来自当前文件 `MX18RZCfAmgprNzxItkHUH`，浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、相同 `1440×1024` viewport、DPR `1`、字体加载完成和关闭动态干扰条件；不重新验收其它 103 个画板。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace/Home | `640:256` | `/?state=figma-v2` | `recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-12.png` | `recaptured/workspace-home-v2-current-diff-2026-09-12.json` | `9.2689%` | `2.914238` | `17.797930` | `255` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `/chat?state=figma-v2` | `recaptured-figma/agent-chat-v2-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-12.png` | `recaptured/agent-chat-v2-current-diff-2026-09-12.json` | `11.3300%` | `2.810838` | `17.120096` | `211` | `DIFF_REVIEW` |
+
+- [x] Home Figma 外层 Composer 与输入层均为白色表面；前端只在 `.figmaHomePage .taskInput` 作用域覆盖 shadcn 默认背景，真实首页不受影响。
+- [x] 两项浏览器截图均为 `1440×1024`、DPR `1`、字体 `loaded`，页面级横向溢出为 `false`；几何检查和文字检查均为 `PASS`。
+- [x] Home 与 Chat 的运行时人物头像 DOM 均只输出登记的男性或女性默认 SVG；没有真人图片、持久化头像地址或外部头像资源。
+- [x] `figma-105-mapping.json` 只更新本节两项的 Figma PNG、运行时 URL、人工复核结论和最新 diff 路径；`figma-105-diff-results.json` 只更新 Home 与 Chat 的结果。
+- [ ] 两项自动 diff 均非零，且仍存在字体、图标和局部光栅化差异，不能标记像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.21 2026-09-12 Auth 登录反馈态 Token 与斜向背景增量验收
 
 本节只记录实时 Figma 登录节点 `647:214`、`680:408`、`680:445`、`680:483`、`680:524`、`680:564`、`680:606` 的增量验收。Figma 与浏览器 PNG 均使用 `1440×900` 原始尺寸，浏览器使用 DPR 1、字体加载完成和关闭动态干扰条件；不重新验收其它画板。
