@@ -11,7 +11,7 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { useEffect, useState } from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ChatPage } from './ChatPage';
 import styles from './ChatPage.module.css';
 
@@ -130,6 +130,17 @@ describe('ChatPage Figma 默认状态', () => {
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
+  });
+
+  it('keeps the initial user message visible instead of auto-scrolling the Figma canvas', () => {
+    const scrollSpy = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(() => undefined);
+
+    try {
+      renderChatState('figma-v2');
+      expect(scrollSpy).not.toHaveBeenCalled();
+    } finally {
+      scrollSpy.mockRestore();
+    }
   });
 
   it('uses the Figma 560px assistant content width for the default response', () => {
@@ -274,8 +285,7 @@ describe('ChatPage Agent remaining states', () => {
   it('uses dark text for the light user message bubble', () => {
     const pageStylesheet = readFileSync(resolve(__dirname, 'ChatPage.module.css'), 'utf8');
     const userBubbleStyles = pageStylesheet.match(/(?:^|\n)\.user \.messageBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
-    const fixtureUserBubbleStyles =
-      pageStylesheet.match(/(?:^|\n)\.fixtureUserBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
+    const fixtureUserBubbleStyles = pageStylesheet.match(/(?:^|\n)\.fixtureUserBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
 
     expect(userBubbleStyles).toContain('color: var(--fm-ink);');
     expect(userBubbleStyles).not.toContain('color: #ffffff;');

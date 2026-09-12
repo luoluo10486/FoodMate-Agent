@@ -2281,8 +2281,11 @@ function MockChatPage() {
   const messagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Figma 默认态需要保留画板的初始构图，让用户消息在紧凑视口中保持可见。
+    // 普通 Mock 会话仍然跟随最新消息滚动，真实模式由独立的消息流逻辑负责滚动。
+    if (isFigmaFixture) return;
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
-  }, [agent.messages, agent.card]);
+  }, [agent.messages, agent.card, isFigmaFixture]);
 
   return (
     <ChatSurface
