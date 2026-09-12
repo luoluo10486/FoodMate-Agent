@@ -1730,7 +1730,8 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       run={run}
       messagesRef={messagesRef}
       input={input}
-      running={state === 'sse-reconnecting'}
+      // 重连期间只锁定 Composer，不显示“停止运行”按钮，保持 Figma 的禁用发送态。
+      running={false}
       disabled={state === 'budget-limit' || state === 'sse-reconnecting'}
       statusForStrip={state === 'user-cancelled' ? 'planning' : undefined}
       statusVisualState={state === 'user-cancelled' ? 'user-cancelled' : undefined}

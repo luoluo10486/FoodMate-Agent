@@ -3,6 +3,7 @@ import {
   DEFAULT_AVATARS,
   getDefaultAvatarForGender,
   getAvatarSourceKind,
+  isAllowedAvatarRuntimeSource,
   isRegisteredDefaultAvatar,
   resolveAvatarUrl,
 } from '../../lib/avatar';
@@ -38,9 +39,11 @@ export function AvatarImage({
   const failed = failure.key === avatarKey && failure.failed;
 
   const genderDefault = getDefaultAvatarForGender(gender) ?? DEFAULT_AVATARS.male;
-  const source = resolveAvatarUrl(effectiveDefaultOnly || failed ? undefined : avatarUrl, gender);
+  const resolvedSource = resolveAvatarUrl(effectiveDefaultOnly || failed ? undefined : avatarUrl, gender);
+  // 解析层之后再次兜底，防止新增调用方绕过统一解析后把未登记人物素材送进 DOM。
+  const safeSource = isAllowedAvatarRuntimeSource(resolvedSource) ? resolvedSource : genderDefault;
   // Fixture/默认头像不接受调用方覆盖，避免男性账号展示女性头像或反之。
-  const displaySource = effectiveDefaultOnly || failed ? genderDefault : source;
+  const displaySource = effectiveDefaultOnly || failed ? genderDefault : safeSource;
   const sourceKind = getAvatarSourceKind(displaySource);
   const isRegisteredDefault = isRegisteredDefaultAvatar(displaySource);
 

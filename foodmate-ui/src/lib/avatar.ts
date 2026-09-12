@@ -79,6 +79,11 @@ export function isRegisteredDefaultAvatar(value: string): boolean {
   return REGISTERED_DEFAULT_AVATARS.includes(value as (typeof REGISTERED_DEFAULT_AVATARS)[number]);
 }
 
+/** 运行时只允许登记的默认 SVG 或主动上传生成的临时预览进入头像组件。 */
+export function isAllowedAvatarRuntimeSource(value: string): boolean {
+  return isRegisteredDefaultAvatar(value) || isTemporaryUploadedAvatarUrl(value);
+}
+
 export function getAvatarSourceKind(value: string): AvatarSourceKind {
   if (value === DEFAULT_AVATARS.female) return 'default-female';
   if (value === DEFAULT_AVATARS.male) return 'default-male';

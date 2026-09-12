@@ -283,7 +283,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "http://127.0.0.1:5174/chat?state=tool-failed-retryable&visual-qa=1",
+      "url": "http://127.0.0.1:5188/chat?state=tool-failed-retryable&visual-qa=1",
       "windowControls": 0,
       "trafficLightColors": 0,
       "failureGeometry": {
@@ -297,10 +297,10 @@
         "height": 1024
       },
       "recapture": {
-        "capturedAt": "2026-09-05",
+        "capturedAt": "2026-09-12",
         "tool": "Chrome CDP Page.captureScreenshot",
-        "browser": "Chrome/152.0.7977.77",
-        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-tool-failed-retryable-browser-2026-09-06.png"
+        "browser": "Chrome/152.0.7977.83",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-tool-failed-retryable-browser-2026-09-12.png"
       }
     },
     "profile-security-password-success": {
@@ -1029,7 +1029,7 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "http://127.0.0.1:5174/chat?state=safety-degraded&visual-qa=1",
+      "url": "http://127.0.0.1:5188/chat?state=safety-degraded&visual-qa=1",
       "windowControls": 0,
       "trafficLightColors": 0,
       "safetyGeometry": {
@@ -1042,10 +1042,10 @@
         "height": 1024
       },
       "recapture": {
-        "capturedAt": "2026-09-05",
+        "capturedAt": "2026-09-12",
         "tool": "Chrome CDP Page.captureScreenshot",
-        "browser": "Chrome/152.0.7977.77",
-        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-safety-degraded-browser-2026-09-06.png"
+        "browser": "Chrome/152.0.7977.83",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-safety-degraded-browser-2026-09-12.png"
       }
     },
     "admin-op-submitting": {
@@ -2614,7 +2614,7 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -2623,17 +2623,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "http://127.0.0.1:5174/chat?state=sse-reconnecting&visual-qa=1",
+      "url": "http://127.0.0.1:5188/chat?state=sse-reconnecting&visual-qa=1",
       "viewport": {
         "height": 1024,
         "width": 1440
       },
       "dprPass": true,
       "recapture": {
-        "capturedAt": "2026-09-06",
+        "capturedAt": "2026-09-12",
         "tool": "Chrome CDP Page.captureScreenshot",
-        "browser": "Chrome/152.0.7977.77",
-        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-sse-reconnecting-browser-2026-09-06.png"
+        "browser": "Chrome/152.0.7977.83",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-sse-reconnecting-browser-2026-09-12.png"
       }
     },
     "agent-user-cancelled": {
@@ -2644,7 +2644,7 @@
         "scrollHeight": 1024,
         "scrollWidth": 1440
       },
-      "dpr": 1.0000000149011612,
+      "dpr": 1,
       "fonts": "loaded",
       "root": {
         "height": 1024,
@@ -2653,17 +2653,17 @@
         "y": 0
       },
       "textOverflow": [],
-      "url": "http://127.0.0.1:5174/chat?state=user-cancelled&visual-qa=1",
+      "url": "http://127.0.0.1:5188/chat?state=user-cancelled&visual-qa=1",
       "viewport": {
         "height": 1024,
         "width": 1440
       },
       "dprPass": true,
       "recapture": {
-        "capturedAt": "2026-09-06",
+        "capturedAt": "2026-09-12",
         "tool": "Chrome CDP Page.captureScreenshot",
-        "browser": "Chrome/152.0.7977.77",
-        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-user-cancelled-browser-2026-09-06.png"
+        "browser": "Chrome/152.0.7977.83",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-user-cancelled-browser-2026-09-12.png"
       }
     },
     "admin-overview": {

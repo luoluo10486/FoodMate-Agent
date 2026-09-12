@@ -383,6 +383,8 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '发送消息' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '发送消息' })).toHaveAttribute('data-state', 'idle');
     expect(document.querySelector('[class*="fixtureReconnectAssistantRow"]')).toBeInTheDocument();
     expect(document.querySelector('[class*="fixtureReconnectBottom"]')).toBeInTheDocument();
     expect(document.querySelector('[class*="fixtureReconnectNotice"] img')).toHaveAttribute(

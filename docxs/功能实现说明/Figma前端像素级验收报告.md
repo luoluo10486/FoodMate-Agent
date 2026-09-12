@@ -2,6 +2,24 @@
 
 更新时间：2026-09-12
 
+## 1.1.25 2026-09-12 Agent Chat 重连态 Composer 与头像证据同步
+
+本节只记录 Agent 状态前端收口和四项受影响画板的最新证据，不重新验收其它 101 个画板。Figma 文件保持只读，后端 SSE 协议保持不变。
+
+| 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 结论 |
+|---|---|---|---|---:|---:|---:|---|
+| 工具失败可重试 | `687:1439` | `/chat?state=tool-failed-retryable` | `1440×1024 / 1` | `10.5202%` | `2.241290` | `15.205827` | `DIFF_REVIEW` |
+| 安全降级 | `687:1563` | `/chat?state=safety-degraded` | `1440×1024 / 1` | `10.9746%` | `2.384059` | `15.318975` | `DIFF_REVIEW` |
+| 用户取消 | `687:1684` | `/chat?state=user-cancelled` | `1440×1024 / 1` | `11.6638%` | `1.886524` | `13.566194` | `DIFF_REVIEW` |
+| SSE 重连 | `687:1803` | `/chat?state=sse-reconnecting` | `1440×1024 / 1` | `17.1225%` | `2.385788` | `15.097414` | `DIFF_REVIEW` |
+
+- [x] 四项浏览器截图均使用 `127.0.0.1:5188`、Chrome `152.0.7977.83`、DPR `1` 和已加载字体；页面无横向溢出，映射、diff 和 runtime checks 已同步。
+- [x] 重连态已保留已接收文本并禁用输入框及发送按钮；终态和重连生命周期继续由前端契约控制，不把 HTTP 接受响应当作运行终态。
+- [x] 运行时人物头像只出现 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`；`.qa/figma-pixel-acceptance/legacy-avatars/` 中的历史人物截图不属于运行时资源，不能从 Figma 参考图的历史内容推断为当前 DOM 资源。
+- [ ] 四项自动 diff 均非零，仍存在 Figma 窗口装饰、字体、图标和局部颜色差异，继续保持 `DIFF_REVIEW`；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍未提供，资源登记继续保持 `BLOCKED`。
+- [x] 头像运行时复核确认首页、Chat 六种状态、Profile 和 Admin 的人物 `<img>` 只使用上述两份登记 SVG；认证页 `foodmate-*-user.svg` 仍仅作为表单字段装饰图标，不能计入人物头像。
+
 ## 1.1.23 2026-09-12 Agent Chat 写入确认态状态块增量验收
 
 本节只记录实时 Figma 节点 `687:773` 对应写入确认态的当前证据。Figma 与浏览器 PNG 使用相同 `1440×1024` 原始尺寸；浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、DPR `1`、字体加载完成和关闭动态干扰条件，不重新验收其它 104 个画板。
