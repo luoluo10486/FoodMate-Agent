@@ -2,6 +2,28 @@
 
 更新时间：2026-09-13
 
+## 1.1.34 2026-09-13 Diet Records 增量像素证据
+
+本节只记录 Figma 节点 `640:588`（`diet-records-v2`）的最新浏览器证据，不重新采集或判定其余画板。Figma 参考图仍为实时文件导出的 `1440×1024` PNG；浏览器使用同尺寸视口、DPR 1、字体加载完成和关闭动态干扰条件。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Diet Records | `640:588` | `/analysis?view=records&state=v2` | `recaptured-figma/diet-records-v2-live-2026-09-12.png` | `recaptured/dpr1-diet-records-v2-browser-2026-09-13.png` | `recaptured/diet-records-v2-current-diff-2026-09-13.json` | `7.372979%` | `2.469032` | `16.609406` | `255` | `DIFF_REVIEW` |
+
+- [x] 视口尺寸、DPR、字体状态和页面溢出检查通过：`1440×1024`、`1`、`loaded`、`bodyOverflow=false`。
+- [x] 结构人工复核确认工作区侧栏、窗口控制点、会话搜索、会话历史、分页、营养记录和记录详情区域均可见；新证据已同步 `figma-105-mapping.json`。
+- [ ] 自动 diff 非零，且仍有图标、字体光栅化和局部像素差异，因此不能标记 `PASS`；本节不代表其余 104 个画板重新验收。
+- [ ] 全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；iconfont 实体包、映射、来源和许可证继续为 `BLOCKED`。
+
+## 1.1.35 2026-09-13 默认头像运行时边界加固
+
+本节记录头像组件的默认安全边界，不新增 Figma 画板截图，也不改变真实上传接口。
+
+- [x] `AvatarImage` 默认 `defaultOnly=true`；新增调用方不显式授权时只能输出 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`。
+- [x] 真实上传流程仍采用双重显式授权（`defaultOnly={false}` + `allowUploaded`），仅允许当前页面生成的 `blob:` 预览；持久化 URL 和外部人物图片继续按性别回退。
+- [x] 本地资源 SHA-256 与用户附件一致；实时 Figma `🎨 :: Design` 页 192 个默认头像容器中男性 189、女性 3、其它来源 0。
+- [ ] 本节不代表任何画板新增像素级 `PASS`；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
 ## 1.1.33 2026-09-13 Chat Agent 状态页头像同源修正
 
 本节记录浏览器反馈后的 Chat 状态页头像一致性修正。安全降级只表示本次分析能力受限，不表示当前用户发生变化；因此工作区账号和用户消息必须继续使用同一份登记头像。Figma 文件保持只读，本次不重新采集 105 个画板。

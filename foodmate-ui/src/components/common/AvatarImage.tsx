@@ -24,7 +24,8 @@ type AvatarImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
 export function AvatarImage({
   avatarUrl,
   gender,
-  defaultOnly = false,
+  // 默认拒绝所有非登记头像；真实上传预览必须由调用方显式授权。
+  defaultOnly = true,
   allowUploaded = false,
   onError,
   ...props
