@@ -1420,6 +1420,19 @@
   margin-left: 48px;
 }
 
+/* 写入确认态沿用 Figma 的 Agent 状态块、12px 间距和 305px 卡片宽度。 */
+.fixtureWriteRow {
+  display: flex;
+  width: min(608px, 100%);
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fixtureWriteRow .fixtureCardWrap {
+  width: 305px;
+  margin-left: 0;
+}
+
 .fixtureAssistantRow {
   display: flex;
   width: min(608px, 100%);
@@ -2230,6 +2243,14 @@
 
   .fixtureAssistantRow {
     width: 100%;
+  }
+
+  .fixtureWriteRow {
+    width: 100%;
+  }
+
+  .fixtureWriteRow .fixtureCardWrap {
+    width: calc(100% - 48px);
   }
 
   .fixtureCancelledWrap {

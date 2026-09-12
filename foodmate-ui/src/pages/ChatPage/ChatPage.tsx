@@ -183,7 +183,7 @@ function MessageBubble({
         </>
       ) : (
         <>
-          <span className={styles.agentAvatar} aria-hidden="true" />
+          <AgentStatusMarker className={styles.agentAvatar} />
           <div className={`${styles.assistantBody} ${message.wide ? styles.assistantBodyWide : ''}`}>
             <div className={styles.messageBubble}>
               <p className={styles.messageText}>{message.content}</p>
@@ -196,6 +196,11 @@ function MessageBubble({
       )}
     </article>
   );
+}
+
+/** Figma 中的 Agent 状态块是绿色状态标记，不属于人物头像资源。 */
+function AgentStatusMarker({ className }: { className: string }) {
+  return <span className={className} aria-hidden="true" data-agent-marker="figma-status-surface" />;
 }
 
 function TraceRail({ run, designChat = false }: { run: AgentRunView; designChat?: boolean }) {
@@ -584,7 +589,7 @@ function PlanningStatePage() {
         <div className={styles.planningMessageMeta}>Anddy · 12:45 PM</div>
       </article>
       <article className={styles.planningAssistantMessage}>
-        <span className={styles.planningAgentAvatar} aria-hidden="true" />
+        <AgentStatusMarker className={styles.planningAgentAvatar} />
         <div className={styles.planningAssistantBody}>
           <div className={styles.planningBubble}>
             <div className={styles.planningTitle}>
@@ -698,7 +703,7 @@ function ToolExecutingStatePage() {
         <div className={styles.executingMessageMeta}>Anddy · 12:45 PM</div>
       </article>
       <article className={styles.executingAssistantMessage}>
-        <span className={styles.executingAgentAvatar} aria-hidden="true" />
+        <AgentStatusMarker className={styles.executingAgentAvatar} />
         <div className={styles.executingAssistantBody}>
           <div className={styles.executingBubble}>
             <div className={styles.executingTitle}>
@@ -770,7 +775,7 @@ function AwaitingClarificationStatePage() {
         <div className={styles.awaitingMessageMeta}>Anddy · 12:45 PM</div>
       </article>
       <article className={styles.awaitingAssistantMessage}>
-        <span className={styles.awaitingAgentAvatar} aria-hidden="true" />
+        <AgentStatusMarker className={styles.awaitingAgentAvatar} />
         <div className={styles.awaitingAssistantBody}>
           <ClarificationCard
             options={['补充食物和份量', '上传照片识别']}
@@ -1504,43 +1509,46 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const content = (() => {
     if (state === 'write-confirmation') {
       return (
-        <div className={styles.fixtureCardWrap}>
-          <Card className={`${styles.fixtureCard} ${styles.fixtureWriteCard}`}>
-            <div className={styles.fixtureCardHeader}>
-              <h2>确认写入以下记录</h2>
-              <span>目标对象: 饮食记录</span>
-            </div>
-            <dl className={styles.fixtureDetails}>
-              <div>
-                <dt>分类</dt>
-                <dd>2024年3月14日 午餐</dd>
+        <div className={styles.fixtureWriteRow}>
+          <AgentStatusMarker className={styles.fixtureAgentAvatar} />
+          <div className={styles.fixtureCardWrap}>
+            <Card className={`${styles.fixtureCard} ${styles.fixtureWriteCard}`}>
+              <div className={styles.fixtureCardHeader}>
+                <h2>确认写入以下记录</h2>
+                <span>目标对象: 饮食记录</span>
               </div>
-              <div>
-                <dt>食物</dt>
-                <dd>三文鱼寿司 x6</dd>
+              <dl className={styles.fixtureDetails}>
+                <div>
+                  <dt>分类</dt>
+                  <dd>2024年3月14日 午餐</dd>
+                </div>
+                <div>
+                  <dt>食物</dt>
+                  <dd>三文鱼寿司 x6</dd>
+                </div>
+                <div>
+                  <dt>热量</dt>
+                  <dd>约 620 千卡</dd>
+                </div>
+                <div>
+                  <dt>蛋白质</dt>
+                  <dd>38g</dd>
+                </div>
+              </dl>
+              <div className={styles.fixtureMeta}>
+                <span>来源: USDA FoodData Central</span>
+                <span>假设: 按标准份量估算</span>
               </div>
-              <div>
-                <dt>热量</dt>
-                <dd>约 620 千卡</dd>
+              <div className={styles.fixtureActions}>
+                <Button disabled={action === 'pending'} onClick={() => void confirmWrite()}>
+                  确认写入
+                </Button>
+                <Button disabled={action === 'pending'} variant="ghost" onClick={() => void cancelWrite()}>
+                  取消
+                </Button>
               </div>
-              <div>
-                <dt>蛋白质</dt>
-                <dd>38g</dd>
-              </div>
-            </dl>
-            <div className={styles.fixtureMeta}>
-              <span>来源: USDA FoodData Central</span>
-              <span>假设: 按标准份量估算</span>
-            </div>
-            <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void confirmWrite()}>
-                确认写入
-              </Button>
-              <Button disabled={action === 'pending'} variant="ghost" onClick={() => void cancelWrite()}>
-                取消
-              </Button>
-            </div>
-          </Card>
+            </Card>
+          </div>
         </div>
       );
     }
@@ -1548,13 +1556,13 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       return (
         <>
           <div className={styles.fixtureAssistantRow}>
-            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <AgentStatusMarker className={styles.fixtureAgentAvatar} />
             <p className={styles.fixtureBudgetIntro}>
               我已在后台调用历史数据解析服务。此分析需要读取超长数据块，将会消耗较多计算令牌。
             </p>
           </div>
           <div className={`${styles.fixtureAssistantRow} ${styles.fixtureBudgetRowWrap}`}>
-            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <AgentStatusMarker className={styles.fixtureAgentAvatar} />
             <Card className={`${styles.fixtureCard} ${styles.fixtureBudgetCard}`}>
               <div className={styles.fixtureBudgetTitle}>
                 <AlertTriangle aria-hidden="true" />
@@ -1610,7 +1618,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     if (state === 'tool-failed-retryable') {
       return (
         <div className={styles.fixtureAssistantRow}>
-          <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+          <AgentStatusMarker className={styles.fixtureAgentAvatar} />
           <Card className={`${styles.fixtureCard} ${styles.fixtureFailureCard}`}>
             <div className={styles.fixtureStatusTitle}>
               <AlertTriangle aria-hidden="true" />
@@ -1648,7 +1656,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
         <div className={styles.fixtureSafetyBlock}>
           <div className={styles.fixtureSafetyTopRow}>
             <div className={styles.fixtureSafetyIdentity}>
-              <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+              <AgentStatusMarker className={styles.fixtureAgentAvatar} />
               <span className={styles.fixtureSafetyLabel}>安全降级</span>
             </div>
             <div className={`${styles.fixtureSafetyBody} ${styles.fixtureSafetyBodyAligned}`}>
@@ -1678,7 +1686,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       return (
         <div className={`${styles.fixtureCancelledWrap} ${styles.fixtureCancelledWrapAligned}`}>
           <div className={`${styles.fixtureCancelledAssistantRow} ${styles.fixtureCancelledAssistantRowAligned}`}>
-            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <AgentStatusMarker className={styles.fixtureAgentAvatar} />
             <div className={styles.fixtureCancelledAssistantBody}>
               <p className={styles.fixtureAssistantText}>
                 正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...
@@ -1696,7 +1704,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     return (
       <div className={styles.fixtureReconnectWrap}>
         <div className={styles.fixtureReconnectAssistantRow}>
-          <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+          <AgentStatusMarker className={styles.fixtureAgentAvatar} />
           <div className={styles.fixtureReconnectAssistantBody}>
             <p className={styles.fixtureAssistantText}>
               正在查询水果数据库，提取符合低生糖指数（GI &lt; 55）的食材列表...

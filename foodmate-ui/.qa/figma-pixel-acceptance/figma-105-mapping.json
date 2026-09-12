@@ -1506,8 +1506,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-30",
-        "conclusion": "The latest Figma and browser captures contain the confirmation fields, source, assumptions, and actions. The current browser capture confirms the compact 305x319 confirmation card and 265x168 details region; shell identity, avatar treatment, typography, and icon rasterization still differ, so retain DIFF_REVIEW."
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已实际查看 2026-09-12 的 Figma 与浏览器截图；Agent 绿色状态块与写入确认卡无遮挡、裁切或横向溢出，浏览器人物头像使用登记的默认 SVG；Figma 顶部窗口装饰、字体、图标和局部颜色仍与浏览器存在可见差异，继续保留 DIFF_REVIEW。"
       },
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-write-confirmation-current-diff-2026-09-12-avatar-fixed.json"
     },

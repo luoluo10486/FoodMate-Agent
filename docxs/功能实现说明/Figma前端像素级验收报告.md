@@ -2,6 +2,21 @@
 
 更新时间：2026-09-12
 
+## 1.1.23 2026-09-12 Agent Chat 写入确认态状态块增量验收
+
+本节只记录实时 Figma 节点 `687:773` 对应写入确认态的当前证据。Figma 与浏览器 PNG 使用相同 `1440×1024` 原始尺寸；浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、DPR `1`、字体加载完成和关闭动态干扰条件，不重新验收其它 104 个画板。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| 写入确认 | `687:773` | `/chat?state=write-confirmation` | `recaptured-figma/agent-write-confirmation-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-write-confirmation-browser-2026-09-12.png` | `recaptured/agent-write-confirmation-current-diff-2026-09-12-avatar-fixed.json` | `9.7547%` | `1.849191` | `13.459496` | `255` | `DIFF_REVIEW` |
+
+- [x] Agent 绿色状态块与人物头像资源已在代码和运行时证据中明确区分；人物头像实际来源为登记的 `/assets/avatars/default-male.svg`。
+- [x] 写入确认状态块位置为 `x=292,y=237,width=36,height=36`，确认卡位置为 `x=340,y=237,width=305,height=319`；运行时无横向溢出，字体状态为 `loaded`。
+- [x] Figma 与浏览器截图已实际查看，主要结构、写入字段、操作入口均存在，没有发现遮挡或裁切；顶部窗口装饰、字体、图标和局部颜色仍有可见差异。
+- [x] 映射、自动 diff 和运行时检查均已更新；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 自动 diff 非零，且仍存在需要处理的视觉差异，本画板不能标记像素级 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.22 2026-09-12 Workspace/Home 与 Agent Chat Composer 表面增量验收
 
 本节只记录实时 Figma 节点 `640:256`、`640:428` 的受影响页面组增量证据。Figma 参考图来自当前文件 `MX18RZCfAmgprNzxItkHUH`，浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、相同 `1440×1024` viewport、DPR `1`、字体加载完成和关闭动态干扰条件；不重新验收其它 103 个画板。

@@ -278,6 +278,7 @@ describe('ChatPage Agent remaining states', () => {
     expect(writeCard).toBeInTheDocument();
     const writeDetails = document.querySelector('[class*="fixtureWriteCard"] [class*="fixtureDetails"]');
     expect(writeDetails).toBeInTheDocument();
+    expect(document.querySelector('[data-agent-marker="figma-status-surface"]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '确认写入' }).querySelector('svg')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '取消' }).querySelector('svg')).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
@@ -332,6 +333,7 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByRole('button', { name: '重试' }).className).toContain('fixtureRetryButton');
     expect(screen.getByRole('button', { name: '跳过此步骤' }).className).toContain('fixtureSkipButton');
     expect(document.querySelector('[class*="fixtureAgentAvatar"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-agent-marker="figma-status-surface"]')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Executing×');
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Composing○');
     fireEvent.click(screen.getByRole('button', { name: '跳过此步骤' }));
