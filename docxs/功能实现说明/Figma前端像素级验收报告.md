@@ -2,6 +2,34 @@
 
 更新时间：2026-09-12
 
+## 1.1.19 2026-09-12 Auth 页面组 13 项增量验收
+
+本节只记录 Auth 页面组 13 个当前受影响画板。Figma 参考图来自实时文件 `MX18RZCfAmgprNzxItkHUH` 的对应节点，浏览器证据使用 `127.0.0.1:5188`、Chrome `152.0.7977.83`、`1440×900`、DPR `1` 和字体加载完成条件；不重新采集其它 92 个画板。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | RMSE | 结论 |
+|---|---|---|---|---|---|---:|---:|---|
+| Login | `647:214` | `/login?state=v2` | `recaptured-figma/auth-login-647-214-live-2026-09-12.png` | `recaptured/dpr1-login-v2-browser-2026-09-12.png` | `recaptured/login-v2-current-diff-2026-09-12.json` | `3.7948%` | `7.545321` | `DIFF_REVIEW` |
+| Register | `680:216` | `/register` | `recaptured-figma/auth-register-680-216-live-2026-09-12.png` | `recaptured/dpr1-register-page-browser-2026-09-12.png` | `recaptured/register-page-current-diff-2026-09-12.json` | `4.2903%` | `6.677294` | `DIFF_REVIEW` |
+| Forgot Password | `680:275` | `/forgot-password` | `recaptured-figma/auth-forgot-680-275-live-2026-09-12.png` | `recaptured/dpr1-forgot-password-page-browser-2026-09-12.png` | `recaptured/forgot-password-page-current-diff-2026-09-12.json` | `3.0234%` | `7.311469` | `DIFF_REVIEW` |
+| Reset Password | `680:307` | `/reset-password` | `recaptured-figma/auth-reset-680-307-live-2026-09-12.png` | `recaptured/dpr1-reset-password-page-browser-2026-09-12.png` | `recaptured/reset-password-page-current-diff-2026-09-12.json` | `3.4083%` | `6.760546` | `DIFF_REVIEW` |
+| Login Submitting | `680:408` | `/login?state=submitting` | `recaptured-figma/auth-login-submitting-680-408-live-2026-09-12.png` | `recaptured/dpr1-login-submitting-browser-2026-09-12.png` | `recaptured/login-submitting-current-diff-2026-09-12.json` | `6.3529%` | `7.622386` | `DIFF_REVIEW` |
+| Login Field Error | `680:445` | `/login?state=field-error` | `recaptured-figma/auth-login-field-error-680-445-live-2026-09-12.png` | `recaptured/dpr1-login-field-error-browser-2026-09-12.png` | `recaptured/login-field-error-current-diff-2026-09-12.json` | `5.8786%` | `15.107069` | `DIFF_REVIEW` |
+| Login Credential Error | `680:483` | `/login?state=credential-error` | `recaptured-figma/auth-login-credential-error-680-483-live-2026-09-12.png` | `recaptured/dpr1-login-credential-error-browser-2026-09-12.png` | `recaptured/login-credential-error-current-diff-2026-09-12.json` | `6.1381%` | `14.040149` | `DIFF_REVIEW` |
+| Login Account Locked | `680:524` | `/login?state=account-locked` | `recaptured-figma/auth-login-account-locked-680-524-live-2026-09-12.png` | `recaptured/dpr1-login-account-locked-browser-2026-09-12.png` | `recaptured/login-account-locked-current-diff-2026-09-12.json` | `4.6268%` | `10.905289` | `DIFF_REVIEW` |
+| Login Account Disabled | `680:564` | `/login?state=account-disabled` | `recaptured-figma/auth-login-account-disabled-680-564-live-2026-09-12.png` | `recaptured/dpr1-login-account-disabled-browser-2026-09-12.png` | `recaptured/login-account-disabled-current-diff-2026-09-12.json` | `4.5106%` | `11.083196` | `DIFF_REVIEW` |
+| Login Service Unavailable | `680:606` | `/login?state=service-unavailable` | `recaptured-figma/auth-login-service-unavailable-680-606-live-2026-09-12.png` | `recaptured/dpr1-login-service-unavailable-browser-2026-09-12.png` | `recaptured/login-service-unavailable-current-diff-2026-09-12.json` | `4.4340%` | `10.559538` | `DIFF_REVIEW` |
+| Token Invalid | `680:738` | `/token-status?state=invalid` | `recaptured-figma/auth-token-invalid-680-738-live-2026-09-12.png` | `recaptured/dpr1-token-invalid-browser-2026-09-12.png` | `recaptured/token-invalid-current-diff-2026-09-12.json` | `1.8195%` | `2.509056` | `DIFF_REVIEW` |
+| Token Expired | `680:757` | `/token-status?state=expired` | `recaptured-figma/auth-token-expired-680-757-live-2026-09-12.png` | `recaptured/dpr1-token-expired-browser-2026-09-12.png` | `recaptured/token-expired-current-diff-2026-09-12.json` | `1.8706%` | `2.707871` | `DIFF_REVIEW` |
+| Token Used | `680:776` | `/token-status?state=used` | `recaptured-figma/auth-token-used-680-776-live-2026-09-12.png` | `recaptured/dpr1-token-used-browser-2026-09-12.png` | `recaptured/token-used-current-diff-2026-09-12.json` | `1.9593%` | `3.025545` | `DIFF_REVIEW` |
+
+- [x] 13 项 Figma/浏览器 PNG 均为 `1440×900`；浏览器 DPR 为 `1`，字体状态为 `loaded`，页面级横向溢出为 `false`，文字溢出检查为 `0`。
+- [x] 登录节点 `647:214` 的 Motion 上下文包含 8 个动画节点和 `4500ms` 无限循环；现有 GSAP 时间线继续按 Figma 数据实现，截图模式关闭动画以保证证据可重复。
+- [x] 已人工查看代表性 Login、Register、Token Invalid 配对及其余状态的 diff 结果；未发现需要基于猜测修改 CSS 的几何问题。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 仅更新本节 13 项，未改写其它 92 项证据。
+- [x] Auth 页面没有人物头像；其 `foodmate-*-user.svg` 资源是表单字段装饰图标。主要页面运行时人物头像继续只使用用户提供的男女默认 SVG。
+- [ ] 13 项 PNG diff 均非零，不能标记像素级 `PASS`；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.18 2026-09-12 默认头像持久化来源隔离修正
 
 - [x] 两份用户提供的默认 SVG 继续作为唯一默认人物资源：`default-male.svg` 和 `default-female.svg`，资源哈希与登记值保持一致。
