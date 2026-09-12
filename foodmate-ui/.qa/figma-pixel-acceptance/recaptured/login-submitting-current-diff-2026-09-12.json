@@ -1,1 +1,1 @@
-{"status":"COMPARED","width":1440,"height":900,"pixelCount":1296000,"differentPixels":82334,"differentRatio":0.06352932098765432,"meanAbsoluteError":0.7903242669753087,"rmse":7.62238605013038,"maxChannelDelta":209}
+{"status":"COMPARED","width":1440,"height":900,"pixelCount":1296000,"differentPixels":78355,"differentRatio":0.060459104938271606,"meanAbsoluteError":0.6519319058641976,"rmse":6.84734712248041,"maxChannelDelta":207}

@@ -107,7 +107,8 @@
   --fm-auth-token-border: rgb(166 217 151 / 50%);
   --fm-auth-token-shadow: 0 6px 8px rgb(72 199 142 / 20%);
 
-  /* Figma login state tokens: 680:408 through 680:606. */
+  /* Figma 登录状态节点 680:408 至 680:606 的语义 Token。 */
+  --fm-auth-state-brand: #a6d997;
   --fm-auth-state-action: #2e7d32;
   --fm-auth-success-action: #48c78e;
   --fm-auth-success-shadow: 0 6px 8px rgba(46, 125, 50, 0.25);

@@ -517,7 +517,7 @@
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/login-v2-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "MINOR_RENDERING_DIFF_CONFIRMED",
-      "evidenceNote": "自动 diff、几何检查、文字检查和人工视觉复核已完成；自动差异非零，继续保持 DIFF_REVIEW。",
+      "evidenceNote": "2026-09-12 最新复核已应用 Figma 登录斜向背景顶部交点修正；自动差异非零，继续保持 DIFF_REVIEW。",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -808,7 +808,7 @@
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/login-submitting-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "自动 diff、几何检查、文字检查和人工视觉复核已完成；自动差异非零，继续保持 DIFF_REVIEW。",
+      "evidenceNote": "2026-09-12 最新复核已应用 Figma 登录反馈态品牌标记 Token 修正；自动差异非零，继续保持 DIFF_REVIEW。",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -863,7 +863,7 @@
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/login-field-error-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "自动 diff、几何检查、文字检查和人工视觉复核已完成；自动差异非零，继续保持 DIFF_REVIEW。",
+      "evidenceNote": "2026-09-12 最新复核已应用 Figma 字段错误态品牌标记与成功操作色修正；自动差异非零，继续保持 DIFF_REVIEW。",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -918,7 +918,7 @@
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/login-credential-error-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "自动 diff、几何检查、文字检查和人工视觉复核已完成；自动差异非零，继续保持 DIFF_REVIEW。",
+      "evidenceNote": "2026-09-12 最新复核已应用 Figma 凭据错误态品牌标记与成功操作色修正；自动差异非零，继续保持 DIFF_REVIEW。",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -973,7 +973,7 @@
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/login-account-locked-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "自动 diff、几何检查、文字检查和人工视觉复核已完成；自动差异非零，继续保持 DIFF_REVIEW。",
+      "evidenceNote": "2026-09-12 最新复核已应用 Figma 账户锁定态品牌标记 Token 修正；自动差异非零，继续保持 DIFF_REVIEW。",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -1028,7 +1028,7 @@
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/login-account-disabled-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "自动 diff、几何检查、文字检查和人工视觉复核已完成；自动差异非零，继续保持 DIFF_REVIEW。",
+      "evidenceNote": "2026-09-12 最新复核已应用 Figma 账户禁用态品牌标记 Token 修正；自动差异非零，继续保持 DIFF_REVIEW。",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",
@@ -1083,7 +1083,7 @@
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/login-service-unavailable-current-diff-2026-09-12.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "自动 diff、几何检查、文字检查和人工视觉复核已完成；自动差异非零，继续保持 DIFF_REVIEW。",
+      "evidenceNote": "2026-09-12 最新复核已应用 Figma 服务不可用态品牌标记 Token 修正；自动差异非零，继续保持 DIFF_REVIEW。",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x900",

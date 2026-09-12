@@ -2,6 +2,26 @@
 
 更新时间：2026-09-12
 
+## 1.1.21 2026-09-12 Auth 登录反馈态 Token 与斜向背景增量验收
+
+本节只记录实时 Figma 登录节点 `647:214`、`680:408`、`680:445`、`680:483`、`680:524`、`680:564`、`680:606` 的增量验收。Figma 与浏览器 PNG 均使用 `1440×900` 原始尺寸，浏览器使用 DPR 1、字体加载完成和关闭动态干扰条件；不重新验收其它画板。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| Login 默认态 | `647:214` | `recaptured-figma/auth-login-647-214-live-2026-09-12.png` | `recaptured/dpr1-login-v2-browser-2026-09-12.png` | `recaptured/login-v2-current-diff-2026-09-12.json` | `3.5374%` | `0.507889` | `7.402739` | `213` | `DIFF_REVIEW` |
+| Login Submitting | `680:408` | `recaptured-figma/auth-login-submitting-680-408-live-2026-09-12.png` | `recaptured/dpr1-login-submitting-browser-2026-09-12.png` | `recaptured/login-submitting-current-diff-2026-09-12.json` | `6.0459%` | `0.651932` | `6.847347` | `207` | `DIFF_REVIEW` |
+| Login Field Error | `680:445` | `recaptured-figma/auth-login-field-error-680-445-live-2026-09-12.png` | `recaptured/dpr1-login-field-error-browser-2026-09-12.png` | `recaptured/login-field-error-current-diff-2026-09-12.json` | `4.4895%` | `1.334213` | `11.670449` | `207` | `DIFF_REVIEW` |
+| Login Credential Error | `680:483` | `recaptured-figma/auth-login-credential-error-680-483-live-2026-09-12.png` | `recaptured/dpr1-login-credential-error-browser-2026-09-12.png` | `recaptured/login-credential-error-current-diff-2026-09-12.json` | `4.4716%` | `1.166877` | `11.114069` | `213` | `DIFF_REVIEW` |
+| Login Account Locked | `680:524` | `recaptured-figma/auth-login-account-locked-680-524-live-2026-09-12.png` | `recaptured/dpr1-login-account-locked-browser-2026-09-12.png` | `recaptured/login-account-locked-current-diff-2026-09-12.json` | `4.3696%` | `1.015155` | `10.238270` | `213` | `DIFF_REVIEW` |
+| Login Account Disabled | `680:564` | `recaptured-figma/auth-login-account-disabled-680-564-live-2026-09-12.png` | `recaptured/dpr1-login-account-disabled-browser-2026-09-12.png` | `recaptured/login-account-disabled-current-diff-2026-09-12.json` | `4.2524%` | `1.028768` | `10.431057` | `213` | `DIFF_REVIEW` |
+| Login Service Unavailable | `680:606` | `recaptured-figma/auth-login-service-unavailable-680-606-live-2026-09-12.png` | `recaptured/dpr1-login-service-unavailable-browser-2026-09-12.png` | `recaptured/login-service-unavailable-current-diff-2026-09-12.json` | `4.1758%` | `0.957177` | `9.872155` | `213` | `DIFF_REVIEW` |
+
+- [x] 7 项浏览器截图均为 `1440×900`、DPR `1`、字体状态 `loaded`，且无页面横向溢出；7 项独立 diff 与聚合 JSON 已同步。
+- [x] 人工复核确认本批次已应用 Figma 登录斜向背景顶部交点、反馈态品牌标记和成功操作色修正；未修改真实认证请求或动效协议。
+- [ ] 7 项自动 diff 均非零，不能标记为像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本批次不代表其它 98 个画板重新采集或完成全量人工视觉复核；后续按页面组继续处理可由 Figma 证据确认的差异。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.20 2026-09-12 头像运行时来源全路径复核
 
 本节记录前端运行时头像来源审计，不新增 Figma 画板截图或像素 diff。审计使用本地前端 `127.0.0.1:5188`，覆盖 Workspace/Home、Agent Chat 默认态和六个 Agent 状态、饮食记录、摄入分析、餐食规划、Knowledge、Profile 与 Admin 主要入口。
