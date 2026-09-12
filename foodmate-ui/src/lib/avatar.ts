@@ -51,7 +51,6 @@ export const FIXTURE_CHAT_AVATAR_GENDERS = {
 // 历史 Figma 导出的人物素材只用于设计证据，运行时不允许再次作为头像来源。
 // 头像参数只要来自 Figma 资源域或本地 Figma 资源目录，就统一回退到登记的默认 SVG。
 const legacyFigmaAvatarPattern = /(?:\/assets\/figma\/|figma\.com\/api\/mcp\/asset\/)/i;
-const uploadedAvatarPathPattern = /^\/api\/users\/me\/avatar(?:[/?#]|$)/i;
 const localPreviewPattern = /^blob:/i;
 
 function isLegacyFigmaAvatarUrl(value: string): boolean {
@@ -71,9 +70,9 @@ function isLegacyFigmaAvatarUrl(value: string): boolean {
   return legacyFigmaAvatarPattern.test(decoded);
 }
 
-/** 只接受后端头像接口和浏览器本地预览作为用户主动上传头像。 */
-function isTrustedUploadedAvatarUrl(value: string): boolean {
-  return uploadedAvatarPathPattern.test(value) || localPreviewPattern.test(value);
+/** 只接受用户刚选择图片后生成的浏览器临时预览，不直接展示持久化头像地址。 */
+function isTemporaryUploadedAvatarUrl(value: string): boolean {
+  return localPreviewPattern.test(value);
 }
 
 export function isRegisteredDefaultAvatar(value: string): boolean {
@@ -83,7 +82,8 @@ export function isRegisteredDefaultAvatar(value: string): boolean {
 export function getAvatarSourceKind(value: string): AvatarSourceKind {
   if (value === DEFAULT_AVATARS.female) return 'default-female';
   if (value === DEFAULT_AVATARS.male) return 'default-male';
-  return 'uploaded';
+  if (isTemporaryUploadedAvatarUrl(value)) return 'uploaded';
+  return 'default-male';
 }
 
 export function getDefaultAvatarForGender(gender?: string): string | undefined {
@@ -99,7 +99,7 @@ export function resolveAvatarUrl(avatarUrl?: string, gender?: string): string {
   if (!candidate) return genderDefault;
   // 历史缓存可能保留另一性别的默认 SVG，读取时必须按当前性别重新归一化。
   if (isRegisteredDefaultAvatar(candidate)) return genderDefault;
-  if (!isLegacyFigmaAvatarUrl(candidate) && isTrustedUploadedAvatarUrl(candidate)) return candidate;
-  // 未登记的历史人物素材、外部图片和旧缓存都不能作为默认头像继续展示。
+  if (!isLegacyFigmaAvatarUrl(candidate) && isTemporaryUploadedAvatarUrl(candidate)) return candidate;
+  // 未登记的历史人物素材、持久化头像地址、外部图片和旧缓存都不能作为默认头像继续展示。
   return genderDefault;
 }

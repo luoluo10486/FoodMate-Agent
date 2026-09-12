@@ -2,6 +2,15 @@
 
 更新时间：2026-09-12
 
+## 1.1.18 2026-09-12 默认头像持久化来源隔离修正
+
+- [x] 两份用户提供的默认 SVG 继续作为唯一默认人物资源：`default-male.svg` 和 `default-female.svg`，资源哈希与登记值保持一致。
+- [x] 前端不再把 `/api/users/me/avatar` 的持久化地址作为自动头像展示来源；真实 Profile 上传仍保留既有接口，只有主动选择图片后的 `blob:` 临时预览可以显式展示。
+- [x] Fixture、默认入口和 Figma 验收入口继续通过 `AvatarImage`/`resolveAvatarUrl` 归一化，历史人物素材、外部图片和旧缓存按性别回退到登记 SVG。
+- [x] `127.0.0.1:5188` 的实际 DOM 审计覆盖工作台、Chat、饮食记录、摄入分析、餐食规划、Knowledge、Profile 和 Admin；人物头像实际资源只出现两份登记 SVG。
+- [x] 头像定向测试 `20/20`、typecheck、lint、format、build 和 `git diff --check` 均通过；生产构建头像目录仅包含 `default-male.svg` 与 `default-female.svg`。
+- [ ] 本批次只修正运行时来源边界，不重新验收 105 个画板；全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.1.17 2026-09-12 Knowledge 页面组视觉收口与头像证据更新
 
 本节只记录 Knowledge 的 3 个顶层映射画板：`795:786`、`795:968`、`795:1151`。Figma PNG 从实时文件重新读取，浏览器 PNG 使用同尺寸、DPR 1 和字体加载完成条件采集；不重新验收其它 102 个画板。

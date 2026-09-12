@@ -28,13 +28,14 @@ describe('avatar defaults', () => {
   it('exposes only the two registered SVG assets as default source kinds', () => {
     expect(getAvatarSourceKind(DEFAULT_AVATARS.male)).toBe('default-male');
     expect(getAvatarSourceKind(DEFAULT_AVATARS.female)).toBe('default-female');
-    expect(getAvatarSourceKind('/api/users/me/avatar')).toBe('uploaded');
+    expect(getAvatarSourceKind('blob:http://localhost/avatar-preview')).toBe('uploaded');
+    expect(getAvatarSourceKind('/api/users/me/avatar')).toBe('default-male');
   });
 
-  it('does not guess an avatar for an unset gender and preserves trusted uploaded avatars', () => {
+  it('does not guess an avatar for an unset gender and only preserves temporary previews', () => {
     expect(getDefaultAvatarForGender('-')).toBeUndefined();
-    expect(resolveAvatarUrl('/api/users/me/avatar', '女')).toBe('/api/users/me/avatar');
-    expect(resolveAvatarUrl('/api/users/me/avatar?download=1', '男')).toBe('/api/users/me/avatar?download=1');
+    expect(resolveAvatarUrl('/api/users/me/avatar', '女')).toBe(DEFAULT_AVATARS.female);
+    expect(resolveAvatarUrl('/api/users/me/avatar?download=1', '男')).toBe(DEFAULT_AVATARS.male);
     expect(resolveAvatarUrl('blob:http://localhost/avatar-preview', '女')).toBe('blob:http://localhost/avatar-preview');
     expect(resolveAvatarUrl('', '女')).toBe(DEFAULT_AVATARS.female);
     expect(resolveAvatarUrl('', '-')).toBe(DEFAULT_AVATARS.male);
