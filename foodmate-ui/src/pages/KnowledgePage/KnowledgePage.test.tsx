@@ -43,17 +43,26 @@ describe('KnowledgePage', () => {
     expect(screen.queryByText('运动后最佳蛋白质吸收窗口期')).not.toBeInTheDocument();
   });
 
-  it('uses the Figma shell fixture for the default page', () => {
+  it('uses the Figma topbar fixture for the default page', () => {
     const { container } = renderPage('/knowledge?state=default');
 
     expect(screen.getByRole('button', { name: 'Anddy' })).toBeInTheDocument();
-    expect(screen.getByText('Anddy 的工作区')).toBeInTheDocument();
-    expect(container.querySelectorAll('img[src="/assets/avatars/default-male.svg"]')).toHaveLength(2);
-    expect(container.querySelector('img[src="/assets/figma/workspace/knowledge/knowledge.svg"]')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /每周饮食微调/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
-    expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '知识库' })).toBeInTheDocument();
+    expect(screen.getByText('FoodMate')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: '工作区导航' })).not.toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: /当前引用详情/ })).toBeInTheDocument();
+    expect(container.querySelectorAll('img[src="/assets/avatars/default-male.svg"]')).toHaveLength(1);
+    expect(
+      container.querySelector('img[src="/assets/figma/workspace/knowledge/topbar-search.svg"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('img[src="/assets/figma/workspace/knowledge/notification.svg"]'),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-avatar-registered="false"]')).toHaveLength(0);
+    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /每周饮食微调/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
+    expect(container.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
     expect(screen.queryByText('梁同学')).not.toBeInTheDocument();
   });
 

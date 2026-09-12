@@ -113,12 +113,15 @@ describe('PlanningPage', () => {
     expect(screen.getByRole('heading', { name: '增肌计划 v3' })).toBeInTheDocument();
   });
 
-  it('keeps the error fixture shell free of session history', () => {
+  it('keeps the error fixture shell aligned with the full Figma workspace', () => {
     renderPage('/planning?state=error');
 
     expect(screen.getByText('Agent 对话')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
-    expect(document.querySelector('.sidebar-session-list')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
+    expect(document.querySelector('.sidebar-session-list')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '饮食工具' })).toBeInTheDocument();
+    expect(document.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重新加载' })).toHaveClass('inline-flex');
   });
 

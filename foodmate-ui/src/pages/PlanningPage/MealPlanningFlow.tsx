@@ -164,6 +164,9 @@ function RealWizardStep({
               <Field label="每日蛋白质目标">
                 <UnitInput value={draft.protein} unit="g" onChange={(value) => onDraftChange({ protein: value })} />
               </Field>
+              <Field label="用餐人数">
+                <UnitInput value={draft.people} unit="人" onChange={(value) => onDraftChange({ people: value })} />
+              </Field>
               <Field label="每日支出预算 (RMB)" className={styles.fieldFull}>
                 <UnitInput value={draft.budget} unit="元/天" onChange={(value) => onDraftChange({ budget: value })} />
               </Field>
@@ -253,7 +256,7 @@ function RealWizardStep({
       <div className={styles.wizardGrid}>
         <section className={styles.wizardCard} aria-labelledby="real-wizard-step-three-title">
           <h1 id="real-wizard-step-three-title">步骤 3: 确认并创建计划</h1>
-          <p className={styles.wizardIntro}>创建后先保存为草稿，服务端会按当前约束返回可继续编辑的计划。</p>
+          <p className={styles.wizardIntro}>提交后将进入聊天 Agent 生成候选，计划校验通过并确认后才会保存。</p>
           <div className={styles.confirmSummary}>
             <div className={styles.confirmTitleRow}>
               <strong>计划名称</strong>
@@ -292,7 +295,7 @@ function RealWizardStep({
               上一步
             </FlowButton>
             <FlowButton disabled={creating} onClick={onCreate}>
-              {creating ? '正在创建...' : '创建并保存计划'}
+              {creating ? '正在进入 Agent...' : '提交给 Agent 生成'}
             </FlowButton>
           </div>
         </section>

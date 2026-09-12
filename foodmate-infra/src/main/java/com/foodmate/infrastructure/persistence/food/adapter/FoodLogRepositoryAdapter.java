@@ -5,11 +5,9 @@ import com.foodmate.application.food.port.out.FoodLogRepository;
 import com.foodmate.application.food.port.out.FoodLogRepository.NutritionFoodCandidate;
 import com.foodmate.application.food.service.NutritionNameNormalizer;
 import com.foodmate.infrastructure.persistence.food.FoodLogMapper;
-
+import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 /** 将饮食记录 MyBatis 映射暴露为 application 端口。 */
 @Repository

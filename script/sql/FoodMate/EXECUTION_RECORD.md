@@ -2616,3 +2616,94 @@
 | Python 业务门禁 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider tests\\test_knowledge_rag.py tests\\test_runtime_server.py`：`105 passed、4 subtests passed`；未调用真实外部服务。 |
 | 真实模式检查 | 真实聊天主页面直接渲染 `RealChatPage`；`useAgentReplay` 仅按 `VITE_AGENT_MODE` 选择真实或本地预览，未发现真实模式下的业务 mock 回退。 |
 | 边界与结论 | 本轮未重复执行 Java 全量门禁，沿用 D172 的 Java 业务证据；未执行性能压测、依赖重启、ACK/重复投递故障注入、备份恢复、生产部署或发布回滚。非生产业务闭环收口复核完成，生产强化范围继续后置。 |
+
+## D176 真实 Agent 运行轨迹业务收口（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | Python `run.tool_started/run.tool_finished` 事件补充安全的 `tool_name` 和工具耗时；前端真实聊天订阅路由、上下文、工具、评估和模型事件，按 `proposal_id/invocation_id` 归并工具状态，展示真实工具名称、状态和耗时。 |
+| 真实页面 | 运行意图从 `run.routed.intent` 读取；工具数量按已观测事实计算；回答时间使用事件时间，不再使用固定演示值。 |
+| 业务验证 | `foodmate-ui` 执行 `npm.cmd test -- --run src/pages/ChatPage/ChatPage.real.test.tsx`：`1` 个测试文件、`6/6` 通过；新增用例验证分析意图、`database_query` 工具名称和 `24ms` 耗时展示。`npm.cmd run typecheck` 通过。 |
+| Python 验证 | 在项目 `.venv` 下执行 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider tests\\test_runtime_server.py`：`55 passed`。 |
+| 边界 | 未调用真实 Chat/Embedding，未写入业务数据库或消息系统；未执行性能测试、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。 |
+| Git | 本轮代码、测试和执行记录作为一个大点提交；工作区原有用户 SVG 改动不纳入本提交。 |
+
+## D177 Agent 写入确认按业务类型展示（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | 前端读取审批事件的 `resource_type/operation/tool_name`；`food_log` 显示餐型、时间和食物明细，`meal_plan` 显示计划名称、人数、天数、目标、预算、过敏源和忌口。 |
+| 参数边界 | 饮食记录继续提交既有明细结构；餐食计划直接提交服务端安全摘要中的 `{plan: ...}`，不从展示文本反向拼装；未知资源类型进入错误态并禁止确认。 |
+| 业务验证 | `foodmate-ui` 执行 `npm.cmd test -- --run src/pages/ChatPage/ChatPage.real.test.tsx`：`1` 个测试文件、`7/7` 通过；新增餐食计划确认卡测试；`npm.cmd run typecheck` 和 `git diff --check` 通过。 |
+| 业务边界 | 继续复用现有审批确认、执行和拒绝 API；未增加新的审批状态机，未写入数据库或调用真实云模型。 |
+| Git | 本轮代码、测试和执行记录作为一个大点提交；工作区原有用户 SVG 改动不纳入本提交。 |
+
+## D178 餐食规划通过 Agent 生成候选（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | 规划页真实模式不再直接调用 `createMealPlan`；表单改为创建真实会话、发送包含日期、人数、能量、蛋白质、预算、过敏源和忌口的结构化请求，并跳转聊天页。 |
+| 业务门禁 | 只有 Agent 生成候选并通过 `plan_validator` 后，才进入既有写入确认和 `meal_plan.save_plan`；前端提示明确禁止在确认前声称计划已保存。 |
+| 业务验证 | `foodmate-ui` 执行 `npm.cmd test -- --run src/pages/PlanningPage/PlanningPage.real.test.tsx`：`1` 个测试文件、`4/4` 通过；`npm.cmd run typecheck` 通过；`git diff --check` 通过。 |
+| 边界 | 本轮未调用真实 Chat/Embedding，未写入业务数据库或消息系统；未执行性能测试、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。 |
+| Git | 本轮规划流程代码、测试和执行记录作为一个大点提交；工作区原有用户 SVG 改动不纳入本提交。 |
+
+## D179 中文食材与份量语义收口（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 代码范围 | 新增共享 `NutritionUnitNormalizer`，饮食记录和复合菜统一处理 `克/份/个/枚/片/杯/大勺` 等中文单位，并保留未知单位的待确认策略；复合烹饪前缀改为最长匹配，避免 `煮熟鸡胸肉` 被截断成错误查询。 |
+| 前端体验 | 真实饮食记录默认以 `100 g` 作为可解释基准；营养目录候选展示食物形态、每 100 基准单位热量、蛋白质和来源，单位输入提示覆盖常用中文单位。 |
+| 数据边界 | 未修改、清空或重建现有 USDA 目录和复合菜数据；当前目录仍以已验证的 `1,000` 条食材和 `1,518` 条官方 foodPortion 换算为基线。 |
+| 业务验证 | Java Application 定向测试 `25/25` 通过；前端 `DietRecordsPage.real.test.tsx` 为 `9/9` 通过；`npm.cmd run typecheck` 通过；本轮 Java 文件定向 Spotless 检查通过；`git diff --check` 通过。 |
+| 边界 | 未调用真实 Chat/Embedding，未执行迁移、数据库清理、性能测试、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。全模块 Spotless 仍有既存的 `21` 个历史格式问题，本轮未扩大修改范围。 |
+| Git | 本轮单位语义、候选展示、测试和执行记录作为一个大点提交；工作区其他改动不纳入本提交。 |
+
+## D180 记忆自然表达与临时要求过滤（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Python 使用 `agent-runtime\\.venv`，未调用真实 Chat/Embedding，未写入 PostgreSQL、Redis、RocketMQ、Milvus 或 MinIO。 |
+| 规则范围 | Python 候选提取新增“更倾向于”“不太喜欢”“平时喜欢”“每天不超过”“每餐以内”“只会做简单家常菜”“之后用中文”等自然表达；预算仍按 `daily_budget`/`meal_budget` 结构化保存，烹饪能力和回答风格不保存完整请求。 |
+| 临时要求边界 | 一次性时间词扩展为今天、这次/本次、本周/这周、今晚、明天、昨天、当前和现在；“这周晚餐吃什么”“今天晚餐不要放香菜”均不产生长期记忆候选。候选来源仍只接受与当前文本完全对应的用户消息，助手回答不能成为来源。 |
+| 业务测试 | `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider tests/test_memory_context.py`：`7 passed`、`3` 个子断言；公共资料状态同步测试：`12 passed`、`3` 个子断言。 |
+| 兼容性修正 | D174 已完成正式 WHO 真实向量索引后，R5 离线主题/切分校验不应继续硬编码“未构建向量”；仅允许“未构建向量”和“已完成真实向量索引”两种受支持状态，未改变付费服务调用门禁。 |
+| 边界 | 未修改 Java 记忆白名单、冲突确认、删除、TTL、来源抑制和摘要失效逻辑；未执行迁移、数据库清理、性能压测、长稳、依赖重启、ACK/重复投递故障注入、备份恢复或生产操作。 |
+| Git | 本轮自然表达、临时要求测试、公共资料状态校验和文档作为一个业务大点提交；不把本地规则扩展宣称为模型推断或生产级记忆治理。 |
+
+## D181 秋招面试资料收口（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 文档范围 | 新增 `docxs/面试/FoodMate秋招面试资料.md`，覆盖 30 秒/2 分钟/5 分钟介绍、组件职责、AgentRun 生命周期、Tool Gateway、Proposal/Confirm/Execute、统一审计、幂等、SSE/Last-Event-ID、RAG、SQL Agent、结构化记忆和真实问题复盘。 |
+| 可演示内容 | 整理普通 Chat、饮食记录确认写入、Agent 餐食计划、SQL 只读分析、RAG 引用、记忆冲突与临时要求 6 条演示脚本；每条脚本给出观察点和代码/执行记录证据路径。 |
+| 追问准备 | 收录 48 个按架构、异步一致性、写入幂等、SSE、RAG、SQL Agent、记忆和工程取舍分类的追问与回答口径；明确不能宣称 exactly-once、生产高可用或容量 SLO。 |
+| 业务证据 | 文档引用当前 D174 真实 WHO Embedding/Milvus/Chat 业务闭环、D180 记忆自然表达测试和现有 Java/前端业务证据；未新增外部服务调用。 |
+| 验证与边界 | 文档改动执行 `git diff --check`；不新增数据库、Redis、RocketMQ、Milvus、MinIO 或云服务操作，也不执行性能、长稳、依赖重启、ACK/重复投递故障注入、备份恢复或生产发布验证。 |
+| Git | 本轮面试资料、README 链接、路线图、非生产计划和执行记录作为一个文档大点提交，提交信息使用 `docs(interview): 补充秋招项目面试资料`。 |
+
+## D182 非生产业务集中门禁与计划收口（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 执行时间 | 2026-09-11；本轮收口复核时间 `21:28`（Asia/Shanghai）。 |
+| 执行环境 | Windows 工作区 `D:\\develop\\FoodMate`；分支 `codex/feat-non-production-business`；Java 21、项目 Python `.venv`、前端 Node/npm；未执行数据清理、迁移、TRUNCATE 或备份恢复。 |
+| Java 业务门禁 | 执行 `.\\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am test`：Shared `12/12`、Application `257/257`、Infrastructure `119/119`（条件跳过 `20`）、API `72/72`；失败/错误 `0`，Maven `BUILD SUCCESS`。 |
+| Java verify 复核 | 追加执行 `.\\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am verify`；Shared 测试通过，Application 测试 `257/257` 通过，但 Spotless 在 Application 阶段发现当前仓库既有 `21` 个格式问题，reactor 未继续执行 Infrastructure/API，因此本次 `verify` 为失败。未运行 `spotless:apply`，不扩大本轮改动范围。 |
+| Python 业务门禁 | 使用 `agent-runtime\\.venv\\Scripts\\python.exe -B -m pytest -q -p no:cacheprovider` 执行全量回归：`247 passed、2 skipped、9 subtests passed`；未调用真实 Chat/Embedding。 |
+| 前端业务门禁 | 执行 `npm.cmd test -- --maxWorkers=1`：`46` 个测试文件、`306/306` 通过；`npm.cmd run typecheck` 和 `npm.cmd run build` 通过，Vite 转换 `2018` 个模块。 |
+| 业务范围 | 覆盖 M1-5 饮食记录/营养/餐食计划/写确认，M2-1 公共知识库 RAG，M2-2 只读 SQL Agent，M2-3 管理核心，M3 可审计治理，以及 Agent 运行轨迹、记忆自然表达和前端确认交互。 |
+| 计划结论 | 非生产业务能力的集中代码与业务门禁收口；相关文档已同步 README、路线图、TODO、架构、后端现状、测试策略和本计划。 |
+| 明确后置 | 吞吐/延迟/积压/长稳、Java/Python/PostgreSQL/Redis/RocketMQ 完整重启矩阵、Outbox/Inbox ACK 丢失与重复投递故障注入、生产容量、备份恢复、Kubernetes、staging/production、发布回滚和生产运维治理均未纳入本轮完成条件。 |
+| Git 边界 | 仅提交本轮 K8 文档收口文件；工作区既有 `.tmp-avatar-check/` 和前端 `.qa/` 截图不纳入提交。 |
+
+## D183 Java 格式与 Alibaba 规范门禁收口（2026-09-11）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Java 21；未修改数据库、Redis、RocketMQ、Milvus 或 MinIO 数据。 |
+| 代码范围 | 使用项目现有 Spotless 统一修复 Application `21` 个、Infrastructure `7` 个、API `10` 个 Java 文件的格式问题；仅涉及 import、换行、缩进和排版，不改变业务语句。 |
+| Java 业务验证 | `.\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am verify`：Shared `12/12`、Application `257/257`、Infrastructure `119/119`（条件跳过 `20`）、API `72/72`；失败/错误 `0`，Maven `BUILD SUCCESS`，Spotless 全部 clean。 |
+| Alibaba 规范验证 | `.\mvnw.cmd -B -ntp -Palibaba-code-style -DskipTests verify`：根项目及五个 Java 模块构建成功，Checkstyle 均为 `0 violations`，Spotless clean，Bootstrap repackage 通过。 |
+| 业务与安全边界 | 本轮未新增业务逻辑、外部调用或测试数据；未执行性能压测、长稳、组件重启、ACK/重复投递故障注入、备份恢复、Kubernetes、生产部署或发布回滚。 |
+| Git | 待提交内容仅包含本次 Java 格式修复和对应文档；工作区其他前端/Figma 文档改动、临时目录与截图不纳入本提交。 |

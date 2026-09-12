@@ -708,7 +708,30 @@ _MEMORY_BLOCKED_TERMS = (
     "prescription",
     "medication",
 )
-_MEMORY_ONE_SHOT_TERMS = ("今天", "这次", "一次", "本周", "当前", "现在")
+_MEMORY_ONE_SHOT_TERMS = (
+    "今天",
+    "这次",
+    "本次",
+    "一次",
+    "本周",
+    "这周",
+    "今晚",
+    "明天",
+    "昨天",
+    "当前",
+    "现在",
+)
+_MEMORY_STABLE_MARKERS = (
+    "通常",
+    "一般",
+    "平时",
+    "一直",
+    "长期",
+    "我的",
+    "之后",
+    "以后",
+    "今后",
+)
 
 
 def _memory_source_ids(context: Context, content: str) -> list[str]:
@@ -737,7 +760,7 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
         return []
     lower = text.lower()
     if any(term in lower for term in _MEMORY_ONE_SHOT_TERMS) and not any(
-        marker in lower for marker in ("通常", "一般", "一直", "长期", "我的", "我喜欢", "我不吃", "我偏好")
+        marker in lower for marker in _MEMORY_STABLE_MARKERS
     ):
         return []
     if any(term in lower for term in _MEMORY_BLOCKED_TERMS):
@@ -767,7 +790,7 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
         )
 
     preference = re.search(
-        r"(?:我(?:比较)?喜欢|我偏好|我更喜欢|我爱吃|I\s+(?:like|prefer))\s*([^，。；;\n]{1,80})",
+        r"(?:我(?:比较)?喜欢|我偏好|我更喜欢|我更倾向于|我倾向于|我爱吃|I\s+(?:like|prefer))\s*([^，。；;\n]{1,80})",
         text,
         re.IGNORECASE,
     )
@@ -775,7 +798,7 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
         add("preference", "diet_style", {"preference": _memory_value(preference.group(1))})
 
     avoid = re.search(
-        r"(?:我不吃|我不喜欢|我忌口|我避免|我不想吃|I\s+(?:don't eat|avoid|dislike))\s*([^，。；;\n]{1,80})",
+        r"(?:我不太喜欢|我不喜欢|我不吃|我忌口|我避免|我不想吃|我不太想吃|I\s+(?:don't eat|avoid|dislike))\s*([^，。；;\n]{1,80})",
         text,
         re.IGNORECASE,
     )
@@ -783,14 +806,25 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
         add("constraint", "avoid_foods", {"foods": _memory_value(avoid.group(1))})
 
     budget = re.search(
-        r"(?:我的|每天的|每餐的)?预算(?:是|为|控制在)?\s*((?:每天|每餐)?\s*[0-9]{1,5}\s*(?:元|块)?(?:每天|/天|每餐|/餐)?)",
+        r"(?:我的|每天的|每餐的)?预算|每(?:天|餐)预算",
         text,
         re.IGNORECASE,
     )
     if budget:
-        value = _memory_value(budget.group(1))
-        key = "meal_budget" if any(term in text for term in ("每餐", "/餐")) else "daily_budget"
-        add("budget_habit", key, {"amount": value})
+        budget_detail = re.search(
+            r"(?:预算|每(?:天|餐)预算)"
+            r"\s*(?:(?:是|为|控制在|不超过|不高于|不多于)\s*)?"
+            r"(?:(?:每天|每餐)\s*)?"
+            r"(?:(?:是|为|控制在|不超过|不高于|不多于)\s*)?"
+            r"([0-9]{1,5}\s*(?:元|块)?)"
+            r"(?:\s*(?:以内|内|每天|每餐|/天|/餐))?",
+            text,
+            re.IGNORECASE,
+        )
+        if budget_detail:
+            value = _memory_value(budget_detail.group(1))
+            key = "meal_budget" if any(term in text for term in ("每餐", "/餐")) else "daily_budget"
+            add("budget_habit", key, {"amount": value})
 
     cooking = re.search(
         r"(?:我不会做饭|我不太会做饭|我(?:只)?会做|我的烹饪能力是)\s*([^，。；;\n]{0,80})",
@@ -810,12 +844,21 @@ def generate_memory_candidates(context: Context, content: str, max_candidates: i
         add("time_habit", "meal_time", {"description": _memory_value(meal_time.group(1))})
 
     interaction = re.search(
-        r"(?:以后|平时)?(?:回答|交流)(?:请|尽量)?\s*(简洁|详细|使用中文|用中文|分点|表格)",
+        r"(?:之后|以后|今后)?\s*(?:请)?\s*(用中文|使用中文)(?:回答|交流)?",
         text,
         re.IGNORECASE,
     )
     if interaction:
-        add("interaction_preference", "response_style", {"style": _memory_value(interaction.group(1))})
+        style = interaction.group(1)
+    else:
+        interaction = re.search(
+            r"(?:以后|平时)?(?:回答|交流)(?:请|尽量)?\s*(简洁|详细|使用中文|用中文|分点|表格)",
+            text,
+            re.IGNORECASE,
+        )
+        style = interaction.group(1) if interaction else None
+    if style:
+        add("interaction_preference", "response_style", {"style": _memory_value(style)})
     return candidates
 
 

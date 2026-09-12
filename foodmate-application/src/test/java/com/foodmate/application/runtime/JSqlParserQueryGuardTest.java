@@ -164,7 +164,8 @@ class JSqlParserQueryGuardTest {
                         "SELECT i.raw_name AS food_name, COUNT(i.food_log_item_id) AS occurrence_count FROM food_logs f JOIN food_log_items i ON i.food_log_id = f.food_log_id WHERE f.meal_time >= CURRENT_TIMESTAMP - INTERVAL '7 days' AND i.raw_name = '鸡胸肉' GROUP BY i.raw_name ORDER BY COUNT(i.food_log_item_id) DESC LIMIT 500",
                         "SELECT meal_plan_id, plan_name, days, status FROM meal_plans LIMIT 500")) {
             SqlQueryGuard.GuardedQuery query = guard.guard(sql, catalogWithCoreAnalysis(), 42L);
-            org.junit.jupiter.api.Assertions.assertTrue(query.statement().contains("is_deleted = false"));
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    query.statement().contains("is_deleted = false"));
             org.junit.jupiter.api.Assertions.assertTrue(query.parameters().contains(42L));
         }
     }
@@ -173,7 +174,7 @@ class JSqlParserQueryGuardTest {
     void acceptsExecutionProgressTemplatesAndPreservesPlansWithoutChildRows() {
         String completionSql =
                 "SELECT p.meal_plan_id, p.plan_name, COUNT(DISTINCT m.meal_plan_meal_id) AS executable_meal_count, "
-                + "COUNT(DISTINCT f.meal_plan_meal_id) AS completed_meal_count, "
+                        + "COUNT(DISTINCT f.meal_plan_meal_id) AS completed_meal_count, "
                         + "CASE WHEN COUNT(DISTINCT m.meal_plan_meal_id) = 0 THEN 0.0 ELSE "
                         + "COUNT(DISTINCT f.meal_plan_meal_id) * 1.0 / COUNT(DISTINCT m.meal_plan_meal_id) END "
                         + "AS completion_ratio FROM meal_plans p "
@@ -200,10 +201,8 @@ class JSqlParserQueryGuardTest {
         SqlQueryGuard.GuardedQuery shopping =
                 guard.guard(shoppingSql, catalogWithExecutionAnalysis(), 42L);
         assertEquals(List.of(42L, 42L), shopping.parameters());
-        org.junit.jupiter.api.Assertions.assertTrue(
-                shopping.statement().contains("i.user_id = ?"));
-        org.junit.jupiter.api.Assertions.assertTrue(
-                shopping.statement().contains("s.user_id = ?"));
+        org.junit.jupiter.api.Assertions.assertTrue(shopping.statement().contains("i.user_id = ?"));
+        org.junit.jupiter.api.Assertions.assertTrue(shopping.statement().contains("s.user_id = ?"));
     }
 
     private static CatalogView catalog() {

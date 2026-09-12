@@ -10,10 +10,9 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.food.service.MealPlanService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-
+import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,8 +24,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /** 餐食计划和购物清单接口。 */
 @RestController

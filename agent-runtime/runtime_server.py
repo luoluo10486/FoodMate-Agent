@@ -626,6 +626,7 @@ def execute(command):
                 time.sleep(pause_after_checkpoint)
             results = []
             for proposal in execution.proposals:
+                tool_started_at = time.monotonic()
                 # Tool 的开始/结束事实和 checkpoint 同属运行轨迹，保证 Java 能看见
                 # Python 等待外部 Tool 的边界；事件只携带标识和结果状态，不回传 SQL 原文。
                 emit(command, prefix + "-tool-started-" + str(proposal["proposal_id"]), next_sequence,
@@ -633,6 +634,7 @@ def execute(command):
                          "proposal_id": proposal["proposal_id"],
                          "invocation_id": proposal.get("payload", {}).get("invocation_id"),
                          "tool_type": proposal.get("proposal_type"),
+                         "tool_name": proposal.get("tool_name"),
                      })
                 next_sequence += 1
                 _proposal_publisher.publish(proposal)
@@ -646,8 +648,10 @@ def execute(command):
                      "run.tool_finished", {
                          "proposal_id": proposal["proposal_id"],
                          "invocation_id": proposal.get("payload", {}).get("invocation_id"),
+                         "tool_name": result.get("tool_name") or proposal.get("tool_name"),
                          "status": result.get("status"),
                          "error_code": result.get("error_code"),
+                         "latency_ms": int((time.monotonic() - tool_started_at) * 1000),
                      })
                 next_sequence += 1
             all_results.extend(results)

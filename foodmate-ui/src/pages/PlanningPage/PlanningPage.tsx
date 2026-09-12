@@ -8,7 +8,6 @@ import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import type { SessionSummary } from '../../types/session';
 import {
-  createMealPlan,
   loadMealPlans,
   loadShoppingList,
   updateShoppingItemPurchased,
@@ -17,6 +16,7 @@ import {
   type MealPlanDraft,
   type ShoppingList,
 } from '../../services/planningService';
+import { createSession, sendUserMessage } from '../../services/sessionService';
 import { MealPlanningFlow, type MealPlanningFlowView } from './MealPlanningFlow';
 import styles from './PlanningPage.module.css';
 
@@ -46,12 +46,50 @@ const initialMealPlanDraft: MealPlanDraft = {
   planName: '我的本地餐食计划',
   startDate: '2026-08-24',
   endDate: '2026-08-30',
+  people: '1',
   calories: '2200',
   protein: '130',
   budget: '120',
   allergens: [],
   dislikes: [],
 };
+
+function planDaysBetween(startDate: string, endDate: string) {
+  const start = Date.parse(`${startDate}T00:00:00Z`);
+  const end = Date.parse(`${endDate}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return 1;
+  return Math.min(7, Math.max(1, Math.floor((end - start) / 86_400_000) + 1));
+}
+
+function promptValue(value: string, fallback: string) {
+  const normalized = value.trim();
+  return normalized || fallback;
+}
+
+function buildMealPlanPrompt(draft: MealPlanDraft) {
+  const allergens = draft.allergens.length ? draft.allergens.join('、') : '无';
+  const dislikes = draft.dislikes.length ? draft.dislikes.join('、') : '无';
+  const days = planDaysBetween(draft.startDate, draft.endDate);
+
+  return [
+    '请根据下面的结构化约束生成一份餐食计划候选。',
+    '',
+    `计划名称：${promptValue(draft.planName, '我的餐食计划')}`,
+    `规划日期：${promptValue(draft.startDate, '未设置')} 至 ${promptValue(draft.endDate, '未设置')}（共 ${days} 天）`,
+    `用餐人数：${promptValue(draft.people, '1')} 人`,
+    `每日能量目标：${promptValue(draft.calories, '未设置')} kcal`,
+    `每日蛋白质目标：${promptValue(draft.protein, '未设置')} g`,
+    `每日预算：${promptValue(draft.budget, '未设置')} 元`,
+    `过敏源：${allergens}`,
+    `忌口：${dislikes}`,
+    '',
+    '处理要求：',
+    '1. 先生成候选计划，并说明每日餐次、食材、用量和营养估算。',
+    '2. 必须先通过 plan_validator 校验目标、人数、日期和饮食约束，再进入写入确认。',
+    '3. 等待用户确认后才能调用 meal_plan.save_plan；在确认前不得声称计划已保存。',
+    '4. 如果约束无法同时满足，明确指出冲突并给出可选择的调整方案，不要擅自放宽约束。',
+  ].join('\n');
+}
 
 function objectValue(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
@@ -628,8 +666,7 @@ export function PlanningPage() {
     };
   }, [isRealMode, selectedPlan]);
   const isFigmaFixture = !isRealMode && (requestedView === 'v2' || view !== 'default');
-  // 错误态画板不包含会话搜索和历史列表，避免把默认工作台壳层带入状态稿。
-  const isPlanningErrorFixture = isFigmaFixture && view === 'error';
+  // 所有 Figma fixture 状态页都复用完整工作区侧栏，保证状态切换不改变壳层结构。
 
   const navigatePlanningView = (nextView: MealPlanningFlowView | 'default') => {
     navigate(nextView === 'default' ? '/planning' : `/planning?state=${nextView}`);
@@ -647,9 +684,9 @@ export function PlanningPage() {
     setCreatingPlan(true);
     setCreatePlanError(undefined);
     try {
-      const created = await createMealPlan(realDraft);
-      setRealPlans((current) => [created, ...current.filter((plan) => plan.meal_plan_id !== created.meal_plan_id)]);
-      navigate(`/planning?planId=${encodeURIComponent(created.meal_plan_id)}`);
+      const session = await createSession(realDraft.planName.trim() || '餐食计划生成');
+      await sendUserMessage(session.session_id, buildMealPlanPrompt(realDraft));
+      navigate(`/chat/${encodeURIComponent(session.session_id)}`);
     } catch (error: unknown) {
       setCreatePlanError(error instanceof Error ? error.message : '计划创建失败，请检查参数后重试');
     } finally {
@@ -742,13 +779,10 @@ export function PlanningPage() {
       sidebarAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.sidebar : undefined}
       topAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.topbar : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
-      hideSessionHistory={isPlanningErrorFixture}
       sidebarFixture={
         isFigmaFixture
           ? {
               sessions: figmaSidebarSessions,
-              hideSessionSearch: isPlanningErrorFixture,
-              hideSessionPagination: isPlanningErrorFixture,
             }
           : undefined
       }

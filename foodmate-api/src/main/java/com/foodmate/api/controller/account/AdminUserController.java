@@ -1,8 +1,8 @@
 package com.foodmate.api.controller.account;
 
 import com.foodmate.api.response.account.AdminUserDetailResponse;
-import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.account.service.AdminOperationalQueryService;
+import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.shared.account.enums.UserRole;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
@@ -24,8 +24,7 @@ public class AdminUserController extends AuthenticatedControllerSupport {
     }
 
     @org.springframework.beans.factory.annotation.Autowired
-    public AdminUserController(
-            UserAccountService accounts, AdminOperationalQueryService queries) {
+    public AdminUserController(UserAccountService accounts, AdminOperationalQueryService queries) {
         super(accounts);
         this.queries = queries;
     }

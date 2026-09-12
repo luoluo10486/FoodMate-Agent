@@ -29,6 +29,11 @@
   box-shadow: 0 4px 6px rgba(51, 51, 51, 0.04);
 }
 
+/* Figma Home 的输入层与外层 Composer 共用白色表面，不叠加 shadcn 默认背景。 */
+.figmaHomePage .taskInput {
+  background: transparent;
+}
+
 .figmaHomePage .attachmentButton {
   width: 20px;
   height: 20px;
@@ -146,6 +151,28 @@
   border-color: var(--fm-fixture-home-border);
   border-radius: 16px;
   background: var(--fm-fixture-home-surface);
+}
+
+/* Figma Home 指标卡的文字层级与数值单位间距。 */
+.figmaHomePage .metricLabel {
+  font-size: var(--fm-figma-home-metric-label-size);
+  font-weight: 700;
+}
+
+.figmaHomePage .metricCard small {
+  margin-left: var(--fm-figma-home-metric-unit-gap);
+  font-size: var(--fm-figma-home-metric-unit-size);
+}
+
+/* Figma Home 两个信息面板的标题和辅助文字均比通用卡片字号更大一档。 */
+.figmaHomePage .sessionCard strong,
+.figmaHomePage .pendingCard strong {
+  font-size: var(--fm-figma-home-card-title-size);
+}
+
+.figmaHomePage .sessionCard small,
+.figmaHomePage .pendingCard small {
+  font-size: var(--fm-figma-home-card-copy-size);
 }
 
 .figmaHomePage .panel {
@@ -609,7 +636,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 7px;
-  margin-top: 24px;
+  margin-top: var(--fm-figma-task-panel-offset);
   padding: 14px 20px;
   border-color: var(--fm-figma-task-panel-border);
   border-radius: 14px;

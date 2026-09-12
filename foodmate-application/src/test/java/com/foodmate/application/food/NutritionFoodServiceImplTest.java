@@ -31,11 +31,24 @@ class NutritionFoodServiceImplTest {
     }
 
     @Test
+    void removesCompoundCookingPrefixBeforeSearching() {
+        FoodLogRepository repository = mock(FoodLogRepository.class);
+        when(repository.findNutritionFoodCandidates("鸡胸肉", 8)).thenReturn(List.of());
+        NutritionFoodService service = new NutritionFoodServiceImpl(repository);
+
+        service.search("煮熟 鸡胸肉", 8);
+
+        verify(repository).findNutritionFoodCandidates("鸡胸肉", 8);
+    }
+
+    @Test
     void rejectsBlankOrOutOfRangeSearch() {
         NutritionFoodService service = new NutritionFoodServiceImpl(mock(FoodLogRepository.class));
 
-        BusinessException blank = assertThrows(BusinessException.class, () -> service.search(" ", 8));
-        BusinessException limit = assertThrows(BusinessException.class, () -> service.search("燕麦", 13));
+        BusinessException blank =
+                assertThrows(BusinessException.class, () -> service.search(" ", 8));
+        BusinessException limit =
+                assertThrows(BusinessException.class, () -> service.search("燕麦", 13));
 
         assertEquals(ErrorCode.INVALID_ARGUMENT, blank.errorCode());
         assertEquals(ErrorCode.INVALID_ARGUMENT, limit.errorCode());

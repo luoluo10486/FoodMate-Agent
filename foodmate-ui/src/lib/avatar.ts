@@ -1,10 +1,10 @@
-export const DEFAULT_AVATARS = {
+export const DEFAULT_AVATARS = Object.freeze({
   male: '/assets/avatars/default-male.svg',
   female: '/assets/avatars/default-female.svg',
-} as const;
+} as const);
 
 /** 运行时默认头像白名单，所有 Fixture 人物头像必须从这里选择。 */
-export const REGISTERED_DEFAULT_AVATARS = Object.values(DEFAULT_AVATARS);
+export const REGISTERED_DEFAULT_AVATARS = Object.freeze([DEFAULT_AVATARS.male, DEFAULT_AVATARS.female]);
 
 export type AvatarSourceKind = 'default-male' | 'default-female' | 'uploaded';
 
@@ -33,17 +33,17 @@ export const FIXTURE_ADMIN_AVATARS = {
   userDetail: DEFAULT_AVATARS.male,
 } as const;
 
-// Chat 默认 Figma fixture 的账号使用男性示例，默认用户消息按 Figma 640:428 使用女性头像。
+// Chat 默认 Figma fixture 的账号使用男性示例，工作区和用户消息统一使用同一头像。
 export const FIXTURE_CHAT_AVATARS = {
   sidebar: DEFAULT_AVATARS.male,
   topbar: DEFAULT_AVATARS.male,
-  message: DEFAULT_AVATARS.female,
+  message: DEFAULT_AVATARS.male,
   // 六个 Agent 状态画板的普通用户消息继续使用男性示例头像。
   agentStateMessage: DEFAULT_AVATARS.male,
 } as const;
 
 export const FIXTURE_CHAT_AVATAR_GENDERS = {
-  defaultMessage: '女',
+  defaultMessage: '男',
   agentStateMessage: '男',
   safetyDegradedMessage: '女',
 } as const;
@@ -51,7 +51,6 @@ export const FIXTURE_CHAT_AVATAR_GENDERS = {
 // 历史 Figma 导出的人物素材只用于设计证据，运行时不允许再次作为头像来源。
 // 头像参数只要来自 Figma 资源域或本地 Figma 资源目录，就统一回退到登记的默认 SVG。
 const legacyFigmaAvatarPattern = /(?:\/assets\/figma\/|figma\.com\/api\/mcp\/asset\/)/i;
-const uploadedAvatarPathPattern = /^\/api\/users\/me\/avatar(?:[/?#]|$)/i;
 const localPreviewPattern = /^blob:/i;
 
 function isLegacyFigmaAvatarUrl(value: string): boolean {
@@ -71,19 +70,25 @@ function isLegacyFigmaAvatarUrl(value: string): boolean {
   return legacyFigmaAvatarPattern.test(decoded);
 }
 
-/** 只接受后端头像接口和浏览器本地预览作为用户主动上传头像。 */
-function isTrustedUploadedAvatarUrl(value: string): boolean {
-  return uploadedAvatarPathPattern.test(value) || localPreviewPattern.test(value);
+/** 只接受用户刚选择图片后生成的浏览器临时预览，不直接展示持久化头像地址。 */
+function isTemporaryUploadedAvatarUrl(value: string): boolean {
+  return localPreviewPattern.test(value);
 }
 
 export function isRegisteredDefaultAvatar(value: string): boolean {
   return REGISTERED_DEFAULT_AVATARS.includes(value as (typeof REGISTERED_DEFAULT_AVATARS)[number]);
 }
 
+/** 运行时只允许登记的默认 SVG 或主动上传生成的临时预览进入头像组件。 */
+export function isAllowedAvatarRuntimeSource(value: string): boolean {
+  return isRegisteredDefaultAvatar(value) || isTemporaryUploadedAvatarUrl(value);
+}
+
 export function getAvatarSourceKind(value: string): AvatarSourceKind {
   if (value === DEFAULT_AVATARS.female) return 'default-female';
   if (value === DEFAULT_AVATARS.male) return 'default-male';
-  return 'uploaded';
+  if (isTemporaryUploadedAvatarUrl(value)) return 'uploaded';
+  return 'default-male';
 }
 
 export function getDefaultAvatarForGender(gender?: string): string | undefined {
@@ -99,7 +104,7 @@ export function resolveAvatarUrl(avatarUrl?: string, gender?: string): string {
   if (!candidate) return genderDefault;
   // 历史缓存可能保留另一性别的默认 SVG，读取时必须按当前性别重新归一化。
   if (isRegisteredDefaultAvatar(candidate)) return genderDefault;
-  if (!isLegacyFigmaAvatarUrl(candidate) && isTrustedUploadedAvatarUrl(candidate)) return candidate;
-  // 未登记的历史人物素材、外部图片和旧缓存都不能作为默认头像继续展示。
+  if (!isLegacyFigmaAvatarUrl(candidate) && isTemporaryUploadedAvatarUrl(candidate)) return candidate;
+  // 未登记的历史人物素材、持久化头像地址、外部图片和旧缓存都不能作为默认头像继续展示。
   return genderDefault;
 }

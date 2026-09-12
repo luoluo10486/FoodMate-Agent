@@ -24,6 +24,11 @@
   clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
+/* Figma 登录节点的斜线顶部交点超出视口约 8px，仅覆盖 Login 页面。 */
+.authPage-login .authDiagonal {
+  clip-path: polygon(0 0, calc(100% + 8px) 0, 0 100%);
+}
+
 .authPage-register .authDiagonal,
 .authPage-token .authDiagonal {
   background: var(--auth-diagonal);
@@ -109,6 +114,16 @@
   border-radius: 10px;
   background: var(--fm-color-success);
   color: var(--fm-auth-action-text);
+}
+
+/* Figma 登录反馈态的品牌标记使用浅绿色，主操作按钮继续使用独立的深绿色 Token。 */
+.authPageLoginSubmitting .loginMark,
+.authPageLoginFieldError .loginMark,
+.authPageLoginCredentialError .loginMark,
+.authPageLoginAccountLocked .loginMark,
+.authPageLoginAccountDisabled .loginMark,
+.authPageLoginServiceUnavailable .loginMark {
+  background: var(--fm-auth-state-brand);
 }
 
 .loginMark img {
@@ -301,7 +316,8 @@
   border-color: var(--fm-auth-error) !important;
 }
 
-.authPageLoginFieldError .primaryAction {
+.authPageLoginFieldError .primaryAction,
+.authPageLoginCredentialError .primaryAction {
   border-color: var(--fm-auth-success-action);
   background: var(--fm-auth-success-action);
   box-shadow: var(--fm-auth-success-shadow);

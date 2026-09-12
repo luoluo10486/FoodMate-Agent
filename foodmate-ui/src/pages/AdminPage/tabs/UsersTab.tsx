@@ -660,6 +660,7 @@ function UserDetailCard({
         <div className={styles.userDetailAvatar} aria-hidden="true">
           <AvatarImage
             avatarUrl={avatarSource}
+            allowUploaded={!isFixtureUser}
             defaultOnly={isFixtureUser}
             gender={profile?.gender || user.gender}
             alt=""

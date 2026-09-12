@@ -15,6 +15,11 @@
   background: var(--fm-surface);
 }
 
+/* Knowledge 默认态对应 Figma 795:838 的全宽顶栏布局，右侧引用栏固定 340px。 */
+.defaultFixture {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
 .resultsPanel {
   display: flex;
   min-width: 0;
@@ -183,8 +188,8 @@
   padding: 4px 10px;
   border: 0;
   border-radius: 6px;
-  background: rgba(236, 204, 255, 0.08);
-  color: #b58cc4;
+  background: var(--fm-knowledge-match-surface);
+  color: var(--fm-color-purple);
   font-family: var(--fm-font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -229,18 +234,18 @@
 }
 
 .source-blue {
-  background: rgba(128, 224, 230, 0.08);
-  color: #5da9b2;
+  background: var(--fm-knowledge-source-info-surface);
+  color: var(--fm-color-info);
 }
 
 .source-green {
-  background: rgba(166, 217, 151, 0.08);
-  color: #89b27c;
+  background: var(--fm-knowledge-source-success-surface);
+  color: var(--fm-color-success-strong);
 }
 
 .source-purple {
-  background: rgba(236, 204, 255, 0.08);
-  color: #b58cc4;
+  background: var(--fm-knowledge-match-surface);
+  color: var(--fm-color-purple);
 }
 
 .resultActions {
@@ -287,7 +292,7 @@
 
 .askButton:hover,
 .askButton:focus-visible {
-  background: #98cd89;
+  background: var(--fm-knowledge-action-hover);
   color: var(--fm-ink);
 }
 
@@ -369,9 +374,9 @@
   margin: 0;
   padding: 4px 12px;
   overflow: hidden;
-  border-left: 3px solid #e2e6ec;
+  border-left: 3px solid var(--fm-knowledge-quote-border);
   border-radius: 8px;
-  background: #f8f9fb;
+  background: var(--fm-knowledge-quote-surface);
   color: var(--fm-muted);
   font-family: var(--fm-font-mono);
   font-size: 13px;
@@ -388,13 +393,13 @@
   align-items: center;
   gap: 4px;
   padding: 0;
-  color: #5da9b2;
+  color: var(--fm-color-info);
   font-size: 14px;
   font-weight: 700;
 }
 
 .sourceLink:hover {
-  color: #5da9b2;
+  color: var(--fm-color-info);
 }
 
 .sourceLink svg {
@@ -477,7 +482,7 @@
   bottom: 0;
   left: 260px;
   overflow: auto;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--fm-knowledge-state-overlay);
 }
 
 .stateCard {
@@ -489,9 +494,9 @@
   box-sizing: border-box;
   padding: 0;
   overflow: hidden;
-  border: 1px solid rgba(199, 150, 84, 0.34);
+  border: 1px solid var(--fm-knowledge-state-border);
   border-radius: 18px;
-  background: var(--fm-bg-soft);
+  background: var(--fm-knowledge-state-surface);
   box-shadow: 0 8px 22px rgb(26 33 46 / 12%);
   transform: translateX(-50%);
 }
@@ -503,7 +508,7 @@
   left: -1px;
   width: 6px;
   border-radius: 4px;
-  background: rgba(199, 150, 84, 0.9);
+  background: var(--fm-knowledge-state-accent);
   content: '';
 }
 
@@ -517,7 +522,7 @@
   box-sizing: border-box;
   padding: 4px 8px;
   border-radius: 12px;
-  background: #fff8e5;
+  background: var(--fm-knowledge-state-status-surface);
   color: var(--fm-orange);
   font-family: var(--fm-font);
   font-size: 11px;
@@ -601,32 +606,32 @@
 }
 
 .state-search-failed .stateCard {
-  border-color: rgba(214, 118, 118, 0.34);
+  border-color: var(--fm-knowledge-state-danger-border);
   border-radius: 18px;
-  background: #f4f6f5;
+  background: var(--fm-knowledge-state-surface);
 }
 
 .state-search-failed .stateCard::before {
-  background: rgba(214, 118, 118, 0.9);
+  background: var(--fm-knowledge-state-danger-accent);
 }
 
 .state-source-unavailable .stateCard::before {
-  background: rgba(199, 150, 84, 0.9);
+  background: var(--fm-knowledge-state-accent);
 }
 
 .state-source-unavailable .stateStatus {
-  background: #fff8e5;
+  background: var(--fm-knowledge-state-status-surface);
   color: var(--fm-orange);
 }
 
 .state-search-failed .stateStatus {
-  background: #ffedeb;
-  color: #d67676;
+  background: var(--fm-knowledge-state-danger-surface);
+  color: var(--fm-color-danger-strong);
 }
 
 .state-search-failed .stateCard h2 {
   top: 43px;
-  color: #d67676;
+  color: var(--fm-color-danger-strong);
 }
 
 .state-search-failed .stateCard p {
@@ -654,9 +659,9 @@
 }
 
 .state-source-unavailable .stateCard {
-  border-color: rgba(199, 150, 84, 0.34);
+  border-color: var(--fm-knowledge-state-border);
   border-radius: 18px;
-  background: #f4f6f5;
+  background: var(--fm-knowledge-state-surface);
 }
 
 .state-source-unavailable .stateCard h2 {
@@ -670,6 +675,10 @@
 
 @media (max-width: 1120px) {
   .page {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .defaultFixture {
     grid-template-columns: minmax(0, 1fr) 300px;
   }
 

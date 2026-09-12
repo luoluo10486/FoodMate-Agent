@@ -4,7 +4,7 @@
 
 本文定义 FoodMate 从当前工程状态走向可正式交付产品的总待办清单。它明确产品边界、阶段目标、依赖、风险和完成门槛；具体框架、库、表字段和接口细节以实施时评审为准。
 
-## 当前复核状态（2026-09-08）
+## 当前复核状态（2026-09-11）
 
 > 本节覆盖下方历史复核记录。完成状态必须以实际测试证据判断，不能由设计或单元测试替代。
 
@@ -34,15 +34,28 @@
 - [x] M2-1/M2-2/M2-3 业务范围已完成：公共知识库真实 Embedding/Milvus 上传/索引/发布/检索/引用、真实云只读 SQL Agent、多数核心管理查询/写操作/模型治理和受控脱敏导出均已有代码与业务证据；性能、长稳和故障验证不属于当前完成门槛。
 - [x] M3 业务治理代码切片已完成：运营审计快照、DLQ 安全摘要/人工重放契约、保留策略、legal hold、审批、对象/向量清理、失败补偿和受控数据库清理已具备定向业务测试；`hard_delete_enabled=false` 默认关闭。
 
-### 当前前端业务复核（2026-09-06）
+### 当前前端业务复核（2026-09-11）
 
 - [x] 管理端真实模式已收口工具注册表、工具调用、用户详情、知识库批次和运行治理的真实数据路径，覆盖加载中、空数据、错误和重试；真实接口失败不会回退到 fixture。
 - [x] 聊天页真实模式已展示 `run.completed.citations`，并保留 SSE `Last-Event-ID` 去重恢复；知识库批次上传、进度恢复、失败重试、发布/下线/恢复和软删除继续由真实 API 驱动。
-- [x] 前端集中业务复核：`npm.cmd test -- --maxWorkers=1` 为 `43/43` 测试文件、`264/264` 测试通过；`npm.cmd run build` 通过。
+- [x] 前端集中业务复核：`npm.cmd test -- --maxWorkers=1` 为 `46/46` 测试文件、`306/306` 测试通过；`npm.cmd run typecheck` 和 `npm.cmd run build` 通过。
 - [ ] 本项不包含性能压测、长稳、依赖故障矩阵、生产部署、备份恢复、Kubernetes 或发布回滚。
 - [ ] M3 真实生产依赖清理、数据库不可逆硬删除、生产压测、漏洞扫描、密钥轮换、渗透测试、发布回滚和生产告警仍未完成；本地隔离 PostgreSQL 硬删除和 Docker 备份恢复已有证据，但不得替代生产演练。
 
 本文不替代现有 ADR、外部 API 契约、Java/Python 内部契约和数据库设计。发生冲突时，优先级为：实际代码与测试事实 > ADR/契约 > 本 TODO > 其他设计文档。
+
+### D182 集中业务门禁（2026-09-11）
+
+- Java：执行 `mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am test`，Shared `12`、Application `257`、Infrastructure `119`（条件跳过 `20`）、API `72`，失败/错误为 `0`，Maven `BUILD SUCCESS`。
+- Python：D180 后已执行项目 `.venv` 全量 pytest，`247 passed、2 skipped、9 subtests passed`；默认离线门禁未调用真实 Chat/Embedding。
+- 前端：执行 `npm.cmd test -- --maxWorkers=1`，`46` 个测试文件、`306 passed`；`npm.cmd run typecheck` 和 `npm.cmd run build` 通过，Vite 转换 `2018` 个模块。
+- 结论：K1-K8 业务范围的当前代码、接口和前端主路径具备集中回归证据；性能、长稳、完整依赖故障矩阵、备份恢复、Kubernetes 和生产发布治理仍保持后置，不能由本门禁推导完成。
+
+### D183 Java 规范收口（2026-09-11）
+
+- [x] 目标 reactor 执行 `.\mvnw.cmd -B -ntp -pl foodmate-application,foodmate-infra,foodmate-api -am verify` 通过；Shared/Application/Infrastructure/API 为 `12/257/119/72`，Infrastructure 条件跳过 `20`，失败/错误 `0`，Spotless clean。
+- [x] 执行 `.\mvnw.cmd -B -ntp -Palibaba-code-style -DskipTests verify` 通过；六个 Maven 模块 Checkstyle 均为 `0 violations`，Bootstrap repackage 通过。
+- [x] 仅统一 Java 格式与规范门禁，不修改业务逻辑；生产级性能、可靠性、运维和部署范围继续后置。
 
 ## 当前执行状态
 

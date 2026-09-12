@@ -617,7 +617,7 @@
   padding: 16px;
   border-radius: 16px 16px 0 16px;
   background: #fff6e2;
-  color: #ffffff;
+  color: var(--fm-ink);
   line-height: 17px;
 }
 
@@ -638,7 +638,8 @@
   --fm-fixture-chat-border: var(--fm-figma-workspace-border);
   --fm-fixture-chat-control-surface: var(--fm-figma-workspace-control-surface);
   --fm-fixture-assistant-surface: var(--fm-fixture-chat-control-surface);
-  --fm-fixture-composer-input-surface: var(--fm-fixture-chat-bg);
+  /* Figma Chat 的底部输入层使用控制面浅灰表面，不能继承页面背景色。 */
+  --fm-fixture-composer-input-surface: var(--fm-fixture-chat-control-surface);
   background: var(--fm-fixture-chat-bg);
 }
 
@@ -665,6 +666,37 @@
   font-family: var(--fm-font);
 }
 
+/* Figma 运行中停止态使用 Space Mono 展示已接收的 Agent 文本。 */
+.runningStopPage .assistant .messageText {
+  font-family: var(--fm-font-mono);
+  line-height: 20px;
+}
+
+.runningStopPage .messages {
+  padding-bottom: 18px;
+}
+
+/* Figma 运行中停止态的底部状态提示固定在消息区底部，避免挤压已接收文本。 */
+.runningStatus {
+  display: flex;
+  width: 220px;
+  height: 34px;
+  flex: 0 0 34px;
+  box-sizing: border-box;
+  align-items: center;
+  align-self: flex-start;
+  margin-top: auto;
+  margin-left: 8px;
+  padding: 0 16px;
+  border: 1px solid #f97316;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
 /* Figma 节点 640:428 的助手内容区固定为 560px，右侧空白属于画板布局。 */
 .figmaDefaultPage .assistantBody {
   width: 560px;
@@ -688,6 +720,11 @@
 .figmaDefaultPage .inlineConfirmation {
   height: 143px;
   border-color: #e8e8e8;
+}
+
+/* Figma 640:428 的消息操作面板与上一条消息之间保留 27px 的垂直节奏。 */
+.figmaDefaultPage .messageActions {
+  margin-top: 3px;
 }
 
 .designTracePanel .traceStepActive {
@@ -736,6 +773,15 @@
   border-radius: 18px;
   overflow: hidden;
   background: var(--fm-color-avatar-surface);
+}
+
+/* Figma 头像容器填充不可见，避免默认头像外再出现一层粉色圆底。 */
+.designChatPage .userAvatar,
+.designChatPage .fixtureUserAvatar,
+.designChatPage .planningUserAvatar,
+.designChatPage .executingUserAvatar,
+.designChatPage .awaitingUserAvatar {
+  background: var(--fm-figma-avatar-surface);
 }
 
 .userAvatar img {
@@ -937,6 +983,13 @@
   border-color: var(--fm-fixture-chat-border);
 }
 
+/* Figma 运行轨迹 Tabs 容器透明，只有当前步骤标签保留浅紫色激活面。 */
+.designTracePanel .traceTabs {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .traceTitle {
   flex: 0 0 auto;
   color: var(--fm-ink);
@@ -974,8 +1027,9 @@
 }
 
 .traceTabs button[data-state='active'] {
-  background: rgba(236, 204, 255, 0.1);
+  background: var(--fm-figma-chat-trace-tab-active-surface);
   color: #b58cc4;
+  box-shadow: none;
 }
 
 .traceBody {
@@ -1365,6 +1419,19 @@
 .fixtureCardWrap {
   width: min(560px, calc(100% - 48px));
   margin-left: 48px;
+}
+
+/* 写入确认态沿用 Figma 的 Agent 状态块、12px 间距和 305px 卡片宽度。 */
+.fixtureWriteRow {
+  display: flex;
+  width: min(608px, 100%);
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fixtureWriteRow .fixtureCardWrap {
+  width: 305px;
+  margin-left: 0;
 }
 
 .fixtureAssistantRow {
@@ -2177,6 +2244,14 @@
 
   .fixtureAssistantRow {
     width: 100%;
+  }
+
+  .fixtureWriteRow {
+    width: 100%;
+  }
+
+  .fixtureWriteRow .fixtureCardWrap {
+    width: calc(100% - 48px);
   }
 
   .fixtureCancelledWrap {

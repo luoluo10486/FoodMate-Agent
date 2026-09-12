@@ -986,6 +986,7 @@ export function AdminPage() {
             <div className={styles.userAvatar}>
               <AvatarImage
                 avatarUrl={adminAvatarSource}
+                allowUploaded={!isMockMode && !requestedFixture}
                 defaultOnly={isMockMode || Boolean(requestedFixture)}
                 gender={adminAvatarGender}
                 alt=""

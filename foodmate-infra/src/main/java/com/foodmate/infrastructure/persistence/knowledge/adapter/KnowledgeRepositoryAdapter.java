@@ -294,16 +294,12 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     @Override
     public int retryItem(long itemId, long jobId, long operatorId, long outboxId, String payload) {
         return enqueueItem(
-                mapper.resetItem(itemId, jobId),
-                itemId,
-                jobId,
-                outboxId,
-                payload,
-                "retry");
+                mapper.resetItem(itemId, jobId), itemId, jobId, outboxId, payload, "retry");
     }
 
     @Override
-    public int reindexItem(long itemId, long jobId, long operatorId, long outboxId, String payload) {
+    public int reindexItem(
+            long itemId, long jobId, long operatorId, long outboxId, String payload) {
         return enqueueItem(
                 mapper.resetItemForReindex(itemId, jobId),
                 itemId,
@@ -314,12 +310,7 @@ public class KnowledgeRepositoryAdapter implements KnowledgeRepository {
     }
 
     private int enqueueItem(
-            int changed,
-            long itemId,
-            long jobId,
-            long outboxId,
-            String payload,
-            String eventName) {
+            int changed, long itemId, long jobId, long outboxId, String payload, String eventName) {
         if (changed == 1) {
             mapper.deleteResultInbox(itemId);
             mapper.insertIndexOutbox(outboxId, itemId, payload);

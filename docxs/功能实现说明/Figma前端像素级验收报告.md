@@ -1,6 +1,365 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-09
+更新时间：2026-09-12
+
+## 1.1.27 2026-09-12 Chat 用户消息可读性与 Fixture 头像一致性修正
+
+本节记录浏览器反馈对应的默认 Chat Figma Fixture 修正。Figma 文件保持只读；本次只修正用户消息正文对比度和默认头像资源一致性，不修改真实模式请求或其它 Agent 状态的独立头像语义。
+
+| 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---|
+| Agent Chat | `640:428` | `/chat?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `7.6942%` | `2.520406` | `16.610552` | `255` | `DIFF_REVIEW` |
+
+- [x] 用户消息气泡保留 Figma 浅黄色背景，正文改用 `--fm-ink`（`#333333`），浏览器截图中不再使用白色正文叠加在浅色气泡上。
+- [x] 默认 Chat Fixture 的侧栏、顶栏和用户消息均使用登记的 `/assets/avatars/default-male.svg`；运行时头像来源一致，未引入外部或历史人物素材。
+- [x] 浏览器 PNG 使用 Chrome `152.0.7977.83`、`1440×1024`、DPR `1` 和已加载字体采集；页面无横向溢出，Figma 与浏览器 PNG 尺寸一致。
+- [x] 独立 diff、105 项聚合结果和运行时复采集路径已同步到 `.qa/figma-pixel-acceptance/`；结构校验结果保持 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [ ] 自动 diff 仍为非零，字体光栅化、图标轮廓和其它局部视觉差异仍存在，不能标记像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.26 2026-09-12 Workspace/Home 与 Agent Chat 共享壳层 Fixture 边界修正
+
+本节只记录实时 Figma 节点 `640:256`、`640:428` 对应的共享壳层 Fixture 判定修正和受影响页面证据，不重新验收其它 103 个画板。Figma 文件保持只读，后端 SSE 协议保持不变。
+
+| 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace/Home | `640:256` | `/?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `9.2689%` | `2.914238` | `17.797930` | `255` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `/chat?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `7.6725%` | `2.355950` | `15.858705` | `211` | `DIFF_REVIEW` |
+
+- [x] `WorkspaceLayout` 已将无固定会话列表的 Chat Figma Fixture 归入 `figmaFixture`，使 Figma 专用侧栏尺寸、导航字重、设置入口左对齐、头像透明底和窗口装饰规则与实时节点一致；真实模式不传入 `designChat`，不改变真实工作区。
+- [x] Chat 回归测试已覆盖 `designChat` 与 `figmaFixture` 双标记；Home 与 Chat 浏览器截图均为字体加载完成、DPR `1` 且页面无横向溢出。
+- [x] 当前运行时复核覆盖 Workspace、Chat、饮食记录、摄入分析、餐食规划、Knowledge、Profile 和 Admin；人物头像 DOM 只允许 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`，两份资源与用户附件逐字节一致。
+- [x] 认证表单的 `foodmate-*-user.svg` 是字段装饰图标，不属于人物头像；历史 `.qa/figma-pixel-acceptance/legacy-avatars/` 仅作为验收证据，不属于运行时资源。
+- [ ] 两项自动 diff 均非零，仍存在字体、图标和局部光栅化差异，不能标记像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.25 2026-09-12 Agent Chat 重连态 Composer 与头像证据同步
+
+本节只记录 Agent 状态前端收口和四项受影响画板的最新证据，不重新验收其它 101 个画板。Figma 文件保持只读，后端 SSE 协议保持不变。
+
+| 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 结论 |
+|---|---|---|---|---:|---:|---:|---|
+| 工具失败可重试 | `687:1439` | `/chat?state=tool-failed-retryable` | `1440×1024 / 1` | `10.5202%` | `2.241290` | `15.205827` | `DIFF_REVIEW` |
+| 安全降级 | `687:1563` | `/chat?state=safety-degraded` | `1440×1024 / 1` | `10.9746%` | `2.384059` | `15.318975` | `DIFF_REVIEW` |
+| 用户取消 | `687:1684` | `/chat?state=user-cancelled` | `1440×1024 / 1` | `11.6638%` | `1.886524` | `13.566194` | `DIFF_REVIEW` |
+| SSE 重连 | `687:1803` | `/chat?state=sse-reconnecting` | `1440×1024 / 1` | `17.1225%` | `2.385788` | `15.097414` | `DIFF_REVIEW` |
+
+- [x] 四项浏览器截图均使用 `127.0.0.1:5188`、Chrome `152.0.7977.83`、DPR `1` 和已加载字体；页面无横向溢出，映射、diff 和 runtime checks 已同步。
+- [x] 重连态已保留已接收文本并禁用输入框及发送按钮；终态和重连生命周期继续由前端契约控制，不把 HTTP 接受响应当作运行终态。
+- [x] 运行时人物头像只出现 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`；`.qa/figma-pixel-acceptance/legacy-avatars/` 中的历史人物截图不属于运行时资源，不能从 Figma 参考图的历史内容推断为当前 DOM 资源。
+- [ ] 四项自动 diff 均非零，仍存在 Figma 窗口装饰、字体、图标和局部颜色差异，继续保持 `DIFF_REVIEW`；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍未提供，资源登记继续保持 `BLOCKED`。
+- [x] 头像运行时复核确认首页、Chat 六种状态、Profile 和 Admin 的人物 `<img>` 只使用上述两份登记 SVG；认证页 `foodmate-*-user.svg` 仍仅作为表单字段装饰图标，不能计入人物头像。
+
+## 1.1.23 2026-09-12 Agent Chat 写入确认态状态块增量验收
+
+本节只记录实时 Figma 节点 `687:773` 对应写入确认态的当前证据。Figma 与浏览器 PNG 使用相同 `1440×1024` 原始尺寸；浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、DPR `1`、字体加载完成和关闭动态干扰条件，不重新验收其它 104 个画板。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| 写入确认 | `687:773` | `/chat?state=write-confirmation` | `recaptured-figma/agent-write-confirmation-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-write-confirmation-browser-2026-09-12.png` | `recaptured/agent-write-confirmation-current-diff-2026-09-12-avatar-fixed.json` | `9.7547%` | `1.849191` | `13.459496` | `255` | `DIFF_REVIEW` |
+
+- [x] Agent 绿色状态块与人物头像资源已在代码和运行时证据中明确区分；人物头像实际来源为登记的 `/assets/avatars/default-male.svg`。
+- [x] 写入确认状态块位置为 `x=292,y=237,width=36,height=36`，确认卡位置为 `x=340,y=237,width=305,height=319`；运行时无横向溢出，字体状态为 `loaded`。
+- [x] Figma 与浏览器截图已实际查看，主要结构、写入字段、操作入口均存在，没有发现遮挡或裁切；顶部窗口装饰、字体、图标和局部颜色仍有可见差异。
+- [x] 映射、自动 diff 和运行时检查均已更新；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 自动 diff 非零，且仍存在需要处理的视觉差异，本画板不能标记像素级 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，资源登记继续保持 `BLOCKED`。
+
+## 1.1.24 2026-09-12 Agent Chat 预算限制态增量验收
+
+本节只记录实时 Figma 节点 `687:918` 对应预算限制态的当前证据。Figma 与浏览器 PNG 使用相同 `1440×1024` 原始尺寸；浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、DPR `1`、字体加载完成和关闭动态干扰条件，不重新验收其它 104 个画板。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| 预算限制 | `687:918` | `/chat?state=budget-limit` | `recaptured-figma/agent-budget-limit-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-budget-limit-browser-2026-09-12.png` | `recaptured/agent-budget-limit-current-diff-2026-09-12-avatar-fixed.json` | `11.1479%` | `2.475082` | `15.987961` | `255` | `DIFF_REVIEW` |
+
+- [x] 预算说明、`50,000 tokens`、`100%` 用量、预计费用、追加预算和结束会话均存在；卡片、状态块与操作入口没有遮挡或裁切。
+- [x] 预算卡实测结构为 `286×289px`，选择说明区为 `246×60px`，Token 计量区为 `246×27px`，追加和结束按钮分别为 `150×32px` 与 `84×32px`。
+- [x] 浏览器运行时字体已加载、DPR 为 `1`、页面无横向溢出；映射、自动 diff 和运行时检查均已更新。
+- [x] 本大点统一门禁通过：Vitest `46/46` 个测试文件、`311/311` 个用例，`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过；证据校验为 `structuralPass=true`、`strictDprPass=true`、`mappedPass=0`、`diffReview=105`、`errors=[]`。
+- [ ] 自动 diff 非零，顶部窗口装饰、字体、图标和局部颜色仍存在可见差异，本画板不能标记像素级 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，资源登记继续保持 `BLOCKED`。
+
+## 1.1.22 2026-09-12 Workspace/Home 与 Agent Chat Composer 表面增量验收
+
+本节只记录实时 Figma 节点 `640:256`、`640:428` 的受影响页面组增量证据。Figma 参考图来自当前文件 `MX18RZCfAmgprNzxItkHUH`，浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、相同 `1440×1024` viewport、DPR `1`、字体加载完成和关闭动态干扰条件；不重新验收其它 103 个画板。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace/Home | `640:256` | `/?state=figma-v2` | `recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-12.png` | `recaptured/workspace-home-v2-current-diff-2026-09-12.json` | `9.2689%` | `2.914238` | `17.797930` | `255` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `/chat?state=figma-v2` | `recaptured-figma/agent-chat-v2-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-12.png` | `recaptured/agent-chat-v2-current-diff-2026-09-12.json` | `11.3300%` | `2.810838` | `17.120096` | `211` | `DIFF_REVIEW` |
+
+- [x] Home Figma 外层 Composer 与输入层均为白色表面；前端只在 `.figmaHomePage .taskInput` 作用域覆盖 shadcn 默认背景，真实首页不受影响。
+- [x] 两项浏览器截图均为 `1440×1024`、DPR `1`、字体 `loaded`，页面级横向溢出为 `false`；几何检查和文字检查均为 `PASS`。
+- [x] Home 与 Chat 的运行时人物头像 DOM 均只输出登记的男性或女性默认 SVG；没有真人图片、持久化头像地址或外部头像资源。
+- [x] `figma-105-mapping.json` 只更新本节两项的 Figma PNG、运行时 URL、人工复核结论和最新 diff 路径；`figma-105-diff-results.json` 只更新 Home 与 Chat 的结果。
+- [ ] 两项自动 diff 均非零，且仍存在字体、图标和局部光栅化差异，不能标记像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，资源登记继续保持 `BLOCKED`。
+
+## 1.1.21 2026-09-12 Auth 登录反馈态 Token 与斜向背景增量验收
+
+本节只记录实时 Figma 登录节点 `647:214`、`680:408`、`680:445`、`680:483`、`680:524`、`680:564`、`680:606` 的增量验收。Figma 与浏览器 PNG 均使用 `1440×900` 原始尺寸，浏览器使用 DPR 1、字体加载完成和关闭动态干扰条件；不重新验收其它画板。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| Login 默认态 | `647:214` | `recaptured-figma/auth-login-647-214-live-2026-09-12.png` | `recaptured/dpr1-login-v2-browser-2026-09-12.png` | `recaptured/login-v2-current-diff-2026-09-12.json` | `3.5374%` | `0.507889` | `7.402739` | `213` | `DIFF_REVIEW` |
+| Login Submitting | `680:408` | `recaptured-figma/auth-login-submitting-680-408-live-2026-09-12.png` | `recaptured/dpr1-login-submitting-browser-2026-09-12.png` | `recaptured/login-submitting-current-diff-2026-09-12.json` | `6.0459%` | `0.651932` | `6.847347` | `207` | `DIFF_REVIEW` |
+| Login Field Error | `680:445` | `recaptured-figma/auth-login-field-error-680-445-live-2026-09-12.png` | `recaptured/dpr1-login-field-error-browser-2026-09-12.png` | `recaptured/login-field-error-current-diff-2026-09-12.json` | `4.4895%` | `1.334213` | `11.670449` | `207` | `DIFF_REVIEW` |
+| Login Credential Error | `680:483` | `recaptured-figma/auth-login-credential-error-680-483-live-2026-09-12.png` | `recaptured/dpr1-login-credential-error-browser-2026-09-12.png` | `recaptured/login-credential-error-current-diff-2026-09-12.json` | `4.4716%` | `1.166877` | `11.114069` | `213` | `DIFF_REVIEW` |
+| Login Account Locked | `680:524` | `recaptured-figma/auth-login-account-locked-680-524-live-2026-09-12.png` | `recaptured/dpr1-login-account-locked-browser-2026-09-12.png` | `recaptured/login-account-locked-current-diff-2026-09-12.json` | `4.3696%` | `1.015155` | `10.238270` | `213` | `DIFF_REVIEW` |
+| Login Account Disabled | `680:564` | `recaptured-figma/auth-login-account-disabled-680-564-live-2026-09-12.png` | `recaptured/dpr1-login-account-disabled-browser-2026-09-12.png` | `recaptured/login-account-disabled-current-diff-2026-09-12.json` | `4.2524%` | `1.028768` | `10.431057` | `213` | `DIFF_REVIEW` |
+| Login Service Unavailable | `680:606` | `recaptured-figma/auth-login-service-unavailable-680-606-live-2026-09-12.png` | `recaptured/dpr1-login-service-unavailable-browser-2026-09-12.png` | `recaptured/login-service-unavailable-current-diff-2026-09-12.json` | `4.1758%` | `0.957177` | `9.872155` | `213` | `DIFF_REVIEW` |
+
+- [x] 7 项浏览器截图均为 `1440×900`、DPR `1`、字体状态 `loaded`，且无页面横向溢出；7 项独立 diff 与聚合 JSON 已同步。
+- [x] 人工复核确认本批次已应用 Figma 登录斜向背景顶部交点、反馈态品牌标记和成功操作色修正；未修改真实认证请求或动效协议。
+- [ ] 7 项自动 diff 均非零，不能标记为像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] 本批次不代表其它 98 个画板重新采集或完成全量人工视觉复核；后续按页面组继续处理可由 Figma 证据确认的差异。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，资源登记继续保持 `BLOCKED`。
+
+## 1.1.20 2026-09-12 头像运行时来源全路径复核
+
+本节记录前端运行时头像来源审计，不新增 Figma 画板截图或像素 diff。审计使用本地前端 `127.0.0.1:5188`，覆盖 Workspace/Home、Agent Chat 默认态和六个 Agent 状态、饮食记录、摄入分析、餐食规划、Knowledge、Profile 与 Admin 主要入口。
+
+- [x] `foodmate-ui/public/assets/avatars/` 仅包含 `default-male.svg` 与 `default-female.svg`；男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`，两份文件与用户附件逐字节一致。
+- [x] 浏览器 DOM 审计中，人物头像仅出现 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`；所有头像节点均为 `registered-default-svg`，默认/Fixture 策略均为 `default-only`。
+- [x] 未发现 `/api/users/me/avatar`、外部图片地址、历史 Figma 人物素材或其它人物图片绕过 `AvatarImage`/`resolveAvatarUrl` 进入默认页面；认证页的 `foodmate-*-user.svg` 仍明确归类为表单字段图标。
+- [x] 真实 Profile 的主动上传边界保持不变：只有显式 `allowUploaded` 且来自用户当前选择的 `blob:` 预览才允许展示，默认头像仍按性别回退到登记 SVG。
+- [ ] 本节是运行时资源证据，不代表任何画板新增像素级 `PASS`；105 项全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 1.1.19 2026-09-12 Auth 页面组 13 项增量验收
+
+本节只记录 Auth 页面组 13 个当前受影响画板。Figma 参考图来自实时文件 `MX18RZCfAmgprNzxItkHUH` 的对应节点，浏览器证据使用 `127.0.0.1:5188`、Chrome `152.0.7977.83`、`1440×900`、DPR `1` 和字体加载完成条件；不重新采集其它 92 个画板。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | RMSE | 结论 |
+|---|---|---|---|---|---|---:|---:|---|
+| Login | `647:214` | `/login?state=v2` | `recaptured-figma/auth-login-647-214-live-2026-09-12.png` | `recaptured/dpr1-login-v2-browser-2026-09-12.png` | `recaptured/login-v2-current-diff-2026-09-12.json` | `3.7948%` | `7.545321` | `DIFF_REVIEW` |
+| Register | `680:216` | `/register` | `recaptured-figma/auth-register-680-216-live-2026-09-12.png` | `recaptured/dpr1-register-page-browser-2026-09-12.png` | `recaptured/register-page-current-diff-2026-09-12.json` | `4.2903%` | `6.677294` | `DIFF_REVIEW` |
+| Forgot Password | `680:275` | `/forgot-password` | `recaptured-figma/auth-forgot-680-275-live-2026-09-12.png` | `recaptured/dpr1-forgot-password-page-browser-2026-09-12.png` | `recaptured/forgot-password-page-current-diff-2026-09-12.json` | `3.0234%` | `7.311469` | `DIFF_REVIEW` |
+| Reset Password | `680:307` | `/reset-password` | `recaptured-figma/auth-reset-680-307-live-2026-09-12.png` | `recaptured/dpr1-reset-password-page-browser-2026-09-12.png` | `recaptured/reset-password-page-current-diff-2026-09-12.json` | `3.4083%` | `6.760546` | `DIFF_REVIEW` |
+| Login Submitting | `680:408` | `/login?state=submitting` | `recaptured-figma/auth-login-submitting-680-408-live-2026-09-12.png` | `recaptured/dpr1-login-submitting-browser-2026-09-12.png` | `recaptured/login-submitting-current-diff-2026-09-12.json` | `6.3529%` | `7.622386` | `DIFF_REVIEW` |
+| Login Field Error | `680:445` | `/login?state=field-error` | `recaptured-figma/auth-login-field-error-680-445-live-2026-09-12.png` | `recaptured/dpr1-login-field-error-browser-2026-09-12.png` | `recaptured/login-field-error-current-diff-2026-09-12.json` | `5.8786%` | `15.107069` | `DIFF_REVIEW` |
+| Login Credential Error | `680:483` | `/login?state=credential-error` | `recaptured-figma/auth-login-credential-error-680-483-live-2026-09-12.png` | `recaptured/dpr1-login-credential-error-browser-2026-09-12.png` | `recaptured/login-credential-error-current-diff-2026-09-12.json` | `6.1381%` | `14.040149` | `DIFF_REVIEW` |
+| Login Account Locked | `680:524` | `/login?state=account-locked` | `recaptured-figma/auth-login-account-locked-680-524-live-2026-09-12.png` | `recaptured/dpr1-login-account-locked-browser-2026-09-12.png` | `recaptured/login-account-locked-current-diff-2026-09-12.json` | `4.6268%` | `10.905289` | `DIFF_REVIEW` |
+| Login Account Disabled | `680:564` | `/login?state=account-disabled` | `recaptured-figma/auth-login-account-disabled-680-564-live-2026-09-12.png` | `recaptured/dpr1-login-account-disabled-browser-2026-09-12.png` | `recaptured/login-account-disabled-current-diff-2026-09-12.json` | `4.5106%` | `11.083196` | `DIFF_REVIEW` |
+| Login Service Unavailable | `680:606` | `/login?state=service-unavailable` | `recaptured-figma/auth-login-service-unavailable-680-606-live-2026-09-12.png` | `recaptured/dpr1-login-service-unavailable-browser-2026-09-12.png` | `recaptured/login-service-unavailable-current-diff-2026-09-12.json` | `4.4340%` | `10.559538` | `DIFF_REVIEW` |
+| Token Invalid | `680:738` | `/token-status?state=invalid` | `recaptured-figma/auth-token-invalid-680-738-live-2026-09-12.png` | `recaptured/dpr1-token-invalid-browser-2026-09-12.png` | `recaptured/token-invalid-current-diff-2026-09-12.json` | `1.8195%` | `2.509056` | `DIFF_REVIEW` |
+| Token Expired | `680:757` | `/token-status?state=expired` | `recaptured-figma/auth-token-expired-680-757-live-2026-09-12.png` | `recaptured/dpr1-token-expired-browser-2026-09-12.png` | `recaptured/token-expired-current-diff-2026-09-12.json` | `1.8706%` | `2.707871` | `DIFF_REVIEW` |
+| Token Used | `680:776` | `/token-status?state=used` | `recaptured-figma/auth-token-used-680-776-live-2026-09-12.png` | `recaptured/dpr1-token-used-browser-2026-09-12.png` | `recaptured/token-used-current-diff-2026-09-12.json` | `1.9593%` | `3.025545` | `DIFF_REVIEW` |
+
+- [x] 13 项 Figma/浏览器 PNG 均为 `1440×900`；浏览器 DPR 为 `1`，字体状态为 `loaded`，页面级横向溢出为 `false`，文字溢出检查为 `0`。
+- [x] 登录节点 `647:214` 的 Motion 上下文包含 8 个动画节点和 `4500ms` 无限循环；现有 GSAP 时间线继续按 Figma 数据实现，截图模式关闭动画以保证证据可重复。
+- [x] 已人工查看代表性 Login、Register、Token Invalid 配对及其余状态的 diff 结果；未发现需要基于猜测修改 CSS 的几何问题。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 `figma-105-runtime-checks.json` 仅更新本节 13 项，未改写其它 92 项证据。
+- [x] Auth 页面没有人物头像；其 `foodmate-*-user.svg` 资源是表单字段装饰图标。主要页面运行时人物头像继续只使用用户提供的男女默认 SVG。
+- [ ] 13 项 PNG diff 均非零，不能标记像素级 `PASS`；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，资源登记继续保持 `BLOCKED`。
+
+## 1.1.18 2026-09-12 默认头像持久化来源隔离修正
+
+- [x] 两份用户提供的默认 SVG 继续作为唯一默认人物资源：`default-male.svg` 和 `default-female.svg`，资源哈希与登记值保持一致。
+- [x] 前端不再把 `/api/users/me/avatar` 的持久化地址作为自动头像展示来源；真实 Profile 上传仍保留既有接口，只有主动选择图片后的 `blob:` 临时预览可以显式展示。
+- [x] Fixture、默认入口和 Figma 验收入口继续通过 `AvatarImage`/`resolveAvatarUrl` 归一化，历史人物素材、外部图片和旧缓存按性别回退到登记 SVG。
+- [x] `127.0.0.1:5188` 的实际 DOM 审计覆盖工作台、Chat、饮食记录、摄入分析、餐食规划、Knowledge、Profile 和 Admin；人物头像实际资源只出现两份登记 SVG。
+- [x] 头像定向测试 `20/20`、typecheck、lint、format、build 和 `git diff --check` 均通过；生产构建头像目录仅包含 `default-male.svg` 与 `default-female.svg`。
+- [ ] 本批次只修正运行时来源边界，不重新验收 105 个画板；全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 1.1.17 2026-09-12 Knowledge 页面组视觉收口与头像证据更新
+
+本节只记录 Knowledge 的 3 个顶层映射画板：`795:786`、`795:968`、`795:1151`。Figma PNG 从实时文件重新读取，浏览器 PNG 使用同尺寸、DPR 1 和字体加载完成条件采集；不重新验收其它 102 个画板。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | 独立 diff JSON | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Knowledge Empty | `795:786` | `recaptured-figma/user-knowledge-empty-795-786-2026-09-12.png` | `recaptured/dpr1-user-knowledge-empty-browser-2026-09-12.png` | `recaptured/user-knowledge-empty-current-diff-2026-09-12.json` | `1440×1024 / 1` | `40.2713%` | `1.450586` | `9.290381` | `204` | `DIFF_REVIEW` |
+| Knowledge Search Failed | `795:968` | `recaptured-figma/user-knowledge-search-failed-795-968-2026-09-12.png` | `recaptured/dpr1-user-knowledge-search-failed-browser-2026-09-12.png` | `recaptured/user-knowledge-search-failed-current-diff-2026-09-12.json` | `1440×1024 / 1` | `39.3067%` | `1.550083` | `10.170777` | `204` | `DIFF_REVIEW` |
+| Knowledge Source Unavailable | `795:1151` | `recaptured-figma/user-knowledge-source-unavailable-795-1151-2026-09-12.png` | `recaptured/dpr1-user-knowledge-source-unavailable-browser-2026-09-12.png` | `recaptured/user-knowledge-source-unavailable-current-diff-2026-09-12.json` | `1440×1024 / 1` | `39.2856%` | `1.539518` | `10.150868` | `204` | `DIFF_REVIEW` |
+
+- [x] 三项 Figma 与浏览器 PNG 均为 `1440×1024`，浏览器实际 DPR 为 `1.0000000149011612`，字体状态为 `loaded`，页面无横向溢出；几何和文字检查均为 `PASS`。
+- [x] Figma 期望图来自当前文件 `MX18RZCfAmgprNzxItkHUH` 的实时节点，而不是旧的 2026-09-06 导出；最新截图中的人物头像已是用户提供的男性 SVG。
+- [x] 节点 `795:838` 是 Knowledge 默认态嵌套 Frame，原始尺寸 `1180×1024`；它不是 `🎨 :: Design` 下新的顶层画板，不计入 105 项映射。
+- [x] `figma-105-mapping.json` 和 `figma-105-diff-results.json` 只更新上述 3 项；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] 默认头像实体证据：`default-male.svg` SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，`default-female.svg` SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`；`.qa/figma-pixel-acceptance/legacy-avatars/` 仅为历史验收证据，不是运行时资源。
+- [ ] 三项自动 diff 均非零，且人工复核确认仍存在字体、图标和局部光栅化差异，不能标记像素级 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.16 2026-09-12 Diet Records、Intake Analysis、Meal Planning 页面组收口
+
+本节只记录实时 Figma 节点 `640:588`、`640:773`、`640:901` 对应的 12 个当前页面组画板。Figma PNG 和浏览器 PNG 均使用 `1440×1024` 原始尺寸；浏览器使用 DPR 1、字体加载完成和关闭动态干扰后的截图。所有画板的结构、几何、文字溢出和人工复核已完成；自动 diff 非零，因此结论统一保留 `DIFF_REVIEW`。
+
+| 画板 | Figma 节点 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---:|---:|---:|---:|---|
+| Diet Records 默认态 | `640:588` | `1440×1024 / 1` | `7.3730%` | `2.469032` | `16.609406` | `255` | `DIFF_REVIEW` |
+| Diet Records Loading | `692:1427` | `1440×1024 / 1` | `3.6902%` | `1.109848` | `11.506477` | `255` | `DIFF_REVIEW` |
+| Diet Records Empty | `692:1556` | `1440×1024 / 1` | `5.0028%` | `1.438629` | `12.877860` | `255` | `DIFF_REVIEW` |
+| Diet Records Error | `692:1685` | `1440×1024 / 1` | `3.9095%` | `1.193183` | `11.897333` | `255` | `DIFF_REVIEW` |
+| Intake Analysis 默认态 | `640:773` | `1440×1024 / 1` | `7.0345%` | `1.972557` | `14.145676` | `255` | `DIFF_REVIEW` |
+| Intake Analysis Loading | `692:1901` | `1440×1024 / 1` | `10.7850%` | `0.903571` | `9.259544` | `255` | `DIFF_REVIEW` |
+| Intake Analysis Empty | `692:2026` | `1440×1024 / 1` | `4.3848%` | `1.180694` | `11.633845` | `255` | `DIFF_REVIEW` |
+| Intake Analysis Error | `692:2139` | `1440×1024 / 1` | `3.9150%` | `0.892242` | `9.635364` | `255` | `DIFF_REVIEW` |
+| Meal Planning 默认态 | `640:901` | `1440×1024 / 1` | `10.3811%` | `1.877419` | `12.658861` | `204` | `DIFF_REVIEW` |
+| Meal Planning Loading | `692:2256` | `1440×1024 / 1` | `7.0205%` | `0.874765` | `9.182930` | `255` | `DIFF_REVIEW` |
+| Meal Planning Empty | `692:2446` | `1440×1024 / 1` | `5.0014%` | `0.983364` | `9.878826` | `255` | `DIFF_REVIEW` |
+| Meal Planning Error | `692:2542` | `1440×1024 / 1` | `5.9670%` | `1.309619` | `11.432779` | `255` | `DIFF_REVIEW` |
+
+- [x] Figma PNG 位于 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/*-live-2026-09-12.png`，浏览器 PNG 位于 `foodmate-ui/.qa/figma-pixel-acceptance/recaptured/dpr1-*-browser-2026-09-12.png`，独立 diff 位于同目录的 `*-current-diff-2026-09-12.json`。
+- [x] 12 张浏览器截图均完成人工查看；窗口控制点、完整会话侧栏、主内容状态区域和页面结构均与对应实时 Figma 画板复核，未发现新的遮挡、裁切或横向溢出。
+- [x] 12 个独立 diff JSON 均记录 `status=COMPARED`、`width=1440`、`height=1024`；映射条目均记录 `geometryCheck.status=PASS`、`textCheck.status=PASS` 和人工复核日期 `2026-09-12`。
+- [x] 页面组完成后统一门禁通过：Vitest `46/46` 个测试文件、`308/308` 个用例，typecheck、lint、format、build、Figma 证据校验和 `git diff --check` 均通过。
+- [ ] 当前 12 项 diff 均为非零，不能标记为像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 1.1.15 2026-09-12 Workspace/Home 与 Agent Chat 共享壳层视觉收口
+
+本节只记录 Figma 节点 `640:256`、`640:428` 的共享壳层增量验收，不重新采集其它 103 个画板。Figma 作为唯一视觉来源，shadcn/Radix 只提供基础控件能力。
+
+| 画板 | Figma 节点 | 浏览器视口 / DPR | 字体 | 横向溢出 | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace Home | `640:256` | `1440×1024 / 1` | `loaded` | `false` | `11.7603%` | `3.015898` | `17.956946` | `252` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `1440×1024 / 1` | `loaded` | `false` | `11.3300%` | `2.810838` | `17.120096` | `211` | `DIFF_REVIEW` |
+
+- [x] Workspace/Home：按 Figma 对照收口 Settings 左对齐、导航 Medium、顶栏搜索 `13px`、Home 指标字号/单位间距和活跃会话/待确认卡片文字层级。
+- [x] Agent Chat：按 Figma 对照移除运行轨迹 `TabsList` 默认灰色容器、内边距和激活阴影，仅保留激活“步骤”标签的浅紫色背景。
+- [x] 两张浏览器 PNG 均由 Chrome CDP 在 `1440×1024`、DPR `1` 下重新采集；字体状态为 `loaded`，页面无横向溢出；独立 diff JSON 已登记在 `.qa/figma-pixel-acceptance/recaptured/`。
+- [x] 已直接查看两张最新浏览器截图，确认侧栏、Home 卡片、Chat 轨迹栏和消息区没有新增遮挡或裁切。
+- [x] 本大点质量门禁通过：Vitest `46/46` 文件、`308/308` 用例，`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate`、`git diff --check` 均通过。
+- [x] 头像资源边界复核通过：运行时和 `dist` 头像目录各只有用户提供的 `default-male.svg` 与 `default-female.svg`；没有发现其它默认人物头像入口。
+- [ ] 两项 PNG diff 均非零，且截图中仍可见字体光栅化和局部视觉差异，因此不能标记 `PASS`。105 项全量汇总保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.14 2026-09-12 Auth 页面组基线复核与头像来源确认
+
+本节记录重构计划进入页面组执行后的 Auth 基线复核。范围为 Login `647:214`、Register `680:216` 和 Token Invalid `680:738` 三个代表画板；不重新采集全部 105 个画板，不把已有非零 diff 改写为 `PASS`。
+
+| 画板 | Figma 节点 | 原始尺寸 | 浏览器视口 / DPR | 当前差异比例 | 结论 |
+|---|---|---:|---|---:|---|
+| Login | `647:214` | `1440×900` | `1440×900 / 1` | `3.7948%` | `DIFF_REVIEW` |
+| Register | `680:216` | `1440×900` | `1440×900 / 1` | `4.2780%` | `DIFF_REVIEW` |
+| Token Invalid | `680:738` | `1440×900` | `1440×900 / 1` | `1.8195%` | `DIFF_REVIEW` |
+
+- [x] 已通过 `get_design_context` 读取三张实时 Figma 画板，确认背景、对角线、品牌标记、表单/状态卡、主按钮和辅助文字的结构与当前实现一致。
+- [x] 浏览器证据满足尺寸、DPR、字体加载和无横向溢出条件；自动 diff 仍为非零，因此只保留 `DIFF_REVIEW`。
+- [x] 头像资源核对结果为运行时和构建产物各只有 `default-male.svg`、`default-female.svg`；认证页的 `foodmate-*-user.svg` 仅是输入框装饰图标，不是人物头像。
+- [ ] 本节没有为“看起来接近”的页面新增 `PASS`，也没有重新验收其它 102 个画板。
+
+## 1.1.13 2026-09-12 默认头像容器审计与 Figma 命名收口
+
+本批次只处理默认头像资源边界和 Figma 容器审计，不重新采集或验收全部 105 个画板。Figma 文件为 `MX18RZCfAmgprNzxItkHUH`，目标页面为 `🎨 :: Design`（节点 `0:1`）。
+
+- [x] 本地运行时和 `dist/assets/avatars/` 均只存在 `default-male.svg` 与 `default-female.svg`；两份文件分别与用户提供的 SVG 附件逐字节一致。
+- [x] 运行时代码所有人物头像入口均经过 `AvatarImage`/`resolveAvatarUrl`；Fixture 和默认入口只接受两份登记 SVG，真实模式的主动上传地址仍单独受 `allowUploaded` 控制。
+- [x] Figma `🎨 :: Design` 页面当前有 `192` 个标准 `Avatar / Default ... SVG` 容器：男性 `189` 个、女性 `3` 个；对应用户提供 SVG 根节点为男性 `189` 个、女性 `3` 个；旧头像根节点 `0` 个。
+- [x] 4 个 Profile 大头像容器 `1167:2`、`1167:40`、`1167:78`、`1167:116` 已从带 `· Profile` 后缀的名称统一为 `Avatar / Default Male SVG`，尺寸保持 `108×108`，内部子节点仍为 `User-provided male default SVG`。
+- [x] 已检查 Figma 其它页面。`🗄 :: Archive` 中的 2 个男性节点同样命名为 `User-provided male default SVG`，属于历史 Payd 归档画面；`.qa/figma-pixel-acceptance/legacy-avatars/` 只保留历史验收证据，不属于运行时资源。
+- [x] 已识别 7 张未被任何文档或证据映射引用的临时 `2026-09-11` Figma PNG；它们不属于当前证据或运行时。当前环境拒绝破坏性删除，本批次不将其记录为已清理。
+- [ ] 本批次没有重新截图其它画板，也不改变 105 项已有视觉结论；自动 diff、人工复核未完成的项目必须继续保持 `DIFF_REVIEW`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、版本和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.12 2026-09-12 Agent Chat 运行中停止态与头像来源复核
+
+本批次只复核 Figma 节点 `1013:653` 对应的运行中停止态，不重新采集其它 104 个画板。头像核验同时覆盖当前前端运行时资源、生产构建产物和实时 Figma `🎨 :: Design` 页面。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | diff JSON | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| 运行中停止 | `1013:653` | `recaptured-figma/agent-chat-running-stop-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-running-stop-browser-2026-09-12.png` | `recaptured/agent-chat-running-stop-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 19.0059% | 3.075319 | 18.045960 | 212 | `DIFF_REVIEW` |
+
+- [x] 浏览器证据确认字体状态为 `loaded`、DPR 为 `1`、页面无横向溢出；Figma 与浏览器 PNG 均为 `1440×1024`。
+- [x] 运行中停止态已修复文字停止按钮的网格溢出，保留已接收文本和运行轨迹；自动 diff 仍非零，不能标记 `PASS`。
+- [x] Figma MCP 只读回读确认 `🎨 :: Design` 页面 192 个头像容器全部使用用户提供的两份 SVG 根节点：男性 189 个、女性 3 个、可疑容器 0 个。当前 Figma 浏览器会话显示为访客态，本批次没有伪造 Figma 写入结果。
+- [x] 前端运行时和 `dist/assets/avatars/` 仅存在 `default-male.svg` 与 `default-female.svg`；男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 历史真人头像只存在于 `.qa/figma-pixel-acceptance/legacy-avatars/` 验收证据；`public/assets/figma/auth/foodmate-*-user.svg` 仅为认证输入框装饰图标。
+- [x] 本大点统一门禁：Vitest `46/46` 个测试文件、`308/308` 个用例通过；`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。当前聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.11 2026-09-12 Agent Chat 头像修正版定向验收
+
+本批次仅复核 11 个受当前 Chat 视觉收口影响的画板，不重新采集其它 94 个画板。Figma PNG 使用头像修正后的原始尺寸，浏览器 PNG 使用对应视口、DPR 1 和字体加载完成条件；自动 diff 均为同尺寸 `COMPARED`，人工结论全部保留 `DIFF_REVIEW`。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | diff JSON | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Agent Chat 默认态 | `640:428` | `recaptured-figma/agent-chat-v2-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-12.png` | `recaptured/agent-chat-v2-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 11.5993% | 2.851583 | 17.155352 | 211 | `DIFF_REVIEW` |
+| 写入确认 | `687:773` | `recaptured-figma/agent-write-confirmation-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-write-confirmation-browser-2026-09-12.png` | `recaptured/agent-write-confirmation-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 9.8721% | 1.941730 | 13.861204 | 255 | `DIFF_REVIEW` |
+| 预算上限 | `687:918` | `recaptured-figma/agent-budget-limit-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-budget-limit-browser-2026-09-12.png` | `recaptured/agent-budget-limit-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 11.1479% | 2.475082 | 15.987961 | 255 | `DIFF_REVIEW` |
+| 工具失败可重试 | `687:1439` | `recaptured-figma/agent-tool-failed-retryable-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-tool-failed-retryable-browser-2026-09-12.png` | `recaptured/agent-tool-failed-retryable-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 10.5202% | 2.241290 | 15.205827 | 255 | `DIFF_REVIEW` |
+| 安全降级 | `687:1563` | `recaptured-figma/agent-safety-degraded-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-safety-degraded-browser-2026-09-12.png` | `recaptured/agent-safety-degraded-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 10.9746% | 2.384059 | 15.318975 | 255 | `DIFF_REVIEW` |
+| 用户取消 | `687:1684` | `recaptured-figma/agent-user-cancelled-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-user-cancelled-browser-2026-09-12.png` | `recaptured/agent-user-cancelled-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 11.6638% | 1.886524 | 13.566194 | 255 | `DIFF_REVIEW` |
+| SSE 重连 | `687:1803` | `recaptured-figma/agent-sse-reconnecting-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-sse-reconnecting-browser-2026-09-12.png` | `recaptured/agent-sse-reconnecting-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 17.1219% | 2.386343 | 15.099326 | 255 | `DIFF_REVIEW` |
+| 历史第 2 页 | `740:212` | `recaptured-figma/agent-chat-history-page-2-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-history-page-2-browser-2026-09-12.png` | `recaptured/agent-chat-history-page-2-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 12.3038% | 2.763826 | 17.209012 | 204 | `DIFF_REVIEW` |
+| 历史第 3 页 | `740:426` | `recaptured-figma/agent-chat-history-page-3-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-history-page-3-browser-2026-09-12.png` | `recaptured/agent-chat-history-page-3-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 12.3038% | 2.763826 | 17.209012 | 204 | `DIFF_REVIEW` |
+| 运行中停止 | `1013:653` | `recaptured-figma/agent-chat-running-stop-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-running-stop-browser-2026-09-12.png` | `recaptured/agent-chat-running-stop-current-diff-2026-09-12-avatar-fixed.json` | 1440×1024 / 1 | 20.9517% | 3.573441 | 19.594450 | 221 | `DIFF_REVIEW` |
+| 1366×768 特殊视口 | `1029:3` | `recaptured-figma/agent-chat-viewport-1366x768-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-chat-viewport-1366x768-browser-2026-09-12.png` | `recaptured/agent-chat-viewport-1366x768-current-diff-2026-09-12-avatar-fixed.json` | 1366×768 / 1 | 48.3260% | 6.751348 | 25.661101 | 255 | `DIFF_REVIEW` |
+
+- [x] 11 个画板的 Figma/浏览器 PNG 均存在且尺寸一致；独立 diff JSON 均可解析并记录 `COMPARED`。
+- [x] Chat 默认态、六个 Agent 状态、历史页和停止态的人物头像运行时只使用两份登记 SVG；没有把 `.qa/legacy-avatars` 历史证据当作运行时资源。
+- [x] 本批次统一门禁：Vitest `46/46` 个测试文件、`307/307` 个用例通过；`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。证据校验为 `structuralPass=true`、`strictDprPass=true`、`mappedPass=0`、`diffReview=105`、`errors=[]`。
+- [ ] 自动差异均非零，字体光栅化、共享壳层、图标和局部布局差异仍需后续页面级收口，不能标记 `PASS`。
+- [ ] 本批次只更新 11 个受影响画板，不代表 105 个画板全部重新验收；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.10 2026-09-12 默认头像策略与 Workspace/Home 定向验收
+
+本批次只复核上一批次的头像入口收口和 Workspace/Home 任务状态面板，不重新采集或判定其它画板。Figma 参考节点为 Workspace/Home `640:256` 和 Agent Chat `640:428`，浏览器采集使用 DPR 1、字体加载完成和 `visual-qa=1`。
+
+| 画板 | Figma PNG | 浏览器 PNG | diff JSON | 视口 / DPR | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace Home | `recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-12.png` | `recaptured/workspace-home-v2-current-diff-2026-09-12.json` | `1440×1024 / 1` | 11.7429% | 2.991194 | 17.876599 | 255 | `DIFF_REVIEW` |
+| Agent Chat | `recaptured-figma/agent-chat-v2-figma-2026-09-11-avatar-fixed.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-12.png` | `recaptured/agent-chat-v2-current-diff-2026-09-12.json` | `1440×1024 / 1` | 11.9505% | 2.807106 | 16.885575 | 211 | `DIFF_REVIEW` |
+
+- [x] 两项浏览器证据均由 Chrome `152.0.7977.83` 采集，字体状态为 `loaded`，页面无横向溢出；人工检查确认头像和底部任务状态面板没有产生遮挡。
+- [x] `AvatarImage` 默认策略已收口：Fixture/默认入口只输出登记的男性或女性 SVG，真实模式只有主动上传流程显式传入 `allowUploaded` 才允许后端头像或 `blob:` 预览。
+- [x] 本地资源和 `dist/assets/avatars/` 均只保留两份登记 SVG，并与用户附件逐字节一致；没有新建虚构字体、glyph 或 iconfont 映射。
+- [x] 本大点统一门禁：Vitest `46/46`、`307/307`；typecheck、lint、format、build、证据结构校验和 diff-check 均通过。证据校验为 `structuralPass=true`、`strictDprPass=true`、`mappedPass=0`、`diffReview=105`、`errors=[]`。
+- [ ] 两项自动 diff 仍为非零，因此不能标记为像素级 `PASS`；本批次不改变全量 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH` 结论。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、版本和许可证仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.9 2026-09-11 Auth 页面组增量验收
+
+本批次只重新采集 Auth 页面组的 13 个受影响画板，不重新采集或判定其它画板。浏览器截图统一使用 `1440×900`、DPR 1、字体加载完成和 `visual-qa=1`；所有自动 diff 均为同尺寸 `COMPARED`，按验收规则继续标记为 `DIFF_REVIEW`。
+
+| 画板 | Figma 节点 | 浏览器 PNG | diff JSON | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---|
+| Login | `647:214` | `recaptured/dpr1-login-v2-browser-2026-09-11.png` | `recaptured/login-v2-current-diff-2026-09-11.json` | 3.7948% | 0.564622 | 7.545321 | 213 | `DIFF_REVIEW` |
+| Register | `680:216` | `recaptured/dpr1-register-page-browser-2026-09-11.png` | `recaptured/register-page-current-diff-2026-09-11.json` | 4.2780% | 0.567688 | 6.677208 | 198 | `DIFF_REVIEW` |
+| Forgot Password | `680:275` | `recaptured/dpr1-forgot-password-page-browser-2026-09-11.png` | `recaptured/forgot-password-page-current-diff-2026-09-11.json` | 3.0128% | 0.648710 | 7.311508 | 188 | `DIFF_REVIEW` |
+| Reset Password | `680:307` | `recaptured/dpr1-reset-password-page-browser-2026-09-11.png` | `recaptured/reset-password-page-current-diff-2026-09-11.json` | 3.3946% | 0.583890 | 6.760528 | 213 | `DIFF_REVIEW` |
+| Login Submitting | `680:408` | `recaptured/dpr1-login-submitting-browser-2026-09-11.png` | `recaptured/login-submitting-current-diff-2026-09-11.json` | 6.4285% | 0.728943 | 7.079928 | 209 | `DIFF_REVIEW` |
+| Login Field Error | `680:445` | `recaptured/dpr1-login-field-error-browser-2026-09-11.png` | `recaptured/login-field-error-current-diff-2026-09-11.json` | 4.9365% | 1.849736 | 15.157097 | 209 | `DIFF_REVIEW` |
+| Login Credential Error | `680:483` | `recaptured/dpr1-login-credential-error-browser-2026-09-11.png` | `recaptured/login-credential-error-current-diff-2026-09-11.json` | 6.0190% | 1.575856 | 12.751643 | 213 | `DIFF_REVIEW` |
+| Login Account Locked | `680:524` | `recaptured/dpr1-login-account-locked-browser-2026-09-11.png` | `recaptured/login-account-locked-current-diff-2026-09-11.json` | 6.3881% | 1.169548 | 11.022478 | 213 | `DIFF_REVIEW` |
+| Login Account Disabled | `680:564` | `recaptured/dpr1-login-account-disabled-browser-2026-09-11.png` | `recaptured/login-account-disabled-current-diff-2026-09-11.json` | 8.4367% | 1.518019 | 11.695808 | 213 | `DIFF_REVIEW` |
+| Login Service Unavailable | `680:606` | `recaptured/dpr1-login-service-unavailable-browser-2026-09-11.png` | `recaptured/login-service-unavailable-current-diff-2026-09-11.json` | 6.2147% | 1.147104 | 10.977517 | 213 | `DIFF_REVIEW` |
+| Token Invalid | `680:738` | `recaptured/dpr1-token-invalid-browser-2026-09-11.png` | `recaptured/token-invalid-current-diff-2026-09-11.json` | 1.8195% | 0.101208 | 2.509056 | 204 | `DIFF_REVIEW` |
+| Token Expired | `680:757` | `recaptured/dpr1-token-expired-browser-2026-09-11.png` | `recaptured/token-expired-current-diff-2026-09-11.json` | 1.8706% | 0.115650 | 2.707871 | 204 | `DIFF_REVIEW` |
+| Token Used | `680:776` | `recaptured/dpr1-token-used-browser-2026-09-11.png` | `recaptured/token-used-current-diff-2026-09-11.json` | 1.9593% | 0.147349 | 3.025545 | 187 | `DIFF_REVIEW` |
+
+- [x] 13 个浏览器截图均由 Chrome `152.0.7977.83` 采集，DPR 为 1，字体状态为 `loaded`，`bodyOverflow=false`。
+- [x] 登录异常状态品牌标记及字段/凭据错误主按钮已使用 Figma 深绿色 `#2e7d32`；默认态既有颜色保持不变。
+- [ ] 自动 diff 均非零，人工复核和字体/浏览器光栅化差异仍需后续收口；本批次不能标记为像素级 `PASS`。
+- [ ] 本批次不影响全量汇总：`105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
+## 1.1.8 2026-09-11 Figma 默认头像资源真实替换与 Profile 遗漏修正
+
+本批次针对用户反馈的 Figma 人物头像与本地默认头像不一致进行资源修正。Figma 文件不再保持只读：只修改 `🎨 :: Design` 页面中已登记的默认头像容器内部矢量，不重新验收全部 105 个画板。
+
+- [x] 用户附件与本地运行时资源逐字节一致。男性默认头像 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性默认头像 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] 实时 Figma 文件 `MX18RZCfAmgprNzxItkHUH`、页面 `0:1`（`🎨 :: Design`）中，192 个默认头像容器已替换内部矢量：男性 189 个、女性 3 个；容器 ID、尺寸和布局保持不变。
+- [x] 回读结果：192/192 个头像容器 `childCount=1`，子节点分别为 `User-provided male default SVG` 或 `User-provided female default SVG`；旧 `Group + Vector` 头像结构为 `0`，Figma 页面顶层临时导入节点为 `0`。
+- [x] 本轮发现并修正 4 个 `108×108` Profile 大头像 `1167:2`、`1167:40`、`1167:78`、`1167:116`；此前它们仍保留旧人物路径。
+- [x] 受影响 Figma PNG 已重新导出：`recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png`、`recaptured-figma/agent-chat-v2-figma-2026-09-11-avatar-fixed.png`，均为 `1440×1024`。
+- [x] 本地视觉回读确认 Home、Chat 和 Profile 顶栏/侧栏/主头像均显示用户提供的男性或女性 SVG；历史真人 PNG 仍不属于运行时资源。
+- [x] 4 个受影响 Profile 画板已重新采集浏览器 PNG 并生成同尺寸 diff；差异继续保持 `DIFF_REVIEW`，本轮不将头像资源修正改写为整页 `PASS`。
+
+| 画板 | 差异比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---:|---:|---:|---:|---|
+| Profile Basic Avatar Uploading | 58.4419% | 2.952574 | 12.443130 | 204 | `DIFF_REVIEW` |
+| Profile Basic Avatar Failed | 58.2741% | 3.042401 | 13.586979 | 204 | `DIFF_REVIEW` |
+| Profile Basic Unsaved Leave Confirmation | 84.8577% | 49.369571 | 66.003957 | 251 | `DIFF_REVIEW` |
+| Profile Basic | 60.1051% | 3.552096 | 18.664958 | 255 | `DIFF_REVIEW` |
+- [x] 用户反馈后的实时 Figma 再次回读确认：192/192 个头像容器只保留一个用户 SVG 根矢量，男性 189、女性 3，其中 Profile 大头像 4 个；机器证据已同步 `avatar-resource-replacement-2026-09-11.json`。
+- [x] 头像替换后的受影响页面证据：Workspace/Home 使用 `recaptured-figma/workspace-home-v2-figma-2026-09-11-avatar-fixed.png` 与 `recaptured/dpr1-workspace-home-v2-browser-2026-09-11.png`，同尺寸 diff 为 `16.2534% / MAE 3.113430 / RMSE 18.072643 / maxChannelDelta 255`；Agent Chat 对应 diff 为 `11.9505% / MAE 2.807106 / RMSE 16.885575 / maxChannelDelta 211`。
+- [x] 用户反馈后的定向门禁为 8 个头像相关测试文件、135/135 个用例通过；`typecheck`、`lint`、`format:check`、`qa:figma:validate` 和 `git diff --check` 通过。本批次未执行 105 个画板的全量重新截图。
+- [ ] 上述结果只证明头像资源已替换并完成受影响页面复核；自动 diff 非零，不能将 Home、Chat 或 105 个画板标记为像素级 `PASS`。
+- [x] 本批次统一门禁：`npm run test` 为 `46/46` 个测试文件、`306/306` 个用例通过；`typecheck`、`format:check`、`lint`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。
+- [ ] 本批次不重新采集或判定其它 103 个画板；105 项全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源和许可证仍缺失，资源登记继续为 `BLOCKED`。
 
 ## 1.1.7 Chat 默认态头像与消息操作面板实现记录（2026-09-09）
 
@@ -2846,3 +3205,14 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 认证页 `foodmate-*-user.svg` 仅作为输入框装饰图标，历史真人素材仅保留在 QA 证据目录，不属于运行时头像来源。
 - [x] 最终统一门禁为 Vitest `46/46` 个测试文件、`304/304` 个用例通过；`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过。
 - [ ] 本次运行时复核不改变像素差异结论；105 项仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能用 DOM 资源审计替代 Figma PNG diff 和人工视觉复核。
+
+## 2026-09-11 Auth 导出资源对齐证据
+
+本次只复核 Auth 页面组的 Figma 导出资源与代码引用，不重新采集全部 105 个画板。Figma 文件保持只读，既有 Auth PNG、浏览器 PNG 和 diff JSON 不因资源登记而改写结论。
+
+- [x] 临时导出目录 `foodmate-auth-assets-compare` 中的 58 个 Auth SVG 已与 `foodmate-ui/public/assets/figma/auth/` 逐一计算 SHA-256，结果为 `58/58 MATCH`。
+- [x] 资源引用核对覆盖登录默认态及 6 个登录状态、注册、找回密码、重置密码和 Token 无效/过期/已使用状态；登录提交态导出文件 `login-submitting-loader.svg` 与代码实际目标 `foodmate-login-loader.svg` 字节一致。
+- [x] Token 无效状态的导出文件名与项目资源名存在语义映射：`token-fork.svg -> token-invalid-fork-knife.svg`、`token-alert.svg -> token-invalid-alert-triangle.svg`；组件引用已按项目资源名保持一致。
+- [x] 本次 8 个变更资源的 SHA-256 已登记在《前端已完成实现清单》对应批次；运行时不引入未登记 iconfont 字体或 Unicode glyph。
+- [ ] 本次没有新增浏览器 PNG 或独立 diff JSON；Auth 13 项既有自动 diff 仍为非零并保持 `DIFF_REVIEW`，不能将资源字节一致误写成像素级 `PASS`。
+- [ ] 全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；iconfont 资源登记仍为 `BLOCKED`。

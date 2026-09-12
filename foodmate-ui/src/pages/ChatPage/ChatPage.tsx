@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection } from '../../types/agent';
+import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection, ToolCall } from '../../types/agent';
 import type { Message } from '../../types/session';
 import type { SessionSummary } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
@@ -87,6 +87,62 @@ function formatMessageTime(value: string) {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 
+function normalizeRunIntent(value: string | undefined): AgentRunView['intent'] {
+  if (value === 'calculation' || value === 'record' || value === 'analysis' || value === 'planning') return value;
+  return 'knowledge_qna';
+}
+
+function toolDisplayName(name: string) {
+  const labels: Record<string, string> = {
+    calculator: '营养计算',
+    database_query: '饮食数据查询',
+    food_log_writer: '饮食记录写入',
+    knowledge_search: '知识库检索',
+    'meal_plan.save_plan': '餐食计划保存',
+    plan_validator: '计划校验',
+    time_parser: '时间范围解析',
+  };
+  return labels[name] ?? name;
+}
+
+function toolStatus(value: string | undefined): ToolCall['status'] {
+  if (value === 'succeeded' || value === 'success' || value === 'completed') return 'success';
+  if (value === 'confirmation_required' || value === 'pending') return 'pending';
+  if (value === 'timeout' || value === 'timed_out') return 'timeout';
+  if (value === 'cancelled' || value === 'canceled') return 'cancelled';
+  if (value === 'failed' || value === 'error') return 'failed';
+  return 'running';
+}
+
+function toolIdentity(payload: AgentRunEvent) {
+  return payload.proposal_id || payload.invocation_id || payload.tool_name || `tool-${Date.now()}`;
+}
+
+function mergeToolCall(current: ToolCall[], payload: AgentRunEvent, phase: 'started' | 'finished') {
+  const id = toolIdentity(payload);
+  const name = payload.tool_name || payload.tool_type || 'unknown_tool';
+  const index = current.findIndex((tool) => tool.id === id);
+  const previous = index >= 0 ? current[index] : undefined;
+  const next: ToolCall = {
+    id,
+    name,
+    displayName: toolDisplayName(name),
+    status: phase === 'started' ? 'running' : toolStatus(payload.status),
+    latencyMs: payload.latency_ms ?? previous?.latencyMs,
+    summary:
+      phase === 'started'
+        ? '正在执行'
+        : payload.error_code
+          ? `执行失败：${payload.error_code}`
+          : payload.status === 'confirmation_required'
+            ? '等待确认'
+            : '已完成',
+    error: payload.error_code,
+  };
+  if (index < 0) return [...current, next];
+  return current.map((tool, itemIndex) => (itemIndex === index ? { ...tool, ...next } : tool));
+}
+
 function MessageBubble({
   message,
   children,
@@ -115,6 +171,7 @@ function MessageBubble({
             <span className={styles.userAvatar} aria-hidden="true">
               <AvatarImage
                 avatarUrl={fixtureAvatar ? undefined : userAvatar}
+                allowUploaded={!fixtureAvatar}
                 data-avatar-role={fixtureAvatar ? 'fixture-message' : 'authenticated-message'}
                 defaultOnly={fixtureAvatar}
                 gender={resolvedGender}
@@ -126,7 +183,7 @@ function MessageBubble({
         </>
       ) : (
         <>
-          <span className={styles.agentAvatar} aria-hidden="true" />
+          <AgentStatusMarker className={styles.agentAvatar} />
           <div className={`${styles.assistantBody} ${message.wide ? styles.assistantBodyWide : ''}`}>
             <div className={styles.messageBubble}>
               <p className={styles.messageText}>{message.content}</p>
@@ -139,6 +196,11 @@ function MessageBubble({
       )}
     </article>
   );
+}
+
+/** Figma 中的 Agent 状态块是绿色状态标记，不属于人物头像资源。 */
+function AgentStatusMarker({ className }: { className: string }) {
+  return <span className={className} aria-hidden="true" data-agent-marker="figma-status-surface" />;
 }
 
 function TraceRail({ run, designChat = false }: { run: AgentRunView; designChat?: boolean }) {
@@ -249,7 +311,7 @@ type ChatSurfaceProps = {
   showKnowledgeTopNav?: boolean;
   designChat?: boolean;
   fixtureVariant?: 'chat';
-  pageVariant?: 'completed-citations' | 'figma-default';
+  pageVariant?: 'completed-citations' | 'figma-default' | 'running-stop';
   statusForStrip?: AgentDisplayStatus;
   statusVisualState?: 'user-cancelled';
   pageOverlay?: ReactNode;
@@ -305,7 +367,7 @@ function ChatSurface({
       topAvatarSrc={topAvatarSrc}
     >
       <div
-        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''} ${pageVariant === 'figma-default' ? styles.figmaDefaultPage : ''}`}
+        className={`${styles.page} ${designChat ? styles.designChatPage : ''} ${pageVariant === 'completed-citations' ? styles.completedCitationsPage : ''} ${pageVariant === 'figma-default' ? styles.figmaDefaultPage : ''} ${pageVariant === 'running-stop' ? styles.runningStopPage : ''}`}
       >
         <section className={styles.workspace}>
           <div className={styles.center}>
@@ -317,6 +379,11 @@ function ChatSurface({
             />
             <div className={styles.messages} ref={messagesRef}>
               {children}
+              {pageVariant === 'running-stop' ? (
+                <div className={styles.runningStatus} role="status" aria-live="polite">
+                  执行中 · 可随时停止
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
@@ -328,6 +395,7 @@ function ChatSurface({
           onChange={onChange}
           onSend={onSend}
           onStop={onStop}
+          runningLabel={pageVariant === 'running-stop' ? '停止运行' : undefined}
           fixtureVariant={resolvedFixtureVariant}
         />
       </div>
@@ -335,7 +403,8 @@ function ChatSurface({
   );
 }
 
-function approvalParameters(details: NonNullable<AgentRunEvent['details']>) {
+function approvalParameters(details: NonNullable<AgentRunEvent['details']>, resourceType?: string) {
+  if (resourceType === 'meal_plan') return { plan: details.plan ?? {} };
   return {
     meal_time: details.meal_time,
     meal_type: details.meal_type,
@@ -346,6 +415,34 @@ function approvalParameters(details: NonNullable<AgentRunEvent['details']>) {
       unit: item.unit,
     })),
   };
+}
+
+function approvalData(details: NonNullable<AgentRunEvent['details']>, resourceType?: string) {
+  if (resourceType === 'meal_plan') {
+    const plan = details.plan ?? {};
+    return [
+      { label: '计划名称', value: plan.plan_name ?? '未命名计划' },
+      {
+        label: '计划范围',
+        value: `${plan.days ?? '未设置'} 天 · ${plan.people ?? '未设置'} 人`,
+      },
+      { label: '能量目标', value: plan.calorie_target == null ? '未设置' : `${plan.calorie_target} kcal/天` },
+      { label: '蛋白质目标', value: plan.protein_target == null ? '未设置' : `${plan.protein_target} g/天` },
+      { label: '预算', value: plan.budget == null ? '未设置' : `${plan.budget} 元/天` },
+      { label: '过敏源', value: plan.allergens?.join('、') || '无' },
+      { label: '忌口', value: plan.dislikes?.join('、') || '无' },
+    ];
+  }
+  return [
+    { label: '餐型', value: details.meal_type ?? '未识别' },
+    { label: '时间', value: details.meal_time ?? '未识别' },
+    {
+      label: '食物',
+      value: (details.items ?? [])
+        .map((item) => `${item.name ?? '未命名'} ${item.amount ?? ''}${item.unit ?? ''}`)
+        .join('、'),
+    },
+  ];
 }
 
 export function ChatPage() {
@@ -492,7 +589,7 @@ function PlanningStatePage() {
         <div className={styles.planningMessageMeta}>Anddy · 12:45 PM</div>
       </article>
       <article className={styles.planningAssistantMessage}>
-        <span className={styles.planningAgentAvatar} aria-hidden="true" />
+        <AgentStatusMarker className={styles.planningAgentAvatar} />
         <div className={styles.planningAssistantBody}>
           <div className={styles.planningBubble}>
             <div className={styles.planningTitle}>
@@ -606,7 +703,7 @@ function ToolExecutingStatePage() {
         <div className={styles.executingMessageMeta}>Anddy · 12:45 PM</div>
       </article>
       <article className={styles.executingAssistantMessage}>
-        <span className={styles.executingAgentAvatar} aria-hidden="true" />
+        <AgentStatusMarker className={styles.executingAgentAvatar} />
         <div className={styles.executingAssistantBody}>
           <div className={styles.executingBubble}>
             <div className={styles.executingTitle}>
@@ -678,7 +775,7 @@ function AwaitingClarificationStatePage() {
         <div className={styles.awaitingMessageMeta}>Anddy · 12:45 PM</div>
       </article>
       <article className={styles.awaitingAssistantMessage}>
-        <span className={styles.awaitingAgentAvatar} aria-hidden="true" />
+        <AgentStatusMarker className={styles.awaitingAgentAvatar} />
         <div className={styles.awaitingAssistantBody}>
           <ClarificationCard
             options={['补充食物和份量', '上传照片识别']}
@@ -1196,10 +1293,10 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       onChange={setInput}
       onSend={() => setNotice('已保留输入内容，等待当前会话继续处理。')}
       onStop={() => setNotice('已请求停止当前 Run；已接收文本会保留。')}
-      placeholder={isRunning ? '运行中，可停止…' : '追问或添加自定义指令...'}
+      placeholder={isRunning ? '正在运行... 点击停止以中断此运行' : '追问或添加自定义指令...'}
       showTrace={!isCompletedCitations}
       designChat
-      pageVariant={isCompletedCitations ? 'completed-citations' : undefined}
+      pageVariant={isRunning ? 'running-stop' : isCompletedCitations ? 'completed-citations' : undefined}
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
@@ -1412,43 +1509,46 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const content = (() => {
     if (state === 'write-confirmation') {
       return (
-        <div className={styles.fixtureCardWrap}>
-          <Card className={`${styles.fixtureCard} ${styles.fixtureWriteCard}`}>
-            <div className={styles.fixtureCardHeader}>
-              <h2>确认写入以下记录</h2>
-              <span>目标对象: 饮食记录</span>
-            </div>
-            <dl className={styles.fixtureDetails}>
-              <div>
-                <dt>分类</dt>
-                <dd>2024年3月14日 午餐</dd>
+        <div className={styles.fixtureWriteRow}>
+          <AgentStatusMarker className={styles.fixtureAgentAvatar} />
+          <div className={styles.fixtureCardWrap}>
+            <Card className={`${styles.fixtureCard} ${styles.fixtureWriteCard}`}>
+              <div className={styles.fixtureCardHeader}>
+                <h2>确认写入以下记录</h2>
+                <span>目标对象: 饮食记录</span>
               </div>
-              <div>
-                <dt>食物</dt>
-                <dd>三文鱼寿司 x6</dd>
+              <dl className={styles.fixtureDetails}>
+                <div>
+                  <dt>分类</dt>
+                  <dd>2024年3月14日 午餐</dd>
+                </div>
+                <div>
+                  <dt>食物</dt>
+                  <dd>三文鱼寿司 x6</dd>
+                </div>
+                <div>
+                  <dt>热量</dt>
+                  <dd>约 620 千卡</dd>
+                </div>
+                <div>
+                  <dt>蛋白质</dt>
+                  <dd>38g</dd>
+                </div>
+              </dl>
+              <div className={styles.fixtureMeta}>
+                <span>来源: USDA FoodData Central</span>
+                <span>假设: 按标准份量估算</span>
               </div>
-              <div>
-                <dt>热量</dt>
-                <dd>约 620 千卡</dd>
+              <div className={styles.fixtureActions}>
+                <Button disabled={action === 'pending'} onClick={() => void confirmWrite()}>
+                  确认写入
+                </Button>
+                <Button disabled={action === 'pending'} variant="ghost" onClick={() => void cancelWrite()}>
+                  取消
+                </Button>
               </div>
-              <div>
-                <dt>蛋白质</dt>
-                <dd>38g</dd>
-              </div>
-            </dl>
-            <div className={styles.fixtureMeta}>
-              <span>来源: USDA FoodData Central</span>
-              <span>假设: 按标准份量估算</span>
-            </div>
-            <div className={styles.fixtureActions}>
-              <Button disabled={action === 'pending'} onClick={() => void confirmWrite()}>
-                确认写入
-              </Button>
-              <Button disabled={action === 'pending'} variant="ghost" onClick={() => void cancelWrite()}>
-                取消
-              </Button>
-            </div>
-          </Card>
+            </Card>
+          </div>
         </div>
       );
     }
@@ -1456,13 +1556,13 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       return (
         <>
           <div className={styles.fixtureAssistantRow}>
-            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <AgentStatusMarker className={styles.fixtureAgentAvatar} />
             <p className={styles.fixtureBudgetIntro}>
               我已在后台调用历史数据解析服务。此分析需要读取超长数据块，将会消耗较多计算令牌。
             </p>
           </div>
           <div className={`${styles.fixtureAssistantRow} ${styles.fixtureBudgetRowWrap}`}>
-            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <AgentStatusMarker className={styles.fixtureAgentAvatar} />
             <Card className={`${styles.fixtureCard} ${styles.fixtureBudgetCard}`}>
               <div className={styles.fixtureBudgetTitle}>
                 <AlertTriangle aria-hidden="true" />
@@ -1518,7 +1618,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     if (state === 'tool-failed-retryable') {
       return (
         <div className={styles.fixtureAssistantRow}>
-          <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+          <AgentStatusMarker className={styles.fixtureAgentAvatar} />
           <Card className={`${styles.fixtureCard} ${styles.fixtureFailureCard}`}>
             <div className={styles.fixtureStatusTitle}>
               <AlertTriangle aria-hidden="true" />
@@ -1556,7 +1656,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
         <div className={styles.fixtureSafetyBlock}>
           <div className={styles.fixtureSafetyTopRow}>
             <div className={styles.fixtureSafetyIdentity}>
-              <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+              <AgentStatusMarker className={styles.fixtureAgentAvatar} />
               <span className={styles.fixtureSafetyLabel}>安全降级</span>
             </div>
             <div className={`${styles.fixtureSafetyBody} ${styles.fixtureSafetyBodyAligned}`}>
@@ -1586,7 +1686,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       return (
         <div className={`${styles.fixtureCancelledWrap} ${styles.fixtureCancelledWrapAligned}`}>
           <div className={`${styles.fixtureCancelledAssistantRow} ${styles.fixtureCancelledAssistantRowAligned}`}>
-            <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+            <AgentStatusMarker className={styles.fixtureAgentAvatar} />
             <div className={styles.fixtureCancelledAssistantBody}>
               <p className={styles.fixtureAssistantText}>
                 正在为您生成减脂餐计划... 已检索到您历史减脂卡路里基准为 1600kcal...
@@ -1604,7 +1704,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     return (
       <div className={styles.fixtureReconnectWrap}>
         <div className={styles.fixtureReconnectAssistantRow}>
-          <span className={styles.fixtureAgentAvatar} aria-hidden="true" />
+          <AgentStatusMarker className={styles.fixtureAgentAvatar} />
           <div className={styles.fixtureReconnectAssistantBody}>
             <p className={styles.fixtureAssistantText}>
               正在查询水果数据库，提取符合低生糖指数（GI &lt; 55）的食材列表...
@@ -1630,7 +1730,8 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       run={run}
       messagesRef={messagesRef}
       input={input}
-      running={state === 'sse-reconnecting'}
+      // 重连期间只锁定 Composer，不显示“停止运行”按钮，保持 Figma 的禁用发送态。
+      running={false}
       disabled={state === 'budget-limit' || state === 'sse-reconnecting'}
       statusForStrip={state === 'user-cancelled' ? 'planning' : undefined}
       statusVisualState={state === 'user-cancelled' ? 'user-cancelled' : undefined}
@@ -1719,15 +1820,21 @@ function RealChatPage() {
   const [loading, setLoading] = useState(Boolean(sessionId));
   const [sending, setSending] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string>();
+  const [runIntent, setRunIntent] = useState<AgentRunView['intent']>('knowledge_qna');
+  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
   const [citations, setCitations] = useState<AgentRunView['citations']>([]);
   const [runStatus, setRunStatus] = useState('idle');
   const [assistantText, setAssistantText] = useState('');
+  const [assistantTime, setAssistantTime] = useState('');
   const [assistantMessageId, setAssistantMessageId] = useState<string>();
   const [error, setError] = useState<string>();
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
   const [approval, setApproval] = useState<{
     id: string;
+    operation?: string;
+    resourceType?: string;
+    toolName?: string;
     details: NonNullable<AgentRunEvent['details']>;
   }>();
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
@@ -1757,8 +1864,11 @@ function RealChatPage() {
     // 路由变化时重置状态，后续由新的 SSE 订阅接管这些值。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveRunId(undefined);
+    setRunIntent('knowledge_qna');
+    setToolCalls([]);
     setRunStatus('idle');
     setAssistantText('');
+    setAssistantTime('');
     setAssistantMessageId(undefined);
     setCitations([]);
     setBudgetConfirmation(false);
@@ -1811,8 +1921,35 @@ function RealChatPage() {
       activeRunId,
       (eventType, payload) => {
         if (!streamActive || !mountedRef.current) return;
+        if (eventType === 'run.routed') {
+          setRunIntent(normalizeRunIntent(payload.intent));
+          setRunStatus('routed');
+          return;
+        }
+        if (eventType === 'run.context_assembled') {
+          setRunStatus('retrieving');
+          return;
+        }
+        if (eventType === 'run.tool_started') {
+          setRunStatus('executing');
+          setToolCalls((current) => mergeToolCall(current, payload, 'started'));
+          return;
+        }
+        if (eventType === 'run.tool_finished') {
+          setToolCalls((current) => mergeToolCall(current, payload, 'finished'));
+          return;
+        }
+        if (eventType === 'run.eval_decided') {
+          setRunStatus('validating');
+          return;
+        }
+        if (eventType === 'run.model_usage') {
+          setRunStatus('composing');
+          return;
+        }
         if (eventType === 'run.answer_stream') {
           setRunStatus('validating');
+          setAssistantTime((current) => current || new Date().toISOString());
           if (!hasPersistedAnswer) setAssistantText((current) => current + (payload.text ?? ''));
           return;
         }
@@ -1820,6 +1957,7 @@ function RealChatPage() {
           setRunStatus('completed');
           setCheckpointAvailable(false);
           setApproval(undefined);
+          setAssistantTime((current) => current || new Date().toISOString());
           if (!hasPersistedAnswer) setAssistantText((current) => payload.answer ?? current);
           if (sessionId) {
             void loadSessionMessages(sessionId).then((rows) => {
@@ -1847,7 +1985,13 @@ function RealChatPage() {
           if (payload.approval_request_id) {
             setRunStatus('waiting_user');
             setCheckpointAvailable(false);
-            setApproval({ id: payload.approval_request_id, details: payload.details ?? {} });
+            setApproval({
+              id: payload.approval_request_id,
+              operation: payload.operation,
+              resourceType: payload.resource_type,
+              toolName: payload.tool_name,
+              details: payload.details ?? {},
+            });
           } else {
             setRunStatus('waiting_user');
             setCheckpointAvailable(true);
@@ -1874,7 +2018,13 @@ function RealChatPage() {
           setRunStatus('waiting_user');
           if (payload.approval_request_id) {
             setCheckpointAvailable(false);
-            setApproval({ id: payload.approval_request_id, details: payload.details ?? {} });
+            setApproval({
+              id: payload.approval_request_id,
+              operation: payload.operation,
+              resourceType: payload.resource_type,
+              toolName: payload.tool_name,
+              details: payload.details ?? {},
+            });
           }
           return;
         }
@@ -1928,12 +2078,12 @@ function RealChatPage() {
   const realRun: AgentRunView = {
     id: activeRunId ?? '等待运行',
     status: displayRunStatus(runStatus === 'idle' ? 'completed' : runStatus),
-    intent: 'planning',
-    toolsUsed: 0,
-    toolsTotal: 6,
-    agentsUsed: 0,
-    agentsTotal: 1,
-    toolCalls: [],
+    intent: runIntent,
+    toolsUsed: toolCalls.filter((tool) => tool.status === 'success').length,
+    toolsTotal: toolCalls.length,
+    agentsUsed: activeRunId ? 1 : 0,
+    agentsTotal: activeRunId ? 1 : 0,
+    toolCalls,
     citations,
     connection,
   };
@@ -2031,7 +2181,7 @@ function RealChatPage() {
             id: 'assistant-stream',
             role: 'assistant',
             content: assistantText,
-            time: '12:46',
+            time: assistantTime || new Date().toISOString(),
             agentRunId: activeRunId,
           }}
         >
@@ -2043,40 +2193,41 @@ function RealChatPage() {
       ) : null}
       {approval && activeRunId ? (
         <div className={styles.cardWrap}>
-          <ConfirmationCard
-            title="请确认将这条内容写入饮食日志"
-            helperText="确认后才会创建饮食记录；取消不会修改业务数据。"
-            state={approvalSubmitting ? 'disabled' : 'normal'}
-            data={[
-              { label: '餐型', value: approval.details.meal_type ?? '未识别' },
-              {
-                label: '时间',
-                value: approval.details.meal_time ?? '未识别',
-              },
-              {
-                label: '食物',
-                value: (approval.details.items ?? [])
-                  .map((item) => `${item.name ?? '未命名'} ${item.amount ?? ''}${item.unit ?? ''}`)
-                  .join('、'),
-              },
-            ]}
-            onConfirm={() => {
-              const parameters = approvalParameters(approval.details);
-              setApprovalSubmitting(true);
-              void confirmAgentWrite(approval.id, parameters)
-                .then(() => executeAgentWrite(approval.id, parameters))
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '饮食记录写入失败'))
-                .finally(() => setApprovalSubmitting(false));
-            }}
-            onEdit={() => setError('请发送一条新消息修改食物和份量。')}
-            onCancel={() => {
-              const parameters = approvalParameters(approval.details);
-              setApprovalSubmitting(true);
-              void rejectAgentWrite(approval.id, parameters)
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
-                .finally(() => setApprovalSubmitting(false));
-            }}
-          />
+          {(() => {
+            const resourceType = approval.resourceType ?? approval.details.resource_type;
+            const supported = resourceType === 'food_log' || resourceType === 'meal_plan';
+            return (
+              <ConfirmationCard
+                title={resourceType === 'meal_plan' ? '请确认保存餐食计划' : '请确认将这条内容写入饮食日志'}
+                helperText={
+                  resourceType === 'meal_plan'
+                    ? '确认后会创建餐食计划并生成购物清单。'
+                    : '确认后会创建饮食记录；取消不会修改业务数据。'
+                }
+                state={approvalSubmitting ? 'disabled' : supported ? 'normal' : 'error'}
+                errorText="当前写入类型无法识别，请重新发送需求。"
+                data={approvalData(approval.details, resourceType)}
+                onConfirm={() => {
+                  if (!supported) return;
+                  const parameters = approvalParameters(approval.details, resourceType);
+                  setApprovalSubmitting(true);
+                  void confirmAgentWrite(approval.id, parameters)
+                    .then(() => executeAgentWrite(approval.id, parameters))
+                    .catch((reason) => setError(reason instanceof Error ? reason.message : '饮食记录写入失败'))
+                    .finally(() => setApprovalSubmitting(false));
+                }}
+                onEdit={() => setError('请发送一条新消息修改食物和份量。')}
+                onCancel={() => {
+                  if (!supported) return;
+                  const parameters = approvalParameters(approval.details, resourceType);
+                  setApprovalSubmitting(true);
+                  void rejectAgentWrite(approval.id, parameters)
+                    .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
+                    .finally(() => setApprovalSubmitting(false));
+                }}
+              />
+            );
+          })()}
         </div>
       ) : null}
       {checkpointAvailable && !approval && activeRunId ? (

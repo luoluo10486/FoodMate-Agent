@@ -154,7 +154,7 @@ describe('ChatPage Figma 默认状态', () => {
       'utf8',
     );
 
-    expect(pageStylesheet).toContain('--fm-fixture-composer-input-surface: var(--fm-fixture-chat-bg);');
+    expect(pageStylesheet).toContain('--fm-fixture-composer-input-surface: var(--fm-fixture-chat-control-surface);');
     expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
   });
 
@@ -259,12 +259,24 @@ describe('ChatPage Agent remaining states', () => {
       'src',
       '/assets/avatars/default-male.svg',
     );
-    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
-    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-female');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-male');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute(
+      'src',
+      document.querySelector('aside .avatar img')?.getAttribute('src') ?? '',
+    );
     expect(document.querySelector('.userAvatar img')).not.toHaveAttribute(
       'src',
       '/legacy-assets/chat/person-avatar.png',
     );
+  });
+
+  it('uses dark text for the light user message bubble', () => {
+    const pageStylesheet = readFileSync(resolve(__dirname, 'ChatPage.module.css'), 'utf8');
+    const userBubbleStyles = pageStylesheet.match(/(?:^|\n)\.user \.messageBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
+
+    expect(userBubbleStyles).toContain('color: var(--fm-ink);');
+    expect(userBubbleStyles).not.toContain('color: #ffffff;');
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {
@@ -278,6 +290,7 @@ describe('ChatPage Agent remaining states', () => {
     expect(writeCard).toBeInTheDocument();
     const writeDetails = document.querySelector('[class*="fixtureWriteCard"] [class*="fixtureDetails"]');
     expect(writeDetails).toBeInTheDocument();
+    expect(document.querySelector('[data-agent-marker="figma-status-surface"]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '确认写入' }).querySelector('svg')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '取消' }).querySelector('svg')).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
@@ -332,6 +345,7 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByRole('button', { name: '重试' }).className).toContain('fixtureRetryButton');
     expect(screen.getByRole('button', { name: '跳过此步骤' }).className).toContain('fixtureSkipButton');
     expect(document.querySelector('[class*="fixtureAgentAvatar"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-agent-marker="figma-status-surface"]')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Executing×');
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toContain('Composing○');
     fireEvent.click(screen.getByRole('button', { name: '跳过此步骤' }));
@@ -381,6 +395,8 @@ describe('ChatPage Agent remaining states', () => {
     expect(screen.getByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 次重连尝试 (最多 5 次)')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('等待重新连接...')).toBeDisabled();
+    expect(screen.getByRole('button', { name: '发送消息' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '发送消息' })).toHaveAttribute('data-state', 'idle');
     expect(document.querySelector('[class*="fixtureReconnectAssistantRow"]')).toBeInTheDocument();
     expect(document.querySelector('[class*="fixtureReconnectBottom"]')).toBeInTheDocument();
     expect(document.querySelector('[class*="fixtureReconnectNotice"] img')).toHaveAttribute(
@@ -531,6 +547,8 @@ describe('ChatPage Figma running-stop fixture', () => {
 
     expect(screen.getByText('USDA FoodData Central Ref #451992', { exact: false })).toBeInTheDocument();
     expect(screen.getByText('响应合成')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('执行中 · 可随时停止');
+    expect(screen.getByText('停止运行')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '停止生成' })).toBeEnabled();
     expect(screen.queryByText('消息操作')).not.toBeInTheDocument();
   });

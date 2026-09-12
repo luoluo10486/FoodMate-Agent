@@ -7,9 +7,21 @@
   background: var(--fm-figma-workspace-bg);
 }
 
+/* 顶栏型 Figma 画板没有工作区侧栏，主内容必须占满整个视口。 */
+.noSidebar {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 /* Figma Knowledge 顶栏字标为 20px，不能沿用 compact 默认值。 */
 .knowledgeLayout {
   --fm-brand-wordmark-size: 20px;
+  --fm-fixture-top-nav-active-surface: var(--fm-figma-knowledge-top-nav-active-surface);
+}
+
+/* Figma 节点 795:853 的知识库活动导航同时使用浅色表面和橙色描边。 */
+.knowledgeLayout .topNavLink.active,
+.knowledgeLayout .topNavActive {
+  border: 1px solid var(--fm-figma-knowledge-top-nav-active-border);
 }
 
 /* Figma fixture 只覆盖设计稿专属的表面颜色。 */
@@ -82,6 +94,17 @@
   min-height: 42px;
 }
 
+/* Figma 工作台和饮食工具导航使用 Medium，设置入口也保持与导航一致的左对齐。 */
+.figmaFixture .primarySideNav .sideLink.active,
+.figmaFixture .secondarySideNav .sideLink,
+.figmaFixture .secondarySideNav .sideButton {
+  font-weight: var(--fm-figma-workspace-sidebar-nav-weight);
+}
+
+.figmaFixture .secondarySideNav .sideButton {
+  justify-content: flex-start;
+}
+
 .figmaFixture :global(.sidebar-session-section) {
   display: block;
   flex: 0 0 auto;
@@ -114,16 +137,6 @@
   width: 22px;
   line-height: 13px;
   text-align: center;
-}
-
-/* 状态画板只保留三条会话，列表高度随内容收缩以露出总数提示。 */
-.compactSessionFixture :global(.sidebar-session-list) {
-  height: auto;
-  max-height: none;
-}
-
-.compactSessionFixture :global(.sidebar-session-count) {
-  margin-top: 8px;
 }
 
 .figmaFixture :global(.sidebar-session-pagination) svg {
@@ -469,6 +482,12 @@
   object-fit: cover;
 }
 
+/* Figma 头像节点的容器填充为不可见，不能叠加默认粉色头像底。 */
+.figmaFixture .avatar,
+.figmaFixture .topAvatar {
+  background: var(--fm-figma-avatar-surface);
+}
+
 .deletedButton {
   width: 100%;
   justify-content: flex-start;
@@ -593,6 +612,11 @@
   color: var(--fm-ink);
   font-size: 12px;
   box-shadow: none;
+}
+
+/* Figma 工作台顶栏搜索文字为 13px，覆盖 shadcn Input 的默认字号。 */
+.figmaFixture .workspaceSearch input {
+  font-size: var(--fm-figma-workspace-search-text-size);
 }
 .workspaceSearch svg {
   position: absolute;
@@ -758,6 +782,9 @@
 @media (max-width: 820px) {
   .shell {
     grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .noSidebar {
+    grid-template-columns: minmax(0, 1fr);
   }
   .withRail {
     grid-template-columns: 220px minmax(0, 1fr);

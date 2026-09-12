@@ -151,8 +151,6 @@ const figmaSidebarSessions: SessionSummary[] = [
   { id: 'low-carb-plan', title: '低碳水饮食建议', subtitle: '12:45', active: false },
 ];
 
-const figmaStateSidebarSessions: SessionSummary[] = figmaSidebarSessions.slice(0, 3);
-
 type RecordsState = 'default' | 'loading' | 'empty' | 'error';
 
 function getRecordsState(value: string | null): RecordsState {
@@ -256,6 +254,12 @@ function asNumber(value: number | string | null | undefined) {
   return Number.isFinite(number) ? number : 0;
 }
 
+function candidateMetric(value: number | string | null) {
+  if (value == null || (typeof value === 'string' && value.trim() === '')) return '未知';
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString('zh-CN', { maximumFractionDigits: 1 }) : '未知';
+}
+
 function nutritionDisplayStatus(value: string): FoodItem['status'] {
   if (value === 'matched') return 'confirmed';
   if (value === 'pending_confirmation') return 'ambiguous';
@@ -263,7 +267,16 @@ function nutritionDisplayStatus(value: string): FoodItem['status'] {
   return 'pending';
 }
 
-function nutritionStatusLabel(status: FoodItem['status']) {
+function nutritionStatusLabel(status: FoodItem['status'], isFigmaFixture: boolean) {
+  if (isFigmaFixture) {
+    return {
+      confirmed: '已确认',
+      pending: '待确认',
+      ambiguous: '候选待确认',
+      invalid: '无法匹配',
+    }[status];
+  }
+
   return {
     confirmed: '已匹配',
     pending: '待估算',
@@ -339,7 +352,6 @@ export function DietRecordsPage() {
   const linkedMealType = searchParams.get('mealType');
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'v2' || recordsState !== 'default');
-  const isFigmaStateFixture = isFigmaFixture && recordsState !== 'default';
   const [selectedDate, setSelectedDate] = useState(() => (isRealMode ? new Date() : initialDate));
   const [view, setView] = useState<'day' | 'week'>('day');
   const [meals, setMeals] = useState<MealSection[]>(initialMeals);
@@ -352,8 +364,8 @@ export function DietRecordsPage() {
   const [editingLogId, setEditingLogId] = useState<string>();
   const [dialogDate, setDialogDate] = useState(selectedDate);
   const [foodName, setFoodName] = useState('');
-  const [foodAmount, setFoodAmount] = useState('1');
-  const [foodUnit, setFoodUnit] = useState('份');
+  const [foodAmount, setFoodAmount] = useState('100');
+  const [foodUnit, setFoodUnit] = useState('g');
   const [nutritionFoodId, setNutritionFoodId] = useState<string>();
   const [nutritionCandidates, setNutritionCandidates] = useState<NutritionFoodCandidate[]>([]);
   const [nutritionCandidatesLoading, setNutritionCandidatesLoading] = useState(false);
@@ -435,8 +447,8 @@ export function DietRecordsPage() {
       setDialogMealId(mealId);
       setDialogDate(date);
       setFoodName('');
-      setFoodAmount('1');
-      setFoodUnit('份');
+      setFoodAmount('100');
+      setFoodUnit('g');
       setNutritionFoodId(undefined);
       setNutritionCandidates([]);
       setNutritionCandidatesError(undefined);
@@ -468,8 +480,8 @@ export function DietRecordsPage() {
     setDialogMode('create');
     setEditingLogId(undefined);
     setFoodName('');
-    setFoodAmount('1');
-    setFoodUnit('份');
+    setFoodAmount('100');
+    setFoodUnit('g');
     setNutritionFoodId(undefined);
     setNutritionCandidates([]);
     setNutritionCandidatesError(undefined);
@@ -835,7 +847,7 @@ export function DietRecordsPage() {
                         : styles.pending
                 }
               >
-                {nutritionStatusLabel(item.status)}
+                {nutritionStatusLabel(item.status, isFigmaFixture)}
               </span>
             </div>
             <div className={styles.foodMeta}>
@@ -884,15 +896,12 @@ export function DietRecordsPage() {
       sidebarAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.sidebar : undefined}
       topAvatarSrc={isFigmaFixture ? FIXTURE_WORKSPACE_AVATARS.topbar : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
-      showWindowControls={isFigmaFixture && recordsState === 'default'}
+      showWindowControls={isFigmaFixture}
       sidebarFixture={
         isFigmaFixture
           ? {
-              sessions: isFigmaStateFixture ? figmaStateSidebarSessions : figmaSidebarSessions,
-              hideSecondaryNavigation: isFigmaStateFixture,
-              hideSessionPagination: isFigmaStateFixture,
-              hideSessionSearch: isFigmaStateFixture,
-              sessionCountLabel: isFigmaStateFixture ? '共 15 条会话' : undefined,
+              // 所有状态画板都保留 Figma 中的完整工作区侧栏。
+              sessions: figmaSidebarSessions,
             }
           : undefined
       }
@@ -1304,8 +1313,9 @@ export function DietRecordsPage() {
                       >
                         <span>{candidate.chinese_name?.trim() || candidate.standard_name}</span>
                         <small>
-                          {candidate.food_form || '未标注形态'} · {candidate.basis_unit} ·{' '}
-                          {candidate.source_name || '目录来源未知'}
+                          {candidate.food_form || '未标注形态'} · 每 100{candidate.basis_unit}：
+                          {candidateMetric(candidate.calories_kcal_per_100)} kcal · 蛋白质{' '}
+                          {candidateMetric(candidate.protein_g_per_100)} g · {candidate.source_name || '目录来源未知'}
                         </small>
                       </Button>
                     </li>
@@ -1331,7 +1341,7 @@ export function DietRecordsPage() {
             onChange={(event) => setFoodAmount(event.target.value)}
           />
           <Input
-            placeholder="单位，例如：份、克"
+            placeholder="单位，例如：g、克、份、个、杯"
             aria-label="食物单位"
             value={foodUnit}
             onChange={(event) => setFoodUnit(event.target.value)}

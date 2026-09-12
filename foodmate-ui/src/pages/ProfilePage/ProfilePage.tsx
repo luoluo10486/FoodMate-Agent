@@ -783,6 +783,7 @@ function BasicTab({
               <AvatarImage
                 className={styles.avatarImage}
                 avatarUrl={avatarSource}
+                allowUploaded={realMode && !figmaFixture}
                 defaultOnly={!realMode || figmaFixture}
                 gender={profileForm.gender}
                 alt="个人头像"

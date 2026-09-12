@@ -73,6 +73,8 @@ type WorkspaceLayoutProps = {
   profileIdOverride?: string;
   profileActiveTab?: 'basic' | 'memories' | 'security' | 'privacy';
   showKnowledgeTopNav?: boolean;
+  /** 顶栏型 Figma 画板不渲染工作区侧栏，也不需要加载会话列表。 */
+  hideSidebar?: boolean;
   topbarShowMarkLetter?: boolean;
   showWindowControls?: boolean;
   designChat?: boolean;
@@ -106,6 +108,7 @@ export function WorkspaceLayout({
   profileIdOverride,
   profileActiveTab,
   showKnowledgeTopNav = true,
+  hideSidebar = false,
   topbarShowMarkLetter = true,
   showWindowControls,
   designChat = false,
@@ -151,6 +154,9 @@ export function WorkspaceLayout({
   const showFixtureWindowControls =
     showWindowControls ?? (designChat || Boolean(sidebarFixture && !showKnowledgeTopNav));
   const isFigmaSidebarFixture = Boolean(sidebarFixture && (!showKnowledgeTopNav || showWindowControls));
+  // Chat 的默认 Figma 画板不依赖固定会话 Fixture，但仍必须启用同一套视觉边界。
+  // 真实模式不会传入 designChat，因此不会改变真实工作区的头像和导航样式。
+  const isFigmaFixture = isFigmaSidebarFixture || designChat || (hideSidebar && Boolean(fixtureVariant));
   const renderWorkspaceIcon = (name: FigmaWorkspaceAssetName, fallback: React.ReactNode) =>
     fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name={name} /> : fallback;
 
@@ -177,13 +183,13 @@ export function WorkspaceLayout({
   }, [authReady, realMode, isAuthenticated, location.pathname, location.search, navigate]);
 
   useEffect(() => {
-    if (sidebarFixture) return;
+    if (sidebarFixture || hideSidebar) return;
     if (authReady && isAuthenticated) {
       loadSessions()
         .then(setSessions)
         .catch(() => undefined);
     }
-  }, [authReady, isAuthenticated, sidebarFixture]);
+  }, [authReady, hideSidebar, isAuthenticated, sidebarFixture]);
 
   useEffect(() => {
     if (!realMode || !sessionQuery.trim()) return;
@@ -252,145 +258,148 @@ export function WorkspaceLayout({
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${isFigmaSidebarFixture ? styles.figmaFixture : ''} ${sidebarFixture?.hideSessionPagination ? styles.compactSessionFixture : ''}`}
+        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${hideSidebar ? styles.noSidebar : ''} ${isFigmaFixture ? styles.figmaFixture : ''}`}
         data-shell-avatar-policy={defaultOnlyAvatar ? 'default-only' : 'uploaded-allowed'}
         data-shell-avatar-assets="default-male.svg,default-female.svg"
       >
-        <aside className={`${styles.sidebar} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}>
-          {showFixtureWindowControls ? (
-            <div className={styles.windowControls} data-name="window-controls" aria-hidden="true">
-              {fixtureVariant ? (
-                <FigmaWorkspaceAsset variant={fixtureVariant} name="windowControls" />
-              ) : (
-                <img src="/assets/figma/workspace/window-controls.svg" alt="" />
-              )}
+        {!hideSidebar ? (
+          <aside className={`${styles.sidebar} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}>
+            {showFixtureWindowControls ? (
+              <div className={styles.windowControls} data-name="window-controls" aria-hidden="true">
+                {fixtureVariant ? (
+                  <FigmaWorkspaceAsset variant={fixtureVariant} name="windowControls" />
+                ) : (
+                  <img src="/assets/figma/workspace/window-controls.svg" alt="" />
+                )}
+              </div>
+            ) : null}
+            <div className={styles.sidebarBrand}>
+              <BrandLogo showTagline />
             </div>
-          ) : null}
-          <div className={styles.sidebarBrand}>
-            <BrandLogo showTagline />
-          </div>
-          {sidebarFixture?.showTopStatus ? <div className={styles.fixtureOnlineStatus}>在线代理</div> : null}
-          <Button className={styles.newButton} onClick={createNewSession}>
-            {renderWorkspaceIcon('newTask', <Plus aria-hidden="true" />)}
-            <span>新建任务</span>
-          </Button>
-          {!hideSessionHistory && !sidebarFixture?.hideSessionSearch ? (
-            <div className={styles.searchWrap}>
-              {fixtureVariant ? (
-                <FigmaWorkspaceAsset variant={fixtureVariant} name="sessionSearch" className={styles.searchIcon} />
-              ) : (
-                <Search className={styles.searchIcon} aria-hidden="true" />
-              )}
-              <Input
-                className={styles.search}
-                placeholder="搜索会话..."
-                value={displayedSessionQuery}
-                onChange={(event) => setSessionQuery(event.target.value)}
+            {sidebarFixture?.showTopStatus ? <div className={styles.fixtureOnlineStatus}>在线代理</div> : null}
+            <Button className={styles.newButton} onClick={createNewSession}>
+              {renderWorkspaceIcon('newTask', <Plus aria-hidden="true" />)}
+              <span>新建任务</span>
+            </Button>
+            {!hideSessionHistory && !sidebarFixture?.hideSessionSearch ? (
+              <div className={styles.searchWrap}>
+                {fixtureVariant ? (
+                  <FigmaWorkspaceAsset variant={fixtureVariant} name="sessionSearch" className={styles.searchIcon} />
+                ) : (
+                  <Search className={styles.searchIcon} aria-hidden="true" />
+                )}
+                <Input
+                  className={styles.search}
+                  placeholder="搜索会话..."
+                  value={displayedSessionQuery}
+                  onChange={(event) => setSessionQuery(event.target.value)}
+                />
+                {displayedSessionQuery && !designChat ? (
+                  <Button
+                    className={styles.clearSearch}
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    aria-label="清除会话搜索"
+                    onClick={() => setSessionQuery('')}
+                  >
+                    <X aria-hidden="true" />
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            <div className={styles.sessionTools}>
+              <nav className={styles.primarySideNav} aria-label="工作区导航">
+                <NavLink className={sideLink} to={ROUTES.HOME} end>
+                  {renderWorkspaceIcon('home', <Home aria-hidden="true" />)}
+                  <span>工作台</span>
+                </NavLink>
+              </nav>
+              <SidebarSessionList
+                currentPage={sidebarFixture?.currentPage}
+                fixtureVariant={fixtureVariant}
+                hidePagination={sidebarFixture?.hideSessionPagination}
+                sessionCountLabel={sidebarFixture?.sessionCountLabel}
+                sessions={displayedSessions}
+                showHistory={!hideSessionHistory}
+                onAction={sidebarFixture ? undefined : handleSessionAction}
               />
-              {displayedSessionQuery && !designChat ? (
-                <Button
-                  className={styles.clearSearch}
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  aria-label="清除会话搜索"
-                  onClick={() => setSessionQuery('')}
-                >
-                  <X aria-hidden="true" />
+              {realMode ? (
+                <Button className={styles.deletedButton} variant="ghost" onClick={() => void openDeletedSessions()}>
+                  查看已删除会话
                 </Button>
               ) : null}
             </div>
-          ) : null}
-          <div className={styles.sessionTools}>
-            <nav className={styles.primarySideNav} aria-label="工作区导航">
-              <NavLink className={sideLink} to={ROUTES.HOME} end>
-                {renderWorkspaceIcon('home', <Home aria-hidden="true" />)}
-                <span>工作台</span>
-              </NavLink>
-            </nav>
-            <SidebarSessionList
-              currentPage={sidebarFixture?.currentPage}
-              fixtureVariant={fixtureVariant}
-              hidePagination={sidebarFixture?.hideSessionPagination}
-              sessionCountLabel={sidebarFixture?.sessionCountLabel}
-              sessions={displayedSessions}
-              showHistory={!hideSessionHistory}
-              onAction={sidebarFixture ? undefined : handleSessionAction}
-            />
-            {realMode ? (
-              <Button className={styles.deletedButton} variant="ghost" onClick={() => void openDeletedSessions()}>
-                查看已删除会话
-              </Button>
+            {!sidebarFixture?.hideSecondaryNavigation ? (
+              <nav className={styles.secondarySideNav} aria-label="饮食工具">
+                <NavLink className={fixedSideLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
+                  {renderWorkspaceIcon('dietRecords', <Table2 aria-hidden="true" />)}
+                  <span>饮食记录</span>
+                </NavLink>
+                <NavLink className={fixedSideLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
+                  {renderWorkspaceIcon('intakeAnalysis', <ChartColumn aria-hidden="true" />)}
+                  <span>摄入分析</span>
+                </NavLink>
+                <NavLink className={sideLink} to={ROUTES.PLANNING}>
+                  {renderWorkspaceIcon('mealPlanning', <CalendarDays aria-hidden="true" />)}
+                  <span>餐食规划</span>
+                </NavLink>
+                <NavLink className={sideLink} to={ROUTES.KNOWLEDGE}>
+                  {renderWorkspaceIcon('knowledge', <BookOpen aria-hidden="true" />)}
+                  <span>知识库</span>
+                </NavLink>
+                <Button
+                  className={styles.sideButton}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => announce('设置入口将在设置页面完成后启用。')}
+                >
+                  {renderWorkspaceIcon('settings', <Settings aria-hidden="true" />)}
+                  <span>设置</span>
+                </Button>
+              </nav>
             ) : null}
-          </div>
-          {!sidebarFixture?.hideSecondaryNavigation ? (
-            <nav className={styles.secondarySideNav} aria-label="饮食工具">
-              <NavLink className={fixedSideLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
-                {renderWorkspaceIcon('dietRecords', <Table2 aria-hidden="true" />)}
-                <span>饮食记录</span>
-              </NavLink>
-              <NavLink className={fixedSideLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
-                {renderWorkspaceIcon('intakeAnalysis', <ChartColumn aria-hidden="true" />)}
-                <span>摄入分析</span>
-              </NavLink>
-              <NavLink className={sideLink} to={ROUTES.PLANNING}>
-                {renderWorkspaceIcon('mealPlanning', <CalendarDays aria-hidden="true" />)}
-                <span>餐食规划</span>
-              </NavLink>
-              <NavLink className={sideLink} to={ROUTES.KNOWLEDGE}>
-                {renderWorkspaceIcon('knowledge', <BookOpen aria-hidden="true" />)}
-                <span>知识库</span>
-              </NavLink>
-              <Button
-                className={styles.sideButton}
-                variant="ghost"
-                type="button"
-                onClick={() => announce('设置入口将在设置页面完成后启用。')}
-              >
-                {renderWorkspaceIcon('settings', <Settings aria-hidden="true" />)}
-                <span>设置</span>
-              </Button>
-            </nav>
-          ) : null}
-          <div className={styles.accountDock}>
-            {!sidebarFixture?.hideCollapseButton ? (
-              <Button
-                className={styles.collapseButton}
-                variant="ghost"
-                type="button"
-                onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
-              >
-                <MoreHorizontal aria-hidden="true" />
-                <span>收起导航</span>
-              </Button>
-            ) : null}
-            <div className={styles.statusPill}>
-              {fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name="statusDot" /> : <span />}
-              <span>就绪 (Fustat-v2)</span>
+            <div className={styles.accountDock}>
+              {!sidebarFixture?.hideCollapseButton ? (
+                <Button
+                  className={styles.collapseButton}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
+                >
+                  <MoreHorizontal aria-hidden="true" />
+                  <span>收起导航</span>
+                </Button>
+              ) : null}
+              <div className={styles.statusPill}>
+                {fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name="statusDot" /> : <span />}
+                <span>就绪 (Fustat-v2)</span>
+              </div>
+              <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
+                <div className={styles.avatar}>
+                  <AvatarImage
+                    avatarUrl={defaultOnlyAvatar ? undefined : sidebarAvatar}
+                    allowUploaded={realMode && !isFixtureLayout}
+                    data-avatar-role="workspace-sidebar"
+                    defaultOnly={defaultOnlyAvatar}
+                    gender={layoutAvatarGender}
+                    alt=""
+                  />
+                </div>
+                <div>
+                  <strong>
+                    {displayNameOverride
+                      ? `${displayNameOverride} 的工作区`
+                      : isAuthenticated
+                        ? `${authUser.displayName} 的工作区`
+                        : '未登录'}
+                  </strong>
+                  <span>ID: {profileId}</span>
+                </div>
+              </Link>
             </div>
-            <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
-              <div className={styles.avatar}>
-                <AvatarImage
-                  avatarUrl={defaultOnlyAvatar ? undefined : sidebarAvatar}
-                  data-avatar-role="workspace-sidebar"
-                  defaultOnly={defaultOnlyAvatar}
-                  gender={layoutAvatarGender}
-                  alt=""
-                />
-              </div>
-              <div>
-                <strong>
-                  {displayNameOverride
-                    ? `${displayNameOverride} 的工作区`
-                    : isAuthenticated
-                      ? `${authUser.displayName} 的工作区`
-                      : '未登录'}
-                </strong>
-                <span>ID: {profileId}</span>
-              </div>
-            </Link>
-          </div>
-        </aside>
+          </aside>
+        ) : null}
         <main className={styles.main}>
           <header
             className={`${styles.topbar} ${topbarVariant === 'planning-list' ? styles.planningListTopbar : ''}`}
@@ -486,6 +495,7 @@ export function WorkspaceLayout({
                     <span className={styles.topAvatar}>
                       <AvatarImage
                         avatarUrl={defaultOnlyAvatar ? undefined : topAvatar}
+                        allowUploaded={realMode && !isFixtureLayout}
                         data-avatar-role="workspace-topbar"
                         defaultOnly={defaultOnlyAvatar}
                         gender={layoutAvatarGender}

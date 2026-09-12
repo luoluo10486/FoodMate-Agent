@@ -5,6 +5,15 @@ export type AgentRunEvent = {
   sse_event_id?: string;
   event_type?: string;
   status?: string;
+  intent?: string;
+  complexity?: string;
+  risk_level?: string;
+  plan_version?: string;
+  proposal_id?: string;
+  invocation_id?: string;
+  tool_type?: string;
+  tool_name?: string;
+  latency_ms?: number;
   text?: string;
   answer?: string;
   reason?: string;
@@ -21,11 +30,25 @@ export type AgentRunEvent = {
   approval_request_id?: string;
   operation?: string;
   resource_type?: string;
+  plan?: {
+    plan_name?: string;
+    people?: number;
+    days?: number;
+    budget?: number | string;
+    calorie_target?: number;
+    protein_target?: number;
+    allergens?: string[];
+    dislikes?: string[];
+    days_plan?: Array<Record<string, unknown>>;
+  };
   details?: {
+    operation?: string;
+    resource_type?: string;
     meal_time?: string;
     meal_type?: string;
     notes?: string | null;
     items?: Array<{ name?: string; amount?: number; unit?: string }>;
+    plan?: AgentRunEvent['plan'];
   };
   retryable?: boolean;
   citations?: Array<{
@@ -65,6 +88,11 @@ export function openAgentRunStream(
     'run.event',
     'run.accepted',
     'run.routed',
+    'run.context_assembled',
+    'run.tool_started',
+    'run.tool_finished',
+    'run.eval_decided',
+    'run.model_usage',
     'run.checkpoint_saved',
     'run.clarification_requested',
     'run.answer_stream',

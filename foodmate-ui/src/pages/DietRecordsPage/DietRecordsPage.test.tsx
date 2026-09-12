@@ -71,6 +71,10 @@ describe('DietRecordsPage', () => {
     expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '记录详情 · 待确认记录可在这里补充后保存' })).toBeInTheDocument();
+    expect(screen.getAllByText('已确认').length).toBeGreaterThan(0);
+    expect(screen.getByText('待确认')).toBeInTheDocument();
+    expect(screen.queryByText('已匹配')).not.toBeInTheDocument();
+    expect(screen.queryByText('待估算')).not.toBeInTheDocument();
     expect(document.querySelectorAll('img[src="/assets/avatars/default-male.svg"]')).toHaveLength(2);
     expect(document.querySelector('img[src="/assets/figma/diet-records/metric-ring-energy.svg"]')).toBeInTheDocument();
     expect(
@@ -93,11 +97,10 @@ describe('DietRecordsPage', () => {
     renderPage(`/analysis?view=records&state=${state}`);
 
     expect(screen.getByLabelText(label)).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('搜索会话...')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument();
-    expect(screen.getByText('共 15 条会话')).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: '饮食工具' })).not.toBeInTheDocument();
-    expect(document.querySelector('[data-name="window-controls"]')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '饮食工具' })).toBeInTheDocument();
+    expect(document.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
   });
 
   it('opens the first-meal dialog from the empty state', async () => {

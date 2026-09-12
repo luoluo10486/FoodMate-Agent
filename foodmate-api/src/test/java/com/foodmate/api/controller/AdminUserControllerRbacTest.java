@@ -85,7 +85,13 @@ class AdminUserControllerRbacTest {
         when(accounts.requireSessionUser("admin-session"))
                 .thenReturn(
                         new UserAccountService.UserRecord(
-                                2L, "admin", "admin@example.com", "hash", "Admin", "admin", "active"));
+                                2L,
+                                "admin",
+                                "admin@example.com",
+                                "hash",
+                                "Admin",
+                                "admin",
+                                "active"));
         when(accounts.profile(7L))
                 .thenReturn(
                         new UserAccountService.ProfileRecord(
@@ -130,8 +136,10 @@ class AdminUserControllerRbacTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.profile.display_name", is("用户七")))
                 .andExpect(jsonPath("$.data.business_sessions.total", is(0)))
-                .andExpect(jsonPath("$.data.operation_history.items[0].action", is("profile.update")))
-                .andExpect(jsonPath("$.data.operation_history.items[0].request_id", is("request-7")))
+                .andExpect(
+                        jsonPath("$.data.operation_history.items[0].action", is("profile.update")))
+                .andExpect(
+                        jsonPath("$.data.operation_history.items[0].request_id", is("request-7")))
                 .andExpect(jsonPath("$.data.profile.password_hash").doesNotExist());
     }
 }

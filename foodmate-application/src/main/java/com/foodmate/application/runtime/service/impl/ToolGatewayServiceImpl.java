@@ -242,12 +242,9 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
             return;
         }
         ObjectNode input = mapper.createObjectNode();
-        String statement =
-                proposal.payload() == null ? null : text(proposal.payload().statement());
+        String statement = proposal.payload() == null ? null : text(proposal.payload().statement());
         String inputDigest =
-                proposal.input() == null
-                        ? digest(statement)
-                        : digest(proposal.input().toString());
+                proposal.input() == null ? digest(statement) : digest(proposal.input().toString());
         input.put("input_digest", inputDigest);
         input.put("input_kind", proposal.input() == null ? "statement" : "json");
         if (statement != null && !statement.isBlank())
