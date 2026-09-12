@@ -29,7 +29,7 @@ import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
 import { ErrorState } from '../../components/common/ErrorState';
 import { AvatarImage } from '../../components/common/AvatarImage';
-import { DEFAULT_AVATARS, FIXTURE_CHAT_AVATAR_GENDERS, FIXTURE_CHAT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
+import { FIXTURE_ACCOUNT_AVATAR, FIXTURE_CHAT_AVATAR_GENDERS, resolveAvatarUrl } from '../../lib/avatar';
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
@@ -46,10 +46,8 @@ import {
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
 
-const FIXTURE_CHAT_SIDEBAR_AVATAR = FIXTURE_CHAT_AVATARS.sidebar;
-const FIXTURE_CHAT_TOPBAR_AVATAR = FIXTURE_CHAT_AVATARS.topbar;
-const FIXTURE_CHAT_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.message;
-const FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.agentStateMessage;
+// Chat Fixture 的人物身份只有一个示例账号，壳层和用户消息必须引用同一份登记头像。
+const FIXTURE_CHAT_ACCOUNT_AVATAR = FIXTURE_ACCOUNT_AVATAR;
 
 type ChatMessage = {
   id: string;
@@ -550,7 +548,7 @@ function EmptyChatPage() {
 }
 
 function PlanningStatePage() {
-  const planningAvatarSrc = DEFAULT_AVATARS.male;
+  const planningAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
   const planningLoaderSrc = '/assets/figma/agent-chat/planning-loader.svg';
   const planningSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const planningRun: AgentRunView = {
@@ -635,7 +633,7 @@ const executingToolSteps = [
 ];
 
 function ToolExecutingStatePage() {
-  const executingAvatarSrc = DEFAULT_AVATARS.male;
+  const executingAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
   const executingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const executingRun: AgentRunView = {
     id: 'fst_trace_9821aa',
@@ -738,7 +736,7 @@ function ToolExecutingStatePage() {
 }
 
 function AwaitingClarificationStatePage() {
-  const awaitingMessageAvatarSrc = DEFAULT_AVATARS.male;
+  const awaitingMessageAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
   const awaitingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const awaitingRun: AgentRunView = {
     id: 'run_awaiting_clarification_fixture',
@@ -762,8 +760,8 @@ function AwaitingClarificationStatePage() {
       designChat
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
-      sidebarAvatarSrc={DEFAULT_AVATARS.male}
-      topAvatarSrc={DEFAULT_AVATARS.male}
+      sidebarAvatarSrc={FIXTURE_CHAT_ACCOUNT_AVATAR}
+      topAvatarSrc={FIXTURE_CHAT_ACCOUNT_AVATAR}
       onChange={() => undefined}
       onSend={() => undefined}
       onStop={() => undefined}
@@ -1307,8 +1305,8 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
-      sidebarAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
-      topAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
+      sidebarAvatarSrc={isCompletedCitations ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
+      topAvatarSrc={isCompletedCitations ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
       pageOverlay={
         isSessionOverlayState && sessionOverlayVisible ? (
           <SessionStateOverlay
@@ -1341,7 +1339,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               time: '12:45',
               wide: isNavigationState,
             }}
-            userAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
+            userAvatarSrc={isCompletedCitations ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
             userAvatarGender="男"
           />
           <MessageBubble
@@ -1409,10 +1407,10 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     ? { ...historyFixture('history-page-2').sidebar, currentPage: 1 }
     : undefined;
   // 所有 Agent 状态画板使用与工作区相同的登记头像来源，避免状态页和消息页头像漂移。
-  const fixtureSidebarAvatarSrc = FIXTURE_CHAT_AVATARS.sidebar;
-  const fixtureTopAvatarSrc = FIXTURE_CHAT_AVATARS.topbar;
+  const fixtureSidebarAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
+  const fixtureTopAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
   // 安全降级只描述本次分析能力受限，不代表用户身份变化；消息继续使用工作区账号的男性默认头像。
-  const fixtureMessageAvatarSrc = FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR;
+  const fixtureMessageAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
   const fixtureMessageGender = FIXTURE_CHAT_AVATAR_GENDERS.agentStateMessage;
 
   const report = (nextAction: FixtureAction, message: string) => {
@@ -2306,8 +2304,8 @@ function MockChatPage() {
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       pageVariant={isFigmaFixture ? 'figma-default' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_SIDEBAR_AVATAR : undefined}
-      topAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_TOPBAR_AVATAR : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
+      topAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}
@@ -2317,7 +2315,7 @@ function MockChatPage() {
         <MessageBubble
           key={message.id}
           message={{ ...message, wide: isFigmaFixture }}
-          userAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_MESSAGE_AVATAR : undefined}
+          userAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
           userAvatarGender={isFigmaFixture ? FIXTURE_CHAT_AVATAR_GENDERS.defaultMessage : undefined}
         >
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (
