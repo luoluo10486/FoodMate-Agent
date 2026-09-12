@@ -83,7 +83,10 @@ describe('ProfilePage', () => {
     renderPage('/profile?state=basic');
 
     expect(screen.getByRole('textbox', { name: '展示名称' })).toHaveValue('Anddy 的工作区');
-    expect(screen.getByRole('combobox', { name: '性别（可选）' })).toBeInTheDocument();
+    const genderSelect = screen.getByRole('combobox', { name: '性别（可选）' });
+    const activitySelect = screen.getByRole('combobox', { name: '活动水平' });
+    expect(genderSelect).toHaveClass(styles.figmaSelect);
+    expect(activitySelect).toHaveClass(styles.figmaSelect);
     expect(screen.getByRole('textbox', { name: '身高 (cm)' })).toHaveValue('180');
     expect(screen.getByRole('textbox', { name: '体重 (kg)' })).toHaveValue('78');
     expect(screen.getByRole('combobox', { name: '活动水平' })).toBeInTheDocument();
@@ -91,6 +94,7 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('textbox', { name: '每日热量目标 (千卡)' })).toHaveValue('2500');
     expect(screen.getByRole('textbox', { name: '每日蛋白质目标 (g)' })).toHaveValue('150');
     expect(screen.getByRole('heading', { name: '饮食与身体目标' }).closest('div')).toHaveClass(styles.figmaGoalsCard);
+    expect(screen.queryByRole('button', { name: '添加过敏原' })).not.toBeInTheDocument();
     expect(screen.getByText('偏好速览')).toBeInTheDocument();
     expect(screen.getByText('头像与账号概览')).toBeInTheDocument();
     expect(screen.getByText('账号状态')).toBeInTheDocument();
@@ -307,7 +311,7 @@ describe('ProfilePage', () => {
 
     const allergenInput = screen.getByRole('textbox', { name: '添加过敏原' });
     await user.type(allergenInput, '花生');
-    await user.click(screen.getByRole('button', { name: '添加过敏原' }));
+    await user.keyboard('{Enter}');
 
     expect(screen.getByRole('button', { name: '花生' })).toHaveClass('inline-flex');
     expect(screen.getByRole('button', { name: '放弃更改' })).toBeEnabled();

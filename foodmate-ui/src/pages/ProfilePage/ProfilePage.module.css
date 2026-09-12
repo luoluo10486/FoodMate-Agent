@@ -459,6 +459,15 @@
   outline: none;
 }
 
+/* Figma Basic 的选择字段保留 Radix 交互，但画板没有右侧 Chevron。 */
+.figmaSelect > [data-radix-select-icon] {
+  display: none;
+}
+
+.figmaSelect {
+  justify-content: flex-start;
+}
+
 .field input:focus-visible,
 .select:focus-visible,
 .dialogTextarea:focus-visible {

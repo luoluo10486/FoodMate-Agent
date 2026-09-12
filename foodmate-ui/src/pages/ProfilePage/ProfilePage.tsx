@@ -902,7 +902,7 @@ function BasicTab({
                   value={profileForm.gender || 'unset'}
                   onValueChange={(value) => setField('gender', value === 'unset' ? '' : value)}
                 >
-                  <SelectTrigger className={styles.select} aria-label="性别（可选）">
+                  <SelectTrigger className={cn(styles.select, styles.figmaSelect)} aria-label="性别（可选）">
                     <SelectValue placeholder="未设置" />
                   </SelectTrigger>
                   <SelectContent>
@@ -928,7 +928,7 @@ function BasicTab({
               </Field>
               <Field label="活动水平">
                 <Select value={profileForm.activityLevel} onValueChange={(value) => setField('activityLevel', value)}>
-                  <SelectTrigger className={styles.select} aria-label="活动水平">
+                  <SelectTrigger className={cn(styles.select, styles.figmaSelect)} aria-label="活动水平">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1056,16 +1056,18 @@ function BasicTab({
                     }
                   }}
                 />
-                <Button
-                  className={styles.addButton}
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  aria-label="添加过敏原"
-                  onClick={addAllergen}
-                >
-                  <Plus aria-hidden="true" />
-                </Button>
+                {figmaFixture ? null : (
+                  <Button
+                    className={styles.addButton}
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    aria-label="添加过敏原"
+                    onClick={addAllergen}
+                  >
+                    <Plus aria-hidden="true" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>

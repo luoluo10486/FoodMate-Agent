@@ -3262,3 +3262,13 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 主要页面浏览器运行时的带头像策略标记节点均指向 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`，未出现历史人物 PNG、Figma MCP 地址或旧上传地址；默认 Chat 用户气泡实际前景色为 `rgb(0, 0, 0)`。
 - [x] Agent 绿色状态方块和认证字段用户图标已明确排除在人物头像审计之外；历史真人 PNG 继续只保留在 QA 证据目录。
 - [ ] 本次为运行时资源审计，不新增 Figma PNG 或 pixel diff；既有 105 项结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能据此标记任何画板为 `PASS`。
+
+## 2026-09-13 Profile Basic Fixture Select 与过敏原控件收口
+
+本次依据 Profile Basic 状态组节点 `792:212`、`794:212`、`794:380` 对照现有 Figma 参考图，仅修正页面控件的视觉层，不重新采集或验收全部 105 个画板。
+
+- [x] Figma Fixture 的性别和活动水平字段仍为可操作的 Radix Select，但隐藏 shadcn 默认 Chevron，保持 Figma 灰色字段的左对齐文本表现。
+- [x] Figma Fixture 的过敏原输入保留键盘 Enter 添加，移除画板不存在的独立加号图标按钮；真实模式按钮入口不变。
+- [x] Profile 定向测试 `26/26` 通过；类型检查和 `git diff --check` 通过。
+- [ ] 本次没有新增浏览器 PNG、Figma PNG 或 diff JSON；既有 Profile 和全量 105 项结论继续保持 `DIFF_REVIEW`，不能标记 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
