@@ -613,7 +613,7 @@
 
 .user .messageBubble {
   width: min(452px, calc(100% - 48px));
-  height: 49px;
+  min-height: 49px;
   padding: 16px;
   border-radius: 16px 16px 0 16px;
   background: #fff6e2;
@@ -1388,10 +1388,11 @@
 .fixtureUserBubble {
   min-width: 0;
   max-width: min(560px, calc(100% - 48px));
+  min-height: 49px;
   padding: 16px;
   border-radius: 16px 16px 0;
   background: #fff6e2;
-  color: #333;
+  color: var(--fm-figma-chat-user-text);
   font-size: 14px;
   line-height: 17px;
   overflow-wrap: anywhere;

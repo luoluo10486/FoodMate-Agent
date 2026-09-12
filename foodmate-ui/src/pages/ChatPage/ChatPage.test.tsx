@@ -274,9 +274,15 @@ describe('ChatPage Agent remaining states', () => {
   it('uses dark text for the light user message bubble', () => {
     const pageStylesheet = readFileSync(resolve(__dirname, 'ChatPage.module.css'), 'utf8');
     const userBubbleStyles = pageStylesheet.match(/(?:^|\n)\.user \.messageBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
+    const fixtureUserBubbleStyles =
+      pageStylesheet.match(/(?:^|\n)\.fixtureUserBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
 
     expect(userBubbleStyles).toContain('color: var(--fm-ink);');
     expect(userBubbleStyles).not.toContain('color: #ffffff;');
+    expect(userBubbleStyles).toContain('min-height: 49px;');
+    expect(userBubbleStyles).not.toMatch(/(?:^|\n)\s*height:\s*49px;/);
+    expect(fixtureUserBubbleStyles).toContain('color: var(--fm-figma-chat-user-text);');
+    expect(fixtureUserBubbleStyles).toContain('min-height: 49px;');
     expect(pageStylesheet).toContain('--fm-figma-chat-user-text');
     expect(pageStylesheet).toContain('.designChatPage .user .messageBubble');
   });
