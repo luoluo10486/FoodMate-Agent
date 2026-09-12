@@ -108,3 +108,15 @@ export function resolveAvatarUrl(avatarUrl?: string, gender?: string): string {
   // 未登记的历史人物素材、持久化头像地址、外部图片和旧缓存都不能作为默认头像继续展示。
   return genderDefault;
 }
+
+/**
+ * 归一化持久化账号头像。
+ *
+ * blob URL 只代表当前页面主动选择图片后的临时预览，不能写入或复用为登录缓存头像。
+ */
+export function resolvePersistedAvatarUrl(avatarUrl?: string, gender?: string): string {
+  const candidate = avatarUrl?.trim();
+  return candidate && isTemporaryUploadedAvatarUrl(candidate)
+    ? resolveAvatarUrl(undefined, gender)
+    : resolveAvatarUrl(candidate, gender);
+}

@@ -1,6 +1,6 @@
 import { mockAuthStatus, mockAuthUser, mockLoginDefaults, mockAuthScenarios } from '../mock/auth';
 import type { AuthUser, LoginFormValues } from '../mock/auth';
-import { resolveAvatarUrl } from '../lib/avatar';
+import { resolvePersistedAvatarUrl } from '../lib/avatar';
 import { apiRequest } from './apiClient';
 
 export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'forbidden';
@@ -40,7 +40,7 @@ export function getAuthUser(): AuthUser {
     if (saved) {
       const user = JSON.parse(saved) as AuthUser;
       // 本地缓存可能来自旧版本 Fixture，读取时也必须经过统一头像解析层。
-      const normalizedUser = { ...user, avatarUrl: resolveAvatarUrl(user.avatarUrl, user.gender) };
+      const normalizedUser = { ...user, avatarUrl: resolvePersistedAvatarUrl(user.avatarUrl, user.gender) };
       // 归一化后回写缓存，避免旧人物地址在后续页面切换中再次进入头像参数。
       if (normalizedUser.avatarUrl !== user.avatarUrl) {
         localStorage.setItem('foodmate_auth_user', JSON.stringify(normalizedUser));
@@ -62,7 +62,7 @@ function toAuthUser(data: AuthResponse | CurrentUserResponse): AuthUser {
     role: data.role as AuthUser['role'],
     status: 'status' in data ? data.status : 'active',
     gender,
-    avatarUrl: resolveAvatarUrl('avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl, gender),
+    avatarUrl: resolvePersistedAvatarUrl('avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl, gender),
   };
 }
 

@@ -13,6 +13,7 @@ import {
   getAvatarSourceKind,
   isAllowedAvatarRuntimeSource,
   isRegisteredDefaultAvatar,
+  resolvePersistedAvatarUrl,
   resolveAvatarUrl,
 } from './avatar';
 
@@ -58,6 +59,11 @@ describe('avatar defaults', () => {
     expect(resolveAvatarUrl('blob:http://localhost/avatar-preview', '女')).toBe('blob:http://localhost/avatar-preview');
     expect(resolveAvatarUrl('', '女')).toBe(DEFAULT_AVATARS.female);
     expect(resolveAvatarUrl('', '-')).toBe(DEFAULT_AVATARS.male);
+  });
+
+  it('removes stale temporary previews from persisted account avatars', () => {
+    expect(resolvePersistedAvatarUrl('blob:http://localhost/old-avatar', '女')).toBe(DEFAULT_AVATARS.female);
+    expect(resolvePersistedAvatarUrl('blob:http://localhost/old-avatar', '男')).toBe(DEFAULT_AVATARS.male);
   });
 
   it('allows only registered defaults or explicit temporary previews at the runtime boundary', () => {

@@ -2,6 +2,16 @@
 
 更新时间：2026-09-13
 
+## 1.1.29 2026-09-13 默认头像缓存入口收口
+
+本节记录用户反馈后的头像来源复核和缓存边界修正。Figma 文件保持只读；本次不重新采集 105 个画板 PNG，也不把现有差异改写为像素级通过。
+
+- [x] 已在本地浏览器逐页检查 Workspace、Chat 六种 Agent 状态、饮食记录、摄入分析、餐食规划、Knowledge、Profile 和 Admin，人物头像 DOM 只出现 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`。
+- [x] 两份运行时 SVG 与用户附件逐字节一致；认证字段的 `foodmate-*-user.svg` 和其它 `/assets/figma/**` SVG 均为界面图标，不属于人物头像。
+- [x] 登录缓存和当前用户接口改用 `resolvePersistedAvatarUrl`，历史 `blob:` 临时预览不会在刷新或重新登录后继续作为默认头像展示。
+- [ ] 本节没有新增 Figma PNG 或 diff JSON；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.28 2026-09-13 Profile 记忆筛选页签语义迁移
 
 本节记录 Profile 记忆筛选从手写页签交互迁移到 shadcn/Radix Tabs 的实现收口。Figma 文件保持只读；本次未重新采集 Profile PNG，也没有把已有非零差异改写为像素级通过。
