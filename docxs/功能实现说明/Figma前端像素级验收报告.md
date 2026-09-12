@@ -3165,6 +3165,8 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 本节只复核默认头像资源和 Agent 状态页运行时 DOM，不重新验收全部 105 个画板，Figma 文件保持只读。
 
+> 历史记录说明：本节反映 2026-09-07 当时的状态页头像策略。该策略已由本报告顶部的 1.1.33 批次修正；当前运行时以“同一账号的工作区入口和用户消息使用同一头像”为准。
+
 - [x] 用户提供的男性和女性 SVG 已通过 SHA-256 校验：`default-male.svg` 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，`default-female.svg` 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
 - [x] 浏览器检查 `/chat?state=write-confirmation`、`budget-limit`、`tool-failed-retryable`、`safety-degraded`、`user-cancelled` 和 `sse-reconnecting`；六页所有 `data-avatar-policy="default-only"` 图片均来自两份登记 SVG。
 - [x] `safety-degraded` 的用户消息头像为 `/assets/avatars/default-female.svg`，其余默认用户消息头像和共享工作台账号头像为 `/assets/avatars/default-male.svg`。
