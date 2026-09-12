@@ -81,6 +81,7 @@ describe('WorkspaceLayout shell controls', () => {
     expect(topbarMark).not.toHaveTextContent('F');
     expect(sidebarMark).toHaveTextContent('F');
     expect(container.firstElementChild).toHaveClass('designChat');
+    expect(container.firstElementChild).toHaveClass('figmaFixture');
     expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
   });
 

@@ -154,8 +154,9 @@ export function WorkspaceLayout({
   const showFixtureWindowControls =
     showWindowControls ?? (designChat || Boolean(sidebarFixture && !showKnowledgeTopNav));
   const isFigmaSidebarFixture = Boolean(sidebarFixture && (!showKnowledgeTopNav || showWindowControls));
-  // 顶栏型 Figma 画板不渲染工作区侧栏，但仍需要保留 Fixture 的 Token 和资源边界。
-  const isFigmaFixture = isFigmaSidebarFixture || (hideSidebar && Boolean(fixtureVariant));
+  // Chat 的默认 Figma 画板不依赖固定会话 Fixture，但仍必须启用同一套视觉边界。
+  // 真实模式不会传入 designChat，因此不会改变真实工作区的头像和导航样式。
+  const isFigmaFixture = isFigmaSidebarFixture || designChat || (hideSidebar && Boolean(fixtureVariant));
   const renderWorkspaceIcon = (name: FigmaWorkspaceAssetName, fallback: React.ReactNode) =>
     fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name={name} /> : fallback;
 

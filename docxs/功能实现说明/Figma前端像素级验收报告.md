@@ -2,6 +2,21 @@
 
 更新时间：2026-09-12
 
+## 1.1.26 2026-09-12 Workspace/Home 与 Agent Chat 共享壳层 Fixture 边界修正
+
+本节只记录实时 Figma 节点 `640:256`、`640:428` 对应的共享壳层 Fixture 判定修正和受影响页面证据，不重新验收其它 103 个画板。Figma 文件保持只读，后端 SSE 协议保持不变。
+
+| 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace/Home | `640:256` | `/?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `9.2689%` | `2.914238` | `17.797930` | `255` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `/chat?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `11.3300%` | `2.810838` | `17.120096` | `211` | `DIFF_REVIEW` |
+
+- [x] `WorkspaceLayout` 已将无固定会话列表的 Chat Figma Fixture 归入 `figmaFixture`，使 Figma 专用侧栏尺寸、导航字重、设置入口左对齐、头像透明底和窗口装饰规则与实时节点一致；真实模式不传入 `designChat`，不改变真实工作区。
+- [x] Chat 回归测试已覆盖 `designChat` 与 `figmaFixture` 双标记；Home 与 Chat 浏览器截图均为字体加载完成、DPR `1` 且页面无横向溢出。
+- [x] 当前人物头像 DOM 只允许 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`；认证表单的 `foodmate-*-user.svg` 是字段装饰图标，不属于人物头像，历史 `.qa/figma-pixel-acceptance/legacy-avatars/` 也不属于运行时资源。
+- [ ] 两项自动 diff 均非零，仍存在字体、图标和局部光栅化差异，不能标记像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.25 2026-09-12 Agent Chat 重连态 Composer 与头像证据同步
 
 本节只记录 Agent 状态前端收口和四项受影响画板的最新证据，不重新验收其它 101 个画板。Figma 文件保持只读，后端 SSE 协议保持不变。
