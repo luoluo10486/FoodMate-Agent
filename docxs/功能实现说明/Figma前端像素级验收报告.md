@@ -2,6 +2,16 @@
 
 更新时间：2026-09-12
 
+## 1.1.20 2026-09-12 头像运行时来源全路径复核
+
+本节记录前端运行时头像来源审计，不新增 Figma 画板截图或像素 diff。审计使用本地前端 `127.0.0.1:5188`，覆盖 Workspace/Home、Agent Chat 默认态和六个 Agent 状态、饮食记录、摄入分析、餐食规划、Knowledge、Profile 与 Admin 主要入口。
+
+- [x] `foodmate-ui/public/assets/avatars/` 仅包含 `default-male.svg` 与 `default-female.svg`；男性 SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`，两份文件与用户附件逐字节一致。
+- [x] 浏览器 DOM 审计中，人物头像仅出现 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`；所有头像节点均为 `registered-default-svg`，默认/Fixture 策略均为 `default-only`。
+- [x] 未发现 `/api/users/me/avatar`、外部图片地址、历史 Figma 人物素材或其它人物图片绕过 `AvatarImage`/`resolveAvatarUrl` 进入默认页面；认证页的 `foodmate-*-user.svg` 仍明确归类为表单字段图标。
+- [x] 真实 Profile 的主动上传边界保持不变：只有显式 `allowUploaded` 且来自用户当前选择的 `blob:` 预览才允许展示，默认头像仍按性别回退到登记 SVG。
+- [ ] 本节是运行时资源证据，不代表任何画板新增像素级 `PASS`；105 项全量结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+
 ## 1.1.19 2026-09-12 Auth 页面组 13 项增量验收
 
 本节只记录 Auth 页面组 13 个当前受影响画板。Figma 参考图来自实时文件 `MX18RZCfAmgprNzxItkHUH` 的对应节点，浏览器证据使用 `127.0.0.1:5188`、Chrome `152.0.7977.83`、`1440×900`、DPR `1` 和字体加载完成条件；不重新采集其它 92 个画板。
