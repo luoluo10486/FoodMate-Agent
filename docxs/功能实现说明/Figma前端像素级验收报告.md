@@ -2,6 +2,21 @@
 
 更新时间：2026-09-12
 
+## 1.1.27 2026-09-12 Chat 用户消息可读性与 Fixture 头像一致性修正
+
+本节记录浏览器反馈对应的默认 Chat Figma Fixture 修正。Figma 文件保持只读；本次只修正用户消息正文对比度和默认头像资源一致性，不修改真实模式请求或其它 Agent 状态的独立头像语义。
+
+| 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---:|---:|---:|---:|---|
+| Agent Chat | `640:428` | `/chat?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `7.6942%` | `2.520406` | `16.610552` | `255` | `DIFF_REVIEW` |
+
+- [x] 用户消息气泡保留 Figma 浅黄色背景，正文改用 `--fm-ink`（`#333333`），浏览器截图中不再使用白色正文叠加在浅色气泡上。
+- [x] 默认 Chat Fixture 的侧栏、顶栏和用户消息均使用登记的 `/assets/avatars/default-male.svg`；运行时头像来源一致，未引入外部或历史人物素材。
+- [x] 浏览器 PNG 使用 Chrome `152.0.7977.83`、`1440×1024`、DPR `1` 和已加载字体采集；页面无横向溢出，Figma 与浏览器 PNG 尺寸一致。
+- [x] 独立 diff、105 项聚合结果和运行时复采集路径已同步到 `.qa/figma-pixel-acceptance/`；结构校验结果保持 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
+- [ ] 自动 diff 仍为非零，字体光栅化、图标轮廓和其它局部视觉差异仍存在，不能标记像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.26 2026-09-12 Workspace/Home 与 Agent Chat 共享壳层 Fixture 边界修正
 
 本节只记录实时 Figma 节点 `640:256`、`640:428` 对应的共享壳层 Fixture 判定修正和受影响页面证据，不重新验收其它 103 个画板。Figma 文件保持只读，后端 SSE 协议保持不变。
@@ -9,11 +24,12 @@
 | 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
 |---|---|---|---|---:|---:|---:|---:|---|
 | Workspace/Home | `640:256` | `/?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `9.2689%` | `2.914238` | `17.797930` | `255` | `DIFF_REVIEW` |
-| Agent Chat | `640:428` | `/chat?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `11.3300%` | `2.810838` | `17.120096` | `211` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `/chat?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `7.6725%` | `2.355950` | `15.858705` | `211` | `DIFF_REVIEW` |
 
 - [x] `WorkspaceLayout` 已将无固定会话列表的 Chat Figma Fixture 归入 `figmaFixture`，使 Figma 专用侧栏尺寸、导航字重、设置入口左对齐、头像透明底和窗口装饰规则与实时节点一致；真实模式不传入 `designChat`，不改变真实工作区。
 - [x] Chat 回归测试已覆盖 `designChat` 与 `figmaFixture` 双标记；Home 与 Chat 浏览器截图均为字体加载完成、DPR `1` 且页面无横向溢出。
-- [x] 当前人物头像 DOM 只允许 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`；认证表单的 `foodmate-*-user.svg` 是字段装饰图标，不属于人物头像，历史 `.qa/figma-pixel-acceptance/legacy-avatars/` 也不属于运行时资源。
+- [x] 当前运行时复核覆盖 Workspace、Chat、饮食记录、摄入分析、餐食规划、Knowledge、Profile 和 Admin；人物头像 DOM 只允许 `/assets/avatars/default-male.svg` 与 `/assets/avatars/default-female.svg`，两份资源与用户附件逐字节一致。
+- [x] 认证表单的 `foodmate-*-user.svg` 是字段装饰图标，不属于人物头像；历史 `.qa/figma-pixel-acceptance/legacy-avatars/` 仅作为验收证据，不属于运行时资源。
 - [ ] 两项自动 diff 均非零，仍存在字体、图标和局部光栅化差异，不能标记像素级 `PASS`；105 项全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
 - [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
 

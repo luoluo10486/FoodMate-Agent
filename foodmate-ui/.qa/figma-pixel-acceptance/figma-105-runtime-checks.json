@@ -1353,10 +1353,10 @@
       },
       "bodyOverflow": false,
       "recapture": {
-        "capturedAt": "2026-09-09",
+        "capturedAt": "2026-09-12",
         "tool": "Chrome CDP Page.captureScreenshot",
         "browser": "Chrome/152.0.7977.83",
-        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-09.png"
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-chat-v2-browser-2026-09-12.png"
       }
     },
     "profile-security-password-submitting": {

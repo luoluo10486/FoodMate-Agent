@@ -154,7 +154,7 @@ describe('ChatPage Figma 默认状态', () => {
       'utf8',
     );
 
-    expect(pageStylesheet).toContain('--fm-fixture-composer-input-surface: var(--fm-fixture-chat-bg);');
+    expect(pageStylesheet).toContain('--fm-fixture-composer-input-surface: var(--fm-fixture-chat-control-surface);');
     expect(composerStylesheet).toContain('background: var(--fm-fixture-composer-input-surface, var(--fm-bg-soft));');
   });
 
@@ -259,12 +259,24 @@ describe('ChatPage Agent remaining states', () => {
       'src',
       '/assets/avatars/default-male.svg',
     );
-    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-female.svg');
-    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-female');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-source', 'default-male');
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute(
+      'src',
+      document.querySelector('aside .avatar img')?.getAttribute('src') ?? '',
+    );
     expect(document.querySelector('.userAvatar img')).not.toHaveAttribute(
       'src',
       '/legacy-assets/chat/person-avatar.png',
     );
+  });
+
+  it('uses dark text for the light user message bubble', () => {
+    const pageStylesheet = readFileSync(resolve(__dirname, 'ChatPage.module.css'), 'utf8');
+    const userBubbleStyles = pageStylesheet.match(/(?:^|\n)\.user \.messageBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
+
+    expect(userBubbleStyles).toContain('color: var(--fm-ink);');
+    expect(userBubbleStyles).not.toContain('color: #ffffff;');
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {

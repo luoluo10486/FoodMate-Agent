@@ -75,7 +75,7 @@
         "overflowCount": 0,
         "overflow": []
       },
-      "manualReview": {
+    "manualReview": {
         "status": "MINOR_RENDERING_DIFF_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-09-12",
@@ -133,7 +133,7 @@
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
         "reviewedAt": "2026-09-12",
-        "conclusion": "实时 Figma 节点 640:428 已使用 2026-09-12 重新采集的 1440×1024、DPR 1 浏览器证据复核；运行轨迹 Tabs 容器已按 Figma 恢复透明背景，仅激活的步骤标签保留浅紫色背景，侧栏和顶栏使用登记头像，页面无溢出，但 PNG diff 为 11.3300% / RMSE 17.1201，仍存在字体光栅化和局部视觉差异，保留 DIFF_REVIEW。"
+      "conclusion": "实时 Figma 节点 640:428 已使用 2026-09-12 重新采集的 1440×1024、DPR 1 浏览器证据复核；运行轨迹 Tabs 容器已按 Figma 恢复透明背景，仅激活的步骤标签保留浅紫色背景，底部输入层已使用 Figma 控制面浅灰表面，用户消息正文改为深色以提升浅色气泡可读性，侧栏、顶栏和用户消息统一使用登记的男性默认头像，页面无溢出，但 PNG diff 为 7.6942% / RMSE 16.6106，仍存在字体光栅化和局部视觉差异，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
         "capturedAt": "2026-09-12",
@@ -196,7 +196,7 @@
           "note": "仅收口 Figma 节点 640:428 的顶部工作台选中态背景色；浏览器实际颜色为 #FFFEFC，DPR 为 1.25，整页仍保留 DIFF_REVIEW。"
         }
       ],
-      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-current-diff-2026-09-12-avatar-fixed.json"
+    "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-chat-v2-current-diff-2026-09-12.json"
     },
     {
       "figmaNodeId": "640:588",

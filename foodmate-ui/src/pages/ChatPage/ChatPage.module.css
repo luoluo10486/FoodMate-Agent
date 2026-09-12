@@ -617,7 +617,7 @@
   padding: 16px;
   border-radius: 16px 16px 0 16px;
   background: #fff6e2;
-  color: #ffffff;
+  color: var(--fm-ink);
   line-height: 17px;
 }
 
@@ -638,7 +638,8 @@
   --fm-fixture-chat-border: var(--fm-figma-workspace-border);
   --fm-fixture-chat-control-surface: var(--fm-figma-workspace-control-surface);
   --fm-fixture-assistant-surface: var(--fm-fixture-chat-control-surface);
-  --fm-fixture-composer-input-surface: var(--fm-fixture-chat-bg);
+  /* Figma Chat 的底部输入层使用控制面浅灰表面，不能继承页面背景色。 */
+  --fm-fixture-composer-input-surface: var(--fm-fixture-chat-control-surface);
   background: var(--fm-fixture-chat-bg);
 }
 
