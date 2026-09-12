@@ -1,6 +1,16 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-12
+更新时间：2026-09-13
+
+## 1.1.28 2026-09-13 Profile 记忆筛选页签语义迁移
+
+本节记录 Profile 记忆筛选从手写页签交互迁移到 shadcn/Radix Tabs 的实现收口。Figma 文件保持只读；本次未重新采集 Profile PNG，也没有把已有非零差异改写为像素级通过。
+
+- [x] Fixture 记忆页和真实记忆页使用统一的 `Tabs`、`TabsList`、`TabsTrigger`，筛选值仍由页面受控状态管理。
+- [x] 仅覆盖 shadcn 默认容器样式，使筛选条保持 Figma 胶囊布局；真实记忆页的冲突提示不再作为 `tablist` 子节点。
+- [x] Profile 页签切换定向测试和全量 Vitest `46/46` 文件 `315/315` 用例、typecheck、lint、format、build、`qa:figma:validate`、`git diff --check` 已通过。
+- [ ] 本次未新增 Figma PNG、浏览器 PNG 或 diff JSON；Profile 相关既有画板继续保持 `DIFF_REVIEW`，不能标记 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
 
 ## 1.1.27 2026-09-12 Chat 用户消息可读性与 Fixture 头像一致性修正
 

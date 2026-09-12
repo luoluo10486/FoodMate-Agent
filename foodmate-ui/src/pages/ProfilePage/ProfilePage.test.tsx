@@ -110,6 +110,17 @@ describe('ProfilePage', () => {
     ).toBeInTheDocument();
   });
 
+  it('uses the shadcn Tabs contract for memory filters', async () => {
+    const user = userEvent.setup();
+    renderPage('/profile?state=memories');
+
+    const mockTabs = screen.getByRole('tablist', { name: '记忆状态' });
+    expect(mockTabs).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '全部 (24)' })).toHaveAttribute('aria-selected', 'true');
+    await user.click(screen.getByRole('tab', { name: '待确认 (3)' }));
+    expect(screen.getByRole('tab', { name: '待确认 (3)' })).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('renders the Figma memories empty page instead of an overlay', () => {
     renderPage('/profile?state=memories-empty');
 

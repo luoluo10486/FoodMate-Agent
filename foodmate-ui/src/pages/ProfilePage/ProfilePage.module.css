@@ -720,6 +720,13 @@
   gap: 16px;
 }
 
+.memoryFilters {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
 .memoryConflictCount {
   align-self: center;
   color: #b45309;
@@ -730,6 +737,14 @@
 .filterGroup {
   display: flex;
   gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
 }
 
 .filterButton,
@@ -748,6 +763,13 @@
   height: auto;
   min-width: 0;
   padding: 0 16px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.filterButton[data-state='active'] {
+  background: #fff;
+  box-shadow: none;
 }
 
 .filterButtonActive {
@@ -1609,6 +1631,11 @@
   }
 
   .filterGroup {
+    overflow-x: auto;
+  }
+
+  .memoryFilters {
+    width: 100%;
     overflow-x: auto;
   }
 

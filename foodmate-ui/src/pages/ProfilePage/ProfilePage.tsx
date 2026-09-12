@@ -32,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { FigmaWorkspaceAsset } from '@/components/workspace/FigmaWorkspaceAsset';
@@ -1161,27 +1162,29 @@ function MemoriesTab({
         </p>
       </Card>
       <div className={styles.memoryToolbar}>
-        <div className={styles.filterGroup} role="tablist" aria-label="记忆状态">
-          {(
-            [
-              ['all', '全部 (24)'],
-              ['pending', '待确认 (3)'],
-              ['confirmed', '已确认 (21)'],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
-              variant="ghost"
-              type="button"
-              role="tab"
-              aria-selected={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
+        <Tabs
+          className={styles.memoryFilters}
+          value={filter}
+          onValueChange={(value) => setFilter(value as typeof filter)}
+        >
+          <TabsList className={styles.filterGroup} aria-label="记忆状态">
+            {(
+              [
+                ['all', '全部 (24)'],
+                ['pending', '待确认 (3)'],
+                ['confirmed', '已确认 (21)'],
+              ] as const
+            ).map(([value, label]) => (
+              <TabsTrigger
+                key={value}
+                className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
+                value={value}
+              >
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className={styles.categorySelect} aria-label="记忆分类">
             <SelectValue />
@@ -1980,28 +1983,30 @@ function RealMemoriesTab() {
         <p>FoodMate 会将你在 Agent 对话中明确确认的偏好、限制和饮食模式保存为长期记忆。</p>
       </Card>
       <div className={styles.memoryToolbar}>
-        <div className={styles.filterGroup} role="tablist" aria-label="真实记忆状态">
-          {(
-            [
-              ['all', `全部 (${memories.length})`],
-              ['attention', `待处理 (${attentionCount})`],
-              ['confirmed', `已确认 (${confirmedCount})`],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
-              variant="ghost"
-              type="button"
-              role="tab"
-              aria-selected={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {label}
-            </Button>
-          ))}
+        <Tabs
+          className={styles.memoryFilters}
+          value={filter}
+          onValueChange={(value) => setFilter(value as typeof filter)}
+        >
+          <TabsList className={styles.filterGroup} aria-label="真实记忆状态">
+            {(
+              [
+                ['all', `全部 (${memories.length})`],
+                ['attention', `待处理 (${attentionCount})`],
+                ['confirmed', `已确认 (${confirmedCount})`],
+              ] as const
+            ).map(([value, label]) => (
+              <TabsTrigger
+                key={value}
+                className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
+                value={value}
+              >
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {conflictCount > 0 ? <span className={styles.memoryConflictCount}>含 {conflictCount} 条冲突</span> : null}
-        </div>
+        </Tabs>
         <Button variant="outline" size="sm" type="button" onClick={() => void refresh()} disabled={loading}>
           <RefreshCw aria-hidden="true" /> 刷新
         </Button>
