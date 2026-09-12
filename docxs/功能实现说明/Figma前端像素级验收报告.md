@@ -3276,6 +3276,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 - [x] `public/assets/avatars/` 实体目录仅包含用户提供的 `default-male.svg` 与 `default-female.svg`；两份文件的 SHA-256 与附件登记值一致。
 - [x] 主要页面浏览器运行时的带头像策略标记节点均指向 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`，未出现历史人物 PNG、Figma MCP 地址或旧上传地址；默认 Chat 用户气泡实际前景色为 `rgb(0, 0, 0)`。
+- [x] Figma Plugin API 实时回读 `MX18RZCfAmgprNzxItkHUH` 的 `🎨 :: Design` 页面确认 192 个标准头像容器：男性 189 个、女性 3 个；每个容器各有且仅有一个对应的用户提供 SVG 根节点，缺失、重复和性别错配均为 0，尺寸覆盖 `32×32`、`36×36`、`56×56` 和 `108×108`。
 - [x] Agent 绿色状态方块和认证字段用户图标已明确排除在人物头像审计之外；历史真人 PNG 继续只保留在 QA 证据目录。
 - [ ] 本次为运行时资源审计，不新增 Figma PNG 或 pixel diff；既有 105 项结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能据此标记任何画板为 `PASS`。
 
