@@ -17,6 +17,21 @@
 - [ ] 自动 diff 非零，且仍存在需要处理的视觉差异，本画板不能标记像素级 `PASS`。
 - [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，资源登记继续保持 `BLOCKED`。
 
+## 1.1.24 2026-09-12 Agent Chat 预算限制态增量验收
+
+本节只记录实时 Figma 节点 `687:918` 对应预算限制态的当前证据。Figma 与浏览器 PNG 使用相同 `1440×1024` 原始尺寸；浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、DPR `1`、字体加载完成和关闭动态干扰条件，不重新验收其它 104 个画板。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| 预算限制 | `687:918` | `/chat?state=budget-limit` | `recaptured-figma/agent-budget-limit-figma-2026-09-12-avatar-fixed.png` | `recaptured/dpr1-agent-budget-limit-browser-2026-09-12.png` | `recaptured/agent-budget-limit-current-diff-2026-09-12-avatar-fixed.json` | `11.1479%` | `2.475082` | `15.987961` | `255` | `DIFF_REVIEW` |
+
+- [x] 预算说明、`50,000 tokens`、`100%` 用量、预计费用、追加预算和结束会话均存在；卡片、状态块与操作入口没有遮挡或裁切。
+- [x] 预算卡实测结构为 `286×289px`，选择说明区为 `246×60px`，Token 计量区为 `246×27px`，追加和结束按钮分别为 `150×32px` 与 `84×32px`。
+- [x] 浏览器运行时字体已加载、DPR 为 `1`、页面无横向溢出；映射、自动 diff 和运行时检查均已更新。
+- [x] 本大点统一门禁通过：Vitest `46/46` 个测试文件、`311/311` 个用例，`typecheck`、`lint`、`format:check`、`build`、`qa:figma:validate` 和 `git diff --check` 均通过；证据校验为 `structuralPass=true`、`strictDprPass=true`、`mappedPass=0`、`diffReview=105`、`errors=[]`。
+- [ ] 自动 diff 非零，顶部窗口装饰、字体、图标和局部颜色仍存在可见差异，本画板不能标记像素级 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.22 2026-09-12 Workspace/Home 与 Agent Chat Composer 表面增量验收
 
 本节只记录实时 Figma 节点 `640:256`、`640:428` 的受影响页面组增量证据。Figma 参考图来自当前文件 `MX18RZCfAmgprNzxItkHUH`，浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、相同 `1440×1024` viewport、DPR `1`、字体加载完成和关闭动态干扰条件；不重新验收其它 103 个画板。

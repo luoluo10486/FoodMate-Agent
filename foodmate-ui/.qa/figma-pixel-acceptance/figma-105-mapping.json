@@ -1553,19 +1553,19 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-30",
-        "conclusion": "已按实时 Figma 节点 687:918 复核预算卡：标题计算颜色为 #c79654，卡片 286×289px、选择说明区 246×60px、Token 计量区 246×27px，追加和结束按钮分别为 150×32px 与 84×32px。当前浏览器截图为 1440×1024、字体已加载且页面无溢出，但实际 DPR 为 1.25，未满足严格 DPR 1 门禁；周边工作台、头像、图标和字体光栅化仍有差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-12",
+        "conclusion": "已实际查看 2026-09-12 的 Figma 与浏览器截图；预算说明、50,000 tokens、100% 用量、预计费用、追加预算和结束会话均存在，卡片与按钮没有遮挡或裁切，浏览器人物头像使用登记的默认 SVG；Figma 顶部窗口装饰、字体、图标和局部颜色仍与浏览器存在可见差异，继续保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
-        "capturedAt": "2026-09-06",
+        "capturedAt": "2026-09-12",
         "tool": "Chrome CDP Page.captureScreenshot",
-        "browser": "Chrome/152.0.7977.77",
+        "browser": "Chrome/152.0.7977.83",
         "dpr": 1,
         "viewport": "1440x1024",
         "fonts": "loaded",
         "bodyOverflow": false,
-        "url": "http://127.0.0.1:5174/chat?state=budget-limit&visual-qa=1",
-        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-budget-limit-browser-2026-09-06.png"
+        "url": "http://127.0.0.1:5188/chat?state=budget-limit&visual-qa=1",
+        "png": ".qa/figma-pixel-acceptance/recaptured/dpr1-agent-budget-limit-browser-2026-09-12.png"
       },
       "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/agent-budget-limit-current-diff-2026-09-12-avatar-fixed.json"
     },
