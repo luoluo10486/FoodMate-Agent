@@ -310,7 +310,7 @@ describe('ChatPage Agent remaining states', () => {
     ['write-confirmation', '/assets/avatars/default-male.svg'],
     ['budget-limit', '/assets/avatars/default-male.svg'],
     ['tool-failed-retryable', '/assets/avatars/default-male.svg'],
-    ['safety-degraded', '/assets/avatars/default-female.svg'],
+    ['safety-degraded', '/assets/avatars/default-male.svg'],
     ['user-cancelled', '/assets/avatars/default-male.svg'],
     ['sse-reconnecting', '/assets/avatars/default-male.svg'],
   ])('uses the registered %s fixture user avatar', (state, expectedSource) => {
@@ -326,6 +326,8 @@ describe('ChatPage Agent remaining states', () => {
       ),
     ).toBe(true);
     expect(document.querySelector('[data-avatar-role="fixture-message"]')).toHaveAttribute('src', expectedSource);
+    expect(document.querySelector('[data-avatar-role="workspace-sidebar"]')).toHaveAttribute('src', expectedSource);
+    expect(document.querySelector('[data-avatar-role="workspace-topbar"]')).toHaveAttribute('src', expectedSource);
     expect(avatarImages.every((image) => !image.getAttribute('src')?.includes('/assets/figma/'))).toBe(true);
   });
 

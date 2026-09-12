@@ -48,7 +48,6 @@ export const FIXTURE_CHAT_AVATARS = {
 export const FIXTURE_CHAT_AVATAR_GENDERS = {
   defaultMessage: '男',
   agentStateMessage: '男',
-  safetyDegradedMessage: '女',
 } as const;
 
 // 历史 Figma 导出的人物素材只用于设计证据，运行时不允许再次作为头像来源。

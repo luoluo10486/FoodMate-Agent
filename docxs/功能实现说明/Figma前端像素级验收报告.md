@@ -2,6 +2,16 @@
 
 更新时间：2026-09-13
 
+## 1.1.33 2026-09-13 Chat Agent 状态页头像同源修正
+
+本节记录浏览器反馈后的 Chat 状态页头像一致性修正。安全降级只表示本次分析能力受限，不表示当前用户发生变化；因此工作区账号和用户消息必须继续使用同一份登记头像。Figma 文件保持只读，本次不重新采集 105 个画板。
+
+- [x] `safety-degraded` 不再单独使用女性消息头像；六个 Agent 状态 Fixture 的侧栏、顶栏和用户消息均使用 `/assets/avatars/default-male.svg`，并经过 `AvatarImage defaultOnly` 输出。
+- [x] Chat 回归测试新增同源断言，逐状态比较 `workspace-sidebar`、`workspace-topbar` 和 `fixture-message` 的 `src`，定向测试 `3` 个文件、`68/68` 个用例通过。
+- [x] 浏览器实际复核 `/chat?state=safety-degraded&visual-qa=1`：顶部、侧栏和消息右侧显示同一男性默认头像；浅黄色用户气泡使用黑色前景，未恢复历史真人素材。
+- [ ] 本次只完成运行时修正和定向验证，没有新增 Figma PNG 或 diff JSON；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，登记状态继续保持 `BLOCKED`。
+
 ## 1.1.32 2026-09-13 Admin Overview 控件语义与 Chat 反馈运行时复核
 
 本节记录 Admin Overview 的 shadcn 控件迁移，以及 Chat 用户消息颜色和头像来源的运行时复核；本次没有新增 Figma PNG、浏览器 PNG 或 pixel diff，不能替代像素级验收。
@@ -67,13 +77,13 @@
 
 ## 1.1.27 2026-09-12 Chat 用户消息可读性与 Fixture 头像一致性修正
 
-本节记录浏览器反馈对应的默认 Chat Figma Fixture 修正。Figma 文件保持只读；本次只修正用户消息正文对比度和默认头像资源一致性，不修改真实模式请求或其它 Agent 状态的独立头像语义。
+本节记录浏览器反馈对应的默认 Chat Figma Fixture 修正。Figma 文件保持只读；本次只修正用户消息正文对比度和默认头像资源一致性，不修改真实模式请求。
 
 | 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
 |---|---|---|---|---:|---:|---:|---:|---|
 | Agent Chat | `640:428` | `/chat?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `7.6942%` | `2.520406` | `16.610552` | `255` | `DIFF_REVIEW` |
 
-- [x] 用户消息气泡保留 Figma 浅黄色背景，正文改用 `--fm-ink`（`#333333`），浏览器截图中不再使用白色正文叠加在浅色气泡上。
+- [x] 用户消息气泡保留 Figma 浅黄色背景，正文使用 `--fm-figma-chat-user-text`（`#000000`），浏览器截图中不再使用白色正文叠加在浅色气泡上。
 - [x] 默认 Chat Fixture 的侧栏、顶栏和用户消息均使用登记的 `/assets/avatars/default-male.svg`；运行时头像来源一致，未引入外部或历史人物素材。
 - [x] 浏览器 PNG 使用 Chrome `152.0.7977.83`、`1440×1024`、DPR `1` 和已加载字体采集；页面无横向溢出，Figma 与浏览器 PNG 尺寸一致。
 - [x] 独立 diff、105 项聚合结果和运行时复采集路径已同步到 `.qa/figma-pixel-acceptance/`；结构校验结果保持 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
