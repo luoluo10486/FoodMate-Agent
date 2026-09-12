@@ -93,6 +93,9 @@ describe('AnalysisPage', () => {
     expect(screen.getByLabelText('分析摘要加载中')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByLabelText('分析摘要加载中')).toHaveClass(styles.loadingMetrics);
     expect(screen.getByLabelText('能量摄入分析加载中')).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('img[src="/assets/figma/analysis/intake-analysis-loading-insight-dot.svg"]'),
+    ).toHaveLength(3);
     expect(screen.queryByText('1,940 kcal')).not.toBeInTheDocument();
     loadingRender.unmount();
 

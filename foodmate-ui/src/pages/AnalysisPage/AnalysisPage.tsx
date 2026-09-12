@@ -114,7 +114,11 @@ function LoadingAnalysis() {
         <div className={styles.loadingInsightList}>
           {Array.from({ length: 3 }, (_, index) => (
             <div className={styles.loadingInsightRow} key={index}>
-              <span className={styles.loadingInsightDot} />
+              <img
+                className={styles.loadingInsightDot}
+                src="/assets/figma/analysis/intake-analysis-loading-insight-dot.svg"
+                alt=""
+              />
               <Skeleton className={styles.loadingInsightSkeleton} />
             </div>
           ))}
