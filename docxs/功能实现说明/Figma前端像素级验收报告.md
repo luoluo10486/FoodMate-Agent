@@ -2,6 +2,22 @@
 
 更新时间：2026-09-13
 
+## 1.1.31 2026-09-13 Knowledge 状态页底色增量验收
+
+本节只记录 Figma 节点 `795:786`、`795:968`、`795:1151` 对应的 Knowledge 状态页增量证据，不重新采集或判定其余画板。Figma 文件保持只读，状态页真实检索和引用交互不变。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Knowledge Empty | `795:786` | `/knowledge?state=empty` | `recaptured-figma/user-knowledge-empty-795-786-2026-09-12.png` | `recaptured/dpr1-user-knowledge-empty-browser-2026-09-13.png` | `recaptured/user-knowledge-empty-current-diff-2026-09-13.json` | `1440×1024 / 1` | `15.7764%` | `1.263706` | `9.279379` | `204` | `DIFF_REVIEW` |
+| Knowledge Search Failed | `795:968` | `/knowledge?state=search-failed` | `recaptured-figma/user-knowledge-search-failed-795-968-2026-09-12.png` | `recaptured/dpr1-user-knowledge-search-failed-browser-2026-09-13.png` | `recaptured/user-knowledge-search-failed-current-diff-2026-09-13.json` | `1440×1024 / 1` | `15.6421%` | `1.369563` | `10.161040` | `204` | `DIFF_REVIEW` |
+| Knowledge Source Unavailable | `795:1151` | `/knowledge?state=source-unavailable` | `recaptured-figma/user-knowledge-source-unavailable-795-1151-2026-09-12.png` | `recaptured/dpr1-user-knowledge-source-unavailable-browser-2026-09-13.png` | `recaptured/user-knowledge-source-unavailable-current-diff-2026-09-13.json` | `1440×1024 / 1` | `15.6210%` | `1.358999` | `10.141111` | `204` | `DIFF_REVIEW` |
+
+- [x] 三项均使用 Chrome `152.0.7977.83`、`1440×1024`、DPR `1`、字体状态 `loaded`，页面无横向溢出；自动 diff、几何、文字和人工视觉复核均已完成。
+- [x] 状态页底层工作区中性底色已与白色状态蒙层分离，差异比例较 2026-09-12 的 `39.2856%~40.2713%` 降至 `15.6210%~15.7764%`；剩余差异仍来自字体、图标和局部光栅化，不能标记 `PASS`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 3 份独立 diff 已同步；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] 本大点门禁通过：Knowledge 定向测试 `6/6`、`typecheck`、`build`、`qa:figma:validate` 和 `git diff --check`；证据校验为 `structuralPass=true`、`mappedPass=0`、`diffReview=105`、`errors=[]`。
+- [ ] 本轮不重新验收其余 102 个画板；iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射继续为 `BLOCKED`。
+
 ## 1.1.30 2026-09-13 Admin User Detail 增量验收
 
 本节只记录 Figma 节点 `801:215` 对应的用户详情 Fixture 增量收口，不重新采集或人工验收其余画板。Figma 文件保持只读；真实模式的用户服务、权限和会话操作边界不因 Fixture 调整改变。

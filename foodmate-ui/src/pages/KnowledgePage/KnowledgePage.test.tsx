@@ -51,6 +51,7 @@ describe('KnowledgePage', () => {
     expect(screen.getByText('FoodMate')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '工作区导航' })).not.toBeInTheDocument();
     expect(screen.getByRole('complementary', { name: /当前引用详情/ })).toBeInTheDocument();
+    expect(container.querySelector('[class*="stateFixture"]')).not.toBeInTheDocument();
     expect(container.querySelectorAll('img[src="/assets/avatars/default-male.svg"]')).toHaveLength(1);
     expect(
       container.querySelector('img[src="/assets/figma/workspace/knowledge/topbar-search.svg"]'),
@@ -89,6 +90,7 @@ describe('KnowledgePage', () => {
     expect(screen.getByRole('link', { name: /每周饮食微调/ })).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('没有找到相关内容');
     expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
+    expect(container.querySelector('[class*="stateFixture"]')).toBeInTheDocument();
   });
 
   it('recovers from search and source availability errors', async () => {

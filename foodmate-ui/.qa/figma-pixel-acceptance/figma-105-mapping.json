@@ -4,7 +4,7 @@
     "page": "🎨 :: Design",
     "topLevelArtboards": 105,
     "metadataNode": "0:1",
-    "capturedAt": "2026-09-12",
+    "capturedAt": "2026-09-13",
     "figmaMcp": "get_metadata",
     "lastUpdated": "2026-09-06"
   },
@@ -4344,7 +4344,7 @@
       "queryState": "state=empty",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/user-knowledge-empty-795-786-2026-09-12.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-user-knowledge-empty-browser-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-user-knowledge-empty-browser-2026-09-13.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-empty",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4354,7 +4354,7 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -4373,11 +4373,11 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-12",
-        "conclusion": "实时 Figma 节点 795:786 与 2026-09-12 浏览器证据均为 1440×1024、DPR 1、字体加载完成且无横向溢出；当前页面结构和状态内容已复核，但 PNG diff 为 40.2713%，仍存在字体、图标和局部光栅化差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-13",
+        "conclusion": "实时 Figma 节点 795:786 与 2026-09-13 浏览器证据均为 1440×1024、DPR 1、字体加载完成且无横向溢出；工作区中性底色已与状态蒙层分离，PNG diff 为 15.7764%，仍存在字体、图标和局部光栅化差异，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
-        "capturedAt": "2026-09-12",
+        "capturedAt": "2026-09-13",
         "tool": "Chrome CDP Page.captureScreenshot",
         "browser": "Chrome/152.0.7977.83",
         "dpr": 1,
@@ -4386,7 +4386,7 @@
         "bodyOverflow": false,
         "url": "http://127.0.0.1:5188/knowledge?state=empty&visual-qa=1"
       },
-      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-current-diff-2026-09-12.json"
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-empty-current-diff-2026-09-13.json"
     },
     {
       "figmaNodeId": "795:968",
@@ -4399,7 +4399,7 @@
       "queryState": "state=search-failed",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/user-knowledge-search-failed-795-968-2026-09-12.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-user-knowledge-search-failed-browser-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-user-knowledge-search-failed-browser-2026-09-13.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-search-failed",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4409,7 +4409,7 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -4428,11 +4428,11 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-12",
-        "conclusion": "实时 Figma 节点 795:968 与 2026-09-12 浏览器证据均为 1440×1024、DPR 1、字体加载完成且无横向溢出；当前页面结构和状态内容已复核，但 PNG diff 为 39.3067%，仍存在字体、图标和局部光栅化差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-13",
+        "conclusion": "实时 Figma 节点 795:968 与 2026-09-13 浏览器证据均为 1440×1024、DPR 1、字体加载完成且无横向溢出；工作区中性底色已与状态蒙层分离，PNG diff 为 15.6421%，仍存在字体、图标和局部光栅化差异，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
-        "capturedAt": "2026-09-12",
+        "capturedAt": "2026-09-13",
         "tool": "Chrome CDP Page.captureScreenshot",
         "browser": "Chrome/152.0.7977.83",
         "dpr": 1,
@@ -4441,7 +4441,7 @@
         "bodyOverflow": false,
         "url": "http://127.0.0.1:5188/knowledge?state=search-failed&visual-qa=1"
       },
-      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-search-failed-current-diff-2026-09-12.json"
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-search-failed-current-diff-2026-09-13.json"
     },
     {
       "figmaNodeId": "795:1151",
@@ -4454,7 +4454,7 @@
       "queryState": "state=source-unavailable",
       "browserViewport": "1440x1024",
       "figmaPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/user-knowledge-source-unavailable-795-1151-2026-09-12.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-user-knowledge-source-unavailable-browser-2026-09-12.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-user-knowledge-source-unavailable-browser-2026-09-13.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#user-knowledge-source-unavailable",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
@@ -4464,7 +4464,7 @@
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -4483,11 +4483,11 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-12",
-        "conclusion": "实时 Figma 节点 795:1151 与 2026-09-12 浏览器证据均为 1440×1024、DPR 1、字体加载完成且无横向溢出；当前页面结构和状态内容已复核，但 PNG diff 为 39.2856%，仍存在字体、图标和局部光栅化差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-13",
+        "conclusion": "实时 Figma 节点 795:1151 与 2026-09-13 浏览器证据均为 1440×1024、DPR 1、字体加载完成且无横向溢出；工作区中性底色已与状态蒙层分离，PNG diff 为 15.6210%，仍存在字体、图标和局部光栅化差异，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
-        "capturedAt": "2026-09-12",
+        "capturedAt": "2026-09-13",
         "tool": "Chrome CDP Page.captureScreenshot",
         "browser": "Chrome/152.0.7977.83",
         "dpr": 1,
@@ -4496,7 +4496,7 @@
         "bodyOverflow": false,
         "url": "http://127.0.0.1:5188/knowledge?state=source-unavailable&visual-qa=1"
       },
-      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-source-unavailable-current-diff-2026-09-12.json"
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/user-knowledge-source-unavailable-current-diff-2026-09-13.json"
     },
     {
       "figmaNodeId": "797:212",

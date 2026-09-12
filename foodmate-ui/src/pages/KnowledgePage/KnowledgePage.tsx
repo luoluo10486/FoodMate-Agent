@@ -264,7 +264,7 @@ export function KnowledgePage() {
       }
     >
       <div
-        className={`${styles.page} ${isFigmaFixture ? styles.figmaFixture : ''} ${isFigmaDefaultFixture ? styles.defaultFixture : ''} fm-enter`}
+        className={`${styles.page} ${isFigmaFixture ? styles.figmaFixture : ''} ${isFigmaFixture && displayedState !== 'default' ? styles.stateFixture : ''} ${isFigmaDefaultFixture ? styles.defaultFixture : ''} fm-enter`}
       >
         <main className={styles.resultsPanel} aria-label="知识库检索结果">
           <header className={styles.pageHeader}>
