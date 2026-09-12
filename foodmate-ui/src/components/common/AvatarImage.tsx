@@ -55,6 +55,7 @@ export function AvatarImage({
       data-avatar-source={sourceKind}
       data-avatar-policy={effectiveDefaultOnly ? 'default-only' : 'uploaded-allowed'}
       data-avatar-asset={displaySource}
+      data-avatar-kind={isRegisteredDefault ? 'person-default' : 'temporary-upload-preview'}
       data-avatar-contract={isRegisteredDefault ? 'registered-default-svg' : 'trusted-upload'}
       data-avatar-registered={isRegisteredDefault ? 'true' : 'false'}
       onError={(event) => {

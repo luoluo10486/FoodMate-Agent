@@ -200,7 +200,14 @@ function MessageBubble({
 
 /** Figma 中的 Agent 状态块是绿色状态标记，不属于人物头像资源。 */
 function AgentStatusMarker({ className }: { className: string }) {
-  return <span className={className} aria-hidden="true" data-agent-marker="figma-status-surface" />;
+  return (
+    <span
+      className={className}
+      aria-hidden="true"
+      data-agent-marker="figma-status-surface"
+      data-visual-role="agent-status-marker"
+    />
+  );
 }
 
 function TraceRail({ run, designChat = false }: { run: AgentRunView; designChat?: boolean }) {

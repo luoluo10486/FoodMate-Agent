@@ -16,6 +16,7 @@ describe('AvatarImage', () => {
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-source', 'default-female');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-asset', '/assets/avatars/default-female.svg');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-kind', 'person-default');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-registered', 'true');
   });
 
@@ -85,6 +86,7 @@ describe('AvatarImage', () => {
 
     expect(image).toHaveAttribute('src', 'blob:http://localhost/avatar-preview');
     expect(image).toHaveAttribute('data-avatar-source', 'uploaded');
+    expect(image).toHaveAttribute('data-avatar-kind', 'temporary-upload-preview');
     expect(image).toHaveAttribute('data-avatar-contract', 'trusted-upload');
     expect(image).toHaveAttribute('data-avatar-registered', 'false');
   });

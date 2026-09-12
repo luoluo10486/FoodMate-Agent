@@ -276,6 +276,8 @@ describe('ChatPage Agent remaining states', () => {
       'src',
       document.querySelector('aside .avatar img')?.getAttribute('src') ?? '',
     );
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-kind', 'person-default');
+    expect(document.querySelector('[data-visual-role="agent-status-marker"]')).not.toHaveAttribute('data-avatar-kind');
     expect(document.querySelector('.userAvatar img')).not.toHaveAttribute(
       'src',
       '/legacy-assets/chat/person-avatar.png',
@@ -309,6 +311,7 @@ describe('ChatPage Agent remaining states', () => {
     const writeDetails = document.querySelector('[class*="fixtureWriteCard"] [class*="fixtureDetails"]');
     expect(writeDetails).toBeInTheDocument();
     expect(document.querySelector('[data-agent-marker="figma-status-surface"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-visual-role="agent-status-marker"]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '确认写入' }).querySelector('svg')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '取消' }).querySelector('svg')).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
