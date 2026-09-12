@@ -854,10 +854,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 595538,
-      "differentRatio": 0.4038750542534722,
-      "meanAbsoluteError": 1.4861787584092883,
-      "rmse": 9.587398571288569,
+      "differentPixels": 593825,
+      "differentRatio": 0.4027133517795139,
+      "meanAbsoluteError": 1.450586446126302,
+      "rmse": 9.290381728479275,
       "maxChannelDelta": 204
     },
     "user-knowledge-search-failed": {
@@ -865,10 +865,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 581314,
-      "differentRatio": 0.3942287868923611,
-      "meanAbsoluteError": 1.5856765747070312,
-      "rmse": 10.442787180513328,
+      "differentPixels": 579601,
+      "differentRatio": 0.39306708441840277,
+      "meanAbsoluteError": 1.5500827365451388,
+      "rmse": 10.17077727051666,
       "maxChannelDelta": 204
     },
     "user-knowledge-source-unavailable": {
@@ -876,10 +876,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 581003,
-      "differentRatio": 0.3940178765190972,
-      "meanAbsoluteError": 1.575112067328559,
-      "rmse": 10.423397133907145,
+      "differentPixels": 579290,
+      "differentRatio": 0.3928561740451389,
+      "meanAbsoluteError": 1.5395182291666667,
+      "rmse": 10.150867647650053,
       "maxChannelDelta": 204
     },
     "admin-run-detail": {

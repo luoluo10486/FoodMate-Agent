@@ -8,6 +8,7 @@ const uiRoot = resolve(scriptDirectory, '..');
 const evidenceRoot = join(uiRoot, '.qa', 'figma-pixel-acceptance');
 const mappingPath = join(evidenceRoot, 'figma-105-mapping.json');
 const chromePath = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const qaBaseUrl = process.env.FIGMA_QA_BASE_URL ?? 'http://127.0.0.1:5174';
 const captureDate = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Shanghai',
 }).format(new Date());
@@ -51,7 +52,7 @@ function parseViewport(value) {
 
 function targetUrl(item) {
   const query = item.queryState && item.queryState !== 'null' ? `${item.queryState}&visual-qa=1` : 'visual-qa=1';
-  return `http://127.0.0.1:5174${item.frontendRoute}${item.frontendRoute.includes('?') ? '&' : '?'}${query}`;
+  return `${qaBaseUrl}${item.frontendRoute}${item.frontendRoute.includes('?') ? '&' : '?'}${query}`;
 }
 
 class CdpClient {

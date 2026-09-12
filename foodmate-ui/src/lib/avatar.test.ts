@@ -6,12 +6,20 @@ import {
   FIXTURE_KNOWLEDGE_AVATARS,
   FIXTURE_PROFILE_AVATARS,
   FIXTURE_WORKSPACE_AVATARS,
+  REGISTERED_DEFAULT_AVATARS,
   getDefaultAvatarForGender,
   getAvatarSourceKind,
+  isRegisteredDefaultAvatar,
   resolveAvatarUrl,
 } from './avatar';
 
 describe('avatar defaults', () => {
+  it('locks the default whitelist to the two supplied gender SVGs', () => {
+    expect(REGISTERED_DEFAULT_AVATARS).toEqual([DEFAULT_AVATARS.male, DEFAULT_AVATARS.female]);
+    expect(REGISTERED_DEFAULT_AVATARS).toHaveLength(2);
+    expect(REGISTERED_DEFAULT_AVATARS.every(isRegisteredDefaultAvatar)).toBe(true);
+  });
+
   it('maps male and female gender values to the supplied assets', () => {
     expect(getDefaultAvatarForGender('男')).toBe(DEFAULT_AVATARS.male);
     expect(getDefaultAvatarForGender('female')).toBe(DEFAULT_AVATARS.female);
@@ -68,9 +76,10 @@ describe('avatar defaults', () => {
       FIXTURE_CHAT_AVATARS.sidebar,
       FIXTURE_CHAT_AVATARS.topbar,
       FIXTURE_CHAT_AVATARS.message,
+      FIXTURE_CHAT_AVATARS.agentStateMessage,
     ];
 
-    expect(fixtureAvatars.every((avatar) => Object.values(DEFAULT_AVATARS).includes(avatar))).toBe(true);
+    expect(fixtureAvatars.every(isRegisteredDefaultAvatar)).toBe(true);
     expect(fixtureAvatars.filter((avatar) => avatar === DEFAULT_AVATARS.male).length).toBeGreaterThan(0);
     expect(FIXTURE_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.female);
     expect(FIXTURE_CHAT_AVATARS.agentStateMessage).toBe(DEFAULT_AVATARS.male);

@@ -176,6 +176,8 @@
   --fm-figma-workspace-sidebar-active: rgba(199, 150, 84, 0.08);
   --fm-figma-workspace-session-active: rgba(255, 246, 226, 0.2);
   --fm-figma-workspace-top-nav-active: rgba(199, 150, 84, 0.08);
+  --fm-figma-knowledge-top-nav-active-surface: rgba(255, 246, 226, 0.08);
+  --fm-figma-knowledge-top-nav-active-border: #c79654;
   --fm-figma-workspace-sidebar-width: 260px;
   --fm-figma-workspace-topbar-height: 68px;
   --fm-figma-workspace-rail-width: 320px;
@@ -208,4 +210,20 @@
   --fm-figma-chat-actions-copy: #57635c;
   --fm-figma-chat-actions-note: #876e45;
   --fm-figma-chat-actions-muted: #66736b;
+
+  /* Figma Knowledge 节点 795:838、795:786、795:968 和 795:1151 的语义颜色。 */
+  --fm-knowledge-match-surface: rgba(236, 204, 255, 0.08);
+  --fm-knowledge-source-info-surface: rgba(128, 224, 230, 0.08);
+  --fm-knowledge-source-success-surface: rgba(166, 217, 151, 0.08);
+  --fm-knowledge-action-hover: #98cd89;
+  --fm-knowledge-quote-border: #e2e6ec;
+  --fm-knowledge-quote-surface: #f8f9fb;
+  --fm-knowledge-state-overlay: rgba(255, 255, 255, 0.72);
+  --fm-knowledge-state-border: rgba(199, 150, 84, 0.34);
+  --fm-knowledge-state-accent: rgba(199, 150, 84, 0.9);
+  --fm-knowledge-state-surface: #f4f6f5;
+  --fm-knowledge-state-status-surface: #fff8e5;
+  --fm-knowledge-state-danger-border: rgba(214, 118, 118, 0.34);
+  --fm-knowledge-state-danger-accent: rgba(214, 118, 118, 0.9);
+  --fm-knowledge-state-danger-surface: #ffedeb;
 }

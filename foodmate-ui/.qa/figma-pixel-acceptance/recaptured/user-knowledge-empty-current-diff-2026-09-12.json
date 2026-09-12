@@ -1,0 +1,15 @@
+{
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 593825,
+  "differentRatio": 0.4027133517795139,
+  "meanAbsoluteError": 1.450586446126302,
+  "rmse": 9.290381728479275,
+  "maxChannelDelta": 204,
+  "expectedPng": "foodmate-ui/.qa/figma-pixel-acceptance/recaptured-figma/user-knowledge-empty-795-786-2026-09-12.png",
+  "actualPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-user-knowledge-empty-browser-2026-09-12.png",
+  "figmaNodeId": "795:786",
+  "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED"
+}

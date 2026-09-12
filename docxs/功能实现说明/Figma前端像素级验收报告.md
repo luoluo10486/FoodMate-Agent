@@ -2,6 +2,24 @@
 
 更新时间：2026-09-12
 
+## 1.1.17 2026-09-12 Knowledge 页面组视觉收口与头像证据更新
+
+本节只记录 Knowledge 的 3 个顶层映射画板：`795:786`、`795:968`、`795:1151`。Figma PNG 从实时文件重新读取，浏览器 PNG 使用同尺寸、DPR 1 和字体加载完成条件采集；不重新验收其它 102 个画板。
+
+| 画板 | Figma 节点 | Figma PNG | 浏览器 PNG | 独立 diff JSON | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Knowledge Empty | `795:786` | `recaptured-figma/user-knowledge-empty-795-786-2026-09-12.png` | `recaptured/dpr1-user-knowledge-empty-browser-2026-09-12.png` | `recaptured/user-knowledge-empty-current-diff-2026-09-12.json` | `1440×1024 / 1` | `40.2713%` | `1.450586` | `9.290381` | `204` | `DIFF_REVIEW` |
+| Knowledge Search Failed | `795:968` | `recaptured-figma/user-knowledge-search-failed-795-968-2026-09-12.png` | `recaptured/dpr1-user-knowledge-search-failed-browser-2026-09-12.png` | `recaptured/user-knowledge-search-failed-current-diff-2026-09-12.json` | `1440×1024 / 1` | `39.3067%` | `1.550083` | `10.170777` | `204` | `DIFF_REVIEW` |
+| Knowledge Source Unavailable | `795:1151` | `recaptured-figma/user-knowledge-source-unavailable-795-1151-2026-09-12.png` | `recaptured/dpr1-user-knowledge-source-unavailable-browser-2026-09-12.png` | `recaptured/user-knowledge-source-unavailable-current-diff-2026-09-12.json` | `1440×1024 / 1` | `39.2856%` | `1.539518` | `10.150868` | `204` | `DIFF_REVIEW` |
+
+- [x] 三项 Figma 与浏览器 PNG 均为 `1440×1024`，浏览器实际 DPR 为 `1.0000000149011612`，字体状态为 `loaded`，页面无横向溢出；几何和文字检查均为 `PASS`。
+- [x] Figma 期望图来自当前文件 `MX18RZCfAmgprNzxItkHUH` 的实时节点，而不是旧的 2026-09-06 导出；最新截图中的人物头像已是用户提供的男性 SVG。
+- [x] 节点 `795:838` 是 Knowledge 默认态嵌套 Frame，原始尺寸 `1180×1024`；它不是 `🎨 :: Design` 下新的顶层画板，不计入 105 项映射。
+- [x] `figma-105-mapping.json` 和 `figma-105-diff-results.json` 只更新上述 3 项；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] 默认头像实体证据：`default-male.svg` SHA-256 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，`default-female.svg` SHA-256 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`；`.qa/figma-pixel-acceptance/legacy-avatars/` 仅为历史验收证据，不是运行时资源。
+- [ ] 三项自动 diff 均非零，且人工复核确认仍存在字体、图标和局部光栅化差异，不能标记像素级 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
 ## 1.1.16 2026-09-12 Diet Records、Intake Analysis、Meal Planning 页面组收口
 
 本节只记录实时 Figma 节点 `640:588`、`640:773`、`640:901` 对应的 12 个当前页面组画板。Figma PNG 和浏览器 PNG 均使用 `1440×1024` 原始尺寸；浏览器使用 DPR 1、字体加载完成和关闭动态干扰后的截图。所有画板的结构、几何、文字溢出和人工复核已完成；自动 diff 非零，因此结论统一保留 `DIFF_REVIEW`。

@@ -136,6 +136,23 @@ describe('WorkspaceLayout shell controls', () => {
     expect(container.querySelector('aside .brand > span')).toHaveTextContent('F');
   });
 
+  it('supports a topbar-only Figma fixture without rendering a sidebar', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/knowledge']}>
+        <WorkspaceLayout activeModule="knowledge" fixtureVariant="knowledge" hideSidebar topbarShowMarkLetter={false}>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('aside')).not.toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass('noSidebar');
+    expect(container.querySelector('main header .brand > span')).not.toHaveTextContent('F');
+    expect(
+      container.querySelector('main header img[src="/assets/figma/workspace/knowledge/topbar-search.svg"]'),
+    ).toBeInTheDocument();
+  });
+
   it('renders desktop window controls in the Home Figma fixture shell', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>

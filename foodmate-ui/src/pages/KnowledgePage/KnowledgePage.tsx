@@ -149,6 +149,7 @@ export function KnowledgePage() {
     sourceResults[0] ??
     (!isRealMode ? knowledgeResults[0] : undefined);
   const isFigmaFixture = !isRealMode;
+  const isFigmaDefaultFixture = isFigmaFixture && knowledgeState === 'default';
 
   const visibleResults = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -238,10 +239,13 @@ export function KnowledgePage() {
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       sidebarAvatarSrc={isFigmaFixture ? FIXTURE_KNOWLEDGE_AVATARS.sidebar : undefined}
       topAvatarSrc={isFigmaFixture ? FIXTURE_KNOWLEDGE_AVATARS.topbar : undefined}
-      showWindowControls={isFigmaFixture}
+      hideSidebar={isFigmaDefaultFixture}
+      showWindowControls={isFigmaFixture && !isFigmaDefaultFixture}
       // Knowledge 画板使用独立导出的 Figma 壳层资产，真实模式仍使用 Lucide fallback。
       fixtureVariant={isFigmaFixture ? 'knowledge' : undefined}
-      sidebarFixture={isFigmaFixture ? { currentPage: 1, sessions: figmaSidebarSessions } : undefined}
+      sidebarFixture={
+        isFigmaFixture && !isFigmaDefaultFixture ? { currentPage: 1, sessions: figmaSidebarSessions } : undefined
+      }
       topbarShowMarkLetter={!isFigmaFixture}
       pageOverlay={
         displayedState !== 'default' ? (
@@ -259,7 +263,9 @@ export function KnowledgePage() {
         ) : null
       }
     >
-      <div className={`${styles.page} ${isFigmaFixture ? styles.figmaFixture : ''} fm-enter`}>
+      <div
+        className={`${styles.page} ${isFigmaFixture ? styles.figmaFixture : ''} ${isFigmaDefaultFixture ? styles.defaultFixture : ''} fm-enter`}
+      >
         <main className={styles.resultsPanel} aria-label="知识库检索结果">
           <header className={styles.pageHeader}>
             <h1>知识库</h1>

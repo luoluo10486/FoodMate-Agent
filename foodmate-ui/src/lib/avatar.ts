@@ -1,10 +1,10 @@
-export const DEFAULT_AVATARS = {
+export const DEFAULT_AVATARS = Object.freeze({
   male: '/assets/avatars/default-male.svg',
   female: '/assets/avatars/default-female.svg',
-} as const;
+} as const);
 
 /** 运行时默认头像白名单，所有 Fixture 人物头像必须从这里选择。 */
-export const REGISTERED_DEFAULT_AVATARS = Object.values(DEFAULT_AVATARS);
+export const REGISTERED_DEFAULT_AVATARS = Object.freeze([DEFAULT_AVATARS.male, DEFAULT_AVATARS.female]);
 
 export type AvatarSourceKind = 'default-male' | 'default-female' | 'uploaded';
 
