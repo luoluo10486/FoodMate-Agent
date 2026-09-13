@@ -5,14 +5,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
+import {
+  loadNutritionAnalysis,
+  type NutritionAnalysis,
+  type NutritionAnalysisRange,
+} from '../../services/analysisService';
 import type { SessionSummary } from '../../types/session';
 import styles from './AnalysisPage.module.css';
 
-type RangeKey = '7d' | '30d' | '90d';
+type RangeKey = NutritionAnalysisRange | '90d';
 type AnalysisState = 'default' | 'loading' | 'empty' | 'error';
 
 const ranges: Array<{ key: RangeKey; label: string }> = [
+  { key: 'today', label: '今天' },
   { key: '7d', label: '7 天' },
   { key: '30d', label: '30 天' },
   { key: '90d', label: '90 天' },
@@ -34,6 +39,13 @@ const rangeData: Record<
   RangeKey,
   { calories: string; protein: string; activeDays: string; bars: number[]; miniBars: number[] }
 > = {
+  today: {
+    calories: '1,982 kcal',
+    protein: '118 g',
+    activeDays: '1 / 1 Day',
+    bars: [82, 112, 94, 128, 106, 118, 98],
+    miniBars: [14, 20, 12, 22],
+  },
   '7d': {
     calories: '1,940 kcal',
     protein: '114 g',
@@ -139,9 +151,9 @@ function EmptyAnalysis({
 }: {
   onRecord: () => void;
   realMode?: boolean;
-  range?: '7d' | '30d';
+  range?: RangeKey;
 }) {
-  const days = range === '30d' ? 30 : 7;
+  const days = range === 'today' ? 1 : range === '30d' ? 30 : range === '90d' ? 90 : 7;
   return (
     <>
       <section className={styles.metrics} aria-label="分析摘要">
@@ -217,12 +229,12 @@ export function AnalysisPage() {
   const [realError, setRealError] = useState<string>();
   const [realReloadNonce, setRealReloadNonce] = useState(0);
   const data = rangeData[range];
-  const realRange = range === '90d' ? '30d' : range;
+  const realRange: NutritionAnalysisRange | undefined = range === '90d' ? undefined : range;
 
   useEffect(() => {
-    if (!isRealMode) return;
+    if (!isRealMode || !realRange) return;
     let active = true;
-    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    // 每次真实请求都由当前 effect 管理加载、成功和失败状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
@@ -244,7 +256,7 @@ export function AnalysisPage() {
     };
   }, [isRealMode, realRange, realReloadNonce]);
 
-  const realDays = realRange === '7d' ? 7 : 30;
+  const realDays = realData?.range === 'today' ? 1 : realData?.range === '30d' ? 30 : 7;
   const realCalories = Number(realData?.calories_kcal ?? 0);
   const realProtein = Number(realData?.protein_g ?? 0);
   const realCoverage = Number(realData?.coverage ?? 0);
@@ -291,7 +303,14 @@ export function AnalysisPage() {
           <header
             className={`${styles.filterRow} ${isFigmaFixture ? styles.figmaFilterRow : ''} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}
           >
-            <Tabs className={styles.tabsRoot} value={range} onValueChange={(value) => setRange(value as RangeKey)}>
+            <Tabs
+              className={styles.tabsRoot}
+              value={range}
+              onValueChange={(value) => {
+                if (isRealMode && value === '90d') return;
+                setRange(value as RangeKey);
+              }}
+            >
               <TabsList aria-label="分析范围" className={styles.filters}>
                 {(isRealMode ? ranges.filter((item) => item.key !== '90d') : ranges).map((item) => (
                   <TabsTrigger
@@ -341,7 +360,7 @@ export function AnalysisPage() {
           {visibleState === 'empty' ? (
             <EmptyAnalysis
               onRecord={() => navigate('/analysis?view=records')}
-              range={realRange}
+              range={realData?.range ?? realRange ?? '7d'}
               realMode={isRealMode}
             />
           ) : null}
@@ -502,8 +521,9 @@ export function AnalysisPage() {
           <section className={styles.qualityPanel} aria-label="分析维度与数据质量" data-figma-node-id="975:3">
             <h2>分析维度与数据质量</h2>
             <p>
-              统计范围：{realData.range === '7d' ? '最近 7 天' : '最近 30 天'} · 已匹配 {realData.matched_items} /{' '}
-              {realData.total_items} 条记录
+              统计范围：
+              {realData.range === 'today' ? '今天' : realData.range === '7d' ? '最近 7 天' : '最近 30 天'} · 已匹配{' '}
+              {realData.matched_items} / {realData.total_items} 条记录
             </p>
             <p>
               营养合计：蛋白质 {realProtein.toLocaleString('zh-CN')} g · 脂肪{' '}

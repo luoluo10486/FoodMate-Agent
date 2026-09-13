@@ -73,11 +73,11 @@ class M12SessionControllerTest {
                 .andExpect(status().is4xxClientError());
         String message =
                 mockMvc.perform(
-                        post("/api/sessions/" + id + "/messages")
-                                .cookie(session)
-                                .header("X-CSRF-Token", csrf.getValue())
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"role\":\"user\",\"content\":\"hello\"}"))
+                                post("/api/sessions/" + id + "/messages")
+                                        .cookie(session)
+                                        .header("X-CSRF-Token", csrf.getValue())
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content("{\"role\":\"user\",\"content\":\"hello\"}"))
                         .andExpect(status().isOk())
                         .andReturn()
                         .getResponse()

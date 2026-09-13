@@ -1,6 +1,6 @@
 import { apiRequest } from './apiClient';
 
-/** Fixture analysis helpers remain available for the design preview mode. */
+/** 保留 Fixture 分析辅助函数，供设计预览模式使用。 */
 import {
   type AnalysisRange,
   analysisRangeOptions,
@@ -14,7 +14,7 @@ import {
 
 export type { AnalysisRange };
 
-export type NutritionAnalysisRange = Extract<AnalysisRange, '7d' | '30d'>;
+export type NutritionAnalysisRange = 'today' | '7d' | '30d';
 
 export type NutritionAnalysis = {
   range: NutritionAnalysisRange;

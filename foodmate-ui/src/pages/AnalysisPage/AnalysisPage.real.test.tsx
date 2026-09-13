@@ -37,6 +37,16 @@ const response = {
   disclaimer: '仅用于饮食记录参考',
 };
 
+const todayEmptyResponse = {
+  ...response,
+  range: 'today' as const,
+  total_items: 0,
+  matched_items: 0,
+  coverage: 0,
+  incomplete: false,
+  unmatched_names: [],
+};
+
 describe('AnalysisPage real mode', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
@@ -75,8 +85,28 @@ describe('AnalysisPage real mode', () => {
     expect(screen.getByText(/有 1 项记录未匹配营养目录/)).toBeInTheDocument();
     expect(screen.getByText('未匹配项：自制酱料')).toBeInTheDocument();
     expect(screen.queryByText(/Protein distribution is heavily skewed/)).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '今天' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '30 天' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: '90 天' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '导出 CSV' })).toBeDisabled();
+  });
+
+  it('requests today and 30d independently in real mode', async () => {
+    vi.mocked(loadNutritionAnalysis)
+      .mockResolvedValueOnce(response)
+      .mockResolvedValueOnce(todayEmptyResponse)
+      .mockResolvedValueOnce({ ...response, range: '30d' });
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('7d'));
+    await user.click(screen.getByRole('tab', { name: '今天' }));
+    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('today'));
+    await waitFor(() => expect(screen.getByText('0 / 1 Days')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('tab', { name: '30 天' }));
+    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('30d'));
+    expect(loadNutritionAnalysis).not.toHaveBeenCalledWith('90d');
   });
 
   it('shows the empty state for a range with no backend records', async () => {
