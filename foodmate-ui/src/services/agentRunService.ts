@@ -1,5 +1,6 @@
-import type { AgentStreamConnection, AgentStreamConnectionState, AgentStreamHandle } from '../types/agent';
+import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
 import { apiRequest } from './apiClient';
+import { openSseStream } from './sseStream';
 
 export type AgentRunEvent = {
   event_id?: string;
@@ -160,144 +161,55 @@ export type ApprovalExecuteResponse = {
   resource_id: number | null;
 };
 
-const terminalEventTypes = new Set(['run.completed', 'run.failed', 'run.cancelled', 'run.superseded']);
+const agentEventTypes = [
+  'run.created',
+  'run.event',
+  'run.accepted',
+  'run.routed',
+  'run.planned',
+  'run.retrieval_started',
+  'run.retrieval_finished',
+  'run.context_assembled',
+  'run.tool_started',
+  'run.tool_finished',
+  'run.eval_decided',
+  'run.model_usage',
+  'run.checkpoint_saved',
+  'run.clarification_requested',
+  'run.cancel_acknowledged',
+  'run.answer_stream',
+  'run.completed',
+  'run.failed',
+  'run.cancelled',
+  'run.superseded',
+] as const;
 
-const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
+const terminalEventTypes = new Set(['run.completed', 'run.failed', 'run.cancelled', 'run.superseded']);
 
 export function openAgentRunStream(
   runId: string,
   onEvent: (eventType: string, payload: AgentRunEvent, eventId: string) => void,
   options: AgentStreamOptions = {},
 ): AgentStreamHandle {
-  const maxAttempts = Math.max(1, options.maxAttempts ?? 5);
-  const reconnectDelayMs = Math.max(0, options.reconnectDelayMs ?? 500);
-  const eventTypes = [
-    'run.created',
-    'run.event',
-    'run.accepted',
-    'run.routed',
-    'run.planned',
-    'run.retrieval_started',
-    'run.retrieval_finished',
-    'run.context_assembled',
-    'run.tool_started',
-    'run.tool_finished',
-    'run.eval_decided',
-    'run.model_usage',
-    'run.checkpoint_saved',
-    'run.clarification_requested',
-    'run.cancel_acknowledged',
-    'run.answer_stream',
-    'run.completed',
-    'run.failed',
-    'run.cancelled',
-    'run.superseded',
-  ];
-  const seen = new Set<string>();
-  let source: EventSource | undefined;
-  let reconnectTimer: number | undefined;
-  let terminal = false;
-  let closed = false;
-  let connection: AgentStreamConnection = {
-    state: 'connecting',
-    attempt: 1,
-    maxAttempts,
-    lastEventId: options.lastEventId?.trim() || undefined,
-  };
-
-  const publishState = (state: AgentStreamConnectionState, patch: Partial<AgentStreamConnection> = {}) => {
-    connection = { ...connection, ...patch, state };
-    options.onStateChange?.(connection);
-  };
-
-  const closeSource = () => {
-    source?.close();
-    source = undefined;
-  };
-
-  const close = () => {
-    if (closed) return;
-    closed = true;
-    terminal = true;
-    if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
-    closeSource();
-    publishState('closed');
-  };
-
-  const handleConnectionFailure = (failedSource?: EventSource) => {
-    // 旧连接的延迟 error 或解析错误不能影响已经建立的新连接。
-    if (closed || terminal || (failedSource && source !== failedSource)) return;
-    closeSource();
-    if (connection.attempt >= maxAttempts) {
-      publishState('exhausted');
-      options.onError?.(connection);
-      return;
-    }
-    if (reconnectTimer !== undefined) return;
-    const attempt = connection.attempt + 1;
-    publishState('reconnecting', { attempt });
-    reconnectTimer = window.setTimeout(() => {
-      reconnectTimer = undefined;
-      connect();
-    }, reconnectDelayMs);
-    options.onError?.(connection);
-  };
-
-  const connect = () => {
-    if (closed || terminal) return;
-    const lastEventId = connection.lastEventId;
-    const suffix = lastEventId ? `?lastEventId=${encodeURIComponent(lastEventId)}` : '';
-    const nextState = connection.attempt === 1 ? 'connecting' : 'reconnecting';
-    if (connection.state !== nextState) publishState(nextState);
-    let nextSource: EventSource;
-    try {
-      nextSource = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream${suffix}`, {
-        withCredentials: true,
-      });
-    } catch {
-      handleConnectionFailure();
-      return;
-    }
-    source = nextSource;
-    nextSource.onopen = () => {
-      if (closed || terminal || source !== nextSource) return;
-      publishState('connected');
-    };
-    for (const registeredType of eventTypes) {
-      nextSource.addEventListener(registeredType, (event) => {
-        // EventSource.close() 后浏览器仍可能派发已排队的消息，必须丢弃旧连接事件。
-        if (closed || terminal || source !== nextSource) return;
-        const message = event as MessageEvent<string>;
-        let payload: AgentRunEvent;
-        try {
-          payload = JSON.parse(message.data) as AgentRunEvent;
-        } catch {
-          handleConnectionFailure(nextSource);
-          return;
-        }
-        const eventId = message.lastEventId || payload.sse_event_id || payload.event_id || '';
-        if (eventId && seen.has(eventId)) return;
-        if (eventId) seen.add(eventId);
-        if (eventId && eventId !== connection.lastEventId) {
-          // 游标变化也必须通知页面，保证连接状态面板和下一次续接使用同一份 ID。
-          publishState(connection.state, { lastEventId: eventId });
-        }
-        const eventType = payload.event_type || registeredType;
-        onEvent(eventType, payload, eventId);
-        if (terminalEventTypes.has(eventType)) {
-          terminal = true;
-          closeSource();
-          publishState('closed');
-        }
-      });
-    }
-    nextSource.onerror = () => handleConnectionFailure(nextSource);
-  };
-
-  // 建立 EventSource 前先发布初始连接状态，页面可以立即显示连接中的运行态。
-  options.onStateChange?.(connection);
-  connect();
-  return { close, getConnection: () => connection };
+  return openSseStream<AgentRunEvent>({
+    path: `/api/agent-runs/${encodeURIComponent(runId)}/stream`,
+    eventTypes: agentEventTypes,
+    lastEventId: options.lastEventId,
+    maxAttempts: options.maxAttempts,
+    reconnectDelayMs: options.reconnectDelayMs,
+    onStateChange: options.onStateChange,
+    onError: options.onError,
+    parseEvent: (message, registeredType) => {
+      const payload = JSON.parse(message.data) as AgentRunEvent;
+      return {
+        payload,
+        eventId: message.lastEventId || payload.sse_event_id || payload.event_id,
+        eventType: payload.event_type || registeredType,
+      };
+    },
+    onEvent,
+    isTerminal: (eventType) => terminalEventTypes.has(eventType),
+  });
 }
 
 export async function loadAgentRun(runId: string): Promise<AgentRunStatus> {

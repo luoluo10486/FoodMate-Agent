@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AgentRunView, AgentDisplayStatus } from '../types/agent';
+import type { AgentRunView, AgentDisplayStatus, AgentStreamHandle } from '../types/agent';
 import type { Message } from '../types/session';
 import type { AgentCard } from '../mock/agentReplayData';
 import {
@@ -39,16 +39,26 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
   const [input, setInput] = useState('');
   const [card, setCard] = useState<AgentCard>({ type: 'none' });
   const runIdRef = useRef<string>();
-  const stopStreamRef = useRef<(() => void) | undefined>(undefined);
+  const stopStreamRef = useRef<AgentStreamHandle | undefined>(undefined);
+  const lastEventIdRef = useRef<string>();
   const seededRef = useRef(false);
 
   const refresh = useCallback(async (runId: string) => {
     const [status, nextEvents] = await Promise.all([getChatRun(runId), getChatRunEvents(runId)]);
     setEvents(nextEvents);
-    const latest = nextEvents.at(-1);
-    const displayStatus = latest ? statusFor(latest) : status.status === 'DISPATCHED' ? 'routing' : 'executing_tools';
+    const latestEvent = nextEvents.at(-1);
+    lastEventIdRef.current = latestEvent
+      ? latestEvent.event_seq > 0
+        ? String(latestEvent.event_seq)
+        : latestEvent.event_id
+      : undefined;
+    const displayStatus = latestEvent
+      ? statusFor(latestEvent)
+      : status.status === 'DISPATCHED'
+        ? 'routing'
+        : 'executing_tools';
     setRun((current) => ({ ...current, id: runId, status: displayStatus }));
-    const payload = latest?.payload as { answer?: unknown } | undefined;
+    const payload = latestEvent?.payload as { answer?: unknown } | undefined;
     if (payload?.answer !== undefined) {
       setMessages((current) => [
         ...current.filter((message) => message.id !== `answer-${runId}`),
@@ -88,14 +98,14 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
       try {
         const started = await createChatRun(prompt, sessionId);
         runIdRef.current = started.run_id;
+        lastEventIdRef.current = undefined;
         setRun(emptyRun(started.run_id));
         const initialDone = await refresh(started.run_id);
         if (!initialDone) {
-          let latestEventId = 0;
           stopStreamRef.current = streamChatRun(
             started.run_id,
             (event) => {
-              latestEventId = event.event_seq;
+              lastEventIdRef.current = event.sse_event_id || event.event_id;
               setEvents((current) => [...current.filter((item) => item.event_id !== event.event_id), event]);
               setRun((current) => ({ ...current, status: statusFor(event) }));
               const payload = event.payload as { answer?: unknown } | undefined;
@@ -111,10 +121,12 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
                 ]);
               if (['SUCCEEDED', 'FAILED', 'CANCELED'].includes(event.state)) {
                 setRunning(false);
-                stopStreamRef.current?.();
               }
             },
-            latestEventId,
+            lastEventIdRef.current,
+            {
+              onStateChange: (connection) => setRun((current) => ({ ...current, connection })),
+            },
           );
         }
       } catch (error) {
@@ -125,12 +137,7 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
     [enabled, input, refresh, running, sessionId],
   );
 
-  useEffect(
-    () => () => {
-      stopStreamRef.current?.();
-    },
-    [],
-  );
+  useEffect(() => () => stopStreamRef.current?.close(), [sessionId]);
   // Seeded URLs should start exactly one real run per mounted session.
   useEffect(() => {
     if (enabled && seedPrompt && !seededRef.current) {
@@ -150,7 +157,10 @@ export function useRealAgentReplay(enabled: boolean, sessionId?: string, seedPro
     send,
     stop: () => {
       const runId = runIdRef.current;
-      if (runId) void cancelChatRun(runId).finally(() => stopStreamRef.current?.());
+      const currentStream = stopStreamRef.current;
+      currentStream?.close();
+      stopStreamRef.current = undefined;
+      if (runId) void cancelChatRun(runId);
       setRunning(false);
     },
     answerClarification: () => {},

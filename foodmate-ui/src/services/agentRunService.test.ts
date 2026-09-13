@@ -85,6 +85,7 @@ describe('openAgentRunStream', () => {
     const second = FakeEventSource.instances[1];
     expect(second.url).toContain('lastEventId=evt-1');
     second.open();
+    second.emit('run.answer_stream', { sse_event_id: 'evt-1', text: '重放文本' });
     second.emit('run.completed', { sse_event_id: 'evt-2', answer: '完成' });
 
     expect(received).toEqual(['run.answer_stream:部分文本:evt-1', 'run.completed::evt-2']);

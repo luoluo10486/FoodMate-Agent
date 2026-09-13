@@ -20,6 +20,8 @@ type ChatCancellationPayload = Partial<ChatCancellationResult> & {
   dispatchId?: string;
 };
 import { apiRequest } from './apiClient';
+import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
+import { openSseStream } from './sseStream';
 
 export function createChatRun(prompt: string, sessionId?: string): Promise<ChatRun> {
   return apiRequest<ChatRun>('/api/chat/runs', {
@@ -39,6 +41,8 @@ export type ChatRunEvent = {
   state: string;
   payload: unknown;
   occurred_at: string;
+  event_type?: string;
+  sse_event_id?: string;
 };
 
 export function getChatRunEvents(runId: string): Promise<ChatRunEvent[]> {
@@ -62,22 +66,94 @@ export async function cancelChatRun(runId: string): Promise<ChatCancellationResu
   };
 }
 
-export function streamChatRun(runId: string, onEvent: (event: ChatRunEvent) => void, lastEventId?: number): () => void {
-  const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
-  const suffix = lastEventId && lastEventId > 0 ? `?lastEventId=${lastEventId}` : '';
-  const source = new EventSource(`${baseUrl}/api/chat/runs/${encodeURIComponent(runId)}/stream${suffix}`, {
-    withCredentials: true,
+export type ChatStreamOptions = {
+  maxAttempts?: number;
+  reconnectDelayMs?: number;
+  onStateChange?: (connection: AgentStreamConnection) => void;
+  onError?: (connection: AgentStreamConnection) => void;
+};
+
+const chatEventTypes = [
+  'run.event',
+  'run.created',
+  'run.accepted',
+  'run.routed',
+  'run.planned',
+  'run.retrieval_started',
+  'run.retrieval_finished',
+  'run.context_assembled',
+  'run.tool_started',
+  'run.tool_finished',
+  'run.eval_decided',
+  'run.model_usage',
+  'run.checkpoint_saved',
+  'run.clarification_requested',
+  'run.cancel_acknowledged',
+  'run.answer_stream',
+  'run.completed',
+  'run.failed',
+  'run.cancelled',
+  'run.superseded',
+] as const;
+
+export function streamChatRun(
+  runId: string,
+  onEvent: (event: ChatRunEvent) => void,
+  lastEventId?: string | number,
+  options: ChatStreamOptions = {},
+): AgentStreamHandle {
+  return openSseStream<ChatRunEvent>({
+    path: `/api/chat/runs/${encodeURIComponent(runId)}/stream`,
+    eventTypes: chatEventTypes,
+    lastEventId: lastEventId === undefined ? undefined : String(lastEventId),
+    maxAttempts: options.maxAttempts,
+    reconnectDelayMs: options.reconnectDelayMs,
+    onStateChange: options.onStateChange,
+    onError: options.onError,
+    parseEvent: (message, registeredType) => {
+      const raw = JSON.parse(message.data) as Record<string, unknown>;
+      const eventType = String(raw.event_type ?? raw.eventType ?? registeredType);
+      const eventId = message.lastEventId || stringValue(raw.sse_event_id) || stringValue(raw.event_id);
+      return {
+        payload: normalizeChatRunEvent(raw, runId, eventType, eventId),
+        eventId,
+        eventType,
+      };
+    },
+    onEvent: (_eventType, event) => onEvent(event),
+    isTerminal: (eventType, event) =>
+      ['run.completed', 'run.failed', 'run.cancelled', 'run.superseded'].includes(eventType) ||
+      ['SUCCEEDED', 'FAILED', 'CANCELED', 'CANCELLED', 'SUPERSEDED'].includes(event.state),
   });
-  const listener = (message: Event) => {
-    try {
-      onEvent(JSON.parse((message as MessageEvent<string>).data) as ChatRunEvent);
-    } catch {
-      source.close();
-    }
+}
+
+function normalizeChatRunEvent(
+  raw: Record<string, unknown>,
+  runId: string,
+  eventType: string,
+  eventId: string,
+): ChatRunEvent {
+  const sequence = Number(raw.event_seq ?? raw.eventSeq ?? (eventId && /^\d+$/.test(eventId) ? eventId : 0));
+  return {
+    event_id: stringValue(raw.event_id) || eventId,
+    run_id: stringValue(raw.run_id) || stringValue(raw.runId) || runId,
+    event_seq: Number.isFinite(sequence) ? sequence : 0,
+    state: stringValue(raw.state) || stringValue(raw.status) || stateForEventType(eventType),
+    payload: raw.payload ?? raw,
+    occurred_at: stringValue(raw.occurred_at) || stringValue(raw.occurredAt) || '',
+    event_type: eventType,
+    sse_event_id: eventId || undefined,
   };
-  source.addEventListener('run.event', listener);
-  return () => {
-    source.removeEventListener('run.event', listener);
-    source.close();
-  };
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' ? value : value === undefined || value === null ? '' : String(value);
+}
+
+function stateForEventType(eventType: string) {
+  if (eventType === 'run.accepted') return 'DISPATCHED';
+  if (eventType === 'run.completed') return 'SUCCEEDED';
+  if (eventType === 'run.failed') return 'FAILED';
+  if (eventType === 'run.cancelled') return 'CANCELED';
+  return 'RUNNING';
 }
