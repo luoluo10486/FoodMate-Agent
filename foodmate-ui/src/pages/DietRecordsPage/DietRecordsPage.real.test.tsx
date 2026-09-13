@@ -15,6 +15,7 @@ import { searchNutritionFoods } from '../../services/nutritionFoodService';
 import {
   createCompositeDish,
   deleteCompositeDish,
+  loadCompositeDish,
   loadCompositeDishes,
   updateCompositeDish,
 } from '../../services/compositeDishService';
@@ -35,6 +36,7 @@ vi.mock('../../services/nutritionFoodService', () => ({
 
 vi.mock('../../services/compositeDishService', () => ({
   loadCompositeDishes: vi.fn(),
+  loadCompositeDish: vi.fn(),
   createCompositeDish: vi.fn(),
   updateCompositeDish: vi.fn(),
   deleteCompositeDish: vi.fn(),
@@ -125,6 +127,7 @@ describe('DietRecordsPage real mode', () => {
     );
     vi.mocked(searchNutritionFoods).mockResolvedValue([]);
     vi.mocked(loadCompositeDishes).mockResolvedValue([]);
+    vi.mocked(loadCompositeDish).mockResolvedValue(compositeDish);
   });
 
   afterEach(() => {
@@ -213,6 +216,7 @@ describe('DietRecordsPage real mode', () => {
     );
     await waitFor(() => expect(screen.getByText('更新后的鸡肉饭')).toBeInTheDocument());
     expect(loadCompositeDishes).toHaveBeenCalledTimes(2);
+    expect(loadCompositeDish).toHaveBeenCalledWith('21');
   });
 
   it('confirms composite dish deletion and keeps the dialog open on a conflict', async () => {

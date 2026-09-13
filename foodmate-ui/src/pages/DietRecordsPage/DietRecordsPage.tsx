@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -38,6 +38,7 @@ import {
 import {
   createCompositeDish,
   deleteCompositeDish,
+  loadCompositeDish,
   loadCompositeDishes,
   updateCompositeDish,
   type CompositeDish,
@@ -441,6 +442,8 @@ export function DietRecordsPage() {
     { rawName: '', amount: '', unit: 'g' },
   ]);
   const [dishCandidateMap, setDishCandidateMap] = useState<Record<number, NutritionFoodCandidate[]>>({});
+  const [dishDetailReady, setDishDetailReady] = useState(true);
+  const [dishLoading, setDishLoading] = useState(false);
   const [dishSaving, setDishSaving] = useState(false);
   const [dishDeleting, setDishDeleting] = useState(false);
   const [pendingCompositeDishDeletion, setPendingCompositeDishDeletion] = useState<PendingCompositeDishDeletion>();
@@ -452,6 +455,7 @@ export function DietRecordsPage() {
   const [notice, setNotice] = useState('');
   const [foodMutation, setFoodMutation] = useState<FoodMutation>();
   const [pendingFoodDeletion, setPendingFoodDeletion] = useState<PendingFoodDeletion>();
+  const dishRequestId = useRef(0);
 
   useEffect(() => {
     if (!isRealMode) return;
@@ -619,9 +623,7 @@ export function DietRecordsPage() {
     setNotice(`已选择${dish.dish_name}，服务端将按食用份数保存营养快照。`);
   };
 
-  const openDishEditor = (dish?: CompositeDish) => {
-    setDishError(undefined);
-    setEditingDishId(dish?.composite_dish_id);
+  const populateDishEditor = (dish?: CompositeDish) => {
     setDishName(dish?.dish_name ?? '');
     setDishTotalServings(String(dish?.total_servings ?? '2'));
     setDishComponents(
@@ -632,13 +634,47 @@ export function DietRecordsPage() {
         unit: component.unit,
       })) ?? [{ rawName: '', amount: '', unit: 'g' }],
     );
+  };
+
+  const openDishEditor = (dish?: CompositeDish) => {
+    const requestId = ++dishRequestId.current;
+    setDishError(undefined);
+    setEditingDishId(dish?.composite_dish_id);
+    setDishDetailReady(!dish || !isRealMode);
+    setDishLoading(Boolean(dish && isRealMode));
+    populateDishEditor(dish);
     setDishCandidateMap({});
     setDishDialogOpen(true);
+    if (!dish || !isRealMode) return;
+
+    void loadCompositeDish(dish.composite_dish_id)
+      .then((detail) => {
+        if (dishRequestId.current !== requestId) return;
+        if (detail.deleted) {
+          setDishDetailReady(false);
+          setDishError('这道复合菜已被删除，请重新加载列表。');
+          return;
+        }
+        setEditingDishId(detail.composite_dish_id);
+        populateDishEditor(detail);
+        setDishDetailReady(true);
+      })
+      .catch((cause) => {
+        if (dishRequestId.current !== requestId) return;
+        setDishDetailReady(false);
+        setDishError(compositeDishErrorMessage(cause, '复合菜详情加载失败，请重试。'));
+      })
+      .finally(() => {
+        if (dishRequestId.current === requestId) setDishLoading(false);
+      });
   };
 
   const closeDishEditor = () => {
+    dishRequestId.current += 1;
     setDishDialogOpen(false);
     setEditingDishId(undefined);
+    setDishDetailReady(true);
+    setDishLoading(false);
     setDishError(undefined);
   };
 
@@ -649,6 +685,10 @@ export function DietRecordsPage() {
   };
 
   const saveDish = () => {
+    if (dishLoading || (editingDishId && !dishDetailReady)) {
+      setDishError('请先读取最新的复合菜详情后再保存。');
+      return;
+    }
     const servings = Number(dishTotalServings);
     if (!dishName.trim() || !Number.isFinite(servings) || servings <= 0) {
       setDishError('请填写菜名和有效的总份数。');
@@ -1529,10 +1569,16 @@ export function DietRecordsPage() {
             <DialogTitle>{editingDishId ? '编辑复合菜' : '新建复合菜'}</DialogTitle>
             <DialogDescription>只保存食材组成和用量，不推断烹饪损耗或熟重。</DialogDescription>
           </DialogHeader>
+          {dishLoading ? (
+            <p className={styles.dishLoading} role="status">
+              正在读取服务端的最新复合菜详情…
+            </p>
+          ) : null}
           <Input
             aria-label="复合菜名称"
             placeholder="例如：鸡肉蔬菜饭"
             value={dishName}
+            disabled={dishLoading}
             onChange={(event) => setDishName(event.target.value)}
           />
           <Input
@@ -1542,6 +1588,7 @@ export function DietRecordsPage() {
             aria-label="复合菜总份数"
             placeholder="成品总份数"
             value={dishTotalServings}
+            disabled={dishLoading}
             onChange={(event) => setDishTotalServings(event.target.value)}
           />
           <div className={styles.dishComponentEditor} aria-label="复合菜食材组成">
@@ -1551,6 +1598,7 @@ export function DietRecordsPage() {
                   aria-label={`第${index + 1}项食材名称`}
                   placeholder="搜索食材，例如：鸡胸肉"
                   value={component.rawName}
+                  disabled={dishLoading}
                   onChange={(event) => {
                     const value = event.target.value;
                     updateDishComponent(index, { rawName: value, nutritionFoodId: undefined });
@@ -1568,12 +1616,14 @@ export function DietRecordsPage() {
                   aria-label={`第${index + 1}项食材用量`}
                   placeholder="用量"
                   value={component.amount}
+                  disabled={dishLoading}
                   onChange={(event) => updateDishComponent(index, { amount: event.target.value })}
                 />
                 <Input
                   aria-label={`第${index + 1}项食材单位`}
                   placeholder="单位"
                   value={component.unit}
+                  disabled={dishLoading}
                   onChange={(event) => updateDishComponent(index, { unit: event.target.value })}
                 />
                 {dishComponents.length > 1 ? (
@@ -1582,6 +1632,7 @@ export function DietRecordsPage() {
                     variant="ghost"
                     size="icon"
                     aria-label={`删除第${index + 1}项食材`}
+                    disabled={dishLoading}
                     onClick={() =>
                       setDishComponents((current) => current.filter((_, itemIndex) => itemIndex !== index))
                     }
@@ -1596,6 +1647,7 @@ export function DietRecordsPage() {
                         key={candidate.nutrition_food_id}
                         type="button"
                         variant={component.nutritionFoodId === candidate.nutrition_food_id ? 'secondary' : 'ghost'}
+                        disabled={dishLoading}
                         onClick={() => {
                           updateDishComponent(index, {
                             nutritionFoodId: candidate.nutrition_food_id,
@@ -1616,22 +1668,39 @@ export function DietRecordsPage() {
           <Button
             type="button"
             variant="ghost"
+            disabled={dishLoading}
             onClick={() => setDishComponents((current) => [...current, { rawName: '', amount: '', unit: 'g' }])}
           >
             <Plus aria-hidden="true" />
             添加食材
           </Button>
           {dishError ? (
-            <p className={styles.dishError} role="alert">
-              {dishError}
-            </p>
+            <div className={styles.dishError} role="alert">
+              <p>{dishError}</p>
+              {editingDishId && !dishDetailReady ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const current = compositeDishes.find((item) => item.composite_dish_id === editingDishId);
+                    if (current) openDishEditor(current);
+                  }}
+                >
+                  重新读取详情
+                </Button>
+              ) : null}
+            </div>
           ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={closeDishEditor}>
               取消
             </Button>
-            <Button type="button" onClick={saveDish} disabled={dishSaving}>
-              {dishSaving ? '保存中…' : '保存复合菜'}
+            <Button
+              type="button"
+              onClick={saveDish}
+              disabled={dishSaving || dishLoading || Boolean(editingDishId && !dishDetailReady)}
+            >
+              {dishLoading ? '读取中…' : dishSaving ? '保存中…' : '保存复合菜'}
             </Button>
           </DialogFooter>
         </DialogContent>

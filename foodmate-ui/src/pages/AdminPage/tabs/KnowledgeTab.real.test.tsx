@@ -151,6 +151,70 @@ describe('KnowledgeSection real mode', () => {
     );
   });
 
+  it('uploads one document through the single-document endpoint', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { resource: 'knowledge', items: [], total: 0, page: 1, size: 20 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge' && method === 'POST') {
+        return Promise.resolve(
+          new Response(JSON.stringify({ success: true, data: { document_id: 73 } }), { status: 200 }),
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess />);
+    await user.upload(
+      screen.getByLabelText('选择知识库文件'),
+      new File(['guide'], 'single-guide.pdf', { type: 'application/pdf' }),
+    );
+    await user.click(screen.getByRole('button', { name: '单文件上传' }));
+    await user.click(screen.getByRole('button', { name: '提交上传' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/knowledge',
+        expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
+      ),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/queries/knowledge?page=1&size=20',
+      expect.objectContaining({ method: 'GET' }),
+    );
+  });
+
+  it('disables real uploads for a read-only admin role', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: { resource: 'knowledge', items: [], total: 0, page: 1, size: 20 },
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess={false} />);
+
+    expect(await screen.findByLabelText('选择知识库文件')).toBeDisabled();
+  });
+
   it('reindexes an indexed document with an independent operation state', async () => {
     const user = userEvent.setup();
     let itemStatus = 'indexed';

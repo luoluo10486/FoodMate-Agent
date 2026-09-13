@@ -26,6 +26,7 @@ import {
   streamKnowledgeBatch,
   updateKnowledgeStatus,
   uploadKnowledgeBatch,
+  uploadKnowledgeDocument,
 } from '../../../services/adminService';
 
 const figmaKnowledgeRows: KnowledgeRow[] = [
@@ -119,6 +120,7 @@ export function KnowledgeSection({
   const [selectedDoc, setSelectedDoc] = useState<KnowledgeRow | undefined>(documents[0]);
   const [uploadVisible, setUploadVisible] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadMode, setUploadMode] = useState<'batch' | 'single'>('batch');
   const [batchId, setBatchId] = useState<string | undefined>(() =>
     isRealMode ? (window.localStorage.getItem('foodmate:admin:knowledge:last-batch') ?? undefined) : undefined,
   );
@@ -184,6 +186,9 @@ export function KnowledgeSection({
     window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone } }));
   };
   const selectFiles = (files: FileList | File[]) => {
+    if (isRealMode && !canManageAccess) {
+      return notify('当前角色没有知识库上传权限。', 'warning');
+    }
     const selected = Array.from(files);
     // Figma fixture 只替换验收展示和对应的选择提示，真实模式继续遵循后端上传契约。
     const valid = figmaFixture
@@ -199,12 +204,34 @@ export function KnowledgeSection({
       );
     }
     setUploadFiles(selected);
+    if (selected.length > 1) setUploadMode('batch');
     if (selected.length) setUploadVisible(true);
+  };
+  const closeUpload = () => {
+    setUploadVisible(false);
+    setUploadFiles([]);
+    setUploadMode('batch');
   };
   const submitUpload = async () => {
     try {
+      if (isRealMode && !canManageAccess) {
+        return notify('当前角色没有知识库上传权限。', 'warning');
+      }
+      if (!uploadFiles.length) {
+        return notify('请先选择要上传的文件。', 'warning');
+      }
+      if (uploadMode === 'single') {
+        if (uploadFiles.length !== 1) {
+          return notify('单文件上传只能选择一个文件。', 'warning');
+        }
+        const uploaded = await uploadKnowledgeDocument(uploadFiles[0]);
+        setLocalRefreshNonce((current) => current + 1);
+        closeUpload();
+        notify(`文档 ${uploaded.document_id} 已提交`, 'success');
+        return;
+      }
       if (isRealMode) {
-        if (!uploadFiles.length || !sourceName.trim() || !sourceVersion.trim() || !licenseNotice.trim()) {
+        if (!sourceName.trim() || !sourceVersion.trim() || !licenseNotice.trim()) {
           return notify('请完整填写来源、版本和授权说明。', 'warning');
         }
         const uploaded = await uploadKnowledgeBatch({
@@ -219,8 +246,7 @@ export function KnowledgeSection({
         window.localStorage.setItem('foodmate:admin:knowledge:last-batch', uploaded.batch_id);
         setLocalRefreshNonce((current) => current + 1);
       }
-      setUploadVisible(false);
-      setUploadFiles([]);
+      closeUpload();
       notify('文档上传已提交', 'success');
     } catch (cause) {
       notify(cause instanceof Error ? cause.message : '文档上传失败，请重试。', 'warning');
@@ -293,6 +319,7 @@ export function KnowledgeSection({
             type="file"
             multiple
             accept={figmaFixture ? '.pdf,.csv,.xlsx,.txt' : '.pdf,.docx,.md,.txt'}
+            disabled={isRealMode && !canManageAccess}
             onChange={(event: ChangeEvent<HTMLInputElement>) => event.target.files && selectFiles(event.target.files)}
           />
         </label>
@@ -473,29 +500,56 @@ export function KnowledgeSection({
             <DialogTitle>上传知识库文档</DialogTitle>
             <DialogDescription>上传后将在后台完成解析和向量索引。</DialogDescription>
           </DialogHeader>
+          {isRealMode ? (
+            <div className={styles.uploadModes} role="group" aria-label="上传方式">
+              <Button
+                type="button"
+                variant={uploadMode === 'batch' ? 'secondary' : 'outline'}
+                aria-pressed={uploadMode === 'batch'}
+                onClick={() => setUploadMode('batch')}
+              >
+                批量上传
+              </Button>
+              <Button
+                type="button"
+                variant={uploadMode === 'single' ? 'secondary' : 'outline'}
+                aria-pressed={uploadMode === 'single'}
+                onClick={() => setUploadMode('single')}
+                disabled={uploadFiles.length > 1}
+              >
+                单文件上传
+              </Button>
+            </div>
+          ) : null}
           <div className={styles.uploadMock}>
             <strong>{uploadFiles.length ? `已选择 ${uploadFiles.length} 个文件` : '选择文件'}</strong>
-            <Textarea
-              aria-label="来源名称"
-              value={sourceName}
-              onChange={(event) => setSourceName(event.target.value)}
-              placeholder="来源名称"
-            />
-            <Textarea
-              aria-label="来源版本"
-              value={sourceVersion}
-              onChange={(event) => setSourceVersion(event.target.value)}
-              placeholder="来源版本"
-            />
-            <Textarea
-              aria-label="授权说明"
-              value={licenseNotice}
-              onChange={(event) => setLicenseNotice(event.target.value)}
-              placeholder="授权说明"
-            />
+            {uploadMode === 'single' ? (
+              <p className={styles.uploadModeHint}>单文件接口只提交当前文件，不附带批量来源元数据。</p>
+            ) : (
+              <>
+                <Textarea
+                  aria-label="来源名称"
+                  value={sourceName}
+                  onChange={(event) => setSourceName(event.target.value)}
+                  placeholder="来源名称"
+                />
+                <Textarea
+                  aria-label="来源版本"
+                  value={sourceVersion}
+                  onChange={(event) => setSourceVersion(event.target.value)}
+                  placeholder="来源版本"
+                />
+                <Textarea
+                  aria-label="授权说明"
+                  value={licenseNotice}
+                  onChange={(event) => setLicenseNotice(event.target.value)}
+                  placeholder="授权说明"
+                />
+              </>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadVisible(false)}>
+            <Button variant="outline" onClick={closeUpload}>
               取消
             </Button>
             <Button onClick={() => void submitUpload()}>提交上传</Button>
