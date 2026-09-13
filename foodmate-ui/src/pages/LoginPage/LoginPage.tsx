@@ -121,9 +121,10 @@ export function LoginPage() {
   const pageRef = useRef<HTMLElement>(null);
   const [searchParams] = useSearchParams();
   const visualQaEnabled = isVisualQaEnabled(searchParams.toString());
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const defaults = getLoginDefaults();
   const requestedState = searchParams.get('state') as LoginState | null;
-  const state = requestedState && loginStates.has(requestedState) ? requestedState : 'default';
+  const state = !isRealMode && requestedState && loginStates.has(requestedState) ? requestedState : 'default';
   const [submitting, setSubmitting] = useState(false);
   const visualState: LoginState = state === 'default' && submitting ? 'submitting' : state;
   const [loginValues, setLoginValues] = useState<LoginValues>(() => {

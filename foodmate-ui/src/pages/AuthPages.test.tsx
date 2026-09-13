@@ -210,6 +210,20 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: '系统维护中' })).toHaveProperty('disabled', true);
   });
 
+  it('does not render Figma login states in real mode', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    try {
+      renderAuth('/login?state=account-disabled');
+
+      expect(screen.getByRole('button', { name: '登录' })).toBeEnabled();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('邮箱地址')).toHaveValue('');
+      expect(screen.getByLabelText('密码')).toHaveValue('');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('routes login recovery and registration actions to independent Figma pages', async () => {
     const user = userEvent.setup();
     renderAuth('/login');
