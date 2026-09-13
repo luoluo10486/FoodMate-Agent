@@ -1,4 +1,5 @@
 import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
+import { isTerminalAgentEvent } from '../lib/agentEvent';
 import { apiRequest } from './apiClient';
 import { openSseStream } from './sseStream';
 
@@ -6,6 +7,8 @@ export type AgentRunEvent = {
   event_id?: string;
   sse_event_id?: string;
   event_type?: string;
+  state?: string;
+  payload?: unknown;
   code?: string;
   message?: string;
   status?: string;
@@ -193,17 +196,6 @@ const agentEventTypes = [
   'run.superseded',
 ] as const;
 
-const terminalEventTypes = new Set(['run.completed', 'run.failed', 'run.cancelled', 'run.superseded']);
-const terminalStatuses = new Set([
-  'COMPLETED',
-  'SUCCEEDED',
-  'SUCCESS',
-  'FAILED',
-  'CANCELED',
-  'CANCELLED',
-  'SUPERSEDED',
-]);
-
 export function openAgentRunStream(
   runId: string,
   onEvent: (eventType: string, payload: AgentRunEvent, eventId: string) => void,
@@ -230,9 +222,7 @@ export function openAgentRunStream(
       };
     },
     onEvent,
-    isTerminal: (eventType, payload) =>
-      terminalEventTypes.has(eventType.trim().toLowerCase()) ||
-      terminalStatuses.has(payload.status?.trim().toUpperCase() ?? ''),
+    isTerminal: (eventType, payload) => isTerminalAgentEvent(eventType, payload as unknown as Record<string, unknown>),
   });
 }
 

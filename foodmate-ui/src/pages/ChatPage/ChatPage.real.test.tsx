@@ -260,6 +260,45 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(screen.queryByRole('button', { name: '重试' })).not.toBeInTheDocument();
   });
 
+  it('兼容 run.event 内层终态并将错误映射到真实 Chat 页面', async () => {
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
+        onEvent(
+          'run.event',
+          {
+            event_type: 'run.event',
+            state: 'RUNNING',
+            payload: { status: 'FAILED', error_message: '兼容流工具查询超时', retryable: true },
+          },
+          'generic-failed-event',
+        );
+        return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        role: 'user',
+        content: '查询今天晚餐',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+        agent_run_id: 'run-1',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('兼容流工具查询超时')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+  });
+
   it('安全降级结果保留追问入口但隐藏完整引用', async () => {
     openAgentRunStream.mockImplementation((_runId: string, onEvent: (type: string, payload: unknown) => void) => {
       onEvent('run.completed', {

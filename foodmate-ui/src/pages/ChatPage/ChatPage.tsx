@@ -49,6 +49,7 @@ import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
 import { ErrorState } from '../../components/common/ErrorState';
 import { AvatarImage } from '../../components/common/AvatarImage';
 import { FIXTURE_ACCOUNT_AVATAR, FIXTURE_CHAT_AVATAR_GENDERS, resolveAvatarUrl } from '../../lib/avatar';
+import { flattenAgentEventPayload, resolveAgentEventType } from '../../lib/agentEvent';
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
 import { useRealAgentReplay } from '../../services/realAgentService';
@@ -2031,23 +2032,26 @@ function queryNumber(value: string | null): number | undefined {
 }
 
 function realEventDisplayStatus(eventType: string, payload: AgentRunEvent): AgentDisplayStatus {
-  if (eventType === 'run.completed') return 'completed';
-  if (eventType === 'run.failed') return 'failed';
-  if (eventType === 'run.cancelled') return 'cancelled';
-  if (eventType === 'run.superseded') return 'superseded';
-  if (eventType === 'run.routed') return 'routing';
-  if (eventType === 'run.planned') return 'planning';
+  const normalizedEventType = resolveAgentEventType(eventType, payload as unknown as Record<string, unknown>);
+  if (normalizedEventType === 'run.completed') return 'completed';
+  if (normalizedEventType === 'run.failed') return 'failed';
+  if (normalizedEventType === 'run.cancelled') return 'cancelled';
+  if (normalizedEventType === 'run.superseded') return 'superseded';
+  if (normalizedEventType === 'run.routed') return 'routing';
+  if (normalizedEventType === 'run.planned') return 'planning';
   if (
-    eventType === 'run.retrieval_started' ||
-    eventType === 'run.retrieval_finished' ||
-    eventType === 'run.context_assembled'
+    normalizedEventType === 'run.retrieval_started' ||
+    normalizedEventType === 'run.retrieval_finished' ||
+    normalizedEventType === 'run.context_assembled'
   )
     return 'retrieving';
-  if (eventType === 'run.tool_started' || eventType === 'run.tool_finished') return 'executing_tools';
-  if (eventType === 'run.eval_decided') return 'validating';
-  if (eventType === 'run.model_usage' || eventType === 'run.answer_stream') return 'composing';
-  if (eventType === 'run.clarification_requested' || eventType === 'run.checkpoint_saved') return 'waiting_user';
-  return displayRunStatus(payload.status ?? eventType.replace('run.', ''));
+  if (normalizedEventType === 'run.tool_started' || normalizedEventType === 'run.tool_finished')
+    return 'executing_tools';
+  if (normalizedEventType === 'run.eval_decided') return 'validating';
+  if (normalizedEventType === 'run.model_usage' || normalizedEventType === 'run.answer_stream') return 'composing';
+  if (normalizedEventType === 'run.clarification_requested' || normalizedEventType === 'run.checkpoint_saved')
+    return 'waiting_user';
+  return displayRunStatus(payload.status ?? payload.state ?? normalizedEventType.replace('run.', ''));
 }
 
 function realApprovalData(
@@ -2250,27 +2254,36 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       runId,
       (eventType, payload, eventId) => {
         if (!active || !mountedRef.current) return;
+        const rawPayload = payload as unknown as Record<string, unknown>;
+        const normalizedPayload = flattenAgentEventPayload(rawPayload) as AgentRunEvent;
+        const normalizedEventType = resolveAgentEventType(eventType, rawPayload);
         const identity =
-          eventId || payload.sse_event_id || payload.event_id || `${eventType}:${payload.checkpoint_version ?? ''}`;
+          eventId ||
+          normalizedPayload.sse_event_id ||
+          normalizedPayload.event_id ||
+          `${eventType}:${normalizedPayload.checkpoint_version ?? ''}`;
         if (identity && seenEventIdsRef.current.has(identity)) return;
         if (identity) seenEventIdsRef.current.add(identity);
         setAcceptedEventCount((current) => current + 1);
-        setRawRunStatus(payload.status ?? eventType);
-        setRunStatus(realEventDisplayStatus(eventType, payload));
-        setBudgetFacts((current) => mergeBudgetFacts(current, budgetFactsFromEvent(payload)));
-        if (eventType === 'run.routed') setRunIntent(normalizeRunIntent(payload.intent));
-        if (eventType === 'run.tool_started') setToolCalls((current) => mergeToolCall(current, payload, 'started'));
-        if (eventType === 'run.tool_finished') setToolCalls((current) => mergeToolCall(current, payload, 'finished'));
-        if (eventType === 'run.answer_stream') setAssistantText((current) => current + (payload.text ?? ''));
-        if (eventType === 'run.completed') {
-          setSafetyDegraded(payload.result_type === 'safety_degraded');
+        setRawRunStatus(normalizedPayload.status ?? normalizedPayload.state ?? normalizedEventType);
+        setRunStatus(realEventDisplayStatus(normalizedEventType, normalizedPayload));
+        setBudgetFacts((current) => mergeBudgetFacts(current, budgetFactsFromEvent(normalizedPayload)));
+        if (normalizedEventType === 'run.routed') setRunIntent(normalizeRunIntent(normalizedPayload.intent));
+        if (normalizedEventType === 'run.tool_started')
+          setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'started'));
+        if (normalizedEventType === 'run.tool_finished')
+          setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'finished'));
+        if (normalizedEventType === 'run.answer_stream')
+          setAssistantText((current) => current + (normalizedPayload.text ?? ''));
+        if (normalizedEventType === 'run.completed') {
+          setSafetyDegraded(normalizedPayload.result_type === 'safety_degraded');
           setRetryable(false);
           setCheckpointAvailable(false);
           setCheckpointRecovery(undefined);
           setCitations(
-            payload.result_type === 'safety_degraded'
+            normalizedPayload.result_type === 'safety_degraded'
               ? []
-              : (payload.citations ?? []).map((citation) => ({
+              : (normalizedPayload.citations ?? []).map((citation) => ({
                   id: citation.citation_id,
                   title: citation.title,
                   snippet: citation.snippet,
@@ -2278,30 +2291,37 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
                 })),
           );
         }
-        if (eventType === 'run.failed') {
-          setRetryable(payload.retryable === true);
-          setError(runtimeErrorMessage(payload));
+        if (normalizedEventType === 'run.failed') {
+          setRetryable(normalizedPayload.retryable === true);
+          setError(runtimeErrorMessage(normalizedPayload));
         }
-        if (eventType === 'run.cancelled') setCancelReason(payload.reason);
-        if (eventType === 'run.checkpoint_saved') {
-          setCheckpointRecovery(payload.approval_request_id ? undefined : recoveryRequestFromEvent(payload));
-          setCheckpointAvailable(!payload.approval_request_id);
-          if (payload.approval_request_id) setApprovalId(String(payload.approval_request_id));
+        if (normalizedEventType === 'run.cancelled') setCancelReason(normalizedPayload.reason);
+        if (normalizedEventType === 'run.checkpoint_saved') {
+          setCheckpointRecovery(
+            normalizedPayload.approval_request_id ? undefined : recoveryRequestFromEvent(normalizedPayload),
+          );
+          setCheckpointAvailable(!normalizedPayload.approval_request_id);
+          if (normalizedPayload.approval_request_id) setApprovalId(String(normalizedPayload.approval_request_id));
         }
-        if (eventType === 'run.clarification_requested' || eventType === 'run.checkpoint_saved') {
-          if (payload.details) {
-            setApprovalDetails(payload.details);
-            setProposalParameters(approvalParameters(payload.details, payload.resource_type));
+        if (normalizedEventType === 'run.clarification_requested' || normalizedEventType === 'run.checkpoint_saved') {
+          if (normalizedPayload.details) {
+            setApprovalDetails(normalizedPayload.details);
+            setProposalParameters(approvalParameters(normalizedPayload.details, normalizedPayload.resource_type));
           }
-          if (payload.operation && payload.resource_type && payload.details && !payload.approval_request_id) {
+          if (
+            normalizedPayload.operation &&
+            normalizedPayload.resource_type &&
+            normalizedPayload.details &&
+            !normalizedPayload.approval_request_id
+          ) {
             setProposalDraft({
-              operation: payload.operation,
-              resourceType: payload.resource_type,
-              parameters: approvalParameters(payload.details, payload.resource_type),
+              operation: normalizedPayload.operation,
+              resourceType: normalizedPayload.resource_type,
+              parameters: approvalParameters(normalizedPayload.details, normalizedPayload.resource_type),
             });
           }
-          if (payload.approval_request_id) {
-            const nextApprovalId = String(payload.approval_request_id);
+          if (normalizedPayload.approval_request_id) {
+            const nextApprovalId = String(normalizedPayload.approval_request_id);
             void loadApprovalProposal(nextApprovalId)
               .then((proposal) => {
                 if (active && mountedRef.current) setApproval(proposal);
@@ -2877,51 +2897,54 @@ function RealChatPage() {
       activeRunId,
       (eventType, payload) => {
         if (!streamActive || !mountedRef.current) return;
-        if (eventType === 'run.created' || eventType === 'run.accepted') {
+        const rawPayload = payload as unknown as Record<string, unknown>;
+        const normalizedPayload = flattenAgentEventPayload(rawPayload) as AgentRunEvent;
+        const normalizedEventType = resolveAgentEventType(eventType, rawPayload);
+        if (normalizedEventType === 'run.created' || normalizedEventType === 'run.accepted') {
           setRunStatus('queued');
           return;
         }
-        if (eventType === 'run.routed') {
-          setRunIntent(normalizeRunIntent(payload.intent));
+        if (normalizedEventType === 'run.routed') {
+          setRunIntent(normalizeRunIntent(normalizedPayload.intent));
           setRunStatus('routed');
           return;
         }
-        if (eventType === 'run.planned') {
+        if (normalizedEventType === 'run.planned') {
           setRunStatus('planning');
           return;
         }
         if (
-          eventType === 'run.context_assembled' ||
-          eventType === 'run.retrieval_started' ||
-          eventType === 'run.retrieval_finished'
+          normalizedEventType === 'run.context_assembled' ||
+          normalizedEventType === 'run.retrieval_started' ||
+          normalizedEventType === 'run.retrieval_finished'
         ) {
           setRunStatus('retrieving');
           return;
         }
-        if (eventType === 'run.tool_started') {
+        if (normalizedEventType === 'run.tool_started') {
           setRunStatus('executing');
-          setToolCalls((current) => mergeToolCall(current, payload, 'started'));
+          setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'started'));
           return;
         }
-        if (eventType === 'run.tool_finished') {
-          setToolCalls((current) => mergeToolCall(current, payload, 'finished'));
+        if (normalizedEventType === 'run.tool_finished') {
+          setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'finished'));
           return;
         }
-        if (eventType === 'run.eval_decided') {
+        if (normalizedEventType === 'run.eval_decided') {
           setRunStatus('validating');
           return;
         }
-        if (eventType === 'run.model_usage') {
+        if (normalizedEventType === 'run.model_usage') {
           setRunStatus('composing');
           return;
         }
-        if (eventType === 'run.answer_stream') {
+        if (normalizedEventType === 'run.answer_stream') {
           setRunStatus('validating');
           setAssistantTime((current) => current || new Date().toISOString());
-          if (!hasPersistedAnswer) setAssistantText((current) => current + (payload.text ?? ''));
+          if (!hasPersistedAnswer) setAssistantText((current) => current + (normalizedPayload.text ?? ''));
           return;
         }
-        if (eventType === 'run.completed') {
+        if (normalizedEventType === 'run.completed') {
           setCancelling(false);
           setCancelAcknowledged(false);
           setRetryAvailable(false);
@@ -2931,8 +2954,8 @@ function RealChatPage() {
           setCheckpointRecovery(undefined);
           setApproval(undefined);
           setAssistantTime((current) => current || new Date().toISOString());
-          if (!hasPersistedAnswer) setAssistantText((current) => payload.answer ?? current);
-          const degraded = payload.result_type === 'safety_degraded';
+          if (!hasPersistedAnswer) setAssistantText((current) => normalizedPayload.answer ?? current);
+          const degraded = normalizedPayload.result_type === 'safety_degraded';
           setSafetyDegraded(degraded);
           if (sessionId) {
             void loadSessionMessages(sessionId).then((rows) => {
@@ -2945,7 +2968,7 @@ function RealChatPage() {
           setCitations(
             degraded
               ? []
-              : (payload.citations ?? []).map((citation) => ({
+              : (normalizedPayload.citations ?? []).map((citation) => ({
                   id: citation.citation_id,
                   title: citation.title,
                   snippet: citation.snippet,
@@ -2954,30 +2977,31 @@ function RealChatPage() {
           );
           setBudgetConfirmation(
             degraded &&
-              (payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true),
+              (normalizedPayload.requires_confirmation === true ||
+                normalizedPayload.budget_actions?.requires_confirmation === true),
           );
           return;
         }
-        if (eventType === 'run.checkpoint_saved') {
-          if (payload.approval_request_id) {
+        if (normalizedEventType === 'run.checkpoint_saved') {
+          if (normalizedPayload.approval_request_id) {
             setRunStatus('waiting_user');
             setCheckpointAvailable(false);
             setCheckpointRecovery(undefined);
             setApproval({
-              id: payload.approval_request_id,
-              operation: payload.operation,
-              resourceType: payload.resource_type,
-              toolName: payload.tool_name,
-              details: payload.details ?? {},
+              id: normalizedPayload.approval_request_id,
+              operation: normalizedPayload.operation,
+              resourceType: normalizedPayload.resource_type,
+              toolName: normalizedPayload.tool_name,
+              details: normalizedPayload.details ?? {},
             });
           } else {
             setRunStatus('waiting_user');
-            setCheckpointRecovery(recoveryRequestFromEvent(payload));
+            setCheckpointRecovery(recoveryRequestFromEvent(normalizedPayload));
             setCheckpointAvailable(true);
           }
           return;
         }
-        if (eventType === 'run.failed') {
+        if (normalizedEventType === 'run.failed') {
           setCancelling(false);
           setCancelAcknowledged(false);
           setRunStatus('failed');
@@ -2985,11 +3009,11 @@ function RealChatPage() {
           setCheckpointRecovery(undefined);
           setSafetyDegraded(false);
           setRetrying(false);
-          setRetryAvailable(payload.retryable === true);
-          setError(runtimeErrorMessage(payload));
+          setRetryAvailable(normalizedPayload.retryable === true);
+          setError(runtimeErrorMessage(normalizedPayload));
           return;
         }
-        if (eventType === 'run.cancelled') {
+        if (normalizedEventType === 'run.cancelled') {
           setRunStatus('cancelled');
           setCancelling(false);
           setCancelAcknowledged(false);
@@ -2999,7 +3023,7 @@ function RealChatPage() {
           setRetrying(false);
           return;
         }
-        if (eventType === 'run.superseded') {
+        if (normalizedEventType === 'run.superseded') {
           setCancelling(false);
           setCancelAcknowledged(false);
           setRunStatus('superseded');
@@ -3007,25 +3031,25 @@ function RealChatPage() {
           setCheckpointRecovery(undefined);
           return;
         }
-        if (eventType === 'run.clarification_requested') {
+        if (normalizedEventType === 'run.clarification_requested') {
           setRunStatus('waiting_user');
-          if (payload.approval_request_id) {
+          if (normalizedPayload.approval_request_id) {
             setCheckpointAvailable(false);
             setApproval({
-              id: payload.approval_request_id,
-              operation: payload.operation,
-              resourceType: payload.resource_type,
-              toolName: payload.tool_name,
-              details: payload.details ?? {},
+              id: normalizedPayload.approval_request_id,
+              operation: normalizedPayload.operation,
+              resourceType: normalizedPayload.resource_type,
+              toolName: normalizedPayload.tool_name,
+              details: normalizedPayload.details ?? {},
             });
           }
           return;
         }
-        if (eventType === 'run.cancel_acknowledged') {
+        if (normalizedEventType === 'run.cancel_acknowledged') {
           setCancelAcknowledged(true);
           return;
         }
-        setRunStatus(payload.status ?? eventType.replace('run.', ''));
+        setRunStatus(normalizedPayload.status ?? normalizedPayload.state ?? normalizedEventType.replace('run.', ''));
       },
       {
         maxAttempts: 5,

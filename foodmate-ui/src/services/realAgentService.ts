@@ -8,6 +8,7 @@ import type {
 } from '../types/agent';
 import type { Message } from '../types/session';
 import type { AgentCard } from '../mock/agentReplayData';
+import { flattenAgentEventPayload, resolveAgentEventType } from '../lib/agentEvent';
 import { loadSessionMessages } from './sessionService';
 import {
   cancelChatRun,
@@ -49,14 +50,17 @@ function stringValue(value: unknown) {
 }
 
 function eventPayload(event: ChatRunEvent): RecordValue {
-  return isRecord(event.payload) ? event.payload : {};
+  return flattenAgentEventPayload(event as unknown as RecordValue);
 }
 
 function eventTypeFor(event: ChatRunEvent) {
-  if (event.event_type) return event.event_type;
-  if (event.state === 'SUCCEEDED') return 'run.completed';
-  if (event.state === 'FAILED') return 'run.failed';
-  if (event.state === 'CANCELED' || event.state === 'CANCELLED') return 'run.cancelled';
+  const eventRecord = event as unknown as Record<string, unknown>;
+  const resolvedType = resolveAgentEventType(event.event_type, {
+    ...eventRecord,
+    payload: event.payload,
+    state: event.state,
+  });
+  if (resolvedType !== 'run.event') return resolvedType;
   const payload = eventPayload(event);
   if (payload.text !== undefined) return 'run.answer_stream';
   return 'run.event';

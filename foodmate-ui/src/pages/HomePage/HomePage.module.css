@@ -602,6 +602,46 @@
   background: #f1f8ef;
 }
 
+.pendingEmpty {
+  display: grid;
+  min-height: 64px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--fm-bg-soft);
+  color: var(--fm-muted);
+  font-size: 12px;
+}
+
+.realDataNotice {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 8px 12px 8px 16px;
+  border: 1px solid #f0c7b7;
+  border-radius: var(--radius-container);
+  background: #fff8f4;
+  color: #9a4d2e;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.realDataNotice > span {
+  min-width: 0;
+}
+
+.realDataNotice button {
+  border-color: #e8b39e;
+  color: #9a4d2e;
+}
+
+.realDataNotice button:hover {
+  background: #fff0e8;
+  color: #7d3d25;
+}
+
 .statusPanel {
   min-height: 150px;
   margin-top: 54px;

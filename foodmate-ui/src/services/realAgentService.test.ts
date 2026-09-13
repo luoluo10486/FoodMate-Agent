@@ -112,6 +112,27 @@ describe('useRealAgentReplay ChatRun 兼容入口', () => {
     expect(subscriptions[0].close).not.toHaveBeenCalled();
   });
 
+  it('将兼容 run.event 的外层终态映射为失败并保留可重试错误', async () => {
+    const { result } = renderHook(() => useRealAgentReplay(true, 'session-1'));
+
+    act(() => result.current.setInput('查询晚餐'));
+    await act(async () => {
+      await result.current.send();
+    });
+    await waitFor(() => expect(streamChatRun).toHaveBeenCalledTimes(1));
+
+    act(() =>
+      subscriptions[0].onEvent(
+        event('run.event', { error_message: '工具查询超时', retryable: true }, 'failed-event', 'FAILED'),
+      ),
+    );
+
+    expect(result.current.run.status).toBe('failed');
+    expect(result.current.running).toBe(false);
+    expect(result.current.error).toBe('工具查询超时');
+    expect(result.current.card).toEqual({ type: 'error', message: '工具查询超时' });
+  });
+
   it('取消请求接受后仍等待取消事件，并保留已经接收的文本', async () => {
     cancelChatRun.mockResolvedValue({ run_id: '42', status: 'accepted', terminal: false });
     const { result } = renderHook(() => useRealAgentReplay(true, 'session-1'));

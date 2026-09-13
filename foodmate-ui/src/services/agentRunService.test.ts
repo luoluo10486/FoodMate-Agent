@@ -276,6 +276,20 @@ describe('openAgentRunStream', () => {
     expect(stream.getConnection()).toMatchObject({ state: 'closed', lastEventId: 'failed-event' });
   });
 
+  it('closes the stream when a generic run.event reports a terminal state', () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const received: string[] = [];
+    const stream = openAgentRunStream('42', (eventType) => received.push(eventType));
+    const source = FakeEventSource.instances[0];
+
+    source.emit('run.event', { state: 'FAILED', event_id: 'failed-state', payload: { error_code: 'TIMEOUT' } });
+    source.fail();
+
+    expect(received).toEqual(['run.event']);
+    expect(source.closed).toBe(true);
+    expect(stream.getConnection()).toMatchObject({ state: 'closed', lastEventId: 'failed-state' });
+  });
+
   it('enters exhausted after the bounded number of attempts', () => {
     vi.useFakeTimers();
     vi.stubGlobal('EventSource', FakeEventSource);
