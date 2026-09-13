@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,6 +17,8 @@ import com.foodmate.application.account.service.AdminManagementService.AdminWrit
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.service.ModelGovernanceAdminService;
 import com.foodmate.application.runtime.service.impl.ModelGovernanceAdminServiceImpl;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,6 +127,109 @@ class ModelGovernanceControllerTest {
                         Mockito.eq("openai"), Mockito.eq("disabled"), command.capture());
         org.junit.jupiter.api.Assertions.assertEquals(
                 "provider-status-1", command.getValue().idempotencyKey());
+        org.junit.jupiter.api.Assertions.assertEquals(1L, command.getValue().revision());
+        org.junit.jupiter.api.Assertions.assertTrue(command.getValue().confirmed());
+    }
+
+    @Test
+    void superadminCanCreateModelPrice() throws Exception {
+        when(accounts.requireSessionUser("superadmin-session")).thenReturn(user("superadmin"));
+        when(governance.createPrice(
+                        any(ModelGovernanceAdminService.PriceCommand.class),
+                        any(AdminWriteCommand.class)))
+                .thenReturn(
+                        new ModelGovernanceAdminService.MutationResult(true, 21L, "price-v2", 1L));
+
+        mvc.perform(
+                        post("/api/admin/model-governance/prices")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "superadmin-session"))
+                                .header("Idempotency-Key", "price-create-1")
+                                .contentType("application/json")
+                                .content(
+                                        "{"
+                                                + "\"providerCode\":\"cloud_primary\","
+                                                + "\"modelName\":\"Qwen3\","
+                                                + "\"priceVersion\":\"price-v2\","
+                                                + "\"inputPricePerMillion\":1.2,"
+                                                + "\"outputPricePerMillion\":2.4,"
+                                                + "\"currency\":\"CNY\","
+                                                + "\"effectiveAt\":\"2026-09-14T02:30:00Z\","
+                                                + "\"revision\":1,"
+                                                + "\"confirmed\":true,"
+                                                + "\"confirmationDigest\":\"digest\""
+                                                + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.resource_id", is(21)))
+                .andExpect(jsonPath("$.data.version", is("price-v2")));
+
+        ArgumentCaptor<ModelGovernanceAdminService.PriceCommand> price =
+                ArgumentCaptor.forClass(ModelGovernanceAdminService.PriceCommand.class);
+        ArgumentCaptor<AdminWriteCommand> command =
+                ArgumentCaptor.forClass(AdminWriteCommand.class);
+        verify(governance).createPrice(price.capture(), command.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "cloud_primary", price.getValue().providerCode());
+        org.junit.jupiter.api.Assertions.assertEquals("Qwen3", price.getValue().modelName());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                new BigDecimal("1.2"), price.getValue().inputPricePerMillion());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                Instant.parse("2026-09-14T02:30:00Z"), price.getValue().effectiveAt());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "price-create-1", command.getValue().idempotencyKey());
+        org.junit.jupiter.api.Assertions.assertEquals(1L, command.getValue().revision());
+        org.junit.jupiter.api.Assertions.assertTrue(command.getValue().confirmed());
+    }
+
+    @Test
+    void superadminCanCreateModelBudget() throws Exception {
+        when(accounts.requireSessionUser("superadmin-session")).thenReturn(user("superadmin"));
+        when(governance.createBudget(
+                        any(ModelGovernanceAdminService.BudgetCommand.class),
+                        any(AdminWriteCommand.class)))
+                .thenReturn(
+                        new ModelGovernanceAdminService.MutationResult(true, 22L, "budget-v2", 1L));
+
+        mvc.perform(
+                        post("/api/admin/model-governance/budgets")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "superadmin-session"))
+                                .header("Idempotency-Key", "budget-create-1")
+                                .contentType("application/json")
+                                .content(
+                                        "{"
+                                                + "\"policyKey\":\"agent-default\","
+                                                + "\"scene\":\"chat\","
+                                                + "\"scopeType\":\"global\","
+                                                + "\"maxTotalTokens\":50000,"
+                                                + "\"maxCostCny\":10.00,"
+                                                + "\"maxModelCalls\":10,"
+                                                + "\"maxStepRetries\":2,"
+                                                + "\"windowType\":\"run\","
+                                                + "\"policyVersion\":\"budget-v2\","
+                                                + "\"revision\":1,"
+                                                + "\"confirmed\":true,"
+                                                + "\"confirmationDigest\":\"digest\""
+                                                + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.resource_id", is(22)))
+                .andExpect(jsonPath("$.data.version", is("budget-v2")));
+
+        ArgumentCaptor<ModelGovernanceAdminService.BudgetCommand> budget =
+                ArgumentCaptor.forClass(ModelGovernanceAdminService.BudgetCommand.class);
+        ArgumentCaptor<AdminWriteCommand> command =
+                ArgumentCaptor.forClass(AdminWriteCommand.class);
+        verify(governance).createBudget(budget.capture(), command.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "agent-default", budget.getValue().policyKey());
+        org.junit.jupiter.api.Assertions.assertEquals("global", budget.getValue().scopeType());
+        org.junit.jupiter.api.Assertions.assertEquals(50000, budget.getValue().maxTotalTokens());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                new BigDecimal("10.00"), budget.getValue().maxCostCny());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "budget-create-1", command.getValue().idempotencyKey());
         org.junit.jupiter.api.Assertions.assertEquals(1L, command.getValue().revision());
         org.junit.jupiter.api.Assertions.assertTrue(command.getValue().confirmed());
     }
