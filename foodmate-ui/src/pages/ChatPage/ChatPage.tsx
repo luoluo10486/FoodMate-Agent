@@ -3,19 +3,31 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CalendarDays,
+  Check,
   ChartColumn,
   CircleSlash,
   LoaderCircle,
   MessageCircle,
+  Pencil,
   Search,
+  Trash2,
   XCircle,
   X,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import type {
   AgentRunView,
   AgentDisplayStatus,
@@ -39,7 +51,14 @@ import { FIXTURE_ACCOUNT_AVATAR, FIXTURE_CHAT_AVATAR_GENDERS, resolveAvatarUrl }
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
 import { ApiError } from '../../services/apiClient';
-import { createSession, loadSessionMessages, sendUserMessage, type RealMessage } from '../../services/sessionService';
+import {
+  createSession,
+  deleteMessage,
+  loadSessionMessages,
+  sendUserMessage,
+  updateMessage,
+  type RealMessage,
+} from '../../services/sessionService';
 import {
   cancelAgentRun,
   confirmAgentWrite,
@@ -87,6 +106,17 @@ function runtimeErrorMessage(payload: { code?: string; error_message?: string; m
     payload.message ??
     (payload.code ? `运行失败（错误码：${payload.code}）。` : 'Agent 运行失败。')
   );
+}
+
+function messageMutationError(reason: unknown, fallback: string) {
+  if (reason instanceof ApiError) {
+    if (reason.status === 409 || ['CONFLICT', 'MESSAGE_CONFLICT', 'VERSION_CONFLICT'].includes(reason.code)) {
+      return '这条消息已被其他操作更新，请重新加载会话后再试。';
+    }
+    if (reason.code === 'FORBIDDEN') return '当前账号无权操作这条消息。';
+    return reason.message;
+  }
+  return reason instanceof Error ? reason.message : fallback;
 }
 
 function formatMessageTime(value: string) {
@@ -157,11 +187,25 @@ function MessageBubble({
   children,
   userAvatarSrc,
   userAvatarGender,
+  userActions,
+  editing = false,
+  editValue = '',
+  editPending = false,
+  onEditChange,
+  onEditSave,
+  onEditCancel,
 }: {
   message: ChatMessage;
   children?: ReactNode;
   userAvatarSrc?: string;
   userAvatarGender?: string;
+  userActions?: ReactNode;
+  editing?: boolean;
+  editValue?: string;
+  editPending?: boolean;
+  onEditChange?: (value: string) => void;
+  onEditSave?: () => void;
+  onEditCancel?: () => void;
 }) {
   const isUser = message.role === 'user';
   const authUser = getAuthUser();
@@ -175,7 +219,49 @@ function MessageBubble({
       {isUser ? (
         <>
           <div className={styles.userLine}>
-            <div className={styles.messageBubble}>{message.content}</div>
+            <div className={styles.messageBubble}>
+              {editing ? (
+                <div className={styles.messageEditor}>
+                  <Textarea
+                    aria-label="编辑消息内容"
+                    autoFocus
+                    value={editValue}
+                    disabled={editPending}
+                    onChange={(event) => onEditChange?.(event.target.value)}
+                  />
+                  <div className={styles.messageEditorActions}>
+                    <Button
+                      aria-label="取消编辑消息"
+                      title="取消编辑"
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={editPending}
+                      onClick={onEditCancel}
+                    >
+                      <X aria-hidden="true" />
+                    </Button>
+                    <Button
+                      aria-label="保存消息"
+                      title="保存消息"
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      disabled={editPending || !editValue.trim()}
+                      onClick={onEditSave}
+                    >
+                      {editPending ? (
+                        <LoaderCircle className="animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Check aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                message.content
+              )}
+            </div>
             <span className={styles.srOnly}>你</span>
             <span className={styles.userAvatar} aria-hidden="true">
               <AvatarImage
@@ -189,6 +275,7 @@ function MessageBubble({
             </span>
           </div>
           <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
+          {userActions && !editing ? <div className={styles.userMessageActions}>{userActions}</div> : null}
         </>
       ) : (
         <>
@@ -1856,10 +1943,20 @@ function RealChatPage() {
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelAcknowledged, setCancelAcknowledged] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string>();
+  const [editingContent, setEditingContent] = useState('');
+  const [messageToDelete, setMessageToDelete] = useState<RealMessage>();
+  const [messageMutation, setMessageMutation] = useState<{
+    messageId: string;
+    action: 'edit' | 'delete';
+  }>();
+  const [messageError, setMessageError] = useState<string>();
+  const [messageNotice, setMessageNotice] = useState<string>();
   const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
   const [streamGeneration, setStreamGeneration] = useState(0);
   const messagesRef = useRef<HTMLDivElement>(null);
   const messagesStateRef = useRef<RealMessage[]>([]);
+  const messageLoadGenerationRef = useRef(0);
   const streamRef = useRef<AgentStreamHandle>();
   const streamResumeRef = useRef<{ lastEventId?: string; preserveContent: boolean }>({ preserveContent: false });
   const mountedRef = useRef(true);
@@ -1900,6 +1997,12 @@ function RealChatPage() {
     setApprovalSubmitting(false);
     setCancelling(false);
     setCancelAcknowledged(false);
+    setEditingMessageId(undefined);
+    setEditingContent('');
+    setMessageToDelete(undefined);
+    setMessageMutation(undefined);
+    setMessageError(undefined);
+    setMessageNotice(undefined);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
     if (!sessionId) {
       setLoading(false);
@@ -1907,17 +2010,19 @@ function RealChatPage() {
     }
     setLoading(true);
     setError(undefined);
+    const loadGeneration = ++messageLoadGenerationRef.current;
     loadSessionMessages(sessionId)
       .then((rows) => {
-        if (cancelled) return;
-        const ordered = rows.sort((a, b) => a.sequence_no - b.sequence_no);
+        if (cancelled || loadGeneration !== messageLoadGenerationRef.current) return;
+        const ordered = [...rows].sort((a, b) => a.sequence_no - b.sequence_no);
         setMessages(ordered);
         // 重新进入历史会话时恢复最近一次 Run，才能回放终态事件和引用。
         const latestRunId = [...ordered].reverse().find((message) => message.agent_run_id)?.agent_run_id;
         if (latestRunId) setActiveRunId(String(latestRunId));
       })
       .catch((reason) => {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : '消息加载失败');
+        if (!cancelled && loadGeneration === messageLoadGenerationRef.current)
+          setError(reason instanceof Error ? reason.message : '消息加载失败');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -2175,6 +2280,71 @@ function RealChatPage() {
       });
   };
 
+  const refreshMessages = async (targetSessionId: string) => {
+    const loadGeneration = ++messageLoadGenerationRef.current;
+    const rows = await loadSessionMessages(targetSessionId);
+    if (!mountedRef.current || loadGeneration !== messageLoadGenerationRef.current) return false;
+    setMessages([...rows].sort((a, b) => a.sequence_no - b.sequence_no));
+    return true;
+  };
+
+  const startMessageEdit = (message: RealMessage) => {
+    setMessageError(undefined);
+    setMessageNotice(undefined);
+    setEditingMessageId(message.message_id);
+    setEditingContent(message.content);
+  };
+
+  const cancelMessageEdit = () => {
+    if (messageMutation?.action === 'edit') return;
+    setEditingMessageId(undefined);
+    setEditingContent('');
+    setMessageError(undefined);
+  };
+
+  const saveMessageEdit = async (message: RealMessage) => {
+    if (!sessionId || !editingContent.trim() || messageMutation) return;
+    const originalContent = message.content;
+    setMessageError(undefined);
+    setMessageNotice(undefined);
+    setMessageMutation({ messageId: message.message_id, action: 'edit' });
+    try {
+      await updateMessage(sessionId, message.message_id, editingContent.trim());
+      await refreshMessages(sessionId);
+      if (!mountedRef.current) return;
+      setEditingMessageId(undefined);
+      setEditingContent('');
+      setMessageNotice('消息已更新。');
+    } catch (reason) {
+      if (!mountedRef.current) return;
+      // 服务端失败时恢复原文，避免本地草稿被误认为已经写入。
+      setEditingContent(originalContent);
+      setMessageError(messageMutationError(reason, '消息更新失败，请稍后重试。'));
+    } finally {
+      if (mountedRef.current) setMessageMutation(undefined);
+    }
+  };
+
+  const confirmMessageDelete = async () => {
+    if (!sessionId || !messageToDelete || messageMutation) return;
+    setMessageError(undefined);
+    setMessageNotice(undefined);
+    setMessageMutation({ messageId: messageToDelete.message_id, action: 'delete' });
+    try {
+      await deleteMessage(sessionId, messageToDelete.message_id);
+      await refreshMessages(sessionId);
+      if (!mountedRef.current) return;
+      setMessageToDelete(undefined);
+      setMessageNotice('消息已删除。');
+    } catch (reason) {
+      if (!mountedRef.current) return;
+      // 删除请求未成功时不改变本地列表，原消息继续保留。
+      setMessageError(messageMutationError(reason, '消息删除失败，请稍后重试。'));
+    } finally {
+      if (mountedRef.current) setMessageMutation(undefined);
+    }
+  };
+
   const realRun: AgentRunView = {
     id: activeRunId ?? '等待运行',
     status: displayRunStatus(runStatus === 'idle' ? 'completed' : runStatus),
@@ -2252,6 +2422,17 @@ function RealChatPage() {
           ) : null}
         </div>
       ) : null}
+      {messageError && !messageToDelete ? (
+        <Alert className={styles.messageMutationNotice} role="alert" variant="destructive">
+          <AlertTitle>消息操作失败</AlertTitle>
+          <AlertDescription>{messageError}</AlertDescription>
+        </Alert>
+      ) : null}
+      {messageNotice ? (
+        <p className={styles.messageMutationSuccess} role="status">
+          {messageNotice}
+        </p>
+      ) : null}
       {safetyDegraded ? (
         <Alert className={styles.safetyDegradedNotice} role="status" variant="warning">
           <AlertTitle>安全降级提示</AlertTitle>
@@ -2290,7 +2471,58 @@ function RealChatPage() {
         </div>
       ) : null}
       {mappedMessages.map((message) => (
-        <MessageBubble key={message.id} message={message}>
+        <MessageBubble
+          key={message.id}
+          message={message}
+          editing={editingMessageId === message.id}
+          editValue={editingMessageId === message.id ? editingContent : undefined}
+          editPending={messageMutation?.messageId === message.id}
+          onEditChange={setEditingContent}
+          onEditSave={() => {
+            const source = messages.find((item) => item.message_id === message.id);
+            if (source) void saveMessageEdit(source);
+          }}
+          onEditCancel={cancelMessageEdit}
+          userActions={
+            message.role === 'user' ? (
+              <>
+                <Button
+                  aria-label="编辑消息"
+                  title="编辑消息"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={styles.messageActionButton}
+                  disabled={Boolean(messageMutation)}
+                  onClick={() => {
+                    const source = messages.find((item) => item.message_id === message.id);
+                    if (source) startMessageEdit(source);
+                  }}
+                >
+                  <Pencil aria-hidden="true" />
+                </Button>
+                <Button
+                  aria-label="删除消息"
+                  title="删除消息"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={styles.messageActionButton}
+                  disabled={Boolean(messageMutation)}
+                  onClick={() => {
+                    const source = messages.find((item) => item.message_id === message.id);
+                    if (!source) return;
+                    setMessageError(undefined);
+                    setMessageNotice(undefined);
+                    setMessageToDelete(source);
+                  }}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              </>
+            ) : null
+          }
+        >
           {message.role === 'assistant' &&
           message.agentRunId === activeRunId &&
           runStatus === 'completed' &&
@@ -2398,6 +2630,52 @@ function RealChatPage() {
           />
         </div>
       ) : null}
+      <Dialog
+        open={Boolean(messageToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !messageMutation) {
+            setMessageToDelete(undefined);
+            setMessageError(undefined);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除这条消息？</DialogTitle>
+            <DialogDescription>删除后消息会从当前会话中移除，后端不会复用原消息顺序号。</DialogDescription>
+          </DialogHeader>
+          <p className={styles.messageDeleteQuote}>{messageToDelete?.content}</p>
+          {messageError ? (
+            <Alert className={styles.messageMutationNotice} role="alert" variant="destructive">
+              <AlertTitle>消息操作失败</AlertTitle>
+              <AlertDescription>{messageError}</AlertDescription>
+            </Alert>
+          ) : null}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              type="button"
+              disabled={messageMutation?.action === 'delete'}
+              onClick={() => setMessageToDelete(undefined)}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              type="button"
+              disabled={messageMutation?.action === 'delete'}
+              onClick={() => void confirmMessageDelete()}
+            >
+              {messageMutation?.action === 'delete' ? (
+                <LoaderCircle className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 aria-hidden="true" />
+              )}
+              删除消息
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ChatSurface>
   );
 }

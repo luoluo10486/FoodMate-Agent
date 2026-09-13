@@ -1,18 +1,32 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../services/apiClient';
 import { ChatPage } from './ChatPage';
 
-const { cancelAgentRun, loadSessionMessages, openAgentRunStream, retryAgentRun } = vi.hoisted(() => ({
+const {
+  cancelAgentRun,
+  deleteMessage,
+  loadSessionMessages,
+  loadSessionSummariesPage,
+  openAgentRunStream,
+  retryAgentRun,
+  updateMessage,
+} = vi.hoisted(() => ({
   cancelAgentRun: vi.fn(),
+  deleteMessage: vi.fn(),
   loadSessionMessages: vi.fn(),
+  loadSessionSummariesPage: vi.fn(),
+  loadSessionsPage: vi.fn(),
   openAgentRunStream: vi.fn(),
   retryAgentRun: vi.fn(),
+  updateMessage: vi.fn(),
 }));
 
 vi.mock('../../services/sessionService', async () => {
   const actual = await vi.importActual<typeof import('../../services/sessionService')>('../../services/sessionService');
-  return { ...actual, loadSessionMessages };
+  return { ...actual, deleteMessage, loadSessionMessages, loadSessionSummariesPage, updateMessage };
 });
 
 vi.mock('../../services/agentRunService', async () => {
@@ -50,9 +64,13 @@ describe('ChatPage 真实历史会话回放', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
     cancelAgentRun.mockReset();
+    deleteMessage.mockReset();
     loadSessionMessages.mockReset();
+    loadSessionSummariesPage.mockReset();
     openAgentRunStream.mockReset();
     retryAgentRun.mockReset();
+    updateMessage.mockReset();
+    loadSessionSummariesPage.mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
     openAgentRunStream.mockImplementation(
       (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
         onEvent('run.completed', {
@@ -113,6 +131,7 @@ describe('ChatPage 真实历史会话回放', () => {
   });
 
   it('只有 retryable 失败才显示重试并调用专用接口', async () => {
+    const user = userEvent.setup();
     const close = vi.fn();
     let streamCount = 0;
     openAgentRunStream.mockImplementation(
@@ -170,7 +189,7 @@ describe('ChatPage 真实历史会话回放', () => {
     );
 
     const retryButton = await screen.findByRole('button', { name: '重试' });
-    retryButton.click();
+    await user.click(retryButton);
     await waitFor(() => expect(retryAgentRun).toHaveBeenCalledWith('run-1'));
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(2));
     expect(openAgentRunStream.mock.calls[1][2]).toMatchObject({ lastEventId: 'failed-event' });
@@ -429,6 +448,7 @@ describe('ChatPage 真实历史会话回放', () => {
   });
 
   it('用户停止真实运行时保留文本，使用原游标等待取消终态', async () => {
+    const user = userEvent.setup();
     const firstClose = vi.fn();
     const secondClose = vi.fn();
     const eventHandlers: Array<(type: string, payload: unknown, eventId?: string) => void> = [];
@@ -492,7 +512,7 @@ describe('ChatPage 真实历史会话回放', () => {
 
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByRole('button', { name: '停止生成' })).toBeInTheDocument());
-    screen.getByRole('button', { name: '停止生成' }).click();
+    await user.click(screen.getByRole('button', { name: '停止生成' }));
 
     expect(firstClose).toHaveBeenCalled();
     await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('run-1'));
@@ -501,10 +521,14 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(screen.getByText('正在取消当前运行...')).toBeInTheDocument();
     expect(screen.getByText('已接收部分回答')).toBeInTheDocument();
 
-    eventHandlers[1]('run.cancel_acknowledged', { event_type: 'run.cancel_acknowledged' }, 'event-2');
+    await act(async () => {
+      eventHandlers[1]('run.cancel_acknowledged', { event_type: 'run.cancel_acknowledged' }, 'event-2');
+    });
     expect(await screen.findByText('取消请求已确认，等待运行终态...')).toBeInTheDocument();
 
-    eventHandlers[1]('run.cancelled', { event_type: 'run.cancelled', reason: 'user_requested' }, 'event-3');
+    await act(async () => {
+      eventHandlers[1]('run.cancelled', { event_type: 'run.cancelled', reason: 'user_requested' }, 'event-3');
+    });
     await waitFor(() => expect(screen.queryByText('取消请求已确认，等待运行终态...')).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: '发送消息' })).toBeInTheDocument();
   });
@@ -546,8 +570,144 @@ describe('ChatPage 真实历史会话回放', () => {
     );
 
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalled());
-    expect(await screen.findByRole('alert')).toHaveTextContent('连接重试已耗尽');
+    const exhaustedNotice = screen.getByText('连接重试已耗尽').closest('[role="alert"]');
+    expect(exhaustedNotice).not.toBeNull();
+    expect(exhaustedNotice as HTMLElement).toHaveTextContent('连接重试已耗尽');
     expect(screen.getByRole('button', { name: '发送消息' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '停止生成' })).not.toBeInTheDocument();
+  });
+
+  it('真实模式可以编辑用户消息，并在服务端成功后刷新列表', async () => {
+    const user = userEvent.setup();
+    const original = {
+      message_id: 'message-1',
+      session_id: 'session-1',
+      role: 'user' as const,
+      content: '原始消息',
+      sequence_no: 1,
+      created_at: '2026-09-06T10:00:00Z',
+    };
+    const updated = { ...original, content: '更新后的消息' };
+    loadSessionMessages.mockResolvedValueOnce([original]).mockResolvedValueOnce([updated]);
+    updateMessage.mockResolvedValue(updated);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('原始消息');
+    await user.click(screen.getByRole('button', { name: '编辑消息' }));
+    const editor = await screen.findByRole('textbox', { name: '编辑消息内容' });
+    await user.clear(editor);
+    await user.type(editor, '更新后的消息');
+    await user.click(screen.getByRole('button', { name: '保存消息' }));
+
+    await waitFor(() => expect(updateMessage).toHaveBeenCalledWith('session-1', 'message-1', '更新后的消息'));
+    await waitFor(() => expect(loadSessionMessages).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('更新后的消息')).toBeInTheDocument();
+    expect(screen.queryByText('原始消息')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('消息已更新。');
+  });
+
+  it('消息编辑冲突时恢复原文并保留编辑入口', async () => {
+    const user = userEvent.setup();
+    const original = {
+      message_id: 'message-1',
+      session_id: 'session-1',
+      role: 'user' as const,
+      content: '原始消息',
+      sequence_no: 1,
+      created_at: '2026-09-06T10:00:00Z',
+    };
+    loadSessionMessages.mockResolvedValue([original]);
+    updateMessage.mockRejectedValue(new ApiError('CONFLICT', 'revision conflict', 409));
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('原始消息');
+    await user.click(screen.getByRole('button', { name: '编辑消息' }));
+    const editor = await screen.findByRole('textbox', { name: '编辑消息内容' });
+    await user.clear(editor);
+    await user.type(editor, '本地草稿');
+    await user.click(screen.getByRole('button', { name: '保存消息' }));
+
+    await waitFor(() => expect(updateMessage).toHaveBeenCalledWith('session-1', 'message-1', '本地草稿'));
+    expect(await screen.findByText(/这条消息已被其他操作更新/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '编辑消息内容' })).toHaveValue('原始消息');
+    expect(screen.getByRole('button', { name: '取消编辑消息' })).toBeInTheDocument();
+  });
+
+  it('确认删除用户消息后调用真实接口并刷新列表', async () => {
+    const user = userEvent.setup();
+    const original = {
+      message_id: 'message-1',
+      session_id: 'session-1',
+      role: 'user' as const,
+      content: '需要删除的消息',
+      sequence_no: 1,
+      created_at: '2026-09-06T10:00:00Z',
+    };
+    loadSessionMessages.mockResolvedValueOnce([original]).mockResolvedValueOnce([]);
+    deleteMessage.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('需要删除的消息');
+    await user.click(screen.getByRole('button', { name: '删除消息' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('需要删除的消息');
+    await user.click(within(dialog).getByRole('button', { name: '删除消息' }));
+
+    await waitFor(() => expect(deleteMessage).toHaveBeenCalledWith('session-1', 'message-1'));
+    await waitFor(() => expect(loadSessionMessages).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('消息已删除。')).toBeInTheDocument();
+    expect(screen.queryByText('需要删除的消息')).not.toBeInTheDocument();
+  });
+
+  it('删除失败时保留消息并显示错误，不伪造删除成功', async () => {
+    const user = userEvent.setup();
+    const original = {
+      message_id: 'message-1',
+      session_id: 'session-1',
+      role: 'user' as const,
+      content: '不能删除的消息',
+      sequence_no: 1,
+      created_at: '2026-09-06T10:00:00Z',
+    };
+    loadSessionMessages.mockResolvedValue([original]);
+    deleteMessage.mockRejectedValue(new ApiError('FORBIDDEN', 'forbidden', 403));
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('不能删除的消息');
+    await user.click(screen.getByRole('button', { name: '删除消息' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: '删除消息' }));
+
+    expect(await within(screen.getByRole('dialog')).findByRole('alert')).toHaveTextContent('当前账号无权操作这条消息');
+    expect(screen.getAllByText('不能删除的消息')).toHaveLength(2);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

@@ -809,6 +809,64 @@
   padding-right: 48px;
 }
 
+.userMessageActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding-right: 48px;
+}
+
+.messageActionButton {
+  width: 32px;
+  height: 32px;
+  color: var(--fm-muted);
+}
+
+.messageActionButton:hover {
+  color: var(--fm-ink);
+}
+
+.messageEditor {
+  width: 100%;
+}
+
+.messageEditor textarea {
+  min-height: 84px;
+  color: var(--fm-ink);
+  background: var(--fm-surface);
+}
+
+.messageEditorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.messageMutationNotice {
+  margin: 0;
+}
+
+.messageMutationSuccess {
+  margin: 0;
+  color: var(--fm-green-dark);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.messageDeleteQuote {
+  max-height: 160px;
+  margin: 0;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--fm-border-soft);
+  border-radius: var(--fm-radius-sm);
+  background: var(--fm-bg-soft);
+  color: var(--fm-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .source {
   min-height: 18px;
   padding-left: 12px;

@@ -3,6 +3,7 @@ package com.foodmate.api.controller;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,13 +71,37 @@ class M12SessionControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"role\":\"assistant\",\"content\":\"no\"}"))
                 .andExpect(status().is4xxClientError());
-        mockMvc.perform(
+        String message =
+                mockMvc.perform(
                         post("/api/sessions/" + id + "/messages")
                                 .cookie(session)
                                 .header("X-CSRF-Token", csrf.getValue())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"role\":\"user\",\"content\":\"hello\"}"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        String messageId = message.replaceAll(".*\\\"message_id\\\":\\\"([0-9]+)\\\".*", "$1");
+        mockMvc.perform(
+                        patch("/api/sessions/" + id + "/messages/" + messageId)
+                                .cookie(session)
+                                .header("X-CSRF-Token", csrf.getValue())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"content\":\"updated\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content", is("updated")));
+        mockMvc.perform(get("/api/sessions/" + id + "/messages").cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].content", is("updated")));
+        mockMvc.perform(
+                        delete("/api/sessions/" + id + "/messages/" + messageId)
+                                .cookie(session)
+                                .header("X-CSRF-Token", csrf.getValue()))
                 .andExpect(status().isOk());
+        mockMvc.perform(get("/api/sessions/" + id + "/messages").cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items", org.hamcrest.Matchers.hasSize(0)));
         mockMvc.perform(get("/api/sessions?size=1").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].title", is("M1-2")))
