@@ -18,10 +18,10 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 113456,
-      "differentRatio": 0.07694227430555556,
-      "meanAbsoluteError": 2.520405748155382,
-      "rmse": 16.61055230455668,
+      "differentPixels": 113341,
+      "differentRatio": 0.07686428493923611,
+      "meanAbsoluteError": 2.4172849867078994,
+      "rmse": 16.01910767837462,
       "maxChannelDelta": 255
     },
     "diet-records-v2": {
@@ -986,44 +986,44 @@
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 888436,
-      "differentRatio": 0.6025092230902778,
-      "meanAbsoluteError": 3.4649778578016495,
-      "rmse": 18.459664012514295,
-      "maxChannelDelta": 230
+      "differentPixels": 885028,
+      "differentRatio": 0.6001980251736111,
+      "meanAbsoluteError": 3.5006334092881946,
+      "rmse": 18.502580434098082,
+      "maxChannelDelta": 255
     },
     "profile-memories": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 317942,
-      "differentRatio": 0.21561821831597222,
-      "meanAbsoluteError": 4.2795359293619795,
-      "rmse": 21.36949672038313,
-      "maxChannelDelta": 226
+      "differentPixels": 316414,
+      "differentRatio": 0.21458197699652778,
+      "meanAbsoluteError": 4.229243808322483,
+      "rmse": 21.220423821393375,
+      "maxChannelDelta": 255
     },
     "profile-security": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 742521,
-      "differentRatio": 0.5035542805989583,
-      "meanAbsoluteError": 5.253111267089844,
-      "rmse": 21.838486992606605,
-      "maxChannelDelta": 226
+      "differentPixels": 740993,
+      "differentRatio": 0.5025180392795139,
+      "meanAbsoluteError": 5.202315097384982,
+      "rmse": 21.698267661393608,
+      "maxChannelDelta": 255
     },
     "profile-privacy": {
       "status": "COMPARED",
       "width": 1440,
       "height": 1024,
       "pixelCount": 1474560,
-      "differentPixels": 115619,
-      "differentRatio": 0.07840915256076389,
-      "meanAbsoluteError": 2.4729131062825522,
-      "rmse": 16.208989617954295,
-      "maxChannelDelta": 226
+      "differentPixels": 114092,
+      "differentRatio": 0.07737358940972222,
+      "meanAbsoluteError": 2.4148432413736978,
+      "rmse": 15.979757426190872,
+      "maxChannelDelta": 255
     },
     "admin-knowledge-upload-success": {
       "status": "COMPARED",

@@ -2,6 +2,26 @@
 
 更新时间：2026-09-13
 
+## 1.1.37 2026-09-13 用户头像实体与 Chat 对比度当前证据
+
+本节只更新用户反馈直接涉及的头像和 Chat 用户消息对比度证据，不重新验收全部 105 个画板。Figma 文件为 `MX18RZCfAmgprNzxItkHUH`，浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、相同 `1440×1024` 视口、DPR `1`、字体加载完成和关闭动态干扰条件。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace/Home | `640:256` | `/?state=figma-v2` | `recaptured-figma/workspace-home-v2-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-13.png` | `recaptured/workspace-home-v2-current-diff-2026-09-13-avatar-fixed.json` | `9.2689%` | `2.914238` | `17.797930` | `255` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `/chat?state=figma-v2` | `recaptured-figma/agent-chat-v2-figma-2026-09-13-contrast-fixed-avatar-fixed.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-13.png` | `recaptured/agent-chat-v2-current-diff-2026-09-13-contrast-fixed-avatar-fixed.json` | `7.6864%` | `2.417285` | `16.019108` | `255` | `DIFF_REVIEW` |
+| Profile Basic | `806:1119` | `/profile?state=basic` | `recaptured-figma/profile-basic-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-profile-basic-browser-2026-09-13.png` | `recaptured/profile-basic-current-diff-2026-09-13-avatar-fixed.json` | `60.0198%` | `3.500633` | `18.502580` | `255` | `DIFF_REVIEW` |
+| Profile Memories | `806:1281` | `/profile?state=memories` | `recaptured-figma/profile-memories-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-profile-memories-browser-2026-09-13.png` | `recaptured/profile-memories-current-diff-2026-09-13-avatar-fixed.json` | `21.4582%` | `4.229244` | `21.220424` | `255` | `DIFF_REVIEW` |
+| Profile Security | `806:1445` | `/profile?state=security` | `recaptured-figma/profile-security-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-profile-security-browser-2026-09-13.png` | `recaptured/profile-security-current-diff-2026-09-13-avatar-fixed.json` | `50.2518%` | `5.202315` | `21.698268` | `255` | `DIFF_REVIEW` |
+| Profile Privacy | `806:1585` | `/profile?state=privacy` | `recaptured-figma/profile-privacy-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-profile-privacy-browser-2026-09-13.png` | `recaptured/profile-privacy-current-diff-2026-09-13-avatar-fixed.json` | `7.7374%` | `2.414843` | `15.979757` | `255` | `DIFF_REVIEW` |
+
+- [x] 实时 Figma 节点 `640:529` 的用户消息文字已由 `#FFFFFF` 改为 `#000000`，Figma 截图和浏览器设计态现在使用同一黑色前景；浏览器 Chat 截图中用户消息已清晰可读。
+- [x] 六个当前 Figma PNG 与六个浏览器 PNG 均为 `1440×1024`；截图前字体状态为 `loaded`、DPR 为 `1`、`bodyOverflow=false`，并完成自动 diff、几何检查、文字检查和人工视觉复核。
+- [x] Workspace、Chat、Profile Basic、Profile Memories、Profile Security、Profile Privacy 的人物头像均只使用用户提供的 `default-male.svg`；运行时 Chat/Workspace/Profile 的侧栏、顶栏、消息和 Profile 主头像已核对为同一登记资源。女性 SVG 仍作为性别对应的唯一女性默认资源保留。
+- [x] 绿色 Agent 方块属于 `data-visual-role="agent-status-marker"` 状态标识，认证页 `foodmate-*-user.svg` 属于字段图标，均不计入人物头像；旧真人头像 PNG 仅是历史验收证据，不再作为当前映射或运行时资源。
+- [ ] 六项 diff 均为非零，因此不能标记像素级 `PASS`；本节只复采 6 个受影响画板，其余画板不在本次范围内，全量聚合继续保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.36 2026-09-13 Admin 操作审计增量验收与头像来源复核
 
 本节只记录 Figma 节点 `995:1499`（`admin-operation-audit`）的单页增量证据，不重新采集或判定其余画板。Figma 参考图尺寸为 `1440×1024`；浏览器使用同尺寸视口、DPR 1、字体加载完成并关闭动态干扰。头像按用户要求使用登记的默认 SVG，因此与 Figma 历史真人头像的像素差异属于预期差异，不能仅凭结构接近标记 `PASS`。
