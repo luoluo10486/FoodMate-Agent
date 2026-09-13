@@ -1,0 +1,120 @@
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AdminPage } from './AdminPage';
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function renderAdmin(initialEntry: string) {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <Routes>
+        <Route path="/admin/*" element={<AdminPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe('AdminPage real mode fixture isolation', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem(
+      'foodmate_auth_user',
+      JSON.stringify({
+        id: '7',
+        username: 'admin',
+        displayName: '真实管理员',
+        role: 'admin',
+        status: 'active',
+        email: 'admin@example.com',
+      }),
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((input: RequestInfo | URL) => {
+        const path = new URL(String(input), 'http://foodmate.local').pathname;
+        if (path === '/api/admin/dashboard') {
+          return Promise.resolve(
+            jsonResponse({
+              success: true,
+              data: {
+                overview_metrics: [
+                  { label: '真实运行总量', value: '1', hint: '-', tone: 'green' },
+                  { label: '真实成功率', value: '100%', hint: '-', tone: 'teal' },
+                  { label: '真实成本', value: '0', hint: '-', tone: 'amber' },
+                ],
+                runs: [],
+                tool_calls: [],
+                sql_audits: [],
+                traces: [],
+                tools: [],
+                usage: [],
+                knowledge: [],
+                deleted: [],
+                operation_audits: [],
+              },
+            }),
+          );
+        }
+        if (path === '/api/admin/queries/runs') {
+          return Promise.resolve(
+            jsonResponse({
+              success: true,
+              data: {
+                resource: 'runs',
+                items: [
+                  {
+                    agent_run_id: 7001,
+                    session_id: 8001,
+                    intent: 'REAL_QUERY',
+                    status: 'completed',
+                    trace_id: 'trace-real-7001',
+                    duration_ms: 120,
+                    actor_ref: 'real_actor',
+                  },
+                ],
+                total: 1,
+                page: 1,
+                size: 6,
+              },
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ success: true, data: {} }));
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('ignores a Figma run fixture query and renders the real overview consumer', async () => {
+    renderAdmin('/admin?state=run-detail');
+
+    expect(await screen.findByText('真实运行总量')).toBeInTheDocument();
+    expect(screen.getByText('real_actor')).toBeInTheDocument();
+    expect(screen.queryByText('Agent 运行控制台')).not.toBeInTheDocument();
+    expect(screen.queryByText("Anddy's Lab")).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '执行事件追踪' })).not.toBeInTheDocument();
+
+    const fetchCalls = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([input]) => String(input));
+    expect(fetchCalls.some((input) => input.includes('/api/admin/queries/runs'))).toBe(true);
+  });
+
+  it('does not open an operation fixture dialog in real mode', async () => {
+    renderAdmin('/admin?state=op-confirm');
+
+    expect(await screen.findByText('真实运行总量')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: '确认停用工具' })).not.toBeInTheDocument();
+    expect(screen.queryByText('已注册工具')).not.toBeInTheDocument();
+  });
+});

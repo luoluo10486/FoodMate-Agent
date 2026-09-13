@@ -2231,8 +2231,9 @@ export function ProfilePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const fixtureState = getProfileFixtureState(searchParams.get('state'));
-  const baseFigmaState = getProfileBaseFigmaState(searchParams.get('state'));
+  // 真实模式忽略画板 query，避免演示身份、壳层和弹层进入真实资料页面。
+  const fixtureState = realMode ? undefined : getProfileFixtureState(searchParams.get('state'));
+  const baseFigmaState = realMode ? undefined : getProfileBaseFigmaState(searchParams.get('state'));
   const activeTab = fixtureState?.startsWith('security')
     ? 'security'
     : fixtureState?.startsWith('privacy')

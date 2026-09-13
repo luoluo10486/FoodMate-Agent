@@ -140,6 +140,15 @@ type AdminUsageResponse = {
   latency_ms: number | null;
   status: string;
 };
+export type AdminQueryUsage = {
+  provider: string;
+  model: string;
+  scene: string;
+  tokens: string;
+  cost: number | string | null;
+  latency_ms: number | string | null;
+  status: string | null;
+};
 type AdminKnowledgeResponse = {
   document_id: number | null;
   title: string;
@@ -626,6 +635,29 @@ export async function loadAdminKnowledge(params: AdminQueryParams = {}): Promise
   });
   return {
     items: data.items.map(normalizeKnowledgeRow),
+    total: data.total,
+    page: data.page,
+    size: data.size,
+  };
+}
+
+/** 管理端模型用量使用独立分页查询，避免把概览 Fixture 或治理聚合数据当成明细来源。 */
+export async function loadAdminUsagePage(params: AdminQueryParams = {}): Promise<AdminPageResult<AdminUsageRow>> {
+  const data = await loadAdminQuery<AdminQueryUsage>('usage', {
+    size: 20,
+    ...params,
+  });
+  return {
+    items: data.items.map((row, index) => ({
+      key: `usage-${row.provider}-${row.model}-${index}`,
+      provider: row.provider || '-',
+      model: row.model || '-',
+      scene: row.scene || '-',
+      tokens: row.tokens || '-',
+      cost: text(row.cost),
+      latencyMs: numeric(row.latency_ms),
+      status: row.status || '-',
+    })),
     total: data.total,
     page: data.page,
     size: data.size,

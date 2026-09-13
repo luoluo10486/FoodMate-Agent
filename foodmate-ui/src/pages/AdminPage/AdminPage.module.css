@@ -5246,6 +5246,42 @@
   text-align: center !important;
 }
 
+.usageLoadingState,
+.usageErrorState {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.usageLoadingState svg,
+.usageErrorMessage svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.usageLoadingState svg {
+  animation: usage-loading-spin 1s linear infinite;
+}
+
+.usageErrorState {
+  flex-direction: column;
+  color: #d67676;
+}
+
+.usageErrorMessage {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes usage-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .usagePagination {
   display: flex;
   align-items: center;

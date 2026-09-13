@@ -793,7 +793,8 @@ export function AdminPage() {
   const isMockMode = import.meta.env.VITE_AGENT_MODE !== 'real';
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
-  const requestedFixture = getAdminFixtureState(new URLSearchParams(search).get('state'));
+  // Fixture query 只服务于本地画板预览，真实模式必须完全由路由和服务端数据驱动。
+  const requestedFixture = isMockMode ? getAdminFixtureState(new URLSearchParams(search).get('state')) : undefined;
   const fixtureNavKey = getFixtureNavKey(requestedFixture);
   const sectionKey = (
     requestedFixture?.startsWith('op-')

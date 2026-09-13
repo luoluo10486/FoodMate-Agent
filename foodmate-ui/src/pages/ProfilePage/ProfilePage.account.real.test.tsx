@@ -111,4 +111,13 @@ describe('ProfilePage real account states', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('设备接口不可用');
     expect(screen.queryByText('MacBook Pro 16" · macOS')).not.toBeInTheDocument();
   });
+
+  it('ignores a profile fixture query in real mode', async () => {
+    renderPage('/profile?state=security-password-success');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('资料接口不可用');
+    expect(screen.queryByText('密码已更新')).not.toBeInTheDocument();
+    expect(screen.queryByText('March 14, 2024')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });
