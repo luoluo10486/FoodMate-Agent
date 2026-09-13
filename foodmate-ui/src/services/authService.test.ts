@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { login } from './authService';
+import { confirmPasswordReset, login, logout, requestPasswordReset } from './authService';
 
 describe('authService real identity hydration', () => {
   beforeEach(() => {
@@ -61,5 +61,40 @@ describe('authService real identity hydration', () => {
       email: 'real@example.com',
       gender: '女',
     });
+  });
+
+  it('clears the persisted identity only after the real logout request succeeds', async () => {
+    localStorage.setItem('foodmate_auth_user', JSON.stringify({ id: '7', username: 'real-user' }));
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true, data: null }), { status: 200 }),
+    );
+
+    await logout();
+
+    expect(fetch).toHaveBeenCalledWith('/api/auth/logout', expect.objectContaining({ method: 'POST' }));
+    expect(localStorage.getItem('foodmate_auth_user')).toBeNull();
+  });
+
+  it('sends password reset requests through the real auth endpoints', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }));
+
+    await requestPasswordReset('real@example.com');
+    await confirmPasswordReset('reset-token', 'StrongPass99!');
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      '/api/auth/password-reset/request',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ email: 'real@example.com' }) }),
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/auth/password-reset/confirm',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'reset-token', new_password: 'StrongPass99!' }),
+      }),
+    );
   });
 });

@@ -564,7 +564,20 @@ function profileFromApi(user: Profile, current: ProfileForm): ProfileForm {
 }
 
 function splitList(value: string): string[] {
-  return value
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  } catch {
+    // 兼容历史接口返回的逗号分隔文本。
+  }
+  return trimmed
     .split(/[、,，]/)
     .map((item) => item.trim())
     .filter(Boolean);
@@ -789,10 +802,14 @@ function BasicTab({
       diet_goal: profileForm.dietGoal,
       calorie_target: numberOrUndefined(profileForm.calorieTarget),
       protein_target: numberOrUndefined(profileForm.proteinTarget),
+      allergens: profileForm.allergens,
+      dislikes: profileForm.dislikes,
     };
     try {
-      if (realMode) await updateProfile(payload);
-      setSavedForm(profileForm);
+      const savedProfile = realMode ? await updateProfile(payload) : undefined;
+      const nextForm = savedProfile ? profileFromApi(savedProfile, profileForm) : profileForm;
+      setProfileForm(nextForm);
+      setSavedForm(nextForm);
       notice('资料已保存。', 'success');
     } catch (error) {
       notice(error instanceof Error ? error.message : '资料保存失败，请重试。', 'error');
@@ -1485,7 +1502,12 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
     }
     setPasswordState('submitting');
     try {
-      if (realMode) await changePassword(passwords.current, passwords.next);
+      if (realMode) {
+        await changePassword(passwords.current, passwords.next);
+        await logout();
+        window.location.assign('/login');
+        return;
+      }
       setPasswordState('success');
       setPasswords({ current: '', next: '', confirm: '' });
       notice('密码已更新，其他设备会话已按安全策略处理。', 'success');
@@ -1498,7 +1520,12 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const confirmLogout = async () => {
     try {
       if (logoutTarget === 'others') {
-        if (realMode) await revokeAllAuthSessions();
+        if (realMode) {
+          await revokeAllAuthSessions();
+          await logout();
+          window.location.assign('/login');
+          return;
+        }
         setSessions((items) => items.filter((item) => item.device_id === 'current'));
         notice('其他设备已退出，当前设备保持登录。', 'success');
       } else if (logoutTarget) {
@@ -1598,7 +1625,7 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
               type="button"
               onClick={() => setLogoutTarget('others')}
             >
-              退出其他设备
+              {realMode ? '退出全部设备' : '退出其他设备'}
             </Button>
           </div>
           {loadingSessions ? (
@@ -1655,7 +1682,9 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           />
         </div>
         <p className={styles.securityHint}>
-          设备详情包含创建时间 / 过期时间 / 当前状态；单设备退出需确认，退出全部设备时保留当前会话并二次确认。
+          {realMode
+            ? '设备详情包含创建时间 / 过期时间 / 当前状态；退出全部设备会使当前登录失效，并需要重新登录。'
+            : '设备详情包含创建时间 / 过期时间 / 当前状态；单设备退出需确认，退出全部设备时保留当前会话并二次确认。'}
         </p>
       </Card>
       <Dialog open={Boolean(logoutTarget)} onOpenChange={(open) => !open && setLogoutTarget(undefined)}>
@@ -1664,10 +1693,14 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
             <div className={styles.dialogEyebrow}>
               <ShieldCheck aria-hidden="true" /> SECURITY · CONFIRM
             </div>
-            <DialogTitle>{logoutTarget === 'others' ? '退出其他设备？' : '退出此设备？'}</DialogTitle>
+            <DialogTitle>
+              {logoutTarget === 'others' ? (realMode ? '退出全部设备？' : '退出其他设备？') : '退出此设备？'}
+            </DialogTitle>
             <DialogDescription>
               {logoutTarget === 'others'
-                ? `这将退出除当前设备以外的 ${Math.max(0, sessions.length - 1)} 个活跃会话。当前设备会保留登录状态，最近的运行和审计记录不会被删除。`
+                ? realMode
+                  ? '这将撤销当前账号的全部活跃会话和刷新凭证，操作完成后需要重新登录。最近的运行和审计记录不会被删除。'
+                  : `这将退出除当前设备以外的 ${Math.max(0, sessions.length - 1)} 个活跃会话。当前设备会保留登录状态，最近的运行和审计记录不会被删除。`
                 : '此设备的登录会话会立即失效，当前设备不会受到影响。'}
             </DialogDescription>
           </DialogHeader>

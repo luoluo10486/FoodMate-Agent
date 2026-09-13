@@ -33,6 +33,9 @@ export type ProfileUpdateRequest = {
   diet_goal?: string;
   calorie_target?: number;
   protein_target?: number;
+  allergens?: string[];
+  dislikes?: string[];
+  preferred_units?: Record<string, string>;
 };
 
 type ExportJobResponse = {

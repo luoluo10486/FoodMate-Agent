@@ -171,9 +171,11 @@ public interface UserAccountService {
                     update.dietGoal() == null ? dietGoal : update.dietGoal(),
                     update.calorieTarget() == null ? calorieTarget : update.calorieTarget(),
                     update.proteinTarget() == null ? proteinTarget : update.proteinTarget(),
-                    allergens,
-                    dislikes,
-                    preferredUnits);
+                    update.allergensJson() == null ? allergens : update.allergensJson(),
+                    update.dislikesJson() == null ? dislikes : update.dislikesJson(),
+                    update.preferredUnitsJson() == null
+                            ? preferredUnits
+                            : update.preferredUnitsJson());
         }
     }
 
@@ -185,7 +187,10 @@ public interface UserAccountService {
             String activityLevel,
             String dietGoal,
             Integer calorieTarget,
-            Integer proteinTarget) {}
+            Integer proteinTarget,
+            String allergensJson,
+            String dislikesJson,
+            String preferredUnitsJson) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record SessionRecord(

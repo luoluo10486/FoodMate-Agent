@@ -69,7 +69,7 @@ public interface UserAccountMapper {
     void revokeRefreshToken(String tokenHash);
 
     @Select(
-            "SELECT auth_session_id AS authSessionId,device_id AS deviceId,user_agent AS userAgent,ip_address AS ipAddress,expires_at AS expiresAt,last_seen_at AS lastSeenAt,created_at AS createdAt,revoked_at AS revokedAt FROM user_auth_sessions WHERE user_id=#{userId} AND is_deleted=FALSE ORDER BY last_seen_at DESC")
+            "SELECT auth_session_id AS authSessionId,device_id AS deviceId,user_agent AS userAgent,ip_address AS ipAddress,expires_at AS expiresAt,last_seen_at AS lastSeenAt,created_at AS createdAt,revoked_at AS revokedAt FROM user_auth_sessions WHERE user_id=#{userId} AND is_deleted=FALSE AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP ORDER BY last_seen_at DESC")
     List<AuthSessionView> authSessions(long userId);
 
     @Select(
@@ -109,7 +109,7 @@ public interface UserAccountMapper {
     void ensureProfile(long id, long userId);
 
     @Update(
-            "UPDATE user_profiles SET display_name=COALESCE(#{update.displayName},display_name),gender=COALESCE(#{update.gender},gender),height_cm=COALESCE(#{update.heightCm},height_cm),weight_kg=COALESCE(#{update.weightKg},weight_kg),activity_level=COALESCE(#{update.activityLevel},activity_level),diet_goal=COALESCE(#{update.dietGoal},diet_goal),calorie_target=COALESCE(#{update.calorieTarget},calorie_target),protein_target=COALESCE(#{update.proteinTarget},protein_target),updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND is_deleted=FALSE")
+            "UPDATE user_profiles SET display_name=COALESCE(#{update.displayName},display_name),gender=COALESCE(#{update.gender},gender),height_cm=COALESCE(#{update.heightCm},height_cm),weight_kg=COALESCE(#{update.weightKg},weight_kg),activity_level=COALESCE(#{update.activityLevel},activity_level),diet_goal=COALESCE(#{update.dietGoal},diet_goal),calorie_target=COALESCE(#{update.calorieTarget},calorie_target),protein_target=COALESCE(#{update.proteinTarget},protein_target),allergens=COALESCE(CAST(#{update.allergensJson} AS jsonb),allergens),dislikes=COALESCE(CAST(#{update.dislikesJson} AS jsonb),dislikes),preferred_units=COALESCE(CAST(#{update.preferredUnitsJson} AS jsonb),preferred_units),updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND is_deleted=FALSE")
     void updateProfile(long userId, ProfileUpdate update);
 
     @Insert(

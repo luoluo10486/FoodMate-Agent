@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
-import { getAuthSessions, getProfile } from '../../services/accountService';
+import { getAuthSessions, getProfile, updateProfile } from '../../services/accountService';
 
 vi.mock('../../services/accountService', () => ({
   changePassword: vi.fn(),
@@ -119,5 +120,45 @@ describe('ProfilePage real account states', () => {
     expect(screen.queryByText('密码已更新')).not.toBeInTheDocument();
     expect(screen.queryByText('March 14, 2024')).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('submits edited profile lists to the real API and parses JSON list responses', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getProfile).mockResolvedValue({
+      user_id: 7,
+      display_name: '真实用户的工作区',
+      gender: '女',
+      height_cm: 170,
+      weight_kg: 60,
+      activity_level: 'Moderately Active (3-5d/wk)',
+      diet_goal: '维持健康',
+      calorie_target: 1800,
+      protein_target: 84,
+      allergens: '["乳糖"]',
+      dislikes: '["香菜"]',
+      preferred_units: '{"weight":"g","energy":"kcal"}',
+    });
+    vi.mocked(updateProfile).mockResolvedValue({
+      user_id: 7,
+      display_name: '真实用户的工作区',
+      gender: '女',
+      allergens: '["乳糖"]',
+      dislikes: '["香菜"]',
+    });
+
+    renderPage('/profile');
+
+    expect(await screen.findByRole('button', { name: '乳糖' })).toBeInTheDocument();
+    const allergenInput = screen.getByRole('textbox', { name: '添加过敏原' });
+    await user.type(allergenInput, '花生');
+    await user.keyboard('{Enter}');
+    await user.click(screen.getByRole('button', { name: '保存资料' }));
+
+    await waitFor(() =>
+      expect(updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ allergens: ['乳糖', '花生'], dislikes: ['香菜'] }),
+      ),
+    );
+    await waitFor(() => expect(screen.queryByRole('button', { name: '花生' })).not.toBeInTheDocument());
   });
 });

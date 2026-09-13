@@ -68,7 +68,8 @@ class UserAccountServiceImplTest {
                                 7L,
                                 new com.foodmate.application.account.service.UserAccountService
                                         .ProfileUpdate(
-                                        "New", null, null, null, null, null, null, null)));
+                                        "New", null, null, null, null, null, null, null, null, null,
+                                        null)));
 
         verify(audit)
                 .recordFailure(

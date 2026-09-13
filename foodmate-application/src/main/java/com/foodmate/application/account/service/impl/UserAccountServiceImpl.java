@@ -258,7 +258,11 @@ public class UserAccountServiceImpl implements UserAccountService {
     public synchronized List<AuthSessionView> listAuthSessions(long userId) {
         if (store != null) return store.authSessions(userId);
         return authSessions.values().stream()
-                .filter(s -> s.userId() == userId)
+                .filter(
+                        s ->
+                                s.userId() == userId
+                                        && s.revokedAt() == null
+                                        && s.expiresAt().isAfter(Instant.now()))
                 .map(
                         s ->
                                 new AuthSessionView(
