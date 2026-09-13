@@ -41,6 +41,10 @@ export async function loadCompositeDishes(): Promise<CompositeDish[]> {
   return apiRequest<CompositeDish[]>('/api/composite-dishes');
 }
 
+export async function loadCompositeDish(compositeDishId: string): Promise<CompositeDish> {
+  return apiRequest<CompositeDish>(`/api/composite-dishes/${encodeURIComponent(compositeDishId)}`);
+}
+
 export async function createCompositeDish(request: CompositeDishWriteRequest): Promise<CompositeDish> {
   return apiRequest<CompositeDish>('/api/composite-dishes', {
     method: 'POST',

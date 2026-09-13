@@ -37,4 +37,33 @@ describe('apiClient authentication recovery', () => {
     await expect(apiRequest('/api/auth/refresh', { method: 'POST' })).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it('accepts an empty 204 response as a successful void request', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await expect(apiRequest<void>('/api/users/me/sessions/7', { method: 'DELETE' })).resolves.toBeUndefined();
+  });
+
+  it('keeps multipart boundaries untouched while applying the shared CSRF policy', async () => {
+    const fetchMock = vi.mocked(fetch);
+    document.cookie = 'foodmate_csrf=test-csrf-token';
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true, data: { document_id: 7 } }), { status: 200 }),
+    );
+
+    const form = new FormData();
+    form.append('file', new File(['content'], 'meal.txt', { type: 'text/plain' }));
+    await expect(
+      apiRequest<{ document_id: number }>('/api/admin/knowledge', { method: 'POST', body: form }),
+    ).resolves.toEqual({
+      document_id: 7,
+    });
+
+    const init = fetchMock.mock.calls[0][1];
+    const headers = new Headers(init?.headers);
+    expect(headers.get('X-CSRF-Token')).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBeNull();
+    expect(init?.body).toBe(form);
+  });
 });

@@ -688,6 +688,143 @@ export async function loadAdminOperationAudits(): Promise<AdminOperationAuditRes
   return (await loadAdminOperationAuditsPage()).items;
 }
 
+export type AdminAuditReport = {
+  generated_at: string;
+  stale_threshold_minutes: number;
+  status: string;
+  checks: Array<{
+    code: string;
+    status: string;
+    pending_count: number;
+    failed_count: number;
+    oldest_at: string | null;
+    reason_codes: string[];
+  }>;
+};
+
+export async function loadAdminAuditReport(): Promise<AdminAuditReport> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  return apiRequest<AdminAuditReport>('/api/admin/audit-reports/current');
+}
+
+export type AdminDlqReplayResult = {
+  replay_id: number;
+  dlq_id: number;
+  status: string;
+  original_message_id: string;
+};
+
+export async function replayAdminDlq(dlqId: number): Promise<AdminDlqReplayResult> {
+  const digest = await sha256(`runtime.dlq.replay|${dlqId}||1`);
+  return adminWrite<AdminDlqReplayResult>(
+    `/api/admin/dlq/${encodeURIComponent(String(dlqId))}/replay`,
+    'POST',
+    { confirmed: true, confirmationDigest: digest },
+    'admin-dlq-replay',
+  );
+}
+
+export type RetentionPurgeResult = {
+  request_id: number;
+  status: string;
+  resource_type: string;
+  resource_id: number;
+  eligible_at: string;
+  task_count: number;
+};
+
+export type RetentionPurgePreflight = {
+  request_id: number;
+  status: string;
+  resource_type: string;
+  resource_id: number;
+  policy_found: boolean;
+  hard_delete_enabled: boolean;
+  resource_soft_deleted: boolean;
+  retention_elapsed: boolean;
+  legal_hold_clear: boolean;
+  task_contract_valid: boolean;
+  ready_to_execute: boolean;
+  tasks: Array<{
+    task_type: string;
+    status: string;
+    attempt_count: number;
+    last_error_code: string | null;
+  }>;
+  blockers: string[];
+};
+
+export type RetentionHoldResult = {
+  hold_id: number;
+  status: string;
+  resource_type: string;
+  resource_id: number;
+  reason_code: string;
+};
+
+export async function requestRetentionPurge(resourceType: string, resourceId: number): Promise<RetentionPurgeResult> {
+  const digest = await sha256(`retention.purge|${resourceType}|${resourceId}|1`);
+  return adminWrite<RetentionPurgeResult>(
+    '/api/admin/data-retention/purge-requests',
+    'POST',
+    {
+      resource_type: resourceType,
+      resource_id: resourceId,
+      confirmed: true,
+      confirmation_digest: digest,
+    },
+    'retention-purge',
+  );
+}
+
+export async function loadRetentionPurge(requestId: number): Promise<RetentionPurgeResult> {
+  return apiRequest<RetentionPurgeResult>(`/api/admin/data-retention/purge-requests/${requestId}`);
+}
+
+export async function loadRetentionPurgePreflight(requestId: number): Promise<RetentionPurgePreflight> {
+  return apiRequest<RetentionPurgePreflight>(`/api/admin/data-retention/purge-requests/${requestId}/preflight`);
+}
+
+export async function approveRetentionPurge(requestId: number): Promise<RetentionPurgeResult> {
+  const digest = await sha256(`retention.approve|${requestId}|1`);
+  return adminWrite<RetentionPurgeResult>(
+    `/api/admin/data-retention/purge-requests/${requestId}/approve`,
+    'POST',
+    { confirmed: true, confirmation_digest: digest },
+    'retention-approve',
+  );
+}
+
+export async function placeRetentionHold(
+  resourceType: string,
+  resourceId: number,
+  reasonCode: string,
+): Promise<RetentionHoldResult> {
+  const digest = await sha256(`retention.hold|${resourceType}|${resourceId}|${reasonCode}|1`);
+  return adminWrite<RetentionHoldResult>(
+    '/api/admin/data-retention/holds',
+    'POST',
+    {
+      resource_type: resourceType,
+      resource_id: resourceId,
+      reason_code: reasonCode,
+      confirmed: true,
+      confirmation_digest: digest,
+    },
+    'retention-hold',
+  );
+}
+
+export async function releaseRetentionHold(holdId: number): Promise<RetentionHoldResult> {
+  const digest = await sha256(`retention.release|${holdId}|1`);
+  return adminWrite<RetentionHoldResult>(
+    `/api/admin/data-retention/holds/${holdId}/release`,
+    'POST',
+    { confirmed: true, confirmation_digest: digest },
+    'retention-release',
+  );
+}
+
 export type AdminExportStatus = {
   export_job_id: number;
   resource: string;
@@ -940,26 +1077,12 @@ export async function restoreAdminResource(type: string, id: string, revision = 
 }
 
 export async function uploadKnowledgeDocument(file: File) {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')[1];
   const form = new FormData();
   form.append('file', file);
-  const response = await fetch(`${baseUrl}/api/admin/knowledge`, {
+  return apiRequest<{ document_id: number }>('/api/admin/knowledge', {
     method: 'POST',
-    credentials: 'include',
-    headers: csrf ? { 'X-CSRF-Token': csrf } : {},
     body: form,
   });
-  const body = (await response.json()) as {
-    success: boolean;
-    data: { document_id: number };
-    error?: { message?: string };
-  };
-  if (!response.ok || !body.success) throw new Error(body.error?.message ?? 'Knowledge document upload failed');
-  return body.data;
 }
 
 export type KnowledgeUploadBatch = {
@@ -993,11 +1116,6 @@ export type KnowledgeBatchEvent = {
 };
 
 export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise<{ batch_id: string }> {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')[1];
   const form = new FormData();
   batch.files.forEach((file) => form.append('files', file));
   form.append('source_type', batch.sourceType);
@@ -1005,19 +1123,10 @@ export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise
   form.append('source_version', batch.sourceVersion);
   form.append('license_notice', batch.licenseNotice);
   form.append('idempotency_key', batch.idempotencyKey);
-  const response = await fetch(`${baseUrl}/api/admin/knowledge-documents/upload-batches`, {
+  return apiRequest<{ batch_id: string }>('/api/admin/knowledge-documents/upload-batches', {
     method: 'POST',
-    credentials: 'include',
-    headers: csrf ? { 'X-CSRF-Token': csrf } : {},
     body: form,
   });
-  const body = (await response.json()) as {
-    success: boolean;
-    data?: { batch_id: string };
-    error?: { message?: string };
-  };
-  if (!response.ok || !body.success || !body.data) throw new Error(body.error?.message ?? '知识库批次上传失败');
-  return body.data;
 }
 
 export const loadKnowledgeBatch = (batchId: string) =>
@@ -1059,6 +1168,11 @@ export function streamKnowledgeBatch(batchId: string, onEvent: (event: Knowledge
 export const retryKnowledgeItem = (batchId: string, itemId: string) =>
   adminWrite(
     `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/retry`,
+    'POST',
+  );
+export const reindexKnowledgeItem = (batchId: string, itemId: string) =>
+  adminWrite(
+    `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/reindex`,
     'POST',
   );
 export const changeKnowledgeVisibility = (
@@ -1161,10 +1275,39 @@ export type ModelGovernanceView = {
   usage: ModelGovernanceUsage[];
 };
 
-type ModelGovernanceMutation = {
+export type ModelGovernanceMutation = {
   changed: boolean;
   resource_id: number;
   version: string;
+  revision: number;
+};
+
+export type ModelGovernanceUsageQuery = {
+  from?: string;
+  to?: string;
+};
+
+export type CreateModelPriceRequest = {
+  providerCode: string;
+  modelName: string;
+  priceVersion: string;
+  inputPricePerMillion: number | string;
+  outputPricePerMillion: number | string;
+  currency: string;
+  effectiveAt: string;
+  revision: number;
+};
+
+export type CreateModelBudgetRequest = {
+  policyKey: string;
+  scene: string;
+  scopeType: string;
+  maxTotalTokens: number;
+  maxCostCny: number | string;
+  maxModelCalls: number;
+  maxStepRetries: number;
+  windowType: string;
+  policyVersion: string;
   revision: number;
 };
 
@@ -1192,9 +1335,13 @@ async function modelGovernanceWrite<T>(
   });
 }
 
-export async function loadModelGovernance(): Promise<ModelGovernanceView> {
+export async function loadModelGovernance(query: ModelGovernanceUsageQuery = {}): Promise<ModelGovernanceView> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real model governance API is disabled');
-  return apiRequest<ModelGovernanceView>('/api/admin/model-governance');
+  const search = new URLSearchParams();
+  if (query.from) search.set('from', query.from);
+  if (query.to) search.set('to', query.to);
+  const suffix = search.toString();
+  return apiRequest<ModelGovernanceView>(`/api/admin/model-governance${suffix ? `?${suffix}` : ''}`);
 }
 
 export async function updateModelProviderStatus(provider: ModelGovernanceProvider, status: string) {
@@ -1246,6 +1393,57 @@ export async function updateModelRoute(route: ModelGovernanceRoute, status: stri
     },
     'model-route-update',
   );
+}
+
+export async function createModelPrice(request: CreateModelPriceRequest): Promise<ModelGovernanceMutation> {
+  const target = `${request.providerCode.trim()}:${request.modelName.trim()}:${request.priceVersion.trim()}`;
+  const digest = await confirmationDigest('model.price.create', target, request.priceVersion, request.revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    '/api/admin/model-governance/prices',
+    'POST',
+    {
+      providerCode: request.providerCode,
+      modelName: request.modelName,
+      priceVersion: request.priceVersion,
+      inputPricePerMillion: request.inputPricePerMillion,
+      outputPricePerMillion: request.outputPricePerMillion,
+      currency: request.currency,
+      effectiveAt: request.effectiveAt,
+      revision: request.revision,
+      confirmed: true,
+      confirmationDigest: digest,
+    },
+    'model-price-create',
+  );
+}
+
+export async function createModelBudget(request: CreateModelBudgetRequest): Promise<ModelGovernanceMutation> {
+  const target = `${request.policyKey.trim()}:${request.policyVersion.trim()}`;
+  const digest = await confirmationDigest('model.budget.create', target, request.policyVersion, request.revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    '/api/admin/model-governance/budgets',
+    'POST',
+    {
+      policyKey: request.policyKey,
+      scene: request.scene,
+      scopeType: request.scopeType,
+      maxTotalTokens: request.maxTotalTokens,
+      maxCostCny: request.maxCostCny,
+      maxModelCalls: request.maxModelCalls,
+      maxStepRetries: request.maxStepRetries,
+      windowType: request.windowType,
+      policyVersion: request.policyVersion,
+      revision: request.revision,
+      confirmed: true,
+      confirmationDigest: digest,
+    },
+    'model-budget-create',
+  );
+}
+
+async function sha256(value: string) {
+  const bytes = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export {

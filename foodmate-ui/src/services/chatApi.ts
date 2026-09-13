@@ -4,44 +4,32 @@ export type ChatRun = {
   status: string;
   duplicate: boolean;
 };
-import { csrfToken } from './authService';
 
-type ApiResponse<T> = {
-  success: boolean;
-  data: T;
-  error?: { code: string; message: string };
+export type ChatCancellationResult = {
+  run_id: string;
+  status: string;
+  terminal?: boolean;
+  command_id?: string;
+  dispatch_id?: string;
+  duplicate?: boolean;
 };
 
-const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const csrf = csrfToken();
-  const needsCsrf = !['GET', 'HEAD', 'OPTIONS'].includes((init?.method ?? 'GET').toUpperCase());
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(needsCsrf && csrf ? { 'X-CSRF-Token': csrf } : {}),
-      ...(init?.headers ?? {}),
-    },
-  });
-  const body = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || !body.success) {
-    throw new Error(body.error?.message ?? `Request failed: ${response.status}`);
-  }
-  return body.data;
-}
+type ChatCancellationPayload = Partial<ChatCancellationResult> & {
+  runId?: string | number;
+  commandId?: string;
+  dispatchId?: string;
+};
+import { apiRequest } from './apiClient';
 
 export function createChatRun(prompt: string, sessionId?: string): Promise<ChatRun> {
-  return request<ChatRun>('/api/chat/runs', {
+  return apiRequest<ChatRun>('/api/chat/runs', {
     method: 'POST',
     body: JSON.stringify({ prompt, session_id: sessionId }),
   });
 }
 
 export function getChatRun(runId: string): Promise<{ run_id: string; status: string }> {
-  return request<{ run_id: string; status: string }>(`/api/chat/runs/${encodeURIComponent(runId)}`);
+  return apiRequest<{ run_id: string; status: string }>(`/api/chat/runs/${encodeURIComponent(runId)}`);
 }
 
 export type ChatRunEvent = {
@@ -54,17 +42,28 @@ export type ChatRunEvent = {
 };
 
 export function getChatRunEvents(runId: string): Promise<ChatRunEvent[]> {
-  return request<ChatRunEvent[]>(`/api/chat/runs/${encodeURIComponent(runId)}/events`);
+  return apiRequest<ChatRunEvent[]>(`/api/chat/runs/${encodeURIComponent(runId)}/events`);
 }
 
-export function cancelChatRun(runId: string): Promise<ChatRun> {
-  return request<ChatRun>(`/api/chat/runs/${encodeURIComponent(runId)}/cancel`, {
+export async function cancelChatRun(runId: string): Promise<ChatCancellationResult> {
+  const result = await apiRequest<ChatCancellationPayload>(`/api/chat/runs/${encodeURIComponent(runId)}/cancel`, {
     method: 'POST',
     body: JSON.stringify({ reason: 'user_cancelled' }),
   });
+  return {
+    run_id: String(result.run_id ?? result.runId ?? runId),
+    status: String(result.status ?? ''),
+    ...(result.terminal === undefined ? {} : { terminal: Boolean(result.terminal) }),
+    ...(result.command_id || result.commandId ? { command_id: String(result.command_id ?? result.commandId) } : {}),
+    ...(result.dispatch_id || result.dispatchId
+      ? { dispatch_id: String(result.dispatch_id ?? result.dispatchId) }
+      : {}),
+    ...(result.duplicate === undefined ? {} : { duplicate: Boolean(result.duplicate) }),
+  };
 }
 
 export function streamChatRun(runId: string, onEvent: (event: ChatRunEvent) => void, lastEventId?: number): () => void {
+  const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
   const suffix = lastEventId && lastEventId > 0 ? `?lastEventId=${lastEventId}` : '';
   const source = new EventSource(`${baseUrl}/api/chat/runs/${encodeURIComponent(runId)}/stream${suffix}`, {
     withCredentials: true,

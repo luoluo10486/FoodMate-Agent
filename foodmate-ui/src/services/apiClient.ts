@@ -39,7 +39,9 @@ async function send(path: string, init: RequestInit): Promise<Response> {
   }
 }
 
-async function envelope<T>(response: Response): Promise<ApiEnvelope<T> | undefined> {
+async function envelope<T>(response: Response, allowEmpty = true): Promise<ApiEnvelope<T> | undefined> {
+  if (allowEmpty && (response.status === 204 || response.status === 205))
+    return { success: true, data: undefined as T };
   let body: ApiEnvelope<T> | undefined;
   try {
     body = (await response.json()) as ApiEnvelope<T>;
@@ -53,7 +55,7 @@ async function refreshAuthSession(): Promise<void> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       const response = await send('/api/auth/refresh', { method: 'POST' });
-      const body = await envelope<void>(response);
+      const body = await envelope<void>(response, false);
       if (!response.ok || !body?.success)
         throw new ApiError(
           body?.error?.code ?? 'AUTH_REFRESH_TOKEN_INVALID',

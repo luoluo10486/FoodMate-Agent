@@ -2,14 +2,22 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentFeedback } from './AgentFeedback';
-import { apiRequest } from '../../services/apiClient';
+import { submitAgentFeedback } from '../../services/agentRunService';
 
-vi.mock('../../services/apiClient', () => ({ apiRequest: vi.fn() }));
+vi.mock('../../services/agentRunService', () => ({ submitAgentFeedback: vi.fn() }));
 
 describe('AgentFeedback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(apiRequest).mockResolvedValue({});
+    vi.mocked(submitAgentFeedback).mockResolvedValue({
+      feedback_id: '1',
+      run_id: '42',
+      message_id: '99',
+      helpful: true,
+      reason_codes: [],
+      high_risk: false,
+      idempotency_key: 'agent-feedback-42-99',
+    });
   });
 
   it('submits positive feedback without sending answer text', async () => {
@@ -18,13 +26,11 @@ describe('AgentFeedback', () => {
 
     await user.click(screen.getByRole('button', { name: '有帮助' }));
 
-    expect(apiRequest).toHaveBeenCalledWith(
-      '/api/agent-runs/42/messages/99/feedback',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ helpful: true, reason_codes: [] }),
-      }),
-    );
+    expect(submitAgentFeedback).toHaveBeenCalledWith('42', '99', {
+      helpful: true,
+      reasonCodes: [],
+      comment: undefined,
+    });
     expect(await screen.findByText('感谢反馈')).toBeInTheDocument();
   });
 
@@ -36,6 +42,6 @@ describe('AgentFeedback', () => {
     await user.click(screen.getByRole('button', { name: '提交反馈' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('请选择至少一个原因');
-    expect(apiRequest).not.toHaveBeenCalled();
+    expect(submitAgentFeedback).not.toHaveBeenCalled();
   });
 });

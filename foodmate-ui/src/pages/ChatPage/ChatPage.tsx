@@ -47,7 +47,7 @@ import {
   extendAgentRunBudget,
   openAgentRunStream,
   rejectAgentWrite,
-  recoverAgentRun,
+  recoverAgentRunFromCheckpoint,
   type AgentRunEvent,
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
@@ -1507,7 +1507,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '重试请求需要后端运行恢复事件，当前页面不会伪造成功。');
     try {
-      await recoverAgentRun(runId);
+      await recoverAgentRunFromCheckpoint(runId);
       report('pending', '重试请求已提交，等待新的工具事件。');
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '重试请求失败，请稍后重试。');
@@ -2292,7 +2292,7 @@ function RealChatPage() {
               { label: '安全校验', value: 'Java 服务端完成' },
             ]}
             onConfirm={() => {
-              void recoverAgentRun(activeRunId)
+              void recoverAgentRunFromCheckpoint(activeRunId)
                 .then(() => {
                   setCheckpointAvailable(false);
                   setRunStatus('queued');

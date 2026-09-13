@@ -1,19 +1,4 @@
-import { csrfToken } from './authService';
-
-const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-type ApiResponse<T> = { success: boolean; data: T; error?: { message: string } };
-
-async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type'))
-    headers.set('Content-Type', 'application/json');
-  const token = csrfToken();
-  if (token && init.method && init.method !== 'GET') headers.set('X-CSRF-Token', token);
-  const response = await fetch(`${baseUrl}${path}`, { ...init, credentials: 'include', headers });
-  const body = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || !body.success) throw new Error(body.error?.message ?? '请求失败');
-  return body.data;
-}
+import { apiRequest } from './apiClient';
 
 export type Profile = {
   user_id: number;
@@ -50,31 +35,37 @@ export type ProfileUpdateRequest = {
   protein_target?: number;
 };
 
-export const getProfile = () => api<Profile>('/api/users/me/profile');
+export const getProfile = () => apiRequest<Profile>('/api/users/me/profile');
 export const updateProfile = (profile: ProfileUpdateRequest) =>
-  api<Profile>('/api/users/me/profile', { method: 'PUT', body: JSON.stringify(profile) });
+  apiRequest<Profile>('/api/users/me/profile', { method: 'PUT', body: JSON.stringify(profile) });
 export const changePassword = (currentPassword: string, newPassword: string) =>
-  api<void>('/api/users/me/password', {
+  apiRequest<void>('/api/users/me/password', {
     method: 'POST',
     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   });
-export const getAuthSessions = () => api<AuthSession[]>('/api/users/me/sessions');
-export const revokeAuthSession = (id: number) => api<void>(`/api/users/me/sessions/${id}`, { method: 'DELETE' });
-export const revokeAllAuthSessions = () => api<void>('/api/users/me/sessions/revoke-all', { method: 'POST' });
+export const getAuthSessions = () => apiRequest<AuthSession[]>('/api/users/me/sessions');
+export const revokeAuthSession = (id: number) => apiRequest<void>(`/api/users/me/sessions/${id}`, { method: 'DELETE' });
+export const revokeAllAuthSessions = () => apiRequest<void>('/api/users/me/sessions/revoke-all', { method: 'POST' });
 export const uploadAvatar = (file: File) => {
   const form = new FormData();
   form.append('file', file);
-  return api<{
+  return apiRequest<{
     avatar_asset_id: number;
     avatar_url: string;
     mime_type: string;
     size_bytes: number;
   }>('/api/users/me/avatar', { method: 'POST', body: form });
 };
-export const deleteAvatar = () => api<void>('/api/users/me/avatar', { method: 'DELETE' });
-export const requestDataExport = () => api<{ export_job_id: number }>('/api/users/me/export', { method: 'POST' });
+// 头像读取接口返回 302，作为图片地址使用，不经过 JSON 响应解析。
+export const getAvatarUrl = () => {
+  const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
+  return `${baseUrl}/api/users/me/avatar`;
+};
+export const deleteAvatar = () => apiRequest<void>('/api/users/me/avatar', { method: 'DELETE' });
+export const requestDataExport = () =>
+  apiRequest<{ export_job_id: number }>('/api/users/me/export', { method: 'POST' });
 export const getDataExport = (id: number) =>
-  api<{
+  apiRequest<{
     export_job_id: number;
     status: string;
     expires_at?: string;
@@ -83,9 +74,9 @@ export const getDataExport = (id: number) =>
     failure_code?: string;
   }>(`/api/users/me/export/${id}`);
 export const downloadDataExport = (id: number) =>
-  api<{ download_url: string }>(`/api/users/me/export/${id}/download`, { method: 'POST' });
+  apiRequest<{ download_url: string }>(`/api/users/me/export/${id}/download`, { method: 'POST' });
 export const requestAccountDeletion = (confirmation: string, currentPassword: string) =>
-  api<{ deletion_job_id: number }>('/api/users/me/deletion', {
+  apiRequest<{ deletion_job_id: number }>('/api/users/me/deletion', {
     method: 'POST',
     body: JSON.stringify({ confirmation, current_password: currentPassword }),
   });

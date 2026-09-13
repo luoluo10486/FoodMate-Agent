@@ -1,4 +1,5 @@
 import type { AgentStreamConnection, AgentStreamConnectionState, AgentStreamHandle } from '../types/agent';
+import { apiRequest } from './apiClient';
 
 export type AgentRunEvent = {
   event_id?: string;
@@ -68,6 +69,95 @@ export type AgentStreamOptions = {
   reconnectDelayMs?: number;
   onStateChange?: (connection: AgentStreamConnection) => void;
   onError?: (connection: AgentStreamConnection) => void;
+};
+
+export type AgentRunStatus = {
+  run_id: string;
+  status: string;
+  accepted_event_count: number;
+};
+
+export type AgentCancellationResult = {
+  run_id: string;
+  status: string;
+  terminal: boolean;
+};
+
+type AgentCancellationPayload = Partial<AgentCancellationResult> & {
+  runId?: string | number;
+};
+
+export type AgentBudgetExtensionResult = {
+  run_id: string;
+  dispatch_id: string;
+  attempt: number;
+  budget_revision: number;
+  status: string;
+};
+
+type AgentBudgetExtensionPayload = Partial<AgentBudgetExtensionResult> & {
+  runId?: string | number;
+  dispatchId?: string;
+  budgetRevision?: number;
+};
+
+export type AgentRecoveryRequest = {
+  checkpointVersion: number;
+  checkpointDigest: string;
+  completedInvocationIds?: string[];
+};
+
+export type AgentRecoveryResult = {
+  run_id: string;
+  dispatch_id: string;
+  attempt: number;
+  status: string;
+};
+
+export type AgentFeedbackRequest = {
+  helpful: boolean;
+  reasonCodes?: string[];
+  comment?: string;
+};
+
+export type AgentFeedbackResponse = {
+  feedback_id: string;
+  run_id: string;
+  message_id: string;
+  helpful: boolean;
+  reason_codes: string[];
+  high_risk: boolean;
+  idempotency_key: string;
+};
+
+export type ApprovalProposalRequest = {
+  sessionId?: string | number;
+  agentRunId?: string | number;
+  operation: string;
+  resourceType: string;
+  resourceId?: string | number;
+  parameters: Record<string, unknown>;
+  idempotencyKey?: string;
+  expiresInSeconds?: number;
+};
+
+export type ApprovalProposalResponse = {
+  approval_request_id: string;
+  operation: string;
+  resource_type: string;
+  resource_id: number | null;
+  parameters_digest: string;
+  status: string;
+  expires_at: string;
+  confirmed_at: string | null;
+  executed_at: string | null;
+};
+
+export type ApprovalExecuteResponse = {
+  approval_request_id: string;
+  operation: string;
+  status: string;
+  resource_id: number | null;
 };
 
 const terminalEventTypes = new Set(['run.completed', 'run.failed', 'run.cancelled', 'run.superseded']);
@@ -210,136 +300,163 @@ export function openAgentRunStream(
   return { close, getConnection: () => connection };
 }
 
-export async function cancelAgentRun(runId: string): Promise<void> {
-  // 取消是写操作，必须把可读 CSRF Cookie 转发给后端。
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/cancel`, {
+export async function loadAgentRun(runId: string): Promise<AgentRunStatus> {
+  return apiRequest<AgentRunStatus>(`/api/agent-runs/${encodeURIComponent(runId)}`);
+}
+
+export async function cancelAgentRun(runId: string, reason = 'user_requested'): Promise<AgentCancellationResult> {
+  const result = await apiRequest<AgentCancellationPayload>(`/api/agent-runs/${encodeURIComponent(runId)}/cancel`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify({ reason: 'user_requested' }),
+    body: JSON.stringify({ reason }),
   });
-  if (!response.ok) throw new Error('取消运行失败');
+  return normalizeCancellationResult(result);
 }
 
 export async function extendAgentRunBudget(
   runId: string,
   additionalTokens: number,
   additionalCostCny: string,
-): Promise<void> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const raw = `${runId}:${additionalTokens}:${additionalCostCny}:${Date.now()}`;
-  const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))))
-    .map((value) => value.toString(16).padStart(2, '0'))
-    .join('');
-  const response = await fetch(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/budget-extensions`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify({
-      additional_tokens: additionalTokens,
-      additional_cost_cny: additionalCostCny,
-      confirmation_digest: `sha256:${digest}`,
-    }),
-  });
-  if (!response.ok) throw new Error('预算追加失败，请稍后重试。');
+  confirmationDigest?: string,
+): Promise<AgentBudgetExtensionResult> {
+  const digest =
+    confirmationDigest ??
+    (await stableDigest(`agent-run.budget.extension|${runId}|${additionalTokens}|${additionalCostCny}`));
+  const result = await apiRequest<AgentBudgetExtensionPayload>(
+    `/api/agent-runs/${encodeURIComponent(runId)}/budget-extensions`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        additionalTokens,
+        additionalCostCny,
+        confirmationDigest: digest,
+      }),
+    },
+  );
+  return normalizeBudgetExtensionResult(result);
 }
 
 /**
- * 恢复必须由 Java 根据已持久化 checkpoint 对账，前端不提交 checkpoint 内容。
+ * 根据已持久化的 checkpoint 恢复时，前端不提交 checkpoint 内容。
  */
-export async function recoverAgentRun(
-  runId: string,
-): Promise<{ run_id: string; dispatch_id: string; attempt: number; status: string }> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/recover-from-checkpoint`, {
+export async function recoverAgentRun(runId: string, request: AgentRecoveryRequest): Promise<AgentRecoveryResult> {
+  return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/recover`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+    body: JSON.stringify({
+      checkpoint_version: request.checkpointVersion,
+      checkpoint_digest: request.checkpointDigest,
+      completed_invocation_ids: request.completedInvocationIds ?? [],
+    }),
   });
-  const body = (await response.json()) as {
-    success: boolean;
-    data?: { run_id: string; dispatch_id: string; attempt: number; status: string };
-    error?: { message?: string };
-  };
-  if (!response.ok || !body.success || !body.data) throw new Error(body.error?.message ?? '运行恢复失败，请稍后重试。');
-  return body.data;
+}
+
+export async function recoverAgentRunFromCheckpoint(runId: string): Promise<AgentRecoveryResult> {
+  return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/recover-from-checkpoint`, {
+    method: 'POST',
+  });
+}
+
+export async function submitAgentFeedback(
+  runId: string,
+  messageId: string,
+  request: AgentFeedbackRequest,
+): Promise<AgentFeedbackResponse> {
+  return apiRequest<AgentFeedbackResponse>(
+    `/api/agent-runs/${encodeURIComponent(runId)}/messages/${encodeURIComponent(messageId)}/feedback`,
+    {
+      method: 'POST',
+      headers: { 'Idempotency-Key': `agent-feedback-${runId}-${messageId}` },
+      body: JSON.stringify({
+        helpful: request.helpful,
+        reason_codes: request.reasonCodes ?? [],
+        comment: request.comment || undefined,
+      }),
+    },
+  );
+}
+
+export async function createApprovalProposal(request: ApprovalProposalRequest): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>('/api/approvals/proposals', {
+    method: 'POST',
+    body: JSON.stringify({
+      session_id: request.sessionId,
+      agent_run_id: request.agentRunId,
+      operation: request.operation,
+      resource_type: request.resourceType,
+      resource_id: request.resourceId,
+      parameters: request.parameters,
+      idempotency_key: request.idempotencyKey ?? idempotencyKey('approval-proposal'),
+      expires_in_seconds: request.expiresInSeconds ?? 900,
+    }),
+  });
+}
+
+export async function loadApprovalProposal(approvalRequestId: string | number): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>(`/api/approvals/${encodeURIComponent(String(approvalRequestId))}`);
 }
 
 export async function confirmAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown> = {},
-): Promise<unknown> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/confirm`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify(parameters),
-  });
-  const body = (await response.json()) as { success?: boolean; data?: unknown; error?: { message?: string } };
-  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '写入确认失败，请稍后重试。');
-  return body.data;
+): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>(
+    `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/confirm`,
+    {
+      method: 'POST',
+      body: JSON.stringify(parameters),
+    },
+  );
 }
 
 export async function executeAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown>,
-): Promise<unknown> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/execute`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify(parameters),
-  });
-  const body = (await response.json()) as { success?: boolean; data?: unknown; error?: { message?: string } };
-  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '写入执行失败，请稍后重试。');
-  return body.data;
+): Promise<ApprovalExecuteResponse> {
+  return apiRequest<ApprovalExecuteResponse>(
+    `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/execute`,
+    {
+      method: 'POST',
+      body: JSON.stringify(parameters),
+    },
+  );
 }
 
 export async function rejectAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown> = {},
-): Promise<unknown> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/reject`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify(parameters),
-  });
-  const body = (await response.json()) as { success?: boolean; data?: unknown; error?: { message?: string } };
-  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '取消写入失败，请稍后重试。');
-  return body.data;
+): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>(
+    `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/reject`,
+    {
+      method: 'POST',
+      body: JSON.stringify(parameters),
+    },
+  );
+}
+
+function idempotencyKey(prefix: string) {
+  const suffix = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${suffix}`;
+}
+
+async function stableDigest(value: string) {
+  const bytes = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return `sha256:${Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function normalizeCancellationResult(payload: AgentCancellationPayload): AgentCancellationResult {
+  return {
+    run_id: String(payload.run_id ?? payload.runId ?? ''),
+    status: String(payload.status ?? ''),
+    terminal: Boolean(payload.terminal),
+  };
+}
+
+function normalizeBudgetExtensionResult(payload: AgentBudgetExtensionPayload): AgentBudgetExtensionResult {
+  return {
+    run_id: String(payload.run_id ?? payload.runId ?? ''),
+    dispatch_id: String(payload.dispatch_id ?? payload.dispatchId ?? ''),
+    attempt: Number(payload.attempt ?? 0),
+    budget_revision: Number(payload.budget_revision ?? payload.budgetRevision ?? 0),
+    status: String(payload.status ?? ''),
+  };
 }
