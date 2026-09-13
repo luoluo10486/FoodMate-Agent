@@ -1,0 +1,179 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
+import type { ChatRunEvent } from './chatApi';
+import { useRealAgentReplay } from './realAgentService';
+
+const { cancelChatRun, createChatRun, getChatRun, getChatRunEvents, loadSessionMessages, streamChatRun } = vi.hoisted(
+  () => ({
+    cancelChatRun: vi.fn(),
+    createChatRun: vi.fn(),
+    getChatRun: vi.fn(),
+    getChatRunEvents: vi.fn(),
+    loadSessionMessages: vi.fn(),
+    streamChatRun: vi.fn(),
+  }),
+);
+
+vi.mock('./chatApi', async () => {
+  const actual = await vi.importActual<typeof import('./chatApi')>('./chatApi');
+  return { ...actual, cancelChatRun, createChatRun, getChatRun, getChatRunEvents, streamChatRun };
+});
+
+vi.mock('./sessionService', async () => {
+  const actual = await vi.importActual<typeof import('./sessionService')>('./sessionService');
+  return { ...actual, loadSessionMessages };
+});
+
+type StreamSubscription = {
+  onEvent: (event: ChatRunEvent) => void;
+  close: ReturnType<typeof vi.fn>;
+  connection: AgentStreamConnection;
+};
+
+function event(
+  eventType: string,
+  payload: Record<string, unknown> = {},
+  eventId = eventType,
+  state = 'RUNNING',
+): ChatRunEvent {
+  return {
+    event_id: eventId,
+    run_id: '42',
+    event_seq: Number(eventId.replace(/\D/g, '')) || 1,
+    state,
+    payload,
+    occurred_at: '2026-09-13T00:00:00Z',
+    event_type: eventType,
+    sse_event_id: eventId,
+  };
+}
+
+describe('useRealAgentReplay ChatRun 兼容入口', () => {
+  const subscriptions: StreamSubscription[] = [];
+
+  beforeEach(() => {
+    cancelChatRun.mockReset();
+    createChatRun.mockReset();
+    getChatRun.mockReset();
+    getChatRunEvents.mockReset();
+    loadSessionMessages.mockReset();
+    streamChatRun.mockReset();
+    subscriptions.length = 0;
+    loadSessionMessages.mockResolvedValue([]);
+    getChatRun.mockResolvedValue({ run_id: '42', status: 'DISPATCHED' });
+    getChatRunEvents.mockResolvedValue([]);
+    createChatRun.mockResolvedValue({
+      run_id: '42',
+      dispatch_id: 'dispatch-1',
+      status: 'DISPATCHED',
+      duplicate: false,
+      session_id: 'session-1',
+      user_message_id: 'message-1',
+    });
+    streamChatRun.mockImplementation(
+      (
+        _runId: string,
+        onEvent: (event: ChatRunEvent) => void,
+        lastEventId: string | undefined,
+        options: { onStateChange?: (connection: AgentStreamConnection) => void },
+      ): AgentStreamHandle => {
+        const connection: AgentStreamConnection = {
+          state: 'connected',
+          attempt: 1,
+          maxAttempts: 5,
+          lastEventId,
+        };
+        const close = vi.fn();
+        subscriptions.push({ onEvent, close, connection });
+        options.onStateChange?.(connection);
+        return { close, getConnection: () => connection };
+      },
+    );
+  });
+
+  it('创建后读取状态并通过 SSE 去重文本、识别完成终态', async () => {
+    const { result } = renderHook(() => useRealAgentReplay(true, 'session-1'));
+
+    act(() => result.current.setInput('分析本周饮食'));
+    await act(async () => {
+      await result.current.send();
+    });
+    await waitFor(() => expect(streamChatRun).toHaveBeenCalledTimes(1));
+
+    act(() => subscriptions[0].onEvent(event('run.answer_stream', { text: '第一段' }, 'event-1')));
+    act(() => subscriptions[0].onEvent(event('run.answer_stream', { text: '重复文本' }, 'event-1')));
+    act(() => subscriptions[0].onEvent(event('run.completed', { answer: '完整回答' }, 'event-2', 'SUCCEEDED')));
+
+    expect(result.current.events).toHaveLength(2);
+    expect(result.current.assistantText).toBe('完整回答');
+    expect(result.current.run.status).toBe('completed');
+    expect(result.current.running).toBe(false);
+    expect(subscriptions[0].close).not.toHaveBeenCalled();
+  });
+
+  it('取消请求接受后仍等待取消事件，并保留已经接收的文本', async () => {
+    cancelChatRun.mockResolvedValue({ run_id: '42', status: 'accepted', terminal: false });
+    const { result } = renderHook(() => useRealAgentReplay(true, 'session-1'));
+
+    act(() => result.current.setInput('继续分析'));
+    await act(async () => {
+      await result.current.send();
+    });
+    await waitFor(() => expect(subscriptions).toHaveLength(1));
+    act(() => subscriptions[0].onEvent(event('run.answer_stream', { text: '已接收部分回答' }, 'event-1')));
+
+    act(() => result.current.stop());
+    await waitFor(() => expect(cancelChatRun).toHaveBeenCalledWith('42'));
+    await waitFor(() => expect(subscriptions).toHaveLength(2));
+
+    expect(result.current.cancelling).toBe(true);
+    expect(result.current.running).toBe(false);
+    expect(subscriptions[1].connection.lastEventId).toBe('event-1');
+    act(() => subscriptions[1].onEvent(event('run.cancel_acknowledged', {}, 'event-2')));
+    expect(result.current.cancelling).toBe(true);
+    expect(result.current.cancelAcknowledged).toBe(true);
+    act(() => subscriptions[1].onEvent(event('run.cancelled', {}, 'event-3', 'CANCELED')));
+
+    expect(result.current.assistantText).toBe('已接收部分回答');
+    expect(result.current.cancelling).toBe(false);
+    expect(result.current.run.status).toBe('cancelled');
+  });
+
+  it('连接耗尽后停止生成并允许从最近游标手动重连', async () => {
+    let streamCount = 0;
+    streamChatRun.mockImplementation(
+      (
+        _runId: string,
+        _onEvent: (event: ChatRunEvent) => void,
+        lastEventId: string | undefined,
+        options: { onStateChange?: (connection: AgentStreamConnection) => void },
+      ): AgentStreamHandle => {
+        streamCount += 1;
+        const connection: AgentStreamConnection = {
+          state: streamCount === 1 ? 'exhausted' : 'connected',
+          attempt: streamCount === 1 ? 5 : 1,
+          maxAttempts: 5,
+          lastEventId,
+        };
+        const close = vi.fn();
+        subscriptions.push({ onEvent: _onEvent, close, connection });
+        options.onStateChange?.(connection);
+        return { close, getConnection: () => connection };
+      },
+    );
+    const { result } = renderHook(() => useRealAgentReplay(true, 'session-1'));
+
+    act(() => result.current.setInput('检查连接'));
+    await act(async () => {
+      await result.current.send();
+    });
+    await waitFor(() => expect(result.current.run.connection?.state).toBe('exhausted'));
+    expect(result.current.running).toBe(false);
+    expect(result.current.error).toContain('重试已耗尽');
+
+    act(() => result.current.reconnect());
+    await waitFor(() => expect(streamChatRun).toHaveBeenCalledTimes(2));
+    expect(result.current.run.connection?.state).toBe('connected');
+  });
+});

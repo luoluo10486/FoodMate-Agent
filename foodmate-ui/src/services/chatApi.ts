@@ -3,6 +3,8 @@ export type ChatRun = {
   dispatch_id: string;
   status: string;
   duplicate: boolean;
+  session_id?: string;
+  user_message_id?: string;
 };
 
 export type ChatCancellationResult = {
@@ -12,6 +14,13 @@ export type ChatCancellationResult = {
   command_id?: string;
   dispatch_id?: string;
   duplicate?: boolean;
+};
+
+type ChatRunPayload = Partial<ChatRun> & {
+  runId?: string | number;
+  dispatchId?: string;
+  sessionId?: string | number;
+  userMessageId?: string | number;
 };
 
 type ChatCancellationPayload = Partial<ChatCancellationResult> & {
@@ -24,14 +33,19 @@ import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
 import { openSseStream } from './sseStream';
 
 export function createChatRun(prompt: string, sessionId?: string): Promise<ChatRun> {
-  return apiRequest<ChatRun>('/api/chat/runs', {
+  return apiRequest<ChatRunPayload>('/api/chat/runs', {
     method: 'POST',
     body: JSON.stringify({ prompt, session_id: sessionId }),
-  });
+  }).then(normalizeChatRun);
 }
 
 export function getChatRun(runId: string): Promise<{ run_id: string; status: string }> {
-  return apiRequest<{ run_id: string; status: string }>(`/api/chat/runs/${encodeURIComponent(runId)}`);
+  return apiRequest<{ run_id?: string; runId?: string | number; status?: string }>(
+    `/api/chat/runs/${encodeURIComponent(runId)}`,
+  ).then((result) => ({
+    run_id: String(result.run_id ?? result.runId ?? runId),
+    status: String(result.status ?? ''),
+  }));
 }
 
 export type ChatRunEvent = {
@@ -46,7 +60,15 @@ export type ChatRunEvent = {
 };
 
 export function getChatRunEvents(runId: string): Promise<ChatRunEvent[]> {
-  return apiRequest<ChatRunEvent[]>(`/api/chat/runs/${encodeURIComponent(runId)}/events`);
+  return apiRequest<ChatRunEvent[]>(`/api/chat/runs/${encodeURIComponent(runId)}/events`).then((events) =>
+    events.map((event) => ({
+      ...event,
+      event_id: String(event.event_id ?? ''),
+      run_id: String(event.run_id ?? runId),
+      event_seq: Number(event.event_seq ?? 0),
+      state: String(event.state ?? ''),
+    })),
+  );
 }
 
 export async function cancelChatRun(runId: string): Promise<ChatCancellationResult> {
@@ -143,6 +165,21 @@ function normalizeChatRunEvent(
     occurred_at: stringValue(raw.occurred_at) || stringValue(raw.occurredAt) || '',
     event_type: eventType,
     sse_event_id: eventId || undefined,
+  };
+}
+
+function normalizeChatRun(payload: ChatRunPayload): ChatRun {
+  return {
+    run_id: String(payload.run_id ?? payload.runId ?? ''),
+    dispatch_id: String(payload.dispatch_id ?? payload.dispatchId ?? ''),
+    status: String(payload.status ?? ''),
+    duplicate: Boolean(payload.duplicate),
+    ...((payload.session_id ?? payload.sessionId)
+      ? { session_id: String(payload.session_id ?? payload.sessionId) }
+      : {}),
+    ...((payload.user_message_id ?? payload.userMessageId)
+      ? { user_message_id: String(payload.user_message_id ?? payload.userMessageId) }
+      : {}),
   };
 }
 

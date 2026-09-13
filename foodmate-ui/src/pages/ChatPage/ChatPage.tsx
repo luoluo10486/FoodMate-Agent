@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -9,6 +9,7 @@ import {
   LoaderCircle,
   MessageCircle,
   Pencil,
+  RefreshCw,
   Search,
   Trash2,
   XCircle,
@@ -50,6 +51,7 @@ import { AvatarImage } from '../../components/common/AvatarImage';
 import { FIXTURE_ACCOUNT_AVATAR, FIXTURE_CHAT_AVATAR_GENDERS, resolveAvatarUrl } from '../../lib/avatar';
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
+import { useRealAgentReplay } from '../../services/realAgentService';
 import { ApiError } from '../../services/apiClient';
 import {
   createSession,
@@ -562,6 +564,8 @@ export function ChatPage() {
   if (searchParams.get('state') === 'safety-degraded') return <AgentStatePage state="safety-degraded" />;
   if (searchParams.get('state') === 'user-cancelled') return <AgentStatePage state="user-cancelled" />;
   if (searchParams.get('state') === 'sse-reconnecting') return <AgentStatePage state="sse-reconnecting" />;
+  if (searchParams.get('transport') === 'chat-run' && import.meta.env.VITE_AGENT_MODE === 'real')
+    return <ChatRunPage />;
   return import.meta.env.VITE_AGENT_MODE === 'real' ? <RealChatPage /> : <MockChatPage />;
 }
 
@@ -2676,6 +2680,97 @@ function RealChatPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </ChatSurface>
+  );
+}
+
+function ChatRunPage() {
+  const { session_id: sessionId } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const onSessionCreated = useCallback(
+    (createdSessionId: string) => {
+      navigate(`/chat/${encodeURIComponent(createdSessionId)}?transport=chat-run`, { replace: true });
+    },
+    [navigate],
+  );
+  const agent = useRealAgentReplay(true, sessionId, searchParams.get('prompt'), { onSessionCreated });
+
+  useEffect(() => {
+    messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
+  }, [agent.messages, agent.assistantText]);
+
+  return (
+    <ChatSurface
+      run={agent.run}
+      messagesRef={messagesRef}
+      input={agent.input}
+      running={agent.running}
+      disabled={agent.loading || agent.cancelling}
+      onChange={agent.setInput}
+      onSend={() => void agent.send()}
+      onStop={agent.stop}
+      showKnowledgeTopNav
+      placeholder="追问或添加自定义指令..."
+    >
+      <span className={styles.srOnly} data-chat-transport="chat-run">
+        ChatRun 兼容模式
+      </span>
+      {agent.loading ? <p className={styles.systemMessage}>正在加载 ChatRun 消息...</p> : null}
+      {!agent.loading && agent.messages.length === 0 ? (
+        <p className={styles.systemMessage}>暂无消息，发送第一条内容开始会话。</p>
+      ) : null}
+      {agent.error ? (
+        <div className={styles.runtimeErrorBlock}>
+          <ErrorState message={agent.error} />
+          {agent.run.connection?.state === 'exhausted' ? (
+            <Button variant="outline" type="button" onClick={agent.reconnect}>
+              <RefreshCw aria-hidden="true" />
+              重新连接
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {agent.run.connection?.state === 'connecting' ? (
+        <div className={styles.connectionNotice} role="status" aria-live="polite">
+          <LoaderCircle aria-hidden="true" />
+          <span>正在连接 ChatRun 实时事件...</span>
+        </div>
+      ) : null}
+      {agent.run.connection?.state === 'reconnecting' ? (
+        <div className={styles.connectionNotice} role="status" aria-live="polite">
+          <LoaderCircle aria-hidden="true" />
+          <div>
+            <strong>连接已中断，正在重新连接...</strong>
+            <span>
+              第 {agent.run.connection?.attempt} 次重连尝试（最多 {agent.run.connection?.maxAttempts} 次）
+            </span>
+          </div>
+        </div>
+      ) : null}
+      {agent.cancelling ? (
+        <div className={styles.connectionNotice} role="status" aria-live="polite">
+          <LoaderCircle aria-hidden="true" />
+          <div>
+            <strong>{agent.cancelAcknowledged ? '取消请求已确认，等待运行终态...' : '正在取消当前运行...'}</strong>
+            <span>取消请求已接受，仍需等待 ChatRun 的 cancelled 事件。</span>
+          </div>
+        </div>
+      ) : null}
+      {agent.messages.map((message) => (
+        <MessageBubble key={message.id} message={message} />
+      ))}
+      {agent.assistantText ? (
+        <MessageBubble
+          message={{
+            id: `chat-run-answer-${agent.activeRunId ?? 'pending'}`,
+            role: 'assistant',
+            content: agent.assistantText,
+            time: agent.assistantTime || new Date().toISOString(),
+          }}
+        />
+      ) : null}
     </ChatSurface>
   );
 }
