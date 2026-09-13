@@ -32,6 +32,7 @@ import {
 import {
   loadAdminTraceDetail,
   loadAdminQuery,
+  replayAdminDlq,
   type AdminRunRow,
   type AdminQueryRun,
   type AdminQueryTrace,
@@ -43,6 +44,7 @@ import {
   type AdminToolCallRow,
   type AdminTraceRow,
 } from '../../../services/adminService';
+import type { AdminActionPayload } from './types';
 
 type AdminDlqRow = {
   key: string;
@@ -532,7 +534,13 @@ function DataPlaceholder({ filtered, tab: _tab, error }: { filtered: boolean; ta
   );
 }
 
-export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
+type RunsSectionProps = {
+  refreshNonce?: number;
+  onAction?: (payload: AdminActionPayload) => void;
+  canReplayDlq?: boolean;
+};
+
+export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }: RunsSectionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [dashboard, setDashboard] = useState<DashboardState>(isRealMode ? emptyDashboard : mockDashboard);
   const [query, setQuery] = useState('');
@@ -839,6 +847,40 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
       render: (_, row) => statusTag(row.reconciliationState),
     },
     { title: '首次发现', dataIndex: 'firstSeenAt' },
+    {
+      title: '操作',
+      render: (_, row) => {
+        const dlqId = Number(row.dlqId);
+        const replayable =
+          canReplayDlq &&
+          Number.isInteger(dlqId) &&
+          dlqId > 0 &&
+          ['pending', 'needs_attention'].includes(row.reconciliationState);
+        if (!replayable || !onAction) {
+          return <span>{canReplayDlq ? '不可重放' : '仅 superadmin'}</span>;
+        }
+        return (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              onAction({
+                action: '重放 DLQ 消息',
+                targetLabel: row.messageId,
+                targetType: 'dlq',
+                targetId: row.dlqId,
+                execute: async () => {
+                  await replayAdminDlq(dlqId);
+                },
+              })
+            }
+          >
+            <RotateCcw aria-hidden="true" />
+            重放
+          </Button>
+        );
+      },
+    },
   ];
 
   return (

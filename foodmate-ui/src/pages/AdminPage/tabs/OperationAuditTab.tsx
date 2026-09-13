@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Copy, Download, Eye, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,14 @@ import { Input as ShadcnInput } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AdminOnlyNotice } from './AdminComponents';
-import { adminOperationAuditRows, canViewAudit, statusTag } from './AdminShared';
+import { adminOperationAuditRows, canManage, canViewAudit, statusTag } from './AdminShared';
 import {
   downloadAdminExport,
+  loadAdminAuditReport,
   loadAdminExportStatus,
   loadAdminOperationAuditsPage,
   requestAdminExport,
+  type AdminAuditReport,
   type AdminExportStatus,
 } from '../../../services/adminService';
 import styles from '../AdminPage.module.css';
@@ -488,6 +490,117 @@ function withinTime(createdAt: string, filter: string) {
   return Date.now() - timestamp <= days * 24 * 60 * 60 * 1000;
 }
 
+const auditReportCheckLabels: Record<string, string> = {
+  OPERATION_AUDIT: '操作审计',
+  RUNTIME_DISPATCH_OUTBOX: 'Agent 分发队列',
+  KNOWLEDGE_INDEX_OUTBOX: '知识库索引队列',
+  KNOWLEDGE_VISIBILITY_OUTBOX: '知识库可见性队列',
+  AGENT_RUN_SSE_OUTBOX: 'Agent SSE 队列',
+  KNOWLEDGE_IMPORT: '知识库导入',
+  RUNTIME_DLQ: '运行 DLQ',
+};
+
+function formatAuditReportTime(value: string | null | undefined) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function AuditReportCard({
+  report,
+  loading,
+  error,
+  onRetry,
+}: {
+  report?: AdminAuditReport;
+  loading: boolean;
+  error: string;
+  onRetry: () => void;
+}) {
+  return (
+    <section className={styles.auditReportCard} aria-label="运营审计报告">
+      <div className={styles.auditReportHeader}>
+        <div>
+          <strong>运营审计报告</strong>
+          <p>服务端聚合队列、导入任务和操作审计状态，不包含业务载荷。</p>
+        </div>
+        <Button variant="outline" size="sm" disabled={loading} onClick={onRetry}>
+          <RefreshCw aria-hidden="true" />
+          {loading ? '刷新中...' : '刷新报告'}
+        </Button>
+      </div>
+
+      {error ? (
+        <div className={styles.auditReportError} role="alert">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" disabled={loading} onClick={onRetry}>
+            <RefreshCw aria-hidden="true" />
+            重试
+          </Button>
+        </div>
+      ) : null}
+
+      {loading && !report ? (
+        <div className={styles.auditReportLoading} role="status">
+          正在读取服务端审计报告...
+        </div>
+      ) : report ? (
+        <>
+          <dl className={styles.auditReportMeta}>
+            <div>
+              <dt>报告状态</dt>
+              <dd>{statusTag(report.status)}</dd>
+            </div>
+            <div>
+              <dt>生成时间</dt>
+              <dd>{formatAuditReportTime(report.generated_at)}</dd>
+            </div>
+            <div>
+              <dt>陈旧阈值</dt>
+              <dd>{report.stale_threshold_minutes} 分钟</dd>
+            </div>
+          </dl>
+          <div className={styles.auditReportChecks}>
+            {report.checks.length ? (
+              report.checks.map((check) => (
+                <article key={check.code} className={styles.auditReportCheck}>
+                  <div className={styles.auditReportCheckHeader}>
+                    <strong>{auditReportCheckLabels[check.code] ?? check.code}</strong>
+                    {statusTag(check.status)}
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>待处理</dt>
+                      <dd>{check.pending_count.toLocaleString('zh-CN')}</dd>
+                    </div>
+                    <div>
+                      <dt>失败</dt>
+                      <dd>{check.failed_count.toLocaleString('zh-CN')}</dd>
+                    </div>
+                    <div>
+                      <dt>最早时间</dt>
+                      <dd>{formatAuditReportTime(check.oldest_at)}</dd>
+                    </div>
+                  </dl>
+                  {check.reason_codes.length ? (
+                    <p className={styles.auditReportReasons}>原因：{check.reason_codes.join('、')}</p>
+                  ) : (
+                    <p className={styles.auditReportPassed}>未发现待处理项</p>
+                  )}
+                </article>
+              ))
+            ) : (
+              <p className={styles.auditReportLoading} role="status">
+                当前报告没有检查项。
+              </p>
+            )}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function AuditFilter({
   label,
   ariaLabel,
@@ -601,6 +714,28 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
   const [exportJob, setExportJob] = useState<AdminExportStatus>();
   const [exportBusy, setExportBusy] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
+  const [auditReport, setAuditReport] = useState<AdminAuditReport>();
+  const [auditReportLoading, setAuditReportLoading] = useState(false);
+  const [auditReportError, setAuditReportError] = useState('');
+
+  const loadAuditReport = useCallback(async () => {
+    if (!isRealMode || !canViewAudit) return;
+    setAuditReportLoading(true);
+    setAuditReportError('');
+    try {
+      setAuditReport(await loadAdminAuditReport());
+    } catch (error) {
+      setAuditReportError(error instanceof Error ? error.message : '运营审计报告加载失败');
+    } finally {
+      setAuditReportLoading(false);
+    }
+  }, [isRealMode]);
+
+  useEffect(() => {
+    // 审计报告随页面刷新重新读取，状态变化由异步请求结果驱动。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadAuditReport();
+  }, [loadAuditReport, refreshNonce]);
 
   const createExport = async () => {
     setExportBusy(true);
@@ -773,6 +908,12 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
 
   return (
     <>
+      <AuditReportCard
+        report={auditReport}
+        loading={auditReportLoading}
+        error={auditReportError}
+        onRetry={() => void loadAuditReport()}
+      />
       {loadError ? (
         <div className={styles.auditError} role="alert">
           {loadError}
@@ -838,13 +979,13 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
             <p>记录只读展示，包含请求摘要、前后状态和链路标识。</p>
           </div>
           <div className={styles.auditTableActions}>
-            {isRealMode && canViewAudit ? (
+            {isRealMode && canManage ? (
               <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void createExport()}>
                 <Download aria-hidden="true" />
                 导出当前结果
               </Button>
             ) : null}
-            <Badge variant="outline">仅 admin / superadmin</Badge>
+            <Badge variant="outline">operator 只读 · admin/superadmin 可导出</Badge>
           </div>
         </div>
         {isRealMode && exportMessage ? (

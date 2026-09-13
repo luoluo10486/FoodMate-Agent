@@ -62,4 +62,41 @@ describe('RunsSection real DLQ view', () => {
     expect(screen.getByText('needs_attention')).toBeInTheDocument();
     expect(screen.queryByText('raw_payload_json')).not.toBeInTheDocument();
   });
+
+  it('exposes DLQ replay only to superadmin and passes the selected message to the admin action flow', async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/admin/runs']}>
+        <RunsSection onAction={onAction} canReplayDlq />
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('tab', { name: 'DLQ' }));
+    const replayButton = await screen.findByRole('button', { name: '重放' });
+    await user.click(replayButton);
+
+    expect(onAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: '重放 DLQ 消息',
+        targetLabel: 'mq-21',
+        targetType: 'dlq',
+        targetId: '21',
+        execute: expect.any(Function),
+      }),
+    );
+  });
+
+  it('does not expose a replay button to non-superadmin roles', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/admin/runs']}>
+        <RunsSection />
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('tab', { name: 'DLQ' }));
+    expect(await screen.findByText('仅 superadmin')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '重放' })).not.toBeInTheDocument();
+  });
 });

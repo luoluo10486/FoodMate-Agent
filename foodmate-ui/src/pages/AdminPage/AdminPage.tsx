@@ -752,12 +752,13 @@ function renderSection(
   figmaFixture: boolean,
   userDetailFixture: boolean,
   knowledgeUploadRequest: number,
+  canReplayDlq: boolean,
 ) {
   switch (sectionKey) {
     case 'users':
       return <UsersSection figmaFixture={userDetailFixture} onAction={onAction} />;
     case 'runs':
-      return <RunsSection refreshNonce={refreshNonce} />;
+      return <RunsSection refreshNonce={refreshNonce} onAction={onAction} canReplayDlq={canReplayDlq} />;
     case 'tools':
       return <ToolsSection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />;
     case 'usage':
@@ -1165,6 +1166,7 @@ export function AdminPage() {
               isKnowledgeFixture,
               isUserDetailFixture,
               knowledgeUploadRequest,
+              authUser.role === 'superadmin',
             )
           )}
         </div>

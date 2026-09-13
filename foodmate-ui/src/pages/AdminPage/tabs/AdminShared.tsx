@@ -40,7 +40,8 @@ export function resolveAdminAccess(status: AuthStatus, role: string): AdminAcces
     canAccess,
     canManage,
     canViewUserDetails: canAccess,
-    canViewAudit: canManage,
+    // 操作审计和运营查询是只读能力，后端允许 operator 查看，但写操作仍由 canManage 控制。
+    canViewAudit: canAccess,
     canRestoreResources: canManage,
   };
 }
@@ -159,7 +160,6 @@ export const adminNavItems: Array<{
     path: '/admin?view=audit',
     label: '操作审计',
     iconPath: '/assets/figma/admin/navigation/audit.svg',
-    adminOnly: true,
   },
 ];
 

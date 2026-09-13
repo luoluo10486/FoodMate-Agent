@@ -924,6 +924,197 @@
   line-height: 18px;
 }
 
+.auditReportCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #f4f6f5;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.auditReportHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.auditReportHeader > div {
+  min-width: 0;
+}
+
+.auditReportHeader strong {
+  color: #333333;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 20px;
+}
+
+.auditReportHeader p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.auditReportHeader > button {
+  flex: 0 0 auto;
+}
+
+.auditReportLoading {
+  margin: 0;
+  padding: 14px 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.auditReportError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(214, 118, 118, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 117, 118, 0.08);
+  color: #b85454;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.auditReportError > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.auditReportError > button {
+  flex: 0 0 auto;
+}
+
+.auditReportMeta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.auditReportMeta > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #f4f6f5;
+  border-radius: 6px;
+  background: #fcfcfc;
+}
+
+.auditReportMeta dt,
+.auditReportMeta dd {
+  margin: 0;
+}
+
+.auditReportMeta dt {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.auditReportMeta dd {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.auditReportChecks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.auditReportCheck {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.auditReportCheckHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.auditReportCheckHeader strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auditReportCheck > dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.auditReportCheck > dl > div {
+  min-width: 0;
+}
+
+.auditReportCheck dt,
+.auditReportCheck dd {
+  margin: 0;
+}
+
+.auditReportCheck dt {
+  color: #6b7280;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.auditReportCheck dd {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #333333;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auditReportReasons,
+.auditReportPassed {
+  margin: 10px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.auditReportReasons {
+  color: #b85454;
+}
+
+.auditReportPassed {
+  color: #478052;
+}
+
 .auditPagination {
   display: flex;
   min-height: 56px;
@@ -4474,6 +4665,20 @@
   .auditFilters {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+  .auditReportHeader {
+    flex-direction: column;
+  }
+  .auditReportHeader > button {
+    align-self: flex-start;
+  }
+  .auditReportMeta,
+  .auditReportChecks {
+    grid-template-columns: 1fr;
+  }
+  .auditReportError {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .auditTableHeader {
     flex-direction: column;
