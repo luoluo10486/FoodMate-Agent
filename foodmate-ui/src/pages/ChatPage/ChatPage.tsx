@@ -562,21 +562,22 @@ function approvalData(details: NonNullable<AgentRunEvent['details']>, resourceTy
 
 export function ChatPage() {
   const [searchParams] = useSearchParams();
+  const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const auxiliaryState = getChatAuxState(searchParams.get('state'));
-  if (auxiliaryState) return <ChatAuxStatePage state={auxiliaryState} />;
-  if (searchParams.get('state') === 'empty') return <EmptyChatPage />;
-  if (searchParams.get('state') === 'planning') return <PlanningStatePage />;
-  if (searchParams.get('state') === 'tool-executing') return <ToolExecutingStatePage />;
-  if (searchParams.get('state') === 'awaiting-clarification') return <AwaitingClarificationStatePage />;
+  // 这些状态只用于 Figma 视觉预览，真实模式必须回到后端驱动的 Chat 页面。
+  if (!realMode && auxiliaryState) return <ChatAuxStatePage state={auxiliaryState} />;
+  if (!realMode && searchParams.get('state') === 'empty') return <EmptyChatPage />;
+  if (!realMode && searchParams.get('state') === 'planning') return <PlanningStatePage />;
+  if (!realMode && searchParams.get('state') === 'tool-executing') return <ToolExecutingStatePage />;
+  if (!realMode && searchParams.get('state') === 'awaiting-clarification') return <AwaitingClarificationStatePage />;
   if (searchParams.get('state') === 'write-confirmation') return <AgentStatePage state="write-confirmation" />;
   if (searchParams.get('state') === 'budget-limit') return <AgentStatePage state="budget-limit" />;
   if (searchParams.get('state') === 'tool-failed-retryable') return <AgentStatePage state="tool-failed-retryable" />;
   if (searchParams.get('state') === 'safety-degraded') return <AgentStatePage state="safety-degraded" />;
   if (searchParams.get('state') === 'user-cancelled') return <AgentStatePage state="user-cancelled" />;
   if (searchParams.get('state') === 'sse-reconnecting') return <AgentStatePage state="sse-reconnecting" />;
-  if (searchParams.get('transport') === 'chat-run' && import.meta.env.VITE_AGENT_MODE === 'real')
-    return <ChatRunPage />;
-  return import.meta.env.VITE_AGENT_MODE === 'real' ? <RealChatPage /> : <MockChatPage />;
+  if (searchParams.get('transport') === 'chat-run' && realMode) return <ChatRunPage />;
+  return realMode ? <RealChatPage /> : <MockChatPage />;
 }
 
 const emptyPrompts = [

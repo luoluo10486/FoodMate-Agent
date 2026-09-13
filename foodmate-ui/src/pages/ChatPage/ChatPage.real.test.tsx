@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../services/apiClient';
 import { ChatPage } from './ChatPage';
 
@@ -90,6 +90,40 @@ describe('ChatPage 真实历史会话回放', () => {
         return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
       },
     );
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('真实模式不会把辅助 Fixture 状态渲染成静态页面', async () => {
+    const fixtureStates = [
+      'empty',
+      'planning',
+      'tool-executing',
+      'awaiting-clarification',
+      'completed-with-citations',
+      'redesign-default',
+      'session-actions',
+      'running-stop',
+    ];
+
+    for (const state of fixtureStates) {
+      const view = render(
+        <MemoryRouter initialEntries={[`/chat?state=${state}`]}>
+          <Routes>
+            <Route path="/chat/:session_id?" element={<ChatPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeInTheDocument());
+      expect(screen.queryByRole('heading', { name: '开始新的对话' })).not.toBeInTheDocument();
+      expect(screen.queryByText('Planning...')).not.toBeInTheDocument();
+      expect(screen.queryByText('Executing Tools...')).not.toBeInTheDocument();
+      expect(screen.queryByText('分析已完成，以下内容包含可追溯引用。')).not.toBeInTheDocument();
+      view.unmount();
+    }
   });
 
   it('从历史消息恢复最近 Run 并回放安全引用', async () => {
