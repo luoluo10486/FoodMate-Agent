@@ -5860,17 +5860,17 @@
       "queryState": "view=audit",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/admin-operation-audit.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-admin-operation-audit-browser-2026-09-06.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-admin-operation-audit-browser-2026-09-13.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#admin-operation-audit",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_REMAIN",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "已按 Figma 节点修正表格字体、圆角、表头边框和 Fixture 账号；自动 diff 仍非零，保留 DIFF_REVIEW",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -5889,18 +5889,18 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-09-06",
-        "conclusion": "操作审计导航高亮已按 Figma 参考图对齐；顶栏生产环境标记、筛选、统计、十列表格、分页和底部分析区已与 Figma 结构对齐，仍存在头像素材、文字光栅化和局部像素差异，保留 DIFF_REVIEW。"
+        "reviewedAt": "2026-09-13",
+        "conclusion": "已复核操作审计导航、筛选、统计卡、十列表格、分页、底部分析区及 Anddy Fixture 账号；默认头像按用户提供的 SVG 替换后仍存在预期资产差异、字体光栅化和局部像素差异，保留 DIFF_REVIEW。"
       },
       "dpr1Capture": {
-        "capturedAt": "2026-09-06",
+        "capturedAt": "2026-09-13",
         "tool": "Chrome CDP Page.captureScreenshot",
-        "browser": "Chrome/152.0.7977.77",
+        "browser": "Chrome/152.0.7977.83",
         "dpr": 1,
         "viewport": "1440x1024",
         "fonts": "loaded",
         "bodyOverflow": false,
-        "url": "http://127.0.0.1:5174/admin?view=audit&visual-qa=1"
+        "url": "http://127.0.0.1:5188/admin?view=audit&visual-qa=1"
       }
     },
     {

@@ -2,6 +2,20 @@
 
 更新时间：2026-09-13
 
+## 1.1.36 2026-09-13 Admin 操作审计增量验收与头像来源复核
+
+本节只记录 Figma 节点 `995:1499`（`admin-operation-audit`）的单页增量证据，不重新采集或判定其余画板。Figma 参考图尺寸为 `1440×1024`；浏览器使用同尺寸视口、DPR 1、字体加载完成并关闭动态干扰。头像按用户要求使用登记的默认 SVG，因此与 Figma 历史真人头像的像素差异属于预期差异，不能仅凭结构接近标记 `PASS`。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Admin Operation Audit | `995:1499` | `/admin?view=audit` | `docxs/设计/figma-png/admin-operation-audit.png` | `recaptured/dpr1-admin-operation-audit-browser-2026-09-13.png` | `figma-105-diff-results.json#admin-operation-audit` | `8.4906006%` | `3.018938` | `18.223665` | `241` | `DIFF_REVIEW` |
+
+- [x] 浏览器证据由 Chrome `152.0.7977.83` 采集，视口 `1440×1024`、DPR `1`、字体状态 `loaded`、`bodyOverflow=false`；映射和聚合 diff 已同步。
+- [x] Figma 节点的表格字体、圆角和表头边框已逐项回读并落实；审计 Fixture 账号固定为 `Anddy / 1234567 / Anddy's Lab`，不再使用本地 mock 用户信息。
+- [x] 运行时人物头像扫描覆盖 Chat、Workspace、Diet Records、Intake Analysis、Meal Planning、Knowledge、Profile 和 Admin；人物头像只出现用户提供的 `default-male.svg` / `default-female.svg`，两份实体 SHA-256 与附件登记一致。
+- [x] 自动 diff、几何检查、文字检查和人工视觉复核均已完成；剩余差异包括用户指定默认头像替换造成的预期资产差异、字体光栅化和局部像素差异，因此保留 `DIFF_REVIEW`。
+- [ ] 本轮不重新验收其余 104 个画板；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 实体包、映射、来源和许可证继续为 `BLOCKED`。
+
 ## 1.1.34 2026-09-13 Diet Records 增量像素证据
 
 本节只记录 Figma 节点 `640:588`（`diet-records-v2`）的最新浏览器证据，不重新采集或判定其余画板。Figma 参考图仍为实时文件导出的 `1440×1024` PNG；浏览器使用同尺寸视口、DPR 1、字体加载完成和关闭动态干扰条件。

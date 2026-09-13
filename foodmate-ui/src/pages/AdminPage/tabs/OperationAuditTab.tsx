@@ -371,7 +371,7 @@ function FigmaOperationAuditSection() {
                 <TableCell>
                   <FigmaAuditTarget targetId={row.targetId} />
                 </TableCell>
-                <TableCell>{row.result}</TableCell>
+                <TableCell className={styles.auditFigmaResult}>{row.result}</TableCell>
                 <TableCell className={styles.auditFigmaRequest}>{row.requestId}</TableCell>
                 <TableCell className={styles.auditFigmaTrace}>{row.traceId}</TableCell>
                 <TableCell className={styles.auditFigmaSource}>{row.clientInfo}</TableCell>

@@ -165,6 +165,15 @@ describe('AdminPage overview', () => {
     expect(screen.getByRole('link', { name: '操作审计' })).toHaveAttribute('aria-current', 'page');
   });
 
+  it('uses the Figma audit fixture identity and registered avatar', () => {
+    renderAdmin('/admin?view=audit&visual-qa=1');
+
+    expect(screen.getByText("Anddy's Lab")).toBeInTheDocument();
+    expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(document.body.textContent).not.toContain('&apos;');
+  });
+
   it('maps admin visual fixture query states to their real sections', () => {
     let view = renderAdmin('/admin?state=tool-registry');
     expect(screen.getByText('已注册工具')).toBeInTheDocument();

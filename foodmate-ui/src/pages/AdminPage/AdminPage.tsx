@@ -825,14 +825,16 @@ export function AdminPage() {
   const [notice, setNotice] = useState('');
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [knowledgeUploadRequest, setKnowledgeUploadRequest] = useState(0);
-  const fixtureUser = requestedFixture
-    ? { displayName: 'Anddy', id: '1234567' }
-    : { displayName: authUser.displayName, id: authUser.id };
+  const isAuditFigmaFixture = isAuditFigmaRoute;
+  const fixtureUser =
+    requestedFixture || isAuditFigmaFixture
+      ? { displayName: 'Anddy', id: '1234567' }
+      : { displayName: authUser.displayName, id: authUser.id };
   // Figma 管理台示例账号固定使用男性默认头像，不受登录缓存性别影响。
-  const adminAvatarGender = requestedFixture ? '男' : authUser.gender;
+  const adminAvatarGender = requestedFixture || isAuditFigmaFixture ? '男' : authUser.gender;
   // 管理后台的 Fixture 和真实用户头像都统一从解析层进入 DOM。
   const adminAvatarSource = resolveAvatarUrl(
-    requestedFixture ? FIXTURE_ADMIN_AVATARS.sidebar : authUser.avatarUrl,
+    requestedFixture || isAuditFigmaFixture ? FIXTURE_ADMIN_AVATARS.sidebar : authUser.avatarUrl,
     adminAvatarGender,
   );
   const fixtureOperationStatus: AdminOperationState | undefined = requestedFixture?.startsWith('op-')
@@ -1018,7 +1020,7 @@ export function AdminPage() {
               />
             </div>
             <div className={styles.userMetadata}>
-              <strong>{isUserDetailFixture ? 'Anddy 实验室' : `${fixtureUser.displayName}&apos;s Lab`}</strong>
+              <strong>{isUserDetailFixture ? 'Anddy 实验室' : `${fixtureUser.displayName}'s Lab`}</strong>
               <small>ID: {fixtureUser.id}</small>
             </div>
           </div>
