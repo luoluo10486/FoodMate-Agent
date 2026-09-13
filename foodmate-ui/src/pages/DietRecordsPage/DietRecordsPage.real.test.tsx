@@ -12,7 +12,12 @@ import {
   updateFoodLog,
 } from '../../services/foodLogService';
 import { searchNutritionFoods } from '../../services/nutritionFoodService';
-import { loadCompositeDishes } from '../../services/compositeDishService';
+import {
+  createCompositeDish,
+  deleteCompositeDish,
+  loadCompositeDishes,
+  updateCompositeDish,
+} from '../../services/compositeDishService';
 import { ApiError } from '../../services/apiClient';
 
 vi.mock('../../services/foodLogService', () => ({
@@ -72,6 +77,37 @@ const multiItemLog = {
   ],
 };
 
+const compositeDish = {
+  composite_dish_id: '21',
+  dish_name: '鸡肉饭',
+  total_servings: 2,
+  calories_kcal_per_serving: 330,
+  protein_g_per_serving: 31,
+  fat_g_per_serving: 7,
+  carbs_g_per_serving: 42,
+  nutrition_source: 'USDA:2025',
+  revision: 4,
+  deleted: false,
+  created_at: '2026-08-22T08:30:00Z',
+  updated_at: '2026-08-22T08:30:00Z',
+  components: [
+    {
+      item_id: '201',
+      item_order: 0,
+      nutrition_food_id: '171477',
+      raw_name: '熟鸡胸肉',
+      amount: 300,
+      unit: 'g',
+      normalized_amount: 300,
+      normalized_unit: 'g',
+      calories_kcal: 495,
+      protein_g: 93,
+      fat_g: 10.8,
+      carbs_g: 0,
+    },
+  ],
+};
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/analysis?view=records']}>
@@ -106,6 +142,109 @@ describe('DietRecordsPage real mode', () => {
     expect(screen.getByText('C: 68g')).toBeInTheDocument();
     expect(screen.getByText('能量合计')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '周视图' })).toBeEnabled();
+  });
+
+  it('creates a composite dish and refreshes the server list', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadCompositeDishes).mockResolvedValueOnce([]).mockResolvedValueOnce([compositeDish]);
+    vi.mocked(searchNutritionFoods).mockResolvedValue([
+      {
+        nutrition_food_id: '171477',
+        standard_name: 'Chicken breast, cooked',
+        chinese_name: '熟鸡胸肉',
+        category: 'Poultry',
+        food_form: 'cooked',
+        basis_unit: 'g',
+        calories_kcal_per_100: 165,
+        protein_g_per_100: 31,
+        fat_g_per_100: 3.6,
+        carbs_g_per_100: 0,
+        source_name: 'USDA FoodData Central',
+        source_version: '2025',
+      },
+    ]);
+    vi.mocked(createCompositeDish).mockResolvedValue(compositeDish);
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '新建复合菜' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '新建复合菜' }));
+    await user.type(screen.getByRole('textbox', { name: '复合菜名称' }), '鸡肉饭');
+    await user.type(screen.getByRole('textbox', { name: '第1项食材名称' }), '鸡胸肉');
+    await waitFor(() => expect(screen.getByRole('button', { name: /熟鸡胸肉/ })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /熟鸡胸肉/ }));
+    await user.clear(screen.getByRole('spinbutton', { name: '第1项食材用量' }));
+    await user.type(screen.getByRole('spinbutton', { name: '第1项食材用量' }), '300');
+    await user.click(screen.getByRole('button', { name: '保存复合菜' }));
+
+    await waitFor(() =>
+      expect(createCompositeDish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dish_name: '鸡肉饭',
+          components: [{ nutrition_food_id: 171477, raw_name: '熟鸡胸肉', amount: 300, unit: 'g' }],
+        }),
+      ),
+    );
+    await waitFor(() => expect(screen.getByText('鸡肉饭')).toBeInTheDocument());
+    expect(loadCompositeDishes).toHaveBeenCalledTimes(2);
+  });
+
+  it('updates a composite dish with its revision and refreshes the server list', async () => {
+    const updated = { ...compositeDish, dish_name: '更新后的鸡肉饭', revision: 5 };
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadCompositeDishes).mockResolvedValueOnce([compositeDish]).mockResolvedValueOnce([updated]);
+    vi.mocked(updateCompositeDish).mockResolvedValue(updated);
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('鸡肉饭')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '编辑' }));
+    const nameInput = screen.getByRole('textbox', { name: '复合菜名称' });
+    await user.clear(nameInput);
+    await user.type(nameInput, '更新后的鸡肉饭');
+    await user.click(screen.getByRole('button', { name: '保存复合菜' }));
+
+    await waitFor(() =>
+      expect(updateCompositeDish).toHaveBeenCalledWith(
+        '21',
+        4,
+        expect.objectContaining({ dish_name: '更新后的鸡肉饭' }),
+      ),
+    );
+    await waitFor(() => expect(screen.getByText('更新后的鸡肉饭')).toBeInTheDocument());
+    expect(loadCompositeDishes).toHaveBeenCalledTimes(2);
+  });
+
+  it('confirms composite dish deletion and keeps the dialog open on a conflict', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadCompositeDishes).mockResolvedValue([compositeDish]);
+    vi.mocked(deleteCompositeDish).mockRejectedValue(new ApiError('CONFLICT', 'stale revision', 409));
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('鸡肉饭')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /^删除$/ }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('确认删除复合菜');
+    await user.click(screen.getByRole('button', { name: '确认删除' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('复合菜已被修改，请重新加载后再试。'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('鸡肉饭')).toBeInTheDocument();
+    expect(deleteCompositeDish).toHaveBeenCalledWith('21', 4);
+  });
+
+  it('can retry the composite dish list after a real request failure', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadCompositeDishes)
+      .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'network'))
+      .mockResolvedValue([compositeDish]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('network'));
+    await user.click(screen.getByRole('button', { name: '重试加载' }));
+    await waitFor(() => expect(screen.getByText('鸡肉饭')).toBeInTheDocument());
+    expect(loadCompositeDishes).toHaveBeenCalledTimes(2);
   });
 
   it('creates a real food log from the add-food dialog', async () => {

@@ -163,6 +163,8 @@ type PendingFoodDeletion = {
 
 type FoodMutation = 'create' | 'update' | 'delete' | 'restore' | undefined;
 
+type PendingCompositeDishDeletion = CompositeDish;
+
 function isFoodLogConflict(cause: unknown): boolean {
   return (
     cause instanceof ApiError &&
@@ -174,6 +176,17 @@ function foodLogErrorMessage(cause: unknown, fallback: string): string {
   if (cause instanceof ApiError) {
     if (isFoodLogConflict(cause)) return '饮食记录已被修改，请重新加载后再试。';
     if (cause.code === 'FORBIDDEN') return '当前账号无权操作这条饮食记录。';
+    return cause.message || fallback;
+  }
+  return cause instanceof Error ? cause.message : fallback;
+}
+
+function compositeDishErrorMessage(cause: unknown, fallback: string): string {
+  if (cause instanceof ApiError) {
+    if (cause.status === 409 || ['CONFLICT', 'VERSION_CONFLICT', 'REVISION_CONFLICT'].includes(cause.code)) {
+      return '复合菜已被修改，请重新加载后再试。';
+    }
+    if (cause.code === 'FORBIDDEN') return '当前账号无权操作这道复合菜。';
     return cause.message || fallback;
   }
   return cause instanceof Error ? cause.message : fallback;
@@ -417,6 +430,7 @@ export function DietRecordsPage() {
   const [compositeDishes, setCompositeDishes] = useState<CompositeDish[]>([]);
   const [compositeDishesLoading, setCompositeDishesLoading] = useState(isRealMode);
   const [compositeDishesError, setCompositeDishesError] = useState<string>();
+  const [compositeReloadNonce, setCompositeReloadNonce] = useState(0);
   const [selectedCompositeDishId, setSelectedCompositeDishId] = useState<string>();
   const [compositeDishServings, setCompositeDishServings] = useState('1');
   const [dishDialogOpen, setDishDialogOpen] = useState(false);
@@ -428,6 +442,8 @@ export function DietRecordsPage() {
   ]);
   const [dishCandidateMap, setDishCandidateMap] = useState<Record<number, NutritionFoodCandidate[]>>({});
   const [dishSaving, setDishSaving] = useState(false);
+  const [dishDeleting, setDishDeleting] = useState(false);
+  const [pendingCompositeDishDeletion, setPendingCompositeDishDeletion] = useState<PendingCompositeDishDeletion>();
   const [dishError, setDishError] = useState<string>();
   const [deletedLogs, setDeletedLogs] = useState<FoodLog[]>([]);
   const [deletedLoading, setDeletedLoading] = useState(false);
@@ -440,7 +456,7 @@ export function DietRecordsPage() {
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
-    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    // 每次外部请求都由当前 effect 管理完整生命周期，因此请求开始时重置加载状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
@@ -468,12 +484,16 @@ export function DietRecordsPage() {
   useEffect(() => {
     if (!isRealMode) return;
     let active = true;
+    // 复合菜的列表状态以服务端重新读取结果为准，避免本地乐观数据覆盖并发修改。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCompositeDishesLoading(true);
+    setCompositeDishesError(undefined);
     void loadCompositeDishes()
       .then((dishes) => {
         if (active) setCompositeDishes(dishes.filter((dish) => !dish.deleted));
       })
       .catch((cause) => {
-        if (active) setCompositeDishesError(cause instanceof Error ? cause.message : '复合菜加载失败');
+        if (active) setCompositeDishesError(compositeDishErrorMessage(cause, '复合菜加载失败'));
       })
       .finally(() => {
         if (active) setCompositeDishesLoading(false);
@@ -481,7 +501,7 @@ export function DietRecordsPage() {
     return () => {
       active = false;
     };
-  }, [isRealMode]);
+  }, [compositeReloadNonce, isRealMode]);
 
   const selectedMeal = useMemo(() => meals.find((meal) => meal.id === dialogMealId), [dialogMealId, meals]);
   const weekDays = useMemo(() => mapWeekLogs(realLogs, selectedDate), [realLogs, selectedDate]);
@@ -657,14 +677,17 @@ export function DietRecordsPage() {
         unit: component.unit.trim(),
       })),
     };
+    const editingDish = editingDishId
+      ? compositeDishes.find((dish) => dish.composite_dish_id === editingDishId)
+      : undefined;
+    if (editingDishId && !editingDish) {
+      setDishError('复合菜版本已失效，请重新加载后再编辑。');
+      return;
+    }
     setDishSaving(true);
     setDishError(undefined);
     const operation = editingDishId
-      ? updateCompositeDish(
-          editingDishId,
-          compositeDishes.find((dish) => dish.composite_dish_id === editingDishId)?.revision ?? 0,
-          request,
-        )
+      ? updateCompositeDish(editingDishId, editingDish?.revision ?? 0, request)
       : createCompositeDish(request);
     void operation
       .then((saved) => {
@@ -674,19 +697,32 @@ export function DietRecordsPage() {
         ]);
         setNotice(`${saved.dish_name} 已保存。`);
         closeDishEditor();
+        setCompositeReloadNonce((current) => current + 1);
       })
-      .catch((cause) => setDishError(cause instanceof Error ? cause.message : '复合菜保存失败'))
+      .catch((cause) => setDishError(compositeDishErrorMessage(cause, '复合菜保存失败')))
       .finally(() => setDishSaving(false));
   };
 
-  const removeDish = (dish: CompositeDish) => {
+  const requestRemoveDish = (dish: CompositeDish) => {
+    setDishError(undefined);
+    setPendingCompositeDishDeletion(dish);
+  };
+
+  const confirmRemoveDish = () => {
+    const dish = pendingCompositeDishDeletion;
+    if (!dish || dishDeleting) return;
+    setDishDeleting(true);
+    setDishError(undefined);
     void deleteCompositeDish(dish.composite_dish_id, dish.revision)
       .then(() => {
         setCompositeDishes((current) => current.filter((item) => item.composite_dish_id !== dish.composite_dish_id));
         if (selectedCompositeDishId === dish.composite_dish_id) setSelectedCompositeDishId(undefined);
         setNotice(`${dish.dish_name} 已删除，历史饮食记录不受影响。`);
+        setPendingCompositeDishDeletion(undefined);
+        setCompositeReloadNonce((current) => current + 1);
       })
-      .catch((cause) => setNotice(cause instanceof Error ? cause.message : '复合菜删除失败'));
+      .catch((cause) => setDishError(compositeDishErrorMessage(cause, '复合菜删除失败')))
+      .finally(() => setDishDeleting(false));
   };
 
   const addFood = () => {
@@ -1217,9 +1253,18 @@ export function DietRecordsPage() {
             </header>
             {compositeDishesLoading ? <p className={styles.deletedState}>正在加载复合菜…</p> : null}
             {compositeDishesError ? (
-              <p className={styles.deletedState} role="alert">
-                {compositeDishesError}
-              </p>
+              <div className={styles.deletedError} role="alert">
+                <p className={styles.deletedState}>{compositeDishesError}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCompositeReloadNonce((current) => current + 1)}
+                  disabled={compositeDishesLoading}
+                >
+                  <RefreshCw aria-hidden="true" />
+                  重试加载
+                </Button>
+              </div>
             ) : null}
             {!compositeDishesLoading && !compositeDishesError && compositeDishes.length === 0 ? (
               <p className={styles.deletedState}>还没有保存的复合菜。</p>
@@ -1249,7 +1294,7 @@ export function DietRecordsPage() {
                       <Pencil aria-hidden="true" />
                       编辑
                     </Button>
-                    <Button type="button" variant="ghost" onClick={() => removeDish(dish)}>
+                    <Button type="button" variant="ghost" onClick={() => requestRemoveDish(dish)}>
                       <Trash2 aria-hidden="true" />
                       删除
                     </Button>
@@ -1587,6 +1632,45 @@ export function DietRecordsPage() {
             </Button>
             <Button type="button" onClick={saveDish} disabled={dishSaving}>
               {dishSaving ? '保存中…' : '保存复合菜'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(pendingCompositeDishDeletion)}
+        onOpenChange={(open) => {
+          if (!open && !dishDeleting) {
+            setPendingCompositeDishDeletion(undefined);
+            setDishError(undefined);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除复合菜</DialogTitle>
+            <DialogDescription>
+              {pendingCompositeDishDeletion
+                ? `将删除“${pendingCompositeDishDeletion.dish_name}”。已有饮食记录会保留营养快照，不会被删除。`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {dishError ? (
+            <p className={styles.dishError} role="alert">
+              {dishError}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingCompositeDishDeletion(undefined)}
+              disabled={dishDeleting}
+            >
+              取消
+            </Button>
+            <Button type="button" onClick={confirmRemoveDish} disabled={dishDeleting}>
+              {dishDeleting ? '删除中…' : '确认删除'}
             </Button>
           </DialogFooter>
         </DialogContent>
