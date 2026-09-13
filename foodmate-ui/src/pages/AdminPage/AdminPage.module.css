@@ -4030,6 +4030,21 @@
   color: #c79654;
 }
 
+.knowledgeBatchItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.knowledgeBatchActions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .knowledgeFixtureWorkspace .knowledgeDropZone {
   min-height: 128px;
   gap: 8px;

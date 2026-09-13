@@ -21,6 +21,7 @@ import {
   changeKnowledgeVisibility,
   loadAdminKnowledge,
   loadKnowledgeBatch,
+  reindexKnowledgeItem,
   retryKnowledgeItem,
   streamKnowledgeBatch,
   updateKnowledgeStatus,
@@ -105,11 +106,13 @@ export function KnowledgeSection({
   figmaFixture = false,
   openUploadRequest = 0,
   refreshNonce = 0,
+  canManageAccess = canManage,
 }: {
   onAction: (payload: AdminActionPayload) => void;
   figmaFixture?: boolean;
   openUploadRequest?: number;
   refreshNonce?: number;
+  canManageAccess?: boolean;
 }) {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [documents, setDocuments] = useState<KnowledgeRow[]>(isRealMode ? [] : figmaKnowledgeRows);
@@ -500,16 +503,33 @@ export function KnowledgeSection({
         </DialogContent>
       </Dialog>
       {isRealMode && batchId ? (
-        <BatchProgress batchId={batchId} onRetry={(itemId) => retryKnowledgeItem(batchId, itemId)} />
+        <BatchProgress
+          batchId={batchId}
+          canManageAccess={canManageAccess}
+          onRetry={(documentId) => retryKnowledgeItem(batchId, documentId)}
+          onReindex={(documentId) => reindexKnowledgeItem(batchId, documentId)}
+        />
       ) : null}
     </section>
   );
 }
 
-function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (documentId: string) => Promise<unknown> }) {
+function BatchProgress({
+  batchId,
+  canManageAccess,
+  onRetry,
+  onReindex,
+}: {
+  batchId: string;
+  canManageAccess: boolean;
+  onRetry: (documentId: string) => Promise<unknown>;
+  onReindex: (documentId: string) => Promise<unknown>;
+}) {
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadKnowledgeBatch>>>();
   const [retryingItemId, setRetryingItemId] = useState<string>();
   const [retryError, setRetryError] = useState('');
+  const [reindexingItemId, setReindexingItemId] = useState<string>();
+  const [reindexError, setReindexError] = useState('');
   const [streamRetryNonce, setStreamRetryNonce] = useState(0);
   const [streamConnection, setStreamConnection] = useState<AgentStreamConnection>({
     state: 'connecting',
@@ -518,10 +538,11 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (docume
   });
   const streamBatchRef = useRef<string>();
   const streamCursorRef = useRef<string>();
-  const refresh = () =>
-    loadKnowledgeBatch(batchId)
-      .then(setDetail)
-      .catch(() => undefined);
+  const refresh = async () => {
+    const next = await loadKnowledgeBatch(batchId);
+    setDetail(next);
+    return next;
+  };
   const retry = async (itemId: string, documentId: string) => {
     setRetryingItemId(itemId);
     setRetryError('');
@@ -533,6 +554,19 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (docume
       setRetryError(cause instanceof Error ? cause.message : '索引重试失败，请稍后重试');
     } finally {
       setRetryingItemId(undefined);
+    }
+  };
+  const reindex = async (itemId: string, documentId: string) => {
+    setReindexingItemId(itemId);
+    setReindexError('');
+    try {
+      await onReindex(documentId);
+      await refresh();
+      setStreamRetryNonce((value) => value + 1);
+    } catch (cause) {
+      setReindexError(cause instanceof Error ? cause.message : '重新索引失败，请稍后重试');
+    } finally {
+      setReindexingItemId(undefined);
     }
   };
   useEffect(() => {
@@ -581,20 +615,34 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (docume
         ) : null}
       </div>
       {retryError ? <span role="alert">{retryError}</span> : null}
+      {reindexError ? <span role="alert">{reindexError}</span> : null}
       {detail?.batch.items.map((item) => (
-        <div key={item.item_id}>
+        <div className={styles.knowledgeBatchItem} key={item.item_id}>
           <span>
             {item.filename}: {item.index_status}
             {item.error_code ? ` (${item.error_code})` : ''}
           </span>
-          {item.index_status === 'index_failed' ? (
-            <Button
-              variant="outline"
-              disabled={retryingItemId === item.item_id}
-              onClick={() => void retry(item.item_id, item.document_id)}
-            >
-              {retryingItemId === item.item_id ? '重试中...' : '重试'}
-            </Button>
+          {canManageAccess ? (
+            <div className={styles.knowledgeBatchActions}>
+              {item.index_status === 'index_failed' ? (
+                <Button
+                  variant="outline"
+                  disabled={retryingItemId === item.item_id || reindexingItemId === item.item_id}
+                  onClick={() => void retry(item.item_id, item.document_id)}
+                >
+                  {retryingItemId === item.item_id ? '重试中...' : '重试'}
+                </Button>
+              ) : null}
+              {item.index_status === 'indexed' || item.index_status === 'index_failed' ? (
+                <Button
+                  variant="outline"
+                  disabled={retryingItemId === item.item_id || reindexingItemId === item.item_id}
+                  onClick={() => void reindex(item.item_id, item.document_id)}
+                >
+                  {reindexingItemId === item.item_id ? '重新索引中...' : '重新索引'}
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ))}

@@ -753,6 +753,7 @@ function renderSection(
   userDetailFixture: boolean,
   knowledgeUploadRequest: number,
   canReplayDlq: boolean,
+  canManageAccess: boolean,
 ) {
   switch (sectionKey) {
     case 'users':
@@ -772,6 +773,7 @@ function renderSection(
           onAction={onAction}
           openUploadRequest={knowledgeUploadRequest}
           refreshNonce={refreshNonce}
+          canManageAccess={canManageAccess}
         />
       );
     case 'deleted':
@@ -1167,6 +1169,7 @@ export function AdminPage() {
               isUserDetailFixture,
               knowledgeUploadRequest,
               authUser.role === 'superadmin',
+              canManage,
             )
           )}
         </div>

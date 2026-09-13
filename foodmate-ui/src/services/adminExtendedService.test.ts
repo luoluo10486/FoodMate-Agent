@@ -8,6 +8,7 @@ import {
   loadRetentionPurge,
   loadRetentionPurgePreflight,
   placeRetentionHold,
+  reindexKnowledgeItem,
   releaseRetentionHold,
   replayAdminDlq,
   requestRetentionPurge,
@@ -37,6 +38,18 @@ describe('admin extended APIs', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/admin/audit-reports/current');
     expect(fetchMock.mock.calls[1][0]).toBe(
       '/api/admin/model-governance?from=2026-09-01T00%3A00%3A00Z&to=2026-09-13T00%3A00%3A00Z',
+    );
+  });
+
+  it('uses the document id in the knowledge reindex route', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(ok({ status: 'pending' })));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await reindexKnowledgeItem('9001', '42');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/knowledge-upload-batches/9001/documents/42/reindex',
+      expect.objectContaining({ method: 'POST' }),
     );
   });
 

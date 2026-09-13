@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KnowledgeSection } from './KnowledgeTab';
@@ -147,6 +147,87 @@ describe('KnowledgeSection real mode', () => {
     expect(TestEventSource.instances).toHaveLength(2);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/admin/knowledge-upload-batches/9001/documents/42/retry',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('reindexes an indexed document with an independent operation state', async () => {
+    const user = userEvent.setup();
+    let itemStatus = 'indexed';
+    let releaseReindex: (() => void) | undefined;
+    localStorage.setItem('foodmate:admin:knowledge:last-batch', '9002');
+    const reindexResponse = new Promise<Response>((resolve) => {
+      releaseReindex = () =>
+        resolve(new Response(JSON.stringify({ success: true, data: { status: 'pending' } }), { status: 200 }));
+    });
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { resource: 'knowledge', items: dashboard.knowledge, total: 1, page: 1, size: 20 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge-upload-batches/9002' && method === 'GET') {
+        const pending = itemStatus === 'pending';
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                batch: {
+                  job: {
+                    job_id: '9002',
+                    status: pending ? 'indexing' : 'completed',
+                    total_items: 1,
+                    indexed_items: pending ? 0 : 1,
+                    failed_items: 0,
+                  },
+                  items: [
+                    {
+                      item_id: 'item-2',
+                      document_id: '42',
+                      filename: 'guide.pdf',
+                      upload_status: 'uploaded',
+                      index_status: itemStatus,
+                      attempts: pending ? 1 : 2,
+                      error_code: undefined,
+                    },
+                  ],
+                },
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge-upload-batches/9002/documents/42/reindex' && method === 'POST') {
+        itemStatus = 'pending';
+        return reindexResponse;
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess />);
+    expect(await screen.findByText('批次 9002')).toBeInTheDocument();
+    await act(async () => TestEventSource.instances[0].open());
+    expect(await screen.findByText(/guide\.pdf: indexed/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '重新索引' }));
+
+    expect(await screen.findByRole('button', { name: '重新索引中...' })).toBeInTheDocument();
+    releaseReindex?.();
+    await waitFor(() => expect(screen.getByText(/guide\.pdf: pending/)).toBeInTheDocument());
+    expect(TestEventSource.instances).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/knowledge-upload-batches/9002/documents/42/reindex',
       expect.objectContaining({ method: 'POST' }),
     );
   });
