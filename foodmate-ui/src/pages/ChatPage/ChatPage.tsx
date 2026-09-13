@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -70,9 +70,11 @@ import {
   loadAgentRun,
   loadApprovalProposal,
   openAgentRunStream,
+  recoverAgentRun,
   rejectAgentWrite,
   recoverAgentRunFromCheckpoint,
   retryAgentRun,
+  type AgentRecoveryRequest,
   type AgentRunEvent,
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
@@ -1989,6 +1991,39 @@ function parseRealProposalDraft(searchParams: URLSearchParams): RealProposalDraf
   };
 }
 
+function parseJsonStringArray(value: string | null): string[] | undefined {
+  if (!value?.trim()) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string') ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseExplicitRecoveryRequest(searchParams: URLSearchParams): AgentRecoveryRequest | undefined {
+  const checkpointVersion = queryNumber(searchParams.get('checkpoint_version'));
+  const checkpointDigest = searchParams.get('checkpoint_digest')?.trim();
+  const completedInvocationIds = parseJsonStringArray(searchParams.get('completed_invocation_ids'));
+  if (checkpointVersion === undefined || !checkpointDigest || completedInvocationIds === undefined) return undefined;
+  return { checkpointVersion, checkpointDigest, completedInvocationIds };
+}
+
+function recoveryRequestFromEvent(payload: AgentRunEvent): AgentRecoveryRequest | undefined {
+  const checkpointVersion = payload.checkpoint_version;
+  const checkpointDigest = payload.checkpoint_digest?.trim();
+  const completedInvocationIds = payload.completed_invocation_ids ?? [];
+  if (
+    checkpointVersion === undefined ||
+    !Number.isInteger(checkpointVersion) ||
+    checkpointVersion < 1 ||
+    !checkpointDigest ||
+    !completedInvocationIds.every((item) => typeof item === 'string')
+  )
+    return undefined;
+  return { checkpointVersion, checkpointDigest, completedInvocationIds };
+}
+
 function queryNumber(value: string | null): number | undefined {
   if (!value?.trim() || !/^\d+$/.test(value.trim())) return undefined;
   return Number(value);
@@ -2080,6 +2115,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   const runId = searchParams.get('run_id')?.trim() || undefined;
   const sessionId = searchParams.get('session_id')?.trim() || undefined;
   const requestedApprovalId = searchParams.get('approval_id')?.trim() || undefined;
+  const explicitRecoveryRequest = useMemo(() => parseExplicitRecoveryRequest(searchParams), [searchParams]);
   const [messages, setMessages] = useState<RealMessage[]>([]);
   const [runStatus, setRunStatus] = useState<AgentDisplayStatus>('routing');
   const [rawRunStatus, setRawRunStatus] = useState('未加载');
@@ -2097,7 +2133,10 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   );
   const [budgetFacts, setBudgetFacts] = useState<RealBudgetFacts>({});
   const [retryable, setRetryable] = useState(false);
-  const [checkpointAvailable, setCheckpointAvailable] = useState(false);
+  const [checkpointAvailable, setCheckpointAvailable] = useState(Boolean(runId && explicitRecoveryRequest));
+  const [checkpointRecovery, setCheckpointRecovery] = useState<AgentRecoveryRequest | undefined>(
+    explicitRecoveryRequest,
+  );
   const [safetyDegraded, setSafetyDegraded] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>();
   const [loading, setLoading] = useState(Boolean(runId || sessionId || requestedApprovalId));
@@ -2143,7 +2182,8 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     setProposalDraft(parseRealProposalDraft(searchParams));
     setBudgetFacts({});
     setRetryable(false);
-    setCheckpointAvailable(false);
+    setCheckpointAvailable(Boolean(runId && explicitRecoveryRequest));
+    setCheckpointRecovery(explicitRecoveryRequest);
     setSafetyDegraded(false);
     setCancelReason(undefined);
     setError(undefined);
@@ -2200,7 +2240,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     return () => {
       cancelled = true;
     };
-  }, [requestedApprovalId, runId, searchParams, sessionId]);
+  }, [explicitRecoveryRequest, requestedApprovalId, runId, searchParams, sessionId]);
 
   useEffect(() => {
     if (!runId) return undefined;
@@ -2225,6 +2265,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
           setSafetyDegraded(payload.result_type === 'safety_degraded');
           setRetryable(false);
           setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
           setCitations(
             payload.result_type === 'safety_degraded'
               ? []
@@ -2242,6 +2283,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
         }
         if (eventType === 'run.cancelled') setCancelReason(payload.reason);
         if (eventType === 'run.checkpoint_saved') {
+          setCheckpointRecovery(payload.approval_request_id ? undefined : recoveryRequestFromEvent(payload));
           setCheckpointAvailable(!payload.approval_request_id);
           if (payload.approval_request_id) setApprovalId(String(payload.approval_request_id));
         }
@@ -2409,10 +2451,17 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   const recoverRun = async () => {
     if (!runId || !checkpointAvailable || actionState === 'loading') return;
     setActionState('loading');
-    setActionMessage('正在请求从已持久化 checkpoint 恢复当前 Run。');
+    setActionMessage(
+      checkpointRecovery
+        ? '正在提交 checkpoint 元数据，等待后端校验并恢复当前 Run。'
+        : '正在请求从已持久化 checkpoint 恢复当前 Run。',
+    );
     try {
-      const result = await recoverAgentRunFromCheckpoint(runId);
+      const result = checkpointRecovery
+        ? await recoverAgentRun(runId, checkpointRecovery)
+        : await recoverAgentRunFromCheckpoint(runId);
       setCheckpointAvailable(false);
+      setCheckpointRecovery(undefined);
       setActionState('success');
       setActionMessage(`后端已返回恢复状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`);
     } catch (reason) {
@@ -2664,12 +2713,14 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       ) : null}
       {checkpointAvailable ? (
         <Card className={styles.realStateCard}>
-          <h2>可从 checkpoint 恢复</h2>
+          <h2>{checkpointRecovery ? '使用 checkpoint 元数据恢复' : '可从 checkpoint 恢复'}</h2>
           <p className={styles.realStateMeta}>
-            恢复内容由 Java 服务端按已持久化 checkpoint 校验，浏览器不会提交 checkpoint 内容。
+            {checkpointRecovery
+              ? '页面仅转发服务端事件中的 checkpoint 元数据，最终校验和恢复由 Java 服务端完成。'
+              : '恢复内容由 Java 服务端按已持久化 checkpoint 校验，浏览器不会提交 checkpoint 内容。'}
           </p>
           <Button disabled={actionState === 'loading'} onClick={() => void recoverRun()}>
-            从 checkpoint 恢复
+            {checkpointRecovery ? '提交恢复请求' : '从 checkpoint 恢复'}
           </Button>
         </Card>
       ) : null}
@@ -2704,6 +2755,7 @@ function RealChatPage() {
   const [safetyDegraded, setSafetyDegraded] = useState(false);
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
+  const [checkpointRecovery, setCheckpointRecovery] = useState<AgentRecoveryRequest>();
   const [approval, setApproval] = useState<{
     id: string;
     operation?: string;
@@ -2764,6 +2816,7 @@ function RealChatPage() {
     setSafetyDegraded(false);
     setBudgetConfirmation(false);
     setCheckpointAvailable(false);
+    setCheckpointRecovery(undefined);
     setApproval(undefined);
     setApprovalSubmitting(false);
     setCancelling(false);
@@ -2874,6 +2927,7 @@ function RealChatPage() {
           setRetrying(false);
           setRunStatus('completed');
           setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
           setApproval(undefined);
           setAssistantTime((current) => current || new Date().toISOString());
           if (!hasPersistedAnswer) setAssistantText((current) => payload.answer ?? current);
@@ -2907,6 +2961,7 @@ function RealChatPage() {
           if (payload.approval_request_id) {
             setRunStatus('waiting_user');
             setCheckpointAvailable(false);
+            setCheckpointRecovery(undefined);
             setApproval({
               id: payload.approval_request_id,
               operation: payload.operation,
@@ -2916,6 +2971,7 @@ function RealChatPage() {
             });
           } else {
             setRunStatus('waiting_user');
+            setCheckpointRecovery(recoveryRequestFromEvent(payload));
             setCheckpointAvailable(true);
           }
           return;
@@ -2925,6 +2981,7 @@ function RealChatPage() {
           setCancelAcknowledged(false);
           setRunStatus('failed');
           setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
           setSafetyDegraded(false);
           setRetrying(false);
           setRetryAvailable(payload.retryable === true);
@@ -2936,6 +2993,7 @@ function RealChatPage() {
           setCancelling(false);
           setCancelAcknowledged(false);
           setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
           setRetryAvailable(false);
           setRetrying(false);
           return;
@@ -2945,6 +3003,7 @@ function RealChatPage() {
           setCancelAcknowledged(false);
           setRunStatus('superseded');
           setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
           return;
         }
         if (eventType === 'run.clarification_requested') {
@@ -3364,20 +3423,33 @@ function RealChatPage() {
         <div className={styles.cardWrap}>
           <ConfirmationCard
             title="运行已暂停，可从检查点继续"
-            helperText="系统已保存运行进度。继续后会创建新的 dispatch attempt，不会重复已完成的工具调用。"
+            helperText={
+              checkpointRecovery
+                ? '页面将转发服务端事件中的 checkpoint 元数据，由 Java 校验后创建新的 dispatch attempt。'
+                : '系统已保存运行进度。继续后会创建新的 dispatch attempt，不会重复已完成的工具调用。'
+            }
+            confirmLabel={checkpointRecovery ? '提交恢复请求' : '从 checkpoint 恢复'}
+            state={approvalSubmitting ? 'disabled' : 'normal'}
             data={[
               { label: '恢复方式', value: '从已校验 checkpoint 恢复' },
               { label: '安全校验', value: 'Java 服务端完成' },
             ]}
             onConfirm={() => {
-              void recoverAgentRunFromCheckpoint(activeRunId)
+              const recovery = checkpointRecovery;
+              setApprovalSubmitting(true);
+              const recoveryRequest = recovery
+                ? recoverAgentRun(activeRunId, recovery)
+                : recoverAgentRunFromCheckpoint(activeRunId);
+              void recoveryRequest
                 .then(() => {
                   setCheckpointAvailable(false);
+                  setCheckpointRecovery(undefined);
                   setRunStatus('queued');
                 })
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '运行恢复失败'));
+                .catch((reason) => setError(reason instanceof Error ? reason.message : '运行恢复失败'))
+                .finally(() => setApprovalSubmitting(false));
             }}
-            onEdit={() => setError('当前恢复入口不接受浏览器修改 checkpoint 内容。')}
+            onEdit={() => setError('恢复参数来自服务端 checkpoint 事件，页面不提供手工修改。')}
             onCancel={() => setCheckpointAvailable(false)}
           />
         </div>

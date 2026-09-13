@@ -23,6 +23,7 @@ export type AgentRunEvent = {
   reason?: string;
   checkpoint_version?: number;
   checkpoint_digest?: string;
+  completed_invocation_ids?: string[];
   current_node?: string;
   budget_revision?: number;
   error_code?: string;

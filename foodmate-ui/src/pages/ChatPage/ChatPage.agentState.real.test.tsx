@@ -15,6 +15,7 @@ const {
   loadAgentRun,
   loadApprovalProposal,
   openAgentRunStream,
+  recoverAgentRun,
   recoverAgentRunFromCheckpoint,
   rejectAgentWrite,
   retryAgentRun,
@@ -27,6 +28,7 @@ const {
   loadAgentRun: vi.fn(),
   loadApprovalProposal: vi.fn(),
   openAgentRunStream: vi.fn(),
+  recoverAgentRun: vi.fn(),
   recoverAgentRunFromCheckpoint: vi.fn(),
   rejectAgentWrite: vi.fn(),
   retryAgentRun: vi.fn(),
@@ -46,6 +48,7 @@ vi.mock('../../services/agentRunService', async () => {
     loadAgentRun,
     loadApprovalProposal,
     openAgentRunStream,
+    recoverAgentRun,
     recoverAgentRunFromCheckpoint,
     rejectAgentWrite,
     retryAgentRun,
@@ -124,6 +127,7 @@ describe('ChatPage Agent 状态真实动作', () => {
     loadAgentRun.mockReset();
     loadApprovalProposal.mockReset();
     openAgentRunStream.mockReset();
+    recoverAgentRun.mockReset();
     recoverAgentRunFromCheckpoint.mockReset();
     rejectAgentWrite.mockReset();
     retryAgentRun.mockReset();
@@ -148,6 +152,12 @@ describe('ChatPage Agent 状态真实动作', () => {
     });
     loadAgentRun.mockResolvedValue({ run_id: '42', status: 'running', accepted_event_count: 0 });
     loadApprovalProposal.mockResolvedValue(pendingApproval());
+    recoverAgentRun.mockResolvedValue({
+      run_id: '42',
+      dispatch_id: 'dispatch-explicit',
+      attempt: 2,
+      status: 'queued',
+    });
     recoverAgentRunFromCheckpoint.mockResolvedValue({
       run_id: '42',
       dispatch_id: 'dispatch-recovered',
@@ -297,8 +307,6 @@ describe('ChatPage Agent 状态真实动作', () => {
         'run.checkpoint_saved',
         {
           event_type: 'run.checkpoint_saved',
-          checkpoint_version: 3,
-          checkpoint_digest: 'sha256:checkpoint',
           current_node: 'tool_wait',
         },
         'checkpoint-event',
@@ -308,6 +316,35 @@ describe('ChatPage Agent 状态真实动作', () => {
     await user.click(await screen.findByRole('button', { name: '从 checkpoint 恢复' }));
     await waitFor(() => expect(recoverAgentRunFromCheckpoint).toHaveBeenCalledWith('42'));
     expect(await screen.findByText(/后端已返回恢复状态：queued/)).toBeInTheDocument();
+  });
+
+  it('checkpoint 元数据完整时提交显式恢复请求，不提交 checkpoint 内容', async () => {
+    const user = userEvent.setup();
+    renderState(
+      'sse-reconnecting',
+      `run_id=42&checkpoint_version=4&checkpoint_digest=${encodeURIComponent('sha256:checkpoint')}&completed_invocation_ids=${encodeURIComponent(JSON.stringify(['inv-1']))}`,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '提交恢复请求' }));
+
+    await waitFor(() =>
+      expect(recoverAgentRun).toHaveBeenCalledWith('42', {
+        checkpointVersion: 4,
+        checkpointDigest: 'sha256:checkpoint',
+        completedInvocationIds: ['inv-1'],
+      }),
+    );
+    expect(recoverAgentRunFromCheckpoint).not.toHaveBeenCalled();
+    expect(await screen.findByText(/后端已返回恢复状态：queued/)).toBeInTheDocument();
+  });
+
+  it('缺少 checkpoint 元数据时不提交虚构的显式恢复请求', async () => {
+    renderState('sse-reconnecting', 'run_id=42&checkpoint_version=4');
+
+    expect(screen.queryByRole('button', { name: '提交恢复请求' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '从 checkpoint 恢复' })).not.toBeInTheDocument();
+    expect(recoverAgentRun).not.toHaveBeenCalled();
+    expect(recoverAgentRunFromCheckpoint).not.toHaveBeenCalled();
   });
 
   it('SSE 重连状态显示次数和游标', async () => {
