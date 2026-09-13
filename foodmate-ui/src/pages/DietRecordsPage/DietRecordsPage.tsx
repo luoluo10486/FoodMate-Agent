@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { ApiError } from '../../services/apiClient';
 import {
   createFoodLog,
   deleteFoodLog,
@@ -32,6 +33,7 @@ import {
   restoreFoodLog,
   updateFoodLog,
   type FoodLog,
+  type FoodLogItem,
 } from '../../services/foodLogService';
 import {
   createCompositeDish,
@@ -152,6 +154,48 @@ const figmaSidebarSessions: SessionSummary[] = [
 ];
 
 type RecordsState = 'default' | 'loading' | 'empty' | 'error';
+
+type PendingFoodDeletion = {
+  logId: string;
+  itemId: string;
+  itemName: string;
+};
+
+type FoodMutation = 'create' | 'update' | 'delete' | 'restore' | undefined;
+
+function isFoodLogConflict(cause: unknown): boolean {
+  return (
+    cause instanceof ApiError &&
+    (cause.status === 409 || ['CONFLICT', 'VERSION_CONFLICT', 'REVISION_CONFLICT'].includes(cause.code))
+  );
+}
+
+function foodLogErrorMessage(cause: unknown, fallback: string): string {
+  if (cause instanceof ApiError) {
+    if (isFoodLogConflict(cause)) return '饮食记录已被修改，请重新加载后再试。';
+    if (cause.code === 'FORBIDDEN') return '当前账号无权操作这条饮食记录。';
+    return cause.message || fallback;
+  }
+  return cause instanceof Error ? cause.message : fallback;
+}
+
+function buildFoodLogWriteRequest(log: FoodLog, items: FoodLogItem[]): Parameters<typeof updateFoodLog>[2] {
+  return {
+    meal_time: log.meal_time,
+    meal_type: log.meal_type,
+    notes: log.notes ?? undefined,
+    meal_plan_meal_id: log.meal_plan_meal_id ?? undefined,
+    composite_dish_id: log.composite_dish_id ?? undefined,
+    composite_dish_revision: log.composite_dish_revision ?? undefined,
+    composite_dish_servings: log.composite_dish_servings == null ? undefined : Number(log.composite_dish_servings),
+    items: items.map((item) => ({
+      raw_name: item.raw_name,
+      amount: asNumber(item.amount),
+      unit: item.unit,
+      ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
+    })),
+  };
+}
 
 function getRecordsState(value: string | null): RecordsState {
   return value === 'loading' || value === 'empty' || value === 'error' ? value : 'default';
@@ -390,6 +434,8 @@ export function DietRecordsPage() {
   const [deletedError, setDeletedError] = useState<string>();
   const [showDeleted, setShowDeleted] = useState(false);
   const [notice, setNotice] = useState('');
+  const [foodMutation, setFoodMutation] = useState<FoodMutation>();
+  const [pendingFoodDeletion, setPendingFoodDeletion] = useState<PendingFoodDeletion>();
 
   useEffect(() => {
     if (!isRealMode) return;
@@ -442,6 +488,7 @@ export function DietRecordsPage() {
 
   const openFoodDialog = useCallback(
     (mealId: MealSection['id'], date = selectedDate) => {
+      setNotice('');
       setDialogMode('create');
       setEditingLogId(undefined);
       setDialogMealId(mealId);
@@ -462,9 +509,11 @@ export function DietRecordsPage() {
     const log = realLogs.find((candidate) => candidate.food_log_id === logId);
     const firstItem = log?.items[0];
     if (!log || !firstItem) return;
+    setNotice('');
     setDialogMode('edit');
     setEditingLogId(log.food_log_id);
     setDialogMealId(log.meal_type as MealSection['id']);
+    setDialogDate(new Date(log.meal_time));
     setFoodName(firstItem.raw_name);
     setNutritionFoodId(firstItem.nutrition_food_id ?? undefined);
     setFoodAmount(String(firstItem.amount));
@@ -656,7 +705,8 @@ export function DietRecordsPage() {
     if (isRealMode) {
       if (dialogMode === 'edit' && editingLogId) {
         const current = realLogs.find((log) => log.food_log_id === editingLogId);
-        if (!current || current.items.length === 0) return;
+        if (!current || current.items.length === 0 || foodMutation) return;
+        setFoodMutation('update');
         void updateFoodLog(editingLogId, current.revision, {
           meal_time: current.meal_time,
           meal_type: current.meal_type,
@@ -688,11 +738,18 @@ export function DietRecordsPage() {
             setRealLogs(nextLogs);
             setMeals(mapFoodLogs(nextLogs));
             setNotice(`${name} 已更新。`);
+            setRealReloadNonce((current) => current + 1);
             closeFoodDialog();
           })
-          .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录更新失败'));
+          .catch((cause) => {
+            if (isFoodLogConflict(cause)) setRealReloadNonce((current) => current + 1);
+            setNotice(foodLogErrorMessage(cause, '饮食记录更新失败'));
+          })
+          .finally(() => setFoodMutation(undefined));
         return;
       }
+      if (foodMutation) return;
+      setFoodMutation('create');
       void createFoodLog({
         meal_time: new Date(dialogDate).toISOString(),
         meal_type: dialogMealId,
@@ -715,9 +772,13 @@ export function DietRecordsPage() {
           setRealLogs((current) => [...current, created]);
           setMeals(mapFoodLogs([...realLogs, created]));
           setNotice(`${name} 已提交，营养值由服务端权威计算。`);
+          setRealReloadNonce((current) => current + 1);
           closeFoodDialog();
         })
-        .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录保存失败'));
+        .catch((cause) => {
+          setNotice(foodLogErrorMessage(cause, '饮食记录保存失败'));
+        })
+        .finally(() => setFoodMutation(undefined));
       return;
     }
 
@@ -749,14 +810,8 @@ export function DietRecordsPage() {
     if (isRealMode) {
       const item = meals.find((meal) => meal.id === mealId)?.items.find((candidate) => candidate.id === foodId);
       if (!item?.logId || item.revision == null) return;
-      void deleteFoodLog(item.logId, item.revision)
-        .then(() => {
-          const nextLogs = realLogs.filter((log) => log.food_log_id !== item.logId);
-          setRealLogs(nextLogs);
-          setMeals(mapFoodLogs(nextLogs));
-          setNotice(`${foodNameToRemove} 已从当前记录移除。`);
-        })
-        .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录删除失败'));
+      setNotice('');
+      setPendingFoodDeletion({ logId: item.logId, itemId: foodId, itemName: foodNameToRemove });
       return;
     }
     setMeals((current) =>
@@ -767,26 +822,73 @@ export function DietRecordsPage() {
     setNotice(`${foodNameToRemove} 已从当前记录移除。`);
   };
 
-  const toggleDeleted = () => {
-    const nextVisible = !showDeleted;
-    setShowDeleted(nextVisible);
-    if (!nextVisible || deletedLogs.length > 0 || deletedLoading) return;
+  const confirmRemoveFood = () => {
+    if (!pendingFoodDeletion || foodMutation) return;
+    const { logId, itemId, itemName } = pendingFoodDeletion;
+    const current = realLogs.find((log) => log.food_log_id === logId);
+    if (!current) {
+      setPendingFoodDeletion(undefined);
+      setNotice('记录已不在当前日期范围内，请重新加载。');
+      return;
+    }
+    const remainingItems = current.items.filter((item) => `${logId}-${item.food_log_item_id}` !== itemId);
+    setFoodMutation('delete');
+    const operation: Promise<FoodLog | undefined> =
+      remainingItems.length === 0
+        ? deleteFoodLog(logId, current.revision).then(() => undefined)
+        : updateFoodLog(logId, current.revision, buildFoodLogWriteRequest(current, remainingItems));
+    void operation
+      .then((updated) => {
+        if (remainingItems.length > 0 && !updated) {
+          throw new Error('服务端未返回更新后的饮食记录');
+        }
+        const nextLogs =
+          remainingItems.length === 0
+            ? realLogs.filter((log) => log.food_log_id !== logId)
+            : realLogs.map((log) => (log.food_log_id === logId ? (updated as FoodLog) : log));
+        setRealLogs(nextLogs);
+        setMeals(mapFoodLogs(nextLogs));
+        setPendingFoodDeletion(undefined);
+        setRealReloadNonce((current) => current + 1);
+        setNotice(`${itemName} 已从当前记录移除。`);
+      })
+      .catch((cause) => {
+        if (isFoodLogConflict(cause)) setRealReloadNonce((current) => current + 1);
+        setNotice(foodLogErrorMessage(cause, '饮食记录删除失败'));
+      })
+      .finally(() => setFoodMutation(undefined));
+  };
+
+  const loadDeletedRecords = () => {
+    if (!isRealMode || deletedLoading) return;
     setDeletedLoading(true);
     setDeletedError(undefined);
     void loadDeletedFoodLogs()
       .then(setDeletedLogs)
-      .catch((cause) => setDeletedError(cause instanceof Error ? cause.message : '已删除记录加载失败'))
+      .catch((cause) => setDeletedError(foodLogErrorMessage(cause, '已删除记录加载失败')))
       .finally(() => setDeletedLoading(false));
   };
 
+  const toggleDeleted = () => {
+    const nextVisible = !showDeleted;
+    setShowDeleted(nextVisible);
+    if (nextVisible && deletedLogs.length === 0) loadDeletedRecords();
+  };
+
   const restoreDeleted = (log: FoodLog) => {
+    if (foodMutation) return;
+    setFoodMutation('restore');
     void restoreFoodLog(log.food_log_id, log.revision)
       .then(() => {
         setDeletedLogs((current) => current.filter((item) => item.food_log_id !== log.food_log_id));
         setRealReloadNonce((current) => current + 1);
         setNotice(`${log.items[0]?.raw_name ?? '饮食记录'} 已恢复。`);
       })
-      .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录恢复失败'));
+      .catch((cause) => {
+        if (isFoodLogConflict(cause)) loadDeletedRecords();
+        setNotice(foodLogErrorMessage(cause, '饮食记录恢复失败'));
+      })
+      .finally(() => setFoodMutation(undefined));
   };
 
   const reloadRecords = () => {
@@ -1169,9 +1271,13 @@ export function DietRecordsPage() {
             </header>
             {deletedLoading ? <p className={styles.deletedState}>正在加载已删除记录…</p> : null}
             {deletedError ? (
-              <p className={styles.deletedState} role="alert">
-                {deletedError}
-              </p>
+              <div className={styles.deletedError} role="alert">
+                <p className={styles.deletedState}>{deletedError}</p>
+                <Button type="button" variant="outline" onClick={loadDeletedRecords} disabled={deletedLoading}>
+                  <RefreshCw aria-hidden="true" />
+                  重试加载
+                </Button>
+              </div>
             ) : null}
             {!deletedLoading && !deletedError && deletedLogs.length === 0 ? (
               <p className={styles.deletedState}>暂无可恢复记录。</p>
@@ -1194,10 +1300,11 @@ export function DietRecordsPage() {
                     variant="outline"
                     type="button"
                     onClick={() => restoreDeleted(log)}
+                    disabled={foodMutation === 'restore'}
                     aria-label={`恢复${log.items[0]?.raw_name ?? '饮食记录'}`}
                   >
                     <RotateCcw aria-hidden="true" />
-                    恢复
+                    {foodMutation === 'restore' ? '恢复中…' : '恢复'}
                   </Button>
                 </div>
               ))}
@@ -1228,12 +1335,12 @@ export function DietRecordsPage() {
               </Button>
             </div>
             <p className={styles.entryNote}>保存失败时保留草稿；已删除记录进入可恢复状态，不改变当天统计历史。</p>
-            {notice ? (
-              <p className={styles.notice} role="status" aria-live="polite">
-                {notice}
-              </p>
-            ) : null}
           </section>
+        ) : null}
+        {notice ? (
+          <p className={styles.notice} role="status" aria-live="polite">
+            {notice}
+          </p>
         ) : null}
       </div>
 
@@ -1247,6 +1354,11 @@ export function DietRecordsPage() {
                 : `添加到 ${selectedMeal?.title ?? '当前餐次'}，营养值将在确认后估算。`}
             </DialogDescription>
           </DialogHeader>
+          {notice ? (
+            <p className={styles.dialogNotice} role="alert">
+              {notice}
+            </p>
+          ) : null}
           {isRealMode && compositeDishes.length > 0 ? (
             <div className={styles.compositeDishPicker} aria-label="选择复合菜">
               <div className={styles.compositeDishPickerHeader}>
@@ -1350,8 +1462,17 @@ export function DietRecordsPage() {
             <Button variant="outline" onClick={closeFoodDialog}>
               取消
             </Button>
-            <Button onClick={addFood} disabled={!foodName.trim() || !foodAmount.trim() || !foodUnit.trim()}>
-              {dialogMode === 'edit' ? '保存' : '添加'}
+            <Button
+              onClick={addFood}
+              disabled={Boolean(foodMutation) || !foodName.trim() || !foodAmount.trim() || !foodUnit.trim()}
+            >
+              {foodMutation === 'update'
+                ? '保存中…'
+                : foodMutation === 'create'
+                  ? '添加中…'
+                  : dialogMode === 'edit'
+                    ? '保存'
+                    : '添加'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1466,6 +1587,32 @@ export function DietRecordsPage() {
             </Button>
             <Button type="button" onClick={saveDish} disabled={dishSaving}>
               {dishSaving ? '保存中…' : '保存复合菜'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(pendingFoodDeletion)} onOpenChange={(open) => !open && setPendingFoodDeletion(undefined)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认移除饮食记录</DialogTitle>
+            <DialogDescription>
+              {pendingFoodDeletion
+                ? `将从服务端记录中移除“${pendingFoodDeletion.itemName}”。如果记录中还有其它食物，只会更新当前这一项。`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {notice ? (
+            <p className={styles.dialogNotice} role="alert">
+              {notice}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPendingFoodDeletion(undefined)}>
+              取消
+            </Button>
+            <Button type="button" onClick={confirmRemoveFood} disabled={foodMutation === 'delete'}>
+              {foodMutation === 'delete' ? '处理中…' : '确认移除'}
             </Button>
           </DialogFooter>
         </DialogContent>

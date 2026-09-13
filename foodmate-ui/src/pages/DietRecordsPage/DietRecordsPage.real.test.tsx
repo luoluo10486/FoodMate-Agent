@@ -13,6 +13,7 @@ import {
 } from '../../services/foodLogService';
 import { searchNutritionFoods } from '../../services/nutritionFoodService';
 import { loadCompositeDishes } from '../../services/compositeDishService';
+import { ApiError } from '../../services/apiClient';
 
 vi.mock('../../services/foodLogService', () => ({
   createFoodLog: vi.fn(),
@@ -58,6 +59,19 @@ const log = {
   ],
 };
 
+const multiItemLog = {
+  ...log,
+  items: [
+    log.items[0],
+    {
+      ...log.items[0],
+      food_log_item_id: '102',
+      raw_name: '保留香蕉',
+      item_order: 1,
+    },
+  ],
+};
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/analysis?view=records']}>
@@ -95,12 +109,13 @@ describe('DietRecordsPage real mode', () => {
   });
 
   it('creates a real food log from the add-food dialog', async () => {
-    vi.mocked(loadFoodLogs).mockResolvedValue([]);
-    vi.mocked(createFoodLog).mockResolvedValue({
+    const created = {
       ...log,
       food_log_id: '12',
       items: [{ ...log.items[0], raw_name: '新食物' }],
-    });
+    };
+    vi.mocked(loadFoodLogs).mockResolvedValueOnce([]).mockResolvedValue([created]);
+    vi.mocked(createFoodLog).mockResolvedValue(created);
     const user = userEvent.setup();
     renderPage();
 
@@ -113,6 +128,7 @@ describe('DietRecordsPage real mode', () => {
       expect(createFoodLog).toHaveBeenCalledWith(expect.objectContaining({ meal_type: 'breakfast' })),
     );
     expect(screen.getByText('新食物')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('新食物 已提交');
   });
 
   it('submits the explicitly selected nutrition catalog candidate', async () => {
@@ -163,25 +179,87 @@ describe('DietRecordsPage real mode', () => {
   });
 
   it('deletes a real log with the server revision', async () => {
-    vi.mocked(loadFoodLogs).mockResolvedValue([log]);
+    vi.mocked(loadFoodLogs).mockResolvedValueOnce([log]).mockResolvedValue([]);
     vi.mocked(deleteFoodLog).mockResolvedValue();
     const user = userEvent.setup();
     renderPage();
 
     await waitFor(() => expect(screen.getByRole('button', { name: '删除服务端燕麦所在记录' })).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: '删除服务端燕麦所在记录' }));
+    await user.click(screen.getByRole('button', { name: '确认移除' }));
 
     await waitFor(() => expect(deleteFoodLog).toHaveBeenCalledWith('11', 2));
     expect(screen.queryByText('服务端燕麦')).not.toBeInTheDocument();
   });
 
-  it('edits the first item without dropping other server items', async () => {
+  it('updates only the removed item when a food log contains multiple items', async () => {
+    const updated = { ...multiItemLog, revision: 3, items: [multiItemLog.items[1]] };
+    vi.mocked(loadFoodLogs).mockResolvedValueOnce([multiItemLog]).mockResolvedValue([updated]);
+    vi.mocked(updateFoodLog).mockResolvedValue(updated);
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('保留香蕉')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '删除服务端燕麦所在记录' }));
+    await user.click(screen.getByRole('button', { name: '确认移除' }));
+
+    await waitFor(() =>
+      expect(updateFoodLog).toHaveBeenCalledWith(
+        '11',
+        2,
+        expect.objectContaining({
+          items: [{ raw_name: '保留香蕉', amount: 100, unit: 'g' }],
+        }),
+      ),
+    );
+    expect(deleteFoodLog).not.toHaveBeenCalled();
+    expect(screen.queryByText('服务端燕麦')).not.toBeInTheDocument();
+    expect(screen.getByText('保留香蕉')).toBeInTheDocument();
+  });
+
+  it('keeps the edit dialog open and explains a revision conflict', async () => {
     vi.mocked(loadFoodLogs).mockResolvedValue([log]);
-    vi.mocked(updateFoodLog).mockResolvedValue({
+    vi.mocked(updateFoodLog).mockRejectedValue(new ApiError('CONFLICT', 'stale revision', 409));
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '编辑服务端燕麦所在记录' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '编辑服务端燕麦所在记录' }));
+    const nameInput = screen.getByRole('textbox', { name: '食物名称' });
+    await user.clear(nameInput);
+    await user.type(nameInput, '冲突后的名称');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('饮食记录已被修改，请重新加载后再试。'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('冲突后的名称')).toBeInTheDocument();
+  });
+
+  it('can retry loading deleted records after a real request failure', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadDeletedFoodLogs)
+      .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'network', undefined))
+      .mockResolvedValue([log]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '已删除记录' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '已删除记录' }));
+    await waitFor(() => expect(screen.getByText('网络连接失败，请检查网络后重试')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '重试加载' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '恢复服务端燕麦' })).toBeInTheDocument());
+    expect(loadDeletedFoodLogs).toHaveBeenCalledTimes(2);
+  });
+
+  it('edits the first item without dropping other server items', async () => {
+    const updated = {
       ...log,
       revision: 3,
       items: [{ ...log.items[0], raw_name: '编辑后的燕麦' }],
-    });
+    };
+    vi.mocked(loadFoodLogs).mockResolvedValueOnce([log]).mockResolvedValue([updated]);
+    vi.mocked(updateFoodLog).mockResolvedValue(updated);
     const user = userEvent.setup();
     renderPage();
 

@@ -63,6 +63,33 @@ describe('foodLogService', () => {
     expect(new Headers(fetchMock.mock.calls[3][1].headers).get('Idempotency-Key')).toMatch(/^food-log-restore-/);
   });
 
+  it('sends the revision and complete remaining items when updating a record', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ success: true, data: { food_log_id: '12', revision: 4 } }), { status: 200 }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await updateFoodLog('12', 3, {
+      meal_time: '2026-08-22T08:00:00Z',
+      meal_type: 'breakfast',
+      notes: '保留早餐记录',
+      items: [{ raw_name: '燕麦', amount: 120, unit: 'g', nutrition_food_id: '101' }],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/food-logs/12?revision=3',
+      expect.objectContaining({ method: 'PATCH', credentials: 'include' }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({
+      meal_time: '2026-08-22T08:00:00Z',
+      meal_type: 'breakfast',
+      notes: '保留早餐记录',
+      items: [{ raw_name: '燕麦', amount: 120, unit: 'g', nutrition_food_id: '101' }],
+    });
+  });
+
   it("loads the authenticated user's deleted records endpoint", async () => {
     const data = [{ food_log_id: '12', deleted: true }];
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
