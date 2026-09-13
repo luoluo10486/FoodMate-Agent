@@ -135,10 +135,14 @@ export function streamChatRun(
     parseEvent: (message, registeredType) => {
       const raw = JSON.parse(message.data) as Record<string, unknown>;
       const eventType = String(raw.event_type ?? raw.eventType ?? registeredType);
-      const eventId = message.lastEventId || stringValue(raw.sse_event_id) || stringValue(raw.event_id);
+      const eventIds = [message.lastEventId, stringValue(raw.sse_event_id), stringValue(raw.event_id)].filter(
+        (eventId): eventId is string => Boolean(eventId),
+      );
+      const eventId = eventIds[0] ?? '';
       return {
         payload: normalizeChatRunEvent(raw, runId, eventType, eventId),
         eventId,
+        eventIds,
         eventType,
       };
     },

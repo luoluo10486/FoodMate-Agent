@@ -194,6 +194,15 @@ const agentEventTypes = [
 ] as const;
 
 const terminalEventTypes = new Set(['run.completed', 'run.failed', 'run.cancelled', 'run.superseded']);
+const terminalStatuses = new Set([
+  'COMPLETED',
+  'SUCCEEDED',
+  'SUCCESS',
+  'FAILED',
+  'CANCELED',
+  'CANCELLED',
+  'SUPERSEDED',
+]);
 
 export function openAgentRunStream(
   runId: string,
@@ -210,14 +219,20 @@ export function openAgentRunStream(
     onError: options.onError,
     parseEvent: (message, registeredType) => {
       const payload = JSON.parse(message.data) as AgentRunEvent;
+      const eventIds = [message.lastEventId, payload.sse_event_id, payload.event_id].filter(
+        (eventId): eventId is string => Boolean(eventId),
+      );
       return {
         payload,
-        eventId: message.lastEventId || payload.sse_event_id || payload.event_id,
+        eventId: eventIds[0],
+        eventIds,
         eventType: payload.event_type || registeredType,
       };
     },
     onEvent,
-    isTerminal: (eventType) => terminalEventTypes.has(eventType),
+    isTerminal: (eventType, payload) =>
+      terminalEventTypes.has(eventType.trim().toLowerCase()) ||
+      terminalStatuses.has(payload.status?.trim().toUpperCase() ?? ''),
   });
 }
 

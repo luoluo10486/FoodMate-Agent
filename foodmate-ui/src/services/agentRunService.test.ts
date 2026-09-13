@@ -114,6 +114,28 @@ describe('openAgentRunStream', () => {
     stream.close();
   });
 
+  it('deduplicates an event when any payload id matches and advances the cursor', () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const received: string[] = [];
+    const stream = openAgentRunStream('42', (_eventType, _payload, eventId) => received.push(eventId));
+    const source = FakeEventSource.instances[0];
+
+    source.emit(
+      'run.answer_stream',
+      { sse_event_id: 'stream-id', event_id: 'business-id', text: '第一段' },
+      'message-id-1',
+    );
+    source.emit(
+      'run.answer_stream',
+      { sse_event_id: 'stream-id', event_id: 'business-id', text: '重复事件' },
+      'message-id-2',
+    );
+
+    expect(received).toEqual(['message-id-1']);
+    expect(stream.getConnection().lastEventId).toBe('message-id-2');
+    stream.close();
+  });
+
   it('publishes the latest event cursor through the connection callback', () => {
     vi.stubGlobal('EventSource', FakeEventSource);
     const states: AgentStreamConnection[] = [];
@@ -233,6 +255,26 @@ describe('openAgentRunStream', () => {
       });
     },
   );
+
+  it('closes a generic run.event when its payload reports a terminal status', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const received: string[] = [];
+    const stream = openAgentRunStream('42', (eventType) => received.push(eventType), {
+      reconnectDelayMs: 10,
+      maxAttempts: 2,
+    });
+    const source = FakeEventSource.instances[0];
+
+    source.emit('run.event', { event_type: 'run.event', status: 'failed', event_id: 'failed-event' });
+    source.fail();
+    vi.advanceTimersByTime(20);
+
+    expect(received).toEqual(['run.event']);
+    expect(source.closed).toBe(true);
+    expect(FakeEventSource.instances).toHaveLength(1);
+    expect(stream.getConnection()).toMatchObject({ state: 'closed', lastEventId: 'failed-event' });
+  });
 
   it('enters exhausted after the bounded number of attempts', () => {
     vi.useFakeTimers();

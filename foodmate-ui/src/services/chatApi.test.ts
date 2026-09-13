@@ -108,4 +108,18 @@ describe('chatApi HTTP contract', () => {
 
     expect(states.at(-1)).toBe('exhausted');
   });
+
+  it('deduplicates Chat events by payload ids even when the SSE message id changes', () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const received: ChatRunEvent[] = [];
+    const stream = streamChatRun('42', (event) => received.push(event));
+    const source = FakeEventSource.instances[0];
+
+    source.emit('run.event', { event_id: 'business-id', sse_event_id: 'stream-id', state: 'RUNNING' }, 'message-1');
+    source.emit('run.event', { event_id: 'business-id', sse_event_id: 'stream-id', state: 'RUNNING' }, 'message-2');
+
+    expect(received).toHaveLength(1);
+    expect(stream.getConnection().lastEventId).toBe('message-2');
+    stream.close();
+  });
 });

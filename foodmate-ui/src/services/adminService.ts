@@ -1186,12 +1186,13 @@ export function streamKnowledgeBatch(
         knowledgeBatchStringField(payload, 'event_type') ??
         knowledgeBatchStringField(payload, 'eventType') ??
         registeredType;
-      const eventId =
-        message.lastEventId ||
-        knowledgeBatchStringField(payload, 'sse_event_id') ||
-        knowledgeBatchStringField(payload, 'event_id') ||
-        '';
-      return { payload, eventId, eventType };
+      const eventIds = [
+        message.lastEventId,
+        knowledgeBatchStringField(payload, 'sse_event_id'),
+        knowledgeBatchStringField(payload, 'event_id'),
+      ].filter((eventId): eventId is string => Boolean(eventId));
+      const eventId = eventIds[0] ?? '';
+      return { payload, eventId, eventIds, eventType };
     },
     onEvent: (eventType, payload, eventId) => onEvent({ event_id: eventId, event_type: eventType, payload }),
     isTerminal: isTerminalKnowledgeBatchEvent,

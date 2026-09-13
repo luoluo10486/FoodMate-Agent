@@ -100,4 +100,25 @@ describe('admin knowledge batch SSE', () => {
     expect(stream.getConnection()).toMatchObject({ state: 'exhausted', attempt: 2, maxAttempts: 2 });
     stream.close();
   });
+
+  it('deduplicates batch events by payload ids even when the SSE message id changes', () => {
+    const events: KnowledgeBatchEvent[] = [];
+    const stream = streamKnowledgeBatch('9001', (event) => events.push(event));
+    const source = FakeEventSource.instances[0];
+
+    source.emit(
+      'knowledge.batch.progress',
+      { event_id: 'business-id', sse_event_id: 'stream-id', status: 'indexing' },
+      'message-1',
+    );
+    source.emit(
+      'knowledge.batch.progress',
+      { event_id: 'business-id', sse_event_id: 'stream-id', status: 'indexing' },
+      'message-2',
+    );
+
+    expect(events).toHaveLength(1);
+    expect(stream.getConnection().lastEventId).toBe('message-2');
+    stream.close();
+  });
 });

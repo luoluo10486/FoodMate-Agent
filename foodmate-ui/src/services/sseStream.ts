@@ -3,6 +3,7 @@ import type { AgentStreamConnection, AgentStreamHandle, AgentStreamConnectionSta
 export type ParsedSseEvent<T> = {
   payload: T;
   eventId?: string;
+  eventIds?: readonly string[];
   eventType?: string;
 };
 
@@ -22,7 +23,12 @@ export type SseStreamOptions<T> = {
 const defaultParseEvent = <T>(event: MessageEvent<string>): ParsedSseEvent<T> => ({
   payload: JSON.parse(event.data) as T,
   eventId: event.lastEventId || undefined,
+  eventIds: event.lastEventId ? [event.lastEventId] : [],
 });
+
+function normalizeEventIds(ids: readonly (string | undefined)[]) {
+  return Array.from(new Set(ids.map((id) => id?.trim()).filter((id): id is string => Boolean(id))));
+}
 
 function resolveSseUrl(path: string) {
   const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
@@ -122,13 +128,15 @@ export function openSseStream<T>(options: SseStreamOptions<T>): AgentStreamHandl
           handleConnectionFailure(nextSource);
           return;
         }
-        const eventId = parsed.eventId?.trim() || message.lastEventId || '';
-        if (eventId && seenEventIds.has(eventId)) return;
-        if (eventId) seenEventIds.add(eventId);
+        const eventIds = normalizeEventIds([parsed.eventId, message.lastEventId, ...(parsed.eventIds ?? [])]);
+        const eventId = eventIds[0] ?? '';
+        const duplicate = eventIds.some((id) => seenEventIds.has(id));
+        eventIds.forEach((id) => seenEventIds.add(id));
         if (eventId && eventId !== connection.lastEventId) {
           // 游标变化必须同步给页面，保证下一次续接使用同一份 ID。
           publishState(connection.state, { lastEventId: eventId });
         }
+        if (duplicate) return;
         const eventType = parsed.eventType?.trim() || registeredType;
         options.onEvent(eventType, parsed.payload, eventId);
         if (options.isTerminal?.(eventType, parsed.payload)) {
