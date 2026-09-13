@@ -792,7 +792,7 @@ function BasicTab({
             </div>
           </div>
           <div className={styles.avatarActions}>
-            <input
+            <Input
               ref={inputRef}
               className={styles.hiddenInput}
               accept="image/jpeg,image/png,image/webp"

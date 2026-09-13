@@ -299,7 +299,7 @@ export function HomePage() {
               <Paperclip aria-hidden="true" />
             )}
           </Button>
-          <input
+          <Input
             ref={attachmentInputRef}
             className={styles.fileInput}
             type="file"

@@ -283,7 +283,7 @@ export function KnowledgeSection({
               ? 'Max file size: 50MB. Allowed formats: PDF, CSV, XLSX, TXT.'
               : '最多 20 个文件，单个不超过 20 MB。支持 PDF、DOCX、Markdown、TXT。'}
           </span>
-          <input
+          <Input
             id={fileInputId}
             aria-label="选择知识库文件"
             type="file"
