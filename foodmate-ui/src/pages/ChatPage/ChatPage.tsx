@@ -101,6 +101,7 @@ function displayRunStatus(status: string): AgentDisplayStatus {
   }
   if (normalized === 'running') return 'executing_tools';
   if (normalized === 'validating') return 'validating';
+  if (normalized === 'composing') return 'composing';
   if (normalized === 'waiting_user') return 'waiting_user';
   if (normalized === 'failed' || normalized === 'cancelled' || normalized === 'canceled')
     return 'failed' === normalized ? 'failed' : 'cancelled';
@@ -2114,9 +2115,14 @@ function mergeBudgetFacts(current: RealBudgetFacts, next: RealBudgetFacts): Real
   };
 }
 
+function budgetConfirmationRequested(payload: AgentRunEvent) {
+  return payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true;
+}
+
 function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryKey = searchParams.toString();
   const runId = searchParams.get('run_id')?.trim() || undefined;
   const sessionId = searchParams.get('session_id')?.trim() || undefined;
   const requestedApprovalId = searchParams.get('approval_id')?.trim() || undefined;
@@ -2149,12 +2155,14 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   const [actionMessage, setActionMessage] = useState('');
   const [error, setError] = useState<string>();
   const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
+  const [streamRevision, setStreamRevision] = useState(0);
   const [input, setInput] = useState('');
   const messagesRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<AgentStreamHandle>();
   const mountedRef = useRef(true);
   const seenEventIdsRef = useRef(new Set<string>());
   const proposalKeyRef = useRef<string>();
+  const streamResumeRef = useRef<{ lastEventId?: string }>({});
 
   useEffect(() => {
     mountedRef.current = true;
@@ -2170,6 +2178,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     streamRef.current?.close();
     streamRef.current = undefined;
     seenEventIdsRef.current = new Set();
+    streamResumeRef.current = {};
     // 查询参数切换代表真实资源切换，必须在开始新请求前清理上一条 Run 的本地投影。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMessages([]);
@@ -2335,6 +2344,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       },
       {
         maxAttempts: 5,
+        lastEventId: streamResumeRef.current.lastEventId,
         onStateChange: (nextConnection) => {
           if (active && mountedRef.current) setConnection(nextConnection);
         },
@@ -2350,12 +2360,26 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       stream.close();
       if (streamRef.current === stream) streamRef.current = undefined;
     };
-  }, [runId]);
+  }, [queryKey, runId, streamRevision]);
 
   const refreshApproval = async (targetId: string) => {
     const next = await loadApprovalProposal(targetId);
     if (mountedRef.current) setApproval(next);
     return next;
+  };
+
+  const closeRunStream = () => {
+    const current = streamRef.current;
+    streamResumeRef.current = {
+      lastEventId: current?.getConnection().lastEventId ?? connection.lastEventId,
+    };
+    current?.close();
+    streamRef.current = undefined;
+  };
+
+  const resumeRunStream = () => {
+    if (!runId) return;
+    setStreamRevision((revision) => revision + 1);
   };
 
   const executeProposal = async (mode: 'confirm' | 'reject') => {
@@ -2426,21 +2450,26 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
 
   const cancelRun = async () => {
     if (!runId || actionState === 'loading') return;
+    // 取消请求期间先关闭旧连接，避免取消前后的事件被两个订阅重复消费。
+    closeRunStream();
     setActionState('loading');
     setActionMessage('取消请求已提交，终态以服务端 cancelled 事件为准。');
     try {
       const result = await cancelAgentRun(runId);
       setActionState('success');
       setActionMessage(`后端已接受取消请求：${result.status || '未知'}。`);
+      resumeRunStream();
     } catch (reason) {
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '取消运行失败，请稍后重试。');
+      resumeRunStream();
     }
   };
 
   const extendBudget = async () => {
     if (!runId || actionState === 'loading' || budgetFacts.additionalTokens == null || !budgetFacts.additionalCostCny)
       return;
+    closeRunStream();
     setActionState('loading');
     setActionMessage('预算追加请求已提交，当前 Run 将继续等待后端事件。');
     try {
@@ -2449,28 +2478,38 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       setActionMessage(
         `当前 Run 已返回预算追加状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`,
       );
+      setRunStatus('routing');
+      setBudgetFacts((current) => ({ ...current, additionalTokens: undefined, additionalCostCny: undefined }));
+      resumeRunStream();
     } catch (reason) {
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '预算追加失败，请稍后重试。');
+      resumeRunStream();
     }
   };
 
   const retryRun = async () => {
     if (!runId || !retryable || actionState === 'loading') return;
+    closeRunStream();
     setActionState('loading');
     setActionMessage('重试请求已提交，等待后端运行事件。');
     try {
       const result = await retryAgentRun(runId);
       setActionState('success');
       setActionMessage(`后端已返回重试状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`);
+      setRetryable(false);
+      setRunStatus('routing');
+      resumeRunStream();
     } catch (reason) {
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '重试请求失败，请稍后重试。');
+      resumeRunStream();
     }
   };
 
   const recoverRun = async () => {
     if (!runId || !checkpointAvailable || actionState === 'loading') return;
+    closeRunStream();
     setActionState('loading');
     setActionMessage(
       checkpointRecovery
@@ -2485,9 +2524,12 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       setCheckpointRecovery(undefined);
       setActionState('success');
       setActionMessage(`后端已返回恢复状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`);
+      setRunStatus('routing');
+      resumeRunStream();
     } catch (reason) {
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '运行恢复失败，请稍后重试。');
+      resumeRunStream();
     }
   };
 
@@ -2775,6 +2817,8 @@ function RealChatPage() {
   const [retrying, setRetrying] = useState(false);
   const [safetyDegraded, setSafetyDegraded] = useState(false);
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
+  const [budgetFacts, setBudgetFacts] = useState<RealBudgetFacts>({});
+  const [budgetSubmitting, setBudgetSubmitting] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
   const [checkpointRecovery, setCheckpointRecovery] = useState<AgentRecoveryRequest>();
   const [approval, setApproval] = useState<{
@@ -2836,6 +2880,8 @@ function RealChatPage() {
     setRetrying(false);
     setSafetyDegraded(false);
     setBudgetConfirmation(false);
+    setBudgetFacts({});
+    setBudgetSubmitting(false);
     setCheckpointAvailable(false);
     setCheckpointRecovery(undefined);
     setApproval(undefined);
@@ -2900,6 +2946,8 @@ function RealChatPage() {
         const rawPayload = payload as unknown as Record<string, unknown>;
         const normalizedPayload = flattenAgentEventPayload(rawPayload) as AgentRunEvent;
         const normalizedEventType = resolveAgentEventType(eventType, rawPayload);
+        setBudgetFacts((current) => mergeBudgetFacts(current, budgetFactsFromEvent(normalizedPayload)));
+        if (budgetConfirmationRequested(normalizedPayload)) setBudgetConfirmation(true);
         if (normalizedEventType === 'run.created' || normalizedEventType === 'run.accepted') {
           setRunStatus('queued');
           return;
@@ -2939,7 +2987,7 @@ function RealChatPage() {
           return;
         }
         if (normalizedEventType === 'run.answer_stream') {
-          setRunStatus('validating');
+          setRunStatus('composing');
           setAssistantTime((current) => current || new Date().toISOString());
           if (!hasPersistedAnswer) setAssistantText((current) => current + (normalizedPayload.text ?? ''));
           return;
@@ -2975,11 +3023,7 @@ function RealChatPage() {
                   source: [citation.version, citation.section_path].filter(Boolean).join(' · '),
                 })),
           );
-          setBudgetConfirmation(
-            degraded &&
-              (normalizedPayload.requires_confirmation === true ||
-                normalizedPayload.budget_actions?.requires_confirmation === true),
-          );
+          setBudgetConfirmation((current) => current || budgetConfirmationRequested(normalizedPayload));
           return;
         }
         if (normalizedEventType === 'run.checkpoint_saved') {
@@ -3009,7 +3053,9 @@ function RealChatPage() {
           setCheckpointRecovery(undefined);
           setSafetyDegraded(false);
           setRetrying(false);
+          setBudgetSubmitting(false);
           setRetryAvailable(normalizedPayload.retryable === true);
+          if (budgetConfirmationRequested(normalizedPayload)) setBudgetConfirmation(true);
           setError(runtimeErrorMessage(normalizedPayload));
           return;
         }
@@ -3021,6 +3067,8 @@ function RealChatPage() {
           setCheckpointRecovery(undefined);
           setRetryAvailable(false);
           setRetrying(false);
+          setBudgetConfirmation(false);
+          setBudgetSubmitting(false);
           return;
         }
         if (normalizedEventType === 'run.superseded') {
@@ -3029,6 +3077,8 @@ function RealChatPage() {
           setRunStatus('superseded');
           setCheckpointAvailable(false);
           setCheckpointRecovery(undefined);
+          setBudgetConfirmation(false);
+          setBudgetSubmitting(false);
           return;
         }
         if (normalizedEventType === 'run.clarification_requested') {
@@ -3080,6 +3130,8 @@ function RealChatPage() {
     setRetryAvailable(false);
     setSafetyDegraded(false);
     setBudgetConfirmation(false);
+    setBudgetFacts({});
+    setBudgetSubmitting(false);
     try {
       let target = sessionId;
       if (!target) {
@@ -3132,6 +3184,34 @@ function RealChatPage() {
       })
       .finally(() => {
         if (mountedRef.current) setRetrying(false);
+      });
+  };
+
+  const cancelActiveRun = () => {
+    if (cancelling || !activeRunId) return;
+    const currentStream = streamRef.current;
+    const resumeCursor = currentStream?.getConnection().lastEventId ?? connection.lastEventId;
+    // 取消请求发出前关闭旧连接，收到 HTTP 接受响应后再从原游标续接终态。
+    currentStream?.close();
+    if (streamRef.current === currentStream) streamRef.current = undefined;
+    streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: true };
+    setCancelAcknowledged(false);
+    setCancelling(true);
+    setBudgetConfirmation(false);
+    setBudgetSubmitting(false);
+    void cancelAgentRun(activeRunId)
+      .then(() => {
+        if (!mountedRef.current) return;
+        setCheckpointAvailable(false);
+        // HTTP 200 只表示取消请求已被接受，真正的 cancelled 必须来自 SSE 终态事件。
+        setStreamGeneration((current) => current + 1);
+      })
+      .catch((reason) => {
+        if (!mountedRef.current) return;
+        setError(reason instanceof Error ? reason.message : '取消运行失败');
+        setCancelling(false);
+        // 取消失败时恢复原订阅，继续接收尚未结束的运行事件。
+        setStreamGeneration((current) => current + 1);
       });
   };
 
@@ -3221,6 +3301,8 @@ function RealChatPage() {
     source: undefined,
     agentRunId: message.agent_run_id,
   }));
+  const budgetPercent =
+    budgetFacts.ratio == null ? undefined : Math.max(0, Math.min(100, Math.round(budgetFacts.ratio * 100)));
 
   return (
     <ChatSurface
@@ -3236,31 +3318,7 @@ function RealChatPage() {
       disabled={loading || sending || cancelling}
       onChange={setInput}
       onSend={() => void send()}
-      onStop={() => {
-        if (cancelling || !activeRunId) return;
-        const currentStream = streamRef.current;
-        const resumeCursor = currentStream?.getConnection().lastEventId;
-        // 取消请求与取消终态是两个阶段；先关闭旧订阅，再用同一游标等待服务端裁决。
-        currentStream?.close();
-        if (streamRef.current === currentStream) streamRef.current = undefined;
-        streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: true };
-        setCancelAcknowledged(false);
-        setCancelling(true);
-        void cancelAgentRun(activeRunId)
-          .then(() => {
-            if (!mountedRef.current) return;
-            setCheckpointAvailable(false);
-            // HTTP 200 只表示取消请求已被接受，真正的 cancelled 必须来自 SSE 终态事件。
-            setStreamGeneration((current) => current + 1);
-          })
-          .catch((reason) => {
-            if (!mountedRef.current) return;
-            setError(reason instanceof Error ? reason.message : '取消运行失败');
-            setCancelling(false);
-            // 取消请求失败时恢复原订阅，继续接收尚未结束的运行事件。
-            setStreamGeneration((current) => current + 1);
-          });
-      }}
+      onStop={cancelActiveRun}
       placeholder="追问或添加自定义指令..."
     >
       {loading ? <p className={styles.systemMessage}>正在加载消息...</p> : null}
@@ -3484,17 +3542,65 @@ function RealChatPage() {
           <ConfirmationCard
             title="本次运行已达到预算上限"
             helperText="继续执行会创建新的预算 revision，并接续当前 Run。"
+            confirmLabel="追加预算"
+            cancelLabel="结束当前 Run"
+            state={
+              budgetSubmitting
+                ? 'disabled'
+                : budgetFacts.additionalTokens != null && budgetFacts.additionalCostCny
+                  ? 'normal'
+                  : 'error'
+            }
+            errorText="后端尚未返回可确认的追加额度，页面不会猜测 Token 或费用。"
             data={[
-              { label: '追加 Token', value: '30000' },
-              { label: '追加成本上限', value: '¥1.00' },
+              {
+                label: '已用 Token',
+                value: budgetFacts.usedTokens == null ? '后端未返回' : budgetFacts.usedTokens.toLocaleString('en-US'),
+              },
+              {
+                label: 'Token 上限',
+                value: budgetFacts.maxTokens == null ? '后端未返回' : budgetFacts.maxTokens.toLocaleString('en-US'),
+              },
+              { label: '使用比例', value: budgetPercent == null ? '后端未返回' : `${budgetPercent}%` },
+              {
+                label: '追加 Token',
+                value:
+                  budgetFacts.additionalTokens == null
+                    ? '后端未返回'
+                    : budgetFacts.additionalTokens.toLocaleString('en-US'),
+              },
+              {
+                label: '追加成本上限',
+                value: budgetFacts.additionalCostCny ? `¥${budgetFacts.additionalCostCny}` : '后端未返回',
+              },
             ]}
             onConfirm={() => {
-              void extendAgentRunBudget(activeRunId, 30000, '1.00')
-                .then(() => setBudgetConfirmation(false))
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '预算追加失败'));
+              if (budgetFacts.additionalTokens == null || !budgetFacts.additionalCostCny || budgetSubmitting) return;
+              const currentStream = streamRef.current;
+              const resumeCursor = currentStream?.getConnection().lastEventId ?? connection.lastEventId;
+              // 预算追加会创建新的 dispatch attempt，先关闭旧连接，再从原游标接收新 Run 事件。
+              currentStream?.close();
+              if (streamRef.current === currentStream) streamRef.current = undefined;
+              streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: true };
+              setBudgetSubmitting(true);
+              void extendAgentRunBudget(activeRunId, budgetFacts.additionalTokens, budgetFacts.additionalCostCny)
+                .then(() => {
+                  if (!mountedRef.current) return;
+                  setBudgetConfirmation(false);
+                  setRunStatus('queued');
+                  setStreamGeneration((current) => current + 1);
+                })
+                .catch((reason) => {
+                  if (!mountedRef.current) return;
+                  setError(reason instanceof Error ? reason.message : '预算追加失败');
+                  setStreamGeneration((current) => current + 1);
+                })
+                .finally(() => {
+                  if (mountedRef.current) setBudgetSubmitting(false);
+                });
             }}
-            onEdit={() => setError('当前开发版本使用固定追加额度。')}
-            onCancel={() => setBudgetConfirmation(false)}
+            onEdit={() => setError('追加额度由后端返回，页面不能修改。')}
+            onCancel={cancelActiveRun}
           />
         </div>
       ) : null}

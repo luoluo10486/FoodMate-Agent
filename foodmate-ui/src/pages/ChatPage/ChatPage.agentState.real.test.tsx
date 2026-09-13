@@ -267,6 +267,42 @@ describe('ChatPage Agent 状态真实动作', () => {
     await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('42'));
   });
 
+  it('真实状态页取消时先关闭旧 SSE，再使用原游标续接当前 Run', async () => {
+    const user = userEvent.setup();
+    const firstClose = vi.fn();
+    let streamCount = 0;
+    openAgentRunStream.mockImplementation(
+      (
+        _runId: string,
+        _onEvent: (eventType: string, payload: AgentRunEvent, eventId?: string) => void,
+        options: AgentStreamOptions = {},
+      ): AgentStreamHandle => {
+        streamCount += 1;
+        const connection: AgentStreamConnection = {
+          state: 'connected',
+          attempt: streamCount,
+          maxAttempts: 5,
+          lastEventId: 'event-17',
+        };
+        options.onStateChange?.(connection);
+        return {
+          close: streamCount === 1 ? firstClose : vi.fn(),
+          getConnection: () => connection,
+        };
+      },
+    );
+    renderState('user-cancelled', 'run_id=42');
+
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(1));
+    await user.click(await screen.findByRole('button', { name: '停止生成' }));
+
+    await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('42'));
+    // React effect 清理和主动切换都可能调用同一个幂等关闭句柄，验证连接确实已关闭即可。
+    expect(firstClose).toHaveBeenCalled();
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(2));
+    expect(openAgentRunStream.mock.calls[1][2]).toMatchObject({ lastEventId: 'event-17' });
+  });
+
   it('只有后端明确标记 retryable=true 时显示重试，不显示虚构的跳过接口', async () => {
     const user = userEvent.setup();
     renderState('tool-failed-retryable', 'run_id=42');

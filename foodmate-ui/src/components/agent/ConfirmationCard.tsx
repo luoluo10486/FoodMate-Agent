@@ -10,6 +10,7 @@ type ConfirmationCardProps = {
   helperText?: string;
   data?: Array<{ label: string; value: string }>;
   confirmLabel?: string;
+  cancelLabel?: string;
   state?: UiComponentState;
   errorText?: string;
   onConfirm?: () => void;
@@ -23,6 +24,7 @@ export function ConfirmationCard({
   title = '请确认要写入的内容',
   helperText = '确认前不会写入任何真实数据。',
   confirmLabel = '确认保存',
+  cancelLabel = '取消',
   data = [
     { label: '餐型', value: '午餐' },
     { label: '食物', value: '鸡胸肉 200g、米饭 150g、西兰花 120g' },
@@ -74,7 +76,7 @@ export function ConfirmationCard({
           修改
         </Button>
         <Button variant="destructive" disabled={state === 'disabled'} onClick={onCancel}>
-          取消
+          {cancelLabel}
         </Button>
         {onRetry ? (
           <Button variant="outline" disabled={state === 'disabled'} onClick={onRetry}>

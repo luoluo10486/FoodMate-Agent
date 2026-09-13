@@ -8,6 +8,7 @@ import { ChatPage } from './ChatPage';
 const {
   cancelAgentRun,
   deleteMessage,
+  extendAgentRunBudget,
   loadSessionMessages,
   loadSessionSummariesPage,
   openAgentRunStream,
@@ -16,6 +17,7 @@ const {
 } = vi.hoisted(() => ({
   cancelAgentRun: vi.fn(),
   deleteMessage: vi.fn(),
+  extendAgentRunBudget: vi.fn(),
   loadSessionMessages: vi.fn(),
   loadSessionSummariesPage: vi.fn(),
   loadSessionsPage: vi.fn(),
@@ -33,7 +35,7 @@ vi.mock('../../services/agentRunService', async () => {
   const actual = await vi.importActual<typeof import('../../services/agentRunService')>(
     '../../services/agentRunService',
   );
-  return { ...actual, cancelAgentRun, openAgentRunStream, retryAgentRun };
+  return { ...actual, cancelAgentRun, extendAgentRunBudget, openAgentRunStream, retryAgentRun };
 });
 
 vi.mock('../../services/authService', async () => {
@@ -65,6 +67,7 @@ describe('ChatPage 真实历史会话回放', () => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
     cancelAgentRun.mockReset();
     deleteMessage.mockReset();
+    extendAgentRunBudget.mockReset();
     loadSessionMessages.mockReset();
     loadSessionSummariesPage.mockReset();
     openAgentRunStream.mockReset();
@@ -343,6 +346,93 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeInTheDocument();
   });
 
+  it('真实 Chat 预算卡只使用服务端额度，并在追加后调用当前 Run 接口', async () => {
+    const user = userEvent.setup();
+    extendAgentRunBudget.mockResolvedValue({
+      run_id: 'run-1',
+      dispatch_id: 'dispatch-2',
+      attempt: 2,
+      budget_revision: 2,
+      status: 'queued',
+    });
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
+        onEvent(
+          'run.completed',
+          {
+            event_type: 'run.completed',
+            answer: '预算已达到当前上限。',
+            requires_confirmation: true,
+            usage: { tokens: 50000, cost_cny: '0.32' },
+            budget: { max_tokens: 50000, max_cost: '0.50' },
+            budget_actions: { requires_confirmation: true, additional_tokens: 20000, additional_cost_cny: '0.15' },
+          },
+          'budget-event',
+        );
+        return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        agent_run_id: 'run-1',
+        role: 'user',
+        content: '分析全年趋势。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findAllByText('50,000')).toHaveLength(2);
+    expect(screen.getByText('20,000')).toBeInTheDocument();
+    expect(screen.queryByText('30,000')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '追加预算' }));
+    await waitFor(() => expect(extendAgentRunBudget).toHaveBeenCalledWith('run-1', 20000, '0.15'));
+  });
+
+  it('流式回答处于 composing 状态而不是 validating 状态', async () => {
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
+        onEvent('run.answer_stream', { event_type: 'run.answer_stream', text: '正在生成回答。' }, 'answer-event');
+        return { close: vi.fn(), getConnection: () => ({ state: 'connected', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        agent_run_id: 'run-1',
+        role: 'user',
+        content: '请生成分析。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const composingLabel = await screen.findByText('Composing', { exact: false });
+    const composingStep = composingLabel.closest('[role="listitem"]');
+    expect(composingStep).not.toBeNull();
+    expect(composingStep).toHaveTextContent('●');
+    expect(composingStep).not.toHaveClass('validating');
+  });
+
   it('根据真实运行事件展示路由意图、工具名称和执行耗时', async () => {
     openAgentRunStream.mockImplementation(
       (_runId: string, onEvent: (type: string, payload: unknown, eventId: string) => void) => {
@@ -526,6 +616,13 @@ describe('ChatPage 真实历史会话回放', () => {
     const secondClose = vi.fn();
     const eventHandlers: Array<(type: string, payload: unknown, eventId?: string) => void> = [];
     cancelAgentRun.mockResolvedValue(undefined);
+    extendAgentRunBudget.mockResolvedValue({
+      run_id: 'run-1',
+      dispatch_id: 'dispatch-2',
+      attempt: 2,
+      budget_revision: 2,
+      status: 'queued',
+    });
     openAgentRunStream.mockImplementation(
       (
         _runId: string,
