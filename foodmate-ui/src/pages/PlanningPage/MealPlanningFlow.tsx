@@ -1,7 +1,33 @@
-import { Check, CircleAlert, Download, Menu, Plus, Printer, Sparkles, X } from 'lucide-react';
+import {
+  ArchiveRestore,
+  Check,
+  CircleAlert,
+  Download,
+  Menu,
+  Pencil,
+  Plus,
+  Printer,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -63,6 +89,7 @@ type PlanCard = {
   budget: string;
   level: string;
   updated: string;
+  source?: MealPlan;
 };
 
 function realPlanCard(plan: MealPlan): PlanCard {
@@ -103,6 +130,7 @@ function realPlanCard(plan: MealPlan): PlanCard {
     budget: `预算: ¥${budget}/天`,
     level: '服务端计划',
     updated: `最后修改: ${updated}`,
+    source: plan,
   };
 }
 
@@ -112,7 +140,9 @@ function RealWizardStep({
   onDraftChange,
   onNavigate,
   onCreate,
+  onSaveDraft,
   creating,
+  savingDraft,
   error,
 }: {
   step: 1 | 2 | 3;
@@ -120,7 +150,9 @@ function RealWizardStep({
   onDraftChange: (patch: Partial<MealPlanDraft>) => void;
   onNavigate: NavigateToView;
   onCreate: () => void;
+  onSaveDraft: () => void;
   creating: boolean;
+  savingDraft: boolean;
   error?: string;
 }) {
   const updateList = (field: 'allergens' | 'dislikes', value: string) => {
@@ -294,9 +326,14 @@ function RealWizardStep({
             <FlowButton variant="outline" onClick={() => onNavigate('wizard-step2')}>
               上一步
             </FlowButton>
-            <FlowButton disabled={creating} onClick={onCreate}>
-              {creating ? '正在进入 Agent...' : '提交给 Agent 生成'}
-            </FlowButton>
+            <div className={styles.actionGroup}>
+              <FlowButton variant="outline" disabled={creating || savingDraft} onClick={onSaveDraft}>
+                {savingDraft ? '正在保存草稿...' : '保存为草稿'}
+              </FlowButton>
+              <FlowButton disabled={creating || savingDraft} onClick={onCreate}>
+                {creating ? '正在进入 Agent...' : '提交给 Agent 生成'}
+              </FlowButton>
+            </div>
           </div>
         </section>
       </div>
@@ -715,12 +752,24 @@ function PlanListView({
   onNavigate,
   realPlans,
   onOpenPlan,
+  onEditPlan,
+  onDeletePlan,
+  onRestorePlan,
+  actionId,
+  actionError,
 }: {
   onNavigate: NavigateToView;
   realPlans?: MealPlan[];
   onOpenPlan?: (mealPlanId: string) => void;
+  onEditPlan?: (plan: MealPlan) => void;
+  onDeletePlan?: (plan: MealPlan) => Promise<void>;
+  onRestorePlan?: (plan: MealPlan) => Promise<void>;
+  actionId?: string;
+  actionError?: string;
 }) {
   const [tab, setTab] = useState<'active' | 'validated' | 'draft' | 'archived'>('active');
+  const [pendingDeletePlan, setPendingDeletePlan] = useState<MealPlan>();
+  const [deleting, setDeleting] = useState(false);
   const planCards: PlanCard[] = realPlans
     ? realPlans.map(realPlanCard)
     : plans.map((plan) => ({ ...plan, id: plan.name }));
@@ -739,6 +788,11 @@ function PlanListView({
         </div>
         <FlowButton onClick={() => onNavigate('wizard-step1')}>+ 新建膳食计划</FlowButton>
       </header>
+      {actionError ? (
+        <p className={styles.wizardIntro} role="alert">
+          {actionError}
+        </p>
+      ) : null}
       <Tabs className={styles.tabsRoot} value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
         <TabsList aria-label="计划状态" className={styles.listTabs} data-figma-role="planning-list-tabs">
           {(realPlans
@@ -785,19 +839,65 @@ function PlanListView({
             <div className={styles.planListActions}>
               <FlowButton
                 variant="outline"
+                disabled={Boolean(plan.source?.deleted)}
                 onClick={() => (onOpenPlan && realPlans ? onOpenPlan(plan.id) : onNavigate('default'))}
               >
-                进入计划
+                {plan.source?.deleted ? '已删除' : '进入计划'}
               </FlowButton>
-              <Button
-                className={styles.iconAction}
-                variant="ghost"
-                size="icon"
-                type="button"
-                aria-label={`${plan.name}更多操作`}
-              >
-                <Menu aria-hidden="true" />
-              </Button>
+              {!plan.source ? (
+                <Button
+                  className={styles.iconAction}
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  aria-label={`${plan.name}更多操作`}
+                >
+                  <Menu aria-hidden="true" />
+                </Button>
+              ) : null}
+              {plan.source ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      className={styles.iconAction}
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      aria-label={`${plan.name}更多操作`}
+                    >
+                      <Menu aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {!plan.source.deleted ? (
+                      <DropdownMenuItem onSelect={() => onOpenPlan?.(plan.id)}>进入计划</DropdownMenuItem>
+                    ) : null}
+                    {!plan.source.deleted ? (
+                      <DropdownMenuItem onSelect={() => onEditPlan?.(plan.source as MealPlan)}>
+                        <Pencil aria-hidden="true" />
+                        编辑计划
+                      </DropdownMenuItem>
+                    ) : null}
+                    {plan.source.deleted ? (
+                      <DropdownMenuItem
+                        disabled={actionId === plan.id}
+                        onSelect={() => void onRestorePlan?.(plan.source as MealPlan)}
+                      >
+                        <ArchiveRestore aria-hidden="true" />
+                        {actionId === plan.id ? '恢复中...' : '恢复计划'}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        disabled={actionId === plan.id}
+                        onSelect={() => setPendingDeletePlan(plan.source)}
+                      >
+                        <Trash2 aria-hidden="true" />
+                        删除计划
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
             </div>
           </article>
         ))}
@@ -813,6 +913,47 @@ function PlanListView({
           新建流程支持：保存草稿 · 上一步 / 下一步 · 取消；生成失败时可重试或修改约束。
         </p>
       </aside>
+      <Dialog
+        open={Boolean(pendingDeletePlan)}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDeletePlan(undefined);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除餐食计划</DialogTitle>
+            <DialogDescription>
+              {pendingDeletePlan
+                ? `将删除“${pendingDeletePlan.plan_name || '未命名计划'}”，计划可在已删除列表中恢复。`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {actionError ? <p role="alert">{actionError}</p> : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={deleting} onClick={() => setPendingDeletePlan(undefined)}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              disabled={deleting || !pendingDeletePlan || !onDeletePlan}
+              onClick={async () => {
+                if (!pendingDeletePlan || !onDeletePlan) return;
+                setDeleting(true);
+                try {
+                  await onDeletePlan(pendingDeletePlan);
+                  setPendingDeletePlan(undefined);
+                } catch {
+                  // 父级保留错误上下文，Dialog 必须继续打开以便用户重试或取消。
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? '删除中...' : '确认删除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1103,8 +1244,15 @@ export function MealPlanningFlow({
   realDraft,
   onDraftChange,
   onCreatePlan,
+  onSaveDraft,
   creatingPlan = false,
+  savingDraft = false,
   createError,
+  onEditPlan,
+  onDeletePlan,
+  onRestorePlan,
+  actionId,
+  actionError,
 }: {
   view: MealPlanningFlowView;
   onNavigate: NavigateToView;
@@ -1113,11 +1261,30 @@ export function MealPlanningFlow({
   realDraft?: MealPlanDraft;
   onDraftChange?: (patch: Partial<MealPlanDraft>) => void;
   onCreatePlan?: () => void;
+  onSaveDraft?: () => void;
   creatingPlan?: boolean;
+  savingDraft?: boolean;
   createError?: string;
+  onEditPlan?: (plan: MealPlan) => void;
+  onDeletePlan?: (plan: MealPlan) => Promise<void>;
+  onRestorePlan?: (plan: MealPlan) => Promise<void>;
+  actionId?: string;
+  actionError?: string;
 }) {
-  if (view === 'list') return <PlanListView onNavigate={onNavigate} realPlans={realPlans} onOpenPlan={onOpenPlan} />;
-  if (realPlans && realDraft && onDraftChange && onCreatePlan) {
+  if (view === 'list')
+    return (
+      <PlanListView
+        onNavigate={onNavigate}
+        realPlans={realPlans}
+        onOpenPlan={onOpenPlan}
+        onEditPlan={onEditPlan}
+        onDeletePlan={onDeletePlan}
+        onRestorePlan={onRestorePlan}
+        actionId={actionId}
+        actionError={actionError}
+      />
+    );
+  if (realPlans && realDraft && onDraftChange && onCreatePlan && onSaveDraft) {
     if (view === 'wizard-step1' || view === 'wizard-step2' || view === 'wizard-step3')
       return (
         <RealWizardStep
@@ -1126,7 +1293,9 @@ export function MealPlanningFlow({
           onDraftChange={onDraftChange}
           onNavigate={onNavigate}
           onCreate={onCreatePlan}
+          onSaveDraft={onSaveDraft}
           creating={creatingPlan}
+          savingDraft={savingDraft}
           error={createError}
         />
       );

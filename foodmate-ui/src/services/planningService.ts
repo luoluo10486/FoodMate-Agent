@@ -68,6 +68,7 @@ export type MealPlanDraft = {
   budget: string;
   allergens: string[];
   dislikes: string[];
+  daysPlan?: Array<Record<string, unknown>>;
 };
 
 export type MealPlanUpdateRequest = {
@@ -102,6 +103,10 @@ export async function createMealPlan(draft: MealPlanDraft): Promise<MealPlan> {
     headers: { 'Idempotency-Key': idempotencyKey('meal-plan-create') },
     body: JSON.stringify(draftToPlanRequest(draft, days)),
   }).then(normalizeMealPlan);
+}
+
+export function mealPlanDraftToUpdateRequest(draft: MealPlanDraft): MealPlanUpdateRequest {
+  return draftToPlanRequest(draft, planDays(draft.startDate, draft.endDate));
 }
 
 export async function loadMealPlan(mealPlanId: string): Promise<MealPlan> {
@@ -209,7 +214,8 @@ function draftToPlanRequest(draft: MealPlanDraft, days: number) {
     protein_target: numberOrUndefined(draft.protein),
     allergens: draft.allergens,
     dislikes: draft.dislikes,
-    days_plan: buildDaysPlan(days),
+    // 编辑计划时沿用服务端的餐表，创建草稿时才生成满足后端结构校验的初始餐表。
+    days_plan: draft.daysPlan ?? buildDaysPlan(days),
   };
 }
 
@@ -313,7 +319,7 @@ function idempotencyKey(prefix: string) {
   return `${prefix}-${suffix}`;
 }
 
-/** Fixture helpers remain available for the design preview mode. */
+/** 保留 Fixture 辅助数据，供设计预览模式使用。 */
 import { mealRows, planConstraints, shoppingGroups, validationItems } from '../mock/mealPlans';
 
 export { mealRows, planConstraints, shoppingGroups, validationItems };

@@ -7,13 +7,25 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import type { SessionSummary } from '../../types/session';
+import { ApiError } from '../../services/apiClient';
 import {
+  createMealPlan,
+  createShoppingList,
+  deleteMealPlan,
+  loadMealPlan,
   loadMealPlans,
+  loadMealPlanProgress,
   loadShoppingList,
+  mealPlanDraftToUpdateRequest,
+  restoreMealPlan,
+  saveMealPlan,
+  updateMealPlan,
   updateShoppingItemPurchased,
+  validateMealPlan,
   type MealPlan,
   type MealPlanMealSlot,
   type MealPlanDraft,
+  type MealPlanProgress,
   type ShoppingList,
 } from '../../services/planningService';
 import { createSession, sendUserMessage } from '../../services/sessionService';
@@ -64,6 +76,39 @@ function planDaysBetween(startDate: string, endDate: string) {
 function promptValue(value: string, fallback: string) {
   const normalized = value.trim();
   return normalized || fallback;
+}
+
+function planningErrorMessage(cause: unknown, fallback: string) {
+  if (cause instanceof ApiError) {
+    if (cause.status === 409 || ['CONFLICT', 'VERSION_CONFLICT', 'REVISION_CONFLICT'].includes(cause.code)) {
+      return '计划版本已变化，请重新加载后再试。';
+    }
+    if (cause.code === 'FORBIDDEN') return '当前账号没有权限操作这份餐食计划。';
+    return cause.message || fallback;
+  }
+  return cause instanceof Error ? cause.message : fallback;
+}
+
+function formatDate(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function draftFromPlan(plan: MealPlan): MealPlanDraft {
+  const start = new Date();
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + Math.max(1, plan.days) - 1);
+  return {
+    planName: plan.plan_name ?? '',
+    startDate: formatDate(start),
+    endDate: formatDate(end),
+    people: String(plan.people),
+    calories: plan.constraints.calorie_target == null ? '' : String(plan.constraints.calorie_target),
+    protein: plan.constraints.protein_target == null ? '' : String(plan.constraints.protein_target),
+    budget: plan.budget == null ? '' : String(plan.budget),
+    allergens: [...(plan.constraints.allergens ?? [])],
+    dislikes: [...(plan.constraints.dislikes ?? [])],
+    daysPlan: plan.days_plan,
+  };
 }
 
 function buildMealPlanPrompt(draft: MealPlanDraft) {
@@ -348,9 +393,23 @@ function PlanningFeedbackView({ kind, onPrimary, onSecondary }: PlanningFeedback
 function DefaultPlanningView({
   plan,
   onOpenMeal,
+  onEditPlan,
+  onValidatePlan,
+  onSavePlan,
+  actionBusy,
+  actionError,
+  progress,
+  progressError,
 }: {
   plan?: MealPlan;
   onOpenMeal?: (mealPlanMealId: string, mealType: string) => void;
+  onEditPlan?: () => void;
+  onValidatePlan?: () => void;
+  onSavePlan?: () => void;
+  actionBusy?: boolean;
+  actionError?: string;
+  progress?: MealPlanProgress;
+  progressError?: string;
 }) {
   const schedule = plan ? realSchedule(plan) : { days, rows: mealRows };
   const [activeDay, setActiveDay] = useState<DayKey>(plan ? (schedule.days[0]?.key ?? '0') : '14');
@@ -358,7 +417,7 @@ function DefaultPlanningView({
   const firstDayKey = plan ? (schedule.days[0]?.key ?? '0') : '14';
 
   useEffect(() => {
-    // Reset the selected day when the authoritative plan schedule changes.
+    // 权威计划餐表变化后，重置当前选中的日期。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveDay(firstDayKey);
   }, [firstDayKey]);
@@ -383,18 +442,62 @@ function DefaultPlanningView({
           </div>
         </div>
         <div className={styles.bannerActions}>
-          <Button
-            className={styles.regenerateButton}
-            variant="ghost"
-            onClick={() => announce(plan ? '重新生成需要通过聊天 AgentRun 发起。' : '已重新生成当前 7 天计划。')}
-          >
-            重新生成
-          </Button>
-          <Button className={styles.saveButton} variant="outline" onClick={() => announce('计划已保存。')}>
-            保存计划
-          </Button>
+          {plan && onEditPlan ? (
+            <Button className={styles.regenerateButton} variant="ghost" onClick={onEditPlan} disabled={actionBusy}>
+              编辑计划
+            </Button>
+          ) : (
+            <Button
+              className={styles.regenerateButton}
+              variant="ghost"
+              onClick={() => announce(plan ? '重新生成需要通过聊天 AgentRun 发起。' : '已重新生成当前 7 天计划。')}
+            >
+              重新生成
+            </Button>
+          )}
+          {plan && onValidatePlan ? (
+            <Button
+              className={styles.saveButton}
+              variant="outline"
+              onClick={onValidatePlan}
+              disabled={actionBusy || plan.status === 'saved'}
+            >
+              {actionBusy ? '校验中...' : plan.status === 'validated' ? '重新校验' : '校验计划'}
+            </Button>
+          ) : null}
+          {plan && onSavePlan ? (
+            <Button
+              className={styles.saveButton}
+              variant="outline"
+              onClick={onSavePlan}
+              disabled={actionBusy || plan.status !== 'validated'}
+            >
+              {actionBusy ? '保存中...' : plan.status === 'saved' ? '已保存' : '保存计划'}
+            </Button>
+          ) : !plan ? (
+            <Button className={styles.saveButton} variant="outline" onClick={() => announce('计划已保存。')}>
+              保存计划
+            </Button>
+          ) : null}
         </div>
       </section>
+
+      {progress ? (
+        <p className={styles.notice} role="status">
+          已完成 {progress.completed_meal_count} / {progress.executable_meal_count} 餐次（
+          {Math.round(Number(progress.completion_ratio) * 100)}%）
+        </p>
+      ) : null}
+      {progressError ? (
+        <p className={styles.notice} role="alert">
+          {progressError}
+        </p>
+      ) : null}
+      {actionError ? (
+        <p className={styles.notice} role="alert">
+          {actionError}
+        </p>
+      ) : null}
 
       <section className={styles.scheduleSection} aria-labelledby="schedule-title" data-figma-node-id="640:988">
         <h2 id="schedule-title">每周日程</h2>
@@ -478,22 +581,30 @@ function PlanSidebar({
   shoppingList,
   shoppingLoading,
   onShoppingListChange,
+  onCreateShoppingList,
+  creatingShoppingList,
+  shoppingError,
 }: {
   plan?: MealPlan;
   shoppingList?: ShoppingList;
   shoppingLoading?: boolean;
   onShoppingListChange?: (value: ShoppingList) => void;
+  onCreateShoppingList?: () => void;
+  creatingShoppingList?: boolean;
+  shoppingError?: string;
 }) {
   const [updatingItemId, setUpdatingItemId] = useState<string>();
   const [fixturePurchasedItems, setFixturePurchasedItems] = useState<Record<string, boolean>>({});
+  const [shoppingMutationError, setShoppingMutationError] = useState<string>();
 
   const toggleShoppingItem = (item: ShoppingList['items'][number]) => {
     if (!plan || !item.shopping_list_item_id || !onShoppingListChange || updatingItemId) return;
     const nextPurchased = !item.purchased;
     setUpdatingItemId(item.shopping_list_item_id);
+    setShoppingMutationError(undefined);
     void updateShoppingItemPurchased(plan.meal_plan_id, item.shopping_list_item_id, nextPurchased)
       .then(onShoppingListChange)
-      .catch(() => undefined)
+      .catch((cause) => setShoppingMutationError(planningErrorMessage(cause, '购物项更新失败，请重试。')))
       .finally(() => setUpdatingItemId(undefined));
   };
 
@@ -544,7 +655,25 @@ function PlanSidebar({
       <div className={styles.divider} aria-hidden="true" />
 
       <section className={styles.shoppingSection} aria-labelledby="shopping-title">
-        <h2 id="shopping-title">购物清单预览</h2>
+        <div className={styles.shoppingTitleRow}>
+          <h2 id="shopping-title">购物清单预览</h2>
+          {plan && onCreateShoppingList ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onCreateShoppingList}
+              disabled={Boolean(shoppingLoading) || Boolean(creatingShoppingList)}
+            >
+              <RotateCcw aria-hidden="true" />
+              {creatingShoppingList ? '生成中...' : '刷新清单'}
+            </Button>
+          ) : null}
+        </div>
+        {shoppingError || shoppingMutationError ? (
+          <p className={styles.notice} role="alert">
+            {shoppingError ?? shoppingMutationError}
+          </p>
+        ) : null}
         {plan ? (
           shoppingLoading ? (
             <p className={styles.notice}>正在读取购物清单...</p>
@@ -607,25 +736,34 @@ export function PlanningPage() {
   const [realError, setRealError] = useState<string>();
   const [realShoppingList, setRealShoppingList] = useState<ShoppingList>();
   const [realShoppingLoading, setRealShoppingLoading] = useState(false);
+  const [realShoppingError, setRealShoppingError] = useState<string>();
+  const [creatingShoppingList, setCreatingShoppingList] = useState(false);
+  const [realProgress, setRealProgress] = useState<MealPlanProgress>();
+  const [realProgressError, setRealProgressError] = useState<string>();
   const [realDraft, setRealDraft] = useState<MealPlanDraft>(initialMealPlanDraft);
   const [creatingPlan, setCreatingPlan] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [createPlanError, setCreatePlanError] = useState<string>();
+  const [editingPlanId, setEditingPlanId] = useState<string>();
+  const [planActionId, setPlanActionId] = useState<string>();
+  const [planActionError, setPlanActionError] = useState<string>();
+  const [planReloadNonce, setPlanReloadNonce] = useState(0);
 
   useEffect(() => {
     if (!isRealMode) return;
     let cancelled = false;
-    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    // 列表请求拥有完整生命周期，重试时先清理旧错误，避免旧状态覆盖新结果。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
+    setRealError(undefined);
     loadMealPlans()
       .then((value) => {
         if (!cancelled) {
           setRealPlans(value);
-          setRealError(undefined);
         }
       })
       .catch((error: unknown) => {
-        if (!cancelled) setRealError(error instanceof Error ? error.message : '餐食计划加载失败，请重试');
+        if (!cancelled) setRealError(planningErrorMessage(error, '餐食计划加载失败，请重试。'));
       })
       .finally(() => {
         if (!cancelled) setRealLoading(false);
@@ -633,7 +771,7 @@ export function PlanningPage() {
     return () => {
       cancelled = true;
     };
-  }, [isRealMode]);
+  }, [isRealMode, planReloadNonce]);
 
   const selectedPlanId = searchParams.get('planId');
   const selectedPlan =
@@ -642,24 +780,70 @@ export function PlanningPage() {
     realPlans[0];
 
   useEffect(() => {
+    if (!isRealMode || !selectedPlanId) return;
+    let cancelled = false;
+    loadMealPlan(selectedPlanId)
+      .then((value) => {
+        if (cancelled) return;
+        setRealPlans((current) => [value, ...current.filter((plan) => plan.meal_plan_id !== value.meal_plan_id)]);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setPlanActionError(planningErrorMessage(error, '餐食计划详情加载失败，请重试。'));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isRealMode, selectedPlanId]);
+
+  useEffect(() => {
     if (!isRealMode || !selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved') {
-      // The effect clears stale data when the selected plan is no longer eligible for this subscription.
+      // 当前计划不再支持购物清单时，清理上一个计划残留的清单和错误。
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRealShoppingList(undefined);
       setRealShoppingLoading(false);
+      setRealShoppingError(undefined);
       return;
     }
     let cancelled = false;
     setRealShoppingLoading(true);
+    setRealShoppingError(undefined);
     loadShoppingList(selectedPlan.meal_plan_id)
       .then((value) => {
         if (!cancelled) setRealShoppingList(value);
       })
-      .catch(() => {
-        if (!cancelled) setRealShoppingList(undefined);
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setRealShoppingList(undefined);
+          setRealShoppingError(planningErrorMessage(error, '购物清单加载失败，请重试。'));
+        }
       })
       .finally(() => {
         if (!cancelled) setRealShoppingLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isRealMode, selectedPlan]);
+
+  useEffect(() => {
+    if (!isRealMode || !selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved') {
+      // 只有已保存计划存在可计算的真实完成进度。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRealProgress(undefined);
+      setRealProgressError(undefined);
+      return;
+    }
+    let cancelled = false;
+    setRealProgressError(undefined);
+    loadMealPlanProgress(selectedPlan.meal_plan_id)
+      .then((value) => {
+        if (!cancelled) setRealProgress(value);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setRealProgress(undefined);
+          setRealProgressError(planningErrorMessage(error, '计划进度加载失败，请重试。'));
+        }
       });
     return () => {
       cancelled = true;
@@ -677,6 +861,134 @@ export function PlanningPage() {
   const updateRealDraft = (patch: Partial<MealPlanDraft>) => {
     setCreatePlanError(undefined);
     setRealDraft((current) => ({ ...current, ...patch }));
+  };
+
+  const replacePlanInState = (nextPlan: MealPlan) => {
+    setRealPlans((current) => {
+      const exists = current.some((plan) => plan.meal_plan_id === nextPlan.meal_plan_id);
+      return exists
+        ? current.map((plan) => (plan.meal_plan_id === nextPlan.meal_plan_id ? nextPlan : plan))
+        : [nextPlan, ...current];
+    });
+    return nextPlan;
+  };
+
+  const runPlanAction = async <T,>(mealPlanId: string, action: () => Promise<T>, fallback: string): Promise<T> => {
+    if (planActionId) throw new Error('当前已有餐食计划操作进行中');
+    setPlanActionId(mealPlanId);
+    setPlanActionError(undefined);
+    try {
+      return await action();
+    } catch (error: unknown) {
+      setPlanActionError(planningErrorMessage(error, fallback));
+      throw error;
+    } finally {
+      setPlanActionId(undefined);
+    }
+  };
+
+  const startEditingPlan = (plan: MealPlan) => {
+    if (plan.deleted) return;
+    setEditingPlanId(plan.meal_plan_id);
+    setRealDraft(draftFromPlan(plan));
+    setCreatePlanError(undefined);
+    setPlanActionError(undefined);
+    navigate(`/planning?state=wizard-step1&planId=${encodeURIComponent(plan.meal_plan_id)}`);
+  };
+
+  const saveDraft = async () => {
+    if (savingDraft) return;
+    const editingPlan = editingPlanId
+      ? realPlans.find((plan) => plan.meal_plan_id === editingPlanId && !plan.deleted)
+      : undefined;
+    if (editingPlanId && !editingPlan) {
+      setCreatePlanError('编辑的餐食计划已不存在，请重新打开计划列表。');
+      return;
+    }
+    setSavingDraft(true);
+    setCreatePlanError(undefined);
+    try {
+      const savedPlan = editingPlan
+        ? await updateMealPlan(editingPlan.meal_plan_id, editingPlan.revision, mealPlanDraftToUpdateRequest(realDraft))
+        : await createMealPlan(realDraft);
+      replacePlanInState(savedPlan);
+      setEditingPlanId(undefined);
+      setPlanReloadNonce((value) => value + 1);
+      navigate(`/planning?planId=${encodeURIComponent(savedPlan.meal_plan_id)}`);
+    } catch (error: unknown) {
+      setCreatePlanError(planningErrorMessage(error, '餐食计划保存失败，请重试。'));
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const validateSelectedPlan = async () => {
+    if (!selectedPlan || selectedPlan.deleted) return;
+    try {
+      const validatedPlan = await runPlanAction(
+        selectedPlan.meal_plan_id,
+        () => validateMealPlan(selectedPlan.meal_plan_id, selectedPlan.revision),
+        '计划校验失败，请重试。',
+      );
+      replacePlanInState(validatedPlan);
+      setPlanReloadNonce((value) => value + 1);
+    } catch {
+      // 错误已由 runPlanAction 转换并展示在当前计划操作区域。
+    }
+  };
+
+  const saveSelectedPlan = async () => {
+    if (!selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'validated') return;
+    try {
+      const savedPlan = await runPlanAction(
+        selectedPlan.meal_plan_id,
+        () => saveMealPlan(selectedPlan.meal_plan_id, selectedPlan.revision),
+        '计划保存失败，请重试。',
+      );
+      replacePlanInState(savedPlan);
+      setPlanReloadNonce((value) => value + 1);
+    } catch {
+      // 错误已由 runPlanAction 转换并展示在当前计划操作区域。
+    }
+  };
+
+  const deleteRealPlan = async (plan: MealPlan) => {
+    await runPlanAction(
+      plan.meal_plan_id,
+      () => deleteMealPlan(plan.meal_plan_id, plan.revision),
+      '餐食计划删除失败，请重试。',
+    );
+    setRealPlans((current) => current.filter((item) => item.meal_plan_id !== plan.meal_plan_id));
+    setPlanReloadNonce((value) => value + 1);
+    if (selectedPlanId === plan.meal_plan_id) navigate('/planning?state=list');
+  };
+
+  const restoreRealPlan = async (plan: MealPlan) => {
+    try {
+      const restoredPlan = await runPlanAction(
+        plan.meal_plan_id,
+        () => restoreMealPlan(plan.meal_plan_id, plan.revision),
+        '餐食计划恢复失败，请重试。',
+      );
+      replacePlanInState(restoredPlan);
+      setPlanReloadNonce((value) => value + 1);
+    } catch {
+      // 错误已由 runPlanAction 转换并展示在计划列表区域。
+    }
+  };
+
+  const createRealShoppingList = async () => {
+    if (!selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved' || creatingShoppingList) return;
+    setCreatingShoppingList(true);
+    setRealShoppingError(undefined);
+    try {
+      const shoppingList = await createShoppingList(selectedPlan.meal_plan_id);
+      setRealShoppingList(shoppingList);
+    } catch (error: unknown) {
+      setRealShoppingError(planningErrorMessage(error, '购物清单生成失败，请重试。'));
+    } finally {
+      setCreatingShoppingList(false);
+    }
   };
 
   const submitRealPlan = async () => {
@@ -708,8 +1020,15 @@ export function PlanningPage() {
         realDraft={realDraft}
         onDraftChange={updateRealDraft}
         onCreatePlan={() => void submitRealPlan()}
+        onSaveDraft={() => void saveDraft()}
         creatingPlan={creatingPlan}
+        savingDraft={savingDraft}
         createError={createPlanError}
+        onEditPlan={startEditingPlan}
+        onDeletePlan={deleteRealPlan}
+        onRestorePlan={restoreRealPlan}
+        actionId={planActionId}
+        actionError={planActionError}
       />
     ) : view === 'wizard-step1' ||
       view === 'wizard-step2' ||
@@ -725,11 +1044,37 @@ export function PlanningPage() {
         realDraft={realDraft}
         onDraftChange={updateRealDraft}
         onCreatePlan={() => void submitRealPlan()}
+        onSaveDraft={() => void saveDraft()}
         creatingPlan={creatingPlan}
+        savingDraft={savingDraft}
         createError={createPlanError}
+        onEditPlan={startEditingPlan}
+        onDeletePlan={deleteRealPlan}
+        onRestorePlan={restoreRealPlan}
+        actionId={planActionId}
+        actionError={planActionError}
       />
     ) : view === 'empty' || realPlans.length === 0 ? (
       <PlanningFeedbackView kind="empty" onPrimary={() => navigate('/planning?state=wizard-step1')} />
+    ) : selectedPlan?.deleted ? (
+      <MealPlanningFlow
+        view="list"
+        onNavigate={navigatePlanningView}
+        realPlans={realPlans}
+        onOpenPlan={openRealPlan}
+        realDraft={realDraft}
+        onDraftChange={updateRealDraft}
+        onCreatePlan={() => void submitRealPlan()}
+        onSaveDraft={() => void saveDraft()}
+        creatingPlan={creatingPlan}
+        savingDraft={savingDraft}
+        createError={createPlanError}
+        onEditPlan={startEditingPlan}
+        onDeletePlan={deleteRealPlan}
+        onRestorePlan={restoreRealPlan}
+        actionId={planActionId}
+        actionError={planActionError}
+      />
     ) : (
       <DefaultPlanningView
         plan={selectedPlan}
@@ -738,6 +1083,13 @@ export function PlanningPage() {
             `/diet-records?mealPlanMealId=${encodeURIComponent(mealPlanMealId)}&mealType=${encodeURIComponent(mealType)}`,
           )
         }
+        onEditPlan={selectedPlan ? () => startEditingPlan(selectedPlan) : undefined}
+        onValidatePlan={() => void validateSelectedPlan()}
+        onSavePlan={() => void saveSelectedPlan()}
+        actionBusy={Boolean(planActionId)}
+        actionError={planActionError}
+        progress={realProgress}
+        progressError={realProgressError}
       />
     )
   ) : view === 'loading' ? (
@@ -763,16 +1115,19 @@ export function PlanningPage() {
       activeModule="planning"
       fixtureVariant={isFigmaFixture ? 'planning' : undefined}
       rightRail={
-        view === 'default' && (!isRealMode || selectedPlan) ? (
+        view === 'default' && (!isRealMode || (selectedPlan && !selectedPlan.deleted)) ? (
           <PlanSidebar
             plan={isRealMode ? selectedPlan : undefined}
             shoppingList={isRealMode ? realShoppingList : undefined}
             shoppingLoading={isRealMode ? realShoppingLoading : false}
             onShoppingListChange={isRealMode ? setRealShoppingList : undefined}
+            onCreateShoppingList={isRealMode ? () => void createRealShoppingList() : undefined}
+            creatingShoppingList={isRealMode ? creatingShoppingList : false}
+            shoppingError={isRealMode ? realShoppingError : undefined}
           />
         ) : undefined
       }
-      rightRailWidth={view === 'default' && (!isRealMode || selectedPlan) ? 340 : undefined}
+      rightRailWidth={view === 'default' && (!isRealMode || (selectedPlan && !selectedPlan.deleted)) ? 340 : undefined}
       displayNameOverride={isFigmaFixture ? 'Anddy' : undefined}
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       topbarVariant={isFigmaFixture && view === 'list' ? 'planning-list' : undefined}

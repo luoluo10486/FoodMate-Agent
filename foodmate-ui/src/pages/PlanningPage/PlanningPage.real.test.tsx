@@ -2,14 +2,40 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadMealPlans, loadShoppingList } from '../../services/planningService';
+import {
+  createMealPlan,
+  createShoppingList,
+  deleteMealPlan,
+  loadMealPlan,
+  loadMealPlanProgress,
+  loadMealPlans,
+  loadShoppingList,
+  restoreMealPlan,
+  saveMealPlan,
+  updateMealPlan,
+  validateMealPlan,
+} from '../../services/planningService';
 import { createSession, sendUserMessage } from '../../services/sessionService';
+import { ApiError } from '../../services/apiClient';
 import { PlanningPage } from './PlanningPage';
 
-vi.mock('../../services/planningService', () => ({
-  loadMealPlans: vi.fn(),
-  loadShoppingList: vi.fn(),
-}));
+vi.mock('../../services/planningService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/planningService')>();
+  return {
+    ...actual,
+    createMealPlan: vi.fn(),
+    createShoppingList: vi.fn(),
+    deleteMealPlan: vi.fn(),
+    loadMealPlan: vi.fn(),
+    loadMealPlanProgress: vi.fn(),
+    loadMealPlans: vi.fn(),
+    loadShoppingList: vi.fn(),
+    restoreMealPlan: vi.fn(),
+    saveMealPlan: vi.fn(),
+    updateMealPlan: vi.fn(),
+    validateMealPlan: vi.fn(),
+  };
+});
 
 vi.mock('../../services/sessionService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../services/sessionService')>();
@@ -80,10 +106,32 @@ describe('PlanningPage real mode', () => {
       ),
     );
     vi.mocked(loadMealPlans).mockResolvedValue([plan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(plan);
+    vi.mocked(loadMealPlanProgress).mockResolvedValue({
+      meal_plan_id: '701',
+      executable_meal_count: 3,
+      completed_meal_count: 1,
+      completion_ratio: 1 / 3,
+      meal_slots: [],
+    });
     vi.mocked(loadShoppingList).mockResolvedValue({
       shopping_list_id: '901',
       meal_plan_id: '701',
       items: [{ name: '服务端鸡胸肉', amount: 600, unit: 'g' }],
+      status: 'generated',
+      created_at: '2026-08-22T12:00:00Z',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
+    vi.mocked(createMealPlan).mockResolvedValue({ ...plan, meal_plan_id: '705', status: 'draft' });
+    vi.mocked(updateMealPlan).mockResolvedValue({ ...plan, plan_name: '编辑后的计划', revision: 4 });
+    vi.mocked(validateMealPlan).mockResolvedValue({ ...plan, status: 'validated', revision: 4 });
+    vi.mocked(saveMealPlan).mockResolvedValue({ ...plan, status: 'saved', revision: 4 });
+    vi.mocked(deleteMealPlan).mockResolvedValue(undefined);
+    vi.mocked(restoreMealPlan).mockResolvedValue({ ...plan, deleted: false, revision: 4 });
+    vi.mocked(createShoppingList).mockResolvedValue({
+      shopping_list_id: '902',
+      meal_plan_id: '701',
+      items: [{ shopping_list_item_id: 'item-1', name: '服务端三文鱼', amount: 450, unit: 'g', purchased: false }],
       status: 'generated',
       created_at: '2026-08-22T12:00:00Z',
       updated_at: '2026-08-22T12:00:00Z',
@@ -179,5 +227,100 @@ describe('PlanningPage real mode', () => {
     await userEvent.setup().click(screen.getByRole('tab', { name: '已校验' }));
     expect(screen.getByRole('heading', { name: '待发布计划' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '服务端增肌计划' })).not.toBeInTheDocument();
+  });
+
+  it('saves a new real draft through the meal plan API', async () => {
+    const user = userEvent.setup();
+    renderPage('/planning?state=list');
+
+    await user.click(await screen.findByRole('button', { name: '+ 新建膳食计划' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 膳食约束' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 确认并生成' }));
+    await user.click(screen.getByRole('button', { name: '保存为草稿' }));
+
+    await waitFor(() => expect(createMealPlan).toHaveBeenCalledTimes(1));
+    expect(createMealPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        planName: '我的本地餐食计划',
+        people: '1',
+        calories: '2200',
+        protein: '130',
+        budget: '120',
+      }),
+    );
+    expect(updateMealPlan).not.toHaveBeenCalled();
+  });
+
+  it('edits a real plan with the authoritative revision and meal table', async () => {
+    const user = userEvent.setup();
+    renderPage('/planning?state=list');
+
+    await user.click(await screen.findByRole('button', { name: '服务端增肌计划更多操作' }));
+    await user.click(screen.getByRole('menuitem', { name: '编辑计划' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 膳食约束' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 确认并生成' }));
+    await user.click(screen.getByRole('button', { name: '保存为草稿' }));
+
+    await waitFor(() => expect(updateMealPlan).toHaveBeenCalledTimes(1));
+    expect(updateMealPlan).toHaveBeenCalledWith(
+      '701',
+      3,
+      expect.objectContaining({
+        plan_name: '服务端增肌计划',
+        days: 1,
+        days_plan: plan.days_plan,
+      }),
+    );
+    expect(createMealPlan).not.toHaveBeenCalled();
+  });
+
+  it('validates a draft and saves only after the server returns validated status', async () => {
+    const draftPlan = { ...plan, meal_plan_id: '706', status: 'draft' };
+    const validatedPlan = { ...draftPlan, status: 'validated', revision: 4 };
+    vi.mocked(loadMealPlans).mockResolvedValueOnce([draftPlan]).mockResolvedValue([validatedPlan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(draftPlan);
+    vi.mocked(validateMealPlan).mockResolvedValue(validatedPlan);
+    vi.mocked(saveMealPlan).mockResolvedValue({ ...draftPlan, status: 'saved', revision: 5 });
+    const user = userEvent.setup();
+    renderPage('/planning?planId=706');
+
+    expect(await screen.findByRole('heading', { name: '服务端增肌计划' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '校验计划' }));
+    await waitFor(() => expect(validateMealPlan).toHaveBeenCalledWith('706', 3));
+    await user.click(screen.getByRole('button', { name: '保存计划' }));
+    await waitFor(() => expect(saveMealPlan).toHaveBeenCalledWith('706', 4));
+  });
+
+  it('keeps the delete dialog open after a revision conflict', async () => {
+    vi.mocked(deleteMealPlan).mockRejectedValue(new ApiError('VERSION_CONFLICT', '版本已变化', 409));
+    const user = userEvent.setup();
+    renderPage('/planning?state=list');
+
+    await user.click(await screen.findByRole('button', { name: '服务端增肌计划更多操作' }));
+    await user.click(screen.getByRole('menuitem', { name: '删除计划' }));
+    await user.click(screen.getByRole('button', { name: '确认删除' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('计划版本已变化，请重新加载后再试。');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('restores a deleted plan and regenerates its shopping list from the server', async () => {
+    const deletedPlan = { ...plan, meal_plan_id: '707', deleted: true, status: 'saved' };
+    vi.mocked(loadMealPlans).mockResolvedValue([deletedPlan]);
+    vi.mocked(restoreMealPlan).mockResolvedValue({ ...deletedPlan, deleted: false, revision: 4 });
+    const user = userEvent.setup();
+    const deletedRender = renderPage('/planning?state=list');
+
+    await user.click(await screen.findByRole('tab', { name: '已删除' }));
+    await user.click(screen.getByRole('button', { name: '服务端增肌计划更多操作' }));
+    await user.click(screen.getByRole('menuitem', { name: '恢复计划' }));
+    await waitFor(() => expect(restoreMealPlan).toHaveBeenCalledWith('707', 3));
+
+    deletedRender.unmount();
+    vi.mocked(loadMealPlans).mockResolvedValue([plan]);
+    renderPage('/planning?planId=701');
+    expect(await screen.findByRole('button', { name: '刷新清单' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '刷新清单' }));
+    await waitFor(() => expect(createShoppingList).toHaveBeenCalledWith('701'));
   });
 });
