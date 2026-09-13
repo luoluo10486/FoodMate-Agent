@@ -1531,8 +1531,14 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '确认请求已提交，等待后端执行事件。');
     try {
-      await confirmAgentWrite(approvalId, { source: 'figma-write-confirmation' });
-      report('pending', '确认请求已提交，等待后端执行事件。');
+      const parameters = { source: 'figma-write-confirmation' };
+      const confirmed = await confirmAgentWrite(approvalId, parameters);
+      if (confirmed.status && confirmed.status.toLowerCase() !== 'confirmed') {
+        report('error', `后端未进入确认状态，当前状态：${confirmed.status}。`);
+        return;
+      }
+      const executed = await executeAgentWrite(approvalId, parameters);
+      report('confirmed', `后端已返回写入状态：${executed.status || '未知'}，页面不推断额外结果。`);
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '写入确认失败，请稍后重试。');
     }
@@ -1549,8 +1555,8 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '取消请求已提交，等待后端确认。');
     try {
-      await rejectAgentWrite(approvalId, { source: 'figma-write-confirmation' });
-      report('pending', '取消请求已提交，等待后端确认。');
+      const rejected = await rejectAgentWrite(approvalId, { source: 'figma-write-confirmation' });
+      report('cancelled', `后端已返回审批状态：${rejected.status || '未知'}。`);
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '取消写入失败，请稍后重试。');
     }
@@ -1567,8 +1573,11 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '预算追加请求已提交，等待当前 Run 的后续事件。');
     try {
-      await extendAgentRunBudget(runId, 20000, '0.15');
-      report('pending', '预算追加请求已提交，等待当前 Run 的后续事件。');
+      const result = await extendAgentRunBudget(runId, 20000, '0.15');
+      report(
+        'continued',
+        `当前 Run 已返回预算追加状态：${result.status || '未知'}（dispatch attempt ${result.attempt}），未创建新会话。`,
+      );
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '预算追加失败，请稍后重试。');
     }
@@ -1585,8 +1594,8 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '结束请求已提交，等待当前 Run 的取消事件。');
     try {
-      await cancelAgentRun(runId);
-      report('pending', '结束请求已提交，等待当前 Run 的取消事件。');
+      const result = await cancelAgentRun(runId);
+      report('ended', `当前 Run 已返回结束状态：${result.status || '未知'}，终态以服务端事件为准。`);
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '结束会话失败，请稍后重试。');
     }
@@ -1601,13 +1610,22 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       report('error', '真实模式缺少 run_id，未执行重试。');
       return;
     }
-    report('pending', '重试请求需要后端运行恢复事件，当前页面不会伪造成功。');
+    report('pending', '重试请求已提交，等待后端运行事件，当前页面不会伪造成功。');
     try {
-      await recoverAgentRunFromCheckpoint(runId);
-      report('pending', '重试请求已提交，等待新的工具事件。');
+      const result = await retryAgentRun(runId);
+      report('retried', `后端已返回重试状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`);
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '重试请求失败，请稍后重试。');
     }
+  };
+
+  const skipFailedTool = () => {
+    if (!realMode) {
+      report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。');
+      return;
+    }
+    // 当前后端没有跳过单个工具步骤的公开接口，不能把本地提示当作运行状态。
+    report('error', '当前后端未提供跳过此步骤接口，未发送请求；请等待真实 Run 返回后续事件。');
   };
 
   const content = (() => {
@@ -1746,7 +1764,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
                 className={styles.fixtureSkipButton}
                 disabled={action === 'pending'}
                 variant="outline"
-                onClick={() => report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。')}
+                onClick={skipFailedTool}
               >
                 跳过此步骤
               </Button>
