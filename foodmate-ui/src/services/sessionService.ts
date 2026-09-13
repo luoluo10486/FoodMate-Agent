@@ -52,6 +52,12 @@ export type MessageListParams = {
   size?: number;
 };
 
+type SearchSession = {
+  session_id: string;
+  title: string;
+  snippet: string;
+};
+
 function sessionQuery(params: SessionListParams = {}) {
   const search = new URLSearchParams({
     page: String(params.page ?? 1),
@@ -109,8 +115,17 @@ export async function loadSessionMessagesPage(
 }
 
 export async function loadSessionMessages(sessionId: string, params: MessageListParams = {}): Promise<RealMessage[]> {
-  const page = await loadSessionMessagesPage(sessionId, params);
-  return page.items;
+  const firstPage = await loadSessionMessagesPage(sessionId, params);
+  const items = [...firstPage.items];
+  const requestedPage = firstPage.page;
+  const pageCount = Math.ceil(firstPage.total / firstPage.size);
+  if (requestedPage === 1 && pageCount > 1) {
+    for (let page = 2; page <= pageCount; page += 1) {
+      const nextPage = await loadSessionMessagesPage(sessionId, { page, size: firstPage.size });
+      items.push(...nextPage.items);
+    }
+  }
+  return sortMessages(items);
 }
 export async function sendUserMessage(sessionId: string, content: string): Promise<RealMessage> {
   return apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/messages`, {
@@ -156,8 +171,16 @@ export async function loadDeletedSessionsPage(params: MessageListParams = {}): P
 }
 
 export async function loadDeletedSessions(params: MessageListParams = {}): Promise<RealSession[]> {
-  const page = await loadDeletedSessionsPage(params);
-  return page.items;
+  const firstPage = await loadDeletedSessionsPage(params);
+  const items = [...firstPage.items];
+  const pageCount = Math.ceil(firstPage.total / firstPage.size);
+  if (firstPage.page === 1 && pageCount > 1) {
+    for (let page = 2; page <= pageCount; page += 1) {
+      const nextPage = await loadDeletedSessionsPage({ page, size: firstPage.size });
+      items.push(...nextPage.items);
+    }
+  }
+  return items;
 }
 export async function restoreSession(sessionId: string): Promise<void> {
   await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/restore`, { method: 'POST' });
@@ -165,16 +188,26 @@ export async function restoreSession(sessionId: string): Promise<void> {
 export async function searchSessions(
   query: string,
   params: Pick<SessionListParams, 'page' | 'size'> = {},
-): Promise<SessionSummary[]> {
+): Promise<PageResult<SessionSummary>> {
   const search = new URLSearchParams({
     q: query.trim(),
     page: String(params.page ?? 1),
     size: String(params.size ?? 50),
   });
-  const rows = await apiRequest<Array<{ session_id: string; title: string; snippet: string }>>(
-    `/api/sessions/search?${search.toString()}`,
-  );
-  return rows.map((row) => ({ id: row.session_id, title: row.title, subtitle: row.snippet }));
+  const result = await apiRequest<PageResult<SearchSession>>(`/api/sessions/search?${search.toString()}`);
+  return {
+    ...result,
+    items: result.items.map((row) => ({ id: row.session_id, title: row.title, subtitle: row.snippet })),
+  };
+}
+
+function sortMessages(items: RealMessage[]) {
+  return [...items].sort((left, right) => {
+    if (left.sequence_no !== right.sequence_no) return left.sequence_no - right.sequence_no;
+    const createdAtOrder = left.created_at.localeCompare(right.created_at);
+    if (createdAtOrder !== 0) return createdAtOrder;
+    return left.message_id.localeCompare(right.message_id);
+  });
 }
 
 export function getTaskCards(): TaskCardData[] {

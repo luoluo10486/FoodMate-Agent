@@ -106,6 +106,12 @@ class M12SessionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].title", is("M1-2")))
                 .andExpect(jsonPath("$.data.total", is(1)));
+        mockMvc.perform(get("/api/sessions/search?q=M1-2&page=1&size=1").cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].title", is("M1-2")))
+                .andExpect(jsonPath("$.data.total", is(1)))
+                .andExpect(jsonPath("$.data.page", is(1)))
+                .andExpect(jsonPath("$.data.size", is(1)));
         mockMvc.perform(
                         delete("/api/sessions/" + id)
                                 .cookie(session)

@@ -20,6 +20,7 @@ type SidebarSessionListProps = {
   hidePagination?: boolean;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  actionsDisabled?: boolean;
   showHistory?: boolean;
   fixtureVariant?: WorkspaceFixtureVariant;
 };
@@ -32,6 +33,7 @@ export function SidebarSessionList({
   hidePagination = false,
   totalPages = 3,
   onPageChange,
+  actionsDisabled = false,
   showHistory = true,
   fixtureVariant,
 }: SidebarSessionListProps) {
@@ -88,20 +90,24 @@ export function SidebarSessionList({
                             aria-label={`管理${session.title}`}
                             title={`管理${session.title}`}
                             type="button"
+                            disabled={actionsDisabled}
                           >
                             <MoreHorizontal aria-hidden="true" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => onAction('rename', session)}>
+                          <DropdownMenuItem disabled={actionsDisabled} onSelect={() => onAction('rename', session)}>
                             <Pencil aria-hidden="true" />
                             重命名
                           </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => onAction(archived ? 'unarchive' : 'archive', session)}>
+                          <DropdownMenuItem
+                            disabled={actionsDisabled}
+                            onSelect={() => onAction(archived ? 'unarchive' : 'archive', session)}
+                          >
                             <Archive aria-hidden="true" />
                             {archived ? '取消归档' : '归档'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => onAction('delete', session)}>
+                          <DropdownMenuItem disabled={actionsDisabled} onSelect={() => onAction('delete', session)}>
                             <Trash2 aria-hidden="true" />
                             删除
                           </DropdownMenuItem>

@@ -75,7 +75,7 @@ public interface UserAccountService {
 
     void deleteMessage(long userId, long sessionId, long messageId);
 
-    List<SearchResult> searchSessions(long userId, String query, int page, int size);
+    PageResult<SearchResult> searchSessions(long userId, String query, int page, int size);
 
     void archiveSession(long userId, long sessionId);
 

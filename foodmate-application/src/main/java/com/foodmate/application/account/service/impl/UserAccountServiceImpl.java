@@ -506,8 +506,11 @@ public class UserAccountServiceImpl implements UserAccountService {
                                                                 .contains(q.toLowerCase())))
                         .sorted(
                                 Comparator.comparing(
-                                        SessionRecord::lastMessageAt,
-                                        Comparator.nullsLast(Comparator.reverseOrder())))
+                                                SessionRecord::lastMessageAt,
+                                                Comparator.nullsLast(Comparator.reverseOrder()))
+                                        .thenComparing(
+                                                SessionRecord::sessionId,
+                                                Comparator.reverseOrder()))
                         .toList();
         int from = Math.min((safePage - 1) * safeSize, all.size());
         int to = Math.min(from + safeSize, all.size());
@@ -697,21 +700,58 @@ public class UserAccountServiceImpl implements UserAccountService {
         }
     }
 
-    public synchronized List<SearchResult> searchSessions(
+    public synchronized PageResult<SearchResult> searchSessions(
             long userId, String query, int page, int size) {
         String q = query == null ? "" : query.trim();
-        if (q.isBlank()) return List.of();
-        int safeSize = Math.min(100, Math.max(1, size)), offset = Math.max(0, page - 1) * safeSize;
-        if (store != null) return store.search(userId, q, safeSize, offset);
-        return sessions.values().stream()
-                .filter(
-                        s ->
-                                s.userId() == userId
-                                        && !SessionStatus.DELETED.code().equals(s.status())
-                                        && s.title().toLowerCase().contains(q.toLowerCase()))
-                .map(s -> new SearchResult(s.sessionId(), s.title(), s.title()))
-                .limit(safeSize)
-                .toList();
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+        if (q.isBlank()) return new PageResult<>(List.of(), 0, safePage, safeSize);
+        int offset = (safePage - 1) * safeSize;
+        if (store != null) {
+            long total = store.countSearchSessions(userId, q);
+            return new PageResult<>(
+                    store.search(userId, q, safeSize, offset), total, safePage, safeSize);
+        }
+        String normalizedQuery = q.toLowerCase();
+        List<SearchResult> all =
+                sessions.values().stream()
+                        .filter(
+                                s -> {
+                                    if (s.userId() != userId
+                                            || SessionStatus.DELETED.code().equals(s.status()))
+                                        return false;
+                                    if (s.title().toLowerCase().contains(normalizedQuery))
+                                        return true;
+                                    return messages.getOrDefault(s.sessionId(), List.of()).stream()
+                                            .anyMatch(
+                                                    message ->
+                                                            message.content()
+                                                                    .toLowerCase()
+                                                                    .contains(normalizedQuery));
+                                })
+                        .sorted(
+                                Comparator.comparing(
+                                        SessionRecord::lastMessageAt,
+                                        Comparator.nullsLast(Comparator.reverseOrder())))
+                        .map(
+                                s -> {
+                                    String snippet =
+                                            messages.getOrDefault(s.sessionId(), List.of()).stream()
+                                                    .filter(
+                                                            message ->
+                                                                    message.content()
+                                                                            .toLowerCase()
+                                                                            .contains(
+                                                                                    normalizedQuery))
+                                                    .map(MessageRecord::content)
+                                                    .findFirst()
+                                                    .orElse(s.title());
+                                    return new SearchResult(s.sessionId(), s.title(), snippet);
+                                })
+                        .toList();
+        int from = Math.min(offset, all.size());
+        int to = Math.min(from + safeSize, all.size());
+        return new PageResult<>(all.subList(from, to), all.size(), safePage, safeSize);
     }
 
     public synchronized void archiveSession(long userId, long sessionId) {

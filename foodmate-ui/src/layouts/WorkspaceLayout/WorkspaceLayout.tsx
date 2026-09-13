@@ -128,6 +128,8 @@ export function WorkspaceLayout({
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionError, setSessionError] = useState('');
   const sessionRequestRef = useRef(0);
+  const pendingSessionOperationRef = useRef<string>();
+  const [pendingSessionOperation, setPendingSessionOperation] = useState<string>();
   const [renameTarget, setRenameTarget] = useState<{ id: string; title: string }>();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string }>();
   const [deletedOpen, setDeletedOpen] = useState(false);
@@ -203,11 +205,11 @@ export function WorkspaceLayout({
       setSessionError('');
       try {
         if (query.trim()) {
-          const rows = await searchSessions(query.trim(), { page, size: 50 });
+          const result = await searchSessions(query.trim(), { page, size: 50 });
           if (requestId !== sessionRequestRef.current) return;
-          setSessions(rows.map((item) => ({ ...item, active: item.id === activeSessionId })));
-          setSessionTotal(rows.length);
-          setSessionPage(page);
+          setSessions(result.items.map((item) => ({ ...item, active: item.id === activeSessionId })));
+          setSessionTotal(result.total);
+          setSessionPage(result.page);
           return;
         }
         const result = await loadSessionSummariesPage({ page, size: 50 });
@@ -228,14 +230,26 @@ export function WorkspaceLayout({
   useEffect(() => {
     if (sidebarFixture || hideSidebar || !realMode || !authReady || !isAuthenticated) return;
     const timer = window.setTimeout(
-      () => void loadSessionList(sessionQuery, sessionQuery.trim() ? 1 : sessionPage),
+      () => void loadSessionList(sessionQuery, sessionPage),
       sessionQuery.trim() ? 250 : 0,
     );
     return () => window.clearTimeout(timer);
   }, [authReady, hideSidebar, isAuthenticated, loadSessionList, realMode, sessionPage, sessionQuery, sidebarFixture]);
 
-  const refreshSessions = () => loadSessionList(sessionQuery, sessionQuery.trim() ? 1 : sessionPage);
+  const refreshSessions = () => loadSessionList(sessionQuery, sessionPage);
   const announce = (message: string) => setNotice(message);
+  // 使用 ref 抢占操作锁，避免连续点击在同一轮渲染内发出重复写请求。
+  const beginSessionOperation = (key: string) => {
+    if (pendingSessionOperationRef.current) return false;
+    pendingSessionOperationRef.current = key;
+    setPendingSessionOperation(key);
+    return true;
+  };
+  const endSessionOperation = (key: string) => {
+    if (pendingSessionOperationRef.current !== key) return;
+    pendingSessionOperationRef.current = undefined;
+    setPendingSessionOperation(undefined);
+  };
   const handleSessionAction = async (action: SessionAction, session: { id: string; title: string }) => {
     if (action === 'rename') {
       setRenameTarget({ id: session.id, title: session.title });
@@ -245,6 +259,8 @@ export function WorkspaceLayout({
       setDeleteTarget({ id: session.id, title: session.title });
       return;
     }
+    const operationKey = `${action}:${session.id}`;
+    if (!beginSessionOperation(operationKey)) return;
     try {
       await (action === 'archive' ? archiveSession(session.id) : unarchiveSession(session.id));
       await refreshSessions();
@@ -253,9 +269,13 @@ export function WorkspaceLayout({
       const message = error instanceof Error ? error.message : '会话状态更新失败，请重试。';
       setSessionError(message);
       announce(message);
+    } finally {
+      endSessionOperation(operationKey);
     }
   };
   const openDeletedSessions = async () => {
+    const operationKey = 'deleted:list';
+    if (!beginSessionOperation(operationKey)) return;
     try {
       setDeletedSessions(await loadDeletedSessions());
       setDeletedOpen(true);
@@ -263,10 +283,14 @@ export function WorkspaceLayout({
       const message = error instanceof Error ? error.message : '回收站加载失败，请重试。';
       setSessionError(message);
       announce(message);
+    } finally {
+      endSessionOperation(operationKey);
     }
   };
   const saveRename = async () => {
     if (!renameTarget?.title.trim()) return;
+    const operationKey = `rename:${renameTarget.id}`;
+    if (!beginSessionOperation(operationKey)) return;
     try {
       await renameSession(renameTarget.id, renameTarget.title.trim());
       setRenameTarget(undefined);
@@ -276,10 +300,14 @@ export function WorkspaceLayout({
       const message = error instanceof Error ? error.message : '会话重命名失败，请重试。';
       setSessionError(message);
       announce(message);
+    } finally {
+      endSessionOperation(operationKey);
     }
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    const operationKey = `delete:${deleteTarget.id}`;
+    if (!beginSessionOperation(operationKey)) return;
     try {
       await deleteSession(deleteTarget.id);
       setDeleteTarget(undefined);
@@ -290,25 +318,32 @@ export function WorkspaceLayout({
       const message = error instanceof Error ? error.message : '会话删除失败，请重试。';
       setSessionError(message);
       announce(message);
+    } finally {
+      endSessionOperation(operationKey);
     }
   };
-  const createNewSession = () => {
+  const createNewSession = async () => {
     if (!realMode) {
       navigate(buildChatPath('week-plan'));
       return;
     }
-    void createSession()
-      .then((session) => {
-        void refreshSessions();
-        navigate(buildChatPath(session.session_id));
-      })
-      .catch((error) => {
-        const message = error instanceof Error ? error.message : '新建会话失败，请重试。';
-        setSessionError(message);
-        announce(message);
-      });
+    const operationKey = 'session:create';
+    if (!beginSessionOperation(operationKey)) return;
+    try {
+      const session = await createSession();
+      await refreshSessions();
+      navigate(buildChatPath(session.session_id));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '新建会话失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    } finally {
+      endSessionOperation(operationKey);
+    }
   };
   const restoreDeletedSession = async (sessionId: string) => {
+    const operationKey = `restore:${sessionId}`;
+    if (!beginSessionOperation(operationKey)) return;
     try {
       await restoreSession(sessionId);
       setDeletedSessions((items) => items.filter((item) => item.session_id !== sessionId));
@@ -318,6 +353,8 @@ export function WorkspaceLayout({
       const message = error instanceof Error ? error.message : '会话恢复失败，请重试。';
       setSessionError(message);
       announce(message);
+    } finally {
+      endSessionOperation(operationKey);
     }
   };
   const sideLink = ({ isActive }: { isActive: boolean }) => `${styles.sideLink} ${isActive ? styles.active : ''}`;
@@ -349,7 +386,11 @@ export function WorkspaceLayout({
               <BrandLogo showTagline />
             </div>
             {sidebarFixture?.showTopStatus ? <div className={styles.fixtureOnlineStatus}>在线代理</div> : null}
-            <Button className={styles.newButton} onClick={createNewSession}>
+            <Button
+              className={styles.newButton}
+              onClick={() => void createNewSession()}
+              disabled={Boolean(pendingSessionOperation)}
+            >
               {renderWorkspaceIcon('newTask', <Plus aria-hidden="true" />)}
               <span>新建任务</span>
             </Button>
@@ -364,7 +405,10 @@ export function WorkspaceLayout({
                   className={styles.search}
                   placeholder="搜索会话..."
                   value={displayedSessionQuery}
-                  onChange={(event) => setSessionQuery(event.target.value)}
+                  onChange={(event) => {
+                    setSessionQuery(event.target.value);
+                    setSessionPage(1);
+                  }}
                 />
                 {displayedSessionQuery && !designChat ? (
                   <Button
@@ -393,10 +437,17 @@ export function WorkspaceLayout({
                 hidePagination={sidebarFixture?.hideSessionPagination}
                 totalPages={sidebarFixture ? undefined : Math.max(1, Math.ceil(sessionTotal / 50))}
                 sessionCountLabel={sidebarFixture?.sessionCountLabel}
+                actionsDisabled={Boolean(pendingSessionOperation)}
                 sessions={displayedSessions}
                 showHistory={!hideSessionHistory}
                 onAction={sidebarFixture ? undefined : handleSessionAction}
-                onPageChange={sidebarFixture ? undefined : (page) => setSessionPage(page)}
+                onPageChange={
+                  sidebarFixture
+                    ? undefined
+                    : (page) => {
+                        setSessionPage(page);
+                      }
+                }
               />
               {realMode && !sidebarFixture ? (
                 <>
@@ -416,7 +467,12 @@ export function WorkspaceLayout({
                 </>
               ) : null}
               {realMode ? (
-                <Button className={styles.deletedButton} variant="ghost" onClick={() => void openDeletedSessions()}>
+                <Button
+                  className={styles.deletedButton}
+                  variant="ghost"
+                  disabled={Boolean(pendingSessionOperation)}
+                  onClick={() => void openDeletedSessions()}
+                >
                   查看已删除会话
                 </Button>
               ) : null}
@@ -647,10 +703,16 @@ export function WorkspaceLayout({
               }
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setRenameTarget(undefined)}>
+              <Button
+                variant="outline"
+                disabled={Boolean(pendingSessionOperation)}
+                onClick={() => setRenameTarget(undefined)}
+              >
                 取消
               </Button>
-              <Button onClick={() => void saveRename()}>保存</Button>
+              <Button disabled={Boolean(pendingSessionOperation)} onClick={() => void saveRename()}>
+                保存
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -661,10 +723,18 @@ export function WorkspaceLayout({
               <DialogDescription>“{deleteTarget?.title}”将进入回收站，并可在 30 天内恢复。</DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteTarget(undefined)}>
+              <Button
+                variant="outline"
+                disabled={Boolean(pendingSessionOperation)}
+                onClick={() => setDeleteTarget(undefined)}
+              >
                 取消
               </Button>
-              <Button variant="destructive" onClick={() => void confirmDelete()}>
+              <Button
+                variant="destructive"
+                disabled={Boolean(pendingSessionOperation)}
+                onClick={() => void confirmDelete()}
+              >
                 <Trash2 aria-hidden="true" />
                 删除
               </Button>
@@ -683,7 +753,11 @@ export function WorkspaceLayout({
               deletedSessions.map((session) => (
                 <div className={styles.deletedRow} key={session.session_id}>
                   <span>{session.title}</span>
-                  <Button variant="ghost" onClick={() => void restoreDeletedSession(String(session.session_id))}>
+                  <Button
+                    variant="ghost"
+                    disabled={Boolean(pendingSessionOperation)}
+                    onClick={() => void restoreDeletedSession(String(session.session_id))}
+                  >
                     <RotateCcw aria-hidden="true" />
                     恢复
                   </Button>

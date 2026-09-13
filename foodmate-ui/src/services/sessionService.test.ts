@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   deleteMessage,
+  loadSessionMessages,
   loadSessionMessagesPage,
   loadSessions,
   loadSessionsPage,
@@ -81,14 +82,69 @@ describe('sessionService', () => {
     expect(fetchMock.mock.calls[2][1].method).toBe('DELETE');
   });
 
+  it('loads every message page and restores sequence order', async () => {
+    const firstPage = {
+      items: [
+        {
+          message_id: 'message-2',
+          session_id: '7',
+          role: 'assistant' as const,
+          content: '第二条',
+          sequence_no: 2,
+          created_at: '2026-09-13T09:00:02Z',
+        },
+      ],
+      total: 2,
+      page: 1,
+      size: 1,
+    };
+    const secondPage = {
+      items: [
+        {
+          message_id: 'message-1',
+          session_id: '7',
+          role: 'user' as const,
+          content: '第一条',
+          sequence_no: 1,
+          created_at: '2026-09-13T09:00:01Z',
+        },
+      ],
+      total: 2,
+      page: 2,
+      size: 1,
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      const data = url.includes('page=2') ? secondPage : firstPage;
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(loadSessionMessagesPage('7', { page: 1, size: 1 })).resolves.toEqual(firstPage);
+    const messages = await loadSessionMessages('7', { page: 1, size: 1 });
+
+    expect(messages.map((message) => message.sequence_no)).toEqual([1, 2]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/sessions/7/messages?page=2&size=1',
+      expect.objectContaining({ method: 'GET', credentials: 'include' }),
+    );
+  });
+
   it('passes search pagination to the backend search endpoint', async () => {
-    const data = [{ session_id: '7', title: '早餐', snippet: '燕麦' }];
+    const data = {
+      items: [{ session_id: '7', title: '早餐', snippet: '燕麦' }],
+      total: 3,
+      page: 2,
+      size: 15,
+    };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(searchSessions(' 早餐 ', { page: 2, size: 15 })).resolves.toEqual([
-      { id: '7', title: '早餐', subtitle: '燕麦' },
-    ]);
+    await expect(searchSessions(' 早餐 ', { page: 2, size: 15 })).resolves.toEqual({
+      items: [{ id: '7', title: '早餐', subtitle: '燕麦' }],
+      total: 3,
+      page: 2,
+      size: 15,
+    });
     expect(fetchMock.mock.calls[0][0]).toBe('/api/sessions/search?q=%E6%97%A9%E9%A4%90&page=2&size=15');
   });
 });

@@ -74,6 +74,8 @@ public interface UserAccountRepository {
 
     List<SessionRecord> deletedSessions(long userId, int limit, int offset);
 
+    long countSearchSessions(long userId, String query);
+
     boolean sessionExists(long userId, long sessionId);
 
     void renameSession(long userId, long sessionId, String title);

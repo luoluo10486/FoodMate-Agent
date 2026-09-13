@@ -133,6 +133,10 @@ public interface UserAccountMapper {
     List<SessionRecord> deletedSessions(long userId, int limit, int offset);
 
     @Select(
+            "SELECT COUNT(*) FROM sessions s WHERE s.user_id=#{userId} AND s.is_deleted=FALSE AND (s.title ILIKE CONCAT('%',#{query},'%') OR EXISTS (SELECT 1 FROM messages m WHERE m.session_id=s.session_id AND m.is_deleted=FALSE AND m.content ILIKE CONCAT('%',#{query},'%')))")
+    long countSearchSessions(long userId, String query);
+
+    @Select(
             "SELECT EXISTS(SELECT 1 FROM sessions WHERE session_id=#{sessionId} AND user_id=#{userId} AND is_deleted=FALSE)")
     boolean sessionExists(long userId, long sessionId);
 

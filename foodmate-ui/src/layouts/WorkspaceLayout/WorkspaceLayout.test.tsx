@@ -1,12 +1,74 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mockAuthUser } from '../../mock/auth';
+import { createSession, loadSessionSummariesPage, type RealSession } from '../../services/sessionService';
+import { loadCurrentUser } from '../../services/authService';
 import { WorkspaceLayout } from './WorkspaceLayout';
 import styles from './WorkspaceLayout.module.css';
 
+vi.mock('../../services/authService', async () => {
+  const actual = await vi.importActual<typeof import('../../services/authService')>('../../services/authService');
+  return { ...actual, loadCurrentUser: vi.fn() };
+});
+
+vi.mock('../../services/sessionService', async () => {
+  const actual = await vi.importActual<typeof import('../../services/sessionService')>('../../services/sessionService');
+  return {
+    ...actual,
+    createSession: vi.fn(),
+    loadSessionSummariesPage: vi.fn(),
+  };
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+  vi.unstubAllEnvs();
+  localStorage.clear();
+});
+
 describe('WorkspaceLayout shell controls', () => {
+  it('prevents duplicate real session creation while the first request is pending', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
+
+    let resolveCreate: (session: RealSession) => void = () => undefined;
+    vi.mocked(createSession).mockReturnValue(
+      new Promise<RealSession>((resolve) => {
+        resolveCreate = resolve;
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const createButton = await screen.findByRole('button', { name: '新建任务' });
+    await user.click(createButton);
+    await user.click(createButton);
+
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(createButton).toBeDisabled();
+
+    resolveCreate({
+      session_id: 'session-1',
+      title: '新会话',
+      mode: 'chat',
+      status: 'active',
+    });
+    await waitFor(() => expect(createButton).not.toBeDisabled());
+  });
+
   it('renders shell actions through the shared shadcn Button primitive', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
