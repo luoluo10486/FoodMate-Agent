@@ -1,9 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
-import { getAuthSessions, getProfile, updateProfile } from '../../services/accountService';
+import {
+  getAuthSessions,
+  getDataExport,
+  getProfile,
+  requestDataExport,
+  updateProfile,
+} from '../../services/accountService';
 
 vi.mock('../../services/accountService', () => ({
   changePassword: vi.fn(),
@@ -160,5 +166,30 @@ describe('ProfilePage real account states', () => {
       ),
     );
     await waitFor(() => expect(screen.queryByRole('button', { name: '花生' })).not.toBeInTheDocument());
+  });
+
+  it('真实导出只展示后端状态，不虚构进度和文件大小', async () => {
+    vi.mocked(requestDataExport).mockResolvedValue({ export_job_id: 42 });
+    vi.mocked(getDataExport).mockResolvedValue({ export_job_id: 42, status: 'RUNNING' });
+    const intervalSpy = vi.spyOn(window, 'setInterval').mockImplementation((handler) => {
+      queueMicrotask(() => {
+        if (typeof handler === 'function') handler();
+      });
+      return 1 as unknown as ReturnType<typeof window.setInterval>;
+    });
+
+    try {
+      renderPage('/profile/data');
+      const exportButton = await screen.findByRole('button', { name: '创建数据导出' });
+      fireEvent.click(exportButton);
+
+      await waitFor(() => expect(requestDataExport).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(getDataExport).toHaveBeenCalledWith(42));
+      expect(screen.getAllByText(/生成中/).length).toBeGreaterThan(0);
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.queryByText('142 MB')).not.toBeInTheDocument();
+    } finally {
+      intervalSpy.mockRestore();
+    }
   });
 });

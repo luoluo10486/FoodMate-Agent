@@ -1778,15 +1778,27 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const [deletionConfirmation, setDeletionConfirmation] = useState('');
   const [deletionState, setDeletionState] = useState<AsyncState>('idle');
   const pollRef = useRef<number>();
+  const exportGenerationRef = useRef(0);
 
   useEffect(
     () => () => {
-      if (pollRef.current) window.clearInterval(pollRef.current);
+      exportGenerationRef.current += 1;
+      if (pollRef.current !== undefined) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = undefined;
+      }
     },
     [],
   );
 
   const createExport = async () => {
+    const generation = exportGenerationRef.current + 1;
+    exportGenerationRef.current = generation;
+    // 新建任务前清理旧轮询，避免重复点击或失败重试产生多个状态请求。
+    if (pollRef.current !== undefined) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = undefined;
+    }
     setExportStatus('queued');
     setExportError('');
     if (!realMode) {
@@ -1799,6 +1811,7 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
     }
     try {
       const created = await requestDataExport();
+      if (generation !== exportGenerationRef.current) return;
       setExportJobId(created.export_job_id);
       setExportRows((rows) => [
         {
@@ -1811,22 +1824,31 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
         ...rows,
       ]);
       pollRef.current = window.setInterval(async () => {
+        if (generation !== exportGenerationRef.current) return;
         try {
           const job = await getDataExport(created.export_job_id);
+          if (generation !== exportGenerationRef.current) return;
           const status = normalizeExportStatus(job.status);
           setExportStatus(status);
           setExportRows((rows) =>
             rows.map((row) =>
               row.jobId === created.export_job_id
-                ? { ...row, status, size: status === 'completed' ? '142 MB' : row.size }
+                ? { ...row, status, size: status === 'completed' ? '后端未返回' : row.size }
                 : row,
             ),
           );
           if (status === 'completed' || status === 'failed' || status === 'expired') {
-            if (pollRef.current) window.clearInterval(pollRef.current);
+            if (generation === exportGenerationRef.current && pollRef.current !== undefined) {
+              window.clearInterval(pollRef.current);
+              pollRef.current = undefined;
+            }
           }
         } catch (error) {
-          if (pollRef.current) window.clearInterval(pollRef.current);
+          if (generation !== exportGenerationRef.current) return;
+          if (pollRef.current !== undefined) {
+            window.clearInterval(pollRef.current);
+            pollRef.current = undefined;
+          }
           setExportStatus('failed');
           setExportError(error instanceof Error ? error.message : '导出状态读取失败，请重新创建。');
         }
@@ -1895,8 +1917,13 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           </Button>
         </div>
         {exportStatus && exportStatus !== 'completed' ? (
-          <div className={styles.exportProgress}>
-            {exportStatus === 'running' ? <Progress value={68} className={styles.progress} /> : null}
+          <div
+            className={styles.exportProgress}
+            aria-busy={realMode && (exportStatus === 'queued' || exportStatus === 'running')}
+            aria-live="polite"
+          >
+            {/* 真实接口只返回离散状态，不提供百分比；进度数值仅保留在 Fixture 预览中。 */}
+            {exportStatus === 'running' && !realMode ? <Progress value={68} className={styles.progress} /> : null}
             <span>
               {exportStatusLabel(exportStatus)} ·{' '}
               {exportStatus === 'queued' ? '预计等待 1-2 分钟' : '请稍候，完成后提供一次性下载入口'}
