@@ -13,6 +13,7 @@ import {
   restoreMealPlan,
   saveMealPlan,
   updateMealPlan,
+  updateShoppingItemPurchased,
   validateMealPlan,
 } from '../../services/planningService';
 import { createSession, sendUserMessage } from '../../services/sessionService';
@@ -33,6 +34,7 @@ vi.mock('../../services/planningService', async (importOriginal) => {
     restoreMealPlan: vi.fn(),
     saveMealPlan: vi.fn(),
     updateMealPlan: vi.fn(),
+    updateShoppingItemPurchased: vi.fn(),
     validateMealPlan: vi.fn(),
   };
 });
@@ -128,6 +130,14 @@ describe('PlanningPage real mode', () => {
     vi.mocked(saveMealPlan).mockResolvedValue({ ...plan, status: 'saved', revision: 4 });
     vi.mocked(deleteMealPlan).mockResolvedValue(undefined);
     vi.mocked(restoreMealPlan).mockResolvedValue({ ...plan, deleted: false, revision: 4 });
+    vi.mocked(updateShoppingItemPurchased).mockResolvedValue({
+      shopping_list_id: '901',
+      meal_plan_id: '701',
+      items: [{ shopping_list_item_id: 'item-1', name: '服务端鸡胸肉', amount: 600, unit: 'g', purchased: true }],
+      status: 'generated',
+      created_at: '2026-08-22T12:00:00Z',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
     vi.mocked(createShoppingList).mockResolvedValue({
       shopping_list_id: '902',
       meal_plan_id: '701',
@@ -198,6 +208,25 @@ describe('PlanningPage real mode', () => {
     expect(prompt).toContain('每日预算：120 元');
     expect(prompt).toContain('等待用户确认后才能调用 meal_plan.save_plan');
     expect(await screen.findByTestId('chat-route')).toBeInTheDocument();
+  });
+
+  it('persists a real shopping item toggle through the backend', async () => {
+    vi.mocked(loadShoppingList).mockResolvedValue({
+      shopping_list_id: '901',
+      meal_plan_id: '701',
+      items: [{ shopping_list_item_id: 'item-1', name: '服务端鸡胸肉', amount: 600, unit: 'g', purchased: false }],
+      status: 'generated',
+      created_at: '2026-08-22T12:00:00Z',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
+    const user = userEvent.setup();
+    renderPage('/planning?planId=701');
+
+    const checkbox = await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' });
+    await user.click(checkbox);
+
+    await waitFor(() => expect(updateShoppingItemPurchased).toHaveBeenCalledWith('701', 'item-1', true));
+    expect(await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).toBeChecked();
   });
 
   it('lets an empty real account enter the create wizard', async () => {
