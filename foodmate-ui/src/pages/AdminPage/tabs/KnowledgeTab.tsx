@@ -13,6 +13,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ApiError } from '../../../services/apiClient';
 import styles from '../AdminPage.module.css';
 import { type KnowledgeRow, canManage } from './AdminShared';
 import type { AdminActionPayload } from './types';
@@ -100,6 +101,30 @@ function documentStatus(document: KnowledgeRow, figmaFixture: boolean) {
   const styleKey =
     visibility === 'published' || visibility === 'disabled' || visibility === 'draft' ? visibility : document.status;
   return <span className={`${styles.knowledgeStatus} ${styles[`knowledgeStatus${styleKey}`] ?? ''}`}>{label}</span>;
+}
+
+function batchStatusLabel(status: string | undefined) {
+  switch (status?.toLowerCase()) {
+    case 'uploaded':
+      return '已接收';
+    case 'indexing':
+      return '索引中';
+    case 'completed':
+      return '已完成';
+    case 'partial_failed':
+      return '部分失败';
+    case 'failed':
+      return '失败';
+    case 'expired':
+      return '已过期';
+    default:
+      return status || '上传已提交';
+  }
+}
+
+function knowledgeBatchErrorMessage(cause: unknown, fallback: string) {
+  if (cause instanceof ApiError) return `${cause.code}: ${cause.message}`;
+  return cause instanceof Error ? cause.message : fallback;
 }
 
 export function KnowledgeSection({
@@ -584,6 +609,8 @@ function BatchProgress({
   const [retryError, setRetryError] = useState('');
   const [reindexingItemId, setReindexingItemId] = useState<string>();
   const [reindexError, setReindexError] = useState('');
+  const [detailError, setDetailError] = useState('');
+  const [detailReloadNonce, setDetailReloadNonce] = useState(0);
   const [streamRetryNonce, setStreamRetryNonce] = useState(0);
   const [streamConnection, setStreamConnection] = useState<AgentStreamConnection>({
     state: 'connecting',
@@ -593,9 +620,15 @@ function BatchProgress({
   const streamBatchRef = useRef<string>();
   const streamCursorRef = useRef<string>();
   const refresh = async () => {
-    const next = await loadKnowledgeBatch(batchId);
-    setDetail(next);
-    return next;
+    try {
+      const next = await loadKnowledgeBatch(batchId);
+      setDetail(next);
+      setDetailError('');
+      return next;
+    } catch (cause) {
+      setDetailError(knowledgeBatchErrorMessage(cause, '批次详情读取失败，请重试。'));
+      throw cause;
+    }
   };
   const retry = async (itemId: string, documentId: string) => {
     setRetryingItemId(itemId);
@@ -631,8 +664,17 @@ function BatchProgress({
     }
     const load = () =>
       loadKnowledgeBatch(batchId)
-        .then((value) => active && setDetail(value))
-        .catch(() => undefined);
+        .then((value) => {
+          if (active) {
+            setDetail(value);
+            setDetailError('');
+          }
+          return value;
+        })
+        .catch((cause) => {
+          if (active) setDetailError(knowledgeBatchErrorMessage(cause, '批次详情读取失败，请重试。'));
+          return undefined;
+        });
     load();
     const stream = streamKnowledgeBatch(batchId, load, {
       lastEventId: streamCursorRef.current,
@@ -645,7 +687,7 @@ function BatchProgress({
       active = false;
       stream.close();
     };
-  }, [batchId, streamRetryNonce]);
+  }, [batchId, detailReloadNonce, streamRetryNonce]);
   const streamLabel =
     streamConnection.state === 'connecting'
       ? '正在连接实时进度...'
@@ -659,7 +701,7 @@ function BatchProgress({
   return (
     <Card className={styles.knowledgeInsights} aria-label="批次进度">
       <strong>批次 {batchId}</strong>
-      <span>{detail?.batch.job.status ?? '上传已提交'}</span>
+      <span>{batchStatusLabel(detail?.batch.job.status)}</span>
       <div className={styles.knowledgeStreamStatus} data-stream-state={streamConnection.state} role="status">
         <span>{streamLabel}</span>
         {streamConnection.state === 'exhausted' ? (
@@ -668,6 +710,17 @@ function BatchProgress({
           </Button>
         ) : null}
       </div>
+      {detailError ? (
+        <div role="alert">
+          <span>{detailError}</span>
+          <Button variant="outline" size="sm" onClick={() => setDetailReloadNonce((value) => value + 1)}>
+            重新加载批次
+          </Button>
+        </div>
+      ) : null}
+      {detail?.batch.job.status?.toLowerCase() === 'expired' ? (
+        <span role="alert">当前批次已过期，请重新上传文件。</span>
+      ) : null}
       {retryError ? <span role="alert">{retryError}</span> : null}
       {reindexError ? <span role="alert">{reindexError}</span> : null}
       {detail?.batch.items.map((item) => (

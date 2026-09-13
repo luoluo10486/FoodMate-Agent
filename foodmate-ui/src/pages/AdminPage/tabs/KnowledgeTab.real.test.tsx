@@ -295,4 +295,94 @@ describe('KnowledgeSection real mode', () => {
       expect.objectContaining({ method: 'POST' }),
     );
   });
+
+  it('shows an expired batch as terminal instead of leaving it in a submitted state', async () => {
+    localStorage.setItem('foodmate:admin:knowledge:last-batch', '9003');
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { resource: 'knowledge', items: [], total: 0, page: 1, size: 20 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge-upload-batches/9003') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                batch: {
+                  job: { job_id: '9003', status: 'expired', total_items: 1, indexed_items: 0, failed_items: 1 },
+                  items: [],
+                },
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess />);
+
+    expect(await screen.findByText('已过期')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('当前批次已过期，请重新上传文件。');
+  });
+
+  it('shows batch detail error codes and retries the detail request', async () => {
+    localStorage.setItem('foodmate:admin:knowledge:last-batch', '9004');
+    let shouldFail = true;
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { resource: 'knowledge', items: [], total: 0, page: 1, size: 20 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge-upload-batches/9004' && shouldFail) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ success: false, error: { code: 'BATCH_NOT_FOUND', message: '批次不存在' } }), {
+            status: 404,
+          }),
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              batch: {
+                job: { job_id: '9004', status: 'indexing', total_items: 1, indexed_items: 0, failed_items: 0 },
+                items: [],
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess />);
+
+    expect(await screen.findByText('BATCH_NOT_FOUND: 批次不存在')).toBeInTheDocument();
+    shouldFail = false;
+    await userEvent.setup().click(screen.getByRole('button', { name: '重新加载批次' }));
+    expect(await screen.findByText('索引中')).toBeInTheDocument();
+    expect(screen.queryByText('BATCH_NOT_FOUND: 批次不存在')).not.toBeInTheDocument();
+  });
 });

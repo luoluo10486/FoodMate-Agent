@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FIXTURE_KNOWLEDGE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { ApiError } from '../../services/apiClient';
 import { searchKnowledge, type KnowledgeCitation } from '../../services/knowledgeService';
 import type { SessionSummary } from '../../types/session';
 import styles from './KnowledgePage.module.css';
@@ -27,6 +28,11 @@ type KnowledgeResult = {
     access: string;
     quote: string;
   };
+};
+
+type KnowledgeSearchError = {
+  message: string;
+  code?: string;
 };
 
 function toKnowledgeResult(citation: KnowledgeCitation): KnowledgeResult {
@@ -131,7 +137,7 @@ export function KnowledgePage() {
   const [activeFilter, setActiveFilter] = useState('全部主题');
   const [remoteResults, setRemoteResults] = useState<KnowledgeResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string>();
+  const [searchError, setSearchError] = useState<KnowledgeSearchError>();
   const [hasSearched, setHasSearched] = useState(false);
   const initialQuery = useRef(searchParams.get('q') ?? '');
   const knowledgeState = getKnowledgeState(searchParams.get('state'));
@@ -197,7 +203,11 @@ export function KnowledgePage() {
       } catch (cause) {
         setRemoteResults([]);
         setSelectedResultTitle('');
-        setSearchError(cause instanceof Error ? cause.message : '知识库检索失败，请稍后重试');
+        setSearchError(
+          cause instanceof ApiError
+            ? { message: cause.message, code: cause.code }
+            : { message: cause instanceof Error ? cause.message : '知识库检索失败，请稍后重试' },
+        );
       } finally {
         setSearchLoading(false);
       }
@@ -251,7 +261,11 @@ export function KnowledgePage() {
         displayedState !== 'default' ? (
           <KnowledgeStateCard
             state={displayedState}
-            detail={isRealMode ? searchError : undefined}
+            detail={
+              isRealMode && searchError
+                ? `${searchError.code ? `错误码: ${searchError.code} · ` : ''}${searchError.message}`
+                : undefined
+            }
             onAction={
               displayedState === 'empty'
                 ? clearFilters

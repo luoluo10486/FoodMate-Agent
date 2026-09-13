@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../services/apiClient';
 import { KnowledgePage } from './KnowledgePage';
 import { searchKnowledge } from '../../services/knowledgeService';
 
@@ -70,6 +71,7 @@ describe('KnowledgePage real mode', () => {
     expect(screen.getByText('版本 2026.08')).toBeInTheDocument();
     expect(screen.getByText('章节 早餐/谷物')).toBeInTheDocument();
     expect(screen.getByText('DOC ID: 42')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '打开原始来源' })).not.toBeInTheDocument();
     expect(screen.queryByText('98% Match')).not.toBeInTheDocument();
     expect(screen.queryByText('NIH 研究实验室文献库')).not.toBeInTheDocument();
   });
@@ -90,7 +92,7 @@ describe('KnowledgePage real mode', () => {
   });
 
   it('shows the backend error and retries the same query without fixture fallback', async () => {
-    vi.mocked(searchKnowledge).mockRejectedValue(new Error('RAG_UNAVAILABLE'));
+    vi.mocked(searchKnowledge).mockRejectedValue(new ApiError('COORDINATION_UNAVAILABLE', 'RAG 服务暂时不可用', 503));
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole('heading', { name: '知识库' });
@@ -100,7 +102,7 @@ describe('KnowledgePage real mode', () => {
     await user.keyboard('{Enter}');
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('检索失败'));
-    expect(screen.getByText('RAG_UNAVAILABLE')).toBeInTheDocument();
+    expect(screen.getByText('错误码: COORDINATION_UNAVAILABLE · RAG 服务暂时不可用')).toBeInTheDocument();
     expect(screen.queryByText('烹饪温度对牛油果健康脂肪的影响')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '重新检索' }));
