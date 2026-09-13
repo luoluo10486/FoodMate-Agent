@@ -25,6 +25,22 @@ describe('apiClient authentication recovery', () => {
     expect(fetchMock.mock.calls[2][0]).toBe('/api/users/me');
   });
 
+  it('shares one refresh request when concurrent calls receive 401', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: false }), { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: false }), { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: { id: 1 } }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: { id: 2 } }), { status: 200 }));
+
+    await expect(Promise.all([apiRequest('/api/users/me'), apiRequest('/api/sessions')])).resolves.toEqual([
+      { id: 1 },
+      { id: 2 },
+    ]);
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/auth/refresh')).toHaveLength(1);
+  });
+
   it('does not recursively refresh the refresh endpoint', async () => {
     window.history.pushState({}, '', '/login');
     const fetchMock = vi.mocked(fetch);

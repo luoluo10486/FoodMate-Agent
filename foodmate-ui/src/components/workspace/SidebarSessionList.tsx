@@ -18,6 +18,8 @@ type SidebarSessionListProps = {
   currentPage?: number;
   sessionCountLabel?: string;
   hidePagination?: boolean;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
   showHistory?: boolean;
   fixtureVariant?: WorkspaceFixtureVariant;
 };
@@ -28,9 +30,13 @@ export function SidebarSessionList({
   currentPage = 1,
   sessionCountLabel,
   hidePagination = false,
+  totalPages = 3,
+  onPageChange,
   showHistory = true,
   fixtureVariant,
 }: SidebarSessionListProps) {
+  const safeTotalPages = Math.max(1, totalPages);
+  const canPaginate = Boolean(onPageChange);
   return (
     <section className={`${styles.section} sidebar-session-section`}>
       <NavLink
@@ -48,67 +54,78 @@ export function SidebarSessionList({
       </NavLink>
       {showHistory ? (
         <>
-          <div className={`${styles.list} sidebar-session-list`}>
-            {sessions.map((session) => {
-              const archived = (session.status as string) === 'archived';
-              return (
-                <div
-                  className={`${styles.item} sidebar-session-list-item ${session.active ? styles.active : ''}`}
-                  key={session.id}
-                >
-                  <NavLink className={styles.itemLink} to={`/chat/${session.id}`}>
-                    {fixtureVariant ? (
-                      <FigmaWorkspaceAsset
-                        className={styles.figmaSessionDot}
-                        variant={fixtureVariant}
-                        name={session.active ? 'sessionDotActive' : 'sessionDotDefault'}
-                      />
-                    ) : (
-                      <span className={styles.dot} aria-hidden="true" />
-                    )}
-                    <span className={styles.title}>{session.title}</span>
-                    <span className={styles.meta}>{session.subtitle}</span>
-                  </NavLink>
-                  {onAction ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          className={styles.moreButton}
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`管理${session.title}`}
-                          title={`管理${session.title}`}
-                          type="button"
-                        >
-                          <MoreHorizontal aria-hidden="true" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => onAction('rename', session)}>
-                          <Pencil aria-hidden="true" />
-                          重命名
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => onAction(archived ? 'unarchive' : 'archive', session)}>
-                          <Archive aria-hidden="true" />
-                          {archived ? '取消归档' : '归档'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => onAction('delete', session)}>
-                          <Trash2 aria-hidden="true" />
-                          删除
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
+          {sessions.length === 0 && onAction ? (
+            <p className={styles.emptySessionState}>暂无会话</p>
+          ) : (
+            <div className={`${styles.list} sidebar-session-list`}>
+              {sessions.map((session) => {
+                const archived = (session.status as string) === 'archived';
+                return (
+                  <div
+                    className={`${styles.item} sidebar-session-list-item ${session.active ? styles.active : ''}`}
+                    key={session.id}
+                  >
+                    <NavLink className={styles.itemLink} to={`/chat/${session.id}`}>
+                      {fixtureVariant ? (
+                        <FigmaWorkspaceAsset
+                          className={styles.figmaSessionDot}
+                          variant={fixtureVariant}
+                          name={session.active ? 'sessionDotActive' : 'sessionDotDefault'}
+                        />
+                      ) : (
+                        <span className={styles.dot} aria-hidden="true" />
+                      )}
+                      <span className={styles.title}>{session.title}</span>
+                      <span className={styles.meta}>{session.subtitle}</span>
+                    </NavLink>
+                    {onAction ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            className={styles.moreButton}
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`管理${session.title}`}
+                            title={`管理${session.title}`}
+                            type="button"
+                          >
+                            <MoreHorizontal aria-hidden="true" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => onAction('rename', session)}>
+                            <Pencil aria-hidden="true" />
+                            重命名
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => onAction(archived ? 'unarchive' : 'archive', session)}>
+                            <Archive aria-hidden="true" />
+                            {archived ? '取消归档' : '归档'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => onAction('delete', session)}>
+                            <Trash2 aria-hidden="true" />
+                            删除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {sessionCountLabel ? (
             <p className={`${styles.sessionCount} sidebar-session-count`}>{sessionCountLabel}</p>
           ) : null}
           {!hidePagination ? (
             <div className={`${styles.pagination} sidebar-session-pagination`} aria-label="会话分页">
-              <Button variant="ghost" size="icon" aria-label="上一页" disabled type="button">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="上一页"
+                disabled={canPaginate ? currentPage <= 1 : true}
+                onClick={() => onPageChange?.(Math.max(1, currentPage - 1))}
+                type="button"
+              >
                 {fixtureVariant === 'diet-records' ? (
                   <FigmaWorkspaceAsset
                     className={styles.paginationGlyphAsset}
@@ -121,8 +138,17 @@ export function SidebarSessionList({
                   <ChevronLeft aria-hidden="true" />
                 )}
               </Button>
-              <span>{currentPage} / 3</span>
-              <Button variant="ghost" size="icon" aria-label="下一页" type="button">
+              <span>
+                {currentPage} / {safeTotalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="下一页"
+                disabled={canPaginate && currentPage >= safeTotalPages}
+                onClick={() => onPageChange?.(Math.min(safeTotalPages, currentPage + 1))}
+                type="button"
+              >
                 {fixtureVariant === 'diet-records' ? (
                   <FigmaWorkspaceAsset
                     className={styles.paginationGlyphAsset}

@@ -14,7 +14,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,7 +50,7 @@ import {
   createSession,
   deleteSession,
   loadDeletedSessions,
-  loadSessions,
+  loadSessionSummariesPage,
   renameSession,
   restoreSession,
   searchSessions,
@@ -121,8 +121,13 @@ export function WorkspaceLayout({
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [authReady, setAuthReady] = useState(!realMode);
   const [currentUser, setCurrentUser] = useState(getAuthUser());
-  const [sessions, setSessions] = useState<Awaited<ReturnType<typeof loadSessions>>>([]);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [sessionQuery, setSessionQuery] = useState('');
+  const [sessionPage, setSessionPage] = useState(1);
+  const [sessionTotal, setSessionTotal] = useState(0);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState('');
+  const sessionRequestRef = useRef(0);
   const [renameTarget, setRenameTarget] = useState<{ id: string; title: string }>();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string }>();
   const [deletedOpen, setDeletedOpen] = useState(false);
@@ -150,6 +155,9 @@ export function WorkspaceLayout({
   const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
   const displayedSessions = sidebarFixture?.sessions ?? sessions;
   const displayedSessionQuery = sidebarFixture?.searchValue ?? sessionQuery;
+  const activeSessionId = location.pathname.startsWith('/chat/')
+    ? decodeURIComponent(location.pathname.slice('/chat/'.length).split('/')[0])
+    : undefined;
   // 窗口控制点只由 Figma fixture 显式开启，避免装饰元素进入真实业务壳层。
   const showFixtureWindowControls =
     showWindowControls ?? (designChat || Boolean(sidebarFixture && !showKnowledgeTopNav));
@@ -159,6 +167,12 @@ export function WorkspaceLayout({
   const isFigmaFixture = isFigmaSidebarFixture || designChat || (hideSidebar && Boolean(fixtureVariant));
   const renderWorkspaceIcon = (name: FigmaWorkspaceAssetName, fallback: React.ReactNode) =>
     fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name={name} /> : fallback;
+
+  useEffect(() => {
+    const syncCurrentUser = () => setCurrentUser(getAuthUser());
+    window.addEventListener('foodmate:auth-changed', syncCurrentUser);
+    return () => window.removeEventListener('foodmate:auth-changed', syncCurrentUser);
+  }, []);
 
   useEffect(() => {
     if (!realMode) return;
@@ -182,29 +196,45 @@ export function WorkspaceLayout({
     }
   }, [authReady, realMode, isAuthenticated, location.pathname, location.search, navigate]);
 
-  useEffect(() => {
-    if (sidebarFixture || hideSidebar) return;
-    if (authReady && isAuthenticated) {
-      loadSessions()
-        .then(setSessions)
-        .catch(() => undefined);
-    }
-  }, [authReady, hideSidebar, isAuthenticated, sidebarFixture]);
+  const loadSessionList = useCallback(
+    async (query: string, page: number) => {
+      const requestId = ++sessionRequestRef.current;
+      setSessionLoading(true);
+      setSessionError('');
+      try {
+        if (query.trim()) {
+          const rows = await searchSessions(query.trim(), { page, size: 50 });
+          if (requestId !== sessionRequestRef.current) return;
+          setSessions(rows.map((item) => ({ ...item, active: item.id === activeSessionId })));
+          setSessionTotal(rows.length);
+          setSessionPage(page);
+          return;
+        }
+        const result = await loadSessionSummariesPage({ page, size: 50 });
+        if (requestId !== sessionRequestRef.current) return;
+        setSessions(result.items.map((item) => ({ ...item, active: item.id === activeSessionId })));
+        setSessionTotal(result.total);
+        setSessionPage(result.page);
+      } catch (error) {
+        if (requestId !== sessionRequestRef.current) return;
+        setSessionError(error instanceof Error ? error.message : '会话列表加载失败，请重试。');
+      } finally {
+        if (requestId === sessionRequestRef.current) setSessionLoading(false);
+      }
+    },
+    [activeSessionId],
+  );
 
   useEffect(() => {
-    if (!realMode || !sessionQuery.trim()) return;
-    const timer = window.setTimeout(() => {
-      searchSessions(sessionQuery.trim())
-        .then(setSessions)
-        .catch(() => undefined);
-    }, 250);
+    if (sidebarFixture || hideSidebar || !realMode || !authReady || !isAuthenticated) return;
+    const timer = window.setTimeout(
+      () => void loadSessionList(sessionQuery, sessionQuery.trim() ? 1 : sessionPage),
+      sessionQuery.trim() ? 250 : 0,
+    );
     return () => window.clearTimeout(timer);
-  }, [realMode, sessionQuery]);
+  }, [authReady, hideSidebar, isAuthenticated, loadSessionList, realMode, sessionPage, sessionQuery, sidebarFixture]);
 
-  const refreshSessions = () =>
-    loadSessions()
-      .then(setSessions)
-      .catch(() => undefined);
+  const refreshSessions = () => loadSessionList(sessionQuery, sessionQuery.trim() ? 1 : sessionPage);
   const announce = (message: string) => setNotice(message);
   const handleSessionAction = async (action: SessionAction, session: { id: string; title: string }) => {
     if (action === 'rename') {
@@ -215,38 +245,80 @@ export function WorkspaceLayout({
       setDeleteTarget({ id: session.id, title: session.title });
       return;
     }
-    await (action === 'archive' ? archiveSession(session.id) : unarchiveSession(session.id));
-    await refreshSessions();
-    announce(action === 'archive' ? '会话已归档。' : '会话已取消归档。');
+    try {
+      await (action === 'archive' ? archiveSession(session.id) : unarchiveSession(session.id));
+      await refreshSessions();
+      announce(action === 'archive' ? '会话已归档。' : '会话已取消归档。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '会话状态更新失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    }
   };
   const openDeletedSessions = async () => {
-    setDeletedSessions(await loadDeletedSessions());
-    setDeletedOpen(true);
+    try {
+      setDeletedSessions(await loadDeletedSessions());
+      setDeletedOpen(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '回收站加载失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    }
   };
   const saveRename = async () => {
     if (!renameTarget?.title.trim()) return;
-    await renameSession(renameTarget.id, renameTarget.title.trim());
-    setRenameTarget(undefined);
-    await refreshSessions();
-    announce('会话名称已更新。');
+    try {
+      await renameSession(renameTarget.id, renameTarget.title.trim());
+      setRenameTarget(undefined);
+      await refreshSessions();
+      announce('会话名称已更新。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '会话重命名失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    }
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await deleteSession(deleteTarget.id);
-    setDeleteTarget(undefined);
-    await refreshSessions();
-    if (location.pathname === `/chat/${deleteTarget.id}`) navigate('/chat', { replace: true });
-    announce('会话已移入回收站，可在 30 天内恢复。');
+    try {
+      await deleteSession(deleteTarget.id);
+      setDeleteTarget(undefined);
+      await refreshSessions();
+      if (location.pathname === `/chat/${deleteTarget.id}`) navigate('/chat', { replace: true });
+      announce('会话已移入回收站，可在 30 天内恢复。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '会话删除失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    }
   };
   const createNewSession = () => {
     if (!realMode) {
       navigate(buildChatPath('week-plan'));
       return;
     }
-    void createSession().then((session) => {
-      void refreshSessions();
-      navigate(buildChatPath(session.session_id));
-    });
+    void createSession()
+      .then((session) => {
+        void refreshSessions();
+        navigate(buildChatPath(session.session_id));
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : '新建会话失败，请重试。';
+        setSessionError(message);
+        announce(message);
+      });
+  };
+  const restoreDeletedSession = async (sessionId: string) => {
+    try {
+      await restoreSession(sessionId);
+      setDeletedSessions((items) => items.filter((item) => item.session_id !== sessionId));
+      await refreshSessions();
+      announce('会话已恢复。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '会话恢复失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    }
   };
   const sideLink = ({ isActive }: { isActive: boolean }) => `${styles.sideLink} ${isActive ? styles.active : ''}`;
   const fixedSideLink = (active: boolean) => `${styles.sideLink} ${active ? styles.active : ''}`;
@@ -316,14 +388,33 @@ export function WorkspaceLayout({
                 </NavLink>
               </nav>
               <SidebarSessionList
-                currentPage={sidebarFixture?.currentPage}
+                currentPage={sidebarFixture?.currentPage ?? sessionPage}
                 fixtureVariant={fixtureVariant}
                 hidePagination={sidebarFixture?.hideSessionPagination}
+                totalPages={sidebarFixture ? undefined : Math.max(1, Math.ceil(sessionTotal / 50))}
                 sessionCountLabel={sidebarFixture?.sessionCountLabel}
                 sessions={displayedSessions}
                 showHistory={!hideSessionHistory}
                 onAction={sidebarFixture ? undefined : handleSessionAction}
+                onPageChange={sidebarFixture ? undefined : (page) => setSessionPage(page)}
               />
+              {realMode && !sidebarFixture ? (
+                <>
+                  {sessionLoading ? (
+                    <div className={styles.sessionStatus} role="status">
+                      正在加载会话...
+                    </div>
+                  ) : null}
+                  {sessionError ? (
+                    <div className={styles.sessionError} role="alert">
+                      <span>{sessionError}</span>
+                      <Button variant="ghost" size="sm" type="button" onClick={() => void refreshSessions()}>
+                        重试
+                      </Button>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
               {realMode ? (
                 <Button className={styles.deletedButton} variant="ghost" onClick={() => void openDeletedSessions()}>
                   查看已删除会话
@@ -592,15 +683,7 @@ export function WorkspaceLayout({
               deletedSessions.map((session) => (
                 <div className={styles.deletedRow} key={session.session_id}>
                   <span>{session.title}</span>
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      await restoreSession(String(session.session_id));
-                      setDeletedSessions((items) => items.filter((item) => item.session_id !== session.session_id));
-                      await refreshSessions();
-                      announce('会话已恢复。');
-                    }}
-                  >
+                  <Button variant="ghost" onClick={() => void restoreDeletedSession(String(session.session_id))}>
                     <RotateCcw aria-hidden="true" />
                     恢复
                   </Button>

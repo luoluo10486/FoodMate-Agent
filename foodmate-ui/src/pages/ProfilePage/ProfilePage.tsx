@@ -586,6 +586,17 @@ function exportStatusLabel(status: ExportStatus) {
   return { queued: '排队中', running: '生成中', completed: '已完成', failed: '失败', expired: '已过期' }[status];
 }
 
+function normalizeExportStatus(value?: string): ExportStatus {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === 'queued' ||
+    normalized === 'running' ||
+    normalized === 'completed' ||
+    normalized === 'failed' ||
+    normalized === 'expired'
+    ? normalized
+    : 'failed';
+}
+
 function stateIcon(state: AsyncState) {
   if (state === 'submitting') return <LoaderCircle className={styles.spin} aria-hidden="true" />;
   if (state === 'success') return <CircleCheck aria-hidden="true" />;
@@ -663,6 +674,8 @@ function BasicTab({
   const [profileForm, setProfileForm] = useState(() => profileFromUser(authUser));
   const [savedForm, setSavedForm] = useState(() => profileFromUser(authUser));
   const [loading, setLoading] = useState(realMode);
+  const [loadError, setLoadError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [allergenDraft, setAllergenDraft] = useState('');
 
@@ -675,14 +688,16 @@ function BasicTab({
         setProfileForm((current) => profileFromApi(profile, current));
         setSavedForm((current) => profileFromApi(profile, current));
       })
-      .catch(() => undefined)
+      .catch((error) => {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : '个人资料加载失败，请重试。');
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [realMode]);
+  }, [realMode, reloadKey]);
 
   useEffect(
     () => () => {
@@ -728,35 +743,52 @@ function BasicTab({
         notice('头像已更新。', 'success');
       })
       .catch((error) => {
+        setAvatarPreview('');
         setAvatarState('failed');
         notice(error instanceof Error ? error.message : '头像上传失败。', 'error');
       });
   };
 
   const handleDeleteAvatar = () => {
-    if (avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
-    setAvatarPreview('');
-    setAvatarFileName('');
-    setAvatarState('idle');
-    if (realMode) {
-      void deleteAvatar()
-        .then(() => notice('头像已删除。', 'success'))
-        .catch(() => notice('头像删除失败，请重试。', 'error'));
-    } else notice('头像已删除。', 'success');
+    const previousPreview = avatarPreview;
+    const previousFileName = avatarFileName;
+    setAvatarState(realMode ? 'submitting' : 'success');
+    if (!realMode) {
+      if (previousPreview.startsWith('blob:')) URL.revokeObjectURL(previousPreview);
+      setAvatarPreview('');
+      setAvatarFileName('');
+      notice('头像已删除。', 'success');
+      return;
+    }
+    void deleteAvatar()
+      .then(() => {
+        if (previousPreview.startsWith('blob:')) URL.revokeObjectURL(previousPreview);
+        setAvatarPreview('');
+        setAvatarFileName('');
+        setAvatarState('success');
+        notice('头像已删除。', 'success');
+      })
+      .catch((error) => {
+        setAvatarPreview(previousPreview);
+        setAvatarFileName(previousFileName);
+        setAvatarState('failed');
+        notice(error instanceof Error ? error.message : '头像删除失败，请重试。', 'error');
+      });
   };
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
+    const numberOrUndefined = (value: string) => (value.trim() ? Number(value) : undefined);
     const payload: ProfileUpdateRequest = {
       display_name: profileForm.displayName,
       gender: profileForm.gender || undefined,
-      height_cm: Number(profileForm.heightCm),
-      weight_kg: Number(profileForm.weightKg),
+      height_cm: numberOrUndefined(profileForm.heightCm),
+      weight_kg: numberOrUndefined(profileForm.weightKg),
       activity_level: profileForm.activityLevel,
       diet_goal: profileForm.dietGoal,
-      calorie_target: Number(profileForm.calorieTarget),
-      protein_target: Number(profileForm.proteinTarget),
+      calorie_target: numberOrUndefined(profileForm.calorieTarget),
+      protein_target: numberOrUndefined(profileForm.proteinTarget),
     };
     try {
       if (realMode) await updateProfile(payload);
@@ -770,6 +802,25 @@ function BasicTab({
   };
 
   if (loading) return <div className={styles.loadingPanel}>正在加载个人资料...</div>;
+  if (loadError) {
+    return (
+      <div className={styles.errorPanel} role="alert">
+        <CircleAlert aria-hidden="true" />
+        <span>{loadError}</span>
+        <Button
+          variant="outline"
+          type="button"
+          onClick={() => {
+            setLoading(true);
+            setLoadError('');
+            setReloadKey((value) => value + 1);
+          }}
+        >
+          重试
+        </Button>
+      </div>
+    );
+  }
 
   // 头像统一经过运行时资源解析，避免历史 Figma 人物素材绕过默认资源策略。
   const avatarSource = resolveAvatarUrl(avatarPreview, profileForm.gender);
@@ -1368,42 +1419,52 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [passwordState, setPasswordState] = useState<AsyncState>('idle');
-  const [sessions, setSessions] = useState<AuthSession[]>([
-    {
-      auth_session_id: 1,
-      device_id: 'current',
-      user_agent: 'MacBook Pro 16" · macOS',
-      ip_address: '192.168.1.42',
-      last_seen_at: 'Authorized 10:30 AM',
-      expires_at: '2026-09-01',
-    },
-    {
-      auth_session_id: 2,
-      device_id: 'iphone',
-      user_agent: 'iPhone 15 Pro · iOS App',
-      ip_address: '85.22.91.104',
-      last_seen_at: 'Authorized March 12',
-      expires_at: '2026-09-01',
-    },
-    {
-      auth_session_id: 3,
-      device_id: 'chrome',
-      user_agent: 'Google Chrome · Windows 11',
-      ip_address: '184.22.12.9',
-      last_seen_at: 'Authorized March 08',
-      expires_at: '2026-09-01',
-    },
-  ]);
+  const [sessions, setSessions] = useState<AuthSession[]>(
+    realMode
+      ? []
+      : [
+          {
+            auth_session_id: 1,
+            device_id: 'current',
+            user_agent: 'MacBook Pro 16" · macOS',
+            ip_address: '192.168.1.42',
+            last_seen_at: 'Authorized 10:30 AM',
+            expires_at: '2026-09-01',
+          },
+          {
+            auth_session_id: 2,
+            device_id: 'iphone',
+            user_agent: 'iPhone 15 Pro · iOS App',
+            ip_address: '85.22.91.104',
+            last_seen_at: 'Authorized March 12',
+            expires_at: '2026-09-01',
+          },
+          {
+            auth_session_id: 3,
+            device_id: 'chrome',
+            user_agent: 'Google Chrome · Windows 11',
+            ip_address: '184.22.12.9',
+            last_seen_at: 'Authorized March 08',
+            expires_at: '2026-09-01',
+          },
+        ],
+  );
   const [loadingSessions, setLoadingSessions] = useState(realMode);
+  const [sessionLoadError, setSessionLoadError] = useState('');
+  const [sessionReloadKey, setSessionReloadKey] = useState(0);
   const [logoutTarget, setLogoutTarget] = useState<'others' | AuthSession>();
 
   useEffect(() => {
     if (!realMode) return;
     getAuthSessions()
       .then(setSessions)
-      .catch(() => notice('设备会话加载失败，请刷新重试。', 'error'))
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : '设备会话加载失败，请刷新重试。';
+        setSessionLoadError(message);
+        notice(message, 'error');
+      })
       .finally(() => setLoadingSessions(false));
-  }, [realMode]);
+  }, [realMode, sessionReloadKey]);
 
   const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1542,6 +1603,25 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           </div>
           {loadingSessions ? (
             <div className={styles.loadingPanel}>正在加载设备会话...</div>
+          ) : sessionLoadError ? (
+            <div className={styles.errorPanel} role="alert">
+              <CircleAlert aria-hidden="true" />
+              <span>{sessionLoadError}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={() => {
+                  setLoadingSessions(true);
+                  setSessionLoadError('');
+                  setSessionReloadKey((value) => value + 1);
+                }}
+              >
+                重试
+              </Button>
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className={styles.loadingPanel}>暂无活跃设备会话。</div>
           ) : (
             <div className={styles.sessionList}>
               {sessions.map((session) => (
@@ -1656,9 +1736,10 @@ function ActivityRow({
 
 function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const [exportRows, setExportRows] = useState(exportSeed);
+  const [exportRows, setExportRows] = useState(realMode ? [] : exportSeed);
   const [exportJobId, setExportJobId] = useState<number>();
   const [exportStatus, setExportStatus] = useState<ExportStatus>();
+  const [exportError, setExportError] = useState('');
   const [deletionOpen, setDeletionOpen] = useState(false);
   const [deletionPassword, setDeletionPassword] = useState('');
   const [deletionConfirmation, setDeletionConfirmation] = useState('');
@@ -1674,6 +1755,7 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
 
   const createExport = async () => {
     setExportStatus('queued');
+    setExportError('');
     if (!realMode) {
       setExportRows((rows) => [
         { id: `export-${Date.now()}`, date: '今天', status: 'queued', size: '生成中' },
@@ -1698,7 +1780,7 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       pollRef.current = window.setInterval(async () => {
         try {
           const job = await getDataExport(created.export_job_id);
-          const status = job.status as ExportStatus;
+          const status = normalizeExportStatus(job.status);
           setExportStatus(status);
           setExportRows((rows) =>
             rows.map((row) =>
@@ -1710,13 +1792,15 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           if (status === 'completed' || status === 'failed' || status === 'expired') {
             if (pollRef.current) window.clearInterval(pollRef.current);
           }
-        } catch {
+        } catch (error) {
           if (pollRef.current) window.clearInterval(pollRef.current);
           setExportStatus('failed');
+          setExportError(error instanceof Error ? error.message : '导出状态读取失败，请重新创建。');
         }
       }, 2000);
     } catch (error) {
       setExportStatus('failed');
+      setExportError(error instanceof Error ? error.message : '数据导出创建失败，请重试。');
       notice(error instanceof Error ? error.message : '数据导出创建失败，请重试。', 'error');
     }
   };
@@ -1733,6 +1817,7 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       window.open(result.download_url, '_blank', 'noopener,noreferrer');
       notice('导出归档已开始下载。', 'success');
     } catch (error) {
+      setExportError(error instanceof Error ? error.message : '下载链接已失效，请重新创建导出。');
       notice(error instanceof Error ? error.message : '下载链接已失效，请重新创建导出。', 'error');
     }
   };
@@ -1783,6 +1868,15 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
               {exportStatusLabel(exportStatus)} ·{' '}
               {exportStatus === 'queued' ? '预计等待 1-2 分钟' : '请稍候，完成后提供一次性下载入口'}
             </span>
+          </div>
+        ) : null}
+        {exportError ? (
+          <div className={styles.errorPanel} role="alert">
+            <CircleAlert aria-hidden="true" />
+            <span>{exportError}</span>
+            <Button variant="outline" size="sm" type="button" onClick={() => void createExport()}>
+              重新创建
+            </Button>
           </div>
         ) : null}
         <div className={styles.exportTable} role="table" aria-label="数据导出记录">
@@ -1963,7 +2057,7 @@ function RealMemoriesTab() {
   };
 
   useEffect(() => {
-    // Initial refresh is the subscription boundary for the real memory list.
+    // 首次刷新是实时记忆列表的订阅边界。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, []);
@@ -2117,7 +2211,7 @@ function toMemory(item: MemoryRecord): Memory {
     else if (value && typeof value === 'object' && 'value' in value)
       content = String((value as { value: unknown }).value);
   } catch {
-    // Keep legacy plain-text memory values readable.
+    // 兼容旧数据中的纯文本记忆值，保持页面可读。
   }
   return {
     id: memoryId ?? 0,

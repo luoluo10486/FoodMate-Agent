@@ -22,6 +22,17 @@ type CurrentUserResponse = {
   avatar_url?: string;
 };
 
+const AUTH_USER_STORAGE_KEY = 'foodmate_auth_user';
+
+function notifyAuthChanged() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('foodmate:auth-changed'));
+}
+
+function persistAuthUser(user: AuthUser, notify = true) {
+  localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
+  if (notify) notifyAuthChanged();
+}
+
 export function csrfToken(): string | undefined {
   return document.cookie
     .split('; ')
@@ -36,16 +47,18 @@ export function getAuthStatus(): AuthStatus {
 
 export function getAuthUser(): AuthUser {
   if (import.meta.env.VITE_AGENT_MODE === 'real') {
-    const saved = localStorage.getItem('foodmate_auth_user');
+    const saved = localStorage.getItem(AUTH_USER_STORAGE_KEY);
     if (saved) {
-      const user = JSON.parse(saved) as AuthUser;
-      // 本地缓存可能来自旧版本 Fixture，读取时也必须经过统一头像解析层。
-      const normalizedUser = { ...user, avatarUrl: resolvePersistedAvatarUrl(user.avatarUrl, user.gender) };
-      // 归一化后回写缓存，避免旧人物地址在后续页面切换中再次进入头像参数。
-      if (normalizedUser.avatarUrl !== user.avatarUrl) {
-        localStorage.setItem('foodmate_auth_user', JSON.stringify(normalizedUser));
+      try {
+        const user = JSON.parse(saved) as AuthUser;
+        // 本地缓存可能来自旧版本 Fixture，读取时也必须经过统一头像解析层。
+        const normalizedUser = { ...user, avatarUrl: resolvePersistedAvatarUrl(user.avatarUrl, user.gender) };
+        // 归一化后回写缓存，避免旧人物地址在后续页面切换中再次进入头像参数。
+        if (normalizedUser.avatarUrl !== user.avatarUrl) persistAuthUser(normalizedUser, false);
+        return normalizedUser;
+      } catch {
+        localStorage.removeItem(AUTH_USER_STORAGE_KEY);
       }
-      return normalizedUser;
     }
   }
   return mockAuthUser;
@@ -69,7 +82,7 @@ function toAuthUser(data: AuthResponse | CurrentUserResponse): AuthUser {
 export async function loadCurrentUser(): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
   const user = toAuthUser(await apiRequest<CurrentUserResponse>('/api/users/me'));
-  localStorage.setItem('foodmate_auth_user', JSON.stringify(user));
+  persistAuthUser(user);
   return user;
 }
 
@@ -82,29 +95,28 @@ export function getAuthScenarios() {
 
 export async function login(credentials: LoginFormValues): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
-  const data = await apiRequest<AuthResponse>('/api/auth/login', {
+  await apiRequest<AuthResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ username_or_email: credentials.username, password: credentials.password }),
   });
-  const user = toAuthUser(data);
-  localStorage.setItem('foodmate_auth_user', JSON.stringify(user));
-  return user;
+  // 登录响应只包含认证信息，必须再读取当前用户资料，避免把 Fixture 用户资料写入真实模式。
+  return loadCurrentUser();
 }
 
 export async function register(credentials: { username: string; email: string; password: string }): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
-  const data = await apiRequest<AuthResponse>('/api/auth/register', {
+  await apiRequest<AuthResponse>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(credentials),
   });
-  const user = toAuthUser(data);
-  localStorage.setItem('foodmate_auth_user', JSON.stringify(user));
-  return user;
+  // 注册响应同样不包含完整资料，统一通过当前用户接口建立真实缓存。
+  return loadCurrentUser();
 }
 
 export async function logout(): Promise<void> {
   if (import.meta.env.VITE_AGENT_MODE === 'real') await apiRequest<void>('/api/auth/logout', { method: 'POST' });
-  localStorage.removeItem('foodmate_auth_user');
+  localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+  notifyAuthChanged();
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {

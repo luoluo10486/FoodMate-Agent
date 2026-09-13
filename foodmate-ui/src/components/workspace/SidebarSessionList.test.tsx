@@ -27,4 +27,19 @@ describe('SidebarSessionList controls', () => {
 
     expect(onAction).toHaveBeenCalledWith('rename', session);
   });
+
+  it('changes the real session page through the shared pagination controls', async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <SidebarSessionList sessions={[]} currentPage={2} totalPages={4} onPageChange={onPageChange} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: '上一页' })).toBeEnabled();
+    expect(screen.getByText('2 / 4')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+    expect(onPageChange).toHaveBeenCalledWith(3);
+  });
 });

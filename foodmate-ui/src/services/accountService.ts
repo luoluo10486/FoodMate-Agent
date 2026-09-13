@@ -35,6 +35,29 @@ export type ProfileUpdateRequest = {
   protein_target?: number;
 };
 
+type ExportJobResponse = {
+  export_job_id?: number;
+  exportJobId?: number;
+  status?: string;
+  expires_at?: string;
+  expiresAt?: string;
+  completed_at?: string;
+  completedAt?: string;
+  download_consumed_at?: string;
+  downloadConsumedAt?: string;
+  failure_code?: string;
+  failureCode?: string;
+};
+
+export type ExportJob = {
+  export_job_id: number;
+  status: string;
+  expires_at?: string;
+  completed_at?: string;
+  download_consumed_at?: string;
+  failure_code?: string;
+};
+
 export const getProfile = () => apiRequest<Profile>('/api/users/me/profile');
 export const updateProfile = (profile: ProfileUpdateRequest) =>
   apiRequest<Profile>('/api/users/me/profile', { method: 'PUT', body: JSON.stringify(profile) });
@@ -64,15 +87,17 @@ export const getAvatarUrl = () => {
 export const deleteAvatar = () => apiRequest<void>('/api/users/me/avatar', { method: 'DELETE' });
 export const requestDataExport = () =>
   apiRequest<{ export_job_id: number }>('/api/users/me/export', { method: 'POST' });
-export const getDataExport = (id: number) =>
-  apiRequest<{
-    export_job_id: number;
-    status: string;
-    expires_at?: string;
-    completed_at?: string;
-    download_consumed_at?: string;
-    failure_code?: string;
-  }>(`/api/users/me/export/${id}`);
+export async function getDataExport(id: number): Promise<ExportJob> {
+  const response = await apiRequest<ExportJobResponse>(`/api/users/me/export/${id}`);
+  return {
+    export_job_id: response.export_job_id ?? response.exportJobId ?? id,
+    status: response.status ?? 'unknown',
+    expires_at: response.expires_at ?? response.expiresAt ?? undefined,
+    completed_at: response.completed_at ?? response.completedAt ?? undefined,
+    download_consumed_at: response.download_consumed_at ?? response.downloadConsumedAt ?? undefined,
+    failure_code: response.failure_code ?? response.failureCode ?? undefined,
+  };
+}
 export const downloadDataExport = (id: number) =>
   apiRequest<{ download_url: string }>(`/api/users/me/export/${id}/download`, { method: 'POST' });
 export const requestAccountDeletion = (confirmation: string, currentPassword: string) =>

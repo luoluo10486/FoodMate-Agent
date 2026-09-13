@@ -46,6 +46,13 @@
   scrollbar-width: none;
 }
 
+.emptySessionState {
+  margin: 8px 12px;
+  color: var(--fm-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
 .list::-webkit-scrollbar {
   display: none;
 }

@@ -76,6 +76,14 @@ function mapSessionSummary(item: RealSession, index: number): SessionSummary {
   };
 }
 
+export async function loadSessionSummariesPage(params: SessionListParams = {}): Promise<PageResult<SessionSummary>> {
+  const page = await loadSessionsPage(params);
+  return {
+    ...page,
+    items: page.items.map(mapSessionSummary),
+  };
+}
+
 export async function loadSessionsPage(params: SessionListParams = {}): Promise<PageResult<RealSession>> {
   return apiRequest<PageResult<RealSession>>(`/api/sessions?${sessionQuery(params).toString()}`);
 }

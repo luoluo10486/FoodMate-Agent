@@ -496,6 +496,23 @@
   font-size: 11px;
 }
 
+.sessionStatus,
+.sessionError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--fm-muted);
+  font-size: 11px;
+}
+
+.sessionError {
+  color: var(--fm-danger, #b42318);
+  background: var(--fm-danger-surface, #fff1f0);
+}
+
 .main {
   display: grid;
   grid-template-rows: var(--fm-figma-workspace-topbar-height) minmax(0, 1fr);
