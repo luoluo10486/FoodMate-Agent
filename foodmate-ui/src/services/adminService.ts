@@ -17,7 +17,9 @@ import {
   adminUserOperationHistoryRows,
   adminUserSessionRows,
 } from '../mock/admin';
+import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
 import { apiRequest } from './apiClient';
+import { openSseStream } from './sseStream';
 
 export type AdminDashboard = {
   overview_metrics: AdminMetricRow[];
@@ -1115,6 +1117,14 @@ export type KnowledgeBatchEvent = {
   payload: unknown;
 };
 
+export type KnowledgeBatchStreamOptions = {
+  lastEventId?: string;
+  maxAttempts?: number;
+  reconnectDelayMs?: number;
+  onStateChange?: (connection: AgentStreamConnection) => void;
+  onError?: (connection: AgentStreamConnection) => void;
+};
+
 export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise<{ batch_id: string }> {
   const form = new FormData();
   batch.files.forEach((file) => form.append('files', file));
@@ -1132,38 +1142,60 @@ export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise
 export const loadKnowledgeBatch = (batchId: string) =>
   apiRequest<KnowledgeBatchDetail>(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}`);
 
-export function streamKnowledgeBatch(batchId: string, onEvent: (event: KnowledgeBatchEvent) => void): () => void {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const source = new EventSource(
-    `${baseUrl}/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/events`,
-    {
-      withCredentials: true,
-    },
-  );
-  const eventTypes = [
-    'knowledge.index.indexed',
-    'knowledge.index.index_failed',
-    'knowledge.index.retry',
-    'knowledge.batch.progress',
-  ];
-  const listeners = eventTypes.map((eventType) => {
-    const listener = (message: Event) => {
-      const event = message as MessageEvent<string>;
-      let payload: unknown = event.data;
+const knowledgeBatchEventTypes = [
+  'knowledge.index.indexed',
+  'knowledge.index.index_failed',
+  'knowledge.index.retry',
+  'knowledge.batch.progress',
+] as const;
+
+function knowledgeBatchStringField(value: unknown, key: string) {
+  if (!value || typeof value !== 'object') return undefined;
+  const field = (value as Record<string, unknown>)[key];
+  return field === undefined || field === null ? undefined : String(field);
+}
+
+function isTerminalKnowledgeBatchEvent(eventType: string, payload: unknown) {
+  if (eventType !== 'knowledge.batch.progress') return false;
+  const status = knowledgeBatchStringField(payload, 'status')?.toLowerCase();
+  return status === 'completed' || status === 'partial_failed' || status === 'failed';
+}
+
+export function streamKnowledgeBatch(
+  batchId: string,
+  onEvent: (event: KnowledgeBatchEvent) => void,
+  options: KnowledgeBatchStreamOptions = {},
+): AgentStreamHandle {
+  return openSseStream<unknown>({
+    path: `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/events`,
+    eventTypes: knowledgeBatchEventTypes,
+    lastEventId: options.lastEventId,
+    maxAttempts: options.maxAttempts,
+    reconnectDelayMs: options.reconnectDelayMs,
+    onStateChange: options.onStateChange,
+    onError: options.onError,
+    parseEvent: (message, registeredType) => {
+      let payload: unknown;
       try {
-        payload = JSON.parse(event.data);
+        payload = JSON.parse(message.data) as unknown;
       } catch {
-        // The server may return a safe textual error payload; progress refresh still remains authoritative.
+        // 文本错误仍然保留为事件载荷，批次详情刷新负责提供权威状态。
+        payload = { message: message.data };
       }
-      onEvent({ event_id: event.lastEventId, event_type: eventType, payload });
-    };
-    source.addEventListener(eventType, listener);
-    return [eventType, listener] as const;
+      const eventType =
+        knowledgeBatchStringField(payload, 'event_type') ??
+        knowledgeBatchStringField(payload, 'eventType') ??
+        registeredType;
+      const eventId =
+        message.lastEventId ||
+        knowledgeBatchStringField(payload, 'sse_event_id') ||
+        knowledgeBatchStringField(payload, 'event_id') ||
+        '';
+      return { payload, eventId, eventType };
+    },
+    onEvent: (eventType, payload, eventId) => onEvent({ event_id: eventId, event_type: eventType, payload }),
+    isTerminal: isTerminalKnowledgeBatchEvent,
   });
-  return () => {
-    listeners.forEach(([eventType, listener]) => source.removeEventListener(eventType, listener));
-    source.close();
-  };
 }
 export const retryKnowledgeItem = (batchId: string, itemId: string) =>
   adminWrite(

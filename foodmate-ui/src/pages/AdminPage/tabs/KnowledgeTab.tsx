@@ -1,5 +1,5 @@
 import { FileText, Search, UploadCloud } from 'lucide-react';
-import { ChangeEvent, DragEvent, useEffect, useId, useState } from 'react';
+import { ChangeEvent, DragEvent, useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import styles from '../AdminPage.module.css';
 import { type KnowledgeRow, canManage } from './AdminShared';
 import type { AdminActionPayload } from './types';
+import type { AgentStreamConnection } from '../../../types/agent';
 import {
   changeKnowledgeVisibility,
   loadAdminKnowledge,
@@ -509,6 +510,14 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (docume
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadKnowledgeBatch>>>();
   const [retryingItemId, setRetryingItemId] = useState<string>();
   const [retryError, setRetryError] = useState('');
+  const [streamRetryNonce, setStreamRetryNonce] = useState(0);
+  const [streamConnection, setStreamConnection] = useState<AgentStreamConnection>({
+    state: 'connecting',
+    attempt: 1,
+    maxAttempts: 5,
+  });
+  const streamBatchRef = useRef<string>();
+  const streamCursorRef = useRef<string>();
   const refresh = () =>
     loadKnowledgeBatch(batchId)
       .then(setDetail)
@@ -519,6 +528,7 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (docume
     try {
       await onRetry(documentId);
       await refresh();
+      setStreamRetryNonce((value) => value + 1);
     } catch (cause) {
       setRetryError(cause instanceof Error ? cause.message : '索引重试失败，请稍后重试');
     } finally {
@@ -527,21 +537,49 @@ function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (docume
   };
   useEffect(() => {
     let active = true;
+    if (streamBatchRef.current !== batchId) {
+      streamBatchRef.current = batchId;
+      streamCursorRef.current = undefined;
+    }
     const load = () =>
       loadKnowledgeBatch(batchId)
         .then((value) => active && setDetail(value))
         .catch(() => undefined);
     load();
-    const closeStream = streamKnowledgeBatch(batchId, load);
+    const stream = streamKnowledgeBatch(batchId, load, {
+      lastEventId: streamCursorRef.current,
+      onStateChange: (connection) => {
+        streamCursorRef.current = connection.lastEventId;
+        if (active) setStreamConnection(connection);
+      },
+    });
     return () => {
       active = false;
-      closeStream();
+      stream.close();
     };
-  }, [batchId]);
+  }, [batchId, streamRetryNonce]);
+  const streamLabel =
+    streamConnection.state === 'connecting'
+      ? '正在连接实时进度...'
+      : streamConnection.state === 'connected'
+        ? '实时进度已连接'
+        : streamConnection.state === 'reconnecting'
+          ? `实时进度重连中（${streamConnection.attempt}/${streamConnection.maxAttempts}）`
+          : streamConnection.state === 'exhausted'
+            ? '实时进度连接失败，当前批次详情仍可刷新。'
+            : '实时进度已结束';
   return (
     <Card className={styles.knowledgeInsights} aria-label="批次进度">
       <strong>批次 {batchId}</strong>
       <span>{detail?.batch.job.status ?? '上传已提交'}</span>
+      <div className={styles.knowledgeStreamStatus} data-stream-state={streamConnection.state} role="status">
+        <span>{streamLabel}</span>
+        {streamConnection.state === 'exhausted' ? (
+          <Button variant="outline" size="sm" onClick={() => setStreamRetryNonce((value) => value + 1)}>
+            重连进度
+          </Button>
+        ) : null}
+      </div>
       {retryError ? <span role="alert">{retryError}</span> : null}
       {detail?.batch.items.map((item) => (
         <div key={item.item_id}>

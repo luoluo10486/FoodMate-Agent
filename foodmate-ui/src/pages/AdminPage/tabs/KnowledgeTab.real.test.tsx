@@ -4,9 +4,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KnowledgeSection } from './KnowledgeTab';
 
 class TestEventSource {
+  static instances: TestEventSource[] = [];
+
+  readonly url: string;
+  onopen: (() => void) | null = null;
+
+  constructor(url: string) {
+    this.url = url;
+    TestEventSource.instances.push(this);
+  }
+
   addEventListener() {}
   removeEventListener() {}
   close() {}
+
+  open() {
+    this.onopen?.();
+  }
 }
 
 const dashboard = {
@@ -41,6 +55,7 @@ describe('KnowledgeSection real mode', () => {
       'foodmate_auth_user',
       JSON.stringify({ id: '7', username: 'admin', displayName: 'Admin', role: 'admin', status: 'active' }),
     );
+    TestEventSource.instances = [];
     vi.stubGlobal('EventSource', TestEventSource);
   });
 
@@ -123,10 +138,13 @@ describe('KnowledgeSection real mode', () => {
     await user.click(screen.getByRole('button', { name: '提交上传' }));
 
     expect(await screen.findByText('批次 9001')).toBeInTheDocument();
+    TestEventSource.instances[0].open();
+    expect(await screen.findByText('实时进度已连接')).toBeInTheDocument();
     expect(await screen.findByText(/guide\.pdf: index_failed/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '重试' }));
 
     await waitFor(() => expect(screen.getByText(/guide\.pdf: pending/)).toBeInTheDocument());
+    expect(TestEventSource.instances).toHaveLength(2);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/admin/knowledge-upload-batches/9001/documents/42/retry',
       expect.objectContaining({ method: 'POST' }),

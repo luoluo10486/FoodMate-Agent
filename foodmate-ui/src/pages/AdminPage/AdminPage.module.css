@@ -3820,6 +3820,25 @@
   border-radius: 16px !important;
 }
 
+.knowledgeStreamStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.knowledgeStreamStatus[data-stream-state='connected'] {
+  color: #4caf50;
+}
+
+.knowledgeStreamStatus[data-stream-state='reconnecting'],
+.knowledgeStreamStatus[data-stream-state='exhausted'] {
+  color: #c79654;
+}
+
 .knowledgeFixtureWorkspace .knowledgeDropZone {
   min-height: 128px;
   gap: 8px;
