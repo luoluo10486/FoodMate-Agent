@@ -3341,6 +3341,7 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] Chat 各状态页面统一通过 `FIXTURE_ACCOUNT_AVATAR` 绑定示例账号头像；消息头像、Workspace 侧栏头像和顶栏头像不再由独立 Chat 常量提供，运行时来源保持一致。
 - [x] 用户提供的男性/女性 SVG 仍是唯一默认人物资源，项目文件与附件 SHA-256 登记值保持不变；Chat 当前示例账号实际输出男性登记 SVG。
 - [x] 用户消息浅黄色气泡正文固定使用 `#000000` 语义 Token，解决浅色前景导致的可读性问题。
+- [x] 2026-09-13 通过 `127.0.0.1:5188` 直接读取运行时资源，男性 `default-male.svg` 为 `15487` 字节、SHA-256 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 `default-female.svg` 为 `20345` 字节、SHA-256 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
 - [x] Agent 绿色方块继续按 Figma 语义登记为状态标识，不计入人物头像资源审计；认证页面 `*-user.svg` 继续只作为输入框装饰图标。
 - [ ] 本批次不改变任何 PNG diff 结论；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能以头像运行时核验替代像素级验收。
 

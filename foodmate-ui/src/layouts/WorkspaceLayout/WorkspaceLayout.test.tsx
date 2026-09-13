@@ -213,6 +213,10 @@ describe('WorkspaceLayout shell controls', () => {
       'src',
       '/assets/avatars/default-male.svg',
     );
+    expect(container.querySelector('[data-avatar-role="workspace-sidebar"]')).toHaveAttribute(
+      'src',
+      container.querySelector('[data-avatar-role="workspace-topbar"]')?.getAttribute('src') ?? '',
+    );
   });
 
   it('keeps an explicit Figma Fixture shell on the default-only avatar policy', () => {

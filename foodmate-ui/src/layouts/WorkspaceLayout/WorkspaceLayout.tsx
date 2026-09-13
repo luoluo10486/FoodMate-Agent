@@ -378,7 +378,7 @@ export function WorkspaceLayout({
               <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
                 <div className={styles.avatar}>
                   <AvatarImage
-                    avatarUrl={defaultOnlyAvatar ? undefined : sidebarAvatar}
+                    avatarUrl={sidebarAvatar}
                     allowUploaded={realMode && !isFixtureLayout}
                     data-avatar-role="workspace-sidebar"
                     defaultOnly={defaultOnlyAvatar}
@@ -494,7 +494,7 @@ export function WorkspaceLayout({
                   <Button className={styles.userButton} variant="ghost" type="button">
                     <span className={styles.topAvatar}>
                       <AvatarImage
-                        avatarUrl={defaultOnlyAvatar ? undefined : topAvatar}
+                        avatarUrl={topAvatar}
                         allowUploaded={realMode && !isFixtureLayout}
                         data-avatar-role="workspace-topbar"
                         defaultOnly={defaultOnlyAvatar}

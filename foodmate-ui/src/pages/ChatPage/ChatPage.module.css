@@ -167,7 +167,7 @@
   padding: 16px;
   border-radius: 16px 16px 0;
   background: #fff6e2;
-  color: #333;
+  color: var(--fm-figma-chat-user-text);
   font-size: 14px;
   line-height: 17px;
   white-space: nowrap;
@@ -251,7 +251,7 @@
   min-width: 186px;
   max-width: 186px;
   box-sizing: border-box;
-  color: #333;
+  color: var(--fm-figma-chat-user-text);
 }
 
 .planningTitle {
@@ -315,7 +315,7 @@
   padding: 16px;
   border-radius: 16px 16px 0;
   background: #fff6e2;
-  color: #333;
+  color: var(--fm-figma-chat-user-text);
   font-size: 14px;
   line-height: 17px;
   white-space: nowrap;
@@ -474,7 +474,7 @@
   padding: 16px;
   border-radius: 16px 16px 0;
   background: #fff6e2;
-  color: #333;
+  color: var(--fm-figma-chat-user-text);
   font-size: 14px;
   line-height: 17px;
   white-space: nowrap;

@@ -297,6 +297,12 @@ describe('ChatPage Agent remaining states', () => {
     expect(fixtureUserBubbleStyles).toContain('min-height: 49px;');
     expect(pageStylesheet).toContain('--fm-figma-chat-user-text');
     expect(pageStylesheet).toContain('.designChatPage .user .messageBubble');
+    expect(pageStylesheet).toContain('.planningUserBubble');
+    expect(pageStylesheet).toContain('.executingUserBubble');
+    expect(pageStylesheet).toContain('.awaitingUserBubble');
+    expect(pageStylesheet).toMatch(/\.planningUserBubble\s*\{[\s\S]*?color: var\(--fm-figma-chat-user-text\);/);
+    expect(pageStylesheet).toMatch(/\.executingUserBubble\s*\{[\s\S]*?color: var\(--fm-figma-chat-user-text\);/);
+    expect(pageStylesheet).toMatch(/\.awaitingUserBubble\s*\{[\s\S]*?color: var\(--fm-figma-chat-user-text\);/);
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {
