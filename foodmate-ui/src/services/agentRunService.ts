@@ -1,4 +1,4 @@
-import type { AgentStreamConnection, AgentStreamConnectionState } from '../types/agent';
+import type { AgentStreamConnection, AgentStreamConnectionState, AgentStreamHandle } from '../types/agent';
 
 export type AgentRunEvent = {
   event_id?: string;
@@ -61,12 +61,9 @@ export type AgentRunEvent = {
   }>;
 };
 
-export type AgentStreamHandle = {
-  close: () => void;
-  getConnection: () => AgentStreamConnection;
-};
-
 export type AgentStreamOptions = {
+  /** 重新订阅已有 Run 时使用的持久化 SSE 游标。 */
+  lastEventId?: string;
   maxAttempts?: number;
   reconnectDelayMs?: number;
   onStateChange?: (connection: AgentStreamConnection) => void;
@@ -85,9 +82,13 @@ export function openAgentRunStream(
   const maxAttempts = Math.max(1, options.maxAttempts ?? 5);
   const reconnectDelayMs = Math.max(0, options.reconnectDelayMs ?? 500);
   const eventTypes = [
+    'run.created',
     'run.event',
     'run.accepted',
     'run.routed',
+    'run.planned',
+    'run.retrieval_started',
+    'run.retrieval_finished',
     'run.context_assembled',
     'run.tool_started',
     'run.tool_finished',
@@ -95,6 +96,7 @@ export function openAgentRunStream(
     'run.model_usage',
     'run.checkpoint_saved',
     'run.clarification_requested',
+    'run.cancel_acknowledged',
     'run.answer_stream',
     'run.completed',
     'run.failed',
@@ -106,7 +108,12 @@ export function openAgentRunStream(
   let reconnectTimer: number | undefined;
   let terminal = false;
   let closed = false;
-  let connection: AgentStreamConnection = { state: 'connecting', attempt: 1, maxAttempts };
+  let connection: AgentStreamConnection = {
+    state: 'connecting',
+    attempt: 1,
+    maxAttempts,
+    lastEventId: options.lastEventId?.trim() || undefined,
+  };
 
   const publishState = (state: AgentStreamConnectionState, patch: Partial<AgentStreamConnection> = {}) => {
     connection = { ...connection, ...patch, state };
@@ -127,25 +134,55 @@ export function openAgentRunStream(
     publishState('closed');
   };
 
+  const handleConnectionFailure = (failedSource?: EventSource) => {
+    // 旧连接的延迟 error 或解析错误不能影响已经建立的新连接。
+    if (closed || terminal || (failedSource && source !== failedSource)) return;
+    closeSource();
+    if (connection.attempt >= maxAttempts) {
+      publishState('exhausted');
+      options.onError?.(connection);
+      return;
+    }
+    if (reconnectTimer !== undefined) return;
+    const attempt = connection.attempt + 1;
+    publishState('reconnecting', { attempt });
+    reconnectTimer = window.setTimeout(() => {
+      reconnectTimer = undefined;
+      connect();
+    }, reconnectDelayMs);
+    options.onError?.(connection);
+  };
+
   const connect = () => {
     if (closed || terminal) return;
     const lastEventId = connection.lastEventId;
     const suffix = lastEventId ? `?lastEventId=${encodeURIComponent(lastEventId)}` : '';
     const nextState = connection.attempt === 1 ? 'connecting' : 'reconnecting';
     if (connection.state !== nextState) publishState(nextState);
-    const nextSource = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream${suffix}`, {
-      withCredentials: true,
-    });
+    let nextSource: EventSource;
+    try {
+      nextSource = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream${suffix}`, {
+        withCredentials: true,
+      });
+    } catch {
+      handleConnectionFailure();
+      return;
+    }
     source = nextSource;
-    nextSource.onopen = () => publishState('connected');
+    nextSource.onopen = () => {
+      if (closed || terminal || source !== nextSource) return;
+      publishState('connected');
+    };
     for (const registeredType of eventTypes) {
       nextSource.addEventListener(registeredType, (event) => {
+        // EventSource.close() 后浏览器仍可能派发已排队的消息，必须丢弃旧连接事件。
+        if (closed || terminal || source !== nextSource) return;
         const message = event as MessageEvent<string>;
         let payload: AgentRunEvent;
         try {
           payload = JSON.parse(message.data) as AgentRunEvent;
         } catch {
-          options.onError?.(connection);
+          handleConnectionFailure(nextSource);
           return;
         }
         const eventId = message.lastEventId || payload.sse_event_id || payload.event_id || '';
@@ -164,24 +201,7 @@ export function openAgentRunStream(
         }
       });
     }
-    nextSource.onerror = () => {
-      // EventSource 在 close 后仍可能派发一次异步 error，不能为旧连接再安排重连。
-      if (closed || terminal || source !== nextSource) return;
-      closeSource();
-      if (connection.attempt >= maxAttempts) {
-        publishState('exhausted');
-        options.onError?.(connection);
-        return;
-      }
-      if (reconnectTimer !== undefined) return;
-      const attempt = connection.attempt + 1;
-      publishState('reconnecting', { attempt });
-      reconnectTimer = window.setTimeout(() => {
-        reconnectTimer = undefined;
-        connect();
-      }, reconnectDelayMs);
-      options.onError?.(connection);
-    };
+    nextSource.onerror = () => handleConnectionFailure(nextSource);
   };
 
   // 建立 EventSource 前先发布初始连接状态，页面可以立即显示连接中的运行态。

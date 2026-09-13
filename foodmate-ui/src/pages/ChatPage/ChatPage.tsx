@@ -16,7 +16,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection, ToolCall } from '../../types/agent';
+import type {
+  AgentRunView,
+  AgentDisplayStatus,
+  AgentStreamConnection,
+  AgentStreamHandle,
+  ToolCall,
+} from '../../types/agent';
 import type { Message } from '../../types/session';
 import type { SessionSummary } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
@@ -1841,10 +1847,13 @@ function RealChatPage() {
   }>();
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelAcknowledged, setCancelAcknowledged] = useState(false);
   const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
+  const [streamGeneration, setStreamGeneration] = useState(0);
   const messagesRef = useRef<HTMLDivElement>(null);
   const messagesStateRef = useRef<RealMessage[]>([]);
-  const streamRef = useRef<{ close: () => void }>();
+  const streamRef = useRef<AgentStreamHandle>();
+  const streamResumeRef = useRef<{ lastEventId?: string; preserveContent: boolean }>({ preserveContent: false });
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -1863,6 +1872,7 @@ function RealChatPage() {
     // 路由切换先关闭旧 Run，避免旧会话的事件继续写入新会话状态。
     streamRef.current?.close();
     streamRef.current = undefined;
+    streamResumeRef.current = { preserveContent: false };
     // 路由变化时重置状态，后续由新的 SSE 订阅接管这些值。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveRunId(undefined);
@@ -1878,6 +1888,7 @@ function RealChatPage() {
     setApproval(undefined);
     setApprovalSubmitting(false);
     setCancelling(false);
+    setCancelAcknowledged(false);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
     if (!sessionId) {
       setLoading(false);
@@ -1912,23 +1923,37 @@ function RealChatPage() {
   useEffect(() => {
     if (!activeRunId) return undefined;
     let streamActive = true;
+    const streamResume = streamResumeRef.current;
     const hasPersistedAnswer = messagesStateRef.current.some(
       (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
     );
     // SSE 订阅建立后先进入排队状态，再接收运行事件。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRunStatus('queued');
-    setAssistantText('');
+    if (!streamResume.preserveContent) {
+      setRunStatus('queued');
+      setAssistantText('');
+    }
     const stream = openAgentRunStream(
       activeRunId,
       (eventType, payload) => {
         if (!streamActive || !mountedRef.current) return;
+        if (eventType === 'run.created' || eventType === 'run.accepted') {
+          setRunStatus('queued');
+          return;
+        }
         if (eventType === 'run.routed') {
           setRunIntent(normalizeRunIntent(payload.intent));
           setRunStatus('routed');
           return;
         }
-        if (eventType === 'run.context_assembled') {
+        if (eventType === 'run.planned') {
+          setRunStatus('planning');
+          return;
+        }
+        if (
+          eventType === 'run.context_assembled' ||
+          eventType === 'run.retrieval_started' ||
+          eventType === 'run.retrieval_finished'
+        ) {
           setRunStatus('retrieving');
           return;
         }
@@ -1956,6 +1981,8 @@ function RealChatPage() {
           return;
         }
         if (eventType === 'run.completed') {
+          setCancelling(false);
+          setCancelAcknowledged(false);
           setRunStatus('completed');
           setCheckpointAvailable(false);
           setApproval(undefined);
@@ -2001,6 +2028,8 @@ function RealChatPage() {
           return;
         }
         if (eventType === 'run.failed') {
+          setCancelling(false);
+          setCancelAcknowledged(false);
           setRunStatus('failed');
           setCheckpointAvailable(false);
           setError(runtimeErrorMessage(payload));
@@ -2008,10 +2037,14 @@ function RealChatPage() {
         }
         if (eventType === 'run.cancelled') {
           setRunStatus('cancelled');
+          setCancelling(false);
+          setCancelAcknowledged(false);
           setCheckpointAvailable(false);
           return;
         }
         if (eventType === 'run.superseded') {
+          setCancelling(false);
+          setCancelAcknowledged(false);
           setRunStatus('superseded');
           setCheckpointAvailable(false);
           return;
@@ -2030,10 +2063,15 @@ function RealChatPage() {
           }
           return;
         }
+        if (eventType === 'run.cancel_acknowledged') {
+          setCancelAcknowledged(true);
+          return;
+        }
         setRunStatus(payload.status ?? eventType.replace('run.', ''));
       },
       {
         maxAttempts: 5,
+        lastEventId: streamResume.lastEventId,
         onStateChange: (nextConnection) => {
           if (streamActive && mountedRef.current) setConnection(nextConnection);
         },
@@ -2050,7 +2088,7 @@ function RealChatPage() {
       stream.close();
       if (streamRef.current === stream) streamRef.current = undefined;
     };
-  }, [activeRunId, sessionId]);
+  }, [activeRunId, sessionId, streamGeneration]);
 
   const send = async () => {
     const content = input.trim();
@@ -2066,7 +2104,12 @@ function RealChatPage() {
       }
       const saved = await sendUserMessage(target, content);
       setMessages((current) => [...current, saved].sort((a, b) => a.sequence_no - b.sequence_no));
-      if (saved.agent_run_id) setActiveRunId(String(saved.agent_run_id));
+      if (saved.agent_run_id) {
+        // 新 Run 不得继承旧 Run 的 SSE 游标，避免跳过新运行的首批事件。
+        streamResumeRef.current = { preserveContent: false };
+        setCancelAcknowledged(false);
+        setActiveRunId(String(saved.agent_run_id));
+      }
       setCitations([]);
       setInput('');
     } catch (reason) {
@@ -2115,20 +2158,27 @@ function RealChatPage() {
       onSend={() => void send()}
       onStop={() => {
         if (cancelling || !activeRunId) return;
-        streamRef.current?.close();
+        const currentStream = streamRef.current;
+        const resumeCursor = currentStream?.getConnection().lastEventId;
+        // 取消请求与取消终态是两个阶段；先关闭旧订阅，再用同一游标等待服务端裁决。
+        currentStream?.close();
+        if (streamRef.current === currentStream) streamRef.current = undefined;
+        streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: true };
+        setCancelAcknowledged(false);
         setCancelling(true);
         void cancelAgentRun(activeRunId)
           .then(() => {
             if (!mountedRef.current) return;
-            setRunStatus('cancelled');
             setCheckpointAvailable(false);
-            setConnection((current) => ({ ...current, state: 'closed' }));
+            // HTTP 200 只表示取消请求已被接受，真正的 cancelled 必须来自 SSE 终态事件。
+            setStreamGeneration((current) => current + 1);
           })
           .catch((reason) => {
-            if (mountedRef.current) setError(reason instanceof Error ? reason.message : '取消运行失败');
-          })
-          .finally(() => {
-            if (mountedRef.current) setCancelling(false);
+            if (!mountedRef.current) return;
+            setError(reason instanceof Error ? reason.message : '取消运行失败');
+            setCancelling(false);
+            // 取消请求失败时恢复原订阅，继续接收尚未结束的运行事件。
+            setStreamGeneration((current) => current + 1);
           });
       }}
       placeholder="追问或添加自定义指令..."
@@ -2162,8 +2212,8 @@ function RealChatPage() {
         <div className={styles.connectionNotice} role="status" aria-live="polite">
           <LoaderCircle aria-hidden="true" />
           <div>
-            <strong>正在取消当前运行...</strong>
-            <span>已停止接收新的运行事件，等待服务确认。</span>
+            <strong>{cancelAcknowledged ? '取消请求已确认，等待运行终态...' : '正在取消当前运行...'}</strong>
+            <span>已停止接收新的运行事件，等待服务返回 cancelled 终态。</span>
           </div>
         </div>
       ) : null}

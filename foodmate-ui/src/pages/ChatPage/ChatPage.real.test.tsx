@@ -285,18 +285,46 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(openAgentRunStream).toHaveBeenCalledTimes(1);
   });
 
-  it('用户停止真实运行时先关闭 SSE，取消接口成功后再展示 cancelled 状态', async () => {
-    const close = vi.fn();
+  it('用户停止真实运行时保留文本，使用原游标等待取消终态', async () => {
+    const firstClose = vi.fn();
+    const secondClose = vi.fn();
+    const eventHandlers: Array<(type: string, payload: unknown, eventId?: string) => void> = [];
     cancelAgentRun.mockResolvedValue(undefined);
     openAgentRunStream.mockImplementation(
       (
         _runId: string,
-        onEvent: (type: string, payload: unknown) => void,
-        options: { onStateChange?: (connection: { state: string; attempt: number; maxAttempts: number }) => void },
+        onEvent: (type: string, payload: unknown, eventId?: string) => void,
+        options: {
+          lastEventId?: string;
+          onStateChange?: (connection: {
+            state: string;
+            attempt: number;
+            maxAttempts: number;
+            lastEventId?: string;
+          }) => void;
+        },
       ) => {
-        options.onStateChange?.({ state: 'connected', attempt: 1, maxAttempts: 5 });
-        onEvent('run.answer_stream', { event_type: 'run.answer_stream', text: '已接收部分回答' });
-        return { close, getConnection: () => ({ state: 'connected', attempt: 1, maxAttempts: 5 }) };
+        const streamIndex = eventHandlers.length;
+        eventHandlers.push(onEvent);
+        const cursor = options.lastEventId ?? 'event-1';
+        options.onStateChange?.({
+          state: 'connected',
+          attempt: streamIndex + 1,
+          maxAttempts: 5,
+          lastEventId: cursor,
+        });
+        if (streamIndex === 0) {
+          onEvent('run.answer_stream', { event_type: 'run.answer_stream', text: '已接收部分回答' }, 'event-1');
+        }
+        return {
+          close: streamIndex === 0 ? firstClose : secondClose,
+          getConnection: () => ({
+            state: 'connected',
+            attempt: streamIndex + 1,
+            maxAttempts: 5,
+            lastEventId: cursor,
+          }),
+        };
       },
     );
     loadSessionMessages.mockResolvedValue([
@@ -323,8 +351,18 @@ describe('ChatPage 真实历史会话回放', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '停止生成' })).toBeInTheDocument());
     screen.getByRole('button', { name: '停止生成' }).click();
 
-    expect(close).toHaveBeenCalledTimes(1);
+    expect(firstClose).toHaveBeenCalled();
     await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('run-1'));
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(2));
+    expect(openAgentRunStream.mock.calls[1][2]).toMatchObject({ lastEventId: 'event-1' });
+    expect(screen.getByText('正在取消当前运行...')).toBeInTheDocument();
+    expect(screen.getByText('已接收部分回答')).toBeInTheDocument();
+
+    eventHandlers[1]('run.cancel_acknowledged', { event_type: 'run.cancel_acknowledged' }, 'event-2');
+    expect(await screen.findByText('取消请求已确认，等待运行终态...')).toBeInTheDocument();
+
+    eventHandlers[1]('run.cancelled', { event_type: 'run.cancelled', reason: 'user_requested' }, 'event-3');
+    await waitFor(() => expect(screen.queryByText('取消请求已确认，等待运行终态...')).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: '发送消息' })).toBeInTheDocument();
   });
 

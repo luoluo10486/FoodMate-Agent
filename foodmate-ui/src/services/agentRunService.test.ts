@@ -35,6 +35,11 @@ class FakeEventSource {
     const event = new MessageEvent(type, { data: JSON.stringify(payload), lastEventId });
     for (const listener of this.listeners.get(type) ?? []) listener(event);
   }
+
+  emitRaw(type: string, data: string, lastEventId = '') {
+    const event = new MessageEvent(type, { data, lastEventId });
+    for (const listener of this.listeners.get(type) ?? []) listener(event);
+  }
 }
 
 describe('openAgentRunStream', () => {
@@ -42,6 +47,16 @@ describe('openAgentRunStream', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     FakeEventSource.instances = [];
+  });
+
+  it('starts a resumed stream with the persisted last event id', () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const stream = openAgentRunStream('42', () => undefined, { lastEventId: 'evt-before' });
+
+    expect(FakeEventSource.instances[0].url).toContain('lastEventId=evt-before');
+    expect(stream.getConnection()).toMatchObject({ state: 'connecting', lastEventId: 'evt-before' });
+
+    stream.close();
   });
 
   it('reconnects with the last sse_event_id and deduplicates replayed events', () => {
@@ -112,6 +127,26 @@ describe('openAgentRunStream', () => {
     expect(states.at(-1)).toMatchObject({ state: 'connected', lastEventId: 'evt-7' });
   });
 
+  it('forwards cancel acknowledgement without treating it as a terminal event', () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const received: string[] = [];
+    const stream = openAgentRunStream('42', (eventType, payload, eventId) =>
+      received.push(`${eventType}:${payload.reason ?? ''}:${eventId}`),
+    );
+    const source = FakeEventSource.instances[0];
+
+    source.emit(
+      'run.cancel_acknowledged',
+      { event_type: 'run.cancel_acknowledged', reason: 'user_requested' },
+      'ack-1',
+    );
+
+    expect(received).toEqual(['run.cancel_acknowledged:user_requested:ack-1']);
+    expect(source.closed).toBe(false);
+
+    stream.close();
+  });
+
   it('ignores a delayed error from an obsolete EventSource', () => {
     vi.useFakeTimers();
     vi.stubGlobal('EventSource', FakeEventSource);
@@ -127,6 +162,49 @@ describe('openAgentRunStream', () => {
     expect(FakeEventSource.instances).toHaveLength(2);
     second.fail();
     expect(stream.getConnection().attempt).toBe(3);
+
+    stream.close();
+  });
+
+  it('ignores delayed messages from an obsolete EventSource', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const received: string[] = [];
+    const stream = openAgentRunStream('42', (eventType) => received.push(eventType), {
+      reconnectDelayMs: 10,
+      maxAttempts: 3,
+    });
+    const first = FakeEventSource.instances[0];
+
+    first.fail();
+    vi.advanceTimersByTime(10);
+    const second = FakeEventSource.instances[1];
+    first.emit('run.answer_stream', { text: '旧连接文本' }, 'old-event');
+    second.emit('run.answer_stream', { text: '新连接文本' }, 'new-event');
+
+    expect(received).toEqual(['run.answer_stream']);
+
+    stream.close();
+  });
+
+  it('reconnects after a malformed SSE payload', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const states: string[] = [];
+    const stream = openAgentRunStream('42', () => undefined, {
+      reconnectDelayMs: 10,
+      maxAttempts: 2,
+      onStateChange: (connection) => states.push(connection.state),
+    });
+    const first = FakeEventSource.instances[0];
+
+    first.emitRaw('run.answer_stream', 'not-json');
+    expect(states).toContain('reconnecting');
+
+    vi.advanceTimersByTime(10);
+    expect(FakeEventSource.instances).toHaveLength(2);
+
+    stream.close();
   });
 
   it.each(['run.failed', 'run.cancelled', 'run.superseded'])(

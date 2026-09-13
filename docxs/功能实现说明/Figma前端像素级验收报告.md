@@ -3360,3 +3360,21 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 差异证据来源为 `scripts/png-diff.mjs`；详细 JSON 已登记在 `figma-105-diff-results.json` 及三个 `*-current-diff-2026-09-13.json` 文件中。
 - [ ] 三项整页 diff 均非零，保留 `DIFF_REVIEW`；不能用局部结构修复或人工“看起来接近”替代像素级 `PASS`。
 - [ ] 当前全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 实体包、CSS/Unicode 映射、来源和许可证仍为 `BLOCKED`。
+
+## 2026-09-13 Agent SSE 取消终态与异常连接隔离
+
+本节记录真实 Chat 前端的 SSE 生命周期增量，不新增 Figma/浏览器 PNG，不把连接测试结果当作画板像素级通过证据。Figma 文件保持只读，后端 SSE 事件协议保持不变。
+
+| 验收项 | 代码/测试证据 | 结论 |
+| --- | --- | --- |
+| 连接状态与游标 | `src/types/agent.ts`、`src/services/agentRunService.ts` | `AgentStreamConnection` 提供五种连接状态、重试次数上限和 `lastEventId` |
+| 断点恢复与去重 | `src/services/agentRunService.test.ts` | 初始游标、`MessageEvent.lastEventId`、`sse_event_id`/`event_id` 和重复事件去重均通过 |
+| 异常连接隔离 | `src/services/agentRunService.test.ts` | 非法 JSON、旧连接延迟消息/错误和重连耗尽均进入预期分支 |
+| 取消生命周期 | `src/pages/ChatPage/ChatPage.tsx`、`src/pages/ChatPage/ChatPage.real.test.tsx` | 取消接口接受、`run.cancel_acknowledged` 和 `run.cancelled` 分阶段展示，原游标恢复通过 |
+| 终态关闭 | `src/services/agentRunService.test.ts` | `completed`、`failed`、`cancelled`、`superseded` 均关闭 EventSource 且不再重连 |
+
+- [x] 本大点完成后定向验证为 `6` 个测试文件、`100/100` 个用例通过；该数字包含 Chat、Workspace 和头像契约回归，不代表全量 105 画板验收。
+- [x] 用户取消期间保留已接收回答文本；HTTP 取消成功不直接写入 `cancelled`，必须等待服务端终态事件，避免把请求接受误判为业务完成。
+- [x] 重连连接状态可供页面展示第几次尝试和最大次数；达到上限后进入稳定错误提示，不再显示“停止生成”入口。
+- [ ] 本节没有新增 PNG、diff JSON、几何检查或人工视觉复核证据；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
