@@ -21,6 +21,7 @@ import { RunsSection } from './tabs/RunsTab';
 import { ToolsSection } from './tabs/ToolsTab';
 import { UsageSection } from './tabs/UsageTab';
 import { ModelGovernanceSection } from './tabs/ModelGovernanceTab';
+import { RetentionSection } from './tabs/RetentionTab';
 import { UsersSection } from './tabs/UsersTab';
 import { AdminOperationStatus } from './tabs/AdminOperationStatus';
 import { OperationAuditSection } from './tabs/OperationAuditTab';
@@ -778,6 +779,8 @@ function renderSection(
       );
     case 'deleted':
       return <DeletedSection onAction={onAction} refreshNonce={refreshNonce} />;
+    case 'retention':
+      return <RetentionSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'audit':
       return <OperationAuditSection refreshNonce={refreshNonce} />;
     default:
@@ -810,6 +813,7 @@ export function AdminPage() {
     requestedFixture === 'tool-registry' ||
     (pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry');
   const isDeletedRoute = pathname.endsWith('/deleted') || requestedFixture === 'deleted-resources';
+  const isRetentionRoute = pathname.endsWith('/data-retention');
   const isUsageRoute = sectionKey === 'usage';
   const isAuditFigmaRoute = sectionKey === 'audit' && import.meta.env.VITE_AGENT_MODE !== 'real';
   const isUserDetailFixture = requestedFixture === 'user-detail';
@@ -1055,17 +1059,19 @@ export function AdminPage() {
                     ? '工具注册表'
                     : isDeletedRoute
                       ? '删除资源管理'
-                      : sectionKey === 'users'
-                        ? '用户管理'
-                        : sectionKey === 'knowledge'
-                          ? '知识库管理'
-                          : sectionKey === 'usage'
-                            ? '模型用量'
-                            : sectionKey === 'model'
-                              ? '模型治理'
-                              : sectionKey === 'audit'
-                                ? '操作审计'
-                                : '管理控制台'}
+                      : isRetentionRoute
+                        ? '数据保留'
+                        : sectionKey === 'users'
+                          ? '用户管理'
+                          : sectionKey === 'knowledge'
+                            ? '知识库管理'
+                            : sectionKey === 'usage'
+                              ? '模型用量'
+                              : sectionKey === 'model'
+                                ? '模型治理'
+                                : sectionKey === 'audit'
+                                  ? '操作审计'
+                                  : '管理控制台'}
             </h1>
             {isDetailFixture ||
             sectionKey === 'overview' ||
@@ -1097,15 +1103,17 @@ export function AdminPage() {
                       ? '服务节点：healthy-cluster-0'
                       : isDeletedRoute
                         ? '存档保留时长：90天安全窗口'
-                        : isUsageRoute
-                          ? '数据刷新：刚刚'
-                          : sectionKey === 'users'
-                            ? '刷新时间：刚刚'
-                            : isAuditFigmaRoute
-                              ? '数据刷新：刚刚'
-                              : sectionKey === 'audit'
-                                ? '审计记录只读'
-                                : '数据刷新：刚刚'}
+                        : isRetentionRoute
+                          ? '保留策略：服务端裁决'
+                          : isUsageRoute
+                            ? '数据刷新：刚刚'
+                            : sectionKey === 'users'
+                              ? '刷新时间：刚刚'
+                              : isAuditFigmaRoute
+                                ? '数据刷新：刚刚'
+                                : sectionKey === 'audit'
+                                  ? '审计记录只读'
+                                  : '数据刷新：刚刚'}
                 </span>
                 <Button
                   variant="outline"
@@ -1113,11 +1121,13 @@ export function AdminPage() {
                   onClick={
                     isDeletedRoute
                       ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。')
-                      : isUsageRoute
-                        ? () => setNotice('模型用量 CSV 已生成。')
-                        : isAuditFigmaRoute
-                          ? () => setNotice('审计导出已准备。')
-                          : handleRefresh
+                      : isRetentionRoute
+                        ? handleRefresh
+                        : isUsageRoute
+                          ? () => setNotice('模型用量 CSV 已生成。')
+                          : isAuditFigmaRoute
+                            ? () => setNotice('审计导出已准备。')
+                            : handleRefresh
                   }
                 >
                   {isDetailFixture
@@ -1126,15 +1136,17 @@ export function AdminPage() {
                       ? '更新状态'
                       : isDeletedRoute
                         ? '合规性审计'
-                        : isUsageRoute
-                          ? '导出 CSV'
-                          : isAuditFigmaRoute
-                            ? '导出审计'
-                            : sectionKey === 'users'
-                              ? '刷新'
-                              : sectionKey === 'audit'
-                                ? '刷新审计'
-                                : '刷新数据'}
+                        : isRetentionRoute
+                          ? '刷新状态'
+                          : isUsageRoute
+                            ? '导出 CSV'
+                            : isAuditFigmaRoute
+                              ? '导出审计'
+                              : sectionKey === 'users'
+                                ? '刷新'
+                                : sectionKey === 'audit'
+                                  ? '刷新审计'
+                                  : '刷新数据'}
                 </Button>
               </>
             )}

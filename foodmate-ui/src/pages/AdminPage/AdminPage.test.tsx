@@ -47,10 +47,18 @@ describe('AdminPage overview', () => {
       '工具注册表',
       '删除资源',
       '操作审计',
+      '数据保留',
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(screen.queryByRole('link', { name: '模型治理' })).not.toBeInTheDocument();
+  });
+
+  it('renders the data retention route and highlights its navigation item', () => {
+    renderAdmin('/admin/data-retention');
+
+    expect(screen.getByText('数据保留治理')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '数据保留' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('does not render the Figma-only macOS window control dots', () => {
@@ -65,7 +73,7 @@ describe('AdminPage overview', () => {
     renderAdmin();
 
     const icons = Array.from(document.querySelectorAll<HTMLElement>('[data-figma-icon]'));
-    expect(icons).toHaveLength(11);
+    expect(icons).toHaveLength(12);
     expect(icons.map((icon) => icon.dataset.figmaIcon)).toEqual([
       'overview',
       'users',
@@ -77,6 +85,7 @@ describe('AdminPage overview', () => {
       'knowledge',
       'registry',
       'deleted',
+      'retention',
       'audit',
     ]);
     expect(

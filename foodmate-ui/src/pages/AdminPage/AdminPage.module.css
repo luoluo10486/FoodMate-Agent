@@ -7007,3 +7007,438 @@
     flex-direction: column;
   }
 }
+
+.retentionSurface {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.retentionIntro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #f1ddaf;
+  border-radius: 10px;
+  background: #fffaf0;
+}
+
+.retentionIntro > div {
+  min-width: 0;
+}
+
+.retentionIntroTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c79654;
+}
+
+.retentionIntroTitle svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.retentionIntroTitle h2 {
+  margin: 0;
+  color: #333333;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 22px;
+}
+
+.retentionIntro p,
+.retentionCardHint,
+.retentionFixtureNote {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.retentionCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #f4f6f5;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.retentionCard .cardHead {
+  align-items: flex-start;
+  margin-bottom: 0;
+}
+
+.retentionCard .cardHead > div {
+  min-width: 0;
+}
+
+.retentionCard .cardHead strong {
+  color: #333333;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 20px;
+}
+
+.retentionCardIcon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: #c79654;
+}
+
+.retentionReadOnly {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  background: #f7faf7;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionReadOnly svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: #5da9b2;
+}
+
+.retentionForm,
+.retentionQueryForm {
+  display: grid;
+  min-width: 0;
+  gap: 12px 14px;
+}
+
+.retentionForm {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.retentionQueryForm {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.retentionField {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.retentionField > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retentionFormActions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.retentionFormActions button,
+.retentionQueryForm > button,
+.retentionHeaderActions button {
+  gap: 6px;
+}
+
+.retentionFormActions svg,
+.retentionQueryForm svg,
+.retentionHeaderActions svg {
+  width: 15px;
+  height: 15px;
+}
+
+.retentionFormError {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid rgb(214 118 118 / 28%);
+  border-radius: 8px;
+  background: rgb(255 117 118 / 8%);
+  color: #b85454;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgb(214 118 118 / 28%);
+  border-radius: 8px;
+  background: rgb(255 117 118 / 8%);
+  color: #b85454;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionError > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.retentionHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.retentionDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.retentionDetailGrid > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #f0f2f1;
+  border-radius: 7px;
+  background: #fbfcfb;
+}
+
+.retentionDetailGrid dt,
+.retentionDetailGrid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.retentionDetailGrid dt {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.retentionDetailGrid dd {
+  margin-top: 4px;
+  color: #333333;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.retentionFlags {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.retentionFlag {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #f0f2f1;
+  border-radius: 7px;
+  background: #fbfcfb;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionFlag strong {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.retentionFlagYes {
+  color: #478052;
+}
+
+.retentionFlagNo {
+  color: #b85454;
+}
+
+.retentionPreflightColumns {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.3fr);
+  gap: 20px;
+}
+
+.retentionPreflightColumns section {
+  min-width: 0;
+}
+
+.retentionPreflightColumns h3 {
+  margin: 0 0 10px;
+  color: #333333;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 18px;
+}
+
+.retentionEmpty {
+  margin: 0;
+  color: #8a918d;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionCodeList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retentionCodeList li {
+  padding: 9px 10px;
+  border-radius: 6px;
+  background: rgb(255 117 118 / 8%);
+  color: #b85454;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.retentionTaskTable {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.retentionTaskHeader,
+.retentionTaskRow {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) 90px 84px minmax(90px, 1fr);
+  gap: 10px;
+  min-width: 430px;
+  align-items: center;
+  padding: 9px 10px;
+}
+
+.retentionTaskHeader {
+  background: #f4f6f5;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 16px;
+}
+
+.retentionTaskRow {
+  min-height: 44px;
+  border-bottom: 1px solid #f0f2f1;
+  color: #555c58;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.retentionTaskRow:last-child {
+  border-bottom: 0;
+}
+
+.retentionTaskRow > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retentionTaskRow strong {
+  color: #333333;
+  font-weight: 800;
+}
+
+.retentionTaskRow code {
+  color: #6b7280;
+  font-family: var(--font-mono);
+}
+
+.retentionHoldResult {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.retentionHoldResult > div:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.retentionHoldResult strong {
+  color: #333333;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionHoldResult span {
+  color: #6b7280;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .retentionGrid,
+  .retentionPreflightColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .retentionDetailGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .retentionIntro,
+  .retentionHoldResult {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .retentionForm,
+  .retentionQueryForm,
+  .retentionFlags,
+  .retentionDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .retentionQueryForm > button {
+    justify-self: start;
+  }
+
+  .retentionHeaderActions {
+    justify-content: flex-start;
+  }
+}

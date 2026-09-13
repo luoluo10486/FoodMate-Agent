@@ -156,6 +156,12 @@ export const adminNavItems: Array<{
     adminOnly: true,
   },
   {
+    key: 'retention',
+    path: '/admin/data-retention',
+    label: '数据保留',
+    iconPath: '/assets/figma/admin/navigation/deleted.svg',
+  },
+  {
     key: 'audit',
     path: '/admin?view=audit',
     label: '操作审计',
@@ -199,6 +205,11 @@ export const sectionMeta: Record<string, { title: string; description: string; t
   },
   knowledge: { title: '知识库', description: '管理知识库文档、解析状态、索引进度和下线恢复。', tag: 'Knowledge' },
   deleted: { title: '删除资源', description: '查看已删除业务资源，并由 admin 执行恢复操作。', tag: 'Recovery' },
+  retention: {
+    title: '数据保留',
+    description: '管理清理申请、执行前置检查和法律保留，所有高风险动作均由服务端确认。',
+    tag: 'Retention',
+  },
   audit: {
     title: '操作审计',
     description: '按动作、目标、结果和请求链路查询管理操作，并查看不可变审计详情。',
@@ -302,5 +313,6 @@ export function getSectionKey(pathname: string, search = ''): string {
   if (pathname.endsWith('/model-governance')) return 'model';
   if (pathname.endsWith('/knowledge')) return 'knowledge';
   if (pathname.endsWith('/deleted')) return 'deleted';
+  if (pathname.endsWith('/data-retention')) return 'retention';
   return 'overview';
 }
